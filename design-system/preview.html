@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fugue Minimal Design System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&family=Syne:wght@500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./index.css" />
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+      }
+
+      main {
+        min-height: 100dvh;
+        padding: 2rem 0 4rem;
+      }
+
+      .preview-stack {
+        display: grid;
+        gap: 1.5rem;
+      }
+
+      .preview-section {
+        padding-top: 2rem;
+        border-top: 1px solid var(--fugue-border-subtle);
+      }
+
+      .preview-heading {
+        display: grid;
+        gap: 0.8rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .preview-heading h1,
+      .preview-heading h2 {
+        font-size: clamp(2.2rem, 5vw, 4.6rem);
+      }
+
+      .preview-actions,
+      .preview-notes {
+        display: grid;
+        gap: 1rem;
+      }
+
+      .preview-actions {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .preview-notes {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .preview-proof {
+        margin-top: 1rem;
+      }
+
+      @media (max-width: 900px) {
+        .preview-actions,
+        .preview-notes {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body class="fg-theme-dark fg-atmosphere">
+    <main>
+      <div class="fg-content-shell preview-stack">
+        <section class="preview-heading">
+          <p class="fg-label">Design system seed</p>
+          <h1 class="fg-heading">v8 extracted into reusable primitives.</h1>
+          <p class="fg-copy">
+            This page is not a landing page. It is the smallest reusable surface cut out from
+            Fugue v8 for future auth, docs, and console work.
+          </p>
+        </section>
+
+        <section class="preview-section">
+          <div class="preview-heading">
+            <p class="fg-label">Buttons</p>
+            <h2 class="fg-heading">Primary action, secondary action, compact utility.</h2>
+          </div>
+          <div class="preview-actions">
+            <a class="fg-button fg-button--primary" href="#">
+              <span>Inspect quickstart</span>
+              <span class="fg-button__icon" aria-hidden="true">-&gt;</span>
+            </a>
+            <a class="fg-button fg-button--ghost" href="#">
+              <span>See the route</span>
+              <span class="fg-button__icon" aria-hidden="true">-&gt;</span>
+            </a>
+            <a class="fg-button fg-button--ghost fg-button--compact" href="#">
+              <span>Open auth</span>
+              <span class="fg-button__icon" aria-hidden="true">-&gt;</span>
+            </a>
+          </div>
+        </section>
+
+        <section class="preview-section">
+          <div class="preview-heading">
+            <p class="fg-label">Pill nav</p>
+            <h2 class="fg-heading">Detached navigation, not a welded top bar.</h2>
+          </div>
+          <nav class="fg-pill-nav" aria-label="Preview navigation">
+            <a href="#notes">Route</a>
+            <a href="#proof">Proof</a>
+            <a href="#objects">Objects</a>
+          </nav>
+        </section>
+
+        <section class="preview-section" id="notes">
+          <div class="preview-heading">
+            <p class="fg-label">Route notes</p>
+            <h2 class="fg-heading">Cards that explain the route, not decorative features.</h2>
+          </div>
+          <div class="preview-notes">
+            <article class="fg-route-note">
+              <span class="fg-route-note__index">01</span>
+              <strong class="fg-route-note__title">GitHub intake</strong>
+              <span class="fg-route-note__meta">repo_url / branch / builder</span>
+            </article>
+            <article class="fg-route-note">
+              <span class="fg-route-note__index">02</span>
+              <strong class="fg-route-note__title">Shared runtime</strong>
+              <span class="fg-route-note__meta">build / deploy / route</span>
+            </article>
+            <article class="fg-route-note">
+              <span class="fg-route-note__index">03</span>
+              <strong class="fg-route-note__title">Attached VPS</strong>
+              <span class="fg-route-note__meta">node key / heartbeat / migrate</span>
+            </article>
+          </div>
+        </section>
+
+        <section class="preview-section">
+          <div class="preview-heading">
+            <p class="fg-label">Route signal</p>
+            <h2 class="fg-heading">A path is only useful if it maps to a real transition.</h2>
+          </div>
+          <svg class="fg-route-signal" viewBox="0 0 1200 170" aria-hidden="true">
+            <path class="fg-route-signal__base" d="M40 118 C232 26, 372 32, 538 96 S860 180, 1160 36" />
+            <path class="fg-route-signal__active" d="M40 118 C232 26, 372 32, 538 96 S860 180, 1160 36" />
+            <circle class="fg-route-signal__dot" cx="40" cy="118" r="7" />
+            <circle class="fg-route-signal__dot" cx="538" cy="96" r="7" />
+            <circle class="fg-route-signal__dot" cx="1160" cy="36" r="7" />
+          </svg>
+        </section>
+
+        <section class="preview-section preview-proof" id="proof">
+          <div class="preview-heading">
+            <p class="fg-label">Proof shell</p>
+            <h2 class="fg-heading">Command and API proof should live in hardware, not naked code.</h2>
+          </div>
+          <section class="fg-bezel fg-proof-shell">
+            <div class="fg-bezel__inner">
+              <div class="fg-proof-shell__ribbon">
+                <span>public repos only</span>
+                <span>runtime_managed_shared</span>
+                <span>api.fugue.pro</span>
+              </div>
+              <pre><code>export FUGUE_BASE_URL="https://api.fugue.pro"
+
+curl -sS "${FUGUE_BASE_URL}/healthz"
+
+curl -sS "${FUGUE_BASE_URL}/v1/apps/import-github" \
+  -H "Authorization: Bearer &lt;tenant-api-key&gt;" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "repo_url":"https://github.com/example/static-site",
+    "runtime_id":"runtime_managed_shared"
+  }'</code></pre>
+            </div>
+          </section>
+        </section>
+
+        <section class="preview-section" id="objects">
+          <div class="preview-heading">
+            <p class="fg-label">Object belt</p>
+            <h2 class="fg-heading">Keep product nouns visible and stable.</h2>
+          </div>
+          <div class="fg-object-belt" aria-label="Core objects">
+            <span>workspace</span>
+            <span>project</span>
+            <span>app</span>
+            <span>runtime</span>
+            <span>operation</span>
+          </div>
+        </section>
+      </div>
+    </main>
+  </body>
+</html>

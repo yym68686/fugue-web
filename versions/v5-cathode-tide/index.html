@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fugue | Cathode Tide v5</title>
+    <meta
+      name="description"
+      content="Fugue v5 rebuilds the landing page around a live dark signal stage: import from GitHub, deploy on shared k3s first, and move the same app onto your own VPS when that machine starts to matter."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/gh/hiunicornstudio/unicornstudio.js@v2.0.5/dist/unicornStudio.umd.js"
+    ></script>
+    <script defer src="main.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="masthead">
+      <div class="masthead__inner">
+        <a class="brand" href="#top" aria-label="Fugue home">
+          <span class="brand__word">Fugue</span>
+          <span class="brand__meta mono">v5 / cathode tide</span>
+        </a>
+
+        <nav class="desktop-nav" aria-label="Primary">
+          <a href="#route">Route</a>
+          <a href="#surface">Surface</a>
+          <a href="#quickstart">Quickstart</a>
+          <a href="#launch">Launch</a>
+        </nav>
+
+        <a class="masthead__cta" href="#launch">Auth next</a>
+
+        <button
+          class="menu-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="mobile-menu"
+          aria-label="Open menu"
+        >
+          <span></span>
+          <span></span>
+        </button>
+      </div>
+
+      <div class="mobile-sheet" id="mobile-menu" hidden>
+        <nav class="mobile-nav" aria-label="Mobile">
+          <a href="#route">Route</a>
+          <a href="#surface">Surface</a>
+          <a href="#quickstart">Quickstart</a>
+          <a href="#launch">Launch</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="hero" id="top">
+        <div class="hero-stage" aria-hidden="true">
+          <div
+            id="unicorn-scene"
+            class="scene-container"
+            data-us-project="giF47RGc5eVb7myHhJ4n"
+          ></div>
+          <div class="overlay-radial"></div>
+          <div class="overlay-gradient"></div>
+          <div class="overlay-noise"></div>
+        </div>
+
+        <div class="hero-shell">
+          <div class="hero-copy">
+            <p class="hero-kicker mono" data-stagger="1">
+              source-led rewrite / unicorn scene / dark editorial surface
+            </p>
+            <h1 data-stagger="2">
+              GitHub in. Shared first. Move to your own VPS when the machine matters.
+            </h1>
+            <p class="hero-lead" data-stagger="3">
+              Fugue should open like a live signal stage, not a dashboard pretending to be a
+              landing page. This version lifts the reference page’s real hero mechanism into the
+              product: one dark scene, one visible route, one clean handoff from public landing to
+              auth.
+            </p>
+
+            <div class="hero-actions" data-stagger="4">
+              <a class="button button--primary" href="#quickstart">Inspect quickstart</a>
+              <a class="button button--ghost" href="#route">Read the route</a>
+            </div>
+
+            <div class="hero-ledger" data-stagger="5">
+              <span>public GitHub import</span>
+              <span>shared runtime first</span>
+              <span>same app identity survives migration</span>
+              <span>/auth/sign-in is next</span>
+            </div>
+          </div>
+
+          <div class="hero-rail" data-stagger="6">
+            <article class="hero-stop">
+              <p class="hero-stop__index mono">01 / intake</p>
+              <h2>Import a repository, not an abstract “project.”</h2>
+              <p>Repository URL, branch, and builder establish the app before deployment starts.</p>
+            </article>
+
+            <article class="hero-stop">
+              <p class="hero-stop__index mono">02 / runtime</p>
+              <h2>Use shared k3s to get public signal online quickly.</h2>
+              <p>The first live deploy should be fast, inspectable, and visibly reversible.</p>
+            </article>
+
+            <article class="hero-stop">
+              <p class="hero-stop__index mono">03 / migration</p>
+              <h2>Attach a VPS later without rewriting the product grammar.</h2>
+              <p>Node key, heartbeat, migrate. The same app moves; the control model does not.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section section--statement" id="route">
+        <div class="section-shell">
+          <p class="section-label mono">Route</p>
+          <div class="statement-grid">
+            <h2>
+              Fugue is useful because the first deploy and the later migration belong to the same
+              sentence.
+            </h2>
+            <p>
+              Most infrastructure products either start too abstract or treat migration like a
+              second product. Fugue should argue the opposite. The shared runtime is the shortest
+              beginning, and your own machine remains a first-class continuation instead of a
+              detour.
+            </p>
+          </div>
+
+          <div class="route-list">
+            <article class="route-row">
+              <p class="route-row__index mono">01 / repo</p>
+              <div class="route-row__body">
+                <h3>Public repository import</h3>
+                <p>Start with a real repository, a real branch, and a real build mode.</p>
+              </div>
+              <p class="route-row__meta mono">repo_url / branch / builder</p>
+            </article>
+
+            <article class="route-row">
+              <p class="route-row__index mono">02 / shared</p>
+              <div class="route-row__body">
+                <h3>Shared runtime as the default first landing</h3>
+                <p>The shortest path to a live URL should also preserve logs, routes, and deploy history.</p>
+              </div>
+              <p class="route-row__meta mono">runtime_managed_shared / ops / logs</p>
+            </article>
+
+            <article class="route-row">
+              <p class="route-row__index mono">03 / attached</p>
+              <div class="route-row__body">
+                <h3>Attached VPS as a continuation, not a reset</h3>
+                <p>When your own machine matters, the app should migrate without losing identity or history.</p>
+              </div>
+              <p class="route-row__meta mono">node key / heartbeat / migrate</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section section--surface" id="surface">
+        <div class="section-shell">
+          <div class="surface-columns">
+            <article class="surface-column">
+              <p class="section-label mono">Current surface</p>
+              <h2>The public wrapper should say only what is already true.</h2>
+              <ul class="surface-list">
+                <li><span>GitHub import</span><span class="mono">public repositories</span></li>
+                <li><span>Shared runtime</span><span class="mono">managed first route</span></li>
+                <li><span>Node key onboarding</span><span class="mono">attach a VPS later</span></li>
+                <li><span>Migration path</span><span class="mono">shared -> attached</span></li>
+                <li><span>Logs and operations</span><span class="mono">build / deploy / route</span></li>
+              </ul>
+            </article>
+
+            <article class="surface-column">
+              <p class="section-label mono">Next shell</p>
+              <h2>Auth belongs in its own route system, not behind a fake landing-page curtain.</h2>
+              <ul class="surface-list">
+                <li><span>Sign in route</span><span class="mono">/auth/sign-in</span></li>
+                <li><span>Google auth</span><span class="mono">real provider flow</span></li>
+                <li><span>Email signup</span><span class="mono">real validation states</span></li>
+                <li><span>Onboarding handoff</span><span class="mono">workspace -> project -> app</span></li>
+                <li><span>Private repo flows</span><span class="mono">later product layer</span></li>
+              </ul>
+            </article>
+          </div>
+
+          <div class="object-strip" aria-label="Core objects">
+            <span class="mono">workspace</span>
+            <span class="mono">project</span>
+            <span class="mono">app</span>
+            <span class="mono">runtime</span>
+            <span class="mono">operation</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="section section--quickstart" id="quickstart">
+        <div class="section-shell">
+          <div class="quickstart-head">
+            <div>
+              <p class="section-label mono">Quickstart</p>
+              <h2>Inspect the control plane before auth ships.</h2>
+            </div>
+            <button class="copy-button" type="button" data-copy-target="quickstart-code">
+              Copy command
+            </button>
+          </div>
+
+          <div class="terminal-strip">
+            <pre id="quickstart-code"><code>export FUGUE_BASE_URL="https://api.fugue.pro"
+
+curl -sS "${FUGUE_BASE_URL}/healthz"
+
+curl -sS "${FUGUE_BASE_URL}/v1/apps/import-github" \
+  -H "Authorization: Bearer &lt;tenant-api-key&gt;" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "repo_url":"https://github.com/example/static-site",
+    "runtime_id":"runtime_managed_shared"
+  }'</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <section class="section section--launch" id="launch">
+        <div class="section-shell">
+          <div class="launch-grid">
+            <div>
+              <p class="section-label mono">Launch edge</p>
+              <h2>The next page should be auth, not a modal pretending to be a product shell.</h2>
+            </div>
+
+            <div class="launch-copy">
+              <p>
+                Google sign-in and email signup should ship as real routes with loading, error, and
+                first-use states. This page should stop at the public edge, then hand off without
+                lying about what is already wired.
+              </p>
+
+              <div class="hero-actions hero-actions--left">
+                <a class="button button--primary" href="#quickstart">Inspect quickstart</a>
+                <a class="button button--ghost" href="#top">Back to top</a>
+              </div>
+
+              <p class="compare-links mono">
+                compare /
+                <a href="../v7-open-current/">open current v7</a> /
+                <a href="../v1-editorial/">editorial v1</a> /
+                <a href="../v2-tactical/">tactical v2</a> /
+                <a href="../v3-swiss/">swiss v3</a> /
+                <a href="../v4-ceramic/">ceramic v4</a> /
+                <a href="../v6-afterimage/">afterimage v6</a>
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="section-shell footer__shell">
+        <p>
+          fugue-web is the product wrapper around the deployed Fugue core. v5 now uses the source
+          scene itself as the hero mechanism instead of approximating it with a custom background.
+        </p>
+        <nav aria-label="Footer">
+          <a href="#route">Route</a>
+          <a href="#surface">Surface</a>
+          <a href="#quickstart">Quickstart</a>
+          <a href="#launch">Launch</a>
+        </nav>
+      </div>
+    </footer>
+  </body>
+</html>

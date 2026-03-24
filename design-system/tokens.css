@@ -1,0 +1,172 @@
+:root {
+  /* primitives: color */
+  --fugue-color-bg-0: #040506;
+  --fugue-color-bg-1: #0a0c10;
+  --fugue-color-bg-2: #10161d;
+  --fugue-color-bg-3: rgba(255, 255, 255, 0.03);
+  --fugue-color-text-0: #f4efe7;
+  --fugue-color-text-1: #c9c1b4;
+  --fugue-color-text-2: #8f8a82;
+  --fugue-color-text-3: #6c6761;
+  --fugue-color-accent-0: #a5bfdc;
+  --fugue-color-line-0: rgba(255, 255, 255, 0.16);
+  --fugue-color-line-1: rgba(255, 255, 255, 0.1);
+  --fugue-color-line-2: rgba(255, 255, 255, 0.06);
+  --fugue-color-shadow-0: rgba(0, 0, 0, 0.48);
+  --fugue-color-shadow-1: rgba(4, 10, 18, 0.3);
+  --fugue-color-focus: rgba(165, 191, 220, 0.72);
+
+  /* primitives: typography */
+  --fugue-font-display: var(--font-fugue-heading, "Syne"), sans-serif;
+  --fugue-font-heading: var(--fugue-font-display);
+  --fugue-font-body: var(--font-fugue-body, "Manrope"), sans-serif;
+  --fugue-font-ui-heading: var(--font-fugue-body, "Manrope"), sans-serif;
+  --fugue-font-mono: var(--font-fugue-mono, "IBM Plex Mono"), monospace;
+  --fugue-type-display: clamp(4.4rem, 9.5vw, 9.25rem);
+  --fugue-type-heading-1: clamp(2.9rem, 5vw, 5.6rem);
+  --fugue-type-heading-2: clamp(1.35rem, 2vw, 1.7rem);
+  --fugue-type-panel-title: clamp(1.5rem, 2.45vw, 2.05rem);
+  --fugue-type-page-title: clamp(2rem, 3.6vw, 3.2rem);
+  --fugue-type-body: clamp(1rem, 1.4vw, 1.08rem);
+  --fugue-type-body-small: 0.86rem;
+  --fugue-type-label: 0.72rem;
+  --fugue-type-caption: 0.68rem;
+  --fugue-leading-tight: 0.9;
+  --fugue-leading-display: var(--fugue-leading-tight);
+  --fugue-leading-ui-heading: 1.04;
+  --fugue-leading-copy: 1.74;
+  --fugue-tracking-heading: -0.07em;
+  --fugue-tracking-display: var(--fugue-tracking-heading);
+  --fugue-tracking-ui-heading: -0.035em;
+  --fugue-tracking-brand: -0.05em;
+  --fugue-tracking-label: 0.16em;
+  --fugue-tracking-meta: 0.12em;
+
+  /* primitives: spacing */
+  --fugue-space-1: 0.25rem;
+  --fugue-space-2: 0.5rem;
+  --fugue-space-3: 0.75rem;
+  --fugue-space-4: 1rem;
+  --fugue-space-5: 1.25rem;
+  --fugue-space-6: 1.5rem;
+  --fugue-space-8: 2rem;
+  --fugue-space-10: 2.5rem;
+  --fugue-space-12: 3rem;
+  --fugue-space-16: 4rem;
+  --fugue-space-24: 6rem;
+  --fugue-page-gutter: 1rem;
+
+  /* primitives: layout */
+  --fugue-max-width: 1400px;
+  --fugue-content-width: 1180px;
+  --fugue-copy-width: 65ch;
+  --fugue-breakpoint-lg: 1220px;
+  --fugue-breakpoint-md: 760px;
+  --fugue-breakpoint-sm: 520px;
+
+  /* primitives: shape */
+  --fugue-radius-sm: 0.85rem;
+  --fugue-radius-md: 1.2rem;
+  --fugue-radius-lg: 1.5rem;
+  --fugue-radius-xl: 2rem;
+  --fugue-radius-pill: 999px;
+
+  /* primitives: motion */
+  --fugue-ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --fugue-ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --fugue-ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --fugue-duration-fast: 220ms;
+  --fugue-duration-normal: 720ms;
+  --fugue-duration-entrance: 900ms;
+
+  /* semantic */
+  --fugue-surface-canvas: var(--fugue-color-bg-0);
+  --fugue-surface-subtle: var(--fugue-color-bg-1);
+  --fugue-surface-raised: var(--fugue-color-bg-2);
+  --fugue-surface-ghost: var(--fugue-color-bg-3);
+  --fugue-surface-glass-top: rgba(10, 12, 18, 0.64);
+  --fugue-surface-glass-bottom: rgba(8, 10, 14, 0.38);
+  --fugue-surface-proof-top: rgba(16, 22, 29, 0.98);
+  --fugue-surface-proof-bottom: rgba(7, 10, 14, 0.96);
+  --fugue-surface-proof-inner-top: rgba(8, 11, 16, 0.82);
+  --fugue-surface-proof-inner-bottom: rgba(4, 6, 8, 0.94);
+  --fugue-text-primary: var(--fugue-color-text-0);
+  --fugue-text-secondary: var(--fugue-color-text-1);
+  --fugue-text-tertiary: var(--fugue-color-text-2);
+  --fugue-text-muted: var(--fugue-color-text-3);
+  --fugue-text-on-accent: #050608;
+  --fugue-accent-signal: var(--fugue-color-accent-0);
+  --fugue-border-strong: var(--fugue-color-line-0);
+  --fugue-border-default: var(--fugue-color-line-1);
+  --fugue-border-subtle: var(--fugue-color-line-2);
+  --fugue-focus-ring: var(--fugue-color-focus);
+  --fugue-shadow-panel:
+    0 24px 48px -36px var(--fugue-color-shadow-1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --fugue-shadow-proof: 0 48px 90px -72px var(--fugue-color-shadow-0);
+
+  /* component */
+  --fugue-button-height: 3.15rem;
+  --fugue-button-height-compact: 2.9rem;
+  --fugue-button-gap: 0.55rem;
+  --fugue-button-padding-inline-start: 1.1rem;
+  --fugue-button-padding-inline-end: 0.4rem;
+  --fugue-button-border: 1px solid var(--fugue-border-strong);
+  --fugue-button-bg-primary: linear-gradient(
+    145deg,
+    rgba(244, 239, 231, 0.98),
+    rgba(224, 215, 202, 0.94)
+  );
+  --fugue-button-bg-ghost: rgba(255, 255, 255, 0.03);
+  --fugue-button-icon-size: 2.1rem;
+  --fugue-button-icon-bg-primary: rgba(0, 0, 0, 0.12);
+  --fugue-button-icon-bg-ghost: rgba(255, 255, 255, 0.08);
+  --fugue-button-font-size: 0.94rem;
+
+  --fugue-nav-pill-bg: rgba(9, 10, 14, 0.42);
+  --fugue-nav-pill-padding-block: 0.6rem;
+  --fugue-nav-pill-padding-inline: 1rem;
+  --fugue-nav-pill-gap: 1.45rem;
+  --fugue-nav-pill-blur: 16px;
+
+  --fugue-label-font-size: var(--fugue-type-label);
+  --fugue-label-tracking: var(--fugue-tracking-label);
+
+  --fugue-panel-padding-block: 1rem;
+  --fugue-panel-padding-inline: 1.05rem;
+  --fugue-panel-radius: 1.2rem;
+  --fugue-panel-bg: linear-gradient(
+    180deg,
+    var(--fugue-surface-glass-top),
+    var(--fugue-surface-glass-bottom)
+  );
+  --fugue-panel-divider: linear-gradient(
+    90deg,
+    rgba(165, 191, 220, 0.8),
+    transparent
+  );
+
+  --fugue-proof-shell-padding: 0.8rem;
+  --fugue-proof-shell-radius-outer: 2rem;
+  --fugue-proof-shell-radius-inner: 1.5rem;
+  --fugue-proof-shell-bg: linear-gradient(
+    145deg,
+    var(--fugue-surface-proof-top),
+    var(--fugue-surface-proof-bottom)
+  );
+  --fugue-proof-shell-inner-bg: linear-gradient(
+    180deg,
+    var(--fugue-surface-proof-inner-top),
+    var(--fugue-surface-proof-inner-bottom)
+  );
+
+  --fugue-object-belt-gap-row: 0.85rem;
+  --fugue-object-belt-gap-column: 1.5rem;
+  --fugue-object-belt-padding: 1.05rem 0;
+  --fugue-object-belt-letter-spacing: 0.18em;
+
+  --fugue-route-base-stroke: rgba(255, 255, 255, 0.08);
+  --fugue-route-active-stroke: var(--fugue-accent-signal);
+  --fugue-route-stroke-width: 2.4;
+  --fugue-route-dasharray: 18 16;
+}

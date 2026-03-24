@@ -1,0 +1,678 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fugue Tactical V2 | Tactical telemetry for GitHub deploys and VPS migration</title>
+    <meta
+      name="description"
+      content="Deploy from GitHub on shared k3s, inspect every operation, then migrate onto your own VPS when ready."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <script defer src="main.js"></script>
+  </head>
+  <body>
+    <div class="background-layer" aria-hidden="true"></div>
+    <div class="scanline-layer" aria-hidden="true"></div>
+
+    <header class="console-nav">
+      <div class="nav-shell">
+        <a class="brand" href="#top" aria-label="Fugue home">
+          <span class="brand-mark" aria-hidden="true">
+            <span class="brand-mark__bar"></span>
+            <span class="brand-mark__bar brand-mark__bar--short"></span>
+          </span>
+          <span class="brand-copy">
+            <span class="brand-copy__title">FUGUE</span>
+            <span class="brand-copy__meta">Landing // Tactical Telemetry</span>
+          </span>
+        </a>
+
+        <nav class="desktop-nav" aria-label="Primary">
+          <a href="#route">Route</a>
+          <a href="#architecture">Architecture</a>
+          <a href="#quickstart">Quickstart</a>
+          <a href="#faq">FAQ</a>
+        </nav>
+
+        <div class="nav-actions">
+          <button class="nav-link nav-link--button" type="button" data-open-placeholder>
+            Sign in
+          </button>
+          <a class="button button--ghost button--nav" href="#quickstart">
+            <span>Read Quickstart</span>
+            <span class="button__icon" aria-hidden="true">&gt;&gt;</span>
+          </a>
+          <a class="button button--primary button--nav" href="#final-cta">
+            <span>Create Workspace</span>
+            <span class="button__icon" aria-hidden="true">&gt;&gt;</span>
+          </a>
+          <button
+            class="menu-toggle"
+            type="button"
+            aria-expanded="false"
+            aria-controls="mobile-menu"
+          >
+            <span></span>
+            <span></span>
+          </button>
+        </div>
+      </div>
+
+      <div class="mobile-sheet" id="mobile-menu" hidden>
+        <nav class="mobile-nav" aria-label="Mobile">
+          <a href="#route">Route</a>
+          <a href="#architecture">Architecture</a>
+          <a href="#quickstart">Quickstart</a>
+          <a href="#faq">FAQ</a>
+          <button class="mobile-nav__button" type="button" data-open-placeholder>
+            Sign in
+          </button>
+          <a href="#final-cta">Create Workspace</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="section hero is-visible" id="top">
+        <div class="section-shell hero-grid">
+          <div class="hero-copy">
+            <p class="eyebrow" data-hero-reveal="1">
+              Public GitHub import // Shared runtime // Attached VPS
+            </p>
+            <h1 data-hero-reveal="2">
+              Deploy from GitHub on shared k3s. Migrate to your own VPS when ready.
+            </h1>
+            <p class="hero-lead" data-hero-reveal="3">
+              Fugue is the control plane for teams that want the shortest path to a live app
+              without losing the option to move onto their own machines later.
+            </p>
+
+            <div class="hero-actions" data-hero-reveal="4">
+              <a class="button button--primary" href="#final-cta">
+                <span>Create Workspace</span>
+                <span class="button__icon" aria-hidden="true">&gt;&gt;</span>
+              </a>
+              <a class="button button--ghost" href="#quickstart">
+                <span>Read Quickstart</span>
+                <span class="button__icon" aria-hidden="true">&gt;&gt;</span>
+              </a>
+              <a class="inline-link" href="#route">Inspect primary route</a>
+            </div>
+
+            <div class="signal-grid" data-hero-reveal="5">
+              <button class="signal-cell" type="button" data-focus="repo">
+                <span class="signal-cell__label">Intake</span>
+                <strong>Public GitHub</strong>
+                <span class="signal-cell__meta mono">repo_url / branch / build mode</span>
+              </button>
+              <button class="signal-cell" type="button" data-focus="runtime">
+                <span class="signal-cell__label">Deploy</span>
+                <strong>Shared k3s</strong>
+                <span class="signal-cell__meta mono">runtime_managed_shared</span>
+              </button>
+              <button class="signal-cell" type="button" data-focus="vps">
+                <span class="signal-cell__label">Attach</span>
+                <strong>User VPS</strong>
+                <span class="signal-cell__meta mono">node key / heartbeat / migrate</span>
+              </button>
+              <button class="signal-cell" type="button" data-focus="runtime">
+                <span class="signal-cell__label">Trace</span>
+                <strong>Ops + audit</strong>
+                <span class="signal-cell__meta mono">build / deploy / logs / trail</span>
+              </button>
+            </div>
+
+            <div class="hero-footnote" data-hero-reveal="6">
+              <div class="status-line">
+                <span class="status-line__label">Current preview</span>
+                <span class="status-line__value">Public landing surface only</span>
+              </div>
+              <div class="status-line status-line--mono">
+                <span class="status-live" aria-hidden="true"></span>
+                auth shell remains planned at <span class="mono">/auth/sign-in</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="hero-stage" data-hero-reveal="4">
+            <div class="telemetry-board" data-focus="runtime">
+              <div class="board-topbar">
+                <span class="mono">board / landing-02</span>
+                <span class="mono">route / github -&gt; shared -&gt; vps</span>
+                <span class="mono">mode / live surface</span>
+              </div>
+
+              <svg class="route-map" viewBox="0 0 720 520" aria-hidden="true">
+                <path
+                  class="route-base"
+                  d="M122 146 C180 144, 228 162, 278 188 S358 254, 412 314 S520 356, 608 252"
+                />
+                <path
+                  class="route-segment route-segment--repo"
+                  d="M122 146 C180 144, 228 162, 278 188"
+                />
+                <path
+                  class="route-segment route-segment--runtime"
+                  d="M278 188 S358 254, 412 314"
+                />
+                <path
+                  class="route-segment route-segment--vps"
+                  d="M412 314 S520 356, 608 252"
+                />
+                <circle class="route-dot route-dot--repo" cx="122" cy="146" r="8"></circle>
+                <circle class="route-dot route-dot--runtime" cx="412" cy="314" r="8"></circle>
+                <circle class="route-dot route-dot--vps" cx="608" cy="252" r="8"></circle>
+              </svg>
+
+              <article class="telemetry-module telemetry-module--repo" data-panel="repo">
+                <div class="module-header">
+                  <span class="module-kicker">[ input / repo ]</span>
+                  <span class="module-state">public</span>
+                </div>
+
+                <div class="terminal-field">
+                  <span class="terminal-field__label">repo_url</span>
+                  <span class="terminal-field__value mono">github.com/example/static-site</span>
+                </div>
+
+                <div class="module-grid">
+                  <div class="module-grid__cell">
+                    <span>branch</span>
+                    <strong class="mono">main</strong>
+                  </div>
+                  <div class="module-grid__cell">
+                    <span>builder</span>
+                    <strong class="mono">auto</strong>
+                  </div>
+                  <div class="module-grid__cell">
+                    <span>target</span>
+                    <strong class="mono">runtime_managed_shared</strong>
+                  </div>
+                </div>
+              </article>
+
+              <article class="telemetry-module telemetry-module--ops" data-panel="runtime">
+                <div class="module-header">
+                  <span class="module-kicker">[ operation / deploy ]</span>
+                  <span class="module-state module-state--live">running</span>
+                </div>
+
+                <ol class="ops-log">
+                  <li class="ops-log__row is-done">
+                    <span class="mono">01</span>
+                    <span>Clone repository</span>
+                    <span class="mono">ok</span>
+                  </li>
+                  <li class="ops-log__row is-done">
+                    <span class="mono">02</span>
+                    <span>Build image</span>
+                    <span class="mono">ok</span>
+                  </li>
+                  <li class="ops-log__row is-live">
+                    <span class="mono">03</span>
+                    <span>Queue deploy operation</span>
+                    <span class="mono">run</span>
+                  </li>
+                  <li class="ops-log__row">
+                    <span class="mono">04</span>
+                    <span>Issue public route</span>
+                    <span class="mono">wait</span>
+                  </li>
+                </ol>
+
+                <p class="module-note mono">
+                  audit trail stays visible while runtime state changes
+                </p>
+              </article>
+
+              <article class="telemetry-module telemetry-module--vps" data-panel="vps">
+                <div class="module-header">
+                  <span class="module-kicker">[ topology / runtime ]</span>
+                  <span class="module-state">migrate ready</span>
+                </div>
+
+                <div class="topology-stack">
+                  <div class="topology-cell">
+                    <span class="topology-cell__title">Shared runtime</span>
+                    <strong class="mono">managed-shared</strong>
+                  </div>
+                  <div class="topology-cell topology-cell--muted">
+                    <span class="topology-cell__title">Operation layer</span>
+                    <strong class="mono">logs + audit visible</strong>
+                  </div>
+                  <div class="topology-cell topology-cell--accent">
+                    <span class="topology-cell__title">User VPS</span>
+                    <strong class="mono">attach with node key</strong>
+                  </div>
+                </div>
+
+                <div class="heartbeat-grid">
+                  <div class="heartbeat-cell">
+                    <span>node key</span>
+                    <strong class="mono">issued</strong>
+                  </div>
+                  <div class="heartbeat-cell">
+                    <span>attach</span>
+                    <strong class="mono">ready</strong>
+                  </div>
+                  <div class="heartbeat-cell">
+                    <span>heartbeat</span>
+                    <strong class="mono">stable</strong>
+                  </div>
+                  <div class="heartbeat-cell">
+                    <span>migrate</span>
+                    <strong class="mono">available</strong>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section ops-strip" id="surface">
+        <div class="section-shell">
+          <div class="strip-grid">
+            <article class="strip-cell">
+              <span class="strip-cell__label">Input</span>
+              <strong>Public repo import</strong>
+              <p>Point Fugue at a repository and queue the first deploy without cluster prep.</p>
+            </article>
+            <article class="strip-cell">
+              <span class="strip-cell__label">Deploy</span>
+              <strong>Shared runtime first</strong>
+              <p>The shortest path from code to route stays managed while you validate the app.</p>
+            </article>
+            <article class="strip-cell">
+              <span class="strip-cell__label">Nodes</span>
+              <strong>Attach your own VPS</strong>
+              <p>Issue a node key, join a machine, and keep the same control model.</p>
+            </article>
+            <article class="strip-cell">
+              <span class="strip-cell__label">Trace</span>
+              <strong>Operations stay visible</strong>
+              <p>Build, deploy, logs, and audit trail remain part of the surface instead of hidden spinners.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="route">
+        <div class="section-shell">
+          <div class="section-head">
+            <p class="eyebrow">Primary route</p>
+            <h2>Three moves explain the whole product.</h2>
+            <p class="section-copy">
+              Fugue is easier to trust when the path is explicit: import code, run on shared
+              infrastructure, then move onto your own machine without changing the control surface.
+            </p>
+          </div>
+
+          <div class="route-rows">
+            <article class="route-row" tabindex="0" data-focus="repo">
+              <div class="route-row__index">01</div>
+              <div class="route-row__body">
+                <div class="route-row__header">
+                  <h3>Import a public GitHub repository</h3>
+                  <span class="route-row__badge">repo intake</span>
+                </div>
+                <p>
+                  Bring code in, choose a branch and build mode, and let Fugue queue the first
+                  deploy without making you bootstrap your own cluster first.
+                </p>
+              </div>
+              <ul class="route-row__meta mono">
+                <li>repo_url / github.com/example/static-site</li>
+                <li>branch / main</li>
+                <li>builder / auto</li>
+              </ul>
+            </article>
+
+            <article class="route-row" tabindex="0" data-focus="runtime">
+              <div class="route-row__index">02</div>
+              <div class="route-row__body">
+                <div class="route-row__header">
+                  <h3>Deploy onto the shared runtime</h3>
+                  <span class="route-row__badge">managed path</span>
+                </div>
+                <p>
+                  Use the managed shared runtime as the shortest path to a public URL, while build
+                  steps, deploy state, logs, and audit remain visible from the start.
+                </p>
+              </div>
+              <ul class="route-row__meta mono">
+                <li>runtime_id / runtime_managed_shared</li>
+                <li>operation / build, deploy, route</li>
+                <li>visibility / logs + audit trail</li>
+              </ul>
+            </article>
+
+            <article class="route-row" tabindex="0" data-focus="vps">
+              <div class="route-row__index">03</div>
+              <div class="route-row__body">
+                <div class="route-row__header">
+                  <h3>Attach a VPS and migrate later</h3>
+                  <span class="route-row__badge">exit path</span>
+                </div>
+                <p>
+                  Generate a node key, attach your own machine, confirm heartbeat, and migrate the
+                  workload without changing the app model or relearning the product surface.
+                </p>
+              </div>
+              <ul class="route-row__meta mono">
+                <li>node key / issue once</li>
+                <li>heartbeat / runtime stable</li>
+                <li>migrate / shared -&gt; attached</li>
+              </ul>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="architecture">
+        <div class="section-shell">
+          <div class="section-head">
+            <p class="eyebrow">Object model</p>
+            <h2>Five objects explain the control plane.</h2>
+            <p class="section-copy">
+              Once the model is visible, the product reads like a system instead of a black box:
+              workspace, project, app, runtime, and operation are the pieces that matter.
+            </p>
+          </div>
+
+          <div class="architecture-layout">
+            <div class="model-board">
+              <svg class="model-lines" viewBox="0 0 620 420" aria-hidden="true">
+                <path d="M112 122 H252"></path>
+                <path d="M332 122 H486"></path>
+                <path d="M486 122 V298"></path>
+                <path d="M332 304 H486"></path>
+              </svg>
+
+              <div class="model-node model-node--workspace">
+                <span class="model-node__kicker">workspace</span>
+                <strong>Tenant boundary</strong>
+              </div>
+              <div class="model-node model-node--project">
+                <span class="model-node__kicker">project</span>
+                <strong>Default project</strong>
+              </div>
+              <div class="model-node model-node--app">
+                <span class="model-node__kicker">app</span>
+                <strong>Imported app</strong>
+              </div>
+              <div class="model-node model-node--runtime">
+                <span class="model-node__kicker">runtime</span>
+                <strong>Shared or attached</strong>
+              </div>
+              <div class="model-node model-node--operation">
+                <span class="model-node__kicker">operation</span>
+                <strong>Deploy, scale, migrate</strong>
+              </div>
+            </div>
+
+            <div class="architecture-notes">
+              <div class="architecture-note">
+                <span class="architecture-note__label">Workspace</span>
+                <p>Maps to the tenant shell and scopes the product boundary.</p>
+              </div>
+              <div class="architecture-note">
+                <span class="architecture-note__label">Project</span>
+                <p>Groups imported apps without flattening everything into one bucket.</p>
+              </div>
+              <div class="architecture-note">
+                <span class="architecture-note__label">App</span>
+                <p>The imported workload keeps the same identity across shared and attached runtimes.</p>
+              </div>
+              <div class="architecture-note">
+                <span class="architecture-note__label">Runtime</span>
+                <p>Can be managed shared infrastructure or a machine you attach later.</p>
+              </div>
+              <div class="architecture-note">
+                <span class="architecture-note__label">Operation</span>
+                <p>First-class execution record for deploy, migrate, and other runtime changes.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="quickstart">
+        <div class="section-shell">
+          <div class="section-head">
+            <p class="eyebrow">Quickstart + product surface</p>
+            <h2>Show the current surface honestly.</h2>
+            <p class="section-copy">
+              This page should earn trust by being exact about what already exists, what the API
+              looks like, and what is still outside this static preview.
+            </p>
+          </div>
+
+          <div class="quickstart-layout">
+            <div class="quickstart-panel">
+              <div class="code-toolbar">
+                <span class="code-title">Quickstart</span>
+                <button class="copy-button" type="button" data-copy-target="quickstart-code">
+                  Copy command
+                </button>
+              </div>
+
+              <pre id="quickstart-code"><code>export FUGUE_BASE_URL="https://api.fugue.pro"
+
+curl -sS "${FUGUE_BASE_URL}/healthz"
+
+curl -sS "${FUGUE_BASE_URL}/v1/apps/import-github" \
+  -H "Authorization: Bearer &lt;tenant-api-key&gt;" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "repo_url":"https://github.com/example/static-site",
+    "runtime_id":"runtime_managed_shared"
+  }'</code></pre>
+
+              <p class="panel-note">
+                The static landing build exposes the public product story and quickstart, not the
+                future auth shell.
+              </p>
+            </div>
+
+            <div class="matrix-stack">
+              <div class="matrix-panel">
+                <div class="matrix-panel__header">
+                  <span class="matrix-panel__title">Current MVP</span>
+                  <span class="matrix-panel__badge">available now</span>
+                </div>
+                <ul class="matrix-list">
+                  <li>
+                    <span>GitHub import</span>
+                    <span class="mono">public repositories</span>
+                  </li>
+                  <li>
+                    <span>Shared runtime</span>
+                    <span class="mono">managed shared path</span>
+                  </li>
+                  <li>
+                    <span>Node key onboarding</span>
+                    <span class="mono">attach your VPS</span>
+                  </li>
+                  <li>
+                    <span>App migrate</span>
+                    <span class="mono">shared -&gt; attached</span>
+                  </li>
+                  <li>
+                    <span>Logs + audit trail</span>
+                    <span class="mono">build / runtime / ops</span>
+                  </li>
+                  <li>
+                    <span>Config editing</span>
+                    <span class="mono">env + files</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div class="matrix-panel">
+                <div class="matrix-panel__header">
+                  <span class="matrix-panel__title">Boundaries in this preview</span>
+                  <span class="matrix-panel__badge matrix-panel__badge--muted">explicit</span>
+                </div>
+                <ul class="matrix-list">
+                  <li>
+                    <span>Auth shell</span>
+                    <span class="mono">planned at /auth/sign-in</span>
+                  </li>
+                  <li>
+                    <span>Google + email auth</span>
+                    <span class="mono">not wired in static build</span>
+                  </li>
+                  <li>
+                    <span>Import scope</span>
+                    <span class="mono">public GitHub repos only</span>
+                  </li>
+                  <li>
+                    <span>Preview scope</span>
+                    <span class="mono">landing surface only</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="faq">
+        <div class="section-shell faq-layout">
+          <div class="section-head section-head--side">
+            <p class="eyebrow">Questions before trust</p>
+            <h2>Handle objections with precision.</h2>
+            <p class="section-copy">
+              The page should not pretend Fugue is something simpler than it is. It should be clear
+              about the managed path, the attached-node path, and the current product boundary.
+            </p>
+          </div>
+
+          <div class="faq-list">
+            <article class="faq-item">
+              <button class="faq-question" type="button" aria-expanded="true">
+                <span>Is Fugue a hosted PaaS?</span>
+                <span class="faq-icon" aria-hidden="true"></span>
+              </button>
+              <div class="faq-answer">
+                <p>
+                  Not in the generic sense. Fugue is a control plane with a hosted shared runtime
+                  path first, then a path toward your own attached VPS runtime.
+                </p>
+              </div>
+            </article>
+
+            <article class="faq-item">
+              <button class="faq-question" type="button" aria-expanded="false">
+                <span>Do I need my own k3s cluster first?</span>
+                <span class="faq-icon" aria-hidden="true"></span>
+              </button>
+              <div class="faq-answer" hidden>
+                <p>
+                  No. The page leads with the shared runtime because that is the shortest path to a
+                  running app. Your own VPS becomes relevant when you want that control later.
+                </p>
+              </div>
+            </article>
+
+            <article class="faq-item">
+              <button class="faq-question" type="button" aria-expanded="false">
+                <span>Can I migrate an app onto my own VPS later?</span>
+                <span class="faq-icon" aria-hidden="true"></span>
+              </button>
+              <div class="faq-answer" hidden>
+                <p>
+                  Yes. That migration path is the core story: start on shared infrastructure,
+                  attach a VPS with a node key, then migrate through the same control surface.
+                </p>
+              </div>
+            </article>
+
+            <article class="faq-item">
+              <button class="faq-question" type="button" aria-expanded="false">
+                <span>Does the current surface support private GitHub repositories?</span>
+                <span class="faq-icon" aria-hidden="true"></span>
+              </button>
+              <div class="faq-answer" hidden>
+                <p>
+                  Not in the current surface shown here. The landing page keeps that boundary
+                  explicit so the product promise stays credible.
+                </p>
+              </div>
+            </article>
+
+            <article class="faq-item">
+              <button class="faq-question" type="button" aria-expanded="false">
+                <span>Why mention auth routes if they are not wired yet?</span>
+                <span class="faq-icon" aria-hidden="true"></span>
+              </button>
+              <div class="faq-answer" hidden>
+                <p>
+                  Because the future product shell still matters. This preview focuses on the public
+                  landing surface, while auth and onboarding remain the next layer to build.
+                </p>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section final-cta" id="final-cta">
+        <div class="section-shell">
+          <div class="cta-panel">
+            <div class="cta-copy">
+              <p class="eyebrow">Next operation</p>
+              <h2>Start on shared k3s. Move onto your own runtime when it matters.</h2>
+              <p class="section-copy">
+                The landing page should leave cold visitors with one exact model and one exact next
+                action, not a cloud of abstract platform copy.
+              </p>
+            </div>
+
+            <div class="cta-actions">
+              <a class="button button--primary" href="#top">
+                <span>Create Workspace</span>
+                <span class="button__icon" aria-hidden="true">&gt;&gt;</span>
+              </a>
+              <a class="button button--ghost" href="#quickstart">
+                <span>Read Quickstart</span>
+                <span class="button__icon" aria-hidden="true">&gt;&gt;</span>
+              </a>
+              <p class="cta-note mono">
+                route / import repo -> deploy shared -> attach node -> migrate app
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div class="notice-backdrop" id="placeholder-notice" hidden>
+      <div class="notice-dialog" role="dialog" aria-modal="true" aria-labelledby="notice-title">
+        <p class="eyebrow">Auth shell</p>
+        <h3 id="notice-title">Sign in is not wired in this static landing preview yet.</h3>
+        <p class="section-copy">
+          The intended product path remains <span class="mono">/auth/sign-in</span>. This build is
+          focused on the public landing surface and the current quickstart path.
+        </p>
+        <div class="notice-actions">
+          <button class="button button--ghost button--no-icon" type="button" data-close-placeholder>
+            <span>Close</span>
+          </button>
+          <a class="button button--primary" href="#quickstart">
+            <span>Read Quickstart</span>
+            <span class="button__icon" aria-hidden="true">&gt;&gt;</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
