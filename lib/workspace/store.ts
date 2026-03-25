@@ -2,6 +2,7 @@ import "server-only";
 
 import type { PoolClient } from "pg";
 
+import { ensureAppUserRecord } from "@/lib/app-users/store";
 import type { SessionUser } from "@/lib/auth/session";
 import { normalizeEmail } from "@/lib/auth/validation";
 import { ensureDbSchema } from "@/lib/db/schema";
@@ -194,43 +195,7 @@ async function upsertWorkspaceAdminKey(client: PoolClient, record: WorkspaceAcce
 }
 
 export async function ensureAppUser(user: SessionUser) {
-  await ensureDbSchema();
-
-  const now = new Date().toISOString();
-  const normalizedEmail = normalizeEmail(user.email);
-
-  await queryDb(
-    `
-      INSERT INTO app_users (
-        email,
-        name,
-        picture_url,
-        provider,
-        provider_id,
-        verified,
-        created_at,
-        updated_at
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $7)
-      ON CONFLICT (email) DO UPDATE
-      SET
-        name = EXCLUDED.name,
-        picture_url = EXCLUDED.picture_url,
-        provider = EXCLUDED.provider,
-        provider_id = EXCLUDED.provider_id,
-        verified = EXCLUDED.verified,
-        updated_at = EXCLUDED.updated_at
-    `,
-    [
-      normalizedEmail,
-      readOptionalString(user.name),
-      readOptionalString(user.picture),
-      user.provider,
-      readOptionalString(user.providerId),
-      user.verified,
-      now,
-    ],
-  );
+  return ensureAppUserRecord(user);
 }
 
 export async function getWorkspaceSnapshotByEmail(email: string) {
@@ -262,6 +227,33 @@ export async function getWorkspaceSnapshotByEmail(email: string) {
 
   const row = result.rows[0];
   return row ? snapshotFromRow(row) : null;
+}
+
+export async function listWorkspaceSnapshots() {
+  await ensureDbSchema();
+
+  const result = await queryDb<WorkspaceRow>(
+    `
+      SELECT
+        user_email,
+        tenant_id,
+        tenant_name,
+        default_project_id,
+        default_project_name,
+        first_app_id,
+        admin_key_id,
+        admin_key_label,
+        admin_key_prefix,
+        admin_key_scopes,
+        admin_key_secret_sealed,
+        created_at,
+        updated_at
+      FROM app_workspaces
+      ORDER BY created_at ASC, user_email ASC
+    `,
+  );
+
+  return result.rows.map(snapshotFromRow);
 }
 
 export async function getWorkspaceAccessByEmail(email: string) {

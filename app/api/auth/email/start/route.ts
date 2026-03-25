@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { ensureAppUserRecord } from "@/lib/app-users/store";
 import { sendVerificationEmail } from "@/lib/auth/email";
 import { getAuthEnv } from "@/lib/auth/env";
 import { buildSessionCookie } from "@/lib/auth/session";
@@ -40,6 +41,30 @@ export async function POST(request: Request) {
   }
 
   if (!authEnv.emailVerificationRequired) {
+    try {
+      await ensureAppUserRecord(
+        {
+          email,
+          name: name || undefined,
+          provider: "email",
+          verified: true,
+        },
+        {
+          markSignedIn: true,
+        },
+      );
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("blocked")) {
+        return NextResponse.json({ error: "This account is blocked." }, { status: 403 });
+      }
+
+      if (error instanceof Error && error.message.includes("deleted")) {
+        return NextResponse.json({ error: "This account has been deleted." }, { status: 403 });
+      }
+
+      return NextResponse.json({ error: "Could not open the session." }, { status: 500 });
+    }
+
     const response = NextResponse.json({
       ok: true,
       message: "Email accepted. Opening the session now.",

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { ensureAppUserRecord } from "@/lib/app-users/store";
 import { fetchGoogleUser, exchangeGoogleCode } from "@/lib/auth/google";
 import { buildSessionCookie } from "@/lib/auth/session";
 import { verifyToken } from "@/lib/auth/token";
@@ -43,6 +44,32 @@ export async function GET(request: Request) {
     const user = await fetchGoogleUser(accessToken);
 
     if (!user.email || !user.email_verified) {
+      return redirectWithError(request, "oauth_failed");
+    }
+
+    try {
+      await ensureAppUserRecord(
+        {
+          email: user.email,
+          name: user.name,
+          picture: user.picture,
+          provider: "google",
+          providerId: user.sub,
+          verified: true,
+        },
+        {
+          markSignedIn: true,
+        },
+      );
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("blocked")) {
+        return redirectWithError(request, "account-blocked");
+      }
+
+      if (error instanceof Error && error.message.includes("deleted")) {
+        return redirectWithError(request, "account-deleted");
+      }
+
       return redirectWithError(request, "oauth_failed");
     }
 

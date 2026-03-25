@@ -1,0 +1,441 @@
+import "server-only";
+
+import type { PoolClient } from "pg";
+
+import type { SessionUser } from "@/lib/auth/session";
+import { normalizeEmail } from "@/lib/auth/validation";
+import { ensureDbSchema } from "@/lib/db/schema";
+import { queryDb, withDbTransaction } from "@/lib/db/pool";
+
+export type AppUserStatus = "active" | "blocked" | "deleted";
+
+type AppUserRow = {
+  created_at: Date | string;
+  email: string;
+  is_admin: boolean;
+  last_login_at: Date | string | null;
+  name: string | null;
+  picture_url: string | null;
+  provider: string;
+  provider_id: string | null;
+  status: string;
+  updated_at: Date | string;
+  verified: boolean;
+};
+
+export type AppUserRecord = {
+  createdAt: string;
+  email: string;
+  isAdmin: boolean;
+  lastLoginAt: string | null;
+  name: string | null;
+  pictureUrl: string | null;
+  provider: string;
+  providerId: string | null;
+  status: AppUserStatus;
+  updatedAt: string;
+  verified: boolean;
+};
+
+function readOptionalString(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function readTimestamp(value: unknown, fallback: string | null = null) {
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
+  if (typeof value === "string" && value.trim()) {
+    const parsed = new Date(value);
+
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toISOString();
+    }
+  }
+
+  return fallback;
+}
+
+function normalizeStatus(value: unknown): AppUserStatus {
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+
+    if (normalized === "blocked" || normalized === "deleted") {
+      return normalized;
+    }
+  }
+
+  return "active";
+}
+
+function recordFromRow(row: AppUserRow): AppUserRecord {
+  const fallbackTimestamp = new Date().toISOString();
+
+  return {
+    createdAt: readTimestamp(row.created_at, fallbackTimestamp) ?? fallbackTimestamp,
+    email: normalizeEmail(row.email),
+    isAdmin: Boolean(row.is_admin),
+    lastLoginAt: readTimestamp(row.last_login_at),
+    name: readOptionalString(row.name),
+    pictureUrl: readOptionalString(row.picture_url),
+    provider: readOptionalString(row.provider) ?? "email",
+    providerId: readOptionalString(row.provider_id),
+    status: normalizeStatus(row.status),
+    updatedAt: readTimestamp(row.updated_at, fallbackTimestamp) ?? fallbackTimestamp,
+    verified: Boolean(row.verified),
+  };
+}
+
+function inactiveStatusError(status: AppUserStatus) {
+  if (status === "blocked") {
+    return new Error("403 User account is blocked.");
+  }
+
+  return new Error("403 User account is deleted.");
+}
+
+async function ensureActiveAdmin(client: PoolClient, now: string) {
+  const activeAdmin = await client.query<{ email: string }>(
+    `
+      SELECT email
+      FROM app_users
+      WHERE is_admin = TRUE
+        AND status <> 'deleted'
+      LIMIT 1
+    `,
+  );
+
+  if (activeAdmin.rows[0]?.email) {
+    return normalizeEmail(activeAdmin.rows[0].email);
+  }
+
+  const promoted = await client.query<{ email: string }>(
+    `
+      WITH candidate AS (
+        SELECT email
+        FROM app_users
+        WHERE status <> 'deleted'
+        ORDER BY created_at ASC, email ASC
+        LIMIT 1
+        FOR UPDATE
+      )
+      UPDATE app_users
+      SET
+        is_admin = TRUE,
+        updated_at = $1
+      WHERE email = (SELECT email FROM candidate)
+      RETURNING email
+    `,
+    [now],
+  );
+
+  return promoted.rows[0]?.email ? normalizeEmail(promoted.rows[0].email) : null;
+}
+
+async function getUserRow(
+  client: PoolClient,
+  email: string,
+  options?: {
+    forUpdate?: boolean;
+  },
+) {
+  const result = await client.query<AppUserRow>(
+    `
+      SELECT
+        email,
+        name,
+        picture_url,
+        provider,
+        provider_id,
+        verified,
+        is_admin,
+        status,
+        last_login_at,
+        created_at,
+        updated_at
+      FROM app_users
+      WHERE email = $1
+      LIMIT 1
+      ${options?.forUpdate ? "FOR UPDATE" : ""}
+    `,
+    [normalizeEmail(email)],
+  );
+
+  return result.rows[0] ?? null;
+}
+
+export async function getAppUserByEmail(email: string) {
+  await ensureDbSchema();
+
+  const result = await queryDb<AppUserRow>(
+    `
+      SELECT
+        email,
+        name,
+        picture_url,
+        provider,
+        provider_id,
+        verified,
+        is_admin,
+        status,
+        last_login_at,
+        created_at,
+        updated_at
+      FROM app_users
+      WHERE email = $1
+      LIMIT 1
+    `,
+    [normalizeEmail(email)],
+  );
+
+  const row = result.rows[0];
+  return row ? recordFromRow(row) : null;
+}
+
+export async function listAppUsers() {
+  await ensureDbSchema();
+
+  const result = await queryDb<AppUserRow>(
+    `
+      SELECT
+        email,
+        name,
+        picture_url,
+        provider,
+        provider_id,
+        verified,
+        is_admin,
+        status,
+        last_login_at,
+        created_at,
+        updated_at
+      FROM app_users
+      ORDER BY
+        is_admin DESC,
+        CASE status
+          WHEN 'active' THEN 0
+          WHEN 'blocked' THEN 1
+          ELSE 2
+        END,
+        COALESCE(last_login_at, created_at) DESC,
+        email ASC
+    `,
+  );
+
+  return result.rows.map(recordFromRow);
+}
+
+export async function ensureAppUserRecord(
+  user: SessionUser,
+  options?: {
+    allowInactive?: boolean;
+    markSignedIn?: boolean;
+  },
+) {
+  await ensureDbSchema();
+
+  const now = new Date().toISOString();
+  const normalizedEmail = normalizeEmail(user.email);
+  const name = readOptionalString(user.name);
+  const picture = readOptionalString(user.picture);
+  const providerId = readOptionalString(user.providerId);
+  const markSignedIn = options?.markSignedIn ?? false;
+
+  return withDbTransaction(async (client) => {
+    await client.query("LOCK TABLE app_users IN SHARE ROW EXCLUSIVE MODE");
+
+    const currentRow = await getUserRow(client, normalizedEmail, {
+      forUpdate: true,
+    });
+
+    let row: AppUserRow | null = null;
+
+    if (!currentRow) {
+      const countResult = await client.query<{ count: string }>(
+        `
+          SELECT COUNT(*)::text AS count
+          FROM app_users
+          WHERE status <> 'deleted'
+        `,
+      );
+      const visibleUserCount = Number.parseInt(countResult.rows[0]?.count ?? "0", 10);
+      const isAdmin = visibleUserCount === 0;
+
+      const inserted = await client.query<AppUserRow>(
+        `
+          INSERT INTO app_users (
+            email,
+            name,
+            picture_url,
+            provider,
+            provider_id,
+            verified,
+            is_admin,
+            status,
+            last_login_at,
+            created_at,
+            updated_at
+          )
+          VALUES ($1, $2, $3, $4, $5, $6, $7, 'active', $8, $9, $9)
+          RETURNING
+            email,
+            name,
+            picture_url,
+            provider,
+            provider_id,
+            verified,
+            is_admin,
+            status,
+            last_login_at,
+            created_at,
+            updated_at
+        `,
+        [
+          normalizedEmail,
+          name,
+          picture,
+          user.provider,
+          providerId,
+          user.verified,
+          isAdmin,
+          markSignedIn ? now : null,
+          now,
+        ],
+      );
+
+      row = inserted.rows[0] ?? null;
+    } else {
+      const current = recordFromRow(currentRow);
+      const shouldUpdateLastLogin = markSignedIn && current.status === "active";
+      const updated = await client.query<AppUserRow>(
+        `
+          UPDATE app_users
+          SET
+            name = $2,
+            picture_url = $3,
+            provider = $4,
+            provider_id = $5,
+            verified = $6,
+            last_login_at = CASE WHEN $7::boolean THEN $8 ELSE last_login_at END,
+            updated_at = $8
+          WHERE email = $1
+          RETURNING
+            email,
+            name,
+            picture_url,
+            provider,
+            provider_id,
+            verified,
+            is_admin,
+            status,
+            last_login_at,
+            created_at,
+            updated_at
+        `,
+        [
+          normalizedEmail,
+          name,
+          picture,
+          user.provider,
+          providerId,
+          user.verified,
+          shouldUpdateLastLogin,
+          now,
+        ],
+      );
+
+      row = updated.rows[0] ?? null;
+    }
+
+    if (!row) {
+      throw new Error("500 Failed to persist app user.");
+    }
+
+    const promotedAdminEmail =
+      normalizeStatus(row.status) === "deleted" ? null : await ensureActiveAdmin(client, now);
+    const record = recordFromRow(row);
+
+    if (promotedAdminEmail === normalizedEmail && !record.isAdmin) {
+      row = {
+        ...row,
+        is_admin: true,
+        updated_at: now,
+      };
+    }
+
+    const resolvedRecord = recordFromRow(row);
+
+    if (!options?.allowInactive && resolvedRecord.status !== "active") {
+      throw inactiveStatusError(resolvedRecord.status);
+    }
+
+    return resolvedRecord;
+  });
+}
+
+export async function setAppUserStatus(
+  email: string,
+  status: AppUserStatus,
+) {
+  await ensureDbSchema();
+
+  const normalizedEmail = normalizeEmail(email);
+  const nextStatus = normalizeStatus(status);
+  const now = new Date().toISOString();
+
+  return withDbTransaction(async (client) => {
+    const currentRow = await getUserRow(client, normalizedEmail, {
+      forUpdate: true,
+    });
+
+    if (!currentRow) {
+      throw new Error("404 User not found.");
+    }
+
+    const current = recordFromRow(currentRow);
+
+    if (current.isAdmin && nextStatus !== "active") {
+      throw new Error("400 Admin users cannot be blocked or deleted.");
+    }
+
+    if (current.status === "deleted" && nextStatus !== "deleted") {
+      throw new Error("400 Deleted users cannot be restored.");
+    }
+
+    if (current.status === nextStatus) {
+      return current;
+    }
+
+    const updated = await client.query<AppUserRow>(
+      `
+        UPDATE app_users
+        SET
+          status = $2,
+          updated_at = $3
+        WHERE email = $1
+        RETURNING
+          email,
+          name,
+          picture_url,
+          provider,
+          provider_id,
+          verified,
+          is_admin,
+          status,
+          last_login_at,
+          created_at,
+          updated_at
+      `,
+      [normalizedEmail, nextStatus, now],
+    );
+
+    const row = updated.rows[0];
+
+    if (!row) {
+      throw new Error("404 User not found.");
+    }
+
+    return recordFromRow(row);
+  });
+}

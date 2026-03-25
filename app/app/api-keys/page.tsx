@@ -1,5 +1,5 @@
 import { ApiKeyManager } from "@/components/console/api-key-manager";
-import { ConsoleEmptyState } from "@/components/console/console-empty-state";
+import { ApiKeyEmptyState } from "@/components/console/api-key-empty-state";
 import { getCurrentSession } from "@/lib/auth/session";
 import { getApiKeyPageData } from "@/lib/api-keys/service";
 
@@ -15,11 +15,7 @@ export default async function ApiKeysPage() {
   if (!data) {
     return (
       <div className="fg-console-page">
-        <ConsoleEmptyState
-          action={{ href: "/app?dialog=create", label: "Create project", variant: "primary" }}
-          description="Create the first project before managing API keys."
-          title="Create the workspace first"
-        />
+        <ApiKeyEmptyState />
       </div>
     );
   }

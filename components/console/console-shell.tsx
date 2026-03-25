@@ -25,9 +25,11 @@ function readInitials(label: string) {
 
 export async function ConsoleShell({
   children,
+  isAdmin = false,
   session,
 }: {
   children: ReactNode;
+  isAdmin?: boolean;
   session: SessionUser;
 }) {
   const sessionLabel = readSessionLabel(session);
@@ -40,7 +42,7 @@ export async function ConsoleShell({
             <Brand meta="console" />
           </div>
 
-          <ConsoleNav />
+          <ConsoleNav isAdmin={isAdmin} />
 
           <div className="fg-console-topbar__actions">
             <ConsolePrimaryAction />
@@ -63,6 +65,7 @@ export async function ConsoleShell({
                 </div>
 
                 <div className="fg-console-inline-status">
+                  {isAdmin ? <StatusBadge tone="info">admin</StatusBadge> : null}
                   <StatusBadge tone="neutral">{session.provider}</StatusBadge>
                   <StatusBadge tone={session.verified ? "positive" : "warning"}>
                     {session.verified ? "verified" : "unverified"}

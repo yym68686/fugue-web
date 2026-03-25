@@ -18,6 +18,15 @@ CREATE TABLE IF NOT EXISTS app_users (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+ALTER TABLE app_users
+  ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE;
+
+ALTER TABLE app_users
+  ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'active';
+
+ALTER TABLE app_users
+  ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;
+
 CREATE TABLE IF NOT EXISTS app_workspaces (
   user_email TEXT PRIMARY KEY REFERENCES app_users(email) ON DELETE CASCADE,
   tenant_id TEXT NOT NULL UNIQUE,
@@ -58,6 +67,9 @@ CREATE TABLE IF NOT EXISTS app_api_keys (
 CREATE INDEX IF NOT EXISTS idx_app_workspaces_tenant_id
   ON app_workspaces (tenant_id);
 
+CREATE INDEX IF NOT EXISTS idx_app_users_status
+  ON app_users (status);
+
 CREATE INDEX IF NOT EXISTS idx_app_api_keys_user_email
   ON app_api_keys (user_email);
 
@@ -66,6 +78,22 @@ CREATE INDEX IF NOT EXISTS idx_app_api_keys_tenant_id
 
 CREATE INDEX IF NOT EXISTS idx_app_api_keys_status
   ON app_api_keys (status);
+
+UPDATE app_users
+SET is_admin = TRUE
+WHERE email = (
+  SELECT email
+  FROM app_users
+  WHERE status <> 'deleted'
+  ORDER BY created_at ASC, email ASC
+  LIMIT 1
+)
+AND NOT EXISTS (
+  SELECT 1
+  FROM app_users
+  WHERE is_admin = TRUE
+    AND status <> 'deleted'
+);
 `;
 
 async function initSchema() {

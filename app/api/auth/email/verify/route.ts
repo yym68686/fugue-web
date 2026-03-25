@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { ensureAppUserRecord } from "@/lib/app-users/store";
 import { buildSessionCookie } from "@/lib/auth/session";
 import { verifyToken } from "@/lib/auth/token";
 
@@ -30,10 +31,40 @@ export async function GET(request: Request) {
     });
   }
 
+  try {
+    await ensureAppUserRecord(
+      {
+        email: payload.email,
+        name: payload.name,
+        provider: "email",
+        verified: true,
+      },
+      {
+        markSignedIn: true,
+      },
+    );
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("blocked")) {
+      return NextResponse.redirect(new URL("/auth/sign-in?error=account-blocked", request.url), {
+        status: 303,
+      });
+    }
+
+    if (error instanceof Error && error.message.includes("deleted")) {
+      return NextResponse.redirect(new URL("/auth/sign-in?error=account-deleted", request.url), {
+        status: 303,
+      });
+    }
+
+    return NextResponse.redirect(new URL("/auth/sign-in?error=invalid-token", request.url), {
+      status: 303,
+    });
+  }
+
   const destination = new URL("/app", request.url);
   const response = NextResponse.redirect(destination, { status: 303 });
   response.cookies.set(
-    buildSessionCookie({
+      buildSessionCookie({
       email: payload.email,
       name: payload.name,
       provider: "email",

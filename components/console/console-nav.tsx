@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { consoleNavGroups } from "@/lib/console/nav";
+import { getConsoleNavGroups } from "@/lib/console/nav";
 import { cx } from "@/lib/ui/cx";
 
 function isActivePath(pathname: string, href: string) {
@@ -14,9 +14,9 @@ function isActivePath(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function ConsoleNav() {
+export function ConsoleNav({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname();
-  const items = consoleNavGroups.flatMap((group) => group.items);
+  const items = getConsoleNavGroups({ isAdmin }).flatMap((group) => group.items);
 
   return (
     <nav aria-label="Console" className="fg-pill-nav fg-console-nav">

@@ -31,6 +31,14 @@ function readFlash(params: Record<string, string | string[] | undefined>) {
     return { message: "Sign in first to enter the control shell.", variant: "info" as const };
   }
 
+  if (error === "account-blocked") {
+    return { message: "This account is blocked. Contact an administrator.", variant: "error" as const };
+  }
+
+  if (error === "account-deleted") {
+    return { message: "This account has been deleted and can no longer sign in.", variant: "error" as const };
+  }
+
   if (state === "signed-out") {
     return { message: "You have been signed out.", variant: "info" as const };
   }
