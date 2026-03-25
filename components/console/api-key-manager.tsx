@@ -199,7 +199,7 @@ export function ApiKeyManager({
       showToast({
         message: data.syncError
           ? "Live sync is still unavailable. Stored metadata remains visible."
-          : "API key list refreshed.",
+          : "Access key list refreshed.",
         variant: data.syncError ? "info" : "success",
       });
     } catch (error) {
@@ -250,7 +250,7 @@ export function ApiKeyManager({
     const confirmed = window.confirm(
       record.isWorkspaceAdmin
         ? "Replace this admin key? The current secret stops working immediately and the new secret will be copied."
-        : "Replace this API key? The current secret stops working immediately and the new secret will be copied.",
+        : "Replace this access key? The current secret stops working immediately and the new secret will be copied.",
     );
 
     if (!confirmed) {
@@ -279,10 +279,10 @@ export function ApiKeyManager({
         message: copied
           ? record.isWorkspaceAdmin
             ? "Admin key replaced and secret copied. The previous secret no longer works."
-            : "API key replaced and secret copied. The previous secret no longer works."
+            : "Access key replaced and secret copied. The previous secret no longer works."
           : record.isWorkspaceAdmin
             ? "Admin key replaced. Copy the new secret now."
-            : "API key replaced. Copy the new secret now.",
+            : "Access key replaced. Copy the new secret now.",
         variant: "success",
       });
     } catch (error) {
@@ -300,9 +300,7 @@ export function ApiKeyManager({
       return;
     }
 
-    const confirmed = window.confirm(
-      "Delete this API key? This revokes the secret in Fugue immediately.",
-    );
+    const confirmed = window.confirm("Delete this access key? This revokes the secret in Fugue immediately.");
 
     if (!confirmed) {
       return;
@@ -577,7 +575,7 @@ export function ApiKeyManager({
                       <div className="fg-api-key-item__details">
                         <dl className="fg-api-key-facts">
                           <div>
-                            <dt>ID</dt>
+                            <dt>Identifier</dt>
                             <dd>{record.id}</dd>
                           </div>
                           <div>

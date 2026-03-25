@@ -102,8 +102,8 @@ canvas {
   background: rgba(10, 11, 15, 0.96);
   color: var(--text-0);
   font-size: 0.72rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-transform: none;
   transform: translateY(-220%);
   transition: transform 180ms var(--ease-out-expo);
 }
@@ -160,8 +160,8 @@ canvas {
 .brand__meta {
   color: var(--text-2);
   font-size: 0.73rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-transform: none;
 }
 
 .desktop-nav {
@@ -419,8 +419,8 @@ canvas {
   margin: 0;
   color: var(--accent);
   font-size: 0.72rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-transform: none;
 }
 
 .hero-copy h1,
@@ -483,8 +483,8 @@ canvas {
   margin: 0 0 0.1rem;
   color: var(--accent);
   font-size: 0.68rem;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-transform: none;
 }
 
 .scene-container,
@@ -611,15 +611,15 @@ canvas {
 .stage-note span:last-child {
   color: var(--text-2);
   font-size: 0.66rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-transform: none;
 }
 
 .stage-note__index {
   color: var(--accent);
   font-size: 0.68rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-transform: none;
 }
 
 .stage-note--repo {
@@ -772,8 +772,8 @@ canvas {
   padding-top: 0.35rem;
   color: var(--text-2);
   font-size: 0.74rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-transform: none;
 }
 
 .surface-intro {
@@ -811,8 +811,8 @@ canvas {
 .surface-list li span:last-child {
   color: var(--text-2);
   font-size: 0.74rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-transform: none;
 }
 
 .object-belt {
@@ -828,8 +828,8 @@ canvas {
 .object-belt span {
   color: var(--text-3);
   font-size: 0.7rem;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  text-transform: none;
 }
 
 .proof-head {
@@ -868,8 +868,8 @@ canvas {
 .proof-ribbon span {
   color: var(--text-2);
   font-size: 0.68rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-transform: none;
 }
 
 .proof-shell pre {

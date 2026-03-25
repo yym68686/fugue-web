@@ -153,7 +153,7 @@ function readErrorMessage(reason: unknown) {
     return reason.message;
   }
 
-  return "Unknown Fugue API error.";
+  return "Unknown Fugue request error.";
 }
 
 function parseTimestamp(value?: string | null) {

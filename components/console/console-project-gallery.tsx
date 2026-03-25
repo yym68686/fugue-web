@@ -162,42 +162,42 @@ function readProjectLifecycle(project: ConsoleGalleryProjectView): ProjectLifecy
     .filter(Boolean);
 
   if (statuses.some((status) => includesLifecycleKeyword(status, ["deleting"]))) {
-    return { label: "DELETING", tone: "danger", live: true };
+    return { label: "Deleting", tone: "danger", live: true };
   }
 
   if (statuses.some((status) => includesLifecycleKeyword(status, ["error", "fail", "stopped"]))) {
-    return { label: "ERROR", tone: "danger", live: false };
+    return { label: "Error", tone: "danger", live: false };
   }
 
   if (statuses.some((status) => includesLifecycleKeyword(status, ["importing"]))) {
-    return { label: "IMPORTING", tone: "positive", live: true };
+    return { label: "Importing", tone: "positive", live: true };
   }
 
   if (statuses.some((status) => includesLifecycleKeyword(status, ["building"]))) {
-    return { label: "BUILDING", tone: "positive", live: true };
+    return { label: "Building", tone: "positive", live: true };
   }
 
   if (statuses.some((status) => includesLifecycleKeyword(status, ["deploying"]))) {
-    return { label: "DEPLOYING", tone: "positive", live: true };
+    return { label: "Deploying", tone: "positive", live: true };
   }
 
   if (statuses.some((status) => includesLifecycleKeyword(status, ["queued", "pending", "migrating"]))) {
-    return { label: "QUEUED", tone: "positive", live: true };
+    return { label: "Queued", tone: "positive", live: true };
   }
 
   if (statuses.length > 0 && statuses.every((status) => includesLifecycleKeyword(status, ["disabled"]))) {
-    return { label: "PAUSED", tone: "warning", live: false };
+    return { label: "Paused", tone: "warning", live: false };
   }
 
   if (project.appCount > 0) {
-    return { label: "DEPLOYED", tone: "positive", live: false };
+    return { label: "Deployed", tone: "positive", live: false };
   }
 
   if (project.serviceCount > 0) {
-    return { label: "READY", tone: "positive", live: false };
+    return { label: "Ready", tone: "positive", live: false };
   }
 
-  return { label: "IDLE", tone: "neutral", live: false };
+  return { label: "Idle", tone: "neutral", live: false };
 }
 
 function readErrorMessage(error: unknown) {
@@ -994,7 +994,7 @@ export function ConsoleProjectGallery({
 
     if (!repoUrl.trim()) {
       setFlash({
-        message: "Repository URL is required.",
+        message: "Repository link is required.",
         variant: "error",
       });
       return;
@@ -1616,7 +1616,7 @@ export function ConsoleProjectGallery({
                                   className="fg-input"
                                   disabled={row.existing}
                                   onChange={(event) => updateEnvRow(row.id, "key", event.target.value)}
-                                  placeholder="KEY"
+                                  placeholder="name"
                                   spellCheck={false}
                                   value={row.existing ? row.originalKey : row.key}
                                 />
@@ -1645,7 +1645,7 @@ export function ConsoleProjectGallery({
                     ) : (
                       <div className="fg-env-raw">
                         <FormField
-                          hint="Paste KEY=value lines directly from a .env file. Quoted values, blank lines, comments, and export prefixes are supported."
+                          hint="Paste key=value lines directly from a .env file. Quoted values, blank lines, comments, and export prefixes are supported."
                           htmlFor={`env-raw-${selectedApp.id}`}
                           label="Raw environment"
                           optionalLabel="Paste .env"
@@ -1657,7 +1657,7 @@ export function ConsoleProjectGallery({
                             className="fg-project-textarea fg-env-raw__textarea"
                             id={`env-raw-${selectedApp.id}`}
                             onChange={(event) => updateEnvRaw(event.target.value)}
-                            placeholder={`DATABASE_URL=postgres://user:pass@host/db\nNEXT_PUBLIC_API_BASE=https://api.example.com\n# comments are ignored`}
+                            placeholder={`database_url=postgres://user:pass@host/db\npublic_api_base=https://api.example.com\n# comments are ignored`}
                             spellCheck={false}
                             value={envRawDraft}
                           />
@@ -1885,7 +1885,7 @@ export function ConsoleProjectGallery({
                     )}
 
                     <label className="fg-field-stack">
-                      <span className="fg-field-label">Repository URL</span>
+                      <span className="fg-field-label">Repository link</span>
                       <input
                         className="fg-input"
                         onChange={(event) => setRepoUrl(event.target.value)}

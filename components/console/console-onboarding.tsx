@@ -191,7 +191,7 @@ export function ConsoleOnboarding({
 
     if (!repoUrl.trim()) {
       setFlash({
-        message: "Repository URL is required.",
+        message: "Repository link is required.",
         variant: "error",
       });
       return;
@@ -351,7 +351,7 @@ export function ConsoleOnboarding({
                     <FormField
                       hint="Only public GitHub repositories are supported right now."
                       htmlFor="repo-url"
-                      label="Repository URL"
+                      label="Repository link"
                     >
                       <input
                         className="fg-input"

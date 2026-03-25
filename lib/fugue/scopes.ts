@@ -15,7 +15,7 @@ export const FUGUE_SCOPE_CATALOG = [
     value: "project.write",
   },
   {
-    description: "Mint additional tenant API keys.",
+    description: "Mint additional tenant access keys.",
     value: "apikey.write",
   },
   {

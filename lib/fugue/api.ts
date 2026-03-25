@@ -1005,7 +1005,7 @@ export async function createFugueApiKey(
   const secret = readString(response, "secret");
 
   if (!apiKey || !secret) {
-    throw new Error("Fugue API key response was malformed.");
+    throw new Error("Fugue access-key response was malformed.");
   }
 
   return {
@@ -1035,7 +1035,7 @@ export async function updateFugueApiKey(
   const apiKey = sanitizeApiKey(response?.api_key);
 
   if (!apiKey) {
-    throw new Error("Fugue API key update response was malformed.");
+    throw new Error("Fugue access-key update response was malformed.");
   }
 
   return apiKey;
@@ -1066,7 +1066,7 @@ export async function rotateFugueApiKey(
   const secret = readString(response, "secret");
 
   if (!apiKey || !secret) {
-    throw new Error("Fugue API key rotate response was malformed.");
+    throw new Error("Fugue access-key rotate response was malformed.");
   }
 
   return {
@@ -1088,7 +1088,7 @@ export async function disableFugueApiKey(
   const apiKey = sanitizeApiKey(response?.api_key);
 
   if (!apiKey) {
-    throw new Error("Fugue API key disable response was malformed.");
+    throw new Error("Fugue access-key disable response was malformed.");
   }
 
   return apiKey;
@@ -1107,7 +1107,7 @@ export async function enableFugueApiKey(
   const apiKey = sanitizeApiKey(response?.api_key);
 
   if (!apiKey) {
-    throw new Error("Fugue API key enable response was malformed.");
+    throw new Error("Fugue access-key enable response was malformed.");
   }
 
   return apiKey;
@@ -1127,7 +1127,7 @@ export async function deleteFugueApiKey(
   const deleted = readBoolean(response, "deleted");
 
   if (!apiKey || !deleted) {
-    throw new Error("Fugue API key delete response was malformed.");
+    throw new Error("Fugue access-key delete response was malformed.");
   }
 
   return {

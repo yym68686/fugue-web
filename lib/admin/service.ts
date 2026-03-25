@@ -257,9 +257,9 @@ function readProviderLabel(value?: string | null) {
     case "ruby":
       return "Ruby";
     case "php":
-      return "PHP";
+      return "Php";
     case "dotnet":
-      return ".NET";
+      return "Dotnet";
     case "rust":
       return "Rust";
     default:
@@ -592,7 +592,7 @@ function formatBytesLabel(value?: number | null) {
     return "No stats";
   }
 
-  const units = ["B", "KB", "MB", "GB", "TB", "PB"];
+  const units = ["bytes", "kb", "mb", "gb", "tb", "pb"];
   let amount = value;
   let unitIndex = 0;
 
@@ -602,6 +602,11 @@ function formatBytesLabel(value?: number | null) {
   }
 
   const digits = amount >= 100 || unitIndex === 0 ? 0 : 1;
+  if (unitIndex === 0) {
+    const rounded = Math.round(amount);
+    return `${rounded} ${rounded === 1 ? "byte" : "bytes"}`;
+  }
+
   return `${formatCompactNumber(amount, digits)} ${units[unitIndex]}`;
 }
 
@@ -615,7 +620,7 @@ function formatCPUCapacityLabel(value?: number | null) {
     return `${formatCompactNumber(cores, 1)} ${cores === 1 ? "core" : "cores"}`;
   }
 
-  return `${Math.round(value)} mCPU`;
+  return `${Math.round(value)} millicores`;
 }
 
 function toneWeight(tone: ConsoleTone) {
@@ -755,7 +760,7 @@ function buildCPUResourceView(stats: FugueClusterNodeCPUStats | null): AdminClus
         ? `${formatCPUCapacityLabel(stats.capacityMilliCores)} capacity`
         : "Capacity unknown",
     id: "cpu",
-    label: "CPU",
+    label: "Compute",
     percentLabel: formatPercentLabel(percent),
     percentValue: percent,
     statusLabel: readResourceStatusLabel(percent),
@@ -825,7 +830,7 @@ function buildClusterConditionViews(node: FugueClusterNode): AdminClusterConditi
     { id: CLUSTER_READY_CONDITION, label: "Ready" },
     { id: CLUSTER_MEMORY_PRESSURE_CONDITION, label: "Memory" },
     { id: CLUSTER_DISK_PRESSURE_CONDITION, label: "Disk" },
-    { id: CLUSTER_PID_PRESSURE_CONDITION, label: "PID" },
+    { id: CLUSTER_PID_PRESSURE_CONDITION, label: "Process" },
   ] as const;
 
   return definitions.map((definition) => {
@@ -960,7 +965,7 @@ function buildClusterNodeViews(
         pressureSignals.length > 0
           ? `${pressureSignals.map((condition) => `${condition.label.toLowerCase()} pressure`).join(" / ")}`
           : node.status?.trim().toLowerCase() === "ready"
-            ? "Ready with no active memory, disk, or PID pressure."
+            ? "Ready with no active memory, disk, or process pressure."
             : "Waiting for complete node health telemetry.",
       statusLabel,
       statusTone,

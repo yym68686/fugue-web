@@ -260,14 +260,14 @@ function formatBytes(value?: number | null) {
   }
 
   if (value < 1024) {
-    return `${value} B`;
+    return `${value} ${value === 1 ? "byte" : "bytes"}`;
   }
 
   if (value < 1024 * 1024) {
-    return `${(value / 1024).toFixed(1)} KB`;
+    return `${(value / 1024).toFixed(1)} kb`;
   }
 
-  return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(value / (1024 * 1024)).toFixed(1)} mb`;
 }
 
 function buildSuggestedFilePath(baseDirectory: string) {
@@ -1416,7 +1416,7 @@ export function ConsoleFilesWorkbench({
                 hint={
                   composer.encoding === "base64"
                     ? "Content will be written as base64."
-                    : "The file will be written as UTF-8 text."
+                    : "The file will be written as utf-8 text."
                 }
                 htmlFor={`filesystem-file-content-${appId}`}
                 label="Content"
@@ -1517,13 +1517,13 @@ export function ConsoleFilesWorkbench({
 
               {selectedFile?.encoding === "base64" ? (
                 <InlineAlert variant="info">
-                  This file is shown as base64 because it is not valid UTF-8 text.
+                  This file is shown as base64 because it is not valid utf-8 text.
                 </InlineAlert>
               ) : null}
 
               {selectedFile?.truncated ? (
                 <InlineAlert variant="error">
-                  This preview was truncated at 1 MB. Save is disabled to avoid overwriting the file with partial content.
+                  This preview was truncated at 1 mb. Save is disabled to avoid overwriting the file with partial content.
                 </InlineAlert>
               ) : null}
 

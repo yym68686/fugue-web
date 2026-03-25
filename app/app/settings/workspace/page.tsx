@@ -30,7 +30,7 @@ export default async function WorkspaceSettingsPage() {
       <ConsolePageIntro
         actions={[
           { href: "/app", label: "Back to projects" },
-          { href: "/app/api-keys", label: "Manage API keys", variant: "primary" },
+          { href: "/app/api-keys", label: "Manage access keys", variant: "primary" },
         ]}
         description="Product auth, workspace ownership, and the stored tenant admin key meet here. Bootstrap access is only used once to mint the workspace admin key."
         eyebrow="Workspace"
@@ -67,7 +67,7 @@ export default async function WorkspaceSettingsPage() {
                 <dd>{workspace?.adminKeyId ?? "Not assigned"}</dd>
               </div>
               <div>
-                <dt>API host</dt>
+                <dt>Control-plane host</dt>
                 <dd>{consoleData.summary.apiHost}</dd>
               </div>
               <div>
@@ -131,7 +131,7 @@ export default async function WorkspaceSettingsPage() {
             <p className="fg-label fg-panel__eyebrow">Visible tenants</p>
             <PanelTitle>Current control-plane surface</PanelTitle>
             <PanelCopy>
-              There is no separate membership API yet, so the most truthful surface is still what
+              There is no separate membership service yet, so the most truthful surface is still what
               your workspace admin key can currently observe from Fugue.
             </PanelCopy>
           </PanelSection>
@@ -163,7 +163,7 @@ export default async function WorkspaceSettingsPage() {
               </ul>
             ) : (
               <ConsoleEmptyState
-                description="No tenant visibility is currently coming back from Fugue. Check the configured key and API host."
+                description="No tenant visibility is currently coming back from Fugue. Check the configured key and control-plane host."
                 title="No tenants visible"
               />
             )}

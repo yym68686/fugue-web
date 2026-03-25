@@ -69,13 +69,13 @@ Notes:
 
 ### Purpose
 
-Shared action system for route-level CTA, product submits, quiet utilities, and destructive workbench controls.
+Shared action system for route-level actions, product submits, quiet utilities, and destructive workbench controls.
 
 ### Variants
 
 | Variant | Class | Use |
 | --- | --- | --- |
-| route | `.fg-button--route` | Topbar or route-level CTA |
+| route | `.fg-button--route` | Topbar or route-level action |
 | primary | `.fg-button--primary` | Main action in a product section or form |
 | secondary | `.fg-button--secondary` | Default utility action with readable resting chrome |
 | ghost | `.fg-button--ghost` | Tertiary or dismissive action with quiet outline |
@@ -220,7 +220,8 @@ Mono overline for chapter labels, object names, or system metadata.
 
 ### Notes
 
-- Always uppercase.
+- Use sentence case or title case. Do not force all-uppercase labels with `text-transform`.
+- If a code literal must stay exact, keep it inside code or command content rather than UI copy.
 - Use sparingly to anchor sections and technical semantics.
 
 ## RouteNote
@@ -267,7 +268,7 @@ Double-layer hardware shell for premium containers.
 
 ### Purpose
 
-Specialized bezel shell for command blocks and API proof.
+Specialized bezel shell for command blocks and control-plane proof.
 
 ### Anatomy
 

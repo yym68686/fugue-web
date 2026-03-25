@@ -428,7 +428,7 @@ export function NodeKeyManager({
                     <div className="fg-api-key-item__panel">
                       <dl className="fg-api-key-facts">
                         <div>
-                          <dt>ID</dt>
+                          <dt>Identifier</dt>
                           <dd>{record.id}</dd>
                         </div>
                         <div>

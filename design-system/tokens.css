@@ -39,8 +39,8 @@
   --fugue-tracking-display: var(--fugue-tracking-heading);
   --fugue-tracking-ui-heading: -0.035em;
   --fugue-tracking-brand: -0.05em;
-  --fugue-tracking-label: 0.16em;
-  --fugue-tracking-meta: 0.12em;
+  --fugue-tracking-label: 0.1em;
+  --fugue-tracking-meta: 0.08em;
 
   /* primitives: spacing */
   --fugue-space-1: 0.25rem;
@@ -277,7 +277,7 @@
   --fugue-object-belt-gap-row: 0.85rem;
   --fugue-object-belt-gap-column: 1.5rem;
   --fugue-object-belt-padding: 1.05rem 0;
-  --fugue-object-belt-letter-spacing: 0.18em;
+  --fugue-object-belt-letter-spacing: 0.12em;
 
   --fugue-route-base-stroke: rgba(255, 255, 255, 0.08);
   --fugue-route-active-stroke: var(--fugue-accent-signal);

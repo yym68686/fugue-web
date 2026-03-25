@@ -103,7 +103,7 @@ function parseQuotedValue(
 
       if (trailing.length > 0 && !trailing.startsWith("#")) {
         return {
-          message: "Unexpected characters after the quoted value. Use KEY=value or move comments onto their own line.",
+          message: "Unexpected characters after the quoted value. Use key=value or move comments onto their own line.",
           ok: false as const,
         };
       }
@@ -172,7 +172,7 @@ export function parseRawEnvInput(input: string): EnvRawParseResult {
     if (separatorIndex < 0) {
       return {
         line: startLine,
-        message: "Each line must use KEY=value format.",
+        message: "Each line must use key=value format.",
         ok: false,
       };
     }

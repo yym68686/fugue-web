@@ -93,11 +93,11 @@ function ClusterNodeCard({
             <dd>{node.locationLabel}</dd>
           </div>
           <div>
-            <dt>Public IP</dt>
+            <dt>Public address</dt>
             <dd>{node.externalIpLabel}</dd>
           </div>
           <div>
-            <dt>Internal IP</dt>
+            <dt>Internal address</dt>
             <dd>{node.internalIpLabel}</dd>
           </div>
           <div>
@@ -123,7 +123,7 @@ function ClusterNodeCard({
         <div className="fg-cluster-node-card__section-head">
           <div>
             <p className="fg-label fg-panel__eyebrow">Signals</p>
-            <p className="fg-console-note">Ready plus memory, disk, and PID pressure.</p>
+            <p className="fg-console-note">Ready plus memory, disk, and process pressure.</p>
           </div>
         </div>
 
@@ -149,7 +149,7 @@ function ClusterNodeCard({
         <div className="fg-cluster-node-card__section-head">
           <div>
             <p className="fg-label fg-panel__eyebrow">Capacity</p>
-            <p className="fg-console-note">Live CPU, memory, and disk usage from the node.</p>
+            <p className="fg-console-note">Live compute, memory, and disk usage from the node.</p>
           </div>
         </div>
 

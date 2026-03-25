@@ -82,7 +82,7 @@ export async function POST() {
     await ensureAppUser(session);
     return jsonError(
       403,
-      "Admin API key is provisioned automatically. Create node keys instead.",
+      "Admin access key is provisioned automatically. Create node keys instead.",
     );
   } catch (error) {
     return jsonError(readErrorStatus(error), readErrorMessage(error));

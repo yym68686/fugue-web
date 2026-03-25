@@ -269,7 +269,7 @@ export async function saveApiKeyRecord(input: SaveApiKeyInput) {
     const row = await getApiKeyRow(client, input.email, input.apiKey.id);
 
     if (!row) {
-      throw new Error("Failed to persist API key.");
+      throw new Error("Failed to persist access key.");
     }
 
     return recordFromRow(row);

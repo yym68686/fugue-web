@@ -26,7 +26,7 @@ function readErrorMessage(reason: unknown) {
     return reason.message;
   }
 
-  return "Unknown Fugue API error.";
+  return "Unknown Fugue request error.";
 }
 
 function parseTimestamp(value?: string | null) {
@@ -308,9 +308,9 @@ function readLanguageLabel(value?: string | null) {
     case "ruby":
       return "Ruby";
     case "php":
-      return "PHP";
+      return "Php";
     case "dotnet":
-      return ".NET";
+      return "Dotnet";
     case "rust":
       return "Rust";
     default:

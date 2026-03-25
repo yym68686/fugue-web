@@ -100,8 +100,8 @@
 .fg-console-timeline__meta {
   font-family: var(--fugue-font-mono);
   font-size: 0.72rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-transform: none;
 }
 
 .fg-console-topbar {
@@ -275,8 +275,8 @@
   color: var(--fugue-text-muted);
   font-family: var(--fugue-font-mono);
   font-size: 0.66rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-transform: none;
 }
 
 .fg-console-disclosure__item dd {
@@ -335,8 +335,8 @@
   border-radius: 999px;
   font-family: var(--fugue-font-mono);
   font-size: 0.66rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-transform: none;
   white-space: nowrap;
 }
 
@@ -441,8 +441,8 @@
   color: var(--fugue-text-muted);
   font-family: var(--fugue-font-mono);
   font-size: 0.7rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-transform: none;
 }
 
 .fg-console-metric-card__value {
@@ -554,8 +554,8 @@
   color: var(--fugue-text-muted);
   font-family: var(--fugue-font-mono);
   font-size: 0.66rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-transform: none;
 }
 
 .fg-console-inline-meta dd {
@@ -602,8 +602,8 @@
   color: var(--fugue-text-tertiary);
   font-family: var(--fugue-font-mono);
   font-size: 0.72rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-transform: none;
 }
 
 .fg-console-timeline {
@@ -687,9 +687,9 @@
   font-family: var(--fugue-font-mono);
   font-size: 0.68rem;
   font-weight: 500;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.08em;
   text-align: left;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .fg-console-table--admin th {
@@ -946,8 +946,8 @@
   color: var(--fugue-text-muted);
   font-family: var(--fugue-font-mono);
   font-size: 0.58rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-transform: none;
   white-space: nowrap;
 }
 
@@ -1003,8 +1003,8 @@
   color: var(--fugue-text-muted);
   font-family: var(--fugue-font-mono);
   font-size: 0.68rem;
-  letter-spacing: 0.11em;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-transform: none;
 }
 
 .fg-cluster-node-facts {
@@ -1020,8 +1020,8 @@
   color: var(--fugue-text-muted);
   font-family: var(--fugue-font-mono);
   font-size: 0.64rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-transform: none;
 }
 
 .fg-cluster-node-facts dd {
@@ -1335,8 +1335,8 @@
   color: var(--fugue-text-muted);
   font-family: var(--fugue-font-mono);
   font-size: 0.66rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-transform: none;
 }
 
 .fg-api-key-facts dd {
@@ -1378,8 +1378,8 @@
   color: var(--fugue-text-secondary);
   font-family: var(--fugue-font-mono);
   font-size: 0.68rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-transform: none;
 }
 
 .fg-api-key-permission-grid {
@@ -1441,8 +1441,8 @@
   color: var(--fugue-text-muted);
   font-family: var(--fugue-font-mono);
   font-size: 0.66rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-transform: none;
   white-space: nowrap;
 }
 
@@ -1707,8 +1707,8 @@
   color: var(--fugue-text-primary);
   font-family: var(--fugue-font-mono);
   font-size: 0.72rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-transform: none;
 }
 
 .fg-console-profile__summary {
@@ -1885,8 +1885,8 @@
   border-radius: 999px;
   font-family: var(--fugue-font-mono);
   font-size: 0.64rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-transform: none;
   white-space: nowrap;
 }
 
@@ -2225,8 +2225,8 @@
   color: var(--fugue-text-muted);
   font-family: var(--fugue-font-mono);
   font-size: 0.66rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-transform: none;
 }
 
 .fg-project-inspector__meta-grid dd {
@@ -2404,8 +2404,8 @@
   color: var(--fugue-text-muted);
   font-family: var(--fugue-font-mono);
   font-size: 0.62rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-transform: none;
 }
 
 .fg-env-row {
@@ -2563,8 +2563,8 @@
   color: var(--fugue-text-muted);
   font-family: var(--fugue-font-mono);
   font-size: 0.64rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-transform: none;
 }
 
 .fg-filesystem__root-path {
@@ -2716,8 +2716,8 @@
   color: var(--fugue-text-muted);
   font-family: var(--fugue-font-mono);
   font-size: 0.64rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-transform: none;
 }
 
 .fg-filesystem-node__children {
@@ -2772,8 +2772,8 @@
   color: var(--fugue-text-muted);
   font-family: var(--fugue-font-mono);
   font-size: 0.66rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-transform: none;
 }
 
 .fg-filesystem-editor__grid {
@@ -2837,8 +2837,8 @@
   color: var(--fugue-text-muted);
   font-family: var(--fugue-font-mono);
   font-size: 0.64rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-transform: none;
   white-space: nowrap;
 }
 

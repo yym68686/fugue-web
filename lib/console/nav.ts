@@ -6,7 +6,7 @@ export function getConsoleNavGroups(options?: { isAdmin?: boolean }) {
       label: "Primary",
       items: [
         { href: "/app", label: "Projects", meta: "gallery / services / controls" },
-        { href: "/app/api-keys", label: "API Keys", meta: "create / rebuild / scopes" },
+        { href: "/app/api-keys", label: "Access keys", meta: "create / rebuild / scopes" },
       ],
     },
   ] satisfies ConsoleNavGroup[];

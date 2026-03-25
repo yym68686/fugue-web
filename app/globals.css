@@ -195,8 +195,8 @@ svg {
   color: rgba(var(--fg-toast-accent), 0.9);
   font-family: var(--fugue-font-mono);
   font-size: 0.62rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-transform: none;
 }
 
 .fg-toast__message {
@@ -226,8 +226,8 @@ svg {
   color: rgba(var(--fg-toast-accent), 0.82);
   font-family: var(--fugue-font-mono);
   font-size: 0.62rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-transform: none;
   border-radius: 0.82rem;
   transition:
     color var(--fugue-duration-fast) var(--fugue-ease-out-expo),
@@ -289,8 +289,8 @@ svg {
 .fg-brand__meta {
   color: var(--fugue-text-tertiary);
   font-size: 0.73rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-transform: none;
 }
 
 .fg-home-page,
@@ -428,8 +428,8 @@ svg {
   align-items: center;
   color: var(--fugue-text-tertiary);
   font-size: 0.7rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-transform: none;
   font-family: var(--fugue-font-mono);
 }
 
@@ -498,8 +498,8 @@ svg {
   color: var(--fugue-text-tertiary);
   font-family: var(--fugue-font-mono);
   font-size: 0.74rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-transform: none;
 }
 
 .fg-field-control {
@@ -641,8 +641,8 @@ svg {
   color: var(--fugue-text-tertiary);
   font-family: var(--fugue-font-mono);
   font-size: 0.74rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-transform: none;
 }
 
 .fg-signout-form {

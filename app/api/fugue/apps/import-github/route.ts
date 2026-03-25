@@ -83,11 +83,11 @@ export async function POST(request: Request) {
   const name = readOptionalString(body, "name");
 
   if (!repoUrl) {
-    return jsonError(400, "Repository URL is required.");
+    return jsonError(400, "Repository link is required.");
   }
 
   if (!isGitHubRepoUrl(repoUrl)) {
-    return jsonError(400, "Only public GitHub repository URLs are supported.");
+    return jsonError(400, "Only public GitHub repository links are supported.");
   }
 
   if (buildStrategy && !ALLOWED_BUILD_STRATEGIES.has(buildStrategy)) {

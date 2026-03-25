@@ -158,7 +158,7 @@ async function persistApiKeyMutation(input: {
     const record = await getApiKeyRecordById(email, apiKey.id);
 
     if (!record) {
-      throw new Error("Failed to persist API key.");
+      throw new Error("Failed to persist access key.");
     }
 
     return record;
@@ -218,7 +218,7 @@ export async function createApiKeyForEmail(
   void payload;
 
   throw new Error(
-    "Admin API key is provisioned automatically. Create node keys instead.",
+    "Admin access key is provisioned automatically. Create node keys instead.",
   );
 }
 
@@ -276,7 +276,7 @@ export async function updateApiKeyForEmail(
   });
 
   if (!current || current.status === "deleted") {
-    throw new Error("API key not found.");
+    throw new Error("Access key not found.");
   }
 
   const nextLabel =
@@ -335,7 +335,7 @@ export async function rotateApiKeyForEmail(email: string, id: string) {
   });
 
   if (!current || current.status === "deleted") {
-    throw new Error("API key not found.");
+    throw new Error("Access key not found.");
   }
 
   const rotated = await rotateFugueApiKey(
@@ -377,7 +377,7 @@ export async function disableApiKeyForEmail(email: string, id: string) {
   });
 
   if (!current || current.status === "deleted") {
-    throw new Error("API key not found.");
+    throw new Error("Access key not found.");
   }
 
   if (current.isWorkspaceAdmin) {
@@ -410,7 +410,7 @@ export async function enableApiKeyForEmail(email: string, id: string) {
   });
 
   if (!current || current.status === "deleted") {
-    throw new Error("API key not found.");
+    throw new Error("Access key not found.");
   }
 
   if (current.isWorkspaceAdmin) {
@@ -443,7 +443,7 @@ export async function deleteApiKeyForEmail(email: string, id: string) {
   });
 
   if (!current || current.status === "deleted") {
-    throw new Error("API key not found.");
+    throw new Error("Access key not found.");
   }
 
   if (current.isWorkspaceAdmin) {
@@ -454,7 +454,7 @@ export async function deleteApiKeyForEmail(email: string, id: string) {
   const deleted = await setApiKeyStatus(email, id, "deleted");
 
   if (!deleted) {
-    throw new Error("API key not found.");
+    throw new Error("Access key not found.");
   }
 
   return {

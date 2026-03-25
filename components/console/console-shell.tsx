@@ -11,17 +11,16 @@ function readSessionLabel(session: SessionUser) {
   return session.name?.trim() || session.email.split("@")[0] || session.email;
 }
 
-function readInitials(label: string) {
-  const tokens = label.split(/\s+/).filter(Boolean);
+function readMonogram(label: string) {
+  const normalized = label.replace(/[^a-z0-9]+/gi, "");
 
-  if (!tokens.length) {
-    return "FG";
+  if (!normalized) {
+    return "Fg";
   }
 
-  return tokens
-    .slice(0, 2)
-    .map((token) => token[0]?.toUpperCase() ?? "")
-    .join("");
+  const first = normalized[0] ?? "F";
+  const second = normalized[1] ?? "g";
+  return `${first.toUpperCase()}${second.toLowerCase()}`;
 }
 
 export async function ConsoleShell({
@@ -51,7 +50,7 @@ export async function ConsoleShell({
             <details className="fg-console-profile">
               <summary className="fg-console-profile__trigger">
                 <span className="fg-console-profile__avatar" aria-hidden="true">
-                  {readInitials(sessionLabel)}
+                  {readMonogram(sessionLabel)}
                 </span>
                 <span className="fg-console-profile__summary">
                   <strong>{sessionLabel}</strong>

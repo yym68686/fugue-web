@@ -62,7 +62,7 @@ export async function GET(_request: Request, context: RouteContext) {
     });
 
     if (!record || record.status === "deleted") {
-      return jsonError(404, "API key not found.");
+      return jsonError(404, "Access key not found.");
     }
 
     const secret = await getApiKeySecret(session.email, keyId);
