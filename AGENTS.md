@@ -137,7 +137,7 @@
   - 系统注释、对象名、命令、标签：`IBM Plex Mono`
   - 标题必须压缩字距、低行高；正文要克制；mono 只用于元信息和技术对象，不要大面积正文滥用
   - 文案大小写默认使用 `sentence case` 或 `title case`；禁止整词全大写，禁止依赖 `text-transform: uppercase` 把 UI 文案强转成全大写
-  - 缩写优先改写成完整词或常规大小写；只有命令、环境变量、协议字面量、代码示例这类必须保真的技术内容可以保留全大写
+  - 缩写优先改写成完整词或常规大小写；只有命令、环境变量、协议字面量、代码示例，以及 `KB` / `MB` / `GB` / `TB` 这类行业约定的技术单位可以保留全大写
 - `Syne` 只用于 display / brand / marketing 级标题，不用于 panel、modal、table、console、docs 这类严肃产品界面的主标题
 - 严肃产品场景的标题默认使用基于 `Manrope` 的 `ui heading` 语义，追求更高识别度、更稳的字腔和更低的阅读摩擦
 - 在产品层尤其是 console 内，不允许把 `--fugue-font-heading` / `Syne` 直接用于 summary metric 数值、workspace 名、表格主对象、topbar brand wordmark 或任何数据读数；这些都必须回到 `--fugue-font-ui-heading` 或 `--fugue-font-body`

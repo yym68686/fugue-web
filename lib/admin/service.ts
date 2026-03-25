@@ -592,7 +592,7 @@ function formatBytesLabel(value?: number | null) {
     return "No stats";
   }
 
-  const units = ["bytes", "kb", "mb", "gb", "tb", "pb"];
+  const units = ["bytes", "KB", "MB", "GB", "TB", "PB"];
   let amount = value;
   let unitIndex = 0;
 

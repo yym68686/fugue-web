@@ -264,10 +264,10 @@ function formatBytes(value?: number | null) {
   }
 
   if (value < 1024 * 1024) {
-    return `${(value / 1024).toFixed(1)} kb`;
+    return `${(value / 1024).toFixed(1)} KB`;
   }
 
-  return `${(value / (1024 * 1024)).toFixed(1)} mb`;
+  return `${(value / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function buildSuggestedFilePath(baseDirectory: string) {
@@ -1523,7 +1523,7 @@ export function ConsoleFilesWorkbench({
 
               {selectedFile?.truncated ? (
                 <InlineAlert variant="error">
-                  This preview was truncated at 1 mb. Save is disabled to avoid overwriting the file with partial content.
+                  This preview was truncated at 1 MB. Save is disabled to avoid overwriting the file with partial content.
                 </InlineAlert>
               ) : null}
 
