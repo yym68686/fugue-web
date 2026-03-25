@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { ensureAppUserRecord } from "@/lib/app-users/store";
 import { buildSessionCookie } from "@/lib/auth/session";
 import { verifyToken } from "@/lib/auth/token";
+import { ensureWorkspaceAccess } from "@/lib/workspace/bootstrap";
 
 type EmailVerifyPayload = {
   email: string;
@@ -31,18 +32,18 @@ export async function GET(request: Request) {
     });
   }
 
+  const sessionUser = {
+    email: payload.email,
+    name: payload.name,
+    provider: "email" as const,
+    verified: true,
+  };
+
   try {
-    await ensureAppUserRecord(
-      {
-        email: payload.email,
-        name: payload.name,
-        provider: "email",
-        verified: true,
-      },
-      {
-        markSignedIn: true,
-      },
-    );
+    await ensureAppUserRecord(sessionUser, {
+      markSignedIn: true,
+    });
+    await ensureWorkspaceAccess(sessionUser);
   } catch (error) {
     if (error instanceof Error && error.message.includes("blocked")) {
       return NextResponse.redirect(new URL("/auth/sign-in?error=account-blocked", request.url), {
@@ -63,14 +64,7 @@ export async function GET(request: Request) {
 
   const destination = new URL("/app", request.url);
   const response = NextResponse.redirect(destination, { status: 303 });
-  response.cookies.set(
-      buildSessionCookie({
-      email: payload.email,
-      name: payload.name,
-      provider: "email",
-      verified: true,
-    }),
-  );
+  response.cookies.set(buildSessionCookie(sessionUser));
 
   return response;
 }

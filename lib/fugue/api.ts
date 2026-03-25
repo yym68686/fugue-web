@@ -35,6 +35,19 @@ export type FugueApiKey = {
   tenantId: string | null;
 };
 
+export type FugueNodeKey = {
+  createdAt: string | null;
+  hash: string | null;
+  id: string;
+  label: string;
+  lastUsedAt: string | null;
+  prefix: string | null;
+  revokedAt: string | null;
+  status: string | null;
+  tenantId: string | null;
+  updatedAt: string | null;
+};
+
 export type FugueBackingService = {
   createdAt: string | null;
   description: string | null;
@@ -77,6 +90,13 @@ export type FugueAppFile = {
   secret: boolean;
 };
 
+export type FugueAppTechnology = {
+  kind: string;
+  name: string;
+  slug: string;
+  source: string | null;
+};
+
 export type FugueApp = {
   id: string;
   tenantId: string | null;
@@ -95,6 +115,7 @@ export type FugueApp = {
     repoBranch: string | null;
     buildStrategy: string | null;
     composeService: string | null;
+    detectedProvider: string | null;
     dockerfilePath: string | null;
   };
   spec: {
@@ -112,6 +133,7 @@ export type FugueApp = {
   };
   bindings: FugueServiceBinding[];
   backingServices: FugueBackingService[];
+  techStack: FugueAppTechnology[];
 };
 
 export type FugueRuntime = {
@@ -360,6 +382,29 @@ function sanitizeApiKey(value: unknown): FugueApiKey | null {
   };
 }
 
+function sanitizeNodeKey(value: unknown): FugueNodeKey | null {
+  const record = asRecord(value);
+  const id = readString(record, "id");
+  const label = readString(record, "label");
+
+  if (!id || !label) {
+    return null;
+  }
+
+  return {
+    createdAt: readString(record, "created_at"),
+    hash: readString(record, "hash"),
+    id,
+    label,
+    lastUsedAt: readString(record, "last_used_at"),
+    prefix: readString(record, "prefix"),
+    revokedAt: readString(record, "revoked_at"),
+    status: readString(record, "status"),
+    tenantId: readString(record, "tenant_id"),
+    updatedAt: readString(record, "updated_at"),
+  };
+}
+
 function sanitizeBackingService(value: unknown): FugueBackingService | null {
   const record = asRecord(value);
   const id = readString(record, "id");
@@ -435,6 +480,24 @@ function sanitizeAppFile(value: unknown): FugueAppFile | null {
   };
 }
 
+function sanitizeAppTechnology(value: unknown): FugueAppTechnology | null {
+  const record = asRecord(value);
+  const kind = readString(record, "kind");
+  const name = readString(record, "name");
+  const slug = readString(record, "slug");
+
+  if (!kind || !name || !slug) {
+    return null;
+  }
+
+  return {
+    kind,
+    name,
+    slug,
+    source: readString(record, "source"),
+  };
+}
+
 function sanitizeApp(value: unknown): FugueApp | null {
   const record = asRecord(value);
   const id = readString(record, "id");
@@ -452,6 +515,7 @@ function sanitizeApp(value: unknown): FugueApp | null {
   const backingServices = Array.isArray(record?.backing_services)
     ? record.backing_services
     : [];
+  const techStack = Array.isArray(record?.tech_stack) ? record.tech_stack : [];
 
   return {
     id,
@@ -471,6 +535,7 @@ function sanitizeApp(value: unknown): FugueApp | null {
       repoBranch: readString(source, "repo_branch"),
       buildStrategy: readString(source, "build_strategy"),
       composeService: readString(source, "compose_service"),
+      detectedProvider: readString(source, "detected_provider"),
       dockerfilePath: readString(source, "dockerfile_path"),
     },
     spec: {
@@ -492,6 +557,9 @@ function sanitizeApp(value: unknown): FugueApp | null {
     backingServices: backingServices
       .map(sanitizeBackingService)
       .filter((item): item is FugueBackingService => Boolean(item)),
+    techStack: techStack
+      .map(sanitizeAppTechnology)
+      .filter((item): item is FugueAppTechnology => Boolean(item)),
   };
 }
 
@@ -754,6 +822,59 @@ export async function deleteFugueApiKey(
   };
 }
 
+export async function createFugueNodeKey(
+  accessToken: string,
+  payload?: {
+    label?: string;
+    tenantId?: string;
+  },
+) {
+  const response = asRecord(
+    await fugueRequest("/v1/node-keys", {
+      accessToken,
+      body:
+        payload && (payload.label !== undefined || payload.tenantId !== undefined)
+          ? {
+              ...(payload.label !== undefined ? { label: payload.label } : {}),
+              ...(payload.tenantId !== undefined ? { tenant_id: payload.tenantId } : {}),
+            }
+          : {},
+      method: "POST",
+    }),
+  );
+  const nodeKey = sanitizeNodeKey(response?.node_key);
+  const secret = readString(response, "secret");
+
+  if (!nodeKey || !secret) {
+    throw new Error("Fugue node key response was malformed.");
+  }
+
+  return {
+    nodeKey,
+    secret,
+  };
+}
+
+export async function revokeFugueNodeKey(
+  accessToken: string,
+  id: string,
+) {
+  const response = asRecord(
+    await fugueRequest(`/v1/node-keys/${encodeURIComponent(id)}/revoke`, {
+      accessToken,
+      body: {},
+      method: "POST",
+    }),
+  );
+  const nodeKey = sanitizeNodeKey(response?.node_key);
+
+  if (!nodeKey) {
+    throw new Error("Fugue node key revoke response was malformed.");
+  }
+
+  return nodeKey;
+}
+
 export async function createFugueProject(
   accessToken: string,
   payload: {
@@ -858,6 +979,16 @@ export async function getFugueApiKeys(accessToken: string) {
   );
   const items = Array.isArray(payload?.api_keys) ? payload.api_keys : [];
   return items.map(sanitizeApiKey).filter((item): item is FugueApiKey => Boolean(item));
+}
+
+export async function getFugueNodeKeys(accessToken: string) {
+  const payload = asRecord(
+    await fugueRequest("/v1/node-keys", {
+      accessToken,
+    }),
+  );
+  const items = Array.isArray(payload?.node_keys) ? payload.node_keys : [];
+  return items.map(sanitizeNodeKey).filter((item): item is FugueNodeKey => Boolean(item));
 }
 
 export async function getFugueApps(accessToken: string) {

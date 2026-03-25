@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 
 import {
-  createApiKeyForEmail,
-  createDefaultApiKeyForEmail,
   getApiKeyPageData,
 } from "@/lib/api-keys/service";
 import { getCurrentSession } from "@/lib/auth/session";
@@ -41,57 +39,15 @@ function readErrorStatus(error: unknown) {
     error.message.includes("required") ||
     error.message.includes("Choose at least one scope") ||
     error.message.includes("Nothing to update") ||
-    error.message.includes("Unsupported scopes")
+    error.message.includes("Unsupported scopes") ||
+    error.message.includes("reserved") ||
+    error.message.includes("name is fixed")
   ) {
     return 400;
   }
 
   const match = error.message.match(/\b(400|401|403|404|409|422|500|502|503)\b/);
   return match ? Number(match[1]) : 500;
-}
-
-function isObject(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-
-function readOptionalString(record: Record<string, unknown>, key: string) {
-  const value = record[key];
-  return typeof value === "string" ? value.trim() : "";
-}
-
-function readScopes(record: Record<string, unknown>) {
-  const value = record.scopes;
-
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value.filter(
-    (scope): scope is string =>
-      typeof scope === "string" && scope.trim().length > 0,
-  );
-}
-
-async function readJsonObject(request: Request) {
-  const rawBody = await request.text();
-
-  if (!rawBody.trim()) {
-    return {} as Record<string, unknown>;
-  }
-
-  let body: unknown;
-
-  try {
-    body = JSON.parse(rawBody);
-  } catch {
-    throw new Error("Invalid JSON body.");
-  }
-
-  if (!isObject(body)) {
-    throw new Error("Request body must be a JSON object.");
-  }
-
-  return body;
 }
 
 export async function GET() {
@@ -115,37 +71,19 @@ export async function GET() {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST() {
   const session = await getCurrentSession();
 
   if (!session) {
     return jsonError(401, "Sign in first.");
   }
 
-  let body: Record<string, unknown>;
-
-  try {
-    body = await readJsonObject(request);
-  } catch (error) {
-    return jsonError(400, readErrorMessage(error));
-  }
-
   try {
     await ensureAppUser(session);
-    const label = readOptionalString(body, "label");
-    const scopes = readScopes(body);
-    const created =
-      label || scopes.length
-        ? await createApiKeyForEmail(session.email, {
-            label,
-            scopes,
-          })
-        : await createDefaultApiKeyForEmail(session.email);
-
-    return NextResponse.json({
-      key: created.key,
-      secret: created.secret,
-    });
+    return jsonError(
+      403,
+      "Admin API key is provisioned automatically. Create node keys instead.",
+    );
   } catch (error) {
     return jsonError(readErrorStatus(error), readErrorMessage(error));
   }

@@ -4,7 +4,10 @@ import { queryDb } from "@/lib/db/pool";
 
 declare global {
   var __fugueDbSchemaPromise: Promise<void> | undefined;
+  var __fugueDbSchemaVersion: string | undefined;
 }
+
+const SCHEMA_VERSION = "2026-03-25-node-keys";
 
 const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS app_users (
@@ -64,6 +67,25 @@ CREATE TABLE IF NOT EXISTS app_api_keys (
   CONSTRAINT app_api_keys_source_check CHECK (source IN ('workspace-admin', 'managed', 'external'))
 );
 
+CREATE TABLE IF NOT EXISTS app_node_keys (
+  fugue_node_key_id TEXT PRIMARY KEY,
+  user_email TEXT NOT NULL REFERENCES app_users(email) ON DELETE CASCADE,
+  tenant_id TEXT NOT NULL,
+  label TEXT NOT NULL,
+  prefix TEXT,
+  hash TEXT,
+  secret_sealed TEXT,
+  status TEXT NOT NULL DEFAULT 'active',
+  source TEXT NOT NULL DEFAULT 'external',
+  last_used_at TIMESTAMPTZ,
+  revoked_at TIMESTAMPTZ,
+  last_synced_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT app_node_keys_status_check CHECK (status IN ('active', 'revoked')),
+  CONSTRAINT app_node_keys_source_check CHECK (source IN ('managed', 'external'))
+);
+
 CREATE INDEX IF NOT EXISTS idx_app_workspaces_tenant_id
   ON app_workspaces (tenant_id);
 
@@ -78,6 +100,15 @@ CREATE INDEX IF NOT EXISTS idx_app_api_keys_tenant_id
 
 CREATE INDEX IF NOT EXISTS idx_app_api_keys_status
   ON app_api_keys (status);
+
+CREATE INDEX IF NOT EXISTS idx_app_node_keys_user_email
+  ON app_node_keys (user_email);
+
+CREATE INDEX IF NOT EXISTS idx_app_node_keys_tenant_id
+  ON app_node_keys (tenant_id);
+
+CREATE INDEX IF NOT EXISTS idx_app_node_keys_status
+  ON app_node_keys (status);
 
 UPDATE app_users
 SET is_admin = TRUE
@@ -101,7 +132,11 @@ async function initSchema() {
 }
 
 export async function ensureDbSchema() {
-  if (!globalThis.__fugueDbSchemaPromise) {
+  if (
+    !globalThis.__fugueDbSchemaPromise ||
+    globalThis.__fugueDbSchemaVersion !== SCHEMA_VERSION
+  ) {
+    globalThis.__fugueDbSchemaVersion = SCHEMA_VERSION;
     globalThis.__fugueDbSchemaPromise = initSchema();
   }
 
@@ -109,6 +144,7 @@ export async function ensureDbSchema() {
     await globalThis.__fugueDbSchemaPromise;
   } catch (error) {
     globalThis.__fugueDbSchemaPromise = undefined;
+    globalThis.__fugueDbSchemaVersion = undefined;
     throw error;
   }
 }

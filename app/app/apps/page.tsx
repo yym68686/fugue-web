@@ -1,7 +1,8 @@
 import { AdminAppManager } from "@/components/admin/admin-app-manager";
+import { AdminSummaryGrid } from "@/components/admin/admin-summary-grid";
 import { ConsolePageIntro } from "@/components/console/console-page-intro";
 import { InlineAlert } from "@/components/ui/inline-alert";
-import { Panel, PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
+import { Panel, PanelSection } from "@/components/ui/panel";
 import { requireAdminPageAccess } from "@/lib/admin/auth";
 import { getAdminAppsPageData } from "@/lib/admin/service";
 
@@ -18,53 +19,25 @@ export default async function AppsPage() {
       ) : null}
 
       <ConsolePageIntro
-        description="Cluster-wide app inventory from the bootstrap admin surface. Rebuild and delete land here first."
+        description="Cluster-wide apps, rebuilds, and deletes."
         eyebrow="Admin / apps"
         title="Cluster apps"
       />
 
-      <section className="fg-console-two-up">
-        <Panel>
-          <PanelSection>
-            <p className="fg-label fg-panel__eyebrow">Cluster inventory</p>
-            <PanelTitle>All visible apps</PanelTitle>
-            <PanelCopy>Everything currently visible through the bootstrap admin key.</PanelCopy>
-          </PanelSection>
+      <AdminSummaryGrid
+        items={[
+          { label: "apps", value: data.summary.appCount },
+          { label: "routed", value: data.summary.routedCount },
+          { label: "tenants", value: data.summary.tenantCount },
+          { label: "last update", value: data.summary.latestUpdateLabel },
+        ]}
+      />
 
-          <PanelSection>
-            <AdminAppManager apps={data.apps} />
-          </PanelSection>
-        </Panel>
-
-        <Panel>
-          <PanelSection>
-            <p className="fg-label fg-panel__eyebrow">Readout</p>
-            <PanelTitle>Cluster summary</PanelTitle>
-            <PanelCopy>Fast counts for the current app surface.</PanelCopy>
-          </PanelSection>
-
-          <PanelSection>
-            <ul className="fg-console-stat-list">
-              <li>
-                <strong>Total apps</strong>
-                <span>{data.summary.appCount}</span>
-              </li>
-              <li>
-                <strong>Routed apps</strong>
-                <span>{data.summary.routedCount}</span>
-              </li>
-              <li>
-                <strong>Tenants</strong>
-                <span>{data.summary.tenantCount}</span>
-              </li>
-              <li>
-                <strong>Latest update</strong>
-                <span>{data.summary.latestUpdateLabel}</span>
-              </li>
-            </ul>
-          </PanelSection>
-        </Panel>
-      </section>
+      <Panel>
+        <PanelSection>
+          <AdminAppManager apps={data.apps} />
+        </PanelSection>
+      </Panel>
     </div>
   );
 }

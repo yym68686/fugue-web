@@ -227,6 +227,7 @@
 }
 
 .fg-bezel__inner {
+  min-width: 0;
   overflow: hidden;
   border-radius: var(--fugue-proof-shell-radius-inner);
   border: 1px solid var(--fugue-border-default);

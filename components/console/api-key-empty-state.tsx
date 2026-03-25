@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
-import { API_KEY_CREATE_REQUEST_EVENT } from "@/lib/console/events";
+import { NODE_KEY_CREATE_REQUEST_EVENT } from "@/lib/console/events";
 
 function readErrorMessage(error: unknown) {
   if (error instanceof Error && error.message) {
@@ -59,7 +59,9 @@ export function ApiKeyEmptyState() {
     setIsCreating(true);
 
     try {
-      await requestJson("/api/fugue/workspace/bootstrap", {
+      await requestJson<{
+        created: boolean;
+      }>("/api/fugue/workspace/bootstrap", {
         method: "POST",
       });
 
@@ -68,13 +70,15 @@ export function ApiKeyEmptyState() {
           id: string;
         };
         secret: string;
-      }>("/api/fugue/api-keys", {
+      }>("/api/fugue/node-keys", {
         method: "POST",
       });
       const copied = await copyText(created.secret);
 
       showToast({
-        message: copied ? "Key created and secret copied." : "Key created.",
+        message: copied
+          ? "Node key created and secret copied."
+          : "Node key created.",
         variant: "success",
       });
       startTransition(() => {
@@ -99,10 +103,10 @@ export function ApiKeyEmptyState() {
       createRequestRef.current();
     };
 
-    window.addEventListener(API_KEY_CREATE_REQUEST_EVENT, handleCreateRequest);
+    window.addEventListener(NODE_KEY_CREATE_REQUEST_EVENT, handleCreateRequest);
 
     return () => {
-      window.removeEventListener(API_KEY_CREATE_REQUEST_EVENT, handleCreateRequest);
+      window.removeEventListener(NODE_KEY_CREATE_REQUEST_EVENT, handleCreateRequest);
     };
   }, []);
 
@@ -110,7 +114,7 @@ export function ApiKeyEmptyState() {
     <div className="fg-console-empty-state">
       <div>
         <strong>No keys yet</strong>
-        <p>Create a key when you need one.</p>
+        <p>Create the first node key when you are ready.</p>
       </div>
 
       <div className="fg-console-empty-state__actions">
@@ -122,7 +126,7 @@ export function ApiKeyEmptyState() {
           }}
           variant="primary"
         >
-          {isCreating ? "Creating…" : "Create key"}
+          {isCreating ? "Creating…" : "Create node key"}
         </Button>
       </div>
     </div>

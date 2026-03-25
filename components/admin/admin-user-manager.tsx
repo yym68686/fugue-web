@@ -160,25 +160,37 @@ export function AdminUserManager({
 
   return (
     <div className="fg-console-table-wrap">
-      <table className="fg-console-table">
+      <table className="fg-console-table fg-console-table--admin fg-console-table--users">
+        <colgroup>
+          <col className="fg-console-table__col fg-console-table__col--user" />
+          <col className="fg-console-table__col fg-console-table__col--status" />
+          <col className="fg-console-table__col fg-console-table__col--provider" />
+          <col className="fg-console-table__col fg-console-table__col--tenant" />
+          <col className="fg-console-table__col fg-console-table__col--services" />
+          <col className="fg-console-table__col fg-console-table__col--last-login" />
+          <col className="fg-console-table__col fg-console-table__col--actions" />
+        </colgroup>
         <thead>
           <tr>
-            <th>User</th>
-            <th>Status</th>
-            <th>Provider</th>
-            <th>Tenant</th>
-            <th>Services</th>
-            <th>Last login</th>
-            <th>Actions</th>
+            <th>user</th>
+            <th>status</th>
+            <th>provider</th>
+            <th>tenant</th>
+            <th>services</th>
+            <th>last login</th>
+            <th>actions</th>
           </tr>
         </thead>
         <tbody>
           {users.map((user) => (
             <tr key={user.email}>
               <td>
-                <div className="fg-console-table__stack">
+                <div
+                  className="fg-console-table__pair"
+                  title={`${user.name} / ${user.email}`}
+                >
                   <strong>{user.name}</strong>
-                  <span>{user.email}</span>
+                  <span>/ {user.email}</span>
                 </div>
               </td>
               <td>
@@ -188,18 +200,19 @@ export function AdminUserManager({
                 </div>
               </td>
               <td>
-                <div className="fg-console-table__stack">
+                <div className="fg-console-table__pair">
                   <strong>{user.provider}</strong>
-                  <span>{user.verified ? "verified" : "unverified"}</span>
+                  <span>/ {user.verified ? "verified" : "unverified"}</span>
                 </div>
               </td>
-              <td>{user.tenantLabel}</td>
+              <td>
+                <span className="fg-console-table__clip" title={user.tenantLabel}>
+                  {user.tenantLabel}
+                </span>
+              </td>
               <td>{user.serviceCount}</td>
               <td>
-                <div className="fg-console-table__stack">
-                  <strong>{user.lastLoginLabel}</strong>
-                  <span>{user.lastLoginExact}</span>
-                </div>
+                <span title={user.lastLoginExact}>{user.lastLoginLabel}</span>
               </td>
               <td>
                 <div className="fg-console-toolbar">

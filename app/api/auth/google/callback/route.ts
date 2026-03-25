@@ -4,6 +4,7 @@ import { ensureAppUserRecord } from "@/lib/app-users/store";
 import { fetchGoogleUser, exchangeGoogleCode } from "@/lib/auth/google";
 import { buildSessionCookie } from "@/lib/auth/session";
 import { verifyToken } from "@/lib/auth/token";
+import { ensureWorkspaceAccess } from "@/lib/workspace/bootstrap";
 
 type StatePayload = {
   exp: number;
@@ -47,20 +48,20 @@ export async function GET(request: Request) {
       return redirectWithError(request, "oauth_failed");
     }
 
+    const sessionUser = {
+      email: user.email,
+      name: user.name,
+      picture: user.picture,
+      provider: "google" as const,
+      providerId: user.sub,
+      verified: true,
+    };
+
     try {
-      await ensureAppUserRecord(
-        {
-          email: user.email,
-          name: user.name,
-          picture: user.picture,
-          provider: "google",
-          providerId: user.sub,
-          verified: true,
-        },
-        {
-          markSignedIn: true,
-        },
-      );
+      await ensureAppUserRecord(sessionUser, {
+        markSignedIn: true,
+      });
+      await ensureWorkspaceAccess(sessionUser);
     } catch (error) {
       if (error instanceof Error && error.message.includes("blocked")) {
         return redirectWithError(request, "account-blocked");
@@ -75,14 +76,7 @@ export async function GET(request: Request) {
 
     const response = NextResponse.redirect(new URL(state.returnTo, request.url), { status: 303 });
     response.cookies.set(
-      buildSessionCookie({
-        email: user.email,
-        name: user.name,
-        picture: user.picture,
-        provider: "google",
-        providerId: user.sub,
-        verified: true,
-      }),
+      buildSessionCookie(sessionUser),
     );
 
     return response;

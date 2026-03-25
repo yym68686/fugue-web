@@ -41,7 +41,9 @@ function readErrorStatus(error: unknown) {
     error.message.includes("Nothing to update") ||
     error.message.includes("Choose at least one scope") ||
     error.message.includes("Unsupported scopes") ||
-    error.message.includes("cannot be deleted")
+    error.message.includes("cannot be deleted") ||
+    error.message.includes("reserved") ||
+    error.message.includes("name is fixed")
   ) {
     return 400;
   }

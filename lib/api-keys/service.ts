@@ -9,7 +9,6 @@ import {
 } from "@/lib/api-keys/store";
 import type { ApiKeyRecord } from "@/lib/api-keys/types";
 import {
-  createFugueApiKey,
   deleteFugueApiKey,
   disableFugueApiKey,
   enableFugueApiKey,
@@ -17,6 +16,7 @@ import {
   rotateFugueApiKey,
   updateFugueApiKey,
 } from "@/lib/fugue/api";
+import { getFugueEnv } from "@/lib/fugue/env";
 import { sortFugueScopes, WORKSPACE_ADMIN_SCOPES } from "@/lib/fugue/scopes";
 import {
   getWorkspaceAccessByEmail,
@@ -32,6 +32,8 @@ export type ApiKeyPageData = {
   };
 };
 
+const WORKSPACE_ADMIN_KEY_LABEL = "workspace-admin";
+
 function readErrorMessage(error: unknown) {
   if (error instanceof Error && error.message) {
     return error.message;
@@ -46,26 +48,6 @@ function normalizeScopes(scopes: string[]) {
   );
 }
 
-function buildDefaultKeyLabel(keys: Array<Pick<ApiKeyRecord, "label">>) {
-  const used = new Set(
-    keys
-      .map((key) => key.label.trim().toLowerCase())
-      .filter((label) => label.length > 0),
-  );
-
-  if (!used.has("key")) {
-    return "key";
-  }
-
-  let index = 2;
-
-  while (used.has(`key-${index}`)) {
-    index += 1;
-  }
-
-  return `key-${index}`;
-}
-
 function normalizeLabel(label: string) {
   const value = label.trim();
 
@@ -74,6 +56,26 @@ function normalizeLabel(label: string) {
   }
 
   return value;
+}
+
+function isWorkspaceAdminLabel(label: string) {
+  return label.trim().toLowerCase() === WORKSPACE_ADMIN_KEY_LABEL;
+}
+
+function assertAllowedLabel(label: string, options?: { isWorkspaceAdmin?: boolean }) {
+  const isWorkspaceAdmin = options?.isWorkspaceAdmin ?? false;
+
+  if (isWorkspaceAdmin) {
+    if (!isWorkspaceAdminLabel(label)) {
+      throw new Error("Workspace admin key name is fixed.");
+    }
+
+    return;
+  }
+
+  if (isWorkspaceAdminLabel(label)) {
+    throw new Error("workspace-admin is reserved.");
+  }
 }
 
 function assertSupportedScopes(allowedScopes: string[], scopes: string[]) {
@@ -92,6 +94,35 @@ function readAllowedScopesForKey(workspaceAdminScopes: string[], isWorkspaceAdmi
   return isWorkspaceAdmin
     ? normalizeScopes([...WORKSPACE_ADMIN_SCOPES, ...workspaceAdminScopes])
     : normalizeScopes(workspaceAdminScopes);
+}
+
+function readMutationAccessToken(isWorkspaceAdmin: boolean, workspaceAdminSecret: string) {
+  if (isWorkspaceAdmin) {
+    return getFugueEnv().bootstrapKey;
+  }
+
+  return workspaceAdminSecret;
+}
+
+function filterVisibleApiKeysForWorkspace(
+  keys: ApiKeyRecord[],
+  workspace: NonNullable<Awaited<ReturnType<typeof getWorkspaceAccessByEmail>>>,
+) {
+  return keys.filter((key) => {
+    if (key.id === workspace.adminKeyId) {
+      return true;
+    }
+
+    if (key.tenantId !== workspace.tenantId) {
+      return true;
+    }
+
+    if (key.isWorkspaceAdmin || isWorkspaceAdminLabel(key.label)) {
+      return false;
+    }
+
+    return true;
+  });
 }
 
 async function persistApiKeyMutation(input: {
@@ -168,7 +199,7 @@ export async function getApiKeyPageData(email: string) {
 
   return {
     availableScopes: normalizeScopes(workspace.adminKeyScopes),
-    keys,
+    keys: filterVisibleApiKeysForWorkspace(keys, workspace),
     syncError,
     workspace: {
       adminKeyId: workspace.adminKeyId,
@@ -183,35 +214,12 @@ export async function createApiKeyForEmail(
     scopes: string[];
   },
 ) {
-  const workspace = await getWorkspaceAccessByEmail(email);
+  void email;
+  void payload;
 
-  if (!workspace) {
-    throw new Error("Create a workspace first.");
-  }
-
-  const label = normalizeLabel(payload.label);
-  const scopes = normalizeScopes(payload.scopes);
-
-  assertSupportedScopes(workspace.adminKeyScopes, scopes);
-
-  const created = await createFugueApiKey(workspace.adminKeySecret, {
-    label,
-    scopes,
-    tenantId: workspace.tenantId,
-  });
-
-  const record = await saveApiKeyRecord({
-    apiKey: created.apiKey,
-    email,
-    secret: created.secret,
-    source: "managed",
-    tenantId: workspace.tenantId,
-  });
-
-  return {
-    key: record,
-    secret: created.secret,
-  };
+  throw new Error(
+    "Admin API key is provisioned automatically. Create node keys instead.",
+  );
 }
 
 export async function createDefaultApiKeyForEmail(email: string) {
@@ -221,14 +229,32 @@ export async function createDefaultApiKeyForEmail(email: string) {
     throw new Error("Create a workspace first.");
   }
 
-  const existingKeys = await listApiKeysByEmail(email, {
-    tenantId: workspace.tenantId,
+  const rotated = await rotateFugueApiKey(
+    readMutationAccessToken(true, workspace.adminKeySecret),
+    workspace.adminKeyId,
+    {
+      label: WORKSPACE_ADMIN_KEY_LABEL,
+      scopes: normalizeScopes(
+        workspace.adminKeyScopes.length
+          ? workspace.adminKeyScopes
+          : [...WORKSPACE_ADMIN_SCOPES],
+      ),
+    },
+  );
+
+  const record = await persistApiKeyMutation({
+    apiKey: rotated.apiKey,
+    email,
+    isWorkspaceAdmin: true,
+    secret: rotated.secret,
+    source: "workspace-admin",
+    workspace,
   });
 
-  return createApiKeyForEmail(email, {
-    label: buildDefaultKeyLabel(existingKeys),
-    scopes: normalizeScopes(workspace.adminKeyScopes),
-  });
+  return {
+    key: record,
+    secret: rotated.secret,
+  };
 }
 
 export async function updateApiKeyForEmail(
@@ -258,6 +284,12 @@ export async function updateApiKeyForEmail(
   const nextScopes =
     payload.scopes === undefined ? undefined : normalizeScopes(payload.scopes);
 
+  if (nextLabel !== undefined) {
+    assertAllowedLabel(nextLabel, {
+      isWorkspaceAdmin: current.isWorkspaceAdmin,
+    });
+  }
+
   if (nextScopes) {
     assertSupportedScopes(
       readAllowedScopesForKey(workspace.adminKeyScopes, current.isWorkspaceAdmin),
@@ -269,10 +301,14 @@ export async function updateApiKeyForEmail(
     throw new Error("Nothing to update.");
   }
 
-  const updated = await updateFugueApiKey(workspace.adminKeySecret, id, {
-    label: nextLabel,
-    scopes: nextScopes,
-  });
+  const updated = await updateFugueApiKey(
+    readMutationAccessToken(current.isWorkspaceAdmin, workspace.adminKeySecret),
+    id,
+    {
+      label: nextLabel,
+      scopes: nextScopes,
+    },
+  );
 
   const record = await persistApiKeyMutation({
     apiKey: updated,
@@ -302,7 +338,18 @@ export async function rotateApiKeyForEmail(email: string, id: string) {
     throw new Error("API key not found.");
   }
 
-  const rotated = await rotateFugueApiKey(workspace.adminKeySecret, id);
+  const rotated = await rotateFugueApiKey(
+    readMutationAccessToken(current.isWorkspaceAdmin, workspace.adminKeySecret),
+    id,
+    current.isWorkspaceAdmin
+      ? {
+          label: WORKSPACE_ADMIN_KEY_LABEL,
+          scopes: normalizeScopes(
+            current.scopes.length ? current.scopes : [...WORKSPACE_ADMIN_SCOPES],
+          ),
+        }
+      : undefined,
+  );
   const record = await persistApiKeyMutation({
     apiKey: rotated.apiKey,
     email,

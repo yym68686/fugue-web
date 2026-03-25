@@ -136,8 +136,9 @@
   - 正文字体：`Manrope`
   - 系统注释、对象名、命令、标签：`IBM Plex Mono`
   - 标题必须压缩字距、低行高；正文要克制；mono 只用于元信息和技术对象，不要大面积正文滥用
-  - `Syne` 只用于 display / brand / marketing 级标题，不用于 panel、modal、table、console、docs 这类严肃产品界面的主标题
-  - 严肃产品场景的标题默认使用基于 `Manrope` 的 `ui heading` 语义，追求更高识别度、更稳的字腔和更低的阅读摩擦
+- `Syne` 只用于 display / brand / marketing 级标题，不用于 panel、modal、table、console、docs 这类严肃产品界面的主标题
+- 严肃产品场景的标题默认使用基于 `Manrope` 的 `ui heading` 语义，追求更高识别度、更稳的字腔和更低的阅读摩擦
+- 在产品层尤其是 console 内，不允许把 `--fugue-font-heading` / `Syne` 直接用于 summary metric 数值、workspace 名、表格主对象、topbar brand wordmark 或任何数据读数；这些都必须回到 `--fugue-font-ui-heading` 或 `--fugue-font-body`
 - 布局基线：
   - Hero 默认使用非对称 split composition，不做居中 SaaS hero
   - 内容宽度参考 `--max-width: 1400px`、`--content-width: 1180px`
@@ -272,6 +273,7 @@
 - Console 不能直接搬用 marketing hero、超大 ghost wordmark、整屏动态秀场或长篇 thesis copy。
 - Console 优先做高信息密度但有呼吸的工具界面：更多边线分组、对象层次、状态设计，少做 marketing 式情绪铺垫。
 - Console 的 page intro、panel title、dialog title、empty-state title 默认都使用 `ui heading`，不要继续沿用 landing 的 `Syne`
+- Console 的 metric card 主数值、workspace / object 主字段、shell brand wordmark 也一律视为产品 UI，不允许因为“更显眼”而切回 `Syne`
 - 如果需要动效，只能使用低幅度、功能性的反馈动效；不要在数据区堆积氛围特效。
 
 ### 只允许在 Marketing 使用的要素

@@ -280,6 +280,9 @@ export async function syncApiKeysForWorkspace(input: SyncApiKeysInput) {
   await ensureDbSchema();
 
   return withDbTransaction(async (client) => {
+    const now = new Date().toISOString();
+    const visibleKeyIds = [...new Set(input.visibleKeys.map((apiKey) => apiKey.id))];
+
     for (const apiKey of input.visibleKeys) {
       await upsertVisibleApiKey(client, {
         apiKey,
@@ -288,6 +291,28 @@ export async function syncApiKeysForWorkspace(input: SyncApiKeysInput) {
         tenantId: input.tenantId,
       });
     }
+
+    await client.query(
+      `
+        UPDATE app_api_keys
+        SET
+          status = 'deleted',
+          secret_sealed = NULL,
+          disabled_at = NULL,
+          deleted_at = $3,
+          updated_at = $3
+        WHERE user_email = $1
+          AND tenant_id = $2
+          AND status <> 'deleted'
+          AND NOT (fugue_key_id = ANY($4::text[]))
+      `,
+      [
+        normalizeEmail(input.email),
+        input.tenantId,
+        now,
+        visibleKeyIds,
+      ],
+    );
 
     const result = await client.query<ApiKeyRow>(
       `

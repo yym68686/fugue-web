@@ -19,6 +19,13 @@ type AdminClusterAppView = {
   routeLabel: string;
   runtimeLabel: string;
   sourceLabel: string;
+  stack: Array<{
+    id: string;
+    kind: string;
+    label: string;
+    meta: string;
+    title: string;
+  }>;
   tenantLabel: string;
   updatedExact: string;
   updatedLabel: string;
@@ -179,50 +186,108 @@ export function AdminAppManager({
 
   return (
     <div className="fg-console-table-wrap">
-      <table className="fg-console-table">
+      <table className="fg-console-table fg-console-table--admin fg-console-table--apps">
+        <colgroup>
+          <col className="fg-console-table__col fg-console-table__col--app-name" />
+          <col className="fg-console-table__col fg-console-table__col--app-id" />
+          <col className="fg-console-table__col fg-console-table__col--tenant" />
+          <col className="fg-console-table__col fg-console-table__col--project" />
+          <col className="fg-console-table__col fg-console-table__col--route" />
+          <col className="fg-console-table__col fg-console-table__col--runtime" />
+          <col className="fg-console-table__col fg-console-table__col--phase" />
+          <col className="fg-console-table__col fg-console-table__col--source" />
+          <col className="fg-console-table__col fg-console-table__col--stack" />
+          <col className="fg-console-table__col fg-console-table__col--updated" />
+          <col className="fg-console-table__col fg-console-table__col--actions" />
+        </colgroup>
         <thead>
           <tr>
-            <th>Name</th>
-            <th>Tenant</th>
-            <th>Project</th>
-            <th>Route</th>
-            <th>Runtime</th>
-            <th>Phase</th>
-            <th>Source</th>
-            <th>Updated</th>
-            <th>Actions</th>
+            <th>name</th>
+            <th>app id</th>
+            <th>tenant</th>
+            <th>project</th>
+            <th>route</th>
+            <th>runtime</th>
+            <th>phase</th>
+            <th>source</th>
+            <th>stack</th>
+            <th>updated</th>
+            <th>actions</th>
           </tr>
         </thead>
         <tbody>
           {apps.map((app) => (
             <tr key={app.id}>
               <td>
-                <div className="fg-console-table__stack">
-                  <strong>{app.name}</strong>
-                  <span>{app.id}</span>
-                </div>
+                <span className="fg-console-table__clip" title={app.name}>
+                  {app.name}
+                </span>
               </td>
-              <td>{app.tenantLabel}</td>
-              <td>{app.projectLabel}</td>
+              <td>
+                <span className="fg-console-table__mono fg-console-table__clip" title={app.id}>
+                  {app.id}
+                </span>
+              </td>
+              <td>
+                <span className="fg-console-table__clip" title={app.tenantLabel}>
+                  {app.tenantLabel}
+                </span>
+              </td>
+              <td>
+                <span className="fg-console-table__clip" title={app.projectLabel}>
+                  {app.projectLabel}
+                </span>
+              </td>
               <td>
                 {app.routeHref ? (
-                  <a className="fg-text-link" href={app.routeHref} rel="noreferrer" target="_blank">
+                  <a
+                    className="fg-text-link fg-console-table__clip"
+                    href={app.routeHref}
+                    rel="noreferrer"
+                    target="_blank"
+                    title={app.routeLabel}
+                  >
                     {app.routeLabel}
                   </a>
                 ) : (
-                  app.routeLabel
+                  <span className="fg-console-table__clip" title={app.routeLabel}>
+                    {app.routeLabel}
+                  </span>
                 )}
               </td>
-              <td>{app.runtimeLabel}</td>
+              <td>
+                <span className="fg-console-table__clip" title={app.runtimeLabel}>
+                  {app.runtimeLabel}
+                </span>
+              </td>
               <td>
                 <StatusBadge tone={app.phaseTone}>{app.phase}</StatusBadge>
               </td>
-              <td>{app.sourceLabel}</td>
               <td>
-                <div className="fg-console-table__stack">
-                  <strong>{app.updatedLabel}</strong>
-                  <span>{app.updatedExact}</span>
-                </div>
+                <span className="fg-console-table__clip" title={app.sourceLabel}>
+                  {app.sourceLabel}
+                </span>
+              </td>
+              <td className="fg-console-table__cell--stack">
+                {app.stack.length ? (
+                  <div className="fg-console-tech-list">
+                    {app.stack.map((item) => (
+                      <span
+                        className="fg-console-tech-pill"
+                        key={item.id}
+                        title={item.title}
+                      >
+                        <span className="fg-console-tech-pill__label">{item.label}</span>
+                        <span className="fg-console-tech-pill__meta">{item.meta}</span>
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="fg-console-tech-empty">Not detected</span>
+                )}
+              </td>
+              <td>
+                <span title={app.updatedExact}>{app.updatedLabel}</span>
               </td>
               <td>
                 <div className="fg-console-toolbar">

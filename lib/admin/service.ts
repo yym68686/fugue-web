@@ -24,6 +24,13 @@ export type AdminClusterAppView = {
   routeLabel: string;
   runtimeLabel: string;
   sourceLabel: string;
+  stack: Array<{
+    id: string;
+    kind: string;
+    label: string;
+    meta: string;
+    title: string;
+  }>;
   tenantLabel: string;
   updatedExact: string;
   updatedLabel: string;
@@ -159,6 +166,125 @@ function shortId(value?: string | null) {
   return value.length <= 18 ? value : `${value.slice(0, 8)}…${value.slice(-6)}`;
 }
 
+function readProviderLabel(value?: string | null) {
+  switch (value?.trim().toLowerCase()) {
+    case "node":
+    case "nodejs":
+      return "Node.js";
+    case "python":
+      return "Python";
+    case "go":
+      return "Go";
+    case "java":
+      return "Java";
+    case "ruby":
+      return "Ruby";
+    case "php":
+      return "PHP";
+    case "dotnet":
+      return ".NET";
+    case "rust":
+      return "Rust";
+    default:
+      return null;
+  }
+}
+
+function normalizeTechKind(value?: string | null) {
+  return value?.trim().toLowerCase() || "stack";
+}
+
+function buildAppStack(app: FugueApp) {
+  const seen = new Set<string>();
+  const items: AdminClusterAppView["stack"] = [];
+
+  const addItem = (
+    kind: string | null | undefined,
+    slug: string | null | undefined,
+    label: string | null | undefined,
+    source?: string | null,
+  ) => {
+    const normalizedKind = normalizeTechKind(kind);
+    const normalizedSlug = slug?.trim().toLowerCase() || label?.trim().toLowerCase() || "";
+    const normalizedLabel = label?.trim();
+
+    if (!normalizedSlug || !normalizedLabel) {
+      return;
+    }
+
+    const key = `${normalizedKind}:${normalizedSlug}`;
+
+    if (seen.has(key)) {
+      return;
+    }
+
+    seen.add(key);
+    items.push({
+      id: key,
+      kind: normalizedKind,
+      label: normalizedLabel,
+      meta: normalizedKind,
+      title: source?.trim()
+        ? `${normalizedLabel} / ${normalizedKind} / ${source.trim()}`
+        : `${normalizedLabel} / ${normalizedKind}`,
+    });
+  };
+
+  if (app.techStack.length) {
+    for (const item of app.techStack) {
+      addItem(item.kind, item.slug, item.name, item.source);
+    }
+  } else {
+    addItem(
+      "language",
+      app.source.detectedProvider,
+      app.source.detectedProvider
+        ? (readProviderLabel(app.source.detectedProvider) ?? humanize(app.source.detectedProvider))
+        : null,
+      "fallback",
+    );
+    addItem(
+      "build",
+      app.source.buildStrategy,
+      app.source.buildStrategy ? humanize(app.source.buildStrategy) : null,
+      "fallback",
+    );
+    for (const service of app.backingServices) {
+      addItem(
+        "service",
+        service.type,
+        service.type ? humanize(service.type) : null,
+        "fallback",
+      );
+    }
+  }
+
+  const techOrder = new Map<string, number>([
+    ["language", 0],
+    ["service", 1],
+    ["build", 2],
+  ]);
+  const primary = items.filter(
+    (item) => item.kind === "language" || item.kind === "service",
+  );
+  const visible = (primary.length ? primary : items).filter(
+    (item) => item.kind !== "source",
+  );
+
+  return [...visible]
+    .sort((left, right) => {
+      const leftOrder = techOrder.get(left.kind) ?? Number.MAX_SAFE_INTEGER;
+      const rightOrder = techOrder.get(right.kind) ?? Number.MAX_SAFE_INTEGER;
+
+      if (leftOrder !== rightOrder) {
+        return leftOrder - rightOrder;
+      }
+
+      return left.label.localeCompare(right.label);
+    })
+    .slice(0, 4);
+}
+
 function toneForStatus(status?: string | null): ConsoleTone {
   const normalized = status?.trim().toLowerCase() ?? "";
 
@@ -262,6 +388,7 @@ function mapAdminApps(
         routeLabel: route.label,
         runtimeLabel: runtimeId ? shortId(runtimeId) : "Unassigned",
         sourceLabel: formatRepoLabel(app),
+        stack: buildAppStack(app),
         tenantLabel: app.tenantId ? tenantNames.get(app.tenantId) ?? shortId(app.tenantId) : "Unknown",
         updatedExact: formatExactTime(updatedAt),
         updatedLabel: formatRelativeTime(updatedAt),

@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useState } from "react";
 
 import { Panel, PanelSection } from "@/components/ui/panel";
 import { useToast } from "@/components/ui/toast";
 import type { ApiKeyRecord } from "@/lib/api-keys/types";
-import { API_KEY_CREATE_REQUEST_EVENT } from "@/lib/console/events";
 import {
   getFugueScopeDescription,
   sortFugueScopes,
@@ -106,10 +105,6 @@ function buildPermissionCatalog(record: Pick<ApiKeyRecord, "isWorkspaceAdmin" | 
   ]);
 }
 
-function buildLabelDrafts(keys: ApiKeyRecord[]) {
-  return Object.fromEntries(keys.map((key) => [key.id, key.label]));
-}
-
 function sortKeys(keys: ApiKeyRecord[]) {
   const statusOrder = new Map<ApiKeyRecord["status"], number>([
     ["active", 0],
@@ -200,14 +195,10 @@ export function ApiKeyManager({
   initialSyncError: string | null;
 }) {
   const { showToast } = useToast();
-  const createRequestRef = useRef<() => void>(() => {});
   const [keys, setKeys] = useState(initialKeys);
   const [scopeCatalog, setScopeCatalog] = useState(() => sortFugueScopes(availableScopes));
   const [syncError, setSyncError] = useState<string | null>(initialSyncError);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [labelDrafts, setLabelDrafts] = useState<Record<string, string>>(
-    buildLabelDrafts(initialKeys),
-  );
   const [busyAction, setBusyAction] = useState<string | null>(null);
 
   useEffect(() => {
@@ -221,23 +212,10 @@ export function ApiKeyManager({
     });
   }, [initialSyncError, showToast]);
 
-  useEffect(() => {
-    const handleCreateRequest = () => {
-      createRequestRef.current();
-    };
-
-    window.addEventListener(API_KEY_CREATE_REQUEST_EVENT, handleCreateRequest);
-
-    return () => {
-      window.removeEventListener(API_KEY_CREATE_REQUEST_EVENT, handleCreateRequest);
-    };
-  }, []);
-
   function syncLocalState(data: ApiKeyPagePayload) {
     setKeys(sortKeys(data.keys));
     setScopeCatalog(sortFugueScopes(data.availableScopes));
     setSyncError(data.syncError);
-    setLabelDrafts(buildLabelDrafts(data.keys));
   }
 
   async function refreshKeys(options?: { successMessage?: string }) {
@@ -290,48 +268,6 @@ export function ApiKeyManager({
     }
   }
 
-  async function handleCreate() {
-    if (busyAction) {
-      return;
-    }
-
-    setBusyAction("create");
-
-    try {
-      const created = await requestJson<{
-        key: ApiKeyRecord;
-        secret: string;
-      }>("/api/fugue/api-keys", {
-        method: "POST",
-      });
-      const copied = await copyText(created.secret);
-
-      setKeys((current) => upsertKey(current, created.key));
-      setLabelDrafts((current) => ({
-        ...current,
-        [created.key.id]: created.key.label,
-      }));
-      setSyncError(null);
-      setExpandedId(created.key.id);
-
-      showToast({
-        message: copied ? "Key created and secret copied." : "Key created.",
-        variant: "success",
-      });
-    } catch (error) {
-      showToast({
-        message: readErrorMessage(error),
-        variant: "error",
-      });
-    } finally {
-      setBusyAction(null);
-    }
-  }
-
-  createRequestRef.current = () => {
-    void handleCreate();
-  };
-
   async function handleCopy(keyId: string) {
     if (busyAction) {
       return;
@@ -362,61 +298,50 @@ export function ApiKeyManager({
     }
   }
 
-  async function handleLabelCommit(record: ApiKeyRecord) {
-    const nextLabel = (labelDrafts[record.id] ?? record.label).trim();
-
-    if (!nextLabel) {
-      setLabelDrafts((current) => ({
-        ...current,
-        [record.id]: record.label,
-      }));
-      showToast({
-        message: "Key name cannot be empty.",
-        variant: "error",
-      });
+  async function handleReplace(record: ApiKeyRecord) {
+    if (busyAction) {
       return;
     }
 
-    if (nextLabel === record.label || busyAction) {
-      setLabelDrafts((current) => ({
-        ...current,
-        [record.id]: nextLabel,
-      }));
+    const confirmed = window.confirm(
+      record.isWorkspaceAdmin
+        ? "Replace this admin key? The current secret stops working immediately and the new secret will be copied."
+        : "Replace this API key? The current secret stops working immediately and the new secret will be copied.",
+    );
+
+    if (!confirmed) {
       return;
     }
 
-    setBusyAction(`rename:${record.id}`);
+    setBusyAction(`rotate:${record.id}`);
 
     try {
-      const updated = await requestJson<{
+      const rotated = await requestJson<{
         key: ApiKeyRecord;
-      }>(`/api/fugue/api-keys/${encodeURIComponent(record.id)}`, {
-        body: JSON.stringify({
-          label: nextLabel,
-        }),
-        headers: {
-          "Content-Type": "application/json",
-        },
-        method: "PATCH",
+        secret: string;
+      }>(`/api/fugue/api-keys/${encodeURIComponent(record.id)}/rotate`, {
+        method: "POST",
       });
+      const copied = await copyText(rotated.secret);
 
-      setKeys((current) => upsertKey(current, updated.key));
-      setLabelDrafts((current) => ({
-        ...current,
-        [updated.key.id]: updated.key.label,
-      }));
+      setKeys((current) => upsertKey(current, rotated.key));
+      if (rotated.key.isWorkspaceAdmin) {
+        setScopeCatalog(sortFugueScopes(rotated.key.scopes));
+      }
       setSyncError(null);
-      setExpandedId(updated.key.id);
+      setExpandedId(rotated.key.id);
 
       showToast({
-        message: "Key renamed.",
+        message: copied
+          ? record.isWorkspaceAdmin
+            ? "Admin key replaced and secret copied. The previous secret no longer works."
+            : "API key replaced and secret copied. The previous secret no longer works."
+          : record.isWorkspaceAdmin
+            ? "Admin key replaced. Copy the new secret now."
+            : "API key replaced. Copy the new secret now.",
         variant: "success",
       });
     } catch (error) {
-      setLabelDrafts((current) => ({
-        ...current,
-        [record.id]: record.label,
-      }));
       showToast({
         message: readErrorMessage(error),
         variant: "error",
@@ -449,11 +374,6 @@ export function ApiKeyManager({
       });
 
       setKeys((current) => current.filter((key) => key.id !== record.id));
-      setLabelDrafts((current) => {
-        const next = { ...current };
-        delete next[record.id];
-        return next;
-      });
       setSyncError(null);
       setExpandedId((current) => (current === record.id ? null : current));
 
@@ -487,10 +407,6 @@ export function ApiKeyManager({
       });
 
       setKeys((current) => upsertKey(current, updated.key));
-      setLabelDrafts((current) => ({
-        ...current,
-        [updated.key.id]: updated.key.label,
-      }));
       setSyncError(null);
       setExpandedId(updated.key.id);
 
@@ -505,26 +421,6 @@ export function ApiKeyManager({
       });
     } finally {
       setBusyAction(null);
-    }
-  }
-
-  function handleLabelKeyDown(
-    event: KeyboardEvent<HTMLInputElement>,
-    record: ApiKeyRecord,
-  ) {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      event.currentTarget.blur();
-      return;
-    }
-
-    if (event.key === "Escape") {
-      event.preventDefault();
-      setLabelDrafts((current) => ({
-        ...current,
-        [record.id]: record.label,
-      }));
-      event.currentTarget.blur();
     }
   }
 
@@ -573,10 +469,6 @@ export function ApiKeyManager({
       });
 
       setKeys((current) => upsertKey(current, updated.key));
-      setLabelDrafts((current) => ({
-        ...current,
-        [updated.key.id]: updated.key.label,
-      }));
       if (updated.key.isWorkspaceAdmin) {
         setScopeCatalog(sortFugueScopes(updated.key.scopes));
       }
@@ -630,7 +522,6 @@ export function ApiKeyManager({
           <div className="fg-api-key-list">
             {keys.map((record) => {
               const expanded = expandedId === record.id;
-              const labelValue = labelDrafts[record.id] ?? record.label;
               const permissionCatalog = buildPermissionCatalog(record, scopeCatalog);
 
               return (
@@ -655,7 +546,11 @@ export function ApiKeyManager({
 
                     <div className="fg-api-key-item__toggle">
                       <div className="fg-api-key-item__title">
-                        <strong>{record.label}</strong>
+                        <strong>
+                          {record.isWorkspaceAdmin
+                            ? "Admin key"
+                            : record.label}
+                        </strong>
                       </div>
 
                       <p className="fg-api-key-item__meta">
@@ -668,6 +563,17 @@ export function ApiKeyManager({
                     </div>
 
                     <div className="fg-api-key-item__actions">
+                      <InlineActionButton
+                        blocked={Boolean(
+                          busyAction && busyAction !== `rotate:${record.id}`,
+                        )}
+                        busy={busyAction === `rotate:${record.id}`}
+                        label={record.isWorkspaceAdmin ? "Replace" : "Rotate"}
+                        onClick={() => {
+                          void handleReplace(record);
+                        }}
+                      />
+
                       <InlineActionButton
                         blocked={Boolean(
                           busyAction && busyAction !== `copy:${record.id}`,
@@ -717,25 +623,6 @@ export function ApiKeyManager({
                   {expanded ? (
                     <div className="fg-api-key-item__panel">
                       <div className="fg-api-key-item__details">
-                        <label className="fg-api-key-field">
-                          <span className="fg-api-key-field__label">Name</span>
-                          <input
-                            className="fg-input"
-                            disabled={busyAction !== null}
-                            onBlur={() => {
-                              void handleLabelCommit(record);
-                            }}
-                            onChange={(event) =>
-                              setLabelDrafts((current) => ({
-                                ...current,
-                                [record.id]: event.target.value,
-                              }))
-                            }
-                            onKeyDown={(event) => handleLabelKeyDown(event, record)}
-                            value={labelValue}
-                          />
-                        </label>
-
                         <dl className="fg-api-key-facts">
                           <div>
                             <dt>ID</dt>
@@ -813,8 +700,8 @@ export function ApiKeyManager({
           </div>
         ) : (
           <div className="fg-api-key-empty">
-            <strong>No keys yet.</strong>
-            <p>Create a key when you need one.</p>
+            <strong>Admin key unavailable</strong>
+            <p>Restore the workspace to continue.</p>
           </div>
         )}
       </PanelSection>

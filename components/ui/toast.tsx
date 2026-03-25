@@ -56,6 +56,32 @@ function getToastTitle(toast: Pick<ToastInput, "title" | "variant">) {
   return "Notice";
 }
 
+async function copyText(value: string) {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(value);
+      return true;
+    }
+  } catch {
+    // Fall through to the textarea fallback below.
+  }
+
+  try {
+    const temp = document.createElement("textarea");
+    temp.value = value;
+    temp.setAttribute("readonly", "true");
+    temp.style.position = "fixed";
+    temp.style.opacity = "0";
+    document.body.appendChild(temp);
+    temp.select();
+    document.execCommand("copy");
+    temp.remove();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function ToastItem({
   depth,
   expanded,
@@ -75,6 +101,9 @@ function ToastItem({
   toast: ToastRecord;
   total: number;
 }) {
+  const copiedResetRef = useRef<number | null>(null);
+  const [copied, setCopied] = useState(false);
+
   useEffect(() => {
     if (pauseDismiss || toast.state === "closing") {
       return;
@@ -88,8 +117,42 @@ function ToastItem({
     return () => window.clearTimeout(timeout);
   }, [onDismiss, pauseDismiss, toast.duration, toast.id, toast.state]);
 
+  useEffect(() => {
+    setCopied(false);
+
+    if (copiedResetRef.current !== null) {
+      window.clearTimeout(copiedResetRef.current);
+      copiedResetRef.current = null;
+    }
+
+    return () => {
+      if (copiedResetRef.current !== null) {
+        window.clearTimeout(copiedResetRef.current);
+      }
+    };
+  }, [toast.id]);
+
   const stackLabel =
     isFront && total > 1 ? (expanded ? "Fold" : `+${total - 1}`) : null;
+
+  async function handleCopy() {
+    const didCopy = await copyText(toast.message);
+
+    if (!didCopy) {
+      return;
+    }
+
+    setCopied(true);
+
+    if (copiedResetRef.current !== null) {
+      window.clearTimeout(copiedResetRef.current);
+    }
+
+    copiedResetRef.current = window.setTimeout(() => {
+      setCopied(false);
+      copiedResetRef.current = null;
+    }, 1400);
+  }
 
   return (
     <article
@@ -121,14 +184,27 @@ function ToastItem({
           <p className="fg-toast__message">{toast.message}</p>
         </button>
 
-        <button
-          aria-label="Dismiss notification"
-          className="fg-toast__dismiss"
-          onClick={() => onDismiss(toast.id)}
-          type="button"
-        >
-          Close
-        </button>
+        <div className="fg-toast__actions">
+          <button
+            aria-label="Copy notification message"
+            className="fg-toast__action"
+            onClick={() => {
+              void handleCopy();
+            }}
+            type="button"
+          >
+            {copied ? "Copied" : "Copy"}
+          </button>
+
+          <button
+            aria-label="Dismiss notification"
+            className="fg-toast__action"
+            onClick={() => onDismiss(toast.id)}
+            type="button"
+          >
+            Close
+          </button>
+        </div>
       </div>
     </article>
   );

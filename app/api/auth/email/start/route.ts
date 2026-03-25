@@ -11,6 +11,7 @@ import {
   parseAuthMode,
   sanitizeDisplayName,
 } from "@/lib/auth/validation";
+import { ensureWorkspaceAccess } from "@/lib/workspace/bootstrap";
 
 type RequestPayload = {
   email?: string;
@@ -41,18 +42,18 @@ export async function POST(request: Request) {
   }
 
   if (!authEnv.emailVerificationRequired) {
+    const sessionUser = {
+      email,
+      name: name || undefined,
+      provider: "email" as const,
+      verified: true,
+    };
+
     try {
-      await ensureAppUserRecord(
-        {
-          email,
-          name: name || undefined,
-          provider: "email",
-          verified: true,
-        },
-        {
-          markSignedIn: true,
-        },
-      );
+      await ensureAppUserRecord(sessionUser, {
+        markSignedIn: true,
+      });
+      await ensureWorkspaceAccess(sessionUser);
     } catch (error) {
       if (error instanceof Error && error.message.includes("blocked")) {
         return NextResponse.json({ error: "This account is blocked." }, { status: 403 });
@@ -72,12 +73,7 @@ export async function POST(request: Request) {
     });
 
     response.cookies.set(
-      buildSessionCookie({
-        email,
-        name: name || undefined,
-        provider: "email",
-        verified: true,
-      }),
+      buildSessionCookie(sessionUser),
     );
 
     return response;
