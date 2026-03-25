@@ -625,6 +625,7 @@ export function ConsoleProjectGallery({
   const [logsStatus, setLogsStatus] = useState<"error" | "idle" | "loading" | "ready">("idle");
   const [logsBody, setLogsBody] = useState("");
   const [logsMeta, setLogsMeta] = useState<string[]>([]);
+  const [buildLogsOperationStatus, setBuildLogsOperationStatus] = useState<string | null>(null);
   const [logsRefreshMode, setLogsRefreshMode] = useState<"auto" | "manual">("auto");
   const [logsRefreshToken, setLogsRefreshToken] = useState(0);
   const [logsRefreshing, setLogsRefreshing] = useState(false);
@@ -651,6 +652,8 @@ export function ConsoleProjectGallery({
         ? `/api/fugue/apps/${selectedApp.id}/build-logs?tail_lines=${LOG_TAIL_LINES}`
         : `/api/fugue/apps/${selectedApp.id}/runtime-logs?component=${runtimeComponent}&tail_lines=${LOG_TAIL_LINES}`
       : null;
+  const logsAutoRefreshEnabled =
+    logsMode === "runtime" || shouldAutoRefreshBuildLogs(buildLogsOperationStatus);
   const dataErrorMessage = data.errors.length
     ? `Partial Fugue data: ${data.errors.join(" | ")}.`
     : null;
@@ -669,6 +672,11 @@ export function ConsoleProjectGallery({
       ? "Add service"
       : "Create project";
   const logsDisplayBody = readLogsDisplayBody(logsStatus, logsBody);
+  const logsRefreshStateLabel = logsRefreshing
+    ? "refresh / updating"
+    : logsAutoRefreshEnabled
+      ? `refresh / auto ${LOG_AUTO_REFRESH_INTERVAL_MS / 1000}s`
+      : "refresh / stopped";
 
   useEffect(() => {
     if (defaultCreateOpen) {
@@ -800,6 +808,7 @@ export function ConsoleProjectGallery({
     setLogsStatus("idle");
     setLogsBody("");
     setLogsMeta([]);
+    setBuildLogsOperationStatus(null);
     setLogsRefreshing(false);
   }, [selectedApp?.id]);
 
@@ -835,6 +844,7 @@ export function ConsoleProjectGallery({
           const buildLogs = response as BuildLogsResponse;
           setLogsBody(buildLogs.logs || "No build logs available.");
           setLogsMeta(buildLogMeta(buildLogs));
+          setBuildLogsOperationStatus(buildLogs.operationStatus ?? null);
         } else {
           const runtimeLogs = response as RuntimeLogsResponse;
           setLogsBody(runtimeLogs.logs || "No runtime logs available.");
@@ -885,7 +895,7 @@ export function ConsoleProjectGallery({
   }, [runtimeComponent, selectedApp]);
 
   useEffect(() => {
-    if (!selectedApp || activeTab !== "logs") {
+    if (!selectedApp || activeTab !== "logs" || !logsAutoRefreshEnabled) {
       return undefined;
     }
 
@@ -901,7 +911,7 @@ export function ConsoleProjectGallery({
     return () => {
       window.clearInterval(intervalId);
     };
-  }, [activeTab, logsRequestKey]);
+  }, [activeTab, logsAutoRefreshEnabled, logsRequestKey]);
 
   useEffect(() => {
     if (!hasLiveProjects && refreshWindowUntil <= Date.now()) {
@@ -1684,8 +1694,10 @@ export function ConsoleProjectGallery({
                       <div className="fg-workbench-section__copy">
                         <p className="fg-label fg-panel__eyebrow">Logs</p>
                         <p className="fg-console-note">
-                          Stream build and runtime output for {selectedApp.name}. Auto-refresh every{" "}
-                          {LOG_AUTO_REFRESH_INTERVAL_MS / 1000} seconds while this panel is open.
+                          Stream build and runtime output for {selectedApp.name}.{" "}
+                          {logsAutoRefreshEnabled
+                            ? `Auto-refresh every ${LOG_AUTO_REFRESH_INTERVAL_MS / 1000} seconds while this panel is open.`
+                            : "Build is in a terminal state, so auto-refresh is paused."}
                           {logsRefreshing ? " Updating…" : ""}
                         </p>
                       </div>
@@ -1721,7 +1733,7 @@ export function ConsoleProjectGallery({
                       <div className="fg-bezel__inner">
                         <div className="fg-proof-shell__ribbon">
                           {logsMeta.length ? logsMeta.map((item) => <span key={item}>{item}</span>) : <span>waiting</span>}
-                          <span>{logsRefreshing ? "refresh / updating" : `refresh / auto ${LOG_AUTO_REFRESH_INTERVAL_MS / 1000}s`}</span>
+                          <span>{logsRefreshStateLabel}</span>
                         </div>
                         <pre>
                           <code className="fg-log-output">{renderAnsiLogBody(logsDisplayBody)}</code>
