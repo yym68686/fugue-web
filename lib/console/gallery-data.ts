@@ -19,6 +19,7 @@ import {
   type FugueProject,
   type FugueAppTechnology,
 } from "@/lib/fugue/api";
+import { readGitHubSourceHref } from "@/lib/fugue/source-links";
 import { getCurrentWorkspaceAccess } from "@/lib/workspace/current";
 
 function readErrorMessage(reason: unknown) {
@@ -483,6 +484,7 @@ function buildAppView(app: FugueApp): ConsoleGalleryAppView {
     routeHref: route.href,
     routeLabel: route.label,
     serviceBadges: buildAppBadges(app),
+    sourceHref: readGitHubSourceHref(app.source.repoUrl),
     sourceLabel: readSourceLabel(app),
     sourceMeta:
       [humanize(app.source.buildStrategy), app.source.composeService, app.source.dockerfilePath]

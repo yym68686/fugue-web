@@ -21,6 +21,7 @@ import {
   getCurrentWorkspaceAccess,
   type WorkspaceAccess,
 } from "@/lib/workspace/current";
+import { readGitHubSourceHref } from "@/lib/fugue/source-links";
 
 export type ConsoleSummary = {
   activeOperationCount: number;
@@ -51,6 +52,7 @@ export type ConsoleAppView = {
   routeHref: string | null;
   routeLabel: string;
   runtimeLabel: string;
+  sourceHref: string | null;
   sourceLabel: string;
   sourceMeta: string;
   tenantLabel: string;
@@ -895,6 +897,7 @@ export async function getConsoleData(): Promise<ConsoleData> {
       routeHref: route.href,
       routeLabel: route.label,
       runtimeLabel: runtime ? readRuntimeLabel(runtime) : currentRuntimeId ? shortId(currentRuntimeId) : "Unassigned",
+      sourceHref: readGitHubSourceHref(app.source.repoUrl),
       sourceLabel: formatRepoLabel(app.source.repoUrl, app.source.repoBranch),
       sourceMeta:
         [humanize(app.source.buildStrategy), app.source.composeService, app.source.dockerfilePath]

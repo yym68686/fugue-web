@@ -36,6 +36,7 @@ export type ConsoleGalleryAppView = {
   routeHref: string | null;
   routeLabel: string;
   serviceBadges: ConsoleGalleryBadgeView[];
+  sourceHref: string | null;
   sourceLabel: string;
   sourceMeta: string;
   updatedExact: string;

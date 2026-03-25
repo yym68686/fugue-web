@@ -17,6 +17,7 @@ import {
   type FugueTenant,
 } from "@/lib/fugue/api";
 import { getFugueEnv } from "@/lib/fugue/env";
+import { readGitHubSourceHref } from "@/lib/fugue/source-links";
 import { listWorkspaceSnapshots, type WorkspaceSnapshot } from "@/lib/workspace/store";
 
 export type AdminClusterAppView = {
@@ -29,6 +30,7 @@ export type AdminClusterAppView = {
   routeHref: string | null;
   routeLabel: string;
   runtimeLabel: string;
+  sourceHref: string | null;
   sourceLabel: string;
   stack: Array<{
     id: string;
@@ -471,6 +473,7 @@ function mapAdminApps(
         routeHref: route.href,
         routeLabel: route.label,
         runtimeLabel: runtimeId ? shortId(runtimeId) : "Unassigned",
+        sourceHref: readGitHubSourceHref(app.source.repoUrl),
         sourceLabel: formatRepoLabel(app),
         stack: buildAppStack(app),
         tenantLabel: app.tenantId ? tenantNames.get(app.tenantId) ?? shortId(app.tenantId) : "Unknown",

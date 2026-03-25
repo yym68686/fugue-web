@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useEffect, useRef, useState, type FormEvent } from "react";
+import { startTransition, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 
 import { StatusBadge } from "@/components/console/status-badge";
@@ -24,6 +24,7 @@ import type {
   ConsoleGalleryProjectView,
   ConsoleProjectGalleryData,
 } from "@/lib/console/gallery-types";
+import { readGitHubSourceHref } from "@/lib/fugue/source-links";
 import type { ConsoleTone } from "@/lib/console/types";
 import { parseAnsiText } from "@/lib/ui/ansi";
 import { cx } from "@/lib/ui/cx";
@@ -98,6 +99,19 @@ type BuildStrategyValue =
   | "dockerfile"
   | "nixpacks"
   | "static-site";
+
+type LogMetaItem = {
+  href: string | null;
+  id: string;
+  label: string;
+};
+
+type RuntimeLogsUnavailableState = {
+  description: string;
+  metaLabel: string;
+  refreshLabel: string;
+  title: string;
+};
 
 const BUILD_STRATEGY_OPTIONS = [
   { label: "Auto detect", value: "auto" },
@@ -328,15 +342,96 @@ function humanizeUiLabel(value?: string | null) {
     .replace(/\b\w/g, (match) => match.toUpperCase());
 }
 
+function renderExternalText(label: string, href?: string | null, className?: string) {
+  if (!href) {
+    return <span className={className}>{label}</span>;
+  }
+
+  return (
+    <a
+      className={cx("fg-text-link", className)}
+      href={href}
+      rel="noreferrer"
+      target="_blank"
+      title={href}
+    >
+      {label}
+    </a>
+  );
+}
+
+function renderLogMetaItem(item: LogMetaItem): ReactNode {
+  if (!item.href) {
+    return <span key={item.id}>{item.label}</span>;
+  }
+
+  return (
+    <a
+      className="fg-text-link"
+      href={item.href}
+      key={item.id}
+      rel="noreferrer"
+      target="_blank"
+      title={item.href}
+    >
+      {item.label}
+    </a>
+  );
+}
+
 function buildLogMeta(buildLogs: BuildLogsResponse) {
-  return [
-    buildLogs.buildStrategy ? `Build / ${humanizeUiLabel(buildLogs.buildStrategy)}` : null,
-    buildLogs.source ? `Source / ${buildLogs.source}` : null,
-    buildLogs.jobName ? `Job / ${buildLogs.jobName}` : null,
-    buildLogs.operationStatus ? `Status / ${humanizeUiLabel(buildLogs.operationStatus)}` : null,
-    buildLogs.errorMessage ? `Error / ${buildLogs.errorMessage}` : null,
-    buildLogs.resultMessage ? `Result / ${buildLogs.resultMessage}` : null,
-  ].filter((item): item is string => Boolean(item));
+  const sourceHref = readGitHubSourceHref(buildLogs.source);
+  const items: LogMetaItem[] = [];
+
+  if (buildLogs.buildStrategy) {
+    items.push({
+      href: null,
+      id: `build:${buildLogs.buildStrategy}`,
+      label: `Build / ${humanizeUiLabel(buildLogs.buildStrategy)}`,
+    });
+  }
+
+  if (buildLogs.source) {
+    items.push({
+      href: sourceHref,
+      id: `source:${buildLogs.source}`,
+      label: `Source / ${buildLogs.source}`,
+    });
+  }
+
+  if (buildLogs.jobName) {
+    items.push({
+      href: null,
+      id: `job:${buildLogs.jobName}`,
+      label: `Job / ${buildLogs.jobName}`,
+    });
+  }
+
+  if (buildLogs.operationStatus) {
+    items.push({
+      href: null,
+      id: `status:${buildLogs.operationStatus}`,
+      label: `Status / ${humanizeUiLabel(buildLogs.operationStatus)}`,
+    });
+  }
+
+  if (buildLogs.errorMessage) {
+    items.push({
+      href: null,
+      id: `error:${buildLogs.errorMessage}`,
+      label: `Error / ${buildLogs.errorMessage}`,
+    });
+  }
+
+  if (buildLogs.resultMessage) {
+    items.push({
+      href: null,
+      id: `result:${buildLogs.resultMessage}`,
+      label: `Result / ${buildLogs.resultMessage}`,
+    });
+  }
+
+  return items;
 }
 
 function shouldAutoRefreshBuildLogs(status?: string | null) {
@@ -344,11 +439,86 @@ function shouldAutoRefreshBuildLogs(status?: string | null) {
 }
 
 function runtimeLogMeta(runtimeLogs: RuntimeLogsResponse) {
-  return [
-    runtimeLogs.component ? `Component / ${humanizeUiLabel(runtimeLogs.component)}` : null,
-    runtimeLogs.pods?.length ? `Pods / ${runtimeLogs.pods.join(", ")}` : null,
-    runtimeLogs.warnings?.length ? `Warnings / ${runtimeLogs.warnings.join(" | ")}` : null,
-  ].filter((item): item is string => Boolean(item));
+  const items: LogMetaItem[] = [];
+
+  if (runtimeLogs.component) {
+    items.push({
+      href: null,
+      id: `component:${runtimeLogs.component}`,
+      label: `Component / ${humanizeUiLabel(runtimeLogs.component)}`,
+    });
+  }
+
+  if (runtimeLogs.pods?.length) {
+    items.push({
+      href: null,
+      id: `pods:${runtimeLogs.pods.join(",")}`,
+      label: `Pods / ${runtimeLogs.pods.join(", ")}`,
+    });
+  }
+
+  if (runtimeLogs.warnings?.length) {
+    items.push({
+      href: null,
+      id: `warnings:${runtimeLogs.warnings.join("|")}`,
+      label: `Warnings / ${runtimeLogs.warnings.join(" | ")}`,
+    });
+  }
+
+  return items;
+}
+
+function readRuntimeLogsUnavailableState(
+  app: ConsoleGalleryAppView | null,
+  logsMode: LogsView,
+): RuntimeLogsUnavailableState | null {
+  if (!app || logsMode !== "runtime") {
+    return null;
+  }
+
+  const phase = app.phase.trim().toLowerCase();
+
+  if (includesLifecycleKeyword(phase, ["importing"])) {
+    return {
+      description:
+        "Source import is still in progress. Switch to Build to watch the rollout. Runtime logs appear after the first container starts.",
+      metaLabel: "State / Importing",
+      refreshLabel: "Runtime / Waiting for import",
+      title: "Runtime logs unlock after import",
+    };
+  }
+
+  if (includesLifecycleKeyword(phase, ["building"])) {
+    return {
+      description:
+        "This service is still building. Switch to Build to follow the rollout. Runtime logs appear after the first container starts.",
+      metaLabel: "State / Building",
+      refreshLabel: "Runtime / Waiting for first start",
+      title: "Runtime logs start after build",
+    };
+  }
+
+  if (includesLifecycleKeyword(phase, ["deploying"])) {
+    return {
+      description:
+        "The release is still deploying. Runtime logs appear after the first container is live.",
+      metaLabel: "State / Deploying",
+      refreshLabel: "Runtime / Waiting for deploy",
+      title: "Runtime logs unlock after deploy",
+    };
+  }
+
+  if (includesLifecycleKeyword(phase, ["queued", "pending", "migrating"])) {
+    return {
+      description:
+        "This rollout has not reached a live runtime yet. Switch to Build to watch progress, then return here once the container starts.",
+      metaLabel: "State / Queued",
+      refreshLabel: "Runtime / Waiting in queue",
+      title: "Runtime logs are not live yet",
+    };
+  }
+
+  return null;
 }
 
 function readLogsDisplayBody(logsStatus: "error" | "idle" | "loading" | "ready", logsBody: string) {
@@ -635,7 +805,7 @@ export function ConsoleProjectGallery({
   const [runtimeComponent, setRuntimeComponent] = useState<RuntimeView>("app");
   const [logsStatus, setLogsStatus] = useState<"error" | "idle" | "loading" | "ready">("idle");
   const [logsBody, setLogsBody] = useState("");
-  const [logsMeta, setLogsMeta] = useState<string[]>([]);
+  const [logsMeta, setLogsMeta] = useState<LogMetaItem[]>([]);
   const [buildLogsOperationStatus, setBuildLogsOperationStatus] = useState<string | null>(null);
   const [logsRefreshMode, setLogsRefreshMode] = useState<"auto" | "manual">("auto");
   const [logsRefreshToken, setLogsRefreshToken] = useState(0);
@@ -663,8 +833,13 @@ export function ConsoleProjectGallery({
         ? `/api/fugue/apps/${selectedApp.id}/build-logs?tail_lines=${LOG_TAIL_LINES}`
         : `/api/fugue/apps/${selectedApp.id}/runtime-logs?component=${runtimeComponent}&tail_lines=${LOG_TAIL_LINES}`
       : null;
+  const runtimeLogsUnavailable = readRuntimeLogsUnavailableState(selectedApp, logsMode);
+  const runtimeLogsUnavailableKey = runtimeLogsUnavailable
+    ? `${selectedApp?.id ?? "none"}:${runtimeLogsUnavailable.refreshLabel}`
+    : null;
   const logsAutoRefreshEnabled =
-    logsMode === "runtime" || shouldAutoRefreshBuildLogs(buildLogsOperationStatus);
+    runtimeLogsUnavailable === null &&
+    (logsMode === "runtime" || shouldAutoRefreshBuildLogs(buildLogsOperationStatus));
   const dataErrorMessage = data.errors.length
     ? `Partial Fugue data: ${data.errors.join(" | ")}.`
     : null;
@@ -683,11 +858,13 @@ export function ConsoleProjectGallery({
       ? "Add service"
       : "Create project";
   const logsDisplayBody = readLogsDisplayBody(logsStatus, logsBody);
-  const logsRefreshStateLabel = logsRefreshing
-    ? "Refresh / Updating"
-    : logsAutoRefreshEnabled
-      ? `Refresh / Auto ${LOG_AUTO_REFRESH_INTERVAL_MS / 1000}s`
-      : "Refresh / Stopped";
+  const logsRefreshStateLabel = runtimeLogsUnavailable
+    ? runtimeLogsUnavailable.refreshLabel
+    : logsRefreshing
+      ? "Refresh / Updating"
+      : logsAutoRefreshEnabled
+        ? `Refresh / Auto ${LOG_AUTO_REFRESH_INTERVAL_MS / 1000}s`
+        : "Refresh / Stopped";
 
   useEffect(() => {
     if (defaultCreateOpen) {
@@ -828,6 +1005,16 @@ export function ConsoleProjectGallery({
       return;
     }
 
+    if (runtimeLogsUnavailable) {
+      logsVisibleKeyRef.current = null;
+      logsRequestPendingRef.current = false;
+      setLogsStatus("idle");
+      setLogsBody("");
+      setLogsMeta([]);
+      setLogsRefreshing(false);
+      return;
+    }
+
     const controller = new AbortController();
     const backgroundRefresh = logsVisibleKeyRef.current === logsRequestKey;
     let cancelled = false;
@@ -897,7 +1084,15 @@ export function ConsoleProjectGallery({
       logsRequestPendingRef.current = false;
       controller.abort();
     };
-  }, [activeTab, logsMode, logsRefreshMode, logsRefreshToken, logsRequestInput, logsRequestKey]);
+  }, [
+    activeTab,
+    logsMode,
+    logsRefreshMode,
+    logsRefreshToken,
+    logsRequestInput,
+    logsRequestKey,
+    runtimeLogsUnavailableKey,
+  ]);
 
   useEffect(() => {
     if (!selectedApp?.hasPostgresService && runtimeComponent === "postgres") {
@@ -1374,33 +1569,44 @@ export function ConsoleProjectGallery({
                   {project.services.map((service) => (
                     <li key={`${service.kind}:${service.id}`}>
                       {service.kind === "app" ? (
-                        <button
+                        <div
                           className={cx(
                             "fg-project-service-card",
                             selectedApp.id === service.id && "is-active",
                           )}
-                          onClick={() => chooseApp(service.id)}
-                          type="button"
                         >
-                          <div className="fg-project-service-card__head">
-                            <strong>{service.name}</strong>
-                            <StatusBadge tone={service.phaseTone}>{service.phase}</StatusBadge>
+                          <button
+                            aria-label={`Inspect ${service.name}`}
+                            aria-pressed={selectedApp.id === service.id}
+                            className="fg-project-service-card__select"
+                            onClick={() => chooseApp(service.id)}
+                            type="button"
+                          />
+                          <div className="fg-project-service-card__content">
+                            <div className="fg-project-service-card__head">
+                              <strong>{service.name}</strong>
+                              <StatusBadge tone={service.phaseTone}>{service.phase}</StatusBadge>
+                            </div>
+                            <div className="fg-project-service-card__badges">
+                              {service.serviceBadges.map((badge) => (
+                                <ProjectBadge
+                                  key={`${service.id}:${badge.id}`}
+                                  kind={badge.kind}
+                                  label={badge.label}
+                                  meta={badge.meta}
+                                />
+                              ))}
+                            </div>
+                            <div className="fg-project-service-card__meta">
+                              {renderExternalText(
+                                service.sourceLabel,
+                                service.sourceHref,
+                                service.sourceHref ? "fg-project-service-card__source-link" : undefined,
+                              )}
+                              <span>{service.routeLabel}</span>
+                            </div>
                           </div>
-                          <div className="fg-project-service-card__badges">
-                            {service.serviceBadges.map((badge) => (
-                              <ProjectBadge
-                                key={`${service.id}:${badge.id}`}
-                                kind={badge.kind}
-                                label={badge.label}
-                                meta={badge.meta}
-                              />
-                            ))}
-                          </div>
-                          <div className="fg-project-service-card__meta">
-                            <span>{service.sourceLabel}</span>
-                            <span>{service.routeLabel}</span>
-                          </div>
-                        </button>
+                        </div>
                       ) : (
                         <div className="fg-project-service-card is-static">
                           <div className="fg-project-service-card__head">
@@ -1458,7 +1664,7 @@ export function ConsoleProjectGallery({
                 <div className="fg-project-inspector__meta-grid">
                   <div>
                     <dt>Source</dt>
-                    <dd>{selectedApp.sourceLabel}</dd>
+                    <dd>{renderExternalText(selectedApp.sourceLabel, selectedApp.sourceHref)}</dd>
                   </div>
                   <div>
                     <dt>Build</dt>
@@ -1705,11 +1911,13 @@ export function ConsoleProjectGallery({
                       <div className="fg-workbench-section__copy">
                         <p className="fg-label fg-panel__eyebrow">Logs</p>
                         <p className="fg-console-note">
-                          Stream build and runtime output for {selectedApp.name}.{" "}
-                          {logsAutoRefreshEnabled
-                            ? `Auto-refresh every ${LOG_AUTO_REFRESH_INTERVAL_MS / 1000} seconds while this panel is open.`
-                            : "Build is in a terminal state, so auto-refresh is paused."}
-                          {logsRefreshing ? " Updating…" : ""}
+                          {runtimeLogsUnavailable
+                            ? runtimeLogsUnavailable.description
+                            : `Stream build and runtime output for ${selectedApp.name}. ${
+                                logsAutoRefreshEnabled
+                                  ? `Auto-refresh every ${LOG_AUTO_REFRESH_INTERVAL_MS / 1000} seconds while this panel is open.`
+                                  : "Build is in a terminal state, so auto-refresh is paused."
+                              }${logsRefreshing ? " Updating…" : ""}`}
                         </p>
                       </div>
 
@@ -1743,12 +1951,25 @@ export function ConsoleProjectGallery({
                     <div className="fg-bezel fg-proof-shell">
                       <div className="fg-bezel__inner">
                         <div className="fg-proof-shell__ribbon">
-                          {logsMeta.length ? logsMeta.map((item) => <span key={item}>{item}</span>) : <span>Waiting</span>}
+                          {runtimeLogsUnavailable ? (
+                            <span>{runtimeLogsUnavailable.metaLabel}</span>
+                          ) : logsMeta.length ? (
+                            logsMeta.map((item) => renderLogMetaItem(item))
+                          ) : (
+                            <span>Waiting</span>
+                          )}
                           <span>{logsRefreshStateLabel}</span>
                         </div>
-                        <pre>
-                          <code className="fg-log-output">{renderAnsiLogBody(logsDisplayBody)}</code>
-                        </pre>
+                        {runtimeLogsUnavailable ? (
+                          <div className="fg-proof-shell__empty">
+                            <strong>{runtimeLogsUnavailable.title}</strong>
+                            <p>{runtimeLogsUnavailable.description}</p>
+                          </div>
+                        ) : (
+                          <pre>
+                            <code className="fg-log-output">{renderAnsiLogBody(logsDisplayBody)}</code>
+                          </pre>
+                        )}
                       </div>
                     </div>
                   </div>

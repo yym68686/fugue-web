@@ -2851,6 +2851,7 @@
 }
 
 .fg-project-service-card {
+  position: relative;
   width: 100%;
   display: grid;
   gap: 0.42rem;
@@ -2867,19 +2868,36 @@
     transform var(--fugue-duration-fast) var(--fugue-ease-out-expo);
 }
 
+.fg-project-service-card__select {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+
+.fg-project-service-card__content {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 0.42rem;
+  pointer-events: none;
+}
+
 .fg-project-service-card.is-static {
   cursor: default;
 }
 
 .fg-project-service-card:not(.is-static):hover,
-.fg-project-service-card:not(.is-static):focus-visible,
+.fg-project-service-card:not(.is-static):focus-within,
 .fg-project-service-card.is-active {
   border-color: rgba(165, 191, 220, 0.28);
   background: rgba(255, 255, 255, 0.045);
   transform: translateY(-1px);
 }
 
-.fg-project-service-card:focus-visible {
+.fg-project-service-card__select:focus-visible {
   outline: 2px solid var(--fugue-focus-ring);
   outline-offset: 3px;
 }
@@ -2914,12 +2932,19 @@
   gap: 0.18rem;
 }
 
-.fg-project-service-card__meta span {
+.fg-project-service-card__meta span,
+.fg-project-service-card__meta a {
   margin: 0;
   color: var(--fugue-text-tertiary);
   font-size: 0.74rem;
   line-height: 1.45;
   overflow-wrap: anywhere;
+}
+
+.fg-project-service-card__source-link {
+  color: var(--fugue-text-primary);
+  width: fit-content;
+  pointer-events: auto;
 }
 
 .fg-project-dialog-shell {

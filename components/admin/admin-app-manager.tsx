@@ -18,6 +18,7 @@ type AdminClusterAppView = {
   routeHref: string | null;
   routeLabel: string;
   runtimeLabel: string;
+  sourceHref: string | null;
   sourceLabel: string;
   stack: Array<{
     id: string;
@@ -224,9 +225,21 @@ export function AdminAppManager({
                 <StatusBadge tone={app.phaseTone}>{app.phase}</StatusBadge>
               </td>
               <td>
-                <span className="fg-console-table__clip" title={app.sourceLabel}>
-                  {app.sourceLabel}
-                </span>
+                {app.sourceHref ? (
+                  <a
+                    className="fg-text-link fg-console-table__clip"
+                    href={app.sourceHref}
+                    rel="noreferrer"
+                    target="_blank"
+                    title={app.sourceHref}
+                  >
+                    {app.sourceLabel}
+                  </a>
+                ) : (
+                  <span className="fg-console-table__clip" title={app.sourceLabel}>
+                    {app.sourceLabel}
+                  </span>
+                )}
               </td>
               <td className="fg-console-table__cell--stack">
                 {app.stack.length ? (
