@@ -2237,6 +2237,25 @@
   overflow-wrap: anywhere;
 }
 
+.fg-project-inspector__sync {
+  display: grid;
+  gap: 0.42rem;
+  padding-top: 0.92rem;
+  border-top: 1px solid var(--fugue-border-subtle);
+}
+
+.fg-project-inspector__sync-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.fg-project-inspector__sync .fg-console-note {
+  max-width: 46rem;
+}
+
 .fg-project-toolbar {
   display: grid;
   grid-template-columns: minmax(0, auto) minmax(0, 1fr);

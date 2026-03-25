@@ -14,6 +14,7 @@ import {
   type FugueProject,
   type FugueRuntime,
   type FugueTenant,
+  type FugueAppSource,
 } from "@/lib/fugue/api";
 import { getFugueEnv } from "@/lib/fugue/env";
 import type { ConsoleTone } from "@/lib/console/types";
@@ -22,6 +23,8 @@ import {
   type WorkspaceAccess,
 } from "@/lib/workspace/current";
 import { readGitHubSourceHref } from "@/lib/fugue/source-links";
+
+const AUTO_GITHUB_SYNC_REQUESTED_BY_ID = "fugue-controller/github-sync";
 
 export type ConsoleSummary = {
   activeOperationCount: number;
@@ -250,6 +253,23 @@ function shortId(value?: string | null) {
   return `${prefix}…${value.slice(-6)}`;
 }
 
+function shortCommitSha(value?: string | null) {
+  const commit = value?.trim();
+
+  if (!commit) {
+    return "";
+  }
+
+  return commit.length > 8 ? commit.slice(0, 8) : commit;
+}
+
+function joinFragments(parts: Array<string | null | undefined>) {
+  return parts
+    .map((part) => part?.trim())
+    .filter((part): part is string => Boolean(part))
+    .join(" / ");
+}
+
 function readRouteLabel(app: FugueApp) {
   if (app.route.publicUrl) {
     try {
@@ -305,17 +325,59 @@ function formatActorLabel(type?: string | null, id?: string | null) {
     return "Unknown actor";
   }
 
+  const normalizedType = type.trim().toLowerCase();
+  const normalizedId = id?.trim() ?? "";
   const label = humanize(type);
 
   if (!id) {
     return label;
   }
 
-  if (type === "bootstrap") {
+  if (normalizedType === "bootstrap") {
+    if (normalizedId === AUTO_GITHUB_SYNC_REQUESTED_BY_ID) {
+      return "GitHub sync controller";
+    }
+
     return "Bootstrap admin";
   }
 
   return `${label} · ${shortId(id)}`;
+}
+
+function isGitHubSyncOperation(operation: FugueOperation) {
+  return (
+    operation.requestedByType?.trim().toLowerCase() === "bootstrap" &&
+    operation.requestedById?.trim() === AUTO_GITHUB_SYNC_REQUESTED_BY_ID
+  );
+}
+
+function readOperationSourceLabel(source?: FugueAppSource | null) {
+  if (!source) {
+    return "";
+  }
+
+  if (source.repoUrl) {
+    return joinFragments([
+      formatRepoLabel(source.repoUrl, source.repoBranch),
+      source.commitSha ? `commit ${shortCommitSha(source.commitSha)}` : null,
+    ]);
+  }
+
+  if (source.type?.trim().toLowerCase() === "upload") {
+    return source.uploadFilename?.trim()
+      ? `Upload · ${source.uploadFilename.trim()}`
+      : "Upload source";
+  }
+
+  return humanize(source.type);
+}
+
+function formatOperationActionLabel(operation: FugueOperation) {
+  if (operation.type?.trim().toLowerCase() === "import" && isGitHubSyncOperation(operation)) {
+    return "GitHub sync";
+  }
+
+  return humanize(operation.type);
 }
 
 function toneForStatus(status?: string | null): ConsoleTone {
@@ -484,8 +546,30 @@ function buildOperationDetail(
   sourceRuntime: FugueRuntime | undefined,
   targetRuntime: FugueRuntime | undefined,
 ) {
+  const sourceLabel = readOperationSourceLabel(operation.desiredSource);
+
+  if (operation.errorMessage) {
+    return joinFragments([sourceLabel, operation.errorMessage]);
+  }
+
   if (operation.resultMessage) {
-    return operation.resultMessage;
+    return joinFragments([sourceLabel, operation.resultMessage]);
+  }
+
+  if (isGitHubSyncOperation(operation)) {
+    return joinFragments([
+      sourceLabel,
+      "Queued automatically after the tracked GitHub branch changed.",
+    ]);
+  }
+
+  if (operation.type?.trim().toLowerCase() === "deploy") {
+    return joinFragments([
+      sourceLabel,
+      isActiveOperation(operation.status)
+        ? "Waiting for rollout ready before completion."
+        : "Completed after rollout ready.",
+    ]);
   }
 
   if (sourceRuntime && targetRuntime && sourceRuntime.id !== targetRuntime.id) {
@@ -494,6 +578,10 @@ function buildOperationDetail(
 
   if (targetRuntime) {
     return `Target runtime ${readRuntimeLabel(targetRuntime)}`;
+  }
+
+  if (sourceLabel) {
+    return sourceLabel;
   }
 
   if (operation.executionMode) {
@@ -944,7 +1032,7 @@ export async function getConsoleData(): Promise<ConsoleData> {
     const targetApp = operation.appId ? appsById.get(operation.appId) : undefined;
 
     return {
-      actionLabel: humanize(operation.type),
+      actionLabel: formatOperationActionLabel(operation),
       actorLabel: formatActorLabel(operation.requestedByType, operation.requestedById),
       detail: buildOperationDetail(operation, sourceRuntime, targetRuntime),
       id: operation.id,

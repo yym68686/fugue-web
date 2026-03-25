@@ -111,6 +111,19 @@ export type FugueAppTechnology = {
   source: string | null;
 };
 
+export type FugueAppSource = {
+  type: string | null;
+  repoUrl: string | null;
+  repoBranch: string | null;
+  buildStrategy: string | null;
+  composeService: string | null;
+  detectedProvider: string | null;
+  dockerfilePath: string | null;
+  commitSha: string | null;
+  sourceDir: string | null;
+  uploadFilename: string | null;
+};
+
 export type FugueApp = {
   id: string;
   tenantId: string | null;
@@ -123,15 +136,7 @@ export type FugueApp = {
     publicUrl: string | null;
     servicePort: number | null;
   };
-  source: {
-    type: string | null;
-    repoUrl: string | null;
-    repoBranch: string | null;
-    buildStrategy: string | null;
-    composeService: string | null;
-    detectedProvider: string | null;
-    dockerfilePath: string | null;
-  };
+  source: FugueAppSource;
   spec: {
     runtimeId: string | null;
     replicas: number | null;
@@ -248,7 +253,9 @@ export type FugueOperation = {
   appId: string | null;
   sourceRuntimeId: string | null;
   targetRuntimeId: string | null;
+  desiredSource: FugueAppSource | null;
   resultMessage: string | null;
+  errorMessage: string | null;
   createdAt: string | null;
   updatedAt: string | null;
   startedAt: string | null;
@@ -649,6 +656,23 @@ function sanitizeAppTechnology(value: unknown): FugueAppTechnology | null {
   };
 }
 
+function sanitizeAppSource(value: unknown): FugueAppSource {
+  const source = asRecord(value);
+
+  return {
+    type: readString(source, "type"),
+    repoUrl: readString(source, "repo_url"),
+    repoBranch: readString(source, "repo_branch"),
+    buildStrategy: readString(source, "build_strategy"),
+    composeService: readString(source, "compose_service"),
+    detectedProvider: readString(source, "detected_provider"),
+    dockerfilePath: readString(source, "dockerfile_path"),
+    commitSha: readString(source, "commit_sha"),
+    sourceDir: readString(source, "source_dir"),
+    uploadFilename: readString(source, "upload_filename"),
+  };
+}
+
 function sanitizeApp(value: unknown): FugueApp | null {
   const record = asRecord(value);
   const id = readString(record, "id");
@@ -659,7 +683,6 @@ function sanitizeApp(value: unknown): FugueApp | null {
   }
 
   const route = asRecord(record?.route);
-  const source = asRecord(record?.source);
   const spec = asRecord(record?.spec);
   const status = asRecord(record?.status);
   const bindings = Array.isArray(record?.bindings) ? record.bindings : [];
@@ -680,15 +703,7 @@ function sanitizeApp(value: unknown): FugueApp | null {
       publicUrl: readString(route, "public_url"),
       servicePort: readNumber(route, "service_port"),
     },
-    source: {
-      type: readString(source, "type"),
-      repoUrl: readString(source, "repo_url"),
-      repoBranch: readString(source, "repo_branch"),
-      buildStrategy: readString(source, "build_strategy"),
-      composeService: readString(source, "compose_service"),
-      detectedProvider: readString(source, "detected_provider"),
-      dockerfilePath: readString(source, "dockerfile_path"),
-    },
+    source: sanitizeAppSource(record?.source),
     spec: {
       runtimeId: readString(spec, "runtime_id"),
       replicas: readNumber(spec, "replicas"),
@@ -922,7 +937,9 @@ function sanitizeOperation(value: unknown): FugueOperation | null {
     appId: readString(record, "app_id"),
     sourceRuntimeId: readString(record, "source_runtime_id"),
     targetRuntimeId: readString(record, "target_runtime_id"),
+    desiredSource: record?.desired_source ? sanitizeAppSource(record.desired_source) : null,
     resultMessage: readString(record, "result_message"),
+    errorMessage: readString(record, "error_message"),
     createdAt: readString(record, "created_at"),
     updatedAt: readString(record, "updated_at"),
     startedAt: readString(record, "started_at"),

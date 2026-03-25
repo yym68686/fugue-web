@@ -236,7 +236,7 @@ export function ConsoleOnboarding({
     : "Import the first repository.";
   const description = isWorkspaceStage
     ? `Mint your workspace admin key and prepare the ${projectName} project.`
-    : "Bring in one public GitHub repository to populate the console.";
+    : "Bring in one public GitHub repository to populate the console. Fugue will keep tracking the selected branch after the first deploy.";
   const primaryLabel = isWorkspaceStage ? "Create project" : "Import repository";
   const disclosureTitle = isWorkspaceStage ? "What happens next" : "Import rules";
   const disclosureItems = isWorkspaceStage
@@ -266,6 +266,10 @@ export function ConsoleOnboarding({
         {
           label: "Optional",
           value: "Branch, app name, build strategy",
+        },
+        {
+          label: "Updates",
+          value: "Auto import -> deploy while idle",
         },
       ];
   const eyebrow = "Console / first run";
@@ -342,23 +346,29 @@ export function ConsoleOnboarding({
                 <PanelTitle className="fg-console-dialog__title" id="fugue-import-title">
                   Import repository.
                 </PanelTitle>
-                <PanelCopy>Public GitHub only.</PanelCopy>
+                <PanelCopy>Public GitHub only. Fugue keeps tracking the selected branch after the first deploy.</PanelCopy>
               </PanelSection>
 
               <PanelSection>
                 <form className="fg-form-grid" onSubmit={handleImport}>
                   <div className="fg-console-dialog__grid">
                     <FormField
-                      hint="Only public GitHub repositories are supported right now."
+                      hint="Only public GitHub repositories are supported right now. Fugue keeps tracking the selected branch after the first deploy."
                       htmlFor="repo-url"
                       label="Repository link"
                     >
                       <input
+                        autoComplete="url"
+                        autoCapitalize="none"
                         className="fg-input"
                         id="repo-url"
+                        inputMode="url"
+                        name="repoUrl"
                         onChange={(event) => setRepoUrl(event.target.value)}
                         placeholder="https://github.com/owner/repo"
                         required
+                        spellCheck={false}
+                        type="url"
                         value={repoUrl}
                       />
                     </FormField>
@@ -367,16 +377,20 @@ export function ConsoleOnboarding({
                       <summary>Advanced</summary>
                       <div className="fg-console-dialog__advanced-grid">
                         <FormField
-                          hint="Leave blank to use the repository default branch."
+                          hint="Leave blank to use the repository default branch. Fugue will keep tracking that branch for future syncs."
                           htmlFor="repo-branch"
                           label="Branch"
                           optionalLabel="Optional"
                         >
                           <input
+                            autoCapitalize="none"
+                            autoComplete="off"
                             className="fg-input"
                             id="repo-branch"
+                            name="branch"
                             onChange={(event) => setBranch(event.target.value)}
                             placeholder="main"
+                            spellCheck={false}
                             value={branch}
                           />
                         </FormField>
@@ -388,8 +402,10 @@ export function ConsoleOnboarding({
                           optionalLabel="Optional"
                         >
                           <input
+                            autoComplete="off"
                             className="fg-input"
                             id="app-name"
+                            name="name"
                             onChange={(event) => setName(event.target.value)}
                             placeholder="Marketing site"
                             value={name}
@@ -397,12 +413,15 @@ export function ConsoleOnboarding({
                         </FormField>
 
                         <FormField
+                          hint="Fugue reuses this build strategy for manual syncs and automatic GitHub updates."
                           htmlFor="build-strategy"
                           label="Build strategy"
                         >
                           <select
+                            autoComplete="off"
                             className="fg-input"
                             id="build-strategy"
+                            name="buildStrategy"
                             onChange={(event) => setBuildStrategy(event.target.value)}
                             value={buildStrategy}
                           >

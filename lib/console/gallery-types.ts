@@ -26,19 +26,33 @@ export type ConsoleGalleryBadgeView = {
 
 export type ConsoleGalleryAppView = {
   canRedeploy: boolean;
+  currentCommitExact: string | null;
+  currentCommitHref: string | null;
+  currentCommitLabel: string | null;
+  deployBehavior: string;
   hasPostgresService: boolean;
   id: string;
   lastMessage: string;
   name: string;
   phase: string;
   phaseTone: ConsoleTone;
+  redeployActionDescription: string;
+  redeployActionLabel: string;
+  redeployActionLoadingLabel: string;
+  redeployQueuedMessage: string;
   redeployDisabledReason: string | null;
   routeHref: string | null;
   routeLabel: string;
   serviceBadges: ConsoleGalleryBadgeView[];
+  sourceBranchHref: string | null;
+  sourceBranchLabel: string | null;
   sourceHref: string | null;
   sourceLabel: string;
   sourceMeta: string;
+  sourceType: string | null;
+  syncStatusLabel: string;
+  syncStatusTone: ConsoleTone;
+  syncSummary: string;
   updatedExact: string;
   updatedLabel: string;
   workspaceMountPath: string | null;

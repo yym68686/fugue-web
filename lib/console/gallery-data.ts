@@ -19,7 +19,11 @@ import {
   type FugueProject,
   type FugueAppTechnology,
 } from "@/lib/fugue/api";
-import { readGitHubSourceHref } from "@/lib/fugue/source-links";
+import {
+  readGitHubBranchHref,
+  readGitHubCommitHref,
+  readGitHubSourceHref,
+} from "@/lib/fugue/source-links";
 import { getCurrentWorkspaceAccess } from "@/lib/workspace/current";
 
 function readErrorMessage(reason: unknown) {
@@ -103,6 +107,16 @@ function humanize(value?: string | null) {
     .replace(/[._-]+/g, " ")
     .trim()
     .replace(/\b\w/g, (match) => match.toUpperCase());
+}
+
+function shortCommitSha(value?: string | null) {
+  const commit = value?.trim();
+
+  if (!commit) {
+    return "";
+  }
+
+  return commit.length > 8 ? commit.slice(0, 8) : commit;
 }
 
 function toneForStatus(status?: string | null): ConsoleTone {
@@ -215,6 +229,97 @@ function readSourceLabel(app: FugueApp) {
   }
 
   return "Unspecified source";
+}
+
+function isGitHubPublicSource(app: FugueApp) {
+  return app.source.type?.trim().toLowerCase() === "github-public";
+}
+
+function isUploadSource(app: FugueApp) {
+  return app.source.type?.trim().toLowerCase() === "upload";
+}
+
+function readSourceBranchLabel(app: FugueApp) {
+  if (!isGitHubPublicSource(app)) {
+    return null;
+  }
+
+  return app.source.repoBranch?.trim() || "Default branch";
+}
+
+function readCurrentCommitLabel(app: FugueApp) {
+  if (!isGitHubPublicSource(app)) {
+    return null;
+  }
+
+  return shortCommitSha(app.source.commitSha) || "Pending first import";
+}
+
+function readSyncState(app: FugueApp): {
+  summary: string;
+  tone: ConsoleTone;
+  label: string;
+} {
+  if (isGitHubPublicSource(app)) {
+    const trackedBranch = app.source.repoBranch?.trim()
+      ? `branch ${app.source.repoBranch.trim()}`
+      : "the repository default branch";
+
+    if ((app.spec.replicas ?? 0) > 0) {
+      return {
+        label: "Auto sync active",
+        summary: `Fugue watches ${trackedBranch} and queues import -> deploy when the upstream commit changes and no operation is in flight.`,
+        tone: "positive",
+      };
+    }
+
+    return {
+      label: "Auto sync paused",
+      summary: "GitHub sync is paused while the app is scaled to zero. Scale the app above zero to resume upstream checks.",
+      tone: "warning",
+    };
+  }
+
+  if (isUploadSource(app)) {
+    return {
+      label: "Manual updates",
+      summary: "This app redeploys from the stored upload only when you trigger a rebuild.",
+      tone: "neutral",
+    };
+  }
+
+  return {
+    label: "Manual updates",
+    summary: "This source updates only when you queue a new operation from the console or API.",
+    tone: "neutral",
+  };
+}
+
+function readRedeployAction(app: FugueApp) {
+  if (isGitHubPublicSource(app)) {
+    return {
+      description:
+        "Queue an immediate import -> deploy from the tracked branch. Fugue also syncs automatically when upstream commits change and the app is idle.",
+      label: "Sync now",
+      loadingLabel: "Syncing…",
+      queuedMessage: "GitHub sync queued.",
+    };
+  }
+
+  return {
+    description: "Rebuild from the saved source and reset the workspace on the next rollout.",
+    label: "Redeploy",
+    loadingLabel: "Redeploying…",
+    queuedMessage: "Redeploy queued.",
+  };
+}
+
+function readDeployBehavior(app: FugueApp) {
+  if (isGitHubPublicSource(app) || isUploadSource(app)) {
+    return "Deploy completes only after the new Kubernetes rollout is ready and old replicas have drained.";
+  }
+
+  return "Deploy completes only after the new Kubernetes rollout is ready.";
 }
 
 function readRedeployState(app: FugueApp) {
@@ -471,25 +576,46 @@ function buildProjectBadges(
 function buildAppView(app: FugueApp): ConsoleGalleryAppView {
   const route = readRoute(app);
   const redeploy = readRedeployState(app);
+  const syncState = readSyncState(app);
+  const redeployAction = readRedeployAction(app);
+  const sourceBranchLabel = readSourceBranchLabel(app);
+  const currentCommitLabel = readCurrentCommitLabel(app);
 
   return {
     canRedeploy: redeploy.canRedeploy,
+    currentCommitExact: app.source.commitSha?.trim() || null,
+    currentCommitHref: readGitHubCommitHref(app.source.repoUrl, app.source.commitSha),
+    currentCommitLabel,
+    deployBehavior: readDeployBehavior(app),
     hasPostgresService: app.backingServices.some((service) => service.type === "postgres"),
     id: app.id,
     lastMessage: app.status.lastMessage ?? "No current status message.",
     name: app.name,
     phase: humanize(app.status.phase ?? (app.spec.disabled ? "disabled" : "unknown")),
     phaseTone: toneForStatus(app.status.phase ?? (app.spec.disabled ? "disabled" : "unknown")),
+    redeployActionDescription: redeployAction.description,
+    redeployActionLabel: redeployAction.label,
+    redeployActionLoadingLabel: redeployAction.loadingLabel,
+    redeployQueuedMessage: redeployAction.queuedMessage,
     redeployDisabledReason: redeploy.redeployDisabledReason,
     routeHref: route.href,
     routeLabel: route.label,
     serviceBadges: buildAppBadges(app),
+    sourceBranchHref:
+      sourceBranchLabel && sourceBranchLabel !== "Default branch"
+        ? readGitHubBranchHref(app.source.repoUrl, app.source.repoBranch)
+        : null,
+    sourceBranchLabel,
     sourceHref: readGitHubSourceHref(app.source.repoUrl),
     sourceLabel: readSourceLabel(app),
     sourceMeta:
       [humanize(app.source.buildStrategy), app.source.composeService, app.source.dockerfilePath]
         .filter((value) => value && value !== "Unknown")
         .join(" / ") || humanize(app.source.type),
+    sourceType: app.source.type,
+    syncStatusLabel: syncState.label,
+    syncStatusTone: syncState.tone,
+    syncSummary: syncState.summary,
     updatedExact: formatExactTime(app.status.updatedAt ?? app.updatedAt ?? app.createdAt),
     updatedLabel: formatRelativeTime(app.status.updatedAt ?? app.updatedAt ?? app.createdAt),
     workspaceMountPath: app.spec.workspace ? app.spec.workspace.mountPath ?? "/workspace" : null,

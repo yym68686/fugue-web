@@ -20,7 +20,7 @@ export default async function OperationsPage() {
           { href: "/app", label: "Back to projects" },
           { href: "/app/settings/workspace", label: "Open workspace settings", variant: "primary" },
         ]}
-        description="Imports, deploys, scales, and deletes, read as one operational queue."
+        description="Imports, GitHub syncs, deploys, and deletes stay in one operational queue. Deploys do not complete until the Kubernetes rollout is ready."
         eyebrow="Operations"
         title="Change history"
       />
@@ -30,7 +30,7 @@ export default async function OperationsPage() {
           <PanelSection>
             <p className="fg-label fg-panel__eyebrow">Queue</p>
             <PanelTitle>Active operations</PanelTitle>
-            <PanelCopy>Running work stays separate from completed work.</PanelCopy>
+            <PanelCopy>Running work stays separate from completed work, including controller-triggered GitHub syncs and rollout-gated deploys.</PanelCopy>
           </PanelSection>
 
           <PanelSection>
@@ -103,7 +103,7 @@ export default async function OperationsPage() {
         <PanelSection>
           <p className="fg-label fg-panel__eyebrow">History</p>
           <PanelTitle>Recent operations</PanelTitle>
-          <PanelCopy>Completed work stays visible even when the live queue is empty.</PanelCopy>
+          <PanelCopy>Completed work stays visible even when the live queue is empty, with source and rollout context preserved.</PanelCopy>
         </PanelSection>
 
         <PanelSection>
@@ -126,6 +126,7 @@ export default async function OperationsPage() {
                       <td>
                         <div className="fg-console-table__stack">
                           <strong>{operation.actionLabel}</strong>
+                          <p className="fg-console-note">{operation.detail}</p>
                           <span>{operation.id}</span>
                         </div>
                       </td>

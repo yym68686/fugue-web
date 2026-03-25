@@ -363,6 +363,30 @@ function renderExternalText(label: string, href?: string | null, className?: str
   );
 }
 
+function renderOptionalExternalText(label?: string | null, href?: string | null, className?: string) {
+  if (!label) {
+    return <span className={className}>—</span>;
+  }
+
+  return renderExternalText(label, href, className);
+}
+
+function readTrackingLabel(app: ConsoleGalleryAppView) {
+  if (app.sourceType?.trim().toLowerCase() !== "github-public") {
+    return null;
+  }
+
+  const parts = [app.sourceBranchLabel, app.currentCommitLabel].filter(
+    (value): value is string => Boolean(value),
+  );
+
+  if (!parts.length) {
+    return "Tracking branch";
+  }
+
+  return `Tracking ${parts.join(" · ")}`;
+}
+
 function renderLogMetaItem(item: LogMetaItem): ReactNode {
   if (!item.href) {
     return <span key={item.id}>{item.label}</span>;
@@ -484,7 +508,7 @@ function readRuntimeLogsUnavailableState(
   if (includesLifecycleKeyword(phase, ["importing"])) {
     return {
       description:
-        "Source import is still in progress. Switch to Build to watch the rollout. Runtime logs appear after the first container starts.",
+        "Source import is still in progress. Switch to Build to watch the import -> deploy chain. Runtime logs appear after the first container starts.",
       metaLabel: "State / Importing",
       refreshLabel: "Runtime / Waiting for import",
       title: "Runtime logs unlock after import",
@@ -494,7 +518,7 @@ function readRuntimeLogsUnavailableState(
   if (includesLifecycleKeyword(phase, ["building"])) {
     return {
       description:
-        "This service is still building. Switch to Build to follow the rollout. Runtime logs appear after the first container starts.",
+        "This service is still building. Switch to Build to follow the import -> deploy chain. Runtime logs appear after the first container starts.",
       metaLabel: "State / Building",
       refreshLabel: "Runtime / Waiting for first start",
       title: "Runtime logs start after build",
@@ -504,7 +528,7 @@ function readRuntimeLogsUnavailableState(
   if (includesLifecycleKeyword(phase, ["deploying"])) {
     return {
       description:
-        "The release is still deploying. Runtime logs appear after the first container is live.",
+        "The release is still deploying. Fugue keeps this deploy running until the rollout is ready, even after the first container is live.",
       metaLabel: "State / Deploying",
       refreshLabel: "Runtime / Waiting for deploy",
       title: "Runtime logs unlock after deploy",
@@ -861,8 +885,8 @@ export function ConsoleProjectGallery({
   const isCreateServiceMode = createTargetProject !== null;
   const createDialogEyebrow = isCreateServiceMode ? "Add service" : "Create project";
   const createDialogCopy = isCreateServiceMode
-    ? `Import a repository into ${createTargetProject.name}.`
-    : "The project is only surfaced after a real import succeeds.";
+    ? `Import a public GitHub repository into ${createTargetProject.name}. Fugue keeps tracking the selected branch after the first deploy.`
+    : "The project is only surfaced after a real import succeeds. Public GitHub imports keep tracking their branch for future syncs.";
   const createDialogSubmitLabel = isCreating
     ? isCreateServiceMode
       ? "Adding…"
@@ -1334,7 +1358,7 @@ export function ConsoleProjectGallery({
       switch (action) {
         case "redeploy":
           input = `/api/fugue/apps/${selectedApp.id}/rebuild`;
-          successMessage = "Redeploy queued.";
+          successMessage = selectedApp.redeployQueuedMessage;
           refreshWindowMs = 90_000;
           break;
         case "restart":
@@ -1620,6 +1644,7 @@ export function ConsoleProjectGallery({
                                 service.sourceHref,
                                 service.sourceHref ? "fg-project-service-card__source-link" : undefined,
                               )}
+                              {readTrackingLabel(service) ? <span>{readTrackingLabel(service)}</span> : null}
                               <span>{service.routeLabel}</span>
                             </div>
                           </div>
@@ -1684,6 +1709,16 @@ export function ConsoleProjectGallery({
                     <dd>{renderExternalText(selectedApp.sourceLabel, selectedApp.sourceHref)}</dd>
                   </div>
                   <div>
+                    <dt>Branch</dt>
+                    <dd>{renderOptionalExternalText(selectedApp.sourceBranchLabel, selectedApp.sourceBranchHref)}</dd>
+                  </div>
+                  <div>
+                    <dt>Commit</dt>
+                    <dd>
+                      {renderOptionalExternalText(selectedApp.currentCommitLabel, selectedApp.currentCommitHref)}
+                    </dd>
+                  </div>
+                  <div>
                     <dt>Build</dt>
                     <dd>{selectedApp.sourceMeta}</dd>
                   </div>
@@ -1709,6 +1744,15 @@ export function ConsoleProjectGallery({
                     <dd>{selectedApp.phase}</dd>
                   </div>
                 </div>
+
+                <div className="fg-project-inspector__sync">
+                  <div className="fg-project-inspector__sync-head">
+                    <p className="fg-label fg-panel__eyebrow">Update policy</p>
+                    <StatusBadge tone={selectedApp.syncStatusTone}>{selectedApp.syncStatusLabel}</StatusBadge>
+                  </div>
+                  <p className="fg-console-note">{selectedApp.syncSummary}</p>
+                  <p className="fg-console-note">{selectedApp.deployBehavior}</p>
+                </div>
               </PanelSection>
 
               <PanelSection className="fg-project-inspector__controls">
@@ -1719,18 +1763,18 @@ export function ConsoleProjectGallery({
                       <Button
                         disabled={!selectedApp.canRedeploy || Boolean(busyAction && busyAction !== "redeploy")}
                         loading={busyAction === "redeploy"}
-                        loadingLabel="Redeploying…"
+                        loadingLabel={selectedApp.redeployActionLoadingLabel}
                         onClick={() => handleAppAction("redeploy")}
                         size="compact"
                         title={
                           selectedApp.canRedeploy
-                            ? "Rebuild from the saved source and reset the workspace on the next rollout."
+                            ? selectedApp.redeployActionDescription
                             : selectedApp.redeployDisabledReason ?? undefined
                         }
                         type="button"
                         variant="primary"
                       >
-                        Redeploy
+                        {selectedApp.redeployActionLabel}
                       </Button>
                       <Button
                         disabled={Boolean(busyAction && busyAction !== "restart")}
@@ -1931,6 +1975,8 @@ export function ConsoleProjectGallery({
                           {runtimeLogsUnavailable
                             ? runtimeLogsUnavailable.description
                             : `Stream build and runtime output for ${selectedApp.name}. ${
+                                logsMode === "build" ? `${selectedApp.deployBehavior} ` : ""
+                              }${
                                 logsAutoRefreshEnabled
                                   ? `Auto-refresh every ${LOG_AUTO_REFRESH_INTERVAL_MS / 1000} seconds while this panel is open.`
                                   : "Build is in a terminal state, so auto-refresh is paused."
@@ -2112,65 +2158,103 @@ export function ConsoleProjectGallery({
                 <form className="fg-form-grid" onSubmit={handleCreateProject}>
                   <div className="fg-console-dialog__grid">
                     {createTargetProject ? (
-                      <label className="fg-field-stack">
-                        <span className="fg-field-label">Project</span>
+                      <FormField htmlFor="create-project-current" label="Project">
                         <input
                           className="fg-input"
+                          id="create-project-current"
+                          name="projectName"
                           readOnly
                           value={createTargetProject.name}
                         />
-                      </label>
+                      </FormField>
                     ) : (
-                      <label className="fg-field-stack">
-                        <span className="fg-field-label">Project name</span>
+                      <FormField
+                        hint="Used for the project shell in this workspace."
+                        htmlFor="create-project-name"
+                        label="Project name"
+                      >
                         <input
                           className="fg-input"
+                          id="create-project-name"
+                          name="projectName"
                           onChange={(event) => setProjectName(event.target.value)}
                           placeholder="Project 1"
                           required
                           value={projectName}
                         />
-                      </label>
+                      </FormField>
                     )}
 
-                    <label className="fg-field-stack">
-                      <span className="fg-field-label">Repository link</span>
+                    <FormField
+                      hint="Only public GitHub repositories are supported right now. Fugue keeps tracking the selected branch after the first deploy."
+                      htmlFor="create-repo-url"
+                      label="Repository link"
+                    >
                       <input
+                        autoComplete="url"
+                        autoCapitalize="none"
                         className="fg-input"
+                        id="create-repo-url"
+                        inputMode="url"
+                        name="repoUrl"
                         onChange={(event) => setRepoUrl(event.target.value)}
                         placeholder="https://github.com/owner/repo"
                         required
+                        spellCheck={false}
+                        type="url"
                         value={repoUrl}
                       />
-                    </label>
+                    </FormField>
 
                     <details className="fg-console-disclosure fg-console-dialog__advanced">
                       <summary>Advanced</summary>
                       <div className="fg-console-dialog__advanced-grid">
-                        <label className="fg-field-stack">
-                          <span className="fg-field-label">Branch</span>
+                        <FormField
+                          hint="Leave blank to use the repository default branch. Fugue will keep tracking that branch for future syncs."
+                          htmlFor="create-repo-branch"
+                          label="Branch"
+                          optionalLabel="Optional"
+                        >
                           <input
+                            autoCapitalize="none"
+                            autoComplete="off"
                             className="fg-input"
+                            id="create-repo-branch"
+                            name="branch"
                             onChange={(event) => setBranch(event.target.value)}
                             placeholder="main"
+                            spellCheck={false}
                             value={branch}
                           />
-                        </label>
+                        </FormField>
 
-                        <label className="fg-field-stack">
-                          <span className="fg-field-label">App name</span>
+                        <FormField
+                          hint="Leave blank to reuse the repository name."
+                          htmlFor="create-app-name"
+                          label="App name"
+                          optionalLabel="Optional"
+                        >
                           <input
+                            autoComplete="off"
                             className="fg-input"
+                            id="create-app-name"
+                            name="name"
                             onChange={(event) => setAppName(event.target.value)}
                             placeholder="Leave blank to reuse repo name"
                             value={appName}
                           />
-                        </label>
+                        </FormField>
 
-                        <label className="fg-field-stack">
-                          <span className="fg-field-label">Build strategy</span>
+                        <FormField
+                          hint="Fugue reuses this build strategy for manual syncs and automatic GitHub updates."
+                          htmlFor="create-build-strategy"
+                          label="Build strategy"
+                        >
                           <select
+                            autoComplete="off"
                             className="fg-input"
+                            id="create-build-strategy"
+                            name="buildStrategy"
                             onChange={(event) => setBuildStrategy(event.target.value as BuildStrategyValue)}
                             value={buildStrategy}
                           >
@@ -2180,7 +2264,7 @@ export function ConsoleProjectGallery({
                               </option>
                             ))}
                           </select>
-                        </label>
+                        </FormField>
                       </div>
                     </details>
                   </div>
