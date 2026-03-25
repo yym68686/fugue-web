@@ -25,11 +25,13 @@ export type FugueProject = {
 
 export type FugueApiKey = {
   createdAt: string | null;
+  disabledAt: string | null;
   id: string;
   label: string;
   lastUsedAt: string | null;
   prefix: string | null;
   scopes: string[];
+  status: string | null;
   tenantId: string | null;
 };
 
@@ -347,11 +349,13 @@ function sanitizeApiKey(value: unknown): FugueApiKey | null {
 
   return {
     createdAt: readString(record, "created_at"),
+    disabledAt: readString(record, "disabled_at"),
     id,
     label,
     lastUsedAt: readString(record, "last_used_at"),
     prefix: readString(record, "prefix"),
     scopes: readStringArray(record, "scopes"),
+    status: readString(record, "status"),
     tenantId: readString(record, "tenant_id"),
   };
 }
@@ -686,6 +690,67 @@ export async function rotateFugueApiKey(
   return {
     apiKey,
     secret,
+  };
+}
+
+export async function disableFugueApiKey(
+  accessToken: string,
+  id: string,
+) {
+  const response = asRecord(
+    await fugueRequest(`/v1/api-keys/${encodeURIComponent(id)}/disable`, {
+      accessToken,
+      method: "POST",
+    }),
+  );
+  const apiKey = sanitizeApiKey(response?.api_key);
+
+  if (!apiKey) {
+    throw new Error("Fugue API key disable response was malformed.");
+  }
+
+  return apiKey;
+}
+
+export async function enableFugueApiKey(
+  accessToken: string,
+  id: string,
+) {
+  const response = asRecord(
+    await fugueRequest(`/v1/api-keys/${encodeURIComponent(id)}/enable`, {
+      accessToken,
+      method: "POST",
+    }),
+  );
+  const apiKey = sanitizeApiKey(response?.api_key);
+
+  if (!apiKey) {
+    throw new Error("Fugue API key enable response was malformed.");
+  }
+
+  return apiKey;
+}
+
+export async function deleteFugueApiKey(
+  accessToken: string,
+  id: string,
+) {
+  const response = asRecord(
+    await fugueRequest(`/v1/api-keys/${encodeURIComponent(id)}`, {
+      accessToken,
+      method: "DELETE",
+    }),
+  );
+  const apiKey = sanitizeApiKey(response?.api_key);
+  const deleted = readBoolean(response, "deleted");
+
+  if (!apiKey || !deleted) {
+    throw new Error("Fugue API key delete response was malformed.");
+  }
+
+  return {
+    apiKey,
+    deleted,
   };
 }
 

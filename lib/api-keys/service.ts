@@ -10,6 +10,9 @@ import {
 import type { ApiKeyRecord } from "@/lib/api-keys/types";
 import {
   createFugueApiKey,
+  deleteFugueApiKey,
+  disableFugueApiKey,
+  enableFugueApiKey,
   getFugueApiKeys,
   rotateFugueApiKey,
   updateFugueApiKey,
@@ -94,11 +97,13 @@ function readAllowedScopesForKey(workspaceAdminScopes: string[], isWorkspaceAdmi
 async function persistApiKeyMutation(input: {
   apiKey: {
     createdAt: string | null;
+    disabledAt: string | null;
     id: string;
     label: string;
     lastUsedAt: string | null;
     prefix: string | null;
     scopes: string[];
+    status: string | null;
   };
   email: string;
   isWorkspaceAdmin: boolean;
@@ -313,6 +318,72 @@ export async function rotateApiKeyForEmail(email: string, id: string) {
   };
 }
 
+export async function disableApiKeyForEmail(email: string, id: string) {
+  const workspace = await getWorkspaceAccessByEmail(email);
+
+  if (!workspace) {
+    throw new Error("Create a workspace first.");
+  }
+
+  const current = await getApiKeyRecordById(email, id, {
+    includeDeleted: true,
+  });
+
+  if (!current || current.status === "deleted") {
+    throw new Error("API key not found.");
+  }
+
+  if (current.isWorkspaceAdmin) {
+    throw new Error("Workspace admin key cannot be disabled.");
+  }
+
+  const disabled = await disableFugueApiKey(workspace.adminKeySecret, id);
+  const record = await persistApiKeyMutation({
+    apiKey: disabled,
+    email,
+    isWorkspaceAdmin: current.isWorkspaceAdmin,
+    source: current.source,
+    workspace,
+  });
+
+  return {
+    key: record,
+  };
+}
+
+export async function enableApiKeyForEmail(email: string, id: string) {
+  const workspace = await getWorkspaceAccessByEmail(email);
+
+  if (!workspace) {
+    throw new Error("Create a workspace first.");
+  }
+
+  const current = await getApiKeyRecordById(email, id, {
+    includeDeleted: true,
+  });
+
+  if (!current || current.status === "deleted") {
+    throw new Error("API key not found.");
+  }
+
+  if (current.isWorkspaceAdmin) {
+    throw new Error("Workspace admin key cannot be enabled.");
+  }
+
+  const enabled = await enableFugueApiKey(workspace.adminKeySecret, id);
+  const record = await persistApiKeyMutation({
+    apiKey: enabled,
+    email,
+    isWorkspaceAdmin: current.isWorkspaceAdmin,
+    source: current.source,
+    workspace,
+  });
+
+  return {
+    key: record,
+  };
+}
+
 export async function deleteApiKeyForEmail(email: string, id: string) {
   const workspace = await getWorkspaceAccessByEmail(email);
 
@@ -332,6 +403,7 @@ export async function deleteApiKeyForEmail(email: string, id: string) {
     throw new Error("Workspace admin key cannot be deleted.");
   }
 
+  await deleteFugueApiKey(workspace.adminKeySecret, id);
   const deleted = await setApiKeyStatus(email, id, "deleted");
 
   if (!deleted) {

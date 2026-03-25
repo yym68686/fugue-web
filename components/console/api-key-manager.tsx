@@ -432,7 +432,7 @@ export function ApiKeyManager({
     }
 
     const confirmed = window.confirm(
-      "Remove this key from the console? This does not revoke the upstream Fugue secret.",
+      "Delete this API key? This revokes the secret in Fugue immediately.",
     );
 
     if (!confirmed) {
@@ -458,7 +458,44 @@ export function ApiKeyManager({
       setExpandedId((current) => (current === record.id ? null : current));
 
       showToast({
-        message: "Key removed from this console.",
+        message: "Key deleted.",
+        variant: "success",
+      });
+    } catch (error) {
+      showToast({
+        message: readErrorMessage(error),
+        variant: "error",
+      });
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
+  async function handleStatusToggle(record: ApiKeyRecord) {
+    if (busyAction || !record.canDisable) {
+      return;
+    }
+
+    const nextAction = record.status === "disabled" ? "enable" : "disable";
+    setBusyAction(`${nextAction}:${record.id}`);
+
+    try {
+      const updated = await requestJson<{
+        key: ApiKeyRecord;
+      }>(`/api/fugue/api-keys/${encodeURIComponent(record.id)}/${nextAction}`, {
+        method: "POST",
+      });
+
+      setKeys((current) => upsertKey(current, updated.key));
+      setLabelDrafts((current) => ({
+        ...current,
+        [updated.key.id]: updated.key.label,
+      }));
+      setSyncError(null);
+      setExpandedId(updated.key.id);
+
+      showToast({
+        message: nextAction === "enable" ? "Key restored." : "Key disabled.",
         variant: "success",
       });
     } catch (error) {
@@ -623,7 +660,9 @@ export function ApiKeyManager({
 
                       <p className="fg-api-key-item__meta">
                         {record.scopes.length} permission
-                        {record.scopes.length === 1 ? "" : "s"} · last used{" "}
+                        {record.scopes.length === 1 ? "" : "s"} ·{" "}
+                        {record.status === "disabled" ? "disabled · " : ""}
+                        last used{" "}
                         {formatRelativeTime(record.lastUsedAt)}
                       </p>
                     </div>
@@ -640,6 +679,24 @@ export function ApiKeyManager({
                           void handleCopy(record.id);
                         }}
                       />
+
+                      {record.canDisable ? (
+                        <InlineActionButton
+                          blocked={Boolean(
+                            busyAction &&
+                              busyAction !== `disable:${record.id}` &&
+                              busyAction !== `enable:${record.id}`,
+                          )}
+                          busy={
+                            busyAction === `disable:${record.id}` ||
+                            busyAction === `enable:${record.id}`
+                          }
+                          label={record.status === "disabled" ? "Restore" : "Disable"}
+                          onClick={() => {
+                            void handleStatusToggle(record);
+                          }}
+                        />
+                      ) : null}
 
                       {record.canDelete ? (
                         <InlineActionButton

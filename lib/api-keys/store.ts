@@ -40,7 +40,10 @@ type SyncApiKeysInput = {
 };
 
 type SaveApiKeyInput = {
-  apiKey: Pick<FugueApiKey, "createdAt" | "id" | "label" | "lastUsedAt" | "prefix" | "scopes">;
+  apiKey: Pick<
+    FugueApiKey,
+    "createdAt" | "disabledAt" | "id" | "label" | "lastUsedAt" | "prefix" | "scopes" | "status"
+  >;
   email: string;
   secret?: string | null;
   source: ApiKeySource;
@@ -85,6 +88,12 @@ function readStringArray(value: unknown) {
   return [];
 }
 
+function normalizeApiKeyStatus(status: string | null | undefined): ApiKeyStatus {
+  return typeof status === "string" && status.trim().toLowerCase() === "disabled"
+    ? "disabled"
+    : "active";
+}
+
 function recordFromRow(row: ApiKeyRow): ApiKeyRecord {
   const isWorkspaceAdmin = Boolean(row.is_workspace_admin);
   const status = row.status;
@@ -92,7 +101,7 @@ function recordFromRow(row: ApiKeyRow): ApiKeyRecord {
   return {
     canCopy: Boolean(row.secret_sealed) && status !== "deleted",
     canDelete: !isWorkspaceAdmin && status !== "deleted",
-    canDisable: false,
+    canDisable: !isWorkspaceAdmin && status !== "deleted",
     createdAt: readTimestamp(row.created_at) ?? new Date().toISOString(),
     deletedAt: readTimestamp(row.deleted_at),
     disabledAt: readTimestamp(row.disabled_at),
@@ -154,6 +163,11 @@ async function upsertVisibleApiKey(
   const normalizedEmail = normalizeEmail(input.email);
   const now = new Date().toISOString();
   const createdAt = readTimestamp(input.apiKey.createdAt) ?? now;
+  const status = input.status ?? normalizeApiKeyStatus(input.apiKey.status);
+  const disabledAt =
+    status === "disabled"
+      ? readTimestamp(input.apiKey.disabledAt) ?? now
+      : null;
   const secretSealed = input.secret ? sealText(input.secret) : null;
 
   await client.query(
@@ -188,11 +202,11 @@ async function upsertVisibleApiKey(
         $9,
         $10,
         $11,
-        NULL,
-        NULL,
         $12,
+        NULL,
         $13,
-        $12
+        $14,
+        $13
       )
       ON CONFLICT (fugue_key_id) DO UPDATE
       SET
@@ -203,7 +217,13 @@ async function upsertVisibleApiKey(
         scopes = EXCLUDED.scopes,
         secret_sealed = COALESCE(EXCLUDED.secret_sealed, app_api_keys.secret_sealed),
         last_used_at = EXCLUDED.last_used_at,
-        disabled_at = NULL,
+        disabled_at = CASE
+          WHEN app_api_keys.status = 'deleted' AND NOT app_api_keys.is_workspace_admin
+            THEN app_api_keys.disabled_at
+          WHEN EXCLUDED.status = 'disabled'
+            THEN EXCLUDED.disabled_at
+          ELSE NULL
+        END,
         deleted_at = CASE
           WHEN app_api_keys.status = 'deleted' AND NOT app_api_keys.is_workspace_admin
             THEN app_api_keys.deleted_at
@@ -218,7 +238,7 @@ async function upsertVisibleApiKey(
         status = CASE
           WHEN app_api_keys.status = 'deleted' AND NOT app_api_keys.is_workspace_admin
             THEN 'deleted'
-          ELSE 'active'
+          ELSE EXCLUDED.status
         END,
         is_workspace_admin = app_api_keys.is_workspace_admin OR EXCLUDED.is_workspace_admin
     `,
@@ -230,10 +250,11 @@ async function upsertVisibleApiKey(
       input.apiKey.prefix ?? null,
       JSON.stringify(sortFugueScopes(input.apiKey.scopes)),
       secretSealed,
-      input.status ?? "active",
+      status,
       input.source,
       input.source === "workspace-admin",
       input.apiKey.lastUsedAt,
+      disabledAt,
       now,
       createdAt,
     ],
