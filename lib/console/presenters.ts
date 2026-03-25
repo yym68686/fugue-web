@@ -572,20 +572,20 @@ function buildWorkspaceName(session: Pick<SessionUser, "email" | "name">) {
 function readSummaryConnection(errors: string[]) {
   if (!errors.length) {
     return {
-      label: "live",
+      label: "Live",
       tone: "positive" as const,
     };
   }
 
   if (errors.length >= 4) {
     return {
-      label: "offline",
+      label: "Offline",
       tone: "danger" as const,
     };
   }
 
   return {
-    label: "partial",
+    label: "Partial",
     tone: "warning" as const,
   };
 }
@@ -881,16 +881,16 @@ export async function getConsoleData(): Promise<ConsoleData> {
       id: app.id,
       lastMessage: app.status.lastMessage ?? "No current status message.",
       lastOperationLabel: latestOperation
-        ? `${humanize(latestOperation.type)} / ${latestOperation.status ?? "unknown"}`
+        ? `${humanize(latestOperation.type)} / ${humanize(latestOperation.status)}`
         : app.status.lastOperationId
           ? shortId(app.status.lastOperationId)
           : "No operation yet",
       name: app.name,
-      phase: app.status.phase ?? (app.spec.disabled ? "disabled" : "unknown"),
+      phase: humanize(app.status.phase ?? (app.spec.disabled ? "disabled" : "unknown")),
       phaseTone: toneForStatus(app.status.phase ?? (app.spec.disabled ? "disabled" : "unknown")),
       projectLabel: resolveProjectLabel(app.projectId, projectNames),
       replicasLabel: app.spec.disabled
-        ? "disabled"
+        ? "Disabled"
         : `${currentReplicas ?? 0} / ${desiredReplicas ?? currentReplicas ?? 0}`,
       routeHref: route.href,
       routeLabel: route.label,
@@ -920,12 +920,12 @@ export async function getConsoleData(): Promise<ConsoleData> {
       id: runtime.id,
       kindLabel:
         runtime.type === "managed-shared"
-          ? "shared"
+          ? "Shared"
           : runtime.connectionMode
             ? humanize(runtime.connectionMode)
             : humanize(runtime.type),
       label: readRuntimeLabel(runtime),
-      status: runtime.status ?? "unknown",
+      status: humanize(runtime.status),
       statusTone: toneForStatus(runtime.status),
       tenantLabel: resolveTenantLabel(runtime.tenantId, tenantNames),
     } satisfies ConsoleRuntimeView;
@@ -945,7 +945,7 @@ export async function getConsoleData(): Promise<ConsoleData> {
       actorLabel: formatActorLabel(operation.requestedByType, operation.requestedById),
       detail: buildOperationDetail(operation, sourceRuntime, targetRuntime),
       id: operation.id,
-      status: operation.status ?? "unknown",
+      status: humanize(operation.status),
       statusTone: toneForStatus(operation.status),
       targetLabel:
         targetApp?.name ??
@@ -967,7 +967,7 @@ export async function getConsoleData(): Promise<ConsoleData> {
   });
 
   const auditViews = sortByTimestampDesc(auditEvents, readAuditTimestamp).map((event) => ({
-    action: event.action ?? "unknown",
+    action: humanize(event.action),
     actorLabel: formatActorLabel(event.actorType, event.actorId),
     detail: buildAuditDetail(event, appsById),
     id: event.id,

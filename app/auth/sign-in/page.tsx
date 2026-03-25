@@ -58,14 +58,14 @@ export default async function SignInPage({
   return (
     <AuthShell
       description="Use Google or a verified email link. The route stays stable and the first auth layer stays light."
-      eyebrow="Auth / sign in"
+      eyebrow="Auth / Sign in"
       footer={
         <p>Passwordless email keeps the first auth layer light while the control shell grows around it.</p>
       }
       notes={[
-        { index: "01", title: "Google provider", meta: "oauth / profile / verified email" },
-        { index: "02", title: "Verified email", meta: "magic link / resend / callback" },
-        { index: "03", title: "Session shell", meta: "httpOnly cookie / 30 day window" },
+        { index: "01", title: "Google provider", meta: "OAuth / Profile / Verified email" },
+        { index: "02", title: "Verified email", meta: "Magic link / Resend / Callback" },
+        { index: "03", title: "Session shell", meta: "HttpOnly cookie / 30 day window" },
       ]}
       title="Return without changing the route."
     >
@@ -88,7 +88,7 @@ export default async function SignInPage({
         </PanelSection>
 
         <PanelSection>
-          <PanelDivider>or continue with email</PanelDivider>
+          <PanelDivider>Or continue with email</PanelDivider>
         </PanelSection>
 
         <PanelSection>

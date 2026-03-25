@@ -23,14 +23,14 @@ export default async function SignUpPage({
   return (
     <AuthShell
       description="Choose Google or a verified email link. Workspace shape comes after identity, not before it."
-      eyebrow="Auth / sign up"
+      eyebrow="Auth / Sign up"
       footer={
         <p>Identity first. Workspace setup follows once the route is trusted.</p>
       }
       notes={[
-        { index: "01", title: "Google route", meta: "oauth / verified email" },
-        { index: "02", title: "Email route", meta: "magic link / 15 min" },
-        { index: "03", title: "Post-auth", meta: "workspace / project / app" },
+        { index: "01", title: "Google route", meta: "OAuth / Verified email" },
+        { index: "02", title: "Email route", meta: "Magic link / 15 min" },
+        { index: "03", title: "Post-auth", meta: "Workspace / Project / App" },
       ]}
       title="Create access, then enter the shell."
     >
@@ -53,7 +53,7 @@ export default async function SignUpPage({
         </PanelSection>
 
         <PanelSection>
-          <PanelDivider>or continue with email</PanelDivider>
+          <PanelDivider>Or continue with email</PanelDivider>
         </PanelSection>
 
         <PanelSection>

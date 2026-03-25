@@ -64,7 +64,7 @@ export type AdminUserView = {
   name: string;
   provider: string;
   serviceCount: number;
-  status: AppUserRecord["status"];
+  status: string;
   statusTone: ConsoleTone;
   tenantLabel: string;
   verified: boolean;
@@ -301,14 +301,16 @@ function buildAppStack(app: FugueApp) {
     }
 
     seen.add(key);
+    const kindLabel = humanize(normalizedKind);
+
     items.push({
       id: key,
       kind: normalizedKind,
       label: normalizedLabel,
-      meta: normalizedKind,
+      meta: kindLabel,
       title: source?.trim()
-        ? `${normalizedLabel} / ${normalizedKind} / ${source.trim()}`
-        : `${normalizedLabel} / ${normalizedKind}`,
+        ? `${normalizedLabel} / ${kindLabel} / ${source.trim()}`
+        : `${normalizedLabel} / ${kindLabel}`,
     });
   };
 
@@ -463,7 +465,7 @@ function mapAdminApps(
         canRebuild: canRebuildApp(app),
         id: app.id,
         name: app.name,
-        phase,
+        phase: humanize(phase),
         phaseTone: toneForStatus(phase),
         projectLabel: app.projectId ? projectNames.get(app.projectId) ?? shortId(app.projectId) : "Unassigned",
         routeHref: route.href,
@@ -553,9 +555,9 @@ function buildUserViews(
       lastLoginExact: formatExactTime(user.lastLoginAt),
       lastLoginLabel: formatRelativeTime(user.lastLoginAt),
       name: user.name ?? user.email.split("@")[0] ?? user.email,
-      provider: user.provider,
+      provider: readProviderLabel(user.provider) ?? humanize(user.provider),
       serviceCount,
-      status: user.status,
+      status: humanize(user.status),
       statusTone: toneForStatus(user.status),
       tenantLabel:
         workspace?.tenantId

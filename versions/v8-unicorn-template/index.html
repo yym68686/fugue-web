@@ -28,7 +28,7 @@
       <div class="masthead__shell">
         <a class="brand" href="#top" aria-label="Fugue home">
           <span class="brand__word">Fugue</span>
-          <span class="brand__meta mono">open current / v8</span>
+          <span class="brand__meta mono">Open current / v8</span>
         </a>
 
         <nav class="desktop-nav" aria-label="Primary">
@@ -84,7 +84,7 @@
           <p class="hero-ghost" aria-hidden="true">Fugue</p>
 
           <div class="hero-copy">
-            <p class="hero-kicker mono" data-stagger="1">shared-first deployment control plane</p>
+            <p class="hero-kicker mono" data-stagger="1">Shared-first deployment control plane</p>
             <h1 data-stagger="2">
               Start shared.
               <br />
@@ -109,23 +109,23 @@
           </div>
 
           <div class="hero-rail" data-stagger="5">
-            <p class="hero-rail__kicker mono">route held constant</p>
+            <p class="hero-rail__kicker mono">Route held constant</p>
             <article class="stage-note stage-note--repo">
               <span class="stage-note__index mono">01</span>
               <strong>GitHub intake</strong>
-              <span class="mono">repo_url / branch / builder</span>
+              <span class="mono">Repository / Branch / Builder</span>
             </article>
 
             <article class="stage-note stage-note--shared">
               <span class="stage-note__index mono">02</span>
               <strong>Shared runtime</strong>
-              <span class="mono">build / deploy / route</span>
+              <span class="mono">Build / Deploy / Route</span>
             </article>
 
             <article class="stage-note stage-note--vps">
               <span class="stage-note__index mono">03</span>
               <strong>Attached machine</strong>
-              <span class="mono">node key / heartbeat / migrate</span>
+              <span class="mono">Node key / Heartbeat / Migrate</span>
             </article>
           </div>
         </div>
@@ -177,7 +177,7 @@
                   begins. The identity starts at the repo and survives every later transition.
                 </p>
               </div>
-              <p class="chapter__meta mono">repo_url / branch / builder / app identity</p>
+              <p class="chapter__meta mono">Repository / Branch / Builder / App identity</p>
             </article>
 
             <article class="chapter">
@@ -190,7 +190,7 @@
                   route history. Fast does not need to mean disposable.
                 </p>
               </div>
-              <p class="chapter__meta mono">runtime_managed_shared / logs / route / deploy ops</p>
+              <p class="chapter__meta mono">Managed shared runtime / Logs / Route / Deploy ops</p>
             </article>
 
             <article class="chapter">
@@ -203,7 +203,7 @@
                   machine. The control plane remains the same even when the runtime changes.
                 </p>
               </div>
-              <p class="chapter__meta mono">node key / heartbeat / migrate / same control model</p>
+              <p class="chapter__meta mono">Node key / Heartbeat / Migrate / Same control model</p>
             </article>
           </div>
         </div>
@@ -220,11 +220,11 @@
             <article class="surface-column">
               <p class="surface-column__label mono">Public wrapper</p>
               <ul class="surface-list">
-                <li><span>GitHub import</span><span class="mono">public repositories</span></li>
-                <li><span>Shared runtime</span><span class="mono">managed first path</span></li>
-                <li><span>Node key onboarding</span><span class="mono">attach a server later</span></li>
-                <li><span>Logs and audit</span><span class="mono">build / runtime / operations</span></li>
-                <li><span>Migration</span><span class="mono">shared -> attached</span></li>
+                <li><span>GitHub import</span><span class="mono">Public repositories</span></li>
+                <li><span>Shared runtime</span><span class="mono">Managed first path</span></li>
+                <li><span>Node key onboarding</span><span class="mono">Attach a server later</span></li>
+                <li><span>Logs and audit</span><span class="mono">Build / Runtime / Operations</span></li>
+                <li><span>Migration</span><span class="mono">Shared -> Attached</span></li>
               </ul>
             </article>
 
@@ -232,20 +232,20 @@
               <p class="surface-column__label mono">Next shell</p>
               <ul class="surface-list">
                 <li><span>Sign in route</span><span class="mono">/auth/sign-in</span></li>
-                <li><span>Google auth</span><span class="mono">real provider state</span></li>
-                <li><span>Email signup</span><span class="mono">real validation + errors</span></li>
-                <li><span>Workspace onboarding</span><span class="mono">project -> app handoff</span></li>
-                <li><span>Private repos</span><span class="mono">later product layer</span></li>
+                <li><span>Google auth</span><span class="mono">Real provider state</span></li>
+                <li><span>Email signup</span><span class="mono">Real validation + errors</span></li>
+                <li><span>Workspace onboarding</span><span class="mono">Project -> App handoff</span></li>
+                <li><span>Private repos</span><span class="mono">Later product layer</span></li>
               </ul>
             </article>
           </div>
 
           <div class="object-belt" aria-label="Core objects">
-            <span class="mono">workspace</span>
-            <span class="mono">project</span>
-            <span class="mono">app</span>
-            <span class="mono">runtime</span>
-            <span class="mono">operation</span>
+            <span class="mono">Workspace</span>
+            <span class="mono">Project</span>
+            <span class="mono">App</span>
+            <span class="mono">Runtime</span>
+            <span class="mono">Operation</span>
           </div>
         </div>
       </section>
@@ -266,8 +266,8 @@
           <div class="proof-shell">
             <div class="proof-shell__inner">
               <div class="proof-ribbon">
-                <span class="mono">public repos only</span>
-                <span class="mono">runtime_managed_shared</span>
+                <span class="mono">Public repos only</span>
+                <span class="mono">Managed shared runtime</span>
                 <span class="mono">api.fugue.pro</span>
               </div>
 
@@ -315,12 +315,12 @@ curl -sS "${FUGUE_BASE_URL}/v1/apps/import-github" \
 
               <p class="compare-links mono">
                 compare /
-                <a href="../v6-afterimage/">afterimage v6</a> /
-                <a href="../v5-cathode-tide/">cathode tide v5</a> /
-                <a href="../v4-ceramic/">ceramic v4</a> /
-                <a href="../v3-swiss/">swiss v3</a> /
-                <a href="../v2-tactical/">tactical v2</a> /
-                <a href="../v1-editorial/">editorial v1</a>
+                <a href="../v6-afterimage/">Afterimage v6</a> /
+                <a href="../v5-cathode-tide/">Cathode Tide v5</a> /
+                <a href="../v4-ceramic/">Ceramic v4</a> /
+                <a href="../v3-swiss/">Swiss v3</a> /
+                <a href="../v2-tactical/">Tactical v2</a> /
+                <a href="../v1-editorial/">Editorial v1</a>
               </p>
             </div>
           </div>
@@ -331,7 +331,7 @@ curl -sS "${FUGUE_BASE_URL}/v1/apps/import-github" \
     <footer class="footer">
       <div class="footer__shell">
         <p>
-          fugue-web is the product wrapper around the deployed Fugue core. v8 keeps the open
+          Fugue Web is the product wrapper around the deployed Fugue core. V8 keeps the open
           current layout and swaps in a new Unicorn scene so the same copy and route markers can be
           judged against a different motion field.
         </p>

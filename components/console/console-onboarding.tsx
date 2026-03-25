@@ -391,7 +391,7 @@ export function ConsoleOnboarding({
                             className="fg-input"
                             id="app-name"
                             onChange={(event) => setName(event.target.value)}
-                            placeholder="marketing-site"
+                            placeholder="Marketing site"
                             value={name}
                           />
                         </FormField>

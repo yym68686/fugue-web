@@ -30,7 +30,7 @@ export function AuthShell({
       <div className="fg-auth-grid">
         <section className="fg-auth-stage">
           <div className="fg-auth-stage__top">
-            <Brand meta="auth shell / v1" />
+            <Brand meta="Auth shell / v1" />
           </div>
 
           <div className="fg-auth-stage__copy">
@@ -58,11 +58,11 @@ export function AuthShell({
           </div>
 
           <div className="fg-object-belt" aria-label="Core objects">
-            <span>workspace</span>
-            <span>project</span>
-            <span>app</span>
-            <span>runtime</span>
-            <span>operation</span>
+            <span>Workspace</span>
+            <span>Project</span>
+            <span>App</span>
+            <span>Runtime</span>
+            <span>Operation</span>
           </div>
 
           <div className="fg-auth-stage__footer">{footer}</div>

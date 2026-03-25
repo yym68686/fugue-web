@@ -15,10 +15,10 @@ function replaceCompareLinks(markup: string) {
   return markup.replace(
     /<p class="compare-links mono">[\s\S]*?<\/p>/,
     `<p class="compare-links mono">
-                auth /
-                <a href="/auth/sign-up">sign up</a> /
-                <a href="/auth/sign-in">sign in</a> /
-                <a href="/app">control shell</a>
+                Auth /
+                <a href="/auth/sign-up">Sign up</a> /
+                <a href="/auth/sign-in">Sign in</a> /
+                <a href="/app">Control shell</a>
               </p>`,
   );
 }

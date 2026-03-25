@@ -140,7 +140,7 @@ function createClientId(prefix: string) {
 }
 
 function buildSuggestedProjectName(existingProjectsCount: number) {
-  return `project-${Math.max(existingProjectsCount + 1, 1)}`;
+  return `Project ${Math.max(existingProjectsCount + 1, 1)}`;
 }
 
 type ProjectLifecycle = {
@@ -317,14 +317,25 @@ function buildEnvRawFeedback(rows: EnvRow[], ignoredLineCount = 0): EnvRawFeedba
   };
 }
 
+function humanizeUiLabel(value?: string | null) {
+  if (!value) {
+    return "Unknown";
+  }
+
+  return value
+    .replace(/[._-]+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (match) => match.toUpperCase());
+}
+
 function buildLogMeta(buildLogs: BuildLogsResponse) {
   return [
-    buildLogs.buildStrategy ? `build / ${buildLogs.buildStrategy}` : null,
-    buildLogs.source ? `source / ${buildLogs.source}` : null,
-    buildLogs.jobName ? `job / ${buildLogs.jobName}` : null,
-    buildLogs.operationStatus ? `status / ${buildLogs.operationStatus}` : null,
-    buildLogs.errorMessage ? `error / ${buildLogs.errorMessage}` : null,
-    buildLogs.resultMessage ? `result / ${buildLogs.resultMessage}` : null,
+    buildLogs.buildStrategy ? `Build / ${humanizeUiLabel(buildLogs.buildStrategy)}` : null,
+    buildLogs.source ? `Source / ${buildLogs.source}` : null,
+    buildLogs.jobName ? `Job / ${buildLogs.jobName}` : null,
+    buildLogs.operationStatus ? `Status / ${humanizeUiLabel(buildLogs.operationStatus)}` : null,
+    buildLogs.errorMessage ? `Error / ${buildLogs.errorMessage}` : null,
+    buildLogs.resultMessage ? `Result / ${buildLogs.resultMessage}` : null,
   ].filter((item): item is string => Boolean(item));
 }
 
@@ -334,9 +345,9 @@ function shouldAutoRefreshBuildLogs(status?: string | null) {
 
 function runtimeLogMeta(runtimeLogs: RuntimeLogsResponse) {
   return [
-    runtimeLogs.component ? `component / ${runtimeLogs.component}` : null,
-    runtimeLogs.pods?.length ? `pods / ${runtimeLogs.pods.join(", ")}` : null,
-    runtimeLogs.warnings?.length ? `warnings / ${runtimeLogs.warnings.join(" | ")}` : null,
+    runtimeLogs.component ? `Component / ${humanizeUiLabel(runtimeLogs.component)}` : null,
+    runtimeLogs.pods?.length ? `Pods / ${runtimeLogs.pods.join(", ")}` : null,
+    runtimeLogs.warnings?.length ? `Warnings / ${runtimeLogs.warnings.join(" | ")}` : null,
   ].filter((item): item is string => Boolean(item));
 }
 
@@ -673,10 +684,10 @@ export function ConsoleProjectGallery({
       : "Create project";
   const logsDisplayBody = readLogsDisplayBody(logsStatus, logsBody);
   const logsRefreshStateLabel = logsRefreshing
-    ? "refresh / updating"
+    ? "Refresh / Updating"
     : logsAutoRefreshEnabled
-      ? `refresh / auto ${LOG_AUTO_REFRESH_INTERVAL_MS / 1000}s`
-      : "refresh / stopped";
+      ? `Refresh / Auto ${LOG_AUTO_REFRESH_INTERVAL_MS / 1000}s`
+      : "Refresh / Stopped";
 
   useEffect(() => {
     if (defaultCreateOpen) {
@@ -1400,7 +1411,7 @@ export function ConsoleProjectGallery({
                             <ProjectBadge
                               kind="postgres"
                               label={service.type}
-                              meta="service"
+                              meta="Service"
                             />
                           </div>
                           <div className="fg-project-service-card__meta">
@@ -1610,23 +1621,23 @@ export function ConsoleProjectGallery({
                                 key={row.id}
                               >
                                 <input
-                                  aria-label={`${row.existing ? row.originalKey : "New variable"} key`}
+                                  aria-label={`${row.existing ? row.originalKey : "New variable"} Key`}
                                   autoCapitalize="off"
                                   autoCorrect="off"
                                   className="fg-input"
                                   disabled={row.existing}
                                   onChange={(event) => updateEnvRow(row.id, "key", event.target.value)}
-                                  placeholder="name"
+                                  placeholder="Name"
                                   spellCheck={false}
                                   value={row.existing ? row.originalKey : row.key}
                                 />
                                 <input
-                                  aria-label={`${row.existing ? row.originalKey : "New variable"} value`}
+                                  aria-label={`${row.existing ? row.originalKey : "New variable"} Value`}
                                   autoCapitalize="off"
                                   autoCorrect="off"
                                   className="fg-input"
                                   onChange={(event) => updateEnvRow(row.id, "value", event.target.value)}
-                                  placeholder="value"
+                                  placeholder="Value"
                                   spellCheck={false}
                                   value={row.value}
                                 />
@@ -1645,7 +1656,7 @@ export function ConsoleProjectGallery({
                     ) : (
                       <div className="fg-env-raw">
                         <FormField
-                          hint="Paste key=value lines directly from a .env file. Quoted values, blank lines, comments, and export prefixes are supported."
+                          hint="Paste KEY=value lines directly from a .env file. Quoted values, blank lines, comments, and export prefixes are supported."
                           htmlFor={`env-raw-${selectedApp.id}`}
                           label="Raw environment"
                           optionalLabel="Paste .env"
@@ -1657,7 +1668,7 @@ export function ConsoleProjectGallery({
                             className="fg-project-textarea fg-env-raw__textarea"
                             id={`env-raw-${selectedApp.id}`}
                             onChange={(event) => updateEnvRaw(event.target.value)}
-                            placeholder={`database_url=postgres://user:pass@host/db\npublic_api_base=https://api.example.com\n# comments are ignored`}
+                            placeholder={`DATABASE_URL=postgres://user:pass@host/db\nPUBLIC_API_BASE=https://api.example.com\n# comments are ignored`}
                             spellCheck={false}
                             value={envRawDraft}
                           />
@@ -1732,7 +1743,7 @@ export function ConsoleProjectGallery({
                     <div className="fg-bezel fg-proof-shell">
                       <div className="fg-bezel__inner">
                         <div className="fg-proof-shell__ribbon">
-                          {logsMeta.length ? logsMeta.map((item) => <span key={item}>{item}</span>) : <span>waiting</span>}
+                          {logsMeta.length ? logsMeta.map((item) => <span key={item}>{item}</span>) : <span>Waiting</span>}
                           <span>{logsRefreshStateLabel}</span>
                         </div>
                         <pre>
@@ -1877,7 +1888,7 @@ export function ConsoleProjectGallery({
                         <input
                           className="fg-input"
                           onChange={(event) => setProjectName(event.target.value)}
-                          placeholder="project-1"
+                          placeholder="Project 1"
                           required
                           value={projectName}
                         />
@@ -1913,7 +1924,7 @@ export function ConsoleProjectGallery({
                           <input
                             className="fg-input"
                             onChange={(event) => setAppName(event.target.value)}
-                            placeholder="leave blank to reuse repo name"
+                            placeholder="Leave blank to reuse repo name"
                             value={appName}
                           />
                         </label>

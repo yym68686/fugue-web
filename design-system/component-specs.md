@@ -236,7 +236,7 @@ The right-rail route card language extracted from `v8`.
 <article class="fg-route-note">
   <span class="fg-route-note__index">01</span>
   <strong class="fg-route-note__title">GitHub intake</strong>
-  <span class="fg-route-note__meta">repo_url / branch / builder</span>
+  <span class="fg-route-note__meta">Repository / Branch / Builder</span>
 </article>
 ```
 
@@ -276,8 +276,8 @@ Specialized bezel shell for command blocks and control-plane proof.
 <section class="fg-bezel fg-proof-shell">
   <div class="fg-bezel__inner">
     <div class="fg-proof-shell__ribbon">
-      <span>public repos only</span>
-      <span>runtime_managed_shared</span>
+      <span>Public repos only</span>
+      <span>Managed shared runtime</span>
     </div>
     <pre><code>curl -sS "${FUGUE_BASE_URL}/healthz"</code></pre>
   </div>
@@ -299,11 +299,11 @@ Compact object model strip for product nouns.
 
 ```html
 <div class="fg-object-belt" aria-label="Core objects">
-  <span>workspace</span>
-  <span>project</span>
-  <span>app</span>
-  <span>runtime</span>
-  <span>operation</span>
+  <span>Workspace</span>
+  <span>Project</span>
+  <span>App</span>
+  <span>Runtime</span>
+  <span>Operation</span>
 </div>
 ```
 

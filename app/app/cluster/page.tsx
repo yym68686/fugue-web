@@ -22,16 +22,16 @@ export default async function ClusterPage() {
           { href: "/app/runtimes", label: "Runtime placement", variant: "primary" },
         ]}
         description="Server-level memory, compute, disk, address, region, and Fugue workload placement across the live cluster."
-        eyebrow="Admin / cluster"
+        eyebrow="Admin / Cluster"
         title="Cluster"
       />
 
       <AdminSummaryGrid
         items={[
-          { label: "nodes", value: data.summary.nodeCount },
-          { label: "clear", value: data.summary.readyCount },
-          { label: "attention", value: data.summary.pressuredCount },
-          { label: "workloads", value: data.summary.workloadCount },
+          { label: "Nodes", value: data.summary.nodeCount },
+          { label: "Clear", value: data.summary.readyCount },
+          { label: "Attention", value: data.summary.pressuredCount },
+          { label: "Workloads", value: data.summary.workloadCount },
         ]}
       />
 

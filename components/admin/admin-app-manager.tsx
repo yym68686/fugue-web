@@ -162,17 +162,17 @@ export function AdminAppManager({
         </colgroup>
         <thead>
           <tr>
-            <th>name</th>
-            <th>app id</th>
-            <th>tenant</th>
-            <th>project</th>
-            <th>route</th>
-            <th>runtime</th>
-            <th>phase</th>
-            <th>source</th>
-            <th>stack</th>
-            <th>updated</th>
-            <th>actions</th>
+            <th>Name</th>
+            <th>App identifier</th>
+            <th>Tenant</th>
+            <th>Project</th>
+            <th>Route</th>
+            <th>Runtime</th>
+            <th>Phase</th>
+            <th>Source</th>
+            <th>Stack</th>
+            <th>Updated</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>

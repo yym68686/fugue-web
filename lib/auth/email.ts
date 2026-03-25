@@ -13,14 +13,15 @@ function buildSubject(mode: "signin" | "signup") {
 
 function buildHtml({ verifyUrl, mode, name }: SendVerificationEmailArgs) {
   const action = mode === "signup" ? "verify your email" : "finish signing in";
+  const actionTitle = mode === "signup" ? "Verify your email" : "Finish signing in";
   const greeting = name ? `Hi ${name},` : "Hi,";
 
   return `
     <div style="background:#040506;padding:32px 20px;color:#f4efe7;font-family:Manrope,system-ui,sans-serif;">
       <div style="max-width:540px;margin:0 auto;border:1px solid rgba(255,255,255,0.12);border-radius:24px;background:linear-gradient(145deg,rgba(16,22,29,0.98),rgba(7,10,14,0.96));overflow:hidden;">
         <div style="padding:28px 28px 0;">
-          <p style="margin:0 0 12px;color:#a5bfdc;font-size:12px;letter-spacing:0.1em;font-family:'IBM Plex Mono',ui-monospace,monospace;">fugue / auth</p>
-          <h1 style="margin:0;font-family:Syne,system-ui,sans-serif;font-size:40px;line-height:0.95;letter-spacing:-0.06em;">${action}</h1>
+          <p style="margin:0 0 12px;color:#a5bfdc;font-size:12px;letter-spacing:0.1em;font-family:'IBM Plex Mono',ui-monospace,monospace;">Fugue / Auth</p>
+          <h1 style="margin:0;font-family:Syne,system-ui,sans-serif;font-size:40px;line-height:0.95;letter-spacing:-0.06em;">${actionTitle}</h1>
         </div>
         <div style="padding:20px 28px 28px;color:#c9c1b4;font-size:16px;line-height:1.7;">
           <p style="margin:0 0 16px;">${greeting}</p>

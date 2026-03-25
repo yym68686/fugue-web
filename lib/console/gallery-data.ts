@@ -339,7 +339,7 @@ function buildBadgeFromTechStack(
       id: readBadgeKey(kind, label),
       kind,
       label,
-      meta: "language",
+      meta: "Language",
     };
   }
 
@@ -353,7 +353,7 @@ function buildBadgeFromTechStack(
       id: readBadgeKey(kind, label),
       kind,
       label,
-      meta: "service",
+      meta: "Service",
     };
   }
 
@@ -364,7 +364,7 @@ function buildBadgeFromTechStack(
       id: readBadgeKey(kind, label),
       kind,
       label,
-      meta: "build",
+      meta: "Build",
     };
   }
 
@@ -372,7 +372,7 @@ function buildBadgeFromTechStack(
     id: readBadgeKey("runtime", normalizedName || humanize(normalizedSlug)),
     kind: "runtime",
     label: normalizedName || humanize(normalizedSlug),
-    meta: normalizedKind,
+    meta: humanize(normalizedKind),
   };
 }
 
@@ -402,7 +402,7 @@ function buildAppBadges(app: FugueApp): ConsoleGalleryBadgeView[] {
       id: readBadgeKey("postgres", "PostgreSQL"),
       kind: "postgres",
       label: "PostgreSQL",
-      meta: "service",
+      meta: "Service",
     });
   }
 
@@ -422,7 +422,7 @@ function buildAppBadges(app: FugueApp): ConsoleGalleryBadgeView[] {
             ),
             kind: readLanguageBadgeKind(app.source.detectedProvider) ?? "runtime",
             label: readLanguageLabel(app.source.detectedProvider),
-            meta: "language",
+            meta: "Language",
           }
         : null,
     );
@@ -435,7 +435,7 @@ function buildAppBadges(app: FugueApp): ConsoleGalleryBadgeView[] {
             ),
             kind: readBuildBadgeKind(app.source.buildStrategy) ?? "runtime",
             label: humanize(app.source.buildStrategy),
-            meta: "build",
+            meta: "Build",
           }
         : null,
     );
@@ -446,7 +446,7 @@ function buildAppBadges(app: FugueApp): ConsoleGalleryBadgeView[] {
       id: readBadgeKey("runtime", humanize(app.source.type)),
       kind: "runtime",
       label: humanize(app.source.type),
-      meta: "service",
+      meta: "Service",
     });
   }
 
@@ -477,7 +477,7 @@ function buildAppView(app: FugueApp): ConsoleGalleryAppView {
     id: app.id,
     lastMessage: app.status.lastMessage ?? "No current status message.",
     name: app.name,
-    phase: app.status.phase ?? (app.spec.disabled ? "disabled" : "unknown"),
+    phase: humanize(app.status.phase ?? (app.spec.disabled ? "disabled" : "unknown")),
     phaseTone: toneForStatus(app.status.phase ?? (app.spec.disabled ? "disabled" : "unknown")),
     redeployDisabledReason: redeploy.redeployDisabledReason,
     routeHref: route.href,
@@ -508,7 +508,7 @@ function buildBackingServiceView(
     ownerAppLabel: service.ownerAppId
       ? appNames.get(service.ownerAppId) ?? "Attached app"
       : "Attached app",
-    status: service.status ?? "unknown",
+    status: humanize(service.status),
     statusTone: toneForStatus(service.status),
     type: humanize(service.type),
     updatedExact: formatExactTime(service.updatedAt ?? service.createdAt),

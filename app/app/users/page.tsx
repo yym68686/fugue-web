@@ -19,16 +19,16 @@ export default async function UsersPage() {
 
       <ConsolePageIntro
         description="Users, access state, and service footprint."
-        eyebrow="Admin / users"
+        eyebrow="Admin / Users"
         title="Users"
       />
 
       <AdminSummaryGrid
         items={[
-          { label: "users", value: data.summary.userCount },
-          { label: "admins", value: data.summary.adminCount },
-          { label: "blocked", value: data.summary.blockedCount },
-          { label: "deleted", value: data.summary.deletedCount },
+          { label: "Users", value: data.summary.userCount },
+          { label: "Admins", value: data.summary.adminCount },
+          { label: "Blocked", value: data.summary.blockedCount },
+          { label: "Deleted", value: data.summary.deletedCount },
         ]}
       />
 

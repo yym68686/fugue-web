@@ -79,7 +79,7 @@ function ClusterNodeCard({
             {node.roleLabels.map((role) => (
               <span className="fg-console-tech-pill" key={role}>
                 <span className="fg-console-tech-pill__label">{role}</span>
-                <span className="fg-console-tech-pill__meta">role</span>
+                <span className="fg-console-tech-pill__meta">Role</span>
               </span>
             ))}
           </div>

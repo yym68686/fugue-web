@@ -12,6 +12,21 @@ function readSessionName(name: string | undefined, email: string) {
   return name?.trim() || email.split("@")[0] || email;
 }
 
+function readProviderLabel(provider: "email" | "google") {
+  switch (provider) {
+    case "google":
+      return "Google";
+    case "email":
+      return "Email";
+    default:
+      return provider;
+  }
+}
+
+function readVerificationLabel(verified: boolean) {
+  return verified ? "Verified" : "Unverified";
+}
+
 export default async function WorkspaceSettingsPage() {
   const consoleData = await getConsoleData();
   const session = await getCurrentSession();
@@ -98,9 +113,9 @@ export default async function WorkspaceSettingsPage() {
 
           <PanelSection>
             <div className="fg-console-inline-status">
-              <StatusBadge tone="neutral">{session.provider}</StatusBadge>
+              <StatusBadge tone="neutral">{readProviderLabel(session.provider)}</StatusBadge>
               <StatusBadge tone={session.verified ? "positive" : "warning"}>
-                {session.verified ? "verified" : "unverified"}
+                {readVerificationLabel(session.verified)}
               </StatusBadge>
             </div>
             <dl className="fg-console-inline-meta fg-console-inline-meta--stacked">
@@ -114,11 +129,11 @@ export default async function WorkspaceSettingsPage() {
               </div>
               <div>
                 <dt>Provider</dt>
-                <dd>{session.provider}</dd>
+                <dd>{readProviderLabel(session.provider)}</dd>
               </div>
               <div>
                 <dt>Verification</dt>
-                <dd>{session.verified ? "verified" : "unverified"}</dd>
+                <dd>{readVerificationLabel(session.verified)}</dd>
               </div>
             </dl>
           </PanelSection>

@@ -19,16 +19,16 @@ export default async function AppsPage() {
 
       <ConsolePageIntro
         description="Cluster-wide apps, rebuilds, and deletes."
-        eyebrow="Admin / apps"
+        eyebrow="Admin / Apps"
         title="Cluster apps"
       />
 
       <AdminSummaryGrid
         items={[
-          { label: "apps", value: data.summary.appCount },
-          { label: "routed", value: data.summary.routedCount },
-          { label: "tenants", value: data.summary.tenantCount },
-          { label: "last update", value: data.summary.latestUpdateLabel },
+          { label: "Apps", value: data.summary.appCount },
+          { label: "Routed", value: data.summary.routedCount },
+          { label: "Tenants", value: data.summary.tenantCount },
+          { label: "Last update", value: data.summary.latestUpdateLabel },
         ]}
       />
 

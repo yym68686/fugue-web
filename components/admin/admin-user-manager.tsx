@@ -19,7 +19,7 @@ type AdminUserView = {
   name: string;
   provider: string;
   serviceCount: number;
-  status: "active" | "blocked" | "deleted";
+  status: string;
   statusTone: "positive" | "warning" | "danger" | "info" | "neutral";
   tenantLabel: string;
   verified: boolean;
@@ -132,13 +132,13 @@ export function AdminUserManager({
         </colgroup>
         <thead>
           <tr>
-            <th>user</th>
-            <th>status</th>
-            <th>provider</th>
-            <th>tenant</th>
-            <th>services</th>
-            <th>last login</th>
-            <th>actions</th>
+            <th>User</th>
+            <th>Status</th>
+            <th>Provider</th>
+            <th>Tenant</th>
+            <th>Services</th>
+            <th>Last login</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -156,13 +156,13 @@ export function AdminUserManager({
               <td>
                 <div className="fg-console-toolbar">
                   <StatusBadge tone={user.statusTone}>{user.status}</StatusBadge>
-                  {user.isAdmin ? <StatusBadge tone="info">admin</StatusBadge> : null}
+                  {user.isAdmin ? <StatusBadge tone="info">Admin</StatusBadge> : null}
                 </div>
               </td>
               <td>
                 <div className="fg-console-table__pair">
                   <strong>{user.provider}</strong>
-                  <span>/ {user.verified ? "verified" : "unverified"}</span>
+                  <span>/ {user.verified ? "Verified" : "Unverified"}</span>
                 </div>
               </td>
               <td>

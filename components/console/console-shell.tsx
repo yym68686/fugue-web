@@ -23,6 +23,21 @@ function readMonogram(label: string) {
   return `${first.toUpperCase()}${second.toLowerCase()}`;
 }
 
+function readProviderLabel(provider: SessionUser["provider"]) {
+  switch (provider) {
+    case "google":
+      return "Google";
+    case "email":
+      return "Email";
+    default:
+      return provider;
+  }
+}
+
+function readVerificationLabel(verified: boolean) {
+  return verified ? "Verified" : "Unverified";
+}
+
 export async function ConsoleShell({
   children,
   isAdmin = false,
@@ -39,7 +54,7 @@ export async function ConsoleShell({
       <div className="fg-console-shell fg-console-shell--stacked">
         <header className="fg-console-topbar">
           <div className="fg-console-topbar__brand">
-            <Brand meta="console" />
+            <Brand meta="Console" />
           </div>
 
           <ConsoleNav isAdmin={isAdmin} />
@@ -65,10 +80,10 @@ export async function ConsoleShell({
                 </div>
 
                 <div className="fg-console-inline-status">
-                  {isAdmin ? <StatusBadge tone="info">admin</StatusBadge> : null}
-                  <StatusBadge tone="neutral">{session.provider}</StatusBadge>
+                  {isAdmin ? <StatusBadge tone="info">Admin</StatusBadge> : null}
+                  <StatusBadge tone="neutral">{readProviderLabel(session.provider)}</StatusBadge>
                   <StatusBadge tone={session.verified ? "positive" : "warning"}>
-                    {session.verified ? "verified" : "unverified"}
+                    {readVerificationLabel(session.verified)}
                   </StatusBadge>
                 </div>
 
