@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { InlineButton } from "@/components/ui/button";
 import { Panel, PanelSection } from "@/components/ui/panel";
 import { useToast } from "@/components/ui/toast";
 import type { ApiKeyRecord } from "@/lib/api-keys/types";
@@ -140,49 +141,6 @@ function upsertKey(keys: ApiKeyRecord[], nextKey: ApiKeyRecord) {
     ...keys.filter((key) => key.id !== nextKey.id),
     nextKey,
   ]);
-}
-
-function InlineActionButton({
-  blocked = false,
-  busy = false,
-  className,
-  disabled = false,
-  label,
-  onClick,
-}: {
-  blocked?: boolean;
-  busy?: boolean;
-  className?: string;
-  disabled?: boolean;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      aria-busy={busy || undefined}
-      aria-disabled={blocked || undefined}
-      className={cx(
-        "fg-console-inline-action",
-        "fg-api-key-item__action",
-        className,
-        busy && "is-busy",
-        blocked && "is-blocked",
-      )}
-      disabled={disabled || busy}
-      onClick={() => {
-        if (blocked || busy || disabled) {
-          return;
-        }
-
-        onClick();
-      }}
-      tabIndex={blocked ? -1 : undefined}
-      type="button"
-    >
-      <span aria-hidden="true" className="fg-console-inline-action__status" />
-      <span className="fg-console-inline-action__label">{label}</span>
-    </button>
-  );
 }
 
 export function ApiKeyManager({
@@ -490,10 +448,11 @@ export function ApiKeyManager({
       {syncError ? (
         <PanelSection>
           <div className="fg-project-actions">
-            <InlineActionButton
+            <InlineButton
               blocked={Boolean(busyAction && busyAction !== "refresh")}
               busy={busyAction === "refresh"}
-              label={busyAction === "refresh" ? "Refreshing…" : "Refresh keys"}
+              busyLabel="Refreshing…"
+              label="Refresh keys"
               onClick={() => {
                 void handleRefresh();
               }}
@@ -548,22 +507,26 @@ export function ApiKeyManager({
                     </div>
 
                     <div className="fg-api-key-item__actions">
-                      <InlineActionButton
+                      <InlineButton
                         blocked={Boolean(
                           busyAction && busyAction !== `rotate:${record.id}`,
                         )}
                         busy={busyAction === `rotate:${record.id}`}
+                        busyLabel={record.isWorkspaceAdmin ? "Replacing…" : "Rotating…"}
+                        className="fg-api-key-item__action"
                         label={record.isWorkspaceAdmin ? "Replace" : "Rotate"}
                         onClick={() => {
                           void handleReplace(record);
                         }}
                       />
 
-                      <InlineActionButton
+                      <InlineButton
                         blocked={Boolean(
                           busyAction && busyAction !== `copy:${record.id}`,
                         )}
                         busy={busyAction === `copy:${record.id}`}
+                        busyLabel="Copying…"
+                        className="fg-api-key-item__action"
                         disabled={!record.canCopy}
                         label="Copy"
                         onClick={() => {
@@ -572,7 +535,7 @@ export function ApiKeyManager({
                       />
 
                       {record.canDisable ? (
-                        <InlineActionButton
+                        <InlineButton
                           blocked={Boolean(
                             busyAction &&
                               busyAction !== `disable:${record.id}` &&
@@ -582,6 +545,8 @@ export function ApiKeyManager({
                             busyAction === `disable:${record.id}` ||
                             busyAction === `enable:${record.id}`
                           }
+                          busyLabel={record.status === "disabled" ? "Restoring…" : "Disabling…"}
+                          className="fg-api-key-item__action"
                           label={record.status === "disabled" ? "Restore" : "Disable"}
                           onClick={() => {
                             void handleStatusToggle(record);
@@ -590,12 +555,14 @@ export function ApiKeyManager({
                       ) : null}
 
                       {record.canDelete ? (
-                        <InlineActionButton
+                        <InlineButton
                           blocked={Boolean(
                             busyAction && busyAction !== `delete:${record.id}`,
                           )}
                           busy={busyAction === `delete:${record.id}`}
-                          className="is-danger"
+                          busyLabel="Deleting…"
+                          className="fg-api-key-item__action"
+                          danger
                           label="Delete"
                           onClick={() => {
                             void handleDelete(record);

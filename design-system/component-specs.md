@@ -7,6 +7,7 @@ This minimal system only includes patterns that are already stable in `v8` and a
 Included:
 
 - `Button`
+- `SegmentedControl`
 - `DisplayHeading`
 - `UiHeading`
 - `PillNav`
@@ -68,39 +69,111 @@ Notes:
 
 ### Purpose
 
-Primary and secondary CTA with the nested icon island pattern preserved from `v8`.
+Shared action system for route-level CTA, product submits, quiet utilities, and destructive workbench controls.
 
 ### Variants
 
 | Variant | Class | Use |
 | --- | --- | --- |
-| primary | `.fg-button--primary` | Main action in a section |
-| ghost | `.fg-button--ghost` | Secondary action on dark surfaces |
-| compact | `.fg-button--compact` | Header or tighter utility action |
+| route | `.fg-button--route` | Topbar or route-level CTA |
+| primary | `.fg-button--primary` | Main action in a product section or form |
+| secondary | `.fg-button--secondary` | Default utility action with readable resting chrome |
+| ghost | `.fg-button--ghost` | Tertiary or dismissive action with quiet outline |
+| danger | `.fg-button--danger` | Destructive action |
+| compact | `.fg-button--compact` | Standard compact control-rail or header action |
+| tight | `.fg-button--tight` | Dense row or list action |
+| inline | `.fg-button--inline` | Mono row action for tables and key lists |
+| full-width | `.fg-button--full-width` | Stretch to container width |
 
 ### Anatomy
 
 ```html
-<a class="fg-button fg-button--primary" href="#">
-  <span>Inspect quickstart</span>
-  <span class="fg-button__icon" aria-hidden="true">-&gt;</span>
+<a class="fg-button fg-button--route" href="#">
+  <span class="fg-button__label">Inspect quickstart</span>
+  <span class="fg-button__icon is-island" aria-hidden="true">-&gt;</span>
 </a>
+```
+
+```html
+<button class="fg-button fg-button--primary" type="button">
+  <span class="fg-button__label">Create project</span>
+</button>
+```
+
+```html
+<button class="fg-button fg-button--secondary fg-button--inline fg-button--tight" type="button">
+  <span class="fg-button__label">Refresh keys</span>
+</button>
+```
+
+```html
+<button class="fg-button fg-button--primary" data-loading="true" aria-busy="true" disabled type="button">
+  <span class="fg-button__status" aria-hidden="true"></span>
+  <span class="fg-button__label">Saving...</span>
+</button>
 ```
 
 ### States
 
 | State | Treatment |
 | --- | --- |
-| default | Solid or ghost surface with pill shape |
-| hover | `translateY(-2px)` on button, slight icon drift |
+| default | Route / product / ghost / danger surface according to role; resting state stays legible before hover |
+| hover | `translateY(-1px)` plus border and surface lift |
 | focus-visible | Accent outline with 3px offset |
-| active | Return to neutral Y position |
-| disabled | `opacity: 0.5`, no pointer events |
+| active | Return to neutral Y position with a light press scale |
+| loading | Keep the button legible, show a status spinner or pulse, disable repeat click |
+| disabled | Muted surface, muted text, no pointer events |
 
 ### Notes
 
-- Keep the icon island. Do not collapse it into plain text.
+- Only `route` keeps the icon island by default.
+- `primary`, `secondary`, `ghost`, and `danger` are product actions. Do not force the island into dense auth / docs / console surfaces.
+- `secondary` is the default non-primary button on dark product surfaces. It should remain clearly visible in its resting state.
+- `ghost` is reserved for tertiary or dismissive actions. Do not use it as the default page-intro or modal-cancel button in product UI.
+- When buttons share a rail with segmented controls, keep them on the same compact height.
+- Row-level list and table actions should prefer `inline + tight`.
 - Avoid adding boolean prop combinations later like `primary + compact + quiet + iconOnly`; prefer explicit variants or composition.
+
+## SegmentedControl
+
+### Purpose
+
+Shared local view switch for mutually exclusive app states such as `Environment / Files / Logs`, `Variables / Raw`, or `Build / Runtime`.
+
+### Anatomy
+
+```html
+<div class="fg-segmented" aria-label="Workbench views" role="group">
+  <button class="fg-segmented__item is-active" type="button" aria-pressed="true">
+    <span class="fg-segmented__label">Environment</span>
+  </button>
+  <button class="fg-segmented__item" type="button" aria-pressed="false">
+    <span class="fg-segmented__label">Files</span>
+  </button>
+  <button class="fg-segmented__item" type="button" aria-pressed="false">
+    <span class="fg-segmented__label">Logs</span>
+  </button>
+</div>
+```
+
+### States
+
+| State | Treatment |
+| --- | --- |
+| default | Shared tray plus readable inactive labels |
+| hover | Quiet hover fill and stronger text |
+| active | Raised active lens, stronger border, full text contrast |
+| focus-visible | Accent outline with 3px offset |
+| disabled | Reduced opacity, no interaction |
+
+### Notes
+
+- Use this for local view switching, not for destructive or submit actions.
+- If clicking an option swaps a panel, picker, or content mode, prefer `SegmentedControl` over `Button`.
+- Keep all options in one shared rail so users read them as one mutually exclusive set.
+- The selected state must be visible without hover.
+- Segmented items, stateful pill-nav links, and file pills should reuse the same raised selection lens. Only the tray density and padding should change by context.
+- In mixed control rails, align the segmented outer height with adjacent compact buttons.
 
 ## PillNav
 
@@ -112,15 +185,25 @@ Detached floating navigation container.
 
 ```html
 <nav class="fg-pill-nav" aria-label="Primary">
-  <a href="#route">Route</a>
+  <a href="#route" aria-current="page">Route</a>
   <a href="#surface">Surface</a>
   <a href="#proof">Proof</a>
 </nav>
 ```
 
+### States
+
+| State | Treatment |
+| --- | --- |
+| default | Detached tray with readable resting labels |
+| hover | Quiet lens, stronger text |
+| current | Raised active lens, stronger border, full text contrast |
+| focus-visible | Accent outline with 3px offset |
+
 ### Notes
 
 - Use for top-level nav or small sub-nav clusters.
+- When one link represents the current page or current shell view, mark it with `aria-current="page"` and reuse the same active lens as segmented controls. Do not rely on text color alone.
 - Not for dense app sidebars.
 
 ## SectionLabel

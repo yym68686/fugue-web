@@ -290,6 +290,12 @@ export function ConsoleOnboarding({
           <PanelSection className="fg-console-onboarding__body">
             <div className="fg-console-onboarding__actions">
               <Button
+                loading={isCreating || isImporting}
+                loadingLabel={
+                  isWorkspaceStage
+                    ? "Creating workspace…"
+                    : "Importing project…"
+                }
                 onClick={
                   isWorkspaceStage
                     ? handleCreateWorkspace
@@ -298,11 +304,7 @@ export function ConsoleOnboarding({
                 type="button"
                 variant="primary"
               >
-                {isCreating
-                  ? "Creating…"
-                  : isImporting
-                    ? "Importing…"
-                    : primaryLabel}
+                {primaryLabel}
               </Button>
             </div>
 
@@ -416,15 +418,11 @@ export function ConsoleOnboarding({
                   </div>
 
                   <div className="fg-console-dialog__actions">
-                    <Button
-                      onClick={closeImport}
-                      type="button"
-                      variant="ghost"
-                    >
+                    <Button onClick={closeImport} type="button" variant="secondary">
                       Cancel
                     </Button>
-                    <Button type="submit" variant="primary">
-                      {isImporting ? "Importing…" : "Import project"}
+                    <Button loading={isImporting} loadingLabel="Importing project…" type="submit" variant="primary">
+                      Import project
                     </Button>
                   </div>
                 </form>

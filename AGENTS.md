@@ -221,8 +221,19 @@
 --border-subtle: var(--line-2);
 
 /* component */
---button-primary-bg: linear-gradient(145deg, rgba(244, 239, 231, 0.98), rgba(224, 215, 202, 0.94));
---button-secondary-bg: rgba(255, 255, 255, 0.03);
+--button-route-bg: linear-gradient(145deg, rgba(244, 239, 231, 0.98), rgba(224, 215, 202, 0.94));
+--button-primary-bg: linear-gradient(180deg, rgba(31, 40, 52, 0.98), rgba(15, 20, 27, 0.96));
+--button-secondary-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.085), rgba(165, 191, 220, 0.030)), rgba(11, 14, 19, 0.96);
+--button-secondary-border: rgba(255, 255, 255, 0.16);
+--button-ghost-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(165, 191, 220, 0.012)), rgba(8, 10, 14, 0.38);
+--button-ghost-border: rgba(255, 255, 255, 0.12);
+--button-danger-bg: linear-gradient(180deg, rgba(106, 44, 44, 0.42), rgba(69, 24, 24, 0.30)), rgba(17, 10, 10, 0.92);
+--selection-lens-hover-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.050), rgba(165, 191, 220, 0.018)), rgba(12, 16, 22, 0.76);
+--selection-lens-active-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.095), rgba(165, 191, 220, 0.045)), rgba(17, 21, 28, 0.96);
+--selection-lens-active-border: rgba(165, 191, 220, 0.24);
+--selection-lens-text: rgba(244, 239, 231, 0.82);
+--segmented-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.028), rgba(255, 255, 255, 0.006)), rgba(6, 8, 12, 0.88);
+--segmented-active-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.080), rgba(165, 191, 220, 0.030)), rgba(17, 21, 28, 0.96);
 --rail-card-bg: linear-gradient(180deg, rgba(10, 12, 18, 0.64), rgba(8, 10, 14, 0.38));
 --proof-shell-bg: linear-gradient(145deg, rgba(16, 22, 29, 0.98), rgba(7, 10, 14, 0.96));
 --signal-path-color: var(--accent-signal);
@@ -232,8 +243,15 @@
 
 - `floating-pill masthead`
   - 导航不是贴边扁条，而是 detached 的悬浮控件
+  - 如果 nav 存在 current page / current shell 状态，当前项必须使用和 segmented control 一致的 raised selection lens；不能只靠字色变化
 - `button-in-button CTA`
-  - 主按钮必须保留嵌套的小圆形 icon island，不能退化成普通文本按钮
+  - 只有 route 级 CTA 保留嵌套的小圆形 icon island；product primary / secondary / danger 默认回到更安静、状态更清晰的无岛按钮
+  - product `secondary` 必须在静态态就保留可辨认的边框和轻填充；`ghost` 只用于三级或 dismissive action，不作为产品层默认按钮
+- `segmented view switch`
+  - `Environment / Files / Logs`、`Variables / Raw`、`Build / Runtime` 这类局部视图切换必须使用共享 segmented control，而不是独立按钮
+  - segmented control 的选中态必须在静态态就足够明确；整组要被读成一个 mutually exclusive set，而不是一排零散 CTA
+  - segmented、file pill、stateful pill nav 的选中态默认共用同一套 `selection lens` 材质语言：quiet hover + raised active lens；只允许根据上下文调节托盘密度和圆角，不允许各自发明一套 active fill
+  - 如果 segmented control 和 action button 出现在同一条 control rail，外层高度必须统一；默认对齐到 compact control height，不要和 `tight` 按钮混排
 - `stage-note rail`
   - 右侧的 route 注释卡可以复用于 onboarding、流程页、integration 说明，但要保持相同的材质语言
 - `runway-strip`
@@ -257,6 +275,7 @@
 ### Auth
 
 - Auth 页必须继承 `v8` 的颜色、字体配对、按钮结构、mono 标签和面板材质。
+- Auth 的 submit CTA 默认使用 product primary；provider、cancel、secondary action 默认不带 icon island，避免表单区疲劳。
 - Auth 的效果强度降到 marketing 的 `25% - 35%`；表单才是主角，背景只能做低频 atmosphere。
 - 可以保留轻微的扫描线、颗粒、路径语法，但不能让用户输入区漂在透明噪声上。
 - Auth 左侧 stage 可以保留 display typography，但表单面板标题、状态标题、modal 标题必须切到更清晰的 `ui heading`
@@ -272,6 +291,9 @@
 ### App Console
 
 - Console 可以继承 `v8` 的调色、面板语言、按钮体系、路径隐喻和对象命名语法。
+- Console 按钮默认使用 `primary / secondary / danger / inline` 角色分层；`ghost` 只用于三级或行内 dismissive 动作，只有 shell 级 route handoff 才允许沿用 icon island CTA。
+- Console 内的局部视图切换默认使用 segmented control：例如 `Environment / Files / Logs`、`Variables / Raw`、`Build / Runtime`，不要复用 action button 的语义和视觉
+- Console nav 的 current page、segmented 当前项、file pill 当前文件应使用同一套 raised lens 状态语言；不要再出现只有文字变亮、缺少材质反馈的孤立选中态
 - Console 不能直接搬用 marketing hero、超大 ghost wordmark、整屏动态秀场或长篇 thesis copy。
 - Console 优先做高信息密度但有呼吸的工具界面：更多边线分组、对象层次、状态设计，少做 marketing 式情绪铺垫。
 - Console 的 page intro、panel title、dialog title、empty-state title 默认都使用 `ui heading`，不要继续沿用 landing 的 `Syne`
@@ -289,7 +311,7 @@
 
 - 颜色体系和文字层级
 - `Syne + Manrope + IBM Plex Mono` 的字体配对
-- 胶囊按钮和 icon island 结构
+- 胶囊按钮、状态矩阵和 route CTA 的 icon island 结构
 - 低对比边线、双层 bezel、proof shell
 - route signal / runway / object belt 这些信息结构原型
 

@@ -130,8 +130,8 @@ export function EmailAuthForm({ emailVerificationRequired, mode }: EmailAuthForm
           type="email"
         />
       </FormField>
-      <Button disabled={isPending} type="submit" variant="primary">
-        {isPending ? "Working" : buttonLabel}
+      <Button loading={isPending} loadingLabel="Working" type="submit" variant="primary">
+        {buttonLabel}
       </Button>
     </form>
   );

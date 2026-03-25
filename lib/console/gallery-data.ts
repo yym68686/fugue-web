@@ -464,6 +464,7 @@ function buildAppView(app: FugueApp): ConsoleGalleryAppView {
         .join(" / ") || humanize(app.source.type),
     updatedExact: formatExactTime(app.status.updatedAt ?? app.updatedAt ?? app.createdAt),
     updatedLabel: formatRelativeTime(app.status.updatedAt ?? app.updatedAt ?? app.createdAt),
+    workspaceMountPath: app.spec.workspace ? app.spec.workspace.mountPath ?? "/workspace" : null,
   };
 }
 

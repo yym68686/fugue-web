@@ -1,11 +1,11 @@
 import type { ReactNode } from "react";
 
-import { ButtonLink } from "@/components/ui/button";
+import { ButtonLink, type ButtonVariant } from "@/components/ui/button";
 
 type IntroAction = {
   href: string;
   label: string;
-  variant?: "primary" | "ghost";
+  variant?: ButtonVariant;
 };
 
 export function ConsolePageIntro({
@@ -30,7 +30,7 @@ export function ConsolePageIntro({
       {actions.length ? (
         <div className="fg-console-page-intro__actions">
           {actions.map((action) => (
-            <ButtonLink href={action.href} key={action.href} variant={action.variant ?? "ghost"}>
+            <ButtonLink href={action.href} key={action.href} variant={action.variant ?? "secondary"}>
               {action.label}
             </ButtonLink>
           ))}

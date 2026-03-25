@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { InlineButton } from "@/components/ui/button";
 import { Panel, PanelSection } from "@/components/ui/panel";
 import { useToast } from "@/components/ui/toast";
 import { NODE_KEY_CREATE_REQUEST_EVENT } from "@/lib/console/events";
@@ -127,47 +128,6 @@ function upsertKey(keys: NodeKeyRecord[], nextKey: NodeKeyRecord) {
 
 function removeKey(keys: NodeKeyRecord[], keyId: string) {
   return sortKeys(keys.filter((key) => key.id !== keyId));
-}
-
-function InlineActionButton({
-  blocked = false,
-  busy = false,
-  className,
-  label,
-  onClick,
-}: {
-  blocked?: boolean;
-  busy?: boolean;
-  className?: string;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      aria-busy={busy || undefined}
-      aria-disabled={blocked || undefined}
-      className={cx(
-        "fg-console-inline-action",
-        "fg-api-key-item__action",
-        className,
-        busy && "is-busy",
-        blocked && "is-blocked",
-      )}
-      disabled={busy}
-      onClick={() => {
-        if (busy || blocked) {
-          return;
-        }
-
-        onClick();
-      }}
-      tabIndex={blocked ? -1 : undefined}
-      type="button"
-    >
-      <span aria-hidden="true" className="fg-console-inline-action__status" />
-      <span className="fg-console-inline-action__label">{label}</span>
-    </button>
-  );
 }
 
 export function NodeKeyManager({
@@ -369,20 +329,22 @@ export function NodeKeyManager({
 
           <div className="fg-project-actions">
             {syncError ? (
-              <InlineActionButton
+              <InlineButton
                 blocked={Boolean(busyAction && busyAction !== "refresh")}
                 busy={busyAction === "refresh"}
-                label={busyAction === "refresh" ? "Refreshing…" : "Refresh keys"}
+                busyLabel="Refreshing…"
+                label="Refresh keys"
                 onClick={() => {
                   void handleRefresh();
                 }}
               />
             ) : null}
 
-            <InlineActionButton
+            <InlineButton
               blocked={Boolean(busyAction && busyAction !== "create")}
               busy={busyAction === "create"}
-              label={busyAction === "create" ? "Creating…" : "Create node key"}
+              busyLabel="Creating…"
+              label="Create node key"
               onClick={() => {
                 void handleCreate();
               }}
@@ -430,11 +392,13 @@ export function NodeKeyManager({
 
                     <div className="fg-api-key-item__actions">
                       {record.canCopy ? (
-                        <InlineActionButton
+                        <InlineButton
                           blocked={Boolean(
                             busyAction && busyAction !== `copy:${record.id}`,
                           )}
                           busy={busyAction === `copy:${record.id}`}
+                          busyLabel="Copying…"
+                          className="fg-api-key-item__action"
                           label="Copy"
                           onClick={() => {
                             void handleCopy(record.id);
@@ -443,12 +407,14 @@ export function NodeKeyManager({
                       ) : null}
 
                       {record.canRevoke ? (
-                        <InlineActionButton
+                        <InlineButton
                           blocked={Boolean(
                             busyAction && busyAction !== `revoke:${record.id}`,
                           )}
                           busy={busyAction === `revoke:${record.id}`}
-                          className="is-danger"
+                          busyLabel="Revoking…"
+                          className="fg-api-key-item__action"
+                          danger
                           label="Revoke"
                           onClick={() => {
                             void handleRevoke(record);

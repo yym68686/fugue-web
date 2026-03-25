@@ -4,6 +4,7 @@ import { Brand } from "@/components/brand";
 import { ConsoleNav } from "@/components/console/console-nav";
 import { ConsolePrimaryAction } from "@/components/console/console-primary-action";
 import { StatusBadge } from "@/components/console/status-badge";
+import { Button } from "@/components/ui/button";
 import type { SessionUser } from "@/lib/auth/session";
 
 function readSessionLabel(session: SessionUser) {
@@ -73,9 +74,9 @@ export async function ConsoleShell({
                 </div>
 
                 <form action="/api/auth/sign-out" className="fg-signout-form" method="post">
-                  <button className="fg-console-menu-button" type="submit">
+                  <Button className="fg-button--full-width" size="compact" type="submit" variant="secondary">
                     Sign out
-                  </button>
+                  </Button>
                 </form>
               </div>
             </details>

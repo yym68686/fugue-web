@@ -21,7 +21,7 @@ export function ConsolePrimaryAction() {
       className={className}
       href="/app?dialog=create"
       size="compact"
-      variant="primary"
+      variant="route"
     >
       Create project
     </ButtonLink>

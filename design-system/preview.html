@@ -87,31 +87,74 @@
         <section class="preview-section">
           <div class="preview-heading">
             <p class="fg-label">Buttons</p>
-            <h2 class="fg-heading">Primary action, secondary action, compact utility.</h2>
+            <h2 class="fg-heading">Route CTA, product primary, quiet utility, destructive control.</h2>
           </div>
           <div class="preview-actions">
+            <a class="fg-button fg-button--route" href="#">
+              <span class="fg-button__label">Inspect quickstart</span>
+              <span class="fg-button__icon is-island" aria-hidden="true">-&gt;</span>
+            </a>
             <a class="fg-button fg-button--primary" href="#">
-              <span>Inspect quickstart</span>
-              <span class="fg-button__icon" aria-hidden="true">-&gt;</span>
+              <span class="fg-button__label">Create project</span>
+            </a>
+            <a class="fg-button fg-button--secondary" href="#">
+              <span class="fg-button__label">Open auth</span>
             </a>
             <a class="fg-button fg-button--ghost" href="#">
-              <span>See the route</span>
-              <span class="fg-button__icon" aria-hidden="true">-&gt;</span>
+              <span class="fg-button__label">Read import rules</span>
             </a>
-            <a class="fg-button fg-button--ghost fg-button--compact" href="#">
-              <span>Open auth</span>
-              <span class="fg-button__icon" aria-hidden="true">-&gt;</span>
-            </a>
+            <button class="fg-button fg-button--danger fg-button--tight" type="button">
+              <span class="fg-button__label">Delete</span>
+            </button>
+            <button class="fg-button fg-button--secondary fg-button--inline fg-button--tight" type="button">
+              <span class="fg-button__label">Refresh keys</span>
+            </button>
+          </div>
+        </section>
+
+        <section class="preview-section">
+          <div class="preview-heading">
+            <p class="fg-label">Segmented control</p>
+            <h2 class="fg-heading">Local views should read as one switchboard, not a row of mini buttons.</h2>
+          </div>
+          <div class="preview-actions">
+            <div class="fg-segmented" aria-label="Workbench views" role="group">
+              <button class="fg-segmented__item is-active" type="button" aria-pressed="true">
+                <span class="fg-segmented__label">Environment</span>
+              </button>
+              <button class="fg-segmented__item" type="button" aria-pressed="false">
+                <span class="fg-segmented__label">Files</span>
+              </button>
+              <button class="fg-segmented__item" type="button" aria-pressed="false">
+                <span class="fg-segmented__label">Logs</span>
+              </button>
+            </div>
+            <div class="fg-segmented" aria-label="Environment formats" role="group">
+              <button class="fg-segmented__item is-active" type="button" aria-pressed="true">
+                <span class="fg-segmented__label">Variables</span>
+              </button>
+              <button class="fg-segmented__item" type="button" aria-pressed="false">
+                <span class="fg-segmented__label">Raw</span>
+              </button>
+            </div>
+            <div class="fg-segmented" aria-label="Log views" role="group">
+              <button class="fg-segmented__item" type="button" aria-pressed="false">
+                <span class="fg-segmented__label">Build</span>
+              </button>
+              <button class="fg-segmented__item is-active" type="button" aria-pressed="true">
+                <span class="fg-segmented__label">Runtime</span>
+              </button>
+            </div>
           </div>
         </section>
 
         <section class="preview-section">
           <div class="preview-heading">
             <p class="fg-label">Pill nav</p>
-            <h2 class="fg-heading">Detached navigation, not a welded top bar.</h2>
+            <h2 class="fg-heading">Detached navigation should still advertise the current route clearly.</h2>
           </div>
           <nav class="fg-pill-nav" aria-label="Preview navigation">
-            <a href="#notes">Route</a>
+            <a href="#notes" aria-current="page">Route</a>
             <a href="#proof">Proof</a>
             <a href="#objects">Objects</a>
           </nav>

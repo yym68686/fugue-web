@@ -120,13 +120,14 @@ export function ApiKeyEmptyState() {
       <div className="fg-console-empty-state__actions">
         <Button
           aria-busy={isCreating || undefined}
-          disabled={isCreating}
+          loading={isCreating}
+          loadingLabel="Creating node key…"
           onClick={() => {
             void handleCreate();
           }}
           variant="primary"
         >
-          {isCreating ? "Creating…" : "Create node key"}
+          Create node key
         </Button>
       </div>
     </div>

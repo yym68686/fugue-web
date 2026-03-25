@@ -11,8 +11,10 @@ export function ProviderButton({
     <ButtonLink
       className="fg-provider-button"
       href={href}
-      icon={<span aria-hidden="true">G</span>}
-      variant="ghost"
+      icon={<span aria-hidden="true" className="fg-provider-button__mark">G</span>}
+      iconPlacement="leading"
+      iconStyle="plain"
+      variant="secondary"
     >
       Continue with {provider === "google" ? "Google" : provider}
     </ButtonLink>

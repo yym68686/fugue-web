@@ -1,9 +1,9 @@
-import { ButtonLink } from "@/components/ui/button";
+import { ButtonLink, type ButtonVariant } from "@/components/ui/button";
 
 type EmptyStateAction = {
   href: string;
   label: string;
-  variant?: "ghost" | "primary";
+  variant?: ButtonVariant;
 };
 
 export function ConsoleEmptyState({
@@ -24,7 +24,7 @@ export function ConsoleEmptyState({
 
       {action ? (
         <div className="fg-console-empty-state__actions">
-          <ButtonLink href={action.href} variant={action.variant ?? "ghost"}>
+          <ButtonLink href={action.href} variant={action.variant ?? "secondary"}>
             {action.label}
           </ButtonLink>
         </div>

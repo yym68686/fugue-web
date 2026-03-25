@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 
 import { ConsoleEmptyState } from "@/components/console/console-empty-state";
 import { StatusBadge } from "@/components/console/status-badge";
+import { InlineButton } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
-import { cx } from "@/lib/ui/cx";
 
 type AdminUserView = {
   canBlock: boolean;
@@ -48,46 +48,6 @@ async function requestJson<T>(input: RequestInfo, init?: RequestInit) {
   }
 
   return data;
-}
-
-function AdminActionButton({
-  blocked = false,
-  busy = false,
-  className,
-  label,
-  onClick,
-}: {
-  blocked?: boolean;
-  busy?: boolean;
-  className?: string;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      aria-busy={busy || undefined}
-      aria-disabled={blocked || undefined}
-      className={cx(
-        "fg-console-inline-action",
-        busy && "is-busy",
-        blocked && "is-blocked",
-        className,
-      )}
-      disabled={busy}
-      onClick={() => {
-        if (busy || blocked) {
-          return;
-        }
-
-        onClick();
-      }}
-      tabIndex={blocked ? -1 : undefined}
-      type="button"
-    >
-      <span aria-hidden="true" className="fg-console-inline-action__status" />
-      <span className="fg-console-inline-action__label">{label}</span>
-    </button>
-  );
 }
 
 export function AdminUserManager({
@@ -217,11 +177,12 @@ export function AdminUserManager({
               <td>
                 <div className="fg-console-toolbar">
                   {user.canBlock ? (
-                    <AdminActionButton
+                    <InlineButton
                       blocked={Boolean(
                         busyAction && busyAction !== `block:${user.email}`,
                       )}
                       busy={busyAction === `block:${user.email}`}
+                      busyLabel="Blocking…"
                       label="Block"
                       onClick={() => {
                         void handleModeration(user, "block");
@@ -229,11 +190,12 @@ export function AdminUserManager({
                     />
                   ) : null}
                   {user.canUnblock ? (
-                    <AdminActionButton
+                    <InlineButton
                       blocked={Boolean(
                         busyAction && busyAction !== `unblock:${user.email}`,
                       )}
                       busy={busyAction === `unblock:${user.email}`}
+                      busyLabel="Unblocking…"
                       label="Unblock"
                       onClick={() => {
                         void handleModeration(user, "unblock");
@@ -241,12 +203,13 @@ export function AdminUserManager({
                     />
                   ) : null}
                   {user.canDelete ? (
-                    <AdminActionButton
+                    <InlineButton
                       blocked={Boolean(
                         busyAction && busyAction !== `delete:${user.email}`,
                       )}
                       busy={busyAction === `delete:${user.email}`}
-                      className="is-danger"
+                      busyLabel="Deleting…"
+                      danger
                       label="Delete"
                       onClick={() => {
                         void handleModeration(user, "delete");

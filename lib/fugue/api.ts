@@ -90,6 +90,20 @@ export type FugueAppFile = {
   secret: boolean;
 };
 
+export type FugueAppWorkspace = {
+  mountPath: string | null;
+};
+
+export type FugueFilesystemEntry = {
+  hasChildren: boolean;
+  kind: string;
+  mode: number | null;
+  modifiedAt: string | null;
+  name: string;
+  path: string;
+  size: number | null;
+};
+
 export type FugueAppTechnology = {
   kind: string;
   name: string;
@@ -122,6 +136,7 @@ export type FugueApp = {
     runtimeId: string | null;
     replicas: number | null;
     disabled: boolean | null;
+    workspace: FugueAppWorkspace | null;
   };
   status: {
     phase: string | null;
@@ -210,6 +225,40 @@ export type FugueAppFilesResult = {
   alreadyCurrent: boolean;
   files: FugueAppFile[];
   operation: FugueOperation | null;
+};
+
+export type FugueAppFilesystemTreeResult = {
+  component: string | null;
+  depth: number | null;
+  entries: FugueFilesystemEntry[];
+  path: string | null;
+  pod: string | null;
+  workspaceRoot: string | null;
+};
+
+export type FugueAppFilesystemFileResult = {
+  component: string | null;
+  content: string;
+  encoding: string | null;
+  mode: number | null;
+  modifiedAt: string | null;
+  path: string | null;
+  pod: string | null;
+  size: number | null;
+  truncated: boolean;
+  workspaceRoot: string | null;
+};
+
+export type FugueAppFilesystemMutationResult = {
+  component: string | null;
+  deleted: boolean;
+  kind: string | null;
+  mode: number | null;
+  modifiedAt: string | null;
+  path: string | null;
+  pod: string | null;
+  size: number | null;
+  workspaceRoot: string | null;
 };
 
 export type FugueBuildLogsResult = {
@@ -480,6 +529,39 @@ function sanitizeAppFile(value: unknown): FugueAppFile | null {
   };
 }
 
+function sanitizeAppWorkspace(value: unknown): FugueAppWorkspace | null {
+  const record = asRecord(value);
+
+  if (!record) {
+    return null;
+  }
+
+  return {
+    mountPath: readString(record, "mount_path"),
+  };
+}
+
+function sanitizeFilesystemEntry(value: unknown): FugueFilesystemEntry | null {
+  const record = asRecord(value);
+  const path = readString(record, "path");
+  const name = readString(record, "name");
+  const kind = readString(record, "kind");
+
+  if (!path || !name || !kind) {
+    return null;
+  }
+
+  return {
+    hasChildren: readBoolean(record, "has_children") ?? false,
+    kind,
+    mode: readNumber(record, "mode"),
+    modifiedAt: readString(record, "modified_at"),
+    name,
+    path,
+    size: readNumber(record, "size"),
+  };
+}
+
 function sanitizeAppTechnology(value: unknown): FugueAppTechnology | null {
   const record = asRecord(value);
   const kind = readString(record, "kind");
@@ -542,6 +624,7 @@ function sanitizeApp(value: unknown): FugueApp | null {
       runtimeId: readString(spec, "runtime_id"),
       replicas: readNumber(spec, "replicas"),
       disabled: readBoolean(spec, "disabled"),
+      workspace: sanitizeAppWorkspace(spec?.workspace),
     },
     status: {
       phase: readString(status, "phase"),
@@ -1162,6 +1245,201 @@ export async function deleteFugueAppFiles(
       .filter((item): item is FugueAppFile => Boolean(item)),
     operation: sanitizeOperation(payload?.operation),
   } satisfies FugueAppFilesResult;
+}
+
+export async function getFugueAppFilesystemTree(
+  accessToken: string,
+  appId: string,
+  options?: {
+    depth?: number;
+    path?: string;
+    pod?: string;
+  },
+) {
+  const searchParams = new URLSearchParams();
+
+  if (options?.depth !== undefined) {
+    searchParams.set("depth", String(options.depth));
+  }
+
+  if (options?.path) {
+    searchParams.set("path", options.path);
+  }
+
+  if (options?.pod) {
+    searchParams.set("pod", options.pod);
+  }
+
+  const suffix = searchParams.size > 0 ? `?${searchParams.toString()}` : "";
+  const payload = asRecord(
+    await fugueRequest(`/v1/apps/${encodeURIComponent(appId)}/filesystem/tree${suffix}`, {
+      accessToken,
+    }),
+  );
+
+  return {
+    component: readString(payload, "component"),
+    depth: readNumber(payload, "depth"),
+    entries: (Array.isArray(payload?.entries) ? payload.entries : [])
+      .map(sanitizeFilesystemEntry)
+      .filter((item): item is FugueFilesystemEntry => Boolean(item)),
+    path: readString(payload, "path"),
+    pod: readString(payload, "pod"),
+    workspaceRoot: readString(payload, "workspace_root"),
+  } satisfies FugueAppFilesystemTreeResult;
+}
+
+export async function getFugueAppFilesystemFile(
+  accessToken: string,
+  appId: string,
+  options: {
+    maxBytes?: number;
+    path: string;
+    pod?: string;
+  },
+) {
+  const searchParams = new URLSearchParams();
+  searchParams.set("path", options.path);
+
+  if (options.maxBytes !== undefined) {
+    searchParams.set("max_bytes", String(options.maxBytes));
+  }
+
+  if (options.pod) {
+    searchParams.set("pod", options.pod);
+  }
+
+  const payload = asRecord(
+    await fugueRequest(
+      `/v1/apps/${encodeURIComponent(appId)}/filesystem/file?${searchParams.toString()}`,
+      {
+        accessToken,
+      },
+    ),
+  );
+
+  return {
+    component: readString(payload, "component"),
+    content: readString(payload, "content") ?? "",
+    encoding: readString(payload, "encoding"),
+    mode: readNumber(payload, "mode"),
+    modifiedAt: readString(payload, "modified_at"),
+    path: readString(payload, "path"),
+    pod: readString(payload, "pod"),
+    size: readNumber(payload, "size"),
+    truncated: readBoolean(payload, "truncated") ?? false,
+    workspaceRoot: readString(payload, "workspace_root"),
+  } satisfies FugueAppFilesystemFileResult;
+}
+
+export async function putFugueAppFilesystemFile(
+  accessToken: string,
+  appId: string,
+  payload: {
+    content: string;
+    encoding?: "base64" | "utf-8";
+    mkdirParents?: boolean;
+    mode?: number;
+    path: string;
+  },
+) {
+  const response = asRecord(
+    await fugueRequest(`/v1/apps/${encodeURIComponent(appId)}/filesystem/file`, {
+      accessToken,
+      body: {
+        content: payload.content,
+        ...(payload.encoding ? { encoding: payload.encoding } : {}),
+        ...(payload.mkdirParents !== undefined ? { mkdir_parents: payload.mkdirParents } : {}),
+        ...(payload.mode !== undefined ? { mode: payload.mode } : {}),
+        path: payload.path,
+      },
+      method: "PUT",
+    }),
+  );
+
+  return {
+    component: readString(response, "component"),
+    deleted: false,
+    kind: "file",
+    mode: readNumber(response, "mode"),
+    modifiedAt: readString(response, "modified_at"),
+    path: readString(response, "path"),
+    pod: readString(response, "pod"),
+    size: readNumber(response, "size"),
+    workspaceRoot: readString(response, "workspace_root"),
+  } satisfies FugueAppFilesystemMutationResult;
+}
+
+export async function createFugueAppFilesystemDirectory(
+  accessToken: string,
+  appId: string,
+  payload: {
+    mode?: number;
+    parents?: boolean;
+    path: string;
+  },
+) {
+  const response = asRecord(
+    await fugueRequest(`/v1/apps/${encodeURIComponent(appId)}/filesystem/directory`, {
+      accessToken,
+      body: {
+        ...(payload.mode !== undefined ? { mode: payload.mode } : {}),
+        ...(payload.parents !== undefined ? { parents: payload.parents } : {}),
+        path: payload.path,
+      },
+      method: "POST",
+    }),
+  );
+
+  return {
+    component: readString(response, "component"),
+    deleted: false,
+    kind: readString(response, "kind"),
+    mode: readNumber(response, "mode"),
+    modifiedAt: readString(response, "modified_at"),
+    path: readString(response, "path"),
+    pod: readString(response, "pod"),
+    size: readNumber(response, "size"),
+    workspaceRoot: readString(response, "workspace_root"),
+  } satisfies FugueAppFilesystemMutationResult;
+}
+
+export async function deleteFugueAppFilesystemPath(
+  accessToken: string,
+  appId: string,
+  options: {
+    path: string;
+    recursive?: boolean;
+  },
+) {
+  const searchParams = new URLSearchParams();
+  searchParams.set("path", options.path);
+
+  if (options.recursive !== undefined) {
+    searchParams.set("recursive", String(options.recursive));
+  }
+
+  const payload = asRecord(
+    await fugueRequest(
+      `/v1/apps/${encodeURIComponent(appId)}/filesystem?${searchParams.toString()}`,
+      {
+        accessToken,
+        method: "DELETE",
+      },
+    ),
+  );
+
+  return {
+    component: readString(payload, "component"),
+    deleted: readBoolean(payload, "deleted") ?? false,
+    kind: null,
+    mode: readNumber(payload, "mode"),
+    modifiedAt: readString(payload, "modified_at"),
+    path: readString(payload, "path"),
+    pod: readString(payload, "pod"),
+    size: readNumber(payload, "size"),
+    workspaceRoot: readString(payload, "workspace_root"),
+  } satisfies FugueAppFilesystemMutationResult;
 }
 
 export async function getFugueAppBuildLogs(

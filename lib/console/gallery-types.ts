@@ -38,6 +38,7 @@ export type ConsoleGalleryAppView = {
   sourceMeta: string;
   updatedExact: string;
   updatedLabel: string;
+  workspaceMountPath: string | null;
 };
 
 export type ConsoleGalleryBackingServiceView = {

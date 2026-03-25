@@ -4,9 +4,11 @@ import { startTransition, useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
 import { StatusBadge } from "@/components/console/status-badge";
+import { ConsoleFilesWorkbench } from "@/components/console/console-files-workbench";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { Panel, PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
+import { SegmentedControl, type SegmentedControlOption } from "@/components/ui/segmented-control";
 import { useToast } from "@/components/ui/toast";
 import {
   buildEnvDraftRowsFromEntries,
@@ -78,6 +80,11 @@ type RuntimeLogsResponse = {
   warnings?: string[];
 };
 
+type WorkbenchView = "env" | "files" | "logs";
+type EnvironmentFormat = "raw" | "table";
+type LogsView = "build" | "runtime";
+type RuntimeView = "app" | "postgres";
+
 type EnvRow = {
   existing: boolean;
   id: string;
@@ -121,6 +128,27 @@ const BUILD_STRATEGY_OPTIONS = [
   label: string;
   value: BuildStrategyValue;
 }>;
+
+const WORKBENCH_VIEW_OPTIONS: readonly SegmentedControlOption<WorkbenchView>[] = [
+  { value: "env", label: "Environment" },
+  { value: "files", label: "Files" },
+  { value: "logs", label: "Logs" },
+];
+
+const ENVIRONMENT_FORMAT_OPTIONS: readonly SegmentedControlOption<EnvironmentFormat>[] = [
+  { value: "table", label: "Variables" },
+  { value: "raw", label: "Raw" },
+];
+
+const LOG_VIEW_OPTIONS: readonly SegmentedControlOption<LogsView>[] = [
+  { value: "build", label: "Build" },
+  { value: "runtime", label: "Runtime" },
+];
+
+const RUNTIME_VIEW_OPTIONS: readonly SegmentedControlOption<RuntimeView>[] = [
+  { value: "app", label: "App" },
+  { value: "postgres", label: "Postgres" },
+];
 
 function createClientId(prefix: string) {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -566,10 +594,10 @@ export function ConsoleProjectGallery({
   const [buildStrategy, setBuildStrategy] = useState<BuildStrategyValue>("auto");
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"env" | "files" | "logs">("env");
+  const [activeTab, setActiveTab] = useState<WorkbenchView>("env");
   const [isCreating, setIsCreating] = useState(false);
   const [busyAction, setBusyAction] = useState<"delete" | "disable" | "restart" | null>(null);
-  const [envFormat, setEnvFormat] = useState<"raw" | "table">("table");
+  const [envFormat, setEnvFormat] = useState<EnvironmentFormat>("table");
   const [envStatus, setEnvStatus] = useState<"error" | "idle" | "loading" | "ready">("idle");
   const [envBaseline, setEnvBaseline] = useState<Record<string, string>>({});
   const [envRows, setEnvRows] = useState<EnvRow[]>([]);
@@ -585,9 +613,9 @@ export function ConsoleProjectGallery({
   const [fileDrafts, setFileDrafts] = useState<FileDraft[]>([]);
   const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
   const [filesLoadedAppId, setFilesLoadedAppId] = useState<string | null>(null);
-  const [filesSaving, setFilesSaving] = useState(false);
-  const [logsMode, setLogsMode] = useState<"build" | "runtime">("build");
-  const [runtimeComponent, setRuntimeComponent] = useState<"app" | "postgres">("app");
+  const [filesBusyAction, setFilesBusyAction] = useState<"delete" | "save" | null>(null);
+  const [logsMode, setLogsMode] = useState<LogsView>("build");
+  const [runtimeComponent, setRuntimeComponent] = useState<RuntimeView>("app");
   const [logsStatus, setLogsStatus] = useState<"error" | "idle" | "loading" | "ready">("idle");
   const [logsBody, setLogsBody] = useState("");
   const [logsMeta, setLogsMeta] = useState<string[]>([]);
@@ -603,6 +631,9 @@ export function ConsoleProjectGallery({
     null;
   const selectedFile =
     fileDrafts.find((file) => file.id === selectedFileId) ?? fileDrafts[0] ?? null;
+  const filesBusy = filesBusyAction !== null;
+  const filesDeleting = filesBusyAction === "delete";
+  const filesSaving = filesBusyAction === "save";
   const dataErrorMessage = data.errors.length
     ? `Partial Fugue data: ${data.errors.join(" | ")}.`
     : null;
@@ -1079,7 +1110,7 @@ export function ConsoleProjectGallery({
     ]);
   }
 
-  function changeEnvFormat(nextFormat: "raw" | "table") {
+  function changeEnvFormat(nextFormat: EnvironmentFormat) {
     if (nextFormat === "raw" && envFormat !== "raw") {
       syncEnvRawEditor(envRows);
     }
@@ -1263,7 +1294,7 @@ export function ConsoleProjectGallery({
   }
 
   async function saveFile() {
-    if (!selectedApp || !selectedFile || filesSaving) {
+    if (!selectedApp || !selectedFile || filesBusyAction) {
       return;
     }
 
@@ -1295,7 +1326,7 @@ export function ConsoleProjectGallery({
       return;
     }
 
-    setFilesSaving(true);
+    setFilesBusyAction("save");
 
     try {
       const response = await requestJson<FilesResponse>(`/api/fugue/apps/${selectedApp.id}/files`, {
@@ -1337,12 +1368,12 @@ export function ConsoleProjectGallery({
         variant: "error",
       });
     } finally {
-      setFilesSaving(false);
+      setFilesBusyAction(null);
     }
   }
 
   async function deleteFile() {
-    if (!selectedApp || !selectedFile || filesSaving) {
+    if (!selectedApp || !selectedFile || filesBusyAction) {
       return;
     }
 
@@ -1358,7 +1389,7 @@ export function ConsoleProjectGallery({
       return;
     }
 
-    setFilesSaving(true);
+    setFilesBusyAction("delete");
 
     try {
       const response = await requestJson<FilesResponse>(
@@ -1385,7 +1416,7 @@ export function ConsoleProjectGallery({
         variant: "error",
       });
     } finally {
-      setFilesSaving(false);
+      setFilesBusyAction(null);
     }
   }
 
@@ -1411,13 +1442,9 @@ export function ConsoleProjectGallery({
               <PanelSection className="fg-project-services__head">
                 <div className="fg-project-services__title-row">
                   <p className="fg-label fg-panel__eyebrow">Services</p>
-                  <button
-                    className="fg-console-utility-button fg-console-utility-button--tight"
-                    onClick={() => openCreateService(project)}
-                    type="button"
-                  >
+                  <Button onClick={() => openCreateService(project)} size="compact" type="button" variant="primary">
                     Add service
-                  </button>
+                  </Button>
                 </div>
                 <p className="fg-project-services__count">{serviceCountLabel}</p>
               </PanelSection>
@@ -1546,56 +1573,50 @@ export function ConsoleProjectGallery({
                   <div className="fg-project-toolbar__group">
                     <p className="fg-label fg-project-toolbar__label">Actions</p>
                     <div className="fg-project-actions">
-                      <button
-                        className="fg-console-utility-button fg-console-utility-button--tight"
-                        disabled={busyAction !== null}
+                      <Button
+                        disabled={Boolean(busyAction && busyAction !== "restart")}
+                        loading={busyAction === "restart"}
+                        loadingLabel="Restarting…"
                         onClick={() => handleAppAction("restart")}
+                        size="compact"
                         type="button"
+                        variant="secondary"
                       >
-                        {busyAction === "restart" ? "Restarting…" : "Restart"}
-                      </button>
-                      <button
-                        className="fg-console-utility-button fg-console-utility-button--tight"
-                        disabled={busyAction !== null}
+                        Restart
+                      </Button>
+                      <Button
+                        disabled={Boolean(busyAction && busyAction !== "disable")}
+                        loading={busyAction === "disable"}
+                        loadingLabel="Pausing…"
                         onClick={() => handleAppAction("disable")}
+                        size="compact"
                         type="button"
+                        variant="secondary"
                       >
-                        {busyAction === "disable" ? "Pausing…" : "Pause"}
-                      </button>
-                      <button
-                        className="fg-console-utility-button fg-console-utility-button--tight is-danger"
-                        disabled={busyAction !== null}
+                        Pause
+                      </Button>
+                      <Button
+                        disabled={Boolean(busyAction && busyAction !== "delete")}
+                        loading={busyAction === "delete"}
+                        loadingLabel="Deleting…"
                         onClick={() => handleAppAction("delete")}
+                        size="compact"
                         type="button"
+                        variant="danger"
                       >
-                        {busyAction === "delete" ? "Deleting…" : "Delete"}
-                      </button>
+                        Delete
+                      </Button>
                     </div>
                   </div>
 
                   <div className="fg-project-toolbar__group fg-project-toolbar__group--tabs">
-                    <p className="fg-label fg-project-toolbar__label">Workspace</p>
-                    <div className="fg-project-tabs" role="tablist" aria-label="App controls">
-                      {[
-                        { id: "env", label: "Environment" },
-                        { id: "files", label: "Files" },
-                        { id: "logs", label: "Logs" },
-                      ].map((tab) => (
-                        <button
-                          aria-selected={activeTab === tab.id}
-                          className={cx(
-                            "fg-project-tab",
-                            activeTab === tab.id && "is-active",
-                          )}
-                          key={tab.id}
-                          onClick={() => setActiveTab(tab.id as "env" | "files" | "logs")}
-                          role="tab"
-                          type="button"
-                        >
-                          {tab.label}
-                        </button>
-                      ))}
-                    </div>
+                    <p className="fg-label fg-project-toolbar__label">Workbench</p>
+                    <SegmentedControl
+                      ariaLabel="Workbench views"
+                      onChange={setActiveTab}
+                      options={WORKBENCH_VIEW_OPTIONS}
+                      value={activeTab}
+                    />
                   </div>
                 </div>
               </PanelSection>
@@ -1614,52 +1635,32 @@ export function ConsoleProjectGallery({
                       </div>
 
                       <div className="fg-workbench-section__actions">
-                        <div className="fg-project-tabs" role="tablist" aria-label="Environment formats">
-                          {[
-                            { id: "table", label: "Variables" },
-                            { id: "raw", label: "Raw" },
-                          ].map((tab) => (
-                            <button
-                              aria-selected={envFormat === tab.id}
-                              className={cx("fg-project-tab", envFormat === tab.id && "is-active")}
-                              key={tab.id}
-                              onClick={() => changeEnvFormat(tab.id as "raw" | "table")}
-                              role="tab"
-                              type="button"
-                            >
-                              {tab.label}
-                            </button>
-                          ))}
-                        </div>
+                        <SegmentedControl
+                          ariaLabel="Environment formats"
+                          onChange={changeEnvFormat}
+                          options={ENVIRONMENT_FORMAT_OPTIONS}
+                          value={envFormat}
+                        />
                         {envFormat === "table" ? (
-                          <button
-                            className="fg-console-utility-button fg-console-utility-button--tight"
-                            onClick={addEnvRow}
-                            type="button"
-                          >
+                          <Button onClick={addEnvRow} size="compact" type="button" variant="secondary">
                             Add variable
-                          </button>
+                          </Button>
                         ) : (
-                          <button
-                            className="fg-console-utility-button fg-console-utility-button--tight"
-                            onClick={resetEnvRawDraft}
-                            type="button"
-                          >
+                          <Button onClick={resetEnvRawDraft} size="compact" type="button" variant="secondary">
                             Reset raw
-                          </button>
+                          </Button>
                         )}
-                        <button
-                          className="fg-console-utility-button fg-console-utility-button--tight"
-                          disabled={
-                            envSaving ||
-                            envStatus === "loading" ||
-                            (envFormat === "raw" && !envRawFeedback.valid)
-                          }
+                        <Button
+                          disabled={envStatus === "loading" || (envFormat === "raw" && !envRawFeedback.valid)}
+                          loading={envSaving}
+                          loadingLabel="Saving…"
                           onClick={saveEnv}
+                          size="compact"
                           type="button"
+                          variant="primary"
                         >
-                          {envSaving ? "Saving…" : "Save"}
-                        </button>
+                          Save
+                        </Button>
                       </div>
                     </div>
 
@@ -1703,13 +1704,9 @@ export function ConsoleProjectGallery({
                                   spellCheck={false}
                                   value={row.value}
                                 />
-                                <button
-                                  className="fg-console-utility-button"
-                                  onClick={() => removeEnvRow(row.id)}
-                                  type="button"
-                                >
+                                <Button onClick={() => removeEnvRow(row.id)} type="button" variant="ghost">
                                   {row.existing ? (row.removed ? "Undo" : "Remove") : "Discard"}
-                                </button>
+                                </Button>
                               </div>
                             ))}
                           </>
@@ -1757,117 +1754,12 @@ export function ConsoleProjectGallery({
                 ) : null}
 
                 {activeTab === "files" ? (
-                  <div className="fg-workbench-section">
-                    <div className="fg-workbench-section__head">
-                      <div className="fg-workbench-section__copy">
-                        <p className="fg-label fg-panel__eyebrow">Files</p>
-                        <p className="fg-console-note">
-                          Inspect and patch files mounted into {selectedApp.name}.
-                        </p>
-                      </div>
-
-                      <div className="fg-workbench-section__actions">
-                        <button
-                          className="fg-console-utility-button fg-console-utility-button--tight"
-                          onClick={addFileDraft}
-                          type="button"
-                        >
-                          Add file
-                        </button>
-                        <button
-                          className="fg-console-utility-button fg-console-utility-button--tight"
-                          disabled={filesSaving || !selectedFile}
-                          onClick={saveFile}
-                          type="button"
-                        >
-                          {filesSaving ? "Saving…" : "Save"}
-                        </button>
-                        <button
-                          className="fg-console-utility-button fg-console-utility-button--tight is-danger"
-                          disabled={filesSaving || !selectedFile}
-                          onClick={deleteFile}
-                          type="button"
-                        >
-                          {filesSaving ? "Deleting…" : "Delete"}
-                        </button>
-                      </div>
-                    </div>
-
-                    {filesStatus === "loading" ? (
-                      <p className="fg-console-note">Loading files…</p>
-                    ) : (
-                      <div className="fg-file-editor">
-                        <div className="fg-file-editor__list">
-                          {fileDrafts.length ? (
-                            fileDrafts.map((file) => (
-                              <button
-                                className={cx(
-                                  "fg-file-pill",
-                                  selectedFile?.id === file.id && "is-active",
-                                )}
-                                key={file.id}
-                                onClick={() => setSelectedFileId(file.id)}
-                                type="button"
-                              >
-                                {file.path || "new file"}
-                              </button>
-                            ))
-                          ) : (
-                            <p className="fg-console-note">No files configured.</p>
-                          )}
-                        </div>
-
-                        {selectedFile ? (
-                          <div className="fg-file-editor__panel">
-                            <div className="fg-file-editor__meta">
-                              <input
-                                className="fg-input"
-                                onChange={(event) =>
-                                  updateFileDraft(selectedFile.id, { path: event.target.value })
-                                }
-                                placeholder="/app/.env"
-                                value={selectedFile.path}
-                              />
-                              <input
-                                className="fg-input"
-                                onChange={(event) =>
-                                  updateFileDraft(selectedFile.id, { mode: event.target.value })
-                                }
-                                placeholder="420"
-                                value={selectedFile.mode}
-                              />
-                              <label className="fg-project-toggle">
-                                <input
-                                  checked={selectedFile.secret}
-                                  onChange={(event) =>
-                                    updateFileDraft(selectedFile.id, { secret: event.target.checked })
-                                  }
-                                  type="checkbox"
-                                />
-                                <span>Secret</span>
-                              </label>
-                            </div>
-
-                            <textarea
-                              className="fg-project-textarea"
-                              onChange={(event) =>
-                                updateFileDraft(selectedFile.id, {
-                                  content: event.target.value,
-                                  redacted: false,
-                                })
-                              }
-                              placeholder={
-                                selectedFile.redacted
-                                  ? "Secret file contents are redacted by Fugue until replaced."
-                                  : ""
-                              }
-                              value={selectedFile.content}
-                            />
-                          </div>
-                        ) : null}
-                      </div>
-                    )}
-                  </div>
+                  <ConsoleFilesWorkbench
+                    appId={selectedApp.id}
+                    appName={selectedApp.name}
+                    key={selectedApp.id}
+                    workspaceMountPath={selectedApp.workspaceMountPath}
+                  />
                 ) : null}
 
                 {activeTab === "logs" ? (
@@ -1881,60 +1773,31 @@ export function ConsoleProjectGallery({
                       </div>
 
                       <div className="fg-workbench-section__actions">
-                        <div className="fg-project-tabs" role="tablist" aria-label="Log modes">
-                          {[
-                            { id: "build", label: "Build" },
-                            { id: "runtime", label: "Runtime" },
-                          ].map((tab) => (
-                            <button
-                              aria-selected={logsMode === tab.id}
-                              className={cx("fg-project-tab", logsMode === tab.id && "is-active")}
-                              key={tab.id}
-                              onClick={() => {
-                                setLogsMode(tab.id as "build" | "runtime");
-                                setLogsLoadedKey(null);
-                              }}
-                              role="tab"
-                              type="button"
-                            >
-                              {tab.label}
-                            </button>
-                          ))}
-                        </div>
+                        <SegmentedControl
+                          ariaLabel="Log views"
+                          onChange={(nextMode) => {
+                            setLogsMode(nextMode);
+                            setLogsLoadedKey(null);
+                          }}
+                          options={LOG_VIEW_OPTIONS}
+                          value={logsMode}
+                        />
 
                         {logsMode === "runtime" && selectedApp.hasPostgresService ? (
-                          <div className="fg-project-tabs" role="tablist" aria-label="Runtime components">
-                            {[
-                              { id: "app", label: "App" },
-                              { id: "postgres", label: "Postgres" },
-                            ].map((tab) => (
-                              <button
-                                aria-selected={runtimeComponent === tab.id}
-                                className={cx(
-                                  "fg-project-tab",
-                                  runtimeComponent === tab.id && "is-active",
-                                )}
-                                key={tab.id}
-                                onClick={() => {
-                                  setRuntimeComponent(tab.id as "app" | "postgres");
-                                  setLogsLoadedKey(null);
-                                }}
-                                role="tab"
-                                type="button"
-                              >
-                                {tab.label}
-                              </button>
-                            ))}
-                          </div>
+                          <SegmentedControl
+                            ariaLabel="Runtime components"
+                            onChange={(nextComponent) => {
+                              setRuntimeComponent(nextComponent);
+                              setLogsLoadedKey(null);
+                            }}
+                            options={RUNTIME_VIEW_OPTIONS}
+                            value={runtimeComponent}
+                          />
                         ) : null}
 
-                        <button
-                          className="fg-console-utility-button fg-console-utility-button--tight"
-                          onClick={refreshLogs}
-                          type="button"
-                        >
+                        <Button onClick={refreshLogs} size="compact" type="button" variant="secondary">
                           Refresh
-                        </button>
+                        </Button>
                       </div>
                     </div>
 
@@ -2149,10 +2012,10 @@ export function ConsoleProjectGallery({
                   </div>
 
                   <div className="fg-console-dialog__actions">
-                    <Button onClick={closeCreate} type="button" variant="ghost">
+                    <Button onClick={closeCreate} type="button" variant="secondary">
                       Cancel
                     </Button>
-                    <Button type="submit" variant="primary">
+                    <Button loading={isCreating} loadingLabel={createDialogSubmitLabel} type="submit" variant="primary">
                       {createDialogSubmitLabel}
                     </Button>
                   </div>
