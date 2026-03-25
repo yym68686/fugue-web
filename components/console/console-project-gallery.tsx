@@ -52,17 +52,6 @@ type EnvResponse = {
   env?: Record<string, string>;
 };
 
-type FileRecord = {
-  content?: string | null;
-  mode?: number | null;
-  path?: string;
-  secret?: boolean;
-};
-
-type FilesResponse = {
-  files?: FileRecord[];
-};
-
 type BuildLogsResponse = {
   buildStrategy?: string | null;
   errorMessage?: string | null;
@@ -99,16 +88,6 @@ type EnvRawFeedback = {
   message: string;
   tone: "error" | "info" | "success";
   valid: boolean;
-};
-
-type FileDraft = {
-  content: string;
-  existing: boolean;
-  id: string;
-  mode: string;
-  path: string;
-  redacted: boolean;
-  secret: boolean;
 };
 
 type BuildStrategyValue =
@@ -330,21 +309,6 @@ function buildEnvRawFeedback(rows: EnvRow[], ignoredLineCount = 0): EnvRawFeedba
     tone: changeCount > 0 ? "success" : "info",
     valid: true,
   };
-}
-
-function filesFromResponse(files: FileRecord[]) {
-  return [...files]
-    .filter((file): file is FileRecord & { path: string } => typeof file.path === "string" && file.path.trim().length > 0)
-    .sort((left, right) => left.path.localeCompare(right.path))
-    .map((file) => ({
-      content: typeof file.content === "string" ? file.content : "",
-      existing: true,
-      id: createClientId("file"),
-      mode: typeof file.mode === "number" ? String(file.mode) : "",
-      path: file.path,
-      redacted: Boolean(file.secret) && !(typeof file.content === "string" && file.content.length > 0),
-      secret: Boolean(file.secret),
-    }) satisfies FileDraft);
 }
 
 function buildLogMeta(buildLogs: BuildLogsResponse) {
@@ -609,11 +573,6 @@ export function ConsoleProjectGallery({
     valid: true,
   });
   const [envSaving, setEnvSaving] = useState(false);
-  const [filesStatus, setFilesStatus] = useState<"error" | "idle" | "loading" | "ready">("idle");
-  const [fileDrafts, setFileDrafts] = useState<FileDraft[]>([]);
-  const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
-  const [filesLoadedAppId, setFilesLoadedAppId] = useState<string | null>(null);
-  const [filesBusyAction, setFilesBusyAction] = useState<"delete" | "save" | null>(null);
   const [logsMode, setLogsMode] = useState<LogsView>("build");
   const [runtimeComponent, setRuntimeComponent] = useState<RuntimeView>("app");
   const [logsStatus, setLogsStatus] = useState<"error" | "idle" | "loading" | "ready">("idle");
@@ -629,11 +588,6 @@ export function ConsoleProjectGallery({
     selectedProjectApps.find((app) => app.id === selectedAppId) ??
     (selectedProject ? selectedProjectApps[0] : null) ??
     null;
-  const selectedFile =
-    fileDrafts.find((file) => file.id === selectedFileId) ?? fileDrafts[0] ?? null;
-  const filesBusy = filesBusyAction !== null;
-  const filesDeleting = filesBusyAction === "delete";
-  const filesSaving = filesBusyAction === "save";
   const dataErrorMessage = data.errors.length
     ? `Partial Fugue data: ${data.errors.join(" | ")}.`
     : null;
@@ -771,51 +725,6 @@ export function ConsoleProjectGallery({
       cancelled = true;
     };
   }, [activeTab, envLoadedAppId, selectedApp]);
-
-  useEffect(() => {
-    if (!selectedApp) {
-      setFilesStatus("idle");
-      setFileDrafts([]);
-      setSelectedFileId(null);
-      setFilesLoadedAppId(null);
-      return;
-    }
-
-    if (activeTab !== "files" || filesLoadedAppId === selectedApp.id) {
-      return;
-    }
-
-    let cancelled = false;
-    setFilesStatus("loading");
-
-    requestJson<FilesResponse>(`/api/fugue/apps/${selectedApp.id}/files`)
-      .then((response) => {
-        if (cancelled) {
-          return;
-        }
-
-        const nextDrafts = filesFromResponse(response.files ?? []);
-        setFileDrafts(nextDrafts);
-        setSelectedFileId(nextDrafts[0]?.id ?? null);
-        setFilesLoadedAppId(selectedApp.id);
-        setFilesStatus("ready");
-      })
-      .catch((error) => {
-        if (cancelled) {
-          return;
-        }
-
-        setFilesStatus("error");
-        setFlash({
-          message: readErrorMessage(error),
-          variant: "error",
-        });
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [activeTab, filesLoadedAppId, selectedApp]);
 
   useEffect(() => {
     if (!selectedApp || activeTab !== "logs") {
@@ -1269,154 +1178,6 @@ export function ConsoleProjectGallery({
       });
     } finally {
       setEnvSaving(false);
-    }
-  }
-
-  function addFileDraft() {
-    const nextDraft = {
-      content: "",
-      existing: false,
-      id: createClientId("file"),
-      mode: "",
-      path: "",
-      redacted: false,
-      secret: false,
-    } satisfies FileDraft;
-
-    setFileDrafts((current) => [...current, nextDraft]);
-    setSelectedFileId(nextDraft.id);
-  }
-
-  function updateFileDraft(fileId: string, patch: Partial<FileDraft>) {
-    setFileDrafts((current) =>
-      current.map((file) => (file.id === fileId ? { ...file, ...patch } : file)),
-    );
-  }
-
-  async function saveFile() {
-    if (!selectedApp || !selectedFile || filesBusyAction) {
-      return;
-    }
-
-    if (!selectedFile.path.trim()) {
-      setFlash({
-        message: "File path is required.",
-        variant: "error",
-      });
-      return;
-    }
-
-    if (selectedFile.redacted && !selectedFile.content.trim()) {
-      setFlash({
-        message: "Secret file contents are redacted. Enter replacement content before saving.",
-        variant: "error",
-      });
-      return;
-    }
-
-    const parsedMode = selectedFile.mode.trim()
-      ? Number(selectedFile.mode.trim())
-      : null;
-
-    if (parsedMode !== null && !Number.isFinite(parsedMode)) {
-      setFlash({
-        message: "File mode must be a number.",
-        variant: "error",
-      });
-      return;
-    }
-
-    setFilesBusyAction("save");
-
-    try {
-      const response = await requestJson<FilesResponse>(`/api/fugue/apps/${selectedApp.id}/files`, {
-        body: JSON.stringify({
-          files: [
-            {
-              content: selectedFile.content,
-              ...(parsedMode !== null ? { mode: parsedMode } : {}),
-              path: selectedFile.path.trim(),
-              secret: selectedFile.secret,
-            },
-          ],
-        }),
-        headers: {
-          "Content-Type": "application/json",
-        },
-        method: "PUT",
-      });
-
-      armRefreshWindow(45_000);
-      const nextDrafts = filesFromResponse(response.files ?? []);
-      setFileDrafts(nextDrafts);
-      setSelectedFileId(
-        nextDrafts.find((file) => file.path === selectedFile.path.trim())?.id ??
-          nextDrafts[0]?.id ??
-          null,
-      );
-      setFilesLoadedAppId(selectedApp.id);
-      setFlash({
-        message: "File changes queued.",
-        variant: "success",
-      });
-      startTransition(() => {
-        router.refresh();
-      });
-    } catch (error) {
-      setFlash({
-        message: readErrorMessage(error),
-        variant: "error",
-      });
-    } finally {
-      setFilesBusyAction(null);
-    }
-  }
-
-  async function deleteFile() {
-    if (!selectedApp || !selectedFile || filesBusyAction) {
-      return;
-    }
-
-    if (!selectedFile.existing) {
-      setFileDrafts((current) => current.filter((file) => file.id !== selectedFile.id));
-      setSelectedFileId((current) => (current === selectedFile.id ? null : current));
-      return;
-    }
-
-    const confirmed = window.confirm(`Delete ${selectedFile.path}?`);
-
-    if (!confirmed) {
-      return;
-    }
-
-    setFilesBusyAction("delete");
-
-    try {
-      const response = await requestJson<FilesResponse>(
-        `/api/fugue/apps/${selectedApp.id}/files?path=${encodeURIComponent(selectedFile.path)}`,
-        {
-          method: "DELETE",
-        },
-      );
-      armRefreshWindow(45_000);
-      const nextDrafts = filesFromResponse(response.files ?? []);
-      setFileDrafts(nextDrafts);
-      setSelectedFileId(nextDrafts[0]?.id ?? null);
-      setFilesLoadedAppId(selectedApp.id);
-      setFlash({
-        message: "File delete queued.",
-        variant: "success",
-      });
-      startTransition(() => {
-        router.refresh();
-      });
-    } catch (error) {
-      setFlash({
-        message: readErrorMessage(error),
-        variant: "error",
-      });
-    } finally {
-      setFilesBusyAction(null);
     }
   }
 
