@@ -12,7 +12,10 @@ import {
   importFugueGitHubApp,
 } from "@/lib/fugue/api";
 import { ensureWorkspaceAccess } from "@/lib/workspace/bootstrap";
-import { findWorkspaceProjectByName } from "@/lib/workspace/projects";
+import {
+  findWorkspaceProjectById,
+  findWorkspaceProjectByName,
+} from "@/lib/workspace/projects";
 import { saveWorkspaceAccess } from "@/lib/workspace/store";
 
 const ALLOWED_BUILD_STRATEGIES = new Set([
@@ -52,6 +55,7 @@ export async function POST(request: Request) {
   const branch = readOptionalString(body, "branch");
   const buildStrategy = readOptionalString(body, "buildStrategy");
   const name = readOptionalString(body, "name");
+  const requestedProjectId = readOptionalString(body, "projectId");
   const requestedProjectName = readOptionalString(body, "projectName");
   const projectName = requestedProjectName || "default";
 
@@ -69,12 +73,23 @@ export async function POST(request: Request) {
 
   try {
     const { workspace } = await ensureWorkspaceAccess(session);
-    const projectDescription = `${projectName} project`;
-    const existingProject = await findWorkspaceProjectByName(
-      workspace.adminKeySecret,
-      projectName,
-      workspace.tenantId ?? undefined,
-    );
+    const existingProject = requestedProjectId
+      ? await findWorkspaceProjectById(
+          workspace.adminKeySecret,
+          requestedProjectId,
+          workspace.tenantId ?? undefined,
+        )
+      : await findWorkspaceProjectByName(
+          workspace.adminKeySecret,
+          projectName,
+          workspace.tenantId ?? undefined,
+        );
+
+    if (requestedProjectId && !existingProject) {
+      return jsonError(404, "Project not found.");
+    }
+
+    const projectDescription = `${existingProject?.name ?? projectName} project`;
     const result = await importFugueGitHubApp(workspace.adminKeySecret, {
       branch: branch || undefined,
       buildStrategy: buildStrategy || undefined,

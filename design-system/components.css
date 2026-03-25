@@ -250,17 +250,32 @@
   text-transform: uppercase;
 }
 
+.fg-proof-shell {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .fg-proof-shell pre {
   margin: 0;
-  overflow: auto;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
   padding: 1.35rem 1.2rem 1.45rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
 }
 
 .fg-proof-shell code {
+  display: block;
+  min-width: 100%;
+  width: max-content;
   color: var(--fugue-text-secondary);
   font-family: var(--fugue-font-mono);
   font-size: 0.86rem;
   line-height: 1.75;
+  white-space: pre;
 }
 
 .fg-object-belt {

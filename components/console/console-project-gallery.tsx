@@ -5,8 +5,17 @@ import { useRouter } from "next/navigation";
 
 import { StatusBadge } from "@/components/console/status-badge";
 import { Button } from "@/components/ui/button";
+import { FormField } from "@/components/ui/form-field";
 import { Panel, PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
 import { useToast } from "@/components/ui/toast";
+import {
+  buildEnvDraftRowsFromEntries,
+  entriesFromEnvRecord,
+  parseRawEnvInput,
+  serializeEnvEntries,
+  type EnvDraftRow,
+  type EnvEntry,
+} from "@/lib/console/env-editor";
 import type {
   ConsoleGalleryAppView,
   ConsoleGalleryBadgeKind,
@@ -30,6 +39,11 @@ type CreateProjectResponse = {
     name?: string;
   } | null;
   requestInProgress?: boolean;
+};
+
+type CreateDialogTarget = {
+  id: string;
+  name: string;
 };
 
 type EnvResponse = {
@@ -72,6 +86,12 @@ type EnvRow = {
   originalValue: string;
   removed: boolean;
   value: string;
+};
+
+type EnvRawFeedback = {
+  message: string;
+  tone: "error" | "info" | "success";
+  valid: boolean;
 };
 
 type FileDraft = {
@@ -204,6 +224,84 @@ function rowsFromEnv(env: Record<string, string>) {
       removed: false,
       value,
     }) satisfies EnvRow);
+}
+
+function entriesFromEnvRows(rows: EnvRow[]) {
+  return rows.flatMap((row) => {
+    if (row.removed) {
+      return [];
+    }
+
+    const key = row.existing ? row.originalKey : row.key.trim();
+
+    if (!key) {
+      return [];
+    }
+
+    return [{ key, value: row.value } satisfies EnvEntry];
+  });
+}
+
+function rowsFromEnvDrafts(rows: EnvDraftRow[]) {
+  return rows.map((row) => ({
+    ...row,
+    id: createClientId("env"),
+  }) satisfies EnvRow);
+}
+
+function buildEnvRawFeedback(rows: EnvRow[], ignoredLineCount = 0): EnvRawFeedback {
+  const activeRows = rows.filter((row) => !row.removed);
+  const addedCount = activeRows.filter((row) => !row.existing).length;
+  const updatedCount = activeRows.filter(
+    (row) => row.existing && row.value !== row.originalValue,
+  ).length;
+  const removedCount = rows.filter((row) => row.existing && row.removed).length;
+  const changeCount = addedCount + updatedCount + removedCount;
+  const ignoredLabel =
+    ignoredLineCount > 0
+      ? `${ignoredLineCount} comment${ignoredLineCount === 1 ? "" : "s"} or blank line${ignoredLineCount === 1 ? "" : "s"} ignored`
+      : null;
+
+  if (!activeRows.length) {
+    const message =
+      removedCount > 0
+        ? `Raw input is empty. Saving will remove ${removedCount} existing variable${removedCount === 1 ? "" : "s"}.`
+        : "Raw input is empty. Saving will keep the environment empty.";
+
+    return {
+      message,
+      tone: "info",
+      valid: true,
+    };
+  }
+
+  const parts = [`${activeRows.length} variable${activeRows.length === 1 ? "" : "s"} parsed`];
+
+  if (addedCount > 0) {
+    parts.push(`${addedCount} new`);
+  }
+
+  if (updatedCount > 0) {
+    parts.push(`${updatedCount} updated`);
+  }
+
+  if (removedCount > 0) {
+    parts.push(`${removedCount} removed`);
+  }
+
+  if (changeCount === 0) {
+    parts.push("matches current environment");
+  }
+
+  if (ignoredLabel) {
+    parts.push(ignoredLabel);
+  }
+
+  return {
+    message: `${parts.join(" · ")}.`,
+    tone: changeCount > 0 ? "success" : "info",
+    valid: true,
+  };
 }
 
 function filesFromResponse(files: FileRecord[]) {
@@ -460,6 +558,7 @@ export function ConsoleProjectGallery({
   const { showToast } = useToast();
   const [flash, setFlash] = useState<FlashState | null>(null);
   const [createOpen, setCreateOpen] = useState(defaultCreateOpen);
+  const [createTargetProject, setCreateTargetProject] = useState<CreateDialogTarget | null>(null);
   const [projectName, setProjectName] = useState(buildSuggestedProjectName(data.projects.length));
   const [repoUrl, setRepoUrl] = useState("");
   const [branch, setBranch] = useState("");
@@ -470,9 +569,17 @@ export function ConsoleProjectGallery({
   const [activeTab, setActiveTab] = useState<"env" | "files" | "logs">("env");
   const [isCreating, setIsCreating] = useState(false);
   const [busyAction, setBusyAction] = useState<"delete" | "disable" | "restart" | null>(null);
+  const [envFormat, setEnvFormat] = useState<"raw" | "table">("table");
   const [envStatus, setEnvStatus] = useState<"error" | "idle" | "loading" | "ready">("idle");
+  const [envBaseline, setEnvBaseline] = useState<Record<string, string>>({});
   const [envRows, setEnvRows] = useState<EnvRow[]>([]);
   const [envLoadedAppId, setEnvLoadedAppId] = useState<string | null>(null);
+  const [envRawDraft, setEnvRawDraft] = useState("");
+  const [envRawFeedback, setEnvRawFeedback] = useState<EnvRawFeedback>({
+    message: "Paste a .env block to expand it into individual variables.",
+    tone: "info",
+    valid: true,
+  });
   const [envSaving, setEnvSaving] = useState(false);
   const [filesStatus, setFilesStatus] = useState<"error" | "idle" | "loading" | "ready">("idle");
   const [fileDrafts, setFileDrafts] = useState<FileDraft[]>([]);
@@ -501,6 +608,18 @@ export function ConsoleProjectGallery({
     : null;
   const dataErrorVariant = data.errors.length >= 3 ? "error" : "info";
   const hasLiveProjects = data.projects.some((project) => readProjectLifecycle(project).live);
+  const isCreateServiceMode = createTargetProject !== null;
+  const createDialogEyebrow = isCreateServiceMode ? "Add service" : "Create project";
+  const createDialogCopy = isCreateServiceMode
+    ? `Import a repository into ${createTargetProject.name}.`
+    : "The project is only surfaced after a real import succeeds.";
+  const createDialogSubmitLabel = isCreating
+    ? isCreateServiceMode
+      ? "Adding…"
+      : "Creating…"
+    : isCreateServiceMode
+      ? "Add service"
+      : "Create project";
 
   useEffect(() => {
     if (defaultCreateOpen) {
@@ -571,8 +690,15 @@ export function ConsoleProjectGallery({
   useEffect(() => {
     if (!selectedApp) {
       setEnvStatus("idle");
+      setEnvBaseline({});
       setEnvRows([]);
       setEnvLoadedAppId(null);
+      setEnvRawDraft("");
+      setEnvRawFeedback({
+        message: "Paste a .env block to expand it into individual variables.",
+        tone: "info",
+        valid: true,
+      });
       return;
     }
 
@@ -589,8 +715,13 @@ export function ConsoleProjectGallery({
           return;
         }
 
-        setEnvRows(rowsFromEnv(response.env ?? {}));
+        const nextEnv = response.env ?? {};
+        const nextRows = rowsFromEnv(nextEnv);
+        setEnvBaseline(nextEnv);
+        setEnvRows(nextRows);
         setEnvLoadedAppId(selectedApp.id);
+        setEnvRawDraft(serializeEnvEntries(entriesFromEnvRecord(nextEnv)));
+        setEnvRawFeedback(buildEnvRawFeedback(nextRows));
         setEnvStatus("ready");
       })
       .catch((error) => {
@@ -757,8 +888,25 @@ export function ConsoleProjectGallery({
     setRefreshWindowUntil(Date.now() + durationMs);
   }
 
+  function syncEnvRawEditor(nextRows: EnvRow[]) {
+    setEnvRawDraft(serializeEnvEntries(entriesFromEnvRows(nextRows)));
+    setEnvRawFeedback(buildEnvRawFeedback(nextRows));
+  }
+
   function openCreate() {
     setFlash(null);
+    setCreateTargetProject(null);
+    resetCreateForm(buildSuggestedProjectName(data.projects.length));
+    setCreateOpen(true);
+  }
+
+  function openCreateService(project: ConsoleGalleryProjectView) {
+    setFlash(null);
+    setCreateTargetProject({
+      id: project.id,
+      name: project.name,
+    });
+    resetCreateForm(project.name);
     setCreateOpen(true);
   }
 
@@ -768,6 +916,7 @@ export function ConsoleProjectGallery({
     }
 
     setFlash(null);
+    setCreateTargetProject(null);
     setCreateOpen(false);
     startTransition(() => {
       router.replace("/app");
@@ -800,7 +949,13 @@ export function ConsoleProjectGallery({
             branch,
             buildStrategy,
             name: appName,
-            projectName,
+            ...(createTargetProject
+              ? {
+                  projectId: createTargetProject.id,
+                }
+              : {
+                  projectName,
+                }),
             repoUrl,
           }),
           headers: {
@@ -819,9 +974,14 @@ export function ConsoleProjectGallery({
       }
 
       setCreateOpen(false);
+      setCreateTargetProject(null);
       armRefreshWindow();
       setFlash({
-        message: response.requestInProgress ? "Import is already running." : "Project import queued.",
+        message: response.requestInProgress
+          ? "Import is already running."
+          : createTargetProject
+            ? "Service import queued."
+            : "Project import queued.",
         variant: "success",
       });
       resetCreateForm(buildSuggestedProjectName(data.projects.length + 1));
@@ -919,6 +1079,18 @@ export function ConsoleProjectGallery({
     ]);
   }
 
+  function changeEnvFormat(nextFormat: "raw" | "table") {
+    if (nextFormat === "raw" && envFormat !== "raw") {
+      syncEnvRawEditor(envRows);
+    }
+
+    setEnvFormat(nextFormat);
+  }
+
+  function resetEnvRawDraft() {
+    syncEnvRawEditor(envRows);
+  }
+
   function updateEnvRow(rowId: string, field: "key" | "value", nextValue: string) {
     setEnvRows((current) =>
       current.map((row) => (row.id === rowId ? { ...row, [field]: nextValue } : row)),
@@ -941,8 +1113,35 @@ export function ConsoleProjectGallery({
     );
   }
 
+  function updateEnvRaw(nextValue: string) {
+    setEnvRawDraft(nextValue);
+
+    const parsed = parseRawEnvInput(nextValue);
+
+    if (!parsed.ok) {
+      setEnvRawFeedback({
+        message: `Line ${parsed.line}: ${parsed.message}`,
+        tone: "error",
+        valid: false,
+      });
+      return;
+    }
+
+    const nextRows = rowsFromEnvDrafts(buildEnvDraftRowsFromEntries(parsed.entries, envBaseline));
+    setEnvRows(nextRows);
+    setEnvRawFeedback(buildEnvRawFeedback(nextRows, parsed.ignoredLineCount));
+  }
+
   async function saveEnv() {
     if (!selectedApp || envSaving) {
+      return;
+    }
+
+    if (envFormat === "raw" && !envRawFeedback.valid) {
+      setFlash({
+        message: envRawFeedback.message,
+        variant: "error",
+      });
       return;
     }
 
@@ -1018,8 +1217,13 @@ export function ConsoleProjectGallery({
       });
 
       armRefreshWindow(45_000);
-      setEnvRows(rowsFromEnv(response.env ?? {}));
+      const nextEnv = response.env ?? {};
+      const nextRows = rowsFromEnv(nextEnv);
+      setEnvBaseline(nextEnv);
+      setEnvRows(nextRows);
       setEnvLoadedAppId(selectedApp.id);
+      setEnvRawDraft(serializeEnvEntries(entriesFromEnvRecord(nextEnv)));
+      setEnvRawFeedback(buildEnvRawFeedback(nextRows));
       setFlash({
         message: "Environment changes queued.",
         variant: "success",
@@ -1207,8 +1411,15 @@ export function ConsoleProjectGallery({
               <PanelSection className="fg-project-services__head">
                 <div className="fg-project-services__title-row">
                   <p className="fg-label fg-panel__eyebrow">Services</p>
-                  <span className="fg-project-services__count">{serviceCountLabel}</span>
+                  <button
+                    className="fg-console-utility-button fg-console-utility-button--tight"
+                    onClick={() => openCreateService(project)}
+                    type="button"
+                  >
+                    Add service
+                  </button>
                 </div>
+                <p className="fg-project-services__count">{serviceCountLabel}</p>
               </PanelSection>
 
               <PanelSection>
@@ -1396,21 +1607,54 @@ export function ConsoleProjectGallery({
                       <div className="fg-workbench-section__copy">
                         <p className="fg-label fg-panel__eyebrow">Environment</p>
                         <p className="fg-console-note">
-                          Configure runtime variables for {selectedApp.name}.
+                          {envFormat === "raw"
+                            ? `Paste a .env block for ${selectedApp.name}. Comments, blank lines, and export prefixes are ignored.`
+                            : `Configure runtime variables for ${selectedApp.name}, or switch to Raw to paste a full .env block.`}
                         </p>
                       </div>
 
                       <div className="fg-workbench-section__actions">
+                        <div className="fg-project-tabs" role="tablist" aria-label="Environment formats">
+                          {[
+                            { id: "table", label: "Variables" },
+                            { id: "raw", label: "Raw" },
+                          ].map((tab) => (
+                            <button
+                              aria-selected={envFormat === tab.id}
+                              className={cx("fg-project-tab", envFormat === tab.id && "is-active")}
+                              key={tab.id}
+                              onClick={() => changeEnvFormat(tab.id as "raw" | "table")}
+                              role="tab"
+                              type="button"
+                            >
+                              {tab.label}
+                            </button>
+                          ))}
+                        </div>
+                        {envFormat === "table" ? (
+                          <button
+                            className="fg-console-utility-button fg-console-utility-button--tight"
+                            onClick={addEnvRow}
+                            type="button"
+                          >
+                            Add variable
+                          </button>
+                        ) : (
+                          <button
+                            className="fg-console-utility-button fg-console-utility-button--tight"
+                            onClick={resetEnvRawDraft}
+                            type="button"
+                          >
+                            Reset raw
+                          </button>
+                        )}
                         <button
                           className="fg-console-utility-button fg-console-utility-button--tight"
-                          onClick={addEnvRow}
-                          type="button"
-                        >
-                          Add variable
-                        </button>
-                        <button
-                          className="fg-console-utility-button fg-console-utility-button--tight"
-                          disabled={envSaving || envStatus === "loading"}
+                          disabled={
+                            envSaving ||
+                            envStatus === "loading" ||
+                            (envFormat === "raw" && !envRawFeedback.valid)
+                          }
                           onClick={saveEnv}
                           type="button"
                         >
@@ -1421,42 +1665,92 @@ export function ConsoleProjectGallery({
 
                     {envStatus === "loading" ? (
                       <p className="fg-console-note">Loading environment…</p>
-                    ) : (
+                    ) : envFormat === "table" ? (
                       <div className="fg-env-table">
                         {envRows.length ? (
-                          envRows.map((row) => (
-                            <div
-                              className={cx(
-                                "fg-env-row",
-                                row.removed && "is-removed",
-                              )}
-                              key={row.id}
-                            >
-                              <input
-                                className="fg-input"
-                                disabled={row.existing}
-                                onChange={(event) => updateEnvRow(row.id, "key", event.target.value)}
-                                placeholder="KEY"
-                                value={row.existing ? row.originalKey : row.key}
-                              />
-                              <input
-                                className="fg-input"
-                                onChange={(event) => updateEnvRow(row.id, "value", event.target.value)}
-                                placeholder="value"
-                                value={row.value}
-                              />
-                              <button
-                                className="fg-console-utility-button"
-                                onClick={() => removeEnvRow(row.id)}
-                                type="button"
-                              >
-                                {row.existing ? (row.removed ? "Undo" : "Remove") : "Discard"}
-                              </button>
+                          <>
+                            <div aria-hidden="true" className="fg-env-table__head">
+                              <span>Key</span>
+                              <span>Value</span>
+                              <span>Action</span>
                             </div>
-                          ))
+                            {envRows.map((row) => (
+                              <div
+                                className={cx(
+                                  "fg-env-row",
+                                  row.removed && "is-removed",
+                                )}
+                                key={row.id}
+                              >
+                                <input
+                                  aria-label={`${row.existing ? row.originalKey : "New variable"} key`}
+                                  autoCapitalize="off"
+                                  autoCorrect="off"
+                                  className="fg-input"
+                                  disabled={row.existing}
+                                  onChange={(event) => updateEnvRow(row.id, "key", event.target.value)}
+                                  placeholder="KEY"
+                                  spellCheck={false}
+                                  value={row.existing ? row.originalKey : row.key}
+                                />
+                                <input
+                                  aria-label={`${row.existing ? row.originalKey : "New variable"} value`}
+                                  autoCapitalize="off"
+                                  autoCorrect="off"
+                                  className="fg-input"
+                                  onChange={(event) => updateEnvRow(row.id, "value", event.target.value)}
+                                  placeholder="value"
+                                  spellCheck={false}
+                                  value={row.value}
+                                />
+                                <button
+                                  className="fg-console-utility-button"
+                                  onClick={() => removeEnvRow(row.id)}
+                                  type="button"
+                                >
+                                  {row.existing ? (row.removed ? "Undo" : "Remove") : "Discard"}
+                                </button>
+                              </div>
+                            ))}
+                          </>
                         ) : (
-                          <p className="fg-console-note">No environment variables yet.</p>
+                          <p className="fg-console-note">
+                            No environment variables yet. Add one manually or switch to Raw to paste a .env block.
+                          </p>
                         )}
+                      </div>
+                    ) : (
+                      <div className="fg-env-raw">
+                        <FormField
+                          hint="Paste KEY=value lines directly from a .env file. Quoted values, blank lines, comments, and export prefixes are supported."
+                          htmlFor={`env-raw-${selectedApp.id}`}
+                          label="Raw environment"
+                          optionalLabel="Paste .env"
+                        >
+                          <textarea
+                            aria-invalid={envRawFeedback.valid ? undefined : true}
+                            autoCapitalize="off"
+                            autoCorrect="off"
+                            className="fg-project-textarea fg-env-raw__textarea"
+                            id={`env-raw-${selectedApp.id}`}
+                            onChange={(event) => updateEnvRaw(event.target.value)}
+                            placeholder={`DATABASE_URL=postgres://user:pass@host/db\nNEXT_PUBLIC_API_BASE=https://api.example.com\n# comments are ignored`}
+                            spellCheck={false}
+                            value={envRawDraft}
+                          />
+                        </FormField>
+                        <div
+                          aria-live={envRawFeedback.valid ? "polite" : "assertive"}
+                          className={cx(
+                            "fg-inline-alert",
+                            envRawFeedback.tone === "error" && "fg-inline-alert--error",
+                            envRawFeedback.tone === "info" && "fg-inline-alert--info",
+                            envRawFeedback.tone === "success" && "fg-inline-alert--success",
+                          )}
+                          role={envRawFeedback.valid ? "status" : "alert"}
+                        >
+                          {envRawFeedback.message}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -1702,7 +1996,27 @@ export function ConsoleProjectGallery({
                       <div className="fg-project-card__summary-head">
                         <div className="fg-project-card__summary-copy">
                           <strong>{project.name}</strong>
-                          <span>{projectTitle(project)}</span>
+                          <div className="fg-project-card__summary-meta">
+                            <span className="fg-project-card__summary-kicker">
+                              {projectTitle(project)}
+                            </span>
+
+                            {project.serviceBadges.length ? (
+                              <div
+                                aria-hidden="true"
+                                className="fg-project-card__badges fg-project-card__badges--inline"
+                              >
+                                {project.serviceBadges.map((badge) => (
+                                  <ProjectBadge
+                                    key={badge.id}
+                                    kind={badge.kind}
+                                    label={badge.label}
+                                    meta={badge.meta}
+                                  />
+                                ))}
+                              </div>
+                            ) : null}
+                          </div>
                         </div>
 
                         <div className="fg-project-card__summary-side">
@@ -1721,19 +2035,6 @@ export function ConsoleProjectGallery({
                           </span>
                         </div>
                       </div>
-
-                      {project.serviceBadges.length ? (
-                        <div className="fg-project-card__badges">
-                          {project.serviceBadges.map((badge) => (
-                            <ProjectBadge
-                              key={badge.id}
-                              kind={badge.kind}
-                              label={badge.label}
-                              meta={badge.meta}
-                            />
-                          ))}
-                        </div>
-                      ) : null}
                     </button>
 
                     {expanded ? renderProjectWorkbench(project, detailId) : null}
@@ -1763,28 +2064,37 @@ export function ConsoleProjectGallery({
           >
             <Panel className="fg-console-dialog-panel">
               <PanelSection>
-                <p className="fg-label fg-panel__eyebrow">Create project</p>
+                <p className="fg-label fg-panel__eyebrow">{createDialogEyebrow}</p>
                 <PanelTitle className="fg-console-dialog__title" id="fugue-create-project-title">
                   Import repository
                 </PanelTitle>
-                <PanelCopy>
-                  The project is only surfaced after a real import succeeds.
-                </PanelCopy>
+                <PanelCopy>{createDialogCopy}</PanelCopy>
               </PanelSection>
 
               <PanelSection>
                 <form className="fg-form-grid" onSubmit={handleCreateProject}>
                   <div className="fg-console-dialog__grid">
-                    <label className="fg-field-stack">
-                      <span className="fg-field-label">Project name</span>
-                      <input
-                        className="fg-input"
-                        onChange={(event) => setProjectName(event.target.value)}
-                        placeholder="project-1"
-                        required
-                        value={projectName}
-                      />
-                    </label>
+                    {createTargetProject ? (
+                      <label className="fg-field-stack">
+                        <span className="fg-field-label">Project</span>
+                        <input
+                          className="fg-input"
+                          readOnly
+                          value={createTargetProject.name}
+                        />
+                      </label>
+                    ) : (
+                      <label className="fg-field-stack">
+                        <span className="fg-field-label">Project name</span>
+                        <input
+                          className="fg-input"
+                          onChange={(event) => setProjectName(event.target.value)}
+                          placeholder="project-1"
+                          required
+                          value={projectName}
+                        />
+                      </label>
+                    )}
 
                     <label className="fg-field-stack">
                       <span className="fg-field-label">Repository URL</span>
@@ -1843,7 +2153,7 @@ export function ConsoleProjectGallery({
                       Cancel
                     </Button>
                     <Button type="submit" variant="primary">
-                      {isCreating ? "Creating…" : "Create project"}
+                      {createDialogSubmitLabel}
                     </Button>
                   </div>
                 </form>

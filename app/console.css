@@ -1908,7 +1908,15 @@
   overflow-wrap: anywhere;
 }
 
-.fg-project-card__summary-copy span {
+.fg-project-card__summary-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.48rem 0.72rem;
+  min-width: 0;
+}
+
+.fg-project-card__summary-kicker {
   color: var(--fugue-text-tertiary);
   font-size: 0.8rem;
   line-height: 1.45;
@@ -2018,6 +2026,22 @@
   flex-wrap: wrap;
   gap: 0.55rem;
   min-width: 0;
+}
+
+.fg-project-card__badges--inline {
+  gap: 0.38rem;
+  align-items: center;
+}
+
+.fg-project-card__badges--inline .fg-project-badge {
+  width: 2.12rem;
+  height: 2.12rem;
+  border-radius: 0.82rem;
+}
+
+.fg-project-card__badges--inline .fg-project-badge__glyph {
+  width: 0.92rem;
+  height: 0.92rem;
 }
 
 .fg-project-badge {
@@ -2187,6 +2211,8 @@
 .fg-project-workbench__inner,
 .fg-project-workbench__rail,
 .fg-project-workbench__main,
+.fg-workbench-section,
+.fg-proof-shell,
 .fg-project-inspector,
 .fg-project-services,
 .fg-project-inspector__head,
@@ -2352,6 +2378,18 @@
   gap: 0.75rem;
 }
 
+.fg-env-table__head {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.15fr) auto;
+  gap: 0.65rem;
+  padding: 0 0.15rem;
+  color: var(--fugue-text-muted);
+  font-family: var(--fugue-font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
 .fg-env-row {
   display: grid;
   grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.15fr) auto;
@@ -2361,6 +2399,15 @@
 
 .fg-env-row.is-removed {
   opacity: 0.55;
+}
+
+.fg-env-raw {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.fg-env-raw__textarea {
+  min-height: 18rem;
 }
 
 .fg-file-editor {
@@ -2461,12 +2508,14 @@
 
 .fg-project-services__title-row {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   gap: 0.75rem;
 }
 
 .fg-project-services__count {
+  margin: 0;
   color: var(--fugue-text-muted);
   font-family: var(--fugue-font-mono);
   font-size: 0.64rem;
@@ -2617,6 +2666,10 @@
     grid-template-columns: 1fr;
   }
 
+  .fg-env-table__head {
+    display: none;
+  }
+
   .fg-project-card__summary-side {
     width: 100%;
     justify-content: space-between;
@@ -2662,6 +2715,16 @@
   .fg-project-badge {
     width: 2.82rem;
     height: 2.82rem;
+  }
+
+  .fg-project-card__badges--inline .fg-project-badge {
+    width: 1.94rem;
+    height: 1.94rem;
+  }
+
+  .fg-project-card__badges--inline .fg-project-badge__glyph {
+    width: 0.84rem;
+    height: 0.84rem;
   }
 
   .fg-project-service-card__badges .fg-project-badge {

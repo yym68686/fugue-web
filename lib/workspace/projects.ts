@@ -41,6 +41,10 @@ export function findProjectByName(projects: FugueProject[], requestedName: strin
   );
 }
 
+export function findProjectById(projects: FugueProject[], requestedId: string) {
+  return projects.find((project) => project.id === requestedId) ?? null;
+}
+
 export async function findWorkspaceProjectByName(
   accessToken: string,
   requestedName: string,
@@ -48,4 +52,13 @@ export async function findWorkspaceProjectByName(
 ) {
   const projects = await getFugueProjects(accessToken, tenantId);
   return findProjectByName(projects, requestedName);
+}
+
+export async function findWorkspaceProjectById(
+  accessToken: string,
+  requestedId: string,
+  tenantId?: string,
+) {
+  const projects = await getFugueProjects(accessToken, tenantId);
+  return findProjectById(projects, requestedId);
 }
