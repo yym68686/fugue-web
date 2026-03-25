@@ -127,7 +127,6 @@ const terminalOperationStatuses = new Set(["canceled", "cancelled", "completed",
 
 type AppCommitOperations = {
   active: FugueOperation | null;
-  successful: FugueOperation | null;
 };
 
 function toneForStatus(status?: string | null): ConsoleTone {
@@ -178,11 +177,6 @@ function toneForStatus(status?: string | null): ConsoleTone {
 
 function isActiveOperation(status?: string | null) {
   return !terminalOperationStatuses.has(status?.trim().toLowerCase() ?? "");
-}
-
-function isSuccessfulOperation(status?: string | null) {
-  const normalized = status?.trim().toLowerCase() ?? "";
-  return normalized === "completed" || normalized.includes("success");
 }
 
 function readOperationTimestamp(operation: FugueOperation) {
@@ -278,11 +272,7 @@ function buildCommitViews(
 ): ConsoleGalleryCommitView[] {
   const pendingOperation = commitOperations?.active ?? null;
   const pendingCommitSha = readOperationCommitSha(pendingOperation);
-  const runningSource =
-    pendingCommitSha && commitOperations?.successful?.desiredSource?.commitSha?.trim()
-      ? commitOperations.successful.desiredSource
-      : app.source;
-  const runningCommitSha = runningSource.commitSha?.trim() || null;
+  const runningCommitSha = app.source.commitSha?.trim() || null;
 
   const runningCommit = buildCommitView({
     fallbackLabel:
@@ -291,7 +281,10 @@ function buildCommitViews(
         : null,
     fallbackRepoUrl: app.source.repoUrl,
     kind: "running",
-    source: runningSource,
+    // `app.source` stays on the live release until the deploy finishes.
+    // Completed import operations already describe the next release, so they
+    // must not replace the running commit shown in the inspector.
+    source: app.source,
     stateLabel: "Running",
     tone: "positive",
   });
@@ -325,22 +318,17 @@ function collectCommitOperationsByAppId(operations: FugueOperation[]) {
   const commitOperationsByAppId = new Map<string, AppCommitOperations>();
 
   for (const operation of sortByTimestampDesc(operations, readOperationTimestamp)) {
-    if (!operation.appId || !readOperationCommitSha(operation)) {
+    if (!operation.appId) {
       continue;
     }
 
     const entry = commitOperationsByAppId.get(operation.appId) ?? {
       active: null,
-      successful: null,
     };
 
     if (isActiveOperation(operation.status)) {
       if (!entry.active) {
         entry.active = operation;
-      }
-    } else if (isSuccessfulOperation(operation.status)) {
-      if (!entry.successful) {
-        entry.successful = operation;
       }
     }
 

@@ -172,6 +172,10 @@ function includesLifecycleKeyword(value: string, keywords: string[]) {
 }
 
 function readProjectLifecycle(project: ConsoleGalleryProjectView): ProjectLifecycle {
+  const tracksGitHubBranch = project.services.some(
+    (service) =>
+      service.kind === "app" && service.sourceType?.trim().toLowerCase() === "github-public",
+  );
   const statuses = project.services
     .map((service) =>
       service.kind === "app" ? service.phase : service.status,
@@ -208,7 +212,12 @@ function readProjectLifecycle(project: ConsoleGalleryProjectView): ProjectLifecy
   }
 
   if (project.appCount > 0) {
-    return { label: "Deployed", tone: "positive", live: false, syncMode: "idle" };
+    return {
+      label: "Deployed",
+      tone: "positive",
+      live: false,
+      syncMode: tracksGitHubBranch ? "passive" : "idle",
+    };
   }
 
   if (project.serviceCount > 0) {
