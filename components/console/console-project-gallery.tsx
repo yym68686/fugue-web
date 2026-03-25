@@ -146,6 +146,8 @@ const RUNTIME_VIEW_OPTIONS: readonly SegmentedControlOption<RuntimeView>[] = [
 ];
 
 const LOG_AUTO_REFRESH_INTERVAL_MS = 3_000;
+const PROJECT_ACTIVE_REFRESH_INTERVAL_MS = 3_000;
+const PROJECT_PASSIVE_REFRESH_INTERVAL_MS = 6_000;
 const LOG_TAIL_LINES = 200;
 const TERMINAL_LOG_OPERATION_STATUSES = new Set(["canceled", "cancelled", "completed", "failed"]);
 
@@ -160,6 +162,7 @@ function buildSuggestedProjectName(existingProjectsCount: number) {
 type ProjectLifecycle = {
   label: string;
   live: boolean;
+  syncMode: "active" | "idle" | "passive";
   tone: ConsoleTone;
 };
 
@@ -176,42 +179,42 @@ function readProjectLifecycle(project: ConsoleGalleryProjectView): ProjectLifecy
     .filter(Boolean);
 
   if (statuses.some((status) => includesLifecycleKeyword(status, ["deleting"]))) {
-    return { label: "Deleting", tone: "danger", live: true };
+    return { label: "Deleting", tone: "danger", live: true, syncMode: "active" };
   }
 
   if (statuses.some((status) => includesLifecycleKeyword(status, ["error", "fail", "stopped"]))) {
-    return { label: "Error", tone: "danger", live: false };
+    return { label: "Error", tone: "danger", live: false, syncMode: "passive" };
   }
 
   if (statuses.some((status) => includesLifecycleKeyword(status, ["importing"]))) {
-    return { label: "Importing", tone: "positive", live: true };
+    return { label: "Importing", tone: "positive", live: true, syncMode: "active" };
   }
 
   if (statuses.some((status) => includesLifecycleKeyword(status, ["building"]))) {
-    return { label: "Building", tone: "positive", live: true };
+    return { label: "Building", tone: "positive", live: true, syncMode: "active" };
   }
 
   if (statuses.some((status) => includesLifecycleKeyword(status, ["deploying"]))) {
-    return { label: "Deploying", tone: "positive", live: true };
+    return { label: "Deploying", tone: "positive", live: true, syncMode: "active" };
   }
 
   if (statuses.some((status) => includesLifecycleKeyword(status, ["queued", "pending", "migrating"]))) {
-    return { label: "Queued", tone: "positive", live: true };
+    return { label: "Queued", tone: "positive", live: true, syncMode: "active" };
   }
 
   if (statuses.length > 0 && statuses.every((status) => includesLifecycleKeyword(status, ["disabled"]))) {
-    return { label: "Paused", tone: "warning", live: false };
+    return { label: "Paused", tone: "warning", live: false, syncMode: "idle" };
   }
 
   if (project.appCount > 0) {
-    return { label: "Deployed", tone: "positive", live: false };
+    return { label: "Deployed", tone: "positive", live: false, syncMode: "idle" };
   }
 
   if (project.serviceCount > 0) {
-    return { label: "Ready", tone: "positive", live: false };
+    return { label: "Ready", tone: "positive", live: false, syncMode: "idle" };
   }
 
-  return { label: "Idle", tone: "neutral", live: false };
+  return { label: "Idle", tone: "neutral", live: false, syncMode: "idle" };
 }
 
 function readErrorMessage(error: unknown) {
@@ -844,7 +847,17 @@ export function ConsoleProjectGallery({
     ? `Partial Fugue data: ${data.errors.join(" | ")}.`
     : null;
   const dataErrorVariant = data.errors.length >= 3 ? "error" : "info";
-  const hasLiveProjects = data.projects.some((project) => readProjectLifecycle(project).live);
+  const projectLifecycles = data.projects.map((project) => readProjectLifecycle(project));
+  const hasLiveProjects = projectLifecycles.some((lifecycle) => lifecycle.syncMode === "active");
+  const hasPassiveSyncProjects = projectLifecycles.some(
+    (lifecycle) => lifecycle.syncMode === "passive",
+  );
+  const projectRefreshIntervalMs =
+    hasLiveProjects || refreshWindowUntil > Date.now()
+      ? PROJECT_ACTIVE_REFRESH_INTERVAL_MS
+      : hasPassiveSyncProjects
+        ? PROJECT_PASSIVE_REFRESH_INTERVAL_MS
+        : null;
   const isCreateServiceMode = createTargetProject !== null;
   const createDialogEyebrow = isCreateServiceMode ? "Add service" : "Create project";
   const createDialogCopy = isCreateServiceMode
@@ -1120,14 +1133,18 @@ export function ConsoleProjectGallery({
   }, [activeTab, logsAutoRefreshEnabled, logsRequestKey]);
 
   useEffect(() => {
-    if (!hasLiveProjects && refreshWindowUntil <= Date.now()) {
+    if (!projectRefreshIntervalMs) {
       return undefined;
     }
 
     const intervalId = window.setInterval(() => {
-      if (!hasLiveProjects && refreshWindowUntil <= Date.now()) {
+      const refreshWindowExpired = refreshWindowUntil > 0 && refreshWindowUntil <= Date.now();
+
+      if (refreshWindowExpired) {
         setRefreshWindowUntil(0);
-        return;
+        if (!hasLiveProjects && !hasPassiveSyncProjects) {
+          return;
+        }
       }
 
       if (document.visibilityState !== "visible") {
@@ -1137,12 +1154,12 @@ export function ConsoleProjectGallery({
       startTransition(() => {
         router.refresh();
       });
-    }, 3000);
+    }, projectRefreshIntervalMs);
 
     return () => {
       window.clearInterval(intervalId);
     };
-  }, [hasLiveProjects, refreshWindowUntil, router]);
+  }, [hasLiveProjects, hasPassiveSyncProjects, projectRefreshIntervalMs, refreshWindowUntil, router]);
 
   function resetCreateForm(nextProjectName: string) {
     setProjectName(nextProjectName);
