@@ -75,6 +75,8 @@ export type AdminUsersPageData = {
   users: AdminUserView[];
 };
 
+const REBUILDABLE_APP_SOURCE_TYPES = new Set(["github-public", "upload"]);
+
 function readErrorMessage(error: unknown) {
   if (error instanceof Error && error.message) {
     return error.message;
@@ -192,6 +194,11 @@ function readProviderLabel(value?: string | null) {
 
 function normalizeTechKind(value?: string | null) {
   return value?.trim().toLowerCase() || "stack";
+}
+
+function canRebuildApp(app: FugueApp) {
+  const sourceType = app.source.type?.trim().toLowerCase() ?? "";
+  return REBUILDABLE_APP_SOURCE_TYPES.has(sourceType);
 }
 
 function buildAppStack(app: FugueApp) {
@@ -378,7 +385,7 @@ function mapAdminApps(
       const updatedAt = app.status.updatedAt ?? app.updatedAt ?? app.createdAt;
 
       return {
-        canRebuild: app.source.type === "github-public",
+        canRebuild: canRebuildApp(app),
         id: app.id,
         name: app.name,
         phase,

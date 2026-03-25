@@ -212,24 +212,12 @@ export function NodeKeyManager({
     setSyncError(data.syncError);
   }
 
-  async function refreshKeys(options?: { successMessage?: string }) {
+  async function refreshKeys() {
     const data = await requestJson<NodeKeyPagePayload>("/api/fugue/node-keys", {
       cache: "no-store",
     });
 
     syncLocalState(data);
-
-    if (options?.successMessage) {
-      showToast({
-        message: options.successMessage,
-        variant: "success",
-      });
-    } else if (data.syncError) {
-      showToast({
-        message: "Showing stored node key metadata while live sync is unavailable.",
-        variant: "info",
-      });
-    }
 
     return data;
   }
@@ -242,16 +230,14 @@ export function NodeKeyManager({
     setBusyAction("refresh");
 
     try {
-      const data = await refreshKeys({
-        successMessage: "Node key list refreshed.",
-      });
+      const data = await refreshKeys();
 
-      if (data.syncError) {
-        showToast({
-          message: "Live sync is still unavailable. Stored node key metadata remains visible.",
-          variant: "info",
-        });
-      }
+      showToast({
+        message: data.syncError
+          ? "Live sync is still unavailable. Stored node key metadata remains visible."
+          : "Node key list refreshed.",
+        variant: data.syncError ? "info" : "success",
+      });
     } catch (error) {
       showToast({
         message: readErrorMessage(error),
@@ -381,32 +367,29 @@ export function NodeKeyManager({
             <p>Reusable secrets for attaching external runtimes.</p>
           </div>
 
-          <InlineActionButton
-            blocked={Boolean(busyAction && busyAction !== "create")}
-            busy={busyAction === "create"}
-            label={busyAction === "create" ? "Creating…" : "Create node key"}
-            onClick={() => {
-              void handleCreate();
-            }}
-          />
+          <div className="fg-project-actions">
+            {syncError ? (
+              <InlineActionButton
+                blocked={Boolean(busyAction && busyAction !== "refresh")}
+                busy={busyAction === "refresh"}
+                label={busyAction === "refresh" ? "Refreshing…" : "Refresh keys"}
+                onClick={() => {
+                  void handleRefresh();
+                }}
+              />
+            ) : null}
+
+            <InlineActionButton
+              blocked={Boolean(busyAction && busyAction !== "create")}
+              busy={busyAction === "create"}
+              label={busyAction === "create" ? "Creating…" : "Create node key"}
+              onClick={() => {
+                void handleCreate();
+              }}
+            />
+          </div>
         </div>
       </PanelSection>
-
-      {syncError ? (
-        <PanelSection className="fg-api-key-sync-note">
-          <span>Showing stored metadata.</span>
-          <button
-            className="fg-console-inline-action"
-            disabled={busyAction !== null}
-            onClick={() => {
-              void handleRefresh();
-            }}
-            type="button"
-          >
-            {busyAction === "refresh" ? "Retrying…" : "Retry live sync"}
-          </button>
-        </PanelSection>
-      ) : null}
 
       <PanelSection>
         {keys.length ? (

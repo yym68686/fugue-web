@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 
 import { StatusBadge } from "@/components/console/status-badge";
 import { Button } from "@/components/ui/button";
-import { InlineAlert } from "@/components/ui/inline-alert";
 import { Panel, PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
 import { useToast } from "@/components/ui/toast";
 import type {
@@ -14,6 +13,7 @@ import type {
   ConsoleGalleryProjectView,
   ConsoleProjectGalleryData,
 } from "@/lib/console/gallery-types";
+import type { ConsoleTone } from "@/lib/console/types";
 import { cx } from "@/lib/ui/cx";
 
 type FlashState = {
@@ -106,6 +106,67 @@ function createClientId(prefix: string) {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function buildSuggestedProjectName(existingProjectsCount: number) {
+  return `project-${Math.max(existingProjectsCount + 1, 1)}`;
+}
+
+type ProjectLifecycle = {
+  label: string;
+  live: boolean;
+  tone: ConsoleTone;
+};
+
+function includesLifecycleKeyword(value: string, keywords: string[]) {
+  return keywords.some((keyword) => value.includes(keyword));
+}
+
+function readProjectLifecycle(project: ConsoleGalleryProjectView): ProjectLifecycle {
+  const statuses = project.services
+    .map((service) =>
+      service.kind === "app" ? service.phase : service.status,
+    )
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+
+  if (statuses.some((status) => includesLifecycleKeyword(status, ["deleting"]))) {
+    return { label: "DELETING", tone: "danger", live: true };
+  }
+
+  if (statuses.some((status) => includesLifecycleKeyword(status, ["error", "fail", "stopped"]))) {
+    return { label: "ERROR", tone: "danger", live: false };
+  }
+
+  if (statuses.some((status) => includesLifecycleKeyword(status, ["importing"]))) {
+    return { label: "IMPORTING", tone: "positive", live: true };
+  }
+
+  if (statuses.some((status) => includesLifecycleKeyword(status, ["building"]))) {
+    return { label: "BUILDING", tone: "positive", live: true };
+  }
+
+  if (statuses.some((status) => includesLifecycleKeyword(status, ["deploying"]))) {
+    return { label: "DEPLOYING", tone: "positive", live: true };
+  }
+
+  if (statuses.some((status) => includesLifecycleKeyword(status, ["queued", "pending", "migrating"]))) {
+    return { label: "QUEUED", tone: "positive", live: true };
+  }
+
+  if (statuses.length > 0 && statuses.every((status) => includesLifecycleKeyword(status, ["disabled"]))) {
+    return { label: "PAUSED", tone: "warning", live: false };
+  }
+
+  if (project.appCount > 0) {
+    return { label: "DEPLOYED", tone: "positive", live: false };
+  }
+
+  if (project.serviceCount > 0) {
+    return { label: "READY", tone: "positive", live: false };
+  }
+
+  return { label: "IDLE", tone: "neutral", live: false };
+}
+
 function readErrorMessage(error: unknown) {
   if (error instanceof Error && error.message) {
     return error.message;
@@ -181,6 +242,106 @@ function runtimeLogMeta(runtimeLogs: RuntimeLogsResponse) {
 
 function StackGlyph({ kind }: { kind: ConsoleGalleryBadgeKind }) {
   switch (kind) {
+    case "python":
+      return (
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+          <path
+            d="M12.1 2.5c4.6 0 4.3 2 4.3 2v3H9.6v1h9.2c0 0 2.2-.24 2.2 3.2 0 3.44-1.92 3.32-1.92 3.32h-1.14v-1.62c0-1.78-1.54-3.42-3.42-3.42H8.88c-1.78 0-3.38-1.52-3.38-3.42V5.92C5.5 4.14 7 2.5 8.92 2.5h3.18Zm1.74 1.18a.9.9 0 1 0 0 1.8.9.9 0 0 0 0-1.8Z"
+            fill="currentColor"
+          />
+          <path
+            d="M11.9 21.5c-4.6 0-4.3-2-4.3-2v-3h6.8v-1H5.2s-2.2.24-2.2-3.2c0-3.44 1.92-3.32 1.92-3.32h1.14v1.62c0 1.78 1.54 3.42 3.42 3.42h5.64c1.78 0 3.38 1.52 3.38 3.42v2.66c0 1.78-1.5 3.42-3.42 3.42H11.9Zm-1.74-1.18a.9.9 0 1 0 0-1.8.9.9 0 0 0 0 1.8Z"
+            fill="currentColor"
+          />
+        </svg>
+      );
+    case "node":
+      return (
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+          <path
+            d="m12 2.3 8.1 4.7v9.4L12 21.1l-8.1-4.7V7L12 2.3Zm0 2.31L5.9 8.1v7.8l6.1 3.5 6.1-3.5V8.1L12 4.61Z"
+            fill="currentColor"
+          />
+          <path
+            d="M9 8.8h1.46l3.08 4.79V8.8H15v6.4h-1.4l-3.14-4.9v4.9H9V8.8Z"
+            fill="currentColor"
+          />
+        </svg>
+      );
+    case "go":
+      return (
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+          <path
+            d="M3 9.3h6.2v1.5H3V9.3Zm0 3h4.4v1.5H3v-1.5Zm10.1-2.2a4 4 0 1 1 0 8 4 4 0 0 1 0-8Zm0 1.8a2.2 2.2 0 1 0 0 4.4 2.2 2.2 0 0 0 0-4.4Zm7.1-1.8a4 4 0 1 1 0 8 4 4 0 0 1 0-8Zm0 1.8a2.2 2.2 0 1 0 0 4.4 2.2 2.2 0 0 0 0-4.4Z"
+            fill="currentColor"
+          />
+        </svg>
+      );
+    case "java":
+      return (
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+          <path
+            d="M13.2 3.4c1.72 1.34-1.5 2.07-.7 3.7.43.88 2.35 1.3 1.98 2.86-.24 1.03-1.42 1.74-3.44 2.1 1.2-.52 1.86-1.12 1.98-1.8.2-1.14-1.42-1.64-1.74-2.86-.34-1.32.74-2.38 1.92-4Z"
+            fill="currentColor"
+          />
+          <path
+            d="M7.2 14.6c0 1.18 2.42 1.54 4.86 1.54 2.42 0 4.64-.42 4.64-1.38 0-.4-.4-.76-1.08-1.06 1.36.14 2.56.74 2.56 1.72 0 1.64-2.92 2.42-6.18 2.42-3.42 0-6.34-.94-6.34-2.56 0-.94 1.02-1.66 2.62-2.08-.72.4-1.08.86-1.08 1.4Z"
+            fill="currentColor"
+          />
+          <path
+            d="M9.1 19.1c.82.34 1.82.5 2.9.5 3.4 0 6.24-1.54 6.24-3.44 0-.26-.06-.5-.18-.74.62.38.98.9.98 1.52 0 2.28-3.12 4.06-7.04 4.06-1.4 0-2.72-.22-3.84-.62l.94-1.28Z"
+            fill="currentColor"
+          />
+        </svg>
+      );
+    case "ruby":
+      return (
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+          <path
+            d="m12 2.5 6.4 2.2 1.9 6.1-4.3 8.1H8l-4.3-8.1 1.9-6.1L12 2.5Zm0 2.04L7.4 6.1 6 10.52l2.96 5.6h6.08L18 10.52 16.6 6.1 12 4.54Z"
+            fill="currentColor"
+          />
+          <path
+            d="m8.1 6.9 3.9 1.06 3.9-1.06-1.28 4.22L12 16.7l-2.62-5.58L8.1 6.9Z"
+            fill="currentColor"
+          />
+        </svg>
+      );
+    case "php":
+      return (
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+          <path
+            d="M12 4.2c4.92 0 8.9 2.5 8.9 5.58 0 3.08-3.98 5.58-8.9 5.58-4.92 0-8.9-2.5-8.9-5.58 0-3.08 3.98-5.58 8.9-5.58Zm0 1.8c-3.94 0-7.1 1.7-7.1 3.78 0 2.08 3.16 3.78 7.1 3.78 3.94 0 7.1-1.7 7.1-3.78C19.1 7.7 15.94 6 12 6Z"
+            fill="currentColor"
+          />
+          <path
+            d="M7.2 8.45h1.64c1.14 0 1.78.52 1.78 1.46 0 1.02-.74 1.6-2 1.6h-.54v1.94H7.2V8.45Zm.9.74v1.58h.54c.72 0 1.12-.3 1.12-.8 0-.52-.34-.78-1.02-.78H8.1Zm3.42-.74h1.46c1.34 0 2.08.88 2.08 2.46 0 1.62-.84 2.54-2.28 2.54h-1.26V8.45Zm.9.76v3.48h.34c.94 0 1.4-.58 1.4-1.76 0-1.16-.44-1.72-1.34-1.72h-.4Zm4.14-.76h2.96v.78h-2.06v1.38h1.82v.76h-1.82v2.08h-.9V8.45Z"
+            fill="currentColor"
+          />
+        </svg>
+      );
+    case "dotnet":
+      return (
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+          <path
+            d="m12 2.6 7.6 4.4v10L12 21.4 4.4 17V7L12 2.6Zm0 2.14L6.2 8.02v7.96L12 19.26l5.8-3.28V8.02L12 4.74Z"
+            fill="currentColor"
+          />
+          <path
+            d="M8 9h1.42c1.4 0 2.18.9 2.18 2.52 0 1.66-.9 2.6-2.4 2.6H8V9Zm1 4.3h.3c.98 0 1.44-.58 1.44-1.78 0-1.12-.44-1.7-1.34-1.7H9v3.48Zm3.54-4.3h.86l2.22 3.56V9h.92v5.12h-.82l-2.26-3.6v3.6h-.92V9Z"
+            fill="currentColor"
+          />
+        </svg>
+      );
+    case "rust":
+      return (
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+          <path
+            d="M12 3.4 13.6 5l2.24-.38.92 2.08 2.14.82-.3 2.28L20.6 12l-1.94 2.28.3 2.28-2.14.82-.92 2.08-2.24-.38L12 20.6l-1.6-1.52-2.24.38-.92-2.08-2.14-.82.3-2.28L3.4 12l1.94-2.2-.3-2.28 2.14-.82.92-2.08 2.24.38L12 3.4Zm0 3.2a5.4 5.4 0 1 0 0 10.8 5.4 5.4 0 0 0 0-10.8Zm-1.84 2.18h2.18c1.48 0 2.36.72 2.36 1.94 0 .86-.48 1.48-1.34 1.76l1.56 2.58h-1.32l-1.38-2.34H11.1v2.34h-.94V8.78Zm.94.76v2.36h1.12c.92 0 1.42-.4 1.42-1.18 0-.78-.48-1.18-1.4-1.18H11.1Z"
+            fill="currentColor"
+          />
+        </svg>
+      );
     case "github":
       return (
         <svg aria-hidden="true" viewBox="0 0 24 24">
@@ -249,18 +410,43 @@ function StackGlyph({ kind }: { kind: ConsoleGalleryBadgeKind }) {
 
 function ProjectBadge({ kind, label, meta }: { kind: ConsoleGalleryBadgeKind; label: string; meta: string }) {
   return (
-    <div className="fg-project-badge" title={`${label} / ${meta}`}>
+    <div
+      aria-label={`${label} / ${meta}`}
+      className="fg-project-badge"
+      data-kind={kind}
+      role="img"
+      title={`${label} / ${meta}`}
+    >
       <span className="fg-project-badge__glyph">
         <StackGlyph kind={kind} />
       </span>
-      <span className="fg-project-badge__label">{label}</span>
-      <span className="fg-project-badge__meta">{meta}</span>
+      <span className="fg-project-badge__sr">{label}</span>
     </div>
   );
 }
 
+function ProjectLifecycleBadge({
+  project,
+}: {
+  project: ConsoleGalleryProjectView;
+}) {
+  const lifecycle = readProjectLifecycle(project);
+
+  return (
+    <span
+      className="fg-project-lifecycle"
+      data-live={lifecycle.live ? "true" : "false"}
+      data-tone={lifecycle.tone}
+      title={project.latestActivityExact}
+    >
+      <span aria-hidden="true" className="fg-project-lifecycle__dot" />
+      <span>{lifecycle.label}</span>
+    </span>
+  );
+}
+
 function projectTitle(project: ConsoleGalleryProjectView) {
-  return `${project.name} / ${project.serviceCount} service${project.serviceCount === 1 ? "" : "s"}`;
+  return `${project.appCount} app${project.appCount === 1 ? "" : "s"} · ${project.serviceCount} service${project.serviceCount === 1 ? "" : "s"}`;
 }
 
 export function ConsoleProjectGallery({
@@ -272,17 +458,15 @@ export function ConsoleProjectGallery({
 }) {
   const router = useRouter();
   const { showToast } = useToast();
-  const firstProject = data.projects[0] ?? null;
-  const firstProjectAppId = firstProject ? projectApps(firstProject)[0]?.id ?? null : null;
   const [flash, setFlash] = useState<FlashState | null>(null);
   const [createOpen, setCreateOpen] = useState(defaultCreateOpen);
-  const [projectName, setProjectName] = useState(data.projects.length ? `project-${data.projects.length + 1}` : "default");
+  const [projectName, setProjectName] = useState(buildSuggestedProjectName(data.projects.length));
   const [repoUrl, setRepoUrl] = useState("");
   const [branch, setBranch] = useState("");
   const [appName, setAppName] = useState("");
   const [buildStrategy, setBuildStrategy] = useState<BuildStrategyValue>("auto");
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(firstProject?.id ?? null);
-  const [selectedAppId, setSelectedAppId] = useState<string | null>(firstProjectAppId);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"env" | "files" | "logs">("env");
   const [isCreating, setIsCreating] = useState(false);
   const [busyAction, setBusyAction] = useState<"delete" | "disable" | "restart" | null>(null);
@@ -301,18 +485,22 @@ export function ConsoleProjectGallery({
   const [logsBody, setLogsBody] = useState("");
   const [logsMeta, setLogsMeta] = useState<string[]>([]);
   const [logsLoadedKey, setLogsLoadedKey] = useState<string | null>(null);
+  const [refreshWindowUntil, setRefreshWindowUntil] = useState(0);
 
   const selectedProject =
-    data.projects.find((project) => project.id === selectedProjectId) ?? data.projects[0] ?? null;
+    data.projects.find((project) => project.id === selectedProjectId) ?? null;
   const selectedProjectApps = selectedProject ? projectApps(selectedProject) : [];
   const selectedApp =
     selectedProjectApps.find((app) => app.id === selectedAppId) ??
-    selectedProjectApps[0] ??
+    (selectedProject ? selectedProjectApps[0] : null) ??
     null;
   const selectedFile =
     fileDrafts.find((file) => file.id === selectedFileId) ?? fileDrafts[0] ?? null;
-  const pageFlash = createOpen ? null : flash;
-  const modalFlash = createOpen ? flash : null;
+  const dataErrorMessage = data.errors.length
+    ? `Partial Fugue data: ${data.errors.join(" | ")}.`
+    : null;
+  const dataErrorVariant = data.errors.length >= 3 ? "error" : "info";
+  const hasLiveProjects = data.projects.some((project) => readProjectLifecycle(project).live);
 
   useEffect(() => {
     if (defaultCreateOpen) {
@@ -332,22 +520,40 @@ export function ConsoleProjectGallery({
   }, [flash, showToast]);
 
   useEffect(() => {
+    if (!dataErrorMessage) {
+      return;
+    }
+
+    showToast({
+      message: dataErrorMessage,
+      variant: dataErrorVariant,
+    });
+  }, [dataErrorMessage, dataErrorVariant, showToast]);
+
+  useEffect(() => {
     if (!createOpen && !isCreating) {
-      setProjectName(data.projects.length ? `project-${data.projects.length + 1}` : "default");
+      setProjectName(buildSuggestedProjectName(data.projects.length));
     }
   }, [createOpen, data.projects.length, isCreating]);
 
   useEffect(() => {
+    if (!selectedProjectId) {
+      if (selectedAppId) {
+        setSelectedAppId(null);
+      }
+      return;
+    }
+
     if (!selectedProject) {
-      setSelectedProjectId(firstProject?.id ?? null);
-      setSelectedAppId(firstProjectAppId);
+      setSelectedProjectId(null);
+      setSelectedAppId(null);
       return;
     }
 
     if (!selectedApp) {
       setSelectedAppId(selectedProjectApps[0]?.id ?? null);
     }
-  }, [firstProject, firstProjectAppId, selectedApp, selectedProject, selectedProjectApps]);
+  }, [selectedApp, selectedAppId, selectedProject, selectedProjectApps, selectedProjectId]);
 
   useEffect(() => {
     if (!createOpen) {
@@ -514,12 +720,41 @@ export function ConsoleProjectGallery({
     }
   }, [runtimeComponent, selectedApp]);
 
+  useEffect(() => {
+    if (!hasLiveProjects && refreshWindowUntil <= Date.now()) {
+      return undefined;
+    }
+
+    const intervalId = window.setInterval(() => {
+      if (!hasLiveProjects && refreshWindowUntil <= Date.now()) {
+        setRefreshWindowUntil(0);
+        return;
+      }
+
+      if (document.visibilityState !== "visible") {
+        return;
+      }
+
+      startTransition(() => {
+        router.refresh();
+      });
+    }, 3000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [hasLiveProjects, refreshWindowUntil, router]);
+
   function resetCreateForm(nextProjectName: string) {
     setProjectName(nextProjectName);
     setRepoUrl("");
     setBranch("");
     setAppName("");
     setBuildStrategy("auto");
+  }
+
+  function armRefreshWindow(durationMs = 90_000) {
+    setRefreshWindowUntil(Date.now() + durationMs);
   }
 
   function openCreate() {
@@ -584,11 +819,12 @@ export function ConsoleProjectGallery({
       }
 
       setCreateOpen(false);
+      armRefreshWindow();
       setFlash({
         message: response.requestInProgress ? "Import is already running." : "Project import queued.",
         variant: "success",
       });
-      resetCreateForm(`project-${Math.max(data.projects.length + 2, 2)}`);
+      resetCreateForm(buildSuggestedProjectName(data.projects.length + 1));
       startTransition(() => {
         router.replace("/app");
         router.refresh();
@@ -604,6 +840,12 @@ export function ConsoleProjectGallery({
   }
 
   function chooseProject(project: ConsoleGalleryProjectView) {
+    if (selectedProjectId === project.id) {
+      setSelectedProjectId(null);
+      setSelectedAppId(null);
+      return;
+    }
+
     setSelectedProjectId(project.id);
     setSelectedAppId(projectApps(project)[0]?.id ?? null);
     setActiveTab("env");
@@ -639,6 +881,7 @@ export function ConsoleProjectGallery({
             : `/api/fugue/apps/${selectedApp.id}`;
       const method = action === "delete" ? "DELETE" : "POST";
       await requestJson(input, { method });
+      armRefreshWindow(45_000);
       setFlash({
         message:
           action === "restart"
@@ -774,6 +1017,7 @@ export function ConsoleProjectGallery({
         method: "PATCH",
       });
 
+      armRefreshWindow(45_000);
       setEnvRows(rowsFromEnv(response.env ?? {}));
       setEnvLoadedAppId(selectedApp.id);
       setFlash({
@@ -867,6 +1111,7 @@ export function ConsoleProjectGallery({
         method: "PUT",
       });
 
+      armRefreshWindow(45_000);
       const nextDrafts = filesFromResponse(response.files ?? []);
       setFileDrafts(nextDrafts);
       setSelectedFileId(
@@ -918,6 +1163,7 @@ export function ConsoleProjectGallery({
           method: "DELETE",
         },
       );
+      armRefreshWindow(45_000);
       const nextDrafts = filesFromResponse(response.files ?? []);
       setFileDrafts(nextDrafts);
       setSelectedFileId(nextDrafts[0]?.id ?? null);
@@ -943,77 +1189,93 @@ export function ConsoleProjectGallery({
     setLogsLoadedKey(null);
   }
 
-  const shellTone = data.errors.length >= 3 ? "error" : "info";
+  function renderProjectWorkbench(
+    project: ConsoleGalleryProjectView,
+    detailId: string,
+  ) {
+    if (selectedProject?.id !== project.id || !selectedApp) {
+      return null;
+    }
 
-  return (
-    <>
-      <div className="fg-project-gallery">
-        {pageFlash ? (
-          <InlineAlert variant={pageFlash.variant}>{pageFlash.message}</InlineAlert>
-        ) : null}
+    const serviceCountLabel = `${project.services.length} service${project.services.length === 1 ? "" : "s"}`;
 
-        {data.errors.length ? (
-          <InlineAlert variant={shellTone}>
-            Partial Fugue data: {data.errors.join(" | ")}.
-          </InlineAlert>
-        ) : null}
+    return (
+      <div className="fg-project-card__detail" id={detailId}>
+        <section className="fg-bezel fg-panel fg-project-workbench">
+          <div className="fg-bezel__inner fg-project-workbench__inner">
+            <aside className="fg-project-services fg-project-services--rail fg-project-workbench__rail">
+              <PanelSection className="fg-project-services__head">
+                <div className="fg-project-services__title-row">
+                  <p className="fg-label fg-panel__eyebrow">Services</p>
+                  <span className="fg-project-services__count">{serviceCountLabel}</span>
+                </div>
+              </PanelSection>
 
-        <section
-          className={cx(
-            "fg-project-gallery__shelf",
-            !data.projects.length && "fg-project-gallery__shelf--empty",
-          )}
-        >
-          {data.projects.length ? (
-            <div className="fg-project-gallery__grid">
-              {data.projects.map((project) => (
-                <button
-                  className={cx(
-                    "fg-project-card",
-                    selectedProject?.id === project.id && "is-active",
-                  )}
-                  key={project.id}
-                  onClick={() => chooseProject(project)}
-                  type="button"
-                >
-                  <div className="fg-project-card__head">
-                    <div>
-                      <strong>{project.name}</strong>
-                      <span>{projectTitle(project)}</span>
-                    </div>
-                    <StatusBadge tone="neutral">{project.latestActivityLabel}</StatusBadge>
-                  </div>
+              <PanelSection>
+                <ul className="fg-project-service-list">
+                  {project.services.map((service) => (
+                    <li key={`${service.kind}:${service.id}`}>
+                      {service.kind === "app" ? (
+                        <button
+                          className={cx(
+                            "fg-project-service-card",
+                            selectedApp.id === service.id && "is-active",
+                          )}
+                          onClick={() => chooseApp(service.id)}
+                          type="button"
+                        >
+                          <div className="fg-project-service-card__head">
+                            <strong>{service.name}</strong>
+                            <StatusBadge tone={service.phaseTone}>{service.phase}</StatusBadge>
+                          </div>
+                          <div className="fg-project-service-card__badges">
+                            {service.serviceBadges.map((badge) => (
+                              <ProjectBadge
+                                key={`${service.id}:${badge.id}`}
+                                kind={badge.kind}
+                                label={badge.label}
+                                meta={badge.meta}
+                              />
+                            ))}
+                          </div>
+                          <div className="fg-project-service-card__meta">
+                            <span>{service.sourceLabel}</span>
+                            <span>{service.routeLabel}</span>
+                          </div>
+                        </button>
+                      ) : (
+                        <div className="fg-project-service-card is-static">
+                          <div className="fg-project-service-card__head">
+                            <strong>{service.name}</strong>
+                            <StatusBadge tone={service.statusTone}>{service.status}</StatusBadge>
+                          </div>
+                          <div className="fg-project-service-card__badges">
+                            <ProjectBadge
+                              kind="postgres"
+                              label={service.type}
+                              meta="service"
+                            />
+                          </div>
+                          <div className="fg-project-service-card__meta">
+                            <span>{service.type}</span>
+                            <span>{service.ownerAppLabel}</span>
+                          </div>
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </PanelSection>
+            </aside>
 
-                  <div className="fg-project-card__badges">
-                    {project.serviceBadges.map((badge) => (
-                      <ProjectBadge
-                        key={badge.id}
-                        kind={badge.kind}
-                        label={badge.label}
-                        meta={badge.meta}
-                      />
-                    ))}
-                  </div>
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className="fg-project-gallery__empty-state">
-              <Button onClick={openCreate} type="button" variant="primary">
-                Create project
-              </Button>
-            </div>
-          )}
-        </section>
-
-        {selectedProject && selectedApp ? (
-          <section className="fg-project-workbench">
-            <Panel className="fg-project-inspector">
+            <div className="fg-project-inspector fg-project-workbench__main">
               <PanelSection className="fg-project-inspector__head">
                 <div className="fg-project-inspector__header-row">
-                  <div>
-                    <p className="fg-label fg-panel__eyebrow">{selectedProject.name}</p>
+                  <div className="fg-project-inspector__hero">
                     <PanelTitle>{selectedApp.name}</PanelTitle>
+                    <PanelCopy className="fg-project-inspector__copy">
+                      {selectedApp.lastMessage}
+                    </PanelCopy>
                   </div>
 
                   <div className="fg-console-inline-status">
@@ -1021,6 +1283,19 @@ export function ConsoleProjectGallery({
                     <StatusBadge tone="neutral">{selectedApp.updatedLabel}</StatusBadge>
                   </div>
                 </div>
+
+                {selectedApp.serviceBadges.length ? (
+                  <div className="fg-project-inspector__stack" aria-label="Selected app stack">
+                    {selectedApp.serviceBadges.map((badge) => (
+                      <ProjectBadge
+                        key={`${selectedApp.id}:${badge.id}`}
+                        kind={badge.kind}
+                        label={badge.label}
+                        meta={badge.meta}
+                      />
+                    ))}
+                  </div>
+                ) : null}
 
                 <div className="fg-project-inspector__meta-grid">
                   <div>
@@ -1035,7 +1310,12 @@ export function ConsoleProjectGallery({
                     <dt>Route</dt>
                     <dd>
                       {selectedApp.routeHref ? (
-                        <a className="fg-text-link" href={selectedApp.routeHref} rel="noreferrer" target="_blank">
+                        <a
+                          className="fg-text-link"
+                          href={selectedApp.routeHref}
+                          rel="noreferrer"
+                          target="_blank"
+                        >
                           {selectedApp.routeLabel}
                         </a>
                       ) : (
@@ -1045,81 +1325,98 @@ export function ConsoleProjectGallery({
                   </div>
                   <div>
                     <dt>Status</dt>
-                    <dd>{selectedApp.lastMessage}</dd>
+                    <dd>{selectedApp.phase}</dd>
                   </div>
                 </div>
               </PanelSection>
 
               <PanelSection className="fg-project-inspector__controls">
-                <div className="fg-project-actions">
-                  <button
-                    className="fg-console-utility-button"
-                    disabled={busyAction !== null}
-                    onClick={() => handleAppAction("restart")}
-                    type="button"
-                  >
-                    {busyAction === "restart" ? "Restarting…" : "Restart"}
-                  </button>
-                  <button
-                    className="fg-console-utility-button"
-                    disabled={busyAction !== null}
-                    onClick={() => handleAppAction("disable")}
-                    type="button"
-                  >
-                    {busyAction === "disable" ? "Pausing…" : "Pause"}
-                  </button>
-                  <button
-                    className="fg-console-utility-button is-danger"
-                    disabled={busyAction !== null}
-                    onClick={() => handleAppAction("delete")}
-                    type="button"
-                  >
-                    {busyAction === "delete" ? "Deleting…" : "Delete"}
-                  </button>
-                </div>
+                <div className="fg-project-toolbar">
+                  <div className="fg-project-toolbar__group">
+                    <p className="fg-label fg-project-toolbar__label">Actions</p>
+                    <div className="fg-project-actions">
+                      <button
+                        className="fg-console-utility-button fg-console-utility-button--tight"
+                        disabled={busyAction !== null}
+                        onClick={() => handleAppAction("restart")}
+                        type="button"
+                      >
+                        {busyAction === "restart" ? "Restarting…" : "Restart"}
+                      </button>
+                      <button
+                        className="fg-console-utility-button fg-console-utility-button--tight"
+                        disabled={busyAction !== null}
+                        onClick={() => handleAppAction("disable")}
+                        type="button"
+                      >
+                        {busyAction === "disable" ? "Pausing…" : "Pause"}
+                      </button>
+                      <button
+                        className="fg-console-utility-button fg-console-utility-button--tight is-danger"
+                        disabled={busyAction !== null}
+                        onClick={() => handleAppAction("delete")}
+                        type="button"
+                      >
+                        {busyAction === "delete" ? "Deleting…" : "Delete"}
+                      </button>
+                    </div>
+                  </div>
 
-                <div className="fg-project-tabs" role="tablist" aria-label="App controls">
-                  {[
-                    { id: "env", label: "Environment" },
-                    { id: "files", label: "Files" },
-                    { id: "logs", label: "Logs" },
-                  ].map((tab) => (
-                    <button
-                      aria-selected={activeTab === tab.id}
-                      className={cx(
-                        "fg-project-tab",
-                        activeTab === tab.id && "is-active",
-                      )}
-                      key={tab.id}
-                      onClick={() => setActiveTab(tab.id as "env" | "files" | "logs")}
-                      role="tab"
-                      type="button"
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
+                  <div className="fg-project-toolbar__group fg-project-toolbar__group--tabs">
+                    <p className="fg-label fg-project-toolbar__label">Workspace</p>
+                    <div className="fg-project-tabs" role="tablist" aria-label="App controls">
+                      {[
+                        { id: "env", label: "Environment" },
+                        { id: "files", label: "Files" },
+                        { id: "logs", label: "Logs" },
+                      ].map((tab) => (
+                        <button
+                          aria-selected={activeTab === tab.id}
+                          className={cx(
+                            "fg-project-tab",
+                            activeTab === tab.id && "is-active",
+                          )}
+                          key={tab.id}
+                          onClick={() => setActiveTab(tab.id as "env" | "files" | "logs")}
+                          role="tab"
+                          type="button"
+                        >
+                          {tab.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </PanelSection>
 
-              <PanelSection>
+              <PanelSection className="fg-project-pane">
                 {activeTab === "env" ? (
                   <div className="fg-workbench-section">
-                    <div className="fg-workbench-section__actions">
-                      <button
-                        className="fg-console-utility-button"
-                        onClick={addEnvRow}
-                        type="button"
-                      >
-                        Add variable
-                      </button>
-                      <button
-                        className="fg-console-utility-button"
-                        disabled={envSaving || envStatus === "loading"}
-                        onClick={saveEnv}
-                        type="button"
-                      >
-                        {envSaving ? "Saving…" : "Save"}
-                      </button>
+                    <div className="fg-workbench-section__head">
+                      <div className="fg-workbench-section__copy">
+                        <p className="fg-label fg-panel__eyebrow">Environment</p>
+                        <p className="fg-console-note">
+                          Configure runtime variables for {selectedApp.name}.
+                        </p>
+                      </div>
+
+                      <div className="fg-workbench-section__actions">
+                        <button
+                          className="fg-console-utility-button fg-console-utility-button--tight"
+                          onClick={addEnvRow}
+                          type="button"
+                        >
+                          Add variable
+                        </button>
+                        <button
+                          className="fg-console-utility-button fg-console-utility-button--tight"
+                          disabled={envSaving || envStatus === "loading"}
+                          onClick={saveEnv}
+                          type="button"
+                        >
+                          {envSaving ? "Saving…" : "Save"}
+                        </button>
+                      </div>
                     </div>
 
                     {envStatus === "loading" ? (
@@ -1167,30 +1464,39 @@ export function ConsoleProjectGallery({
 
                 {activeTab === "files" ? (
                   <div className="fg-workbench-section">
-                    <div className="fg-workbench-section__actions">
-                      <button
-                        className="fg-console-utility-button"
-                        onClick={addFileDraft}
-                        type="button"
-                      >
-                        Add file
-                      </button>
-                      <button
-                        className="fg-console-utility-button"
-                        disabled={filesSaving || !selectedFile}
-                        onClick={saveFile}
-                        type="button"
-                      >
-                        {filesSaving ? "Saving…" : "Save"}
-                      </button>
-                      <button
-                        className="fg-console-utility-button is-danger"
-                        disabled={filesSaving || !selectedFile}
-                        onClick={deleteFile}
-                        type="button"
-                      >
-                        {filesSaving ? "Deleting…" : "Delete"}
-                      </button>
+                    <div className="fg-workbench-section__head">
+                      <div className="fg-workbench-section__copy">
+                        <p className="fg-label fg-panel__eyebrow">Files</p>
+                        <p className="fg-console-note">
+                          Inspect and patch files mounted into {selectedApp.name}.
+                        </p>
+                      </div>
+
+                      <div className="fg-workbench-section__actions">
+                        <button
+                          className="fg-console-utility-button fg-console-utility-button--tight"
+                          onClick={addFileDraft}
+                          type="button"
+                        >
+                          Add file
+                        </button>
+                        <button
+                          className="fg-console-utility-button fg-console-utility-button--tight"
+                          disabled={filesSaving || !selectedFile}
+                          onClick={saveFile}
+                          type="button"
+                        >
+                          {filesSaving ? "Saving…" : "Save"}
+                        </button>
+                        <button
+                          className="fg-console-utility-button fg-console-utility-button--tight is-danger"
+                          disabled={filesSaving || !selectedFile}
+                          onClick={deleteFile}
+                          type="button"
+                        >
+                          {filesSaving ? "Deleting…" : "Delete"}
+                        </button>
+                      </div>
                     </div>
 
                     {filesStatus === "loading" ? (
@@ -1221,21 +1527,27 @@ export function ConsoleProjectGallery({
                           <div className="fg-file-editor__panel">
                             <div className="fg-file-editor__meta">
                               <input
-                              className="fg-input"
-                                onChange={(event) => updateFileDraft(selectedFile.id, { path: event.target.value })}
+                                className="fg-input"
+                                onChange={(event) =>
+                                  updateFileDraft(selectedFile.id, { path: event.target.value })
+                                }
                                 placeholder="/app/.env"
                                 value={selectedFile.path}
                               />
                               <input
                                 className="fg-input"
-                                onChange={(event) => updateFileDraft(selectedFile.id, { mode: event.target.value })}
+                                onChange={(event) =>
+                                  updateFileDraft(selectedFile.id, { mode: event.target.value })
+                                }
                                 placeholder="420"
                                 value={selectedFile.mode}
                               />
                               <label className="fg-project-toggle">
                                 <input
                                   checked={selectedFile.secret}
-                                  onChange={(event) => updateFileDraft(selectedFile.id, { secret: event.target.checked })}
+                                  onChange={(event) =>
+                                    updateFileDraft(selectedFile.id, { secret: event.target.checked })
+                                  }
                                   type="checkbox"
                                 />
                                 <span>Secret</span>
@@ -1250,7 +1562,11 @@ export function ConsoleProjectGallery({
                                   redacted: false,
                                 })
                               }
-                              placeholder={selectedFile.redacted ? "Secret file contents are redacted by Fugue until replaced." : ""}
+                              placeholder={
+                                selectedFile.redacted
+                                  ? "Secret file contents are redacted by Fugue until replaced."
+                                  : ""
+                              }
                               value={selectedFile.content}
                             />
                           </div>
@@ -1262,43 +1578,26 @@ export function ConsoleProjectGallery({
 
                 {activeTab === "logs" ? (
                   <div className="fg-workbench-section">
-                    <div className="fg-workbench-section__actions">
-                      <div className="fg-project-tabs" role="tablist" aria-label="Log modes">
-                        {[
-                          { id: "build", label: "Build" },
-                          { id: "runtime", label: "Runtime" },
-                        ].map((tab) => (
-                          <button
-                            aria-selected={logsMode === tab.id}
-                            className={cx("fg-project-tab", logsMode === tab.id && "is-active")}
-                            key={tab.id}
-                            onClick={() => {
-                              setLogsMode(tab.id as "build" | "runtime");
-                              setLogsLoadedKey(null);
-                            }}
-                            role="tab"
-                            type="button"
-                          >
-                            {tab.label}
-                          </button>
-                        ))}
+                    <div className="fg-workbench-section__head">
+                      <div className="fg-workbench-section__copy">
+                        <p className="fg-label fg-panel__eyebrow">Logs</p>
+                        <p className="fg-console-note">
+                          Stream build and runtime output for {selectedApp.name}.
+                        </p>
                       </div>
 
-                      {logsMode === "runtime" && selectedApp.hasPostgresService ? (
-                        <div className="fg-project-tabs" role="tablist" aria-label="Runtime components">
+                      <div className="fg-workbench-section__actions">
+                        <div className="fg-project-tabs" role="tablist" aria-label="Log modes">
                           {[
-                            { id: "app", label: "App" },
-                            { id: "postgres", label: "Postgres" },
+                            { id: "build", label: "Build" },
+                            { id: "runtime", label: "Runtime" },
                           ].map((tab) => (
                             <button
-                              aria-selected={runtimeComponent === tab.id}
-                              className={cx(
-                                "fg-project-tab",
-                                runtimeComponent === tab.id && "is-active",
-                              )}
+                              aria-selected={logsMode === tab.id}
+                              className={cx("fg-project-tab", logsMode === tab.id && "is-active")}
                               key={tab.id}
                               onClick={() => {
-                                setRuntimeComponent(tab.id as "app" | "postgres");
+                                setLogsMode(tab.id as "build" | "runtime");
                                 setLogsLoadedKey(null);
                               }}
                               role="tab"
@@ -1308,15 +1607,41 @@ export function ConsoleProjectGallery({
                             </button>
                           ))}
                         </div>
-                      ) : null}
 
-                      <button
-                        className="fg-console-utility-button"
-                        onClick={refreshLogs}
-                        type="button"
-                      >
-                        Refresh
-                      </button>
+                        {logsMode === "runtime" && selectedApp.hasPostgresService ? (
+                          <div className="fg-project-tabs" role="tablist" aria-label="Runtime components">
+                            {[
+                              { id: "app", label: "App" },
+                              { id: "postgres", label: "Postgres" },
+                            ].map((tab) => (
+                              <button
+                                aria-selected={runtimeComponent === tab.id}
+                                className={cx(
+                                  "fg-project-tab",
+                                  runtimeComponent === tab.id && "is-active",
+                                )}
+                                key={tab.id}
+                                onClick={() => {
+                                  setRuntimeComponent(tab.id as "app" | "postgres");
+                                  setLogsLoadedKey(null);
+                                }}
+                                role="tab"
+                                type="button"
+                              >
+                                {tab.label}
+                              </button>
+                            ))}
+                          </div>
+                        ) : null}
+
+                        <button
+                          className="fg-console-utility-button fg-console-utility-button--tight"
+                          onClick={refreshLogs}
+                          type="button"
+                        >
+                          Refresh
+                        </button>
+                      </div>
                     </div>
 
                     <div className="fg-bezel fg-proof-shell">
@@ -1336,52 +1661,95 @@ export function ConsoleProjectGallery({
                   </div>
                 ) : null}
               </PanelSection>
-            </Panel>
+            </div>
+          </div>
+        </section>
+      </div>
+    );
+  }
 
-            <Panel className="fg-project-services">
-              <PanelSection>
-                <p className="fg-label fg-panel__eyebrow">Current services</p>
-                <PanelTitle>{selectedProject.name}</PanelTitle>
-                <PanelCopy>{selectedProject.serviceCount} live surfaces in this project.</PanelCopy>
-              </PanelSection>
+  return (
+    <>
+      <div className="fg-project-gallery">
+        <section
+          className={cx(
+            "fg-project-gallery__shelf",
+            !data.projects.length && "fg-project-gallery__shelf--empty",
+          )}
+        >
+          {data.projects.length ? (
+            <div className="fg-project-gallery__stack">
+              {data.projects.map((project) => {
+                const expanded = selectedProjectId === project.id;
+                const detailId = `project-detail-${project.id}`;
 
-              <PanelSection>
-                <ul className="fg-project-service-list">
-                  {selectedProject.services.map((service) => (
-                    <li key={`${service.kind}:${service.id}`}>
-                      {service.kind === "app" ? (
-                        <button
-                          className={cx(
-                            "fg-project-service-card",
-                            selectedApp?.id === service.id && "is-active",
-                          )}
-                          onClick={() => chooseApp(service.id)}
-                          type="button"
-                        >
-                          <div className="fg-project-service-card__head">
-                            <strong>{service.name}</strong>
-                            <StatusBadge tone={service.phaseTone}>{service.phase}</StatusBadge>
-                          </div>
-                          <p>{service.sourceLabel}</p>
-                          <span>{service.routeLabel}</span>
-                        </button>
-                      ) : (
-                        <div className="fg-project-service-card is-static">
-                          <div className="fg-project-service-card__head">
-                            <strong>{service.name}</strong>
-                            <StatusBadge tone={service.statusTone}>{service.status}</StatusBadge>
-                          </div>
-                          <p>{service.type}</p>
-                          <span>{service.ownerAppLabel}</span>
+                return (
+                  <article
+                    className={cx(
+                      "fg-project-card",
+                      expanded && "is-active",
+                      expanded && "is-expanded",
+                    )}
+                    key={project.id}
+                  >
+                    <button
+                      aria-controls={detailId}
+                      aria-expanded={expanded}
+                      className="fg-project-card__summary"
+                      onClick={() => chooseProject(project)}
+                      type="button"
+                    >
+                      <div className="fg-project-card__summary-head">
+                        <div className="fg-project-card__summary-copy">
+                          <strong>{project.name}</strong>
+                          <span>{projectTitle(project)}</span>
                         </div>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </PanelSection>
-            </Panel>
-          </section>
-        ) : null}
+
+                        <div className="fg-project-card__summary-side">
+                          <ProjectLifecycleBadge project={project} />
+                          <span className="fg-project-card__summary-expand" aria-hidden="true">
+                            <svg viewBox="0 0 24 24">
+                              <path
+                                d="m7.2 9.4 4.8 5.2 4.8-5.2"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="1.7"
+                              />
+                            </svg>
+                          </span>
+                        </div>
+                      </div>
+
+                      {project.serviceBadges.length ? (
+                        <div className="fg-project-card__badges">
+                          {project.serviceBadges.map((badge) => (
+                            <ProjectBadge
+                              key={badge.id}
+                              kind={badge.kind}
+                              label={badge.label}
+                              meta={badge.meta}
+                            />
+                          ))}
+                        </div>
+                      ) : null}
+                    </button>
+
+                    {expanded ? renderProjectWorkbench(project, detailId) : null}
+                  </article>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="fg-project-gallery__empty-state">
+              <Button onClick={openCreate} type="button" variant="primary">
+                Create project
+              </Button>
+            </div>
+          )}
+        </section>
+
       </div>
 
       {createOpen ? (
@@ -1405,13 +1773,6 @@ export function ConsoleProjectGallery({
               </PanelSection>
 
               <PanelSection>
-                {modalFlash ? (
-                  <>
-                    <InlineAlert variant={modalFlash.variant}>{modalFlash.message}</InlineAlert>
-                    <div style={{ height: "0.9rem" }} aria-hidden="true" />
-                  </>
-                ) : null}
-
                 <form className="fg-form-grid" onSubmit={handleCreateProject}>
                   <div className="fg-console-dialog__grid">
                     <label className="fg-field-stack">
@@ -1419,7 +1780,7 @@ export function ConsoleProjectGallery({
                       <input
                         className="fg-input"
                         onChange={(event) => setProjectName(event.target.value)}
-                        placeholder="default"
+                        placeholder="project-1"
                         required
                         value={projectName}
                       />

@@ -2,10 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getCurrentSession } from "@/lib/auth/session";
 import { ensureAppUser } from "@/lib/workspace/store";
-import {
-  createFugueProject,
-  importFugueGitHubApp,
-} from "@/lib/fugue/api";
+import { importFugueGitHubApp } from "@/lib/fugue/api";
 import {
   getWorkspaceAccessByEmail,
   saveWorkspaceAccess,
@@ -61,24 +58,6 @@ function isGitHubRepoUrl(value: string) {
   );
 }
 
-async function ensureDefaultProject(workspace: WorkspaceAccess) {
-  if (workspace.defaultProjectId) {
-    return workspace;
-  }
-
-  const project = await createFugueProject(workspace.adminKeySecret, {
-    description: "default project",
-    name: "default",
-  });
-
-  return {
-    ...workspace,
-    defaultProjectId: project.id,
-    defaultProjectName: project.name,
-    updatedAt: new Date().toISOString(),
-  } satisfies WorkspaceAccess;
-}
-
 export async function POST(request: Request) {
   const session = await getCurrentSession();
 
@@ -123,11 +102,7 @@ export async function POST(request: Request) {
       return jsonError(409, "Create a workspace first.");
     }
 
-    const workspace = await ensureDefaultProject(existing);
-
-    if (workspace.defaultProjectId !== existing.defaultProjectId) {
-      await saveWorkspaceAccess(workspace);
-    }
+    const workspace = existing satisfies WorkspaceAccess;
 
     const result = await importFugueGitHubApp(workspace.adminKeySecret, {
       branch: branch || undefined,
@@ -140,6 +115,8 @@ export async function POST(request: Request) {
     if (result.app?.id) {
       await saveWorkspaceAccess({
         ...workspace,
+        defaultProjectId: workspace.defaultProjectId ?? result.app.projectId,
+        defaultProjectName: workspace.defaultProjectName ?? "default",
         firstAppId: workspace.firstAppId ?? result.app.id,
         updatedAt: new Date().toISOString(),
       });

@@ -909,6 +909,10 @@ export async function importFugueGitHubApp(
     branch?: string;
     buildStrategy?: string;
     name?: string;
+    project?: {
+      description?: string;
+      name: string;
+    };
     projectId?: string;
     repoUrl: string;
     tenantId?: string;
@@ -921,6 +925,16 @@ export async function importFugueGitHubApp(
       body: {
         ...(payload.tenantId ? { tenant_id: payload.tenantId } : {}),
         ...(payload.projectId ? { project_id: payload.projectId } : {}),
+        ...(payload.project
+          ? {
+              project: {
+                ...(payload.project.description
+                  ? { description: payload.project.description }
+                  : {}),
+                name: payload.project.name,
+              },
+            }
+          : {}),
         ...(payload.branch ? { branch: payload.branch } : {}),
         ...(payload.buildStrategy ? { build_strategy: payload.buildStrategy } : {}),
         ...(payload.name ? { name: payload.name } : {}),

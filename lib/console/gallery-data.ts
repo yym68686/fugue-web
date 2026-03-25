@@ -14,11 +14,10 @@ import type {
 import {
   getFugueApps,
   getFugueProjects,
-  getFugueRuntimes,
   type FugueApp,
   type FugueBackingService,
   type FugueProject,
-  type FugueRuntime,
+  type FugueAppTechnology,
 } from "@/lib/fugue/api";
 import { getCurrentWorkspaceAccess } from "@/lib/workspace/current";
 
@@ -201,6 +200,22 @@ function formatRepoLabel(repoUrl?: string | null, branch?: string | null) {
   }
 }
 
+function readSourceLabel(app: FugueApp) {
+  if (app.source.repoUrl) {
+    return formatRepoLabel(app.source.repoUrl, app.source.repoBranch);
+  }
+
+  if (app.source.type?.trim()) {
+    if (app.source.type === "upload") {
+      return "Local upload";
+    }
+
+    return humanize(app.source.type);
+  }
+
+  return "Unspecified source";
+}
+
 function sortByTimestampDesc<T>(items: T[], readTimestamp: (item: T) => number) {
   return [...items].sort((left, right) => readTimestamp(right) - readTimestamp(left));
 }
@@ -217,92 +232,211 @@ function readBadgeKey(kind: ConsoleGalleryBadgeKind, label: string) {
   return `${kind}:${label}`.toLowerCase();
 }
 
-function buildAppBadges(app: FugueApp): ConsoleGalleryBadgeView[] {
-  const badges: ConsoleGalleryBadgeView[] = [];
-  const sourceType = app.source.type?.toLowerCase() ?? "";
-  const buildStrategy = app.source.buildStrategy?.toLowerCase() ?? "";
+function readLanguageBadgeKind(value?: string | null): ConsoleGalleryBadgeKind | null {
+  switch (value?.trim().toLowerCase()) {
+    case "node":
+    case "nodejs":
+      return "node";
+    case "python":
+      return "python";
+    case "go":
+      return "go";
+    case "java":
+      return "java";
+    case "ruby":
+      return "ruby";
+    case "php":
+      return "php";
+    case "dotnet":
+      return "dotnet";
+    case "rust":
+      return "rust";
+    default:
+      return null;
+  }
+}
 
-  if (sourceType === "github-public") {
-    badges.push({
-      id: readBadgeKey("github", app.name),
-      kind: "github",
-      label: "GitHub",
-      meta: "source",
-    });
+function readBuildBadgeKind(value?: string | null): ConsoleGalleryBadgeKind | null {
+  switch (value?.trim().toLowerCase()) {
+    case "dockerfile":
+      return "docker";
+    case "buildpacks":
+      return "buildpacks";
+    case "nixpacks":
+      return "nixpacks";
+    case "static-site":
+      return "static";
+    default:
+      return null;
+  }
+}
+
+function readLanguageLabel(value?: string | null) {
+  switch (value?.trim().toLowerCase()) {
+    case "node":
+    case "nodejs":
+      return "Node.js";
+    case "python":
+      return "Python";
+    case "go":
+      return "Go";
+    case "java":
+      return "Java";
+    case "ruby":
+      return "Ruby";
+    case "php":
+      return "PHP";
+    case "dotnet":
+      return ".NET";
+    case "rust":
+      return "Rust";
+    default:
+      return humanize(value);
+  }
+}
+
+function buildBadgeFromTechStack(
+  item: FugueAppTechnology,
+  options?: {
+    includeBuild?: boolean;
+  },
+): ConsoleGalleryBadgeView | null {
+  const normalizedKind = item.kind.trim().toLowerCase();
+  const normalizedSlug = item.slug.trim().toLowerCase();
+  const normalizedName = item.name.trim();
+
+  if (!normalizedKind || normalizedKind === "source") {
+    return null;
   }
 
-  if (buildStrategy === "dockerfile") {
-    badges.push({
-      id: readBadgeKey("docker", app.name),
-      kind: "docker",
-      label: "Docker",
+  if (normalizedKind === "language") {
+    const label = normalizedName || readLanguageLabel(normalizedSlug);
+    const kind = readLanguageBadgeKind(normalizedSlug) ?? "runtime";
+    return {
+      id: readBadgeKey(kind, label),
+      kind,
+      label,
+      meta: "language",
+    };
+  }
+
+  if (normalizedKind === "service") {
+    const label =
+      normalizedSlug === "postgres"
+        ? "PostgreSQL"
+        : normalizedName || humanize(normalizedSlug);
+    const kind = normalizedSlug === "postgres" ? "postgres" : "runtime";
+    return {
+      id: readBadgeKey(kind, label),
+      kind,
+      label,
+      meta: "service",
+    };
+  }
+
+  if (normalizedKind === "build" && options?.includeBuild) {
+    const label = normalizedName || humanize(normalizedSlug);
+    const kind = readBuildBadgeKind(normalizedSlug) ?? "runtime";
+    return {
+      id: readBadgeKey(kind, label),
+      kind,
+      label,
       meta: "build",
-    });
-  } else if (buildStrategy === "buildpacks") {
-    badges.push({
-      id: readBadgeKey("buildpacks", app.name),
-      kind: "buildpacks",
-      label: "Buildpacks",
-      meta: "build",
-    });
-  } else if (buildStrategy === "nixpacks") {
-    badges.push({
-      id: readBadgeKey("nixpacks", app.name),
-      kind: "nixpacks",
-      label: "Nixpacks",
-      meta: "build",
-    });
-  } else if (buildStrategy === "static-site") {
-    badges.push({
-      id: readBadgeKey("static", app.name),
-      kind: "static",
-      label: "Static",
-      meta: "build",
-    });
+    };
+  }
+
+  return {
+    id: readBadgeKey("runtime", normalizedName || humanize(normalizedSlug)),
+    kind: "runtime",
+    label: normalizedName || humanize(normalizedSlug),
+    meta: normalizedKind,
+  };
+}
+
+function buildAppBadges(app: FugueApp): ConsoleGalleryBadgeView[] {
+  const badges = new Map<string, ConsoleGalleryBadgeView>();
+
+  const addBadge = (badge: ConsoleGalleryBadgeView | null) => {
+    if (!badge || badges.has(badge.id)) {
+      return;
+    }
+
+    badges.set(badge.id, badge);
+  };
+
+  if (app.techStack.length) {
+    for (const item of app.techStack) {
+      if (item.kind.trim().toLowerCase() === "build") {
+        continue;
+      }
+
+      addBadge(buildBadgeFromTechStack(item));
+    }
   }
 
   if (app.backingServices.some((service) => service.type === "postgres")) {
-    badges.push({
-      id: readBadgeKey("postgres", app.name),
+    addBadge({
+      id: readBadgeKey("postgres", "PostgreSQL"),
       kind: "postgres",
-      label: "Postgres",
+      label: "PostgreSQL",
       meta: "service",
     });
   }
 
-  if (!badges.length) {
-    badges.push({
-      id: readBadgeKey("runtime", app.name),
+  if (!badges.size && app.techStack.length) {
+    for (const item of app.techStack) {
+      addBadge(buildBadgeFromTechStack(item, { includeBuild: true }));
+    }
+  }
+
+  if (!badges.size) {
+    addBadge(
+      app.source.detectedProvider
+        ? {
+            id: readBadgeKey(
+              readLanguageBadgeKind(app.source.detectedProvider) ?? "runtime",
+              readLanguageLabel(app.source.detectedProvider),
+            ),
+            kind: readLanguageBadgeKind(app.source.detectedProvider) ?? "runtime",
+            label: readLanguageLabel(app.source.detectedProvider),
+            meta: "language",
+          }
+        : null,
+    );
+    addBadge(
+      app.source.buildStrategy
+        ? {
+            id: readBadgeKey(
+              readBuildBadgeKind(app.source.buildStrategy) ?? "runtime",
+              humanize(app.source.buildStrategy),
+            ),
+            kind: readBuildBadgeKind(app.source.buildStrategy) ?? "runtime",
+            label: humanize(app.source.buildStrategy),
+            meta: "build",
+          }
+        : null,
+    );
+  }
+
+  if (!badges.size) {
+    addBadge({
+      id: readBadgeKey("runtime", humanize(app.source.type)),
       kind: "runtime",
       label: humanize(app.source.type),
       meta: "service",
     });
   }
 
-  return badges;
+  return [...badges.values()].slice(0, 6);
 }
 
 function buildProjectBadges(
   apps: FugueApp[],
-  runtimesById: Map<string, FugueRuntime>,
-) {
+): ConsoleGalleryBadgeView[] {
   const badges = new Map<string, ConsoleGalleryBadgeView>();
 
   for (const app of apps) {
     for (const badge of buildAppBadges(app)) {
-      badges.set(badge.id, badge);
-    }
-
-    const runtimeId = app.status.currentRuntimeId ?? app.spec.runtimeId;
-    const runtime = runtimeId ? runtimesById.get(runtimeId) : null;
-
-    if (runtime?.type === "managed-shared") {
-      const badge = {
-        id: readBadgeKey("runtime", "shared"),
-        kind: "runtime" as const,
-        label: "Shared",
-        meta: "runtime",
-      };
       badges.set(badge.id, badge);
     }
   }
@@ -323,7 +457,7 @@ function buildAppView(app: FugueApp): ConsoleGalleryAppView {
     routeHref: route.href,
     routeLabel: route.label,
     serviceBadges: buildAppBadges(app),
-    sourceLabel: formatRepoLabel(app.source.repoUrl, app.source.repoBranch),
+    sourceLabel: readSourceLabel(app),
     sourceMeta:
       [humanize(app.source.buildStrategy), app.source.composeService, app.source.dockerfilePath]
         .filter((value) => value && value !== "Unknown")
@@ -381,10 +515,9 @@ export const getConsoleProjectGalleryData = cache(async () => {
     } satisfies ConsoleProjectGalleryData;
   }
 
-  const [projectsResult, appsResult, runtimesResult] = await Promise.allSettled([
+  const [projectsResult, appsResult] = await Promise.allSettled([
     getFugueProjects(workspace.adminKeySecret, workspace.tenantId ?? undefined),
     getFugueApps(workspace.adminKeySecret),
-    getFugueRuntimes(workspace.adminKeySecret),
   ]);
 
   const errors = [
@@ -394,15 +527,10 @@ export const getConsoleProjectGalleryData = cache(async () => {
     appsResult.status === "rejected"
       ? `apps: ${readErrorMessage(appsResult.reason)}`
       : null,
-    runtimesResult.status === "rejected"
-      ? `runtimes: ${readErrorMessage(runtimesResult.reason)}`
-      : null,
   ].filter((value): value is string => Boolean(value));
 
   const projects = projectsResult.status === "fulfilled" ? projectsResult.value : [];
   const apps = appsResult.status === "fulfilled" ? appsResult.value : [];
-  const runtimes = runtimesResult.status === "fulfilled" ? runtimesResult.value : [];
-  const runtimesById = new Map(runtimes.map((runtime) => [runtime.id, runtime]));
   const namesByProjectId = projectNameMap(
     projects,
     workspace.defaultProjectId,
@@ -451,7 +579,7 @@ export const getConsoleProjectGalleryData = cache(async () => {
         name:
           namesByProjectId.get(projectId) ??
           (projectId === "unassigned" ? "Unassigned" : humanize(projectId)),
-        serviceBadges: buildProjectBadges(sortedApps, runtimesById),
+        serviceBadges: buildProjectBadges(sortedApps),
         serviceCount: sortedApps.length + backingServices.length,
         services: [
           ...sortedApps.map((app) => ({

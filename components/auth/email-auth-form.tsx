@@ -4,7 +4,6 @@ import { useEffect, useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
-import { InlineAlert } from "@/components/ui/inline-alert";
 import { useToast } from "@/components/ui/toast";
 
 type FormState =
@@ -131,10 +130,6 @@ export function EmailAuthForm({ emailVerificationRequired, mode }: EmailAuthForm
           type="email"
         />
       </FormField>
-
-      {state.kind === "error" ? <InlineAlert variant="error">{state.message}</InlineAlert> : null}
-      {state.kind === "success" ? <InlineAlert variant="success">{state.message}</InlineAlert> : null}
-
       <Button disabled={isPending} type="submit" variant="primary">
         {isPending ? "Working" : buttonLabel}
       </Button>

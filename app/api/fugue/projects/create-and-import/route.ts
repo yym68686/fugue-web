@@ -9,10 +9,10 @@ import {
   readOptionalString,
 } from "@/lib/fugue/product-route";
 import {
-  createFugueProject,
   importFugueGitHubApp,
 } from "@/lib/fugue/api";
 import { ensureWorkspaceAccess } from "@/lib/workspace/bootstrap";
+import { findWorkspaceProjectByName } from "@/lib/workspace/projects";
 import { saveWorkspaceAccess } from "@/lib/workspace/store";
 
 const ALLOWED_BUILD_STRATEGIES = new Set([
@@ -69,23 +69,36 @@ export async function POST(request: Request) {
 
   try {
     const { workspace } = await ensureWorkspaceAccess(session);
-    const project = await createFugueProject(workspace.adminKeySecret, {
-      description: `${projectName} project`,
-      name: projectName,
-    });
+    const projectDescription = `${projectName} project`;
+    const existingProject = await findWorkspaceProjectByName(
+      workspace.adminKeySecret,
+      projectName,
+      workspace.tenantId ?? undefined,
+    );
     const result = await importFugueGitHubApp(workspace.adminKeySecret, {
       branch: branch || undefined,
       buildStrategy: buildStrategy || undefined,
       name: name || undefined,
-      projectId: project.id,
+      ...(existingProject
+        ? {
+            projectId: existingProject.id,
+          }
+        : {
+            project: {
+              description: projectDescription,
+              name: projectName,
+            },
+          }),
       repoUrl,
     });
+    const resolvedProjectId = existingProject?.id ?? result.app?.projectId ?? null;
+    const resolvedProjectName = existingProject?.name ?? projectName;
 
     if (result.app?.id) {
       await saveWorkspaceAccess({
         ...workspace,
-        defaultProjectId: workspace.defaultProjectId ?? project.id,
-        defaultProjectName: workspace.defaultProjectName ?? project.name,
+        defaultProjectId: workspace.defaultProjectId ?? resolvedProjectId,
+        defaultProjectName: workspace.defaultProjectName ?? resolvedProjectName,
         firstAppId: workspace.firstAppId ?? result.app.id,
         updatedAt: new Date().toISOString(),
       });
@@ -94,12 +107,17 @@ export async function POST(request: Request) {
     return NextResponse.json({
       app: result.app,
       operation: result.operation,
-      project,
+      project: resolvedProjectId
+        ? {
+            id: resolvedProjectId,
+            name: resolvedProjectName,
+          }
+        : null,
       replayed: result.replayed,
       requestInProgress: result.requestInProgress,
       workspace: {
-        defaultProjectId: workspace.defaultProjectId ?? project.id,
-        defaultProjectName: workspace.defaultProjectName ?? project.name,
+        defaultProjectId: workspace.defaultProjectId ?? resolvedProjectId,
+        defaultProjectName: workspace.defaultProjectName ?? resolvedProjectName,
         tenantId: workspace.tenantId,
         tenantName: workspace.tenantName,
       },

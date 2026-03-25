@@ -218,24 +218,12 @@ export function ApiKeyManager({
     setSyncError(data.syncError);
   }
 
-  async function refreshKeys(options?: { successMessage?: string }) {
+  async function refreshKeys() {
     const data = await requestJson<ApiKeyPagePayload>("/api/fugue/api-keys", {
       cache: "no-store",
     });
 
     syncLocalState(data);
-
-    if (options?.successMessage) {
-      showToast({
-        message: options.successMessage,
-        variant: "success",
-      });
-    } else if (data.syncError) {
-      showToast({
-        message: "Showing stored metadata while live key sync is unavailable.",
-        variant: "info",
-      });
-    }
 
     return data;
   }
@@ -248,16 +236,14 @@ export function ApiKeyManager({
     setBusyAction("refresh");
 
     try {
-      const data = await refreshKeys({
-        successMessage: "API key list refreshed.",
-      });
+      const data = await refreshKeys();
 
-      if (data.syncError) {
-        showToast({
-          message: "Live sync is still unavailable. Stored metadata remains visible.",
-          variant: "info",
-        });
-      }
+      showToast({
+        message: data.syncError
+          ? "Live sync is still unavailable. Stored metadata remains visible."
+          : "API key list refreshed.",
+        variant: data.syncError ? "info" : "success",
+      });
     } catch (error) {
       showToast({
         message: readErrorMessage(error),
@@ -502,18 +488,17 @@ export function ApiKeyManager({
   return (
     <Panel>
       {syncError ? (
-        <PanelSection className="fg-api-key-sync-note">
-          <span>Showing stored metadata.</span>
-          <button
-            className="fg-console-inline-action"
-            disabled={busyAction !== null}
-            onClick={() => {
-              void handleRefresh();
-            }}
-            type="button"
-          >
-            {busyAction === "refresh" ? "Retrying…" : "Retry live sync"}
-          </button>
+        <PanelSection>
+          <div className="fg-project-actions">
+            <InlineActionButton
+              blocked={Boolean(busyAction && busyAction !== "refresh")}
+              busy={busyAction === "refresh"}
+              label={busyAction === "refresh" ? "Refreshing…" : "Refresh keys"}
+              onClick={() => {
+                void handleRefresh();
+              }}
+            />
+          </div>
         </PanelSection>
       ) : null}
 

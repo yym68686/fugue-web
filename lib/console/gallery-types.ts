@@ -2,11 +2,19 @@ import type { ConsoleTone } from "@/lib/console/types";
 
 export type ConsoleGalleryBadgeKind =
   | "buildpacks"
+  | "dotnet"
   | "docker"
+  | "go"
   | "github"
+  | "java"
   | "nixpacks"
+  | "node"
   | "postgres"
+  | "php"
+  | "python"
   | "runtime"
+  | "ruby"
+  | "rust"
   | "static";
 
 export type ConsoleGalleryBadgeView = {

@@ -1,8 +1,8 @@
 import { AuthShell } from "@/components/auth/auth-shell";
 import { EmailAuthForm } from "@/components/auth/email-auth-form";
 import { ProviderButton } from "@/components/auth/provider-button";
-import { InlineAlert } from "@/components/ui/inline-alert";
 import { Panel, PanelCopy, PanelDivider, PanelSection, PanelTitle } from "@/components/ui/panel";
+import { ToastOnMount } from "@/components/ui/toast-on-mount";
 import { getEmailVerificationRequired } from "@/lib/auth/env";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>> | Record<string, string | string[] | undefined>;
@@ -92,8 +92,7 @@ export default async function SignInPage({
         </PanelSection>
 
         <PanelSection>
-          {flash ? <InlineAlert variant={flash.variant}>{flash.message}</InlineAlert> : null}
-          {flash ? <div style={{ height: "1rem" }} aria-hidden="true" /> : null}
+          <ToastOnMount message={flash?.message ?? null} variant={flash?.variant ?? "info"} />
           <EmailAuthForm emailVerificationRequired={emailVerificationRequired} mode="signin" />
         </PanelSection>
       </Panel>

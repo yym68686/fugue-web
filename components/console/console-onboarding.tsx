@@ -3,7 +3,6 @@
 import { useEffect, useState, startTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
-import { InlineAlert } from "@/components/ui/inline-alert";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { Panel, PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
@@ -270,8 +269,6 @@ export function ConsoleOnboarding({
         },
       ];
   const eyebrow = "Console / first run";
-  const panelFlash = flash && !importOpen ? flash : null;
-  const modalFlash = flash && importOpen ? flash : null;
   const openImport = () => {
     setFlash(null);
     setImportOpen(true);
@@ -291,10 +288,6 @@ export function ConsoleOnboarding({
           </PanelSection>
 
           <PanelSection className="fg-console-onboarding__body">
-            {panelFlash ? (
-              <InlineAlert variant={panelFlash.variant}>{panelFlash.message}</InlineAlert>
-            ) : null}
-
             <div className="fg-console-onboarding__actions">
               <Button
                 onClick={
@@ -351,13 +344,6 @@ export function ConsoleOnboarding({
               </PanelSection>
 
               <PanelSection>
-                {modalFlash ? (
-                  <>
-                    <InlineAlert variant={modalFlash.variant}>{modalFlash.message}</InlineAlert>
-                    <div style={{ height: "0.9rem" }} aria-hidden="true" />
-                  </>
-                ) : null}
-
                 <form className="fg-form-grid" onSubmit={handleImport}>
                   <div className="fg-console-dialog__grid">
                     <FormField

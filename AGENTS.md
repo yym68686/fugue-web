@@ -244,6 +244,8 @@
   - 命令块、API 证明块、terminal proof 区优先使用双层 bezel 外壳，而不是裸 `pre`
 - `object-belt`
   - `workspace / project / app / runtime / operation` 这类 mono belt 是对象语义层，后续 docs 和 console 可继续复用
+- `project-gallery workbench`
+  - Projects 默认使用纵向 gallery 流而不是统计卡网格；卡片摘要只负责项目名和 stack 方块，展开后在卡片内部进入左右分栏工作台：左侧操作当前 app，右侧切换项目内服务
 
 ## 跨页面适配边界
 
