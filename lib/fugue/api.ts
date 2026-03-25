@@ -628,6 +628,67 @@ export async function createFugueApiKey(
   };
 }
 
+export async function updateFugueApiKey(
+  accessToken: string,
+  id: string,
+  payload: {
+    label?: string;
+    scopes?: string[];
+  },
+) {
+  const response = asRecord(
+    await fugueRequest(`/v1/api-keys/${encodeURIComponent(id)}`, {
+      accessToken,
+      body: {
+        ...(payload.label !== undefined ? { label: payload.label } : {}),
+        ...(payload.scopes !== undefined ? { scopes: payload.scopes } : {}),
+      },
+      method: "PATCH",
+    }),
+  );
+  const apiKey = sanitizeApiKey(response?.api_key);
+
+  if (!apiKey) {
+    throw new Error("Fugue API key update response was malformed.");
+  }
+
+  return apiKey;
+}
+
+export async function rotateFugueApiKey(
+  accessToken: string,
+  id: string,
+  payload?: {
+    label?: string;
+    scopes?: string[];
+  },
+) {
+  const response = asRecord(
+    await fugueRequest(`/v1/api-keys/${encodeURIComponent(id)}/rotate`, {
+      accessToken,
+      body:
+        payload && (payload.label !== undefined || payload.scopes !== undefined)
+          ? {
+              ...(payload.label !== undefined ? { label: payload.label } : {}),
+              ...(payload.scopes !== undefined ? { scopes: payload.scopes } : {}),
+            }
+          : {},
+      method: "POST",
+    }),
+  );
+  const apiKey = sanitizeApiKey(response?.api_key);
+  const secret = readString(response, "secret");
+
+  if (!apiKey || !secret) {
+    throw new Error("Fugue API key rotate response was malformed.");
+  }
+
+  return {
+    apiKey,
+    secret,
+  };
+}
+
 export async function createFugueProject(
   accessToken: string,
   payload: {

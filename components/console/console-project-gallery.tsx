@@ -7,6 +7,7 @@ import { StatusBadge } from "@/components/console/status-badge";
 import { Button } from "@/components/ui/button";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { Panel, PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
+import { useToast } from "@/components/ui/toast";
 import type {
   ConsoleGalleryAppView,
   ConsoleGalleryBadgeKind,
@@ -270,6 +271,7 @@ export function ConsoleProjectGallery({
   defaultCreateOpen?: boolean;
 }) {
   const router = useRouter();
+  const { showToast } = useToast();
   const firstProject = data.projects[0] ?? null;
   const firstProjectAppId = firstProject ? projectApps(firstProject)[0]?.id ?? null : null;
   const [flash, setFlash] = useState<FlashState | null>(null);
@@ -317,6 +319,17 @@ export function ConsoleProjectGallery({
       setCreateOpen(true);
     }
   }, [defaultCreateOpen]);
+
+  useEffect(() => {
+    if (!flash) {
+      return;
+    }
+
+    showToast({
+      message: flash.message,
+      variant: flash.variant,
+    });
+  }, [flash, showToast]);
 
   useEffect(() => {
     if (!createOpen && !isCreating) {
@@ -930,7 +943,7 @@ export function ConsoleProjectGallery({
     setLogsLoadedKey(null);
   }
 
-  const shellTone = data.workspace.connectionTone === "danger" ? "error" : "info";
+  const shellTone = data.errors.length >= 3 ? "error" : "info";
 
   return (
     <>
@@ -946,24 +959,6 @@ export function ConsoleProjectGallery({
         ) : null}
 
         <section className="fg-project-gallery__shelf">
-          <div className="fg-project-gallery__meta">
-            <div>
-              <p className="fg-label">Projects</p>
-              <h1 className="fg-ui-heading">
-                {data.workspace.exists
-                  ? data.workspace.tenantName ?? "Workspace"
-                  : "Create the workspace"}
-              </h1>
-            </div>
-
-            <div className="fg-console-inline-status">
-              <StatusBadge tone={data.workspace.connectionTone}>
-                {data.workspace.connectionLabel}
-              </StatusBadge>
-              <StatusBadge tone="neutral">{data.workspace.apiHost}</StatusBadge>
-            </div>
-          </div>
-
           {data.projects.length ? (
             <div className="fg-project-gallery__grid">
               {data.projects.map((project) => (
@@ -999,20 +994,7 @@ export function ConsoleProjectGallery({
             </div>
           ) : (
             <Panel className="fg-project-gallery__empty-panel">
-              <PanelSection>
-                <p className="fg-label fg-panel__eyebrow">
-                  {data.workspace.exists ? "Empty workspace" : "Workspace"}
-                </p>
-                <PanelTitle>
-                  {data.workspace.exists ? "No deployed projects." : "No workspace yet."}
-                </PanelTitle>
-                <PanelCopy>
-                  {data.workspace.exists
-                    ? "Create a project only when you are ready to import a repository."
-                    : "Create the workspace admin key and import the first repository in one flow."}
-                </PanelCopy>
-              </PanelSection>
-              <PanelSection className="fg-project-gallery__empty-actions">
+              <PanelSection className="fg-project-gallery__empty-state">
                 <Button onClick={openCreate} type="button" variant="primary">
                   Create project
                 </Button>

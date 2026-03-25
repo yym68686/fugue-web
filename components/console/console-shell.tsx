@@ -2,10 +2,9 @@ import type { ReactNode } from "react";
 
 import { Brand } from "@/components/brand";
 import { ConsoleNav } from "@/components/console/console-nav";
+import { ConsolePrimaryAction } from "@/components/console/console-primary-action";
 import { StatusBadge } from "@/components/console/status-badge";
-import { ButtonLink } from "@/components/ui/button";
 import type { SessionUser } from "@/lib/auth/session";
-import { getCurrentWorkspaceSnapshot } from "@/lib/workspace/current";
 
 function readSessionLabel(session: SessionUser) {
   return session.name?.trim() || session.email.split("@")[0] || session.email;
@@ -31,23 +30,20 @@ export async function ConsoleShell({
   children: ReactNode;
   session: SessionUser;
 }) {
-  const workspace = await getCurrentWorkspaceSnapshot();
   const sessionLabel = readSessionLabel(session);
-  const workspaceLabel = workspace?.tenantName ?? "Console";
 
   return (
     <main className="fg-console">
       <div className="fg-console-shell fg-console-shell--stacked">
         <header className="fg-console-topbar">
           <div className="fg-console-topbar__brand">
-            <Brand meta={`console / ${workspaceLabel}`} />
-            <ConsoleNav />
+            <Brand meta="console" />
           </div>
 
+          <ConsoleNav />
+
           <div className="fg-console-topbar__actions">
-            <ButtonLink href="/app?dialog=create" size="compact" variant="primary">
-              Create project
-            </ButtonLink>
+            <ConsolePrimaryAction />
 
             <details className="fg-console-profile">
               <summary className="fg-console-profile__trigger">
@@ -84,14 +80,6 @@ export async function ConsoleShell({
         </header>
 
         <div className="fg-console-content">{children}</div>
-
-        <div className="fg-object-belt" aria-label="Core objects">
-          <span>project</span>
-          <span>service</span>
-          <span>env</span>
-          <span>file</span>
-          <span>log</span>
-        </div>
       </div>
     </main>
   );

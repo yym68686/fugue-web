@@ -1,20 +1,13 @@
 "use client";
 
-import { startTransition, useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 
-import { StatusBadge } from "@/components/console/status-badge";
-import { Button } from "@/components/ui/button";
-import { FormField } from "@/components/ui/form-field";
-import { InlineAlert } from "@/components/ui/inline-alert";
-import { Panel, PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
+import { Panel, PanelSection } from "@/components/ui/panel";
+import { useToast } from "@/components/ui/toast";
 import type { ApiKeyRecord } from "@/lib/api-keys/types";
+import { API_KEY_CREATE_REQUEST_EVENT } from "@/lib/console/events";
 import { getFugueScopeDescription } from "@/lib/fugue/scopes";
-
-type FlashState = {
-  message: string;
-  variant: "error" | "info" | "success";
-};
+import { cx } from "@/lib/ui/cx";
 
 type ApiKeyPagePayload = {
   availableScopes: string[];
@@ -22,8 +15,6 @@ type ApiKeyPagePayload = {
   syncError: string | null;
   workspace: {
     adminKeyId: string;
-    tenantId: string;
-    tenantName: string;
   };
 };
 
@@ -52,15 +43,28 @@ async function requestJson<T>(input: RequestInfo, init?: RequestInit) {
   return data;
 }
 
+async function copyText(value: string) {
+  if (!navigator.clipboard?.writeText) {
+    return false;
+  }
+
+  try {
+    await navigator.clipboard.writeText(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function formatRelativeTime(value?: string | null) {
   if (!value) {
-    return "Not yet";
+    return "Never";
   }
 
   const timestamp = Date.parse(value);
 
   if (!Number.isFinite(timestamp)) {
-    return "Not yet";
+    return "Never";
   }
 
   const deltaSeconds = Math.round((timestamp - Date.now()) / 1000);
@@ -90,30 +94,6 @@ function formatRelativeTime(value?: string | null) {
   return "Just now";
 }
 
-function formatStatusTone(status: ApiKeyRecord["status"]) {
-  switch (status) {
-    case "active":
-      return "positive" as const;
-    case "disabled":
-      return "warning" as const;
-    case "deleted":
-      return "danger" as const;
-    default:
-      return "neutral" as const;
-  }
-}
-
-function formatSourceLabel(source: ApiKeyRecord["source"]) {
-  switch (source) {
-    case "workspace-admin":
-      return "workspace admin";
-    case "managed":
-      return "created here";
-    default:
-      return "external";
-  }
-}
-
 function sortSelectedScopes(scopes: string[], availableScopes: string[]) {
   const scopeOrder = new Map(
     availableScopes.map((scope, index) => [scope, index] as const),
@@ -131,58 +111,155 @@ function sortSelectedScopes(scopes: string[], availableScopes: string[]) {
   });
 }
 
-function buildDefaultScopes(availableScopes: string[]) {
-  const preferred = ["app.write", "app.deploy"].filter((scope) =>
-    availableScopes.includes(scope),
+function buildLabelDrafts(keys: ApiKeyRecord[]) {
+  return Object.fromEntries(keys.map((key) => [key.id, key.label]));
+}
+
+function sortKeys(keys: ApiKeyRecord[]) {
+  const statusOrder = new Map<ApiKeyRecord["status"], number>([
+    ["active", 0],
+    ["disabled", 1],
+    ["deleted", 2],
+  ]);
+
+  return [...keys].sort((left, right) => {
+    if (left.isWorkspaceAdmin !== right.isWorkspaceAdmin) {
+      return left.isWorkspaceAdmin ? -1 : 1;
+    }
+
+    const leftStatusOrder = statusOrder.get(left.status) ?? Number.MAX_SAFE_INTEGER;
+    const rightStatusOrder = statusOrder.get(right.status) ?? Number.MAX_SAFE_INTEGER;
+
+    if (leftStatusOrder !== rightStatusOrder) {
+      return leftStatusOrder - rightStatusOrder;
+    }
+
+    const leftCreatedAt = Date.parse(left.createdAt);
+    const rightCreatedAt = Date.parse(right.createdAt);
+
+    if (Number.isFinite(leftCreatedAt) && Number.isFinite(rightCreatedAt) && leftCreatedAt !== rightCreatedAt) {
+      return rightCreatedAt - leftCreatedAt;
+    }
+
+    return left.label.localeCompare(right.label);
+  });
+}
+
+function upsertKey(keys: ApiKeyRecord[], nextKey: ApiKeyRecord) {
+  return sortKeys([
+    ...keys.filter((key) => key.id !== nextKey.id),
+    nextKey,
+  ]);
+}
+
+function InlineActionButton({
+  blocked = false,
+  busy = false,
+  className,
+  disabled = false,
+  label,
+  onClick,
+}: {
+  blocked?: boolean;
+  busy?: boolean;
+  className?: string;
+  disabled?: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      aria-busy={busy || undefined}
+      aria-disabled={blocked || undefined}
+      className={cx(
+        "fg-console-inline-action",
+        "fg-api-key-item__action",
+        className,
+        busy && "is-busy",
+        blocked && "is-blocked",
+      )}
+      disabled={disabled || busy}
+      onClick={() => {
+        if (blocked || busy || disabled) {
+          return;
+        }
+
+        onClick();
+      }}
+      tabIndex={blocked ? -1 : undefined}
+      type="button"
+    >
+      <span aria-hidden="true" className="fg-console-inline-action__status" />
+      <span className="fg-console-inline-action__label">{label}</span>
+    </button>
   );
-
-  if (preferred.length) {
-    return preferred;
-  }
-
-  return availableScopes.slice(0, 1);
 }
 
 export function ApiKeyManager({
   availableScopes,
   initialKeys,
   initialSyncError,
-  workspaceAdminId,
 }: {
   availableScopes: string[];
   initialKeys: ApiKeyRecord[];
   initialSyncError: string | null;
-  workspaceAdminId: string;
 }) {
-  const router = useRouter();
+  const { showToast } = useToast();
+  const createRequestRef = useRef<() => void>(() => {});
   const [keys, setKeys] = useState(initialKeys);
-  const [label, setLabel] = useState("");
-  const [selectedScopes, setSelectedScopes] = useState(
-    buildDefaultScopes(availableScopes),
-  );
-  const [flash, setFlash] = useState<FlashState | null>(
-    initialSyncError
-      ? {
-          message: `Live Fugue sync failed. Showing stored key metadata instead. ${initialSyncError}`,
-          variant: "info",
-        }
-      : null,
-  );
+  const [scopeCatalog, setScopeCatalog] = useState(availableScopes);
   const [syncError, setSyncError] = useState<string | null>(initialSyncError);
-  const [isCreating, setIsCreating] = useState(false);
-  const [activeActionId, setActiveActionId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [labelDrafts, setLabelDrafts] = useState<Record<string, string>>(
+    buildLabelDrafts(initialKeys),
+  );
+  const [busyAction, setBusyAction] = useState<string | null>(null);
 
-  async function refreshKeys() {
+  useEffect(() => {
+    if (!initialSyncError) {
+      return;
+    }
+
+    showToast({
+      message: "Showing stored metadata while live key sync is unavailable.",
+      variant: "info",
+    });
+  }, [initialSyncError, showToast]);
+
+  useEffect(() => {
+    const handleCreateRequest = () => {
+      createRequestRef.current();
+    };
+
+    window.addEventListener(API_KEY_CREATE_REQUEST_EVENT, handleCreateRequest);
+
+    return () => {
+      window.removeEventListener(API_KEY_CREATE_REQUEST_EVENT, handleCreateRequest);
+    };
+  }, []);
+
+  function syncLocalState(data: ApiKeyPagePayload) {
+    setKeys(sortKeys(data.keys));
+    setScopeCatalog(data.availableScopes);
+    setSyncError(data.syncError);
+    setLabelDrafts(buildLabelDrafts(data.keys));
+  }
+
+  async function refreshKeys(options?: { successMessage?: string }) {
     const data = await requestJson<ApiKeyPagePayload>("/api/fugue/api-keys", {
       cache: "no-store",
     });
 
-    setKeys(data.keys);
-    setSyncError(data.syncError);
+    syncLocalState(data);
 
-    if (data.syncError) {
-      setFlash({
-        message: `Live Fugue sync failed. Showing stored key metadata instead. ${data.syncError}`,
+    if (options?.successMessage) {
+      showToast({
+        message: options.successMessage,
+        variant: "success",
+      });
+    } else if (data.syncError) {
+      showToast({
+        message: "Showing stored metadata while live key sync is unavailable.",
         variant: "info",
       });
     }
@@ -191,92 +268,81 @@ export function ApiKeyManager({
   }
 
   async function handleRefresh() {
-    setFlash(null);
-
-    try {
-      const data = await refreshKeys();
-
-      if (!data.syncError) {
-        setFlash({
-          message: "API key list refreshed from Fugue.",
-          variant: "success",
-        });
-      }
-    } catch (error) {
-      setFlash({
-        message: readErrorMessage(error),
-        variant: "error",
-      });
-    }
-  }
-
-  function refreshShell() {
-    startTransition(() => {
-      router.refresh();
-    });
-  }
-
-  function toggleScope(scope: string) {
-    setSelectedScopes((current) => {
-      if (current.includes(scope)) {
-        return current.filter((item) => item !== scope);
-      }
-
-      return sortSelectedScopes([...current, scope], availableScopes);
-    });
-  }
-
-  async function handleCreate(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (isCreating) {
+    if (busyAction) {
       return;
     }
 
-    setFlash(null);
-    setIsCreating(true);
+    setBusyAction("refresh");
 
     try {
-      await requestJson<{
-        key: ApiKeyRecord;
-        secret: string;
-      }>("/api/fugue/api-keys", {
-        body: JSON.stringify({
-          label,
-          scopes: selectedScopes,
-        }),
-        headers: {
-          "Content-Type": "application/json",
-        },
-        method: "POST",
+      const data = await refreshKeys({
+        successMessage: "API key list refreshed.",
       });
 
-      await refreshKeys();
-      setLabel("");
-      setSelectedScopes(buildDefaultScopes(availableScopes));
-      setFlash({
-        message:
-          "API key created. The secret is sealed server-side and can be copied from this page.",
-        variant: "success",
-      });
-      refreshShell();
+      if (data.syncError) {
+        showToast({
+          message: "Live sync is still unavailable. Stored metadata remains visible.",
+          variant: "info",
+        });
+      }
     } catch (error) {
-      setFlash({
+      showToast({
         message: readErrorMessage(error),
         variant: "error",
       });
     } finally {
-      setIsCreating(false);
+      setBusyAction(null);
     }
   }
 
-  async function handleCopy(keyId: string) {
-    if (activeActionId) {
+  async function handleCreate() {
+    if (busyAction) {
       return;
     }
 
-    setActiveActionId(`copy:${keyId}`);
-    setFlash(null);
+    setBusyAction("create");
+
+    try {
+      const created = await requestJson<{
+        key: ApiKeyRecord;
+        secret: string;
+      }>("/api/fugue/api-keys", {
+        method: "POST",
+      });
+      const copied = await copyText(created.secret);
+
+      setKeys((current) => upsertKey(current, created.key));
+      setLabelDrafts((current) => ({
+        ...current,
+        [created.key.id]: created.key.label,
+      }));
+      setSyncError(null);
+      setExpandedId(created.key.id);
+
+      showToast({
+        message: copied ? "Key created and secret copied." : "Key created.",
+        variant: "success",
+      });
+    } catch (error) {
+      showToast({
+        message: readErrorMessage(error),
+        variant: "error",
+      });
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
+  createRequestRef.current = () => {
+    void handleCreate();
+  };
+
+  async function handleCopy(keyId: string) {
+    if (busyAction) {
+      return;
+    }
+
+    setBusyAction(`copy:${keyId}`);
 
     try {
       const data = await requestJson<{
@@ -285,36 +351,53 @@ export function ApiKeyManager({
         cache: "no-store",
       });
 
-      await navigator.clipboard.writeText(data.secret);
-      setFlash({
-        message: "Secret copied to clipboard.",
-        variant: "success",
+      const copied = await copyText(data.secret);
+
+      showToast({
+        message: copied ? "Secret copied." : "Secret is ready, but clipboard access failed.",
+        variant: copied ? "success" : "info",
       });
     } catch (error) {
-      setFlash({
+      showToast({
         message: readErrorMessage(error),
         variant: "error",
       });
     } finally {
-      setActiveActionId(null);
+      setBusyAction(null);
     }
   }
 
-  async function handleStatusChange(record: ApiKeyRecord, action: "disable" | "enable") {
-    if (activeActionId) {
+  async function handleLabelCommit(record: ApiKeyRecord) {
+    const nextLabel = (labelDrafts[record.id] ?? record.label).trim();
+
+    if (!nextLabel) {
+      setLabelDrafts((current) => ({
+        ...current,
+        [record.id]: record.label,
+      }));
+      showToast({
+        message: "Key name cannot be empty.",
+        variant: "error",
+      });
       return;
     }
 
-    setActiveActionId(`${action}:${record.id}`);
-    setFlash(null);
+    if (nextLabel === record.label || busyAction) {
+      setLabelDrafts((current) => ({
+        ...current,
+        [record.id]: nextLabel,
+      }));
+      return;
+    }
+
+    setBusyAction(`rename:${record.id}`);
 
     try {
-      await requestJson<{
+      const updated = await requestJson<{
         key: ApiKeyRecord;
-        localOnly: boolean;
       }>(`/api/fugue/api-keys/${encodeURIComponent(record.id)}`, {
         body: JSON.stringify({
-          action,
+          label: nextLabel,
         }),
         headers: {
           "Content-Type": "application/json",
@@ -322,325 +405,365 @@ export function ApiKeyManager({
         method: "PATCH",
       });
 
-      await refreshKeys();
-      setFlash({
-        message:
-          action === "disable"
-            ? "Key disabled inside fugue-web. Fugue itself does not revoke it yet."
-            : "Key re-enabled inside fugue-web.",
+      setKeys((current) => upsertKey(current, updated.key));
+      setLabelDrafts((current) => ({
+        ...current,
+        [updated.key.id]: updated.key.label,
+      }));
+      setSyncError(null);
+      setExpandedId(updated.key.id);
+
+      showToast({
+        message: "Key renamed.",
         variant: "success",
       });
-      refreshShell();
     } catch (error) {
-      setFlash({
+      setLabelDrafts((current) => ({
+        ...current,
+        [record.id]: record.label,
+      }));
+      showToast({
         message: readErrorMessage(error),
         variant: "error",
       });
     } finally {
-      setActiveActionId(null);
+      setBusyAction(null);
     }
   }
 
   async function handleDelete(record: ApiKeyRecord) {
-    if (activeActionId) {
+    if (busyAction || !record.canDelete) {
       return;
     }
 
     const confirmed = window.confirm(
-      "Delete this key from fugue-web? This hides it here, but Fugue itself does not revoke the upstream secret yet.",
+      "Remove this key from the console? This does not revoke the upstream Fugue secret.",
     );
 
     if (!confirmed) {
       return;
     }
 
-    setActiveActionId(`delete:${record.id}`);
-    setFlash(null);
+    setBusyAction(`delete:${record.id}`);
 
     try {
       await requestJson<{
         key: ApiKeyRecord;
-        localOnly: boolean;
       }>(`/api/fugue/api-keys/${encodeURIComponent(record.id)}`, {
         method: "DELETE",
       });
 
-      await refreshKeys();
-      setFlash({
-        message:
-          "Key deleted from fugue-web. The upstream Fugue key remains valid until Fugue exposes revoke/delete.",
-        variant: "info",
+      setKeys((current) => current.filter((key) => key.id !== record.id));
+      setLabelDrafts((current) => {
+        const next = { ...current };
+        delete next[record.id];
+        return next;
       });
-      refreshShell();
+      setSyncError(null);
+      setExpandedId((current) => (current === record.id ? null : current));
+
+      showToast({
+        message: "Key removed from this console.",
+        variant: "success",
+      });
     } catch (error) {
-      setFlash({
+      showToast({
         message: readErrorMessage(error),
         variant: "error",
       });
     } finally {
-      setActiveActionId(null);
+      setBusyAction(null);
     }
   }
 
-  const lockedKey = keys.find((key) => key.id === workspaceAdminId);
-  const managedCount = keys.filter((key) => key.source === "managed").length;
-  const disabledCount = keys.filter((key) => key.status === "disabled").length;
+  function handleLabelKeyDown(
+    event: KeyboardEvent<HTMLInputElement>,
+    record: ApiKeyRecord,
+  ) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      event.currentTarget.blur();
+      return;
+    }
+
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setLabelDrafts((current) => ({
+        ...current,
+        [record.id]: record.label,
+      }));
+      event.currentTarget.blur();
+    }
+  }
+
+  async function handleScopeToggle(record: ApiKeyRecord, scope: string) {
+    if (busyAction) {
+      return;
+    }
+
+    const hasScope = record.scopes.includes(scope);
+    const nextScopes = hasScope
+      ? record.scopes.filter((item) => item !== scope)
+      : sortSelectedScopes([...record.scopes, scope], scopeCatalog);
+
+    if (!nextScopes.length) {
+      showToast({
+        message: "Keep at least one permission enabled.",
+        variant: "error",
+      });
+      return;
+    }
+
+    setKeys((current) =>
+      current.map((key) =>
+        key.id === record.id
+          ? {
+              ...key,
+              scopes: nextScopes,
+            }
+          : key,
+      ),
+    );
+    setBusyAction(`scope:${record.id}:${scope}`);
+
+    try {
+      const updated = await requestJson<{
+        key: ApiKeyRecord;
+      }>(`/api/fugue/api-keys/${encodeURIComponent(record.id)}`, {
+        body: JSON.stringify({
+          scopes: nextScopes,
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "PATCH",
+      });
+
+      setKeys((current) => upsertKey(current, updated.key));
+      setLabelDrafts((current) => ({
+        ...current,
+        [updated.key.id]: updated.key.label,
+      }));
+      if (updated.key.isWorkspaceAdmin) {
+        setScopeCatalog(sortSelectedScopes(updated.key.scopes, updated.key.scopes));
+      }
+      setSyncError(null);
+      setExpandedId(updated.key.id);
+
+      showToast({
+        message: "Permissions updated.",
+        variant: "success",
+      });
+    } catch (error) {
+      setKeys((current) =>
+        current.map((key) =>
+          key.id === record.id
+            ? {
+                ...key,
+                scopes: record.scopes,
+              }
+            : key,
+        ),
+      );
+      showToast({
+        message: readErrorMessage(error),
+        variant: "error",
+      });
+    } finally {
+      setBusyAction(null);
+    }
+  }
 
   return (
-    <>
-      <section className="fg-console-two-up">
-        <Panel>
-          <PanelSection>
-            <p className="fg-label fg-panel__eyebrow">Create key</p>
-            <PanelTitle>Tenant-scoped API keys</PanelTitle>
-            <PanelCopy>
-              Mint additional keys from your stored workspace admin credential. Scope selection is
-              capped to what your admin key can already grant.
-            </PanelCopy>
-          </PanelSection>
-
-          <PanelSection>
-            {flash ? (
-              <>
-                <InlineAlert variant={flash.variant}>{flash.message}</InlineAlert>
-                <div style={{ height: "0.85rem" }} aria-hidden="true" />
-              </>
-            ) : null}
-
-            <form className="fg-form-grid" onSubmit={handleCreate}>
-              <FormField
-                hint="Use short, operational names like ci-deploy or preview-ops."
-                htmlFor="api-key-label"
-                label="Label"
-              >
-                <input
-                  className="fg-input"
-                  id="api-key-label"
-                  onChange={(event) => setLabel(event.target.value)}
-                  placeholder="ci-deploy"
-                  required
-                  value={label}
-                />
-              </FormField>
-
-              <div className="fg-api-key-scope-section">
-                <div className="fg-api-key-scope-section__head">
-                  <div>
-                    <strong>Scopes</strong>
-                    <p>Pick the minimum set. Reads remain available through Fugue to any visible key.</p>
-                  </div>
-                  <StatusBadge tone="neutral">
-                    {selectedScopes.length} selected
-                  </StatusBadge>
-                </div>
-
-                <div className="fg-api-key-scope-grid">
-                  {availableScopes.map((scope) => {
-                    const selected = selectedScopes.includes(scope);
-
-                    return (
-                      <label
-                        className={`fg-api-key-scope-card${selected ? " is-selected" : ""}`}
-                        key={scope}
-                      >
-                        <input
-                          checked={selected}
-                          className="fg-api-key-scope-card__input"
-                          onChange={() => toggleScope(scope)}
-                          type="checkbox"
-                        />
-                        <span className="fg-api-key-scope-card__row">
-                          <strong>{scope}</strong>
-                          <span>{selected ? "selected" : "available"}</span>
-                        </span>
-                        <span className="fg-api-key-scope-card__copy">
-                          {getFugueScopeDescription(scope)}
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="fg-console-toolbar">
-                <Button disabled={isCreating} type="submit" variant="primary">
-                  {isCreating ? "Creating…" : "Create key"}
-                </Button>
-                <button
-                  className="fg-console-inline-action"
-                  disabled={isCreating}
-                  onClick={() => {
-                    void handleRefresh();
-                  }}
-                  type="button"
-                >
-                  Refresh list
-                </button>
-              </div>
-            </form>
-          </PanelSection>
-        </Panel>
-
-        <Panel>
-          <PanelSection>
-            <p className="fg-label fg-panel__eyebrow">Current policy</p>
-            <PanelTitle>What this page can and cannot do</PanelTitle>
-            <PanelCopy>
-              Fugue currently exposes list and create for tenant API keys. Disable and delete on
-              this page are enforced inside fugue-web only until Fugue ships upstream revoke.
-            </PanelCopy>
-          </PanelSection>
-
-          <PanelSection>
-            <ul className="fg-console-stat-list">
-              <li>
-                <strong>Workspace admin</strong>
-                <span>{lockedKey ? lockedKey.label : "Stored"}</span>
-              </li>
-              <li>
-                <strong>Created here</strong>
-                <span>{managedCount}</span>
-              </li>
-              <li>
-                <strong>Disabled locally</strong>
-                <span>{disabledCount}</span>
-              </li>
-              <li>
-                <strong>Live sync</strong>
-                <span>{syncError ? "stored fallback" : "live"}</span>
-              </li>
-            </ul>
-
-            <div className="fg-console-note-block">
-              <strong>Copy behavior</strong>
-              <p>Copy works only when fugue-web knows the secret. External keys discovered from Fugue remain visible, but their secret stays unavailable.</p>
-            </div>
-
-            <div className="fg-console-note-block">
-              <strong>Locked key</strong>
-              <p>The workspace admin key keeps this console running. It can be copied, but not disabled or deleted from this surface.</p>
-            </div>
-          </PanelSection>
-        </Panel>
-      </section>
-
-      <Panel>
-        <PanelSection>
-          <p className="fg-label fg-panel__eyebrow">Inventory</p>
-          <PanelTitle>Visible API keys</PanelTitle>
-          <PanelCopy>
-            Workspace admin is pinned first. Other keys can be copied, disabled, or deleted from
-            the product layer.
-          </PanelCopy>
+    <Panel>
+      {syncError ? (
+        <PanelSection className="fg-api-key-sync-note">
+          <span>Showing stored metadata.</span>
+          <button
+            className="fg-console-inline-action"
+            disabled={busyAction !== null}
+            onClick={() => {
+              void handleRefresh();
+            }}
+            type="button"
+          >
+            {busyAction === "refresh" ? "Retrying…" : "Retry live sync"}
+          </button>
         </PanelSection>
+      ) : null}
 
-        <PanelSection>
+      <PanelSection>
+        {keys.length ? (
           <div className="fg-api-key-list">
             {keys.map((record) => {
-              const isCopying = activeActionId === `copy:${record.id}`;
-              const isDisabling = activeActionId === `disable:${record.id}`;
-              const isEnabling = activeActionId === `enable:${record.id}`;
-              const isDeleting = activeActionId === `delete:${record.id}`;
+              const expanded = expandedId === record.id;
+              const labelValue = labelDrafts[record.id] ?? record.label;
 
               return (
-                <article className="fg-api-key-card" key={record.id}>
-                  <div className="fg-api-key-card__head">
-                    <div className="fg-api-key-card__copy">
-                      <div className="fg-console-list__title-row">
+                <article
+                  className={cx(
+                    "fg-api-key-item",
+                    expanded && "is-expanded",
+                  )}
+                  key={record.id}
+                >
+                  <div className="fg-api-key-item__summary">
+                    <button
+                      aria-expanded={expanded}
+                      className="fg-api-key-item__summary-toggle"
+                      onClick={() => {
+                        setExpandedId((current) =>
+                          current === record.id ? null : record.id,
+                        );
+                      }}
+                      type="button"
+                    />
+
+                    <div className="fg-api-key-item__toggle">
+                      <div className="fg-api-key-item__title">
                         <strong>{record.label}</strong>
-                        <div className="fg-console-inline-status">
-                          <StatusBadge tone={formatStatusTone(record.status)}>
-                            {record.status}
-                          </StatusBadge>
-                          <StatusBadge tone={record.isWorkspaceAdmin ? "info" : "neutral"}>
-                            {record.isWorkspaceAdmin ? "locked" : formatSourceLabel(record.source)}
-                          </StatusBadge>
-                        </div>
                       </div>
-                      <p>
-                        {record.prefix
-                          ? `${record.prefix} / ${record.id}`
-                          : `${record.id} / secret unavailable`}
+
+                      <p className="fg-api-key-item__meta">
+                        {record.scopes.length} permission
+                        {record.scopes.length === 1 ? "" : "s"} · last used{" "}
+                        {formatRelativeTime(record.lastUsedAt)}
                       </p>
                     </div>
 
-                    <div className="fg-api-key-card__actions">
-                      <button
-                        className="fg-console-inline-action"
-                        disabled={!record.canCopy || Boolean(activeActionId)}
+                    <div className="fg-api-key-item__actions">
+                      <InlineActionButton
+                        blocked={Boolean(
+                          busyAction && busyAction !== `copy:${record.id}`,
+                        )}
+                        busy={busyAction === `copy:${record.id}`}
+                        disabled={!record.canCopy}
+                        label="Copy"
                         onClick={() => {
                           void handleCopy(record.id);
                         }}
-                        type="button"
-                      >
-                        {isCopying ? "Copying…" : "Copy"}
-                      </button>
+                      />
 
-                      {record.status === "disabled" ? (
-                        <button
-                          className="fg-console-inline-action"
-                          disabled={!record.canDisable || Boolean(activeActionId)}
+                      {record.canDelete ? (
+                        <InlineActionButton
+                          blocked={Boolean(
+                            busyAction && busyAction !== `delete:${record.id}`,
+                          )}
+                          busy={busyAction === `delete:${record.id}`}
+                          className="is-danger"
+                          label="Delete"
                           onClick={() => {
-                            void handleStatusChange(record, "enable");
+                            void handleDelete(record);
                           }}
-                          type="button"
-                        >
-                          {isEnabling ? "Enabling…" : "Enable"}
-                        </button>
-                      ) : (
-                        <button
-                          className="fg-console-inline-action"
-                          disabled={!record.canDisable || Boolean(activeActionId)}
-                          onClick={() => {
-                            void handleStatusChange(record, "disable");
-                          }}
-                          type="button"
-                        >
-                          {isDisabling ? "Disabling…" : "Disable"}
-                        </button>
-                      )}
-
-                      <button
-                        className="fg-console-inline-action is-danger"
-                        disabled={!record.canDelete || Boolean(activeActionId)}
-                        onClick={() => {
-                          void handleDelete(record);
-                        }}
-                        type="button"
-                      >
-                        {isDeleting ? "Deleting…" : "Delete"}
-                      </button>
+                        />
+                      ) : null}
                     </div>
                   </div>
 
-                  <dl className="fg-api-key-card__facts">
-                    <div>
-                      <dt>Last used</dt>
-                      <dd>{formatRelativeTime(record.lastUsedAt)}</dd>
-                    </div>
-                    <div>
-                      <dt>Updated</dt>
-                      <dd>{formatRelativeTime(record.updatedAt)}</dd>
-                    </div>
-                    <div>
-                      <dt>Secret</dt>
-                      <dd>{record.secretStored ? "stored" : "not stored"}</dd>
-                    </div>
-                  </dl>
+                  {expanded ? (
+                    <div className="fg-api-key-item__panel">
+                      <div className="fg-api-key-item__details">
+                        <label className="fg-api-key-field">
+                          <span className="fg-api-key-field__label">Name</span>
+                          <input
+                            className="fg-input"
+                            disabled={busyAction !== null}
+                            onBlur={() => {
+                              void handleLabelCommit(record);
+                            }}
+                            onChange={(event) =>
+                              setLabelDrafts((current) => ({
+                                ...current,
+                                [record.id]: event.target.value,
+                              }))
+                            }
+                            onKeyDown={(event) => handleLabelKeyDown(event, record)}
+                            value={labelValue}
+                          />
+                        </label>
 
-                  <div className="fg-api-key-card__scopes">
-                    {record.scopes.map((scope) => (
-                      <span className="fg-api-key-scope-pill" key={`${record.id}:${scope}`}>
-                        {scope}
-                      </span>
-                    ))}
-                  </div>
+                        <dl className="fg-api-key-facts">
+                          <div>
+                            <dt>ID</dt>
+                            <dd>{record.id}</dd>
+                          </div>
+                          <div>
+                            <dt>Prefix</dt>
+                            <dd>{record.prefix ?? "Unavailable"}</dd>
+                          </div>
+                          <div>
+                            <dt>Created</dt>
+                            <dd>{formatRelativeTime(record.createdAt)}</dd>
+                          </div>
+                        </dl>
+                      </div>
+
+                      <div className="fg-api-key-permissions">
+                        <div className="fg-api-key-permissions__head">
+                          <div>
+                            <strong>Permissions</strong>
+                            <p>Changes apply immediately.</p>
+                          </div>
+
+                          <span className="fg-api-key-permissions__count">
+                            {record.scopes.length}/{scopeCatalog.length || record.scopes.length}
+                          </span>
+                        </div>
+
+                        {scopeCatalog.length ? (
+                          <div className="fg-api-key-permission-grid">
+                            {scopeCatalog.map((scope) => {
+                              const selected = record.scopes.includes(scope);
+
+                              return (
+                                <label
+                                  className={cx(
+                                    "fg-api-key-permission",
+                                    selected && "is-selected",
+                                  )}
+                                  key={`${record.id}:${scope}`}
+                                >
+                                  <input
+                                    checked={selected}
+                                    className="fg-api-key-permission__input"
+                                    disabled={busyAction !== null}
+                                    onChange={() => {
+                                      void handleScopeToggle(record, scope);
+                                    }}
+                                    type="checkbox"
+                                  />
+
+                                  <span className="fg-api-key-permission__row">
+                                    <strong>{scope}</strong>
+                                    <span>{selected ? "On" : "Off"}</span>
+                                  </span>
+
+                                  <span className="fg-api-key-permission__copy">
+                                    {getFugueScopeDescription(scope)}
+                                  </span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <p className="fg-api-key-permissions__empty">
+                            No permissions are currently available from the workspace key.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ) : null}
                 </article>
               );
             })}
           </div>
-        </PanelSection>
-      </Panel>
-    </>
+        ) : (
+          <div className="fg-api-key-empty">
+            <strong>No keys yet.</strong>
+            <p>Create a key when you need one.</p>
+          </div>
+        )}
+      </PanelSection>
+    </Panel>
   );
 }

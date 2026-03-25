@@ -9,3 +9,8 @@ pnpm-debug.log*
 .env*
 !.env.example
 .data
+.codex/
+*.tsbuildinfo
+.eslintcache
+.vercel/
+coverage/

@@ -63,12 +63,8 @@ export type ConsoleGalleryProjectView = {
 };
 
 export type ConsoleGalleryWorkspaceView = {
-  apiHost: string;
-  connectionLabel: string;
-  connectionTone: ConsoleTone;
   exists: boolean;
   stage: "empty" | "needs-workspace" | "ready";
-  tenantName: string | null;
 };
 
 export type ConsoleProjectGalleryData = {

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { InlineAlert } from "@/components/ui/inline-alert";
+import { useToast } from "@/components/ui/toast";
 
 type FormState =
   | { kind: "idle" }
@@ -24,6 +25,7 @@ type ApiPayload = {
 };
 
 export function EmailAuthForm({ emailVerificationRequired, mode }: EmailAuthFormProps) {
+  const { showToast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [state, setState] = useState<FormState>({ kind: "idle" });
   const [fieldErrors, setFieldErrors] = useState<{ email?: string }>({});
@@ -36,6 +38,17 @@ export function EmailAuthForm({ emailVerificationRequired, mode }: EmailAuthForm
       : emailVerificationRequired
         ? "Send sign-in link"
         : "Continue with email";
+
+  useEffect(() => {
+    if (state.kind === "idle") {
+      return;
+    }
+
+    showToast({
+      message: state.message,
+      variant: state.kind,
+    });
+  }, [showToast, state]);
 
   async function handleSubmit(formData: FormData) {
     setFieldErrors({});

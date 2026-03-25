@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import {
   createApiKeyForEmail,
+  createDefaultApiKeyForEmail,
   getApiKeyPageData,
 } from "@/lib/api-keys/service";
 import { getCurrentSession } from "@/lib/auth/session";
@@ -39,6 +40,7 @@ function readErrorStatus(error: unknown) {
   if (
     error.message.includes("required") ||
     error.message.includes("Choose at least one scope") ||
+    error.message.includes("Nothing to update") ||
     error.message.includes("Unsupported scopes")
   ) {
     return 400;
@@ -70,6 +72,28 @@ function readScopes(record: Record<string, unknown>) {
   );
 }
 
+async function readJsonObject(request: Request) {
+  const rawBody = await request.text();
+
+  if (!rawBody.trim()) {
+    return {} as Record<string, unknown>;
+  }
+
+  let body: unknown;
+
+  try {
+    body = JSON.parse(rawBody);
+  } catch {
+    throw new Error("Invalid JSON body.");
+  }
+
+  if (!isObject(body)) {
+    throw new Error("Request body must be a JSON object.");
+  }
+
+  return body;
+}
+
 export async function GET() {
   const session = await getCurrentSession();
 
@@ -98,25 +122,25 @@ export async function POST(request: Request) {
     return jsonError(401, "Sign in first.");
   }
 
-  let body: unknown;
+  let body: Record<string, unknown>;
 
   try {
-    body = await request.json();
-  } catch {
-    return jsonError(400, "Invalid JSON body.");
-  }
-
-  if (!isObject(body)) {
-    return jsonError(400, "Request body must be a JSON object.");
+    body = await readJsonObject(request);
+  } catch (error) {
+    return jsonError(400, readErrorMessage(error));
   }
 
   try {
     await ensureAppUser(session);
-
-    const created = await createApiKeyForEmail(session.email, {
-      label: readOptionalString(body, "label"),
-      scopes: readScopes(body),
-    });
+    const label = readOptionalString(body, "label");
+    const scopes = readScopes(body);
+    const created =
+      label || scopes.length
+        ? await createApiKeyForEmail(session.email, {
+            label,
+            scopes,
+          })
+        : await createDefaultApiKeyForEmail(session.email);
 
     return NextResponse.json({
       key: created.key,

@@ -7,6 +7,7 @@ import { InlineAlert } from "@/components/ui/inline-alert";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { Panel, PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
+import { useToast } from "@/components/ui/toast";
 
 type OnboardingStage = "needs-workspace" | "needs-import";
 type FlashState = {
@@ -17,7 +18,6 @@ type FlashState = {
 type BootstrapResponse = {
   workspace?: {
     defaultProjectName?: string | null;
-    tenantName?: string | null;
   };
 };
 
@@ -64,17 +64,15 @@ export function ConsoleOnboarding({
   defaultImportOpen = false,
   defaultProjectName = "default",
   initialStage,
-  tenantName,
 }: {
   defaultImportOpen?: boolean;
   defaultProjectName?: string;
   initialStage: OnboardingStage;
-  tenantName?: string | null;
 }) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [stage, setStage] = useState<OnboardingStage>(initialStage);
   const [projectName, setProjectName] = useState(defaultProjectName);
-  const [workspaceName, setWorkspaceName] = useState(tenantName ?? null);
   const [flash, setFlash] = useState<FlashState | null>(null);
   const [importOpen, setImportOpen] = useState(
     initialStage === "needs-import" && defaultImportOpen,
@@ -95,14 +93,21 @@ export function ConsoleOnboarding({
   }, [defaultProjectName]);
 
   useEffect(() => {
-    setWorkspaceName(tenantName ?? null);
-  }, [tenantName]);
-
-  useEffect(() => {
     if (initialStage === "needs-import" && defaultImportOpen) {
       setImportOpen(true);
     }
   }, [defaultImportOpen, initialStage]);
+
+  useEffect(() => {
+    if (!flash) {
+      return;
+    }
+
+    showToast({
+      message: flash.message,
+      variant: flash.variant,
+    });
+  }, [flash, showToast]);
 
   useEffect(() => {
     if (!importOpen) {
@@ -148,10 +153,6 @@ export function ConsoleOnboarding({
 
       if (data?.workspace?.defaultProjectName) {
         setProjectName(data.workspace.defaultProjectName);
-      }
-
-      if (data?.workspace?.tenantName) {
-        setWorkspaceName(data.workspace.tenantName);
       }
 
       setStage("needs-import");
@@ -268,9 +269,7 @@ export function ConsoleOnboarding({
           value: "Branch, app name, build strategy",
         },
       ];
-  const eyebrow = workspaceName
-    ? `${workspaceName} / first run`
-    : "Console / first run";
+  const eyebrow = "Console / first run";
   const panelFlash = flash && !importOpen ? flash : null;
   const modalFlash = flash && importOpen ? flash : null;
   const openImport = () => {

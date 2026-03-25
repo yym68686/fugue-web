@@ -19,22 +19,21 @@ export function ConsoleNav() {
   const items = consoleNavGroups.flatMap((group) => group.items);
 
   return (
-    <nav aria-label="Console" className="fg-console-nav">
-      <div className="fg-console-nav__items">
-        {items.map((item) => {
-          const active = isActivePath(pathname, item.href);
+    <nav aria-label="Console" className="fg-pill-nav fg-console-nav">
+      {items.map((item) => {
+        const active = isActivePath(pathname, item.href);
 
-          return (
-            <Link
-              className={cx("fg-console-nav__link", active && "is-active")}
-              href={item.href}
-              key={item.href}
-            >
-              <span className="fg-console-nav__title">{item.label}</span>
-            </Link>
-          );
-        })}
-      </div>
+        return (
+          <Link
+            aria-current={active ? "page" : undefined}
+            className={cx("fg-console-nav__link", active && "is-active")}
+            href={item.href}
+            key={item.href}
+          >
+            <span className="fg-console-nav__title">{item.label}</span>
+          </Link>
+        );
+      })}
     </nav>
   );
 }

@@ -1,26 +1,9 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { IBM_Plex_Mono, Manrope, Syne } from "next/font/google";
+
+import { ToastProvider } from "@/components/ui/toast";
 
 import "./globals.css";
-
-const syne = Syne({
-  subsets: ["latin"],
-  variable: "--font-fugue-heading",
-  weight: ["500", "600", "700", "800"],
-});
-
-const manrope = Manrope({
-  subsets: ["latin"],
-  variable: "--font-fugue-body",
-  weight: ["400", "500", "600", "700", "800"],
-});
-
-const ibmPlexMono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  variable: "--font-fugue-mono",
-  weight: ["400", "500", "600"],
-});
 
 export const metadata: Metadata = {
   title: "Fugue",
@@ -35,8 +18,17 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${syne.variable} ${manrope.variable} ${ibmPlexMono.variable} fg-theme-dark`}>
-        {children}
+      <head>
+        <link href="https://fonts.googleapis.com" rel="preconnect" />
+        <link crossOrigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&family=Syne:wght@500;600;700;800&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+
+      <body className="fg-theme-dark">
+        <ToastProvider>{children}</ToastProvider>
       </body>
     </html>
   );

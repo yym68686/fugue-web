@@ -11,7 +11,6 @@ import type {
   ConsoleGalleryProjectView,
   ConsoleProjectGalleryData,
 } from "@/lib/console/gallery-types";
-import { getFugueEnv } from "@/lib/fugue/env";
 import {
   getFugueApps,
   getFugueProjects,
@@ -202,27 +201,6 @@ function formatRepoLabel(repoUrl?: string | null, branch?: string | null) {
   }
 }
 
-function readConnection(errors: string[]) {
-  if (!errors.length) {
-    return {
-      label: "live",
-      tone: "positive" as const,
-    };
-  }
-
-  if (errors.length >= 3) {
-    return {
-      label: "offline",
-      tone: "danger" as const,
-    };
-  }
-
-  return {
-    label: "partial",
-    tone: "warning" as const,
-  };
-}
-
 function sortByTimestampDesc<T>(items: T[], readTimestamp: (item: T) => number) {
   return [...items].sort((left, right) => readTimestamp(right) - readTimestamp(left));
 }
@@ -391,19 +369,14 @@ function projectNameMap(projects: FugueProject[], fallbackId?: string | null, fa
 
 export const getConsoleProjectGalleryData = cache(async () => {
   const workspace = await getCurrentWorkspaceAccess();
-  const env = getFugueEnv();
 
   if (!workspace) {
     return {
       errors: [],
       projects: [],
       workspace: {
-        apiHost: env.apiHost,
-        connectionLabel: "pending",
-        connectionTone: "neutral",
         exists: false,
         stage: "needs-workspace",
-        tenantName: null,
       },
     } satisfies ConsoleProjectGalleryData;
   }
@@ -498,18 +471,12 @@ export const getConsoleProjectGalleryData = cache(async () => {
     )
     .map(({ sortTimestamp: _sortTimestamp, ...project }) => project as ConsoleGalleryProjectView);
 
-  const connection = readConnection(errors);
-
   return {
     errors,
     projects: projectViews,
     workspace: {
-      apiHost: env.apiHost,
-      connectionLabel: connection.label,
-      connectionTone: connection.tone,
       exists: true,
       stage: projectViews.length > 0 ? "ready" : "empty",
-      tenantName: workspace.tenantName,
     },
   } satisfies ConsoleProjectGalleryData;
 });

@@ -92,7 +92,7 @@ function recordFromRow(row: ApiKeyRow): ApiKeyRecord {
   return {
     canCopy: Boolean(row.secret_sealed) && status !== "deleted",
     canDelete: !isWorkspaceAdmin && status !== "deleted",
-    canDisable: !isWorkspaceAdmin && status !== "deleted",
+    canDisable: false,
     createdAt: readTimestamp(row.created_at) ?? new Date().toISOString(),
     deletedAt: readTimestamp(row.deleted_at),
     disabledAt: readTimestamp(row.disabled_at),
@@ -201,15 +201,25 @@ async function upsertVisibleApiKey(
         label = EXCLUDED.label,
         prefix = COALESCE(EXCLUDED.prefix, app_api_keys.prefix),
         scopes = EXCLUDED.scopes,
-        secret_sealed = COALESCE(app_api_keys.secret_sealed, EXCLUDED.secret_sealed),
+        secret_sealed = COALESCE(EXCLUDED.secret_sealed, app_api_keys.secret_sealed),
         last_used_at = EXCLUDED.last_used_at,
+        disabled_at = NULL,
+        deleted_at = CASE
+          WHEN app_api_keys.status = 'deleted' AND NOT app_api_keys.is_workspace_admin
+            THEN app_api_keys.deleted_at
+          ELSE NULL
+        END,
         last_synced_at = EXCLUDED.last_synced_at,
         updated_at = EXCLUDED.updated_at,
         source = CASE
           WHEN app_api_keys.source IN ('workspace-admin', 'managed') THEN app_api_keys.source
           ELSE EXCLUDED.source
         END,
-        status = app_api_keys.status,
+        status = CASE
+          WHEN app_api_keys.status = 'deleted' AND NOT app_api_keys.is_workspace_admin
+            THEN 'deleted'
+          ELSE 'active'
+        END,
         is_workspace_admin = app_api_keys.is_workspace_admin OR EXCLUDED.is_workspace_admin
     `,
     [
@@ -416,6 +426,7 @@ export async function setApiKeyStatus(
       UPDATE app_api_keys
       SET
         status = $3,
+        secret_sealed = CASE WHEN $3 = 'deleted' THEN NULL ELSE secret_sealed END,
         disabled_at = CASE WHEN $3 = 'disabled' THEN $4 ELSE NULL END,
         deleted_at = CASE WHEN $3 = 'deleted' THEN $4 ELSE NULL END,
         updated_at = $4
