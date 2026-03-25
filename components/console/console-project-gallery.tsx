@@ -69,6 +69,7 @@ type RuntimeLogsResponse = {
   warnings?: string[];
 };
 
+type AppAction = "delete" | "disable" | "redeploy" | "restart";
 type WorkbenchView = "env" | "files" | "logs";
 type EnvironmentFormat = "raw" | "table";
 type LogsView = "build" | "runtime";
@@ -560,7 +561,7 @@ export function ConsoleProjectGallery({
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<WorkbenchView>("env");
   const [isCreating, setIsCreating] = useState(false);
-  const [busyAction, setBusyAction] = useState<"delete" | "disable" | "restart" | null>(null);
+  const [busyAction, setBusyAction] = useState<AppAction | null>(null);
   const [envFormat, setEnvFormat] = useState<EnvironmentFormat>("table");
   const [envStatus, setEnvStatus] = useState<"error" | "idle" | "loading" | "ready">("idle");
   const [envBaseline, setEnvBaseline] = useState<Record<string, string>>({});
@@ -956,8 +957,16 @@ export function ConsoleProjectGallery({
     setActiveTab("env");
   }
 
-  async function handleAppAction(action: "delete" | "disable" | "restart") {
+  async function handleAppAction(action: AppAction) {
     if (!selectedApp || busyAction) {
+      return;
+    }
+
+    if (action === "redeploy" && !selectedApp.canRedeploy) {
+      setFlash({
+        message: selectedApp.redeployDisabledReason ?? "Redeploy is not available for this app.",
+        variant: "error",
+      });
       return;
     }
 
@@ -973,22 +982,35 @@ export function ConsoleProjectGallery({
     setFlash(null);
 
     try {
-      const input =
-        action === "restart"
-          ? `/api/fugue/apps/${selectedApp.id}/restart`
-          : action === "disable"
-            ? `/api/fugue/apps/${selectedApp.id}/disable`
-            : `/api/fugue/apps/${selectedApp.id}`;
-      const method = action === "delete" ? "DELETE" : "POST";
+      let input = `/api/fugue/apps/${selectedApp.id}`;
+      let method = "POST";
+      let successMessage = "Request queued.";
+      let refreshWindowMs = 45_000;
+
+      switch (action) {
+        case "redeploy":
+          input = `/api/fugue/apps/${selectedApp.id}/rebuild`;
+          successMessage = "Redeploy queued.";
+          refreshWindowMs = 90_000;
+          break;
+        case "restart":
+          input = `/api/fugue/apps/${selectedApp.id}/restart`;
+          successMessage = "Restart queued.";
+          break;
+        case "disable":
+          input = `/api/fugue/apps/${selectedApp.id}/disable`;
+          successMessage = "Pause queued.";
+          break;
+        case "delete":
+          method = "DELETE";
+          successMessage = "Delete queued.";
+          break;
+      }
+
       await requestJson(input, { method });
-      armRefreshWindow(45_000);
+      armRefreshWindow(refreshWindowMs);
       setFlash({
-        message:
-          action === "restart"
-            ? "Restart queued."
-            : action === "disable"
-              ? "Pause queued."
-              : "Delete queued.",
+        message: successMessage,
         variant: "success",
       });
       startTransition(() => {
@@ -1335,11 +1357,28 @@ export function ConsoleProjectGallery({
                     <p className="fg-label fg-project-toolbar__label">Actions</p>
                     <div className="fg-project-actions">
                       <Button
+                        disabled={!selectedApp.canRedeploy || Boolean(busyAction && busyAction !== "redeploy")}
+                        loading={busyAction === "redeploy"}
+                        loadingLabel="Redeploying…"
+                        onClick={() => handleAppAction("redeploy")}
+                        size="compact"
+                        title={
+                          selectedApp.canRedeploy
+                            ? "Rebuild from the saved source and reset the workspace on the next rollout."
+                            : selectedApp.redeployDisabledReason ?? undefined
+                        }
+                        type="button"
+                        variant="primary"
+                      >
+                        Redeploy
+                      </Button>
+                      <Button
                         disabled={Boolean(busyAction && busyAction !== "restart")}
                         loading={busyAction === "restart"}
                         loadingLabel="Restarting…"
                         onClick={() => handleAppAction("restart")}
                         size="compact"
+                        title="Restart the current release without rebuilding the image. Persistent workspace is preserved when configured."
                         type="button"
                         variant="secondary"
                       >

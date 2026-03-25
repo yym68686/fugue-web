@@ -25,12 +25,14 @@ export type ConsoleGalleryBadgeView = {
 };
 
 export type ConsoleGalleryAppView = {
+  canRedeploy: boolean;
   hasPostgresService: boolean;
   id: string;
   lastMessage: string;
   name: string;
   phase: string;
   phaseTone: ConsoleTone;
+  redeployDisabledReason: string | null;
   routeHref: string | null;
   routeLabel: string;
   serviceBadges: ConsoleGalleryBadgeView[];

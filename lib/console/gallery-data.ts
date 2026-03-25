@@ -216,6 +216,29 @@ function readSourceLabel(app: FugueApp) {
   return "Unspecified source";
 }
 
+function readRedeployState(app: FugueApp) {
+  const sourceType = app.source.type?.trim().toLowerCase() ?? "";
+
+  if (sourceType === "github-public" || sourceType === "upload") {
+    return {
+      canRedeploy: true,
+      redeployDisabledReason: null,
+    };
+  }
+
+  if (!sourceType) {
+    return {
+      canRedeploy: false,
+      redeployDisabledReason: "Redeploy requires an imported source definition.",
+    };
+  }
+
+  return {
+    canRedeploy: false,
+    redeployDisabledReason: `Redeploy only works for imported GitHub or upload apps. Current source: ${humanize(app.source.type)}.`,
+  };
+}
+
 function sortByTimestampDesc<T>(items: T[], readTimestamp: (item: T) => number) {
   return [...items].sort((left, right) => readTimestamp(right) - readTimestamp(left));
 }
@@ -446,14 +469,17 @@ function buildProjectBadges(
 
 function buildAppView(app: FugueApp): ConsoleGalleryAppView {
   const route = readRoute(app);
+  const redeploy = readRedeployState(app);
 
   return {
+    canRedeploy: redeploy.canRedeploy,
     hasPostgresService: app.backingServices.some((service) => service.type === "postgres"),
     id: app.id,
     lastMessage: app.status.lastMessage ?? "No current status message.",
     name: app.name,
     phase: app.status.phase ?? (app.spec.disabled ? "disabled" : "unknown"),
     phaseTone: toneForStatus(app.status.phase ?? (app.spec.disabled ? "disabled" : "unknown")),
+    redeployDisabledReason: redeploy.redeployDisabledReason,
     routeHref: route.href,
     routeLabel: route.label,
     serviceBadges: buildAppBadges(app),
