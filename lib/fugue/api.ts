@@ -168,6 +168,75 @@ export type FugueRuntime = {
   updatedAt: string | null;
 };
 
+export type FugueClusterNodeCondition = {
+  lastTransitionAt: string | null;
+  message: string | null;
+  reason: string | null;
+  status: string | null;
+};
+
+export type FugueClusterNodeCPUStats = {
+  allocatableMilliCores: number | null;
+  capacityMilliCores: number | null;
+  usagePercent: number | null;
+  usedMilliCores: number | null;
+};
+
+export type FugueClusterNodeMemoryStats = {
+  allocatableBytes: number | null;
+  capacityBytes: number | null;
+  usagePercent: number | null;
+  usedBytes: number | null;
+};
+
+export type FugueClusterNodeStorageStats = {
+  allocatableBytes: number | null;
+  capacityBytes: number | null;
+  usagePercent: number | null;
+  usedBytes: number | null;
+};
+
+export type FugueClusterNodeWorkloadPod = {
+  name: string;
+  phase: string | null;
+};
+
+export type FugueClusterNodeWorkload = {
+  id: string;
+  kind: string;
+  name: string;
+  namespace: string | null;
+  ownerAppId: string | null;
+  podCount: number;
+  pods: FugueClusterNodeWorkloadPod[];
+  projectId: string | null;
+  runtimeId: string | null;
+  serviceType: string | null;
+  tenantId: string | null;
+};
+
+export type FugueClusterNode = {
+  conditions: Record<string, FugueClusterNodeCondition>;
+  containerRuntime: string | null;
+  cpu: FugueClusterNodeCPUStats | null;
+  createdAt: string | null;
+  ephemeralStorage: FugueClusterNodeStorageStats | null;
+  externalIp: string | null;
+  internalIp: string | null;
+  kernelVersion: string | null;
+  kubeletVersion: string | null;
+  memory: FugueClusterNodeMemoryStats | null;
+  name: string;
+  osImage: string | null;
+  region: string | null;
+  roles: string[];
+  runtimeId: string | null;
+  status: string | null;
+  tenantId: string | null;
+  workloads: FugueClusterNodeWorkload[];
+  zone: string | null;
+};
+
 export type FugueOperation = {
   id: string;
   tenantId: string | null;
@@ -669,6 +738,168 @@ function sanitizeRuntime(value: unknown): FugueRuntime | null {
     lastHeartbeatAt: readString(record, "last_heartbeat_at"),
     createdAt: readString(record, "created_at"),
     updatedAt: readString(record, "updated_at"),
+  };
+}
+
+function sanitizeClusterNodeCondition(value: unknown): FugueClusterNodeCondition | null {
+  const record = asRecord(value);
+
+  if (!record) {
+    return null;
+  }
+
+  return {
+    lastTransitionAt: readString(record, "last_transition_at"),
+    message: readString(record, "message"),
+    reason: readString(record, "reason"),
+    status: readString(record, "status"),
+  };
+}
+
+function sanitizeClusterNodeConditionMap(value: unknown) {
+  const record = asRecord(value);
+
+  if (!record) {
+    return {} as Record<string, FugueClusterNodeCondition>;
+  }
+
+  const out: Record<string, FugueClusterNodeCondition> = {};
+
+  for (const [key, rawValue] of Object.entries(record)) {
+    const condition = sanitizeClusterNodeCondition(rawValue);
+
+    if (!key.trim() || !condition) {
+      continue;
+    }
+
+    out[key] = condition;
+  }
+
+  return out;
+}
+
+function sanitizeClusterNodeCPUStats(value: unknown): FugueClusterNodeCPUStats | null {
+  const record = asRecord(value);
+
+  if (!record) {
+    return null;
+  }
+
+  return {
+    allocatableMilliCores: readNumber(record, "allocatable_millicores"),
+    capacityMilliCores: readNumber(record, "capacity_millicores"),
+    usagePercent: readNumber(record, "usage_percent"),
+    usedMilliCores: readNumber(record, "used_millicores"),
+  };
+}
+
+function sanitizeClusterNodeMemoryStats(value: unknown): FugueClusterNodeMemoryStats | null {
+  const record = asRecord(value);
+
+  if (!record) {
+    return null;
+  }
+
+  return {
+    allocatableBytes: readNumber(record, "allocatable_bytes"),
+    capacityBytes: readNumber(record, "capacity_bytes"),
+    usagePercent: readNumber(record, "usage_percent"),
+    usedBytes: readNumber(record, "used_bytes"),
+  };
+}
+
+function sanitizeClusterNodeStorageStats(value: unknown): FugueClusterNodeStorageStats | null {
+  const record = asRecord(value);
+
+  if (!record) {
+    return null;
+  }
+
+  return {
+    allocatableBytes: readNumber(record, "allocatable_bytes"),
+    capacityBytes: readNumber(record, "capacity_bytes"),
+    usagePercent: readNumber(record, "usage_percent"),
+    usedBytes: readNumber(record, "used_bytes"),
+  };
+}
+
+function sanitizeClusterNodeWorkloadPod(value: unknown): FugueClusterNodeWorkloadPod | null {
+  const record = asRecord(value);
+  const name = readString(record, "name");
+
+  if (!name) {
+    return null;
+  }
+
+  return {
+    name,
+    phase: readString(record, "phase"),
+  };
+}
+
+function sanitizeClusterNodeWorkload(value: unknown): FugueClusterNodeWorkload | null {
+  const record = asRecord(value);
+  const id = readString(record, "id");
+  const kind = readString(record, "kind");
+  const name = readString(record, "name");
+
+  if (!id || !kind || !name) {
+    return null;
+  }
+
+  const pods = Array.isArray(record?.pods) ? record.pods : [];
+
+  return {
+    id,
+    kind,
+    name,
+    namespace: readString(record, "namespace"),
+    ownerAppId: readString(record, "owner_app_id"),
+    podCount:
+      readNumber(record, "pod_count") ??
+      pods.filter((item): item is FugueClusterNodeWorkloadPod => Boolean(sanitizeClusterNodeWorkloadPod(item))).length,
+    pods: pods
+      .map(sanitizeClusterNodeWorkloadPod)
+      .filter((item): item is FugueClusterNodeWorkloadPod => Boolean(item)),
+    projectId: readString(record, "project_id"),
+    runtimeId: readString(record, "runtime_id"),
+    serviceType: readString(record, "service_type"),
+    tenantId: readString(record, "tenant_id"),
+  };
+}
+
+function sanitizeClusterNode(value: unknown): FugueClusterNode | null {
+  const record = asRecord(value);
+  const name = readString(record, "name");
+
+  if (!name) {
+    return null;
+  }
+
+  const workloads = Array.isArray(record?.workloads) ? record.workloads : [];
+
+  return {
+    conditions: sanitizeClusterNodeConditionMap(record?.conditions),
+    containerRuntime: readString(record, "container_runtime"),
+    cpu: sanitizeClusterNodeCPUStats(record?.cpu),
+    createdAt: readString(record, "created_at"),
+    ephemeralStorage: sanitizeClusterNodeStorageStats(record?.ephemeral_storage),
+    externalIp: readString(record, "external_ip"),
+    internalIp: readString(record, "internal_ip"),
+    kernelVersion: readString(record, "kernel_version"),
+    kubeletVersion: readString(record, "kubelet_version"),
+    memory: sanitizeClusterNodeMemoryStats(record?.memory),
+    name,
+    osImage: readString(record, "os_image"),
+    region: readString(record, "region"),
+    roles: readStringArray(record, "roles"),
+    runtimeId: readString(record, "runtime_id"),
+    status: readString(record, "status"),
+    tenantId: readString(record, "tenant_id"),
+    workloads: workloads
+      .map(sanitizeClusterNodeWorkload)
+      .filter((item): item is FugueClusterNodeWorkload => Boolean(item)),
+    zone: readString(record, "zone"),
   };
 }
 
@@ -1599,6 +1830,18 @@ export async function getFugueRuntimes(accessToken: string) {
   return items
     .map(sanitizeRuntime)
     .filter((item): item is FugueRuntime => Boolean(item));
+}
+
+export async function getFugueClusterNodes(accessToken: string) {
+  const payload = asRecord(
+    await fugueRequest("/v1/cluster/nodes", {
+      accessToken,
+    }),
+  );
+  const items = Array.isArray(payload?.cluster_nodes) ? payload.cluster_nodes : [];
+  return items
+    .map(sanitizeClusterNode)
+    .filter((item): item is FugueClusterNode => Boolean(item));
 }
 
 export async function getFugueOperations(accessToken: string) {

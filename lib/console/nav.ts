@@ -13,6 +13,7 @@ export function getConsoleNavGroups(options?: { isAdmin?: boolean }) {
 
   if (options?.isAdmin) {
     groups[0].items.push(
+      { href: "/app/cluster", label: "Cluster", meta: "nodes / pressure / workloads" },
       { href: "/app/apps", label: "Apps", meta: "cluster / rebuild / delete" },
       { href: "/app/users", label: "Users", meta: "admins / block / delete" },
     );

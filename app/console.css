@@ -979,6 +979,181 @@
   line-height: 1.58;
 }
 
+.fg-cluster-node-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.fg-cluster-node-card__head,
+.fg-cluster-node-card__section-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.85rem;
+  align-items: flex-start;
+}
+
+.fg-cluster-node-card__copy {
+  min-width: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.fg-cluster-node-card__copy .fg-console-note {
+  color: var(--fugue-text-muted);
+  font-family: var(--fugue-font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.fg-cluster-node-facts {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.8rem 0.9rem;
+}
+
+.fg-cluster-node-facts dt,
+.fg-cluster-resource__label,
+.fg-cluster-condition__label {
+  color: var(--fugue-text-muted);
+  font-family: var(--fugue-font-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.fg-cluster-node-facts dd {
+  margin: 0.18rem 0 0;
+  color: var(--fugue-text-secondary);
+  font-size: 0.83rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.fg-cluster-condition-grid,
+.fg-cluster-workload-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.fg-cluster-condition,
+.fg-cluster-resource,
+.fg-cluster-workload {
+  min-width: 0;
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.88rem 0.92rem;
+  border: 1px solid var(--fugue-border-subtle);
+  border-radius: 1rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.032), rgba(255, 255, 255, 0.012)),
+    rgba(8, 11, 15, 0.78);
+}
+
+.fg-cluster-condition__head,
+.fg-cluster-resource__head,
+.fg-cluster-workload__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.65rem;
+  align-items: flex-start;
+}
+
+.fg-cluster-condition__detail,
+.fg-cluster-resource__detail,
+.fg-cluster-workload p {
+  margin: 0;
+  color: var(--fugue-text-tertiary);
+  font-size: 0.8rem;
+  line-height: 1.56;
+  overflow-wrap: anywhere;
+}
+
+.fg-cluster-resource-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.fg-cluster-resource__copy {
+  min-width: 0;
+  display: grid;
+  gap: 0.14rem;
+}
+
+.fg-cluster-resource__copy strong,
+.fg-cluster-workload__head strong {
+  display: block;
+  font-size: 0.96rem;
+  letter-spacing: -0.025em;
+}
+
+.fg-cluster-resource__meter {
+  position: relative;
+  height: 0.52rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.04);
+}
+
+.fg-cluster-resource__fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  transition: width 420ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.fg-cluster-resource__fill--positive {
+  background: linear-gradient(90deg, rgba(125, 210, 177, 0.9), rgba(92, 181, 151, 0.95));
+}
+
+.fg-cluster-resource__fill--info {
+  background: linear-gradient(90deg, rgba(165, 191, 220, 0.88), rgba(122, 153, 188, 0.95));
+}
+
+.fg-cluster-resource__fill--warning {
+  background: linear-gradient(90deg, rgba(214, 176, 108, 0.88), rgba(190, 138, 66, 0.94));
+}
+
+.fg-cluster-resource__fill--danger {
+  background: linear-gradient(90deg, rgba(186, 111, 111, 0.92), rgba(147, 72, 72, 0.96));
+}
+
+.fg-cluster-resource__fill--neutral {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.12));
+}
+
+.fg-cluster-resource__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.7rem;
+  color: var(--fugue-text-secondary);
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.fg-cluster-resource__meta span:last-child {
+  color: var(--fugue-text-muted);
+  text-align: right;
+}
+
+.fg-cluster-workload-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fg-cluster-resource__fill {
+    transition: none;
+  }
+}
+
 .fg-credential-section__head {
   display: flex;
   flex-wrap: wrap;

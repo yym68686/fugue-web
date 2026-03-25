@@ -4,9 +4,15 @@ import { listAppUsers, type AppUserRecord } from "@/lib/app-users/store";
 import type { ConsoleTone } from "@/lib/console/types";
 import {
   getFugueApps,
+  getFugueClusterNodes,
   getFugueProjects,
   getFugueTenants,
   type FugueApp,
+  type FugueClusterNode,
+  type FugueClusterNodeCPUStats,
+  type FugueClusterNodeMemoryStats,
+  type FugueClusterNodeStorageStats,
+  type FugueClusterNodeWorkload,
   type FugueProject,
   type FugueTenant,
 } from "@/lib/fugue/api";
@@ -75,7 +81,76 @@ export type AdminUsersPageData = {
   users: AdminUserView[];
 };
 
+export type AdminClusterConditionView = {
+  detailLabel: string;
+  id: string;
+  label: string;
+  lastTransitionExact: string;
+  lastTransitionLabel: string;
+  statusLabel: string;
+  tone: ConsoleTone;
+};
+
+export type AdminClusterResourceView = {
+  detailLabel: string;
+  id: "cpu" | "memory" | "storage";
+  label: string;
+  percentLabel: string;
+  percentValue: number | null;
+  statusLabel: string;
+  statusTone: ConsoleTone;
+  totalLabel: string;
+  usageLabel: string;
+};
+
+export type AdminClusterWorkloadView = {
+  id: string;
+  kindLabel: string;
+  kindTone: ConsoleTone;
+  metaLabel: string;
+  name: string;
+  title: string;
+};
+
+export type AdminClusterNodeView = {
+  appCount: number;
+  conditions: AdminClusterConditionView[];
+  createdExact: string;
+  createdLabel: string;
+  externalIpLabel: string;
+  headerMeta: string;
+  internalIpLabel: string;
+  locationLabel: string;
+  name: string;
+  roleLabels: string[];
+  resources: AdminClusterResourceView[];
+  runtimeLabel: string;
+  serviceCount: number;
+  statusDetail: string;
+  statusLabel: string;
+  statusTone: ConsoleTone;
+  tenantLabel: string;
+  workloadCount: number;
+  workloads: AdminClusterWorkloadView[];
+  zoneLabel: string;
+};
+
+export type AdminClusterPageData = {
+  errors: string[];
+  nodes: AdminClusterNodeView[];
+  summary: {
+    nodeCount: number;
+    pressuredCount: number;
+    readyCount: number;
+    workloadCount: number;
+  };
+};
+
 const REBUILDABLE_APP_SOURCE_TYPES = new Set(["github-public", "upload"]);
+const CLUSTER_READY_CONDITION = "Ready";
+const CLUSTER_MEMORY_PRESSURE_CONDITION = "MemoryPressure";
+const CLUSTER_DISK_PRESSURE_CONDITION = "DiskPressure";
+const CLUSTER_PID_PRESSURE_CONDITION = "PIDPressure";
 
 function readErrorMessage(error: unknown) {
   if (error instanceof Error && error.message) {
@@ -491,6 +566,437 @@ function buildUserViews(
   });
 }
 
+function formatCountLabel(count: number, singular: string, plural = `${singular}s`) {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function formatCompactNumber(value: number, digits = 1) {
+  const formatter = new Intl.NumberFormat("en-US", {
+    maximumFractionDigits: digits,
+    minimumFractionDigits: Number.isInteger(value) ? 0 : Math.min(1, digits),
+  });
+
+  return formatter.format(value);
+}
+
+function formatPercentLabel(value?: number | null) {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    return "No stats";
+  }
+
+  return `${formatCompactNumber(value, 1)}%`;
+}
+
+function formatBytesLabel(value?: number | null) {
+  if (value === null || value === undefined || !Number.isFinite(value) || value < 0) {
+    return "No stats";
+  }
+
+  const units = ["B", "KB", "MB", "GB", "TB", "PB"];
+  let amount = value;
+  let unitIndex = 0;
+
+  while (amount >= 1024 && unitIndex < units.length - 1) {
+    amount /= 1024;
+    unitIndex += 1;
+  }
+
+  const digits = amount >= 100 || unitIndex === 0 ? 0 : 1;
+  return `${formatCompactNumber(amount, digits)} ${units[unitIndex]}`;
+}
+
+function formatCPUCapacityLabel(value?: number | null) {
+  if (value === null || value === undefined || !Number.isFinite(value) || value < 0) {
+    return "No stats";
+  }
+
+  if (Math.abs(value) >= 1000) {
+    const cores = value / 1000;
+    return `${formatCompactNumber(cores, 1)} ${cores === 1 ? "core" : "cores"}`;
+  }
+
+  return `${Math.round(value)} mCPU`;
+}
+
+function toneWeight(tone: ConsoleTone) {
+  switch (tone) {
+    case "danger":
+      return 4;
+    case "warning":
+      return 3;
+    case "info":
+      return 2;
+    case "positive":
+      return 1;
+    default:
+      return 0;
+  }
+}
+
+function readResourceTone(percent?: number | null, dangerSignal = false): ConsoleTone {
+  if (dangerSignal) {
+    return "danger";
+  }
+
+  if (percent === null || percent === undefined || !Number.isFinite(percent)) {
+    return "neutral";
+  }
+
+  if (percent >= 90) {
+    return "danger";
+  }
+
+  if (percent >= 70) {
+    return "warning";
+  }
+
+  if (percent >= 40) {
+    return "info";
+  }
+
+  return "positive";
+}
+
+function readResourceStatusLabel(percent?: number | null, dangerSignal = false) {
+  if (dangerSignal) {
+    return "Pressure";
+  }
+
+  if (percent === null || percent === undefined || !Number.isFinite(percent)) {
+    return "No stats";
+  }
+
+  if (percent >= 90) {
+    return "Hot";
+  }
+
+  if (percent >= 70) {
+    return "Watch";
+  }
+
+  if (percent >= 40) {
+    return "Steady";
+  }
+
+  return "Headroom";
+}
+
+function readConditionTone(conditionID: string, status?: string | null): ConsoleTone {
+  const normalized = status?.trim().toLowerCase() ?? "";
+
+  if (conditionID === CLUSTER_READY_CONDITION) {
+    if (normalized === "true") {
+      return "positive";
+    }
+
+    if (normalized === "false") {
+      return "danger";
+    }
+
+    return "neutral";
+  }
+
+  if (normalized === "true") {
+    return "danger";
+  }
+
+  if (normalized === "false") {
+    return "positive";
+  }
+
+  return "neutral";
+}
+
+function readConditionStatusLabel(conditionID: string, status?: string | null) {
+  const normalized = status?.trim().toLowerCase() ?? "";
+
+  if (conditionID === CLUSTER_READY_CONDITION) {
+    if (normalized === "true") {
+      return "Ready";
+    }
+
+    if (normalized === "false") {
+      return "Not ready";
+    }
+
+    return "Unknown";
+  }
+
+  if (normalized === "true") {
+    return "Pressure";
+  }
+
+  if (normalized === "false") {
+    return "Clear";
+  }
+
+  return "Unknown";
+}
+
+function isConditionActive(status?: string | null) {
+  return status?.trim().toLowerCase() === "true";
+}
+
+function readLocationLabel(region?: string | null, zone?: string | null) {
+  const parts = [region?.trim(), zone?.trim()].filter(
+    (value): value is string => Boolean(value),
+  );
+
+  return parts.length ? parts.join(" / ") : "Unassigned";
+}
+
+function buildCPUResourceView(stats: FugueClusterNodeCPUStats | null): AdminClusterResourceView {
+  const percent = stats?.usagePercent ?? null;
+  const total = stats?.allocatableMilliCores ?? stats?.capacityMilliCores ?? null;
+
+  return {
+    detailLabel:
+      stats?.capacityMilliCores !== null && stats?.capacityMilliCores !== undefined
+        ? `${formatCPUCapacityLabel(stats.capacityMilliCores)} capacity`
+        : "Capacity unknown",
+    id: "cpu",
+    label: "CPU",
+    percentLabel: formatPercentLabel(percent),
+    percentValue: percent,
+    statusLabel: readResourceStatusLabel(percent),
+    statusTone: readResourceTone(percent),
+    totalLabel:
+      total !== null && total !== undefined
+        ? `${formatCPUCapacityLabel(total)} allocatable`
+        : "Allocatable unknown",
+    usageLabel: formatCPUCapacityLabel(stats?.usedMilliCores),
+  };
+}
+
+function buildMemoryResourceView(
+  stats: FugueClusterNodeMemoryStats | null,
+  hasPressure: boolean,
+): AdminClusterResourceView {
+  const percent = stats?.usagePercent ?? null;
+  const total = stats?.allocatableBytes ?? stats?.capacityBytes ?? null;
+
+  return {
+    detailLabel:
+      stats?.capacityBytes !== null && stats?.capacityBytes !== undefined
+        ? `${formatBytesLabel(stats.capacityBytes)} capacity`
+        : "Capacity unknown",
+    id: "memory",
+    label: "Memory",
+    percentLabel: formatPercentLabel(percent),
+    percentValue: percent,
+    statusLabel: readResourceStatusLabel(percent, hasPressure),
+    statusTone: readResourceTone(percent, hasPressure),
+    totalLabel:
+      total !== null && total !== undefined
+        ? `${formatBytesLabel(total)} allocatable`
+        : "Allocatable unknown",
+    usageLabel: formatBytesLabel(stats?.usedBytes),
+  };
+}
+
+function buildStorageResourceView(
+  stats: FugueClusterNodeStorageStats | null,
+  hasPressure: boolean,
+): AdminClusterResourceView {
+  const percent = stats?.usagePercent ?? null;
+  const total = stats?.allocatableBytes ?? stats?.capacityBytes ?? null;
+
+  return {
+    detailLabel:
+      stats?.capacityBytes !== null && stats?.capacityBytes !== undefined
+        ? `${formatBytesLabel(stats.capacityBytes)} capacity`
+        : "Capacity unknown",
+    id: "storage",
+    label: "Disk",
+    percentLabel: formatPercentLabel(percent),
+    percentValue: percent,
+    statusLabel: readResourceStatusLabel(percent, hasPressure),
+    statusTone: readResourceTone(percent, hasPressure),
+    totalLabel:
+      total !== null && total !== undefined
+        ? `${formatBytesLabel(total)} allocatable`
+        : "Allocatable unknown",
+    usageLabel: formatBytesLabel(stats?.usedBytes),
+  };
+}
+
+function buildClusterConditionViews(node: FugueClusterNode): AdminClusterConditionView[] {
+  const definitions = [
+    { id: CLUSTER_READY_CONDITION, label: "Ready" },
+    { id: CLUSTER_MEMORY_PRESSURE_CONDITION, label: "Memory" },
+    { id: CLUSTER_DISK_PRESSURE_CONDITION, label: "Disk" },
+    { id: CLUSTER_PID_PRESSURE_CONDITION, label: "PID" },
+  ] as const;
+
+  return definitions.map((definition) => {
+    const condition = node.conditions[definition.id];
+    const transitionedAt = condition?.lastTransitionAt ?? null;
+    const detail = condition?.message?.trim() || condition?.reason?.trim();
+
+    return {
+      detailLabel:
+        detail || (transitionedAt ? `Updated ${formatRelativeTime(transitionedAt)}` : "No signal reported"),
+      id: definition.id,
+      label: definition.label,
+      lastTransitionExact: formatExactTime(transitionedAt),
+      lastTransitionLabel: formatRelativeTime(transitionedAt),
+      statusLabel: readConditionStatusLabel(definition.id, condition?.status),
+      tone: readConditionTone(definition.id, condition?.status),
+    } satisfies AdminClusterConditionView;
+  });
+}
+
+function buildClusterWorkloadViews(
+  workloads: FugueClusterNodeWorkload[],
+  tenantNames: Map<string, string>,
+) {
+  return workloads.map((workload) => {
+    const tenantLabel = workload.tenantId
+      ? tenantNames.get(workload.tenantId) ?? shortId(workload.tenantId)
+      : "Shared";
+    const podCount = workload.podCount || workload.pods.length;
+    const kindLabel =
+      workload.kind === "backing_service"
+        ? workload.serviceType
+          ? humanize(workload.serviceType)
+          : "Service"
+        : "App";
+    const metaParts = [
+      formatCountLabel(podCount, "pod"),
+      tenantLabel,
+      workload.namespace?.trim() || null,
+    ].filter((value): value is string => Boolean(value));
+    const podLabel = workload.pods.length
+      ? workload.pods
+          .map((pod) =>
+            pod.phase?.trim()
+              ? `${pod.name} (${humanize(pod.phase)})`
+              : pod.name,
+          )
+          .join(" / ")
+      : "No active pods reported";
+
+    return {
+      id: workload.id,
+      kindLabel,
+      kindTone: workload.kind === "backing_service" ? "neutral" : "info",
+      metaLabel: metaParts.join(" / "),
+      name: workload.name,
+      title: `${workload.name} / ${kindLabel} / ${metaParts.join(" / ")} / ${podLabel}`,
+    } satisfies AdminClusterWorkloadView;
+  });
+}
+
+function buildClusterNodeViews(
+  nodes: FugueClusterNode[],
+  tenants: FugueTenant[],
+) {
+  const tenantNames = new Map(
+    tenants.map((tenant) => [tenant.id, tenant.name] as const),
+  );
+
+  const views = nodes.map((node) => {
+    const conditionViews = buildClusterConditionViews(node);
+    const memoryPressure = isConditionActive(node.conditions[CLUSTER_MEMORY_PRESSURE_CONDITION]?.status);
+    const diskPressure = isConditionActive(node.conditions[CLUSTER_DISK_PRESSURE_CONDITION]?.status);
+    const pressureSignals = conditionViews.filter(
+      (condition) =>
+        condition.id !== CLUSTER_READY_CONDITION &&
+        condition.statusLabel === "Pressure",
+    );
+    const workloadCount = node.workloads.length;
+    const appCount = node.workloads.filter((workload) => workload.kind === "app").length;
+    const serviceCount = node.workloads.filter(
+      (workload) => workload.kind === "backing_service",
+    ).length;
+    const statusLabel =
+      node.status?.trim().toLowerCase() === "not-ready"
+        ? "Not ready"
+        : pressureSignals.length
+          ? "Pressure"
+          : node.status?.trim().toLowerCase() === "ready"
+            ? "Ready"
+            : humanize(node.status);
+    const statusTone =
+      node.status?.trim().toLowerCase() === "not-ready"
+        ? "danger"
+        : pressureSignals.length
+          ? "warning"
+          : node.status?.trim().toLowerCase() === "ready"
+            ? "positive"
+            : toneForStatus(node.status);
+    const locationLabel = readLocationLabel(node.region, node.zone);
+    const statusFragments = [
+      locationLabel !== "Unassigned" ? locationLabel : null,
+      pressureSignals.length
+        ? `${pressureSignals.map((condition) => condition.label.toLowerCase()).join(" + ")} signal${
+            pressureSignals.length === 1 ? "" : "s"
+          }`
+        : node.status?.trim().toLowerCase() === "ready"
+          ? "No active pressure"
+          : null,
+      formatCountLabel(workloadCount, "workload"),
+    ].filter((value): value is string => Boolean(value));
+
+    return {
+      appCount,
+      conditions: conditionViews,
+      createdExact: formatExactTime(node.createdAt),
+      createdLabel: formatRelativeTime(node.createdAt),
+      externalIpLabel: node.externalIp?.trim() || "Unavailable",
+      headerMeta: statusFragments.join(" · "),
+      internalIpLabel: node.internalIp?.trim() || "Unavailable",
+      locationLabel,
+      name: node.name,
+      roleLabels: node.roles.length ? node.roles : [],
+      resources: [
+        buildCPUResourceView(node.cpu),
+        buildMemoryResourceView(node.memory, memoryPressure),
+        buildStorageResourceView(node.ephemeralStorage, diskPressure),
+      ],
+      runtimeLabel: node.runtimeId ? shortId(node.runtimeId) : "Unassigned",
+      serviceCount,
+      statusDetail:
+        pressureSignals.length > 0
+          ? `${pressureSignals.map((condition) => `${condition.label.toLowerCase()} pressure`).join(" / ")}`
+          : node.status?.trim().toLowerCase() === "ready"
+            ? "Ready with no active memory, disk, or PID pressure."
+            : "Waiting for complete node health telemetry.",
+      statusLabel,
+      statusTone,
+      tenantLabel: node.tenantId
+        ? tenantNames.get(node.tenantId) ?? shortId(node.tenantId)
+        : node.runtimeId
+          ? "Shared"
+          : "Unassigned",
+      workloadCount,
+      workloads: buildClusterWorkloadViews(node.workloads, tenantNames),
+      zoneLabel: node.zone?.trim() || "Unassigned",
+    } satisfies AdminClusterNodeView;
+  });
+
+  return views.sort((left, right) => {
+    const leftTone = Math.max(
+      toneWeight(left.statusTone),
+      ...left.resources.map((resource) => toneWeight(resource.statusTone)),
+    );
+    const rightTone = Math.max(
+      toneWeight(right.statusTone),
+      ...right.resources.map((resource) => toneWeight(resource.statusTone)),
+    );
+
+    if (leftTone !== rightTone) {
+      return rightTone - leftTone;
+    }
+
+    if (left.workloadCount !== right.workloadCount) {
+      return right.workloadCount - left.workloadCount;
+    }
+
+    return left.name.localeCompare(right.name);
+  });
+}
+
 export async function getAdminAppsPageData(): Promise<AdminAppsPageData> {
   let bootstrapKey: string;
 
@@ -596,5 +1102,61 @@ export async function getAdminUsersPageData(): Promise<AdminUsersPageData> {
       userCount: views.length,
     },
     users: views,
+  };
+}
+
+export async function getAdminClusterPageData(): Promise<AdminClusterPageData> {
+  let bootstrapKey: string;
+
+  try {
+    bootstrapKey = getFugueEnv().bootstrapKey;
+  } catch (error) {
+    return {
+      errors: [readErrorMessage(error)],
+      nodes: [],
+      summary: {
+        nodeCount: 0,
+        pressuredCount: 0,
+        readyCount: 0,
+        workloadCount: 0,
+      },
+    };
+  }
+
+  const [tenantsResult, nodesResult] = await Promise.allSettled([
+    getFugueTenants(bootstrapKey),
+    getFugueClusterNodes(bootstrapKey),
+  ]);
+
+  const errors = [
+    tenantsResult.status === "rejected"
+      ? `tenants: ${readErrorMessage(tenantsResult.reason)}`
+      : null,
+    nodesResult.status === "rejected"
+      ? `cluster nodes: ${readErrorMessage(nodesResult.reason)}`
+      : null,
+  ].filter((value): value is string => Boolean(value));
+
+  const tenants = tenantsResult.status === "fulfilled" ? tenantsResult.value : [];
+  const nodes = nodesResult.status === "fulfilled" ? nodesResult.value : [];
+  const views = buildClusterNodeViews(nodes, tenants);
+
+  return {
+    errors,
+    nodes: views,
+    summary: {
+      nodeCount: views.length,
+      pressuredCount: views.filter(
+        (node) =>
+          node.statusTone === "warning" ||
+          node.statusTone === "danger" ||
+          node.resources.some(
+            (resource) =>
+              resource.statusTone === "warning" || resource.statusTone === "danger",
+          ),
+      ).length,
+      readyCount: views.filter((node) => node.statusLabel === "Ready").length,
+      workloadCount: views.reduce((total, node) => total + node.workloadCount, 0),
+    },
   };
 }
