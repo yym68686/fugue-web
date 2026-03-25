@@ -120,6 +120,7 @@ export type FugueAppSource = {
   detectedProvider: string | null;
   dockerfilePath: string | null;
   commitSha: string | null;
+  commitCommittedAt: string | null;
   sourceDir: string | null;
   uploadFilename: string | null;
 };
@@ -668,6 +669,7 @@ function sanitizeAppSource(value: unknown): FugueAppSource {
     detectedProvider: readString(source, "detected_provider"),
     dockerfilePath: readString(source, "dockerfile_path"),
     commitSha: readString(source, "commit_sha"),
+    commitCommittedAt: readString(source, "commit_committed_at"),
     sourceDir: readString(source, "source_dir"),
     uploadFilename: readString(source, "upload_filename"),
   };

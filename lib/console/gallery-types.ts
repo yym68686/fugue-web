@@ -25,6 +25,7 @@ export type ConsoleGalleryBadgeView = {
 };
 
 export type ConsoleGalleryAppView = {
+  currentCommitCommittedAt: string | null;
   canRedeploy: boolean;
   currentCommitExact: string | null;
   currentCommitHref: string | null;

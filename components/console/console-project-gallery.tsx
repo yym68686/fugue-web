@@ -371,6 +371,70 @@ function renderOptionalExternalText(label?: string | null, href?: string | null,
   return renderExternalText(label, href, className);
 }
 
+function renderCommitText(app: ConsoleGalleryAppView) {
+  if (!app.currentCommitLabel) {
+    return <span>—</span>;
+  }
+
+  if (!app.currentCommitHref) {
+    return <span title={app.currentCommitExact ?? undefined}>{app.currentCommitLabel}</span>;
+  }
+
+  return (
+    <a
+      className="fg-text-link"
+      href={app.currentCommitHref}
+      rel="noreferrer"
+      target="_blank"
+      title={app.currentCommitExact ?? app.currentCommitHref}
+    >
+      {app.currentCommitLabel}
+    </a>
+  );
+}
+
+function LocalDateTimeNote({
+  className,
+  prefix,
+  value,
+}: {
+  className?: string;
+  prefix: string;
+  value?: string | null;
+}) {
+  const [formatted, setFormatted] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!value) {
+      setFormatted(null);
+      return;
+    }
+
+    const timestamp = Date.parse(value);
+    if (!Number.isFinite(timestamp)) {
+      setFormatted(null);
+      return;
+    }
+
+    setFormatted(
+      new Intl.DateTimeFormat(undefined, {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(timestamp),
+    );
+  }, [value]);
+
+  if (!formatted || !value) {
+    return null;
+  }
+
+  return (
+    <time className={className} dateTime={value} title={formatted}>
+      {prefix} {formatted}
+    </time>
+  );
+}
+
 function readTrackingLabel(app: ConsoleGalleryAppView) {
   if (app.sourceType?.trim().toLowerCase() !== "github-public") {
     return null;
@@ -1715,7 +1779,14 @@ export function ConsoleProjectGallery({
                   <div>
                     <dt>Commit</dt>
                     <dd>
-                      {renderOptionalExternalText(selectedApp.currentCommitLabel, selectedApp.currentCommitHref)}
+                      <span className="fg-project-inspector__meta-stack">
+                        {renderCommitText(selectedApp)}
+                        <LocalDateTimeNote
+                          className="fg-project-inspector__meta-note"
+                          prefix="Committed"
+                          value={selectedApp.currentCommitCommittedAt}
+                        />
+                      </span>
                     </dd>
                   </div>
                   <div>

@@ -583,6 +583,7 @@ function buildAppView(app: FugueApp): ConsoleGalleryAppView {
 
   return {
     canRedeploy: redeploy.canRedeploy,
+    currentCommitCommittedAt: app.source.commitCommittedAt?.trim() || null,
     currentCommitExact: app.source.commitSha?.trim() || null,
     currentCommitHref: readGitHubCommitHref(app.source.repoUrl, app.source.commitSha),
     currentCommitLabel,

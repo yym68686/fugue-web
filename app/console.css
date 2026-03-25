@@ -2237,6 +2237,17 @@
   overflow-wrap: anywhere;
 }
 
+.fg-project-inspector__meta-stack {
+  display: grid;
+  gap: 0.18rem;
+}
+
+.fg-project-inspector__meta-note {
+  color: var(--fugue-text-muted);
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
 .fg-project-inspector__sync {
   display: grid;
   gap: 0.42rem;
