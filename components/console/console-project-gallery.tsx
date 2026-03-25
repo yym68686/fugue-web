@@ -958,7 +958,12 @@ export function ConsoleProjectGallery({
           </InlineAlert>
         ) : null}
 
-        <section className="fg-project-gallery__shelf">
+        <section
+          className={cx(
+            "fg-project-gallery__shelf",
+            !data.projects.length && "fg-project-gallery__shelf--empty",
+          )}
+        >
           {data.projects.length ? (
             <div className="fg-project-gallery__grid">
               {data.projects.map((project) => (
@@ -993,13 +998,11 @@ export function ConsoleProjectGallery({
               ))}
             </div>
           ) : (
-            <Panel className="fg-project-gallery__empty-panel">
-              <PanelSection className="fg-project-gallery__empty-state">
-                <Button onClick={openCreate} type="button" variant="primary">
-                  Create project
-                </Button>
-              </PanelSection>
-            </Panel>
+            <div className="fg-project-gallery__empty-state">
+              <Button onClick={openCreate} type="button" variant="primary">
+                Create project
+              </Button>
+            </div>
           )}
         </section>
 

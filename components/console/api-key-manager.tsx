@@ -6,7 +6,11 @@ import { Panel, PanelSection } from "@/components/ui/panel";
 import { useToast } from "@/components/ui/toast";
 import type { ApiKeyRecord } from "@/lib/api-keys/types";
 import { API_KEY_CREATE_REQUEST_EVENT } from "@/lib/console/events";
-import { getFugueScopeDescription } from "@/lib/fugue/scopes";
+import {
+  getFugueScopeDescription,
+  sortFugueScopes,
+  WORKSPACE_ADMIN_SCOPES,
+} from "@/lib/fugue/scopes";
 import { cx } from "@/lib/ui/cx";
 
 type ApiKeyPagePayload = {
@@ -94,21 +98,12 @@ function formatRelativeTime(value?: string | null) {
   return "Just now";
 }
 
-function sortSelectedScopes(scopes: string[], availableScopes: string[]) {
-  const scopeOrder = new Map(
-    availableScopes.map((scope, index) => [scope, index] as const),
-  );
-
-  return [...new Set(scopes)].sort((left, right) => {
-    const leftOrder = scopeOrder.get(left) ?? Number.MAX_SAFE_INTEGER;
-    const rightOrder = scopeOrder.get(right) ?? Number.MAX_SAFE_INTEGER;
-
-    if (leftOrder !== rightOrder) {
-      return leftOrder - rightOrder;
-    }
-
-    return left.localeCompare(right);
-  });
+function buildPermissionCatalog(record: Pick<ApiKeyRecord, "isWorkspaceAdmin" | "scopes">, scopeCatalog: string[]) {
+  return sortFugueScopes([
+    ...(record.isWorkspaceAdmin ? WORKSPACE_ADMIN_SCOPES : []),
+    ...scopeCatalog,
+    ...record.scopes,
+  ]);
 }
 
 function buildLabelDrafts(keys: ApiKeyRecord[]) {
@@ -207,7 +202,7 @@ export function ApiKeyManager({
   const { showToast } = useToast();
   const createRequestRef = useRef<() => void>(() => {});
   const [keys, setKeys] = useState(initialKeys);
-  const [scopeCatalog, setScopeCatalog] = useState(availableScopes);
+  const [scopeCatalog, setScopeCatalog] = useState(() => sortFugueScopes(availableScopes));
   const [syncError, setSyncError] = useState<string | null>(initialSyncError);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [labelDrafts, setLabelDrafts] = useState<Record<string, string>>(
@@ -240,7 +235,7 @@ export function ApiKeyManager({
 
   function syncLocalState(data: ApiKeyPagePayload) {
     setKeys(sortKeys(data.keys));
-    setScopeCatalog(data.availableScopes);
+    setScopeCatalog(sortFugueScopes(data.availableScopes));
     setSyncError(data.syncError);
     setLabelDrafts(buildLabelDrafts(data.keys));
   }
@@ -501,10 +496,11 @@ export function ApiKeyManager({
       return;
     }
 
+    const permissionCatalog = buildPermissionCatalog(record, scopeCatalog);
     const hasScope = record.scopes.includes(scope);
     const nextScopes = hasScope
       ? record.scopes.filter((item) => item !== scope)
-      : sortSelectedScopes([...record.scopes, scope], scopeCatalog);
+      : sortFugueScopes([...record.scopes, scope]);
 
     if (!nextScopes.length) {
       showToast({
@@ -545,7 +541,7 @@ export function ApiKeyManager({
         [updated.key.id]: updated.key.label,
       }));
       if (updated.key.isWorkspaceAdmin) {
-        setScopeCatalog(sortSelectedScopes(updated.key.scopes, updated.key.scopes));
+        setScopeCatalog(sortFugueScopes(updated.key.scopes));
       }
       setSyncError(null);
       setExpandedId(updated.key.id);
@@ -598,6 +594,7 @@ export function ApiKeyManager({
             {keys.map((record) => {
               const expanded = expandedId === record.id;
               const labelValue = labelDrafts[record.id] ?? record.label;
+              const permissionCatalog = buildPermissionCatalog(record, scopeCatalog);
 
               return (
                 <article
@@ -706,13 +703,13 @@ export function ApiKeyManager({
                           </div>
 
                           <span className="fg-api-key-permissions__count">
-                            {record.scopes.length}/{scopeCatalog.length || record.scopes.length}
+                            {record.scopes.length}/{permissionCatalog.length || record.scopes.length}
                           </span>
                         </div>
 
-                        {scopeCatalog.length ? (
+                        {permissionCatalog.length ? (
                           <div className="fg-api-key-permission-grid">
-                            {scopeCatalog.map((scope) => {
+                            {permissionCatalog.map((scope) => {
                               const selected = record.scopes.includes(scope);
 
                               return (

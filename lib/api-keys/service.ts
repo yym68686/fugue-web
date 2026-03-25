@@ -14,7 +14,7 @@ import {
   rotateFugueApiKey,
   updateFugueApiKey,
 } from "@/lib/fugue/api";
-import { sortFugueScopes } from "@/lib/fugue/scopes";
+import { sortFugueScopes, WORKSPACE_ADMIN_SCOPES } from "@/lib/fugue/scopes";
 import {
   getWorkspaceAccessByEmail,
   saveWorkspaceAccess,
@@ -83,6 +83,12 @@ function assertSupportedScopes(allowedScopes: string[], scopes: string[]) {
   if (invalidScopes.length) {
     throw new Error(`Unsupported scopes: ${invalidScopes.join(", ")}`);
   }
+}
+
+function readAllowedScopesForKey(workspaceAdminScopes: string[], isWorkspaceAdmin: boolean) {
+  return isWorkspaceAdmin
+    ? normalizeScopes([...WORKSPACE_ADMIN_SCOPES, ...workspaceAdminScopes])
+    : normalizeScopes(workspaceAdminScopes);
 }
 
 async function persistApiKeyMutation(input: {
@@ -248,7 +254,10 @@ export async function updateApiKeyForEmail(
     payload.scopes === undefined ? undefined : normalizeScopes(payload.scopes);
 
   if (nextScopes) {
-    assertSupportedScopes(workspace.adminKeyScopes, nextScopes);
+    assertSupportedScopes(
+      readAllowedScopesForKey(workspace.adminKeyScopes, current.isWorkspaceAdmin),
+      nextScopes,
+    );
   }
 
   if (nextLabel === undefined && nextScopes === undefined) {

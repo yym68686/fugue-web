@@ -1618,16 +1618,16 @@
   text-transform: uppercase;
 }
 
-.fg-project-gallery__empty-panel {
-  width: fit-content;
-  max-width: 100%;
-  justify-self: center;
+.fg-project-gallery__empty-state {
+  display: grid;
+  place-items: center;
+  width: 100%;
 }
 
-.fg-project-gallery__empty-state {
-  display: flex;
-  justify-content: center;
-  padding: 0.4rem;
+.fg-project-gallery__shelf--empty {
+  width: 100%;
+  min-height: max(22rem, calc(100dvh - 10rem));
+  place-items: center;
 }
 
 .fg-project-gallery__empty-state .fg-button {
