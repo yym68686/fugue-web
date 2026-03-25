@@ -25,7 +25,7 @@ import type {
   ConsoleGalleryProjectView,
   ConsoleProjectGalleryData,
 } from "@/lib/console/gallery-types";
-import { readGitHubSourceHref } from "@/lib/fugue/source-links";
+import { readGitHubCommitHref, readGitHubSourceHref } from "@/lib/fugue/source-links";
 import type { ConsoleTone } from "@/lib/console/types";
 import { parseAnsiText } from "@/lib/ui/ansi";
 import { cx } from "@/lib/ui/cx";
@@ -56,13 +56,17 @@ type EnvResponse = {
 };
 
 type BuildLogsResponse = {
+  available?: boolean;
   buildStrategy?: string | null;
+  completedAt?: string | null;
   errorMessage?: string | null;
   jobName?: string | null;
   logs?: string;
+  operationId?: string | null;
   operationStatus?: string | null;
   resultMessage?: string | null;
   source?: string | null;
+  startedAt?: string | null;
 };
 
 type RuntimeLogsResponse = {
@@ -150,6 +154,7 @@ const LOG_AUTO_REFRESH_INTERVAL_MS = 3_000;
 const PROJECT_ACTIVE_REFRESH_INTERVAL_MS = 3_000;
 const PROJECT_PASSIVE_REFRESH_INTERVAL_MS = 6_000;
 const LOG_TAIL_LINES = 200;
+const PENDING_COMMIT_HINT_TAIL_LINES = 1;
 const TERMINAL_LOG_OPERATION_STATUSES = new Set(["canceled", "cancelled", "completed", "failed"]);
 
 function createClientId(prefix: string) {
@@ -403,6 +408,205 @@ function renderCommitLink(commit: Pick<ConsoleGalleryCommitView, "exact" | "href
   );
 }
 
+function hasPendingCommitView(app: ConsoleGalleryAppView | null) {
+  return app?.commitViews.some((commit) => commit.kind === "pending") ?? false;
+}
+
+function isGitHubTrackedApp(app: ConsoleGalleryAppView | null) {
+  return app?.sourceType?.trim().toLowerCase() === "github-public";
+}
+
+function hasInFlightCommitPhase(phase?: string | null) {
+  const normalized = phase?.trim().toLowerCase() ?? "";
+
+  return (
+    normalized.length > 0 &&
+    includesLifecycleKeyword(normalized, ["importing", "building", "deploying", "queued", "pending", "migrating"])
+  );
+}
+
+function hasActiveBuildLogsOperation(
+  buildLogs: Pick<BuildLogsResponse, "completedAt" | "operationStatus" | "startedAt"> | null | undefined,
+) {
+  const normalizedStatus = buildLogs?.operationStatus?.trim().toLowerCase() ?? "";
+
+  if (normalizedStatus) {
+    return !TERMINAL_LOG_OPERATION_STATUSES.has(normalizedStatus);
+  }
+
+  return Boolean(buildLogs?.startedAt && !buildLogs.completedAt);
+}
+
+function parsePendingCommitFromBuildJobName(jobName?: string | null) {
+  const normalized = jobName?.trim();
+
+  if (!normalized) {
+    return null;
+  }
+
+  const match = normalized.match(/([0-9a-f]{7,12})$/i);
+
+  if (!match?.[1]) {
+    return null;
+  }
+
+  const exact = match[1].toLowerCase();
+
+  return {
+    exact,
+    label: exact.length > 8 ? exact.slice(0, 8) : exact,
+  };
+}
+
+function readPendingCommitState(
+  phase?: string | null,
+  operationStatus?: string | null,
+): Pick<ConsoleGalleryCommitView, "stateLabel" | "tone"> {
+  const normalizedStatus = operationStatus?.trim().toLowerCase() ?? "";
+  const hasActiveStatus = normalizedStatus
+    ? !TERMINAL_LOG_OPERATION_STATUSES.has(normalizedStatus)
+    : false;
+
+  if (hasActiveStatus) {
+    if (includesLifecycleKeyword(normalizedStatus, ["queued", "pending", "migrating"])) {
+      return {
+        stateLabel: "Queued",
+        tone: "warning",
+      };
+    }
+
+    if (includesLifecycleKeyword(normalizedStatus, ["deploy"])) {
+      return {
+        stateLabel: "Deploying",
+        tone: "info",
+      };
+    }
+
+    if (includesLifecycleKeyword(normalizedStatus, ["build", "import"])) {
+      return {
+        stateLabel: "Building",
+        tone: "info",
+      };
+    }
+
+    if (normalizedStatus.includes("running")) {
+      return {
+        stateLabel: "Updating",
+        tone: "info",
+      };
+    }
+  }
+
+  const normalizedPhase = phase?.trim().toLowerCase() ?? "";
+
+  if (includesLifecycleKeyword(normalizedPhase, ["queued", "pending", "migrating"])) {
+    return {
+      stateLabel: "Queued",
+      tone: "warning",
+    };
+  }
+
+  if (includesLifecycleKeyword(normalizedPhase, ["deploying"])) {
+    return {
+      stateLabel: "Deploying",
+      tone: "info",
+    };
+  }
+
+  if (includesLifecycleKeyword(normalizedPhase, ["importing", "building"])) {
+    return {
+      stateLabel: "Building",
+      tone: "info",
+    };
+  }
+
+  if (hasActiveStatus) {
+    return {
+      stateLabel: humanizeUiLabel(operationStatus),
+      tone: "info",
+    };
+  }
+
+  return {
+    stateLabel: "Building",
+    tone: "info",
+  };
+}
+
+function buildPendingCommitHint(
+  app: ConsoleGalleryAppView,
+  options?: {
+    exact?: string | null;
+    label?: string | null;
+    operationId?: string | null;
+    operationStatus?: string | null;
+  },
+): ConsoleGalleryCommitView | null {
+  if (!isGitHubTrackedApp(app) || hasPendingCommitView(app)) {
+    return null;
+  }
+
+  const runningCommit = app.commitViews.find((commit) => commit.kind === "running");
+
+  if (!runningCommit?.exact && runningCommit?.label === "Pending first import") {
+    return null;
+  }
+
+  const exact = options?.exact?.trim() || null;
+  const label = options?.label?.trim() || (exact ? (exact.length > 8 ? exact.slice(0, 8) : exact) : "Pending sync");
+  const state = readPendingCommitState(app.phase, options?.operationStatus);
+
+  return {
+    committedAt: null,
+    exact,
+    href: readGitHubCommitHref(app.sourceHref, exact),
+    id: `pending-hint:${app.id}:${options?.operationId?.trim() || exact || label.toLowerCase().replace(/\s+/g, "-")}`,
+    kind: "pending",
+    label,
+    stateLabel: state.stateLabel,
+    tone: state.tone,
+  };
+}
+
+function inferPendingCommitHint(app: ConsoleGalleryAppView, buildLogs?: BuildLogsResponse | null) {
+  const buildActive = hasActiveBuildLogsOperation(buildLogs);
+  const phaseActive = hasInFlightCommitPhase(app.phase);
+
+  if (!buildActive && !phaseActive) {
+    return null;
+  }
+
+  const parsedCommit = parsePendingCommitFromBuildJobName(buildLogs?.jobName);
+
+  return buildPendingCommitHint(app, {
+    exact: parsedCommit?.exact,
+    label: parsedCommit?.label,
+    operationId: buildLogs?.operationId,
+    operationStatus: buildLogs?.operationStatus,
+  });
+}
+
+function mergeCommitViews(
+  app: ConsoleGalleryAppView,
+  pendingCommitHint?: ConsoleGalleryCommitView | null,
+) {
+  if (!pendingCommitHint || hasPendingCommitView(app)) {
+    return app.commitViews;
+  }
+
+  const runningCommit = app.commitViews.find((commit) => commit.kind === "running");
+
+  if (!runningCommit) {
+    return [pendingCommitHint, ...app.commitViews];
+  }
+
+  return [
+    runningCommit,
+    pendingCommitHint,
+    ...app.commitViews.filter((commit) => commit.id !== runningCommit.id),
+  ];
+}
+
 function LocalDateTimeNote({
   className,
   prefix,
@@ -445,13 +649,18 @@ function LocalDateTimeNote({
   );
 }
 
-function renderCommitText(app: ConsoleGalleryAppView) {
-  if (!app.commitViews.length) {
+function renderCommitText(
+  app: ConsoleGalleryAppView,
+  pendingCommitHint?: ConsoleGalleryCommitView | null,
+) {
+  const commitViews = mergeCommitViews(app, pendingCommitHint);
+
+  if (!commitViews.length) {
     return <span>—</span>;
   }
 
-  if (app.commitViews.length === 1) {
-    const [commit] = app.commitViews;
+  if (commitViews.length === 1) {
+    const [commit] = commitViews;
 
     return (
       <span className="fg-project-inspector__meta-stack">
@@ -476,7 +685,7 @@ function renderCommitText(app: ConsoleGalleryAppView) {
 
   return (
     <span className="fg-project-inspector__commit-list">
-      {app.commitViews.map((commit) => (
+      {commitViews.map((commit) => (
         <span className="fg-project-inspector__commit-entry" key={commit.id}>
           <span className="fg-project-inspector__commit-row">
             <StatusBadge className="fg-project-inspector__commit-badge" tone={commit.tone}>
@@ -941,6 +1150,8 @@ export function ConsoleProjectGallery({
   const [buildStrategy, setBuildStrategy] = useState<BuildStrategyValue>("auto");
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
+  const [selectedAppPendingCommitHint, setSelectedAppPendingCommitHint] =
+    useState<ConsoleGalleryCommitView | null>(null);
   const [activeTab, setActiveTab] = useState<WorkbenchView>("env");
   const [isCreating, setIsCreating] = useState(false);
   const [busyAction, setBusyAction] = useState<AppAction | null>(null);
@@ -968,6 +1179,7 @@ export function ConsoleProjectGallery({
   const [refreshWindowUntil, setRefreshWindowUntil] = useState(0);
   const logsVisibleKeyRef = useRef<string | null>(null);
   const logsRequestPendingRef = useRef(false);
+  const pendingCommitHintRequestPendingRef = useRef(false);
 
   const selectedProject =
     data.projects.find((project) => project.id === selectedProjectId) ?? null;
@@ -976,6 +1188,10 @@ export function ConsoleProjectGallery({
     selectedProjectApps.find((app) => app.id === selectedAppId) ??
     (selectedProject ? selectedProjectApps[0] : null) ??
     null;
+  const selectedAppNeedsPendingCommitHint =
+    isGitHubTrackedApp(selectedApp) && !hasPendingCommitView(selectedApp);
+  const selectedAppUsesBuildLogStream =
+    selectedApp !== null && activeTab === "logs" && logsMode === "build";
   const logsRequestKey =
     selectedApp
       ? logsMode === "runtime"
@@ -1166,6 +1382,82 @@ export function ConsoleProjectGallery({
   }, [selectedApp?.id]);
 
   useEffect(() => {
+    pendingCommitHintRequestPendingRef.current = false;
+    setSelectedAppPendingCommitHint(null);
+  }, [selectedApp?.id]);
+
+  useEffect(() => {
+    if (!selectedApp || !selectedAppNeedsPendingCommitHint) {
+      pendingCommitHintRequestPendingRef.current = false;
+      setSelectedAppPendingCommitHint(null);
+      return undefined;
+    }
+
+    if (selectedAppUsesBuildLogStream) {
+      return undefined;
+    }
+
+    const app = selectedApp;
+    let cancelled = false;
+    let activeController: AbortController | null = null;
+
+    async function refreshPendingCommitHint() {
+      if (document.visibilityState !== "visible" || pendingCommitHintRequestPendingRef.current) {
+        return;
+      }
+
+      pendingCommitHintRequestPendingRef.current = true;
+      const controller = new AbortController();
+      activeController = controller;
+
+      try {
+        const buildLogs = await requestJson<BuildLogsResponse>(
+          `/api/fugue/apps/${app.id}/build-logs?tail_lines=${PENDING_COMMIT_HINT_TAIL_LINES}`,
+          {
+            cache: "no-store",
+            signal: controller.signal,
+          },
+        );
+
+        if (cancelled) {
+          return;
+        }
+
+        setSelectedAppPendingCommitHint(inferPendingCommitHint(app, buildLogs));
+      } catch {
+        if (cancelled || controller.signal.aborted) {
+          return;
+        }
+
+        setSelectedAppPendingCommitHint(inferPendingCommitHint(app, null));
+      } finally {
+        if (activeController === controller) {
+          activeController = null;
+        }
+
+        pendingCommitHintRequestPendingRef.current = false;
+      }
+    }
+
+    void refreshPendingCommitHint();
+
+    const intervalId = window.setInterval(() => {
+      void refreshPendingCommitHint();
+    }, LOG_AUTO_REFRESH_INTERVAL_MS);
+
+    return () => {
+      cancelled = true;
+      pendingCommitHintRequestPendingRef.current = false;
+
+      if (activeController) {
+        activeController.abort();
+      }
+
+      window.clearInterval(intervalId);
+    };
+  }, [selectedApp, selectedAppNeedsPendingCommitHint, selectedAppUsesBuildLogStream]);
+
+  useEffect(() => {
     if (!selectedApp || activeTab !== "logs" || !logsRequestInput || !logsRequestKey) {
       return;
     }
@@ -1208,6 +1500,9 @@ export function ConsoleProjectGallery({
           setLogsBody(buildLogs.logs || "No build logs available.");
           setLogsMeta(buildLogMeta(buildLogs));
           setBuildLogsOperationStatus(buildLogs.operationStatus ?? null);
+          setSelectedAppPendingCommitHint(
+            selectedAppNeedsPendingCommitHint ? inferPendingCommitHint(selectedApp, buildLogs) : null,
+          );
         } else {
           const runtimeLogs = response as RuntimeLogsResponse;
           setLogsBody(runtimeLogs.logs || "No runtime logs available.");
@@ -1226,6 +1521,12 @@ export function ConsoleProjectGallery({
 
         logsRequestPendingRef.current = false;
         setLogsRefreshing(false);
+
+        if (logsMode === "build") {
+          setSelectedAppPendingCommitHint(
+            selectedAppNeedsPendingCommitHint ? inferPendingCommitHint(selectedApp, null) : null,
+          );
+        }
 
         if (backgroundRefresh) {
           if (logsRefreshMode === "manual") {
@@ -1256,6 +1557,8 @@ export function ConsoleProjectGallery({
     logsRefreshToken,
     logsRequestInput,
     logsRequestKey,
+    selectedApp,
+    selectedAppNeedsPendingCommitHint,
     runtimeLogsUnavailableKey,
   ]);
 
@@ -1842,7 +2145,7 @@ export function ConsoleProjectGallery({
                   </div>
                   <div>
                     <dt>Commit</dt>
-                    <dd>{renderCommitText(selectedApp)}</dd>
+                    <dd>{renderCommitText(selectedApp, selectedAppPendingCommitHint)}</dd>
                   </div>
                   <div>
                     <dt>Build</dt>
