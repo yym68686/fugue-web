@@ -2111,6 +2111,111 @@
   align-items: flex-start;
 }
 
+.fg-log-output {
+  --fg-log-black: #6f6a63;
+  --fg-log-red: #d48f8b;
+  --fg-log-green: #95c08f;
+  --fg-log-yellow: #d7bd7b;
+  --fg-log-blue: #8faed7;
+  --fg-log-magenta: #c59cd1;
+  --fg-log-cyan: #8fc5d2;
+  --fg-log-white: #e7ded1;
+  --fg-log-bright-black: #9b948b;
+  --fg-log-bright-red: #e7aca8;
+  --fg-log-bright-green: #b0d9a2;
+  --fg-log-bright-yellow: #ead796;
+  --fg-log-bright-blue: #b3cdf0;
+  --fg-log-bright-magenta: #d9b9e2;
+  --fg-log-bright-cyan: #b5e2ec;
+  --fg-log-bright-white: #fffaf2;
+}
+
+.fg-log-output__segment {
+  color: inherit;
+}
+
+.fg-log-output__segment.is-bold {
+  font-weight: 700;
+}
+
+.fg-log-output__segment.is-dim {
+  opacity: 0.72;
+}
+
+.fg-log-output__segment.is-italic {
+  font-style: italic;
+}
+
+.fg-log-output__segment.is-underlined {
+  text-decoration: underline;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.18em;
+}
+
+.fg-log-output__segment[data-ansi-tone="black"] {
+  color: var(--fg-log-black);
+}
+
+.fg-log-output__segment[data-ansi-tone="red"] {
+  color: var(--fg-log-red);
+}
+
+.fg-log-output__segment[data-ansi-tone="green"] {
+  color: var(--fg-log-green);
+}
+
+.fg-log-output__segment[data-ansi-tone="yellow"] {
+  color: var(--fg-log-yellow);
+}
+
+.fg-log-output__segment[data-ansi-tone="blue"] {
+  color: var(--fg-log-blue);
+}
+
+.fg-log-output__segment[data-ansi-tone="magenta"] {
+  color: var(--fg-log-magenta);
+}
+
+.fg-log-output__segment[data-ansi-tone="cyan"] {
+  color: var(--fg-log-cyan);
+}
+
+.fg-log-output__segment[data-ansi-tone="white"] {
+  color: var(--fg-log-white);
+}
+
+.fg-log-output__segment[data-ansi-tone="bright-black"] {
+  color: var(--fg-log-bright-black);
+}
+
+.fg-log-output__segment[data-ansi-tone="bright-red"] {
+  color: var(--fg-log-bright-red);
+}
+
+.fg-log-output__segment[data-ansi-tone="bright-green"] {
+  color: var(--fg-log-bright-green);
+}
+
+.fg-log-output__segment[data-ansi-tone="bright-yellow"] {
+  color: var(--fg-log-bright-yellow);
+}
+
+.fg-log-output__segment[data-ansi-tone="bright-blue"] {
+  color: var(--fg-log-bright-blue);
+}
+
+.fg-log-output__segment[data-ansi-tone="bright-magenta"] {
+  color: var(--fg-log-bright-magenta);
+}
+
+.fg-log-output__segment[data-ansi-tone="bright-cyan"] {
+  color: var(--fg-log-bright-cyan);
+}
+
+.fg-log-output__segment[data-ansi-tone="bright-white"] {
+  color: var(--fg-log-bright-white);
+}
+
 .fg-env-table {
   display: grid;
   gap: 0.75rem;

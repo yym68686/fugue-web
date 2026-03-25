@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useEffect, useState, type FormEvent } from "react";
+import { startTransition, useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
 import { StatusBadge } from "@/components/console/status-badge";
@@ -25,6 +25,7 @@ import type {
   ConsoleProjectGalleryData,
 } from "@/lib/console/gallery-types";
 import type { ConsoleTone } from "@/lib/console/types";
+import { parseAnsiText } from "@/lib/ui/ansi";
 import { cx } from "@/lib/ui/cx";
 
 type FlashState = {
@@ -129,6 +130,10 @@ const RUNTIME_VIEW_OPTIONS: readonly SegmentedControlOption<RuntimeView>[] = [
   { value: "app", label: "App" },
   { value: "postgres", label: "Postgres" },
 ];
+
+const LOG_AUTO_REFRESH_INTERVAL_MS = 3_000;
+const LOG_TAIL_LINES = 200;
+const TERMINAL_LOG_OPERATION_STATUSES = new Set(["canceled", "cancelled", "completed", "failed"]);
 
 function createClientId(prefix: string) {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -323,12 +328,53 @@ function buildLogMeta(buildLogs: BuildLogsResponse) {
   ].filter((item): item is string => Boolean(item));
 }
 
+function shouldAutoRefreshBuildLogs(status?: string | null) {
+  return !TERMINAL_LOG_OPERATION_STATUSES.has(status?.toLowerCase() ?? "");
+}
+
 function runtimeLogMeta(runtimeLogs: RuntimeLogsResponse) {
   return [
     runtimeLogs.component ? `component / ${runtimeLogs.component}` : null,
     runtimeLogs.pods?.length ? `pods / ${runtimeLogs.pods.join(", ")}` : null,
     runtimeLogs.warnings?.length ? `warnings / ${runtimeLogs.warnings.join(" | ")}` : null,
   ].filter((item): item is string => Boolean(item));
+}
+
+function readLogsDisplayBody(logsStatus: "error" | "idle" | "loading" | "ready", logsBody: string) {
+  if (logsStatus === "loading") {
+    return "Loading logs…";
+  }
+
+  if (logsStatus === "error") {
+    return "Unable to load logs.";
+  }
+
+  return logsBody || "No logs available.";
+}
+
+function renderAnsiLogBody(value: string) {
+  const segments = parseAnsiText(value);
+
+  if (!segments.length) {
+    return null;
+  }
+
+  return segments.map((segment, index) => (
+    <span
+      className={cx(
+        "fg-log-output__segment",
+        segment.bold && "is-bold",
+        segment.dim && "is-dim",
+        segment.italic && "is-italic",
+        segment.underline && "is-underlined",
+      )}
+      data-ansi-tone={segment.tone ?? undefined}
+      key={`${index}:${segment.text.slice(0, 24)}`}
+      style={segment.color ? { color: segment.color } : undefined}
+    >
+      {segment.text}
+    </span>
+  ));
 }
 
 function StackGlyph({ kind }: { kind: ConsoleGalleryBadgeKind }) {
@@ -579,8 +625,12 @@ export function ConsoleProjectGallery({
   const [logsStatus, setLogsStatus] = useState<"error" | "idle" | "loading" | "ready">("idle");
   const [logsBody, setLogsBody] = useState("");
   const [logsMeta, setLogsMeta] = useState<string[]>([]);
-  const [logsLoadedKey, setLogsLoadedKey] = useState<string | null>(null);
+  const [logsRefreshMode, setLogsRefreshMode] = useState<"auto" | "manual">("auto");
+  const [logsRefreshToken, setLogsRefreshToken] = useState(0);
+  const [logsRefreshing, setLogsRefreshing] = useState(false);
   const [refreshWindowUntil, setRefreshWindowUntil] = useState(0);
+  const logsVisibleKeyRef = useRef<string | null>(null);
+  const logsRequestPendingRef = useRef(false);
 
   const selectedProject =
     data.projects.find((project) => project.id === selectedProjectId) ?? null;
@@ -589,6 +639,18 @@ export function ConsoleProjectGallery({
     selectedProjectApps.find((app) => app.id === selectedAppId) ??
     (selectedProject ? selectedProjectApps[0] : null) ??
     null;
+  const logsRequestKey =
+    selectedApp
+      ? logsMode === "runtime"
+        ? `${selectedApp.id}:${logsMode}:${runtimeComponent}`
+        : `${selectedApp.id}:${logsMode}`
+      : null;
+  const logsRequestInput =
+    selectedApp
+      ? logsMode === "build"
+        ? `/api/fugue/apps/${selectedApp.id}/build-logs?tail_lines=${LOG_TAIL_LINES}`
+        : `/api/fugue/apps/${selectedApp.id}/runtime-logs?component=${runtimeComponent}&tail_lines=${LOG_TAIL_LINES}`
+      : null;
   const dataErrorMessage = data.errors.length
     ? `Partial Fugue data: ${data.errors.join(" | ")}.`
     : null;
@@ -606,6 +668,7 @@ export function ConsoleProjectGallery({
     : isCreateServiceMode
       ? "Add service"
       : "Create project";
+  const logsDisplayBody = readLogsDisplayBody(logsStatus, logsBody);
 
   useEffect(() => {
     if (defaultCreateOpen) {
@@ -728,28 +791,41 @@ export function ConsoleProjectGallery({
   }, [activeTab, envLoadedAppId, selectedApp]);
 
   useEffect(() => {
-    if (!selectedApp || activeTab !== "logs") {
+    if (selectedApp) {
       return;
     }
 
-    const nextKey =
-      logsMode === "runtime"
-        ? `${selectedApp.id}:${logsMode}:${runtimeComponent}`
-        : `${selectedApp.id}:${logsMode}`;
+    logsVisibleKeyRef.current = null;
+    logsRequestPendingRef.current = false;
+    setLogsStatus("idle");
+    setLogsBody("");
+    setLogsMeta([]);
+    setLogsRefreshing(false);
+  }, [selectedApp?.id]);
 
-    if (logsLoadedKey === nextKey) {
+  useEffect(() => {
+    if (!selectedApp || activeTab !== "logs" || !logsRequestInput || !logsRequestKey) {
       return;
     }
 
+    const controller = new AbortController();
+    const backgroundRefresh = logsVisibleKeyRef.current === logsRequestKey;
     let cancelled = false;
-    setLogsStatus("loading");
+    logsRequestPendingRef.current = true;
 
-    const input =
-      logsMode === "build"
-        ? `/api/fugue/apps/${selectedApp.id}/build-logs?tail_lines=200`
-        : `/api/fugue/apps/${selectedApp.id}/runtime-logs?component=${runtimeComponent}&tail_lines=200`;
+    if (backgroundRefresh) {
+      setLogsRefreshing(true);
+    } else {
+      setLogsStatus("loading");
+      setLogsBody("");
+      setLogsMeta([]);
+      setLogsRefreshing(false);
+    }
 
-    requestJson<BuildLogsResponse | RuntimeLogsResponse>(input)
+    requestJson<BuildLogsResponse | RuntimeLogsResponse>(logsRequestInput, {
+      cache: "no-store",
+      signal: controller.signal,
+    })
       .then((response) => {
         if (cancelled) {
           return;
@@ -765,11 +841,26 @@ export function ConsoleProjectGallery({
           setLogsMeta(runtimeLogMeta(runtimeLogs));
         }
 
-        setLogsLoadedKey(nextKey);
+        logsVisibleKeyRef.current = logsRequestKey;
+        logsRequestPendingRef.current = false;
         setLogsStatus("ready");
+        setLogsRefreshing(false);
       })
       .catch((error) => {
-        if (cancelled) {
+        if (cancelled || controller.signal.aborted) {
+          return;
+        }
+
+        logsRequestPendingRef.current = false;
+        setLogsRefreshing(false);
+
+        if (backgroundRefresh) {
+          if (logsRefreshMode === "manual") {
+            setFlash({
+              message: readErrorMessage(error),
+              variant: "error",
+            });
+          }
           return;
         }
 
@@ -782,15 +873,35 @@ export function ConsoleProjectGallery({
 
     return () => {
       cancelled = true;
+      logsRequestPendingRef.current = false;
+      controller.abort();
     };
-  }, [activeTab, logsLoadedKey, logsMode, runtimeComponent, selectedApp]);
+  }, [activeTab, logsMode, logsRefreshMode, logsRefreshToken, logsRequestInput, logsRequestKey]);
 
   useEffect(() => {
     if (!selectedApp?.hasPostgresService && runtimeComponent === "postgres") {
       setRuntimeComponent("app");
-      setLogsLoadedKey(null);
     }
   }, [runtimeComponent, selectedApp]);
+
+  useEffect(() => {
+    if (!selectedApp || activeTab !== "logs") {
+      return undefined;
+    }
+
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState !== "visible" || logsRequestPendingRef.current) {
+        return;
+      }
+
+      setLogsRefreshMode("auto");
+      setLogsRefreshToken((value) => value + 1);
+    }, LOG_AUTO_REFRESH_INTERVAL_MS);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [activeTab, logsRequestKey]);
 
   useEffect(() => {
     if (!hasLiveProjects && refreshWindowUntil <= Date.now()) {
@@ -1204,7 +1315,12 @@ export function ConsoleProjectGallery({
   }
 
   function refreshLogs() {
-    setLogsLoadedKey(null);
+    if (logsRequestPendingRef.current) {
+      return;
+    }
+
+    setLogsRefreshMode("manual");
+    setLogsRefreshToken((value) => value + 1);
   }
 
   function renderProjectWorkbench(
@@ -1568,7 +1684,9 @@ export function ConsoleProjectGallery({
                       <div className="fg-workbench-section__copy">
                         <p className="fg-label fg-panel__eyebrow">Logs</p>
                         <p className="fg-console-note">
-                          Stream build and runtime output for {selectedApp.name}.
+                          Stream build and runtime output for {selectedApp.name}. Auto-refresh every{" "}
+                          {LOG_AUTO_REFRESH_INTERVAL_MS / 1000} seconds while this panel is open.
+                          {logsRefreshing ? " Updating…" : ""}
                         </p>
                       </div>
 
@@ -1577,7 +1695,6 @@ export function ConsoleProjectGallery({
                           ariaLabel="Log views"
                           onChange={(nextMode) => {
                             setLogsMode(nextMode);
-                            setLogsLoadedKey(null);
                           }}
                           options={LOG_VIEW_OPTIONS}
                           value={logsMode}
@@ -1588,7 +1705,6 @@ export function ConsoleProjectGallery({
                             ariaLabel="Runtime components"
                             onChange={(nextComponent) => {
                               setRuntimeComponent(nextComponent);
-                              setLogsLoadedKey(null);
                             }}
                             options={RUNTIME_VIEW_OPTIONS}
                             value={runtimeComponent}
@@ -1596,7 +1712,7 @@ export function ConsoleProjectGallery({
                         ) : null}
 
                         <Button onClick={refreshLogs} size="compact" type="button" variant="secondary">
-                          Refresh
+                          Refresh now
                         </Button>
                       </div>
                     </div>
@@ -1605,13 +1721,10 @@ export function ConsoleProjectGallery({
                       <div className="fg-bezel__inner">
                         <div className="fg-proof-shell__ribbon">
                           {logsMeta.length ? logsMeta.map((item) => <span key={item}>{item}</span>) : <span>waiting</span>}
+                          <span>{logsRefreshing ? "refresh / updating" : `refresh / auto ${LOG_AUTO_REFRESH_INTERVAL_MS / 1000}s`}</span>
                         </div>
                         <pre>
-                          <code>
-                            {logsStatus === "loading"
-                              ? "Loading logs…"
-                              : logsBody || "No logs available."}
-                          </code>
+                          <code className="fg-log-output">{renderAnsiLogBody(logsDisplayBody)}</code>
                         </pre>
                       </div>
                     </div>
