@@ -2242,29 +2242,31 @@
   gap: 0.18rem;
 }
 
+.fg-project-inspector__commit-list {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.fg-project-inspector__commit-entry {
+  display: grid;
+  gap: 0.18rem;
+}
+
+.fg-project-inspector__commit-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.fg-project-inspector__commit-badge {
+  white-space: nowrap;
+}
+
 .fg-project-inspector__meta-note {
   color: var(--fugue-text-muted);
   font-size: 0.72rem;
   line-height: 1.45;
-}
-
-.fg-project-inspector__sync {
-  display: grid;
-  gap: 0.42rem;
-  padding-top: 0.92rem;
-  border-top: 1px solid var(--fugue-border-subtle);
-}
-
-.fg-project-inspector__sync-head {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 0.75rem;
-  align-items: center;
-}
-
-.fg-project-inspector__sync .fg-console-note {
-  max-width: 46rem;
 }
 
 .fg-project-toolbar {

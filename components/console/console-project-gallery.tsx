@@ -21,6 +21,7 @@ import {
 import type {
   ConsoleGalleryAppView,
   ConsoleGalleryBadgeKind,
+  ConsoleGalleryCommitView,
   ConsoleGalleryProjectView,
   ConsoleProjectGalleryData,
 } from "@/lib/console/gallery-types";
@@ -371,24 +372,24 @@ function renderOptionalExternalText(label?: string | null, href?: string | null,
   return renderExternalText(label, href, className);
 }
 
-function renderCommitText(app: ConsoleGalleryAppView) {
-  if (!app.currentCommitLabel) {
+function renderCommitLink(commit: Pick<ConsoleGalleryCommitView, "exact" | "href" | "label">) {
+  if (!commit.label) {
     return <span>—</span>;
   }
 
-  if (!app.currentCommitHref) {
-    return <span title={app.currentCommitExact ?? undefined}>{app.currentCommitLabel}</span>;
+  if (!commit.href) {
+    return <span title={commit.exact ?? undefined}>{commit.label}</span>;
   }
 
   return (
     <a
       className="fg-text-link"
-      href={app.currentCommitHref}
+      href={commit.href}
       rel="noreferrer"
       target="_blank"
-      title={app.currentCommitExact ?? app.currentCommitHref}
+      title={commit.exact ?? commit.href}
     >
-      {app.currentCommitLabel}
+      {commit.label}
     </a>
   );
 }
@@ -435,12 +436,66 @@ function LocalDateTimeNote({
   );
 }
 
+function renderCommitText(app: ConsoleGalleryAppView) {
+  if (!app.commitViews.length) {
+    return <span>—</span>;
+  }
+
+  if (app.commitViews.length === 1) {
+    const [commit] = app.commitViews;
+
+    return (
+      <span className="fg-project-inspector__meta-stack">
+        {commit.kind === "pending" ? (
+          <span className="fg-project-inspector__commit-row">
+            <StatusBadge className="fg-project-inspector__commit-badge" tone={commit.tone}>
+              {commit.stateLabel}
+            </StatusBadge>
+            {renderCommitLink(commit)}
+          </span>
+        ) : (
+          renderCommitLink(commit)
+        )}
+        <LocalDateTimeNote
+          className="fg-project-inspector__meta-note"
+          prefix="Committed"
+          value={commit.committedAt}
+        />
+      </span>
+    );
+  }
+
+  return (
+    <span className="fg-project-inspector__commit-list">
+      {app.commitViews.map((commit) => (
+        <span className="fg-project-inspector__commit-entry" key={commit.id}>
+          <span className="fg-project-inspector__commit-row">
+            <StatusBadge className="fg-project-inspector__commit-badge" tone={commit.tone}>
+              {commit.stateLabel}
+            </StatusBadge>
+            {renderCommitLink(commit)}
+          </span>
+          <LocalDateTimeNote
+            className="fg-project-inspector__meta-note"
+            prefix="Committed"
+            value={commit.committedAt}
+          />
+        </span>
+      ))}
+    </span>
+  );
+}
+
 function readTrackingLabel(app: ConsoleGalleryAppView) {
   if (app.sourceType?.trim().toLowerCase() !== "github-public") {
     return null;
   }
 
-  const parts = [app.sourceBranchLabel, app.currentCommitLabel].filter(
+  const runningCommitLabel =
+    app.commitViews.find((entry) => entry.kind === "running")?.label ??
+    app.commitViews[0]?.label ??
+    app.currentCommitLabel;
+  const parts = [app.sourceBranchLabel, runningCommitLabel].filter(
     (value): value is string => Boolean(value),
   );
 
@@ -1778,16 +1833,7 @@ export function ConsoleProjectGallery({
                   </div>
                   <div>
                     <dt>Commit</dt>
-                    <dd>
-                      <span className="fg-project-inspector__meta-stack">
-                        {renderCommitText(selectedApp)}
-                        <LocalDateTimeNote
-                          className="fg-project-inspector__meta-note"
-                          prefix="Committed"
-                          value={selectedApp.currentCommitCommittedAt}
-                        />
-                      </span>
-                    </dd>
+                    <dd>{renderCommitText(selectedApp)}</dd>
                   </div>
                   <div>
                     <dt>Build</dt>
@@ -1814,15 +1860,6 @@ export function ConsoleProjectGallery({
                     <dt>Status</dt>
                     <dd>{selectedApp.phase}</dd>
                   </div>
-                </div>
-
-                <div className="fg-project-inspector__sync">
-                  <div className="fg-project-inspector__sync-head">
-                    <p className="fg-label fg-panel__eyebrow">Update policy</p>
-                    <StatusBadge tone={selectedApp.syncStatusTone}>{selectedApp.syncStatusLabel}</StatusBadge>
-                  </div>
-                  <p className="fg-console-note">{selectedApp.syncSummary}</p>
-                  <p className="fg-console-note">{selectedApp.deployBehavior}</p>
                 </div>
               </PanelSection>
 

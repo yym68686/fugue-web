@@ -8,14 +8,18 @@ import type {
   ConsoleGalleryBadgeKind,
   ConsoleGalleryBadgeView,
   ConsoleGalleryBackingServiceView,
+  ConsoleGalleryCommitView,
   ConsoleGalleryProjectView,
   ConsoleProjectGalleryData,
 } from "@/lib/console/gallery-types";
 import {
   getFugueApps,
+  getFugueOperations,
   getFugueProjects,
   type FugueApp,
+  type FugueAppSource,
   type FugueBackingService,
+  type FugueOperation,
   type FugueProject,
   type FugueAppTechnology,
 } from "@/lib/fugue/api";
@@ -119,6 +123,13 @@ function shortCommitSha(value?: string | null) {
   return commit.length > 8 ? commit.slice(0, 8) : commit;
 }
 
+const terminalOperationStatuses = new Set(["canceled", "cancelled", "completed", "failed"]);
+
+type AppCommitOperations = {
+  active: FugueOperation | null;
+  successful: FugueOperation | null;
+};
+
 function toneForStatus(status?: string | null): ConsoleTone {
   const normalized = status?.toLowerCase() ?? "";
 
@@ -163,6 +174,180 @@ function toneForStatus(status?: string | null): ConsoleTone {
   }
 
   return "neutral";
+}
+
+function isActiveOperation(status?: string | null) {
+  return !terminalOperationStatuses.has(status?.trim().toLowerCase() ?? "");
+}
+
+function isSuccessfulOperation(status?: string | null) {
+  const normalized = status?.trim().toLowerCase() ?? "";
+  return normalized === "completed" || normalized.includes("success");
+}
+
+function readOperationTimestamp(operation: FugueOperation) {
+  return parseTimestamp(
+    operation.completedAt ?? operation.updatedAt ?? operation.startedAt ?? operation.createdAt,
+  );
+}
+
+function readOperationCommitSha(operation?: FugueOperation | null) {
+  return operation?.desiredSource?.commitSha?.trim() || null;
+}
+
+function readPendingCommitState(operation?: FugueOperation | null): Pick<ConsoleGalleryCommitView, "stateLabel" | "tone"> {
+  const normalizedStatus = operation?.status?.trim().toLowerCase() ?? "";
+  const normalizedType = operation?.type?.trim().toLowerCase() ?? "";
+
+  if (normalizedStatus.includes("queued") || normalizedStatus.includes("pending")) {
+    return {
+      stateLabel: "Queued",
+      tone: "warning",
+    };
+  }
+
+  if (normalizedType === "deploy" || normalizedStatus.includes("deploy")) {
+    return {
+      stateLabel: "Deploying",
+      tone: "info",
+    };
+  }
+
+  if (
+    normalizedType === "import" ||
+    normalizedType === "build" ||
+    normalizedStatus.includes("build") ||
+    normalizedStatus.includes("import")
+  ) {
+    return {
+      stateLabel: "Building",
+      tone: "info",
+    };
+  }
+
+  if (normalizedStatus.includes("running")) {
+    return {
+      stateLabel: "Updating",
+      tone: "info",
+    };
+  }
+
+  return {
+    stateLabel: humanize(operation?.status ?? operation?.type ?? "Pending"),
+    tone: toneForStatus(operation?.status ?? operation?.type),
+  };
+}
+
+function buildCommitView({
+  fallbackLabel,
+  fallbackRepoUrl,
+  kind,
+  source,
+  stateLabel,
+  tone,
+}: {
+  fallbackLabel?: string | null;
+  fallbackRepoUrl?: string | null;
+  kind: ConsoleGalleryCommitView["kind"];
+  source?: FugueAppSource | null;
+  stateLabel: string;
+  tone: ConsoleTone;
+}): ConsoleGalleryCommitView | null {
+  const exact = source?.commitSha?.trim() || null;
+  const label = exact ? shortCommitSha(exact) : fallbackLabel?.trim() || null;
+
+  if (!label) {
+    return null;
+  }
+
+  return {
+    committedAt: source?.commitCommittedAt?.trim() || null,
+    exact,
+    href: readGitHubCommitHref(source?.repoUrl ?? fallbackRepoUrl, exact),
+    id: `${kind}:${exact ?? label}`,
+    kind,
+    label,
+    stateLabel,
+    tone,
+  };
+}
+
+function buildCommitViews(
+  app: FugueApp,
+  commitOperations?: AppCommitOperations,
+): ConsoleGalleryCommitView[] {
+  const pendingOperation = commitOperations?.active ?? null;
+  const pendingCommitSha = readOperationCommitSha(pendingOperation);
+  const runningSource =
+    pendingCommitSha && commitOperations?.successful?.desiredSource?.commitSha?.trim()
+      ? commitOperations.successful.desiredSource
+      : app.source;
+  const runningCommitSha = runningSource.commitSha?.trim() || null;
+
+  const runningCommit = buildCommitView({
+    fallbackLabel:
+      isGitHubPublicSource(app) && !pendingCommitSha
+        ? "Pending first import"
+        : null,
+    fallbackRepoUrl: app.source.repoUrl,
+    kind: "running",
+    source: runningSource,
+    stateLabel: "Running",
+    tone: "positive",
+  });
+
+  const pendingCommit =
+    pendingCommitSha && pendingCommitSha !== runningCommitSha
+      ? buildCommitView({
+          fallbackRepoUrl: app.source.repoUrl,
+          kind: "pending",
+          source: pendingOperation?.desiredSource,
+          ...readPendingCommitState(pendingOperation),
+        })
+      : null;
+
+  if (runningCommit && pendingCommit) {
+    return [runningCommit, pendingCommit];
+  }
+
+  if (runningCommit) {
+    return [runningCommit];
+  }
+
+  if (pendingCommit) {
+    return [pendingCommit];
+  }
+
+  return [];
+}
+
+function collectCommitOperationsByAppId(operations: FugueOperation[]) {
+  const commitOperationsByAppId = new Map<string, AppCommitOperations>();
+
+  for (const operation of sortByTimestampDesc(operations, readOperationTimestamp)) {
+    if (!operation.appId || !readOperationCommitSha(operation)) {
+      continue;
+    }
+
+    const entry = commitOperationsByAppId.get(operation.appId) ?? {
+      active: null,
+      successful: null,
+    };
+
+    if (isActiveOperation(operation.status)) {
+      if (!entry.active) {
+        entry.active = operation;
+      }
+    } else if (isSuccessfulOperation(operation.status)) {
+      if (!entry.successful) {
+        entry.successful = operation;
+      }
+    }
+
+    commitOperationsByAppId.set(operation.appId, entry);
+  }
+
+  return commitOperationsByAppId;
 }
 
 function readRoute(app: FugueApp) {
@@ -253,46 +438,6 @@ function readCurrentCommitLabel(app: FugueApp) {
   }
 
   return shortCommitSha(app.source.commitSha) || "Pending first import";
-}
-
-function readSyncState(app: FugueApp): {
-  summary: string;
-  tone: ConsoleTone;
-  label: string;
-} {
-  if (isGitHubPublicSource(app)) {
-    const trackedBranch = app.source.repoBranch?.trim()
-      ? `branch ${app.source.repoBranch.trim()}`
-      : "the repository default branch";
-
-    if ((app.spec.replicas ?? 0) > 0) {
-      return {
-        label: "Auto sync active",
-        summary: `Fugue watches ${trackedBranch} and queues import -> deploy when the upstream commit changes and no operation is in flight.`,
-        tone: "positive",
-      };
-    }
-
-    return {
-      label: "Auto sync paused",
-      summary: "GitHub sync is paused while the app is scaled to zero. Scale the app above zero to resume upstream checks.",
-      tone: "warning",
-    };
-  }
-
-  if (isUploadSource(app)) {
-    return {
-      label: "Manual updates",
-      summary: "This app redeploys from the stored upload only when you trigger a rebuild.",
-      tone: "neutral",
-    };
-  }
-
-  return {
-    label: "Manual updates",
-    summary: "This source updates only when you queue a new operation from the console or API.",
-    tone: "neutral",
-  };
 }
 
 function readRedeployAction(app: FugueApp) {
@@ -573,19 +718,25 @@ function buildProjectBadges(
   return [...badges.values()].slice(0, 6);
 }
 
-function buildAppView(app: FugueApp): ConsoleGalleryAppView {
+function buildAppView(
+  app: FugueApp,
+  commitOperations?: AppCommitOperations,
+): ConsoleGalleryAppView {
   const route = readRoute(app);
   const redeploy = readRedeployState(app);
-  const syncState = readSyncState(app);
   const redeployAction = readRedeployAction(app);
   const sourceBranchLabel = readSourceBranchLabel(app);
-  const currentCommitLabel = readCurrentCommitLabel(app);
+  const commitViews = buildCommitViews(app, commitOperations);
+  const primaryCommit = commitViews.find((entry) => entry.kind === "running") ?? commitViews[0] ?? null;
+  const currentCommitLabel =
+    primaryCommit?.label ?? (isGitHubPublicSource(app) ? readCurrentCommitLabel(app) : null);
 
   return {
+    commitViews,
     canRedeploy: redeploy.canRedeploy,
-    currentCommitCommittedAt: app.source.commitCommittedAt?.trim() || null,
-    currentCommitExact: app.source.commitSha?.trim() || null,
-    currentCommitHref: readGitHubCommitHref(app.source.repoUrl, app.source.commitSha),
+    currentCommitCommittedAt: primaryCommit?.committedAt ?? null,
+    currentCommitExact: primaryCommit?.exact ?? null,
+    currentCommitHref: primaryCommit?.href ?? null,
     currentCommitLabel,
     deployBehavior: readDeployBehavior(app),
     hasPostgresService: app.backingServices.some((service) => service.type === "postgres"),
@@ -614,9 +765,6 @@ function buildAppView(app: FugueApp): ConsoleGalleryAppView {
         .filter((value) => value && value !== "Unknown")
         .join(" / ") || humanize(app.source.type),
     sourceType: app.source.type,
-    syncStatusLabel: syncState.label,
-    syncStatusTone: syncState.tone,
-    syncSummary: syncState.summary,
     updatedExact: formatExactTime(app.status.updatedAt ?? app.updatedAt ?? app.createdAt),
     updatedLabel: formatRelativeTime(app.status.updatedAt ?? app.updatedAt ?? app.createdAt),
     workspaceMountPath: app.spec.workspace ? app.spec.workspace.mountPath ?? "/workspace" : null,
@@ -671,9 +819,10 @@ export const getConsoleProjectGalleryData = cache(async () => {
     } satisfies ConsoleProjectGalleryData;
   }
 
-  const [projectsResult, appsResult] = await Promise.allSettled([
+  const [projectsResult, appsResult, operationsResult] = await Promise.allSettled([
     getFugueProjects(workspace.adminKeySecret, workspace.tenantId ?? undefined),
     getFugueApps(workspace.adminKeySecret),
+    getFugueOperations(workspace.adminKeySecret),
   ]);
 
   const errors = [
@@ -683,15 +832,20 @@ export const getConsoleProjectGalleryData = cache(async () => {
     appsResult.status === "rejected"
       ? `apps: ${readErrorMessage(appsResult.reason)}`
       : null,
+    operationsResult.status === "rejected"
+      ? `operations: ${readErrorMessage(operationsResult.reason)}`
+      : null,
   ].filter((value): value is string => Boolean(value));
 
   const projects = projectsResult.status === "fulfilled" ? projectsResult.value : [];
   const apps = appsResult.status === "fulfilled" ? appsResult.value : [];
+  const operations = operationsResult.status === "fulfilled" ? operationsResult.value : [];
   const namesByProjectId = projectNameMap(
     projects,
     workspace.defaultProjectId,
     workspace.defaultProjectName,
   );
+  const commitOperationsByAppId = collectCommitOperationsByAppId(operations);
   const appsByProjectId = new Map<string, FugueApp[]>();
 
   for (const app of apps) {
@@ -740,7 +894,7 @@ export const getConsoleProjectGalleryData = cache(async () => {
         services: [
           ...sortedApps.map((app) => ({
             kind: "app" as const,
-            ...buildAppView(app),
+            ...buildAppView(app, commitOperationsByAppId.get(app.id)),
           })),
           ...backingServices.map((service) => ({
             kind: "backing-service" as const,

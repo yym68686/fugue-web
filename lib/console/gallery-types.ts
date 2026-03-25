@@ -24,7 +24,19 @@ export type ConsoleGalleryBadgeView = {
   meta: string;
 };
 
+export type ConsoleGalleryCommitView = {
+  committedAt: string | null;
+  exact: string | null;
+  href: string | null;
+  id: string;
+  kind: "pending" | "running";
+  label: string;
+  stateLabel: string;
+  tone: ConsoleTone;
+};
+
 export type ConsoleGalleryAppView = {
+  commitViews: ConsoleGalleryCommitView[];
   currentCommitCommittedAt: string | null;
   canRedeploy: boolean;
   currentCommitExact: string | null;
@@ -51,9 +63,6 @@ export type ConsoleGalleryAppView = {
   sourceLabel: string;
   sourceMeta: string;
   sourceType: string | null;
-  syncStatusLabel: string;
-  syncStatusTone: ConsoleTone;
-  syncSummary: string;
   updatedExact: string;
   updatedLabel: string;
   workspaceMountPath: string | null;
