@@ -35,6 +35,8 @@ export type ConsoleGalleryAppView = {
   hasPostgresService: boolean;
   id: string;
   lastMessage: string | null;
+  locationCountryCode: string | null;
+  locationLabel: string | null;
   name: string;
   phase: string;
   phaseTone: ConsoleTone;
@@ -61,6 +63,8 @@ export type ConsoleGalleryAppView = {
 export type ConsoleGalleryBackingServiceView = {
   description: string;
   id: string;
+  locationCountryCode: string | null;
+  locationLabel: string | null;
   name: string;
   ownerAppId: string | null;
   ownerAppLabel: string;

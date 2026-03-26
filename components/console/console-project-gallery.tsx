@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { StatusBadge } from "@/components/console/status-badge";
 import { ConsoleFilesWorkbench } from "@/components/console/console-files-workbench";
 import { Button } from "@/components/ui/button";
+import { CountryFlagLabel } from "@/components/ui/country-flag-label";
 import { FormField } from "@/components/ui/form-field";
 import { Panel, PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
 import { SegmentedControl, type SegmentedControlOption } from "@/components/ui/segmented-control";
@@ -2528,6 +2529,7 @@ export function ConsoleProjectGallery({
           ])
         : null;
     const selectedServiceUrl = readServicePublicUrl(selectedService);
+    const selectedServiceLocationLabel = selectedService.locationLabel ?? "Unavailable";
 
     return (
       <div className="fg-project-card__detail" id={detailId}>
@@ -2632,6 +2634,15 @@ export function ConsoleProjectGallery({
                         <dt>Build</dt>
                         <dd>{selectedService.sourceMeta}</dd>
                       </div>
+                      <div>
+                        <dt>Location</dt>
+                        <dd>
+                          <CountryFlagLabel
+                            countryCode={selectedService.locationCountryCode}
+                            label={selectedServiceLocationLabel}
+                          />
+                        </dd>
+                      </div>
                       {selectedServiceUrl ? (
                         <div>
                           <dt>URL</dt>
@@ -2656,6 +2667,15 @@ export function ConsoleProjectGallery({
                       <div>
                         <dt>Service</dt>
                         <dd>{selectedService.type}</dd>
+                      </div>
+                      <div>
+                        <dt>Location</dt>
+                        <dd>
+                          <CountryFlagLabel
+                            countryCode={selectedService.locationCountryCode}
+                            label={selectedServiceLocationLabel}
+                          />
+                        </dd>
                       </div>
                       {backingServiceOwnerLabel ? (
                         <div>

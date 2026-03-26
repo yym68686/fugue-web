@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { InlineButton } from "@/components/ui/button";
 import { Panel, PanelSection } from "@/components/ui/panel";
@@ -153,6 +153,7 @@ export function ApiKeyManager({
   initialSyncError: string | null;
 }) {
   const { showToast } = useToast();
+  const copyInFlightRef = useRef<string | null>(null);
   const [keys, setKeys] = useState(initialKeys);
   const [scopeCatalog, setScopeCatalog] = useState(() => sortFugueScopes(availableScopes));
   const [syncError, setSyncError] = useState<string | null>(initialSyncError);
@@ -213,11 +214,10 @@ export function ApiKeyManager({
   }
 
   async function handleCopy(keyId: string) {
-    if (busyAction) {
+    if (busyAction || copyInFlightRef.current) {
       return;
     }
-
-    setBusyAction(`copy:${keyId}`);
+    copyInFlightRef.current = keyId;
 
     try {
       const data = await requestJson<{
@@ -238,7 +238,7 @@ export function ApiKeyManager({
         variant: "error",
       });
     } finally {
-      setBusyAction(null);
+      copyInFlightRef.current = null;
     }
   }
 
@@ -530,11 +530,7 @@ export function ApiKeyManager({
                       />
 
                       <InlineButton
-                        blocked={Boolean(
-                          busyAction && busyAction !== `copy:${record.id}`,
-                        )}
-                        busy={busyAction === `copy:${record.id}`}
-                        busyLabel="Copying…"
+                        blocked={Boolean(busyAction)}
                         className="fg-api-key-item__action"
                         disabled={!record.canCopy}
                         label="Copy"

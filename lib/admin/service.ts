@@ -23,6 +23,7 @@ import {
   readTechnologyLabel,
   type TechStackBadgeKind,
 } from "@/lib/tech-stack";
+import { readCountryLocation } from "@/lib/geo/country";
 import { listWorkspaceSnapshots, type WorkspaceSnapshot } from "@/lib/workspace/store";
 
 export type AdminClusterAppView = {
@@ -125,16 +126,17 @@ export type AdminClusterNodeView = {
   conditions: AdminClusterConditionView[];
   createdExact: string;
   createdLabel: string;
-  externalIpLabel: string;
   headerMeta: string;
   internalIpLabel: string;
+  locationCountryCode: string | null;
   locationLabel: string;
   name: string;
+  publicIpLabel: string;
   roleLabels: string[];
   resources: AdminClusterResourceView[];
   runtimeLabel: string;
   serviceCount: number;
-  statusDetail: string;
+  statusDetail?: string | null;
   statusLabel: string;
   statusTone: ConsoleTone;
   tenantLabel: string;
@@ -744,14 +746,6 @@ function isConditionActive(status?: string | null) {
   return status?.trim().toLowerCase() === "true";
 }
 
-function readLocationLabel(region?: string | null, zone?: string | null) {
-  const parts = [region?.trim(), zone?.trim()].filter(
-    (value): value is string => Boolean(value),
-  );
-
-  return parts.length ? parts.join(" / ") : "Unassigned";
-}
-
 function buildCPUResourceView(stats: FugueClusterNodeCPUStats | null): AdminClusterResourceView {
   const percent = stats?.usagePercent ?? null;
   const total = stats?.allocatableMilliCores ?? stats?.capacityMilliCores ?? null;
@@ -853,6 +847,18 @@ function buildClusterConditionViews(node: FugueClusterNode): AdminClusterConditi
   });
 }
 
+function joinConditionLabels(labels: string[]) {
+  if (labels.length <= 1) {
+    return labels[0] ?? "";
+  }
+
+  if (labels.length === 2) {
+    return `${labels[0]} and ${labels[1]}`;
+  }
+
+  return `${labels.slice(0, -1).join(", ")}, and ${labels[labels.length - 1]}`;
+}
+
 function buildClusterWorkloadViews(
   workloads: FugueClusterNodeWorkload[],
   tenantNames: Map<string, string>,
@@ -932,7 +938,8 @@ function buildClusterNodeViews(
           : node.status?.trim().toLowerCase() === "ready"
             ? "positive"
             : toneForStatus(node.status);
-    const locationLabel = readLocationLabel(node.region, node.zone);
+    const location = readCountryLocation(node.region, node.zone);
+    const locationLabel = location.locationLabel;
     const statusFragments = [
       locationLabel !== "Unassigned" ? locationLabel : null,
       pressureSignals.length
@@ -950,11 +957,12 @@ function buildClusterNodeViews(
       conditions: conditionViews,
       createdExact: formatExactTime(node.createdAt),
       createdLabel: formatRelativeTime(node.createdAt),
-      externalIpLabel: node.externalIp?.trim() || "Unavailable",
       headerMeta: statusFragments.join(" · "),
       internalIpLabel: node.internalIp?.trim() || "Unavailable",
+      locationCountryCode: location.locationCountryCode,
       locationLabel,
       name: node.name,
+      publicIpLabel: node.publicIp?.trim() || "Unavailable",
       roleLabels: node.roles.length ? node.roles : [],
       resources: [
         buildCPUResourceView(node.cpu),
@@ -965,9 +973,11 @@ function buildClusterNodeViews(
       serviceCount,
       statusDetail:
         pressureSignals.length > 0
-          ? `${pressureSignals.map((condition) => `${condition.label.toLowerCase()} pressure`).join(" / ")}`
+          ? `${joinConditionLabels(
+              pressureSignals.map((condition) => condition.label.toLowerCase()),
+            )} pressure reported.`
           : node.status?.trim().toLowerCase() === "ready"
-            ? "Ready with no active memory, disk, or process pressure."
+            ? null
             : "Waiting for complete node health telemetry.",
       statusLabel,
       statusTone,

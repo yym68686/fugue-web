@@ -51,6 +51,10 @@ function filterVisibleNodeKeys(keys: NodeKeyRecord[]) {
   return keys.filter((key) => key.status === "active");
 }
 
+function hasCopyableNodeKey(keys: NodeKeyRecord[]) {
+  return keys.some((key) => key.canCopy);
+}
+
 function normalizeLabel(label: string) {
   const value = label.trim();
 
@@ -61,7 +65,12 @@ function normalizeLabel(label: string) {
   return value;
 }
 
-export async function getNodeKeyPageData(email: string) {
+export async function getNodeKeyPageData(
+  email: string,
+  options?: {
+    ensureCopyableDefault?: boolean;
+  },
+) {
   const workspace = await getWorkspaceAccessByEmail(email);
 
   if (!workspace) {
@@ -85,8 +94,20 @@ export async function getNodeKeyPageData(email: string) {
     syncError = readErrorMessage(error);
   }
 
+  let visibleKeys = filterVisibleNodeKeys(keys);
+
+  if (options?.ensureCopyableDefault && !hasCopyableNodeKey(visibleKeys)) {
+    try {
+      const created = await createDefaultNodeKeyForEmail(email);
+      visibleKeys = filterVisibleNodeKeys([created.key, ...visibleKeys]);
+      syncError = null;
+    } catch (error) {
+      syncError ??= readErrorMessage(error);
+    }
+  }
+
   return {
-    keys: filterVisibleNodeKeys(keys),
+    keys: visibleKeys,
     syncError,
   } satisfies NodeKeyPageData;
 }

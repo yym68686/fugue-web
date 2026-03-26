@@ -19,11 +19,16 @@ export function Panel({
 export function PanelSection({
   children,
   className,
+  ...rest
 }: {
   children: ReactNode;
   className?: string;
-}) {
-  return <div className={cx("fg-panel__section", className)}>{children}</div>;
+} & HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div {...rest} className={cx("fg-panel__section", className)}>
+      {children}
+    </div>
+  );
 }
 
 export function PanelTitle({

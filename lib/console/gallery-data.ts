@@ -15,15 +15,18 @@ import type {
 } from "@/lib/console/gallery-types";
 import {
   getFugueApps,
+  getFugueClusterNodes,
   getFugueOperations,
   getFugueProjects,
   type FugueApp,
   type FugueAppSource,
   type FugueBackingService,
+  type FugueClusterNode,
   type FugueOperation,
   type FugueProject,
   type FugueAppTechnology,
 } from "@/lib/fugue/api";
+import { readCountryLocation } from "@/lib/geo/country";
 import {
   readGitHubBranchHref,
   readGitHubCommitHref,
@@ -116,6 +119,38 @@ function formatExactTime(value?: string | null) {
   }).format(timestamp);
 }
 
+function buildWorkloadLocationMap(nodes: FugueClusterNode[]) {
+  const locations = new Map<string, WorkloadLocationView>();
+
+  for (const node of nodes) {
+    const location = readCountryLocation(node.region, node.zone);
+    const locationLabel =
+      location.locationCountryLabel ??
+      (location.locationLabel !== "Unassigned" ? location.locationLabel : null);
+
+    if (!locationLabel) {
+      continue;
+    }
+
+    const nextLocation = {
+      locationCountryCode: location.locationCountryCode,
+      locationLabel,
+    } satisfies WorkloadLocationView;
+
+    for (const workload of node.workloads) {
+      const existing = locations.get(workload.id);
+
+      if (existing?.locationCountryCode && !nextLocation.locationCountryCode) {
+        continue;
+      }
+
+      locations.set(workload.id, nextLocation);
+    }
+  }
+
+  return locations;
+}
+
 function humanize(value?: string | null) {
   if (!value) {
     return "Unknown";
@@ -158,6 +193,11 @@ type AppCommitOperations = {
   active: FugueOperation | null;
   releases: FugueOperation[];
 };
+
+type WorkloadLocationView = Pick<
+  ConsoleGalleryAppView,
+  "locationCountryCode" | "locationLabel"
+>;
 
 function formatElapsedDuration(value?: string | null) {
   const timestamp = parseTimestamp(value);
@@ -1051,6 +1091,7 @@ function buildAppBadges(
 function buildSharedAppView(
   app: FugueApp,
   options?: {
+    location?: WorkloadLocationView | null;
     source?: FugueAppSource | null;
     techStack?: FugueAppTechnology[];
   },
@@ -1076,6 +1117,8 @@ function buildSharedAppView(
     deployBehavior: readDeployBehavior(app),
     hasPostgresService: app.backingServices.some((service) => service.type === "postgres"),
     id: app.id,
+    locationCountryCode: options?.location?.locationCountryCode ?? null,
+    locationLabel: options?.location?.locationLabel ?? null,
     name: app.name,
     primaryBadge,
     redeployActionDescription: redeployAction.description,
@@ -1118,6 +1161,7 @@ function buildSharedAppView(
 function buildAppView(
   app: FugueApp,
   commitOperations?: AppCommitOperations,
+  location?: WorkloadLocationView | null,
 ): ConsoleGalleryAppView[] {
   const activeOperation = readActiveReleaseOperation(commitOperations?.active ?? null, app);
   const commitViews = buildCommitViews(app, activeOperation);
@@ -1130,9 +1174,10 @@ function buildAppView(
   const currentCommitLabel =
     primaryCommit?.label ?? (isGitHubPublicSource(app) ? readCurrentCommitLabel(app) : null);
   const fallbackPhase = app.status.phase ?? (app.spec.disabled ? "disabled" : "unknown");
-  const sharedView = buildSharedAppView(app);
+  const sharedView = buildSharedAppView(app, { location });
   const pendingSharedView = activeOperation
     ? buildSharedAppView(app, {
+        location,
         source: activeOperation.desiredSource,
         techStack: readDisplayTechStack(app, activeOperation.desiredSource),
       })
@@ -1190,6 +1235,7 @@ function buildAppView(
 function buildBackingServiceView(
   service: FugueBackingService,
   appNames: Map<string, string>,
+  location?: WorkloadLocationView | null,
 ): ConsoleGalleryBackingServiceView {
   return {
     description:
@@ -1197,6 +1243,8 @@ function buildBackingServiceView(
       service.description ??
       "Attached backing service.",
     id: service.id,
+    locationCountryCode: location?.locationCountryCode ?? null,
+    locationLabel: location?.locationLabel ?? null,
     name: service.name,
     ownerAppId: service.ownerAppId,
     ownerAppLabel: service.ownerAppId
@@ -1269,11 +1317,13 @@ export const getConsoleProjectGalleryData = cache(async () => {
       getFugueProjects(workspace.adminKeySecret, workspace.tenantId ?? undefined),
       getFugueApps(workspace.adminKeySecret),
       getFugueOperations(workspace.adminKeySecret),
+      getFugueClusterNodes(workspace.adminKeySecret),
     ]);
   }
 
   let workspace = initialWorkspace;
-  let [projectsResult, appsResult, operationsResult] = await loadWorkspaceData(workspace);
+  let [projectsResult, appsResult, operationsResult, clusterNodesResult] =
+    await loadWorkspaceData(workspace);
 
   if (
     projectsResult.status === "rejected" &&
@@ -1289,7 +1339,8 @@ export const getConsoleProjectGalleryData = cache(async () => {
       try {
         const refreshed = await ensureWorkspaceAccess(session);
         workspace = refreshed.workspace;
-        [projectsResult, appsResult, operationsResult] = await loadWorkspaceData(workspace);
+        [projectsResult, appsResult, operationsResult, clusterNodesResult] =
+          await loadWorkspaceData(workspace);
       } catch {
         // Keep the original 401 results when recovery fails.
       }
@@ -1306,17 +1357,22 @@ export const getConsoleProjectGalleryData = cache(async () => {
     operationsResult.status === "rejected"
       ? `operations: ${readErrorMessage(operationsResult.reason)}`
       : null,
+    clusterNodesResult.status === "rejected"
+      ? `cluster nodes: ${readErrorMessage(clusterNodesResult.reason)}`
+      : null,
   ].filter((value): value is string => Boolean(value));
 
   const projects = projectsResult.status === "fulfilled" ? projectsResult.value : [];
   const apps = appsResult.status === "fulfilled" ? appsResult.value : [];
   const operations = operationsResult.status === "fulfilled" ? operationsResult.value : [];
+  const clusterNodes = clusterNodesResult.status === "fulfilled" ? clusterNodesResult.value : [];
   const namesByProjectId = projectNameMap(
     projects,
     workspace.defaultProjectId,
     workspace.defaultProjectName,
   );
   const commitOperationsByAppId = collectCommitOperationsByAppId(operations);
+  const workloadLocationsById = buildWorkloadLocationMap(clusterNodes);
   const appsByProjectId = new Map<string, FugueApp[]>();
 
   for (const app of apps) {
@@ -1348,14 +1404,22 @@ export const getConsoleProjectGalleryData = cache(async () => {
         ...backingServices.map(readServiceTimestamp),
       );
       const appViews = sortedApps.flatMap((app) =>
-        buildAppView(app, commitOperationsByAppId.get(app.id)).map((service) => ({
+        buildAppView(
+          app,
+          commitOperationsByAppId.get(app.id),
+          workloadLocationsById.get(app.id) ?? null,
+        ).map((service) => ({
           kind: "app" as const,
           ...service,
         })),
       );
       const backingServiceViews = backingServices.map((service) => ({
         kind: "backing-service" as const,
-        ...buildBackingServiceView(service, appNames),
+        ...buildBackingServiceView(
+          service,
+          appNames,
+          workloadLocationsById.get(service.id) ?? null,
+        ),
       }));
       const services = [...appViews, ...backingServiceViews];
 

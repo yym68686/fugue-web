@@ -6,8 +6,11 @@ import { InlineButton } from "@/components/ui/button";
 import { Panel, PanelSection } from "@/components/ui/panel";
 import { useToast } from "@/components/ui/toast";
 import { NODE_KEY_CREATE_REQUEST_EVENT } from "@/lib/console/events";
+import {
+  canUseNodeKeyForClusterJoin,
+  sortNodeKeys,
+} from "@/lib/node-keys/selection";
 import type { NodeKeyRecord } from "@/lib/node-keys/types";
-import { cx } from "@/lib/ui/cx";
 
 type NodeKeyPagePayload = {
   keys: NodeKeyRecord[];
@@ -90,58 +93,57 @@ function formatRelativeTime(value?: string | null) {
   return "Just now";
 }
 
-function sortKeys(keys: NodeKeyRecord[]) {
-  const statusOrder = new Map<NodeKeyRecord["status"], number>([
-    ["active", 0],
-    ["revoked", 1],
-  ]);
-
-  return [...keys].sort((left, right) => {
-    const leftStatusOrder = statusOrder.get(left.status) ?? Number.MAX_SAFE_INTEGER;
-    const rightStatusOrder = statusOrder.get(right.status) ?? Number.MAX_SAFE_INTEGER;
-
-    if (leftStatusOrder !== rightStatusOrder) {
-      return leftStatusOrder - rightStatusOrder;
-    }
-
-    const leftCreatedAt = Date.parse(left.createdAt);
-    const rightCreatedAt = Date.parse(right.createdAt);
-
-    if (
-      Number.isFinite(leftCreatedAt) &&
-      Number.isFinite(rightCreatedAt) &&
-      leftCreatedAt !== rightCreatedAt
-    ) {
-      return rightCreatedAt - leftCreatedAt;
-    }
-
-    return left.label.localeCompare(right.label);
-  });
-}
-
 function upsertKey(keys: NodeKeyRecord[], nextKey: NodeKeyRecord) {
-  return sortKeys([
+  return sortNodeKeys([
     ...keys.filter((key) => key.id !== nextKey.id),
     nextKey,
   ]);
 }
 
 function removeKey(keys: NodeKeyRecord[], keyId: string) {
-  return sortKeys(keys.filter((key) => key.id !== keyId));
+  return sortNodeKeys(keys.filter((key) => key.id !== keyId));
+}
+
+function buildJoinCommand(apiBaseUrl: string, secret: string) {
+  return `curl -fsSL ${apiBaseUrl}/install/join-cluster.sh | sudo FUGUE_NODE_KEY='${secret}' bash`;
+}
+
+function describeStatus(record: NodeKeyRecord) {
+  if (record.status === "revoked") {
+    return {
+      primary: "Revoked",
+      secondary: "Cannot join",
+    };
+  }
+
+  if (!record.canCopy) {
+    return {
+      primary: "Active",
+      secondary: "Secret hidden",
+    };
+  }
+
+  return {
+    primary: "Active",
+    secondary: "Copyable",
+  };
 }
 
 export function NodeKeyManager({
+  apiBaseUrl,
   initialKeys,
   initialSyncError,
 }: {
+  apiBaseUrl: string;
   initialKeys: NodeKeyRecord[];
   initialSyncError: string | null;
 }) {
   const { showToast } = useToast();
   const createRequestRef = useRef<() => void>(() => {});
-  const [keys, setKeys] = useState(() => sortKeys(initialKeys));
+  const copyInFlightRef = useRef<string | null>(null);
+  const normalizedApiBaseUrl = apiBaseUrl.replace(/\/+$/, "");
+  const [keys, setKeys] = useState(() => sortNodeKeys(initialKeys));
   const [syncError, setSyncError] = useState<string | null>(initialSyncError);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [busyAction, setBusyAction] = useState<string | null>(null);
 
   useEffect(() => {
@@ -168,7 +170,7 @@ export function NodeKeyManager({
   }, []);
 
   function syncLocalState(data: NodeKeyPagePayload) {
-    setKeys(sortKeys(data.keys));
+    setKeys(sortNodeKeys(data.keys));
     setSyncError(data.syncError);
   }
 
@@ -223,15 +225,13 @@ export function NodeKeyManager({
         method: "POST",
       });
       const copied = await copyText(created.secret);
+      const nextKeys = upsertKey(keys, created.key);
 
-      setKeys((current) => upsertKey(current, created.key));
+      setKeys(nextKeys);
       setSyncError(null);
-      setExpandedId(created.key.id);
 
       showToast({
-        message: copied
-          ? "Node key created and secret copied."
-          : "Node key created.",
+        message: copied ? "Node key created and secret copied." : "Node key created.",
         variant: "success",
       });
     } catch (error) {
@@ -249,11 +249,10 @@ export function NodeKeyManager({
   };
 
   async function handleCopy(keyId: string) {
-    if (busyAction) {
+    if (busyAction || copyInFlightRef.current) {
       return;
     }
-
-    setBusyAction(`copy:${keyId}`);
+    copyInFlightRef.current = `${keyId}:secret`;
 
     try {
       const data = await requestJson<{
@@ -274,7 +273,38 @@ export function NodeKeyManager({
         variant: "error",
       });
     } finally {
-      setBusyAction(null);
+      copyInFlightRef.current = null;
+    }
+  }
+
+  async function handleCopyCommand(record: NodeKeyRecord) {
+    if (busyAction || copyInFlightRef.current || !canUseNodeKeyForClusterJoin(record)) {
+      return;
+    }
+    copyInFlightRef.current = `${record.id}:command`;
+
+    try {
+      const data = await requestJson<{
+        secret: string;
+      }>(`/api/fugue/node-keys/${encodeURIComponent(record.id)}/secret`, {
+        cache: "no-store",
+      });
+
+      const copied = await copyText(buildJoinCommand(normalizedApiBaseUrl, data.secret));
+
+      showToast({
+        message: copied
+          ? `Cluster join command copied with ${record.label}.`
+          : "Cluster join command is ready, but clipboard access failed.",
+        variant: copied ? "success" : "info",
+      });
+    } catch (error) {
+      showToast({
+        message: readErrorMessage(error),
+        variant: "error",
+      });
+    } finally {
+      copyInFlightRef.current = null;
     }
   }
 
@@ -299,10 +329,10 @@ export function NodeKeyManager({
       }>(`/api/fugue/node-keys/${encodeURIComponent(record.id)}/revoke`, {
         method: "POST",
       });
+      const nextKeys = removeKey(keys, revoked.key.id);
 
-      setKeys((current) => removeKey(current, revoked.key.id));
+      setKeys(nextKeys);
       setSyncError(null);
-      setExpandedId((current) => (current === revoked.key.id ? null : current));
 
       showToast({
         message: "Node key revoked and removed from the list.",
@@ -324,7 +354,7 @@ export function NodeKeyManager({
         <div className="fg-credential-section__head">
           <div className="fg-credential-section__copy">
             <strong>Node keys</strong>
-            <p>Reusable secrets for attaching external runtimes.</p>
+            <p>Copy a cluster join command from this table and run it on your VPS. Copy secret only if you need the raw key.</p>
           </div>
 
           <div className="fg-project-actions">
@@ -355,111 +385,111 @@ export function NodeKeyManager({
 
       <PanelSection>
         {keys.length ? (
-          <div className="fg-api-key-list">
-            {keys.map((record) => {
-              const expanded = expandedId === record.id;
+          <div className="fg-console-table-wrap">
+            <table className="fg-console-table fg-console-table--admin fg-console-table--node-keys">
+              <colgroup>
+                <col className="fg-console-table__col fg-console-table__col--node-key-name" />
+                <col className="fg-console-table__col fg-console-table__col--node-key-prefix" />
+                <col className="fg-console-table__col fg-console-table__col--node-key-status" />
+                <col className="fg-console-table__col fg-console-table__col--node-key-last-used" />
+                <col className="fg-console-table__col fg-console-table__col--node-key-created" />
+                <col className="fg-console-table__col fg-console-table__col--node-key-actions" />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>Node key</th>
+                  <th>Prefix</th>
+                  <th>Status</th>
+                  <th>Last used</th>
+                  <th>Created</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {keys.map((record) => {
+                  const canCopyCommand = canUseNodeKeyForClusterJoin(record);
+                  const status = describeStatus(record);
 
-              return (
-                <article
-                  className={cx(
-                    "fg-api-key-item",
-                    expanded && "is-expanded",
-                  )}
-                  key={record.id}
-                >
-                  <div className="fg-api-key-item__summary">
-                    <button
-                      aria-expanded={expanded}
-                      className="fg-api-key-item__summary-toggle"
-                      onClick={() => {
-                        setExpandedId((current) =>
-                          current === record.id ? null : record.id,
-                        );
-                      }}
-                      type="button"
-                    />
-
-                    <div className="fg-api-key-item__toggle">
-                      <div className="fg-api-key-item__title">
-                        <strong>{record.label}</strong>
-                      </div>
-
-                      <p className="fg-api-key-item__meta">
-                        {record.status === "revoked" ? "revoked · " : ""}
-                        last used {formatRelativeTime(record.lastUsedAt)}
-                      </p>
-                    </div>
-
-                    <div className="fg-api-key-item__actions">
-                      {record.canCopy ? (
-                        <InlineButton
-                          blocked={Boolean(
-                            busyAction && busyAction !== `copy:${record.id}`,
-                          )}
-                          busy={busyAction === `copy:${record.id}`}
-                          busyLabel="Copying…"
-                          className="fg-api-key-item__action"
-                          label="Copy"
-                          onClick={() => {
-                            void handleCopy(record.id);
-                          }}
-                        />
-                      ) : null}
-
-                      {record.canRevoke ? (
-                        <InlineButton
-                          blocked={Boolean(
-                            busyAction && busyAction !== `revoke:${record.id}`,
-                          )}
-                          busy={busyAction === `revoke:${record.id}`}
-                          busyLabel="Revoking…"
-                          className="fg-api-key-item__action"
-                          danger
-                          label="Revoke"
-                          onClick={() => {
-                            void handleRevoke(record);
-                          }}
-                        />
-                      ) : null}
-                    </div>
-                  </div>
-
-                  {expanded ? (
-                    <div className="fg-api-key-item__panel">
-                      <dl className="fg-api-key-facts">
-                        <div>
-                          <dt>Identifier</dt>
-                          <dd>{record.id}</dd>
+                  return (
+                    <tr key={record.id}>
+                      <td>
+                        <div className="fg-console-table__pair fg-node-key-table__pair" title={`${record.label} / ${record.id}`}>
+                          <strong>{record.label}</strong>
+                          <span>/ {record.id}</span>
                         </div>
-                        <div>
-                          <dt>Prefix</dt>
-                          <dd>{record.prefix ?? "Unavailable"}</dd>
+                      </td>
+                      <td>
+                        {record.prefix ? (
+                          <span
+                            className="fg-console-table__mono fg-console-table__clip"
+                            title={record.prefix}
+                          >
+                            {record.prefix}
+                          </span>
+                        ) : (
+                          <span className="fg-console-tech-empty">Unavailable</span>
+                        )}
+                      </td>
+                      <td>
+                        <div className="fg-console-table__pair fg-node-key-table__pair">
+                          <strong>{status.primary}</strong>
+                          <span>/ {status.secondary}</span>
                         </div>
-                        <div>
-                          <dt>Created</dt>
-                          <dd>{formatRelativeTime(record.createdAt)}</dd>
-                        </div>
-                        <div>
-                          <dt>Last used</dt>
-                          <dd>{formatRelativeTime(record.lastUsedAt)}</dd>
-                        </div>
-                      </dl>
+                      </td>
+                      <td>
+                        <span title={record.lastUsedAt ?? "Never"}>{formatRelativeTime(record.lastUsedAt)}</span>
+                      </td>
+                      <td>
+                        <span title={record.createdAt}>{formatRelativeTime(record.createdAt)}</span>
+                      </td>
+                      <td>
+                        <div className="fg-console-toolbar">
+                          {canCopyCommand ? (
+                            <InlineButton
+                              blocked={Boolean(busyAction)}
+                              label="Copy command"
+                              onClick={() => {
+                                void handleCopyCommand(record);
+                              }}
+                            />
+                          ) : null}
 
-                      <p className="fg-api-key-permissions__empty">
-                        {record.status === "revoked"
-                          ? "This key stays visible for audit history, but it cannot attach new nodes."
-                          : "Use this secret with the Fugue join flow when you attach a runtime."}
-                      </p>
-                    </div>
-                  ) : null}
-                </article>
-              );
-            })}
+                          {record.canCopy ? (
+                            <InlineButton
+                              blocked={Boolean(busyAction)}
+                              label="Copy secret"
+                              onClick={() => {
+                                void handleCopy(record.id);
+                              }}
+                            />
+                          ) : null}
+
+                          {record.canRevoke ? (
+                            <InlineButton
+                              blocked={Boolean(
+                                busyAction && busyAction !== `revoke:${record.id}`,
+                              )}
+                              busy={busyAction === `revoke:${record.id}`}
+                              busyLabel="Revoking…"
+                              danger
+                              label="Revoke"
+                              onClick={() => {
+                                void handleRevoke(record);
+                              }}
+                            />
+                          ) : null}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         ) : (
           <div className="fg-api-key-empty">
             <strong>No node keys yet</strong>
-            <p>Create one when you attach your first runtime.</p>
+            <p>Create one, then copy a cluster join command from this table.</p>
           </div>
         )}
       </PanelSection>

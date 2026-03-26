@@ -230,6 +230,7 @@ export type FugueClusterNode = {
   ephemeralStorage: FugueClusterNodeStorageStats | null;
   externalIp: string | null;
   internalIp: string | null;
+  publicIp: string | null;
   kernelVersion: string | null;
   kubeletVersion: string | null;
   memory: FugueClusterNodeMemoryStats | null;
@@ -905,6 +906,7 @@ function sanitizeClusterNode(value: unknown): FugueClusterNode | null {
     ephemeralStorage: sanitizeClusterNodeStorageStats(record?.ephemeral_storage),
     externalIp: readString(record, "external_ip"),
     internalIp: readString(record, "internal_ip"),
+    publicIp: readString(record, "public_ip"),
     kernelVersion: readString(record, "kernel_version"),
     kubeletVersion: readString(record, "kubelet_version"),
     memory: sanitizeClusterNodeMemoryStats(record?.memory),
