@@ -18,6 +18,11 @@ import {
 } from "@/lib/fugue/api";
 import { getFugueEnv } from "@/lib/fugue/env";
 import { readGitHubSourceHref } from "@/lib/fugue/source-links";
+import {
+  readTechStackBadgeKind,
+  readTechnologyLabel,
+  type TechStackBadgeKind,
+} from "@/lib/tech-stack";
 import { listWorkspaceSnapshots, type WorkspaceSnapshot } from "@/lib/workspace/store";
 
 export type AdminClusterAppView = {
@@ -36,6 +41,7 @@ export type AdminClusterAppView = {
     id: string;
     kind: string;
     label: string;
+    logoKind: TechStackBadgeKind | null;
     meta: string;
     title: string;
   }>;
@@ -247,25 +253,14 @@ function shortId(value?: string | null) {
 
 function readProviderLabel(value?: string | null) {
   switch (value?.trim().toLowerCase()) {
-    case "node":
-    case "nodejs":
-      return "Node.js";
-    case "python":
-      return "Python";
-    case "go":
-      return "Go";
-    case "java":
-      return "Java";
-    case "ruby":
-      return "Ruby";
-    case "php":
-      return "Php";
-    case "dotnet":
-      return "Dotnet";
-    case "rust":
-      return "Rust";
+    case "google":
+      return "Google";
+    case "github":
+      return "GitHub";
+    case "email":
+      return "Email";
     default:
-      return null;
+      return readTechnologyLabel(value);
   }
 }
 
@@ -309,6 +304,7 @@ function buildAppStack(app: FugueApp) {
       id: key,
       kind: normalizedKind,
       label: normalizedLabel,
+      logoKind: readTechStackBadgeKind(normalizedKind, normalizedSlug),
       meta: kindLabel,
       title: source?.trim()
         ? `${normalizedLabel} / ${kindLabel} / ${source.trim()}`
@@ -325,7 +321,7 @@ function buildAppStack(app: FugueApp) {
       "language",
       app.source.detectedProvider,
       app.source.detectedProvider
-        ? (readProviderLabel(app.source.detectedProvider) ?? humanize(app.source.detectedProvider))
+        ? (readTechnologyLabel(app.source.detectedProvider) ?? humanize(app.source.detectedProvider))
         : null,
       "fallback",
     );
@@ -346,12 +342,13 @@ function buildAppStack(app: FugueApp) {
   }
 
   const techOrder = new Map<string, number>([
+    ["stack", 0],
     ["language", 0],
     ["service", 1],
     ["build", 2],
   ]);
   const primary = items.filter(
-    (item) => item.kind === "language" || item.kind === "service",
+    (item) => item.kind === "stack" || item.kind === "language" || item.kind === "service",
   );
   const visible = (primary.length ? primary : items).filter(
     (item) => item.kind !== "source",

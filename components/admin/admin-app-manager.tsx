@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { ConsoleEmptyState } from "@/components/console/console-empty-state";
 import { StatusBadge } from "@/components/console/status-badge";
 import { InlineButton } from "@/components/ui/button";
+import { TechStackLogo } from "@/components/ui/tech-stack-logo";
+import type { TechStackBadgeKind } from "@/lib/tech-stack";
 import { useToast } from "@/components/ui/toast";
 
 type AdminClusterAppView = {
@@ -24,6 +26,7 @@ type AdminClusterAppView = {
     id: string;
     kind: string;
     label: string;
+    logoKind: TechStackBadgeKind | null;
     meta: string;
     title: string;
   }>;
@@ -247,9 +250,15 @@ export function AdminAppManager({
                     {app.stack.map((item) => (
                       <span
                         className="fg-console-tech-pill"
+                        data-logo-kind={item.logoKind ?? undefined}
                         key={item.id}
                         title={item.title}
                       >
+                        {item.logoKind ? (
+                          <span aria-hidden="true" className="fg-console-tech-pill__glyph">
+                            <TechStackLogo kind={item.logoKind} />
+                          </span>
+                        ) : null}
                         <span className="fg-console-tech-pill__label">{item.label}</span>
                         <span className="fg-console-tech-pill__meta">{item.meta}</span>
                       </span>

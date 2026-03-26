@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { ensureAppUserRecord } from "@/lib/app-users/store";
 import { fetchGoogleUser, exchangeGoogleCode } from "@/lib/auth/google";
+import { buildAppUrl } from "@/lib/auth/env";
 import { buildSessionCookie } from "@/lib/auth/session";
 import { verifyToken } from "@/lib/auth/token";
 import { ensureWorkspaceAccess } from "@/lib/workspace/bootstrap";
@@ -14,8 +15,8 @@ type StatePayload = {
   type: "oauth-state";
 };
 
-function redirectWithError(request: Request, error: string) {
-  const destination = new URL(`/auth/sign-in?error=${error}`, request.url);
+function redirectWithError(error: string) {
+  const destination = buildAppUrl(`/auth/sign-in?error=${error}`);
   return NextResponse.redirect(destination, { status: 303 });
 }
 
@@ -24,20 +25,20 @@ export async function GET(request: Request) {
   const error = url.searchParams.get("error");
 
   if (error) {
-    return redirectWithError(request, "oauth_denied");
+    return redirectWithError("oauth_denied");
   }
 
   const code = url.searchParams.get("code");
   const stateToken = url.searchParams.get("state");
 
   if (!code || !stateToken) {
-    return redirectWithError(request, "oauth_failed");
+    return redirectWithError("oauth_failed");
   }
 
   const state = verifyToken<StatePayload>(stateToken);
 
   if (!state || state.type !== "oauth-state") {
-    return redirectWithError(request, "oauth_failed");
+    return redirectWithError("oauth_failed");
   }
 
   try {
@@ -45,7 +46,7 @@ export async function GET(request: Request) {
     const user = await fetchGoogleUser(accessToken);
 
     if (!user.email || !user.email_verified) {
-      return redirectWithError(request, "oauth_failed");
+      return redirectWithError("oauth_failed");
     }
 
     const sessionUser = {
@@ -64,23 +65,25 @@ export async function GET(request: Request) {
       await ensureWorkspaceAccess(sessionUser);
     } catch (error) {
       if (error instanceof Error && error.message.includes("blocked")) {
-        return redirectWithError(request, "account-blocked");
+        return redirectWithError("account-blocked");
       }
 
       if (error instanceof Error && error.message.includes("deleted")) {
-        return redirectWithError(request, "account-deleted");
+        return redirectWithError("account-deleted");
       }
 
-      return redirectWithError(request, "oauth_failed");
+      console.error("Google sign-in provisioning failed.", error);
+      return redirectWithError("oauth_failed");
     }
 
-    const response = NextResponse.redirect(new URL(state.returnTo, request.url), { status: 303 });
+    const response = NextResponse.redirect(buildAppUrl(state.returnTo), { status: 303 });
     response.cookies.set(
       buildSessionCookie(sessionUser),
     );
 
     return response;
-  } catch {
-    return redirectWithError(request, "oauth_failed");
+  } catch (error) {
+    console.error("Google OAuth callback failed.", error);
+    return redirectWithError("oauth_failed");
   }
 }

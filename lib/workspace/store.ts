@@ -44,6 +44,10 @@ export type WorkspaceAccess = WorkspaceSnapshot & {
   adminKeySecret: string;
 };
 
+export type WorkspaceBootstrapState = WorkspaceSnapshot & {
+  adminKeySecret: string | null;
+};
+
 function readOptionalString(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
@@ -103,6 +107,52 @@ function accessFromRow(row: WorkspaceRow): WorkspaceAccess {
     ...snapshotFromRow(row),
     adminKeySecret: unsealText(row.admin_key_secret_sealed),
   };
+}
+
+function bootstrapStateFromRow(row: WorkspaceRow): WorkspaceBootstrapState {
+  const snapshot = snapshotFromRow(row);
+
+  try {
+    return {
+      ...snapshot,
+      adminKeySecret: unsealText(row.admin_key_secret_sealed),
+    };
+  } catch {
+    return {
+      ...snapshot,
+      adminKeySecret: null,
+    };
+  }
+}
+
+async function getWorkspaceRowByEmail(email: string) {
+  await ensureDbSchema();
+
+  const normalizedEmail = normalizeEmail(email);
+  const result = await queryDb<WorkspaceRow>(
+    `
+      SELECT
+        user_email,
+        tenant_id,
+        tenant_name,
+        default_project_id,
+        default_project_name,
+        first_app_id,
+        admin_key_id,
+        admin_key_label,
+        admin_key_prefix,
+        admin_key_scopes,
+        admin_key_secret_sealed,
+        created_at,
+        updated_at
+      FROM app_workspaces
+      WHERE user_email = $1
+      LIMIT 1
+    `,
+    [normalizedEmail],
+  );
+
+  return result.rows[0] ?? null;
 }
 
 async function ensureUserStub(client: PoolClient, email: string) {
@@ -199,33 +249,7 @@ export async function ensureAppUser(user: SessionUser) {
 }
 
 export async function getWorkspaceSnapshotByEmail(email: string) {
-  await ensureDbSchema();
-
-  const normalizedEmail = normalizeEmail(email);
-  const result = await queryDb<WorkspaceRow>(
-    `
-      SELECT
-        user_email,
-        tenant_id,
-        tenant_name,
-        default_project_id,
-        default_project_name,
-        first_app_id,
-        admin_key_id,
-        admin_key_label,
-        admin_key_prefix,
-        admin_key_scopes,
-        admin_key_secret_sealed,
-        created_at,
-        updated_at
-      FROM app_workspaces
-      WHERE user_email = $1
-      LIMIT 1
-    `,
-    [normalizedEmail],
-  );
-
-  const row = result.rows[0];
+  const row = await getWorkspaceRowByEmail(email);
   return row ? snapshotFromRow(row) : null;
 }
 
@@ -257,34 +281,13 @@ export async function listWorkspaceSnapshots() {
 }
 
 export async function getWorkspaceAccessByEmail(email: string) {
-  await ensureDbSchema();
-
-  const normalizedEmail = normalizeEmail(email);
-  const result = await queryDb<WorkspaceRow>(
-    `
-      SELECT
-        user_email,
-        tenant_id,
-        tenant_name,
-        default_project_id,
-        default_project_name,
-        first_app_id,
-        admin_key_id,
-        admin_key_label,
-        admin_key_prefix,
-        admin_key_scopes,
-        admin_key_secret_sealed,
-        created_at,
-        updated_at
-      FROM app_workspaces
-      WHERE user_email = $1
-      LIMIT 1
-    `,
-    [normalizedEmail],
-  );
-
-  const row = result.rows[0];
+  const row = await getWorkspaceRowByEmail(email);
   return row ? accessFromRow(row) : null;
+}
+
+export async function getWorkspaceBootstrapStateByEmail(email: string) {
+  const row = await getWorkspaceRowByEmail(email);
+  return row ? bootstrapStateFromRow(row) : null;
 }
 
 export async function saveWorkspaceAccess(record: WorkspaceAccess) {

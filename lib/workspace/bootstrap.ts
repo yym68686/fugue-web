@@ -21,8 +21,10 @@ import { sortFugueScopes, WORKSPACE_ADMIN_SCOPES } from "@/lib/fugue/scopes";
 import {
   ensureAppUser,
   getWorkspaceAccessByEmail,
+  getWorkspaceBootstrapStateByEmail,
   saveWorkspaceAccess,
   type WorkspaceAccess,
+  type WorkspaceBootstrapState,
 } from "@/lib/workspace/store";
 
 const WORKSPACE_ADMIN_KEY_LABEL = "workspace-admin";
@@ -122,7 +124,7 @@ function listTenantApiKeys(keys: FugueApiKey[], tenantId: string) {
 }
 
 function readWorkspaceAdminScopes(
-  workspace?: WorkspaceAccess | null,
+  workspace?: WorkspaceBootstrapState | null,
   apiKey?: Pick<FugueApiKey, "scopes"> | null,
 ) {
   const remoteScopes = sortFugueScopes(apiKey?.scopes ?? []);
@@ -141,9 +143,13 @@ function readWorkspaceAdminScopes(
 }
 
 async function hasUsableStoredAdminSecret(
-  workspace: WorkspaceAccess,
+  workspace: WorkspaceBootstrapState,
   adminKeyId: string,
 ) {
+  if (!workspace.adminKeySecret) {
+    return false;
+  }
+
   try {
     const visibleKeys = await getFugueApiKeys(workspace.adminKeySecret);
 
@@ -172,7 +178,7 @@ async function deleteExtraTenantApiKeys(
 async function reconcileWorkspaceAdminKey(
   bootstrapKey: string,
   tenantId: string,
-  workspace?: WorkspaceAccess | null,
+  workspace?: WorkspaceBootstrapState | null,
 ) {
   const visibleKeys = await getFugueApiKeys(bootstrapKey);
   const tenantKeys = listTenantApiKeys(visibleKeys, tenantId);
@@ -282,7 +288,15 @@ async function resolveWorkspaceTenant(
 export async function ensureWorkspaceAccess(session: SessionUser) {
   await ensureAppUser(session);
 
-  const existing = await getWorkspaceAccessByEmail(session.email);
+  const existing = await getWorkspaceBootstrapStateByEmail(session.email);
+
+  if (existing && !existing.adminKeySecret) {
+    console.warn("Workspace admin key secret could not be decrypted. Rotating stored workspace secret.", {
+      email: session.email,
+      tenantId: existing.tenantId,
+    });
+  }
+
   const env = getFugueEnv();
   const tenant = await resolveWorkspaceTenant(env.bootstrapKey, session);
   const createdAt = existing?.createdAt ?? new Date().toISOString();

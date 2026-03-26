@@ -118,6 +118,7 @@ export type FugueAppSource = {
   buildStrategy: string | null;
   composeService: string | null;
   detectedProvider: string | null;
+  detectedStack: string | null;
   dockerfilePath: string | null;
   commitSha: string | null;
   commitCommittedAt: string | null;
@@ -667,6 +668,7 @@ function sanitizeAppSource(value: unknown): FugueAppSource {
     buildStrategy: readString(source, "build_strategy"),
     composeService: readString(source, "compose_service"),
     detectedProvider: readString(source, "detected_provider"),
+    detectedStack: readString(source, "detected_stack"),
     dockerfilePath: readString(source, "dockerfile_path"),
     commitSha: readString(source, "commit_sha"),
     commitCommittedAt: readString(source, "commit_committed_at"),

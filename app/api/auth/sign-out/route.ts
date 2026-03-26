@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 
+import { buildAppUrl } from "@/lib/auth/env";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/session";
 
-export async function POST(request: Request) {
-  const response = NextResponse.redirect(new URL("/auth/sign-in?state=signed-out", request.url), {
+export async function POST() {
+  const response = NextResponse.redirect(buildAppUrl("/auth/sign-in?state=signed-out"), {
     status: 303,
   });
 

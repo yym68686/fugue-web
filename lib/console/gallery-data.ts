@@ -28,6 +28,11 @@ import {
   readGitHubCommitHref,
   readGitHubSourceHref,
 } from "@/lib/fugue/source-links";
+import {
+  readBuildBadgeKind,
+  readLanguageBadgeKind,
+  readTechnologyLabel,
+} from "@/lib/tech-stack";
 import { getCurrentWorkspaceAccess } from "@/lib/workspace/current";
 
 function readErrorMessage(reason: unknown) {
@@ -690,36 +695,52 @@ function formatRepoLabel(repoUrl?: string | null, branch?: string | null) {
   }
 }
 
-function readSourceLabel(app: FugueApp) {
-  if (app.source.repoUrl) {
-    return formatRepoLabel(app.source.repoUrl, app.source.repoBranch);
+function isGitHubPublicAppSource(source?: FugueAppSource | null) {
+  return source?.type?.trim().toLowerCase() === "github-public";
+}
+
+function isUploadAppSource(source?: FugueAppSource | null) {
+  return source?.type?.trim().toLowerCase() === "upload";
+}
+
+function readSourceLabelFromSource(source: FugueAppSource) {
+  if (source.repoUrl) {
+    return formatRepoLabel(source.repoUrl, source.repoBranch);
   }
 
-  if (app.source.type?.trim()) {
-    if (app.source.type === "upload") {
+  if (source.type?.trim()) {
+    if (source.type === "upload") {
       return "Local upload";
     }
 
-    return humanize(app.source.type);
+    return humanize(source.type);
   }
 
   return "Unspecified source";
 }
 
+function readSourceLabel(app: FugueApp) {
+  return readSourceLabelFromSource(app.source);
+}
+
 function isGitHubPublicSource(app: FugueApp) {
-  return app.source.type?.trim().toLowerCase() === "github-public";
+  return isGitHubPublicAppSource(app.source);
 }
 
 function isUploadSource(app: FugueApp) {
-  return app.source.type?.trim().toLowerCase() === "upload";
+  return isUploadAppSource(app.source);
 }
 
-function readSourceBranchLabel(app: FugueApp) {
-  if (!isGitHubPublicSource(app)) {
+function readSourceBranchLabelFromSource(source: FugueAppSource) {
+  if (!isGitHubPublicAppSource(source)) {
     return null;
   }
 
-  return app.source.repoBranch?.trim() || "Default branch";
+  return source.repoBranch?.trim() || "Default branch";
+}
+
+function readSourceBranchLabel(app: FugueApp) {
+  return readSourceBranchLabelFromSource(app.source);
 }
 
 function readCurrentCommitLabel(app: FugueApp) {
@@ -797,69 +818,6 @@ function readBadgeKey(kind: ConsoleGalleryBadgeKind, label: string) {
   return `${kind}:${label}`.toLowerCase();
 }
 
-function readLanguageBadgeKind(value?: string | null): ConsoleGalleryBadgeKind | null {
-  switch (value?.trim().toLowerCase()) {
-    case "node":
-    case "nodejs":
-      return "node";
-    case "python":
-      return "python";
-    case "go":
-      return "go";
-    case "java":
-      return "java";
-    case "ruby":
-      return "ruby";
-    case "php":
-      return "php";
-    case "dotnet":
-      return "dotnet";
-    case "rust":
-      return "rust";
-    default:
-      return null;
-  }
-}
-
-function readBuildBadgeKind(value?: string | null): ConsoleGalleryBadgeKind | null {
-  switch (value?.trim().toLowerCase()) {
-    case "dockerfile":
-      return "docker";
-    case "buildpacks":
-      return "buildpacks";
-    case "nixpacks":
-      return "nixpacks";
-    case "static-site":
-      return "static";
-    default:
-      return null;
-  }
-}
-
-function readLanguageLabel(value?: string | null) {
-  switch (value?.trim().toLowerCase()) {
-    case "node":
-    case "nodejs":
-      return "Node.js";
-    case "python":
-      return "Python";
-    case "go":
-      return "Go";
-    case "java":
-      return "Java";
-    case "ruby":
-      return "Ruby";
-    case "php":
-      return "Php";
-    case "dotnet":
-      return "Dotnet";
-    case "rust":
-      return "Rust";
-    default:
-      return humanize(value);
-  }
-}
-
 function buildBadgeFromTechStack(
   item: FugueAppTechnology,
   options?: {
@@ -874,14 +832,14 @@ function buildBadgeFromTechStack(
     return null;
   }
 
-  if (normalizedKind === "language") {
-    const label = normalizedName || readLanguageLabel(normalizedSlug);
+  if (normalizedKind === "language" || normalizedKind === "stack") {
+    const label = normalizedName || readTechnologyLabel(normalizedSlug) || humanize(normalizedSlug);
     const kind = readLanguageBadgeKind(normalizedSlug) ?? "runtime";
     return {
       id: readBadgeKey(kind, label),
       kind,
       label,
-      meta: "Language",
+      meta: normalizedKind === "stack" ? "Stack" : "Language",
     };
   }
 
@@ -918,27 +876,80 @@ function buildBadgeFromTechStack(
   };
 }
 
-function buildSourceBadges(app: FugueApp) {
+function buildDetectedStackTech(source?: FugueAppSource | null): FugueAppTechnology[] {
+  const detectedStack = source?.detectedStack?.trim();
+
+  if (!detectedStack) {
+    return [];
+  }
+
   return [
-    app.source.detectedProvider
+    {
+      kind: "stack",
+      name: readTechnologyLabel(detectedStack) || humanize(detectedStack),
+      slug: detectedStack.toLowerCase(),
+      source: "detected",
+    },
+  ];
+}
+
+function readDisplayTechStack(app: FugueApp, source?: FugueAppSource | null) {
+  const detectedStack = buildDetectedStackTech(source);
+
+  if (detectedStack.length) {
+    return detectedStack;
+  }
+
+  const pendingCommit = source?.commitSha?.trim() || null;
+  const runningCommit = app.source.commitSha?.trim() || null;
+
+  if (!source || !pendingCommit || pendingCommit === runningCommit) {
+    return app.techStack;
+  }
+
+  return [];
+}
+
+function buildSourceBadges(source: FugueAppSource) {
+  const detectedStackKind = readLanguageBadgeKind(source.detectedStack) ?? "runtime";
+  const detectedProviderKind = readLanguageBadgeKind(source.detectedProvider);
+
+  return [
+    source.detectedStack
       ? {
           id: readBadgeKey(
-            readLanguageBadgeKind(app.source.detectedProvider) ?? "runtime",
-            readLanguageLabel(app.source.detectedProvider),
+            detectedStackKind,
+            readTechnologyLabel(source.detectedStack) || humanize(source.detectedStack),
           ),
-          kind: readLanguageBadgeKind(app.source.detectedProvider) ?? "runtime",
-          label: readLanguageLabel(app.source.detectedProvider),
-          meta: "Language",
+          kind: detectedStackKind,
+          label:
+            readTechnologyLabel(source.detectedStack) || humanize(source.detectedStack),
+          meta: "Stack",
         }
       : null,
-    app.source.buildStrategy
+    !source.detectedStack && source.detectedProvider && detectedProviderKind
       ? {
           id: readBadgeKey(
-            readBuildBadgeKind(app.source.buildStrategy) ?? "runtime",
-            humanize(app.source.buildStrategy),
+            detectedProviderKind,
+            readTechnologyLabel(source.detectedProvider) || humanize(source.detectedProvider),
           ),
-          kind: readBuildBadgeKind(app.source.buildStrategy) ?? "runtime",
-          label: humanize(app.source.buildStrategy),
+          kind: detectedProviderKind,
+          label:
+            readTechnologyLabel(source.detectedProvider) || humanize(source.detectedProvider),
+          meta:
+            detectedProviderKind === "nextjs" || detectedProviderKind === "react"
+              ? "Stack"
+              : "Language",
+        }
+      : null,
+    source.buildStrategy
+      ? {
+          id: readBadgeKey(
+            readBuildBadgeKind(source.buildStrategy) ?? "runtime",
+            humanize(source.buildStrategy),
+          ),
+          kind: readBuildBadgeKind(source.buildStrategy) ?? "runtime",
+          label: humanize(source.buildStrategy),
           meta: "Build",
         }
       : null,
@@ -947,6 +958,7 @@ function buildSourceBadges(app: FugueApp) {
 
 function readPrimaryBadge(badges: ConsoleGalleryBadgeView[]) {
   return (
+    badges.find((badge) => badge.meta === "Stack") ??
     badges.find((badge) => badge.meta === "Language") ??
     badges.find((badge) => badge.kind !== "postgres" && badge.meta !== "Build") ??
     badges.find((badge) => badge.kind !== "postgres") ??
@@ -955,10 +967,20 @@ function readPrimaryBadge(badges: ConsoleGalleryBadgeView[]) {
   );
 }
 
-function buildAppBadges(app: FugueApp): ConsoleGalleryBadgeView[] {
+function buildAppBadges(
+  app: FugueApp,
+  options?: {
+    source?: FugueAppSource | null;
+    techStack?: FugueAppTechnology[];
+  },
+): ConsoleGalleryBadgeView[] {
+  const displaySource = options?.source ?? app.source;
+  const displayTechStack = options?.techStack ?? app.techStack;
   const badges = new Map<string, ConsoleGalleryBadgeView>();
-  const sourceBadges = buildSourceBadges(app);
-  const sourceLanguageBadge = sourceBadges.find((badge) => badge.meta === "Language") ?? null;
+  const sourceBadges = buildSourceBadges(displaySource);
+  const sourceLanguageBadge = sourceBadges.find(
+    (badge) => badge.meta === "Language" || badge.meta === "Stack",
+  ) ?? null;
   const sourceBuildBadge = sourceBadges.find((badge) => badge.meta === "Build") ?? null;
 
   const addBadge = (badge: ConsoleGalleryBadgeView | null) => {
@@ -971,8 +993,8 @@ function buildAppBadges(app: FugueApp): ConsoleGalleryBadgeView[] {
 
   addBadge(sourceLanguageBadge);
 
-  if (app.techStack.length) {
-    for (const item of app.techStack) {
+  if (displayTechStack.length) {
+    for (const item of displayTechStack) {
       const normalizedKind = item.kind.trim().toLowerCase();
       const normalizedSlug = item.slug.trim().toLowerCase();
 
@@ -986,8 +1008,8 @@ function buildAppBadges(app: FugueApp): ConsoleGalleryBadgeView[] {
 
   addBadge(sourceBuildBadge);
 
-  if (!badges.size && app.techStack.length) {
-    for (const item of app.techStack) {
+  if (!badges.size && displayTechStack.length) {
+    for (const item of displayTechStack) {
       if (item.slug.trim().toLowerCase() === "postgres") {
         continue;
       }
@@ -998,9 +1020,9 @@ function buildAppBadges(app: FugueApp): ConsoleGalleryBadgeView[] {
 
   if (!badges.size) {
     addBadge({
-      id: readBadgeKey("runtime", humanize(app.source.type)),
+      id: readBadgeKey("runtime", humanize(displaySource.type)),
       kind: "runtime",
-      label: humanize(app.source.type),
+      label: humanize(displaySource.type),
       meta: "Service",
     });
   }
@@ -1017,35 +1039,30 @@ function buildAppBadges(app: FugueApp): ConsoleGalleryBadgeView[] {
   return [...badges.values()].slice(0, 6);
 }
 
-function buildAppView(
+function buildSharedAppView(
   app: FugueApp,
-  commitOperations?: AppCommitOperations,
-): ConsoleGalleryAppView[] {
+  options?: {
+    source?: FugueAppSource | null;
+    techStack?: FugueAppTechnology[];
+  },
+) {
+  const source = options?.source ?? app.source;
+  const techStack = options?.techStack ?? app.techStack;
   const route = readRoute(app);
   const redeploy = readRedeployState(app);
   const redeployAction = readRedeployAction(app);
-  const sourceBranchLabel = readSourceBranchLabel(app);
-  const activeOperation = readActiveReleaseOperation(commitOperations?.active ?? null, app);
-  const commitViews = buildCommitViews(app, activeOperation);
-  const runningBuildLogsOperation = readRunningBuildLogsOperation(app, commitOperations);
-  const pendingBuildLogsOperation = activeOperation
-    ? readPendingBuildLogsOperation(activeOperation, commitOperations)
-    : null;
-  const serviceBadges = buildAppBadges(app);
+  const sourceBranchLabel = readSourceBranchLabelFromSource(source);
+  const serviceBadges = buildAppBadges(app, { source, techStack });
   const primaryBadge =
     readPrimaryBadge(serviceBadges) ??
     serviceBadges[0] ?? {
-      id: readBadgeKey("runtime", humanize(app.source.type)),
+      id: readBadgeKey("runtime", humanize(source.type)),
       kind: "runtime",
-      label: humanize(app.source.type),
+      label: humanize(source.type),
       meta: "Service",
     };
-  const activePhase = activeOperation ? readPendingCommitState(activeOperation) : null;
-  const primaryCommit = commitViews.find((entry) => entry.kind === "running") ?? commitViews[0] ?? null;
-  const currentCommitLabel =
-    primaryCommit?.label ?? (isGitHubPublicSource(app) ? readCurrentCommitLabel(app) : null);
-  const fallbackPhase = app.status.phase ?? (app.spec.disabled ? "disabled" : "unknown");
-  const sharedView = {
+
+  return {
     canRedeploy: redeploy.canRedeploy,
     deployBehavior: readDeployBehavior(app),
     hasPostgresService: app.backingServices.some((service) => service.type === "postgres"),
@@ -1062,16 +1079,16 @@ function buildAppView(
     serviceBadges,
     sourceBranchHref:
       sourceBranchLabel && sourceBranchLabel !== "Default branch"
-        ? readGitHubBranchHref(app.source.repoUrl, app.source.repoBranch)
+        ? readGitHubBranchHref(source.repoUrl, source.repoBranch)
         : null,
     sourceBranchLabel,
-    sourceHref: readGitHubSourceHref(app.source.repoUrl),
-    sourceLabel: readSourceLabel(app),
+    sourceHref: readGitHubSourceHref(source.repoUrl),
+    sourceLabel: readSourceLabelFromSource(source),
     sourceMeta:
-      [humanize(app.source.buildStrategy), app.source.composeService, app.source.dockerfilePath]
+      [humanize(source.buildStrategy), source.composeService, source.dockerfilePath]
         .filter((value) => value && value !== "Unknown")
-        .join(" / ") || humanize(app.source.type),
-    sourceType: app.source.type,
+        .join(" / ") || humanize(source.type),
+    sourceType: source.type,
     workspaceMountPath: app.spec.workspace ? app.spec.workspace.mountPath ?? "/workspace" : null,
   } satisfies Omit<
     ConsoleGalleryAppView,
@@ -1087,6 +1104,30 @@ function buildAppView(
     | "serviceDurationLabel"
     | "serviceRole"
   >;
+}
+
+function buildAppView(
+  app: FugueApp,
+  commitOperations?: AppCommitOperations,
+): ConsoleGalleryAppView[] {
+  const activeOperation = readActiveReleaseOperation(commitOperations?.active ?? null, app);
+  const commitViews = buildCommitViews(app, activeOperation);
+  const runningBuildLogsOperation = readRunningBuildLogsOperation(app, commitOperations);
+  const pendingBuildLogsOperation = activeOperation
+    ? readPendingBuildLogsOperation(activeOperation, commitOperations)
+    : null;
+  const activePhase = activeOperation ? readPendingCommitState(activeOperation) : null;
+  const primaryCommit = commitViews.find((entry) => entry.kind === "running") ?? commitViews[0] ?? null;
+  const currentCommitLabel =
+    primaryCommit?.label ?? (isGitHubPublicSource(app) ? readCurrentCommitLabel(app) : null);
+  const fallbackPhase = app.status.phase ?? (app.spec.disabled ? "disabled" : "unknown");
+  const sharedView = buildSharedAppView(app);
+  const pendingSharedView = activeOperation
+    ? buildSharedAppView(app, {
+        source: activeOperation.desiredSource,
+        techStack: readDisplayTechStack(app, activeOperation.desiredSource),
+      })
+    : null;
 
   const runningView =
     hasLiveRelease(app) || !activeOperation
@@ -1109,7 +1150,7 @@ function buildAppView(
   const pendingView =
     activeOperation && activePhase
       ? ({
-          ...sharedView,
+          ...(pendingSharedView ?? sharedView),
           buildLogsOperationId: pendingBuildLogsOperation?.id ?? null,
           commitViews,
           currentCommitCommittedAt: primaryCommit?.committedAt ?? null,

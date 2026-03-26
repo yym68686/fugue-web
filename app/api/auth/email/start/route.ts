@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { ensureAppUserRecord } from "@/lib/app-users/store";
+import { buildAppUrl, getAuthEnv } from "@/lib/auth/env";
 import { sendVerificationEmail } from "@/lib/auth/email";
-import { getAuthEnv } from "@/lib/auth/env";
 import { buildSessionCookie } from "@/lib/auth/session";
 import { signToken } from "@/lib/auth/token";
 import {
@@ -89,7 +89,7 @@ export async function POST(request: Request) {
     60 * 15,
   );
 
-  const verifyUrl = new URL("/api/auth/email/verify", authEnv.appBaseUrl);
+  const verifyUrl = buildAppUrl("/api/auth/email/verify");
   verifyUrl.searchParams.set("token", token);
 
   try {

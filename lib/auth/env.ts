@@ -64,6 +64,10 @@ export function getEmailVerificationRequired() {
   return readBooleanEnv(process.env.EMAIL_VERIFICATION_REQUIRED, true);
 }
 
+export function buildAppUrl(pathname: string) {
+  return new URL(pathname, getAuthEnv().appBaseUrl);
+}
+
 export function getAuthEnv(): AuthEnv {
   return {
     appBaseUrl: deriveBaseUrl(),
