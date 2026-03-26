@@ -49,6 +49,7 @@ export type ConsoleGalleryAppView = {
   name: string;
   phase: string;
   phaseTone: ConsoleTone;
+  primaryBadge: ConsoleGalleryBadgeView;
   redeployActionDescription: string;
   redeployActionLabel: string;
   redeployActionLoadingLabel: string;
@@ -57,14 +58,13 @@ export type ConsoleGalleryAppView = {
   routeHref: string | null;
   routeLabel: string;
   serviceBadges: ConsoleGalleryBadgeView[];
+  serviceDurationLabel: string | null;
   sourceBranchHref: string | null;
   sourceBranchLabel: string | null;
   sourceHref: string | null;
   sourceLabel: string;
   sourceMeta: string;
   sourceType: string | null;
-  updatedExact: string;
-  updatedLabel: string;
   workspaceMountPath: string | null;
 };
 
@@ -72,19 +72,17 @@ export type ConsoleGalleryBackingServiceView = {
   description: string;
   id: string;
   name: string;
+  ownerAppId: string | null;
   ownerAppLabel: string;
+  primaryBadge: ConsoleGalleryBadgeView;
   status: string;
   statusTone: ConsoleTone;
   type: string;
-  updatedExact: string;
-  updatedLabel: string;
 };
 
 export type ConsoleGalleryProjectView = {
   appCount: number;
   id: string;
-  latestActivityExact: string;
-  latestActivityLabel: string;
   name: string;
   serviceBadges: ConsoleGalleryBadgeView[];
   serviceCount: number;

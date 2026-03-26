@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { startTransition, useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
 import { StatusBadge } from "@/components/console/status-badge";
@@ -25,10 +25,11 @@ import type {
   ConsoleGalleryProjectView,
   ConsoleProjectGalleryData,
 } from "@/lib/console/gallery-types";
-import { readGitHubCommitHref, readGitHubSourceHref } from "@/lib/fugue/source-links";
+import { readGitHubCommitHref } from "@/lib/fugue/source-links";
 import type { ConsoleTone } from "@/lib/console/types";
 import { parseAnsiText } from "@/lib/ui/ansi";
 import { cx } from "@/lib/ui/cx";
+import { consumeSSEStream, type ParsedSSEEvent } from "@/lib/ui/sse";
 
 type FlashState = {
   message: string;
@@ -76,11 +77,67 @@ type RuntimeLogsResponse = {
   warnings?: string[];
 };
 
+type LogsConnectionState = "connecting" | "ended" | "error" | "idle" | "live" | "reconnecting";
+
+type LogStreamSource = {
+  component: string | null;
+  container: string | null;
+  jobName: string | null;
+  namespace: string | null;
+  phase: string | null;
+  pod: string | null;
+  previous: boolean;
+  stream: string | null;
+};
+
+type BuildLogStreamStatus = {
+  buildStrategy: string | null;
+  completedAt: string | null;
+  cursor: string | null;
+  errorMessage: string | null;
+  jobName: string | null;
+  lastUpdatedAt: string | null;
+  operationId: string | null;
+  operationStatus: string | null;
+  pods: string[];
+  resultMessage: string | null;
+  startedAt: string | null;
+};
+
+type RuntimeLogStreamState = {
+  component: string | null;
+  container: string | null;
+  cursor: string | null;
+  follow: boolean;
+  namespace: string | null;
+  pods: string[];
+  previous: boolean;
+  selector: string | null;
+};
+
+type LogStreamLogLine = {
+  cursor: string | null;
+  line: string;
+  source: LogStreamSource | null;
+  timestamp: string | null;
+};
+
+type LogStreamWarning = {
+  cursor: string | null;
+  message: string | null;
+  source: LogStreamSource | null;
+};
+
+type LogStreamEnd = {
+  cursor: string | null;
+  operationStatus: string | null;
+  reason: string | null;
+};
+
 type AppAction = "delete" | "disable" | "redeploy" | "restart";
 type WorkbenchView = "env" | "files" | "logs";
 type EnvironmentFormat = "raw" | "table";
 type LogsView = "build" | "runtime";
-type RuntimeView = "app" | "postgres";
 
 type EnvRow = {
   existing: boolean;
@@ -105,18 +162,13 @@ type BuildStrategyValue =
   | "nixpacks"
   | "static-site";
 
-type LogMetaItem = {
-  href: string | null;
-  id: string;
-  label: string;
-};
-
 type RuntimeLogsUnavailableState = {
   description: string;
-  metaLabel: string;
-  refreshLabel: string;
+  label: string;
   title: string;
 };
+
+type ConsoleGalleryServiceView = ConsoleGalleryProjectView["services"][number];
 
 const BUILD_STRATEGY_OPTIONS = [
   { label: "Auto detect", value: "auto" },
@@ -135,6 +187,10 @@ const WORKBENCH_VIEW_OPTIONS: readonly SegmentedControlOption<WorkbenchView>[] =
   { value: "logs", label: "Logs" },
 ];
 
+const LOGS_ONLY_WORKBENCH_OPTIONS: readonly SegmentedControlOption<WorkbenchView>[] = [
+  { value: "logs", label: "Logs" },
+];
+
 const ENVIRONMENT_FORMAT_OPTIONS: readonly SegmentedControlOption<EnvironmentFormat>[] = [
   { value: "table", label: "Variables" },
   { value: "raw", label: "Raw" },
@@ -145,15 +201,11 @@ const LOG_VIEW_OPTIONS: readonly SegmentedControlOption<LogsView>[] = [
   { value: "runtime", label: "Runtime" },
 ];
 
-const RUNTIME_VIEW_OPTIONS: readonly SegmentedControlOption<RuntimeView>[] = [
-  { value: "app", label: "App" },
-  { value: "postgres", label: "Postgres" },
-];
-
 const LOG_AUTO_REFRESH_INTERVAL_MS = 3_000;
 const PROJECT_ACTIVE_REFRESH_INTERVAL_MS = 3_000;
 const PROJECT_PASSIVE_REFRESH_INTERVAL_MS = 6_000;
 const LOG_TAIL_LINES = 200;
+const LOG_MAX_VISIBLE_LINES = 1_000;
 const PENDING_COMMIT_HINT_TAIL_LINES = 1;
 const TERMINAL_LOG_OPERATION_STATUSES = new Set(["canceled", "cancelled", "completed", "failed"]);
 
@@ -172,8 +224,33 @@ type ProjectLifecycle = {
   tone: ConsoleTone;
 };
 
+const LIVE_STATUS_BADGE_KEYWORDS = [
+  "running",
+  "building",
+  "deploying",
+  "importing",
+  "updating",
+  "queued",
+  "pending",
+  "migrating",
+  "deleting",
+  "starting",
+  "creating",
+  "provisioning",
+] as const;
+
 function includesLifecycleKeyword(value: string, keywords: string[]) {
   return keywords.some((keyword) => value.includes(keyword));
+}
+
+function shouldShowLiveStatusBadge(value?: string | null) {
+  const normalized = value?.trim().toLowerCase() ?? "";
+
+  if (!normalized) {
+    return false;
+  }
+
+  return LIVE_STATUS_BADGE_KEYWORDS.some((keyword) => normalized.includes(keyword));
 }
 
 function readProjectLifecycle(project: ConsoleGalleryProjectView): ProjectLifecycle {
@@ -218,7 +295,7 @@ function readProjectLifecycle(project: ConsoleGalleryProjectView): ProjectLifecy
 
   if (project.appCount > 0) {
     return {
-      label: "Deployed",
+      label: "Running",
       tone: "positive",
       live: false,
       syncMode: tracksGitHubBranch ? "passive" : "idle",
@@ -253,8 +330,286 @@ async function requestJson<T>(input: RequestInfo, init?: RequestInit) {
   return (data ?? {}) as T;
 }
 
+async function readResponseError(response: Response) {
+  const body = await response.text().catch(() => "");
+  const trimmed = body.trim();
+
+  if (!trimmed) {
+    return `Request failed with status ${response.status}.`;
+  }
+
+  try {
+    const payload = JSON.parse(trimmed) as { error?: unknown };
+
+    if (typeof payload?.error === "string" && payload.error.trim()) {
+      return payload.error.trim();
+    }
+  } catch {
+    // Fall back to the raw response body when the stream proxy returns plain text.
+  }
+
+  return trimmed;
+}
+
+function asRecord(value: unknown) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function readStringValue(record: Record<string, unknown> | null, key: string) {
+  const value = record?.[key];
+  return typeof value === "string" ? value : null;
+}
+
+function readBooleanValue(record: Record<string, unknown> | null, key: string) {
+  const value = record?.[key];
+  return typeof value === "boolean" ? value : false;
+}
+
+function readStringArrayValue(record: Record<string, unknown> | null, key: string) {
+  const value = record?.[key];
+
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.filter((item): item is string => typeof item === "string");
+}
+
+function parseStreamPayload(event: ParsedSSEEvent) {
+  try {
+    return asRecord(JSON.parse(event.data));
+  } catch {
+    return null;
+  }
+}
+
+function readLogStreamSource(value: unknown): LogStreamSource | null {
+  const record = asRecord(value);
+
+  if (!record) {
+    return null;
+  }
+
+  return {
+    component: readStringValue(record, "component"),
+    container: readStringValue(record, "container"),
+    jobName: readStringValue(record, "job_name"),
+    namespace: readStringValue(record, "namespace"),
+    phase: readStringValue(record, "phase"),
+    pod: readStringValue(record, "pod"),
+    previous: readBooleanValue(record, "previous"),
+    stream: readStringValue(record, "stream"),
+  };
+}
+
+function parseBuildLogStreamStatus(event: ParsedSSEEvent): BuildLogStreamStatus | null {
+  const payload = parseStreamPayload(event);
+
+  if (!payload) {
+    return null;
+  }
+
+  return {
+    buildStrategy: readStringValue(payload, "build_strategy"),
+    completedAt: readStringValue(payload, "completed_at"),
+    cursor: readStringValue(payload, "cursor"),
+    errorMessage: readStringValue(payload, "error_message"),
+    jobName: readStringValue(payload, "job_name"),
+    lastUpdatedAt: readStringValue(payload, "last_updated_at"),
+    operationId: readStringValue(payload, "operation_id"),
+    operationStatus: readStringValue(payload, "operation_status"),
+    pods: readStringArrayValue(payload, "pods"),
+    resultMessage: readStringValue(payload, "result_message"),
+    startedAt: readStringValue(payload, "started_at"),
+  };
+}
+
+function parseRuntimeLogStreamState(event: ParsedSSEEvent): RuntimeLogStreamState | null {
+  const payload = parseStreamPayload(event);
+
+  if (!payload) {
+    return null;
+  }
+
+  return {
+    component: readStringValue(payload, "component"),
+    container: readStringValue(payload, "container"),
+    cursor: readStringValue(payload, "cursor"),
+    follow: readBooleanValue(payload, "follow"),
+    namespace: readStringValue(payload, "namespace"),
+    pods: readStringArrayValue(payload, "pods"),
+    previous: readBooleanValue(payload, "previous"),
+    selector: readStringValue(payload, "selector"),
+  };
+}
+
+function parseLogStreamLogLine(event: ParsedSSEEvent): LogStreamLogLine | null {
+  const payload = parseStreamPayload(event);
+
+  if (!payload) {
+    return null;
+  }
+
+  const line = readStringValue(payload, "line");
+
+  if (line === null) {
+    return null;
+  }
+
+  return {
+    cursor: readStringValue(payload, "cursor"),
+    line,
+    source: readLogStreamSource(payload.source),
+    timestamp: readStringValue(payload, "timestamp"),
+  };
+}
+
+function parseLogStreamWarning(event: ParsedSSEEvent): LogStreamWarning | null {
+  const payload = parseStreamPayload(event);
+
+  if (!payload) {
+    return null;
+  }
+
+  return {
+    cursor: readStringValue(payload, "cursor"),
+    message: readStringValue(payload, "message"),
+    source: readLogStreamSource(payload.source),
+  };
+}
+
+function parseLogStreamEnd(event: ParsedSSEEvent): LogStreamEnd | null {
+  const payload = parseStreamPayload(event);
+
+  if (!payload) {
+    return null;
+  }
+
+  return {
+    cursor: readStringValue(payload, "cursor"),
+    operationStatus: readStringValue(payload, "operation_status"),
+    reason: readStringValue(payload, "reason"),
+  };
+}
+
+function buildLogsResponseFromStatus(status: BuildLogStreamStatus): BuildLogsResponse {
+  return {
+    buildStrategy: status.buildStrategy,
+    completedAt: status.completedAt,
+    errorMessage: status.errorMessage,
+    jobName: status.jobName,
+    operationId: status.operationId,
+    operationStatus: status.operationStatus,
+    resultMessage: status.resultMessage,
+    startedAt: status.startedAt,
+  };
+}
+
+function trimLogBody(body: string) {
+  const lines = body.split("\n");
+
+  if (lines.length <= LOG_MAX_VISIBLE_LINES) {
+    return body;
+  }
+
+  return lines.slice(lines.length - LOG_MAX_VISIBLE_LINES).join("\n");
+}
+
+function readLogStreamSourceId(source?: LogStreamSource | null) {
+  if (!source) {
+    return null;
+  }
+
+  const parts = [
+    source.stream,
+    source.namespace,
+    source.component,
+    source.jobName,
+    source.pod,
+    source.container,
+    source.previous ? "previous" : "current",
+  ].filter(Boolean);
+
+  return parts.length ? parts.join(":") : null;
+}
+
+function readLogStreamSourceLabel(source?: LogStreamSource | null) {
+  if (!source) {
+    return null;
+  }
+
+  if (source.stream === "build") {
+    return [source.pod, source.container].filter(Boolean).join("/") || source.jobName || "build";
+  }
+
+  return source.pod || source.container || source.component || source.stream || "runtime";
+}
+
+function appendLogBodyLine(
+  currentBody: string,
+  line: string,
+  source: LogStreamSource | null,
+  previousSourceId: string | null,
+) {
+  const sourceId = readLogStreamSourceId(source);
+  const sourceLabel = sourceId && sourceId !== previousSourceId ? readLogStreamSourceLabel(source) : null;
+  const parts = currentBody ? [currentBody] : [];
+
+  if (sourceLabel) {
+    if (currentBody) {
+      parts.push("");
+    }
+
+    parts.push(`==> ${sourceLabel} <==`);
+  }
+
+  parts.push(line);
+
+  return {
+    body: trimLogBody(parts.join("\n")),
+    sourceId: sourceId ?? previousSourceId,
+  };
+}
+
+function appendLogBodyWarning(
+  currentBody: string,
+  warning: LogStreamWarning,
+  previousSourceId: string | null,
+) {
+  const message = warning.message?.trim();
+
+  if (!message) {
+    return {
+      body: currentBody,
+      sourceId: previousSourceId,
+    };
+  }
+
+  return appendLogBodyLine(currentBody, `[warning] ${message}`, warning.source, previousSourceId);
+}
+
+class LogStreamRequestError extends Error {
+  status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = "LogStreamRequestError";
+    this.status = status;
+  }
+}
+
+function isRetryableLogStreamError(error: unknown) {
+  return !(error instanceof LogStreamRequestError) || error.status >= 500;
+}
+
 function projectApps(project: ConsoleGalleryProjectView) {
   return project.services.filter((service): service is { kind: "app" } & ConsoleGalleryAppView => service.kind === "app");
+}
+
+function serviceKey(service: ConsoleGalleryServiceView) {
+  return `${service.kind}:${service.id}`;
 }
 
 function rowsFromEnv(env: Record<string, string>) {
@@ -271,13 +626,17 @@ function rowsFromEnv(env: Record<string, string>) {
     }) satisfies EnvRow);
 }
 
+function readEnvRowKey(row: Pick<EnvRow, "key">) {
+  return row.key.trim();
+}
+
 function entriesFromEnvRows(rows: EnvRow[]) {
   return rows.flatMap((row) => {
     if (row.removed) {
       return [];
     }
 
-    const key = row.existing ? row.originalKey : row.key.trim();
+    const key = readEnvRowKey(row);
 
     if (!key) {
       return [];
@@ -295,10 +654,10 @@ function rowsFromEnvDrafts(rows: EnvDraftRow[]) {
 }
 
 function buildEnvRawFeedback(rows: EnvRow[], ignoredLineCount = 0): EnvRawFeedback {
-  const activeRows = rows.filter((row) => !row.removed);
+  const activeRows = rows.filter((row) => !row.removed && readEnvRowKey(row).length > 0);
   const addedCount = activeRows.filter((row) => !row.existing).length;
   const updatedCount = activeRows.filter(
-    (row) => row.existing && row.value !== row.originalValue,
+    (row) => row.existing && (readEnvRowKey(row) !== row.originalKey || row.value !== row.originalValue),
   ).length;
   const removedCount = rows.filter((row) => row.existing && row.removed).length;
   const changeCount = addedCount + updatedCount + removedCount;
@@ -360,6 +719,29 @@ function humanizeUiLabel(value?: string | null) {
     .replace(/\b\w/g, (match) => match.toUpperCase());
 }
 
+function normalizeComparableText(value?: string | null) {
+  return value?.trim().replace(/\s+/g, " ").toLowerCase() ?? "";
+}
+
+function readDistinctText(
+  value?: string | null,
+  comparisons: Array<string | null | undefined> = [],
+) {
+  const trimmedValue = value?.trim().replace(/\s+/g, " ") ?? "";
+
+  if (!trimmedValue) {
+    return null;
+  }
+
+  const normalizedValue = trimmedValue.toLowerCase();
+  const duplicate = comparisons.some((comparison) => {
+    const normalizedComparison = normalizeComparableText(comparison);
+    return normalizedComparison.length > 0 && normalizedComparison === normalizedValue;
+  });
+
+  return duplicate ? null : trimmedValue;
+}
+
 function renderExternalText(label: string, href?: string | null, className?: string) {
   if (!href) {
     return <span className={className}>{label}</span>;
@@ -376,14 +758,6 @@ function renderExternalText(label: string, href?: string | null, className?: str
       {label}
     </a>
   );
-}
-
-function renderOptionalExternalText(label?: string | null, href?: string | null, className?: string) {
-  if (!label) {
-    return <span className={className}>—</span>;
-  }
-
-  return renderExternalText(label, href, className);
 }
 
 function renderCommitLink(commit: Pick<ConsoleGalleryCommitView, "exact" | "href" | "label">) {
@@ -536,6 +910,7 @@ function readPendingCommitState(
 function buildPendingCommitHint(
   app: ConsoleGalleryAppView,
   options?: {
+    committedAt?: string | null;
     exact?: string | null;
     label?: string | null;
     operationId?: string | null;
@@ -557,7 +932,7 @@ function buildPendingCommitHint(
   const state = readPendingCommitState(app.phase, options?.operationStatus);
 
   return {
-    committedAt: null,
+    committedAt: options?.committedAt?.trim() || null,
     exact,
     href: readGitHubCommitHref(app.sourceHref, exact),
     id: `pending-hint:${app.id}:${options?.operationId?.trim() || exact || label.toLowerCase().replace(/\s+/g, "-")}`,
@@ -579,6 +954,7 @@ function inferPendingCommitHint(app: ConsoleGalleryAppView, buildLogs?: BuildLog
   const parsedCommit = parsePendingCommitFromBuildJobName(buildLogs?.jobName);
 
   return buildPendingCommitHint(app, {
+    committedAt: buildLogs?.startedAt ?? null,
     exact: parsedCommit?.exact,
     label: parsedCommit?.label,
     operationId: buildLogs?.operationId,
@@ -613,7 +989,7 @@ function LocalDateTimeNote({
   value,
 }: {
   className?: string;
-  prefix: string;
+  prefix?: string;
   value?: string | null;
 }) {
   const [formatted, setFormatted] = useState<string | null>(null);
@@ -644,7 +1020,7 @@ function LocalDateTimeNote({
 
   return (
     <time className={className} dateTime={value} title={formatted}>
-      {prefix} {formatted}
+      {prefix ? `${prefix} ${formatted}` : formatted}
     </time>
   );
 }
@@ -659,177 +1035,21 @@ function renderCommitText(
     return <span>—</span>;
   }
 
-  if (commitViews.length === 1) {
-    const [commit] = commitViews;
-
-    return (
-      <span className="fg-project-inspector__meta-stack">
-        {commit.kind === "pending" ? (
-          <span className="fg-project-inspector__commit-row">
-            <StatusBadge className="fg-project-inspector__commit-badge" tone={commit.tone}>
-              {commit.stateLabel}
-            </StatusBadge>
-            {renderCommitLink(commit)}
-          </span>
-        ) : (
-          renderCommitLink(commit)
-        )}
-        <LocalDateTimeNote
-          className="fg-project-inspector__meta-note"
-          prefix="Committed"
-          value={commit.committedAt}
-        />
-      </span>
-    );
-  }
-
   return (
     <span className="fg-project-inspector__commit-list">
       {commitViews.map((commit) => (
         <span className="fg-project-inspector__commit-entry" key={commit.id}>
           <span className="fg-project-inspector__commit-row">
-            <StatusBadge className="fg-project-inspector__commit-badge" tone={commit.tone}>
-              {commit.stateLabel}
-            </StatusBadge>
             {renderCommitLink(commit)}
+            <LocalDateTimeNote
+              className="fg-project-inspector__meta-note"
+              value={commit.committedAt}
+            />
           </span>
-          <LocalDateTimeNote
-            className="fg-project-inspector__meta-note"
-            prefix="Committed"
-            value={commit.committedAt}
-          />
         </span>
       ))}
     </span>
   );
-}
-
-function readTrackingLabel(app: ConsoleGalleryAppView) {
-  if (app.sourceType?.trim().toLowerCase() !== "github-public") {
-    return null;
-  }
-
-  const runningCommitLabel =
-    app.commitViews.find((entry) => entry.kind === "running")?.label ??
-    app.commitViews[0]?.label ??
-    app.currentCommitLabel;
-  const parts = [app.sourceBranchLabel, runningCommitLabel].filter(
-    (value): value is string => Boolean(value),
-  );
-
-  if (!parts.length) {
-    return "Tracking branch";
-  }
-
-  return `Tracking ${parts.join(" · ")}`;
-}
-
-function renderLogMetaItem(item: LogMetaItem): ReactNode {
-  if (!item.href) {
-    return <span key={item.id}>{item.label}</span>;
-  }
-
-  return (
-    <a
-      className="fg-text-link"
-      href={item.href}
-      key={item.id}
-      rel="noreferrer"
-      target="_blank"
-      title={item.href}
-    >
-      {item.label}
-    </a>
-  );
-}
-
-function buildLogMeta(buildLogs: BuildLogsResponse) {
-  const sourceHref = readGitHubSourceHref(buildLogs.source);
-  const items: LogMetaItem[] = [];
-
-  if (buildLogs.buildStrategy) {
-    items.push({
-      href: null,
-      id: `build:${buildLogs.buildStrategy}`,
-      label: `Build / ${humanizeUiLabel(buildLogs.buildStrategy)}`,
-    });
-  }
-
-  if (buildLogs.source) {
-    items.push({
-      href: sourceHref,
-      id: `source:${buildLogs.source}`,
-      label: `Source / ${buildLogs.source}`,
-    });
-  }
-
-  if (buildLogs.jobName) {
-    items.push({
-      href: null,
-      id: `job:${buildLogs.jobName}`,
-      label: `Job / ${buildLogs.jobName}`,
-    });
-  }
-
-  if (buildLogs.operationStatus) {
-    items.push({
-      href: null,
-      id: `status:${buildLogs.operationStatus}`,
-      label: `Status / ${humanizeUiLabel(buildLogs.operationStatus)}`,
-    });
-  }
-
-  if (buildLogs.errorMessage) {
-    items.push({
-      href: null,
-      id: `error:${buildLogs.errorMessage}`,
-      label: `Error / ${buildLogs.errorMessage}`,
-    });
-  }
-
-  if (buildLogs.resultMessage) {
-    items.push({
-      href: null,
-      id: `result:${buildLogs.resultMessage}`,
-      label: `Result / ${buildLogs.resultMessage}`,
-    });
-  }
-
-  return items;
-}
-
-function shouldAutoRefreshBuildLogs(status?: string | null) {
-  return !TERMINAL_LOG_OPERATION_STATUSES.has(status?.toLowerCase() ?? "");
-}
-
-function runtimeLogMeta(runtimeLogs: RuntimeLogsResponse) {
-  const items: LogMetaItem[] = [];
-
-  if (runtimeLogs.component) {
-    items.push({
-      href: null,
-      id: `component:${runtimeLogs.component}`,
-      label: `Component / ${humanizeUiLabel(runtimeLogs.component)}`,
-    });
-  }
-
-  if (runtimeLogs.pods?.length) {
-    items.push({
-      href: null,
-      id: `pods:${runtimeLogs.pods.join(",")}`,
-      label: `Pods / ${runtimeLogs.pods.join(", ")}`,
-    });
-  }
-
-  if (runtimeLogs.warnings?.length) {
-    items.push({
-      href: null,
-      id: `warnings:${runtimeLogs.warnings.join("|")}`,
-      label: `Warnings / ${runtimeLogs.warnings.join(" | ")}`,
-    });
-  }
-
-  return items;
 }
 
 function readRuntimeLogsUnavailableState(
@@ -844,57 +1064,61 @@ function readRuntimeLogsUnavailableState(
 
   if (includesLifecycleKeyword(phase, ["importing"])) {
     return {
-      description:
-        "Source import is still in progress. Switch to Build to watch the import -> deploy chain. Runtime logs appear after the first container starts.",
-      metaLabel: "State / Importing",
-      refreshLabel: "Runtime / Waiting for import",
-      title: "Runtime logs unlock after import",
+      description: "Import is still running. Switch to Build to follow progress.",
+      label: "Waiting for import",
+      title: "Runtime logs are not ready",
     };
   }
 
   if (includesLifecycleKeyword(phase, ["building"])) {
     return {
-      description:
-        "This service is still building. Switch to Build to follow the import -> deploy chain. Runtime logs appear after the first container starts.",
-      metaLabel: "State / Building",
-      refreshLabel: "Runtime / Waiting for first start",
-      title: "Runtime logs start after build",
+      description: "Build is still running. Switch to Build to follow progress.",
+      label: "Waiting for first start",
+      title: "Runtime logs are not ready",
     };
   }
 
   if (includesLifecycleKeyword(phase, ["deploying"])) {
     return {
-      description:
-        "The release is still deploying. Fugue keeps this deploy running until the rollout is ready, even after the first container is live.",
-      metaLabel: "State / Deploying",
-      refreshLabel: "Runtime / Waiting for deploy",
-      title: "Runtime logs unlock after deploy",
+      description: "Deploy is still in progress. Runtime logs unlock once the rollout is ready.",
+      label: "Waiting for deploy",
+      title: "Runtime logs are not ready",
     };
   }
 
   if (includesLifecycleKeyword(phase, ["queued", "pending", "migrating"])) {
     return {
-      description:
-        "This rollout has not reached a live runtime yet. Switch to Build to watch progress, then return here once the container starts.",
-      metaLabel: "State / Queued",
-      refreshLabel: "Runtime / Waiting in queue",
-      title: "Runtime logs are not live yet",
+      description: "This rollout has not reached a live runtime yet. Switch to Build to follow progress.",
+      label: "Waiting in queue",
+      title: "Runtime logs are not ready",
     };
   }
 
   return null;
 }
 
-function readLogsDisplayBody(logsStatus: "error" | "idle" | "loading" | "ready", logsBody: string) {
+function readLogsDisplayBody(
+  logsStatus: "error" | "idle" | "loading" | "ready",
+  logsBody: string,
+  connectionState: LogsConnectionState,
+) {
   if (logsStatus === "loading") {
-    return "Loading logs…";
+    return connectionState === "reconnecting" ? "Reconnecting to live logs…" : "Connecting to live logs…";
   }
 
   if (logsStatus === "error") {
-    return "Unable to load logs.";
+    return "Unable to open the log stream.";
   }
 
-  return logsBody || "No logs available.";
+  if (logsBody) {
+    return logsBody;
+  }
+
+  if (connectionState === "live" || connectionState === "reconnecting") {
+    return "Waiting for log output…";
+  }
+
+  return "No logs available.";
 }
 
 function renderAnsiLogBody(value: string) {
@@ -1107,26 +1331,6 @@ function ProjectBadge({ kind, label, meta }: { kind: ConsoleGalleryBadgeKind; la
   );
 }
 
-function ProjectLifecycleBadge({
-  project,
-}: {
-  project: ConsoleGalleryProjectView;
-}) {
-  const lifecycle = readProjectLifecycle(project);
-
-  return (
-    <span
-      className="fg-project-lifecycle"
-      data-live={lifecycle.live ? "true" : "false"}
-      data-tone={lifecycle.tone}
-      title={project.latestActivityExact}
-    >
-      <span aria-hidden="true" className="fg-project-lifecycle__dot" />
-      <span>{lifecycle.label}</span>
-    </span>
-  );
-}
-
 function projectTitle(project: ConsoleGalleryProjectView) {
   return `${project.appCount} app${project.appCount === 1 ? "" : "s"} · ${project.serviceCount} service${project.serviceCount === 1 ? "" : "s"}`;
 }
@@ -1150,6 +1354,7 @@ export function ConsoleProjectGallery({
   const [buildStrategy, setBuildStrategy] = useState<BuildStrategyValue>("auto");
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
+  const [selectedServiceKey, setSelectedServiceKey] = useState<string | null>(null);
   const [selectedAppPendingCommitHint, setSelectedAppPendingCommitHint] =
     useState<ConsoleGalleryCommitView | null>(null);
   const [activeTab, setActiveTab] = useState<WorkbenchView>("env");
@@ -1168,49 +1373,65 @@ export function ConsoleProjectGallery({
   });
   const [envSaving, setEnvSaving] = useState(false);
   const [logsMode, setLogsMode] = useState<LogsView>("build");
-  const [runtimeComponent, setRuntimeComponent] = useState<RuntimeView>("app");
+  const [logsConnectionState, setLogsConnectionState] = useState<LogsConnectionState>("idle");
   const [logsStatus, setLogsStatus] = useState<"error" | "idle" | "loading" | "ready">("idle");
   const [logsBody, setLogsBody] = useState("");
-  const [logsMeta, setLogsMeta] = useState<LogMetaItem[]>([]);
   const [buildLogsOperationStatus, setBuildLogsOperationStatus] = useState<string | null>(null);
-  const [logsRefreshMode, setLogsRefreshMode] = useState<"auto" | "manual">("auto");
   const [logsRefreshToken, setLogsRefreshToken] = useState(0);
-  const [logsRefreshing, setLogsRefreshing] = useState(false);
   const [refreshWindowUntil, setRefreshWindowUntil] = useState(0);
-  const logsVisibleKeyRef = useRef<string | null>(null);
-  const logsRequestPendingRef = useRef(false);
   const pendingCommitHintRequestPendingRef = useRef(false);
+  const selectedServiceAppRef = useRef<ConsoleGalleryAppView | null>(null);
+  const selectedAppNeedsPendingCommitHintRef = useRef(false);
 
   const selectedProject =
     data.projects.find((project) => project.id === selectedProjectId) ?? null;
+  const selectedProjectServices = selectedProject?.services ?? [];
   const selectedProjectApps = selectedProject ? projectApps(selectedProject) : [];
-  const selectedApp =
-    selectedProjectApps.find((app) => app.id === selectedAppId) ??
-    (selectedProject ? selectedProjectApps[0] : null) ??
+  const selectedService =
+    selectedProjectServices.find((service) => serviceKey(service) === selectedServiceKey) ??
+    selectedProjectServices[0] ??
     null;
+  const selectedServiceApp = selectedService?.kind === "app" ? selectedService : null;
+  const selectedApp =
+    selectedServiceApp ??
+    (selectedService?.kind === "backing-service"
+      ? selectedProjectApps.find((app) => app.id === selectedService.ownerAppId) ??
+        selectedProjectApps.find((app) => app.id === selectedAppId) ??
+        selectedProjectApps[0] ??
+        null
+      : selectedProjectApps.find((app) => app.id === selectedAppId) ??
+        selectedProjectApps[0] ??
+        null);
+  const selectedServiceWorkbenchOptions =
+    selectedService?.kind === "backing-service"
+      ? LOGS_ONLY_WORKBENCH_OPTIONS
+      : WORKBENCH_VIEW_OPTIONS;
+  const effectiveLogsMode: LogsView =
+    selectedService?.kind === "backing-service" ? "runtime" : logsMode;
   const selectedAppNeedsPendingCommitHint =
-    isGitHubTrackedApp(selectedApp) && !hasPendingCommitView(selectedApp);
+    isGitHubTrackedApp(selectedServiceApp) && !hasPendingCommitView(selectedServiceApp);
   const selectedAppUsesBuildLogStream =
-    selectedApp !== null && activeTab === "logs" && logsMode === "build";
+    selectedServiceApp !== null && activeTab === "logs" && effectiveLogsMode === "build";
   const logsRequestKey =
-    selectedApp
-      ? logsMode === "runtime"
-        ? `${selectedApp.id}:${logsMode}:${runtimeComponent}`
-        : `${selectedApp.id}:${logsMode}`
+    selectedApp && selectedService
+      ? selectedService.kind === "backing-service"
+        ? `${selectedService.id}:runtime:postgres`
+        : effectiveLogsMode === "runtime"
+          ? `${selectedApp.id}:${effectiveLogsMode}:app`
+          : `${selectedApp.id}:${effectiveLogsMode}`
       : null;
-  const logsRequestInput =
+  const logsStreamInput =
     selectedApp
-      ? logsMode === "build"
-        ? `/api/fugue/apps/${selectedApp.id}/build-logs?tail_lines=${LOG_TAIL_LINES}`
-        : `/api/fugue/apps/${selectedApp.id}/runtime-logs?component=${runtimeComponent}&tail_lines=${LOG_TAIL_LINES}`
+      ? selectedService?.kind === "backing-service"
+        ? `/api/fugue/apps/${selectedApp.id}/runtime-logs/stream?component=postgres&follow=true&tail_lines=${LOG_TAIL_LINES}`
+        : effectiveLogsMode === "build"
+          ? `/api/fugue/apps/${selectedApp.id}/build-logs/stream?follow=true&tail_lines=${LOG_TAIL_LINES}`
+          : `/api/fugue/apps/${selectedApp.id}/runtime-logs/stream?component=app&follow=true&tail_lines=${LOG_TAIL_LINES}`
       : null;
-  const runtimeLogsUnavailable = readRuntimeLogsUnavailableState(selectedApp, logsMode);
+  const runtimeLogsUnavailable = readRuntimeLogsUnavailableState(selectedApp, effectiveLogsMode);
   const runtimeLogsUnavailableKey = runtimeLogsUnavailable
-    ? `${selectedApp?.id ?? "none"}:${runtimeLogsUnavailable.refreshLabel}`
+    ? `${selectedApp?.id ?? "none"}:${runtimeLogsUnavailable.label}`
     : null;
-  const logsAutoRefreshEnabled =
-    runtimeLogsUnavailable === null &&
-    (logsMode === "runtime" || shouldAutoRefreshBuildLogs(buildLogsOperationStatus));
   const dataErrorMessage = data.errors.length
     ? `Partial Fugue data: ${data.errors.join(" | ")}.`
     : null;
@@ -1238,14 +1459,33 @@ export function ConsoleProjectGallery({
     : isCreateServiceMode
       ? "Add service"
       : "Create project";
-  const logsDisplayBody = readLogsDisplayBody(logsStatus, logsBody);
+  selectedServiceAppRef.current = selectedServiceApp;
+  selectedAppNeedsPendingCommitHintRef.current = selectedAppNeedsPendingCommitHint;
+  const logsDisplayBody = readLogsDisplayBody(logsStatus, logsBody, logsConnectionState);
   const logsRefreshStateLabel = runtimeLogsUnavailable
-    ? runtimeLogsUnavailable.refreshLabel
-    : logsRefreshing
-      ? "Refresh / Updating"
-      : logsAutoRefreshEnabled
-        ? `Refresh / Auto ${LOG_AUTO_REFRESH_INTERVAL_MS / 1000}s`
-        : "Refresh / Stopped";
+    ? runtimeLogsUnavailable.label
+    : logsConnectionState === "connecting"
+      ? "Connecting"
+      : logsConnectionState === "reconnecting"
+        ? "Reconnecting"
+        : logsConnectionState === "live"
+          ? "Live"
+          : logsConnectionState === "ended"
+            ? effectiveLogsMode === "build" && buildLogsOperationStatus
+              ? humanizeUiLabel(buildLogsOperationStatus)
+              : "Ended"
+            : logsConnectionState === "error"
+              ? "Error"
+              : "Idle";
+  const logsPanelNote = runtimeLogsUnavailable
+    ? runtimeLogsUnavailable.description
+    : logsConnectionState === "reconnecting"
+      ? `Connection dropped. Reconnecting to ${humanizeUiLabel(effectiveLogsMode).toLowerCase()} output.`
+      : logsConnectionState === "ended"
+        ? `${humanizeUiLabel(effectiveLogsMode)} stream closed. Use Refresh now to reopen the latest snapshot.`
+        : logsConnectionState === "error"
+          ? `Unable to open the ${humanizeUiLabel(effectiveLogsMode).toLowerCase()} stream. Use Refresh now to try again.`
+          : `Live ${humanizeUiLabel(effectiveLogsMode).toLowerCase()} output for ${selectedService?.name ?? "this service"}.`;
 
   useEffect(() => {
     if (defaultCreateOpen) {
@@ -1283,6 +1523,9 @@ export function ConsoleProjectGallery({
 
   useEffect(() => {
     if (!selectedProjectId) {
+      if (selectedServiceKey) {
+        setSelectedServiceKey(null);
+      }
       if (selectedAppId) {
         setSelectedAppId(null);
       }
@@ -1291,14 +1534,53 @@ export function ConsoleProjectGallery({
 
     if (!selectedProject) {
       setSelectedProjectId(null);
+      setSelectedServiceKey(null);
       setSelectedAppId(null);
       return;
     }
 
-    if (!selectedApp) {
-      setSelectedAppId(selectedProjectApps[0]?.id ?? null);
+    if (!selectedService) {
+      const defaultService = selectedProject.services[0] ?? null;
+
+      if (!defaultService) {
+        setSelectedAppId(null);
+        return;
+      }
+
+      setSelectedServiceKey(serviceKey(defaultService));
+      setSelectedAppId(
+        defaultService.kind === "app"
+          ? defaultService.id
+          : defaultService.ownerAppId ?? selectedProjectApps[0]?.id ?? null,
+      );
+      return;
     }
-  }, [selectedApp, selectedAppId, selectedProject, selectedProjectApps, selectedProjectId]);
+
+    if (selectedService.kind === "backing-service" && selectedAppId !== selectedService.ownerAppId) {
+      setSelectedAppId(selectedService.ownerAppId ?? selectedProjectApps[0]?.id ?? null);
+    }
+  }, [
+    selectedAppId,
+    selectedProject,
+    selectedProjectApps,
+    selectedProjectId,
+    selectedService,
+    selectedServiceKey,
+  ]);
+
+  useEffect(() => {
+    if (selectedService?.kind !== "backing-service") {
+      return;
+    }
+
+    if (activeTab !== "logs") {
+      setActiveTab("logs");
+    }
+
+    if (logsMode !== "runtime") {
+      setLogsMode("runtime");
+    }
+  }, [activeTab, logsMode, selectedService]);
 
   useEffect(() => {
     if (!createOpen) {
@@ -1314,7 +1596,7 @@ export function ConsoleProjectGallery({
   }, [createOpen]);
 
   useEffect(() => {
-    if (!selectedApp) {
+    if (!selectedServiceApp) {
       setEnvStatus("idle");
       setEnvBaseline({});
       setEnvRows([]);
@@ -1328,14 +1610,14 @@ export function ConsoleProjectGallery({
       return;
     }
 
-    if (activeTab !== "env" || envLoadedAppId === selectedApp.id) {
+    if (activeTab !== "env" || envLoadedAppId === selectedServiceApp.id) {
       return;
     }
 
     let cancelled = false;
     setEnvStatus("loading");
 
-    requestJson<EnvResponse>(`/api/fugue/apps/${selectedApp.id}/env`)
+    requestJson<EnvResponse>(`/api/fugue/apps/${selectedServiceApp.id}/env`)
       .then((response) => {
         if (cancelled) {
           return;
@@ -1345,7 +1627,7 @@ export function ConsoleProjectGallery({
         const nextRows = rowsFromEnv(nextEnv);
         setEnvBaseline(nextEnv);
         setEnvRows(nextRows);
-        setEnvLoadedAppId(selectedApp.id);
+        setEnvLoadedAppId(selectedServiceApp.id);
         setEnvRawDraft(serializeEnvEntries(entriesFromEnvRecord(nextEnv)));
         setEnvRawFeedback(buildEnvRawFeedback(nextRows));
         setEnvStatus("ready");
@@ -1365,29 +1647,26 @@ export function ConsoleProjectGallery({
     return () => {
       cancelled = true;
     };
-  }, [activeTab, envLoadedAppId, selectedApp]);
+  }, [activeTab, envLoadedAppId, selectedServiceApp]);
 
   useEffect(() => {
     if (selectedApp) {
       return;
     }
 
-    logsVisibleKeyRef.current = null;
-    logsRequestPendingRef.current = false;
+    setLogsConnectionState("idle");
     setLogsStatus("idle");
     setLogsBody("");
-    setLogsMeta([]);
     setBuildLogsOperationStatus(null);
-    setLogsRefreshing(false);
   }, [selectedApp?.id]);
 
   useEffect(() => {
     pendingCommitHintRequestPendingRef.current = false;
     setSelectedAppPendingCommitHint(null);
-  }, [selectedApp?.id]);
+  }, [selectedServiceApp?.id, selectedServiceKey]);
 
   useEffect(() => {
-    if (!selectedApp || !selectedAppNeedsPendingCommitHint) {
+    if (!selectedServiceApp || !selectedAppNeedsPendingCommitHint) {
       pendingCommitHintRequestPendingRef.current = false;
       setSelectedAppPendingCommitHint(null);
       return undefined;
@@ -1397,7 +1676,7 @@ export function ConsoleProjectGallery({
       return undefined;
     }
 
-    const app = selectedApp;
+    const app = selectedServiceApp;
     let cancelled = false;
     let activeController: AbortController | null = null;
 
@@ -1455,137 +1734,274 @@ export function ConsoleProjectGallery({
 
       window.clearInterval(intervalId);
     };
-  }, [selectedApp, selectedAppNeedsPendingCommitHint, selectedAppUsesBuildLogStream]);
+  }, [selectedServiceApp, selectedAppNeedsPendingCommitHint, selectedAppUsesBuildLogStream]);
 
   useEffect(() => {
-    if (!selectedApp || activeTab !== "logs" || !logsRequestInput || !logsRequestKey) {
+    if (!selectedApp || activeTab !== "logs" || !logsStreamInput || !logsRequestKey) {
       return;
     }
+
+    const streamInput = logsStreamInput;
 
     if (runtimeLogsUnavailable) {
-      logsVisibleKeyRef.current = null;
-      logsRequestPendingRef.current = false;
+      setLogsConnectionState("idle");
       setLogsStatus("idle");
       setLogsBody("");
-      setLogsMeta([]);
-      setLogsRefreshing(false);
+
+      if (effectiveLogsMode !== "build") {
+        setBuildLogsOperationStatus(null);
+      }
+
       return;
     }
 
-    const controller = new AbortController();
-    const backgroundRefresh = logsVisibleKeyRef.current === logsRequestKey;
     let cancelled = false;
-    logsRequestPendingRef.current = true;
+    let retryDelayMs = LOG_AUTO_REFRESH_INTERVAL_MS;
+    let reconnectTimer: number | null = null;
+    let activeController: AbortController | null = null;
+    let latestCursor = "";
+    let lastRenderedSourceId: string | null = null;
+    let streamEnded = false;
 
-    if (backgroundRefresh) {
-      setLogsRefreshing(true);
-    } else {
-      setLogsStatus("loading");
-      setLogsBody("");
-      setLogsMeta([]);
-      setLogsRefreshing(false);
+    function clearReconnectTimer() {
+      if (reconnectTimer !== null) {
+        window.clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
     }
 
-    requestJson<BuildLogsResponse | RuntimeLogsResponse>(logsRequestInput, {
-      cache: "no-store",
-      signal: controller.signal,
-    })
-      .then((response) => {
-        if (cancelled) {
-          return;
-        }
-
-        if (logsMode === "build") {
-          const buildLogs = response as BuildLogsResponse;
-          setLogsBody(buildLogs.logs || "No build logs available.");
-          setLogsMeta(buildLogMeta(buildLogs));
-          setBuildLogsOperationStatus(buildLogs.operationStatus ?? null);
-          setSelectedAppPendingCommitHint(
-            selectedAppNeedsPendingCommitHint ? inferPendingCommitHint(selectedApp, buildLogs) : null,
-          );
-        } else {
-          const runtimeLogs = response as RuntimeLogsResponse;
-          setLogsBody(runtimeLogs.logs || "No runtime logs available.");
-          setLogsMeta(runtimeLogMeta(runtimeLogs));
-        }
-
-        logsVisibleKeyRef.current = logsRequestKey;
-        logsRequestPendingRef.current = false;
-        setLogsStatus("ready");
-        setLogsRefreshing(false);
-      })
-      .catch((error) => {
-        if (cancelled || controller.signal.aborted) {
-          return;
-        }
-
-        logsRequestPendingRef.current = false;
-        setLogsRefreshing(false);
-
-        if (logsMode === "build") {
-          setSelectedAppPendingCommitHint(
-            selectedAppNeedsPendingCommitHint ? inferPendingCommitHint(selectedApp, null) : null,
-          );
-        }
-
-        if (backgroundRefresh) {
-          if (logsRefreshMode === "manual") {
-            setFlash({
-              message: readErrorMessage(error),
-              variant: "error",
-            });
-          }
-          return;
-        }
-
-        setLogsStatus("error");
-        setFlash({
-          message: readErrorMessage(error),
-          variant: "error",
-        });
-      });
-
-    return () => {
-      cancelled = true;
-      logsRequestPendingRef.current = false;
-      controller.abort();
-    };
-  }, [
-    activeTab,
-    logsMode,
-    logsRefreshMode,
-    logsRefreshToken,
-    logsRequestInput,
-    logsRequestKey,
-    selectedApp,
-    selectedAppNeedsPendingCommitHint,
-    runtimeLogsUnavailableKey,
-  ]);
-
-  useEffect(() => {
-    if (!selectedApp?.hasPostgresService && runtimeComponent === "postgres") {
-      setRuntimeComponent("app");
-    }
-  }, [runtimeComponent, selectedApp]);
-
-  useEffect(() => {
-    if (!selectedApp || activeTab !== "logs" || !logsAutoRefreshEnabled) {
-      return undefined;
-    }
-
-    const intervalId = window.setInterval(() => {
-      if (document.visibilityState !== "visible" || logsRequestPendingRef.current) {
+    function scheduleReconnect() {
+      if (cancelled || streamEnded) {
         return;
       }
 
-      setLogsRefreshMode("auto");
-      setLogsRefreshToken((value) => value + 1);
-    }, LOG_AUTO_REFRESH_INTERVAL_MS);
+      clearReconnectTimer();
+      setLogsConnectionState("reconnecting");
+      setLogsStatus((current) => (current === "ready" ? "ready" : "loading"));
+      reconnectTimer = window.setTimeout(() => {
+        void openStream("reconnect");
+      }, retryDelayMs);
+    }
+
+    async function openStream(mode: "initial" | "reconnect") {
+      if (cancelled) {
+        return;
+      }
+
+      clearReconnectTimer();
+      activeController?.abort();
+      activeController = new AbortController();
+      streamEnded = false;
+
+      if (mode === "initial") {
+        latestCursor = "";
+        lastRenderedSourceId = null;
+        setLogsBody("");
+        setLogsStatus("loading");
+        setLogsConnectionState("connecting");
+        setBuildLogsOperationStatus(null);
+      } else {
+        setLogsConnectionState("reconnecting");
+        setLogsStatus((current) => (current === "ready" ? "ready" : "loading"));
+      }
+
+      const streamUrl =
+        mode === "reconnect" && latestCursor
+          ? `${streamInput}&cursor=${encodeURIComponent(latestCursor)}`
+          : streamInput;
+
+      try {
+        const response = await fetch(streamUrl, {
+          cache: "no-store",
+          headers: {
+            Accept: "text/event-stream",
+          },
+          signal: activeController.signal,
+        });
+
+        if (!response.ok) {
+          throw new LogStreamRequestError(response.status, await readResponseError(response));
+        }
+
+        if (!response.body) {
+          throw new Error("Streaming response body is unavailable.");
+        }
+
+        await consumeSSEStream(response, {
+          onRetry(milliseconds) {
+            if (milliseconds > 0) {
+              retryDelayMs = milliseconds;
+            }
+          },
+          onEvent(event) {
+            if (event.id) {
+              latestCursor = event.id;
+            }
+
+            switch (event.event) {
+              case "ready":
+                setLogsConnectionState("live");
+                setLogsStatus("ready");
+                return;
+              case "status": {
+                const status = parseBuildLogStreamStatus(event);
+
+                if (!status) {
+                  return;
+                }
+
+                if (status.cursor) {
+                  latestCursor = status.cursor;
+                }
+
+                setLogsConnectionState("live");
+                setLogsStatus("ready");
+                setBuildLogsOperationStatus(status.operationStatus ?? null);
+
+                const app = selectedServiceAppRef.current;
+                setSelectedAppPendingCommitHint(
+                  app && selectedAppNeedsPendingCommitHintRef.current
+                    ? inferPendingCommitHint(app, buildLogsResponseFromStatus(status))
+                    : null,
+                );
+                return;
+              }
+              case "state": {
+                const state = parseRuntimeLogStreamState(event);
+
+                if (!state) {
+                  return;
+                }
+
+                if (state.cursor) {
+                  latestCursor = state.cursor;
+                }
+
+                setLogsConnectionState("live");
+                setLogsStatus("ready");
+                return;
+              }
+              case "log": {
+                const logLine = parseLogStreamLogLine(event);
+
+                if (!logLine) {
+                  return;
+                }
+
+                if (logLine.cursor) {
+                  latestCursor = logLine.cursor;
+                }
+
+                setLogsConnectionState("live");
+                setLogsStatus("ready");
+                setLogsBody((current) => {
+                  const next = appendLogBodyLine(
+                    current,
+                    logLine.line,
+                    logLine.source,
+                    lastRenderedSourceId,
+                  );
+                  lastRenderedSourceId = next.sourceId;
+                  return next.body;
+                });
+                return;
+              }
+              case "warning": {
+                const warning = parseLogStreamWarning(event);
+
+                if (!warning) {
+                  return;
+                }
+
+                if (warning.cursor) {
+                  latestCursor = warning.cursor;
+                }
+
+                setLogsConnectionState("live");
+                setLogsStatus("ready");
+                setLogsBody((current) => {
+                  const next = appendLogBodyWarning(current, warning, lastRenderedSourceId);
+                  lastRenderedSourceId = next.sourceId;
+                  return next.body;
+                });
+                return;
+              }
+              case "heartbeat":
+                setLogsConnectionState("live");
+                setLogsStatus("ready");
+                return;
+              case "end": {
+                const endEvent = parseLogStreamEnd(event);
+
+                if (endEvent?.cursor) {
+                  latestCursor = endEvent.cursor;
+                }
+
+                if (endEvent?.operationStatus) {
+                  setBuildLogsOperationStatus(endEvent.operationStatus);
+                }
+
+                streamEnded = true;
+                setLogsConnectionState("ended");
+                setLogsStatus("ready");
+                return;
+              }
+              default:
+                return;
+            }
+          },
+        });
+
+        if (cancelled || activeController.signal.aborted || streamEnded) {
+          return;
+        }
+
+        scheduleReconnect();
+      } catch (error) {
+        if (cancelled || activeController?.signal.aborted) {
+          return;
+        }
+
+        if (!isRetryableLogStreamError(error)) {
+          if (effectiveLogsMode === "build") {
+            const app = selectedServiceAppRef.current;
+            setSelectedAppPendingCommitHint(
+              app && selectedAppNeedsPendingCommitHintRef.current
+                ? inferPendingCommitHint(app, null)
+                : null,
+            );
+          }
+
+          setLogsConnectionState("error");
+          setLogsStatus("error");
+          setFlash({
+            message: readErrorMessage(error),
+            variant: "error",
+          });
+          return;
+        }
+
+        scheduleReconnect();
+      }
+    }
+
+    void openStream("initial");
 
     return () => {
-      window.clearInterval(intervalId);
+      cancelled = true;
+      clearReconnectTimer();
+      activeController?.abort();
     };
-  }, [activeTab, logsAutoRefreshEnabled, logsRequestKey]);
+  }, [
+    activeTab,
+    effectiveLogsMode,
+    logsRefreshToken,
+    logsRequestKey,
+    logsStreamInput,
+    selectedApp?.id,
+    selectedServiceApp?.phase,
+    runtimeLogsUnavailableKey,
+  ]);
 
   useEffect(() => {
     if (!projectRefreshIntervalMs) {
@@ -1711,6 +2127,7 @@ export function ConsoleProjectGallery({
 
       if (response.app?.id) {
         setSelectedAppId(response.app.id);
+        setSelectedServiceKey(`app:${response.app.id}`);
       }
 
       setCreateOpen(false);
@@ -1742,35 +2159,50 @@ export function ConsoleProjectGallery({
   function chooseProject(project: ConsoleGalleryProjectView) {
     if (selectedProjectId === project.id) {
       setSelectedProjectId(null);
+      setSelectedServiceKey(null);
       setSelectedAppId(null);
       return;
     }
 
+    const defaultService = project.services[0] ?? null;
     setSelectedProjectId(project.id);
-    setSelectedAppId(projectApps(project)[0]?.id ?? null);
-    setActiveTab("env");
+    setSelectedServiceKey(defaultService ? serviceKey(defaultService) : null);
+    setSelectedAppId(
+      defaultService
+        ? defaultService.kind === "app"
+          ? defaultService.id
+          : defaultService.ownerAppId ?? projectApps(project)[0]?.id ?? null
+        : null,
+    );
+    setActiveTab(defaultService?.kind === "backing-service" ? "logs" : "env");
+    setLogsMode(defaultService?.kind === "backing-service" ? "runtime" : "build");
   }
 
-  function chooseApp(appId: string) {
-    setSelectedAppId(appId);
-    setActiveTab("env");
+  function chooseService(service: ConsoleGalleryServiceView) {
+    setSelectedServiceKey(serviceKey(service));
+    setSelectedAppId(service.kind === "app" ? service.id : service.ownerAppId ?? selectedAppId);
+
+    if (service.kind === "backing-service") {
+      setActiveTab("logs");
+      setLogsMode("runtime");
+    }
   }
 
   async function handleAppAction(action: AppAction) {
-    if (!selectedApp || busyAction) {
+    if (!selectedServiceApp || busyAction) {
       return;
     }
 
-    if (action === "redeploy" && !selectedApp.canRedeploy) {
+    if (action === "redeploy" && !selectedServiceApp.canRedeploy) {
       setFlash({
-        message: selectedApp.redeployDisabledReason ?? "Redeploy is not available for this app.",
+        message: selectedServiceApp.redeployDisabledReason ?? "Redeploy is not available for this app.",
         variant: "error",
       });
       return;
     }
 
     if (action === "delete") {
-      const confirmed = window.confirm(`Delete ${selectedApp.name}?`);
+      const confirmed = window.confirm(`Delete ${selectedServiceApp.name}?`);
 
       if (!confirmed) {
         return;
@@ -1781,23 +2213,23 @@ export function ConsoleProjectGallery({
     setFlash(null);
 
     try {
-      let input = `/api/fugue/apps/${selectedApp.id}`;
+      let input = `/api/fugue/apps/${selectedServiceApp.id}`;
       let method = "POST";
       let successMessage = "Request queued.";
       let refreshWindowMs = 45_000;
 
       switch (action) {
         case "redeploy":
-          input = `/api/fugue/apps/${selectedApp.id}/rebuild`;
-          successMessage = selectedApp.redeployQueuedMessage;
+          input = `/api/fugue/apps/${selectedServiceApp.id}/rebuild`;
+          successMessage = selectedServiceApp.redeployQueuedMessage;
           refreshWindowMs = 90_000;
           break;
         case "restart":
-          input = `/api/fugue/apps/${selectedApp.id}/restart`;
+          input = `/api/fugue/apps/${selectedServiceApp.id}/restart`;
           successMessage = "Restart queued.";
           break;
         case "disable":
-          input = `/api/fugue/apps/${selectedApp.id}/disable`;
+          input = `/api/fugue/apps/${selectedServiceApp.id}/disable`;
           successMessage = "Pause queued.";
           break;
         case "delete":
@@ -1808,6 +2240,13 @@ export function ConsoleProjectGallery({
 
       await requestJson(input, { method });
       armRefreshWindow(refreshWindowMs);
+
+      if (action === "redeploy") {
+        setActiveTab("logs");
+        setLogsMode("build");
+        setLogsRefreshToken((value) => value + 1);
+      }
+
       setFlash({
         message: successMessage,
         variant: "success",
@@ -1894,7 +2333,7 @@ export function ConsoleProjectGallery({
   }
 
   async function saveEnv() {
-    if (!selectedApp || envSaving) {
+    if (!selectedServiceApp || envSaving) {
       return;
     }
 
@@ -1907,11 +2346,22 @@ export function ConsoleProjectGallery({
     }
 
     const activeRows = envRows.filter((row) => !row.removed);
+    const emptyKeyRows = activeRows.filter(
+      (row) => readEnvRowKey(row).length === 0 && (row.existing || row.value.length > 0),
+    );
     const duplicateKeys = new Set<string>();
     const seenKeys = new Set<string>();
 
+    if (emptyKeyRows.length > 0) {
+      setFlash({
+        message: "Environment variable names cannot be empty.",
+        variant: "error",
+      });
+      return;
+    }
+
     for (const row of activeRows) {
-      const key = row.existing ? row.originalKey : row.key.trim();
+      const key = readEnvRowKey(row);
 
       if (!key) {
         continue;
@@ -1933,12 +2383,21 @@ export function ConsoleProjectGallery({
     }
 
     const setPayload: Record<string, string> = {};
-    const deletePayload: string[] = [];
+    const deleteSet = new Set<string>();
 
     for (const row of envRows) {
       if (row.existing) {
         if (row.removed) {
-          deletePayload.push(row.originalKey);
+          deleteSet.add(row.originalKey);
+          continue;
+        }
+
+        const key = readEnvRowKey(row);
+        const keyChanged = key !== row.originalKey;
+
+        if (keyChanged) {
+          deleteSet.add(row.originalKey);
+          setPayload[key] = row.value;
           continue;
         }
 
@@ -1948,12 +2407,18 @@ export function ConsoleProjectGallery({
         continue;
       }
 
-      const key = row.key.trim();
+      const key = readEnvRowKey(row);
 
       if (key) {
         setPayload[key] = row.value;
       }
     }
+
+    for (const key of Object.keys(setPayload)) {
+      deleteSet.delete(key);
+    }
+
+    const deletePayload = [...deleteSet].sort((left, right) => left.localeCompare(right));
 
     if (!Object.keys(setPayload).length && !deletePayload.length) {
       setFlash({
@@ -1966,7 +2431,7 @@ export function ConsoleProjectGallery({
     setEnvSaving(true);
 
     try {
-      const response = await requestJson<EnvResponse>(`/api/fugue/apps/${selectedApp.id}/env`, {
+      const response = await requestJson<EnvResponse>(`/api/fugue/apps/${selectedServiceApp.id}/env`, {
         body: JSON.stringify({
           delete: deletePayload,
           set: setPayload,
@@ -1982,7 +2447,7 @@ export function ConsoleProjectGallery({
       const nextRows = rowsFromEnv(nextEnv);
       setEnvBaseline(nextEnv);
       setEnvRows(nextRows);
-      setEnvLoadedAppId(selectedApp.id);
+      setEnvLoadedAppId(selectedServiceApp.id);
       setEnvRawDraft(serializeEnvEntries(entriesFromEnvRecord(nextEnv)));
       setEnvRawFeedback(buildEnvRawFeedback(nextRows));
       setFlash({
@@ -2003,11 +2468,7 @@ export function ConsoleProjectGallery({
   }
 
   function refreshLogs() {
-    if (logsRequestPendingRef.current) {
-      return;
-    }
-
-    setLogsRefreshMode("manual");
+    setFlash(null);
     setLogsRefreshToken((value) => value + 1);
   }
 
@@ -2015,12 +2476,35 @@ export function ConsoleProjectGallery({
     project: ConsoleGalleryProjectView,
     detailId: string,
   ) {
-    if (selectedProject?.id !== project.id || !selectedApp) {
+    if (selectedProject?.id !== project.id || !selectedService || !selectedApp) {
       return null;
     }
 
+    const selectedServiceSummary =
+      selectedService.kind === "app"
+        ? readDistinctText(selectedService.lastMessage, [selectedService.name])
+        : readDistinctText(selectedService.description, [
+            selectedService.name,
+            selectedService.ownerAppLabel,
+            selectedService.type,
+            humanizeUiLabel(selectedService.type),
+          ]);
+    const selectedServiceWorkspacePath =
+      selectedService.kind === "app" ? readDistinctText(selectedService.workspaceMountPath) : null;
+    const backingServiceOwnerLabel =
+      selectedService.kind === "backing-service"
+        ? readDistinctText(selectedService.ownerAppLabel, [selectedService.name])
+        : null;
+    const backingServiceDescription =
+      selectedService.kind === "backing-service"
+        ? readDistinctText(selectedService.description, [
+            selectedService.name,
+            selectedService.ownerAppLabel,
+            selectedService.type,
+            humanizeUiLabel(selectedService.type),
+          ])
+        : null;
     const serviceCountLabel = `${project.services.length} service${project.services.length === 1 ? "" : "s"}`;
-
     return (
       <div className="fg-project-card__detail" id={detailId}>
         <section className="fg-bezel fg-panel fg-project-workbench">
@@ -2038,69 +2522,67 @@ export function ConsoleProjectGallery({
 
               <PanelSection>
                 <ul className="fg-project-service-list">
-                  {project.services.map((service) => (
-                    <li key={`${service.kind}:${service.id}`}>
-                      {service.kind === "app" ? (
-                        <div
-                          className={cx(
-                            "fg-project-service-card",
-                            selectedApp.id === service.id && "is-active",
-                          )}
+                  {project.services.map((service) => {
+                    const active = serviceKey(selectedService) === serviceKey(service);
+                    const serviceStatus = service.kind === "app" ? service.phase : service.status;
+                    const serviceStatusTone =
+                      service.kind === "app" ? service.phaseTone : service.statusTone;
+                    const cardSecondaryLines =
+                      service.kind === "app"
+                        ? [readDistinctText(service.sourceMeta, [service.name])]
+                        : [
+                            readDistinctText(service.ownerAppLabel, [service.name]),
+                            readDistinctText(`Service / ${service.type}`, [service.name, service.ownerAppLabel]),
+                          ].filter((value): value is string => Boolean(value));
+                    const cardStatusMeta =
+                      service.kind === "app" && service.serviceDurationLabel
+                        ? `${service.serviceDurationLabel} elapsed`
+                        : null;
+
+                    return (
+                      <li key={serviceKey(service)}>
+                        <button
+                          aria-label={`Inspect ${service.name}`}
+                          aria-pressed={active}
+                          className={cx("fg-project-service-card", active && "is-active")}
+                          onClick={() => chooseService(service)}
+                          type="button"
                         >
-                          <button
-                            aria-label={`Inspect ${service.name}`}
-                            aria-pressed={selectedApp.id === service.id}
-                            className="fg-project-service-card__select"
-                            onClick={() => chooseApp(service.id)}
-                            type="button"
-                          />
-                          <div className="fg-project-service-card__content">
-                            <div className="fg-project-service-card__head">
-                              <strong>{service.name}</strong>
-                              <StatusBadge tone={service.phaseTone}>{service.phase}</StatusBadge>
-                            </div>
-                            <div className="fg-project-service-card__badges">
-                              {service.serviceBadges.map((badge) => (
-                                <ProjectBadge
-                                  key={`${service.id}:${badge.id}`}
-                                  kind={badge.kind}
-                                  label={badge.label}
-                                  meta={badge.meta}
-                                />
-                              ))}
-                            </div>
-                            <div className="fg-project-service-card__meta">
-                              {renderExternalText(
-                                service.sourceLabel,
-                                service.sourceHref,
-                                service.sourceHref ? "fg-project-service-card__source-link" : undefined,
-                              )}
-                              {readTrackingLabel(service) ? <span>{readTrackingLabel(service)}</span> : null}
-                              <span>{service.routeLabel}</span>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="fg-project-service-card is-static">
                           <div className="fg-project-service-card__head">
-                            <strong>{service.name}</strong>
-                            <StatusBadge tone={service.statusTone}>{service.status}</StatusBadge>
+                            <div className="fg-project-service-card__title-row">
+                              <div className="fg-project-service-card__summary">
+                                <span className="fg-project-service-card__primary-badge">
+                                  <ProjectBadge
+                                    kind={service.primaryBadge.kind}
+                                    label={service.primaryBadge.label}
+                                    meta={service.primaryBadge.meta}
+                                  />
+                                </span>
+                                <div className="fg-project-service-card__identity">
+                                  <strong>{service.name}</strong>
+                                </div>
+                              </div>
+
+                              <div className="fg-project-service-card__status">
+                                <StatusBadge live={shouldShowLiveStatusBadge(serviceStatus)} tone={serviceStatusTone}>
+                                  {serviceStatus}
+                                </StatusBadge>
+                                {cardStatusMeta ? <span>{cardStatusMeta}</span> : null}
+                              </div>
+                            </div>
+
+                            {cardSecondaryLines.length ? (
+                              <div className="fg-project-service-card__meta">
+                                {cardSecondaryLines.map((line) => (
+                                  <span key={line}>{line}</span>
+                                ))}
+                              </div>
+                            ) : null}
                           </div>
-                          <div className="fg-project-service-card__badges">
-                            <ProjectBadge
-                              kind="postgres"
-                              label={service.type}
-                              meta="Service"
-                            />
-                          </div>
-                          <div className="fg-project-service-card__meta">
-                            <span>{service.type}</span>
-                            <span>{service.ownerAppLabel}</span>
-                          </div>
-                        </div>
-                      )}
-                    </li>
-                  ))}
+                        </button>
+                      </li>
+                    );
+                  })}
                 </ul>
               </PanelSection>
             </aside>
@@ -2109,152 +2591,136 @@ export function ConsoleProjectGallery({
               <PanelSection className="fg-project-inspector__head">
                 <div className="fg-project-inspector__header-row">
                   <div className="fg-project-inspector__hero">
-                    <PanelTitle>{selectedApp.name}</PanelTitle>
-                    <PanelCopy className="fg-project-inspector__copy">
-                      {selectedApp.lastMessage}
-                    </PanelCopy>
-                  </div>
-
-                  <div className="fg-console-inline-status">
-                    <StatusBadge tone={selectedApp.phaseTone}>{selectedApp.phase}</StatusBadge>
-                    <StatusBadge tone="neutral">{selectedApp.updatedLabel}</StatusBadge>
+                    <PanelTitle>{selectedService.name}</PanelTitle>
+                    {selectedServiceSummary ? (
+                      <PanelCopy className="fg-project-inspector__copy">{selectedServiceSummary}</PanelCopy>
+                    ) : null}
                   </div>
                 </div>
 
-                {selectedApp.serviceBadges.length ? (
-                  <div className="fg-project-inspector__stack" aria-label="Selected app stack">
-                    {selectedApp.serviceBadges.map((badge) => (
-                      <ProjectBadge
-                        key={`${selectedApp.id}:${badge.id}`}
-                        kind={badge.kind}
-                        label={badge.label}
-                        meta={badge.meta}
-                      />
-                    ))}
-                  </div>
-                ) : null}
-
                 <div className="fg-project-inspector__meta-grid">
-                  <div>
-                    <dt>Source</dt>
-                    <dd>{renderExternalText(selectedApp.sourceLabel, selectedApp.sourceHref)}</dd>
-                  </div>
-                  <div>
-                    <dt>Branch</dt>
-                    <dd>{renderOptionalExternalText(selectedApp.sourceBranchLabel, selectedApp.sourceBranchHref)}</dd>
-                  </div>
-                  <div>
-                    <dt>Commit</dt>
-                    <dd>{renderCommitText(selectedApp, selectedAppPendingCommitHint)}</dd>
-                  </div>
-                  <div>
-                    <dt>Build</dt>
-                    <dd>{selectedApp.sourceMeta}</dd>
-                  </div>
-                  <div>
-                    <dt>Route</dt>
-                    <dd>
-                      {selectedApp.routeHref ? (
-                        <a
-                          className="fg-text-link"
-                          href={selectedApp.routeHref}
-                          rel="noreferrer"
-                          target="_blank"
-                        >
-                          {selectedApp.routeLabel}
-                        </a>
-                      ) : (
-                        selectedApp.routeLabel
-                      )}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Status</dt>
-                    <dd>{selectedApp.phase}</dd>
-                  </div>
+                  {selectedService.kind === "app" ? (
+                    <>
+                      <div>
+                        <dt>Commit</dt>
+                        <dd>{renderCommitText(selectedService, selectedAppPendingCommitHint)}</dd>
+                      </div>
+                      <div>
+                        <dt>Build</dt>
+                        <dd>{selectedService.sourceMeta}</dd>
+                      </div>
+                      {selectedServiceWorkspacePath ? (
+                        <div>
+                          <dt>Workspace</dt>
+                          <dd>{selectedServiceWorkspacePath}</dd>
+                        </div>
+                      ) : null}
+                    </>
+                  ) : (
+                    <>
+                      <div>
+                        <dt>Service</dt>
+                        <dd>{selectedService.type}</dd>
+                      </div>
+                      {backingServiceOwnerLabel ? (
+                        <div>
+                          <dt>Attached to</dt>
+                          <dd>{backingServiceOwnerLabel}</dd>
+                        </div>
+                      ) : null}
+                      {backingServiceDescription ? (
+                        <div>
+                          <dt>Description</dt>
+                          <dd>{backingServiceDescription}</dd>
+                        </div>
+                      ) : null}
+                    </>
+                  )}
                 </div>
               </PanelSection>
 
               <PanelSection className="fg-project-inspector__controls">
                 <div className="fg-project-toolbar">
-                  <div className="fg-project-toolbar__group">
-                    <p className="fg-label fg-project-toolbar__label">Actions</p>
-                    <div className="fg-project-actions">
-                      <Button
-                        disabled={!selectedApp.canRedeploy || Boolean(busyAction && busyAction !== "redeploy")}
-                        loading={busyAction === "redeploy"}
-                        loadingLabel={selectedApp.redeployActionLoadingLabel}
-                        onClick={() => handleAppAction("redeploy")}
-                        size="compact"
-                        title={
-                          selectedApp.canRedeploy
-                            ? selectedApp.redeployActionDescription
-                            : selectedApp.redeployDisabledReason ?? undefined
-                        }
-                        type="button"
-                        variant="primary"
-                      >
-                        {selectedApp.redeployActionLabel}
-                      </Button>
-                      <Button
-                        disabled={Boolean(busyAction && busyAction !== "restart")}
-                        loading={busyAction === "restart"}
-                        loadingLabel="Restarting…"
-                        onClick={() => handleAppAction("restart")}
-                        size="compact"
-                        title="Restart the current release without rebuilding the image. Persistent workspace is preserved when configured."
-                        type="button"
-                        variant="secondary"
-                      >
-                        Restart
-                      </Button>
-                      <Button
-                        disabled={Boolean(busyAction && busyAction !== "disable")}
-                        loading={busyAction === "disable"}
-                        loadingLabel="Pausing…"
-                        onClick={() => handleAppAction("disable")}
-                        size="compact"
-                        type="button"
-                        variant="secondary"
-                      >
-                        Pause
-                      </Button>
-                      <Button
-                        disabled={Boolean(busyAction && busyAction !== "delete")}
-                        loading={busyAction === "delete"}
-                        loadingLabel="Deleting…"
-                        onClick={() => handleAppAction("delete")}
-                        size="compact"
-                        type="button"
-                        variant="danger"
-                      >
-                        Delete
-                      </Button>
+                  {selectedService.kind === "app" ? (
+                    <div className="fg-project-toolbar__group">
+                      <p className="fg-label fg-project-toolbar__label">Actions</p>
+                      <div className="fg-project-actions">
+                        <Button
+                          disabled={!selectedService.canRedeploy || Boolean(busyAction && busyAction !== "redeploy")}
+                          loading={busyAction === "redeploy"}
+                          loadingLabel={selectedService.redeployActionLoadingLabel}
+                          onClick={() => handleAppAction("redeploy")}
+                          size="compact"
+                          title={
+                            selectedService.canRedeploy
+                              ? selectedService.redeployActionDescription
+                              : selectedService.redeployDisabledReason ?? undefined
+                          }
+                          type="button"
+                          variant="primary"
+                        >
+                          {selectedService.redeployActionLabel}
+                        </Button>
+                        <Button
+                          disabled={Boolean(busyAction && busyAction !== "restart")}
+                          loading={busyAction === "restart"}
+                          loadingLabel="Restarting…"
+                          onClick={() => handleAppAction("restart")}
+                          size="compact"
+                          title="Restart the current release without rebuilding the image. Persistent workspace is preserved when configured."
+                          type="button"
+                          variant="secondary"
+                        >
+                          Restart
+                        </Button>
+                        <Button
+                          disabled={Boolean(busyAction && busyAction !== "disable")}
+                          loading={busyAction === "disable"}
+                          loadingLabel="Pausing…"
+                          onClick={() => handleAppAction("disable")}
+                          size="compact"
+                          type="button"
+                          variant="secondary"
+                        >
+                          Pause
+                        </Button>
+                        <Button
+                          disabled={Boolean(busyAction && busyAction !== "delete")}
+                          loading={busyAction === "delete"}
+                          loadingLabel="Deleting…"
+                          onClick={() => handleAppAction("delete")}
+                          size="compact"
+                          type="button"
+                          variant="danger"
+                        >
+                          Delete
+                        </Button>
+                      </div>
                     </div>
-                  </div>
+                  ) : null}
 
                   <div className="fg-project-toolbar__group fg-project-toolbar__group--tabs">
-                    <p className="fg-label fg-project-toolbar__label">Workbench</p>
+                    <p className="fg-label fg-project-toolbar__label">Panels</p>
                     <SegmentedControl
-                      ariaLabel="Workbench views"
+                      ariaLabel="Service panels"
                       onChange={setActiveTab}
-                      options={WORKBENCH_VIEW_OPTIONS}
-                      value={activeTab}
+                      options={selectedServiceWorkbenchOptions}
+                      value={selectedService.kind === "backing-service" ? "logs" : activeTab}
                     />
                   </div>
                 </div>
               </PanelSection>
 
               <PanelSection className="fg-project-pane">
-                {activeTab === "env" ? (
+                {selectedService.kind === "app" && activeTab === "env" ? (
                   <div className="fg-workbench-section">
                     <div className="fg-workbench-section__head">
                       <div className="fg-workbench-section__copy">
                         <p className="fg-label fg-panel__eyebrow">Environment</p>
                         <p className="fg-console-note">
                           {envFormat === "raw"
-                            ? `Paste a .env block for ${selectedApp.name}. Comments, blank lines, and export prefixes are ignored.`
-                            : `Configure runtime variables for ${selectedApp.name}, or switch to Raw to paste a full .env block.`}
+                            ? `Paste a .env block for ${selectedService.name}. Comments, blank lines, and export prefixes are ignored.`
+                            : `Configure runtime variables for ${selectedService.name}, or switch to Raw to paste a full .env block.`}
                         </p>
                       </div>
 
@@ -2308,21 +2774,22 @@ export function ConsoleProjectGallery({
                                 key={row.id}
                               >
                                 <input
-                                  aria-label={`${row.existing ? row.originalKey : "New variable"} Key`}
+                                  aria-label={`${row.key || row.originalKey || "New variable"} Key`}
                                   autoCapitalize="off"
                                   autoCorrect="off"
                                   className="fg-input"
-                                  disabled={row.existing}
+                                  disabled={row.removed}
                                   onChange={(event) => updateEnvRow(row.id, "key", event.target.value)}
                                   placeholder="Name"
                                   spellCheck={false}
-                                  value={row.existing ? row.originalKey : row.key}
+                                  value={row.key}
                                 />
                                 <input
-                                  aria-label={`${row.existing ? row.originalKey : "New variable"} Value`}
+                                  aria-label={`${row.key || row.originalKey || "New variable"} Value`}
                                   autoCapitalize="off"
                                   autoCorrect="off"
                                   className="fg-input"
+                                  disabled={row.removed}
                                   onChange={(event) => updateEnvRow(row.id, "value", event.target.value)}
                                   placeholder="Value"
                                   spellCheck={false}
@@ -2344,7 +2811,7 @@ export function ConsoleProjectGallery({
                       <div className="fg-env-raw">
                         <FormField
                           hint="Paste KEY=value lines directly from a .env file. Quoted values, blank lines, comments, and export prefixes are supported."
-                          htmlFor={`env-raw-${selectedApp.id}`}
+                          htmlFor={`env-raw-${selectedService.id}`}
                           label="Raw environment"
                           optionalLabel="Paste .env"
                         >
@@ -2353,7 +2820,7 @@ export function ConsoleProjectGallery({
                             autoCapitalize="off"
                             autoCorrect="off"
                             className="fg-project-textarea fg-env-raw__textarea"
-                            id={`env-raw-${selectedApp.id}`}
+                            id={`env-raw-${selectedService.id}`}
                             onChange={(event) => updateEnvRaw(event.target.value)}
                             placeholder={`DATABASE_URL=postgres://user:pass@host/db\nPUBLIC_API_BASE=https://api.example.com\n# comments are ignored`}
                             spellCheck={false}
@@ -2377,12 +2844,12 @@ export function ConsoleProjectGallery({
                   </div>
                 ) : null}
 
-                {activeTab === "files" ? (
+                {selectedService.kind === "app" && activeTab === "files" ? (
                   <ConsoleFilesWorkbench
-                    appId={selectedApp.id}
-                    appName={selectedApp.name}
-                    key={selectedApp.id}
-                    workspaceMountPath={selectedApp.workspaceMountPath}
+                    appId={selectedService.id}
+                    appName={selectedService.name}
+                    key={selectedService.id}
+                    workspaceMountPath={selectedService.workspaceMountPath}
                   />
                 ) : null}
 
@@ -2391,37 +2858,18 @@ export function ConsoleProjectGallery({
                     <div className="fg-workbench-section__head">
                       <div className="fg-workbench-section__copy">
                         <p className="fg-label fg-panel__eyebrow">Logs</p>
-                        <p className="fg-console-note">
-                          {runtimeLogsUnavailable
-                            ? runtimeLogsUnavailable.description
-                            : `Stream build and runtime output for ${selectedApp.name}. ${
-                                logsMode === "build" ? `${selectedApp.deployBehavior} ` : ""
-                              }${
-                                logsAutoRefreshEnabled
-                                  ? `Auto-refresh every ${LOG_AUTO_REFRESH_INTERVAL_MS / 1000} seconds while this panel is open.`
-                                  : "Build is in a terminal state, so auto-refresh is paused."
-                              }${logsRefreshing ? " Updating…" : ""}`}
-                        </p>
+                        <p className="fg-console-note">{logsPanelNote}</p>
                       </div>
 
                       <div className="fg-workbench-section__actions">
-                        <SegmentedControl
-                          ariaLabel="Log views"
-                          onChange={(nextMode) => {
-                            setLogsMode(nextMode);
-                          }}
-                          options={LOG_VIEW_OPTIONS}
-                          value={logsMode}
-                        />
-
-                        {logsMode === "runtime" && selectedApp.hasPostgresService ? (
+                        {selectedService.kind === "app" ? (
                           <SegmentedControl
-                            ariaLabel="Runtime components"
-                            onChange={(nextComponent) => {
-                              setRuntimeComponent(nextComponent);
+                            ariaLabel="Log views"
+                            onChange={(nextMode) => {
+                              setLogsMode(nextMode);
                             }}
-                            options={RUNTIME_VIEW_OPTIONS}
-                            value={runtimeComponent}
+                            options={LOG_VIEW_OPTIONS}
+                            value={logsMode}
                           />
                         ) : null}
 
@@ -2434,13 +2882,6 @@ export function ConsoleProjectGallery({
                     <div className="fg-bezel fg-proof-shell">
                       <div className="fg-bezel__inner">
                         <div className="fg-proof-shell__ribbon">
-                          {runtimeLogsUnavailable ? (
-                            <span>{runtimeLogsUnavailable.metaLabel}</span>
-                          ) : logsMeta.length ? (
-                            logsMeta.map((item) => renderLogMetaItem(item))
-                          ) : (
-                            <span>Waiting</span>
-                          )}
                           <span>{logsRefreshStateLabel}</span>
                         </div>
                         {runtimeLogsUnavailable ? (
@@ -2523,7 +2964,6 @@ export function ConsoleProjectGallery({
                         </div>
 
                         <div className="fg-project-card__summary-side">
-                          <ProjectLifecycleBadge project={project} />
                           <span className="fg-project-card__summary-expand" aria-hidden="true">
                             <svg viewBox="0 0 24 24">
                               <path

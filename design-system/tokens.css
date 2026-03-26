@@ -106,6 +106,41 @@
   --fugue-shadow-proof: 0 48px 90px -72px var(--fugue-color-shadow-0);
 
   /* component */
+  --fugue-status-badge-bg-positive:
+    linear-gradient(180deg, rgba(60, 96, 76, 0.34), rgba(18, 32, 25, 0.88)),
+    rgba(12, 18, 15, 0.96);
+  --fugue-status-badge-border-positive: rgba(151, 220, 180, 0.34);
+  --fugue-status-badge-text-positive: #d6eee0;
+  --fugue-status-badge-dot-positive: #9ce3ba;
+  --fugue-status-badge-halo-positive: rgba(156, 227, 186, 0.3);
+  --fugue-status-badge-bg-warning:
+    linear-gradient(180deg, rgba(108, 77, 30, 0.3), rgba(45, 31, 13, 0.88)),
+    rgba(18, 13, 8, 0.95);
+  --fugue-status-badge-border-warning: rgba(225, 182, 105, 0.28);
+  --fugue-status-badge-text-warning: #ecd2a4;
+  --fugue-status-badge-dot-warning: #e5c581;
+  --fugue-status-badge-halo-warning: rgba(229, 197, 129, 0.24);
+  --fugue-status-badge-bg-danger:
+    linear-gradient(180deg, rgba(102, 39, 39, 0.32), rgba(41, 15, 15, 0.9)),
+    rgba(18, 10, 10, 0.96);
+  --fugue-status-badge-border-danger: rgba(242, 166, 166, 0.26);
+  --fugue-status-badge-text-danger: #f1cbcb;
+  --fugue-status-badge-dot-danger: #f1b4b4;
+  --fugue-status-badge-halo-danger: rgba(241, 180, 180, 0.24);
+  --fugue-status-badge-bg-info:
+    linear-gradient(180deg, rgba(43, 65, 94, 0.32), rgba(15, 23, 35, 0.9)),
+    rgba(11, 15, 21, 0.96);
+  --fugue-status-badge-border-info: rgba(165, 191, 220, 0.28);
+  --fugue-status-badge-text-info: #c8dbef;
+  --fugue-status-badge-dot-info: #a7c6e8;
+  --fugue-status-badge-halo-info: rgba(167, 198, 232, 0.24);
+  --fugue-status-badge-bg-neutral:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.012)),
+    rgba(10, 12, 16, 0.76);
+  --fugue-status-badge-border-neutral: rgba(255, 255, 255, 0.1);
+  --fugue-status-badge-text-neutral: var(--fugue-text-secondary);
+  --fugue-status-badge-dot-neutral: rgba(244, 239, 231, 0.74);
+  --fugue-status-badge-halo-neutral: rgba(255, 255, 255, 0.16);
   --fugue-button-height: 3rem;
   --fugue-button-height-compact: 2.75rem;
   --fugue-button-height-tight: 2.35rem;

@@ -113,6 +113,21 @@ function humanize(value?: string | null) {
     .replace(/\b\w/g, (match) => match.toUpperCase());
 }
 
+function readAppPhaseLabel(value?: string | null) {
+  const normalized = value?.trim().toLowerCase() ?? "";
+
+  if (
+    normalized.includes("deployed") ||
+    normalized.includes("running") ||
+    normalized.includes("healthy") ||
+    normalized.includes("active")
+  ) {
+    return "Running";
+  }
+
+  return humanize(value);
+}
+
 function shortCommitSha(value?: string | null) {
   const commit = value?.trim();
 
@@ -128,6 +143,39 @@ const terminalOperationStatuses = new Set(["canceled", "cancelled", "completed",
 type AppCommitOperations = {
   active: FugueOperation | null;
 };
+
+function formatElapsedDuration(value?: string | null) {
+  const timestamp = parseTimestamp(value);
+
+  if (!timestamp) {
+    return null;
+  }
+
+  const elapsedSeconds = Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
+
+  if (elapsedSeconds < 60) {
+    return `${elapsedSeconds}s`;
+  }
+
+  const elapsedMinutes = Math.floor(elapsedSeconds / 60);
+  const remainingSeconds = elapsedSeconds % 60;
+
+  if (elapsedMinutes < 60) {
+    return remainingSeconds > 0 ? `${elapsedMinutes}m ${remainingSeconds}s` : `${elapsedMinutes}m`;
+  }
+
+  const elapsedHours = Math.floor(elapsedMinutes / 60);
+  const remainingMinutes = elapsedMinutes % 60;
+
+  if (elapsedHours < 24) {
+    return remainingMinutes > 0 ? `${elapsedHours}h ${remainingMinutes}m` : `${elapsedHours}h`;
+  }
+
+  const elapsedDays = Math.floor(elapsedHours / 24);
+  const remainingHours = elapsedHours % 24;
+
+  return remainingHours > 0 ? `${elapsedDays}d ${remainingHours}h` : `${elapsedDays}d`;
+}
 
 function toneForStatus(status?: string | null): ConsoleTone {
   const normalized = status?.toLowerCase() ?? "";
@@ -187,6 +235,10 @@ function readOperationTimestamp(operation: FugueOperation) {
 
 function readOperationCommitSha(operation?: FugueOperation | null) {
   return operation?.desiredSource?.commitSha?.trim() || null;
+}
+
+function readOperationStartedAt(operation?: FugueOperation | null) {
+  return operation?.startedAt?.trim() || operation?.createdAt?.trim() || null;
 }
 
 function readPendingCommitState(operation?: FugueOperation | null): Pick<ConsoleGalleryCommitView, "stateLabel" | "tone"> {
@@ -615,8 +667,48 @@ function buildBadgeFromTechStack(
   };
 }
 
+function buildSourceBadges(app: FugueApp) {
+  return [
+    app.source.detectedProvider
+      ? {
+          id: readBadgeKey(
+            readLanguageBadgeKind(app.source.detectedProvider) ?? "runtime",
+            readLanguageLabel(app.source.detectedProvider),
+          ),
+          kind: readLanguageBadgeKind(app.source.detectedProvider) ?? "runtime",
+          label: readLanguageLabel(app.source.detectedProvider),
+          meta: "Language",
+        }
+      : null,
+    app.source.buildStrategy
+      ? {
+          id: readBadgeKey(
+            readBuildBadgeKind(app.source.buildStrategy) ?? "runtime",
+            humanize(app.source.buildStrategy),
+          ),
+          kind: readBuildBadgeKind(app.source.buildStrategy) ?? "runtime",
+          label: humanize(app.source.buildStrategy),
+          meta: "Build",
+        }
+      : null,
+  ].filter((badge): badge is ConsoleGalleryBadgeView => Boolean(badge));
+}
+
+function readPrimaryBadge(badges: ConsoleGalleryBadgeView[]) {
+  return (
+    badges.find((badge) => badge.meta === "Language") ??
+    badges.find((badge) => badge.kind !== "postgres" && badge.meta !== "Build") ??
+    badges.find((badge) => badge.kind !== "postgres") ??
+    badges[0] ??
+    null
+  );
+}
+
 function buildAppBadges(app: FugueApp): ConsoleGalleryBadgeView[] {
   const badges = new Map<string, ConsoleGalleryBadgeView>();
+  const sourceBadges = buildSourceBadges(app);
+  const sourceLanguageBadge = sourceBadges.find((badge) => badge.meta === "Language") ?? null;
+  const sourceBuildBadge = sourceBadges.find((badge) => badge.meta === "Build") ?? null;
 
   const addBadge = (badge: ConsoleGalleryBadgeView | null) => {
     if (!badge || badges.has(badge.id)) {
@@ -626,9 +718,14 @@ function buildAppBadges(app: FugueApp): ConsoleGalleryBadgeView[] {
     badges.set(badge.id, badge);
   };
 
+  addBadge(sourceLanguageBadge);
+
   if (app.techStack.length) {
     for (const item of app.techStack) {
-      if (item.kind.trim().toLowerCase() === "build") {
+      const normalizedKind = item.kind.trim().toLowerCase();
+      const normalizedSlug = item.slug.trim().toLowerCase();
+
+      if (normalizedKind === "build" || normalizedSlug === "postgres") {
         continue;
       }
 
@@ -636,48 +733,16 @@ function buildAppBadges(app: FugueApp): ConsoleGalleryBadgeView[] {
     }
   }
 
-  if (app.backingServices.some((service) => service.type === "postgres")) {
-    addBadge({
-      id: readBadgeKey("postgres", "PostgreSQL"),
-      kind: "postgres",
-      label: "PostgreSQL",
-      meta: "Service",
-    });
-  }
+  addBadge(sourceBuildBadge);
 
   if (!badges.size && app.techStack.length) {
     for (const item of app.techStack) {
+      if (item.slug.trim().toLowerCase() === "postgres") {
+        continue;
+      }
+
       addBadge(buildBadgeFromTechStack(item, { includeBuild: true }));
     }
-  }
-
-  if (!badges.size) {
-    addBadge(
-      app.source.detectedProvider
-        ? {
-            id: readBadgeKey(
-              readLanguageBadgeKind(app.source.detectedProvider) ?? "runtime",
-              readLanguageLabel(app.source.detectedProvider),
-            ),
-            kind: readLanguageBadgeKind(app.source.detectedProvider) ?? "runtime",
-            label: readLanguageLabel(app.source.detectedProvider),
-            meta: "Language",
-          }
-        : null,
-    );
-    addBadge(
-      app.source.buildStrategy
-        ? {
-            id: readBadgeKey(
-              readBuildBadgeKind(app.source.buildStrategy) ?? "runtime",
-              humanize(app.source.buildStrategy),
-            ),
-            kind: readBuildBadgeKind(app.source.buildStrategy) ?? "runtime",
-            label: humanize(app.source.buildStrategy),
-            meta: "Build",
-          }
-        : null,
-    );
   }
 
   if (!badges.size) {
@@ -689,18 +754,13 @@ function buildAppBadges(app: FugueApp): ConsoleGalleryBadgeView[] {
     });
   }
 
-  return [...badges.values()].slice(0, 6);
-}
-
-function buildProjectBadges(
-  apps: FugueApp[],
-): ConsoleGalleryBadgeView[] {
-  const badges = new Map<string, ConsoleGalleryBadgeView>();
-
-  for (const app of apps) {
-    for (const badge of buildAppBadges(app)) {
-      badges.set(badge.id, badge);
-    }
+  if (app.backingServices.some((service) => service.type === "postgres")) {
+    addBadge({
+      id: readBadgeKey("postgres", "PostgreSQL"),
+      kind: "postgres",
+      label: "PostgreSQL",
+      meta: "Service",
+    });
   }
 
   return [...badges.values()].slice(0, 6);
@@ -715,9 +775,22 @@ function buildAppView(
   const redeployAction = readRedeployAction(app);
   const sourceBranchLabel = readSourceBranchLabel(app);
   const commitViews = buildCommitViews(app, commitOperations);
+  const serviceBadges = buildAppBadges(app);
+  const primaryBadge =
+    readPrimaryBadge(serviceBadges) ??
+    serviceBadges[0] ?? {
+      id: readBadgeKey("runtime", humanize(app.source.type)),
+      kind: "runtime",
+      label: humanize(app.source.type),
+      meta: "Service",
+    };
+  const activeOperation = commitOperations?.active ?? null;
+  const activePhase = activeOperation ? readPendingCommitState(activeOperation) : null;
   const primaryCommit = commitViews.find((entry) => entry.kind === "running") ?? commitViews[0] ?? null;
   const currentCommitLabel =
     primaryCommit?.label ?? (isGitHubPublicSource(app) ? readCurrentCommitLabel(app) : null);
+  const fallbackPhase = app.status.phase ?? (app.spec.disabled ? "disabled" : "unknown");
+  const serviceDurationLabel = formatElapsedDuration(readOperationStartedAt(activeOperation));
 
   return {
     commitViews,
@@ -731,8 +804,9 @@ function buildAppView(
     id: app.id,
     lastMessage: app.status.lastMessage ?? "No current status message.",
     name: app.name,
-    phase: humanize(app.status.phase ?? (app.spec.disabled ? "disabled" : "unknown")),
-    phaseTone: toneForStatus(app.status.phase ?? (app.spec.disabled ? "disabled" : "unknown")),
+    phase: activePhase?.stateLabel ?? readAppPhaseLabel(fallbackPhase),
+    phaseTone: activePhase?.tone ?? toneForStatus(fallbackPhase),
+    primaryBadge,
     redeployActionDescription: redeployAction.description,
     redeployActionLabel: redeployAction.label,
     redeployActionLoadingLabel: redeployAction.loadingLabel,
@@ -740,7 +814,8 @@ function buildAppView(
     redeployDisabledReason: redeploy.redeployDisabledReason,
     routeHref: route.href,
     routeLabel: route.label,
-    serviceBadges: buildAppBadges(app),
+    serviceBadges,
+    serviceDurationLabel,
     sourceBranchHref:
       sourceBranchLabel && sourceBranchLabel !== "Default branch"
         ? readGitHubBranchHref(app.source.repoUrl, app.source.repoBranch)
@@ -753,8 +828,6 @@ function buildAppView(
         .filter((value) => value && value !== "Unknown")
         .join(" / ") || humanize(app.source.type),
     sourceType: app.source.type,
-    updatedExact: formatExactTime(app.status.updatedAt ?? app.updatedAt ?? app.createdAt),
-    updatedLabel: formatRelativeTime(app.status.updatedAt ?? app.updatedAt ?? app.createdAt),
     workspaceMountPath: app.spec.workspace ? app.spec.workspace.mountPath ?? "/workspace" : null,
   };
 }
@@ -770,15 +843,29 @@ function buildBackingServiceView(
       "Attached backing service.",
     id: service.id,
     name: service.name,
+    ownerAppId: service.ownerAppId,
     ownerAppLabel: service.ownerAppId
       ? appNames.get(service.ownerAppId) ?? "Attached app"
       : "Attached app",
+    primaryBadge: {
+      id: readBadgeKey("postgres", "PostgreSQL"),
+      kind: "postgres",
+      label: "PostgreSQL",
+      meta: "Service",
+    },
     status: humanize(service.status),
     statusTone: toneForStatus(service.status),
     type: humanize(service.type),
-    updatedExact: formatExactTime(service.updatedAt ?? service.createdAt),
-    updatedLabel: formatRelativeTime(service.updatedAt ?? service.createdAt),
   };
+}
+
+function buildProjectServiceBadges(
+  services: ConsoleGalleryProjectView["services"],
+): ConsoleGalleryBadgeView[] {
+  return services.map((service) => ({
+    ...service.primaryBadge,
+    id: `project-service:${service.kind}:${service.id}`,
+  }));
 }
 
 function projectNameMap(projects: FugueProject[], fallbackId?: string | null, fallbackName?: string | null) {
@@ -864,31 +951,25 @@ export const getConsoleProjectGalleryData = cache(async () => {
         ...sortedApps.map(readAppTimestamp),
         ...backingServices.map(readServiceTimestamp),
       );
+      const appViews = sortedApps.map((app) => ({
+        kind: "app" as const,
+        ...buildAppView(app, commitOperationsByAppId.get(app.id)),
+      }));
+      const backingServiceViews = backingServices.map((service) => ({
+        kind: "backing-service" as const,
+        ...buildBackingServiceView(service, appNames),
+      }));
+      const services = [...appViews, ...backingServiceViews];
 
       return {
         appCount: sortedApps.length,
         id: projectId,
-        latestActivityExact: formatExactTime(
-          latestActivity ? new Date(latestActivity).toISOString() : null,
-        ),
-        latestActivityLabel: formatRelativeTime(
-          latestActivity ? new Date(latestActivity).toISOString() : null,
-        ),
         name:
           namesByProjectId.get(projectId) ??
           (projectId === "unassigned" ? "Unassigned" : humanize(projectId)),
-        serviceBadges: buildProjectBadges(sortedApps),
-        serviceCount: sortedApps.length + backingServices.length,
-        services: [
-          ...sortedApps.map((app) => ({
-            kind: "app" as const,
-            ...buildAppView(app, commitOperationsByAppId.get(app.id)),
-          })),
-          ...backingServices.map((service) => ({
-            kind: "backing-service" as const,
-            ...buildBackingServiceView(service, appNames),
-          })),
-        ],
+        serviceBadges: buildProjectServiceBadges(services),
+        serviceCount: services.length,
+        services,
         sortTimestamp: latestActivity,
       };
     })
