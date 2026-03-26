@@ -12,6 +12,7 @@ import {
   type FugueRuntime,
 } from "@/lib/fugue/api";
 import { readCountryLocation } from "@/lib/geo/country";
+import { readRuntimeLocation } from "@/lib/fugue/runtime-location";
 import { getWorkspaceAccessByEmail } from "@/lib/workspace/store";
 
 export type ClusterNodeConditionView = {
@@ -390,7 +391,7 @@ function readRuntimeTimestamp(runtime: FugueRuntime) {
 
 function readRuntimeLabel(runtime: FugueRuntime) {
   if (runtime.type === "managed-shared") {
-    return "Managed shared";
+    return `Internal cluster / ${readRuntimeLocation(runtime.labels).locationLabel ?? "Global"}`;
   }
 
   return runtime.name ?? runtime.machineName ?? shortId(runtime.id);

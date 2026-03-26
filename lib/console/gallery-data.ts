@@ -10,6 +10,7 @@ import type {
   ConsoleGalleryBadgeView,
   ConsoleGalleryBackingServiceView,
   ConsoleGalleryCommitView,
+  ConsoleImportRuntimeTargetView,
   ConsoleGalleryProjectView,
   ConsoleProjectGalleryData,
 } from "@/lib/console/gallery-types";
@@ -18,14 +19,17 @@ import {
   getFugueClusterNodes,
   getFugueOperations,
   getFugueProjects,
+  getFugueRuntimes,
   type FugueApp,
   type FugueAppSource,
   type FugueBackingService,
   type FugueClusterNode,
   type FugueOperation,
   type FugueProject,
+  type FugueRuntime,
   type FugueAppTechnology,
 } from "@/lib/fugue/api";
+import { readRuntimeLocation } from "@/lib/fugue/runtime-location";
 import { readCountryLocation } from "@/lib/geo/country";
 import {
   readGitHubBranchHref,
@@ -42,6 +46,12 @@ import {
   getCurrentWorkspaceAccess,
   type WorkspaceAccess,
 } from "@/lib/workspace/current";
+
+type RuntimeTargetLocationView = {
+  locationCountryCode: string | null;
+  locationCountryLabel: string | null;
+  locationLabel: string | null;
+};
 
 function readErrorMessage(reason: unknown) {
   if (reason instanceof Error && reason.message) {
@@ -151,6 +161,96 @@ function buildWorkloadLocationMap(nodes: FugueClusterNode[]) {
   return locations;
 }
 
+function normalizeRuntimeTargetLocation(location: {
+  locationCountryCode: string | null;
+  locationCountryLabel: string | null;
+  locationLabel: string;
+}): RuntimeTargetLocationView | null {
+  const locationLabel =
+    location.locationCountryLabel ??
+    (location.locationLabel !== "Unassigned" ? location.locationLabel : null);
+
+  if (!locationLabel && !location.locationCountryCode) {
+    return null;
+  }
+
+  return {
+    locationCountryCode: location.locationCountryCode,
+    locationCountryLabel: location.locationCountryLabel,
+    locationLabel,
+  };
+}
+
+function buildRuntimeTargetLocationMap(nodes: FugueClusterNode[]) {
+  const locations = new Map<string, RuntimeTargetLocationView>();
+  const ambiguousLocation = {
+    locationCountryCode: null,
+    locationCountryLabel: null,
+    locationLabel: null,
+  } satisfies RuntimeTargetLocationView;
+  const isSameLocation = (
+    left: RuntimeTargetLocationView,
+    right: RuntimeTargetLocationView,
+  ) =>
+    (left.locationCountryCode &&
+      right.locationCountryCode &&
+      left.locationCountryCode === right.locationCountryCode) ||
+    (left.locationLabel &&
+      right.locationLabel &&
+      left.locationLabel === right.locationLabel);
+
+  for (const node of nodes) {
+    const nextLocation = normalizeRuntimeTargetLocation(
+      readCountryLocation(node.region, node.zone),
+    );
+
+    if (!nextLocation) {
+      continue;
+    }
+
+    const runtimeIds = new Set<string>();
+
+    if (node.runtimeId) {
+      runtimeIds.add(node.runtimeId);
+    }
+
+    for (const workload of node.workloads) {
+      if (workload.runtimeId) {
+        runtimeIds.add(workload.runtimeId);
+      }
+    }
+
+    for (const runtimeId of runtimeIds) {
+      const existing = locations.get(runtimeId);
+
+      if (
+        existing &&
+        !existing.locationCountryCode &&
+        !existing.locationLabel
+      ) {
+        locations.set(runtimeId, ambiguousLocation);
+        continue;
+      }
+
+      if (
+        existing &&
+        !isSameLocation(existing, nextLocation)
+      ) {
+        locations.set(runtimeId, ambiguousLocation);
+        continue;
+      }
+
+      if (existing?.locationCountryCode && !nextLocation.locationCountryCode) {
+        continue;
+      }
+
+      locations.set(runtimeId, nextLocation);
+    }
+  }
+
+  return locations;
+}
+
 function humanize(value?: string | null) {
   if (!value) {
     return "Unknown";
@@ -160,6 +260,19 @@ function humanize(value?: string | null) {
     .replace(/[._-]+/g, " ")
     .trim()
     .replace(/\b\w/g, (match) => match.toUpperCase());
+}
+
+function shortId(value?: string | null) {
+  if (!value) {
+    return "Unknown";
+  }
+
+  if (value.length <= 20) {
+    return value;
+  }
+
+  const prefix = value.split("_")[0] ?? value.slice(0, 3);
+  return `${prefix}…${value.slice(-6)}`;
 }
 
 function readAppPhaseLabel(value?: string | null) {
@@ -1298,6 +1411,109 @@ function projectNameMap(projects: FugueProject[], fallbackId?: string | null, fa
   return names;
 }
 
+function buildImportRuntimeTargetView(
+  runtime: FugueRuntime,
+  fallbackLocation?: RuntimeTargetLocationView | null,
+): ConsoleImportRuntimeTargetView {
+  const runtimeLocation = readRuntimeLocation(runtime.labels);
+  const location = {
+    ...runtimeLocation,
+    locationCountryCode:
+      runtimeLocation.locationCountryCode ??
+      fallbackLocation?.locationCountryCode ??
+      null,
+    locationCountryLabel:
+      runtimeLocation.locationCountryLabel ??
+      fallbackLocation?.locationCountryLabel ??
+      null,
+    locationLabel:
+      runtimeLocation.locationLabel ??
+      fallbackLocation?.locationLabel ??
+      null,
+  };
+  const statusLabel = runtime.status ? humanize(runtime.status) : null;
+  const statusTone = runtime.status ? toneForStatus(runtime.status) : null;
+
+  if (runtime.type === "managed-shared") {
+    const primaryLabel = location.locationLabel ?? "Global";
+
+    return {
+      category: "internal-cluster",
+      description: location.hasPlacementConstraint
+        ? "Build and deploy stay pinned to this shared region."
+        : "Build and deploy use the default shared pool without region pinning.",
+      id: runtime.id,
+      kindLabel: "Internal cluster",
+      locationCountryCode: location.locationCountryCode,
+      locationCountryLabel: location.locationCountryLabel,
+      locationLabel: location.locationLabel,
+      primaryLabel,
+      statusLabel,
+      statusTone,
+      summaryLabel: `Internal cluster / ${primaryLabel}`,
+    };
+  }
+
+  const primaryLabel =
+    runtime.name?.trim() ||
+    runtime.machineName?.trim() ||
+    shortId(runtime.id);
+
+  return {
+    category: "machine",
+    description: "Build runs on Fugue, then deploys onto this machine.",
+    id: runtime.id,
+    kindLabel: "Machine",
+    locationCountryCode: location.locationCountryCode,
+    locationCountryLabel: location.locationCountryLabel,
+    locationLabel: location.locationLabel,
+    primaryLabel,
+    statusLabel,
+    statusTone,
+    summaryLabel: location.locationLabel
+      ? `${primaryLabel} / ${location.locationLabel}`
+      : primaryLabel,
+  };
+}
+
+function compareImportRuntimeTargets(
+  left: ConsoleImportRuntimeTargetView,
+  right: ConsoleImportRuntimeTargetView,
+) {
+  if (left.category !== right.category) {
+    return left.category === "internal-cluster" ? -1 : 1;
+  }
+
+  const leftIsDefaultShared = left.id === "runtime_managed_shared";
+  const rightIsDefaultShared = right.id === "runtime_managed_shared";
+
+  if (leftIsDefaultShared !== rightIsDefaultShared) {
+    return leftIsDefaultShared ? -1 : 1;
+  }
+
+  const primaryLabelComparison = left.primaryLabel.localeCompare(right.primaryLabel, "en", {
+    sensitivity: "base",
+  });
+
+  if (primaryLabelComparison !== 0) {
+    return primaryLabelComparison;
+  }
+
+  const locationLabelComparison = (left.locationLabel ?? "").localeCompare(
+    right.locationLabel ?? "",
+    "en",
+    {
+      sensitivity: "base",
+    },
+  );
+
+  if (locationLabelComparison !== 0) {
+    return locationLabelComparison;
+  }
+
+  return left.id.localeCompare(right.id, "en", { sensitivity: "base" });
+}
+
 export const getConsoleProjectGalleryData = cache(async () => {
   const initialWorkspace = await getCurrentWorkspaceAccess();
 
@@ -1305,6 +1521,8 @@ export const getConsoleProjectGalleryData = cache(async () => {
     return {
       errors: [],
       projects: [],
+      runtimeTargetInventoryError: null,
+      runtimeTargets: [],
       workspace: {
         exists: false,
         stage: "needs-workspace",
@@ -1318,20 +1536,23 @@ export const getConsoleProjectGalleryData = cache(async () => {
       getFugueApps(workspace.adminKeySecret),
       getFugueOperations(workspace.adminKeySecret),
       getFugueClusterNodes(workspace.adminKeySecret),
+      getFugueRuntimes(workspace.adminKeySecret),
     ]);
   }
 
   let workspace = initialWorkspace;
-  let [projectsResult, appsResult, operationsResult, clusterNodesResult] =
+  let [projectsResult, appsResult, operationsResult, clusterNodesResult, runtimesResult] =
     await loadWorkspaceData(workspace);
 
   if (
     projectsResult.status === "rejected" &&
     appsResult.status === "rejected" &&
     operationsResult.status === "rejected" &&
+    runtimesResult.status === "rejected" &&
     isUnauthorizedFugueError(projectsResult.reason) &&
     isUnauthorizedFugueError(appsResult.reason) &&
-    isUnauthorizedFugueError(operationsResult.reason)
+    isUnauthorizedFugueError(operationsResult.reason) &&
+    isUnauthorizedFugueError(runtimesResult.reason)
   ) {
     const session = await getCurrentSession();
 
@@ -1339,7 +1560,7 @@ export const getConsoleProjectGalleryData = cache(async () => {
       try {
         const refreshed = await ensureWorkspaceAccess(session);
         workspace = refreshed.workspace;
-        [projectsResult, appsResult, operationsResult, clusterNodesResult] =
+        [projectsResult, appsResult, operationsResult, clusterNodesResult, runtimesResult] =
           await loadWorkspaceData(workspace);
       } catch {
         // Keep the original 401 results when recovery fails.
@@ -1366,6 +1587,22 @@ export const getConsoleProjectGalleryData = cache(async () => {
   const apps = appsResult.status === "fulfilled" ? appsResult.value : [];
   const operations = operationsResult.status === "fulfilled" ? operationsResult.value : [];
   const clusterNodes = clusterNodesResult.status === "fulfilled" ? clusterNodesResult.value : [];
+  const runtimeTargetLocationsByRuntimeId = buildRuntimeTargetLocationMap(clusterNodes);
+  const runtimeTargetInventoryError =
+    runtimesResult.status === "rejected"
+      ? readErrorMessage(runtimesResult.reason)
+      : null;
+  const runtimeTargets =
+    runtimesResult.status === "fulfilled"
+      ? [...runtimesResult.value]
+          .map((runtime) =>
+            buildImportRuntimeTargetView(
+              runtime,
+              runtimeTargetLocationsByRuntimeId.get(runtime.id) ?? null,
+            ),
+          )
+          .sort(compareImportRuntimeTargets)
+      : [];
   const namesByProjectId = projectNameMap(
     projects,
     workspace.defaultProjectId,
@@ -1443,6 +1680,8 @@ export const getConsoleProjectGalleryData = cache(async () => {
   return {
     errors,
     projects: projectViews,
+    runtimeTargetInventoryError,
+    runtimeTargets,
     workspace: {
       exists: true,
       stage: projectViews.length > 0 ? "ready" : "empty",

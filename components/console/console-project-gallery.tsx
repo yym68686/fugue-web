@@ -3,6 +3,7 @@
 import { startTransition, useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
+import { DeploymentTargetField } from "@/components/console/deployment-target-field";
 import { StatusBadge } from "@/components/console/status-badge";
 import { ConsoleFilesWorkbench } from "@/components/console/console-files-workbench";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ import type {
   ConsoleGalleryProjectView,
   ConsoleProjectGalleryData,
 } from "@/lib/console/gallery-types";
+import { readDefaultImportRuntimeId } from "@/lib/console/runtime-targets";
 import { readGitHubCommitHref } from "@/lib/fugue/source-links";
 import type { ConsoleTone } from "@/lib/console/types";
 import { parseAnsiText } from "@/lib/ui/ansi";
@@ -1304,6 +1306,9 @@ export function ConsoleProjectGallery({
   const [branch, setBranch] = useState("");
   const [appName, setAppName] = useState("");
   const [buildStrategy, setBuildStrategy] = useState<BuildStrategyValue>("auto");
+  const [selectedRuntimeId, setSelectedRuntimeId] = useState<string | null>(
+    () => readDefaultImportRuntimeId(data.runtimeTargets),
+  );
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
   const [selectedServiceKey, setSelectedServiceKey] = useState<string | null>(null);
@@ -1491,6 +1496,14 @@ export function ConsoleProjectGallery({
       variant: dataErrorVariant,
     });
   }, [dataErrorMessage, dataErrorVariant, showToast]);
+
+  useEffect(() => {
+    setSelectedRuntimeId((current) =>
+      current && data.runtimeTargets.some((target) => target.id === current)
+        ? current
+        : readDefaultImportRuntimeId(data.runtimeTargets),
+    );
+  }, [data.runtimeTargets]);
 
   useEffect(() => {
     if (!createOpen && !isCreating) {
@@ -2061,6 +2074,7 @@ export function ConsoleProjectGallery({
     setBranch("");
     setAppName("");
     setBuildStrategy("auto");
+    setSelectedRuntimeId(readDefaultImportRuntimeId(data.runtimeTargets));
   }
 
   function armRefreshWindow(durationMs = 90_000) {
@@ -2128,6 +2142,7 @@ export function ConsoleProjectGallery({
             branch,
             buildStrategy,
             name: appName,
+            ...(selectedRuntimeId ? { runtimeId: selectedRuntimeId } : {}),
             ...(createTargetProject
               ? {
                   projectId: createTargetProject.id,
@@ -3130,6 +3145,14 @@ export function ConsoleProjectGallery({
                         value={repoUrl}
                       />
                     </FormField>
+
+                    <DeploymentTargetField
+                      inventoryError={data.runtimeTargetInventoryError}
+                      name="create-runtime-target"
+                      onChange={setSelectedRuntimeId}
+                      targets={data.runtimeTargets}
+                      value={selectedRuntimeId}
+                    />
 
                     <details className="fg-console-disclosure fg-console-dialog__advanced">
                       <summary>Advanced</summary>

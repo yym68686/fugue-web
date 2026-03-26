@@ -57,6 +57,7 @@ export async function POST(request: Request) {
   const name = readOptionalString(body, "name");
   const requestedProjectId = readOptionalString(body, "projectId");
   const requestedProjectName = readOptionalString(body, "projectName");
+  const runtimeId = readOptionalString(body, "runtimeId");
   const projectName = requestedProjectName || "default";
 
   if (!repoUrl) {
@@ -94,6 +95,7 @@ export async function POST(request: Request) {
       branch: branch || undefined,
       buildStrategy: buildStrategy || undefined,
       name: name || undefined,
+      runtimeId: runtimeId || undefined,
       ...(existingProject
         ? {
             projectId: existingProject.id,

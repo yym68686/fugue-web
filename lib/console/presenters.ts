@@ -23,6 +23,7 @@ import {
   type WorkspaceAccess,
 } from "@/lib/workspace/current";
 import { readGitHubSourceHref } from "@/lib/fugue/source-links";
+import { readRuntimeLocation } from "@/lib/fugue/runtime-location";
 
 const AUTO_GITHUB_SYNC_REQUESTED_BY_ID = "fugue-controller/github-sync";
 
@@ -74,6 +75,8 @@ export type ConsoleRuntimeView = {
   id: string;
   kindLabel: string;
   label: string;
+  locationCountryCode: string | null;
+  locationLabel: string | null;
   status: string;
   statusTone: ConsoleTone;
   tenantLabel: string;
@@ -495,7 +498,7 @@ function readAuditTimestamp(event: FugueAuditEvent) {
 
 function readRuntimeLabel(runtime: FugueRuntime) {
   if (runtime.type === "managed-shared") {
-    return "Managed shared";
+    return `Internal cluster / ${readRuntimeLocation(runtime.labels).locationLabel ?? "Global"}`;
   }
 
   return runtime.name ?? runtime.machineName ?? shortId(runtime.id);
@@ -524,11 +527,16 @@ function resolveProjectLabel(
 }
 
 function buildRuntimeDetail(runtime: FugueRuntime) {
+  const location = readRuntimeLocation(runtime.labels);
+
   if (runtime.type === "managed-shared") {
-    return "Shared ingress and scheduler path managed by Fugue.";
+    return location.locationLabel
+      ? `Shared ingress and scheduler path managed by Fugue. Region pinned to ${location.locationLabel}.`
+      : "Shared ingress and scheduler path managed by Fugue. Default shared pool without region pinning.";
   }
 
   const fragments = [
+    location.locationLabel ? `location ${location.locationLabel}` : null,
     runtime.lastHeartbeatAt
       ? `heartbeat ${formatRelativeTime(runtime.lastHeartbeatAt)}`
       : runtime.lastSeenAt
@@ -999,6 +1007,7 @@ export async function getConsoleData(): Promise<ConsoleData> {
 
   const runtimeViews = sortByTimestampDesc(runtimes, readRuntimeTimestamp).map((runtime) => {
     const activityAt = runtime.lastHeartbeatAt ?? runtime.lastSeenAt ?? runtime.updatedAt ?? runtime.createdAt;
+    const location = readRuntimeLocation(runtime.labels);
 
     return {
       activityExact: formatExactTime(activityAt),
@@ -1011,11 +1020,16 @@ export async function getConsoleData(): Promise<ConsoleData> {
       id: runtime.id,
       kindLabel:
         runtime.type === "managed-shared"
-          ? "Shared"
+          ? "Internal cluster"
           : runtime.connectionMode
             ? humanize(runtime.connectionMode)
             : humanize(runtime.type),
       label: readRuntimeLabel(runtime),
+      locationCountryCode: location.locationCountryCode,
+      locationLabel:
+        runtime.type === "managed-shared"
+          ? location.locationLabel ?? "Global"
+          : location.locationLabel,
       status: humanize(runtime.status),
       statusTone: toneForStatus(runtime.status),
       tenantLabel: resolveTenantLabel(runtime.tenantId, tenantNames),

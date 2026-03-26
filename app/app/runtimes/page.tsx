@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { ConsoleEmptyState } from "@/components/console/console-empty-state";
 import { ConsolePageIntro } from "@/components/console/console-page-intro";
 import { StatusBadge } from "@/components/console/status-badge";
+import { CountryFlagLabel } from "@/components/ui/country-flag-label";
 import { Panel, PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
 import { getConsoleData } from "@/lib/console/presenters";
 
@@ -51,6 +52,19 @@ export default async function RuntimesPage() {
                   <div>
                     <dt>Tenant</dt>
                     <dd>{runtime.tenantLabel}</dd>
+                  </div>
+                  <div>
+                    <dt>Location</dt>
+                    <dd>
+                      {runtime.locationLabel ? (
+                        <CountryFlagLabel
+                          countryCode={runtime.locationCountryCode}
+                          label={runtime.locationLabel}
+                        />
+                      ) : (
+                        "—"
+                      )}
+                    </dd>
                   </div>
                   <div>
                     <dt>Endpoint</dt>

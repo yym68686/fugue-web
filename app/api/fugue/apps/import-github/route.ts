@@ -81,6 +81,7 @@ export async function POST(request: Request) {
   const branch = readOptionalString(body, "branch");
   const buildStrategy = readOptionalString(body, "buildStrategy");
   const name = readOptionalString(body, "name");
+  const runtimeId = readOptionalString(body, "runtimeId");
 
   if (!repoUrl) {
     return jsonError(400, "Repository link is required.");
@@ -110,6 +111,7 @@ export async function POST(request: Request) {
       name: name || undefined,
       projectId: workspace.defaultProjectId ?? undefined,
       repoUrl,
+      runtimeId: runtimeId || undefined,
     });
 
     if (result.app?.id) {

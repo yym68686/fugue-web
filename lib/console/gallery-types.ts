@@ -95,8 +95,24 @@ export type ConsoleGalleryWorkspaceView = {
   stage: "empty" | "needs-workspace" | "ready";
 };
 
+export type ConsoleImportRuntimeTargetView = {
+  category: "internal-cluster" | "machine";
+  description: string;
+  id: string;
+  kindLabel: string;
+  locationCountryCode: string | null;
+  locationCountryLabel: string | null;
+  locationLabel: string | null;
+  primaryLabel: string;
+  statusLabel: string | null;
+  statusTone: ConsoleTone | null;
+  summaryLabel: string;
+};
+
 export type ConsoleProjectGalleryData = {
   errors: string[];
   projects: ConsoleGalleryProjectView[];
+  runtimeTargetInventoryError: string | null;
+  runtimeTargets: ConsoleImportRuntimeTargetView[];
   workspace: ConsoleGalleryWorkspaceView;
 };

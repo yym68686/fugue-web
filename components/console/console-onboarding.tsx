@@ -3,10 +3,13 @@
 import { useEffect, useState, startTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
+import { DeploymentTargetField } from "@/components/console/deployment-target-field";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { Panel, PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
 import { useToast } from "@/components/ui/toast";
+import type { ConsoleImportRuntimeTargetView } from "@/lib/console/gallery-types";
+import { readDefaultImportRuntimeId } from "@/lib/console/runtime-targets";
 
 type OnboardingStage = "needs-workspace" | "needs-import";
 type FlashState = {
@@ -63,10 +66,14 @@ export function ConsoleOnboarding({
   defaultImportOpen = false,
   defaultProjectName = "default",
   initialStage,
+  runtimeTargets = [],
+  runtimeTargetInventoryError = null,
 }: {
   defaultImportOpen?: boolean;
   defaultProjectName?: string;
   initialStage: OnboardingStage;
+  runtimeTargets?: ConsoleImportRuntimeTargetView[];
+  runtimeTargetInventoryError?: string | null;
 }) {
   const router = useRouter();
   const { showToast } = useToast();
@@ -82,6 +89,9 @@ export function ConsoleOnboarding({
   const [branch, setBranch] = useState("");
   const [name, setName] = useState("");
   const [buildStrategy, setBuildStrategy] = useState("auto");
+  const [selectedRuntimeId, setSelectedRuntimeId] = useState<string | null>(
+    () => readDefaultImportRuntimeId(runtimeTargets),
+  );
 
   useEffect(() => {
     setStage(initialStage);
@@ -96,6 +106,14 @@ export function ConsoleOnboarding({
       setImportOpen(true);
     }
   }, [defaultImportOpen, initialStage]);
+
+  useEffect(() => {
+    setSelectedRuntimeId((current) =>
+      current && runtimeTargets.some((target) => target.id === current)
+        ? current
+        : readDefaultImportRuntimeId(runtimeTargets),
+    );
+  }, [runtimeTargets]);
 
   useEffect(() => {
     if (!flash) {
@@ -154,6 +172,7 @@ export function ConsoleOnboarding({
         setProjectName(data.workspace.defaultProjectName);
       }
 
+      resetImportForm();
       setStage("needs-import");
       setImportOpen(true);
       startTransition(() => {
@@ -182,6 +201,14 @@ export function ConsoleOnboarding({
     });
   }
 
+  function resetImportForm() {
+    setRepoUrl("");
+    setBranch("");
+    setName("");
+    setBuildStrategy("auto");
+    setSelectedRuntimeId(readDefaultImportRuntimeId(runtimeTargets));
+  }
+
   async function handleImport(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -207,6 +234,7 @@ export function ConsoleOnboarding({
           buildStrategy,
           name,
           repoUrl,
+          ...(selectedRuntimeId ? { runtimeId: selectedRuntimeId } : {}),
         }),
         headers: {
           "Content-Type": "application/json",
@@ -275,6 +303,7 @@ export function ConsoleOnboarding({
   const eyebrow = "Console / first run";
   const openImport = () => {
     setFlash(null);
+    resetImportForm();
     setImportOpen(true);
     startTransition(() => {
       router.replace("/app?dialog=import");
@@ -372,6 +401,14 @@ export function ConsoleOnboarding({
                         value={repoUrl}
                       />
                     </FormField>
+
+                    <DeploymentTargetField
+                      inventoryError={runtimeTargetInventoryError}
+                      name="onboarding-runtime-target"
+                      onChange={setSelectedRuntimeId}
+                      targets={runtimeTargets}
+                      value={selectedRuntimeId}
+                    />
 
                     <details className="fg-console-disclosure fg-console-dialog__advanced">
                       <summary>Advanced</summary>

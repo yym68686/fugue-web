@@ -163,6 +163,7 @@ export type FugueRuntime = {
   tenantId: string | null;
   name: string | null;
   machineName: string | null;
+  labels: Record<string, string>;
   type: string | null;
   connectionMode: string | null;
   status: string | null;
@@ -748,6 +749,7 @@ function sanitizeRuntime(value: unknown): FugueRuntime | null {
     tenantId: readString(record, "tenant_id"),
     name: readString(record, "name"),
     machineName: readString(record, "machine_name"),
+    labels: readStringMap(record?.labels),
     type: readString(record, "type"),
     connectionMode: readString(record, "connection_mode"),
     status: readString(record, "status"),
@@ -1252,6 +1254,7 @@ export async function importFugueGitHubApp(
     };
     projectId?: string;
     repoUrl: string;
+    runtimeId?: string;
     tenantId?: string;
   },
   idempotencyKey?: string,
@@ -1275,6 +1278,7 @@ export async function importFugueGitHubApp(
         ...(payload.branch ? { branch: payload.branch } : {}),
         ...(payload.buildStrategy ? { build_strategy: payload.buildStrategy } : {}),
         ...(payload.name ? { name: payload.name } : {}),
+        ...(payload.runtimeId ? { runtime_id: payload.runtimeId } : {}),
         repo_url: payload.repoUrl,
       },
       headers: idempotencyKey
