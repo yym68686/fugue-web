@@ -69,10 +69,9 @@ function toClusterGalleryItem(node: ClusterNodeView): ClusterNodeGalleryItem {
     statusLabel: node.statusLabel,
     statusTone: node.statusTone,
     workloadCount: node.workloadCount,
-    workloadEmptyDescription:
-      "No app or backing service is currently scheduled onto this server.",
+    workloadEmptyDescription: "No apps or services are placed on this server.",
     workloadEmptyTitle: "No workloads on this server",
-    workloadSectionNote: "Apps and backing services currently placed on this server.",
+    workloadSectionNote: "Apps and services on this server.",
     workloads: node.workloads,
   };
 }
@@ -97,7 +96,7 @@ export function AttachedServerOverview({
             description={
               inventoryError
                 ? inventoryError
-                : "Copy a cluster join command from Access keys, run it on your VPS, and the server will appear here after its first heartbeat."
+                : "Create a node key, copy the join command, and run it on your VPS."
             }
             title={inventoryError ? "Cluster node inventory unavailable" : "No servers attached yet"}
           />

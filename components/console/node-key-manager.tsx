@@ -354,7 +354,7 @@ export function NodeKeyManager({
         <div className="fg-credential-section__head">
           <div className="fg-credential-section__copy">
             <strong>Node keys</strong>
-            <p>Copy a cluster join command from this table and run it on your VPS. Copy secret only if you need the raw key.</p>
+            <p>Copy a join command for a VPS, or copy the raw secret if you need it.</p>
           </div>
 
           <div className="fg-project-actions">
@@ -490,7 +490,7 @@ export function NodeKeyManager({
         ) : (
           <div className="fg-api-key-empty">
             <strong>No node keys yet</strong>
-            <p>Create one, then copy a cluster join command from this table.</p>
+            <p>Create one, then copy a join command.</p>
           </div>
         )}
       </PanelSection>

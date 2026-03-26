@@ -1412,8 +1412,8 @@ export function ConsoleProjectGallery({
   const isCreateServiceMode = createTargetProject !== null;
   const createDialogEyebrow = isCreateServiceMode ? "Add service" : "Create project";
   const createDialogCopy = isCreateServiceMode
-    ? `Import a public GitHub repository into ${createTargetProject.name}. Fugue keeps tracking the selected branch after the first deploy.`
-    : "The project is only surfaced after a real import succeeds. Public GitHub imports keep tracking their branch for future syncs.";
+    ? `Paste a GitHub repository link to add a service to ${createTargetProject.name}.`
+    : "Name the project, then paste a GitHub repository link.";
   const createDialogSubmitLabel = isCreating
     ? isCreateServiceMode
       ? "Adding…"
@@ -3109,7 +3109,7 @@ export function ConsoleProjectGallery({
                       </FormField>
                     ) : (
                       <FormField
-                        hint="Used for the project shell in this workspace."
+                        hint="Shown in the project list."
                         htmlFor="create-project-name"
                         label="Project name"
                       >
@@ -3126,7 +3126,7 @@ export function ConsoleProjectGallery({
                     )}
 
                     <FormField
-                      hint="Only public GitHub repositories are supported right now. Fugue keeps tracking the selected branch after the first deploy."
+                      hint="Public GitHub only."
                       htmlFor="create-repo-url"
                       label="Repository link"
                     >
@@ -3158,7 +3158,7 @@ export function ConsoleProjectGallery({
                       <summary>Advanced</summary>
                       <div className="fg-console-dialog__advanced-grid">
                         <FormField
-                          hint="Leave blank to use the repository default branch. Fugue will keep tracking that branch for future syncs."
+                          hint="Leave blank to use the default branch."
                           htmlFor="create-repo-branch"
                           label="Branch"
                           optionalLabel="Optional"
@@ -3188,13 +3188,13 @@ export function ConsoleProjectGallery({
                             id="create-app-name"
                             name="name"
                             onChange={(event) => setAppName(event.target.value)}
-                            placeholder="Leave blank to reuse repo name"
+                            placeholder="Marketing site"
                             value={appName}
                           />
                         </FormField>
 
                         <FormField
-                          hint="Fugue reuses this build strategy for manual syncs and automatic GitHub updates."
+                          hint="Used for later syncs and redeploys."
                           htmlFor="create-build-strategy"
                           label="Build strategy"
                         >

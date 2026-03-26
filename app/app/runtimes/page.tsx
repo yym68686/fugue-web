@@ -23,7 +23,7 @@ export default async function RuntimesPage() {
           { href: "/app/apps", label: "Back to apps" },
           { href: "/app/operations", label: "Watch route operations", variant: "primary" },
         ]}
-        description="Shared and attached runtimes with health, placement, endpoint, and heartbeat."
+        description="Shared and attached runtimes with health and placement."
         eyebrow="Runtimes"
         title="Runtime placement"
       />
@@ -104,7 +104,7 @@ export default async function RuntimesPage() {
           <PanelSection>
             <p className="fg-label fg-panel__eyebrow">Topology</p>
             <PanelTitle>Current runtime footprint</PanelTitle>
-            <PanelCopy>Shared ingress first, attached capacity when you need it.</PanelCopy>
+            <PanelCopy>Shared ingress and attached capacity.</PanelCopy>
           </PanelSection>
 
           <PanelSection>
@@ -133,7 +133,7 @@ export default async function RuntimesPage() {
           <PanelSection>
             <p className="fg-label fg-panel__eyebrow">Readiness</p>
             <PanelTitle>Recent runtime events</PanelTitle>
-            <PanelCopy>Cluster joins and runtime-scoped events land here first.</PanelCopy>
+            <PanelCopy>Recent joins and runtime events.</PanelCopy>
           </PanelSection>
 
           <PanelSection>

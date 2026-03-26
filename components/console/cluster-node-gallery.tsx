@@ -270,9 +270,7 @@ export function ClusterNodeGallery({
                       <div className="fg-cluster-node-card__section-head">
                         <div>
                           <p className="fg-label fg-panel__eyebrow">Signals</p>
-                          <p className="fg-console-note">
-                            Ready plus memory, disk, and process pressure.
-                          </p>
+                          <p className="fg-console-note">Ready and pressure signals.</p>
                         </div>
                       </div>
 
@@ -300,9 +298,7 @@ export function ClusterNodeGallery({
                       <div className="fg-cluster-node-card__section-head">
                         <div>
                           <p className="fg-label fg-panel__eyebrow">Capacity</p>
-                          <p className="fg-console-note">
-                            Live compute, memory, and disk usage from the node.
-                          </p>
+                          <p className="fg-console-note">Live CPU, memory, and disk usage.</p>
                         </div>
                       </div>
 

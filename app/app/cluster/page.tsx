@@ -21,7 +21,7 @@ export default async function ClusterPage() {
           { href: "/app/apps", label: "Inspect apps" },
           { href: "/app/runtimes", label: "Runtime placement", variant: "primary" },
         ]}
-        description="Server-level memory, compute, disk, address, region, and Fugue workload placement across the live cluster."
+        description="Node health, capacity, and workload placement across the cluster."
         eyebrow="Admin / Cluster"
         title="Cluster"
       />

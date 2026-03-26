@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { ConsoleEmptyState } from "@/components/console/console-empty-state";
 import { ConsolePageIntro } from "@/components/console/console-page-intro";
 import { StatusBadge } from "@/components/console/status-badge";
-import { Panel, PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
+import { Panel, PanelSection, PanelTitle } from "@/components/ui/panel";
 import { getConsoleData } from "@/lib/console/presenters";
 
 export default async function OperationsPage() {
@@ -20,7 +20,7 @@ export default async function OperationsPage() {
           { href: "/app", label: "Back to projects" },
           { href: "/app/settings/workspace", label: "Open workspace settings", variant: "primary" },
         ]}
-        description="Imports, GitHub syncs, deploys, and deletes stay in one operational queue. Deploys do not complete until the Kubernetes rollout is ready."
+        description="Imports, syncs, deploys, and deletes in one queue."
         eyebrow="Operations"
         title="Change history"
       />
@@ -30,7 +30,6 @@ export default async function OperationsPage() {
           <PanelSection>
             <p className="fg-label fg-panel__eyebrow">Queue</p>
             <PanelTitle>Active operations</PanelTitle>
-            <PanelCopy>Running work stays separate from completed work, including controller-triggered GitHub syncs and rollout-gated deploys.</PanelCopy>
           </PanelSection>
 
           <PanelSection>
@@ -68,7 +67,6 @@ export default async function OperationsPage() {
           <PanelSection>
             <p className="fg-label fg-panel__eyebrow">Audit</p>
             <PanelTitle>Recent events</PanelTitle>
-            <PanelCopy>Product auth and control-plane events stay readable together.</PanelCopy>
           </PanelSection>
 
           <PanelSection>
@@ -103,7 +101,6 @@ export default async function OperationsPage() {
         <PanelSection>
           <p className="fg-label fg-panel__eyebrow">History</p>
           <PanelTitle>Recent operations</PanelTitle>
-          <PanelCopy>Completed work stays visible even when the live queue is empty, with source and rollout context preserved.</PanelCopy>
         </PanelSection>
 
         <PanelSection>

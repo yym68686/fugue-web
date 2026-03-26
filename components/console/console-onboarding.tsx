@@ -263,8 +263,8 @@ export function ConsoleOnboarding({
     ? "Create the first project."
     : "Import the first repository.";
   const description = isWorkspaceStage
-    ? `Mint your workspace admin key and prepare the ${projectName} project.`
-    : "Bring in one public GitHub repository to populate the console. Fugue will keep tracking the selected branch after the first deploy.";
+    ? `Set up the workspace and prepare ${projectName}.`
+    : "Import the first repository to create the first app.";
   const primaryLabel = isWorkspaceStage ? "Create project" : "Import repository";
   const disclosureTitle = isWorkspaceStage ? "What happens next" : "Import rules";
   const disclosureItems = isWorkspaceStage
@@ -297,7 +297,7 @@ export function ConsoleOnboarding({
         },
         {
           label: "Updates",
-          value: "Auto import -> deploy while idle",
+          value: "Later syncs reuse this branch and build strategy",
         },
       ];
   const eyebrow = "Console / first run";
@@ -327,7 +327,7 @@ export function ConsoleOnboarding({
                 loadingLabel={
                   isWorkspaceStage
                     ? "Creating workspace…"
-                    : "Importing project…"
+                    : "Importing repository…"
                 }
                 onClick={
                   isWorkspaceStage
@@ -373,16 +373,16 @@ export function ConsoleOnboarding({
               <PanelSection>
                 <p className="fg-label fg-panel__eyebrow">Import / {projectName}</p>
                 <PanelTitle className="fg-console-dialog__title" id="fugue-import-title">
-                  Import repository.
+                  Import repository
                 </PanelTitle>
-                <PanelCopy>Public GitHub only. Fugue keeps tracking the selected branch after the first deploy.</PanelCopy>
+                <PanelCopy>Paste a GitHub repository link to continue.</PanelCopy>
               </PanelSection>
 
               <PanelSection>
                 <form className="fg-form-grid" onSubmit={handleImport}>
                   <div className="fg-console-dialog__grid">
                     <FormField
-                      hint="Only public GitHub repositories are supported right now. Fugue keeps tracking the selected branch after the first deploy."
+                      hint="Public GitHub only."
                       htmlFor="repo-url"
                       label="Repository link"
                     >
@@ -414,7 +414,7 @@ export function ConsoleOnboarding({
                       <summary>Advanced</summary>
                       <div className="fg-console-dialog__advanced-grid">
                         <FormField
-                          hint="Leave blank to use the repository default branch. Fugue will keep tracking that branch for future syncs."
+                          hint="Leave blank to use the default branch."
                           htmlFor="repo-branch"
                           label="Branch"
                           optionalLabel="Optional"
@@ -450,7 +450,7 @@ export function ConsoleOnboarding({
                         </FormField>
 
                         <FormField
-                          hint="Fugue reuses this build strategy for manual syncs and automatic GitHub updates."
+                          hint="This build strategy is reused for later syncs."
                           htmlFor="build-strategy"
                           label="Build strategy"
                         >
@@ -477,8 +477,8 @@ export function ConsoleOnboarding({
                     <Button onClick={closeImport} type="button" variant="secondary">
                       Cancel
                     </Button>
-                    <Button loading={isImporting} loadingLabel="Importing project…" type="submit" variant="primary">
-                      Import project
+                    <Button loading={isImporting} loadingLabel="Importing repository…" type="submit" variant="primary">
+                      Import repository
                     </Button>
                   </div>
                 </form>

@@ -31,25 +31,23 @@ export default async function SignUpPage({
 
   return (
     <AuthShell
-      description="Choose Google or a verified email link. Workspace shape comes after identity, not before it."
+      description="Choose Google or a verified email link."
       eyebrow="Auth / Sign up"
       footer={
-        <p>Identity first. Workspace setup follows once the route is trusted.</p>
+        <p>Workspace setup comes next.</p>
       }
       notes={[
         { index: "01", title: "Google route", meta: "OAuth / Verified email" },
         { index: "02", title: "Email route", meta: "Magic link / 15 min" },
         { index: "03", title: "Post-auth", meta: "Workspace / Project / App" },
       ]}
-      title="Create access, then enter the shell."
+      title="Create an account."
     >
       <Panel>
         <PanelSection>
           <p className="fg-label fg-panel__eyebrow">Create account</p>
-          <PanelTitle>Open Fugue with one verified identity.</PanelTitle>
-          <PanelCopy>
-            Google is fastest. Email keeps the auth boundary provider-neutral.
-          </PanelCopy>
+          <PanelTitle>Choose a sign-up method.</PanelTitle>
+          <PanelCopy>Google is fastest. Email works with a magic link.</PanelCopy>
           <p className="fg-auth-footer">
             Already have access? <a href="/auth/sign-in">Sign in instead</a>.
           </p>
@@ -68,7 +66,7 @@ export default async function SignUpPage({
         <PanelSection>
           {state === "verified" ? (
             <>
-              <InlineAlert variant="success">Email verified. You can continue into the control shell.</InlineAlert>
+              <InlineAlert variant="success">Email verified. You can continue to the console.</InlineAlert>
               <div style={{ height: "1rem" }} aria-hidden="true" />
             </>
           ) : null}

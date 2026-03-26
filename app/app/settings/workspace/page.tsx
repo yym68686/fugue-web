@@ -47,20 +47,17 @@ export default async function WorkspaceSettingsPage() {
           { href: "/app", label: "Back to projects" },
           { href: "/app/api-keys", label: "Manage access keys", variant: "primary" },
         ]}
-        description="Product auth, workspace ownership, and the stored tenant admin key meet here. Bootstrap access is only used once to mint the workspace admin key."
+        description="Current login, workspace access, and control-plane visibility."
         eyebrow="Workspace"
-        title="Identity and control-plane boundary"
+        title="Identity and access"
       />
 
       <section className="fg-console-two-up">
         <Panel>
           <PanelSection>
             <p className="fg-label fg-panel__eyebrow">Control-plane access</p>
-            <PanelTitle>Current Fugue path</PanelTitle>
-            <PanelCopy>
-              Every normal request now runs through your stored workspace admin key. The bootstrap
-              key is only used to provision the workspace and mint that admin key.
-            </PanelCopy>
+            <PanelTitle>Current workspace access</PanelTitle>
+            <PanelCopy>Requests use the stored workspace admin key.</PanelCopy>
           </PanelSection>
 
           <PanelSection>
@@ -104,11 +101,8 @@ export default async function WorkspaceSettingsPage() {
         <Panel>
           <PanelSection>
             <p className="fg-label fg-panel__eyebrow">Session</p>
-            <PanelTitle>Current product login</PanelTitle>
-            <PanelCopy>
-              Product auth stays separate from Fugue scopes. This identity opens the website; the
-              server then selects your stored workspace admin key for Fugue requests.
-            </PanelCopy>
+            <PanelTitle>Current login</PanelTitle>
+            <PanelCopy>Website sign-in and Fugue access stay separate.</PanelCopy>
           </PanelSection>
 
           <PanelSection>
@@ -144,11 +138,8 @@ export default async function WorkspaceSettingsPage() {
         <Panel>
           <PanelSection>
             <p className="fg-label fg-panel__eyebrow">Visible tenants</p>
-            <PanelTitle>Current control-plane surface</PanelTitle>
-            <PanelCopy>
-              There is no separate membership service yet, so the most truthful surface is still what
-              your workspace admin key can currently observe from Fugue.
-            </PanelCopy>
+            <PanelTitle>Tenant visibility</PanelTitle>
+            <PanelCopy>Visible from the current workspace admin key.</PanelCopy>
           </PanelSection>
 
           <PanelSection>
@@ -178,7 +169,7 @@ export default async function WorkspaceSettingsPage() {
               </ul>
             ) : (
               <ConsoleEmptyState
-                description="No tenant visibility is currently coming back from Fugue. Check the configured key and control-plane host."
+                description="No tenant data is visible. Check the configured key and control-plane host."
                 title="No tenants visible"
               />
             )}
@@ -187,12 +178,9 @@ export default async function WorkspaceSettingsPage() {
 
         <Panel>
           <PanelSection>
-            <p className="fg-label fg-panel__eyebrow">Recent actors</p>
-            <PanelTitle>Who is touching the control plane</PanelTitle>
-            <PanelCopy>
-              Until product-level roles land, recent Fugue actors remain the clearest visibility
-              surface for operational access.
-            </PanelCopy>
+            <p className="fg-label fg-panel__eyebrow">Audit</p>
+            <PanelTitle>Recent actors</PanelTitle>
+            <PanelCopy>Recent actors in Fugue audit.</PanelCopy>
           </PanelSection>
 
           <PanelSection>
@@ -213,7 +201,7 @@ export default async function WorkspaceSettingsPage() {
               </ul>
             ) : (
               <ConsoleEmptyState
-                description="No recent actors are visible in Fugue audit yet."
+                description="No recent actors are visible yet."
                 title="No actor activity"
               />
             )}

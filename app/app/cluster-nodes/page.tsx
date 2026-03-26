@@ -31,7 +31,7 @@ export default async function ClusterNodesPage() {
             { href: "/app/runtimes", label: "Runtime placement" },
             { href: "/app/operations", label: "Watch operations", variant: "primary" },
           ]}
-          description="Attach servers from Access keys, then confirm heartbeat and placement here."
+          description="Attach a server, then confirm heartbeat and placement here."
           eyebrow="Servers"
           title="Attached servers"
         />
@@ -58,7 +58,7 @@ export default async function ClusterNodesPage() {
           { href: "/app/runtimes", label: "Runtime placement" },
           { href: "/app/operations", label: "Watch operations", variant: "primary" },
         ]}
-        description="Watch node health, heartbeat, and workload placement for every server attached to this workspace."
+        description="Health, heartbeat, and placement for attached servers."
         eyebrow="Servers"
         title="Attached servers"
       />
@@ -76,7 +76,7 @@ export default async function ClusterNodesPage() {
       <div className="fg-credential-section__head">
         <div className="fg-credential-section__copy">
           <strong>Cluster servers</strong>
-          <p>Expand a server to inspect roles, live capacity, and workload placement.</p>
+          <p>Expand a server for capacity and placement.</p>
         </div>
       </div>
 

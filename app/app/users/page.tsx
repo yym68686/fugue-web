@@ -18,7 +18,7 @@ export default async function UsersPage() {
       <ToastOnMount message={errorMessage} variant="error" />
 
       <ConsolePageIntro
-        description="Users, access state, and service footprint."
+        description="Users and access state."
         eyebrow="Admin / Users"
         title="Users"
       />

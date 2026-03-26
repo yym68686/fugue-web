@@ -31,7 +31,7 @@ function readFlash(params: Record<string, string | string[] | undefined>) {
   }
 
   if (error === "auth-required") {
-    return { message: "Sign in first to enter the control shell.", variant: "info" as const };
+    return { message: "Sign in first to open the console.", variant: "info" as const };
   }
 
   if (error === "account-blocked") {
@@ -66,25 +66,23 @@ export default async function SignInPage({
 
   return (
     <AuthShell
-      description="Use Google or a verified email link. The route stays stable and the first auth layer stays light."
+      description="Use Google or a verified email link."
       eyebrow="Auth / Sign in"
       footer={
-        <p>Passwordless email keeps the first auth layer light while the control shell grows around it.</p>
+        <p>Email sign-in uses a magic link.</p>
       }
       notes={[
         { index: "01", title: "Google provider", meta: "OAuth / Profile / Verified email" },
         { index: "02", title: "Verified email", meta: "Magic link / Resend / Callback" },
         { index: "03", title: "Session shell", meta: "HttpOnly cookie / 30 day window" },
       ]}
-      title="Return without changing the route."
+      title="Sign in to the console."
     >
       <Panel>
         <PanelSection>
           <p className="fg-label fg-panel__eyebrow">Sign in</p>
-          <PanelTitle>Choose a provider and enter the control shell.</PanelTitle>
-          <PanelCopy>
-            Google is fastest. Email stays available when the account boundary should remain separate.
-          </PanelCopy>
+          <PanelTitle>Choose a sign-in method.</PanelTitle>
+          <PanelCopy>Google is fastest. Email works with a magic link.</PanelCopy>
           <p className="fg-auth-footer">
             Need a fresh account boundary? <a href="/auth/sign-up">Create an account</a>.
           </p>

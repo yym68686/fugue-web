@@ -18,7 +18,7 @@ export default async function AppsPage() {
       <ToastOnMount message={errorMessage} variant="error" />
 
       <ConsolePageIntro
-        description="Cluster-wide apps, rebuilds, and deletes."
+        description="Cluster-wide apps."
         eyebrow="Admin / Apps"
         title="Cluster apps"
       />

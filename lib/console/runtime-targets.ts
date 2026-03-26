@@ -75,7 +75,7 @@ export function buildImportRuntimeTargetGroups(
 
     groups.push({
       category: "internal-cluster",
-      description: "Managed shared capacity from Fugue.",
+      description: "Use Fugue shared capacity.",
       id: INTERNAL_CLUSTER_GROUP_ID,
       kindLabel: "Shared",
       options: internalClusterTargets,
@@ -93,7 +93,7 @@ export function buildImportRuntimeTargetGroups(
 
     groups.push({
       category: "machine",
-      description: "Build runs on Fugue, then deploys onto this machine.",
+      description: "Deploy onto this machine.",
       id: target.id,
       kindLabel: "Machine",
       options: [target],

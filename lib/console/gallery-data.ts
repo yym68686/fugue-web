@@ -1440,8 +1440,8 @@ function buildImportRuntimeTargetView(
     return {
       category: "internal-cluster",
       description: location.hasPlacementConstraint
-        ? "Build and deploy stay pinned to this shared region."
-        : "Build and deploy use the default shared pool without region pinning.",
+        ? "Use shared capacity in this region."
+        : "Use Fugue shared capacity.",
       id: runtime.id,
       kindLabel: "Internal cluster",
       locationCountryCode: location.locationCountryCode,
@@ -1461,7 +1461,7 @@ function buildImportRuntimeTargetView(
 
   return {
     category: "machine",
-    description: "Build runs on Fugue, then deploys onto this machine.",
+    description: "Deploy onto this machine.",
     id: runtime.id,
     kindLabel: "Machine",
     locationCountryCode: location.locationCountryCode,

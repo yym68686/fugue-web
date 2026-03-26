@@ -946,9 +946,7 @@ function buildClusterNodeViews(
         ? `${pressureSignals.map((condition) => condition.label.toLowerCase()).join(" + ")} signal${
             pressureSignals.length === 1 ? "" : "s"
           }`
-        : node.status?.trim().toLowerCase() === "ready"
-          ? "No active pressure"
-          : null,
+        : null,
       formatCountLabel(workloadCount, "workload"),
     ].filter((value): value is string => Boolean(value));
 

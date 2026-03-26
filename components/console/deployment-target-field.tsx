@@ -12,7 +12,7 @@ import {
 
 const DEFAULT_INTERNAL_CLUSTER_TARGET = {
   category: "internal-cluster",
-  description: "Build and deploy use the default shared pool without region pinning.",
+  description: "Use Fugue shared capacity.",
   id: "runtime_managed_shared",
   kindLabel: "Internal cluster",
   locationCountryCode: null,
@@ -142,8 +142,8 @@ export function DeploymentTargetField({
 
       {inventoryError ? (
         <InlineAlert variant="info">
-          Deployment target inventory is temporarily unavailable. Continue now
-          to import into the default internal cluster.
+          Deployment targets are unavailable. This import will use the default
+          internal cluster.
         </InlineAlert>
       ) : null}
 
@@ -174,8 +174,8 @@ export function DeploymentTargetField({
         <FormField
           hint={
             selectedGroup.category === "internal-cluster"
-              ? "Choose where the shared cluster should schedule both import and deploy."
-              : "Choose the machine location to deploy onto."
+              ? "Choose the shared region for import and deploy."
+              : "Choose the machine region."
           }
           htmlFor={regionSelectId}
           label="Deployment region"
@@ -199,8 +199,7 @@ export function DeploymentTargetField({
       ) : null}
 
       <span className="fg-field-hint" id={hintId}>
-        Pick the target server first, then choose the country or region used for
-        that deployment.
+        Pick a target, then choose its region.
       </span>
     </fieldset>
   );
