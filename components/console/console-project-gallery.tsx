@@ -201,10 +201,6 @@ const LOG_VIEW_OPTIONS: readonly SegmentedControlOption<LogsView>[] = [
   { value: "runtime", label: "Runtime" },
 ];
 
-const BUILD_ONLY_LOG_VIEW_OPTIONS: readonly SegmentedControlOption<LogsView>[] = [
-  { value: "build", label: "Build" },
-];
-
 const RUNTIME_ONLY_LOG_VIEW_OPTIONS: readonly SegmentedControlOption<LogsView>[] = [
   { value: "runtime", label: "Runtime" },
 ];
@@ -630,18 +626,6 @@ function serviceKey(service: ConsoleGalleryServiceView) {
     : `${service.kind}:${service.id}`;
 }
 
-function appHasPendingService(
-  services: ConsoleGalleryProjectView["services"],
-  appId: string,
-) {
-  return services.some(
-    (service) =>
-      service.kind === "app" &&
-      service.id === appId &&
-      service.serviceRole === "pending",
-  );
-}
-
 function readPreferredProjectService(services: ConsoleGalleryProjectView["services"]) {
   return (
     services.find(
@@ -672,21 +656,13 @@ function readServiceWorkbenchOptions(
 
 function readServiceLogViewOptions(
   service: ConsoleGalleryServiceView | null,
-  services: ConsoleGalleryProjectView["services"],
+  _services: ConsoleGalleryProjectView["services"],
 ) {
   if (!service) {
     return LOG_VIEW_OPTIONS;
   }
 
   if (service.kind === "backing-service") {
-    return RUNTIME_ONLY_LOG_VIEW_OPTIONS;
-  }
-
-  if (service.serviceRole === "pending") {
-    return BUILD_ONLY_LOG_VIEW_OPTIONS;
-  }
-
-  if (appHasPendingService(services, service.id)) {
     return RUNTIME_ONLY_LOG_VIEW_OPTIONS;
   }
 
@@ -1102,25 +1078,24 @@ function inferPendingCommitHint(app: ConsoleGalleryAppView, buildLogs?: BuildLog
   });
 }
 
-function mergeCommitViews(
+function readDisplayedCommitView(
   app: ConsoleGalleryAppView,
   pendingCommitHint?: ConsoleGalleryCommitView | null,
 ) {
-  if (!pendingCommitHint || hasPendingCommitView(app)) {
-    return app.commitViews;
+  if (app.serviceRole === "pending") {
+    return (
+      app.commitViews.find((commit) => commit.kind === "pending") ??
+      pendingCommitHint ??
+      app.commitViews[0] ??
+      null
+    );
   }
 
-  const runningCommit = app.commitViews.find((commit) => commit.kind === "running");
-
-  if (!runningCommit) {
-    return [pendingCommitHint, ...app.commitViews];
-  }
-
-  return [
-    runningCommit,
-    pendingCommitHint,
-    ...app.commitViews.filter((commit) => commit.id !== runningCommit.id),
-  ];
+  return (
+    app.commitViews.find((commit) => commit.kind === "running") ??
+    app.commitViews[0] ??
+    null
+  );
 }
 
 function LocalDateTimeNote({
@@ -1169,25 +1144,23 @@ function renderCommitText(
   app: ConsoleGalleryAppView,
   pendingCommitHint?: ConsoleGalleryCommitView | null,
 ) {
-  const commitViews = mergeCommitViews(app, pendingCommitHint);
+  const commit = readDisplayedCommitView(app, pendingCommitHint);
 
-  if (!commitViews.length) {
+  if (!commit) {
     return <span>—</span>;
   }
 
   return (
     <span className="fg-project-inspector__commit-list">
-      {commitViews.map((commit) => (
-        <span className="fg-project-inspector__commit-entry" key={commit.id}>
-          <span className="fg-project-inspector__commit-row">
-            {renderCommitLink(commit)}
-            <LocalDateTimeNote
-              className="fg-project-inspector__meta-note"
-              value={commit.committedAt}
-            />
-          </span>
+      <span className="fg-project-inspector__commit-entry" key={commit.id}>
+        <span className="fg-project-inspector__commit-row">
+          {renderCommitLink(commit)}
+          <LocalDateTimeNote
+            className="fg-project-inspector__meta-note"
+            value={commit.committedAt}
+          />
         </span>
-      ))}
+      </span>
     </span>
   );
 }
@@ -1551,17 +1524,26 @@ export function ConsoleProjectGallery({
     isGitHubTrackedApp(selectedServiceApp) && !hasPendingCommitView(selectedServiceApp);
   const selectedAppUsesBuildLogStream =
     selectedServiceApp !== null && activeTab === "logs" && effectiveLogsMode === "build";
+  const selectedServiceBuildLogsOperationId =
+    selectedService?.kind === "app"
+      ? selectedService.buildLogsOperationId?.trim() || null
+      : null;
   const logsRequestKey =
     selectedApp && selectedService
-      ? `${serviceKey(selectedService)}:${effectiveLogsMode}`
+      ? `${serviceKey(selectedService)}:${effectiveLogsMode}:${effectiveLogsMode === "build" ? selectedServiceBuildLogsOperationId ?? "latest" : "live"}`
       : null;
   const logsStreamInput =
-    selectedApp
-      ? selectedService?.kind === "backing-service"
+    selectedApp && selectedService
+      ? selectedService.kind === "backing-service"
         ? `/api/fugue/apps/${selectedApp.id}/runtime-logs/stream?component=postgres&follow=true&tail_lines=${LOG_TAIL_LINES}`
-        : (selectedService?.kind === "app" && selectedService.serviceRole === "pending") ||
-            effectiveLogsMode === "build"
-          ? `/api/fugue/apps/${selectedApp.id}/build-logs/stream?follow=true&tail_lines=${LOG_TAIL_LINES}`
+        : effectiveLogsMode === "build"
+          ? `/api/fugue/apps/${selectedApp.id}/build-logs/stream?${new URLSearchParams({
+              ...(selectedServiceBuildLogsOperationId
+                ? { operation_id: selectedServiceBuildLogsOperationId }
+                : {}),
+              follow: "true",
+              tail_lines: String(LOG_TAIL_LINES),
+            }).toString()}`
           : `/api/fugue/apps/${selectedApp.id}/runtime-logs/stream?component=app&follow=true&tail_lines=${LOG_TAIL_LINES}`
       : null;
   const runtimeLogsUnavailable = readRuntimeLogsUnavailableState(selectedApp, effectiveLogsMode);

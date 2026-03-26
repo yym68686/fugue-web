@@ -142,6 +142,7 @@ const terminalOperationStatuses = new Set(["canceled", "cancelled", "completed",
 
 type AppCommitOperations = {
   active: FugueOperation | null;
+  releases: FugueOperation[];
 };
 
 function formatElapsedDuration(value?: string | null) {
@@ -239,6 +240,140 @@ function readOperationCommitSha(operation?: FugueOperation | null) {
 
 function readOperationStartedAt(operation?: FugueOperation | null) {
   return operation?.startedAt?.trim() || operation?.createdAt?.trim() || null;
+}
+
+function readNormalizedOperationType(operation?: FugueOperation | null) {
+  return operation?.type?.trim().toLowerCase() ?? "";
+}
+
+function readNormalizedOperationStatus(operation?: FugueOperation | null) {
+  return operation?.status?.trim().toLowerCase() ?? "";
+}
+
+function isReleaseOperationCandidate(operation?: FugueOperation | null) {
+  const normalizedType = readNormalizedOperationType(operation);
+  const normalizedStatus = readNormalizedOperationStatus(operation);
+
+  return (
+    normalizedType === "import" ||
+    normalizedType === "build" ||
+    normalizedType === "deploy" ||
+    normalizedStatus.includes("import") ||
+    normalizedStatus.includes("build") ||
+    normalizedStatus.includes("deploy") ||
+    Boolean(operation?.desiredSource)
+  );
+}
+
+function isBuildLogsOperationCandidate(operation?: FugueOperation | null) {
+  const normalizedType = readNormalizedOperationType(operation);
+  const normalizedStatus = readNormalizedOperationStatus(operation);
+
+  return (
+    normalizedType === "import" ||
+    normalizedType === "build" ||
+    normalizedStatus.includes("import") ||
+    normalizedStatus.includes("build")
+  );
+}
+
+function findBuildLogsOperationForCommit(
+  operations: FugueOperation[],
+  commitSha: string,
+  options: {
+    preferActive: boolean;
+  },
+) {
+  const releaseMatches = operations.filter(
+    (operation) => readOperationCommitSha(operation) === commitSha && isReleaseOperationCandidate(operation),
+  );
+  const buildMatches = releaseMatches.filter((operation) => isBuildLogsOperationCandidate(operation));
+  const readActiveMatch = (items: FugueOperation[]) => items.find((operation) => isActiveOperation(operation.status)) ?? null;
+  const readTerminalMatch = (items: FugueOperation[]) =>
+    items.find((operation) => !isActiveOperation(operation.status)) ?? null;
+
+  if (options.preferActive) {
+    return (
+      readActiveMatch(buildMatches) ??
+      buildMatches[0] ??
+      readActiveMatch(releaseMatches) ??
+      releaseMatches[0] ??
+      null
+    );
+  }
+
+  return (
+    readTerminalMatch(buildMatches) ??
+    readTerminalMatch(releaseMatches) ??
+    buildMatches[0] ??
+    releaseMatches[0] ??
+    null
+  );
+}
+
+function readRunningBuildLogsOperation(app: FugueApp, commitOperations?: AppCommitOperations) {
+  const releaseOperations = commitOperations?.releases ?? [];
+  const runningCommitSha = app.source.commitSha?.trim() || null;
+
+  if (runningCommitSha) {
+    const matchingCommitOperation = findBuildLogsOperationForCommit(releaseOperations, runningCommitSha, {
+      preferActive: false,
+    });
+
+    if (matchingCommitOperation) {
+      return matchingCommitOperation;
+    }
+  }
+
+  const lastOperationId = app.status.lastOperationId?.trim() || null;
+
+  if (lastOperationId) {
+    const matchingLastOperation = releaseOperations.find(
+      (operation) => operation.id === lastOperationId && !isActiveOperation(operation.status),
+    );
+
+    if (matchingLastOperation) {
+      return matchingLastOperation;
+    }
+  }
+
+  return (
+    releaseOperations.find(
+      (operation) => isBuildLogsOperationCandidate(operation) && !isActiveOperation(operation.status),
+    ) ??
+    releaseOperations.find((operation) => !isActiveOperation(operation.status)) ??
+    null
+  );
+}
+
+function readPendingBuildLogsOperation(
+  activeOperation: FugueOperation | null,
+  commitOperations?: AppCommitOperations,
+) {
+  const releaseOperations = commitOperations?.releases ?? [];
+  const pendingCommitSha = readOperationCommitSha(activeOperation);
+
+  if (pendingCommitSha) {
+    const matchingCommitOperation = findBuildLogsOperationForCommit(releaseOperations, pendingCommitSha, {
+      preferActive: true,
+    });
+
+    if (matchingCommitOperation) {
+      return matchingCommitOperation;
+    }
+  }
+
+  if (activeOperation && isBuildLogsOperationCandidate(activeOperation)) {
+    return activeOperation;
+  }
+
+  return (
+    releaseOperations.find(
+      (operation) => isBuildLogsOperationCandidate(operation) && isActiveOperation(operation.status),
+    ) ??
+    releaseOperations.find((operation) => isActiveOperation(operation.status)) ??
+    null
+  );
 }
 
 function normalizeServiceMessage(value?: string | null) {
@@ -486,12 +621,17 @@ function collectCommitOperationsByAppId(operations: FugueOperation[]) {
 
     const entry = commitOperationsByAppId.get(operation.appId) ?? {
       active: null,
+      releases: [],
     };
 
     if (isActiveOperation(operation.status)) {
       if (!entry.active) {
         entry.active = operation;
       }
+    }
+
+    if (isReleaseOperationCandidate(operation)) {
+      entry.releases.push(operation);
     }
 
     commitOperationsByAppId.set(operation.appId, entry);
@@ -887,6 +1027,10 @@ function buildAppView(
   const sourceBranchLabel = readSourceBranchLabel(app);
   const activeOperation = readActiveReleaseOperation(commitOperations?.active ?? null, app);
   const commitViews = buildCommitViews(app, activeOperation);
+  const runningBuildLogsOperation = readRunningBuildLogsOperation(app, commitOperations);
+  const pendingBuildLogsOperation = activeOperation
+    ? readPendingBuildLogsOperation(activeOperation, commitOperations)
+    : null;
   const serviceBadges = buildAppBadges(app);
   const primaryBadge =
     readPrimaryBadge(serviceBadges) ??
@@ -902,12 +1046,7 @@ function buildAppView(
     primaryCommit?.label ?? (isGitHubPublicSource(app) ? readCurrentCommitLabel(app) : null);
   const fallbackPhase = app.status.phase ?? (app.spec.disabled ? "disabled" : "unknown");
   const sharedView = {
-    commitViews,
     canRedeploy: redeploy.canRedeploy,
-    currentCommitCommittedAt: primaryCommit?.committedAt ?? null,
-    currentCommitExact: primaryCommit?.exact ?? null,
-    currentCommitHref: primaryCommit?.href ?? null,
-    currentCommitLabel,
     deployBehavior: readDeployBehavior(app),
     hasPostgresService: app.backingServices.some((service) => service.type === "postgres"),
     id: app.id,
@@ -936,13 +1075,29 @@ function buildAppView(
     workspaceMountPath: app.spec.workspace ? app.spec.workspace.mountPath ?? "/workspace" : null,
   } satisfies Omit<
     ConsoleGalleryAppView,
-    "lastMessage" | "phase" | "phaseTone" | "serviceDurationLabel" | "serviceRole"
+    | "buildLogsOperationId"
+    | "commitViews"
+    | "currentCommitCommittedAt"
+    | "currentCommitExact"
+    | "currentCommitHref"
+    | "currentCommitLabel"
+    | "lastMessage"
+    | "phase"
+    | "phaseTone"
+    | "serviceDurationLabel"
+    | "serviceRole"
   >;
 
   const runningView =
     hasLiveRelease(app) || !activeOperation
       ? ({
           ...sharedView,
+          buildLogsOperationId: runningBuildLogsOperation?.id ?? null,
+          commitViews,
+          currentCommitCommittedAt: primaryCommit?.committedAt ?? null,
+          currentCommitExact: primaryCommit?.exact ?? null,
+          currentCommitHref: primaryCommit?.href ?? null,
+          currentCommitLabel,
           lastMessage: readRunningServiceMessage(app, activeOperation),
           phase: readAppPhaseLabel(fallbackPhase),
           phaseTone: toneForStatus(fallbackPhase),
@@ -955,6 +1110,12 @@ function buildAppView(
     activeOperation && activePhase
       ? ({
           ...sharedView,
+          buildLogsOperationId: pendingBuildLogsOperation?.id ?? null,
+          commitViews,
+          currentCommitCommittedAt: primaryCommit?.committedAt ?? null,
+          currentCommitExact: primaryCommit?.exact ?? null,
+          currentCommitHref: primaryCommit?.href ?? null,
+          currentCommitLabel,
           lastMessage: readPendingServiceMessage(app, activeOperation),
           phase: activePhase.stateLabel,
           phaseTone: activePhase.tone,

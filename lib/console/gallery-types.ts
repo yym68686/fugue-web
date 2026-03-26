@@ -38,6 +38,7 @@ export type ConsoleGalleryCommitView = {
 export type ConsoleGalleryAppServiceRole = "pending" | "running";
 
 export type ConsoleGalleryAppView = {
+  buildLogsOperationId: string | null;
   commitViews: ConsoleGalleryCommitView[];
   currentCommitCommittedAt: string | null;
   canRedeploy: boolean;
