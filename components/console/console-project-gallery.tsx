@@ -213,6 +213,7 @@ const LOG_AUTO_REFRESH_INTERVAL_MS = 3_000;
 const PROJECT_ACTIVE_REFRESH_INTERVAL_MS = 3_000;
 const PROJECT_PASSIVE_REFRESH_INTERVAL_MS = 6_000;
 const LOG_TAIL_LINES = 200;
+const LOG_AUTO_FOLLOW_THRESHOLD_PX = 32;
 const LOG_MAX_VISIBLE_LINES = 1_000;
 const PENDING_COMMIT_HINT_TAIL_LINES = 1;
 const TERMINAL_LOG_OPERATION_STATUSES = new Set(["canceled", "cancelled", "completed", "failed"]);
@@ -523,6 +524,10 @@ function trimLogBody(body: string) {
   }
 
   return lines.slice(lines.length - LOG_MAX_VISIBLE_LINES).join("\n");
+}
+
+function isLogViewportNearBottom(element: HTMLElement) {
+  return element.scrollHeight - element.scrollTop - element.clientHeight <= LOG_AUTO_FOLLOW_THRESHOLD_PX;
 }
 
 function readLogStreamSourceId(source?: LogStreamSource | null) {
@@ -864,6 +869,35 @@ function renderExternalText(label: string, href?: string | null, className?: str
       {label}
     </a>
   );
+}
+
+function readServicePublicUrl(service: ConsoleGalleryServiceView | null) {
+  if (!service || service.kind !== "app") {
+    return null;
+  }
+
+  const routeHref = service.routeHref?.trim();
+
+  if (routeHref) {
+    return {
+      href: routeHref,
+      label: routeHref,
+    };
+  }
+
+  const routeLabel = service.routeLabel?.trim();
+  const normalizedRouteLabel = routeLabel?.toLowerCase() ?? "";
+
+  if (!routeLabel || normalizedRouteLabel === "unassigned" || normalizedRouteLabel.startsWith("private /")) {
+    return null;
+  }
+
+  const inferredHref = routeLabel.includes("://") ? routeLabel : `https://${routeLabel}`;
+
+  return {
+    href: inferredHref,
+    label: inferredHref,
+  };
 }
 
 function renderCommitLink(commit: Pick<ConsoleGalleryCommitView, "exact" | "href" | "label">) {
@@ -1485,6 +1519,8 @@ export function ConsoleProjectGallery({
   const [buildLogsOperationStatus, setBuildLogsOperationStatus] = useState<string | null>(null);
   const [logsRefreshToken, setLogsRefreshToken] = useState(0);
   const [refreshWindowUntil, setRefreshWindowUntil] = useState(0);
+  const logsAutoFollowRef = useRef(true);
+  const logsViewportRef = useRef<HTMLPreElement | null>(null);
   const pendingCommitHintRequestPendingRef = useRef(false);
   const selectedServiceAppRef = useRef<ConsoleGalleryAppView | null>(null);
   const selectedAppNeedsPendingCommitHintRef = useRef(false);
@@ -1587,6 +1623,26 @@ export function ConsoleProjectGallery({
           ? `Unable to open the ${humanizeUiLabel(effectiveLogsMode).toLowerCase()} stream. Use Refresh now to try again.`
           : `Live ${humanizeUiLabel(effectiveLogsMode).toLowerCase()} output for ${selectedService?.name ?? "this service"}.`;
 
+  function scrollLogsToBottom() {
+    const viewport = logsViewportRef.current;
+
+    if (!viewport) {
+      return;
+    }
+
+    viewport.scrollTop = viewport.scrollHeight;
+  }
+
+  function handleLogsViewportScroll() {
+    const viewport = logsViewportRef.current;
+
+    if (!viewport) {
+      return;
+    }
+
+    logsAutoFollowRef.current = isLogViewportNearBottom(viewport);
+  }
+
   useEffect(() => {
     if (defaultCreateOpen) {
       setCreateOpen(true);
@@ -1684,6 +1740,36 @@ export function ConsoleProjectGallery({
       setLogsMode(nextLogsMode);
     }
   }, [activeTab, logsMode, selectedProjectServices, selectedService]);
+
+  useEffect(() => {
+    if (activeTab !== "logs") {
+      return;
+    }
+
+    logsAutoFollowRef.current = true;
+
+    const frame = window.requestAnimationFrame(() => {
+      scrollLogsToBottom();
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
+  }, [activeTab, logsRequestKey, logsRefreshToken]);
+
+  useEffect(() => {
+    if (activeTab !== "logs" || !logsAutoFollowRef.current) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      scrollLogsToBottom();
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
+  }, [activeTab, logsBody]);
 
   useEffect(() => {
     if (!createOpen) {
@@ -2608,7 +2694,8 @@ export function ConsoleProjectGallery({
             humanizeUiLabel(selectedService.type),
           ])
         : null;
-    const serviceCountLabel = `${project.services.length} service${project.services.length === 1 ? "" : "s"}`;
+    const selectedServiceUrl = readServicePublicUrl(selectedService);
+
     return (
       <div className="fg-project-card__detail" id={detailId}>
         <section className="fg-bezel fg-panel fg-project-workbench">
@@ -2621,7 +2708,6 @@ export function ConsoleProjectGallery({
                     Add service
                   </Button>
                 </div>
-                <p className="fg-project-services__count">{serviceCountLabel}</p>
               </PanelSection>
 
               <PanelSection>
@@ -2705,41 +2791,32 @@ export function ConsoleProjectGallery({
                 <div className="fg-project-inspector__meta-grid">
                   {selectedService.kind === "app" ? (
                     <>
-                      {selectedService.serviceRole === "running" ? (
-                        <>
-                          <div>
-                            <dt>Commit</dt>
-                            <dd>{renderCommitText(selectedService, selectedAppPendingCommitHint)}</dd>
-                          </div>
-                          <div>
-                            <dt>Build</dt>
-                            <dd>{selectedService.sourceMeta}</dd>
-                          </div>
-                          {selectedServiceWorkspacePath ? (
-                            <div>
-                              <dt>Workspace</dt>
-                              <dd>{selectedServiceWorkspacePath}</dd>
-                            </div>
-                          ) : null}
-                        </>
-                      ) : (
-                        <>
-                          <div>
-                            <dt>Commit</dt>
-                            <dd>{renderCommitText(selectedService, selectedAppPendingCommitHint)}</dd>
-                          </div>
-                          <div>
-                            <dt>Build</dt>
-                            <dd>{selectedService.sourceMeta}</dd>
-                          </div>
-                          {selectedService.serviceDurationLabel ? (
-                            <div>
-                              <dt>Elapsed</dt>
-                              <dd>{`${selectedService.serviceDurationLabel} elapsed`}</dd>
-                            </div>
-                          ) : null}
-                        </>
-                      )}
+                      <div>
+                        <dt>Commit</dt>
+                        <dd>{renderCommitText(selectedService, selectedAppPendingCommitHint)}</dd>
+                      </div>
+                      <div>
+                        <dt>Build</dt>
+                        <dd>{selectedService.sourceMeta}</dd>
+                      </div>
+                      {selectedServiceUrl ? (
+                        <div>
+                          <dt>URL</dt>
+                          <dd>{renderExternalText(selectedServiceUrl.label, selectedServiceUrl.href)}</dd>
+                        </div>
+                      ) : null}
+                      {selectedService.serviceRole === "running" && selectedServiceWorkspacePath ? (
+                        <div>
+                          <dt>Workspace</dt>
+                          <dd>{selectedServiceWorkspacePath}</dd>
+                        </div>
+                      ) : null}
+                      {selectedService.serviceRole === "pending" && selectedService.serviceDurationLabel ? (
+                        <div>
+                          <dt>Elapsed</dt>
+                          <dd>{`${selectedService.serviceDurationLabel} elapsed`}</dd>
+                        </div>
+                      ) : null}
                     </>
                   ) : (
                     <>
@@ -3023,7 +3100,11 @@ export function ConsoleProjectGallery({
                             <p>{runtimeLogsUnavailable.description}</p>
                           </div>
                         ) : (
-                          <pre>
+                          <pre
+                            className="fg-log-output__viewport"
+                            onScroll={handleLogsViewportScroll}
+                            ref={logsViewportRef}
+                          >
                             <code className="fg-log-output">{renderAnsiLogBody(logsDisplayBody)}</code>
                           </pre>
                         )}

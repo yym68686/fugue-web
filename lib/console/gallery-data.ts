@@ -241,6 +241,20 @@ function readOperationStartedAt(operation?: FugueOperation | null) {
   return operation?.startedAt?.trim() || operation?.createdAt?.trim() || null;
 }
 
+function normalizeServiceMessage(value?: string | null) {
+  const message = value?.trim().replace(/\s+/g, " ") ?? "";
+
+  if (!message) {
+    return null;
+  }
+
+  if (/^deployment ready(?: \(\d+\/\d+ replicas\))?$/i.test(message)) {
+    return null;
+  }
+
+  return message;
+}
+
 function hasLiveRelease(app: FugueApp) {
   const normalizedPhase = app.status.phase?.trim().toLowerCase() ?? "";
 
@@ -316,20 +330,22 @@ function readRunningServiceMessage(app: FugueApp, activeOperation?: FugueOperati
     return null;
   }
 
-  return app.status.lastMessage?.trim() || null;
+  return normalizeServiceMessage(app.status.lastMessage);
 }
 
 function readPendingServiceMessage(app: FugueApp, operation: FugueOperation) {
-  const appMessage = app.status.lastMessage?.trim();
-
-  if (appMessage) {
-    return appMessage;
-  }
-
-  const operationMessage = operation.resultMessage?.trim() || operation.errorMessage?.trim();
+  const operationMessage = normalizeServiceMessage(
+    operation.resultMessage?.trim() || operation.errorMessage?.trim(),
+  );
 
   if (operationMessage) {
     return operationMessage;
+  }
+
+  const appMessage = normalizeServiceMessage(app.status.lastMessage);
+
+  if (appMessage) {
+    return appMessage;
   }
 
   return `${readPendingCommitState(operation).stateLabel} the next release.`;
@@ -578,15 +594,16 @@ function readRedeployAction(app: FugueApp) {
   if (isGitHubPublicSource(app)) {
     return {
       description:
-        "Queue an immediate import -> deploy from the tracked branch. Fugue also syncs automatically when upstream commits change and the app is idle.",
-      label: "Sync now",
-      loadingLabel: "Syncing…",
-      queuedMessage: "GitHub sync queued.",
+        "Pull the latest code from the tracked branch, rebuild from scratch, and roll out the new release. Fugue also redeploys automatically when upstream commits change and the app is idle.",
+      label: "Redeploy",
+      loadingLabel: "Redeploying…",
+      queuedMessage: "Redeploy queued.",
     };
   }
 
   return {
-    description: "Rebuild from the saved source and reset the workspace on the next rollout.",
+    description:
+      "Rebuild from the saved source from scratch and roll out a new release. If a workspace is configured, the next rollout resets it.",
     label: "Redeploy",
     loadingLabel: "Redeploying…",
     queuedMessage: "Redeploy queued.",

@@ -2319,6 +2319,12 @@
   --fg-log-bright-white: #fffaf2;
 }
 
+.fg-log-output__viewport {
+  max-height: min(32rem, 56dvh);
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: stable;
+}
+
 .fg-log-output__segment {
   color: inherit;
 }
@@ -2844,16 +2850,6 @@
   justify-content: space-between;
   align-items: center;
   gap: 0.75rem;
-}
-
-.fg-project-services__count {
-  margin: 0;
-  color: var(--fugue-text-muted);
-  font-family: var(--fugue-font-mono);
-  font-size: 0.64rem;
-  letter-spacing: 0.08em;
-  text-transform: none;
-  white-space: nowrap;
 }
 
 .fg-project-service-list {

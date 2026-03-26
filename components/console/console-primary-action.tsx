@@ -8,11 +8,11 @@ function isApiKeysPath(pathname: string) {
   return pathname === "/app/api-keys" || pathname.startsWith("/app/api-keys/");
 }
 
-export function ConsolePrimaryAction() {
+export function ConsolePrimaryAction({ hasProjects }: { hasProjects: boolean }) {
   const pathname = usePathname();
   const className = "fg-console-topbar__primary-action";
 
-  if (isApiKeysPath(pathname)) {
+  if (!hasProjects || isApiKeysPath(pathname)) {
     return null;
   }
 
@@ -21,7 +21,7 @@ export function ConsolePrimaryAction() {
       className={className}
       href="/app?dialog=create"
       size="compact"
-      variant="route"
+      variant="primary"
     >
       Create project
     </ButtonLink>
