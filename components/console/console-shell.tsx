@@ -7,6 +7,7 @@ import { StatusBadge } from "@/components/console/status-badge";
 import { Button } from "@/components/ui/button";
 import type { SessionUser } from "@/lib/auth/session";
 import { getFugueApps } from "@/lib/fugue/api";
+import { ensureWorkspaceAccess } from "@/lib/workspace/bootstrap";
 import { getWorkspaceAccessByEmail } from "@/lib/workspace/store";
 
 function readSessionLabel(session: SessionUser) {
@@ -53,11 +54,22 @@ export async function ConsoleShell({
   let hasProjects = false;
 
   try {
-    const workspace = await getWorkspaceAccessByEmail(session.email);
+    let workspace = await getWorkspaceAccessByEmail(session.email);
 
     if (workspace) {
-      const apps = await getFugueApps(workspace.adminKeySecret);
-      hasProjects = apps.length > 0;
+      try {
+        const apps = await getFugueApps(workspace.adminKeySecret);
+        hasProjects = apps.length > 0;
+      } catch (error) {
+        if (!(error instanceof Error) || !error.message.includes("401")) {
+          throw error;
+        }
+
+        const refreshed = await ensureWorkspaceAccess(session);
+        workspace = refreshed.workspace;
+        const apps = await getFugueApps(workspace.adminKeySecret);
+        hasProjects = apps.length > 0;
+      }
     }
   } catch {
     hasProjects = false;

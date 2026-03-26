@@ -1,7 +1,10 @@
+import { redirect } from "next/navigation";
+
 import { AuthShell } from "@/components/auth/auth-shell";
 import { EmailAuthForm } from "@/components/auth/email-auth-form";
 import { ProviderButton } from "@/components/auth/provider-button";
 import { Panel, PanelCopy, PanelDivider, PanelSection, PanelTitle } from "@/components/ui/panel";
+import { readAuthenticatedAppPath } from "@/lib/auth/handoff";
 import { ToastOnMount } from "@/components/ui/toast-on-mount";
 import { getEmailVerificationRequired } from "@/lib/auth/env";
 
@@ -51,6 +54,12 @@ export default async function SignInPage({
 }: {
   searchParams: SearchParams;
 }) {
+  const authenticatedAppPath = await readAuthenticatedAppPath();
+
+  if (authenticatedAppPath) {
+    redirect(authenticatedAppPath);
+  }
+
   const resolved = await Promise.resolve(searchParams);
   const flash = readFlash(resolved);
   const emailVerificationRequired = getEmailVerificationRequired();

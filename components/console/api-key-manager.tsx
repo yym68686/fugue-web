@@ -249,7 +249,7 @@ export function ApiKeyManager({
 
     const confirmed = window.confirm(
       record.isWorkspaceAdmin
-        ? "Replace this admin key? The current secret stops working immediately and the new secret will be copied."
+        ? "Replace this admin key for this website copy? A fresh secret will be copied without revoking other environments."
         : "Replace this access key? The current secret stops working immediately and the new secret will be copied.",
     );
 
@@ -268,7 +268,18 @@ export function ApiKeyManager({
       });
       const copied = await copyText(rotated.secret);
 
-      setKeys((current) => upsertKey(current, rotated.key));
+      if (rotated.key.isWorkspaceAdmin) {
+        setKeys((current) =>
+          upsertKey(
+            current.filter(
+              (key) => !(key.isWorkspaceAdmin && key.id !== rotated.key.id),
+            ),
+            rotated.key,
+          ),
+        );
+      } else {
+        setKeys((current) => upsertKey(current, rotated.key));
+      }
       if (rotated.key.isWorkspaceAdmin) {
         setScopeCatalog(sortFugueScopes(rotated.key.scopes));
       }
@@ -278,10 +289,10 @@ export function ApiKeyManager({
       showToast({
         message: copied
           ? record.isWorkspaceAdmin
-            ? "Admin key replaced and secret copied. The previous secret no longer works."
+            ? "Admin key replaced for this website copy and secret copied."
             : "Access key replaced and secret copied. The previous secret no longer works."
           : record.isWorkspaceAdmin
-            ? "Admin key replaced. Copy the new secret now."
+            ? "Admin key replaced for this website copy. Copy the new secret now."
             : "Access key replaced. Copy the new secret now.",
         variant: "success",
       });

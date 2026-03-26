@@ -9,6 +9,7 @@ import {
 } from "@/lib/api-keys/store";
 import type { ApiKeyRecord } from "@/lib/api-keys/types";
 import {
+  createFugueApiKey,
   deleteFugueApiKey,
   disableFugueApiKey,
   enableFugueApiKey,
@@ -173,6 +174,25 @@ async function persistApiKeyMutation(input: {
   });
 }
 
+async function createWorkspaceAdminKeyForWorkspace(
+  workspace: NonNullable<Awaited<ReturnType<typeof getWorkspaceAccessByEmail>>>,
+) {
+  const created = await createFugueApiKey(getFugueEnv().bootstrapKey, {
+    label: WORKSPACE_ADMIN_KEY_LABEL,
+    scopes: normalizeScopes(
+      workspace.adminKeyScopes.length
+        ? workspace.adminKeyScopes
+        : [...WORKSPACE_ADMIN_SCOPES],
+    ),
+    tenantId: workspace.tenantId,
+  });
+
+  return {
+    apiKey: created.apiKey,
+    secret: created.secret,
+  };
+}
+
 export async function getApiKeyPageData(email: string) {
   const workspace = await getWorkspaceAccessByEmail(email);
 
@@ -229,31 +249,19 @@ export async function createDefaultApiKeyForEmail(email: string) {
     throw new Error("Create a workspace first.");
   }
 
-  const rotated = await rotateFugueApiKey(
-    readMutationAccessToken(true, workspace.adminKeySecret),
-    workspace.adminKeyId,
-    {
-      label: WORKSPACE_ADMIN_KEY_LABEL,
-      scopes: normalizeScopes(
-        workspace.adminKeyScopes.length
-          ? workspace.adminKeyScopes
-          : [...WORKSPACE_ADMIN_SCOPES],
-      ),
-    },
-  );
-
+  const created = await createWorkspaceAdminKeyForWorkspace(workspace);
   const record = await persistApiKeyMutation({
-    apiKey: rotated.apiKey,
+    apiKey: created.apiKey,
     email,
     isWorkspaceAdmin: true,
-    secret: rotated.secret,
+    secret: created.secret,
     source: "workspace-admin",
     workspace,
   });
 
   return {
     key: record,
-    secret: rotated.secret,
+    secret: created.secret,
   };
 }
 
@@ -338,17 +346,26 @@ export async function rotateApiKeyForEmail(email: string, id: string) {
     throw new Error("Access key not found.");
   }
 
+  if (current.isWorkspaceAdmin) {
+    const created = await createWorkspaceAdminKeyForWorkspace(workspace);
+    const record = await persistApiKeyMutation({
+      apiKey: created.apiKey,
+      email,
+      isWorkspaceAdmin: true,
+      secret: created.secret,
+      source: current.source,
+      workspace,
+    });
+
+    return {
+      key: record,
+      secret: created.secret,
+    };
+  }
+
   const rotated = await rotateFugueApiKey(
-    readMutationAccessToken(current.isWorkspaceAdmin, workspace.adminKeySecret),
+    readMutationAccessToken(false, workspace.adminKeySecret),
     id,
-    current.isWorkspaceAdmin
-      ? {
-          label: WORKSPACE_ADMIN_KEY_LABEL,
-          scopes: normalizeScopes(
-            current.scopes.length ? current.scopes : [...WORKSPACE_ADMIN_SCOPES],
-          ),
-        }
-      : undefined,
   );
   const record = await persistApiKeyMutation({
     apiKey: rotated.apiKey,

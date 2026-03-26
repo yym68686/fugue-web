@@ -1,9 +1,12 @@
+import { redirect } from "next/navigation";
+
 import { AuthShell } from "@/components/auth/auth-shell";
 import { EmailAuthForm } from "@/components/auth/email-auth-form";
 import { ProviderButton } from "@/components/auth/provider-button";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { Panel, PanelCopy, PanelDivider, PanelSection, PanelTitle } from "@/components/ui/panel";
 import { getEmailVerificationRequired } from "@/lib/auth/env";
+import { readAuthenticatedAppPath } from "@/lib/auth/handoff";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>> | Record<string, string | string[] | undefined>;
 
@@ -16,6 +19,12 @@ export default async function SignUpPage({
 }: {
   searchParams: SearchParams;
 }) {
+  const authenticatedAppPath = await readAuthenticatedAppPath();
+
+  if (authenticatedAppPath) {
+    redirect(authenticatedAppPath);
+  }
+
   const resolved = await Promise.resolve(searchParams);
   const state = readValue(resolved.state);
   const emailVerificationRequired = getEmailVerificationRequired();

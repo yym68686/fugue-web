@@ -244,6 +244,36 @@ async function upsertWorkspaceAdminKey(client: PoolClient, record: WorkspaceAcce
   );
 }
 
+async function demotePreviousWorkspaceAdminKeys(
+  client: PoolClient,
+  record: WorkspaceAccess,
+) {
+  await client.query(
+    `
+      UPDATE app_api_keys
+      SET
+        source = CASE
+          WHEN source = 'workspace-admin'
+            THEN 'external'
+          ELSE source
+        END,
+        is_workspace_admin = FALSE,
+        secret_sealed = NULL,
+        updated_at = $4
+      WHERE user_email = $1
+        AND tenant_id = $2
+        AND fugue_key_id <> $3
+        AND is_workspace_admin = TRUE
+    `,
+    [
+      normalizeEmail(record.email),
+      record.tenantId,
+      record.adminKeyId,
+      record.updatedAt,
+    ],
+  );
+}
+
 export async function ensureAppUser(user: SessionUser) {
   return ensureAppUserRecord(user);
 }
@@ -378,6 +408,12 @@ export async function saveWorkspaceAccess(record: WorkspaceAccess) {
     );
 
     await upsertWorkspaceAdminKey(client, {
+      ...record,
+      createdAt,
+      email: normalizedEmail,
+      updatedAt,
+    });
+    await demotePreviousWorkspaceAdminKeys(client, {
       ...record,
       createdAt,
       email: normalizedEmail,

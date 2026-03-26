@@ -2,6 +2,7 @@ import "server-only";
 
 import { cache } from "react";
 
+import { getCurrentSession } from "@/lib/auth/session";
 import type { ConsoleTone } from "@/lib/console/types";
 import type {
   ConsoleGalleryAppView,
@@ -33,7 +34,11 @@ import {
   readLanguageBadgeKind,
   readTechnologyLabel,
 } from "@/lib/tech-stack";
-import { getCurrentWorkspaceAccess } from "@/lib/workspace/current";
+import { ensureWorkspaceAccess } from "@/lib/workspace/bootstrap";
+import {
+  getCurrentWorkspaceAccess,
+  type WorkspaceAccess,
+} from "@/lib/workspace/current";
 
 function readErrorMessage(reason: unknown) {
   if (reason instanceof Error && reason.message) {
@@ -41,6 +46,10 @@ function readErrorMessage(reason: unknown) {
   }
 
   return "Unknown Fugue request error.";
+}
+
+function isUnauthorizedFugueError(reason: unknown) {
+  return reason instanceof Error && reason.message.includes("401");
 }
 
 function parseTimestamp(value?: string | null) {
@@ -1242,9 +1251,9 @@ function projectNameMap(projects: FugueProject[], fallbackId?: string | null, fa
 }
 
 export const getConsoleProjectGalleryData = cache(async () => {
-  const workspace = await getCurrentWorkspaceAccess();
+  const initialWorkspace = await getCurrentWorkspaceAccess();
 
-  if (!workspace) {
+  if (!initialWorkspace) {
     return {
       errors: [],
       projects: [],
@@ -1255,11 +1264,37 @@ export const getConsoleProjectGalleryData = cache(async () => {
     } satisfies ConsoleProjectGalleryData;
   }
 
-  const [projectsResult, appsResult, operationsResult] = await Promise.allSettled([
-    getFugueProjects(workspace.adminKeySecret, workspace.tenantId ?? undefined),
-    getFugueApps(workspace.adminKeySecret),
-    getFugueOperations(workspace.adminKeySecret),
-  ]);
+  async function loadWorkspaceData(workspace: WorkspaceAccess) {
+    return Promise.allSettled([
+      getFugueProjects(workspace.adminKeySecret, workspace.tenantId ?? undefined),
+      getFugueApps(workspace.adminKeySecret),
+      getFugueOperations(workspace.adminKeySecret),
+    ]);
+  }
+
+  let workspace = initialWorkspace;
+  let [projectsResult, appsResult, operationsResult] = await loadWorkspaceData(workspace);
+
+  if (
+    projectsResult.status === "rejected" &&
+    appsResult.status === "rejected" &&
+    operationsResult.status === "rejected" &&
+    isUnauthorizedFugueError(projectsResult.reason) &&
+    isUnauthorizedFugueError(appsResult.reason) &&
+    isUnauthorizedFugueError(operationsResult.reason)
+  ) {
+    const session = await getCurrentSession();
+
+    if (session) {
+      try {
+        const refreshed = await ensureWorkspaceAccess(session);
+        workspace = refreshed.workspace;
+        [projectsResult, appsResult, operationsResult] = await loadWorkspaceData(workspace);
+      } catch {
+        // Keep the original 401 results when recovery fails.
+      }
+    }
+  }
 
   const errors = [
     projectsResult.status === "rejected"

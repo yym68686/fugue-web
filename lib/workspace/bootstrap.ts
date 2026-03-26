@@ -6,14 +6,12 @@ import type { SessionUser } from "@/lib/auth/session";
 import { sanitizeDisplayName } from "@/lib/auth/validation";
 import {
   enableFugueApiKey,
-  deleteFugueApiKey,
   getFugueApiKeys,
   getFugueTenants,
   type FugueApiKey,
   type FugueTenant,
   createFugueApiKey,
   createFugueTenant,
-  rotateFugueApiKey,
   updateFugueApiKey,
 } from "@/lib/fugue/api";
 import { getFugueEnv } from "@/lib/fugue/env";
@@ -97,28 +95,6 @@ function findWorkspaceTenantForSession(
     )[0] ?? null;
 }
 
-function pickWorkspaceAdminKey(
-  keys: FugueApiKey[],
-  tenantId: string,
-) {
-  return [...keys]
-    .filter(
-      (key) =>
-        key.tenantId === tenantId &&
-        key.label.trim().toLowerCase() === WORKSPACE_ADMIN_KEY_LABEL,
-    )
-    .sort((left, right) => {
-      const leftActive = left.status?.trim().toLowerCase() !== "disabled";
-      const rightActive = right.status?.trim().toLowerCase() !== "disabled";
-
-      if (leftActive !== rightActive) {
-        return leftActive ? -1 : 1;
-      }
-
-      return parseTimestamp(right.createdAt) - parseTimestamp(left.createdAt);
-    })[0] ?? null;
-}
-
 function listTenantApiKeys(keys: FugueApiKey[], tenantId: string) {
   return keys.filter((key) => key.tenantId === tenantId);
 }
@@ -161,18 +137,21 @@ async function hasUsableStoredAdminSecret(
   }
 }
 
-async function deleteExtraTenantApiKeys(
+async function createWorkspaceAdminKey(
   bootstrapKey: string,
-  keys: FugueApiKey[],
-  canonicalKeyId: string,
+  tenantId: string,
+  workspace?: WorkspaceBootstrapState | null,
 ) {
-  for (const key of keys) {
-    if (key.id === canonicalKeyId) {
-      continue;
-    }
+  const created = await createFugueApiKey(bootstrapKey, {
+    label: WORKSPACE_ADMIN_KEY_LABEL,
+    scopes: readWorkspaceAdminScopes(workspace, null),
+    tenantId,
+  });
 
-    await deleteFugueApiKey(bootstrapKey, key.id);
-  }
+  return {
+    apiKey: created.apiKey,
+    secret: created.secret,
+  };
 }
 
 async function reconcileWorkspaceAdminKey(
@@ -182,73 +161,55 @@ async function reconcileWorkspaceAdminKey(
 ) {
   const visibleKeys = await getFugueApiKeys(bootstrapKey);
   const tenantKeys = listTenantApiKeys(visibleKeys, tenantId);
-  const storedCanonical =
+  const storedKey =
     workspace &&
     tenantKeys.find(
-      (key) =>
-        key.id === workspace.adminKeyId &&
-        key.label.trim().toLowerCase() === WORKSPACE_ADMIN_KEY_LABEL,
+      (key) => key.id === workspace.adminKeyId,
     );
-  let canonical =
-    storedCanonical ??
-    pickWorkspaceAdminKey(tenantKeys, tenantId);
-  let secret = workspace?.adminKeySecret ?? null;
 
-  if (!canonical) {
-    const created = await createFugueApiKey(bootstrapKey, {
-      label: WORKSPACE_ADMIN_KEY_LABEL,
-      scopes: readWorkspaceAdminScopes(workspace, null),
+  if (!workspace || !storedKey) {
+    return createWorkspaceAdminKey(bootstrapKey, tenantId, workspace);
+  }
+
+  let apiKey = storedKey;
+
+  if (apiKey.status?.trim().toLowerCase() === "disabled") {
+    apiKey = await enableFugueApiKey(bootstrapKey, apiKey.id);
+  }
+
+  const nextScopes = readWorkspaceAdminScopes(workspace, apiKey);
+  const needsMetadataRepair =
+    apiKey.label.trim().toLowerCase() !== WORKSPACE_ADMIN_KEY_LABEL ||
+    apiKey.scopes.length === 0;
+
+  if (needsMetadataRepair) {
+    apiKey = await updateFugueApiKey(bootstrapKey, apiKey.id, {
+      ...(apiKey.label.trim().toLowerCase() !== WORKSPACE_ADMIN_KEY_LABEL
+        ? {
+            label: WORKSPACE_ADMIN_KEY_LABEL,
+          }
+        : {}),
+      ...(apiKey.scopes.length === 0
+        ? {
+            scopes: nextScopes,
+          }
+        : {}),
+    });
+  }
+
+  if (!(await hasUsableStoredAdminSecret(workspace, apiKey.id))) {
+    console.warn("Stored workspace admin key secret is no longer usable. Minting a fresh workspace admin key for this environment.", {
+      email: workspace.email,
+      previousAdminKeyId: apiKey.id,
       tenantId,
     });
 
-    canonical = created.apiKey;
-    secret = created.secret;
-  } else {
-    if (canonical.status?.trim().toLowerCase() === "disabled") {
-      canonical = await enableFugueApiKey(bootstrapKey, canonical.id);
-    }
-
-    const nextScopes = readWorkspaceAdminScopes(workspace, canonical);
-    const needsMetadataRepair =
-      canonical.label.trim().toLowerCase() !== WORKSPACE_ADMIN_KEY_LABEL ||
-      canonical.scopes.length === 0;
-
-    if (needsMetadataRepair) {
-      canonical = await updateFugueApiKey(bootstrapKey, canonical.id, {
-        ...(canonical.label.trim().toLowerCase() !== WORKSPACE_ADMIN_KEY_LABEL
-          ? {
-              label: WORKSPACE_ADMIN_KEY_LABEL,
-            }
-          : {}),
-        ...(canonical.scopes.length === 0
-          ? {
-              scopes: nextScopes,
-            }
-          : {}),
-      });
-    }
-
-    const needsSecretRefresh =
-      !workspace ||
-      workspace.adminKeyId !== canonical.id ||
-      !(await hasUsableStoredAdminSecret(workspace, canonical.id));
-
-    if (needsSecretRefresh) {
-      const rotated = await rotateFugueApiKey(bootstrapKey, canonical.id, {
-        label: WORKSPACE_ADMIN_KEY_LABEL,
-        scopes: nextScopes,
-      });
-
-      canonical = rotated.apiKey;
-      secret = rotated.secret;
-    }
+    return createWorkspaceAdminKey(bootstrapKey, tenantId, workspace);
   }
 
-  await deleteExtraTenantApiKeys(bootstrapKey, tenantKeys, canonical.id);
-
   return {
-    apiKey: canonical,
-    secret,
+    apiKey,
+    secret: workspace.adminKeySecret,
   };
 }
 
@@ -291,7 +252,7 @@ export async function ensureWorkspaceAccess(session: SessionUser) {
   const existing = await getWorkspaceBootstrapStateByEmail(session.email);
 
   if (existing && !existing.adminKeySecret) {
-    console.warn("Workspace admin key secret could not be decrypted. Rotating stored workspace secret.", {
+    console.warn("Workspace admin key secret could not be decrypted. Minting a fresh workspace admin key for this environment.", {
       email: session.email,
       tenantId: existing.tenantId,
     });

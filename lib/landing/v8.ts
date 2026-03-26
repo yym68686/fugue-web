@@ -23,14 +23,18 @@ function replaceCompareLinks(markup: string) {
   );
 }
 
-export function getLandingV8Markup() {
+export function getLandingV8Markup(isAuthenticated = false) {
+  const handoffHref = isAuthenticated ? "/app" : "/auth/sign-up";
+  const handoffLabel = isAuthenticated ? "Open app" : "Get started";
+  const secondaryHref = isAuthenticated ? "/app" : "/auth/sign-in";
+  const secondaryLabel = isAuthenticated ? "Open app" : "Sign in";
+  const handoffCopy = isAuthenticated
+    ? "Touch the public route, then enter the control shell."
+    : "Touch the public route, then continue into auth.";
+
   return replaceCompareLinks(bodyContent)
-    .replace(
-      `<a class="button button--ghost button--compact" href="#quickstart">`,
-      `<a class="button button--ghost button--compact" href="/auth/sign-up">`,
-    )
-    .replaceAll(`href="#quickstart"`, `href="/auth/sign-up"`)
-    .replaceAll(`Inspect quickstart`, `Get started`)
+    .replaceAll(`href="#quickstart"`, `href="${handoffHref}"`)
+    .replaceAll(`Inspect quickstart`, handoffLabel)
     .replace(`Touch the control plane before auth ships.`, `Touch the public route, then open auth.`)
     .replace(
       `When auth arrives, it should feel like the next room, not a banner over the stage.`,
@@ -46,11 +50,11 @@ export function getLandingV8Markup() {
     )
     .replace(
       `<a class="button button--ghost" href="#top">`,
-      `<a class="button button--ghost" href="/auth/sign-in">`,
+      `<a class="button button--ghost" href="${secondaryHref}">`,
     )
-    .replace(`Back to top`, `Sign in`)
+    .replace(`Back to top`, secondaryLabel)
     .replace(
       `Touch the public route, then open auth.`,
-      `Touch the public route, then continue into auth.`,
+      handoffCopy,
     );
 }
