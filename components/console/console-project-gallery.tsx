@@ -188,6 +188,11 @@ const WORKBENCH_VIEW_OPTIONS: readonly SegmentedControlOption<WorkbenchView>[] =
   { value: "logs", label: "Logs" },
 ];
 
+const ENV_AND_LOGS_WORKBENCH_OPTIONS: readonly SegmentedControlOption<WorkbenchView>[] = [
+  { value: "env", label: "Environment" },
+  { value: "logs", label: "Logs" },
+];
+
 const LOGS_ONLY_WORKBENCH_OPTIONS: readonly SegmentedControlOption<WorkbenchView>[] = [
   { value: "logs", label: "Logs" },
 ];
@@ -649,7 +654,7 @@ function readServiceWorkbenchOptions(
   }
 
   if (service.serviceRole === "pending") {
-    return LOGS_ONLY_WORKBENCH_OPTIONS;
+    return ENV_AND_LOGS_WORKBENCH_OPTIONS;
   }
 
   return WORKBENCH_VIEW_OPTIONS;
@@ -1545,16 +1550,29 @@ export function ConsoleProjectGallery({
     }
 
     const defaultTab = readServiceDefaultTab(selectedService);
+    const supportsActiveTab = selectedServiceWorkbenchOptions.some(
+      (option) => option.value === activeTab,
+    );
     const nextLogsMode = normalizeLogsModeForService(selectedService, selectedProjectServices, logsMode);
 
-    if (defaultTab === "logs" && activeTab !== "logs") {
-      setActiveTab("logs");
+    if (!supportsActiveTab) {
+      setActiveTab(
+        selectedServiceWorkbenchOptions.some((option) => option.value === defaultTab)
+          ? defaultTab
+          : (selectedServiceWorkbenchOptions[0]?.value ?? "logs"),
+      );
     }
 
     if (logsMode !== nextLogsMode) {
       setLogsMode(nextLogsMode);
     }
-  }, [activeTab, logsMode, selectedProjectServices, selectedService]);
+  }, [
+    activeTab,
+    logsMode,
+    selectedProjectServices,
+    selectedService,
+    selectedServiceWorkbenchOptions,
+  ]);
 
   useEffect(() => {
     if (activeTab !== "logs") {
@@ -2733,9 +2751,7 @@ export function ConsoleProjectGallery({
               </PanelSection>
 
               <PanelSection className="fg-project-pane">
-                {selectedService.kind === "app" &&
-                selectedService.serviceRole === "running" &&
-                activeTab === "env" ? (
+                {selectedService.kind === "app" && activeTab === "env" ? (
                   <div className="fg-workbench-section">
                     <div className="fg-workbench-section__head">
                       <div className="fg-workbench-section__copy">
@@ -2743,7 +2759,7 @@ export function ConsoleProjectGallery({
                         <p className="fg-console-note">
                           {envFormat === "raw"
                             ? `Paste a .env block for ${selectedService.name}. Comments, blank lines, and export prefixes are ignored.`
-                            : `Configure runtime variables for ${selectedService.name}, or switch to Raw to paste a full .env block.`}
+                            : `Review variables for ${selectedService.name}, or switch to Raw to paste a full .env block. Saving queues a deploy operation.`}
                         </p>
                       </div>
 
