@@ -201,6 +201,14 @@ const LOG_VIEW_OPTIONS: readonly SegmentedControlOption<LogsView>[] = [
   { value: "runtime", label: "Runtime" },
 ];
 
+const BUILD_ONLY_LOG_VIEW_OPTIONS: readonly SegmentedControlOption<LogsView>[] = [
+  { value: "build", label: "Build" },
+];
+
+const RUNTIME_ONLY_LOG_VIEW_OPTIONS: readonly SegmentedControlOption<LogsView>[] = [
+  { value: "runtime", label: "Runtime" },
+];
+
 const LOG_AUTO_REFRESH_INTERVAL_MS = 3_000;
 const PROJECT_ACTIVE_REFRESH_INTERVAL_MS = 3_000;
 const PROJECT_PASSIVE_REFRESH_INTERVAL_MS = 6_000;
@@ -605,11 +613,109 @@ function isRetryableLogStreamError(error: unknown) {
 }
 
 function projectApps(project: ConsoleGalleryProjectView) {
-  return project.services.filter((service): service is { kind: "app" } & ConsoleGalleryAppView => service.kind === "app");
+  return project.services.filter(
+    (service): service is { kind: "app" } & ConsoleGalleryAppView =>
+      service.kind === "app" && service.serviceRole === "running",
+  );
 }
 
 function serviceKey(service: ConsoleGalleryServiceView) {
-  return `${service.kind}:${service.id}`;
+  return service.kind === "app"
+    ? `${service.kind}:${service.id}:${service.serviceRole}`
+    : `${service.kind}:${service.id}`;
+}
+
+function appHasPendingService(
+  services: ConsoleGalleryProjectView["services"],
+  appId: string,
+) {
+  return services.some(
+    (service) =>
+      service.kind === "app" &&
+      service.id === appId &&
+      service.serviceRole === "pending",
+  );
+}
+
+function readPreferredProjectService(services: ConsoleGalleryProjectView["services"]) {
+  return (
+    services.find(
+      (service) => service.kind === "app" && service.serviceRole === "pending",
+    ) ??
+    services[0] ??
+    null
+  );
+}
+
+function readServiceWorkbenchOptions(
+  service: ConsoleGalleryServiceView | null,
+) {
+  if (!service) {
+    return WORKBENCH_VIEW_OPTIONS;
+  }
+
+  if (service.kind === "backing-service") {
+    return LOGS_ONLY_WORKBENCH_OPTIONS;
+  }
+
+  if (service.serviceRole === "pending") {
+    return LOGS_ONLY_WORKBENCH_OPTIONS;
+  }
+
+  return WORKBENCH_VIEW_OPTIONS;
+}
+
+function readServiceLogViewOptions(
+  service: ConsoleGalleryServiceView | null,
+  services: ConsoleGalleryProjectView["services"],
+) {
+  if (!service) {
+    return LOG_VIEW_OPTIONS;
+  }
+
+  if (service.kind === "backing-service") {
+    return RUNTIME_ONLY_LOG_VIEW_OPTIONS;
+  }
+
+  if (service.serviceRole === "pending") {
+    return BUILD_ONLY_LOG_VIEW_OPTIONS;
+  }
+
+  if (appHasPendingService(services, service.id)) {
+    return RUNTIME_ONLY_LOG_VIEW_OPTIONS;
+  }
+
+  return LOG_VIEW_OPTIONS;
+}
+
+function normalizeLogsModeForService(
+  service: ConsoleGalleryServiceView | null,
+  services: ConsoleGalleryProjectView["services"],
+  logsMode: LogsView,
+) {
+  const options = readServiceLogViewOptions(service, services);
+  return options.some((option) => option.value === logsMode)
+    ? logsMode
+    : (options[0]?.value ?? "runtime");
+}
+
+function readServiceDefaultTab(service: ConsoleGalleryServiceView | null): WorkbenchView {
+  if (!service) {
+    return "env";
+  }
+
+  if (service.kind === "backing-service") {
+    return "logs";
+  }
+
+  return service.serviceRole === "pending" ? "logs" : "env";
+}
+
+function readServiceDefaultLogsMode(
+  service: ConsoleGalleryServiceView | null,
+  services: ConsoleGalleryProjectView["services"],
+): LogsView {
+  return normalizeLogsModeForService(service, services, service?.kind === "app" ? "build" : "runtime");
 }
 
 function rowsFromEnv(env: Record<string, string>) {
@@ -1389,7 +1495,7 @@ export function ConsoleProjectGallery({
   const selectedProjectApps = selectedProject ? projectApps(selectedProject) : [];
   const selectedService =
     selectedProjectServices.find((service) => serviceKey(service) === selectedServiceKey) ??
-    selectedProjectServices[0] ??
+    readPreferredProjectService(selectedProjectServices) ??
     null;
   const selectedServiceApp = selectedService?.kind === "app" ? selectedService : null;
   const selectedApp =
@@ -1402,29 +1508,23 @@ export function ConsoleProjectGallery({
       : selectedProjectApps.find((app) => app.id === selectedAppId) ??
         selectedProjectApps[0] ??
         null);
-  const selectedServiceWorkbenchOptions =
-    selectedService?.kind === "backing-service"
-      ? LOGS_ONLY_WORKBENCH_OPTIONS
-      : WORKBENCH_VIEW_OPTIONS;
-  const effectiveLogsMode: LogsView =
-    selectedService?.kind === "backing-service" ? "runtime" : logsMode;
+  const selectedServiceWorkbenchOptions = readServiceWorkbenchOptions(selectedService);
+  const selectedServiceLogViewOptions = readServiceLogViewOptions(selectedService, selectedProjectServices);
+  const effectiveLogsMode = normalizeLogsModeForService(selectedService, selectedProjectServices, logsMode);
   const selectedAppNeedsPendingCommitHint =
     isGitHubTrackedApp(selectedServiceApp) && !hasPendingCommitView(selectedServiceApp);
   const selectedAppUsesBuildLogStream =
     selectedServiceApp !== null && activeTab === "logs" && effectiveLogsMode === "build";
   const logsRequestKey =
     selectedApp && selectedService
-      ? selectedService.kind === "backing-service"
-        ? `${selectedService.id}:runtime:postgres`
-        : effectiveLogsMode === "runtime"
-          ? `${selectedApp.id}:${effectiveLogsMode}:app`
-          : `${selectedApp.id}:${effectiveLogsMode}`
+      ? `${serviceKey(selectedService)}:${effectiveLogsMode}`
       : null;
   const logsStreamInput =
     selectedApp
       ? selectedService?.kind === "backing-service"
         ? `/api/fugue/apps/${selectedApp.id}/runtime-logs/stream?component=postgres&follow=true&tail_lines=${LOG_TAIL_LINES}`
-        : effectiveLogsMode === "build"
+        : (selectedService?.kind === "app" && selectedService.serviceRole === "pending") ||
+            effectiveLogsMode === "build"
           ? `/api/fugue/apps/${selectedApp.id}/build-logs/stream?follow=true&tail_lines=${LOG_TAIL_LINES}`
           : `/api/fugue/apps/${selectedApp.id}/runtime-logs/stream?component=app&follow=true&tail_lines=${LOG_TAIL_LINES}`
       : null;
@@ -1540,7 +1640,7 @@ export function ConsoleProjectGallery({
     }
 
     if (!selectedService) {
-      const defaultService = selectedProject.services[0] ?? null;
+      const defaultService = readPreferredProjectService(selectedProject.services);
 
       if (!defaultService) {
         setSelectedAppId(null);
@@ -1569,18 +1669,21 @@ export function ConsoleProjectGallery({
   ]);
 
   useEffect(() => {
-    if (selectedService?.kind !== "backing-service") {
+    if (!selectedService) {
       return;
     }
 
-    if (activeTab !== "logs") {
+    const defaultTab = readServiceDefaultTab(selectedService);
+    const nextLogsMode = normalizeLogsModeForService(selectedService, selectedProjectServices, logsMode);
+
+    if (defaultTab === "logs" && activeTab !== "logs") {
       setActiveTab("logs");
     }
 
-    if (logsMode !== "runtime") {
-      setLogsMode("runtime");
+    if (logsMode !== nextLogsMode) {
+      setLogsMode(nextLogsMode);
     }
-  }, [activeTab, logsMode, selectedService]);
+  }, [activeTab, logsMode, selectedProjectServices, selectedService]);
 
   useEffect(() => {
     if (!createOpen) {
@@ -2127,7 +2230,7 @@ export function ConsoleProjectGallery({
 
       if (response.app?.id) {
         setSelectedAppId(response.app.id);
-        setSelectedServiceKey(`app:${response.app.id}`);
+        setSelectedServiceKey(`app:${response.app.id}:pending`);
       }
 
       setCreateOpen(false);
@@ -2164,7 +2267,7 @@ export function ConsoleProjectGallery({
       return;
     }
 
-    const defaultService = project.services[0] ?? null;
+    const defaultService = readPreferredProjectService(project.services);
     setSelectedProjectId(project.id);
     setSelectedServiceKey(defaultService ? serviceKey(defaultService) : null);
     setSelectedAppId(
@@ -2174,18 +2277,17 @@ export function ConsoleProjectGallery({
           : defaultService.ownerAppId ?? projectApps(project)[0]?.id ?? null
         : null,
     );
-    setActiveTab(defaultService?.kind === "backing-service" ? "logs" : "env");
-    setLogsMode(defaultService?.kind === "backing-service" ? "runtime" : "build");
+    setActiveTab(readServiceDefaultTab(defaultService));
+    setLogsMode(readServiceDefaultLogsMode(defaultService, project.services));
   }
 
   function chooseService(service: ConsoleGalleryServiceView) {
     setSelectedServiceKey(serviceKey(service));
     setSelectedAppId(service.kind === "app" ? service.id : service.ownerAppId ?? selectedAppId);
-
-    if (service.kind === "backing-service") {
+    if (readServiceDefaultTab(service) === "logs") {
       setActiveTab("logs");
-      setLogsMode("runtime");
     }
+    setLogsMode(readServiceDefaultLogsMode(service, selectedProjectServices));
   }
 
   async function handleAppAction(action: AppAction) {
@@ -2490,7 +2592,9 @@ export function ConsoleProjectGallery({
             humanizeUiLabel(selectedService.type),
           ]);
     const selectedServiceWorkspacePath =
-      selectedService.kind === "app" ? readDistinctText(selectedService.workspaceMountPath) : null;
+      selectedService.kind === "app" && selectedService.serviceRole === "running"
+        ? readDistinctText(selectedService.workspaceMountPath)
+        : null;
     const backingServiceOwnerLabel =
       selectedService.kind === "backing-service"
         ? readDistinctText(selectedService.ownerAppLabel, [selectedService.name])
@@ -2542,7 +2646,7 @@ export function ConsoleProjectGallery({
                     return (
                       <li key={serviceKey(service)}>
                         <button
-                          aria-label={`Inspect ${service.name}`}
+                          aria-label={`Inspect ${service.name}${service.kind === "app" ? ` (${service.phase})` : ` (${service.type})`}`}
                           aria-pressed={active}
                           className={cx("fg-project-service-card", active && "is-active")}
                           onClick={() => chooseService(service)}
@@ -2601,20 +2705,41 @@ export function ConsoleProjectGallery({
                 <div className="fg-project-inspector__meta-grid">
                   {selectedService.kind === "app" ? (
                     <>
-                      <div>
-                        <dt>Commit</dt>
-                        <dd>{renderCommitText(selectedService, selectedAppPendingCommitHint)}</dd>
-                      </div>
-                      <div>
-                        <dt>Build</dt>
-                        <dd>{selectedService.sourceMeta}</dd>
-                      </div>
-                      {selectedServiceWorkspacePath ? (
-                        <div>
-                          <dt>Workspace</dt>
-                          <dd>{selectedServiceWorkspacePath}</dd>
-                        </div>
-                      ) : null}
+                      {selectedService.serviceRole === "running" ? (
+                        <>
+                          <div>
+                            <dt>Commit</dt>
+                            <dd>{renderCommitText(selectedService, selectedAppPendingCommitHint)}</dd>
+                          </div>
+                          <div>
+                            <dt>Build</dt>
+                            <dd>{selectedService.sourceMeta}</dd>
+                          </div>
+                          {selectedServiceWorkspacePath ? (
+                            <div>
+                              <dt>Workspace</dt>
+                              <dd>{selectedServiceWorkspacePath}</dd>
+                            </div>
+                          ) : null}
+                        </>
+                      ) : (
+                        <>
+                          <div>
+                            <dt>Commit</dt>
+                            <dd>{renderCommitText(selectedService, selectedAppPendingCommitHint)}</dd>
+                          </div>
+                          <div>
+                            <dt>Build</dt>
+                            <dd>{selectedService.sourceMeta}</dd>
+                          </div>
+                          {selectedService.serviceDurationLabel ? (
+                            <div>
+                              <dt>Elapsed</dt>
+                              <dd>{`${selectedService.serviceDurationLabel} elapsed`}</dd>
+                            </div>
+                          ) : null}
+                        </>
+                      )}
                     </>
                   ) : (
                     <>
@@ -2641,7 +2766,7 @@ export function ConsoleProjectGallery({
 
               <PanelSection className="fg-project-inspector__controls">
                 <div className="fg-project-toolbar">
-                  {selectedService.kind === "app" ? (
+                  {selectedService.kind === "app" && selectedService.serviceRole === "running" ? (
                     <div className="fg-project-toolbar__group">
                       <p className="fg-label fg-project-toolbar__label">Actions</p>
                       <div className="fg-project-actions">
@@ -2705,14 +2830,20 @@ export function ConsoleProjectGallery({
                       ariaLabel="Service panels"
                       onChange={setActiveTab}
                       options={selectedServiceWorkbenchOptions}
-                      value={selectedService.kind === "backing-service" ? "logs" : activeTab}
+                      value={
+                        selectedServiceWorkbenchOptions.some((option) => option.value === activeTab)
+                          ? activeTab
+                          : "logs"
+                      }
                     />
                   </div>
                 </div>
               </PanelSection>
 
               <PanelSection className="fg-project-pane">
-                {selectedService.kind === "app" && activeTab === "env" ? (
+                {selectedService.kind === "app" &&
+                selectedService.serviceRole === "running" &&
+                activeTab === "env" ? (
                   <div className="fg-workbench-section">
                     <div className="fg-workbench-section__head">
                       <div className="fg-workbench-section__copy">
@@ -2844,7 +2975,9 @@ export function ConsoleProjectGallery({
                   </div>
                 ) : null}
 
-                {selectedService.kind === "app" && activeTab === "files" ? (
+                {selectedService.kind === "app" &&
+                selectedService.serviceRole === "running" &&
+                activeTab === "files" ? (
                   <ConsoleFilesWorkbench
                     appId={selectedService.id}
                     appName={selectedService.name}
@@ -2868,8 +3001,8 @@ export function ConsoleProjectGallery({
                             onChange={(nextMode) => {
                               setLogsMode(nextMode);
                             }}
-                            options={LOG_VIEW_OPTIONS}
-                            value={logsMode}
+                            options={selectedServiceLogViewOptions}
+                            value={effectiveLogsMode}
                           />
                         ) : null}
 

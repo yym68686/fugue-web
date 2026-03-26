@@ -241,6 +241,100 @@ function readOperationStartedAt(operation?: FugueOperation | null) {
   return operation?.startedAt?.trim() || operation?.createdAt?.trim() || null;
 }
 
+function hasLiveRelease(app: FugueApp) {
+  const normalizedPhase = app.status.phase?.trim().toLowerCase() ?? "";
+
+  if (app.status.currentRuntimeId?.trim()) {
+    return true;
+  }
+
+  if ((app.status.currentReplicas ?? 0) > 0) {
+    return true;
+  }
+
+  if (app.source.commitSha?.trim()) {
+    return true;
+  }
+
+  return (
+    normalizedPhase.length > 0 &&
+    [
+      "running",
+      "healthy",
+      "active",
+      "deployed",
+      "disabled",
+      "paused",
+      "error",
+      "failed",
+      "stopped",
+    ].some((keyword) => normalizedPhase.includes(keyword))
+  );
+}
+
+function readActiveReleaseOperation(operation: FugueOperation | null | undefined, app: FugueApp) {
+  if (!operation) {
+    return null;
+  }
+
+  const normalizedType = operation.type?.trim().toLowerCase() ?? "";
+  const normalizedStatus = operation.status?.trim().toLowerCase() ?? "";
+  const desiredCommit = readOperationCommitSha(operation);
+  const runningCommit = app.source.commitSha?.trim() || null;
+
+  if (normalizedType === "import" || normalizedType === "build" || normalizedType === "deploy") {
+    return operation;
+  }
+
+  if (
+    normalizedStatus.includes("import") ||
+    normalizedStatus.includes("build") ||
+    normalizedStatus.includes("deploy")
+  ) {
+    return operation;
+  }
+
+  if (desiredCommit && desiredCommit !== runningCommit) {
+    return operation;
+  }
+
+  if (
+    (normalizedStatus.includes("queued") ||
+      normalizedStatus.includes("pending") ||
+      normalizedStatus.includes("migrating") ||
+      normalizedStatus.includes("running")) &&
+    operation.desiredSource
+  ) {
+    return operation;
+  }
+
+  return null;
+}
+
+function readRunningServiceMessage(app: FugueApp, activeOperation?: FugueOperation | null) {
+  if (activeOperation) {
+    return null;
+  }
+
+  return app.status.lastMessage?.trim() || null;
+}
+
+function readPendingServiceMessage(app: FugueApp, operation: FugueOperation) {
+  const appMessage = app.status.lastMessage?.trim();
+
+  if (appMessage) {
+    return appMessage;
+  }
+
+  const operationMessage = operation.resultMessage?.trim() || operation.errorMessage?.trim();
+
+  if (operationMessage) {
+    return operationMessage;
+  }
+
+  return `${readPendingCommitState(operation).stateLabel} the next release.`;
+}
+
 function readPendingCommitState(operation?: FugueOperation | null): Pick<ConsoleGalleryCommitView, "stateLabel" | "tone"> {
   const normalizedStatus = operation?.status?.trim().toLowerCase() ?? "";
   const normalizedType = operation?.type?.trim().toLowerCase() ?? "";
@@ -320,9 +414,9 @@ function buildCommitView({
 
 function buildCommitViews(
   app: FugueApp,
-  commitOperations?: AppCommitOperations,
+  activeOperation?: FugueOperation | null,
 ): ConsoleGalleryCommitView[] {
-  const pendingOperation = commitOperations?.active ?? null;
+  const pendingOperation = activeOperation ?? null;
   const pendingCommitSha = readOperationCommitSha(pendingOperation);
   const runningCommitSha = app.source.commitSha?.trim() || null;
 
@@ -769,12 +863,13 @@ function buildAppBadges(app: FugueApp): ConsoleGalleryBadgeView[] {
 function buildAppView(
   app: FugueApp,
   commitOperations?: AppCommitOperations,
-): ConsoleGalleryAppView {
+): ConsoleGalleryAppView[] {
   const route = readRoute(app);
   const redeploy = readRedeployState(app);
   const redeployAction = readRedeployAction(app);
   const sourceBranchLabel = readSourceBranchLabel(app);
-  const commitViews = buildCommitViews(app, commitOperations);
+  const activeOperation = readActiveReleaseOperation(commitOperations?.active ?? null, app);
+  const commitViews = buildCommitViews(app, activeOperation);
   const serviceBadges = buildAppBadges(app);
   const primaryBadge =
     readPrimaryBadge(serviceBadges) ??
@@ -784,15 +879,12 @@ function buildAppView(
       label: humanize(app.source.type),
       meta: "Service",
     };
-  const activeOperation = commitOperations?.active ?? null;
   const activePhase = activeOperation ? readPendingCommitState(activeOperation) : null;
   const primaryCommit = commitViews.find((entry) => entry.kind === "running") ?? commitViews[0] ?? null;
   const currentCommitLabel =
     primaryCommit?.label ?? (isGitHubPublicSource(app) ? readCurrentCommitLabel(app) : null);
   const fallbackPhase = app.status.phase ?? (app.spec.disabled ? "disabled" : "unknown");
-  const serviceDurationLabel = formatElapsedDuration(readOperationStartedAt(activeOperation));
-
-  return {
+  const sharedView = {
     commitViews,
     canRedeploy: redeploy.canRedeploy,
     currentCommitCommittedAt: primaryCommit?.committedAt ?? null,
@@ -802,10 +894,7 @@ function buildAppView(
     deployBehavior: readDeployBehavior(app),
     hasPostgresService: app.backingServices.some((service) => service.type === "postgres"),
     id: app.id,
-    lastMessage: app.status.lastMessage ?? "No current status message.",
     name: app.name,
-    phase: activePhase?.stateLabel ?? readAppPhaseLabel(fallbackPhase),
-    phaseTone: activePhase?.tone ?? toneForStatus(fallbackPhase),
     primaryBadge,
     redeployActionDescription: redeployAction.description,
     redeployActionLabel: redeployAction.label,
@@ -815,7 +904,6 @@ function buildAppView(
     routeHref: route.href,
     routeLabel: route.label,
     serviceBadges,
-    serviceDurationLabel,
     sourceBranchHref:
       sourceBranchLabel && sourceBranchLabel !== "Default branch"
         ? readGitHubBranchHref(app.source.repoUrl, app.source.repoBranch)
@@ -829,7 +917,46 @@ function buildAppView(
         .join(" / ") || humanize(app.source.type),
     sourceType: app.source.type,
     workspaceMountPath: app.spec.workspace ? app.spec.workspace.mountPath ?? "/workspace" : null,
-  };
+  } satisfies Omit<
+    ConsoleGalleryAppView,
+    "lastMessage" | "phase" | "phaseTone" | "serviceDurationLabel" | "serviceRole"
+  >;
+
+  const runningView =
+    hasLiveRelease(app) || !activeOperation
+      ? ({
+          ...sharedView,
+          lastMessage: readRunningServiceMessage(app, activeOperation),
+          phase: readAppPhaseLabel(fallbackPhase),
+          phaseTone: toneForStatus(fallbackPhase),
+          serviceDurationLabel: null,
+          serviceRole: "running",
+        } satisfies ConsoleGalleryAppView)
+      : null;
+
+  const pendingView =
+    activeOperation && activePhase
+      ? ({
+          ...sharedView,
+          lastMessage: readPendingServiceMessage(app, activeOperation),
+          phase: activePhase.stateLabel,
+          phaseTone: activePhase.tone,
+          serviceDurationLabel: formatElapsedDuration(readOperationStartedAt(activeOperation)),
+          serviceRole: "pending",
+        } satisfies ConsoleGalleryAppView)
+      : null;
+
+  const views: ConsoleGalleryAppView[] = [];
+
+  if (runningView) {
+    views.push(runningView);
+  }
+
+  if (pendingView) {
+    views.push(pendingView);
+  }
+
+  return views;
 }
 
 function buildBackingServiceView(
@@ -862,10 +989,25 @@ function buildBackingServiceView(
 function buildProjectServiceBadges(
   services: ConsoleGalleryProjectView["services"],
 ): ConsoleGalleryBadgeView[] {
-  return services.map((service) => ({
-    ...service.primaryBadge,
-    id: `project-service:${service.kind}:${service.id}`,
-  }));
+  const badges = new Map<string, ConsoleGalleryBadgeView>();
+
+  for (const service of services) {
+    const key =
+      service.kind === "app"
+        ? `project-service:app:${service.id}`
+        : `project-service:${service.kind}:${service.id}`;
+
+    if (service.kind === "app" && service.serviceRole === "pending" && badges.has(key)) {
+      continue;
+    }
+
+    badges.set(key, {
+      ...service.primaryBadge,
+      id: key,
+    });
+  }
+
+  return [...badges.values()];
 }
 
 function projectNameMap(projects: FugueProject[], fallbackId?: string | null, fallbackName?: string | null) {
@@ -951,10 +1093,12 @@ export const getConsoleProjectGalleryData = cache(async () => {
         ...sortedApps.map(readAppTimestamp),
         ...backingServices.map(readServiceTimestamp),
       );
-      const appViews = sortedApps.map((app) => ({
-        kind: "app" as const,
-        ...buildAppView(app, commitOperationsByAppId.get(app.id)),
-      }));
+      const appViews = sortedApps.flatMap((app) =>
+        buildAppView(app, commitOperationsByAppId.get(app.id)).map((service) => ({
+          kind: "app" as const,
+          ...service,
+        })),
+      );
       const backingServiceViews = backingServices.map((service) => ({
         kind: "backing-service" as const,
         ...buildBackingServiceView(service, appNames),

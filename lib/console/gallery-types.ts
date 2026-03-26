@@ -35,6 +35,8 @@ export type ConsoleGalleryCommitView = {
   tone: ConsoleTone;
 };
 
+export type ConsoleGalleryAppServiceRole = "pending" | "running";
+
 export type ConsoleGalleryAppView = {
   commitViews: ConsoleGalleryCommitView[];
   currentCommitCommittedAt: string | null;
@@ -45,7 +47,7 @@ export type ConsoleGalleryAppView = {
   deployBehavior: string;
   hasPostgresService: boolean;
   id: string;
-  lastMessage: string;
+  lastMessage: string | null;
   name: string;
   phase: string;
   phaseTone: ConsoleTone;
@@ -59,6 +61,7 @@ export type ConsoleGalleryAppView = {
   routeLabel: string;
   serviceBadges: ConsoleGalleryBadgeView[];
   serviceDurationLabel: string | null;
+  serviceRole: ConsoleGalleryAppServiceRole;
   sourceBranchHref: string | null;
   sourceBranchLabel: string | null;
   sourceHref: string | null;
