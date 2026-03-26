@@ -2,7 +2,6 @@ import { ApiKeyEmptyState } from "@/components/console/api-key-empty-state";
 import { AttachedServerOverview } from "@/components/console/attached-server-overview";
 import { ConsolePageIntro } from "@/components/console/console-page-intro";
 import { ConsoleSummaryGrid } from "@/components/console/console-summary-grid";
-import { StatusBadge } from "@/components/console/status-badge";
 import { Panel, PanelSection } from "@/components/ui/panel";
 import { ToastOnMount } from "@/components/ui/toast-on-mount";
 import { getCurrentSession } from "@/lib/auth/session";
@@ -69,7 +68,7 @@ export default async function ClusterNodesPage() {
         items={[
           { label: "Servers", value: data.summary.nodeCount },
           { label: "Ready", value: data.summary.readyCount },
-          { label: "Node keys", value: data.summary.keyCount },
+          { label: "Workloads", value: data.summary.workloadCount },
           { label: "Latest heartbeat", value: data.summary.latestHeartbeatLabel },
         ]}
       />
@@ -77,14 +76,7 @@ export default async function ClusterNodesPage() {
       <div className="fg-credential-section__head">
         <div className="fg-credential-section__copy">
           <strong>Cluster servers</strong>
-          <p>Every VPS that joined this workspace cluster and exposed live node telemetry.</p>
-        </div>
-
-        <div className="fg-project-actions">
-          <StatusBadge tone="neutral">{data.summary.nodeCount} servers</StatusBadge>
-          <StatusBadge tone="positive">{data.summary.readyCount} ready</StatusBadge>
-          <StatusBadge tone="info">{data.summary.workloadCount} workloads</StatusBadge>
-          <StatusBadge tone="neutral">{data.summary.latestHeartbeatLabel}</StatusBadge>
+          <p>Expand a server to inspect roles, live capacity, and workload placement.</p>
         </div>
       </div>
 

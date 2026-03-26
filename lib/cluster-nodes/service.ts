@@ -12,7 +12,6 @@ import {
   type FugueRuntime,
 } from "@/lib/fugue/api";
 import { readCountryLocation } from "@/lib/geo/country";
-import { getNodeKeyPageData } from "@/lib/node-keys/service";
 import { getWorkspaceAccessByEmail } from "@/lib/workspace/store";
 
 export type ClusterNodeConditionView = {
@@ -78,8 +77,6 @@ export type ClusterNodesPageData = {
   errors: string[];
   nodes: ClusterNodeView[];
   summary: {
-    keyCount: number;
-    latestHeartbeatExact: string;
     latestHeartbeatLabel: string;
     nodeCount: number;
     readyCount: number;
@@ -712,13 +709,10 @@ export async function getClusterNodesPageData(email: string): Promise<ClusterNod
     return null;
   }
 
-  const [nodeKeysResult, nodesResult, runtimesResult] = await Promise.allSettled([
-    getNodeKeyPageData(email),
+  const [nodesResult, runtimesResult] = await Promise.allSettled([
     getFugueClusterNodes(workspace.adminKeySecret),
     getFugueRuntimes(workspace.adminKeySecret),
   ]);
-
-  const keys = nodeKeysResult.status === "fulfilled" ? nodeKeysResult.value?.keys ?? [] : [];
 
   const errors: string[] = [];
   const nodes =
@@ -746,8 +740,6 @@ export async function getClusterNodesPageData(email: string): Promise<ClusterNod
     errors,
     nodes: built.views,
     summary: {
-      keyCount: keys.length,
-      latestHeartbeatExact: formatExactTime(built.latestHeartbeatAt),
       latestHeartbeatLabel: formatRelativeTime(built.latestHeartbeatAt),
       nodeCount: built.views.length,
       readyCount,
