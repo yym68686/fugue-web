@@ -98,19 +98,27 @@ function ClusterResourceMeter({
       className={cx("fg-cluster-resource", compact && "fg-cluster-resource--compact")}
       title={`${resource.label} / ${resource.usageLabel} / ${resource.totalLabel}`}
     >
-      <div className="fg-cluster-resource__head">
-        <div className="fg-cluster-resource__copy">
+      {compact ? (
+        <>
           <span className="fg-cluster-resource__label">{resource.label}</span>
-          <strong>{resource.percentLabel}</strong>
-        </div>
+          <div className="fg-cluster-resource__compact-values">
+            <strong>{resource.percentLabel}</strong>
+            <span>{resource.usageLabel}</span>
+          </div>
+        </>
+      ) : (
+        <div className="fg-cluster-resource__head">
+          <div className="fg-cluster-resource__copy">
+            <span className="fg-cluster-resource__label">{resource.label}</span>
+            <strong>{resource.percentLabel}</strong>
+          </div>
 
-        {compact ? null : (
           <StatusBadge tone={resource.statusTone}>{resource.statusLabel}</StatusBadge>
-        )}
-      </div>
+        </div>
+      )}
 
       <div
-        aria-label={`${resource.label} usage ${resource.percentLabel}`}
+        aria-label={`${resource.label} usage ${resource.percentLabel} (${resource.usageLabel})`}
         className="fg-cluster-resource__meter"
         role="img"
       >
@@ -123,11 +131,7 @@ function ClusterResourceMeter({
         />
       </div>
 
-      {compact ? (
-        <div className="fg-cluster-resource__compact-meta">
-          <span>{resource.usageLabel}</span>
-        </div>
-      ) : (
+      {compact ? null : (
         <>
           <div className="fg-cluster-resource__meta">
             <span>{resource.usageLabel}</span>
@@ -193,11 +197,11 @@ export function ClusterNodeGallery({
                 <button
                   aria-controls={detailId}
                   aria-expanded={expanded}
-                  className="fg-project-card__summary"
+                  className="fg-project-card__summary fg-cluster-node-card__summary"
                   onClick={() => setExpandedId(expanded ? null : item.id)}
                   type="button"
                 >
-                  <div className="fg-project-card__summary-head">
+                  <div className="fg-cluster-node-card__summary-head">
                     <div className="fg-project-card__summary-copy fg-cluster-node-card__summary-copy">
                       <span className="fg-label fg-panel__eyebrow">{item.eyebrow}</span>
                       <strong>{item.name}</strong>
@@ -209,9 +213,18 @@ export function ClusterNodeGallery({
                       <span className="fg-cluster-node-card__summary-meta">{item.headerMeta}</span>
                     </div>
 
-                    <div className="fg-project-card__summary-side">
+                    <div className="fg-cluster-node-card__summary-resources">
+                      {item.resources.map((resource) => (
+                        <ClusterResourceMeter compact key={resource.id} resource={resource} />
+                      ))}
+                    </div>
+
+                    <div className="fg-project-card__summary-side fg-cluster-node-card__summary-side">
                       <StatusBadge tone={item.statusTone}>{item.statusLabel}</StatusBadge>
-                      <span className="fg-project-card__summary-expand" aria-hidden="true">
+                      <span
+                        className="fg-project-card__summary-expand fg-cluster-node-card__summary-expand"
+                        aria-hidden="true"
+                      >
                         <svg viewBox="0 0 24 24">
                           <path
                             d="m7.2 9.4 4.8 5.2 4.8-5.2"
@@ -227,7 +240,7 @@ export function ClusterNodeGallery({
                   </div>
 
                   {item.roleLabels.length ? (
-                    <div className="fg-console-tech-list">
+                    <div className="fg-console-tech-list fg-cluster-node-card__summary-roles">
                       {item.roleLabels.map((role) => (
                         <span className="fg-console-tech-pill" key={role}>
                           <span className="fg-console-tech-pill__label">{role}</span>
@@ -236,12 +249,6 @@ export function ClusterNodeGallery({
                       ))}
                     </div>
                   ) : null}
-
-                  <div className="fg-cluster-node-card__summary-resources">
-                    {item.resources.map((resource) => (
-                      <ClusterResourceMeter compact key={resource.id} resource={resource} />
-                    ))}
-                  </div>
                 </button>
 
                 {expanded ? (
