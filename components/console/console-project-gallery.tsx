@@ -2634,6 +2634,12 @@ export function ConsoleProjectGallery({
                         <dt>Build</dt>
                         <dd>{selectedService.sourceMeta}</dd>
                       </div>
+                      {selectedServiceUrl ? (
+                        <div>
+                          <dt>URL</dt>
+                          <dd>{renderExternalText(selectedServiceUrl.label, selectedServiceUrl.href)}</dd>
+                        </div>
+                      ) : null}
                       <div>
                         <dt>Location</dt>
                         <dd>
@@ -2643,12 +2649,6 @@ export function ConsoleProjectGallery({
                           />
                         </dd>
                       </div>
-                      {selectedServiceUrl ? (
-                        <div>
-                          <dt>URL</dt>
-                          <dd>{renderExternalText(selectedServiceUrl.label, selectedServiceUrl.href)}</dd>
-                        </div>
-                      ) : null}
                       {selectedService.serviceRole === "running" && selectedServiceWorkspacePath ? (
                         <div>
                           <dt>Workspace</dt>

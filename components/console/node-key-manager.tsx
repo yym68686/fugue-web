@@ -413,9 +413,12 @@ export function NodeKeyManager({
                   return (
                     <tr key={record.id}>
                       <td>
-                        <div className="fg-console-table__pair fg-node-key-table__pair" title={`${record.label} / ${record.id}`}>
-                          <strong>{record.label}</strong>
-                          <span>/ {record.id}</span>
+                        <div
+                          className="fg-console-table__pair fg-node-key-table__pair fg-node-key-table__pair--name"
+                          title={`${record.label} / ${record.id}`}
+                        >
+                          <strong className="fg-node-key-table__label">{record.label}</strong>
+                          <span className="fg-node-key-table__id">/ {record.id}</span>
                         </div>
                       </td>
                       <td>

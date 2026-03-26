@@ -744,7 +744,13 @@
 }
 
 .fg-console-table--node-keys {
-  width: max(100%, 102rem);
+  width: 100%;
+  min-width: 84rem;
+}
+
+.fg-console-table--admin.fg-console-table--node-keys th:not(:last-child),
+.fg-console-table--admin.fg-console-table--node-keys td:not(:last-child) {
+  padding-inline-end: 0.75rem;
 }
 
 .fg-console-table th {
@@ -970,27 +976,27 @@
 }
 
 .fg-console-table__col--node-key-name {
-  width: 28rem;
+  width: 24rem;
 }
 
 .fg-console-table__col--node-key-prefix {
-  width: 12rem;
+  width: 10rem;
 }
 
 .fg-console-table__col--node-key-status {
-  width: 11rem;
+  width: 10.5rem;
 }
 
 .fg-console-table__col--node-key-last-used {
-  width: 9rem;
+  width: 8rem;
 }
 
 .fg-console-table__col--node-key-created {
-  width: 9rem;
+  width: 8rem;
 }
 
 .fg-console-table__col--node-key-actions {
-  width: 27rem;
+  width: auto;
 }
 
 .fg-console-toolbar {
@@ -1005,14 +1011,20 @@
 }
 
 .fg-console-table--node-keys .fg-node-key-table__pair {
-  max-width: none;
-  overflow: visible;
+  max-width: 100%;
 }
 
-.fg-console-table--node-keys .fg-node-key-table__pair strong,
-.fg-console-table--node-keys .fg-node-key-table__pair span {
-  overflow: visible;
-  text-overflow: clip;
+.fg-console-table--node-keys .fg-node-key-table__pair--name {
+  width: 100%;
+}
+
+.fg-console-table--node-keys .fg-node-key-table__label {
+  flex: 0 1 auto;
+}
+
+.fg-console-table--node-keys .fg-node-key-table__id {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .fg-console-tech-list {
