@@ -561,16 +561,12 @@ function nodeBelongsToTenant(
   runtimeById: Map<string, FugueRuntime>,
   runtimeByNodeName: Map<string, FugueRuntime>,
 ) {
-  if (node.tenantId === tenantId) {
-    return true;
-  }
-
-  if (node.workloads.some((workload) => workload.tenantId === tenantId)) {
-    return true;
-  }
-
   const runtime = resolveRuntimeForNode(node, runtimeById, runtimeByNodeName);
-  return runtime?.tenantId === tenantId;
+  if (runtime?.tenantId === tenantId) {
+    return true;
+  }
+
+  return node.tenantId === tenantId;
 }
 
 function buildClusterNodeViews(

@@ -71,15 +71,26 @@ svg {
 
 .fg-toast {
   --fg-toast-accent: 165 191 220;
+  --fg-toast-base-opacity: 1;
+  --fg-toast-base-scale: 1;
+  --fg-toast-base-shift-y: 0rem;
+  --fg-toast-layout-duration: 360ms;
+  --fg-toast-motion-duration: 360ms;
+  --fg-toast-opacity-duration: 220ms;
   position: relative;
   width: 100%;
   z-index: calc(16 - var(--fg-toast-depth));
   pointer-events: auto;
+  opacity: var(--fg-toast-base-opacity);
+  transform: translate3d(0, var(--fg-toast-base-shift-y), 0) scale(var(--fg-toast-base-scale));
   transform-origin: right bottom;
+  filter: blur(0);
+  will-change: transform, opacity, filter;
   transition:
-    margin-top 280ms var(--fugue-ease-out-expo),
-    opacity 220ms var(--fugue-ease-out-quart),
-    transform 280ms var(--fugue-ease-out-expo);
+    margin-top var(--fg-toast-layout-duration) var(--fugue-ease-out-expo),
+    opacity var(--fg-toast-opacity-duration) var(--fugue-ease-out-quart),
+    transform var(--fg-toast-motion-duration) var(--fugue-ease-out-expo),
+    filter var(--fg-toast-motion-duration) var(--fugue-ease-out-quart);
 }
 
 .fg-toast + .fg-toast {
@@ -91,10 +102,9 @@ svg {
 }
 
 .fg-toast-stack[data-expanded="false"] .fg-toast {
-  opacity: calc(1 - (var(--fg-toast-depth) * 0.14));
-  transform:
-    translate3d(0, calc(var(--fg-toast-depth) * 0.52rem), 0)
-    scale(calc(1 - (var(--fg-toast-depth) * 0.022)));
+  --fg-toast-base-opacity: calc(1 - (var(--fg-toast-depth) * 0.14));
+  --fg-toast-base-shift-y: calc(var(--fg-toast-depth) * 0.52rem);
+  --fg-toast-base-scale: calc(1 - (var(--fg-toast-depth) * 0.022));
 }
 
 .fg-toast-stack[data-expanded="false"] .fg-toast:not(:last-child) {
@@ -102,13 +112,25 @@ svg {
 }
 
 .fg-toast-stack[data-expanded="true"] .fg-toast {
-  opacity: 1;
-  transform: translate3d(0, 0, 0) scale(1);
+  --fg-toast-base-opacity: 1;
+  --fg-toast-base-shift-y: 0rem;
+  --fg-toast-base-scale: 1;
+}
+
+.fg-toast[data-state="entering"] {
+  opacity: 0;
+  transform: translate3d(0, calc(var(--fg-toast-base-shift-y) + 1rem), 0)
+    scale(calc(var(--fg-toast-base-scale) * 0.965));
+  filter: blur(10px);
 }
 
 .fg-toast[data-state="closing"] {
+  --fg-toast-motion-duration: 180ms;
+  --fg-toast-opacity-duration: 160ms;
   opacity: 0;
-  transform: translate3d(0, 0.8rem, 0) scale(0.98);
+  transform: translate3d(0, calc(var(--fg-toast-base-shift-y) + 0.72rem), 0)
+    scale(calc(var(--fg-toast-base-scale) * 0.985));
+  filter: blur(6px);
   pointer-events: none;
 }
 
@@ -138,6 +160,21 @@ svg {
   box-shadow:
     0 28px 80px rgba(1, 4, 8, 0.38),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition:
+    box-shadow var(--fg-toast-motion-duration) var(--fugue-ease-out-expo),
+    border-color var(--fugue-duration-fast) var(--fugue-ease-out-expo);
+}
+
+.fg-toast[data-state="entering"] .fg-toast__shell {
+  box-shadow:
+    0 34px 92px rgba(1, 4, 8, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.fg-toast[data-state="closing"] .fg-toast__shell {
+  box-shadow:
+    0 18px 56px rgba(1, 4, 8, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .fg-toast__toggle {
@@ -153,6 +190,7 @@ svg {
     rgba(10, 13, 18, 0.9);
   color: inherit;
   text-align: left;
+  touch-action: manipulation;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
   transition:
     transform var(--fugue-duration-fast) var(--fugue-ease-out-expo),
@@ -164,8 +202,12 @@ svg {
   transform: translateY(-1px);
 }
 
+.fg-toast__toggle:active {
+  transform: translateY(0) scale(0.992);
+}
+
 .fg-toast__toggle:focus-visible,
-.fg-toast__dismiss:focus-visible {
+.fg-toast__action:focus-visible {
   outline: 2px solid var(--fugue-focus-ring);
   outline-offset: 3px;
 }
@@ -218,9 +260,9 @@ svg {
 
 .fg-toast__action {
   align-self: start;
-  min-width: 2.3rem;
-  min-height: 2.3rem;
-  padding: 0.3rem 0.52rem;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0.42rem 0.62rem;
   border: 0;
   background: transparent;
   color: rgba(var(--fg-toast-accent), 0.82);
@@ -229,6 +271,7 @@ svg {
   letter-spacing: 0.1em;
   text-transform: none;
   border-radius: 0.82rem;
+  touch-action: manipulation;
   transition:
     color var(--fugue-duration-fast) var(--fugue-ease-out-expo),
     background-color var(--fugue-duration-fast) var(--fugue-ease-out-expo),
@@ -241,6 +284,10 @@ svg {
   color: rgb(var(--fg-toast-accent));
   background: rgba(var(--fg-toast-accent), 0.08);
   transform: translateY(-1px);
+}
+
+.fg-toast__action:active {
+  transform: translateY(0) scale(0.97);
 }
 
 .fg-toast-stack[data-expanded="false"] .fg-toast:last-child .fg-toast__message {
@@ -267,9 +314,24 @@ svg {
 
 @media (prefers-reduced-motion: reduce) {
   .fg-toast,
+  .fg-toast__shell,
   .fg-toast__toggle,
   .fg-toast__action {
     transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+
+  .fg-toast {
+    filter: none !important;
+  }
+
+  .fg-toast[data-state="entering"] {
+    opacity: var(--fg-toast-base-opacity);
+    transform: translate3d(0, var(--fg-toast-base-shift-y), 0) scale(var(--fg-toast-base-scale));
+  }
+
+  .fg-toast[data-state="closing"] {
+    transform: translate3d(0, var(--fg-toast-base-shift-y), 0) scale(var(--fg-toast-base-scale));
   }
 }
 

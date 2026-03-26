@@ -447,25 +447,23 @@ export function NodeKeyManager({
                       </td>
                       <td>
                         <div className="fg-console-toolbar">
-                          {canCopyCommand ? (
-                            <InlineButton
-                              blocked={Boolean(busyAction)}
-                              label="Copy command"
-                              onClick={() => {
-                                void handleCopyCommand(record);
-                              }}
-                            />
-                          ) : null}
+                          <InlineButton
+                            blocked={Boolean(busyAction)}
+                            disabled={!canCopyCommand}
+                            label="Copy command"
+                            onClick={() => {
+                              void handleCopyCommand(record);
+                            }}
+                          />
 
-                          {record.canCopy ? (
-                            <InlineButton
-                              blocked={Boolean(busyAction)}
-                              label="Copy secret"
-                              onClick={() => {
-                                void handleCopy(record.id);
-                              }}
-                            />
-                          ) : null}
+                          <InlineButton
+                            blocked={Boolean(busyAction)}
+                            disabled={!record.canCopy}
+                            label="Copy secret"
+                            onClick={() => {
+                              void handleCopy(record.id);
+                            }}
+                          />
 
                           {record.canRevoke ? (
                             <InlineButton

@@ -23,7 +23,7 @@ type ToastInput = {
 
 type ToastRecord = ToastInput & {
   id: string;
-  state: "closing" | "open";
+  state: "closing" | "entering" | "open";
   variant: ToastVariant;
 };
 
@@ -215,6 +215,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const [stackExpanded, setStackExpanded] = useState(false);
   const [stackPaused, setStackPaused] = useState(false);
   const [toasts, setToasts] = useState<ToastRecord[]>([]);
+  const activeToasts = toasts.filter((toast) => toast.state !== "closing");
+  const activeToastCount = activeToasts.length;
+  const oldestActiveToastId = activeToasts[0]?.id ?? null;
+  const frontToastId = activeToasts.at(-1)?.id ?? toasts.at(-1)?.id ?? null;
 
   useEffect(() => {
     return () => {
@@ -226,10 +230,35 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (toasts.length < 2) {
+    if (activeToastCount < 2) {
       setStackExpanded(false);
     }
-  }, [toasts.length]);
+  }, [activeToastCount]);
+
+  useEffect(() => {
+    const enteringIds = toasts
+      .filter((toast) => toast.state === "entering")
+      .map((toast) => toast.id);
+
+    if (enteringIds.length === 0) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      setToasts((current) =>
+        current.map((toast) =>
+          enteringIds.includes(toast.id) && toast.state === "entering"
+            ? {
+                ...toast,
+                state: "open",
+              }
+            : toast,
+        ),
+      );
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [toasts]);
 
   const finalizeDismiss = useCallback((id: string) => {
     const timeout = dismissalTimers.current.get(id);
@@ -269,20 +298,26 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     [finalizeDismiss],
   );
 
+  useEffect(() => {
+    if (activeToastCount <= MAX_TOASTS || oldestActiveToastId === null) {
+      return;
+    }
+
+    dismissToast(oldestActiveToastId);
+  }, [activeToastCount, dismissToast, oldestActiveToastId]);
+
   const showToast = useCallback((toast: ToastInput) => {
     const id = createToastId();
 
-    setToasts((current) =>
-      [
-        ...current,
-        {
-          ...toast,
-          id,
-          state: "open" as const,
-          variant: toast.variant ?? "info",
-        },
-      ].slice(-MAX_TOASTS),
-    );
+    setToasts((current) => [
+      ...current,
+      {
+        ...toast,
+        id,
+        state: "entering" as const,
+        variant: toast.variant ?? "info",
+      },
+    ]);
 
     return id;
   }, []);
@@ -330,11 +365,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               <ToastItem
                 depth={depth}
                 expanded={stackExpanded}
-                isFront={index === toasts.length - 1}
+                isFront={toast.id === frontToastId}
                 key={toast.id}
                 onDismiss={dismissToast}
                 onToggleExpand={() => {
-                  if (toasts.length < 2) {
+                  if (activeToastCount < 2) {
                     return;
                   }
 
@@ -342,7 +377,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 }}
                 pauseDismiss={stackPaused || stackExpanded}
                 toast={toast}
-                total={toasts.length}
+                total={activeToastCount}
               />
             );
           })}
