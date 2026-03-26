@@ -2754,16 +2754,16 @@ export function ConsoleProjectGallery({
                 {selectedService.kind === "app" && activeTab === "env" ? (
                   <div className="fg-workbench-section">
                     <div className="fg-workbench-section__head">
-                      <div className="fg-workbench-section__copy">
+                      <div className="fg-workbench-section__copy fg-env-section__copy">
                         <p className="fg-label fg-panel__eyebrow">Environment</p>
                         <p className="fg-console-note">
                           {envFormat === "raw"
                             ? `Paste a .env block for ${selectedService.name}. Comments, blank lines, and export prefixes are ignored.`
-                            : `Review variables for ${selectedService.name}, or switch to Raw to paste a full .env block. Saving queues a deploy operation.`}
+                            : `Review variables for ${selectedService.name}, or switch to Raw to paste a .env block. Saving queues a deploy.`}
                         </p>
                       </div>
 
-                      <div className="fg-workbench-section__actions">
+                      <div className="fg-workbench-section__actions fg-env-section__actions">
                         <SegmentedControl
                           ariaLabel="Environment formats"
                           onChange={changeEnvFormat}

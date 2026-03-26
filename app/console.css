@@ -2378,6 +2378,25 @@
   align-items: flex-start;
 }
 
+.fg-env-section__copy {
+  flex: 1 1 24rem;
+  max-width: 44rem;
+}
+
+.fg-env-section__copy .fg-console-note {
+  overflow-wrap: anywhere;
+}
+
+.fg-env-section__actions {
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  align-items: center;
+}
+
+.fg-env-section__actions .fg-segmented {
+  flex-wrap: nowrap;
+}
+
 .fg-log-output {
   --fg-log-black: #6f6a63;
   --fg-log-red: #d48f8b;
