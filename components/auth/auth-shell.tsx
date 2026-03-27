@@ -1,8 +1,9 @@
 import type { ReactNode } from "react";
 
 import { Brand } from "@/components/brand";
+import { RouteNote } from "@/components/ui/route-note";
 
-type RouteNote = {
+type AuthRouteNote = {
   index: string;
   title: string;
   meta: string;
@@ -13,7 +14,7 @@ type AuthShellProps = {
   description: string;
   eyebrow: string;
   footer: ReactNode;
-  notes: RouteNote[];
+  notes: AuthRouteNote[];
   title: string;
 };
 
@@ -49,11 +50,12 @@ export function AuthShell({
 
           <div className="fg-auth-stage__notes">
             {notes.map((note) => (
-              <article className="fg-route-note" key={`${note.index}-${note.title}`}>
-                <span className="fg-route-note__index">{note.index}</span>
-                <strong className="fg-route-note__title">{note.title}</strong>
-                <span className="fg-route-note__meta">{note.meta}</span>
-              </article>
+              <RouteNote
+                index={note.index}
+                key={`${note.index}-${note.title}`}
+                meta={note.meta}
+                title={note.title}
+              />
             ))}
           </div>
 

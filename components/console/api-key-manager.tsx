@@ -11,6 +11,7 @@ import {
   sortFugueScopes,
   WORKSPACE_ADMIN_SCOPES,
 } from "@/lib/fugue/scopes";
+import { copyText } from "@/lib/ui/clipboard";
 import { cx } from "@/lib/ui/cx";
 
 type ApiKeyPagePayload = {
@@ -45,19 +46,6 @@ async function requestJson<T>(input: RequestInfo, init?: RequestInit) {
   }
 
   return data;
-}
-
-async function copyText(value: string) {
-  if (!navigator.clipboard?.writeText) {
-    return false;
-  }
-
-  try {
-    await navigator.clipboard.writeText(value);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 function formatRelativeTime(value?: string | null) {
@@ -220,13 +208,12 @@ export function ApiKeyManager({
     copyInFlightRef.current = keyId;
 
     try {
-      const data = await requestJson<{
+      const secretRequest = requestJson<{
         secret: string;
       }>(`/api/fugue/api-keys/${encodeURIComponent(keyId)}/secret`, {
         cache: "no-store",
-      });
-
-      const copied = await copyText(data.secret);
+      }).then((data) => data.secret);
+      const copied = await copyText(secretRequest);
 
       showToast({
         message: copied ? "Secret copied." : "Secret is ready, but clipboard access failed.",
@@ -260,13 +247,15 @@ export function ApiKeyManager({
     setBusyAction(`rotate:${record.id}`);
 
     try {
-      const rotated = await requestJson<{
+      const rotateRequest = requestJson<{
         key: ApiKeyRecord;
         secret: string;
       }>(`/api/fugue/api-keys/${encodeURIComponent(record.id)}/rotate`, {
         method: "POST",
       });
-      const copied = await copyText(rotated.secret);
+      const copiedPromise = copyText(rotateRequest.then((data) => data.secret));
+      const rotated = await rotateRequest;
+      const copied = await copiedPromise;
 
       if (rotated.key.isWorkspaceAdmin) {
         setKeys((current) =>

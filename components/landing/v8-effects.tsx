@@ -2,6 +2,8 @@
 
 import { useEffect } from "react";
 
+import { copyText } from "@/lib/ui/clipboard";
+
 declare global {
   interface Window {
     UnicornStudio?: {
@@ -15,12 +17,14 @@ const UNICORN_SCRIPT_SRC =
 
 export function LandingV8Effects() {
   useEffect(() => {
-    const hero = document.querySelector(".hero");
+    const root = document.querySelector<HTMLElement>("[data-landing-root]");
+    const hero = root?.querySelector<HTMLElement>("[data-landing-hero]");
 
-    if (!hero) {
+    if (!root || !hero) {
       return;
     }
 
+    const landingRoot = root;
     const body = document.body;
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const timeouts: number[] = [];
@@ -69,7 +73,7 @@ export function LandingV8Effects() {
     }
 
     function initUnicornScene() {
-      const scene = document.getElementById("unicorn-scene");
+      const scene = landingRoot.querySelector<HTMLElement>("#unicorn-scene");
 
       trackTimeout(window.setTimeout(markPageReady, prefersReducedMotion ? 0 : 120));
 
@@ -134,7 +138,7 @@ export function LandingV8Effects() {
     }
 
     function initSectionReveal() {
-      const sections = Array.from(document.querySelectorAll(".section"));
+      const sections = Array.from(landingRoot.querySelectorAll<HTMLElement>("[data-landing-section]"));
 
       if (prefersReducedMotion || !("IntersectionObserver" in window)) {
         sections.forEach((section) => section.classList.add("is-visible"));
@@ -162,9 +166,9 @@ export function LandingV8Effects() {
     }
 
     function initMobileMenu() {
-      const toggle = document.querySelector(".menu-toggle") as HTMLButtonElement | null;
-      const sheet = document.getElementById("mobile-menu");
-      const links = Array.from(document.querySelectorAll(".mobile-nav a"));
+      const toggle = landingRoot.querySelector<HTMLButtonElement>(".fg-landing-menu-toggle");
+      const sheet = landingRoot.querySelector<HTMLElement>("#fg-landing-mobile-menu");
+      const links = Array.from(landingRoot.querySelectorAll<HTMLAnchorElement>(".fg-landing-mobile-nav a"));
 
       if (!toggle || !sheet) {
         return;
@@ -228,36 +232,58 @@ export function LandingV8Effects() {
     }
 
     function initCopyButtons() {
-      const buttons = Array.from(document.querySelectorAll("[data-copy-target]"));
+      const buttons = Array.from(landingRoot.querySelectorAll<HTMLButtonElement>("[data-copy-target]"));
 
       buttons.forEach((button) => {
         const targetId = button.getAttribute("data-copy-target");
-        const codeTarget = targetId ? document.getElementById(targetId) : null;
+        const codeTarget = targetId ? landingRoot.querySelector<HTMLElement>(`#${targetId}`) : null;
 
         if (!codeTarget) {
           return;
         }
 
+        const label = button.querySelector<HTMLElement>(".fg-button__label");
+        const originalLabel = label?.textContent ?? button.textContent ?? "Copy command";
+
         const handleClick = async () => {
           const text = codeTarget.innerText.replace(/\u00a0/g, " ");
+          const didCopy = await copyText(text);
 
-          try {
-            await navigator.clipboard.writeText(text);
-          } catch {
-            const temp = document.createElement("textarea");
-            temp.value = text;
-            document.body.appendChild(temp);
-            temp.select();
-            document.execCommand("copy");
-            temp.remove();
+          if (!didCopy) {
+            if (label) {
+              label.textContent = "Copy manually";
+            } else {
+              button.textContent = "Copy manually";
+            }
+
+            trackTimeout(
+              window.setTimeout(() => {
+                if (label) {
+                  label.textContent = originalLabel;
+                } else {
+                  button.textContent = originalLabel;
+                }
+              }, 1600),
+            );
+            return;
           }
 
-          button.textContent = "Copied";
+          if (label) {
+            label.textContent = "Copied";
+          } else {
+            button.textContent = "Copied";
+          }
+
           button.classList.add("is-copied");
 
           trackTimeout(
             window.setTimeout(() => {
-              button.textContent = "Copy command";
+              if (label) {
+                label.textContent = originalLabel;
+              } else {
+                button.textContent = originalLabel;
+              }
+
               button.classList.remove("is-copied");
             }, 1600),
           );
@@ -273,7 +299,7 @@ export function LandingV8Effects() {
         return;
       }
 
-      const roots = Array.from(document.querySelectorAll<HTMLElement>("[data-tilt-root]"));
+      const roots = Array.from(landingRoot.querySelectorAll<HTMLElement>("[data-tilt-root]"));
 
       roots.forEach((root) => {
         const handlePointerMove = (event: Event) => {
@@ -314,9 +340,9 @@ export function LandingV8Effects() {
       timeouts.forEach((timeoutId) => window.clearTimeout(timeoutId));
       body.classList.remove("is-ready", "has-scene", "is-fallback", "menu-open");
 
-      document.querySelectorAll<HTMLElement>("[data-tilt-root]").forEach((root) => {
-        root.style.removeProperty("--tilt-x");
-        root.style.removeProperty("--tilt-y");
+      landingRoot.querySelectorAll<HTMLElement>("[data-tilt-root]").forEach((tiltRoot) => {
+        tiltRoot.style.removeProperty("--tilt-x");
+        tiltRoot.style.removeProperty("--tilt-y");
       });
     };
   }, []);

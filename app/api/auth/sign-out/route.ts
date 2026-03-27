@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 
-import { buildAppUrl } from "@/lib/auth/env";
+import { buildOriginUrl, isSecureRequest, readRequestOrigin } from "@/lib/auth/origin";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/session";
 
-export async function POST() {
-  const response = NextResponse.redirect(buildAppUrl("/auth/sign-in?state=signed-out"), {
+export async function POST(request: Request) {
+  const requestOrigin = readRequestOrigin(request);
+  const secure = isSecureRequest(request);
+  const response = NextResponse.redirect(buildOriginUrl(requestOrigin, "/auth/sign-in?state=signed-out"), {
     status: 303,
   });
 
@@ -14,7 +16,7 @@ export async function POST() {
     path: "/",
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure,
     maxAge: 0,
   });
 

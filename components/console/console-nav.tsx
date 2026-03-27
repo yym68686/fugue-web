@@ -1,10 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { PillNav, PillNavLink } from "@/components/ui/pill-nav";
 import { getConsoleNavGroups } from "@/lib/console/nav";
-import { cx } from "@/lib/ui/cx";
 
 function isActivePath(pathname: string, href: string) {
   if (href === "/app") {
@@ -19,21 +18,21 @@ export function ConsoleNav({ isAdmin = false }: { isAdmin?: boolean }) {
   const items = getConsoleNavGroups({ isAdmin }).flatMap((group) => group.items);
 
   return (
-    <nav aria-label="Console" className="fg-pill-nav fg-console-nav">
+    <PillNav ariaLabel="Console" className="fg-console-nav">
       {items.map((item) => {
         const active = isActivePath(pathname, item.href);
 
         return (
-          <Link
-            aria-current={active ? "page" : undefined}
-            className={cx("fg-console-nav__link", active && "is-active")}
+          <PillNavLink
+            active={active}
+            className="fg-console-nav__link"
             href={item.href}
             key={item.href}
           >
             <span className="fg-console-nav__title">{item.label}</span>
-          </Link>
+          </PillNavLink>
         );
       })}
-    </nav>
+    </PillNav>
   );
 }

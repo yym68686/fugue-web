@@ -1,4 +1,4 @@
-import { ButtonLink } from "@/components/ui/button";
+import { ButtonAnchor } from "@/components/ui/button";
 
 export function ProviderButton({
   href,
@@ -8,7 +8,7 @@ export function ProviderButton({
   provider: "google";
 }) {
   return (
-    <ButtonLink
+    <ButtonAnchor
       className="fg-provider-button"
       href={href}
       icon={<span aria-hidden="true" className="fg-provider-button__mark">G</span>}
@@ -17,6 +17,6 @@ export function ProviderButton({
       variant="secondary"
     >
       Continue with {provider === "google" ? "Google" : provider}
-    </ButtonLink>
+    </ButtonAnchor>
   );
 }

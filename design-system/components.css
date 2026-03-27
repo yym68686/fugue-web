@@ -488,9 +488,12 @@
 }
 
 .fg-route-note__title {
+  color: var(--fugue-text-primary);
+  font-family: var(--fugue-font-ui-heading);
   font-size: 0.98rem;
   font-weight: 700;
   letter-spacing: -0.03em;
+  line-height: 1.18;
 }
 
 .fg-route-note__meta {
@@ -519,6 +522,7 @@
 .fg-proof-shell__ribbon {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 0.85rem;
   padding: 1rem 1.2rem;
   border-bottom: 1px solid var(--fugue-border-subtle);
@@ -546,8 +550,11 @@
 }
 
 .fg-proof-shell__empty strong {
+  color: var(--fugue-text-primary);
+  font-family: var(--fugue-font-ui-heading);
   font-size: 0.94rem;
   letter-spacing: -0.02em;
+  line-height: 1.18;
 }
 
 .fg-proof-shell__empty p {

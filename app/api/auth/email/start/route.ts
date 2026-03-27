@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 
 import { ensureAppUserRecord } from "@/lib/app-users/store";
-import { buildAppUrl, getAuthEnv } from "@/lib/auth/env";
+import { getAuthEnv } from "@/lib/auth/env";
 import { sendVerificationEmail } from "@/lib/auth/email";
+import { buildOriginUrl, isSecureRequest, readRequestOrigin } from "@/lib/auth/origin";
 import { buildSessionCookie } from "@/lib/auth/session";
 import { signToken } from "@/lib/auth/token";
 import {
@@ -21,6 +22,8 @@ type RequestPayload = {
 
 export async function POST(request: Request) {
   const authEnv = getAuthEnv();
+  const requestOrigin = readRequestOrigin(request);
+  const secure = isSecureRequest(request);
   let payload: RequestPayload;
 
   try {
@@ -73,7 +76,10 @@ export async function POST(request: Request) {
     });
 
     response.cookies.set(
-      buildSessionCookie(sessionUser),
+      {
+        ...buildSessionCookie(sessionUser),
+        secure,
+      },
     );
 
     return response;
@@ -85,11 +91,12 @@ export async function POST(request: Request) {
       email,
       mode,
       name: name || undefined,
+      origin: requestOrigin,
     },
     60 * 15,
   );
 
-  const verifyUrl = buildAppUrl("/api/auth/email/verify");
+  const verifyUrl = buildOriginUrl(requestOrigin, "/api/auth/email/verify");
   verifyUrl.searchParams.set("token", token);
 
   try {

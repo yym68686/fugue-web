@@ -205,6 +205,7 @@ Detached floating navigation container.
 - Use for top-level nav or small sub-nav clusters.
 - When one link represents the current page or current shell view, mark it with `aria-current="page"` and reuse the same active lens as segmented controls. Do not rely on text color alone.
 - Not for dense app sidebars.
+- React wrapper: `components/ui/pill-nav.tsx` with `PillNav`, `PillNavLink`, and `PillNavAnchor`.
 
 ## SectionLabel
 
@@ -244,6 +245,7 @@ The right-rail route card language extracted from `v8`.
 
 - Safe for onboarding steps, integration summaries, migration notices.
 - Do not turn it into a generic marketing feature card.
+- React wrapper: `components/ui/route-note.tsx`.
 
 ## BezelShell
 
@@ -288,6 +290,7 @@ Specialized bezel shell for command blocks and control-plane proof.
 
 - Prefer this over a naked `pre`.
 - Use the ribbon for environment or object metadata, not decorative tags.
+- React wrapper: `components/ui/proof-shell.tsx` with `ProofShell`, `ProofShellRibbon`, and `ProofShellEmpty`.
 
 ## ObjectBelt
 
@@ -354,12 +357,10 @@ Shared outer width control for full-bleed and content-width sections.
 
 ## React Port Guidance
 
-When this system moves into React or Next.js:
+As this system moves into React or Next.js:
 
 - Keep tokens in a global design-token file.
 - Port visual primitives first: `Button`, `Panel`, `ProofShell`, `ObjectBelt`.
-- Prefer compound composition for structured components:
-  - `ProofShell`
-  - `ProofShell.Ribbon`
-  - `ProofShell.Code`
+- Keep stable shared wrappers in `components/ui/` and migrate page-level DOM to them before adding new surface-specific variants.
+- Prefer explicit sibling wrappers for structured patterns, for example `ProofShell` + `ProofShellRibbon` + `ProofShellEmpty`.
 - Avoid boolean prop explosion. If a pattern diverges materially, create a sibling component instead of more mode flags.

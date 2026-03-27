@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { NODE_KEY_CREATE_REQUEST_EVENT } from "@/lib/console/events";
+import { copyText } from "@/lib/ui/clipboard";
 
 function readErrorMessage(error: unknown) {
   if (error instanceof Error && error.message) {
@@ -32,19 +33,6 @@ async function requestJson<T>(input: RequestInfo, init?: RequestInit) {
   return data;
 }
 
-async function copyText(value: string) {
-  if (!navigator.clipboard?.writeText) {
-    return false;
-  }
-
-  try {
-    await navigator.clipboard.writeText(value);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 export function ApiKeyEmptyState() {
   const router = useRouter();
   const { showToast } = useToast();
@@ -59,21 +47,23 @@ export function ApiKeyEmptyState() {
     setIsCreating(true);
 
     try {
-      await requestJson<{
+      const createRequest = requestJson<{
         created: boolean;
       }>("/api/fugue/workspace/bootstrap", {
         method: "POST",
-      });
-
-      const created = await requestJson<{
-        key: {
-          id: string;
-        };
-        secret: string;
-      }>("/api/fugue/node-keys", {
-        method: "POST",
-      });
-      const copied = await copyText(created.secret);
+      }).then(() =>
+        requestJson<{
+          key: {
+            id: string;
+          };
+          secret: string;
+        }>("/api/fugue/node-keys", {
+          method: "POST",
+        }),
+      );
+      const copiedPromise = copyText(createRequest.then((data) => data.secret));
+      await createRequest;
+      const copied = await copiedPromise;
 
       showToast({
         message: copied

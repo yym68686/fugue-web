@@ -11,6 +11,7 @@ import {
   sortNodeKeys,
 } from "@/lib/node-keys/selection";
 import type { NodeKeyRecord } from "@/lib/node-keys/types";
+import { copyText } from "@/lib/ui/clipboard";
 
 type NodeKeyPagePayload = {
   keys: NodeKeyRecord[];
@@ -40,19 +41,6 @@ async function requestJson<T>(input: RequestInfo, init?: RequestInit) {
   }
 
   return data;
-}
-
-async function copyText(value: string) {
-  if (!navigator.clipboard?.writeText) {
-    return false;
-  }
-
-  try {
-    await navigator.clipboard.writeText(value);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 function formatRelativeTime(value?: string | null) {
@@ -218,13 +206,15 @@ export function NodeKeyManager({
     setBusyAction("create");
 
     try {
-      const created = await requestJson<{
+      const createRequest = requestJson<{
         key: NodeKeyRecord;
         secret: string;
       }>("/api/fugue/node-keys", {
         method: "POST",
       });
-      const copied = await copyText(created.secret);
+      const copiedPromise = copyText(createRequest.then((data) => data.secret));
+      const created = await createRequest;
+      const copied = await copiedPromise;
       const nextKeys = upsertKey(keys, created.key);
 
       setKeys(nextKeys);
@@ -255,13 +245,12 @@ export function NodeKeyManager({
     copyInFlightRef.current = `${keyId}:secret`;
 
     try {
-      const data = await requestJson<{
+      const secretRequest = requestJson<{
         secret: string;
       }>(`/api/fugue/node-keys/${encodeURIComponent(keyId)}/secret`, {
         cache: "no-store",
-      });
-
-      const copied = await copyText(data.secret);
+      }).then((data) => data.secret);
+      const copied = await copyText(secretRequest);
 
       showToast({
         message: copied ? "Secret copied." : "Secret is ready, but clipboard access failed.",
@@ -284,13 +273,12 @@ export function NodeKeyManager({
     copyInFlightRef.current = `${record.id}:command`;
 
     try {
-      const data = await requestJson<{
+      const commandRequest = requestJson<{
         secret: string;
       }>(`/api/fugue/node-keys/${encodeURIComponent(record.id)}/secret`, {
         cache: "no-store",
-      });
-
-      const copied = await copyText(buildJoinCommand(normalizedApiBaseUrl, data.secret));
+      }).then((data) => buildJoinCommand(normalizedApiBaseUrl, data.secret));
+      const copied = await copyText(commandRequest);
 
       showToast({
         message: copied

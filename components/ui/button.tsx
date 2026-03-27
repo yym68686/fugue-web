@@ -166,6 +166,41 @@ export function ButtonLink(props: ButtonLinkProps) {
   );
 }
 
+export function ButtonAnchor(props: ButtonLinkProps) {
+  const {
+    children,
+    className,
+    href,
+    icon,
+    iconPlacement,
+    iconStyle,
+    size = "default",
+    variant = "secondary",
+    ...rest
+  } = props;
+
+  const classes = buildClassName(variant, size, className);
+  const resolvedIcon = resolveIcon(variant, icon);
+  const resolvedPlacement = iconPlacement ?? (variant === "route" ? "trailing" : "leading");
+  const resolvedIconStyle = iconStyle ?? (variant === "route" ? "island" : "plain");
+  const leadingIcon =
+    resolvedIcon && resolvedPlacement === "leading"
+      ? buildAccessory(resolvedIcon, "leading", resolvedIconStyle)
+      : null;
+  const trailingIcon =
+    resolvedIcon && resolvedPlacement === "trailing"
+      ? buildAccessory(resolvedIcon, "trailing", resolvedIconStyle)
+      : null;
+
+  return (
+    <a {...rest} className={classes} href={href}>
+      {leadingIcon}
+      <span className="fg-button__label">{children}</span>
+      {trailingIcon}
+    </a>
+  );
+}
+
 export function InlineButton({
   blocked = false,
   busy = false,

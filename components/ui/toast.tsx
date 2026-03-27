@@ -12,6 +12,8 @@ import {
   type ReactNode,
 } from "react";
 
+import { copyText } from "@/lib/ui/clipboard";
+
 type ToastVariant = "error" | "info" | "success";
 
 type ToastInput = {
@@ -54,32 +56,6 @@ function getToastTitle(toast: Pick<ToastInput, "title" | "variant">) {
   }
 
   return "Notice";
-}
-
-async function copyText(value: string) {
-  try {
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(value);
-      return true;
-    }
-  } catch {
-    // Fall through to the textarea fallback below.
-  }
-
-  try {
-    const temp = document.createElement("textarea");
-    temp.value = value;
-    temp.setAttribute("readonly", "true");
-    temp.style.position = "fixed";
-    temp.style.opacity = "0";
-    document.body.appendChild(temp);
-    temp.select();
-    document.execCommand("copy");
-    temp.remove();
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 function ToastItem({

@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { CountryFlagLabel } from "@/components/ui/country-flag-label";
 import { FormField } from "@/components/ui/form-field";
 import { Panel, PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
+import { ProofShell, ProofShellEmpty, ProofShellRibbon } from "@/components/ui/proof-shell";
 import { SegmentedControl, type SegmentedControlOption } from "@/components/ui/segmented-control";
 import { TechStackLogo } from "@/components/ui/tech-stack-logo";
 import { useToast } from "@/components/ui/toast";
@@ -2955,27 +2956,25 @@ export function ConsoleProjectGallery({
                       </div>
                     </div>
 
-                    <div className="fg-bezel fg-proof-shell">
-                      <div className="fg-bezel__inner">
-                        <div className="fg-proof-shell__ribbon">
-                          <span>{logsRefreshStateLabel}</span>
-                        </div>
-                        {runtimeLogsUnavailable ? (
-                          <div className="fg-proof-shell__empty">
-                            <strong>{runtimeLogsUnavailable.title}</strong>
-                            <p>{runtimeLogsUnavailable.description}</p>
-                          </div>
-                        ) : (
-                          <pre
-                            className="fg-log-output__viewport"
-                            onScroll={handleLogsViewportScroll}
-                            ref={logsViewportRef}
-                          >
-                            <code className="fg-log-output">{renderAnsiLogBody(logsDisplayBody)}</code>
-                          </pre>
-                        )}
-                      </div>
-                    </div>
+                    <ProofShell>
+                      <ProofShellRibbon>
+                        <span>{logsRefreshStateLabel}</span>
+                      </ProofShellRibbon>
+                      {runtimeLogsUnavailable ? (
+                        <ProofShellEmpty
+                          description={runtimeLogsUnavailable.description}
+                          title={runtimeLogsUnavailable.title}
+                        />
+                      ) : (
+                        <pre
+                          className="fg-log-output__viewport"
+                          onScroll={handleLogsViewportScroll}
+                          ref={logsViewportRef}
+                        >
+                          <code className="fg-log-output">{renderAnsiLogBody(logsDisplayBody)}</code>
+                        </pre>
+                      )}
+                    </ProofShell>
                   </div>
                 ) : null}
               </PanelSection>
