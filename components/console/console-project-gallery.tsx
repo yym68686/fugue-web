@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { DeploymentTargetField } from "@/components/console/deployment-target-field";
 import { StatusBadge } from "@/components/console/status-badge";
+import { AppRoutePanel } from "@/components/console/app-route-panel";
 import { ConsoleFilesWorkbench } from "@/components/console/console-files-workbench";
 import { Button } from "@/components/ui/button";
 import { CountryFlagLabel } from "@/components/ui/country-flag-label";
@@ -140,7 +141,7 @@ type LogStreamEnd = {
 };
 
 type AppAction = "delete" | "disable" | "redeploy" | "restart";
-type WorkbenchView = "env" | "files" | "logs";
+type WorkbenchView = "env" | "files" | "logs" | "route";
 type EnvironmentFormat = "raw" | "table";
 type LogsView = "build" | "runtime";
 
@@ -188,12 +189,14 @@ const BUILD_STRATEGY_OPTIONS = [
 
 const WORKBENCH_VIEW_OPTIONS: readonly SegmentedControlOption<WorkbenchView>[] = [
   { value: "env", label: "Environment" },
+  { value: "route", label: "Route" },
   { value: "files", label: "Files" },
   { value: "logs", label: "Logs" },
 ];
 
-const ENV_AND_LOGS_WORKBENCH_OPTIONS: readonly SegmentedControlOption<WorkbenchView>[] = [
+const ENV_ROUTE_AND_LOGS_WORKBENCH_OPTIONS: readonly SegmentedControlOption<WorkbenchView>[] = [
   { value: "env", label: "Environment" },
+  { value: "route", label: "Route" },
   { value: "logs", label: "Logs" },
 ];
 
@@ -658,7 +661,7 @@ function readServiceWorkbenchOptions(
   }
 
   if (service.serviceRole === "pending") {
-    return ENV_AND_LOGS_WORKBENCH_OPTIONS;
+    return ENV_ROUTE_AND_LOGS_WORKBENCH_OPTIONS;
   }
 
   return WORKBENCH_VIEW_OPTIONS;
@@ -2787,6 +2790,17 @@ export function ConsoleProjectGallery({
               </PanelSection>
 
               <PanelSection className="fg-project-pane">
+                {selectedService.kind === "app" && activeTab === "route" ? (
+                  <AppRoutePanel
+                    appId={selectedService.id}
+                    appName={selectedService.name}
+                    initialBaseDomain={selectedService.routeBaseDomain}
+                    initialHostname={selectedService.routeHostname}
+                    initialPublicUrl={selectedService.routePublicUrl}
+                    key={selectedService.id}
+                  />
+                ) : null}
+
                 {selectedService.kind === "app" && activeTab === "env" ? (
                   <div className="fg-workbench-section">
                     <div className="fg-workbench-section__head">

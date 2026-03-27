@@ -46,8 +46,11 @@ export type ConsoleGalleryAppView = {
   redeployActionLoadingLabel: string;
   redeployQueuedMessage: string;
   redeployDisabledReason: string | null;
+  routeBaseDomain: string | null;
   routeHref: string | null;
+  routeHostname: string | null;
   routeLabel: string;
+  routePublicUrl: string | null;
   serviceBadges: ConsoleGalleryBadgeView[];
   serviceDurationLabel: string | null;
   serviceRole: ConsoleGalleryAppServiceRole;

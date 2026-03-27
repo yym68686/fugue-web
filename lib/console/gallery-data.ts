@@ -843,6 +843,42 @@ function readRoute(app: FugueApp) {
   };
 }
 
+function readRouteHostname(app: FugueApp) {
+  const hostname = app.route.hostname?.trim().toLowerCase();
+
+  if (hostname) {
+    return hostname;
+  }
+
+  const publicUrl = app.route.publicUrl?.trim();
+
+  if (!publicUrl) {
+    return null;
+  }
+
+  try {
+    return new URL(publicUrl).hostname.toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
+function readRouteBaseDomain(hostname?: string | null) {
+  const normalized = hostname?.trim().toLowerCase();
+
+  if (!normalized) {
+    return null;
+  }
+
+  const segments = normalized.split(".").filter(Boolean);
+
+  if (segments.length < 2) {
+    return null;
+  }
+
+  return segments.slice(1).join(".");
+}
+
 function formatRepoLabel(repoUrl?: string | null, branch?: string | null) {
   if (!repoUrl) {
     return "Unspecified source";
@@ -1212,6 +1248,7 @@ function buildSharedAppView(
   const source = options?.source ?? app.source;
   const techStack = options?.techStack ?? app.techStack;
   const route = readRoute(app);
+  const routeHostname = readRouteHostname(app);
   const redeploy = readRedeployState(app);
   const redeployAction = readRedeployAction(app);
   const sourceBranchLabel = readSourceBranchLabelFromSource(source);
@@ -1239,8 +1276,11 @@ function buildSharedAppView(
     redeployActionLoadingLabel: redeployAction.loadingLabel,
     redeployQueuedMessage: redeployAction.queuedMessage,
     redeployDisabledReason: redeploy.redeployDisabledReason,
+    routeBaseDomain: readRouteBaseDomain(routeHostname),
     routeHref: route.href,
+    routeHostname,
     routeLabel: route.label,
+    routePublicUrl: app.route.publicUrl?.trim() || null,
     serviceBadges,
     sourceBranchHref:
       sourceBranchLabel && sourceBranchLabel !== "Default branch"
