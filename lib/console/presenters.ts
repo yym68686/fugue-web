@@ -14,7 +14,6 @@ import {
   type FugueProject,
   type FugueRuntime,
   type FugueTenant,
-  type FugueAppSource,
 } from "@/lib/fugue/api";
 import { getFugueEnv } from "@/lib/fugue/env";
 import type { ConsoleTone } from "@/lib/console/types";
@@ -28,19 +27,16 @@ import { readRuntimeLocation } from "@/lib/fugue/runtime-location";
 const AUTO_GITHUB_SYNC_REQUESTED_BY_ID = "fugue-controller/github-sync";
 
 export type ConsoleSummary = {
-  activeOperationCount: number;
   apiHost: string;
   appCount: number;
   connectionLabel: string;
   connectionTone: ConsoleTone;
   latestActivityExact: string;
   latestActivityLabel: string;
-  ownedRuntimeCount: number;
   projectCount: number;
   publicRouteCount: number;
   runtimeCount: number;
   scopeLabel: string;
-  sharedRuntimeCount: number;
   tenantCount: number;
 };
 
@@ -62,49 +58,6 @@ export type ConsoleAppView = {
   tenantLabel: string;
   updatedExact: string;
   updatedLabel: string;
-};
-
-export type ConsoleRuntimeView = {
-  activityExact: string;
-  activityLabel: string;
-  appCount: number;
-  clusterNodeLabel: string;
-  detail: string;
-  endpointLabel: string;
-  fingerprintLabel: string;
-  id: string;
-  kindLabel: string;
-  label: string;
-  locationCountryCode: string | null;
-  locationLabel: string | null;
-  status: string;
-  statusTone: ConsoleTone;
-  tenantLabel: string;
-};
-
-export type ConsoleOperationView = {
-  actionLabel: string;
-  actorLabel: string;
-  detail: string;
-  id: string;
-  status: string;
-  statusTone: ConsoleTone;
-  targetLabel: string;
-  tenantLabel: string;
-  timestampExact: string;
-  timestampLabel: string;
-};
-
-export type ConsoleAuditView = {
-  action: string;
-  actorLabel: string;
-  detail: string;
-  id: string;
-  scopeLabel: string;
-  targetLabel: string;
-  timestampExact: string;
-  timestampLabel: string;
-  tone: ConsoleTone;
 };
 
 export type ConsoleTenantView = {
@@ -134,20 +87,13 @@ export type ConsoleWorkspaceView = {
 };
 
 export type ConsoleData = {
-  activeOperations: ConsoleOperationView[];
   actors: ConsoleActorView[];
   apps: ConsoleAppView[];
   errors: string[];
-  recentAuditEvents: ConsoleAuditView[];
-  recentOperations: ConsoleOperationView[];
-  runtimeAuditEvents: ConsoleAuditView[];
-  runtimes: ConsoleRuntimeView[];
   summary: ConsoleSummary;
   tenants: ConsoleTenantView[];
   workspace: ConsoleWorkspaceView;
 };
-
-const terminalOperationStatuses = new Set(["canceled", "cancelled", "completed", "failed"]);
 
 function formatHandle(handle: string) {
   return handle
@@ -256,23 +202,6 @@ function shortId(value?: string | null) {
   return `${prefix}…${value.slice(-6)}`;
 }
 
-function shortCommitSha(value?: string | null) {
-  const commit = value?.trim();
-
-  if (!commit) {
-    return "";
-  }
-
-  return commit.length > 8 ? commit.slice(0, 8) : commit;
-}
-
-function joinFragments(parts: Array<string | null | undefined>) {
-  return parts
-    .map((part) => part?.trim())
-    .filter((part): part is string => Boolean(part))
-    .join(" / ");
-}
-
 function readRouteLabel(app: FugueApp) {
   if (app.route.publicUrl) {
     try {
@@ -347,42 +276,6 @@ function formatActorLabel(type?: string | null, id?: string | null) {
   return `${label} · ${shortId(id)}`;
 }
 
-function isGitHubSyncOperation(operation: FugueOperation) {
-  return (
-    operation.requestedByType?.trim().toLowerCase() === "bootstrap" &&
-    operation.requestedById?.trim() === AUTO_GITHUB_SYNC_REQUESTED_BY_ID
-  );
-}
-
-function readOperationSourceLabel(source?: FugueAppSource | null) {
-  if (!source) {
-    return "";
-  }
-
-  if (source.repoUrl) {
-    return joinFragments([
-      formatRepoLabel(source.repoUrl, source.repoBranch),
-      source.commitSha ? `commit ${shortCommitSha(source.commitSha)}` : null,
-    ]);
-  }
-
-  if (source.type?.trim().toLowerCase() === "upload") {
-    return source.uploadFilename?.trim()
-      ? `Upload · ${source.uploadFilename.trim()}`
-      : "Upload source";
-  }
-
-  return humanize(source.type);
-}
-
-function formatOperationActionLabel(operation: FugueOperation) {
-  if (operation.type?.trim().toLowerCase() === "import" && isGitHubSyncOperation(operation)) {
-    return "GitHub sync";
-  }
-
-  return humanize(operation.type);
-}
-
 function toneForStatus(status?: string | null): ConsoleTone {
   const normalized = status?.toLowerCase() ?? "";
 
@@ -426,39 +319,6 @@ function toneForStatus(status?: string | null): ConsoleTone {
 
   return "neutral";
 }
-
-function toneForAuditAction(action?: string | null): ConsoleTone {
-  const normalized = action?.toLowerCase() ?? "";
-
-  if (!normalized) {
-    return "neutral";
-  }
-
-  if (normalized.includes("delete")) {
-    return "warning";
-  }
-
-  if (normalized.includes("create") || normalized.includes("join_cluster")) {
-    return "positive";
-  }
-
-  if (
-    normalized.includes("patch") ||
-    normalized.includes("import") ||
-    normalized.includes("rebuild") ||
-    normalized.includes("runtime_logs") ||
-    normalized.includes("build_logs")
-  ) {
-    return "info";
-  }
-
-  return "neutral";
-}
-
-function isActiveOperation(status?: string | null) {
-  return !terminalOperationStatuses.has(status?.toLowerCase() ?? "");
-}
-
 function readScopeLabel(workspace: WorkspaceAccess | null) {
   return workspace ? "workspace admin key" : "admin key pending";
 }
@@ -524,138 +384,6 @@ function resolveProjectLabel(
   }
 
   return projectNames.get(projectId) ?? shortId(projectId);
-}
-
-function buildRuntimeDetail(runtime: FugueRuntime) {
-  const location = readRuntimeLocation(runtime.labels);
-
-  if (runtime.type === "managed-shared") {
-    return location.locationLabel
-      ? `Shared ingress and scheduler path managed by Fugue. Region pinned to ${location.locationLabel}.`
-      : "Shared ingress and scheduler path managed by Fugue. Default shared pool without region pinning.";
-  }
-
-  const fragments = [
-    location.locationLabel ? `location ${location.locationLabel}` : null,
-    runtime.lastHeartbeatAt
-      ? `heartbeat ${formatRelativeTime(runtime.lastHeartbeatAt)}`
-      : runtime.lastSeenAt
-        ? `last seen ${formatRelativeTime(runtime.lastSeenAt)}`
-        : "heartbeat unavailable",
-    runtime.endpoint ? `endpoint ${runtime.endpoint}` : null,
-    runtime.clusterNodeName ? `node ${runtime.clusterNodeName}` : null,
-  ].filter(Boolean);
-
-  return fragments.join(" / ");
-}
-
-function buildOperationDetail(
-  operation: FugueOperation,
-  sourceRuntime: FugueRuntime | undefined,
-  targetRuntime: FugueRuntime | undefined,
-) {
-  const sourceLabel = readOperationSourceLabel(operation.desiredSource);
-
-  if (operation.errorMessage) {
-    return joinFragments([sourceLabel, operation.errorMessage]);
-  }
-
-  if (operation.resultMessage) {
-    return joinFragments([sourceLabel, operation.resultMessage]);
-  }
-
-  if (isGitHubSyncOperation(operation)) {
-    return joinFragments([
-      sourceLabel,
-      "Queued automatically after the tracked GitHub branch changed.",
-    ]);
-  }
-
-  if (operation.type?.trim().toLowerCase() === "deploy") {
-    return joinFragments([
-      sourceLabel,
-      isActiveOperation(operation.status)
-        ? "Waiting for rollout ready before completion."
-        : "Completed after rollout ready.",
-    ]);
-  }
-
-  if (sourceRuntime && targetRuntime && sourceRuntime.id !== targetRuntime.id) {
-    return `${readRuntimeLabel(sourceRuntime)} -> ${readRuntimeLabel(targetRuntime)}`;
-  }
-
-  if (targetRuntime) {
-    return `Target runtime ${readRuntimeLabel(targetRuntime)}`;
-  }
-
-  if (sourceLabel) {
-    return sourceLabel;
-  }
-
-  if (operation.executionMode) {
-    return `${humanize(operation.executionMode)} execution`;
-  }
-
-  return "No result message yet.";
-}
-
-function buildAuditDetail(event: FugueAuditEvent, appsById: Map<string, FugueApp>) {
-  if (event.metadata.hostname) {
-    return event.metadata.hostname;
-  }
-
-  if (event.metadata.repoUrl) {
-    return formatRepoLabel(event.metadata.repoUrl, null);
-  }
-
-  if (event.metadata.name) {
-    return event.metadata.name;
-  }
-
-  if (event.metadata.appId) {
-    return appsById.get(event.metadata.appId)?.name ?? shortId(event.metadata.appId);
-  }
-
-  if (event.metadata.component) {
-    return humanize(event.metadata.component);
-  }
-
-  return shortId(event.targetId);
-}
-
-function resolveAuditTarget(
-  event: FugueAuditEvent,
-  appsById: Map<string, FugueApp>,
-  runtimesById: Map<string, FugueRuntime>,
-  projectNames: Map<string, string>,
-  tenantNames: Map<string, string>,
-) {
-  if (event.targetType === "app" && event.targetId) {
-    return appsById.get(event.targetId)?.name ?? shortId(event.targetId);
-  }
-
-  if (event.targetType === "node" && event.targetId) {
-    const runtime = runtimesById.get(event.targetId);
-    return runtime ? readRuntimeLabel(runtime) : shortId(event.targetId);
-  }
-
-  if (event.targetType === "project" && event.targetId) {
-    return projectNames.get(event.targetId) ?? shortId(event.targetId);
-  }
-
-  if (event.targetType === "tenant" && event.targetId) {
-    return tenantNames.get(event.targetId) ?? shortId(event.targetId);
-  }
-
-  if (event.metadata.appId) {
-    return appsById.get(event.metadata.appId)?.name ?? shortId(event.metadata.appId);
-  }
-
-  if (event.targetId) {
-    return shortId(event.targetId);
-  }
-
-  return "Control plane";
 }
 
 function buildWorkspaceName(session: Pick<SessionUser, "email" | "name">) {
@@ -815,28 +543,20 @@ function buildUnavailableConsoleData(
         : "needs-import";
 
   return {
-    activeOperations: [],
     actors: [],
     apps: [],
     errors: [error],
-    recentAuditEvents: [],
-    recentOperations: [],
-    runtimeAuditEvents: [],
-    runtimes: [],
     summary: {
-      activeOperationCount: 0,
       apiHost: "Unavailable",
       appCount: 0,
       connectionLabel: "unconfigured",
       connectionTone: "danger",
       latestActivityExact: "Not yet",
       latestActivityLabel: "Not yet",
-      ownedRuntimeCount: 0,
       projectCount: 0,
       publicRouteCount: 0,
       runtimeCount: 0,
       scopeLabel: readScopeLabel(workspace),
-      sharedRuntimeCount: 0,
       tenantCount: workspace?.tenantId ? 1 : 0,
     },
     tenants: [],
@@ -863,28 +583,20 @@ export async function getConsoleData(): Promise<ConsoleData> {
 
   if (!workspace) {
     return {
-      activeOperations: [],
       actors: [],
       apps: [],
       errors: [],
-      recentAuditEvents: [],
-      recentOperations: [],
-      runtimeAuditEvents: [],
-      runtimes: [],
       summary: {
-        activeOperationCount: 0,
         apiHost: env.apiHost,
         appCount: 0,
         connectionLabel: "idle",
         connectionTone: "neutral",
         latestActivityExact: "Not yet",
         latestActivityLabel: "Not yet",
-        ownedRuntimeCount: 0,
         projectCount: 0,
         publicRouteCount: 0,
         runtimeCount: 0,
         scopeLabel: readScopeLabel(null),
-        sharedRuntimeCount: 0,
         tenantCount: 0,
       },
       tenants: [],
@@ -928,7 +640,6 @@ export async function getConsoleData(): Promise<ConsoleData> {
   const operations = operationsResult.status === "fulfilled" ? operationsResult.value : [];
   const auditEvents = auditResult.status === "fulfilled" ? auditResult.value : [];
 
-  const appsById = new Map(apps.map((item) => [item.id, item]));
   const runtimesById = new Map(runtimes.map((item) => [item.id, item]));
 
   const projectNames = new Map<string, string>(
@@ -953,18 +664,6 @@ export async function getConsoleData(): Promise<ConsoleData> {
     if (operation.appId && !latestOperationByAppId.has(operation.appId)) {
       latestOperationByAppId.set(operation.appId, operation);
     }
-  }
-
-  const appCountByRuntime = new Map<string, number>();
-
-  for (const app of apps) {
-    const runtimeId = app.status.currentRuntimeId ?? app.spec.runtimeId;
-
-    if (!runtimeId) {
-      continue;
-    }
-
-    appCountByRuntime.set(runtimeId, (appCountByRuntime.get(runtimeId) ?? 0) + 1);
   }
 
   const appViews = sortByTimestampDesc(apps, readAppTimestamp).map((app) => {
@@ -1004,89 +703,6 @@ export async function getConsoleData(): Promise<ConsoleData> {
       updatedLabel: formatRelativeTime(app.status.updatedAt ?? app.updatedAt ?? app.createdAt),
     } satisfies ConsoleAppView;
   });
-
-  const runtimeViews = sortByTimestampDesc(runtimes, readRuntimeTimestamp).map((runtime) => {
-    const activityAt = runtime.lastHeartbeatAt ?? runtime.lastSeenAt ?? runtime.updatedAt ?? runtime.createdAt;
-    const location = readRuntimeLocation(runtime.labels);
-
-    return {
-      activityExact: formatExactTime(activityAt),
-      activityLabel: formatRelativeTime(activityAt),
-      appCount: appCountByRuntime.get(runtime.id) ?? 0,
-      clusterNodeLabel: runtime.clusterNodeName ?? "—",
-      detail: buildRuntimeDetail(runtime),
-      endpointLabel: runtime.endpoint ?? "—",
-      fingerprintLabel: runtime.fingerprintPrefix ?? "—",
-      id: runtime.id,
-      kindLabel:
-        runtime.type === "managed-shared"
-          ? "Internal cluster"
-          : runtime.connectionMode
-            ? humanize(runtime.connectionMode)
-            : humanize(runtime.type),
-      label: readRuntimeLabel(runtime),
-      locationCountryCode: location.locationCountryCode,
-      locationLabel:
-        runtime.type === "managed-shared"
-          ? location.locationLabel ?? "Global"
-          : location.locationLabel,
-      status: humanize(runtime.status),
-      statusTone: toneForStatus(runtime.status),
-      tenantLabel: resolveTenantLabel(runtime.tenantId, tenantNames),
-    } satisfies ConsoleRuntimeView;
-  });
-
-  const operationViews = sortedOperations.map((operation) => {
-    const sourceRuntime = operation.sourceRuntimeId
-      ? runtimesById.get(operation.sourceRuntimeId)
-      : undefined;
-    const targetRuntime = operation.targetRuntimeId
-      ? runtimesById.get(operation.targetRuntimeId)
-      : undefined;
-    const targetApp = operation.appId ? appsById.get(operation.appId) : undefined;
-
-    return {
-      actionLabel: formatOperationActionLabel(operation),
-      actorLabel: formatActorLabel(operation.requestedByType, operation.requestedById),
-      detail: buildOperationDetail(operation, sourceRuntime, targetRuntime),
-      id: operation.id,
-      status: humanize(operation.status),
-      statusTone: toneForStatus(operation.status),
-      targetLabel:
-        targetApp?.name ??
-        (sourceRuntime && targetRuntime && sourceRuntime.id !== targetRuntime.id
-          ? `${readRuntimeLabel(sourceRuntime)} -> ${readRuntimeLabel(targetRuntime)}`
-          : targetRuntime
-            ? readRuntimeLabel(targetRuntime)
-            : operation.appId
-              ? shortId(operation.appId)
-              : "Control plane"),
-      tenantLabel: resolveTenantLabel(operation.tenantId, tenantNames),
-      timestampExact: formatExactTime(
-        operation.completedAt ?? operation.updatedAt ?? operation.startedAt ?? operation.createdAt,
-      ),
-      timestampLabel: formatRelativeTime(
-        operation.completedAt ?? operation.updatedAt ?? operation.startedAt ?? operation.createdAt,
-      ),
-    } satisfies ConsoleOperationView;
-  });
-
-  const auditViews = sortByTimestampDesc(auditEvents, readAuditTimestamp).map((event) => ({
-    action: humanize(event.action),
-    actorLabel: formatActorLabel(event.actorType, event.actorId),
-    detail: buildAuditDetail(event, appsById),
-    id: event.id,
-    scopeLabel: resolveTenantLabel(event.tenantId, tenantNames),
-    targetLabel: resolveAuditTarget(event, appsById, runtimesById, projectNames, tenantNames),
-    timestampExact: formatExactTime(event.createdAt),
-    timestampLabel: formatRelativeTime(event.createdAt),
-    tone: toneForAuditAction(event.action),
-  }));
-
-  const recentAuditEvents = auditViews.slice(0, 12);
-  const runtimeAuditEvents = auditViews.filter((event) => event.action.startsWith("node.")).slice(0, 8);
-  const activeOperations = operationViews.filter((operation) => isActiveOperation(operation.status)).slice(0, 8);
-  const recentOperations = operationViews.slice(0, 12);
 
   const tenantIds = new Set<string>();
   const projectIds = new Set<string>();
@@ -1154,28 +770,20 @@ export async function getConsoleData(): Promise<ConsoleData> {
     workspace.firstAppId || appViews.length > 0 ? "ready" : "needs-import";
 
   return {
-    activeOperations,
     actors: collectActorStats(auditEvents),
     apps: appViews,
     errors,
-    recentAuditEvents,
-    recentOperations,
-    runtimeAuditEvents,
-    runtimes: runtimeViews,
     summary: {
-      activeOperationCount: activeOperations.length,
       apiHost: env.apiHost,
       appCount: appViews.length,
       connectionLabel: connection.label,
       connectionTone: connection.tone,
       latestActivityExact: formatExactTime(latestActivityIso),
       latestActivityLabel: formatRelativeTime(latestActivityIso),
-      ownedRuntimeCount: runtimes.filter((runtime) => runtime.type !== "managed-shared").length,
       projectCount: Math.max(projectIds.size, projects.length, workspace.defaultProjectId ? 1 : 0),
       publicRouteCount: apps.filter((app) => Boolean(app.route.publicUrl || app.route.hostname)).length,
-      runtimeCount: runtimeViews.length,
+      runtimeCount: runtimes.length,
       scopeLabel: readScopeLabel(workspace),
-      sharedRuntimeCount: runtimes.filter((runtime) => runtime.type === "managed-shared").length,
       tenantCount: Math.max(tenantIds.size, tenants.length, workspace.tenantId ? 1 : 0),
     } satisfies ConsoleSummary,
     tenants:
@@ -1190,7 +798,7 @@ export async function getConsoleData(): Promise<ConsoleData> {
                 latestActivityLabel: latestActivityIso
                   ? formatRelativeTime(latestActivityIso)
                   : "Not yet",
-                runtimeCount: runtimeViews.length,
+                runtimeCount: runtimes.length,
               } satisfies ConsoleTenantView,
             ]
           : [],

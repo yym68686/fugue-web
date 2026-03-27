@@ -90,7 +90,7 @@ export function AttachedServerOverview({
           <ConsoleEmptyState
             action={
               inventoryError
-                ? { href: "/app/runtimes", label: "Open runtimes" }
+                ? { href: "/app/settings/workspace", label: "Inspect workspace access" }
                 : { href: "/app/api-keys#node-keys", label: "Open node keys" }
             }
             description={

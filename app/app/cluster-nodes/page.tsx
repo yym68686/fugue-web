@@ -27,10 +27,6 @@ export default async function ClusterNodesPage() {
     return (
       <div className="fg-console-page">
         <ConsolePageIntro
-          actions={[
-            { href: "/app/runtimes", label: "Runtime placement" },
-            { href: "/app/operations", label: "Watch operations", variant: "primary" },
-          ]}
           description="Attach a server, then confirm heartbeat and placement here."
           eyebrow="Servers"
           title="Attached servers"
@@ -54,10 +50,6 @@ export default async function ClusterNodesPage() {
       <ToastOnMount message={errorMessage} variant="error" />
 
       <ConsolePageIntro
-        actions={[
-          { href: "/app/runtimes", label: "Runtime placement" },
-          { href: "/app/operations", label: "Watch operations", variant: "primary" },
-        ]}
         description="Health, heartbeat, and placement for attached servers."
         eyebrow="Servers"
         title="Attached servers"

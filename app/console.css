@@ -82,16 +82,13 @@
 
 .fg-console-meta-list span,
 .fg-console-list__main p,
-.fg-console-runtime-card__detail,
 .fg-console-table__stack span,
-.fg-console-table td,
-.fg-console-timeline__meta {
+.fg-console-table td {
   color: var(--fugue-text-tertiary);
 }
 
 .fg-console-meta-list span,
-.fg-console-table__stack span,
-.fg-console-timeline__meta {
+.fg-console-table__stack span {
   font-family: var(--fugue-font-mono);
   font-size: 0.72rem;
   letter-spacing: 0.08em;
@@ -913,16 +910,9 @@
   grid-column: 1 / -1;
 }
 
-.fg-console-runtime-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
-}
-
 .fg-console-list,
 .fg-console-checklist,
-.fg-console-stat-list,
-.fg-console-timeline {
+.fg-console-stat-list {
   margin: 0;
   padding: 0;
   list-style: none;
@@ -932,8 +922,7 @@
 
 .fg-console-list__item,
 .fg-console-checklist__item,
-.fg-console-stat-list li,
-.fg-console-timeline__item {
+.fg-console-stat-list li {
   min-width: 0;
 }
 
@@ -954,9 +943,7 @@
 }
 
 .fg-console-list__main p,
-.fg-console-runtime-card__detail,
-.fg-console-checklist__item p,
-.fg-console-timeline__body p {
+.fg-console-checklist__item p {
   margin: 0;
   font-size: 0.86rem;
   line-height: 1.58;
@@ -1006,61 +993,6 @@
 
 .fg-console-checklist__state {
   align-self: start;
-}
-
-.fg-console-runtime-stack {
-  display: grid;
-  gap: 0.8rem;
-}
-
-.fg-console-runtime-card {
-  display: grid;
-  gap: 0.8rem;
-  padding-top: 0.8rem;
-  border-top: 1px solid var(--fugue-border-subtle);
-}
-
-.fg-console-runtime-card__head {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.8rem;
-  align-items: flex-start;
-}
-
-.fg-console-runtime-card__head p {
-  margin: 0.2rem 0 0;
-  color: var(--fugue-text-tertiary);
-  font-family: var(--fugue-font-mono);
-  font-size: 0.72rem;
-  letter-spacing: 0.08em;
-  text-transform: none;
-}
-
-.fg-console-timeline {
-  position: relative;
-}
-
-.fg-console-timeline__item {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 0.8rem;
-}
-
-.fg-console-timeline__marker {
-  width: 0.7rem;
-  height: 0.7rem;
-  margin-top: 0.45rem;
-  border-radius: 999px;
-  background: var(--fugue-accent-signal);
-  box-shadow: 0 0 0 6px rgba(165, 191, 220, 0.08);
-}
-
-.fg-console-timeline__body {
-  display: grid;
-  gap: 0.32rem;
-  padding-bottom: 0.9rem;
-  border-left: 1px solid var(--fugue-border-subtle);
-  padding-left: 0.9rem;
 }
 
 .fg-console-table-wrap {
@@ -2279,7 +2211,6 @@
   .fg-console-metric-grid,
   .fg-console-board,
   .fg-console-two-up,
-  .fg-console-runtime-grid,
   .fg-console-inline-meta,
   .fg-console-inline-meta--stacked,
   .fg-api-key-facts,

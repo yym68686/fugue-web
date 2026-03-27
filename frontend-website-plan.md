@@ -615,10 +615,8 @@
     │       ├── /runtime-logs
     │       ├── /operations
     │       └── /audit
-    ├── /app/runtimes
     ├── /app/cluster-nodes
     ├── /app/node-keys
-    ├── /app/operations
     ├── /app/audit
     ├── /app/settings
     │   ├── /workspace
