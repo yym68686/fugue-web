@@ -1,5 +1,6 @@
 import "server-only";
 
+import { createHash } from "node:crypto";
 import { cache } from "react";
 
 import { getCurrentSession } from "@/lib/auth/session";
@@ -277,6 +278,11 @@ function shortId(value?: string | null) {
 
   const prefix = value.split("_")[0] ?? value.slice(0, 3);
   return `${prefix}…${value.slice(-6)}`;
+}
+
+function normalizeHostname(value?: string | null) {
+  const normalized = value?.trim().toLowerCase().replace(/^\.+/, "").replace(/\.+$/, "") ?? "";
+  return normalized || null;
 }
 
 function readAppPhaseLabel(value?: string | null) {
@@ -848,7 +854,7 @@ function readRoute(app: FugueApp) {
 }
 
 function readRouteHostname(app: FugueApp) {
-  const hostname = app.route.hostname?.trim().toLowerCase();
+  const hostname = normalizeHostname(app.route.hostname);
 
   if (hostname) {
     return hostname;
@@ -861,14 +867,14 @@ function readRouteHostname(app: FugueApp) {
   }
 
   try {
-    return new URL(publicUrl).hostname.toLowerCase();
+    return normalizeHostname(new URL(publicUrl).hostname);
   } catch {
     return null;
   }
 }
 
 function readRouteBaseDomain(hostname?: string | null) {
-  const normalized = hostname?.trim().toLowerCase();
+  const normalized = normalizeHostname(hostname);
 
   if (!normalized) {
     return null;
@@ -881,6 +887,27 @@ function readRouteBaseDomain(hostname?: string | null) {
   }
 
   return segments.slice(1).join(".");
+}
+
+function readAppRouteBaseDomain(app: FugueApp) {
+  return normalizeHostname(app.route.baseDomain) ?? readRouteBaseDomain(readRouteHostname(app));
+}
+
+function readCustomDomainBaseDomain(app: FugueApp) {
+  return normalizeHostname(process.env.FUGUE_CUSTOM_DOMAIN_BASE_DOMAIN) ?? readAppRouteBaseDomain(app);
+}
+
+function readStableCustomDomainTarget(app: FugueApp) {
+  const tenantId = app.tenantId?.trim();
+  const appId = app.id?.trim();
+  const baseDomain = readCustomDomainBaseDomain(app);
+
+  if (!tenantId || !appId || !baseDomain) {
+    return null;
+  }
+
+  const hash = createHash("sha256").update(`${tenantId}:${appId}`).digest("hex").slice(0, 20);
+  return `d-${hash}.${baseDomain}`;
 }
 
 function formatRepoLabel(repoUrl?: string | null, branch?: string | null) {
@@ -1268,6 +1295,7 @@ function buildSharedAppView(
 
   return {
     canRedeploy: redeploy.canRedeploy,
+    customDomainTarget: readStableCustomDomainTarget(app),
     deployBehavior: readDeployBehavior(app),
     hasPostgresService: app.backingServices.some((service) => service.type === "postgres"),
     id: app.id,
@@ -1280,7 +1308,7 @@ function buildSharedAppView(
     redeployActionLoadingLabel: redeployAction.loadingLabel,
     redeployQueuedMessage: redeployAction.queuedMessage,
     redeployDisabledReason: redeploy.redeployDisabledReason,
-    routeBaseDomain: readRouteBaseDomain(routeHostname),
+    routeBaseDomain: readAppRouteBaseDomain(app),
     routeHref: route.href,
     routeHostname,
     routeLabel: route.label,

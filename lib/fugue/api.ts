@@ -134,6 +134,7 @@ export type FugueApp = {
   createdAt: string | null;
   updatedAt: string | null;
   route: {
+    baseDomain: string | null;
     hostname: string | null;
     publicUrl: string | null;
     servicePort: number | null;
@@ -330,6 +331,53 @@ export type FugueAppRouteResult = {
   alreadyCurrent: boolean;
   app: FugueApp | null;
   availability: FugueAppRouteAvailability | null;
+};
+
+export type FugueAppDomain = {
+  appId: string | null;
+  createdAt: string | null;
+  hostname: string;
+  lastCheckedAt: string | null;
+  lastMessage: string | null;
+  routeTarget: string | null;
+  status: string | null;
+  tenantId: string | null;
+  updatedAt: string | null;
+  verificationTxtName: string | null;
+  verificationTxtValue: string | null;
+  verifiedAt: string | null;
+};
+
+export type FugueAppDomainAvailability = {
+  available: boolean;
+  current: boolean;
+  hostname: string | null;
+  input: string | null;
+  reason: string | null;
+  valid: boolean;
+};
+
+export type FugueAppDomainListResult = {
+  domains: FugueAppDomain[];
+};
+
+export type FugueAppDomainAvailabilityResult = {
+  availability: FugueAppDomainAvailability | null;
+};
+
+export type FugueAppDomainResult = {
+  alreadyCurrent: boolean;
+  availability: FugueAppDomainAvailability | null;
+  domain: FugueAppDomain | null;
+};
+
+export type FugueAppDomainDeleteResult = {
+  domain: FugueAppDomain | null;
+};
+
+export type FugueAppDomainVerifyResult = {
+  domain: FugueAppDomain | null;
+  verified: boolean;
 };
 
 export type FugueAppFilesResult = {
@@ -736,6 +784,7 @@ function sanitizeApp(value: unknown): FugueApp | null {
     createdAt: readString(record, "created_at"),
     updatedAt: readString(record, "updated_at"),
     route: {
+      baseDomain: readString(route, "base_domain"),
       hostname: readString(route, "hostname"),
       publicUrl: readString(route, "public_url"),
       servicePort: readNumber(route, "service_port"),
@@ -782,6 +831,47 @@ function sanitizeAppRouteAvailability(value: unknown): FugueAppRouteAvailability
     input: readString(record, "input"),
     label: readString(record, "label"),
     publicUrl: readString(record, "public_url"),
+    reason: readString(record, "reason"),
+    valid: Boolean(readBoolean(record, "valid")),
+  };
+}
+
+function sanitizeAppDomain(value: unknown): FugueAppDomain | null {
+  const record = asRecord(value);
+  const hostname = readString(record, "hostname");
+
+  if (!hostname) {
+    return null;
+  }
+
+  return {
+    appId: readString(record, "app_id"),
+    createdAt: readString(record, "created_at"),
+    hostname,
+    lastCheckedAt: readString(record, "last_checked_at"),
+    lastMessage: readString(record, "last_message"),
+    routeTarget: readString(record, "route_target"),
+    status: readString(record, "status"),
+    tenantId: readString(record, "tenant_id"),
+    updatedAt: readString(record, "updated_at"),
+    verificationTxtName: readString(record, "verification_txt_name"),
+    verificationTxtValue: readString(record, "verification_txt_value"),
+    verifiedAt: readString(record, "verified_at"),
+  };
+}
+
+function sanitizeAppDomainAvailability(value: unknown): FugueAppDomainAvailability | null {
+  const record = asRecord(value);
+
+  if (!record) {
+    return null;
+  }
+
+  return {
+    available: Boolean(readBoolean(record, "available")),
+    current: Boolean(readBoolean(record, "current")),
+    hostname: readString(record, "hostname"),
+    input: readString(record, "input"),
     reason: readString(record, "reason"),
     valid: Boolean(readBoolean(record, "valid")),
   };
@@ -1426,6 +1516,16 @@ export async function getFugueApps(accessToken: string) {
   return items.map(sanitizeApp).filter((item): item is FugueApp => Boolean(item));
 }
 
+export async function getFugueApp(accessToken: string, appId: string) {
+  const payload = asRecord(
+    await fugueRequest(`/v1/apps/${encodeURIComponent(appId)}`, {
+      accessToken,
+    }),
+  );
+
+  return sanitizeApp(payload?.app);
+}
+
 export async function getFugueBackingServices(accessToken: string) {
   const payload = asRecord(
     await fugueRequest("/v1/backing-services", {
@@ -1503,6 +1603,110 @@ export async function patchFugueAppRoute(
     app: sanitizeApp(response?.app),
     availability: sanitizeAppRouteAvailability(response?.availability),
   } satisfies FugueAppRouteResult;
+}
+
+export async function getFugueAppDomains(accessToken: string, appId: string) {
+  const payload = asRecord(
+    await fugueRequest(`/v1/apps/${encodeURIComponent(appId)}/domains`, {
+      accessToken,
+    }),
+  );
+
+  return {
+    domains: (Array.isArray(payload?.domains) ? payload.domains : [])
+      .map(sanitizeAppDomain)
+      .filter((item): item is FugueAppDomain => Boolean(item)),
+  } satisfies FugueAppDomainListResult;
+}
+
+export async function getFugueAppDomainAvailability(
+  accessToken: string,
+  appId: string,
+  hostname: string,
+) {
+  const searchParams = new URLSearchParams();
+  searchParams.set("hostname", hostname);
+  const payload = asRecord(
+    await fugueRequest(
+      `/v1/apps/${encodeURIComponent(appId)}/domains/availability?${searchParams.toString()}`,
+      {
+        accessToken,
+      },
+    ),
+  );
+
+  return {
+    availability: sanitizeAppDomainAvailability(payload?.availability),
+  } satisfies FugueAppDomainAvailabilityResult;
+}
+
+export async function createFugueAppDomain(
+  accessToken: string,
+  appId: string,
+  payload: {
+    hostname: string;
+  },
+) {
+  const response = asRecord(
+    await fugueRequest(`/v1/apps/${encodeURIComponent(appId)}/domains`, {
+      accessToken,
+      body: {
+        hostname: payload.hostname,
+      },
+      method: "POST",
+    }),
+  );
+
+  return {
+    alreadyCurrent: Boolean(response?.already_current),
+    availability: sanitizeAppDomainAvailability(response?.availability),
+    domain: sanitizeAppDomain(response?.domain),
+  } satisfies FugueAppDomainResult;
+}
+
+export async function verifyFugueAppDomain(
+  accessToken: string,
+  appId: string,
+  payload: {
+    hostname: string;
+  },
+) {
+  const response = asRecord(
+    await fugueRequest(`/v1/apps/${encodeURIComponent(appId)}/domains/verify`, {
+      accessToken,
+      body: {
+        hostname: payload.hostname,
+      },
+      method: "POST",
+    }),
+  );
+
+  return {
+    domain: sanitizeAppDomain(response?.domain),
+    verified: Boolean(response?.verified),
+  } satisfies FugueAppDomainVerifyResult;
+}
+
+export async function deleteFugueAppDomain(
+  accessToken: string,
+  appId: string,
+  hostname: string,
+) {
+  const searchParams = new URLSearchParams();
+  searchParams.set("hostname", hostname);
+  const response = asRecord(
+    await fugueRequest(
+      `/v1/apps/${encodeURIComponent(appId)}/domains?${searchParams.toString()}`,
+      {
+        accessToken,
+        method: "DELETE",
+      },
+    ),
+  );
+
+  return {
+    domain: sanitizeAppDomain(response?.domain),
+  } satisfies FugueAppDomainDeleteResult;
 }
 
 export async function getFugueAppEnv(accessToken: string, appId: string) {

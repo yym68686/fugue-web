@@ -2794,6 +2794,7 @@ export function ConsoleProjectGallery({
                   <AppRoutePanel
                     appId={selectedService.id}
                     appName={selectedService.name}
+                    customDomainTarget={selectedService.customDomainTarget}
                     initialBaseDomain={selectedService.routeBaseDomain}
                     initialHostname={selectedService.routeHostname}
                     initialPublicUrl={selectedService.routePublicUrl}

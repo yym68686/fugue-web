@@ -3,6 +3,7 @@
 import { startTransition, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { AppCustomDomainsPanel } from "@/components/console/app-custom-domains-panel";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { cx } from "@/lib/ui/cx";
@@ -37,6 +38,7 @@ type RoutePatchResponse = {
 type RoutePanelProps = {
   appId: string;
   appName: string;
+  customDomainTarget: string | null;
   initialBaseDomain: string | null;
   initialHostname: string | null;
   initialPublicUrl: string | null;
@@ -328,6 +330,7 @@ function readRouteFieldState(options: {
 export function AppRoutePanel({
   appId,
   appName,
+  customDomainTarget,
   initialBaseDomain,
   initialHostname,
   initialPublicUrl,
@@ -547,94 +550,102 @@ export function AppRoutePanel({
   }
 
   return (
-    <div className="fg-workbench-section fg-route-panel">
-      <div className="fg-workbench-section__head">
-        <div className="fg-workbench-section__copy fg-route-section__copy">
-          <p className="fg-label fg-panel__eyebrow">Route</p>
-          <p className="fg-console-note">Change the live subdomain for {appName}.</p>
+    <div className="fg-route-stack">
+      <div className="fg-workbench-section fg-route-panel">
+        <div className="fg-workbench-section__head">
+          <div className="fg-workbench-section__copy fg-route-section__copy">
+            <p className="fg-label fg-panel__eyebrow">Fugue route</p>
+            <p className="fg-console-note">Change the live Fugue subdomain for {appName}.</p>
+          </div>
+
+          <div className="fg-workbench-section__actions fg-route-section__actions">
+            <Button
+              disabled={!isDirty || saving}
+              onClick={resetDraft}
+              size="compact"
+              type="button"
+              variant="secondary"
+            >
+              Reset
+            </Button>
+            <Button
+              disabled={!canSave}
+              loading={saving}
+              loadingLabel="Saving…"
+              onClick={() => {
+                void saveRoute();
+              }}
+              size="compact"
+              type="button"
+              variant="primary"
+            >
+              Save route
+            </Button>
+          </div>
         </div>
 
-        <div className="fg-workbench-section__actions fg-route-section__actions">
-          <Button
-            disabled={!isDirty || saving}
-            onClick={resetDraft}
-            size="compact"
-            type="button"
-            variant="secondary"
-          >
-            Reset
-          </Button>
-          <Button
-            disabled={!canSave}
-            loading={saving}
-            loadingLabel="Saving…"
-            onClick={() => {
-              void saveRoute();
-            }}
-            size="compact"
-            type="button"
-            variant="primary"
-          >
-            Save route
-          </Button>
-        </div>
-      </div>
-
-      <div className="fg-route-panel__form">
-        <label className="fg-field-stack fg-route-field" htmlFor={`route-hostname-${appId}`}>
-          <span className="fg-field-label">
-            <span>Subdomain</span>
-            {fieldState?.label ? (
-              <span
-                className={cx(
-                  "fg-route-field__status",
-                  `is-${fieldState.variant}`,
-                  availabilityState === "checking" && "is-pending",
-                )}
-              >
-                {fieldState.label}
-              </span>
-            ) : null}
-          </span>
-          <span className={cx("fg-field-control", fieldInvalid && "is-invalid")}>
-            <div className="fg-route-composer" data-invalid={fieldInvalid ? "true" : undefined}>
-              <div className="fg-route-composer__shell">
-                <input
-                  aria-describedby={noteId}
-                  aria-invalid={fieldInvalid ? true : undefined}
-                  autoCapitalize="off"
-                  autoComplete="off"
-                  autoCorrect="off"
-                  className="fg-route-composer__field"
-                  id={`route-hostname-${appId}`}
-                  inputMode="text"
-                  maxLength={63}
-                  onChange={(event) => {
-                    setDraft(sanitizeRouteLabelInput(event.target.value, baseDomain));
-                  }}
-                  placeholder="my-app"
-                  spellCheck={false}
-                  value={draft}
-                />
-                {baseDomain ? (
-                  <span className="fg-route-composer__suffix">.{baseDomain}</span>
-                ) : null}
+        <div className="fg-route-panel__form">
+          <label className="fg-field-stack fg-route-field" htmlFor={`route-hostname-${appId}`}>
+            <span className="fg-field-label">
+              <span>Subdomain</span>
+              {fieldState?.label ? (
+                <span
+                  className={cx(
+                    "fg-route-field__status",
+                    `is-${fieldState.variant}`,
+                    availabilityState === "checking" && "is-pending",
+                  )}
+                >
+                  {fieldState.label}
+                </span>
+              ) : null}
+            </span>
+            <span className={cx("fg-field-control", fieldInvalid && "is-invalid")}>
+              <div className="fg-route-composer" data-invalid={fieldInvalid ? "true" : undefined}>
+                <div className="fg-route-composer__shell">
+                  <input
+                    aria-describedby={noteId}
+                    aria-invalid={fieldInvalid ? true : undefined}
+                    autoCapitalize="off"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    className="fg-route-composer__field"
+                    id={`route-hostname-${appId}`}
+                    inputMode="text"
+                    maxLength={63}
+                    onChange={(event) => {
+                      setDraft(sanitizeRouteLabelInput(event.target.value, baseDomain));
+                    }}
+                    placeholder="my-app"
+                    spellCheck={false}
+                    value={draft}
+                  />
+                  {baseDomain ? (
+                    <span className="fg-route-composer__suffix">.{baseDomain}</span>
+                  ) : null}
+                </div>
               </div>
-            </div>
-          </span>
-          <span
-            aria-live={fieldInvalid ? "assertive" : "polite"}
-            className={cx(
-              fieldInvalid ? "fg-field-error" : "fg-field-hint",
-              "fg-route-field__note",
-            )}
-            id={noteId}
-            role={fieldInvalid ? "alert" : "status"}
-          >
-            {helperText}
-          </span>
-        </label>
+            </span>
+            <span
+              aria-live={fieldInvalid ? "assertive" : "polite"}
+              className={cx(
+                fieldInvalid ? "fg-field-error" : "fg-field-hint",
+                "fg-route-field__note",
+              )}
+              id={noteId}
+              role={fieldInvalid ? "alert" : "status"}
+            >
+              {helperText}
+            </span>
+          </label>
+        </div>
       </div>
+
+      <AppCustomDomainsPanel
+        appId={appId}
+        appName={appName}
+        customDomainTarget={customDomainTarget}
+      />
     </div>
   );
 }
