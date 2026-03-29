@@ -1816,6 +1816,141 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.fg-runtime-access,
+.fg-runtime-share-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.fg-runtime-access__copy {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.fg-runtime-access__head {
+  flex-wrap: wrap;
+}
+
+.fg-runtime-access__meta {
+  min-width: 0;
+  margin-inline-start: auto;
+  display: grid;
+  gap: 0.35rem;
+  justify-items: end;
+}
+
+.fg-runtime-access__meta-note {
+  max-width: min(100%, 22rem);
+  color: var(--fugue-text-muted);
+  font-family: var(--fugue-font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  line-height: 1.5;
+  text-align: right;
+  text-transform: none;
+  overflow-wrap: anywhere;
+}
+
+.fg-runtime-access-form,
+.fg-runtime-access-form__field {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.fg-runtime-access-form__field {
+  min-width: 0;
+}
+
+.fg-runtime-access-form__label {
+  width: 100%;
+}
+
+.fg-runtime-access-form__controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.fg-runtime-access-form__controls .fg-field-control {
+  min-width: 0;
+}
+
+.fg-runtime-access-form__action {
+  display: flex;
+  align-items: center;
+}
+
+.fg-runtime-access-form__action .fg-button {
+  min-width: 10.5rem;
+}
+
+.fg-runtime-access-form__message {
+  max-width: 72ch;
+}
+
+.fg-runtime-share-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fg-runtime-share-row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.82rem 0.88rem;
+  border: 1px solid var(--fugue-border-subtle);
+  border-radius: 0.95rem;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.fg-runtime-share-row__copy {
+  min-width: 0;
+  display: grid;
+  gap: 0.18rem;
+}
+
+.fg-runtime-share-row__copy strong {
+  display: block;
+  font-size: 0.88rem;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+
+.fg-runtime-share-row__copy span {
+  color: var(--fugue-text-tertiary);
+  font-size: 0.76rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.fg-runtime-share-row__actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.fg-runtime-share-row__segmented {
+  width: min(100%, 25rem);
+}
+
+.fg-runtime-share-row__segmented .fg-segmented__item {
+  flex: 1 1 0;
+}
+
+.fg-runtime-access-empty {
+  margin: 0;
+  color: var(--fugue-text-tertiary);
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+
 @keyframes fg-cluster-node-detail-in {
   from {
     opacity: 0;
@@ -4053,6 +4188,40 @@
   .fg-cluster-node-card__summary-resources,
   .fg-cluster-node-facts {
     grid-template-columns: 1fr;
+  }
+
+  .fg-runtime-access-form__controls,
+  .fg-runtime-share-row {
+    grid-template-columns: 1fr;
+  }
+
+  .fg-runtime-access__meta {
+    width: 100%;
+    justify-items: start;
+  }
+
+  .fg-runtime-access__meta-note {
+    max-width: 100%;
+    text-align: left;
+  }
+
+  .fg-runtime-share-row {
+    align-items: stretch;
+  }
+
+  .fg-runtime-share-row__actions {
+    justify-content: stretch;
+  }
+
+  .fg-runtime-share-row__segmented,
+  .fg-runtime-share-row__actions > .fg-button {
+    width: 100%;
+  }
+
+  .fg-runtime-access-form__action .fg-button,
+  .fg-runtime-share-row .fg-button {
+    width: 100%;
+    min-width: 0;
   }
 
   .fg-project-badge {

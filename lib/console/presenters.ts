@@ -22,7 +22,7 @@ import {
   type WorkspaceAccess,
 } from "@/lib/workspace/current";
 import { readGitHubSourceHref } from "@/lib/fugue/source-links";
-import { readRuntimeLocation } from "@/lib/fugue/runtime-location";
+import { readManagedSharedRuntimeLabel } from "@/lib/fugue/runtime-location";
 
 const AUTO_GITHUB_SYNC_REQUESTED_BY_ID = "fugue-controller/github-sync";
 
@@ -358,7 +358,7 @@ function readAuditTimestamp(event: FugueAuditEvent) {
 
 function readRuntimeLabel(runtime: FugueRuntime) {
   if (runtime.type === "managed-shared") {
-    return `Internal cluster / ${readRuntimeLocation(runtime.labels).locationLabel ?? "Global"}`;
+    return readManagedSharedRuntimeLabel(runtime);
   }
 
   return runtime.name ?? runtime.machineName ?? shortId(runtime.id);

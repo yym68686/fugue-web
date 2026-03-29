@@ -165,6 +165,8 @@ export type FugueRuntime = {
   machineName: string | null;
   labels: Record<string, string>;
   type: string | null;
+  accessMode: string | null;
+  poolMode: string | null;
   connectionMode: string | null;
   status: string | null;
   endpoint: string | null;
@@ -172,6 +174,13 @@ export type FugueRuntime = {
   fingerprintPrefix: string | null;
   lastSeenAt: string | null;
   lastHeartbeatAt: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+};
+
+export type FugueRuntimeAccessGrant = {
+  runtimeId: string;
+  tenantId: string;
   createdAt: string | null;
   updatedAt: string | null;
 };
@@ -793,6 +802,8 @@ function sanitizeRuntime(value: unknown): FugueRuntime | null {
     machineName: readString(record, "machine_name"),
     labels: readStringMap(record?.labels),
     type: readString(record, "type"),
+    accessMode: readString(record, "access_mode"),
+    poolMode: readString(record, "pool_mode"),
     connectionMode: readString(record, "connection_mode"),
     status: readString(record, "status"),
     endpoint: readString(record, "endpoint"),
@@ -800,6 +811,23 @@ function sanitizeRuntime(value: unknown): FugueRuntime | null {
     fingerprintPrefix: readString(record, "fingerprint_prefix"),
     lastSeenAt: readString(record, "last_seen_at"),
     lastHeartbeatAt: readString(record, "last_heartbeat_at"),
+    createdAt: readString(record, "created_at"),
+    updatedAt: readString(record, "updated_at"),
+  };
+}
+
+function sanitizeRuntimeAccessGrant(value: unknown): FugueRuntimeAccessGrant | null {
+  const record = asRecord(value);
+  const runtimeId = readString(record, "runtime_id");
+  const tenantId = readString(record, "tenant_id");
+
+  if (!runtimeId || !tenantId) {
+    return null;
+  }
+
+  return {
+    runtimeId,
+    tenantId,
     createdAt: readString(record, "created_at"),
     updatedAt: readString(record, "updated_at"),
   };
@@ -1944,6 +1972,87 @@ export async function getFugueRuntimes(accessToken: string) {
   return items
     .map(sanitizeRuntime)
     .filter((item): item is FugueRuntime => Boolean(item));
+}
+
+export async function getFugueRuntimeSharing(accessToken: string, runtimeId: string) {
+  const payload = asRecord(
+    await fugueRequest(`/v1/runtimes/${encodeURIComponent(runtimeId)}/sharing`, {
+      accessToken,
+    }),
+  );
+  const grants = Array.isArray(payload?.grants) ? payload.grants : [];
+
+  return {
+    grants: grants
+      .map(sanitizeRuntimeAccessGrant)
+      .filter((item): item is FugueRuntimeAccessGrant => Boolean(item)),
+    runtime: sanitizeRuntime(payload?.runtime),
+  };
+}
+
+export async function grantFugueRuntimeAccess(
+  accessToken: string,
+  runtimeId: string,
+  payload: {
+    tenantId: string;
+  },
+) {
+  const response = asRecord(
+    await fugueRequest(`/v1/runtimes/${encodeURIComponent(runtimeId)}/sharing/grants`, {
+      accessToken,
+      body: {
+        tenant_id: payload.tenantId,
+      },
+      method: "POST",
+    }),
+  );
+
+  return {
+    grant: sanitizeRuntimeAccessGrant(response?.grant),
+  };
+}
+
+export async function revokeFugueRuntimeAccess(
+  accessToken: string,
+  runtimeId: string,
+  tenantId: string,
+) {
+  const response = asRecord(
+    await fugueRequest(
+      `/v1/runtimes/${encodeURIComponent(runtimeId)}/sharing/grants/${encodeURIComponent(tenantId)}`,
+      {
+        accessToken,
+        method: "DELETE",
+      },
+    ),
+  );
+
+  return {
+    removed: Boolean(readBoolean(response, "removed")),
+  };
+}
+
+export async function setFugueRuntimePoolMode(
+  accessToken: string,
+  runtimeId: string,
+  payload: {
+    poolMode: string;
+  },
+) {
+  const response = asRecord(
+    await fugueRequest(`/v1/runtimes/${encodeURIComponent(runtimeId)}/pool-mode`, {
+      accessToken,
+      body: {
+        pool_mode: payload.poolMode,
+      },
+      method: "POST",
+    }),
+  );
+
+  return {
+    nodeReconciled: Boolean(readBoolean(response, "node_reconciled")),
+    runtime: sanitizeRuntime(response?.runtime),
+  };
 }
 
 export async function getFugueClusterNodes(accessToken: string) {

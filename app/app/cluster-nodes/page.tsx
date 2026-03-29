@@ -7,6 +7,7 @@ import { ToastOnMount } from "@/components/ui/toast-on-mount";
 import { getCurrentSession } from "@/lib/auth/session";
 import { getClusterNodesPageData } from "@/lib/cluster-nodes/service";
 import { ensureWorkspaceAccess } from "@/lib/workspace/bootstrap";
+import { ensureAppUser } from "@/lib/workspace/store";
 
 export default async function ClusterNodesPage() {
   const session = await getCurrentSession();
@@ -14,6 +15,8 @@ export default async function ClusterNodesPage() {
   if (!session) {
     return null;
   }
+
+  const user = await ensureAppUser(session);
 
   try {
     await ensureWorkspaceAccess(session);
@@ -27,9 +30,9 @@ export default async function ClusterNodesPage() {
     return (
       <div className="fg-console-page">
         <ConsolePageIntro
-          description="Attach a server, then confirm heartbeat and placement here."
+          description="Attach a server, or use a server shared with your workspace, then confirm heartbeat and placement here."
           eyebrow="Servers"
-          title="Attached servers"
+          title="Servers"
         />
 
         <Panel>
@@ -50,9 +53,9 @@ export default async function ClusterNodesPage() {
       <ToastOnMount message={errorMessage} variant="error" />
 
       <ConsolePageIntro
-        description="Health, heartbeat, and placement for attached servers."
+        description="Health, sharing, and placement for servers visible to this workspace."
         eyebrow="Servers"
-        title="Attached servers"
+        title="Servers"
       />
 
       <ConsoleSummaryGrid
@@ -67,13 +70,14 @@ export default async function ClusterNodesPage() {
 
       <div className="fg-credential-section__head">
         <div className="fg-credential-section__copy">
-          <strong>Cluster servers</strong>
-          <p>Expand a server for capacity and placement.</p>
+          <strong>Server inventory</strong>
+          <p>Expand a server for access, capacity, and placement.</p>
         </div>
       </div>
 
       <AttachedServerOverview
         inventoryError={errorMessage}
+        isAdmin={user.isAdmin}
         nodes={data.nodes}
       />
     </div>

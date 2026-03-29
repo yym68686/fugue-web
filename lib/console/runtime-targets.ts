@@ -1,5 +1,6 @@
 import type { ConsoleImportRuntimeTargetView } from "@/lib/console/gallery-types";
 import type { ConsoleTone } from "@/lib/console/types";
+import { DEFAULT_INTERNAL_CLUSTER_RUNTIME_ID } from "@/lib/fugue/runtime-location";
 
 export type ConsoleImportRuntimeTargetGroupView = {
   category: "internal-cluster" | "machine";
@@ -56,7 +57,9 @@ export function readRuntimeTargetOptionLabel(
   }
 
   if (target.category === "internal-cluster") {
-    return "Global shared pool";
+    return target.id === DEFAULT_INTERNAL_CLUSTER_RUNTIME_ID
+      ? "Any available region"
+      : "Region unavailable";
   }
 
   return "Country unavailable";
@@ -75,7 +78,7 @@ export function buildImportRuntimeTargetGroups(
 
     groups.push({
       category: "internal-cluster",
-      description: "Use Fugue shared capacity.",
+      description: "Deploy onto the internal cluster.",
       id: INTERNAL_CLUSTER_GROUP_ID,
       kindLabel: "Shared",
       options: internalClusterTargets,

@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 
+import { RuntimeAccessPanel } from "@/components/console/runtime-access-panel";
 import { ConsoleEmptyState } from "@/components/console/console-empty-state";
 import { StatusBadge } from "@/components/console/status-badge";
 import { CountryFlagLabel } from "@/components/ui/country-flag-label";
 import { PanelSection } from "@/components/ui/panel";
 import type { ConsoleTone } from "@/lib/console/types";
+import type { RuntimeOwnership } from "@/lib/runtimes/types";
 import { cx } from "@/lib/ui/cx";
 
 export type ClusterNodeGalleryFact = {
@@ -50,15 +52,24 @@ export type ClusterNodeGalleryWorkload = {
 };
 
 export type ClusterNodeGalleryItem = {
+  accessMode?: string | null;
   appCount: number;
+  canManagePool?: boolean;
+  canManageSharing?: boolean;
   conditions: ClusterNodeGalleryCondition[];
   eyebrow: string;
   facts: ClusterNodeGalleryFact[];
   headerMeta: string;
   id: string;
   name: string;
+  ownerEmail?: string | null;
+  ownerLabel?: string | null;
+  ownership?: RuntimeOwnership;
+  poolMode?: string | null;
   resources: ClusterNodeGalleryResource[];
   roleLabels: string[];
+  runtimeId?: string | null;
+  runtimeType?: string | null;
   serviceCount: number;
   statusDetail?: string | null;
   statusLabel: string;
@@ -157,6 +168,31 @@ function ClusterFactValue({ fact }: { fact: ClusterNodeGalleryFact }) {
   return <>{fact.value}</>;
 }
 
+function readOwnershipBadge(item: ClusterNodeGalleryItem) {
+  if (!item.ownership) {
+    return null;
+  }
+
+  if (item.ownership === "owned") {
+    return {
+      label: "Owned",
+      tone: "neutral",
+    } satisfies { label: string; tone: ConsoleTone };
+  }
+
+  if (item.ownership === "internal-cluster") {
+    return {
+      label: "Cluster",
+      tone: "info",
+    } satisfies { label: string; tone: ConsoleTone };
+  }
+
+  return {
+    label: "Shared",
+    tone: "info",
+  } satisfies { label: string; tone: ConsoleTone };
+}
+
 export function ClusterNodeGallery({
   ariaLabel,
   items,
@@ -183,6 +219,7 @@ export function ClusterNodeGallery({
           {items.map((item) => {
             const expanded = expandedId === item.id;
             const detailId = `cluster-node-detail-${sanitizeDomId(item.id)}`;
+            const ownershipBadge = readOwnershipBadge(item);
 
             return (
               <article
@@ -220,6 +257,9 @@ export function ClusterNodeGallery({
                     </div>
 
                     <div className="fg-project-card__summary-side fg-cluster-node-card__summary-side">
+                      {ownershipBadge ? (
+                        <StatusBadge tone={ownershipBadge.tone}>{ownershipBadge.label}</StatusBadge>
+                      ) : null}
                       <StatusBadge tone={item.statusTone}>{item.statusLabel}</StatusBadge>
                       <span
                         className="fg-project-card__summary-expand fg-cluster-node-card__summary-expand"
@@ -265,6 +305,22 @@ export function ClusterNodeGallery({
                         ))}
                       </dl>
                     </PanelSection>
+
+                    {item.runtimeId ? (
+                      <PanelSection>
+                        <RuntimeAccessPanel
+                          accessMode={item.accessMode ?? null}
+                          canManagePool={item.canManagePool}
+                          canManageSharing={item.canManageSharing}
+                          ownerEmail={item.ownerEmail ?? null}
+                          ownerLabel={item.ownerLabel ?? "Unknown owner"}
+                          ownership={item.ownership ?? "owned"}
+                          poolMode={item.poolMode ?? null}
+                          runtimeId={item.runtimeId ?? null}
+                          runtimeType={item.runtimeType ?? null}
+                        />
+                      </PanelSection>
+                    ) : null}
 
                     <PanelSection>
                       <div className="fg-cluster-node-card__section-head">

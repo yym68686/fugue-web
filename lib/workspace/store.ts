@@ -155,6 +155,35 @@ async function getWorkspaceRowByEmail(email: string) {
   return result.rows[0] ?? null;
 }
 
+async function getWorkspaceRowByTenantId(tenantId: string) {
+  await ensureDbSchema();
+
+  const result = await queryDb<WorkspaceRow>(
+    `
+      SELECT
+        user_email,
+        tenant_id,
+        tenant_name,
+        default_project_id,
+        default_project_name,
+        first_app_id,
+        admin_key_id,
+        admin_key_label,
+        admin_key_prefix,
+        admin_key_scopes,
+        admin_key_secret_sealed,
+        created_at,
+        updated_at
+      FROM app_workspaces
+      WHERE tenant_id = $1
+      LIMIT 1
+    `,
+    [tenantId.trim()],
+  );
+
+  return result.rows[0] ?? null;
+}
+
 async function ensureUserStub(client: PoolClient, email: string) {
   const normalizedEmail = normalizeEmail(email);
   const now = new Date().toISOString();
@@ -280,6 +309,11 @@ export async function ensureAppUser(user: SessionUser) {
 
 export async function getWorkspaceSnapshotByEmail(email: string) {
   const row = await getWorkspaceRowByEmail(email);
+  return row ? snapshotFromRow(row) : null;
+}
+
+export async function getWorkspaceSnapshotByTenantId(tenantId: string) {
+  const row = await getWorkspaceRowByTenantId(tenantId);
   return row ? snapshotFromRow(row) : null;
 }
 

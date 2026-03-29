@@ -12,8 +12,12 @@ import {
   type FugueRuntime,
 } from "@/lib/fugue/api";
 import { readCountryLocation } from "@/lib/geo/country";
-import { readRuntimeLocation } from "@/lib/fugue/runtime-location";
-import { getWorkspaceAccessByEmail } from "@/lib/workspace/store";
+import { readManagedSharedRuntimeLabel } from "@/lib/fugue/runtime-location";
+import type { RuntimeOwnership } from "@/lib/runtimes/types";
+import {
+  getWorkspaceAccessByEmail,
+  getWorkspaceSnapshotByTenantId,
+} from "@/lib/workspace/store";
 
 export type ClusterNodeConditionView = {
   detailLabel: string;
@@ -47,7 +51,9 @@ export type ClusterNodeWorkloadView = {
 };
 
 export type ClusterNodeView = {
+  accessMode: string | null;
   appCount: number;
+  canManageSharing: boolean;
   conditions: ClusterNodeConditionView[];
   createdExact: string;
   createdLabel: string;
@@ -59,12 +65,18 @@ export type ClusterNodeView = {
   locationLabel: string;
   machineLabel: string;
   name: string;
+  ownerEmail: string | null;
+  ownerLabel: string;
+  ownership: RuntimeOwnership;
+  poolMode: string | null;
   publicIpLabel: string;
   roleLabels: string[];
   resources: ClusterNodeResourceView[];
+  runtimeId: string | null;
   runtimeLabel: string;
   runtimeStatusLabel: string;
   runtimeStatusTone: ConsoleTone;
+  runtimeType: string | null;
   serviceCount: number;
   statusDetail?: string | null;
   statusLabel: string;
@@ -259,6 +271,42 @@ function toneWeight(tone: ConsoleTone) {
   }
 }
 
+function readOwnerTenantId(
+  node: FugueClusterNode,
+  runtime: FugueRuntime | null,
+) {
+  return runtime?.tenantId ?? node.tenantId ?? null;
+}
+
+function readRuntimeOwnership(
+  node: FugueClusterNode,
+  runtime: FugueRuntime | null,
+  workspaceTenantId: string,
+): RuntimeOwnership {
+  if (runtime?.type?.trim().toLowerCase() === "managed-shared") {
+    return "internal-cluster";
+  }
+
+  const ownerTenantId = readOwnerTenantId(node, runtime);
+
+  if (ownerTenantId && ownerTenantId === workspaceTenantId) {
+    return "owned";
+  }
+
+  return "shared";
+}
+
+function readOwnerLabel(
+  ownerTenantId: string | null,
+  ownerEmailByTenantId: Map<string, string>,
+) {
+  if (!ownerTenantId) {
+    return "Unknown owner";
+  }
+
+  return ownerEmailByTenantId.get(ownerTenantId) ?? shortId(ownerTenantId);
+}
+
 function toneForStatus(status?: string | null): ConsoleTone {
   const normalized = status?.trim().toLowerCase() ?? "";
 
@@ -391,7 +439,7 @@ function readRuntimeTimestamp(runtime: FugueRuntime) {
 
 function readRuntimeLabel(runtime: FugueRuntime) {
   if (runtime.type === "managed-shared") {
-    return `Internal cluster / ${readRuntimeLocation(runtime.labels).locationLabel ?? "Global"}`;
+    return readManagedSharedRuntimeLabel(runtime);
   }
 
   return runtime.name ?? runtime.machineName ?? shortId(runtime.id);
@@ -556,24 +604,11 @@ function resolveRuntimeForNode(
   return runtimeByNodeName.get(node.name) ?? null;
 }
 
-function nodeBelongsToTenant(
-  node: FugueClusterNode,
-  tenantId: string,
-  runtimeById: Map<string, FugueRuntime>,
-  runtimeByNodeName: Map<string, FugueRuntime>,
-) {
-  const runtime = resolveRuntimeForNode(node, runtimeById, runtimeByNodeName);
-  if (runtime?.tenantId === tenantId) {
-    return true;
-  }
-
-  return node.tenantId === tenantId;
-}
-
 function buildClusterNodeViews(
   nodes: FugueClusterNode[],
   runtimes: FugueRuntime[],
-  tenantId: string,
+  workspaceTenantId: string,
+  ownerEmailByTenantId: Map<string, string>,
 ) {
   const runtimeById = new Map(runtimes.map((runtime) => [runtime.id, runtime] as const));
   const runtimeByNodeName = new Map(
@@ -581,13 +616,14 @@ function buildClusterNodeViews(
       .filter((runtime) => runtime.clusterNodeName)
       .map((runtime) => [runtime.clusterNodeName as string, runtime] as const),
   );
-
-  const visibleNodes = nodes.filter((node) =>
-    nodeBelongsToTenant(node, tenantId, runtimeById, runtimeByNodeName),
-  );
+  const visibleNodes = nodes;
 
   const views = visibleNodes.map((node) => {
     const runtime = resolveRuntimeForNode(node, runtimeById, runtimeByNodeName);
+    const ownership = readRuntimeOwnership(node, runtime, workspaceTenantId);
+    const ownerTenantId = readOwnerTenantId(node, runtime);
+    const ownerLabel = readOwnerLabel(ownerTenantId, ownerEmailByTenantId);
+    const ownerEmail = ownerTenantId ? ownerEmailByTenantId.get(ownerTenantId) ?? null : null;
     const conditionViews = buildClusterConditionViews(node);
     const memoryPressure = isConditionActive(node.conditions[CLUSTER_MEMORY_PRESSURE_CONDITION]?.status);
     const diskPressure = isConditionActive(node.conditions[CLUSTER_DISK_PRESSURE_CONDITION]?.status);
@@ -620,14 +656,37 @@ function buildClusterNodeViews(
     const location = readCountryLocation(node.region, node.zone);
     const locationLabel = location.locationLabel;
     const heartbeatAt = runtime?.lastHeartbeatAt ?? runtime?.lastSeenAt ?? null;
+    const ownershipLabel =
+      ownership === "shared"
+        ? ownerEmail
+          ? `Shared by ${ownerEmail}`
+          : "Shared with this workspace"
+        : ownership === "internal-cluster"
+          ? "Internal cluster capacity"
+          : runtime?.poolMode?.trim().toLowerCase() === "internal-shared"
+            ? "Internal cluster enabled"
+            : null;
     const statusFragments = [
       locationLabel !== "Unassigned" ? locationLabel : null,
       heartbeatAt ? `heartbeat ${formatRelativeTime(heartbeatAt)}` : "Waiting for first heartbeat",
+      ownershipLabel,
       formatCountLabel(workloadCount, "workload"),
     ].filter((value): value is string => Boolean(value));
+    const ownershipDetail =
+      ownership === "shared"
+        ? ownerEmail
+          ? `Shared by ${ownerEmail}.`
+          : "Shared with your workspace."
+        : ownership === "internal-cluster"
+          ? "Part of Fugue shared capacity."
+        : runtime?.poolMode?.trim().toLowerCase() === "internal-shared"
+            ? "Internal cluster can also deploy here."
+            : null;
 
     return {
+      accessMode: runtime?.accessMode ?? null,
       appCount,
+      canManageSharing: ownership === "owned" && Boolean(runtime?.id),
       conditions: conditionViews,
       createdExact: formatExactTime(node.createdAt),
       createdLabel: formatRelativeTime(node.createdAt),
@@ -639,6 +698,10 @@ function buildClusterNodeViews(
       locationLabel,
       machineLabel: runtime?.machineName?.trim() || runtime?.name?.trim() || node.name,
       name: node.name,
+      ownerEmail,
+      ownerLabel,
+      ownership,
+      poolMode: runtime?.poolMode ?? null,
       publicIpLabel: node.publicIp?.trim() || "Unavailable",
       roleLabels: node.roles.length ? node.roles : [],
       resources: [
@@ -646,9 +709,11 @@ function buildClusterNodeViews(
         buildMemoryResourceView(node.memory, memoryPressure),
         buildStorageResourceView(node.ephemeralStorage, diskPressure),
       ],
+      runtimeId: runtime?.id ?? node.runtimeId ?? null,
       runtimeLabel: runtime ? readRuntimeLabel(runtime) : node.runtimeId ? shortId(node.runtimeId) : "Awaiting runtime",
       runtimeStatusLabel: runtime ? humanize(runtime.status) : "Awaiting runtime",
       runtimeStatusTone: runtime ? toneForStatus(runtime.status) : "neutral",
+      runtimeType: runtime?.type ?? null,
       serviceCount,
       statusDetail:
         pressureSignals.length > 0
@@ -656,7 +721,7 @@ function buildClusterNodeViews(
               pressureSignals.map((condition) => condition.label.toLowerCase()),
             )} pressure reported.`
           : node.status?.trim().toLowerCase() === "ready"
-            ? null
+            ? ownershipDetail
             : "Waiting for complete node health telemetry.",
       statusLabel,
       statusTone,
@@ -718,7 +783,7 @@ export async function getClusterNodesPageData(email: string): Promise<ClusterNod
       : [];
   const runtimes =
     runtimesResult.status === "fulfilled"
-      ? runtimesResult.value.filter((runtime) => runtime.tenantId === workspace.tenantId)
+      ? runtimesResult.value
       : [];
 
   if (nodesResult.status === "rejected") {
@@ -729,7 +794,45 @@ export async function getClusterNodesPageData(email: string): Promise<ClusterNod
     errors.push(`runtimes: ${readErrorMessage(runtimesResult.reason)}`);
   }
 
-  const built = buildClusterNodeViews(nodes, runtimes, workspace.tenantId);
+  const ownerTenantIds = new Set<string>();
+
+  for (const runtime of runtimes) {
+    if (runtime.tenantId?.trim()) {
+      ownerTenantIds.add(runtime.tenantId.trim());
+    }
+  }
+
+  for (const node of nodes) {
+    if (node.tenantId?.trim()) {
+      ownerTenantIds.add(node.tenantId.trim());
+    }
+  }
+
+  const ownerEmailByTenantId = new Map<string, string>();
+  const ownerSnapshots = await Promise.allSettled(
+    [...ownerTenantIds].map(async (tenantId) => ({
+      snapshot: await getWorkspaceSnapshotByTenantId(tenantId),
+      tenantId,
+    })),
+  );
+
+  for (const result of ownerSnapshots) {
+    if (result.status === "fulfilled") {
+      if (result.value.snapshot?.email) {
+        ownerEmailByTenantId.set(result.value.tenantId, result.value.snapshot.email);
+      }
+      continue;
+    }
+
+    errors.push(`workspace owners: ${readErrorMessage(result.reason)}`);
+  }
+
+  const built = buildClusterNodeViews(
+    nodes,
+    runtimes,
+    workspace.tenantId,
+    ownerEmailByTenantId,
+  );
   const readyCount = built.views.filter((node) => node.statusTone === "positive").length;
   const workloadCount = built.views.reduce((total, node) => total + node.workloadCount, 0);
 

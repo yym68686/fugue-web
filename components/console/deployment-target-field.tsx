@@ -12,16 +12,16 @@ import {
 
 const DEFAULT_INTERNAL_CLUSTER_TARGET = {
   category: "internal-cluster",
-  description: "Use Fugue shared capacity.",
+  description: "Deploy onto the internal cluster.",
   id: "runtime_managed_shared",
   kindLabel: "Internal cluster",
   locationCountryCode: null,
   locationCountryLabel: null,
   locationLabel: null,
-  primaryLabel: "Global",
+  primaryLabel: "Internal cluster",
   statusLabel: null,
   statusTone: null,
-  summaryLabel: "Internal cluster / Global",
+  summaryLabel: "Internal cluster",
 } satisfies ConsoleImportRuntimeTargetView;
 
 function RuntimeTargetCard({
@@ -174,7 +174,7 @@ export function DeploymentTargetField({
         <FormField
           hint={
             selectedGroup.category === "internal-cluster"
-              ? "Choose the shared region for import and deploy."
+              ? "Choose a region, or leave it on Any available region."
               : "Choose the machine region."
           }
           htmlFor={regionSelectId}

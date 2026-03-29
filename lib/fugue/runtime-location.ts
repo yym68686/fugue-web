@@ -1,5 +1,9 @@
 import { readCountryCode, readCountryLabel } from "@/lib/geo/country";
 
+export const DEFAULT_INTERNAL_CLUSTER_RUNTIME_ID = "runtime_managed_shared";
+export const INTERNAL_CLUSTER_LOCATION_KEY_LABEL =
+  "fugue.io/internal-cluster-location-key";
+
 const RUNTIME_REGION_LABEL_KEYS = [
   "topology.kubernetes.io/region",
   "failure-domain.beta.kubernetes.io/region",
@@ -55,6 +59,12 @@ function readLocationLabel(value?: string | null) {
   return countryCode ? readCountryLabel(countryCode) ?? trimmed : trimmed;
 }
 
+export function hasInternalClusterLocationTarget(labels: RuntimeLabels) {
+  return Boolean(
+    readFirstRuntimeLabel(labels, [INTERNAL_CLUSTER_LOCATION_KEY_LABEL]),
+  );
+}
+
 export function readRuntimeLocation(labels: RuntimeLabels): RuntimeLocationView {
   const regionLabel = readLocationLabel(
     readFirstRuntimeLabel(labels, RUNTIME_REGION_LABEL_KEYS),
@@ -71,8 +81,20 @@ export function readRuntimeLocation(labels: RuntimeLabels): RuntimeLocationView 
     hasPlacementConstraint: Boolean(regionLabel || zoneLabel || countryCode),
     locationCountryCode: countryCode,
     locationCountryLabel,
-    locationLabel: regionLabel ?? locationCountryLabel ?? zoneLabel,
+    locationLabel: locationCountryLabel ?? regionLabel ?? zoneLabel,
     regionLabel,
     zoneLabel,
   };
+}
+
+export function readManagedSharedRuntimeLabel(runtime: {
+  id: string;
+  labels?: RuntimeLabels;
+}) {
+  if (runtime.id === DEFAULT_INTERNAL_CLUSTER_RUNTIME_ID) {
+    return "Internal cluster";
+  }
+
+  const locationLabel = readRuntimeLocation(runtime.labels).locationLabel;
+  return locationLabel ? `Internal cluster / ${locationLabel}` : "Internal cluster";
 }

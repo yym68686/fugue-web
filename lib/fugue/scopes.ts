@@ -2,6 +2,7 @@ export const WORKSPACE_ADMIN_SCOPES = [
   "project.write",
   "apikey.write",
   "runtime.attach",
+  "runtime.write",
   "app.write",
   "app.deploy",
   "app.scale",

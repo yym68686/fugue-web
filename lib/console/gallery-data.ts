@@ -29,7 +29,11 @@ import {
   type FugueRuntime,
   type FugueAppTechnology,
 } from "@/lib/fugue/api";
-import { readRuntimeLocation } from "@/lib/fugue/runtime-location";
+import {
+  DEFAULT_INTERNAL_CLUSTER_RUNTIME_ID,
+  hasInternalClusterLocationTarget,
+  readRuntimeLocation,
+} from "@/lib/fugue/runtime-location";
 import { readCountryLocation } from "@/lib/geo/country";
 import {
   readGitHubBranchHref,
@@ -1453,40 +1457,50 @@ function projectNameMap(projects: FugueProject[], fallbackId?: string | null, fa
 
 function buildImportRuntimeTargetView(
   runtime: FugueRuntime,
+  workspaceTenantId: string,
   fallbackLocation?: RuntimeTargetLocationView | null,
 ): ConsoleImportRuntimeTargetView {
   const runtimeLocation = readRuntimeLocation(runtime.labels);
+  const shouldUseFallbackLocation =
+    runtime.type !== "managed-shared" ||
+    runtime.id !== DEFAULT_INTERNAL_CLUSTER_RUNTIME_ID ||
+    hasInternalClusterLocationTarget(runtime.labels);
   const location = {
     ...runtimeLocation,
     locationCountryCode:
       runtimeLocation.locationCountryCode ??
-      fallbackLocation?.locationCountryCode ??
+      (shouldUseFallbackLocation ? fallbackLocation?.locationCountryCode : null) ??
       null,
     locationCountryLabel:
       runtimeLocation.locationCountryLabel ??
-      fallbackLocation?.locationCountryLabel ??
+      (shouldUseFallbackLocation ? fallbackLocation?.locationCountryLabel : null) ??
       null,
     locationLabel:
       runtimeLocation.locationLabel ??
-      fallbackLocation?.locationLabel ??
+      (shouldUseFallbackLocation ? fallbackLocation?.locationLabel : null) ??
       null,
   };
   const statusLabel = runtime.status ? humanize(runtime.status) : null;
   const statusTone = runtime.status ? toneForStatus(runtime.status) : null;
 
   if (runtime.type === "managed-shared") {
-    const primaryLabel = location.locationLabel ?? "Global";
+    const isGenericInternalCluster =
+      runtime.id === DEFAULT_INTERNAL_CLUSTER_RUNTIME_ID &&
+      !hasInternalClusterLocationTarget(runtime.labels);
+    const primaryLabel = isGenericInternalCluster
+      ? "Any available region"
+      : location.locationCountryLabel ?? location.locationLabel ?? "Region unavailable";
 
     return {
       category: "internal-cluster",
-      description: location.hasPlacementConstraint
+      description: !isGenericInternalCluster && location.hasPlacementConstraint
         ? "Use shared capacity in this region."
-        : "Use Fugue shared capacity.",
+        : "Deploy onto the internal cluster.",
       id: runtime.id,
       kindLabel: "Internal cluster",
       locationCountryCode: location.locationCountryCode,
       locationCountryLabel: location.locationCountryLabel,
-      locationLabel: location.locationLabel,
+      locationLabel: isGenericInternalCluster ? null : location.locationLabel,
       primaryLabel,
       statusLabel,
       statusTone,
@@ -1498,12 +1512,24 @@ function buildImportRuntimeTargetView(
     runtime.name?.trim() ||
     runtime.machineName?.trim() ||
     shortId(runtime.id);
+  const isSharedMachine =
+    runtime.type !== "managed-shared" &&
+    Boolean(runtime.tenantId) &&
+    runtime.tenantId !== workspaceTenantId;
+  const isContributedMachine =
+    runtime.type === "managed-owned" &&
+    runtime.poolMode === "internal-shared" &&
+    !isSharedMachine;
 
   return {
     category: "machine",
-    description: "Deploy onto this machine.",
+    description: isSharedMachine
+      ? "Deploy onto a machine shared with this workspace."
+      : isContributedMachine
+        ? "Deploy onto this machine. It also contributes to the internal cluster."
+        : "Deploy onto this machine.",
     id: runtime.id,
-    kindLabel: "Machine",
+    kindLabel: isSharedMachine ? "Shared machine" : "Machine",
     locationCountryCode: location.locationCountryCode,
     locationCountryLabel: location.locationCountryLabel,
     locationLabel: location.locationLabel,
@@ -1638,6 +1664,7 @@ export const getConsoleProjectGalleryData = cache(async () => {
           .map((runtime) =>
             buildImportRuntimeTargetView(
               runtime,
+              workspace.tenantId,
               runtimeTargetLocationsByRuntimeId.get(runtime.id) ?? null,
             ),
           )

@@ -99,23 +99,25 @@ function listTenantApiKeys(keys: FugueApiKey[], tenantId: string) {
   return keys.filter((key) => key.tenantId === tenantId);
 }
 
+function sameStringArray(left: string[], right: string[]) {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
 function readWorkspaceAdminScopes(
   workspace?: WorkspaceBootstrapState | null,
   apiKey?: Pick<FugueApiKey, "scopes"> | null,
 ) {
   const remoteScopes = sortFugueScopes(apiKey?.scopes ?? []);
-
-  if (remoteScopes.length) {
-    return remoteScopes;
-  }
-
   const localScopes = sortFugueScopes(workspace?.adminKeyScopes ?? []);
 
-  if (localScopes.length) {
-    return localScopes;
-  }
-
-  return sortFugueScopes([...WORKSPACE_ADMIN_SCOPES]);
+  return sortFugueScopes([
+    ...WORKSPACE_ADMIN_SCOPES,
+    ...(remoteScopes.length > 0
+      ? remoteScopes
+      : localScopes.length > 0
+        ? localScopes
+        : []),
+  ]);
 }
 
 async function hasUsableStoredAdminSecret(
@@ -178,9 +180,11 @@ async function reconcileWorkspaceAdminKey(
   }
 
   const nextScopes = readWorkspaceAdminScopes(workspace, apiKey);
+  const currentScopes = sortFugueScopes(apiKey.scopes);
+  const needsScopeRepair = !sameStringArray(currentScopes, nextScopes);
   const needsMetadataRepair =
     apiKey.label.trim().toLowerCase() !== WORKSPACE_ADMIN_KEY_LABEL ||
-    apiKey.scopes.length === 0;
+    needsScopeRepair;
 
   if (needsMetadataRepair) {
     apiKey = await updateFugueApiKey(bootstrapKey, apiKey.id, {
@@ -189,7 +193,7 @@ async function reconcileWorkspaceAdminKey(
             label: WORKSPACE_ADMIN_KEY_LABEL,
           }
         : {}),
-      ...(apiKey.scopes.length === 0
+      ...(needsScopeRepair
         ? {
             scopes: nextScopes,
           }
