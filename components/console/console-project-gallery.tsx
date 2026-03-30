@@ -140,7 +140,7 @@ type LogStreamEnd = {
   reason: string | null;
 };
 
-type AppAction = "delete" | "disable" | "redeploy" | "restart";
+type AppAction = "delete" | "disable" | "redeploy" | "restart" | "start";
 type WorkbenchView = "env" | "files" | "logs" | "route";
 type EnvironmentFormat = "raw" | "table";
 type LogsView = "build" | "runtime";
@@ -261,6 +261,16 @@ function includesLifecycleKeyword(value: string, keywords: string[]) {
   return keywords.some((keyword) => value.includes(keyword));
 }
 
+function isPausedLifecycleValue(value?: string | null) {
+  const normalized = value?.trim().toLowerCase() ?? "";
+
+  return normalized.length > 0 && includesLifecycleKeyword(normalized, ["disabled", "paused"]);
+}
+
+function isPausedAppService(app?: ConsoleGalleryAppView | null) {
+  return isPausedLifecycleValue(app?.phase);
+}
+
 function shouldShowLiveStatusBadge(value?: string | null) {
   const normalized = value?.trim().toLowerCase() ?? "";
 
@@ -307,7 +317,7 @@ function readProjectLifecycle(project: ConsoleGalleryProjectView): ProjectLifecy
     return { label: "Queued", tone: "positive", live: true, syncMode: "active" };
   }
 
-  if (statuses.length > 0 && statuses.every((status) => includesLifecycleKeyword(status, ["disabled"]))) {
+  if (statuses.length > 0 && statuses.every((status) => isPausedLifecycleValue(status))) {
     return { label: "Paused", tone: "warning", live: false, syncMode: "idle" };
   }
 
@@ -661,6 +671,10 @@ function readServiceWorkbenchOptions(
   }
 
   if (service.serviceRole === "pending") {
+    return ENV_ROUTE_AND_LOGS_WORKBENCH_OPTIONS;
+  }
+
+  if (isPausedAppService(service)) {
     return ENV_ROUTE_AND_LOGS_WORKBENCH_OPTIONS;
   }
 
@@ -1220,6 +1234,14 @@ function readRuntimeLogsUnavailableState(
     };
   }
 
+  if (isPausedAppService(app)) {
+    return {
+      description: "This app is paused. Start it to reopen runtime logs without rebuilding, or use Redeploy for a fresh build.",
+      label: "Paused",
+      title: "Runtime logs are unavailable",
+    };
+  }
+
   return null;
 }
 
@@ -1387,6 +1409,7 @@ export function ConsoleProjectGallery({
     selectedService?.kind === "app"
       ? selectedService.buildLogsOperationId?.trim() || null
       : null;
+  const selectedServicePaused = isPausedAppService(selectedServiceApp);
   const logsRequestKey =
     selectedApp && selectedService
       ? `${serviceKey(selectedService)}:${effectiveLogsMode}:${effectiveLogsMode === "build" ? selectedServiceBuildLogsOperationId ?? "latest" : "live"}`
@@ -1405,7 +1428,7 @@ export function ConsoleProjectGallery({
             }).toString()}`
           : `/api/fugue/apps/${selectedApp.id}/runtime-logs/stream?component=app&follow=true&tail_lines=${LOG_TAIL_LINES}`
       : null;
-  const runtimeLogsUnavailable = readRuntimeLogsUnavailableState(selectedApp, effectiveLogsMode);
+  const runtimeLogsUnavailable = readRuntimeLogsUnavailableState(selectedServiceApp, effectiveLogsMode);
   const runtimeLogsUnavailableKey = runtimeLogsUnavailable
     ? `${selectedApp?.id ?? "none"}:${runtimeLogsUnavailable.label}`
     : null;
@@ -2276,7 +2299,9 @@ export function ConsoleProjectGallery({
       }
     }
 
-    setBusyAction(action);
+    const nextAction = action === "restart" && isPausedAppService(selectedServiceApp) ? "start" : action;
+
+    setBusyAction(nextAction);
     setFlash(null);
 
     try {
@@ -2285,11 +2310,15 @@ export function ConsoleProjectGallery({
       let successMessage = "Request queued.";
       let refreshWindowMs = 45_000;
 
-      switch (action) {
+      switch (nextAction) {
         case "redeploy":
           input = `/api/fugue/apps/${selectedServiceApp.id}/rebuild`;
           successMessage = selectedServiceApp.redeployQueuedMessage;
           refreshWindowMs = 90_000;
+          break;
+        case "start":
+          input = `/api/fugue/apps/${selectedServiceApp.id}/start`;
+          successMessage = "Start queued at 1 replica.";
           break;
         case "restart":
           input = `/api/fugue/apps/${selectedServiceApp.id}/restart`;
@@ -2308,7 +2337,7 @@ export function ConsoleProjectGallery({
       await requestJson(input, { method });
       armRefreshWindow(refreshWindowMs);
 
-      if (action === "redeploy") {
+      if (nextAction === "redeploy") {
         setActiveTab("logs");
         setLogsMode("build");
         setLogsRefreshToken((value) => value + 1);
@@ -2557,7 +2586,9 @@ export function ConsoleProjectGallery({
             humanizeUiLabel(selectedService.type),
           ]);
     const selectedServiceWorkspacePath =
-      selectedService.kind === "app" && selectedService.serviceRole === "running"
+      selectedService.kind === "app" &&
+      selectedService.serviceRole === "running" &&
+      !selectedServicePaused
         ? readDistinctText(selectedService.workspaceMountPath)
         : null;
     const backingServiceOwnerLabel =
@@ -2762,28 +2793,34 @@ export function ConsoleProjectGallery({
                           {selectedService.redeployActionLabel}
                         </Button>
                         <Button
-                          disabled={Boolean(busyAction && busyAction !== "restart")}
-                          loading={busyAction === "restart"}
-                          loadingLabel="Restarting…"
-                          onClick={() => handleAppAction("restart")}
+                          disabled={Boolean(busyAction && busyAction !== (selectedServicePaused ? "start" : "restart"))}
+                          loading={busyAction === (selectedServicePaused ? "start" : "restart")}
+                          loadingLabel={selectedServicePaused ? "Starting…" : "Restarting…"}
+                          onClick={() => handleAppAction(selectedServicePaused ? "start" : "restart")}
                           size="compact"
-                          title="Restart the current release without rebuilding the image. Persistent workspace is preserved when configured."
+                          title={
+                            selectedServicePaused
+                              ? "Start this paused app at 1 replica without rebuilding the image."
+                              : "Restart the current release without rebuilding the image. Persistent workspace is preserved when configured."
+                          }
                           type="button"
                           variant="secondary"
                         >
-                          Restart
+                          {selectedServicePaused ? "Start" : "Restart"}
                         </Button>
-                        <Button
-                          disabled={Boolean(busyAction && busyAction !== "disable")}
-                          loading={busyAction === "disable"}
-                          loadingLabel="Pausing…"
-                          onClick={() => handleAppAction("disable")}
-                          size="compact"
-                          type="button"
-                          variant="secondary"
-                        >
-                          Pause
-                        </Button>
+                        {selectedServicePaused ? null : (
+                          <Button
+                            disabled={Boolean(busyAction && busyAction !== "disable")}
+                            loading={busyAction === "disable"}
+                            loadingLabel="Pausing…"
+                            onClick={() => handleAppAction("disable")}
+                            size="compact"
+                            type="button"
+                            variant="secondary"
+                          >
+                            Pause
+                          </Button>
+                        )}
                         <Button
                           disabled={Boolean(busyAction && busyAction !== "delete")}
                           loading={busyAction === "delete"}
@@ -2961,6 +2998,7 @@ export function ConsoleProjectGallery({
 
                 {selectedService.kind === "app" &&
                 selectedService.serviceRole === "running" &&
+                !selectedServicePaused &&
                 activeTab === "files" ? (
                   <ConsoleFilesWorkbench
                     appId={selectedService.id}

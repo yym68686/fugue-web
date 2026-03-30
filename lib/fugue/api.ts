@@ -2146,6 +2146,22 @@ export async function rebuildFugueApp(accessToken: string, appId: string) {
   };
 }
 
+export async function startFugueApp(accessToken: string, appId: string) {
+  const payload = asRecord(
+    await fugueRequest(`/v1/apps/${encodeURIComponent(appId)}/scale`, {
+      accessToken,
+      body: {
+        replicas: 1,
+      },
+      method: "POST",
+    }),
+  );
+
+  return {
+    operation: sanitizeOperation(payload?.operation),
+  };
+}
+
 export async function disableFugueApp(accessToken: string, appId: string) {
   const payload = asRecord(
     await fugueRequest(`/v1/apps/${encodeURIComponent(appId)}/disable`, {

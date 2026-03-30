@@ -569,17 +569,13 @@ function normalizeServiceMessage(value?: string | null) {
 function hasLiveRelease(app: FugueApp) {
   const normalizedPhase = app.status.phase?.trim().toLowerCase() ?? "";
 
-  if (app.status.currentRuntimeId?.trim()) {
-    return true;
-  }
-
   if ((app.status.currentReplicas ?? 0) > 0) {
     return true;
   }
 
-  if (app.source.commitSha?.trim()) {
-    return true;
-  }
+  // `commitSha` and runtime placement can be populated before the first rollout
+  // is actually live. During that window the console should keep showing a
+  // single pending service card instead of inventing a second "running" card.
 
   return (
     normalizedPhase.length > 0 &&
