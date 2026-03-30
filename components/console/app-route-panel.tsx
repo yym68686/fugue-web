@@ -38,7 +38,6 @@ type RoutePatchResponse = {
 type RoutePanelProps = {
   appId: string;
   appName: string;
-  customDomainTarget: string | null;
   initialBaseDomain: string | null;
   initialHostname: string | null;
   initialPublicUrl: string | null;
@@ -330,7 +329,6 @@ function readRouteFieldState(options: {
 export function AppRoutePanel({
   appId,
   appName,
-  customDomainTarget,
   initialBaseDomain,
   initialHostname,
   initialPublicUrl,
@@ -644,7 +642,6 @@ export function AppRoutePanel({
       <AppCustomDomainsPanel
         appId={appId}
         appName={appName}
-        customDomainTarget={customDomainTarget}
       />
     </div>
   );

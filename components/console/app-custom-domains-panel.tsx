@@ -13,7 +13,6 @@ import { cx } from "@/lib/ui/cx";
 type AppCustomDomainsPanelProps = {
   appId: string;
   appName: string;
-  customDomainTarget: string | null;
 };
 
 type AvailabilityState = "checking" | "error" | "idle" | "ready";
@@ -86,6 +85,17 @@ function readBooleanValue(record: Record<string, unknown> | null, key: string) {
 function normalizeHostname(value?: string | null) {
   const normalized = value?.trim().toLowerCase() ?? "";
   return normalized || null;
+}
+
+function extractDomainTarget(value?: string | null) {
+  const message = value?.trim() ?? "";
+
+  if (!message) {
+    return null;
+  }
+
+  const match = message.match(/\bpointing to\s+([a-z0-9.-]+\.[a-z0-9-]+)\b/i);
+  return normalizeHostname(match?.[1] ?? null);
 }
 
 function sanitizeCustomDomainInput(value: string) {
@@ -302,12 +312,24 @@ function readDomainAttentionMessage(domain: AppDomain, customDomainTarget?: stri
     domain.lastMessage ??
     (customDomainTarget
       ? `Point ${domain.hostname} at ${customDomainTarget}, wait for DNS to resolve, then retry verification.`
-      : "Point this hostname at the Fugue target shown above, wait for DNS to resolve, then retry verification.")
+      : "Retry verification to fetch the latest DNS guidance from Fugue.")
   );
 }
 
 function readDefaultHint() {
-  return "Enter a hostname you control, like app.example.com or example.com. We will show the DNS record after the hostname looks valid.";
+  return "Enter a hostname you control, like app.example.com or example.com. Once it looks valid, Fugue can provide the exact DNS target.";
+}
+
+function readKnownDomainTarget(domains: AppDomain[]) {
+  for (const domain of domains) {
+    const target = normalizeHostname(domain.routeTarget) ?? extractDomainTarget(domain.lastMessage);
+
+    if (target) {
+      return target;
+    }
+  }
+
+  return null;
 }
 
 function readFieldState(options: {
@@ -334,10 +356,12 @@ function readFieldState(options: {
   }
 
   if (submissionError) {
+    const targetFromSubmission = extractDomainTarget(submissionError);
+
     return {
-      label: "Not ready",
+      label: targetFromSubmission ? "DNS needed" : "Not ready",
       detail: submissionError,
-      variant: "error" as const,
+      variant: targetFromSubmission ? ("info" as const) : ("error" as const),
     } satisfies DomainFieldState;
   }
 
@@ -407,7 +431,7 @@ function readFieldState(options: {
     label: "Ready",
     detail: customDomainTarget
       ? "Hostname looks good. Create the DNS record shown below, then add it here."
-      : "Hostname looks good, but this app does not have a DNS target yet.",
+      : "Hostname looks good. Click Get DNS target to fetch the exact DNS record from Fugue.",
     variant: "success" as const,
   } satisfies DomainFieldState;
 }
@@ -448,16 +472,14 @@ function readDomainMeta(domain: AppDomain, customDomainTarget?: string | null) {
     ? `Last checked ${formatTimestamp(domain.lastCheckedAt)}`
     : customDomainTarget
       ? `Waiting for DNS to resolve to ${customDomainTarget}.`
-      : "Waiting for DNS to resolve to the Fugue target.";
+      : "Waiting for DNS guidance from Fugue.";
 }
 
 export function AppCustomDomainsPanel({
   appId,
   appName,
-  customDomainTarget,
 }: AppCustomDomainsPanelProps) {
   const { showToast } = useToast();
-  const normalizedCustomDomainTarget = normalizeHostname(customDomainTarget);
   const noteId = `custom-domain-note-${appId}`;
   const [domains, setDomains] = useState<AppDomain[]>([]);
   const [domainsState, setDomainsState] = useState<"error" | "loading" | "ready">("loading");
@@ -470,8 +492,10 @@ export function AppCustomDomainsPanel({
   const [submitting, setSubmitting] = useState(false);
   const [verifyingHostname, setVerifyingHostname] = useState<string | null>(null);
   const [deletingHostname, setDeletingHostname] = useState<string | null>(null);
+  const [resolvedTarget, setResolvedTarget] = useState<string | null>(null);
 
   const normalizedDraft = normalizeHostname(draft);
+  const normalizedCustomDomainTarget = readKnownDomainTarget(domains) ?? normalizeHostname(resolvedTarget);
   const existingDomain = findDomain(domains, availability?.hostname ?? normalizedDraft);
   const actionableExistingDomain =
     existingDomain && domainHasUnresolvedIssue(existingDomain) ? existingDomain : null;
@@ -491,25 +515,23 @@ export function AppCustomDomainsPanel({
       Boolean(availability && (!availability.valid || (!availability.available && !availability.current))));
   const helperText = fieldState?.detail ?? readDefaultHint();
   const canSubmit =
-    Boolean(normalizedCustomDomainTarget) &&
     Boolean(normalizedDraft) &&
     !submitting &&
     availabilityState === "ready" &&
     Boolean(availability?.valid) &&
     Boolean(availability?.available) &&
     (!availability?.current || Boolean(actionableExistingDomain));
-  const submitLabel = actionableExistingDomain ? "Retry verification" : "Add domain";
+  const submitLabel = actionableExistingDomain
+    ? "Retry verification"
+    : normalizedCustomDomainTarget
+      ? "Add domain"
+      : "Get DNS target";
   const candidateHostname = availability?.hostname ?? normalizedDraft;
   const showSetupPanel =
     Boolean(normalizedCustomDomainTarget) &&
     availabilityState === "ready" &&
     Boolean(availability?.valid) &&
     Boolean(availability?.available || availability?.current);
-  const showTargetUnavailableAlert =
-    Boolean(normalizedDraft) &&
-    availabilityState === "ready" &&
-    Boolean(availability?.valid) &&
-    !normalizedCustomDomainTarget;
 
   async function loadDomains() {
     setDomainsState("loading");
@@ -523,6 +545,9 @@ export function AppCustomDomainsPanel({
       );
 
       setDomains(sortDomains(payload.domains));
+      if (payload.domains.length) {
+        setResolvedTarget(readKnownDomainTarget(payload.domains));
+      }
       setDomainsError(null);
       setDomainsState("ready");
     } catch (error) {
@@ -748,6 +773,7 @@ export function AppCustomDomainsPanel({
       const domain = response.domain;
 
       setDomains((current) => upsertDomain(current, domain));
+      setResolvedTarget(normalizeHostname(domain.routeTarget));
       resetDraft();
 
       showToast({
@@ -758,11 +784,15 @@ export function AppCustomDomainsPanel({
       });
     } catch (error) {
       const message = readErrorMessage(error);
+      const hintedTarget = extractDomainTarget(message);
 
+      if (hintedTarget) {
+        setResolvedTarget(hintedTarget);
+      }
       setSubmissionError(message);
       showToast({
         message,
-        variant: "error",
+        variant: hintedTarget ? "info" : "error",
       });
     } finally {
       setSubmitting(false);
@@ -832,12 +862,6 @@ export function AppCustomDomainsPanel({
             {helperText}
           </span>
         </label>
-
-        {showTargetUnavailableAlert ? (
-          <InlineAlert variant="error">
-            This app does not have a custom-domain target yet. Check the deployment config, then retry.
-          </InlineAlert>
-        ) : null}
 
         {showSetupPanel ? (
           <div className="fg-domain-setup">

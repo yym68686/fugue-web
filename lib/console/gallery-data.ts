@@ -1,6 +1,5 @@
 import "server-only";
 
-import { createHash } from "node:crypto";
 import { cache } from "react";
 
 import { getCurrentSession } from "@/lib/auth/session";
@@ -893,23 +892,6 @@ function readAppRouteBaseDomain(app: FugueApp) {
   return normalizeHostname(app.route.baseDomain) ?? readRouteBaseDomain(readRouteHostname(app));
 }
 
-function readCustomDomainBaseDomain(app: FugueApp) {
-  return normalizeHostname(process.env.FUGUE_CUSTOM_DOMAIN_BASE_DOMAIN) ?? readAppRouteBaseDomain(app);
-}
-
-function readStableCustomDomainTarget(app: FugueApp) {
-  const tenantId = app.tenantId?.trim();
-  const appId = app.id?.trim();
-  const baseDomain = readCustomDomainBaseDomain(app);
-
-  if (!tenantId || !appId || !baseDomain) {
-    return null;
-  }
-
-  const hash = createHash("sha256").update(`${tenantId}:${appId}`).digest("hex").slice(0, 20);
-  return `d-${hash}.${baseDomain}`;
-}
-
 function formatRepoLabel(repoUrl?: string | null, branch?: string | null) {
   if (!repoUrl) {
     return "Unspecified source";
@@ -1295,7 +1277,6 @@ function buildSharedAppView(
 
   return {
     canRedeploy: redeploy.canRedeploy,
-    customDomainTarget: readStableCustomDomainTarget(app),
     deployBehavior: readDeployBehavior(app),
     hasPostgresService: app.backingServices.some((service) => service.type === "postgres"),
     id: app.id,

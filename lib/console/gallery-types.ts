@@ -28,7 +28,6 @@ export type ConsoleGalleryAppView = {
   commitViews: ConsoleGalleryCommitView[];
   currentCommitCommittedAt: string | null;
   canRedeploy: boolean;
-  customDomainTarget: string | null;
   currentCommitExact: string | null;
   currentCommitHref: string | null;
   currentCommitLabel: string | null;
