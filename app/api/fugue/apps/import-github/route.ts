@@ -52,6 +52,27 @@ function readOptionalString(record: Record<string, unknown>, key: string) {
   return typeof value === "string" && value.trim() ? value.trim() : "";
 }
 
+function readOptionalPositiveInteger(record: Record<string, unknown>, key: string) {
+  const value = record[key];
+
+  if (value === undefined || value === null) {
+    return null;
+  }
+
+  if (typeof value === "string" && !value.trim()) {
+    return null;
+  }
+
+  const parsed =
+    typeof value === "number"
+      ? value
+      : typeof value === "string"
+        ? Number(value.trim())
+        : Number.NaN;
+
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : Number.NaN;
+}
+
 function isGitHubRepoUrl(value: string) {
   return /^https:\/\/github\.com\/[^/\s]+\/[^/\s]+(?:\/)?(?:\.git)?$/i.test(
     value.trim(),
@@ -80,8 +101,12 @@ export async function POST(request: Request) {
   const repoUrl = readOptionalString(body, "repoUrl");
   const branch = readOptionalString(body, "branch");
   const buildStrategy = readOptionalString(body, "buildStrategy");
+  const sourceDir = readOptionalString(body, "sourceDir");
+  const dockerfilePath = readOptionalString(body, "dockerfilePath");
+  const buildContextDir = readOptionalString(body, "buildContextDir");
   const name = readOptionalString(body, "name");
   const runtimeId = readOptionalString(body, "runtimeId");
+  const servicePort = readOptionalPositiveInteger(body, "servicePort");
 
   if (!repoUrl) {
     return jsonError(400, "Repository link is required.");
@@ -93,6 +118,10 @@ export async function POST(request: Request) {
 
   if (buildStrategy && !ALLOWED_BUILD_STRATEGIES.has(buildStrategy)) {
     return jsonError(400, "Unsupported build strategy.");
+  }
+
+  if (Number.isNaN(servicePort)) {
+    return jsonError(400, "Service port must be a positive integer.");
   }
 
   try {
@@ -108,10 +137,14 @@ export async function POST(request: Request) {
     const result = await importFugueGitHubApp(workspace.adminKeySecret, {
       branch: branch || undefined,
       buildStrategy: buildStrategy || undefined,
+      buildContextDir: buildContextDir || undefined,
+      dockerfilePath: dockerfilePath || undefined,
       name: name || undefined,
       projectId: workspace.defaultProjectId ?? undefined,
       repoUrl,
       runtimeId: runtimeId || undefined,
+      servicePort: servicePort ?? undefined,
+      sourceDir: sourceDir || undefined,
     });
 
     if (result.app?.id) {

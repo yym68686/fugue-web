@@ -1407,6 +1407,8 @@ export async function importFugueGitHubApp(
   payload: {
     branch?: string;
     buildStrategy?: string;
+    buildContextDir?: string;
+    dockerfilePath?: string;
     name?: string;
     project?: {
       description?: string;
@@ -1415,6 +1417,8 @@ export async function importFugueGitHubApp(
     projectId?: string;
     repoUrl: string;
     runtimeId?: string;
+    servicePort?: number;
+    sourceDir?: string;
     tenantId?: string;
   },
   idempotencyKey?: string,
@@ -1437,8 +1441,14 @@ export async function importFugueGitHubApp(
           : {}),
         ...(payload.branch ? { branch: payload.branch } : {}),
         ...(payload.buildStrategy ? { build_strategy: payload.buildStrategy } : {}),
+        ...(payload.sourceDir ? { source_dir: payload.sourceDir } : {}),
+        ...(payload.dockerfilePath ? { dockerfile_path: payload.dockerfilePath } : {}),
+        ...(payload.buildContextDir ? { build_context_dir: payload.buildContextDir } : {}),
         ...(payload.name ? { name: payload.name } : {}),
         ...(payload.runtimeId ? { runtime_id: payload.runtimeId } : {}),
+        ...(typeof payload.servicePort === "number"
+          ? { service_port: payload.servicePort }
+          : {}),
         repo_url: payload.repoUrl,
       },
       headers: idempotencyKey

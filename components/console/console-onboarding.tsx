@@ -38,6 +38,8 @@ const BUILD_STRATEGY_OPTIONS = [
   { label: "Nixpacks", value: "nixpacks" },
 ] as const;
 
+type BuildStrategyValue = (typeof BUILD_STRATEGY_OPTIONS)[number]["value"];
+
 function readErrorMessage(error: unknown) {
   if (error instanceof Error && error.message) {
     return error.message;
@@ -88,7 +90,11 @@ export function ConsoleOnboarding({
   const [repoUrl, setRepoUrl] = useState("");
   const [branch, setBranch] = useState("");
   const [name, setName] = useState("");
-  const [buildStrategy, setBuildStrategy] = useState("auto");
+  const [buildStrategy, setBuildStrategy] = useState<BuildStrategyValue>("auto");
+  const [sourceDir, setSourceDir] = useState("");
+  const [dockerfilePath, setDockerfilePath] = useState("");
+  const [buildContextDir, setBuildContextDir] = useState("");
+  const [servicePort, setServicePort] = useState("");
   const [selectedRuntimeId, setSelectedRuntimeId] = useState<string | null>(
     () => readDefaultImportRuntimeId(runtimeTargets),
   );
@@ -206,6 +212,10 @@ export function ConsoleOnboarding({
     setBranch("");
     setName("");
     setBuildStrategy("auto");
+    setSourceDir("");
+    setDockerfilePath("");
+    setBuildContextDir("");
+    setServicePort("");
     setSelectedRuntimeId(readDefaultImportRuntimeId(runtimeTargets));
   }
 
@@ -228,12 +238,23 @@ export function ConsoleOnboarding({
     setIsImporting(true);
 
     try {
+      const normalizedBranch = branch.trim();
+      const normalizedName = name.trim();
+      const normalizedSourceDir = sourceDir.trim();
+      const normalizedDockerfilePath = dockerfilePath.trim();
+      const normalizedBuildContextDir = buildContextDir.trim();
+      const normalizedServicePort = servicePort.trim();
+
       await requestJson<ImportResponse>("/api/fugue/apps/import-github", {
         body: JSON.stringify({
-          branch,
+          ...(normalizedBranch ? { branch: normalizedBranch } : {}),
           buildStrategy,
-          name,
+          ...(normalizedName ? { name: normalizedName } : {}),
           repoUrl,
+          ...(normalizedSourceDir ? { sourceDir: normalizedSourceDir } : {}),
+          ...(normalizedDockerfilePath ? { dockerfilePath: normalizedDockerfilePath } : {}),
+          ...(normalizedBuildContextDir ? { buildContextDir: normalizedBuildContextDir } : {}),
+          ...(normalizedServicePort ? { servicePort: normalizedServicePort } : {}),
           ...(selectedRuntimeId ? { runtimeId: selectedRuntimeId } : {}),
         }),
         headers: {
@@ -301,6 +322,13 @@ export function ConsoleOnboarding({
         },
       ];
   const eyebrow = "Console / first run";
+  const supportsSourceDir =
+    buildStrategy === "auto" ||
+    buildStrategy === "static-site" ||
+    buildStrategy === "buildpacks" ||
+    buildStrategy === "nixpacks";
+  const supportsDockerInputs =
+    buildStrategy === "auto" || buildStrategy === "dockerfile";
   const openImport = () => {
     setFlash(null);
     resetImportForm();
@@ -459,7 +487,9 @@ export function ConsoleOnboarding({
                             className="fg-input"
                             id="build-strategy"
                             name="buildStrategy"
-                            onChange={(event) => setBuildStrategy(event.target.value)}
+                            onChange={(event) =>
+                              setBuildStrategy(event.target.value as BuildStrategyValue)
+                            }
                             value={buildStrategy}
                           >
                             {BUILD_STRATEGY_OPTIONS.map((option) => (
@@ -468,6 +498,87 @@ export function ConsoleOnboarding({
                               </option>
                             ))}
                           </select>
+                        </FormField>
+
+                        {supportsSourceDir ? (
+                          <FormField
+                            hint="Use when the app lives below the repo root."
+                            htmlFor="import-source-dir"
+                            label="Source directory"
+                            optionalLabel="Optional"
+                          >
+                            <input
+                              autoCapitalize="none"
+                              autoComplete="off"
+                              className="fg-input"
+                              id="import-source-dir"
+                              name="sourceDir"
+                              onChange={(event) => setSourceDir(event.target.value)}
+                              placeholder="apps/web"
+                              spellCheck={false}
+                              value={sourceDir}
+                            />
+                          </FormField>
+                        ) : null}
+
+                        {supportsDockerInputs ? (
+                          <FormField
+                            hint="Required when the Dockerfile is outside the repo root."
+                            htmlFor="import-dockerfile-path"
+                            label="Dockerfile path"
+                            optionalLabel="Optional"
+                          >
+                            <input
+                              autoCapitalize="none"
+                              autoComplete="off"
+                              className="fg-input"
+                              id="import-dockerfile-path"
+                              name="dockerfilePath"
+                              onChange={(event) => setDockerfilePath(event.target.value)}
+                              placeholder="docker/Dockerfile"
+                              spellCheck={false}
+                              value={dockerfilePath}
+                            />
+                          </FormField>
+                        ) : null}
+
+                        {supportsDockerInputs ? (
+                          <FormField
+                            hint="Defaults to the repo root when omitted."
+                            htmlFor="import-build-context-dir"
+                            label="Build context"
+                            optionalLabel="Optional"
+                          >
+                            <input
+                              autoCapitalize="none"
+                              autoComplete="off"
+                              className="fg-input"
+                              id="import-build-context-dir"
+                              name="buildContextDir"
+                              onChange={(event) => setBuildContextDir(event.target.value)}
+                              placeholder="."
+                              spellCheck={false}
+                              value={buildContextDir}
+                            />
+                          </FormField>
+                        ) : null}
+
+                        <FormField
+                          hint="Override the public HTTP port when the image does not expose it."
+                          htmlFor="import-service-port"
+                          label="Service port"
+                          optionalLabel="Optional"
+                        >
+                          <input
+                            autoComplete="off"
+                            className="fg-input"
+                            id="import-service-port"
+                            inputMode="numeric"
+                            name="servicePort"
+                            onChange={(event) => setServicePort(event.target.value)}
+                            placeholder="3333"
+                            value={servicePort}
+                          />
                         </FormField>
                       </div>
                     </details>

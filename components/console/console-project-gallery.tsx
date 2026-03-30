@@ -1310,6 +1310,10 @@ export function ConsoleProjectGallery({
   const [branch, setBranch] = useState("");
   const [appName, setAppName] = useState("");
   const [buildStrategy, setBuildStrategy] = useState<BuildStrategyValue>("auto");
+  const [sourceDir, setSourceDir] = useState("");
+  const [dockerfilePath, setDockerfilePath] = useState("");
+  const [buildContextDir, setBuildContextDir] = useState("");
+  const [servicePort, setServicePort] = useState("");
   const [selectedRuntimeId, setSelectedRuntimeId] = useState<string | null>(
     () => readDefaultImportRuntimeId(data.runtimeTargets),
   );
@@ -1354,6 +1358,13 @@ export function ConsoleProjectGallery({
     selectedProjectServices.find((service) => serviceKey(service) === selectedServiceKey) ??
     readPreferredProjectService(selectedProjectServices) ??
     null;
+  const supportsSourceDir =
+    buildStrategy === "auto" ||
+    buildStrategy === "static-site" ||
+    buildStrategy === "buildpacks" ||
+    buildStrategy === "nixpacks";
+  const supportsDockerInputs =
+    buildStrategy === "auto" || buildStrategy === "dockerfile";
   const selectedServiceApp = selectedService?.kind === "app" ? selectedService : null;
   const selectedApp =
     selectedServiceApp ??
@@ -2078,6 +2089,10 @@ export function ConsoleProjectGallery({
     setBranch("");
     setAppName("");
     setBuildStrategy("auto");
+    setSourceDir("");
+    setDockerfilePath("");
+    setBuildContextDir("");
+    setServicePort("");
     setSelectedRuntimeId(readDefaultImportRuntimeId(data.runtimeTargets));
   }
 
@@ -2139,13 +2154,24 @@ export function ConsoleProjectGallery({
     setIsCreating(true);
 
     try {
+      const normalizedBranch = branch.trim();
+      const normalizedAppName = appName.trim();
+      const normalizedSourceDir = sourceDir.trim();
+      const normalizedDockerfilePath = dockerfilePath.trim();
+      const normalizedBuildContextDir = buildContextDir.trim();
+      const normalizedServicePort = servicePort.trim();
+
       const response = await requestJson<CreateProjectResponse>(
         "/api/fugue/projects/create-and-import",
         {
           body: JSON.stringify({
-            branch,
+            ...(normalizedBranch ? { branch: normalizedBranch } : {}),
             buildStrategy,
-            name: appName,
+            ...(normalizedAppName ? { name: normalizedAppName } : {}),
+            ...(normalizedSourceDir ? { sourceDir: normalizedSourceDir } : {}),
+            ...(normalizedDockerfilePath ? { dockerfilePath: normalizedDockerfilePath } : {}),
+            ...(normalizedBuildContextDir ? { buildContextDir: normalizedBuildContextDir } : {}),
+            ...(normalizedServicePort ? { servicePort: normalizedServicePort } : {}),
             ...(selectedRuntimeId ? { runtimeId: selectedRuntimeId } : {}),
             ...(createTargetProject
               ? {
@@ -3225,6 +3251,87 @@ export function ConsoleProjectGallery({
                               </option>
                             ))}
                           </select>
+                        </FormField>
+
+                        {supportsSourceDir ? (
+                          <FormField
+                            hint="Use when the app lives below the repo root."
+                            htmlFor="create-source-dir"
+                            label="Source directory"
+                            optionalLabel="Optional"
+                          >
+                            <input
+                              autoCapitalize="none"
+                              autoComplete="off"
+                              className="fg-input"
+                              id="create-source-dir"
+                              name="sourceDir"
+                              onChange={(event) => setSourceDir(event.target.value)}
+                              placeholder="apps/web"
+                              spellCheck={false}
+                              value={sourceDir}
+                            />
+                          </FormField>
+                        ) : null}
+
+                        {supportsDockerInputs ? (
+                          <FormField
+                            hint="Required when the Dockerfile is outside the repo root."
+                            htmlFor="create-dockerfile-path"
+                            label="Dockerfile path"
+                            optionalLabel="Optional"
+                          >
+                            <input
+                              autoCapitalize="none"
+                              autoComplete="off"
+                              className="fg-input"
+                              id="create-dockerfile-path"
+                              name="dockerfilePath"
+                              onChange={(event) => setDockerfilePath(event.target.value)}
+                              placeholder="docker/Dockerfile"
+                              spellCheck={false}
+                              value={dockerfilePath}
+                            />
+                          </FormField>
+                        ) : null}
+
+                        {supportsDockerInputs ? (
+                          <FormField
+                            hint="Defaults to the repo root when omitted."
+                            htmlFor="create-build-context-dir"
+                            label="Build context"
+                            optionalLabel="Optional"
+                          >
+                            <input
+                              autoCapitalize="none"
+                              autoComplete="off"
+                              className="fg-input"
+                              id="create-build-context-dir"
+                              name="buildContextDir"
+                              onChange={(event) => setBuildContextDir(event.target.value)}
+                              placeholder="."
+                              spellCheck={false}
+                              value={buildContextDir}
+                            />
+                          </FormField>
+                        ) : null}
+
+                        <FormField
+                          hint="Override the public HTTP port when the image does not expose it."
+                          htmlFor="create-service-port"
+                          label="Service port"
+                          optionalLabel="Optional"
+                        >
+                          <input
+                            autoComplete="off"
+                            className="fg-input"
+                            id="create-service-port"
+                            inputMode="numeric"
+                            name="servicePort"
+                            onChange={(event) => setServicePort(event.target.value)}
+                            placeholder="3333"
+                            value={servicePort}
+                          />
                         </FormField>
                       </div>
                     </details>
