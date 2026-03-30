@@ -14,6 +14,7 @@ type AdminClusterAppView = {
   canRebuild: boolean;
   id: string;
   name: string;
+  ownerLabel: string;
   phase: string;
   phaseTone: "positive" | "warning" | "danger" | "info" | "neutral";
   projectLabel: string;
@@ -30,7 +31,6 @@ type AdminClusterAppView = {
     meta: string;
     title: string;
   }>;
-  tenantLabel: string;
   updatedExact: string;
   updatedLabel: string;
 };
@@ -168,7 +168,7 @@ export function AdminAppManager({
           <tr>
             <th>Name</th>
             <th>App identifier</th>
-            <th>Tenant</th>
+            <th>User email</th>
             <th>Project</th>
             <th>Route</th>
             <th>Runtime</th>
@@ -193,8 +193,8 @@ export function AdminAppManager({
                 </span>
               </td>
               <td>
-                <span className="fg-console-table__clip" title={app.tenantLabel}>
-                  {app.tenantLabel}
+                <span className="fg-console-table__clip" title={app.ownerLabel}>
+                  {app.ownerLabel}
                 </span>
               </td>
               <td>

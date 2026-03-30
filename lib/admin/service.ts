@@ -30,6 +30,7 @@ export type AdminClusterAppView = {
   canRebuild: boolean;
   id: string;
   name: string;
+  ownerLabel: string;
   phase: string;
   phaseTone: ConsoleTone;
   projectLabel: string;
@@ -46,7 +47,6 @@ export type AdminClusterAppView = {
     meta: string;
     title: string;
   }>;
-  tenantLabel: string;
   updatedExact: string;
   updatedLabel: string;
 };
@@ -441,10 +441,14 @@ function readRouteInfo(app: FugueApp) {
 function mapAdminApps(
   apps: FugueApp[],
   projects: FugueProject[],
+  workspaces: WorkspaceSnapshot[],
   tenants: FugueTenant[],
 ) {
   const projectNames = new Map(
     projects.map((project) => [project.id, project.name] as const),
+  );
+  const workspaceEmailsByTenant = new Map(
+    workspaces.map((workspace) => [workspace.tenantId, workspace.email] as const),
   );
   const tenantNames = new Map(
     tenants.map((tenant) => [tenant.id, tenant.name] as const),
@@ -466,6 +470,11 @@ function mapAdminApps(
         canRebuild: canRebuildApp(app),
         id: app.id,
         name: app.name,
+        ownerLabel: app.tenantId
+          ? workspaceEmailsByTenant.get(app.tenantId) ??
+            tenantNames.get(app.tenantId) ??
+            shortId(app.tenantId)
+          : "Unknown",
         phase: humanize(phase),
         phaseTone: toneForStatus(phase),
         projectLabel: app.projectId ? projectNames.get(app.projectId) ?? shortId(app.projectId) : "Unassigned",
@@ -475,7 +484,6 @@ function mapAdminApps(
         sourceHref: readGitHubSourceHref(app.source.repoUrl),
         sourceLabel: formatRepoLabel(app),
         stack: buildAppStack(app),
-        tenantLabel: app.tenantId ? tenantNames.get(app.tenantId) ?? shortId(app.tenantId) : "Unknown",
         updatedExact: formatExactTime(updatedAt),
         updatedLabel: formatRelativeTime(updatedAt),
       } satisfies AdminClusterAppView;
@@ -1030,9 +1038,10 @@ export async function getAdminAppsPageData(): Promise<AdminAppsPageData> {
     };
   }
 
-  const [tenantsResult, appsResult] = await Promise.allSettled([
+  const [tenantsResult, appsResult, workspacesResult] = await Promise.allSettled([
     getFugueTenants(bootstrapKey),
     getFugueApps(bootstrapKey),
+    listWorkspaceSnapshots(),
   ]);
 
   const errors = [
@@ -1042,17 +1051,21 @@ export async function getAdminAppsPageData(): Promise<AdminAppsPageData> {
     appsResult.status === "rejected"
       ? `apps: ${readErrorMessage(appsResult.reason)}`
       : null,
+    workspacesResult.status === "rejected"
+      ? `workspaces: ${readErrorMessage(workspacesResult.reason)}`
+      : null,
   ].filter((value): value is string => Boolean(value));
 
   const tenants = tenantsResult.status === "fulfilled" ? tenantsResult.value : [];
   const apps = appsResult.status === "fulfilled" ? appsResult.value : [];
+  const workspaces = workspacesResult.status === "fulfilled" ? workspacesResult.value : [];
   const projectData =
     tenantsResult.status === "fulfilled"
       ? await getClusterProjects(bootstrapKey, tenants)
       : { errors: [], projects: [] };
   const projects = projectData.projects;
   errors.push(...projectData.errors);
-  const views = mapAdminApps(apps, projects, tenants);
+  const views = mapAdminApps(apps, projects, workspaces, tenants);
 
   return {
     apps: views,
