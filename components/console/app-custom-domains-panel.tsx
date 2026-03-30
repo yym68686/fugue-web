@@ -77,9 +77,31 @@ function readStringValue(record: Record<string, unknown> | null, key: string) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
+function readStringValueAny(record: Record<string, unknown> | null, keys: string[]) {
+  for (const key of keys) {
+    const value = readStringValue(record, key);
+
+    if (value) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
 function readBooleanValue(record: Record<string, unknown> | null, key: string) {
   const value = record?.[key];
   return typeof value === "boolean" ? value : false;
+}
+
+function readBooleanValueAny(record: Record<string, unknown> | null, keys: string[]) {
+  for (const key of keys) {
+    if (typeof record?.[key] === "boolean") {
+      return readBooleanValue(record, key);
+    }
+  }
+
+  return false;
 }
 
 function normalizeHostname(value?: string | null) {
@@ -171,18 +193,24 @@ function sanitizeAppDomain(value: unknown): AppDomain | null {
   }
 
   return {
-    appId: readStringValue(record, "app_id"),
-    createdAt: readStringValue(record, "created_at"),
+    appId: readStringValueAny(record, ["app_id", "appId"]),
+    createdAt: readStringValueAny(record, ["created_at", "createdAt"]),
     hostname,
-    lastCheckedAt: readStringValue(record, "last_checked_at"),
-    lastMessage: readStringValue(record, "last_message"),
-    routeTarget: readStringValue(record, "route_target"),
+    lastCheckedAt: readStringValueAny(record, ["last_checked_at", "lastCheckedAt"]),
+    lastMessage: readStringValueAny(record, ["last_message", "lastMessage"]),
+    routeTarget: readStringValueAny(record, ["route_target", "routeTarget"]),
     status: readStringValue(record, "status"),
-    tenantId: readStringValue(record, "tenant_id"),
-    updatedAt: readStringValue(record, "updated_at"),
-    verificationTxtName: readStringValue(record, "verification_txt_name"),
-    verificationTxtValue: readStringValue(record, "verification_txt_value"),
-    verifiedAt: readStringValue(record, "verified_at"),
+    tenantId: readStringValueAny(record, ["tenant_id", "tenantId"]),
+    updatedAt: readStringValueAny(record, ["updated_at", "updatedAt"]),
+    verificationTxtName: readStringValueAny(record, [
+      "verification_txt_name",
+      "verificationTxtName",
+    ]),
+    verificationTxtValue: readStringValueAny(record, [
+      "verification_txt_value",
+      "verificationTxtValue",
+    ]),
+    verifiedAt: readStringValueAny(record, ["verified_at", "verifiedAt"]),
   };
 }
 
@@ -225,7 +253,7 @@ function readDomainMutationResponse(value: unknown): AppDomainMutationResponse {
   const record = asRecord(value);
 
   return {
-    alreadyCurrent: readBooleanValue(record, "already_current"),
+    alreadyCurrent: readBooleanValueAny(record, ["already_current", "alreadyCurrent"]),
     availability: sanitizeAppDomainAvailability(record?.availability),
     domain: sanitizeAppDomain(record?.domain),
   };
