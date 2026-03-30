@@ -9,6 +9,7 @@ pnpm-debug.log*
 .env*
 !.env.example
 .data
+.fugue-edit
 .codex/
 *.tsbuildinfo
 .eslintcache
