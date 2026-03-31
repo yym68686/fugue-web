@@ -118,6 +118,21 @@ function extractDomainTarget(value?: string | null) {
   return normalizeHostname(match?.[1] ?? null);
 }
 
+function buildDNSGuidanceMessage(hostname?: string | null, target?: string | null) {
+  const normalizedHostname = normalizeHostname(hostname);
+  const normalizedTarget = normalizeHostname(target);
+
+  if (!normalizedTarget) {
+    return "Finish DNS setup and Fugue will verify this hostname automatically.";
+  }
+
+  if (!normalizedHostname) {
+    return `Create a CNAME record pointing to ${normalizedTarget}. Fugue will verify it automatically once DNS resolves.`;
+  }
+
+  return `Create a CNAME record for ${normalizedHostname} pointing to ${normalizedTarget}. Fugue will verify it automatically once DNS resolves.`;
+}
+
 function sanitizeCustomDomainInput(value: string) {
   let normalized = value.trim().toLowerCase();
   normalized = normalized.replace(/[。．｡]/g, ".");
@@ -332,6 +347,12 @@ function domainHasUnresolvedIssue(domain: AppDomain) {
 }
 
 function readDomainAttentionMessage(domain: AppDomain) {
+  const target = extractDomainTarget(domain.lastMessage) ?? domain.routeTarget;
+
+  if (target) {
+    return buildDNSGuidanceMessage(domain.hostname, target);
+  }
+
   return domain.lastMessage ?? "Fugue is waiting for DNS to resolve for this hostname.";
 }
 
@@ -367,7 +388,9 @@ function readFieldState(options: {
 
     return {
       label: targetFromSubmission ? "DNS needed" : "Not ready",
-      detail: submissionError,
+      detail: targetFromSubmission
+        ? buildDNSGuidanceMessage(draft, targetFromSubmission)
+        : submissionError,
       variant: targetFromSubmission ? ("info" as const) : ("error" as const),
     } satisfies DomainFieldState;
   }
@@ -453,7 +476,7 @@ function readFieldState(options: {
   }
 
   return {
-    label: "Ready",
+    label: "Available",
     detail: hasAttachedDomain
       ? "Hostname looks good. Save to replace the current domain."
       : "Hostname looks good. Save to attach it.",
@@ -463,6 +486,12 @@ function readFieldState(options: {
 
 function readDomainConnectedToast(domain: AppDomain, appName: string, alreadyCurrent = false) {
   switch (readDomainSetupStatus(domain)) {
+    case "dns-pending": {
+      const guidance = buildDNSGuidanceMessage(domain.hostname, domain.routeTarget);
+      return alreadyCurrent
+        ? `${domain.hostname} is already attached to ${appName}. ${guidance}`
+        : `${domain.hostname} is attached to ${appName}. ${guidance}`;
+    }
     case "ready":
       return alreadyCurrent
         ? `${domain.hostname} is already serving ${appName}.`
@@ -474,13 +503,11 @@ function readDomainConnectedToast(domain: AppDomain, appName: string, alreadyCur
         ? `${domain.hostname} is already attached to ${appName}. Fugue is finishing setup now.`
         : `${domain.hostname} is attached to ${appName}. Fugue is finishing setup now.`;
     default:
-      return alreadyCurrent
-        ? `${domain.hostname} is already attached to ${appName}.`
-        : `${domain.hostname} is verified and now serving ${appName}.`;
+      return alreadyCurrent ? `${domain.hostname} is already attached to ${appName}.` : `${domain.hostname} is attached to ${appName}.`;
   }
 }
 
-function buildCurrentDomainAvailability(hostname?: string | null) {
+function buildAttachedDomainAvailability(hostname?: string | null, current = false) {
   const normalizedHostname = normalizeHostname(hostname);
 
   if (!normalizedHostname) {
@@ -489,12 +516,16 @@ function buildCurrentDomainAvailability(hostname?: string | null) {
 
   return {
     available: true,
-    current: true,
+    current,
     hostname: normalizedHostname,
     input: normalizedHostname,
     reason: null,
     valid: true,
   } satisfies AppDomainAvailability;
+}
+
+function buildAvailabilityForDomain(domain?: AppDomain | null) {
+  return buildAttachedDomainAvailability(domain?.hostname, Boolean(domain && isDomainVerified(domain)));
 }
 
 export function AppCustomDomainsPanel({
@@ -516,6 +547,7 @@ export function AppCustomDomainsPanel({
   const normalizedDraft = normalizeHostname(draft);
   const normalizedBaseline = normalizeHostname(baselineHostname);
   const isDirty = normalizedDraft !== normalizedBaseline;
+  const submissionTarget = extractDomainTarget(submissionError);
   const loadErrorMessage =
     domainsState === "error"
       ? availabilityError ?? "Unable to load the current custom domain right now."
@@ -531,7 +563,7 @@ export function AppCustomDomainsPanel({
     submissionError,
   });
   const fieldInvalid =
-    Boolean(submissionError) ||
+    Boolean(submissionError && !submissionTarget) ||
     availabilityState === "error" ||
     (availabilityState === "ready" &&
       Boolean(
@@ -559,12 +591,13 @@ export function AppCustomDomainsPanel({
       );
 
       const nextDomains = sortDomains(payload.domains);
-      const nextHostname = nextDomains[0]?.hostname ?? "";
+      const nextDomain = nextDomains[0] ?? null;
+      const nextHostname = nextDomain?.hostname ?? "";
 
       setDomains(nextDomains);
       setDraft(nextHostname);
       setBaselineHostname(nextHostname);
-      setAvailability(buildCurrentDomainAvailability(nextHostname));
+      setAvailability(buildAvailabilityForDomain(nextDomain));
       setAvailabilityError(null);
       setAvailabilityState(nextHostname ? "ready" : "idle");
       setSubmissionError(null);
@@ -576,8 +609,10 @@ export function AppCustomDomainsPanel({
   }
 
   function resetDraft() {
+    const baselineDomain = findDomain(domains, baselineHostname);
+
     setDraft(baselineHostname);
-    setAvailability(buildCurrentDomainAvailability(baselineHostname));
+    setAvailability(buildAvailabilityForDomain(baselineDomain));
     setAvailabilityError(null);
     setAvailabilityState(normalizedBaseline ? "ready" : "idle");
     setSubmissionError(null);
@@ -602,7 +637,7 @@ export function AppCustomDomainsPanel({
     }
 
     if (!isDirty) {
-      setAvailability(buildCurrentDomainAvailability(normalizedBaseline));
+      setAvailability(buildAvailabilityForDomain(findDomain(domains, normalizedBaseline)));
       setAvailabilityError(null);
       setAvailabilityState(normalizedBaseline ? "ready" : "idle");
       return;
@@ -648,7 +683,7 @@ export function AppCustomDomainsPanel({
       controller.abort();
       window.clearTimeout(timeoutId);
     };
-  }, [appId, domainsState, isDirty, normalizedBaseline, normalizedDraft]);
+  }, [appId, domains, domainsState, isDirty, normalizedBaseline, normalizedDraft]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -694,7 +729,7 @@ export function AppCustomDomainsPanel({
       setDomains((current) => upsertDomain(current, domain));
       setBaselineHostname(domain.hostname);
       setDraft(domain.hostname);
-      setAvailability(buildCurrentDomainAvailability(domain.hostname));
+      setAvailability(response.availability ?? buildAvailabilityForDomain(domain));
       setAvailabilityError(null);
       setAvailabilityState("ready");
       setSubmissionError(null);
@@ -705,10 +740,11 @@ export function AppCustomDomainsPanel({
       });
     } catch (error) {
       const message = readErrorMessage(error);
+      const target = extractDomainTarget(message);
       setSubmissionError(message);
       showToast({
-        message,
-        variant: "error",
+        message: target ? buildDNSGuidanceMessage(normalizedDraft, target) : message,
+        variant: target ? "info" : "error",
       });
     } finally {
       setSubmitting(false);
