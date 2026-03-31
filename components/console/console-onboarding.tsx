@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, startTransition, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, type FormEvent } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { ConsoleDisclosureSection } from "@/components/console/console-disclosure-section";
 import { DeploymentTargetField } from "@/components/console/deployment-target-field";
@@ -81,7 +81,9 @@ export function ConsoleOnboarding({
   runtimeTargets?: ConsoleImportRuntimeTargetView[];
   runtimeTargetInventoryError?: string | null;
 }) {
+  const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { showToast } = useToast();
   const [stage, setStage] = useState<OnboardingStage>(initialStage);
   const [projectName, setProjectName] = useState(defaultProjectName);
@@ -104,6 +106,20 @@ export function ConsoleOnboarding({
   const [selectedRuntimeId, setSelectedRuntimeId] = useState<string | null>(
     () => readDefaultImportRuntimeId(runtimeTargets),
   );
+  const importDialogRequested = searchParams.get("dialog") === "import";
+
+  function replaceDialog(nextDialog: string | null) {
+    const nextParams = new URLSearchParams(searchParams.toString());
+
+    if (nextDialog) {
+      nextParams.set("dialog", nextDialog);
+    } else {
+      nextParams.delete("dialog");
+    }
+
+    const nextSearch = nextParams.toString();
+    router.replace(nextSearch ? `${pathname}?${nextSearch}` : pathname);
+  }
 
   useEffect(() => {
     setStage(initialStage);
@@ -114,10 +130,13 @@ export function ConsoleOnboarding({
   }, [defaultProjectName]);
 
   useEffect(() => {
-    if (initialStage === "needs-import" && defaultImportOpen) {
+    if (initialStage === "needs-import" && importDialogRequested) {
       setImportOpen(true);
+      return;
     }
-  }, [defaultImportOpen, initialStage]);
+
+    setImportOpen(false);
+  }, [importDialogRequested, initialStage]);
 
   useEffect(() => {
     setSelectedRuntimeId((current) =>
@@ -150,9 +169,7 @@ export function ConsoleOnboarding({
       if (event.key === "Escape" && !isImporting) {
         setFlash(null);
         setImportOpen(false);
-        startTransition(() => {
-          router.replace("/app");
-        });
+        replaceDialog(null);
       }
     };
 
@@ -162,7 +179,7 @@ export function ConsoleOnboarding({
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [importOpen, isImporting, router]);
+  }, [importOpen, isImporting]);
 
   async function handleCreateWorkspace() {
     if (isCreating) {
@@ -187,10 +204,8 @@ export function ConsoleOnboarding({
       resetImportForm();
       setStage("needs-import");
       setImportOpen(true);
-      startTransition(() => {
-        router.replace("/app?dialog=import");
-        router.refresh();
-      });
+      replaceDialog("import");
+      router.refresh();
     } catch (error) {
       setFlash({
         message: readErrorMessage(error),
@@ -208,9 +223,7 @@ export function ConsoleOnboarding({
 
     setFlash(null);
     setImportOpen(false);
-    startTransition(() => {
-      router.replace("/app");
-    });
+    replaceDialog(null);
   }
 
   function resetImportForm() {
@@ -287,10 +300,8 @@ export function ConsoleOnboarding({
 
       setImportOpen(false);
       setFlash(null);
-      startTransition(() => {
-        router.replace("/app");
-        router.refresh();
-      });
+      replaceDialog(null);
+      router.refresh();
     } catch (error) {
       setFlash({
         message: readErrorMessage(error),
@@ -363,9 +374,7 @@ export function ConsoleOnboarding({
     setFlash(null);
     resetImportForm();
     setImportOpen(true);
-    startTransition(() => {
-      router.replace("/app?dialog=import");
-    });
+    replaceDialog("import");
   };
 
   return (

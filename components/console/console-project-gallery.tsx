@@ -1,7 +1,7 @@
 "use client";
 
 import { startTransition, useEffect, useRef, useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { CompactResourceMeter } from "@/components/console/compact-resource-meter";
 import { ConsoleDisclosureSection } from "@/components/console/console-disclosure-section";
@@ -1333,7 +1333,9 @@ export function ConsoleProjectGallery({
   defaultCreateOpen?: boolean;
 }) {
   const confirm = useConfirmDialog();
+  const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { showToast } = useToast();
   const [flash, setFlash] = useState<FlashState | null>(null);
   const [createOpen, setCreateOpen] = useState(defaultCreateOpen);
@@ -1462,6 +1464,7 @@ export function ConsoleProjectGallery({
         ? PROJECT_PASSIVE_REFRESH_INTERVAL_MS
         : null;
   const isCreateServiceMode = createTargetProject !== null;
+  const createDialogRequested = searchParams.get("dialog") === "create";
   const createDialogEyebrow = isCreateServiceMode ? "Add service" : "Create project";
   const createDialogCopy = isCreateServiceMode
     ? `Paste a GitHub repository link and choose how Fugue should access it for ${createTargetProject.name}.`
@@ -1501,6 +1504,19 @@ export function ConsoleProjectGallery({
           ? `Unable to open the ${humanizeUiLabel(effectiveLogsMode).toLowerCase()} stream. Use Refresh now to try again.`
           : `Live ${humanizeUiLabel(effectiveLogsMode).toLowerCase()} output for ${selectedService?.name ?? "this service"}.`;
 
+  function replaceDialog(nextDialog: string | null) {
+    const nextParams = new URLSearchParams(searchParams.toString());
+
+    if (nextDialog) {
+      nextParams.set("dialog", nextDialog);
+    } else {
+      nextParams.delete("dialog");
+    }
+
+    const nextSearch = nextParams.toString();
+    router.replace(nextSearch ? `${pathname}?${nextSearch}` : pathname);
+  }
+
   function scrollLogsToBottom() {
     const viewport = logsViewportRef.current;
 
@@ -1522,10 +1538,15 @@ export function ConsoleProjectGallery({
   }
 
   useEffect(() => {
-    if (defaultCreateOpen) {
+    if (createDialogRequested) {
       setCreateOpen(true);
+      return;
     }
-  }, [defaultCreateOpen]);
+
+    if (!createTargetProject) {
+      setCreateOpen(false);
+    }
+  }, [createDialogRequested, createTargetProject]);
 
   useEffect(() => {
     if (!flash) {
@@ -2149,6 +2170,7 @@ export function ConsoleProjectGallery({
     setCreateTargetProject(null);
     resetCreateForm(buildSuggestedProjectName(data.projects.length));
     setCreateOpen(true);
+    replaceDialog("create");
   }
 
   function openCreateService(project: ConsoleGalleryProjectView) {
@@ -2169,9 +2191,7 @@ export function ConsoleProjectGallery({
     setFlash(null);
     setCreateTargetProject(null);
     setCreateOpen(false);
-    startTransition(() => {
-      router.replace("/app");
-    });
+    replaceDialog(null);
   }
 
   async function handleCreateProject(event: FormEvent<HTMLFormElement>) {
@@ -2263,8 +2283,8 @@ export function ConsoleProjectGallery({
         variant: "success",
       });
       resetCreateForm(buildSuggestedProjectName(data.projects.length + 1));
+      replaceDialog(null);
       startTransition(() => {
-        router.replace("/app");
         router.refresh();
       });
     } catch (error) {
