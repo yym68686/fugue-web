@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { ConsoleDisclosureSection } from "@/components/console/console-disclosure-section";
@@ -106,6 +113,7 @@ export function ConsoleOnboarding({
   const [selectedRuntimeId, setSelectedRuntimeId] = useState<string | null>(
     () => readDefaultImportRuntimeId(runtimeTargets),
   );
+  const importBackdropPressStartedRef = useRef(false);
   const importDialogRequested = searchParams.get("dialog") === "import";
 
   function replaceDialog(nextDialog: string | null) {
@@ -119,6 +127,23 @@ export function ConsoleOnboarding({
 
     const nextSearch = nextParams.toString();
     router.replace(nextSearch ? `${pathname}?${nextSearch}` : pathname);
+  }
+
+  function handleImportBackdropPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
+    importBackdropPressStartedRef.current = event.target === event.currentTarget;
+  }
+
+  function handleImportBackdropClick(event: ReactMouseEvent<HTMLDivElement>) {
+    const shouldClose =
+      importBackdropPressStartedRef.current && event.target === event.currentTarget;
+
+    importBackdropPressStartedRef.current = false;
+
+    if (!shouldClose) {
+      return;
+    }
+
+    closeImport();
   }
 
   useEffect(() => {
@@ -427,7 +452,8 @@ export function ConsoleOnboarding({
         <div
           aria-hidden={isImporting}
           className="fg-console-dialog-backdrop"
-          onClick={closeImport}
+          onClick={handleImportBackdropClick}
+          onPointerDown={handleImportBackdropPointerDown}
         >
           <div
             aria-labelledby="fugue-import-title"

@@ -1,6 +1,14 @@
 "use client";
 
-import { startTransition, useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  startTransition,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { CompactResourceMeter } from "@/components/console/compact-resource-meter";
@@ -1385,6 +1393,7 @@ export function ConsoleProjectGallery({
   const logsAutoFollowRef = useRef(true);
   const logsViewportRef = useRef<HTMLPreElement | null>(null);
   const pendingCommitHintRequestPendingRef = useRef(false);
+  const createBackdropPressStartedRef = useRef(false);
   const selectedServiceAppRef = useRef<ConsoleGalleryAppView | null>(null);
   const selectedAppNeedsPendingCommitHintRef = useRef(false);
 
@@ -1515,6 +1524,23 @@ export function ConsoleProjectGallery({
 
     const nextSearch = nextParams.toString();
     router.replace(nextSearch ? `${pathname}?${nextSearch}` : pathname);
+  }
+
+  function handleCreateBackdropPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
+    createBackdropPressStartedRef.current = event.target === event.currentTarget;
+  }
+
+  function handleCreateBackdropClick(event: ReactMouseEvent<HTMLDivElement>) {
+    const shouldClose =
+      createBackdropPressStartedRef.current && event.target === event.currentTarget;
+
+    createBackdropPressStartedRef.current = false;
+
+    if (!shouldClose) {
+      return;
+    }
+
+    closeCreate();
   }
 
   function scrollLogsToBottom() {
@@ -3388,7 +3414,11 @@ export function ConsoleProjectGallery({
       </div>
 
       {createOpen ? (
-        <div className="fg-console-dialog-backdrop" onClick={closeCreate}>
+        <div
+          className="fg-console-dialog-backdrop"
+          onClick={handleCreateBackdropClick}
+          onPointerDown={handleCreateBackdropPointerDown}
+        >
           <div
             aria-labelledby="fugue-create-project-title"
             aria-modal="true"

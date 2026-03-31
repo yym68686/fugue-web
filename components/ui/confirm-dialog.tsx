@@ -9,6 +9,8 @@ import {
   useRef,
   useState,
   type KeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
@@ -98,6 +100,7 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
   const queueRef = useRef<ConfirmDialogRecord[]>([]);
   const previousRecordRef = useRef<ConfirmDialogRecord | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const backdropPressStartedRef = useRef(false);
   const activeRecord = queue[0] ?? null;
   const titleId = activeRecord ? `fg-confirm-dialog-title-${activeRecord.id}` : undefined;
   const descriptionId =
@@ -250,6 +253,23 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  function handleBackdropPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
+    backdropPressStartedRef.current = event.target === event.currentTarget;
+  }
+
+  function handleBackdropClick(event: ReactMouseEvent<HTMLDivElement>) {
+    const shouldDismiss =
+      backdropPressStartedRef.current && event.target === event.currentTarget;
+
+    backdropPressStartedRef.current = false;
+
+    if (!shouldDismiss) {
+      return;
+    }
+
+    dismissActiveRecord(false);
+  }
+
   return (
     <ConfirmDialogContext.Provider value={contextValue}>
       {children}
@@ -258,11 +278,8 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
             <div
               className="fg-confirm-dialog-backdrop"
               data-state="open"
-              onClick={(event) => {
-                if (event.target === event.currentTarget) {
-                  dismissActiveRecord(false);
-                }
-              }}
+              onClick={handleBackdropClick}
+              onPointerDown={handleBackdropPointerDown}
             >
               <div
                 aria-describedby={descriptionId}
