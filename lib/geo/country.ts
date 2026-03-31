@@ -260,11 +260,21 @@ export type CountryLocationView = {
 
 const COUNTRY_CODE_SET = new Set<string>(COUNTRY_CODES);
 const REGION_DISPLAY_NAMES = new Intl.DisplayNames(["en"], { type: "region" });
+const COUNTRY_LABEL_OVERRIDES: Partial<Record<CountryCode, string>> = {
+  HK: "Hong Kong",
+  MO: "Macao",
+};
 const COUNTRY_NAME_ALIASES = {
   "czech republic": "CZ",
   "great britain": "GB",
+  "hong kong": "HK",
+  "hong kong sar": "HK",
+  "hong kong sar china": "HK",
   iran: "IR",
   laos: "LA",
+  macao: "MO",
+  "macao sar china": "MO",
+  macau: "MO",
   moldova: "MD",
   "north korea": "KP",
   russia: "RU",
@@ -290,17 +300,36 @@ function normalizeCountryKey(value: string) {
     .replace(/\s+/g, " ");
 }
 
+function readCountryDisplayLabel(value?: string | null) {
+  const trimmed = value?.trim();
+
+  if (!trimmed) {
+    return null;
+  }
+
+  const upper = trimmed.toUpperCase();
+
+  if (!COUNTRY_CODE_SET.has(upper)) {
+    return null;
+  }
+
+  const countryCode = upper as CountryCode;
+  return COUNTRY_LABEL_OVERRIDES[countryCode] ?? REGION_DISPLAY_NAMES.of(countryCode) ?? null;
+}
+
 const COUNTRY_NAME_TO_CODE = (() => {
   const lookup = new Map<string, string>();
 
   for (const code of COUNTRY_CODES) {
-    const label = REGION_DISPLAY_NAMES.of(code);
+    const displayNames = [REGION_DISPLAY_NAMES.of(code), readCountryDisplayLabel(code)];
 
-    if (!label) {
-      continue;
+    for (const label of displayNames) {
+      if (!label) {
+        continue;
+      }
+
+      lookup.set(normalizeCountryKey(label), code);
     }
-
-    lookup.set(normalizeCountryKey(label), code);
   }
 
   for (const [alias, code] of Object.entries(COUNTRY_NAME_ALIASES)) {
@@ -310,7 +339,7 @@ const COUNTRY_NAME_TO_CODE = (() => {
   return lookup;
 })();
 
-export function readCountryCode(value?: string | null) {
+export function readCountryCode(value?: string | null): CountryCode | null {
   const trimmed = value?.trim();
 
   if (!trimmed) {
@@ -320,10 +349,10 @@ export function readCountryCode(value?: string | null) {
   const upper = trimmed.toUpperCase();
 
   if (COUNTRY_CODE_SET.has(upper)) {
-    return upper;
+    return upper as CountryCode;
   }
 
-  return COUNTRY_NAME_TO_CODE.get(normalizeCountryKey(trimmed)) ?? null;
+  return (COUNTRY_NAME_TO_CODE.get(normalizeCountryKey(trimmed)) as CountryCode | undefined) ?? null;
 }
 
 export function readCountryLabel(value?: string | null) {
@@ -339,7 +368,7 @@ export function readCountryLabel(value?: string | null) {
     return trimmed;
   }
 
-  return REGION_DISPLAY_NAMES.of(countryCode) ?? trimmed;
+  return readCountryDisplayLabel(countryCode) ?? trimmed;
 }
 
 export function readCountryLocation(

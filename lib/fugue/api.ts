@@ -342,6 +342,10 @@ export type FugueAppDomain = {
   routeTarget: string | null;
   status: string | null;
   tenantId: string | null;
+  tlsLastCheckedAt: string | null;
+  tlsLastMessage: string | null;
+  tlsReadyAt: string | null;
+  tlsStatus: string | null;
   updatedAt: string | null;
   verificationTxtName: string | null;
   verificationTxtValue: string | null;
@@ -853,6 +857,10 @@ function sanitizeAppDomain(value: unknown): FugueAppDomain | null {
     routeTarget: readString(record, "route_target"),
     status: readString(record, "status"),
     tenantId: readString(record, "tenant_id"),
+    tlsLastCheckedAt: readString(record, "tls_last_checked_at"),
+    tlsLastMessage: readString(record, "tls_last_message"),
+    tlsReadyAt: readString(record, "tls_ready_at"),
+    tlsStatus: readString(record, "tls_status"),
     updatedAt: readString(record, "updated_at"),
     verificationTxtName: readString(record, "verification_txt_name"),
     verificationTxtValue: readString(record, "verification_txt_value"),

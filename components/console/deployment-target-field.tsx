@@ -1,6 +1,7 @@
 import { StatusBadge } from "@/components/console/status-badge";
 import { FormField } from "@/components/ui/form-field";
 import { InlineAlert } from "@/components/ui/inline-alert";
+import { SelectField } from "@/components/ui/select-field";
 import type { ConsoleImportRuntimeTargetView } from "@/lib/console/gallery-types";
 import {
   buildImportRuntimeTargetGroups,
@@ -39,6 +40,7 @@ function RuntimeTargetCard({
   onChange?: (groupId: string) => void;
   readOnly?: boolean;
 }) {
+  const shouldShowStatus = Boolean(group.statusLabel && group.statusTone !== "positive");
   const content = (
     <>
       <span className="fg-runtime-target-card__head">
@@ -46,7 +48,7 @@ function RuntimeTargetCard({
           {group.kindLabel}
         </span>
         <span className="fg-runtime-target-card__head-side">
-          {group.statusLabel ? (
+          {shouldShowStatus ? (
             <StatusBadge tone={group.statusTone ?? "neutral"}>
               {group.statusLabel}
             </StatusBadge>
@@ -107,7 +109,6 @@ export function DeploymentTargetField({
   targets: ConsoleImportRuntimeTargetView[];
   value: string | null;
 }) {
-  const hintId = `${name}-hint`;
   const availableTargets = targets.length > 0 ? targets : [DEFAULT_INTERNAL_CLUSTER_TARGET];
   const groups = buildImportRuntimeTargetGroups(availableTargets);
   const selectedGroupId = readSelectedRuntimeTargetGroupId(groups, value);
@@ -131,11 +132,19 @@ export function DeploymentTargetField({
     onChange?.(readDefaultRuntimeIdForTargetGroup(group));
   }
 
+  const regionHint =
+    selectedGroup?.options.length === 1
+      ? "This target uses one fixed region."
+      : selectedGroup?.category === "internal-cluster"
+        ? "Leave this on Any available region to let Fugue place the deployment."
+        : "Choose the machine region.";
+  const fixedRegionLabel =
+    selectedGroup?.options.length === 1
+      ? readRuntimeTargetOptionLabel(selectedGroup.options[0] ?? DEFAULT_INTERNAL_CLUSTER_TARGET)
+      : null;
+
   return (
-    <fieldset
-      aria-describedby={hintId}
-      className="fg-field-stack fg-runtime-target-field"
-    >
+    <fieldset className="fg-field-stack fg-runtime-target-field">
       <legend className="fg-field-label fg-runtime-target-field__legend">
         <span>Deployment target</span>
       </legend>
@@ -147,60 +156,67 @@ export function DeploymentTargetField({
         </InlineAlert>
       ) : null}
 
-      {groups.length > 1 ? (
-        <div className="fg-runtime-target-list">
-          {groups.map((group) => (
-            <RuntimeTargetCard
-              group={group}
-              inputId={`${name}-${group.id}`}
-              isSelected={group.id === selectedGroupId}
-              key={group.id}
-              name={`${name}-group`}
-              onChange={handleGroupChange}
-            />
-          ))}
-        </div>
-      ) : selectedGroup ? (
-        <RuntimeTargetCard
-          group={selectedGroup}
-          inputId={`${name}-${selectedGroup.id}`}
-          isSelected
-          name={name}
-          readOnly
-        />
-      ) : null}
+      <div className="fg-runtime-target-field__section">
+        {groups.length > 1 ? (
+          <div className="fg-runtime-target-list">
+            {groups.map((group) => (
+              <RuntimeTargetCard
+                group={group}
+                inputId={`${name}-${group.id}`}
+                isSelected={group.id === selectedGroupId}
+                key={group.id}
+                name={`${name}-group`}
+                onChange={handleGroupChange}
+              />
+            ))}
+          </div>
+        ) : selectedGroup ? (
+          <RuntimeTargetCard
+            group={selectedGroup}
+            inputId={`${name}-${selectedGroup.id}`}
+            isSelected
+            name={name}
+            readOnly
+          />
+        ) : null}
+      </div>
 
       {selectedGroup ? (
-        <FormField
-          hint={
-            selectedGroup.category === "internal-cluster"
-              ? "Choose a region, or leave it on Any available region."
-              : "Choose the machine region."
-          }
-          htmlFor={regionSelectId}
-          label="Deployment region"
-          optionalLabel={
-            selectedGroup.options.length === 1 ? "Single choice" : undefined
-          }
-        >
-          <select
-            className="fg-input"
-            id={regionSelectId}
-            onChange={(event) => onChange?.(event.target.value)}
-            value={selectedRuntimeId}
+        <div className="fg-runtime-target-field__section fg-runtime-target-field__section--region">
+          <FormField
+            hint={regionHint}
+            htmlFor={regionSelectId}
+            label="Deployment region"
+            optionalLabel={
+              selectedGroup.options.length === 1 ? "Fixed" : undefined
+            }
           >
-            {selectedGroup.options.map((option) => (
-              <option key={option.id} value={option.id}>
-                {readRuntimeTargetOptionLabel(option)}
-              </option>
-            ))}
-          </select>
-        </FormField>
+            {selectedGroup.options.length > 1 ? (
+              <SelectField
+                id={regionSelectId}
+                onChange={(event) => onChange?.(event.target.value)}
+                value={selectedRuntimeId}
+              >
+                {selectedGroup.options.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {readRuntimeTargetOptionLabel(option)}
+                  </option>
+                ))}
+              </SelectField>
+            ) : (
+              <output
+                className="fg-static-choice"
+                id={regionSelectId}
+              >
+                <span className="fg-static-choice__label">
+                  {fixedRegionLabel}
+                </span>
+                <span className="fg-static-choice__meta">Only region available</span>
+              </output>
+            )}
+          </FormField>
+        </div>
       ) : null}
-
-      <span className="fg-field-hint" id={hintId}>
-        Pick a target, then choose its region.
-      </span>
     </fieldset>
   );
 }

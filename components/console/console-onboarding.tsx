@@ -3,10 +3,12 @@
 import { useEffect, useState, startTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
+import { ConsoleDisclosureSection } from "@/components/console/console-disclosure-section";
 import { DeploymentTargetField } from "@/components/console/deployment-target-field";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { Panel, PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
+import { SelectField } from "@/components/ui/select-field";
 import { useToast } from "@/components/ui/toast";
 import type { ConsoleImportRuntimeTargetView } from "@/lib/console/gallery-types";
 import { readDefaultImportRuntimeId } from "@/lib/console/runtime-targets";
@@ -438,8 +440,11 @@ export function ConsoleOnboarding({
                       value={selectedRuntimeId}
                     />
 
-                    <details className="fg-console-disclosure fg-console-dialog__advanced">
-                      <summary>Advanced</summary>
+                    <ConsoleDisclosureSection
+                      className="fg-console-dialog__advanced"
+                      description="Branch, app name, build strategy, and optional source paths."
+                      summary="Advanced settings"
+                    >
                       <div className="fg-console-dialog__advanced-grid">
                         <FormField
                           hint="Leave blank to use the default branch."
@@ -482,9 +487,8 @@ export function ConsoleOnboarding({
                           htmlFor="build-strategy"
                           label="Build strategy"
                         >
-                          <select
+                          <SelectField
                             autoComplete="off"
-                            className="fg-input"
                             id="build-strategy"
                             name="buildStrategy"
                             onChange={(event) =>
@@ -497,7 +501,7 @@ export function ConsoleOnboarding({
                                 {option.label}
                               </option>
                             ))}
-                          </select>
+                          </SelectField>
                         </FormField>
 
                         {supportsSourceDir ? (
@@ -581,7 +585,7 @@ export function ConsoleOnboarding({
                           />
                         </FormField>
                       </div>
-                    </details>
+                    </ConsoleDisclosureSection>
                   </div>
 
                   <div className="fg-console-dialog__actions">

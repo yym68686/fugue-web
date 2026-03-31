@@ -3,6 +3,7 @@
 import { startTransition, useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
+import { ConsoleDisclosureSection } from "@/components/console/console-disclosure-section";
 import { DeploymentTargetField } from "@/components/console/deployment-target-field";
 import { StatusBadge } from "@/components/console/status-badge";
 import { AppRoutePanel } from "@/components/console/app-route-panel";
@@ -12,6 +13,7 @@ import { CountryFlagLabel } from "@/components/ui/country-flag-label";
 import { FormField } from "@/components/ui/form-field";
 import { Panel, PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
 import { ProofShell, ProofShellEmpty, ProofShellRibbon } from "@/components/ui/proof-shell";
+import { SelectField } from "@/components/ui/select-field";
 import { SegmentedControl, type SegmentedControlOption } from "@/components/ui/segmented-control";
 import { TechStackLogo } from "@/components/ui/tech-stack-logo";
 import { useToast } from "@/components/ui/toast";
@@ -2668,7 +2670,9 @@ export function ConsoleProjectGallery({
                                 <StatusBadge live={shouldShowLiveStatusBadge(serviceStatus)} tone={serviceStatusTone}>
                                   {serviceStatus}
                                 </StatusBadge>
-                                {cardStatusMeta ? <span>{cardStatusMeta}</span> : null}
+                                {cardStatusMeta ? (
+                                  <span className="fg-project-service-card__status-meta">{cardStatusMeta}</span>
+                                ) : null}
                               </div>
                             </div>
 
@@ -3231,8 +3235,11 @@ export function ConsoleProjectGallery({
                       value={selectedRuntimeId}
                     />
 
-                    <details className="fg-console-disclosure fg-console-dialog__advanced">
-                      <summary>Advanced</summary>
+                    <ConsoleDisclosureSection
+                      className="fg-console-dialog__advanced"
+                      description="Branch, app name, build strategy, and optional source paths."
+                      summary="Advanced settings"
+                    >
                       <div className="fg-console-dialog__advanced-grid">
                         <FormField
                           hint="Leave blank to use the default branch."
@@ -3275,9 +3282,8 @@ export function ConsoleProjectGallery({
                           htmlFor="create-build-strategy"
                           label="Build strategy"
                         >
-                          <select
+                          <SelectField
                             autoComplete="off"
-                            className="fg-input"
                             id="create-build-strategy"
                             name="buildStrategy"
                             onChange={(event) => setBuildStrategy(event.target.value as BuildStrategyValue)}
@@ -3288,7 +3294,7 @@ export function ConsoleProjectGallery({
                                 {option.label}
                               </option>
                             ))}
-                          </select>
+                          </SelectField>
                         </FormField>
 
                         {supportsSourceDir ? (
@@ -3372,7 +3378,7 @@ export function ConsoleProjectGallery({
                           />
                         </FormField>
                       </div>
-                    </details>
+                    </ConsoleDisclosureSection>
                   </div>
 
                   <div className="fg-console-dialog__actions">

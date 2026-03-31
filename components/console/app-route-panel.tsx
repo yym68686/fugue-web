@@ -258,7 +258,7 @@ function buildCurrentAvailability(
 }
 
 function readRouteFieldHint() {
-  return "Lowercase letters, numbers, and hyphens only.";
+  return "Use lowercase letters, numbers, and hyphens.";
 }
 
 function readRouteFieldState(options: {
@@ -313,9 +313,9 @@ function readRouteFieldState(options: {
 
   if (availability.current || !isDirty) {
     return {
-      label: "Current",
+      label: "Ready",
       detail: null,
-      variant: "neutral" as const,
+      variant: "success" as const,
     } satisfies RouteFieldState;
   }
 
@@ -438,7 +438,16 @@ export function AppRoutePanel({
       controller.abort();
       window.clearTimeout(timeoutId);
     };
-  }, [appId, baseDomain, checkToken, currentHostname, currentPublicUrl, isDirty, normalizedBaseline, normalizedDraft]);
+  }, [
+    appId,
+    baseDomain,
+    checkToken,
+    currentHostname,
+    currentPublicUrl,
+    isDirty,
+    normalizedBaseline,
+    normalizedDraft,
+  ]);
 
   const fieldState = useMemo(
     () =>
@@ -548,40 +557,15 @@ export function AppRoutePanel({
   }
 
   return (
-    <div className="fg-route-stack">
-      <div className="fg-workbench-section fg-route-panel">
-        <div className="fg-workbench-section__head">
-          <div className="fg-workbench-section__copy fg-route-section__copy">
-            <p className="fg-label fg-panel__eyebrow">Fugue route</p>
-            <p className="fg-console-note">Change the live Fugue subdomain for {appName}.</p>
-          </div>
+    <div className="fg-workbench-section fg-route-panel">
+      <div className="fg-workbench-section__copy fg-route-panel__copy">
+        <p className="fg-label fg-panel__eyebrow">Domains</p>
+        <p className="fg-console-note">
+          Keep one Fugue subdomain for {appName}, or attach a hostname you control.
+        </p>
+      </div>
 
-          <div className="fg-workbench-section__actions fg-route-section__actions">
-            <Button
-              disabled={!isDirty || saving}
-              onClick={resetDraft}
-              size="compact"
-              type="button"
-              variant="secondary"
-            >
-              Reset
-            </Button>
-            <Button
-              disabled={!canSave}
-              loading={saving}
-              loadingLabel="Saving…"
-              onClick={() => {
-                void saveRoute();
-              }}
-              size="compact"
-              type="button"
-              variant="primary"
-            >
-              Save route
-            </Button>
-          </div>
-        </div>
-
+      <section aria-label="Fugue subdomain" className="fg-route-subsection fg-route-block">
         <div className="fg-route-panel__form">
           <label className="fg-field-stack fg-route-field" htmlFor={`route-hostname-${appId}`}>
             <span className="fg-field-label">
@@ -636,13 +620,37 @@ export function AppRoutePanel({
               {helperText}
             </span>
           </label>
-        </div>
-      </div>
 
-      <AppCustomDomainsPanel
-        appId={appId}
-        appName={appName}
-      />
+          {isDirty || saving ? (
+            <div className="fg-route-panel__form-action">
+              <Button
+                disabled={!isDirty || saving}
+                onClick={resetDraft}
+                size="compact"
+                type="button"
+                variant="secondary"
+              >
+                Reset
+              </Button>
+              <Button
+                disabled={!canSave}
+                loading={saving}
+                loadingLabel="Saving…"
+                onClick={() => {
+                  void saveRoute();
+                }}
+                size="compact"
+                type="button"
+                variant="primary"
+              >
+                Save route
+              </Button>
+            </div>
+          ) : null}
+        </div>
+      </section>
+
+      <AppCustomDomainsPanel appId={appId} appName={appName} />
     </div>
   );
 }

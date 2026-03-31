@@ -17,9 +17,6 @@ export default async function ClusterPage() {
       <ToastOnMount message={errorMessage} variant="error" />
 
       <ConsolePageIntro
-        actions={[
-          { href: "/app/apps", label: "Inspect apps" },
-        ]}
         description="Node health, capacity, and workload placement across the cluster."
         eyebrow="Admin / Cluster"
         title="Cluster"

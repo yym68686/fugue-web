@@ -2,12 +2,8 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 
-import { StatusBadge } from "@/components/console/status-badge";
-import { Button, InlineButton } from "@/components/ui/button";
-import { InlineAlert } from "@/components/ui/inline-alert";
-import { ProofShellEmpty } from "@/components/ui/proof-shell";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
-import { copyText } from "@/lib/ui/clipboard";
 import { cx } from "@/lib/ui/cx";
 
 type AppCustomDomainsPanelProps = {
@@ -26,6 +22,10 @@ type AppDomain = {
   routeTarget: string | null;
   status: string | null;
   tenantId: string | null;
+  tlsLastCheckedAt: string | null;
+  tlsLastMessage: string | null;
+  tlsReadyAt: string | null;
+  tlsStatus: string | null;
   updatedAt: string | null;
   verificationTxtName: string | null;
   verificationTxtValue: string | null;
@@ -53,11 +53,6 @@ type AppDomainMutationResponse = {
   alreadyCurrent: boolean;
   availability: AppDomainAvailability | null;
   domain: AppDomain | null;
-};
-
-type AppDomainVerifyResponse = {
-  domain: AppDomain | null;
-  verified: boolean;
 };
 
 type DomainFieldState = {
@@ -201,6 +196,10 @@ function sanitizeAppDomain(value: unknown): AppDomain | null {
     routeTarget: readStringValueAny(record, ["route_target", "routeTarget"]),
     status: readStringValue(record, "status"),
     tenantId: readStringValueAny(record, ["tenant_id", "tenantId"]),
+    tlsLastCheckedAt: readStringValueAny(record, ["tls_last_checked_at", "tlsLastCheckedAt"]),
+    tlsLastMessage: readStringValueAny(record, ["tls_last_message", "tlsLastMessage"]),
+    tlsReadyAt: readStringValueAny(record, ["tls_ready_at", "tlsReadyAt"]),
+    tlsStatus: readStringValueAny(record, ["tls_status", "tlsStatus"]),
     updatedAt: readStringValueAny(record, ["updated_at", "updatedAt"]),
     verificationTxtName: readStringValueAny(record, [
       "verification_txt_name",
@@ -259,15 +258,6 @@ function readDomainMutationResponse(value: unknown): AppDomainMutationResponse {
   };
 }
 
-function readDomainVerifyResponse(value: unknown): AppDomainVerifyResponse {
-  const record = asRecord(value);
-
-  return {
-    domain: sanitizeAppDomain(record?.domain),
-    verified: readBooleanValue(record, "verified"),
-  };
-}
-
 function parseTimestamp(value?: string | null) {
   if (!value) {
     return 0;
@@ -275,19 +265,6 @@ function parseTimestamp(value?: string | null) {
 
   const parsed = Date.parse(value);
   return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function formatTimestamp(value?: string | null) {
-  const timestamp = parseTimestamp(value);
-
-  if (!timestamp) {
-    return null;
-  }
-
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(timestamp);
 }
 
 function sortDomains(domains: AppDomain[]) {
@@ -331,51 +308,49 @@ function isDomainVerified(domain: AppDomain) {
   return (domain.status?.trim().toLowerCase() ?? "") === "verified";
 }
 
+function readDomainSetupStatus(domain: AppDomain) {
+  if (!isDomainVerified(domain)) {
+    return "dns-pending" as const;
+  }
+
+  switch (domain.tlsStatus?.trim().toLowerCase() ?? "") {
+    case "ready":
+      return "ready" as const;
+    case "error":
+      return "error" as const;
+    default:
+      return "setting-up" as const;
+  }
+}
+
 function domainHasUnresolvedIssue(domain: AppDomain) {
   return Boolean(domain.lastMessage?.trim()) || !isDomainVerified(domain);
 }
 
-function readDomainAttentionMessage(domain: AppDomain, customDomainTarget?: string | null) {
-  return (
-    domain.lastMessage ??
-    (customDomainTarget
-      ? `Point ${domain.hostname} at ${customDomainTarget}, wait for DNS to resolve, then retry verification.`
-      : "Retry verification to fetch the latest DNS guidance from Fugue.")
-  );
+function readDomainAttentionMessage(domain: AppDomain) {
+  return domain.lastMessage ?? "Fugue is waiting for DNS to resolve for this hostname.";
 }
 
 function readDefaultHint() {
-  return "Enter a hostname you control, like app.example.com or example.com. Once it looks valid, Fugue can provide the exact DNS target.";
-}
-
-function readKnownDomainTarget(domains: AppDomain[]) {
-  for (const domain of domains) {
-    const target = normalizeHostname(domain.routeTarget) ?? extractDomainTarget(domain.lastMessage);
-
-    if (target) {
-      return target;
-    }
-  }
-
-  return null;
+  return "Use a hostname you control, like app.example.com or example.com.";
 }
 
 function readFieldState(options: {
   availability: AppDomainAvailability | null;
   availabilityError: string | null;
   availabilityState: AvailabilityState;
-  customDomainTarget: string | null;
   draft: string;
   existingDomain: AppDomain | null;
+  hasAttachedDomain: boolean;
   submissionError: string | null;
 }) {
   const {
     availability,
     availabilityError,
     availabilityState,
-    customDomainTarget,
     draft,
     existingDomain,
+    hasAttachedDomain,
     submissionError,
   } = options;
 
@@ -425,25 +400,43 @@ function readFieldState(options: {
     if (domainHasUnresolvedIssue(existingDomain)) {
       return {
         label: "Pending",
-        detail: readDomainAttentionMessage(existingDomain, customDomainTarget),
+        detail: readDomainAttentionMessage(existingDomain),
         variant: "info" as const,
+      } satisfies DomainFieldState;
+    }
+
+    const setupStatus = readDomainSetupStatus(existingDomain);
+
+    if (setupStatus === "setting-up") {
+      return {
+        label: "Setting up",
+        detail: "This hostname is attached. Fugue is finishing setup now.",
+        variant: "info" as const,
+      } satisfies DomainFieldState;
+    }
+
+    if (setupStatus === "error") {
+      return {
+        label: "Needs attention",
+        detail: "This hostname is attached, but setup hit a snag. Fugue will keep retrying in the background.",
+        variant: "error" as const,
       } satisfies DomainFieldState;
     }
 
     if (isDomainVerified(existingDomain) || availability.current) {
       return {
-        label: "Attached",
+        label: "Ready",
         detail: "This hostname is already serving this app.",
-        variant: "neutral" as const,
+        variant: "success" as const,
       } satisfies DomainFieldState;
     }
   }
 
   if (availability.current) {
     return {
-      label: "Attached",
+      label: "Ready",
       detail: "This hostname is already serving this app.",
-      variant: "neutral" as const,
+      variant: "success" as const,
     } satisfies DomainFieldState;
   }
 
@@ -457,50 +450,47 @@ function readFieldState(options: {
 
   return {
     label: "Ready",
-    detail: customDomainTarget
-      ? "Hostname looks good. Create the DNS record shown below, then add it here."
-      : "Hostname looks good. Click Get DNS target to fetch the exact DNS record from Fugue.",
+    detail: hasAttachedDomain
+      ? "Hostname looks good. Save to replace the current domain."
+      : "Hostname looks good. Save to attach it.",
     variant: "success" as const,
   } satisfies DomainFieldState;
 }
 
-function readDomainBadge(domain: AppDomain) {
-  if (domain.lastMessage?.trim()) {
-    return {
-      label: "Needs check",
-      tone: "warning" as const,
-    };
+function readDomainConnectedToast(domain: AppDomain, appName: string, alreadyCurrent = false) {
+  switch (readDomainSetupStatus(domain)) {
+    case "ready":
+      return alreadyCurrent
+        ? `${domain.hostname} is already serving ${appName}.`
+        : `${domain.hostname} is ready and now serving ${appName}.`;
+    case "error":
+      return `${domain.hostname} is attached to ${appName}, but setup still needs attention.`;
+    case "setting-up":
+      return alreadyCurrent
+        ? `${domain.hostname} is already attached to ${appName}. Fugue is finishing setup now.`
+        : `${domain.hostname} is attached to ${appName}. Fugue is finishing setup now.`;
+    default:
+      return alreadyCurrent
+        ? `${domain.hostname} is already attached to ${appName}.`
+        : `${domain.hostname} is verified and now serving ${appName}.`;
   }
+}
 
-  if (isDomainVerified(domain)) {
-    return {
-      label: "Verified",
-      tone: "positive" as const,
-    };
+function buildCurrentDomainAvailability(hostname?: string | null) {
+  const normalizedHostname = normalizeHostname(hostname);
+
+  if (!normalizedHostname) {
+    return null;
   }
 
   return {
-    label: "Pending",
-    tone: "info" as const,
-  };
-}
-
-function readDomainMeta(domain: AppDomain, customDomainTarget?: string | null) {
-  if (domain.lastMessage) {
-    return domain.lastMessage;
-  }
-
-  if (isDomainVerified(domain)) {
-    return formatTimestamp(domain.verifiedAt)
-      ? `Verified ${formatTimestamp(domain.verifiedAt)}`
-      : "Verified and serving traffic.";
-  }
-
-  return formatTimestamp(domain.lastCheckedAt)
-    ? `Last checked ${formatTimestamp(domain.lastCheckedAt)}`
-    : customDomainTarget
-      ? `Waiting for DNS to resolve to ${customDomainTarget}.`
-      : "Waiting for DNS guidance from Fugue.";
+    available: true,
+    current: true,
+    hostname: normalizedHostname,
+    input: normalizedHostname,
+    reason: null,
+    valid: true,
+  } satisfies AppDomainAvailability;
 }
 
 export function AppCustomDomainsPanel({
@@ -511,59 +501,51 @@ export function AppCustomDomainsPanel({
   const noteId = `custom-domain-note-${appId}`;
   const [domains, setDomains] = useState<AppDomain[]>([]);
   const [domainsState, setDomainsState] = useState<"error" | "loading" | "ready">("loading");
-  const [domainsError, setDomainsError] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
+  const [baselineHostname, setBaselineHostname] = useState("");
   const [availability, setAvailability] = useState<AppDomainAvailability | null>(null);
   const [availabilityError, setAvailabilityError] = useState<string | null>(null);
   const [availabilityState, setAvailabilityState] = useState<AvailabilityState>("idle");
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [verifyingHostname, setVerifyingHostname] = useState<string | null>(null);
-  const [deletingHostname, setDeletingHostname] = useState<string | null>(null);
-  const [resolvedTarget, setResolvedTarget] = useState<string | null>(null);
 
   const normalizedDraft = normalizeHostname(draft);
-  const normalizedCustomDomainTarget = readKnownDomainTarget(domains) ?? normalizeHostname(resolvedTarget);
+  const normalizedBaseline = normalizeHostname(baselineHostname);
+  const isDirty = normalizedDraft !== normalizedBaseline;
+  const loadErrorMessage =
+    domainsState === "error"
+      ? availabilityError ?? "Unable to load the current custom domain right now."
+      : null;
   const existingDomain = findDomain(domains, availability?.hostname ?? normalizedDraft);
-  const actionableExistingDomain =
-    existingDomain && domainHasUnresolvedIssue(existingDomain) ? existingDomain : null;
   const fieldState = readFieldState({
     availability,
     availabilityError,
     availabilityState,
-    customDomainTarget: normalizedCustomDomainTarget,
     draft: normalizedDraft ?? "",
     existingDomain,
+    hasAttachedDomain: Boolean(normalizedBaseline),
     submissionError,
   });
   const fieldInvalid =
     Boolean(submissionError) ||
     availabilityState === "error" ||
     (availabilityState === "ready" &&
-      Boolean(availability && (!availability.valid || (!availability.available && !availability.current))));
-  const helperText = fieldState?.detail ?? readDefaultHint();
-  const canSubmit =
+      Boolean(
+        availability && (!availability.valid || (!availability.available && !availability.current)),
+      ));
+  const helperText = fieldState?.detail ?? loadErrorMessage ?? readDefaultHint();
+  const canSave =
+    domainsState === "ready" &&
     Boolean(normalizedDraft) &&
     !submitting &&
+    isDirty &&
     availabilityState === "ready" &&
     Boolean(availability?.valid) &&
     Boolean(availability?.available) &&
-    (!availability?.current || Boolean(actionableExistingDomain));
-  const submitLabel = actionableExistingDomain
-    ? "Retry verification"
-    : normalizedCustomDomainTarget
-      ? "Add domain"
-      : "Get DNS target";
-  const candidateHostname = availability?.hostname ?? normalizedDraft;
-  const showSetupPanel =
-    Boolean(normalizedCustomDomainTarget) &&
-    availabilityState === "ready" &&
-    Boolean(availability?.valid) &&
-    Boolean(availability?.available || availability?.current);
+    !availability?.current;
 
   async function loadDomains() {
     setDomainsState("loading");
-    setDomainsError(null);
 
     try {
       const payload = readDomainListResponse(
@@ -572,45 +554,29 @@ export function AppCustomDomainsPanel({
         }),
       );
 
-      setDomains(sortDomains(payload.domains));
-      if (payload.domains.length) {
-        setResolvedTarget(readKnownDomainTarget(payload.domains));
-      }
-      setDomainsError(null);
+      const nextDomains = sortDomains(payload.domains);
+      const nextHostname = nextDomains[0]?.hostname ?? "";
+
+      setDomains(nextDomains);
+      setDraft(nextHostname);
+      setBaselineHostname(nextHostname);
+      setAvailability(buildCurrentDomainAvailability(nextHostname));
+      setAvailabilityError(null);
+      setAvailabilityState(nextHostname ? "ready" : "idle");
+      setSubmissionError(null);
       setDomainsState("ready");
     } catch (error) {
-      setDomainsError(readErrorMessage(error));
+      setAvailabilityError(readErrorMessage(error));
       setDomainsState("error");
     }
   }
 
   function resetDraft() {
-    setDraft("");
-    setAvailability(null);
+    setDraft(baselineHostname);
+    setAvailability(buildCurrentDomainAvailability(baselineHostname));
     setAvailabilityError(null);
-    setAvailabilityState("idle");
+    setAvailabilityState(normalizedBaseline ? "ready" : "idle");
     setSubmissionError(null);
-  }
-
-  async function runDomainVerification(hostname: string) {
-    const response = readDomainVerifyResponse(
-      await requestJson(`/api/fugue/apps/${appId}/domains/verify`, {
-        body: JSON.stringify({ hostname }),
-        headers: {
-          "Content-Type": "application/json",
-        },
-        method: "POST",
-      }),
-    );
-
-    if (!response.domain) {
-      throw new Error("Custom domain verification response was malformed.");
-    }
-
-    return {
-      domain: response.domain,
-      verified: response.verified,
-    };
   }
 
   useEffect(() => {
@@ -618,10 +584,23 @@ export function AppCustomDomainsPanel({
   }, [appId]);
 
   useEffect(() => {
+    if (domainsState !== "ready") {
+      setAvailability(null);
+      setAvailabilityState("idle");
+      return;
+    }
+
     if (!normalizedDraft) {
       setAvailability(null);
       setAvailabilityError(null);
       setAvailabilityState("idle");
+      return;
+    }
+
+    if (!isDirty) {
+      setAvailability(buildCurrentDomainAvailability(normalizedBaseline));
+      setAvailabilityError(null);
+      setAvailabilityState(normalizedBaseline ? "ready" : "idle");
       return;
     }
 
@@ -665,95 +644,12 @@ export function AppCustomDomainsPanel({
       controller.abort();
       window.clearTimeout(timeoutId);
     };
-  }, [appId, normalizedDraft]);
-
-  async function handleCopyTarget() {
-    if (!normalizedCustomDomainTarget) {
-      return;
-    }
-
-    const copied = await copyText(normalizedCustomDomainTarget);
-
-    showToast({
-      message: copied
-        ? `Copied ${normalizedCustomDomainTarget}.`
-        : "Unable to copy the current DNS target.",
-      variant: copied ? "success" : "error",
-    });
-  }
-
-  async function handleRetryVerification(hostname: string) {
-    setVerifyingHostname(hostname);
-
-    try {
-      const response = await runDomainVerification(hostname);
-
-      setDomains((current) => upsertDomain(current, response.domain));
-
-      if (normalizeHostname(hostname) === normalizedDraft) {
-        setSubmissionError(response.verified ? null : response.domain.lastMessage ?? null);
-      }
-
-      showToast({
-        message: response.verified
-          ? `${response.domain.hostname} is now verified.`
-          : response.domain.lastMessage ?? `DNS for ${response.domain.hostname} is not ready yet.`,
-        variant: response.verified ? "success" : "info",
-      });
-    } catch (error) {
-      const message = readErrorMessage(error);
-
-      if (normalizeHostname(hostname) === normalizedDraft) {
-        setSubmissionError(message);
-      }
-
-      showToast({
-        message,
-        variant: "error",
-      });
-    } finally {
-      setVerifyingHostname(null);
-    }
-  }
-
-  async function handleDeleteDomain(hostname: string) {
-    setDeletingHostname(hostname);
-
-    try {
-      const response = readDomainMutationResponse(
-        await requestJson(
-          `/api/fugue/apps/${appId}/domains?hostname=${encodeURIComponent(hostname)}`,
-          {
-            method: "DELETE",
-          },
-        ),
-      );
-      const removedHostname = response.domain?.hostname ?? hostname;
-
-      setDomains((current) => removeDomain(current, removedHostname));
-
-      if (normalizeHostname(removedHostname) === normalizedDraft) {
-        resetDraft();
-      }
-
-      showToast({
-        message: `${removedHostname} has been removed.`,
-        variant: "success",
-      });
-    } catch (error) {
-      showToast({
-        message: readErrorMessage(error),
-        variant: "error",
-      });
-    } finally {
-      setDeletingHostname(null);
-    }
-  }
+  }, [appId, domainsState, isDirty, normalizedBaseline, normalizedDraft]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!canSubmit || !normalizedDraft) {
+    if (!canSave || !normalizedDraft) {
       return;
     }
 
@@ -761,25 +657,16 @@ export function AppCustomDomainsPanel({
     setSubmissionError(null);
 
     try {
-      if (actionableExistingDomain) {
-        const response = await runDomainVerification(actionableExistingDomain.hostname);
+      if (normalizedBaseline) {
+        await requestJson(
+          `/api/fugue/apps/${appId}/domains?hostname=${encodeURIComponent(normalizedBaseline)}`,
+          {
+            method: "DELETE",
+          },
+        );
 
-        setDomains((current) => upsertDomain(current, response.domain));
-
-        if (response.verified) {
-          resetDraft();
-        } else {
-          setSubmissionError(response.domain.lastMessage ?? null);
-        }
-
-        showToast({
-          message: response.verified
-            ? `${response.domain.hostname} is now verified.`
-            : response.domain.lastMessage ?? `DNS for ${response.domain.hostname} is not ready yet.`,
-          variant: response.verified ? "success" : "info",
-        });
-
-        return;
+        setDomains((current) => removeDomain(current, normalizedBaseline));
+        setBaselineHostname("");
       }
 
       const response = readDomainMutationResponse(
@@ -801,26 +688,23 @@ export function AppCustomDomainsPanel({
       const domain = response.domain;
 
       setDomains((current) => upsertDomain(current, domain));
-      setResolvedTarget(normalizeHostname(domain.routeTarget));
-      resetDraft();
+      setBaselineHostname(domain.hostname);
+      setDraft(domain.hostname);
+      setAvailability(buildCurrentDomainAvailability(domain.hostname));
+      setAvailabilityError(null);
+      setAvailabilityState("ready");
+      setSubmissionError(null);
 
       showToast({
-        message: response.alreadyCurrent
-          ? `${domain.hostname} is already attached to ${appName}.`
-          : `${domain.hostname} is verified and now serving ${appName}.`,
+        message: readDomainConnectedToast(domain, appName, response.alreadyCurrent),
         variant: response.alreadyCurrent ? "info" : "success",
       });
     } catch (error) {
       const message = readErrorMessage(error);
-      const hintedTarget = extractDomainTarget(message);
-
-      if (hintedTarget) {
-        setResolvedTarget(hintedTarget);
-      }
       setSubmissionError(message);
       showToast({
         message,
-        variant: hintedTarget ? "info" : "error",
+        variant: "error",
       });
     } finally {
       setSubmitting(false);
@@ -828,22 +712,16 @@ export function AppCustomDomainsPanel({
   }
 
   return (
-    <div className="fg-workbench-section fg-domain-panel">
-      <div className="fg-workbench-section__head">
-        <div className="fg-workbench-section__copy fg-domain-section__copy">
-          <p className="fg-label fg-panel__eyebrow">Custom domains</p>
-          <p className="fg-console-note">
-            Attach a hostname you control. Subdomains and eligible root domains both work. Start with
-            the hostname. After it looks valid, Fugue will show the DNS record you need.
-          </p>
-        </div>
-      </div>
-
+    <section aria-label="Custom domains" className="fg-route-subsection fg-domain-panel">
       <form className="fg-domain-panel__form" onSubmit={handleSubmit}>
         <label className="fg-field-stack fg-domain-field" htmlFor={`custom-domain-${appId}`}>
           <span className="fg-field-label">
-            <span>Hostname</span>
-            {fieldState?.label ? (
+            <span>Custom domain</span>
+            {domainsState === "loading" && !normalizedDraft ? (
+              <span className="fg-route-field__status is-neutral">Loading</span>
+            ) : loadErrorMessage ? (
+              <span className="fg-route-field__status is-error">Unavailable</span>
+            ) : fieldState?.label ? (
               <span
                 className={cx(
                   "fg-route-field__status",
@@ -864,7 +742,7 @@ export function AppCustomDomainsPanel({
               autoComplete="off"
               autoCorrect="off"
               className="fg-input fg-domain-input"
-              disabled={submitting}
+              disabled={submitting || domainsState === "loading"}
               id={`custom-domain-${appId}`}
               inputMode="url"
               maxLength={253}
@@ -879,141 +757,42 @@ export function AppCustomDomainsPanel({
           </span>
 
           <span
-            aria-live={fieldInvalid ? "assertive" : "polite"}
+            aria-live={fieldInvalid || loadErrorMessage ? "assertive" : "polite"}
             className={cx(
-              fieldInvalid ? "fg-field-error" : "fg-field-hint",
+              fieldInvalid || loadErrorMessage ? "fg-field-error" : "fg-field-hint",
               "fg-domain-field__note",
             )}
             id={noteId}
-            role={fieldInvalid ? "alert" : "status"}
+            role={fieldInvalid || loadErrorMessage ? "alert" : "status"}
           >
             {helperText}
           </span>
         </label>
 
-        {showSetupPanel ? (
-          <div className="fg-domain-setup">
-            <div className="fg-domain-setup__copy">
-              <p className="fg-label fg-domain-setup__eyebrow">Next</p>
-              <p className="fg-domain-setup__title">Create one DNS record for this hostname.</p>
-              <p className="fg-domain-setup__note">
-                Point <code>{candidateHostname}</code> to the Fugue target below. Subdomains usually use
-                CNAME. Apex domains can use ALIAS, ANAME, or flattening if your DNS provider supports it.
-              </p>
-            </div>
-
-            <div className="fg-domain-setup__record">
-              <div className="fg-domain-setup__record-row">
-                <span>Target</span>
-                <code>{normalizedCustomDomainTarget}</code>
-              </div>
-
-              <div className="fg-domain-setup__actions">
-                <Button
-                  onClick={() => {
-                    void handleCopyTarget();
-                  }}
-                  size="compact"
-                  type="button"
-                  variant="secondary"
-                >
-                  Copy target
-                </Button>
-              </div>
-            </div>
+        {isDirty || submitting ? (
+          <div className="fg-route-panel__form-action">
+            <Button
+              disabled={!isDirty || submitting}
+              onClick={resetDraft}
+              size="compact"
+              type="button"
+              variant="secondary"
+            >
+              Reset
+            </Button>
+            <Button
+              disabled={!canSave}
+              loading={submitting}
+              loadingLabel="Saving…"
+              size="compact"
+              type="submit"
+              variant="primary"
+            >
+              Save
+            </Button>
           </div>
         ) : null}
-
-        <div className="fg-domain-panel__form-action">
-          <Button
-            disabled={!canSubmit}
-            loading={submitting}
-            loadingLabel={actionableExistingDomain ? "Rechecking…" : "Adding…"}
-            type="submit"
-            variant="primary"
-          >
-            {submitLabel}
-          </Button>
-        </div>
       </form>
-
-      {domainsState === "error" ? (
-        <InlineAlert variant="error">
-          <span>{domainsError ?? "Unable to load custom domains right now."}</span>
-          <Button
-            onClick={() => {
-              void loadDomains();
-            }}
-            size="compact"
-            type="button"
-            variant="secondary"
-          >
-            Retry
-          </Button>
-        </InlineAlert>
-      ) : null}
-
-      {domainsState === "loading" ? (
-        <p className="fg-domain-panel__loading">Loading custom domains…</p>
-      ) : null}
-
-      {domainsState === "ready" && domains.length ? (
-        <div className="fg-domain-list">
-          {domains.map((domain) => {
-            const badge = readDomainBadge(domain);
-            const showVerifyAction = domainHasUnresolvedIssue(domain);
-
-            return (
-              <article className="fg-domain-row" key={domain.hostname}>
-                <div className="fg-domain-row__copy">
-                  <div className="fg-domain-row__title">
-                    <strong className="fg-domain-row__hostname">{domain.hostname}</strong>
-                    <StatusBadge tone={badge.tone}>{badge.label}</StatusBadge>
-                  </div>
-                  <span className="fg-domain-row__target">
-                    Target {normalizeHostname(domain.routeTarget) ?? normalizedCustomDomainTarget ?? "Unavailable"}
-                  </span>
-                  <p className="fg-domain-row__meta">
-                    {readDomainMeta(domain, normalizeHostname(domain.routeTarget) ?? normalizedCustomDomainTarget)}
-                  </p>
-                </div>
-
-                <div className="fg-domain-row__actions">
-                  {showVerifyAction ? (
-                    <InlineButton
-                      busy={verifyingHostname === domain.hostname}
-                      busyLabel="Rechecking…"
-                      disabled={Boolean(deletingHostname)}
-                      label="Retry verification"
-                      onClick={() => {
-                        void handleRetryVerification(domain.hostname);
-                      }}
-                    />
-                  ) : null}
-                  <InlineButton
-                    busy={deletingHostname === domain.hostname}
-                    busyLabel="Removing…"
-                    danger
-                    disabled={Boolean(verifyingHostname)}
-                    label="Remove"
-                    onClick={() => {
-                      void handleDeleteDomain(domain.hostname);
-                    }}
-                  />
-                </div>
-              </article>
-            );
-          })}
-        </div>
-      ) : null}
-
-      {domainsState === "ready" && !domains.length ? (
-        <ProofShellEmpty
-          className="fg-domain-panel__empty"
-          description="Enter a hostname above to create the first binding."
-          title="No custom domains yet"
-        />
-      ) : null}
-    </div>
+    </section>
   );
 }

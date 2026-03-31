@@ -577,7 +577,116 @@ canvas {
   border-color: var(--fugue-border-strong);
 }
 
-.fg-field-control.is-invalid .fg-input {
+.fg-select {
+  position: relative;
+  display: block;
+}
+
+.fg-select__control {
+  appearance: none;
+  width: 100%;
+  min-height: 3rem;
+  padding: 0.82rem 2.95rem 0.82rem 0.95rem;
+  border: 1px solid var(--fugue-border-default);
+  border-radius: 1rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.032), rgba(255, 255, 255, 0.014)),
+    rgba(8, 11, 15, 0.76);
+  color: var(--fugue-text-primary);
+  cursor: pointer;
+  font: inherit;
+  transition:
+    border-color var(--fugue-duration-fast) var(--fugue-ease-out-expo),
+    background var(--fugue-duration-fast) var(--fugue-ease-out-expo),
+    transform var(--fugue-duration-fast) var(--fugue-ease-out-expo);
+}
+
+.fg-select__control:hover {
+  border-color: var(--fugue-border-strong);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.042), rgba(255, 255, 255, 0.018)),
+    rgba(10, 13, 18, 0.84);
+}
+
+.fg-select__control:focus-visible {
+  outline: 2px solid var(--fugue-focus-ring);
+  outline-offset: 3px;
+  border-color: transparent;
+}
+
+.fg-select__control:disabled {
+  cursor: not-allowed;
+  color: var(--fugue-text-muted);
+}
+
+.fg-select__icon {
+  position: absolute;
+  top: 50%;
+  right: 0.95rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin-top: -0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.016)),
+    rgba(9, 12, 16, 0.82);
+  color: var(--fugue-text-tertiary);
+  pointer-events: none;
+  transition:
+    color var(--fugue-duration-fast) var(--fugue-ease-out-expo),
+    border-color var(--fugue-duration-fast) var(--fugue-ease-out-expo),
+    background var(--fugue-duration-fast) var(--fugue-ease-out-expo),
+    transform var(--fugue-duration-fast) var(--fugue-ease-out-expo);
+}
+
+.fg-select:focus-within .fg-select__icon,
+.fg-select:hover .fg-select__icon {
+  border-color: var(--fugue-selection-lens-border-hover);
+  background: var(--fugue-selection-lens-bg-hover);
+  color: var(--fugue-text-secondary);
+}
+
+.fg-select[data-disabled="true"] .fg-select__icon {
+  color: var(--fugue-text-muted);
+}
+
+.fg-static-choice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  min-height: 3rem;
+  padding: 0.82rem 0.95rem;
+  border: 1px solid var(--fugue-border-subtle);
+  border-radius: 1rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.024), rgba(255, 255, 255, 0.01)),
+    rgba(7, 10, 14, 0.48);
+  color: var(--fugue-text-primary);
+}
+
+.fg-static-choice__label {
+  min-width: 0;
+  font-size: 0.95rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.fg-static-choice__meta {
+  flex: 0 0 auto;
+  color: var(--fugue-text-tertiary);
+  font-family: var(--fugue-font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+}
+
+.fg-field-control.is-invalid .fg-input,
+.fg-field-control.is-invalid .fg-select__control {
   border-color: rgba(229, 134, 134, 0.6);
 }
 
