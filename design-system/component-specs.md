@@ -1,12 +1,13 @@
-# Fugue v8 Minimal Component Specs
+# Fugue Minimal Component Specs
 
 ## Scope
 
-This minimal system only includes patterns that are already stable in `v8` and are safe to reuse across marketing, auth, docs, and console.
+This minimal system only includes patterns that are already stable in the current Fugue product baseline and are safe to reuse across marketing, auth, docs, and console.
 
 Included:
 
 - `Button`
+- `ConfirmDialog`
 - `SegmentedControl`
 - `DisplayHeading`
 - `UiHeading`
@@ -134,6 +135,53 @@ Shared action system for route-level actions, product submits, quiet utilities, 
 - Row-level list and table actions should prefer `inline + tight`.
 - Avoid adding boolean prop combinations later like `primary + compact + quiet + iconOnly`; prefer explicit variants or composition.
 
+## ConfirmDialog
+
+### Purpose
+
+Shared confirmation surface for destructive or high-impact product actions such as deleting services, revoking credentials, or promoting a workspace member to admin.
+
+### Anatomy
+
+```html
+<div class="fg-confirm-dialog-backdrop">
+  <div aria-modal="true" class="fg-confirm-dialog-shell" role="alertdialog">
+    <section class="fg-bezel fg-panel fg-confirm-dialog-panel">
+      <div class="fg-panel__section fg-confirm-dialog__section">
+        <p class="fg-label fg-panel__eyebrow fg-confirm-dialog__eyebrow is-danger">
+          Destructive action
+        </p>
+        <h2 class="fg-panel__title fg-ui-heading fg-confirm-dialog__title">Delete service?</h2>
+        <p class="fg-panel__copy fg-confirm-dialog__copy">
+          This queues removal and the route will stop serving once the operation completes.
+        </p>
+      </div>
+      <div class="fg-panel__section fg-confirm-dialog__actions">
+        <button class="fg-button fg-button--secondary" type="button">Cancel</button>
+        <button class="fg-button fg-button--danger" type="button">Delete service</button>
+      </div>
+    </section>
+  </div>
+</div>
+```
+
+### States
+
+| State | Treatment |
+| --- | --- |
+| default | Centered bezel shell with dimmed backdrop and explicit cancel + confirm actions |
+| focus-visible | Both actions keep the shared product focus ring; initial focus defaults to the cancel action |
+| danger | Danger eyebrow plus danger confirm button; copy explains the irreversible effect clearly |
+| dismiss | Escape, backdrop click, and cancel button all close the dialog without side effects |
+
+### Notes
+
+- Use `alertdialog` for destructive actions and `dialog` for neutral confirmations.
+- Default the initial focus to the least destructive option.
+- Dialog copy must name the object being changed and describe the real effect; do not rely on generic `Are you sure?`.
+- Keep confirm labels action-specific: `Delete service`, `Revoke key`, `Make admin`.
+- Backdrop blur is functional context dismissal, not decorative chrome.
+
 ## SegmentedControl
 
 ### Purpose
@@ -229,7 +277,7 @@ Mono overline for chapter labels, object names, or system metadata.
 
 ### Purpose
 
-The right-rail route card language extracted from `v8`.
+The right-rail route card language used across the current landing and console surfaces.
 
 ### Anatomy
 

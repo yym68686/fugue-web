@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { ConsoleDisclosureSection } from "@/components/console/console-disclosure-section";
 import { DeploymentTargetField } from "@/components/console/deployment-target-field";
+import { GitHubRepositoryAccessFields } from "@/components/console/github-repository-access-fields";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { Panel, PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
@@ -12,6 +13,7 @@ import { SelectField } from "@/components/ui/select-field";
 import { useToast } from "@/components/ui/toast";
 import type { ConsoleImportRuntimeTargetView } from "@/lib/console/gallery-types";
 import { readDefaultImportRuntimeId } from "@/lib/console/runtime-targets";
+import type { GitHubRepoVisibility } from "@/lib/github/repository";
 
 type OnboardingStage = "needs-workspace" | "needs-import";
 type FlashState = {
@@ -90,6 +92,8 @@ export function ConsoleOnboarding({
   const [isCreating, setIsCreating] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [repoUrl, setRepoUrl] = useState("");
+  const [repoVisibility, setRepoVisibility] = useState<GitHubRepoVisibility>("public");
+  const [repoAuthToken, setRepoAuthToken] = useState("");
   const [branch, setBranch] = useState("");
   const [name, setName] = useState("");
   const [buildStrategy, setBuildStrategy] = useState<BuildStrategyValue>("auto");
@@ -211,6 +215,8 @@ export function ConsoleOnboarding({
 
   function resetImportForm() {
     setRepoUrl("");
+    setRepoVisibility("public");
+    setRepoAuthToken("");
     setBranch("");
     setName("");
     setBuildStrategy("auto");
@@ -228,9 +234,21 @@ export function ConsoleOnboarding({
       return;
     }
 
-    if (!repoUrl.trim()) {
+    const normalizedRepoUrl = repoUrl.trim();
+
+    if (!normalizedRepoUrl) {
       setFlash({
         message: "Repository link is required.",
+        variant: "error",
+      });
+      return;
+    }
+
+    const normalizedRepoAuthToken = repoAuthToken.trim();
+
+    if (repoVisibility === "private" && !normalizedRepoAuthToken) {
+      setFlash({
+        message: "Private GitHub repositories require a GitHub token.",
         variant: "error",
       });
       return;
@@ -252,7 +270,9 @@ export function ConsoleOnboarding({
           ...(normalizedBranch ? { branch: normalizedBranch } : {}),
           buildStrategy,
           ...(normalizedName ? { name: normalizedName } : {}),
-          repoUrl,
+          ...(repoVisibility === "private" ? { repoAuthToken: normalizedRepoAuthToken } : {}),
+          repoUrl: normalizedRepoUrl,
+          repoVisibility,
           ...(normalizedSourceDir ? { sourceDir: normalizedSourceDir } : {}),
           ...(normalizedDockerfilePath ? { dockerfilePath: normalizedDockerfilePath } : {}),
           ...(normalizedBuildContextDir ? { buildContextDir: normalizedBuildContextDir } : {}),
@@ -302,7 +322,7 @@ export function ConsoleOnboarding({
         },
         {
           label: "Next",
-          value: "Import one public GitHub repo",
+          value: "Import one GitHub repo",
         },
       ]
     : [
@@ -312,7 +332,15 @@ export function ConsoleOnboarding({
         },
         {
           label: "Source",
-          value: "Public GitHub only",
+          value: "GitHub repositories",
+        },
+        {
+          label: "Access",
+          value: "Public or private",
+        },
+        {
+          label: "Credentials",
+          value: "Private repos store a token for rebuilds and syncs",
         },
         {
           label: "Optional",
@@ -405,14 +433,16 @@ export function ConsoleOnboarding({
                 <PanelTitle className="fg-console-dialog__title" id="fugue-import-title">
                   Import repository
                 </PanelTitle>
-                <PanelCopy>Paste a GitHub repository link to continue.</PanelCopy>
+                <PanelCopy>
+                  Paste a GitHub repository link and choose how Fugue should access it.
+                </PanelCopy>
               </PanelSection>
 
               <PanelSection>
                 <form className="fg-form-grid" onSubmit={handleImport}>
                   <div className="fg-console-dialog__grid">
                     <FormField
-                      hint="Public GitHub only."
+                      hint="Use https://github.com/owner/repo."
                       htmlFor="repo-url"
                       label="Repository link"
                     >
@@ -431,6 +461,15 @@ export function ConsoleOnboarding({
                         value={repoUrl}
                       />
                     </FormField>
+
+                    <GitHubRepositoryAccessFields
+                      onTokenChange={setRepoAuthToken}
+                      onVisibilityChange={setRepoVisibility}
+                      token={repoAuthToken}
+                      tokenFieldId="repo-auth-token"
+                      tokenRequired={repoVisibility === "private"}
+                      visibility={repoVisibility}
+                    />
 
                     <DeploymentTargetField
                       inventoryError={runtimeTargetInventoryError}

@@ -4,6 +4,11 @@ import { getCurrentSession } from "@/lib/auth/session";
 import { ensureAppUser } from "@/lib/workspace/store";
 import { importFugueGitHubApp } from "@/lib/fugue/api";
 import {
+  isGitHubRepoUrl,
+  normalizeGitHubRepoVisibility,
+  resolveGitHubRepoVisibility,
+} from "@/lib/github/repository";
+import {
   getWorkspaceAccessByEmail,
   saveWorkspaceAccess,
   type WorkspaceAccess,
@@ -73,12 +78,6 @@ function readOptionalPositiveInteger(record: Record<string, unknown>, key: strin
   return Number.isInteger(parsed) && parsed > 0 ? parsed : Number.NaN;
 }
 
-function isGitHubRepoUrl(value: string) {
-  return /^https:\/\/github\.com\/[^/\s]+\/[^/\s]+(?:\/)?(?:\.git)?$/i.test(
-    value.trim(),
-  );
-}
-
 export async function POST(request: Request) {
   const session = await getCurrentSession();
 
@@ -107,13 +106,31 @@ export async function POST(request: Request) {
   const name = readOptionalString(body, "name");
   const runtimeId = readOptionalString(body, "runtimeId");
   const servicePort = readOptionalPositiveInteger(body, "servicePort");
+  const repoVisibilityInput = readOptionalString(body, "repoVisibility");
+  const repoVisibility = normalizeGitHubRepoVisibility(repoVisibilityInput);
+  const repoAuthToken = readOptionalString(body, "repoAuthToken");
+  const resolvedRepoVisibility = resolveGitHubRepoVisibility(
+    repoVisibilityInput,
+    Boolean(repoAuthToken),
+  );
 
   if (!repoUrl) {
     return jsonError(400, "Repository link is required.");
   }
 
   if (!isGitHubRepoUrl(repoUrl)) {
-    return jsonError(400, "Only public GitHub repository links are supported.");
+    return jsonError(400, "GitHub repository links must use https://github.com/owner/repo.");
+  }
+
+  if (repoVisibilityInput && !repoVisibility) {
+    return jsonError(400, "Repository access must be public or private.");
+  }
+
+  if (resolvedRepoVisibility === "private" && !repoAuthToken) {
+    return jsonError(
+      400,
+      "Private GitHub repositories require a GitHub token with repository read access.",
+    );
   }
 
   if (buildStrategy && !ALLOWED_BUILD_STRATEGIES.has(buildStrategy)) {
@@ -141,7 +158,9 @@ export async function POST(request: Request) {
       dockerfilePath: dockerfilePath || undefined,
       name: name || undefined,
       projectId: workspace.defaultProjectId ?? undefined,
+      repoAuthToken: repoAuthToken || undefined,
       repoUrl,
+      repoVisibility: resolvedRepoVisibility,
       runtimeId: runtimeId || undefined,
       servicePort: servicePort ?? undefined,
       sourceDir: sourceDir || undefined,

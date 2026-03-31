@@ -157,7 +157,7 @@ export type AdminClusterPageData = {
   };
 };
 
-const REBUILDABLE_APP_SOURCE_TYPES = new Set(["github-public", "upload"]);
+const REBUILDABLE_APP_SOURCE_TYPES = new Set(["github-private", "github-public", "upload"]);
 const CLUSTER_READY_CONDITION = "Ready";
 const CLUSTER_MEMORY_PRESSURE_CONDITION = "MemoryPressure";
 const CLUSTER_DISK_PRESSURE_CONDITION = "DiskPressure";

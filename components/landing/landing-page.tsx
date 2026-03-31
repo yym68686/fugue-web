@@ -56,15 +56,15 @@ const routeChapters: RouteChapter[] = [
   {
     index: "01",
     label: "Repository intake",
-    title: "Start with the repository, branch, and builder.",
+    title: "Start with repository access, branch, and builder.",
     description:
-      "Repository location, branch, and builder define the app before the first deploy. The app starts from real code, not a temporary setup.",
-    meta: "Repository / Branch / Builder / App identity",
+      "Repository location, access mode, branch, and builder define the app before the first deploy. The app starts from real code, not a temporary setup.",
+    meta: "Repository / Access / Branch / Builder",
   },
   {
     index: "02",
     label: "Shared runtime",
-    title: "Use managed shared k3s for the first public deployment.",
+    title: "Use managed shared k3s for the first deployment.",
     description:
       "Shared runtime gets the app public quickly while preserving deploy history, route state, and logs from the first run.",
     meta: "Managed shared runtime / Logs / Route / Deploy ops",
@@ -83,7 +83,7 @@ const surfaceColumns: SurfaceColumn[] = [
   {
     label: "Public route",
     items: [
-      { label: "GitHub import", meta: "Public repositories" },
+      { label: "GitHub import", meta: "Public or private repositories" },
       { label: "Shared runtime", meta: "Managed first path" },
       { label: "Node key setup", meta: "Attach a server later" },
       { label: "Logs and audit trail", meta: "Build / Runtime / Operations" },
@@ -125,7 +125,7 @@ curl -sS "\${FUGUE_BASE_URL}/v1/apps/import-github" \\
   -H "Authorization: Bearer <tenant-api-key>" \\
   -H "Content-Type: application/json" \\
   -d '{
-    "repo_url":"https://github.com/example/static-site",
+    "repo_url":"https://github.com/example/app",
     "runtime_id":"runtime_managed_shared"
   }'`;
 
@@ -173,7 +173,7 @@ export function LandingPage({ authenticatedAppPath }: LandingPageProps) {
 
       <header className="fg-landing-masthead">
         <div className="fg-shell fg-landing-masthead__shell">
-          <Brand meta="Deploy public repos" />
+          <Brand meta="Deploy GitHub repos" />
 
           <PillNav ariaLabel="Primary" className="fg-landing-nav">
             {landingNav.map((item) => (
@@ -232,7 +232,7 @@ export function LandingPage({ authenticatedAppPath }: LandingPageProps) {
 
             <div className="fg-landing-hero-copy">
               <p className="fg-label fg-mono" data-stagger="1">
-                Deploy public repositories, shared first
+                Deploy GitHub repositories, shared first
               </p>
               <h1 className="fg-display-heading" data-stagger="2">
                 Start shared.
@@ -240,8 +240,9 @@ export function LandingPage({ authenticatedAppPath }: LandingPageProps) {
                 Move cleanly.
               </h1>
               <p className="fg-copy fg-landing-hero-lead" data-stagger="3">
-                Deploy a public GitHub repository on managed shared k3s first. When you need your
-                own machine, move the same app there without rebuilding the workflow.
+                Deploy a GitHub repository on managed shared k3s first. Public and private
+                repositories follow the same route model, and the same app can move onto your own
+                machine later without rebuilding the workflow.
               </p>
 
               <div className="fg-landing-hero-actions" data-stagger="4">
@@ -316,7 +317,7 @@ export function LandingPage({ authenticatedAppPath }: LandingPageProps) {
             <div className="fg-landing-surface-intro">
               <p className="fg-label fg-mono">Available now</p>
               <h2 className="fg-display-heading">
-                Public route, sign-in, and the app already share one system.
+                Route, sign-in, and the app already share one system.
               </h2>
             </div>
 
@@ -366,7 +367,8 @@ export function LandingPage({ authenticatedAppPath }: LandingPageProps) {
 
             <ProofShell className="fg-landing-proof-shell">
               <ProofShellRibbon>
-                <span>Public repos only</span>
+                <span>GitHub import</span>
+                <span>Private repos supported</span>
                 <span>Managed shared runtime</span>
                 <span>api.fugue.pro</span>
               </ProofShellRibbon>

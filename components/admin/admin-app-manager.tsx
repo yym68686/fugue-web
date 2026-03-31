@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ConsoleEmptyState } from "@/components/console/console-empty-state";
 import { StatusBadge } from "@/components/console/status-badge";
 import { InlineButton } from "@/components/ui/button";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { TechStackLogo } from "@/components/ui/tech-stack-logo";
 import type { TechStackBadgeKind } from "@/lib/tech-stack";
 import { useToast } from "@/components/ui/toast";
@@ -66,6 +67,7 @@ export function AdminAppManager({
   apps: AdminClusterAppView[];
 }) {
   const router = useRouter();
+  const confirm = useConfirmDialog();
   const { showToast } = useToast();
   const [busyAction, setBusyAction] = useState<string | null>(null);
 
@@ -107,7 +109,11 @@ export function AdminAppManager({
       return;
     }
 
-    const confirmed = window.confirm(`Delete ${app.name}?`);
+    const confirmed = await confirm({
+      confirmLabel: "Delete app",
+      description: `${app.name} will be queued for deletion from the admin surface.`,
+      title: "Delete app?",
+    });
 
     if (!confirmed) {
       return;

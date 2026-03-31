@@ -1,8 +1,8 @@
 # Fugue Minimal Design System Seed
 
-This directory is the first extraction of the `v8` landing page into reusable design-system assets.
+This directory captures the current Fugue visual system into reusable design-system assets.
 
-It is intentionally small. The goal is not to freeze every possible component now. The goal is to capture the parts of `v8` that are already stable enough to become shared UI for auth, docs, and the future console.
+It is intentionally small. The goal is not to freeze every possible component now. The goal is to capture the parts that are already stable enough to become shared UI for landing, auth, docs, and console.
 
 ## Files
 
@@ -11,7 +11,7 @@ It is intentionally small. The goal is not to freeze every possible component no
 - `tokens.css`
   - `primitive -> semantic -> component` token layers
 - `components.css`
-  - reusable class-based implementations of the stable `v8` patterns
+  - reusable class-based implementations of stable Fugue patterns
 - `component-specs.md`
   - usage rules, anatomy, and state guidance
 - `preview.html`
@@ -40,7 +40,7 @@ It is intentionally small. The goal is not to freeze every possible component no
 
 Those remain outside the minimal system until they are needed by real product routes.
 
-## Design rules carried from v8
+## Design rules carried from the current product baseline
 
 - Use near-black, not pure black.
 - Use warm ivory text, not cold white.

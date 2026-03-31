@@ -4,6 +4,7 @@ import { startTransition, useEffect, useState, type FormEvent, type ReactNode } 
 
 import { StatusBadge } from "@/components/console/status-badge";
 import { Button, InlineButton } from "@/components/ui/button";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import {
   SegmentedControl,
@@ -232,6 +233,7 @@ export function RuntimeAccessPanel({
   runtimeId: string | null;
   runtimeType: string | null;
 }) {
+  const confirm = useConfirmDialog();
   const { showToast } = useToast();
   const [sharing, setSharing] = useState<RuntimeSharingView | null>(null);
   const [sharingError, setSharingError] = useState<string | null>(null);
@@ -359,7 +361,11 @@ export function RuntimeAccessPanel({
       return;
     }
 
-    const confirmed = window.confirm(`Remove ${label} from this server?`);
+    const confirmed = await confirm({
+      confirmLabel: "Remove access",
+      description: `${label} will no longer be able to deploy to this server.`,
+      title: "Remove workspace access?",
+    });
 
     if (!confirmed) {
       return;

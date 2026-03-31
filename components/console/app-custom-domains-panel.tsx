@@ -100,7 +100,10 @@ function readBooleanValueAny(record: Record<string, unknown> | null, keys: strin
 }
 
 function normalizeHostname(value?: string | null) {
-  const normalized = value?.trim().toLowerCase() ?? "";
+  const normalized = (value?.trim().toLowerCase() ?? "")
+    .replace(/[。．｡]/g, ".")
+    .replace(/^\.+/, "")
+    .replace(/\.+$/, "");
   return normalized || null;
 }
 
@@ -117,12 +120,13 @@ function extractDomainTarget(value?: string | null) {
 
 function sanitizeCustomDomainInput(value: string) {
   let normalized = value.trim().toLowerCase();
+  normalized = normalized.replace(/[。．｡]/g, ".");
   normalized = normalized.replace(/^[a-z]+:\/\//, "");
   normalized = normalized.split("/")[0] ?? normalized;
   normalized = normalized.split("?")[0] ?? normalized;
   normalized = normalized.split("#")[0] ?? normalized;
   normalized = normalized.replace(/:\d+$/, "");
-  normalized = normalized.replace(/^\.+/, "").replace(/\.+$/, "");
+  normalized = normalized.replace(/^\.+/, "");
   return normalized;
 }
 

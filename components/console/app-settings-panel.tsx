@@ -9,6 +9,7 @@ import { FormField } from "@/components/ui/form-field";
 import { useToast } from "@/components/ui/toast";
 import type { ConsoleGalleryAppView } from "@/lib/console/gallery-types";
 import type { ConsoleTone } from "@/lib/console/types";
+import { isGitHubSourceType, isPrivateGitHubSourceType } from "@/lib/github/repository";
 
 type ProjectPatchResponse = {
   project?: {
@@ -71,10 +72,6 @@ function slugifyLikeFugue(value: string) {
   return trimmed || "item";
 }
 
-function normalizeSourceType(value?: string | null) {
-  return normalizeText(value).toLowerCase();
-}
-
 function isPausedApp(app: Pick<ConsoleGalleryAppView, "phase">) {
   const phase = normalizeText(app.phase).toLowerCase();
   return phase.includes("disabled") || phase.includes("paused");
@@ -120,11 +117,11 @@ async function requestJson<T>(input: RequestInfo, init?: RequestInit) {
 }
 
 function readGitHubSyncState(app: ConsoleGalleryAppView): GitHubSyncState {
-  if (normalizeSourceType(app.sourceType) !== "github-public") {
+  if (!isGitHubSourceType(app.sourceType)) {
     return {
       action: null,
       actionLabel: null,
-      description: "Automatic background sync is only available for services imported from public GitHub repositories.",
+      description: "Automatic background sync is only available for services imported from GitHub repositories.",
       label: "Not available",
       tone: "neutral",
     };
@@ -160,7 +157,7 @@ function readGitHubSyncState(app: ConsoleGalleryAppView): GitHubSyncState {
 }
 
 function readBranchFieldHint(app: ConsoleGalleryAppView) {
-  if (normalizeSourceType(app.sourceType) !== "github-public") {
+  if (!isGitHubSourceType(app.sourceType)) {
     return "Only GitHub-backed services keep a tracked source branch.";
   }
 
@@ -173,6 +170,22 @@ function readBranchFieldHint(app: ConsoleGalleryAppView) {
   }
 
   return "Leave blank to follow the repository default branch. Saving queues a rebuild.";
+}
+
+function readRepositoryAccessHint(app: ConsoleGalleryAppView) {
+  if (!isPrivateGitHubSourceType(app.sourceType)) {
+    return "Only private GitHub repositories store an access token.";
+  }
+
+  if (app.serviceRole === "pending") {
+    return "Wait for the first import to finish before rotating the saved token.";
+  }
+
+  if (isPausedApp(app)) {
+    return "Start the app before rotating the saved token. Updating access queues a rebuild.";
+  }
+
+  return "Leave blank to keep the saved token. Updating access queues a rebuild.";
 }
 
 export function AppSettingsPanel({
@@ -198,6 +211,8 @@ export function AppSettingsPanel({
   const [branchDraft, setBranchDraft] = useState(app.sourceBranchName ?? "");
   const [branchBaseline, setBranchBaseline] = useState(app.sourceBranchName ?? "");
   const [branchSaving, setBranchSaving] = useState(false);
+  const [repoAuthTokenDraft, setRepoAuthTokenDraft] = useState("");
+  const [repoAuthTokenSaving, setRepoAuthTokenSaving] = useState(false);
   const [syncSaving, setSyncSaving] = useState(false);
 
   useEffect(() => {
@@ -211,15 +226,24 @@ export function AppSettingsPanel({
     setBranchDraft(nextBranch);
   }, [app.id, app.sourceBranchName]);
 
+  useEffect(() => {
+    setRepoAuthTokenDraft("");
+  }, [app.id]);
+
   const currentProjectName = normalizeText(projectBaseline);
   const currentBranch = branchBaseline;
   const normalizedProjectName = normalizeText(projectNameDraft);
   const normalizedBranch = normalizeText(branchDraft);
-  const isGitHubSource = normalizeSourceType(app.sourceType) === "github-public";
+  const normalizedRepoAuthToken = normalizeText(repoAuthTokenDraft);
+  const isGitHubSource = isGitHubSourceType(app.sourceType);
+  const isPrivateGitHubSource = isPrivateGitHubSourceType(app.sourceType);
   const canEditBranch = isGitHubSource && app.serviceRole === "running" && !isPausedApp(app);
+  const canUpdateRepoAccess =
+    isPrivateGitHubSource && app.serviceRole === "running" && !isPausedApp(app);
   const syncState = readGitHubSyncState(app);
   const repoLabel = normalizeText(app.sourceLabel) || "Unlinked source";
   const branchChanged = normalizedBranch !== normalizeText(currentBranch);
+  const repoAuthTokenChanged = normalizedRepoAuthToken.length > 0;
   const projectChanged = normalizedProjectName !== currentProjectName;
   const projectSlug = slugifyLikeFugue(normalizedProjectName);
   const conflictingProject = projectCatalog.find(
@@ -233,7 +257,9 @@ export function AppSettingsPanel({
         : undefined;
   const canSaveProject =
     projectManaged && projectChanged && !projectSaving && !projectNameError;
-  const settingsSummary = `Rename the shared project shell, change which branch Fugue rebuilds from, or pause GitHub background sync for ${app.name}.`;
+  const settingsSummary = isPrivateGitHubSource
+    ? `Rename the shared project shell, change the tracked branch, rotate saved GitHub access, or pause background sync for ${app.name}.`
+    : `Rename the shared project shell, change which branch Fugue rebuilds from, or pause GitHub background sync for ${app.name}.`;
   const projectSectionNote = projectManaged
     ? `${serviceCount} service${serviceCount === 1 ? "" : "s"} share this project shell. Renaming it updates the whole group.`
     : "This service still lives in the Unassigned bucket, so the shared shell cannot be renamed yet.";
@@ -408,6 +434,64 @@ export function AppSettingsPanel({
     }
   }
 
+  async function handleRepositoryAccessSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!isPrivateGitHubSource) {
+      showToast({
+        message: "Only private GitHub-backed services store a repository token.",
+        variant: "info",
+      });
+      return;
+    }
+
+    if (!canUpdateRepoAccess) {
+      showToast({
+        message: readRepositoryAccessHint(app),
+        variant: "info",
+      });
+      return;
+    }
+
+    if (!normalizedRepoAuthToken) {
+      showToast({
+        message: "Paste a new GitHub token first.",
+        variant: "info",
+      });
+      return;
+    }
+
+    setRepoAuthTokenSaving(true);
+
+    try {
+      await requestJson<RebuildResponse>(`/api/fugue/apps/${app.id}/rebuild`, {
+        body: JSON.stringify({
+          repoAuthToken: normalizedRepoAuthToken,
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+      });
+
+      setRepoAuthTokenDraft("");
+      showToast({
+        message: "Repository token updated. Rebuild queued.",
+        variant: "success",
+      });
+      startTransition(() => {
+        router.refresh();
+      });
+    } catch (error) {
+      showToast({
+        message: readErrorMessage(error),
+        variant: "error",
+      });
+    } finally {
+      setRepoAuthTokenSaving(false);
+    }
+  }
+
   return (
     <div className="fg-workbench-section fg-settings-panel">
       <div className="fg-workbench-section__copy fg-settings-panel__copy">
@@ -576,6 +660,102 @@ export function AppSettingsPanel({
           ) : null}
         </form>
       </section>
+
+      {isPrivateGitHubSource ? (
+        <section
+          aria-label="Repository access"
+          className="fg-route-subsection fg-settings-section"
+        >
+          <div className="fg-route-subsection__head">
+            <div className="fg-route-subsection__copy fg-settings-section__copy">
+              <p className="fg-label fg-panel__eyebrow">Source</p>
+              <h3 className="fg-route-subsection__title fg-ui-heading">Private repository access</h3>
+              <p className="fg-route-subsection__note">{readRepositoryAccessHint(app)}</p>
+            </div>
+
+            <StatusBadge tone="info">Stored token</StatusBadge>
+          </div>
+
+          <form className="fg-settings-form" onSubmit={handleRepositoryAccessSubmit}>
+            <FormField
+              hint="Use a GitHub token with repository read access. Fugue stores it server-side for later rebuilds and syncs."
+              htmlFor={`repo-auth-token-${app.id}`}
+              label="Replace token"
+              optionalLabel="Optional"
+            >
+              <input
+                autoCapitalize="none"
+                autoComplete="new-password"
+                className="fg-input"
+                disabled={!canUpdateRepoAccess || repoAuthTokenSaving}
+                id={`repo-auth-token-${app.id}`}
+                name="repoAuthToken"
+                onChange={(event) => setRepoAuthTokenDraft(event.target.value)}
+                placeholder="github_pat_..."
+                spellCheck={false}
+                type="password"
+                value={repoAuthTokenDraft}
+              />
+            </FormField>
+
+            <dl className="fg-settings-meta">
+              <div>
+                <dt>Repository</dt>
+                <dd>
+                  {app.sourceHref ? (
+                    <a
+                      className="fg-text-link"
+                      href={app.sourceHref}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      {repoLabel}
+                    </a>
+                  ) : (
+                    repoLabel
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt>Access mode</dt>
+                <dd>Private repository</dd>
+              </div>
+              <div>
+                <dt>Stored credential</dt>
+                <dd>Server-side token</dd>
+              </div>
+              <div>
+                <dt>Save behavior</dt>
+                <dd>Queues a rebuild</dd>
+              </div>
+            </dl>
+
+            {repoAuthTokenChanged || repoAuthTokenSaving ? (
+              <div className="fg-settings-form__actions">
+                <Button
+                  disabled={repoAuthTokenSaving}
+                  onClick={() => setRepoAuthTokenDraft("")}
+                  size="compact"
+                  type="button"
+                  variant="secondary"
+                >
+                  Reset
+                </Button>
+                <Button
+                  disabled={!canUpdateRepoAccess || !repoAuthTokenChanged || repoAuthTokenSaving}
+                  loading={repoAuthTokenSaving}
+                  loadingLabel="Queueing…"
+                  size="compact"
+                  type="submit"
+                  variant="primary"
+                >
+                  Update token and rebuild
+                </Button>
+              </div>
+            ) : null}
+          </form>
+        </section>
+      ) : null}
 
       <section aria-label="GitHub sync" className="fg-route-subsection fg-settings-section">
         <div className="fg-route-subsection__head">

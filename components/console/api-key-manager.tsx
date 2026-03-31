@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { InlineButton } from "@/components/ui/button";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Panel, PanelSection } from "@/components/ui/panel";
 import { useToast } from "@/components/ui/toast";
 import type { ApiKeyRecord } from "@/lib/api-keys/types";
@@ -140,6 +141,7 @@ export function ApiKeyManager({
   initialKeys: ApiKeyRecord[];
   initialSyncError: string | null;
 }) {
+  const confirm = useConfirmDialog();
   const { showToast } = useToast();
   const copyInFlightRef = useRef<string | null>(null);
   const [keys, setKeys] = useState(initialKeys);
@@ -234,11 +236,14 @@ export function ApiKeyManager({
       return;
     }
 
-    const confirmed = window.confirm(
-      record.isWorkspaceAdmin
-        ? "Replace this admin key for this website copy? A fresh secret will be copied without revoking other environments."
-        : "Replace this access key? The current secret stops working immediately and the new secret will be copied.",
-    );
+    const confirmed = await confirm({
+      confirmLabel: record.isWorkspaceAdmin ? "Replace admin key" : "Replace key",
+      description: record.isWorkspaceAdmin
+        ? "A fresh secret will be copied for this website copy without revoking other environments."
+        : "The current secret stops working immediately and the new secret will be copied.",
+      eyebrow: "Credential rotation",
+      title: record.isWorkspaceAdmin ? "Replace admin key?" : "Replace access key?",
+    });
 
     if (!confirmed) {
       return;
@@ -300,7 +305,11 @@ export function ApiKeyManager({
       return;
     }
 
-    const confirmed = window.confirm("Delete this access key? This revokes the secret in Fugue immediately.");
+    const confirmed = await confirm({
+      confirmLabel: "Delete key",
+      description: "This revokes the secret in Fugue immediately.",
+      title: "Delete access key?",
+    });
 
     if (!confirmed) {
       return;

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ConsoleEmptyState } from "@/components/console/console-empty-state";
 import { StatusBadge } from "@/components/console/status-badge";
 import { InlineButton } from "@/components/ui/button";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
 
 type AdminUserView = {
@@ -57,6 +58,7 @@ export function AdminUserManager({
   users: AdminUserView[];
 }) {
   const router = useRouter();
+  const confirm = useConfirmDialog();
   const { showToast } = useToast();
   const [busyAction, setBusyAction] = useState<string | null>(null);
 
@@ -69,7 +71,11 @@ export function AdminUserManager({
     }
 
     if (action === "delete") {
-      const confirmed = window.confirm(`Delete ${user.email}?`);
+      const confirmed = await confirm({
+        confirmLabel: "Delete user",
+        description: `${user.email} will be removed from Fugue.`,
+        title: "Delete user?",
+      });
 
       if (!confirmed) {
         return;
@@ -77,11 +83,16 @@ export function AdminUserManager({
     }
 
     if (action === "promote") {
-      const confirmed = window.confirm(
-        user.status.toLowerCase() === "blocked"
-          ? `Make ${user.email} an admin? This will also restore their access.`
-          : `Make ${user.email} an admin?`,
-      );
+      const confirmed = await confirm({
+        confirmLabel: "Make admin",
+        description:
+          user.status.toLowerCase() === "blocked"
+            ? `${user.email} will become an admin and their access will be restored.`
+            : `${user.email} will gain workspace admin access.`,
+        eyebrow: "Privilege change",
+        title: "Promote user to admin?",
+        variant: "primary",
+      });
 
       if (!confirmed) {
         return;

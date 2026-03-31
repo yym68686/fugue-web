@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getFugueEnv } from "@/lib/fugue/env";
+import type { GitHubRepoVisibility } from "@/lib/github/repository";
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -1496,7 +1497,9 @@ export async function importFugueGitHubApp(
       name: string;
     };
     projectId?: string;
+    repoAuthToken?: string;
     repoUrl: string;
+    repoVisibility?: GitHubRepoVisibility;
     runtimeId?: string;
     servicePort?: number;
     sourceDir?: string;
@@ -1530,6 +1533,8 @@ export async function importFugueGitHubApp(
         ...(typeof payload.servicePort === "number"
           ? { service_port: payload.servicePort }
           : {}),
+        ...(payload.repoVisibility ? { repo_visibility: payload.repoVisibility } : {}),
+        ...(payload.repoAuthToken ? { repo_auth_token: payload.repoAuthToken } : {}),
         repo_url: payload.repoUrl,
       },
       headers: idempotencyKey
@@ -2219,6 +2224,7 @@ export async function rebuildFugueApp(
     branch?: string;
     buildContextDir?: string;
     dockerfilePath?: string;
+    repoAuthToken?: string;
     sourceDir?: string;
   },
 ) {
@@ -2233,6 +2239,9 @@ export async function rebuildFugueApp(
           : {}),
         ...(options?.buildContextDir !== undefined
           ? { build_context_dir: options.buildContextDir }
+          : {}),
+        ...(options?.repoAuthToken !== undefined
+          ? { repo_auth_token: options.repoAuthToken }
           : {}),
       },
       method: "POST",

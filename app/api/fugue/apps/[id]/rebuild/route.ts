@@ -21,7 +21,7 @@ function asRecord(value: unknown) {
 
 function readOptionalString(record: Record<string, unknown> | null, key: string) {
   const value = record?.[key];
-  return typeof value === "string" ? value : undefined;
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
 export async function POST(request: Request, context: RouteContext) {
@@ -44,6 +44,7 @@ export async function POST(request: Request, context: RouteContext) {
       branch: readOptionalString(body, "branch"),
       buildContextDir: readOptionalString(body, "buildContextDir"),
       dockerfilePath: readOptionalString(body, "dockerfilePath"),
+      repoAuthToken: readOptionalString(body, "repoAuthToken"),
       sourceDir: readOptionalString(body, "sourceDir"),
     });
 

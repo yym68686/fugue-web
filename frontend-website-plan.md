@@ -126,7 +126,7 @@
 - Fugue **没有**用户账号系统、OAuth、邮箱注册、session。
 - Fugue 北向 API 基本都依赖 bearer token。
 - 目前没有专门的 `whoami` 接口。
-- `POST /v1/apps/import-github` 当前只支持 **public GitHub repo**。
+- `POST /v1/apps/import-github` 支持导入 **GitHub repo**，包括 public 和 private。
 - `GET /v1/apps/{id}/runtime-logs` 目前只对 managed runtime 有效。
 - `GET /v1/backing-services` 和 `GET /v1/apps/{id}/bindings` 当前是 **只读**。
 - Fugue 已支持：
@@ -476,7 +476,7 @@
 
 应该用一个 checklist：
 
-1. Import a public GitHub repo
+1. Import a GitHub repo
 2. Watch the first deploy operation
 3. Open the live app URL
 4. Create a node key
@@ -525,7 +525,7 @@
 
 这里必须明确写出：
 
-- 目前只支持 public GitHub repo
+- 目前支持 public / private GitHub repo
 
 不要放：
 
@@ -1406,7 +1406,7 @@ Product：
 1. 用户可通过 Google 或邮箱注册并登录
 2. 注册后可自动创建 workspace
 3. workspace 能自动映射到 Fugue tenant
-4. 用户能在控制台导入 public GitHub repo 并看到部署结果
+4. 用户能在控制台导入 GitHub repo 并看到部署结果
 5. 用户能创建 node key 并拿到 join 命令
 6. 用户能查看 operations / audit / logs
 7. 用户能邀请 teammate

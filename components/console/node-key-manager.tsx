@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { InlineButton } from "@/components/ui/button";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Panel, PanelSection } from "@/components/ui/panel";
 import { useToast } from "@/components/ui/toast";
 import { NODE_KEY_CREATE_REQUEST_EVENT } from "@/lib/console/events";
@@ -126,6 +127,7 @@ export function NodeKeyManager({
   initialKeys: NodeKeyRecord[];
   initialSyncError: string | null;
 }) {
+  const confirm = useConfirmDialog();
   const { showToast } = useToast();
   const createRequestRef = useRef<() => void>(() => {});
   const copyInFlightRef = useRef<string | null>(null);
@@ -301,9 +303,13 @@ export function NodeKeyManager({
       return;
     }
 
-    const confirmed = window.confirm(
-      "Revoke this node key? Existing runtimes stay attached, but this secret can no longer enroll new nodes.",
-    );
+    const confirmed = await confirm({
+      confirmLabel: "Revoke key",
+      description:
+        "Existing runtimes stay attached, but this secret can no longer enroll new nodes.",
+      eyebrow: "Credential revocation",
+      title: "Revoke node key?",
+    });
 
     if (!confirmed) {
       return;

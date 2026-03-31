@@ -6,11 +6,13 @@ import { useRouter } from "next/navigation";
 import { CompactResourceMeter } from "@/components/console/compact-resource-meter";
 import { ConsoleDisclosureSection } from "@/components/console/console-disclosure-section";
 import { DeploymentTargetField } from "@/components/console/deployment-target-field";
+import { GitHubRepositoryAccessFields } from "@/components/console/github-repository-access-fields";
 import { StatusBadge } from "@/components/console/status-badge";
 import { AppSettingsPanel } from "@/components/console/app-settings-panel";
 import { AppRoutePanel } from "@/components/console/app-route-panel";
 import { ConsoleFilesWorkbench } from "@/components/console/console-files-workbench";
 import { Button } from "@/components/ui/button";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { CountryFlagLabel } from "@/components/ui/country-flag-label";
 import { FormField } from "@/components/ui/form-field";
 import { Panel, PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
@@ -36,6 +38,7 @@ import type {
 } from "@/lib/console/gallery-types";
 import { readDefaultImportRuntimeId } from "@/lib/console/runtime-targets";
 import { readGitHubCommitHref } from "@/lib/fugue/source-links";
+import { isGitHubSourceType, type GitHubRepoVisibility } from "@/lib/github/repository";
 import type { ConsoleTone } from "@/lib/console/types";
 import { parseAnsiText } from "@/lib/ui/ansi";
 import { cx } from "@/lib/ui/cx";
@@ -291,7 +294,7 @@ function shouldShowLiveStatusBadge(value?: string | null) {
 function readProjectLifecycle(project: ConsoleGalleryProjectView): ProjectLifecycle {
   const tracksGitHubBranch = project.services.some(
     (service) =>
-      service.kind === "app" && service.sourceType?.trim().toLowerCase() === "github-public",
+      service.kind === "app" && isGitHubSourceType(service.sourceType),
   );
   const statuses = project.services
     .map((service) =>
@@ -937,7 +940,7 @@ function hasPendingCommitView(app: ConsoleGalleryAppView | null) {
 }
 
 function isGitHubTrackedApp(app: ConsoleGalleryAppView | null) {
-  return app?.sourceType?.trim().toLowerCase() === "github-public";
+  return isGitHubSourceType(app?.sourceType);
 }
 
 function hasInFlightCommitPhase(phase?: string | null) {
@@ -1329,6 +1332,7 @@ export function ConsoleProjectGallery({
   data: ConsoleProjectGalleryData;
   defaultCreateOpen?: boolean;
 }) {
+  const confirm = useConfirmDialog();
   const router = useRouter();
   const { showToast } = useToast();
   const [flash, setFlash] = useState<FlashState | null>(null);
@@ -1336,6 +1340,8 @@ export function ConsoleProjectGallery({
   const [createTargetProject, setCreateTargetProject] = useState<CreateDialogTarget | null>(null);
   const [projectName, setProjectName] = useState(buildSuggestedProjectName(data.projects.length));
   const [repoUrl, setRepoUrl] = useState("");
+  const [repoVisibility, setRepoVisibility] = useState<GitHubRepoVisibility>("public");
+  const [repoAuthToken, setRepoAuthToken] = useState("");
   const [branch, setBranch] = useState("");
   const [appName, setAppName] = useState("");
   const [buildStrategy, setBuildStrategy] = useState<BuildStrategyValue>("auto");
@@ -1458,8 +1464,8 @@ export function ConsoleProjectGallery({
   const isCreateServiceMode = createTargetProject !== null;
   const createDialogEyebrow = isCreateServiceMode ? "Add service" : "Create project";
   const createDialogCopy = isCreateServiceMode
-    ? `Paste a GitHub repository link to add a service to ${createTargetProject.name}.`
-    : "Name the project, then paste a GitHub repository link.";
+    ? `Paste a GitHub repository link and choose how Fugue should access it for ${createTargetProject.name}.`
+    : "Name the project, then add a GitHub repository with public or private access.";
   const createDialogSubmitLabel = isCreating
     ? isCreateServiceMode
       ? "Adding…"
@@ -2117,6 +2123,8 @@ export function ConsoleProjectGallery({
   function resetCreateForm(nextProjectName: string) {
     setProjectName(nextProjectName);
     setRepoUrl("");
+    setRepoVisibility("public");
+    setRepoAuthToken("");
     setBranch("");
     setAppName("");
     setBuildStrategy("auto");
@@ -2173,9 +2181,21 @@ export function ConsoleProjectGallery({
       return;
     }
 
-    if (!repoUrl.trim()) {
+    const normalizedRepoUrl = repoUrl.trim();
+
+    if (!normalizedRepoUrl) {
       setFlash({
         message: "Repository link is required.",
+        variant: "error",
+      });
+      return;
+    }
+
+    const normalizedRepoAuthToken = repoAuthToken.trim();
+
+    if (repoVisibility === "private" && !normalizedRepoAuthToken) {
+      setFlash({
+        message: "Private GitHub repositories require a GitHub token.",
         variant: "error",
       });
       return;
@@ -2204,6 +2224,7 @@ export function ConsoleProjectGallery({
             ...(normalizedBuildContextDir ? { buildContextDir: normalizedBuildContextDir } : {}),
             ...(normalizedServicePort ? { servicePort: normalizedServicePort } : {}),
             ...(selectedRuntimeId ? { runtimeId: selectedRuntimeId } : {}),
+            ...(repoVisibility === "private" ? { repoAuthToken: normalizedRepoAuthToken } : {}),
             ...(createTargetProject
               ? {
                   projectId: createTargetProject.id,
@@ -2211,7 +2232,8 @@ export function ConsoleProjectGallery({
               : {
                   projectName,
                 }),
-            repoUrl,
+            repoUrl: normalizedRepoUrl,
+            repoVisibility,
           }),
           headers: {
             "Content-Type": "application/json",
@@ -2300,7 +2322,11 @@ export function ConsoleProjectGallery({
     }
 
     if (action === "delete") {
-      const confirmed = window.confirm(`Delete ${selectedServiceApp.name}?`);
+      const confirmed = await confirm({
+        confirmLabel: "Delete service",
+        description: `${selectedServiceApp.name} will be queued for deletion from this project.`,
+        title: "Delete service?",
+      });
 
       if (!confirmed) {
         return;
@@ -2373,7 +2399,11 @@ export function ConsoleProjectGallery({
       return;
     }
 
-    const confirmed = window.confirm(`Delete empty project ${project.name}?`);
+    const confirmed = await confirm({
+      confirmLabel: "Delete project",
+      description: `${project.name} is empty and will be removed from the workspace.`,
+      title: "Delete empty project?",
+    });
 
     if (!confirmed) {
       return;
@@ -3387,7 +3417,7 @@ export function ConsoleProjectGallery({
                     )}
 
                     <FormField
-                      hint="Public GitHub only."
+                      hint="Use https://github.com/owner/repo."
                       htmlFor="create-repo-url"
                       label="Repository link"
                     >
@@ -3406,6 +3436,15 @@ export function ConsoleProjectGallery({
                         value={repoUrl}
                       />
                     </FormField>
+
+                    <GitHubRepositoryAccessFields
+                      onTokenChange={setRepoAuthToken}
+                      onVisibilityChange={setRepoVisibility}
+                      token={repoAuthToken}
+                      tokenFieldId="create-repo-auth-token"
+                      tokenRequired={repoVisibility === "private"}
+                      visibility={repoVisibility}
+                    />
 
                     <DeploymentTargetField
                       inventoryError={data.runtimeTargetInventoryError}

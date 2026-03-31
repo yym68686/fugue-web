@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
+import { ConfirmDialogProvider } from "@/components/ui/confirm-dialog";
 import { ToastProvider } from "@/components/ui/toast";
 
 import "./globals.css";
@@ -8,7 +9,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Fugue",
   description:
-    "Fugue deploys public GitHub repositories on shared infrastructure first, then lets teams move the same app onto their own machine without losing the route.",
+    "Fugue deploys GitHub repositories on shared infrastructure first, then lets teams move the same app onto their own machine without losing the route.",
 };
 
 export default function RootLayout({
@@ -28,7 +29,9 @@ export default function RootLayout({
       </head>
 
       <body className="fg-theme-dark">
-        <ToastProvider>{children}</ToastProvider>
+        <ToastProvider>
+          <ConfirmDialogProvider>{children}</ConfirmDialogProvider>
+        </ToastProvider>
       </body>
     </html>
   );

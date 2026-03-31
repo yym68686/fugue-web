@@ -6,9 +6,10 @@ import {
   type CSSProperties,
 } from "react";
 
-import { InlineAlert } from "@/components/ui/inline-alert";
 import { Button } from "@/components/ui/button";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FormField } from "@/components/ui/form-field";
+import { InlineAlert } from "@/components/ui/inline-alert";
 import { useToast } from "@/components/ui/toast";
 import { cx } from "@/lib/ui/cx";
 
@@ -482,6 +483,7 @@ export function ConsoleFilesWorkbench({
   appName,
   workspaceMountPath,
 }: ConsoleFilesWorkbenchProps) {
+  const confirm = useConfirmDialog();
   const { showToast } = useToast();
   const [workspaceRoot, setWorkspaceRoot] = useState(workspaceMountPath ?? "/workspace");
   const [directories, setDirectories] = useState<Record<string, DirectoryBucket>>({});
@@ -975,11 +977,14 @@ export function ConsoleFilesWorkbench({
       return;
     }
 
-    const confirmed = window.confirm(
-      selectedNode.kind === "dir"
-        ? `Delete ${selectedNode.path} and everything inside it?`
-        : `Delete ${selectedNode.path}?`,
-    );
+    const confirmed = await confirm({
+      confirmLabel: selectedNode.kind === "dir" ? "Delete folder" : "Delete file",
+      description:
+        selectedNode.kind === "dir"
+          ? `${selectedNode.path} and everything inside it will be removed from ${appName}.`
+          : `${selectedNode.path} will be removed from ${appName}.`,
+      title: selectedNode.kind === "dir" ? "Delete folder?" : "Delete file?",
+    });
 
     if (!confirmed) {
       return;

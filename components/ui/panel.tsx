@@ -49,11 +49,16 @@ export function PanelTitle({
 export function PanelCopy({
   children,
   className,
+  ...rest
 }: {
   children: ReactNode;
   className?: string;
-}) {
-  return <p className={cx("fg-panel__copy", className)}>{children}</p>;
+} & HTMLAttributes<HTMLParagraphElement>) {
+  return (
+    <p {...rest} className={cx("fg-panel__copy", className)}>
+      {children}
+    </p>
+  );
 }
 
 export function PanelDivider({

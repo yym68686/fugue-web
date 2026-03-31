@@ -42,6 +42,7 @@ import {
   readGitHubCommitHref,
   readGitHubSourceHref,
 } from "@/lib/fugue/source-links";
+import { isGitHubSourceType } from "@/lib/github/repository";
 import {
   readBuildBadgeKind,
   readLanguageBadgeKind,
@@ -856,7 +857,7 @@ function buildCommitViews(
 
   const runningCommit = buildCommitView({
     fallbackLabel:
-      isGitHubPublicSource(app) && !pendingCommitSha
+      isGitHubSource(app) && !pendingCommitSha
         ? "Pending first import"
         : null,
     fallbackRepoUrl: app.source.repoUrl,
@@ -1013,8 +1014,8 @@ function formatRepoLabel(repoUrl?: string | null, branch?: string | null) {
   }
 }
 
-function isGitHubPublicAppSource(source?: FugueAppSource | null) {
-  return source?.type?.trim().toLowerCase() === "github-public";
+function isGitHubAppSource(source?: FugueAppSource | null) {
+  return isGitHubSourceType(source?.type);
 }
 
 function isUploadAppSource(source?: FugueAppSource | null) {
@@ -1041,8 +1042,8 @@ function readSourceLabel(app: FugueApp) {
   return readSourceLabelFromSource(app.source);
 }
 
-function isGitHubPublicSource(app: FugueApp) {
-  return isGitHubPublicAppSource(app.source);
+function isGitHubSource(app: FugueApp) {
+  return isGitHubAppSource(app.source);
 }
 
 function isUploadSource(app: FugueApp) {
@@ -1050,7 +1051,7 @@ function isUploadSource(app: FugueApp) {
 }
 
 function readSourceBranchLabelFromSource(source: FugueAppSource) {
-  if (!isGitHubPublicAppSource(source)) {
+  if (!isGitHubAppSource(source)) {
     return null;
   }
 
@@ -1062,7 +1063,7 @@ function readSourceBranchLabel(app: FugueApp) {
 }
 
 function readCurrentCommitLabel(app: FugueApp) {
-  if (!isGitHubPublicSource(app)) {
+  if (!isGitHubSource(app)) {
     return null;
   }
 
@@ -1070,7 +1071,7 @@ function readCurrentCommitLabel(app: FugueApp) {
 }
 
 function readRedeployAction(app: FugueApp) {
-  if (isGitHubPublicSource(app)) {
+  if (isGitHubSource(app)) {
     return {
       description:
         "Pull the latest code from the tracked branch, rebuild from scratch, and roll out the new release. Fugue also redeploys automatically when upstream commits change and the app is idle.",
@@ -1090,7 +1091,7 @@ function readRedeployAction(app: FugueApp) {
 }
 
 function readDeployBehavior(app: FugueApp) {
-  if (isGitHubPublicSource(app) || isUploadSource(app)) {
+  if (isGitHubSource(app) || isUploadSource(app)) {
     return "Deploy completes only after the new Kubernetes rollout is ready and old replicas have drained.";
   }
 
@@ -1100,7 +1101,7 @@ function readDeployBehavior(app: FugueApp) {
 function readRedeployState(app: FugueApp) {
   const sourceType = app.source.type?.trim().toLowerCase() ?? "";
 
-  if (sourceType === "github-public" || sourceType === "upload") {
+  if (isGitHubSourceType(sourceType) || sourceType === "upload") {
     return {
       canRedeploy: true,
       redeployDisabledReason: null,
@@ -1450,7 +1451,7 @@ function buildAppView(
   const activePhase = activeOperation ? readPendingCommitState(activeOperation) : null;
   const primaryCommit = commitViews.find((entry) => entry.kind === "running") ?? commitViews[0] ?? null;
   const currentCommitLabel =
-    primaryCommit?.label ?? (isGitHubPublicSource(app) ? readCurrentCommitLabel(app) : null);
+    primaryCommit?.label ?? (isGitHubSource(app) ? readCurrentCommitLabel(app) : null);
   const fallbackPhase = app.status.phase ?? (app.spec.disabled ? "disabled" : "unknown");
   const sharedView = buildSharedAppView(app, { location });
   const pendingSharedView = activeOperation
