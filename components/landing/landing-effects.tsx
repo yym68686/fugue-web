@@ -15,7 +15,7 @@ declare global {
 const UNICORN_SCRIPT_SRC =
   "https://cdn.jsdelivr.net/gh/hiunicornstudio/unicornstudio.js@v2.0.5/dist/unicornStudio.umd.js";
 
-export function LandingV8Effects() {
+export function LandingEffects() {
   useEffect(() => {
     const root = document.querySelector<HTMLElement>("[data-landing-root]");
     const hero = root?.querySelector<HTMLElement>("[data-landing-hero]");
@@ -73,7 +73,7 @@ export function LandingV8Effects() {
     }
 
     function initUnicornScene() {
-      const scene = landingRoot.querySelector<HTMLElement>("#unicorn-scene");
+      const scene = landingRoot.querySelector<HTMLElement>("#fg-landing-scene");
 
       trackTimeout(window.setTimeout(markPageReady, prefersReducedMotion ? 0 : 120));
 

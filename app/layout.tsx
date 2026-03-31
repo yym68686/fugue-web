@@ -8,7 +8,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Fugue",
   description:
-    "Fugue v8 landing page with Google sign-in, verified email access, and a protected control shell behind the public route.",
+    "Fugue deploys public GitHub repositories on shared infrastructure first, then lets teams move the same app onto their own machine without losing the route.",
 };
 
 export default function RootLayout({

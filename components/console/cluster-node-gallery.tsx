@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 
+import { CompactResourceMeter } from "@/components/console/compact-resource-meter";
 import { RuntimeAccessPanel } from "@/components/console/runtime-access-panel";
 import { ConsoleEmptyState } from "@/components/console/console-empty-state";
 import { StatusBadge } from "@/components/console/status-badge";
 import { CountryFlagLabel } from "@/components/ui/country-flag-label";
 import { PanelSection } from "@/components/ui/panel";
+import type { ConsoleCompactResourceItemView } from "@/lib/console/gallery-types";
 import type { ConsoleTone } from "@/lib/console/types";
 import type { RuntimeOwnership } from "@/lib/runtimes/types";
 import { cx } from "@/lib/ui/cx";
@@ -168,6 +170,20 @@ function ClusterFactValue({ fact }: { fact: ClusterNodeGalleryFact }) {
   return <>{fact.value}</>;
 }
 
+function buildCompactResourceItem(
+  resource: ClusterNodeGalleryResource,
+): ConsoleCompactResourceItemView {
+  return {
+    id: resource.id,
+    label: resource.label,
+    meterValue: resource.percentValue,
+    primaryLabel: resource.percentLabel,
+    secondaryLabel: resource.usageLabel,
+    title: `${resource.label} / ${resource.usageLabel} / ${resource.totalLabel}`,
+    tone: resource.statusTone,
+  };
+}
+
 function readOwnershipBadge(item: ClusterNodeGalleryItem) {
   if (!item.ownership) {
     return null;
@@ -252,7 +268,10 @@ export function ClusterNodeGallery({
 
                     <div className="fg-cluster-node-card__summary-resources">
                       {item.resources.map((resource) => (
-                        <ClusterResourceMeter compact key={resource.id} resource={resource} />
+                        <CompactResourceMeter
+                          item={buildCompactResourceItem(resource)}
+                          key={resource.id}
+                        />
                       ))}
                     </div>
 

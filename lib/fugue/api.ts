@@ -50,6 +50,7 @@ export type FugueNodeKey = {
 
 export type FugueBackingService = {
   createdAt: string | null;
+  currentResourceUsage: FugueResourceUsage | null;
   description: string | null;
   id: string;
   name: string;
@@ -111,6 +112,12 @@ export type FugueAppTechnology = {
   source: string | null;
 };
 
+export type FugueResourceUsage = {
+  cpuMillicores: number | null;
+  ephemeralStorageBytes: number | null;
+  memoryBytes: number | null;
+};
+
 export type FugueAppSource = {
   type: string | null;
   repoUrl: string | null;
@@ -132,6 +139,7 @@ export type FugueApp = {
   projectId: string | null;
   name: string;
   createdAt: string | null;
+  currentResourceUsage: FugueResourceUsage | null;
   updatedAt: string | null;
   route: {
     baseDomain: string | null;
@@ -631,6 +639,7 @@ function sanitizeBackingService(value: unknown): FugueBackingService | null {
 
   return {
     createdAt: readString(record, "created_at"),
+    currentResourceUsage: sanitizeResourceUsage(record?.current_resource_usage),
     description: readString(record, "description"),
     id,
     name,
@@ -743,6 +752,26 @@ function sanitizeAppTechnology(value: unknown): FugueAppTechnology | null {
   };
 }
 
+function sanitizeResourceUsage(value: unknown): FugueResourceUsage | null {
+  const record = asRecord(value);
+
+  if (!record) {
+    return null;
+  }
+
+  const usage = {
+    cpuMillicores: readNumber(record, "cpu_millicores"),
+    ephemeralStorageBytes: readNumber(record, "ephemeral_storage_bytes"),
+    memoryBytes: readNumber(record, "memory_bytes"),
+  } satisfies FugueResourceUsage;
+
+  return usage.cpuMillicores !== null ||
+    usage.memoryBytes !== null ||
+    usage.ephemeralStorageBytes !== null
+    ? usage
+    : null;
+}
+
 function sanitizeAppSource(value: unknown): FugueAppSource {
   const source = asRecord(value);
 
@@ -786,6 +815,7 @@ function sanitizeApp(value: unknown): FugueApp | null {
     projectId: readString(record, "project_id"),
     name,
     createdAt: readString(record, "created_at"),
+    currentResourceUsage: sanitizeResourceUsage(record?.current_resource_usage),
     updatedAt: readString(record, "updated_at"),
     route: {
       baseDomain: readString(route, "base_domain"),
@@ -1405,6 +1435,49 @@ export async function createFugueProject(
 
   if (!project) {
     throw new Error("Fugue project response was malformed.");
+  }
+
+  return project;
+}
+
+export async function patchFugueProject(
+  accessToken: string,
+  id: string,
+  payload: {
+    description?: string;
+    name?: string;
+  },
+) {
+  const response = asRecord(
+    await fugueRequest(`/v1/projects/${encodeURIComponent(id)}`, {
+      accessToken,
+      body: {
+        ...(payload.description !== undefined ? { description: payload.description } : {}),
+        ...(payload.name !== undefined ? { name: payload.name } : {}),
+      },
+      method: "PATCH",
+    }),
+  );
+  const project = sanitizeProject(response?.project);
+
+  if (!project) {
+    throw new Error("Fugue project update response was malformed.");
+  }
+
+  return project;
+}
+
+export async function deleteFugueProject(accessToken: string, id: string) {
+  const response = asRecord(
+    await fugueRequest(`/v1/projects/${encodeURIComponent(id)}`, {
+      accessToken,
+      method: "DELETE",
+    }),
+  );
+  const project = sanitizeProject(response?.project);
+
+  if (!project) {
+    throw new Error("Fugue project delete response was malformed.");
   }
 
   return project;
@@ -2139,11 +2212,29 @@ export async function restartFugueApp(accessToken: string, appId: string) {
   };
 }
 
-export async function rebuildFugueApp(accessToken: string, appId: string) {
+export async function rebuildFugueApp(
+  accessToken: string,
+  appId: string,
+  options?: {
+    branch?: string;
+    buildContextDir?: string;
+    dockerfilePath?: string;
+    sourceDir?: string;
+  },
+) {
   const payload = asRecord(
     await fugueRequest(`/v1/apps/${encodeURIComponent(appId)}/rebuild`, {
       accessToken,
-      body: {},
+      body: {
+        ...(options?.branch !== undefined ? { branch: options.branch } : {}),
+        ...(options?.sourceDir !== undefined ? { source_dir: options.sourceDir } : {}),
+        ...(options?.dockerfilePath !== undefined
+          ? { dockerfile_path: options.dockerfilePath }
+          : {}),
+        ...(options?.buildContextDir !== undefined
+          ? { build_context_dir: options.buildContextDir }
+          : {}),
+      },
       method: "POST",
     }),
   );

@@ -4,6 +4,12 @@
   overflow-x: hidden;
 }
 
+#main,
+.fg-landing-hero[id],
+.fg-landing-section[id] {
+  scroll-margin-top: calc(var(--fg-landing-header-offset) + 1rem);
+}
+
 body.menu-open {
   overflow: hidden;
 }
@@ -73,12 +79,34 @@ body.is-ready .fg-landing-masthead {
   border-radius: var(--fugue-radius-pill);
   background: rgba(9, 10, 14, 0.68);
   backdrop-filter: blur(14px);
+  touch-action: manipulation;
+  transition:
+    transform var(--fugue-duration-fast) var(--fugue-ease-out-expo),
+    border-color var(--fugue-duration-fast) var(--fugue-ease-out-expo),
+    background-color var(--fugue-duration-fast) var(--fugue-ease-out-expo),
+    box-shadow var(--fugue-duration-fast) var(--fugue-ease-out-expo);
 }
 
 .fg-landing-menu-toggle span {
   width: 1rem;
   height: 1px;
   background: var(--fugue-text-primary);
+}
+
+.fg-landing-menu-toggle:hover,
+.fg-landing-menu-toggle:focus-visible {
+  border-color: var(--fugue-selection-lens-border-hover);
+  background: rgba(11, 14, 19, 0.92);
+  box-shadow: var(--fugue-selection-lens-shadow-active);
+}
+
+.fg-landing-menu-toggle:focus-visible {
+  outline: 2px solid var(--fugue-focus-ring);
+  outline-offset: 3px;
+}
+
+.fg-landing-menu-toggle:active {
+  transform: scale(0.985);
 }
 
 .fg-landing-mobile-sheet {
@@ -104,6 +132,7 @@ body.is-ready .fg-landing-masthead {
   padding: 0.9rem 1rem;
   border-radius: 0.85rem;
   color: var(--fugue-text-secondary);
+  touch-action: manipulation;
 }
 
 .fg-landing-mobile-nav a:hover,

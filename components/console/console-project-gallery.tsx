@@ -3,9 +3,11 @@
 import { startTransition, useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
+import { CompactResourceMeter } from "@/components/console/compact-resource-meter";
 import { ConsoleDisclosureSection } from "@/components/console/console-disclosure-section";
 import { DeploymentTargetField } from "@/components/console/deployment-target-field";
 import { StatusBadge } from "@/components/console/status-badge";
+import { AppSettingsPanel } from "@/components/console/app-settings-panel";
 import { AppRoutePanel } from "@/components/console/app-route-panel";
 import { ConsoleFilesWorkbench } from "@/components/console/console-files-workbench";
 import { Button } from "@/components/ui/button";
@@ -143,7 +145,8 @@ type LogStreamEnd = {
 };
 
 type AppAction = "delete" | "disable" | "redeploy" | "restart" | "start";
-type WorkbenchView = "env" | "files" | "logs" | "route";
+type ProjectAction = "delete";
+type WorkbenchView = "env" | "files" | "logs" | "route" | "settings";
 type EnvironmentFormat = "raw" | "table";
 type LogsView = "build" | "runtime";
 
@@ -194,12 +197,14 @@ const WORKBENCH_VIEW_OPTIONS: readonly SegmentedControlOption<WorkbenchView>[] =
   { value: "route", label: "Route" },
   { value: "files", label: "Files" },
   { value: "logs", label: "Logs" },
+  { value: "settings", label: "Settings" },
 ];
 
 const ENV_ROUTE_AND_LOGS_WORKBENCH_OPTIONS: readonly SegmentedControlOption<WorkbenchView>[] = [
   { value: "env", label: "Environment" },
   { value: "route", label: "Route" },
   { value: "logs", label: "Logs" },
+  { value: "settings", label: "Settings" },
 ];
 
 const LOGS_ONLY_WORKBENCH_OPTIONS: readonly SegmentedControlOption<WorkbenchView>[] = [
@@ -1349,6 +1354,7 @@ export function ConsoleProjectGallery({
   const [activeTab, setActiveTab] = useState<WorkbenchView>("env");
   const [isCreating, setIsCreating] = useState(false);
   const [busyAction, setBusyAction] = useState<AppAction | null>(null);
+  const [busyProjectAction, setBusyProjectAction] = useState<ProjectAction | null>(null);
   const [envFormat, setEnvFormat] = useState<EnvironmentFormat>("table");
   const [envStatus, setEnvStatus] = useState<"error" | "idle" | "loading" | "ready">("idle");
   const [envBaseline, setEnvBaseline] = useState<Record<string, string>>({});
@@ -2362,6 +2368,44 @@ export function ConsoleProjectGallery({
     }
   }
 
+  async function handleProjectDelete(project: ConsoleGalleryProjectView) {
+    if (busyProjectAction || project.serviceCount > 0) {
+      return;
+    }
+
+    const confirmed = window.confirm(`Delete empty project ${project.name}?`);
+
+    if (!confirmed) {
+      return;
+    }
+
+    setBusyProjectAction("delete");
+    setFlash(null);
+
+    try {
+      await requestJson(`/api/fugue/projects/${project.id}`, {
+        method: "DELETE",
+      });
+      setSelectedProjectId((current) => (current === project.id ? null : current));
+      setSelectedServiceKey(null);
+      setSelectedAppId(null);
+      setFlash({
+        message: "Project deleted.",
+        variant: "success",
+      });
+      startTransition(() => {
+        router.refresh();
+      });
+    } catch (error) {
+      setFlash({
+        message: readErrorMessage(error),
+        variant: "error",
+      });
+    } finally {
+      setBusyProjectAction(null);
+    }
+  }
+
   function addEnvRow() {
     setEnvRows((current) => [
       ...current,
@@ -2574,7 +2618,123 @@ export function ConsoleProjectGallery({
     project: ConsoleGalleryProjectView,
     detailId: string,
   ) {
-    if (selectedProject?.id !== project.id || !selectedService || !selectedApp) {
+    if (selectedProject?.id !== project.id) {
+      return null;
+    }
+
+    if (project.serviceCount === 0) {
+      return (
+        <div className="fg-project-card__detail" id={detailId}>
+          <section className="fg-bezel fg-panel fg-project-workbench">
+            <div className="fg-bezel__inner fg-project-workbench__inner">
+              <aside className="fg-project-services fg-project-services--rail fg-project-workbench__rail">
+                <PanelSection className="fg-project-services__head">
+                  <div className="fg-project-services__title-row">
+                    <p className="fg-label fg-panel__eyebrow">Services</p>
+                    <Button onClick={() => openCreateService(project)} size="compact" type="button" variant="primary">
+                      Add service
+                    </Button>
+                  </div>
+                </PanelSection>
+
+                <PanelSection>
+                  <p className="fg-console-note">
+                    No services are attached to this project yet.
+                  </p>
+                </PanelSection>
+              </aside>
+
+              <div className="fg-project-inspector fg-project-workbench__main">
+                <PanelSection className="fg-project-inspector__head">
+                  <div className="fg-project-inspector__header-row">
+                    <div className="fg-project-inspector__hero">
+                      <PanelTitle>{project.name}</PanelTitle>
+                      <PanelCopy className="fg-project-inspector__copy">
+                        This project still exists in Fugue, but it does not currently have any running
+                        services or attached backing services.
+                      </PanelCopy>
+                    </div>
+                  </div>
+
+                  <div className="fg-project-inspector__meta-grid">
+                    <div>
+                      <dt>Apps</dt>
+                      <dd>{project.appCount}</dd>
+                    </div>
+                    <div>
+                      <dt>Services</dt>
+                      <dd>{project.serviceCount}</dd>
+                    </div>
+                    <div>
+                      <dt>Project id</dt>
+                      <dd>{project.id}</dd>
+                    </div>
+                    <div>
+                      <dt>State</dt>
+                      <dd>Empty</dd>
+                    </div>
+                  </div>
+                </PanelSection>
+
+                <PanelSection className="fg-project-inspector__controls">
+                  <div className="fg-project-toolbar">
+                    <div className="fg-project-toolbar__group">
+                      <p className="fg-label fg-project-toolbar__label">Actions</p>
+                      <div className="fg-project-actions">
+                        <Button
+                          onClick={() => openCreateService(project)}
+                          size="compact"
+                          type="button"
+                          variant="primary"
+                        >
+                          Add service
+                        </Button>
+                        <Button
+                          disabled={busyProjectAction === "delete"}
+                          loading={busyProjectAction === "delete"}
+                          loadingLabel="Deleting…"
+                          onClick={() => handleProjectDelete(project)}
+                          size="compact"
+                          type="button"
+                          variant="danger"
+                        >
+                          Delete project
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </PanelSection>
+
+                <PanelSection className="fg-project-pane">
+                  <div className="fg-console-empty-state fg-project-empty-state">
+                    <div>
+                      <strong>Empty project</strong>
+                      <p>
+                        Empty projects used to be hidden from the gallery. They now stay visible so
+                        you can reuse the shell or delete it explicitly.
+                      </p>
+                    </div>
+
+                    <div className="fg-console-empty-state__actions">
+                      <Button
+                        onClick={() => openCreateService(project)}
+                        size="compact"
+                        type="button"
+                        variant="primary"
+                      >
+                        Import a new service
+                      </Button>
+                    </div>
+                  </div>
+                </PanelSection>
+              </div>
+            </div>
+          </section>
+        </div>
+      );
+    }
+
+    if (!selectedService || !selectedApp) {
       return null;
     }
 
@@ -3059,6 +3219,20 @@ export function ConsoleProjectGallery({
                     </ProofShell>
                   </div>
                 ) : null}
+
+                {selectedService.kind === "app" && activeTab === "settings" ? (
+                  <AppSettingsPanel
+                    app={selectedService}
+                    projectCatalog={data.projects.map((item) => ({
+                      id: item.id,
+                      name: item.name,
+                    }))}
+                    projectId={project.id}
+                    projectManaged={project.id !== "unassigned"}
+                    projectName={project.name}
+                    serviceCount={project.serviceCount}
+                  />
+                ) : null}
               </PanelSection>
             </div>
           </div>
@@ -3122,6 +3296,12 @@ export function ConsoleProjectGallery({
                               </div>
                             ) : null}
                           </div>
+                        </div>
+
+                        <div className="fg-project-card__summary-resources">
+                          {project.resourceUsage.map((resource) => (
+                            <CompactResourceMeter item={resource} key={resource.id} />
+                          ))}
                         </div>
 
                         <div className="fg-project-card__summary-side">

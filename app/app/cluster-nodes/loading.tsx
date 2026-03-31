@@ -1,12 +1,12 @@
 import {
+  ConsoleClusterNodesPageSkeleton,
   ConsoleLoadingState,
-  ConsoleProjectGallerySkeleton,
 } from "@/components/console/console-page-skeleton";
 
-export default function AppLoading() {
+export default function ClusterNodesLoading() {
   return (
     <ConsoleLoadingState>
-      <ConsoleProjectGallerySkeleton />
+      <ConsoleClusterNodesPageSkeleton />
     </ConsoleLoadingState>
   );
 }

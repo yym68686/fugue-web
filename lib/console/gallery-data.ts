@@ -10,8 +10,9 @@ import type {
   ConsoleGalleryBadgeView,
   ConsoleGalleryBackingServiceView,
   ConsoleGalleryCommitView,
-  ConsoleImportRuntimeTargetView,
+  ConsoleCompactResourceItemView,
   ConsoleGalleryProjectView,
+  ConsoleImportRuntimeTargetView,
   ConsoleProjectGalleryData,
 } from "@/lib/console/gallery-types";
 import {
@@ -26,8 +27,9 @@ import {
   type FugueClusterNode,
   type FugueOperation,
   type FugueProject,
-  type FugueRuntime,
   type FugueAppTechnology,
+  type FugueResourceUsage,
+  type FugueRuntime,
 } from "@/lib/fugue/api";
 import {
   DEFAULT_INTERNAL_CLUSTER_RUNTIME_ID,
@@ -131,6 +133,115 @@ function formatExactTime(value?: string | null) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(timestamp);
+}
+
+function formatCompactNumber(value: number, digits = 1) {
+  const formatter = new Intl.NumberFormat("en-US", {
+    maximumFractionDigits: digits,
+    minimumFractionDigits: Number.isInteger(value) ? 0 : Math.min(1, digits),
+  });
+
+  return formatter.format(value);
+}
+
+function formatBytesLabel(value?: number | null) {
+  if (value === null || value === undefined || !Number.isFinite(value) || value < 0) {
+    return "No stats";
+  }
+
+  const units = ["bytes", "KB", "MB", "GB", "TB", "PB"];
+  let amount = value;
+  let unitIndex = 0;
+
+  while (amount >= 1024 && unitIndex < units.length - 1) {
+    amount /= 1024;
+    unitIndex += 1;
+  }
+
+  const digits = amount >= 100 || unitIndex === 0 ? 0 : 1;
+
+  if (unitIndex === 0) {
+    const rounded = Math.round(amount);
+    return `${rounded} ${rounded === 1 ? "byte" : "bytes"}`;
+  }
+
+  return `${formatCompactNumber(amount, digits)} ${units[unitIndex]}`;
+}
+
+function formatCPUMillicoresLabel(value?: number | null) {
+  if (value === null || value === undefined || !Number.isFinite(value) || value < 0) {
+    return "No stats";
+  }
+
+  if (Math.abs(value) >= 1000) {
+    const cores = value / 1000;
+    return `${formatCompactNumber(cores, 1)} ${cores === 1 ? "core" : "cores"}`;
+  }
+
+  return `${Math.round(value)} millicores`;
+}
+
+function sumCurrentResourceUsage(items: Array<FugueResourceUsage | null | undefined>) {
+  let cpuMillicores: number | null = null;
+  let memoryBytes: number | null = null;
+  let ephemeralStorageBytes: number | null = null;
+
+  for (const item of items) {
+    if (item?.cpuMillicores !== null && item?.cpuMillicores !== undefined) {
+      cpuMillicores = (cpuMillicores ?? 0) + item.cpuMillicores;
+    }
+
+    if (item?.memoryBytes !== null && item?.memoryBytes !== undefined) {
+      memoryBytes = (memoryBytes ?? 0) + item.memoryBytes;
+    }
+
+    if (
+      item?.ephemeralStorageBytes !== null &&
+      item?.ephemeralStorageBytes !== undefined
+    ) {
+      ephemeralStorageBytes = (ephemeralStorageBytes ?? 0) + item.ephemeralStorageBytes;
+    }
+  }
+
+  return {
+    cpuMillicores,
+    ephemeralStorageBytes,
+    memoryBytes,
+  } satisfies FugueResourceUsage;
+}
+
+function buildProjectResourceUsageView(
+  usage: FugueResourceUsage,
+): ConsoleCompactResourceItemView[] {
+  return [
+    {
+      id: "cpu",
+      label: "Compute",
+      meterValue: null,
+      primaryLabel: formatCPUMillicoresLabel(usage.cpuMillicores),
+      secondaryLabel: null,
+      title: `Compute / ${formatCPUMillicoresLabel(usage.cpuMillicores)} / Current project total`,
+      tone: usage.cpuMillicores !== null ? "info" : "neutral",
+    },
+    {
+      id: "memory",
+      label: "Memory",
+      meterValue: null,
+      primaryLabel: formatBytesLabel(usage.memoryBytes),
+      secondaryLabel: null,
+      title: `Memory / ${formatBytesLabel(usage.memoryBytes)} / Current project total`,
+      tone: usage.memoryBytes !== null ? "info" : "neutral",
+    },
+    {
+      id: "storage",
+      label: "Disk",
+      meterValue: null,
+      primaryLabel: formatBytesLabel(usage.ephemeralStorageBytes),
+      secondaryLabel: null,
+      title: `Disk / ${formatBytesLabel(usage.ephemeralStorageBytes)} / Current project total`,
+      tone: usage.ephemeralStorageBytes !== null ? "info" : "neutral",
+    },
+  ];
 }
 
 function buildWorkloadLocationMap(nodes: FugueClusterNode[]) {
@@ -1021,6 +1132,10 @@ function readServiceTimestamp(service: FugueBackingService) {
   return parseTimestamp(service.updatedAt ?? service.createdAt);
 }
 
+function readProjectTimestamp(project: FugueProject) {
+  return parseTimestamp(project.updatedAt ?? project.createdAt);
+}
+
 function readBadgeKey(kind: ConsoleGalleryBadgeKind, label: string) {
   return `${kind}:${label}`.toLowerCase();
 }
@@ -1296,6 +1411,7 @@ function buildSharedAppView(
         ? readGitHubBranchHref(source.repoUrl, source.repoBranch)
         : null,
     sourceBranchLabel,
+    sourceBranchName: source.repoBranch?.trim() || null,
     sourceHref: readGitHubSourceHref(source.repoUrl),
     sourceLabel: readSourceLabelFromSource(source),
     sourceMeta:
@@ -1453,7 +1569,7 @@ function projectNameMap(projects: FugueProject[], fallbackId?: string | null, fa
     projects.map((project) => [project.id, project.name] as const),
   );
 
-  if (fallbackId && fallbackName) {
+  if (fallbackId && fallbackName && !names.has(fallbackId)) {
     names.set(fallbackId, fallbackName);
   }
 
@@ -1691,8 +1807,13 @@ export const getConsoleProjectGalleryData = cache(async () => {
     appsByProjectId.set(projectId, bucket);
   }
 
-  const projectViews = [...appsByProjectId.entries()]
-    .map(([projectId, projectApps]) => {
+  const projectsById = new Map(projects.map((project) => [project.id, project] as const));
+  const projectIds = [...new Set([...projects.map((project) => project.id), ...appsByProjectId.keys()])];
+
+  const projectViews = projectIds
+    .map((projectId) => {
+      const project = projectsById.get(projectId) ?? null;
+      const projectApps = appsByProjectId.get(projectId) ?? [];
       const sortedApps = sortByTimestampDesc(projectApps, readAppTimestamp);
       const appNames = new Map(sortedApps.map((app) => [app.id, app.name] as const));
       const backingServicesById = new Map<string, FugueBackingService>();
@@ -1707,8 +1828,12 @@ export const getConsoleProjectGalleryData = cache(async () => {
         [...backingServicesById.values()],
         readServiceTimestamp,
       );
+      const resourceUsage = sumCurrentResourceUsage([
+        ...sortedApps.map((app) => app.currentResourceUsage),
+        ...backingServices.map((service) => service.currentResourceUsage),
+      ]);
       const latestActivity = Math.max(
-        0,
+        project ? readProjectTimestamp(project) : 0,
         ...sortedApps.map(readAppTimestamp),
         ...backingServices.map(readServiceTimestamp),
       );
@@ -1737,7 +1862,9 @@ export const getConsoleProjectGalleryData = cache(async () => {
         id: projectId,
         name:
           namesByProjectId.get(projectId) ??
+          project?.name ??
           (projectId === "unassigned" ? "Unassigned" : humanize(projectId)),
+        resourceUsage: buildProjectResourceUsageView(resourceUsage),
         serviceBadges: buildProjectServiceBadges(services),
         serviceCount: services.length,
         services,

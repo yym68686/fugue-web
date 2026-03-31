@@ -1,12 +1,12 @@
 import {
+  ConsoleAdminAppsPageSkeleton,
   ConsoleLoadingState,
-  ConsoleProjectGallerySkeleton,
 } from "@/components/console/console-page-skeleton";
 
-export default function AppLoading() {
+export default function AppsLoading() {
   return (
     <ConsoleLoadingState>
-      <ConsoleProjectGallerySkeleton />
+      <ConsoleAdminAppsPageSkeleton />
     </ConsoleLoadingState>
   );
 }

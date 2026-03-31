@@ -326,11 +326,12 @@ function readScopeLabel(workspace: WorkspaceAccess | null) {
 function buildWorkspaceView(
   workspace: WorkspaceAccess | null,
   stage: ConsoleWorkspaceView["stage"],
+  resolvedDefaultProjectName?: string | null,
 ): ConsoleWorkspaceView {
   return {
     adminKeyLabel: workspace?.adminKeyLabel ?? null,
     defaultProjectId: workspace?.defaultProjectId ?? null,
-    defaultProjectName: workspace?.defaultProjectName ?? null,
+    defaultProjectName: resolvedDefaultProjectName ?? workspace?.defaultProjectName ?? null,
     firstAppId: workspace?.firstAppId ?? null,
     stage,
     tenantId: workspace?.tenantId ?? null,
@@ -649,7 +650,11 @@ export async function getConsoleData(): Promise<ConsoleData> {
     tenants.map((tenant) => [tenant.id, tenant.name] as const),
   );
 
-  if (workspace.defaultProjectId && workspace.defaultProjectName) {
+  if (
+    workspace.defaultProjectId &&
+    workspace.defaultProjectName &&
+    !projectNames.has(workspace.defaultProjectId)
+  ) {
     projectNames.set(workspace.defaultProjectId, workspace.defaultProjectName);
   }
 
@@ -768,6 +773,9 @@ export async function getConsoleData(): Promise<ConsoleData> {
   const tenantViews = collectTenantStats(apps, runtimes, operations, auditEvents, tenantNames);
   const stage =
     workspace.firstAppId || appViews.length > 0 ? "ready" : "needs-import";
+  const resolvedDefaultProjectName = workspace.defaultProjectId
+    ? projectNames.get(workspace.defaultProjectId) ?? workspace.defaultProjectName
+    : workspace.defaultProjectName;
 
   return {
     actors: collectActorStats(auditEvents),
@@ -802,6 +810,6 @@ export async function getConsoleData(): Promise<ConsoleData> {
               } satisfies ConsoleTenantView,
             ]
           : [],
-    workspace: buildWorkspaceView(workspace, stage),
+    workspace: buildWorkspaceView(workspace, stage, resolvedDefaultProjectName),
   } satisfies ConsoleData;
 }

@@ -11,6 +11,7 @@ import { useToast } from "@/components/ui/toast";
 type AdminUserView = {
   canBlock: boolean;
   canDelete: boolean;
+  canPromoteToAdmin: boolean;
   canUnblock: boolean;
   email: string;
   isAdmin: boolean;
@@ -61,7 +62,7 @@ export function AdminUserManager({
 
   async function handleModeration(
     user: AdminUserView,
-    action: "block" | "unblock" | "delete",
+    action: "block" | "unblock" | "delete" | "promote",
   ) {
     if (busyAction) {
       return;
@@ -75,12 +76,26 @@ export function AdminUserManager({
       }
     }
 
+    if (action === "promote") {
+      const confirmed = window.confirm(
+        user.status.toLowerCase() === "blocked"
+          ? `Make ${user.email} an admin? This will also restore their access.`
+          : `Make ${user.email} an admin?`,
+      );
+
+      if (!confirmed) {
+        return;
+      }
+    }
+
     setBusyAction(`${action}:${user.email}`);
 
     try {
       const endpoint =
         action === "delete"
           ? `/api/admin/users/${encodeURIComponent(user.email)}`
+          : action === "promote"
+            ? `/api/admin/users/${encodeURIComponent(user.email)}/admin`
           : `/api/admin/users/${encodeURIComponent(user.email)}/${action}`;
 
       await requestJson(endpoint, {
@@ -93,6 +108,10 @@ export function AdminUserManager({
             ? "User blocked."
             : action === "unblock"
               ? "User unblocked."
+              : action === "promote"
+                ? user.status.toLowerCase() === "blocked"
+                  ? "User promoted to admin and restored."
+                  : "User promoted to admin."
               : "User deleted.",
         variant: "success",
       });
@@ -128,7 +147,7 @@ export function AdminUserManager({
           <col className="fg-console-table__col fg-console-table__col--tenant" />
           <col className="fg-console-table__col fg-console-table__col--services" />
           <col className="fg-console-table__col fg-console-table__col--last-login" />
-          <col className="fg-console-table__col fg-console-table__col--actions" />
+          <col className="fg-console-table__col fg-console-table__col--user-actions" />
         </colgroup>
         <thead>
           <tr>
@@ -176,6 +195,19 @@ export function AdminUserManager({
               </td>
               <td>
                 <div className="fg-console-toolbar">
+                  {user.canPromoteToAdmin ? (
+                    <InlineButton
+                      blocked={Boolean(
+                        busyAction && busyAction !== `promote:${user.email}`,
+                      )}
+                      busy={busyAction === `promote:${user.email}`}
+                      busyLabel="Promoting…"
+                      label="Make admin"
+                      onClick={() => {
+                        void handleModeration(user, "promote");
+                      }}
+                    />
+                  ) : null}
                   {user.canBlock ? (
                     <InlineButton
                       blocked={Boolean(

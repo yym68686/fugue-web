@@ -750,6 +750,18 @@
   border-radius: 1rem;
 }
 
+.fg-console-skeleton__metric-label {
+  width: 5rem;
+  height: 0.72rem;
+  border-radius: 0.5rem;
+}
+
+.fg-console-skeleton__metric-value {
+  width: 5.75rem;
+  height: 2.3rem;
+  border-radius: 0.95rem;
+}
+
 .fg-console-skeleton__copy {
   width: min(100%, 20rem);
   height: 0.9rem;
@@ -767,6 +779,12 @@
 
 .fg-console-skeleton__pill--primary {
   width: 10.5rem;
+}
+
+.fg-console-skeleton__icon-button {
+  width: 2.65rem;
+  height: 2.65rem;
+  border-radius: 999px;
 }
 
 .fg-console-skeleton__section {
@@ -888,6 +906,17 @@
 .fg-console-skeleton__terminal {
   min-height: 10rem;
   border-radius: 1rem;
+}
+
+.fg-console-skeleton__field {
+  width: 100%;
+  min-width: 0;
+  height: 2.85rem;
+  border-radius: 0.9rem;
+}
+
+.fg-console-skeleton__meter {
+  display: block;
 }
 
 .fg-console-skeleton__table {
@@ -1137,7 +1166,7 @@
 }
 
 .fg-console-table--users {
-  width: max(100%, 68rem);
+  width: max(100%, 72rem);
 }
 
 .fg-console-table--node-keys {
@@ -1350,6 +1379,10 @@
 
 .fg-console-table__col--actions {
   width: 14rem;
+}
+
+.fg-console-table__col--user-actions {
+  width: 19rem;
 }
 
 .fg-console-table__col--user {
@@ -1675,6 +1708,17 @@
   .fg-cluster-node-card__summary-resources {
     align-self: stretch;
   }
+
+  .fg-project-card__summary-head {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "main side"
+      "resources resources";
+  }
+
+  .fg-project-card__summary-resources {
+    align-self: stretch;
+  }
 }
 
 .fg-cluster-node-card__detail > .fg-panel__section:first-child {
@@ -1808,6 +1852,10 @@
   border-radius: 0;
   background: transparent;
   box-shadow: none;
+}
+
+.fg-cluster-resource--compact-static {
+  gap: 0.28rem;
 }
 
 .fg-cluster-resource__compact-values {
@@ -2518,7 +2566,7 @@
   }
 
   .fg-console-table--users {
-    width: 62rem;
+    width: 66rem;
   }
 }
 
@@ -2769,13 +2817,15 @@
 
 .fg-project-card__summary-head {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1.1fr) minmax(18rem, 0.9fr) auto;
+  grid-template-areas: "main resources side";
   gap: 1rem;
-  align-items: start;
+  align-items: center;
   min-width: 0;
 }
 
 .fg-project-card__summary-copy {
+  grid-area: main;
   min-width: 0;
   display: grid;
   gap: 0.32rem;
@@ -2807,11 +2857,27 @@
   overflow-wrap: anywhere;
 }
 
+.fg-project-card__summary-resources {
+  grid-area: resources;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+  min-width: 0;
+  align-self: center;
+}
+
+.fg-project-card__summary-resources > .fg-cluster-resource--compact:first-child {
+  padding-inline-start: 0;
+  border-left: 0;
+}
+
 .fg-project-card__summary-side {
+  grid-area: side;
   display: inline-flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 0.7rem;
+  justify-self: end;
 }
 
 .fg-project-card__summary-expand {
@@ -3222,6 +3288,150 @@
 
 .fg-project-pane {
   padding-top: 0;
+}
+
+.fg-project-empty-state {
+  min-height: 14rem;
+  align-content: center;
+  justify-items: start;
+}
+
+.fg-settings-panel {
+  gap: 1.15rem;
+}
+
+.fg-settings-panel__copy {
+  max-width: 44rem;
+}
+
+.fg-settings-section,
+.fg-settings-section__copy {
+  min-width: 0;
+}
+
+.fg-settings-section__copy {
+  max-width: 40rem;
+}
+
+.fg-settings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.fg-settings-card {
+  display: grid;
+  gap: 0.95rem;
+  min-width: 0;
+  padding: 1rem 1.05rem 1.08rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1.2rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.012)),
+    rgba(7, 10, 14, 0.58);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+.fg-settings-card--full {
+  grid-column: 1 / -1;
+}
+
+.fg-settings-card__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.9rem;
+  align-items: flex-start;
+}
+
+.fg-settings-card__copy,
+.fg-settings-sync__copy {
+  min-width: 0;
+  display: grid;
+  gap: 0.34rem;
+}
+
+.fg-settings-card__copy {
+  max-width: 36rem;
+}
+
+.fg-settings-card__title {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.fg-settings-form {
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+  max-width: 38rem;
+}
+
+.fg-settings-form .fg-field-stack {
+  gap: 0.42rem;
+}
+
+.fg-settings-form__actions,
+.fg-settings-sync__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: flex-start;
+}
+
+.fg-settings-meta {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+  max-width: 42rem;
+}
+
+.fg-settings-meta div {
+  min-width: 0;
+  display: grid;
+  gap: 0.14rem;
+}
+
+.fg-settings-meta dt {
+  color: var(--fugue-text-muted);
+  font-family: var(--fugue-font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: none;
+}
+
+.fg-settings-meta dd {
+  margin: 0;
+  color: var(--fugue-text-secondary);
+  font-size: 0.84rem;
+  line-height: 1.48;
+  overflow-wrap: anywhere;
+}
+
+.fg-settings-sync {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.fg-settings-sync__copy {
+  flex: 1 1 26rem;
+  max-width: 42rem;
+}
+
+.fg-settings-sync__title-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.fg-settings-sync__summary {
+  display: grid;
+  gap: 0.7rem;
+  justify-items: end;
+  align-content: start;
 }
 
 .fg-workbench-section__head {
@@ -4299,7 +4509,9 @@
   .fg-filesystem,
   .fg-filesystem-editor__grid,
   .fg-env-row,
-  .fg-project-inspector__meta-grid {
+  .fg-project-inspector__meta-grid,
+  .fg-settings-grid,
+  .fg-settings-meta {
     grid-template-columns: 1fr;
   }
 
@@ -4320,9 +4532,24 @@
       "resources";
   }
 
+  .fg-project-card__summary-head {
+    grid-template-areas:
+      "main"
+      "resources"
+      "side";
+  }
+
   .fg-project-toolbar,
   .fg-workbench-section__head {
     gap: 0.8rem;
+  }
+
+  .fg-settings-sync {
+    display: grid;
+  }
+
+  .fg-settings-sync__summary {
+    justify-items: start;
   }
 
   .fg-route-subsection__head {
@@ -4362,6 +4589,7 @@
   }
 
   .fg-cluster-node-card__summary-resources,
+  .fg-project-card__summary-resources,
   .fg-cluster-node-facts {
     grid-template-columns: 1fr;
   }

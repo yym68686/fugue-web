@@ -1,12 +1,12 @@
 import {
   ConsoleLoadingState,
-  ConsoleProjectGallerySkeleton,
+  ConsoleWorkspaceSettingsPageSkeleton,
 } from "@/components/console/console-page-skeleton";
 
-export default function AppLoading() {
+export default function SettingsLoading() {
   return (
     <ConsoleLoadingState>
-      <ConsoleProjectGallerySkeleton />
+      <ConsoleWorkspaceSettingsPageSkeleton />
     </ConsoleLoadingState>
   );
 }

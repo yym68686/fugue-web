@@ -13,7 +13,18 @@ import {
 
 type RouteContext = RouteContextWithParams<"id">;
 
-export async function POST(_request: Request, context: RouteContext) {
+function asRecord(value: unknown) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function readOptionalString(record: Record<string, unknown> | null, key: string) {
+  const value = record?.[key];
+  return typeof value === "string" ? value : undefined;
+}
+
+export async function POST(request: Request, context: RouteContext) {
   const { response, session } = await requireSession();
 
   if (response || !session) {
@@ -28,7 +39,13 @@ export async function POST(_request: Request, context: RouteContext) {
 
   try {
     const appId = await readRouteParam(context, "id");
-    const result = await rebuildFugueApp(workspaceState.workspace.adminKeySecret, appId);
+    const body = asRecord(await request.json().catch(() => null));
+    const result = await rebuildFugueApp(workspaceState.workspace.adminKeySecret, appId, {
+      branch: readOptionalString(body, "branch"),
+      buildContextDir: readOptionalString(body, "buildContextDir"),
+      dockerfilePath: readOptionalString(body, "dockerfilePath"),
+      sourceDir: readOptionalString(body, "sourceDir"),
+    });
 
     return NextResponse.json(result);
   } catch (error) {

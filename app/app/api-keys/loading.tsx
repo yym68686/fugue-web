@@ -1,12 +1,12 @@
 import {
+  ConsoleApiKeysPageSkeleton,
   ConsoleLoadingState,
-  ConsoleProjectGallerySkeleton,
 } from "@/components/console/console-page-skeleton";
 
-export default function AppLoading() {
+export default function ApiKeysLoading() {
   return (
     <ConsoleLoadingState>
-      <ConsoleProjectGallerySkeleton />
+      <ConsoleApiKeysPageSkeleton />
     </ConsoleLoadingState>
   );
 }

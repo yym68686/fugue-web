@@ -65,6 +65,7 @@ export type AdminAppsPageData = {
 export type AdminUserView = {
   canBlock: boolean;
   canDelete: boolean;
+  canPromoteToAdmin: boolean;
   canUnblock: boolean;
   email: string;
   isAdmin: boolean;
@@ -559,6 +560,7 @@ function buildUserViews(
     return {
       canBlock: !user.isAdmin && user.status === "active",
       canDelete: !user.isAdmin && user.status !== "deleted",
+      canPromoteToAdmin: !user.isAdmin && user.status !== "deleted",
       canUnblock: !user.isAdmin && user.status === "blocked",
       email: user.email,
       isAdmin: user.isAdmin,

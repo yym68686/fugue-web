@@ -34,7 +34,7 @@ type SurfaceColumn = {
 const heroRouteNotes: LandingRouteNote[] = [
   {
     index: "01",
-    title: "GitHub intake",
+    title: "Repository intake",
     meta: "Repository / Branch / Builder",
     toneClassName: "fg-landing-route-note--repo",
   },
@@ -55,66 +55,66 @@ const heroRouteNotes: LandingRouteNote[] = [
 const routeChapters: RouteChapter[] = [
   {
     index: "01",
-    label: "GitHub intake",
-    title: "Import a public repository, not a vague project idea.",
+    label: "Repository intake",
+    title: "Start with the repository, branch, and builder.",
     description:
-      "Repository location, branch, and builder establish the app before deployment begins. The identity starts at the repo and survives every later transition.",
+      "Repository location, branch, and builder define the app before the first deploy. The app starts from real code, not a temporary setup.",
     meta: "Repository / Branch / Builder / App identity",
   },
   {
     index: "02",
     label: "Shared runtime",
-    title: "Use managed shared k3s as the first public landing.",
+    title: "Use managed shared k3s for the first public deployment.",
     description:
-      "The shortest route to a live address should also preserve logs, deploy operations, and route history. Fast does not need to mean disposable.",
+      "Shared runtime gets the app public quickly while preserving deploy history, route state, and logs from the first run.",
     meta: "Managed shared runtime / Logs / Route / Deploy ops",
   },
   {
     index: "03",
     label: "Attached machine",
-    title: "Attach your own machine later without resetting the mental model.",
+    title: "Attach your own machine later without changing the workflow.",
     description:
-      "Issue a node key, confirm heartbeat, and migrate the same app onto your own machine. The control plane remains the same even when the runtime changes.",
+      "Issue a node key, confirm heartbeat, and move the same app onto your own machine. The route and operating model stay consistent.",
     meta: "Node key / Heartbeat / Migrate / Same control model",
   },
 ];
 
 const surfaceColumns: SurfaceColumn[] = [
   {
-    label: "Public wrapper",
+    label: "Public route",
     items: [
       { label: "GitHub import", meta: "Public repositories" },
       { label: "Shared runtime", meta: "Managed first path" },
-      { label: "Node key onboarding", meta: "Attach a server later" },
-      { label: "Logs and audit", meta: "Build / Runtime / Operations" },
+      { label: "Node key setup", meta: "Attach a server later" },
+      { label: "Logs and audit trail", meta: "Build / Runtime / Operations" },
       { label: "Migration", meta: "Shared -> Attached" },
     ],
   },
   {
-    label: "Product shell",
+    label: "Sign-in and handoff",
     items: [
       { label: "Sign-in route", meta: "/auth/sign-in" },
       { label: "Sign-up route", meta: "/auth/sign-up" },
-      { label: "Google auth", meta: "Live provider state" },
-      { label: "Email auth", meta: "Validation / Failure / Retry" },
-      { label: "Workspace handoff", meta: "Auth -> App" },
+      { label: "Google sign-in", meta: "Live provider flow" },
+      { label: "Email access", meta: "Validation / Failure / Retry" },
+      { label: "App handoff", meta: "Auth -> App" },
     ],
   },
 ];
 
 const runwayStops = [
-  "Import code as the first durable object.",
-  "Use managed shared runtime to get public signal fast.",
-  "Migrate to your own machine without discarding the route.",
+  "Start from the repository, branch, and builder.",
+  "Go live on shared infrastructure first.",
+  "Move to your own machine without changing the route.",
 ];
 
 const objectBeltItems = ["Workspace", "Project", "App", "Runtime", "Operation"];
 
 const landingNav = [
-  { href: "#route", label: "Route" },
-  { href: "#surface", label: "Surface" },
-  { href: "#quickstart", label: "Proof" },
-  { href: "#launch", label: "Auth" },
+  { href: "#route", label: "How it works" },
+  { href: "#surface", label: "Available now" },
+  { href: "#quickstart", label: "Quickstart" },
+  { href: "#launch", label: "Sign in" },
 ];
 
 const quickstartCode = `export FUGUE_BASE_URL="https://api.fugue.pro"
@@ -162,8 +162,8 @@ export function LandingPage({ authenticatedAppPath }: LandingPageProps) {
   const primaryHref = authenticatedAppPath ?? "/auth/sign-up";
   const primaryLabel = authenticatedAppPath ? "Open app" : "Get started";
   const proofHeading = authenticatedAppPath
-    ? "Touch the public route, then enter the control shell."
-    : "Touch the public route, then open auth.";
+    ? "Verify the public route, then open the app."
+    : "Verify the public route, then continue to sign in.";
 
   return (
     <div className="fg-landing-page" data-landing-root="">
@@ -173,7 +173,7 @@ export function LandingPage({ authenticatedAppPath }: LandingPageProps) {
 
       <header className="fg-landing-masthead">
         <div className="fg-shell fg-landing-masthead__shell">
-          <Brand meta="Open current / v8" />
+          <Brand meta="Deploy public repos" />
 
           <PillNav ariaLabel="Primary" className="fg-landing-nav">
             {landingNav.map((item) => (
@@ -216,7 +216,7 @@ export function LandingPage({ authenticatedAppPath }: LandingPageProps) {
             <div
               className="fg-landing-scene-container"
               data-us-project="9QSqoDWkMs8NffWH18AF"
-              id="unicorn-scene"
+              id="fg-landing-scene"
             />
             <div aria-hidden="true" className="fg-landing-overlay-radial" />
             <div aria-hidden="true" className="fg-landing-overlay-gradient" />
@@ -232,17 +232,16 @@ export function LandingPage({ authenticatedAppPath }: LandingPageProps) {
 
             <div className="fg-landing-hero-copy">
               <p className="fg-label fg-mono" data-stagger="1">
-                Shared-first deployment control plane
+                Deploy public repositories, shared first
               </p>
               <h1 className="fg-display-heading" data-stagger="2">
                 Start shared.
                 <br />
-                Leave clean.
+                Move cleanly.
               </h1>
               <p className="fg-copy fg-landing-hero-lead" data-stagger="3">
-                Deploy a public GitHub repository on managed k3s immediately. When your own machine
-                starts to matter, move the same app onto your own machine without switching to a
-                second product grammar.
+                Deploy a public GitHub repository on managed shared k3s first. When you need your
+                own machine, move the same app there without rebuilding the workflow.
               </p>
 
               <div className="fg-landing-hero-actions" data-stagger="4">
@@ -254,7 +253,7 @@ export function LandingPage({ authenticatedAppPath }: LandingPageProps) {
             </div>
 
             <div className="fg-landing-hero-rail" data-stagger="5">
-              <p className="fg-label fg-mono fg-landing-hero-rail__kicker">Route held constant</p>
+              <p className="fg-label fg-mono fg-landing-hero-rail__kicker">One route, two runtimes</p>
 
               {heroRouteNotes.map((note) => (
                 <RouteNote
@@ -283,12 +282,12 @@ export function LandingPage({ authenticatedAppPath }: LandingPageProps) {
         <section className="fg-landing-section fg-landing-section--route" data-landing-section="" id="route">
           <div className="fg-content-shell fg-landing-section-shell">
             <div className="fg-landing-section-head">
-              <p className="fg-label fg-mono">Route thesis</p>
+              <p className="fg-label fg-mono">Route model</p>
               <h2 className="fg-display-heading">The route is the product.</h2>
               <p className="fg-copy fg-landing-section-copy">
-                Fugue should not sell abstraction in the abstract. It should sell one visible,
-                low-risk sentence: import code, go live on shared infrastructure fast, then keep
-                the right to leave cleanly when your own machine matters more than convenience.
+                The fastest path to a public URL should not trap the app in a throwaway setup. In
+                Fugue, the route stays stable while the runtime changes: import the repo, go live
+                on shared infrastructure, then migrate onto your own machine when you are ready.
               </p>
             </div>
 
@@ -315,9 +314,9 @@ export function LandingPage({ authenticatedAppPath }: LandingPageProps) {
         <section className="fg-landing-section" data-landing-section="" id="surface">
           <div className="fg-content-shell fg-landing-section-shell">
             <div className="fg-landing-surface-intro">
-              <p className="fg-label fg-mono">Current boundary</p>
+              <p className="fg-label fg-mono">Available now</p>
               <h2 className="fg-display-heading">
-                Only show what is real today. Everything else waits its turn.
+                Public route, sign-in, and the app already share one system.
               </h2>
             </div>
 
@@ -350,7 +349,7 @@ export function LandingPage({ authenticatedAppPath }: LandingPageProps) {
           <div className="fg-content-shell fg-landing-section-shell">
             <div className="fg-landing-proof-head">
               <div>
-                <p className="fg-label fg-mono">Proof</p>
+                <p className="fg-label fg-mono">Quickstart</p>
                 <h2 className="fg-display-heading">{proofHeading}</h2>
               </div>
 
@@ -383,17 +382,15 @@ export function LandingPage({ authenticatedAppPath }: LandingPageProps) {
           <div className="fg-content-shell fg-landing-section-shell">
             <div className="fg-landing-launch-layout">
               <div className="fg-landing-launch-copy">
-                <p className="fg-label fg-mono">Auth handoff</p>
-                <h2 className="fg-display-heading">
-                  Auth is live. It should feel like the next room, not a banner over the stage.
-                </h2>
+                <p className="fg-label fg-mono">Sign-in handoff</p>
+                <h2 className="fg-display-heading">Sign in without breaking the product flow.</h2>
               </div>
 
               <div className="fg-landing-launch-meta">
                 <p className="fg-copy">
-                  Google sign-in and email signup now live as real routes with loading, validation,
-                  and failure handling. The landing page still stops at the public edge, then hands
-                  off into the next room without pretending the whole console is already finished.
+                  Google sign-in and email sign-up run as full routes with loading, validation,
+                  retry, and failure states. The public page hands off directly into the app
+                  instead of restarting the journey in a different shell.
                 </p>
 
                 <div className="fg-landing-hero-actions fg-landing-hero-actions--left">
@@ -410,10 +407,10 @@ export function LandingPage({ authenticatedAppPath }: LandingPageProps) {
                 </div>
 
                 <p className="fg-landing-compare-links fg-mono">
-                  Auth /
+                  Routes /
                   <a href="/auth/sign-up">Sign up</a> /
                   <a href="/auth/sign-in">Sign in</a> /
-                  <a href="/app">Control shell</a>
+                  <a href="/app">App</a>
                 </p>
               </div>
             </div>
@@ -424,9 +421,8 @@ export function LandingPage({ authenticatedAppPath }: LandingPageProps) {
       <footer className="fg-landing-footer">
         <div className="fg-content-shell fg-landing-footer__shell">
           <p className="fg-copy fg-landing-footer__copy">
-            Fugue Web keeps the public route, auth handoff, and control shell inside one product
-            wrapper. The landing now speaks in the same material and object language as the routes
-            behind it.
+            Fugue keeps the public route, sign-in handoff, and app shell inside one product. The
+            same route and workflow continue from the first deploy to the signed-in workspace.
           </p>
 
           <nav aria-label="Footer" className="fg-landing-footer__nav">

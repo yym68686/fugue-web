@@ -439,3 +439,84 @@ export async function setAppUserStatus(
     return recordFromRow(row);
   });
 }
+
+export async function setAppUserAdmin(email: string, isAdmin: boolean) {
+  await ensureDbSchema();
+
+  const normalizedEmail = normalizeEmail(email);
+  const nextIsAdmin = Boolean(isAdmin);
+  const now = new Date().toISOString();
+
+  return withDbTransaction(async (client) => {
+    const currentRow = await getUserRow(client, normalizedEmail, {
+      forUpdate: true,
+    });
+
+    if (!currentRow) {
+      throw new Error("404 User not found.");
+    }
+
+    const current = recordFromRow(currentRow);
+
+    if (current.isAdmin === nextIsAdmin) {
+      return current;
+    }
+
+    if (!nextIsAdmin) {
+      const otherAdmin = await client.query<{ email: string }>(
+        `
+          SELECT email
+          FROM app_users
+          WHERE is_admin = TRUE
+            AND status <> 'deleted'
+            AND email <> $1
+          LIMIT 1
+        `,
+        [normalizedEmail],
+      );
+
+      if (!otherAdmin.rows[0]?.email) {
+        throw new Error("400 At least one admin is required.");
+      }
+    }
+
+    if (nextIsAdmin && current.status === "deleted") {
+      throw new Error("400 Deleted users cannot become admins.");
+    }
+
+    const updated = await client.query<AppUserRow>(
+      `
+        UPDATE app_users
+        SET
+          is_admin = $2,
+          status = CASE
+            WHEN $2::boolean THEN 'active'
+            ELSE status
+          END,
+          updated_at = $3
+        WHERE email = $1
+        RETURNING
+          email,
+          name,
+          picture_url,
+          provider,
+          provider_id,
+          verified,
+          is_admin,
+          status,
+          last_login_at,
+          created_at,
+          updated_at
+      `,
+      [normalizedEmail, nextIsAdmin, now],
+    );
+
+    const row = updated.rows[0];
+
+    if (!row) {
+      throw new Error("404 User not found.");
+    }
+
+    return recordFromRow(row);
+  });
+}

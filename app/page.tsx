@@ -1,5 +1,5 @@
 import { LandingPage } from "@/components/landing/landing-page";
-import { LandingV8Effects } from "@/components/landing/v8-effects";
+import { LandingEffects } from "@/components/landing/landing-effects";
 import { readAuthenticatedAppPath } from "@/lib/auth/handoff";
 
 export default async function HomePage() {
@@ -8,7 +8,7 @@ export default async function HomePage() {
   return (
     <>
       <LandingPage authenticatedAppPath={authenticatedAppPath} />
-      <LandingV8Effects />
+      <LandingEffects />
     </>
   );
 }

@@ -10,6 +10,16 @@ export type ConsoleGalleryBadgeView = {
   meta: string;
 };
 
+export type ConsoleCompactResourceItemView = {
+  id: string;
+  label: string;
+  meterValue: number | null;
+  primaryLabel: string;
+  secondaryLabel: string | null;
+  title: string;
+  tone: ConsoleTone;
+};
+
 export type ConsoleGalleryCommitView = {
   committedAt: string | null;
   exact: string | null;
@@ -56,6 +66,7 @@ export type ConsoleGalleryAppView = {
   serviceRole: ConsoleGalleryAppServiceRole;
   sourceBranchHref: string | null;
   sourceBranchLabel: string | null;
+  sourceBranchName: string | null;
   sourceHref: string | null;
   sourceLabel: string;
   sourceMeta: string;
@@ -81,6 +92,7 @@ export type ConsoleGalleryProjectView = {
   appCount: number;
   id: string;
   name: string;
+  resourceUsage: ConsoleCompactResourceItemView[];
   serviceBadges: ConsoleGalleryBadgeView[];
   serviceCount: number;
   services: Array<

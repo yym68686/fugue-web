@@ -31,7 +31,7 @@ export function AuthShell({
       <div className="fg-auth-grid">
         <section className="fg-auth-stage">
           <div className="fg-auth-stage__top">
-            <Brand meta="Auth shell / v1" />
+            <Brand meta="Sign in" />
           </div>
 
           <div className="fg-auth-stage__copy">

@@ -1,18 +1,11 @@
 "use client";
 
-import { usePathname } from "next/navigation";
-
 import { ButtonLink } from "@/components/ui/button";
 
-function isApiKeysPath(pathname: string) {
-  return pathname === "/app/api-keys" || pathname.startsWith("/app/api-keys/");
-}
-
 export function ConsolePrimaryAction({ hasProjects }: { hasProjects: boolean }) {
-  const pathname = usePathname();
   const className = "fg-console-topbar__primary-action";
 
-  if (!hasProjects || isApiKeysPath(pathname)) {
+  if (!hasProjects) {
     return null;
   }
 
