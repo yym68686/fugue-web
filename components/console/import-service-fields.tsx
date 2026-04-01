@@ -6,6 +6,12 @@ import { SelectField } from "@/components/ui/select-field";
 import { SegmentedControl, type SegmentedControlOption } from "@/components/ui/segmented-control";
 import type { ConsoleImportRuntimeTargetView } from "@/lib/console/gallery-types";
 import {
+  buildImportRuntimeTargetGroups,
+  readDefaultImportRuntimeId,
+  readRuntimeTargetOptionLabel,
+  readSelectedRuntimeTargetGroupId,
+} from "@/lib/console/runtime-targets";
+import {
   BUILD_STRATEGY_OPTIONS,
   supportsGitHubDockerInputs,
   supportsGitHubSourceDir,
@@ -38,10 +44,52 @@ export function ImportServiceFields({
 }: ImportServiceFieldProps) {
   const supportsSourceDir = supportsGitHubSourceDir(draft.buildStrategy);
   const supportsDockerInputs = supportsGitHubDockerInputs(draft.buildStrategy);
-  const advancedDescription =
+  const runtimeTargetGroups = buildImportRuntimeTargetGroups(runtimeTargets);
+  const selectedRuntimeTargetGroupId = readSelectedRuntimeTargetGroupId(
+    runtimeTargetGroups,
+    draft.runtimeId,
+  );
+  const selectedRuntimeTargetGroup =
+    runtimeTargetGroups.find((group) => group.id === selectedRuntimeTargetGroupId) ?? null;
+  const selectedRuntimeTargetOption =
+    selectedRuntimeTargetGroup?.options.find((option) => option.id === draft.runtimeId) ??
+    selectedRuntimeTargetGroup?.options.find(
+      (option) => option.id === readDefaultImportRuntimeId(selectedRuntimeTargetGroup.options),
+    ) ??
+    selectedRuntimeTargetGroup?.options[0] ??
+    null;
+  const deploymentSummaryParts = [
     draft.sourceMode === "github"
-      ? "Branch, app name, build strategy, and optional source paths."
-      : "App name plus an optional service port override.";
+      ? draft.repoVisibility === "private"
+        ? "Private repo"
+        : "Public repo"
+      : "Published image",
+    selectedRuntimeTargetGroup?.summaryLabel ?? "Internal cluster",
+    selectedRuntimeTargetOption ? readRuntimeTargetOptionLabel(selectedRuntimeTargetOption) : null,
+  ].filter((part, index, parts): part is string => Boolean(part) && parts.indexOf(part) === index);
+  const deploymentDescription = deploymentSummaryParts.join(" · ");
+  const advancedSummaryParts = [
+    draft.sourceMode === "github" && draft.branch.trim()
+      ? `Branch ${draft.branch.trim()}`
+      : null,
+    draft.name.trim() ? `Name ${draft.name.trim()}` : null,
+    draft.sourceMode === "github" && draft.buildStrategy !== "auto"
+      ? BUILD_STRATEGY_OPTIONS.find((option) => option.value === draft.buildStrategy)?.label ??
+        "Custom build"
+      : null,
+    draft.sourceDir.trim() ? `Source ${draft.sourceDir.trim()}` : null,
+    draft.dockerfilePath.trim() ? `Dockerfile ${draft.dockerfilePath.trim()}` : null,
+    draft.buildContextDir.trim() ? `Context ${draft.buildContextDir.trim()}` : null,
+    draft.servicePort.trim() ? `Port ${draft.servicePort.trim()}` : null,
+  ].filter((part): part is string => Boolean(part));
+  const advancedDescription =
+    advancedSummaryParts.length > 0
+      ? advancedSummaryParts.slice(0, 3).join(" · ")
+      : draft.sourceMode === "github"
+        ? "Branch, name, build strategy, and optional paths."
+        : "Service name and optional port override.";
+  const deploymentDisclosureSummary =
+    draft.sourceMode === "github" ? "Access & deployment" : "Deployment";
 
   function updateField<Key extends keyof ImportServiceDraft>(
     key: Key,
@@ -78,10 +126,6 @@ export function ImportServiceFields({
             value={draft.sourceMode}
           />
         </div>
-        <span className="fg-field-hint">
-          Choose whether Fugue builds from a tracked GitHub repository or pulls a published
-          Docker image.
-        </span>
       </div>
 
       {draft.sourceMode === "github" ? (
@@ -106,15 +150,6 @@ export function ImportServiceFields({
               value={draft.repoUrl}
             />
           </FormField>
-
-          <GitHubRepositoryAccessFields
-            onTokenChange={(value) => updateField("repoAuthToken", value)}
-            onVisibilityChange={(value) => updateField("repoVisibility", value)}
-            token={draft.repoAuthToken}
-            tokenFieldId={`${idPrefix}-repo-auth-token`}
-            tokenRequired={draft.repoVisibility === "private"}
-            visibility={draft.repoVisibility}
-          />
         </>
       ) : (
         <FormField
@@ -137,13 +172,30 @@ export function ImportServiceFields({
         </FormField>
       )}
 
-      <DeploymentTargetField
-        inventoryError={inventoryError}
-        name={`${idPrefix}-runtime-target`}
-        onChange={(value) => updateField("runtimeId", value)}
-        targets={runtimeTargets}
-        value={draft.runtimeId}
-      />
+      <ConsoleDisclosureSection
+        className="fg-console-dialog__advanced"
+        description={deploymentDescription}
+        summary={deploymentDisclosureSummary}
+      >
+        {draft.sourceMode === "github" ? (
+          <GitHubRepositoryAccessFields
+            onTokenChange={(value) => updateField("repoAuthToken", value)}
+            onVisibilityChange={(value) => updateField("repoVisibility", value)}
+            token={draft.repoAuthToken}
+            tokenFieldId={`${idPrefix}-repo-auth-token`}
+            tokenRequired={draft.repoVisibility === "private"}
+            visibility={draft.repoVisibility}
+          />
+        ) : null}
+
+        <DeploymentTargetField
+          inventoryError={inventoryError}
+          name={`${idPrefix}-runtime-target`}
+          onChange={(value) => updateField("runtimeId", value)}
+          targets={runtimeTargets}
+          value={draft.runtimeId}
+        />
+      </ConsoleDisclosureSection>
 
       <ConsoleDisclosureSection
         className="fg-console-dialog__advanced"

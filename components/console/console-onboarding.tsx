@@ -403,8 +403,12 @@ export function ConsoleOnboarding({
                 <PanelCopy>{importDialogCopy}</PanelCopy>
               </PanelSection>
 
-              <PanelSection>
-                <form className="fg-form-grid" onSubmit={handleImport}>
+              <PanelSection className="fg-console-dialog__body">
+                <form
+                  className="fg-console-dialog__form"
+                  id="fugue-import-service-form"
+                  onSubmit={handleImport}
+                >
                   <ImportServiceFields
                     draft={draft}
                     idPrefix="onboarding-import"
@@ -412,16 +416,24 @@ export function ConsoleOnboarding({
                     onDraftChange={setDraft}
                     runtimeTargets={runtimeTargets}
                   />
-
-                  <div className="fg-console-dialog__actions">
-                    <Button onClick={closeImport} type="button" variant="secondary">
-                      Cancel
-                    </Button>
-                    <Button loading={isImporting} loadingLabel="Importing service…" type="submit" variant="primary">
-                      Import service
-                    </Button>
-                  </div>
                 </form>
+              </PanelSection>
+
+              <PanelSection className="fg-console-dialog__footer">
+                <div className="fg-console-dialog__actions">
+                  <Button onClick={closeImport} type="button" variant="secondary">
+                    Cancel
+                  </Button>
+                  <Button
+                    form="fugue-import-service-form"
+                    loading={isImporting}
+                    loadingLabel="Importing service…"
+                    type="submit"
+                    variant="primary"
+                  >
+                    Import service
+                  </Button>
+                </div>
               </PanelSection>
             </Panel>
           </div>

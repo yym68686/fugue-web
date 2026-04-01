@@ -693,6 +693,9 @@ function hasLiveRelease(app: FugueApp) {
   // `commitSha` and runtime placement can be populated before the first rollout
   // is actually live. During that window the console should keep showing a
   // single pending service card instead of inventing a second "running" card.
+  // Failed/error/stopped phases also do not represent a live release, so a
+  // queued rebuild for those apps should transition into the pending view
+  // instead of pinning the stale failed card.
 
   return (
     normalizedPhase.length > 0 &&
@@ -703,9 +706,6 @@ function hasLiveRelease(app: FugueApp) {
       "deployed",
       "disabled",
       "paused",
-      "error",
-      "failed",
-      "stopped",
     ].some((keyword) => normalizedPhase.includes(keyword))
   );
 }

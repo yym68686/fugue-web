@@ -374,6 +374,8 @@
   background: rgba(2, 5, 8, 0.7);
   backdrop-filter: blur(18px);
   overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .fg-console-dialog-shell {
@@ -383,6 +385,31 @@
 
 .fg-console-dialog-panel {
   width: 100%;
+}
+
+.fg-console-dialog-panel > .fg-bezel__inner {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  max-height: min(calc(100dvh - 2rem - (var(--fugue-proof-shell-padding) * 2)), 47rem);
+}
+
+.fg-console-dialog__body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.fg-console-dialog__form {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.fg-console-dialog__footer {
+  position: relative;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0.012)),
+    rgba(7, 10, 14, 0.96);
 }
 
 .fg-console-dialog__grid,
@@ -2598,7 +2625,7 @@
 
 .fg-console-topbar {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 1rem;
 }
@@ -2615,22 +2642,35 @@
   align-items: center;
   gap: 0.75rem;
   min-width: 0;
+  max-width: 100%;
   justify-content: flex-end;
   justify-self: end;
+}
+
+.fg-console-topbar__actions > * {
+  min-width: 0;
 }
 
 .fg-console-topbar__primary-action {
   width: auto;
   max-width: 100%;
   min-inline-size: 0;
-  flex: 0 0 auto;
+  flex: 0 1 auto;
   justify-content: center;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.fg-console-topbar__primary-action .fg-button__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .fg-console-nav {
   justify-self: center;
   min-width: 0;
+  max-width: 100%;
 }
 
 .fg-console-nav__link {
@@ -2645,12 +2685,16 @@
 
 .fg-console-profile {
   position: relative;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .fg-console-profile__trigger {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  min-width: 0;
+  max-width: 100%;
   min-height: 2.75rem;
   padding: 0.42rem 0.5rem 0.42rem 0.42rem;
   border: 1px solid var(--fugue-border-default);
@@ -2701,6 +2745,7 @@
 .fg-console-profile__summary {
   display: grid;
   gap: 0.08rem;
+  min-width: 0;
 }
 
 .fg-console-profile__summary strong,
@@ -2715,6 +2760,13 @@
   color: var(--fugue-text-tertiary);
   font-size: 0.75rem;
   line-height: 1.45;
+}
+
+.fg-console-profile__summary strong,
+.fg-console-profile__summary span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .fg-console-profile__menu {
@@ -4479,6 +4531,38 @@
   }
 }
 
+@media (max-width: 1320px) {
+  .fg-console-topbar__actions {
+    gap: 0.55rem;
+    max-width: min(100%, 24rem);
+  }
+
+  .fg-console-topbar__primary-action {
+    --fg-button-padding-inline-start: 0.88rem;
+    --fg-button-padding-inline-end: 0.88rem;
+    flex-basis: 8.8rem;
+  }
+
+  .fg-console-profile__trigger {
+    gap: 0.55rem;
+    padding-inline-end: 0.42rem;
+  }
+
+  .fg-console-profile__summary span {
+    display: none;
+  }
+}
+
+@media (max-width: 1180px) {
+  .fg-console-topbar__actions {
+    max-width: min(100%, 21rem);
+  }
+
+  .fg-console-topbar__primary-action {
+    flex-basis: 7.9rem;
+  }
+}
+
 @media (max-width: 860px) {
   .fg-console-shell--stacked {
     width: min(calc(100% - 1.2rem), var(--fugue-max-width));
@@ -4564,11 +4648,17 @@
 
   .fg-console-topbar__actions {
     justify-content: space-between;
+    max-width: none;
   }
 
   .fg-console-topbar__primary-action {
     width: auto;
     min-inline-size: 0;
+    flex-basis: auto;
+  }
+
+  .fg-console-profile__summary span {
+    display: block;
   }
 }
 

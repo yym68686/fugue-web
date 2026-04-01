@@ -53,6 +53,7 @@ import { readGitHubCommitHref } from "@/lib/fugue/source-links";
 import { isGitHubSourceType } from "@/lib/github/repository";
 import type { ConsoleTone } from "@/lib/console/types";
 import { parseAnsiText } from "@/lib/ui/ansi";
+import { copyText } from "@/lib/ui/clipboard";
 import { cx } from "@/lib/ui/cx";
 import { consumeSSEStream, type ParsedSSEEvent } from "@/lib/ui/sse";
 
@@ -641,9 +642,18 @@ function isRetryableLogStreamError(error: unknown) {
 }
 
 function projectApps(project: ConsoleGalleryProjectView) {
-  return project.services.filter(
+  const runningApps = project.services.filter(
     (service): service is { kind: "app" } & ConsoleGalleryAppView =>
       service.kind === "app" && service.serviceRole === "running",
+  );
+
+  if (runningApps.length > 0) {
+    return runningApps;
+  }
+
+  return project.services.filter(
+    (service): service is { kind: "app" } & ConsoleGalleryAppView =>
+      service.kind === "app" && service.serviceRole === "pending",
   );
 }
 
@@ -1298,6 +1308,12 @@ function renderAnsiLogBody(value: string) {
   ));
 }
 
+function readPlainLogBody(value: string) {
+  return parseAnsiText(value)
+    .map((segment) => segment.text)
+    .join("");
+}
+
 function ProjectBadge({ kind, label, meta }: { kind: ConsoleGalleryBadgeKind; label: string; meta: string }) {
   return (
     <div
@@ -1361,10 +1377,12 @@ export function ConsoleProjectGallery({
   const [logsConnectionState, setLogsConnectionState] = useState<LogsConnectionState>("idle");
   const [logsStatus, setLogsStatus] = useState<"error" | "idle" | "loading" | "ready">("idle");
   const [logsBody, setLogsBody] = useState("");
+  const [logsCopyState, setLogsCopyState] = useState<"copied" | "idle" | "pending">("idle");
   const [buildLogsOperationStatus, setBuildLogsOperationStatus] = useState<string | null>(null);
   const [logsRefreshToken, setLogsRefreshToken] = useState(0);
   const [refreshWindowUntil, setRefreshWindowUntil] = useState(0);
   const logsAutoFollowRef = useRef(true);
+  const logsCopyResetRef = useRef<number | null>(null);
   const logsViewportRef = useRef<HTMLPreElement | null>(null);
   const pendingCommitHintRequestPendingRef = useRef(false);
   const createBackdropPressStartedRef = useRef(false);
@@ -1441,12 +1459,12 @@ export function ConsoleProjectGallery({
         : null;
   const isCreateServiceMode = createTargetProject !== null;
   const createDialogEyebrow = isCreateServiceMode ? "Add service" : "Create project";
-  const createDialogTitle = isCreateServiceMode ? "Add service" : "Create project and add service";
+  const createDialogTitle = isCreateServiceMode ? "Add service" : "Create project";
   const createDialogCopy = isCreateServiceMode
     ? importDraft.sourceMode === "github"
-      ? `Paste a GitHub repository link and choose how Fugue should access it for ${createTargetProject.name}.`
-      : `Add ${createTargetProject.name} from a published Docker image. Fugue mirrors it into the internal registry before rollout.`
-    : "Name the project, then add the first service from a GitHub repository or Docker image.";
+      ? `Paste a GitHub repository link for ${createTargetProject.name}. Adjust access or placement only if this service needs it.`
+      : `Add a published Docker image to ${createTargetProject.name}. Adjust placement only if this service needs it.`
+    : "Give the project a name, then point Fugue at the first GitHub repository or Docker image.";
   const createDialogSubmitLabel = isCreating
     ? isCreateServiceMode
       ? "Adding…"
@@ -1454,9 +1472,15 @@ export function ConsoleProjectGallery({
     : isCreateServiceMode
       ? "Add service"
       : "Create project";
+  const createDialogFormId = "fugue-create-project-form";
   selectedServiceAppRef.current = selectedServiceApp;
   selectedAppNeedsPendingCommitHintRef.current = selectedAppNeedsPendingCommitHint;
   const logsDisplayBody = readLogsDisplayBody(logsStatus, logsBody, logsConnectionState);
+  const canCopyLogs =
+    activeTab === "logs" &&
+    logsStatus === "ready" &&
+    !runtimeLogsUnavailable &&
+    logsBody.trim().length > 0;
   const logsRefreshStateLabel = runtimeLogsUnavailable
     ? runtimeLogsUnavailable.label
     : logsConnectionState === "connecting"
@@ -1498,6 +1522,13 @@ export function ConsoleProjectGallery({
     const nextUrl = `${url.pathname}${nextSearch ? `?${nextSearch}` : ""}${url.hash}`;
 
     window.history.replaceState(window.history.state, "", nextUrl);
+  }
+
+  function clearLogsCopyResetTimer() {
+    if (logsCopyResetRef.current !== null) {
+      window.clearTimeout(logsCopyResetRef.current);
+      logsCopyResetRef.current = null;
+    }
   }
 
   function handleCreateBackdropPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
@@ -1694,6 +1725,17 @@ export function ConsoleProjectGallery({
       document.body.style.overflow = previousOverflow;
     };
   }, [createOpen]);
+
+  useEffect(() => {
+    setLogsCopyState("idle");
+    clearLogsCopyResetTimer();
+  }, [activeTab, logsRefreshToken, logsRequestKey]);
+
+  useEffect(() => {
+    return () => {
+      clearLogsCopyResetTimer();
+    };
+  }, []);
 
   useEffect(() => {
     const handleCreateProjectDialogOpen = () => {
@@ -2629,6 +2671,47 @@ export function ConsoleProjectGallery({
     setLogsRefreshToken((value) => value + 1);
   }
 
+  async function handleCopyLogs() {
+    if (!canCopyLogs || logsCopyState === "pending") {
+      return;
+    }
+
+    clearLogsCopyResetTimer();
+    setLogsCopyState("pending");
+
+    try {
+      const plainLogsBody = readPlainLogBody(logsBody);
+
+      if (!plainLogsBody.trim()) {
+        setLogsCopyState("idle");
+        return;
+      }
+
+      const copied = await copyText(plainLogsBody);
+
+      if (!copied) {
+        setLogsCopyState("idle");
+        showToast({
+          message: `${humanizeUiLabel(effectiveLogsMode)} logs are ready, but clipboard access failed.`,
+          variant: "info",
+        });
+        return;
+      }
+
+      setLogsCopyState("copied");
+      logsCopyResetRef.current = window.setTimeout(() => {
+        setLogsCopyState("idle");
+        logsCopyResetRef.current = null;
+      }, 1400);
+    } catch (error) {
+      setLogsCopyState("idle");
+      showToast({
+        message: readErrorMessage(error),
+        variant: "error",
+      });
+    }
+  }
+
   function renderProjectWorkbench(
     project: ConsoleGalleryProjectView,
     detailId: string,
@@ -3207,6 +3290,19 @@ export function ConsoleProjectGallery({
                           />
                         ) : null}
 
+                        <Button
+                          disabled={!canCopyLogs}
+                          loading={logsCopyState === "pending"}
+                          loadingLabel="Copying…"
+                          onClick={() => {
+                            void handleCopyLogs();
+                          }}
+                          size="compact"
+                          type="button"
+                          variant="secondary"
+                        >
+                          {logsCopyState === "copied" ? "Copied" : "Copy logs"}
+                        </Button>
                         <Button onClick={refreshLogs} size="compact" type="button" variant="secondary">
                           Refresh now
                         </Button>
@@ -3374,8 +3470,12 @@ export function ConsoleProjectGallery({
                 <PanelCopy>{createDialogCopy}</PanelCopy>
               </PanelSection>
 
-              <PanelSection>
-                <form className="fg-form-grid" onSubmit={handleCreateProject}>
+              <PanelSection className="fg-console-dialog__body">
+                <form
+                  className="fg-console-dialog__form"
+                  id={createDialogFormId}
+                  onSubmit={handleCreateProject}
+                >
                   <div className="fg-console-dialog__grid">
                     {createTargetProject ? (
                       <FormField htmlFor="create-project-current" label="Project">
@@ -3414,16 +3514,24 @@ export function ConsoleProjectGallery({
                       runtimeTargets={data.runtimeTargets}
                     />
                   </div>
-
-                  <div className="fg-console-dialog__actions">
-                    <Button onClick={closeCreate} type="button" variant="secondary">
-                      Cancel
-                    </Button>
-                    <Button loading={isCreating} loadingLabel={createDialogSubmitLabel} type="submit" variant="primary">
-                      {createDialogSubmitLabel}
-                    </Button>
-                  </div>
                 </form>
+              </PanelSection>
+
+              <PanelSection className="fg-console-dialog__footer">
+                <div className="fg-console-dialog__actions">
+                  <Button onClick={closeCreate} type="button" variant="secondary">
+                    Cancel
+                  </Button>
+                  <Button
+                    form={createDialogFormId}
+                    loading={isCreating}
+                    loadingLabel={createDialogSubmitLabel}
+                    type="submit"
+                    variant="primary"
+                  >
+                    {createDialogSubmitLabel}
+                  </Button>
+                </div>
               </PanelSection>
             </Panel>
           </div>
