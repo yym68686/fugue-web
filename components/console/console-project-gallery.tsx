@@ -9,7 +9,7 @@ import {
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 import { CompactResourceMeter } from "@/components/console/compact-resource-meter";
 import { ImportServiceFields } from "@/components/console/import-service-fields";
@@ -41,6 +41,7 @@ import type {
   ConsoleGalleryProjectView,
   ConsoleProjectGalleryData,
 } from "@/lib/console/gallery-types";
+import { OPEN_CREATE_PROJECT_DIALOG_EVENT } from "@/lib/console/dialog-events";
 import { readDefaultImportRuntimeId } from "@/lib/console/runtime-targets";
 import {
   buildImportServicePayload,
@@ -1326,9 +1327,7 @@ export function ConsoleProjectGallery({
   defaultCreateOpen?: boolean;
 }) {
   const confirm = useConfirmDialog();
-  const pathname = usePathname();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { showToast } = useToast();
   const [flash, setFlash] = useState<FlashState | null>(null);
   const [createOpen, setCreateOpen] = useState(defaultCreateOpen);
@@ -1441,7 +1440,6 @@ export function ConsoleProjectGallery({
         ? PROJECT_PASSIVE_REFRESH_INTERVAL_MS
         : null;
   const isCreateServiceMode = createTargetProject !== null;
-  const createDialogRequested = searchParams.get("dialog") === "create";
   const createDialogEyebrow = isCreateServiceMode ? "Add service" : "Create project";
   const createDialogTitle = isCreateServiceMode ? "Add service" : "Create project and add service";
   const createDialogCopy = isCreateServiceMode
@@ -1480,21 +1478,26 @@ export function ConsoleProjectGallery({
       ? `Connection dropped. Reconnecting to ${humanizeUiLabel(effectiveLogsMode).toLowerCase()} output.`
       : logsConnectionState === "ended"
         ? `${humanizeUiLabel(effectiveLogsMode)} stream closed. Use Refresh now to reopen the latest snapshot.`
-        : logsConnectionState === "error"
-          ? `Unable to open the ${humanizeUiLabel(effectiveLogsMode).toLowerCase()} stream. Use Refresh now to try again.`
-          : `Live ${humanizeUiLabel(effectiveLogsMode).toLowerCase()} output for ${selectedService?.name ?? "this service"}.`;
+      : logsConnectionState === "error"
+        ? `Unable to open the ${humanizeUiLabel(effectiveLogsMode).toLowerCase()} stream. Use Refresh now to try again.`
+        : `Live ${humanizeUiLabel(effectiveLogsMode).toLowerCase()} output for ${selectedService?.name ?? "this service"}.`;
 
-  function replaceDialog(nextDialog: string | null) {
-    const nextParams = new URLSearchParams(searchParams.toString());
-
-    if (nextDialog) {
-      nextParams.set("dialog", nextDialog);
-    } else {
-      nextParams.delete("dialog");
+  function clearCreateDialogUrl() {
+    if (typeof window === "undefined") {
+      return;
     }
 
-    const nextSearch = nextParams.toString();
-    router.replace(nextSearch ? `${pathname}?${nextSearch}` : pathname);
+    const url = new URL(window.location.href);
+
+    if (url.searchParams.get("dialog") !== "create") {
+      return;
+    }
+
+    url.searchParams.delete("dialog");
+    const nextSearch = url.searchParams.toString();
+    const nextUrl = `${url.pathname}${nextSearch ? `?${nextSearch}` : ""}${url.hash}`;
+
+    window.history.replaceState(window.history.state, "", nextUrl);
   }
 
   function handleCreateBackdropPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
@@ -1533,17 +1536,6 @@ export function ConsoleProjectGallery({
 
     logsAutoFollowRef.current = isLogViewportNearBottom(viewport);
   }
-
-  useEffect(() => {
-    if (createDialogRequested) {
-      setCreateOpen(true);
-      return;
-    }
-
-    if (!createTargetProject) {
-      setCreateOpen(false);
-    }
-  }, [createDialogRequested, createTargetProject]);
 
   useEffect(() => {
     if (!flash) {
@@ -1702,6 +1694,18 @@ export function ConsoleProjectGallery({
       document.body.style.overflow = previousOverflow;
     };
   }, [createOpen]);
+
+  useEffect(() => {
+    const handleCreateProjectDialogOpen = () => {
+      openCreate();
+    };
+
+    window.addEventListener(OPEN_CREATE_PROJECT_DIALOG_EVENT, handleCreateProjectDialogOpen);
+
+    return () => {
+      window.removeEventListener(OPEN_CREATE_PROJECT_DIALOG_EVENT, handleCreateProjectDialogOpen);
+    };
+  }, [data.projects.length, data.runtimeTargets]);
 
   useEffect(() => {
     if (!selectedServiceApp) {
@@ -2159,7 +2163,6 @@ export function ConsoleProjectGallery({
     setCreateTargetProject(null);
     resetCreateForm(buildSuggestedProjectName(data.projects.length));
     setCreateOpen(true);
-    replaceDialog("create");
   }
 
   function openCreateService(project: ConsoleGalleryProjectView) {
@@ -2180,7 +2183,7 @@ export function ConsoleProjectGallery({
     setFlash(null);
     setCreateTargetProject(null);
     setCreateOpen(false);
-    replaceDialog(null);
+    clearCreateDialogUrl();
   }
 
   async function handleCreateProject(event: FormEvent<HTMLFormElement>) {
@@ -2245,7 +2248,7 @@ export function ConsoleProjectGallery({
         variant: "success",
       });
       resetCreateForm(buildSuggestedProjectName(data.projects.length + 1));
-      replaceDialog(null);
+      clearCreateDialogUrl();
       startTransition(() => {
         router.refresh();
       });
