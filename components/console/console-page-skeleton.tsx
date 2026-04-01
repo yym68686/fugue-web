@@ -198,10 +198,12 @@ function ProjectServiceCardSkeleton({ active = false }: { active?: boolean }) {
 function ClusterResourceSkeleton({
   compact = false,
   showMeter = true,
+  showLabel = true,
   showSecondary = true,
 }: {
   compact?: boolean;
   showMeter?: boolean;
+  showLabel?: boolean;
   showSecondary?: boolean;
 }) {
   return (
@@ -214,7 +216,9 @@ function ClusterResourceSkeleton({
     >
       {compact ? (
         <>
-          <SkeletonBlock className="fg-console-skeleton__section-label" width="2.4rem" />
+          {showLabel ? (
+            <SkeletonBlock className="fg-console-skeleton__section-label" width="2.4rem" />
+          ) : null}
           <div className="fg-cluster-resource__compact-values">
             <SkeletonBlock className="fg-console-skeleton__item-title" width="3.5rem" />
             {showSecondary ? (
@@ -409,6 +413,7 @@ function AdminAppsTableSkeleton() {
           <col className="fg-console-table__col fg-console-table__col--project" />
           <col className="fg-console-table__col fg-console-table__col--route" />
           <col className="fg-console-table__col fg-console-table__col--runtime" />
+          <col className="fg-console-table__col fg-console-table__col--usage" />
           <col className="fg-console-table__col fg-console-table__col--phase" />
           <col className="fg-console-table__col fg-console-table__col--source" />
           <col className="fg-console-table__col fg-console-table__col--stack" />
@@ -417,23 +422,49 @@ function AdminAppsTableSkeleton() {
         </colgroup>
         <thead>
           <tr>
-            {[
-              "4rem",
-              "5rem",
-              "4.5rem",
-              "4rem",
-              "4rem",
-              "4rem",
-              "3.5rem",
-              "4rem",
-              "3.5rem",
-              "4rem",
-              "4rem",
-            ].map((width, index) => (
-              <th key={`apps-head-${index}`}>
-                <SkeletonBlock className="fg-console-skeleton__table-label" width={width} />
-              </th>
-            ))}
+            <th>
+              <SkeletonBlock className="fg-console-skeleton__table-label" width="4rem" />
+            </th>
+            <th>
+              <SkeletonBlock className="fg-console-skeleton__table-label" width="5rem" />
+            </th>
+            <th>
+              <SkeletonBlock className="fg-console-skeleton__table-label" width="4.5rem" />
+            </th>
+            <th>
+              <SkeletonBlock className="fg-console-skeleton__table-label" width="4rem" />
+            </th>
+            <th>
+              <SkeletonBlock className="fg-console-skeleton__table-label" width="4rem" />
+            </th>
+            <th>
+              <SkeletonBlock className="fg-console-skeleton__table-label" width="4rem" />
+            </th>
+            <th className="fg-console-table__head--usage">
+              <div className="fg-console-table__resource-head">
+                <SkeletonBlock className="fg-console-skeleton__table-label" width="3.75rem" />
+                <div className="fg-console-table__resource-head-grid">
+                  <SkeletonBlock className="fg-console-skeleton__table-label" width="1.9rem" />
+                  <SkeletonBlock className="fg-console-skeleton__table-label" width="2.7rem" />
+                  <SkeletonBlock className="fg-console-skeleton__table-label" width="2rem" />
+                </div>
+              </div>
+            </th>
+            <th>
+              <SkeletonBlock className="fg-console-skeleton__table-label" width="3.5rem" />
+            </th>
+            <th>
+              <SkeletonBlock className="fg-console-skeleton__table-label" width="4rem" />
+            </th>
+            <th>
+              <SkeletonBlock className="fg-console-skeleton__table-label" width="3.5rem" />
+            </th>
+            <th>
+              <SkeletonBlock className="fg-console-skeleton__table-label" width="4rem" />
+            </th>
+            <th>
+              <SkeletonBlock className="fg-console-skeleton__table-label" width="4rem" />
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -456,6 +487,18 @@ function AdminAppsTableSkeleton() {
               </td>
               <td>
                 <SkeletonBlock className="fg-console-skeleton__item-title" width="5rem" />
+              </td>
+              <td className="fg-console-table__cell--usage">
+                <div className="fg-console-table__resource-grid">
+                  <ClusterResourceSkeleton compact showLabel={false} />
+                  <ClusterResourceSkeleton compact showLabel={false} />
+                  <ClusterResourceSkeleton
+                    compact
+                    showLabel={false}
+                    showMeter={false}
+                    showSecondary={false}
+                  />
+                </div>
               </td>
               <td>
                 <SkeletonBlock className="fg-console-skeleton__badge" width="4.4rem" />
@@ -998,6 +1041,161 @@ export function ConsoleWorkspaceSettingsPageSkeleton() {
                 </li>
               ))}
             </ul>
+          </PanelSection>
+        </Panel>
+      </section>
+    </ConsoleSkeletonPage>
+  );
+}
+
+export function ConsoleBillingPageSkeleton() {
+  return (
+    <ConsoleSkeletonPage>
+      <PageIntroSkeleton
+        copyWidths={["31rem", "23rem"]}
+        eyebrowWidth="4.25rem"
+        titleWidth="17rem"
+      />
+
+      <SummaryGridSkeleton />
+
+      <section className="fg-billing-stack">
+        <Panel className="fg-billing-surface fg-billing-surface--envelope">
+          <PanelSection>
+            <div className="fg-billing-hero">
+              <div className="fg-billing-hero__copy">
+                <SkeletonBlock className="fg-console-skeleton__eyebrow" width="8rem" />
+
+                <div className="fg-billing-hero__price">
+                  <SkeletonBlock className="fg-console-skeleton__section-label" width="6.5rem" />
+
+                  <div className="fg-billing-hero__price-line">
+                    <SkeletonBlock height="4.9rem" radius="1.35rem" width="15rem" />
+                    <SkeletonBlock className="fg-console-skeleton__item-meta" width="5.25rem" />
+                  </div>
+
+                  <div className="fg-billing-hero__meta">
+                    {["7.5rem", "8.25rem", "6rem"].map((width) => (
+                      <SkeletonBlock className="fg-console-skeleton__chip" key={width} width={width} />
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="fg-billing-status-row">
+                <SkeletonBlock className="fg-console-skeleton__badge" width="4.75rem" />
+                <SkeletonBlock className="fg-console-skeleton__badge" width="5.5rem" />
+              </div>
+            </div>
+          </PanelSection>
+
+          <PanelSection>
+            <div className="fg-billing-form__grid">
+              {[0, 1].map((item) => (
+                <div className="fg-field-stack" key={`billing-envelope-skeleton-${item}`}>
+                  <SkeletonBlock
+                    className="fg-console-skeleton__section-label"
+                    width={item === 0 ? "3rem" : "4rem"}
+                  />
+                  <SkeletonBlock className="fg-console-skeleton__field" height="4.25rem" radius="1.15rem" />
+                  <SkeletonBlock
+                    className="fg-console-skeleton__copy"
+                    width={item === 0 ? "13rem" : "14rem"}
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div className="fg-settings-form__actions">
+              <SkeletonBlock className="fg-console-skeleton__pill fg-console-skeleton__pill--primary" width="8.5rem" />
+              <SkeletonBlock className="fg-console-skeleton__pill" width="6.25rem" />
+            </div>
+          </PanelSection>
+        </Panel>
+
+        <Panel className="fg-billing-surface fg-billing-surface--balance">
+          <PanelSection>
+            <div className="fg-billing-balance__head">
+              <div className="fg-billing-balance__copy">
+                <SkeletonBlock className="fg-console-skeleton__eyebrow" width="5.25rem" />
+                <SkeletonBlock className="fg-console-skeleton__section-title" width="10rem" />
+              </div>
+
+              <div className="fg-billing-status-row">
+                <SkeletonBlock className="fg-console-skeleton__badge" width="4.75rem" />
+              </div>
+            </div>
+
+            <div className="fg-billing-balance__figures">
+              <article className="fg-billing-balance__figure is-primary">
+                <SkeletonBlock className="fg-console-skeleton__section-label" width="4.5rem" />
+                <SkeletonBlock height="3.8rem" radius="1.25rem" width="12rem" />
+              </article>
+
+              <article className="fg-billing-balance__figure">
+                <SkeletonBlock className="fg-console-skeleton__section-label" width="4.25rem" />
+                <SkeletonBlock height="2.8rem" radius="1rem" width="8.5rem" />
+              </article>
+            </div>
+          </PanelSection>
+
+          <PanelSection>
+            <div className="fg-billing-top-up-form">
+              <div className="fg-field-stack">
+                <SkeletonBlock className="fg-console-skeleton__section-label" width="7rem" />
+                <SkeletonBlock className="fg-console-skeleton__field" />
+              </div>
+
+              <div className="fg-settings-form__actions fg-billing-top-up-form__actions">
+                <SkeletonBlock className="fg-console-skeleton__pill fg-console-skeleton__pill--primary" width="9.5rem" />
+              </div>
+            </div>
+          </PanelSection>
+        </Panel>
+
+        <Panel>
+          <PanelSection>
+            <SkeletonBlock className="fg-console-skeleton__eyebrow" width="4.5rem" />
+            <PanelTitle>
+              <SkeletonBlock className="fg-console-skeleton__section-title" width="12rem" />
+            </PanelTitle>
+          </PanelSection>
+
+          <PanelSection>
+            <div className="fg-billing-ledger-table" role="presentation">
+              <div className="fg-billing-ledger-table__head">
+                {["3rem", "3.5rem", "5.5rem", "4rem"].map((width, index) => (
+                  <SkeletonBlock className="fg-console-skeleton__table-label" key={`billing-head-${index}`} width={width} />
+                ))}
+              </div>
+
+              <ul className="fg-billing-ledger-table__body">
+                {TABLE_ROWS.map((row) => (
+                  <li className="fg-billing-ledger-row" key={`billing-row-${row}`}>
+                    <div className="fg-billing-ledger-row__event">
+                      <div className="fg-billing-ledger-row__event-head">
+                        <SkeletonBlock className="fg-console-skeleton__item-title" width="8.25rem" />
+                        <SkeletonBlock className="fg-console-skeleton__badge" width="4.5rem" />
+                      </div>
+                      <SkeletonBlock className="fg-console-skeleton__copy is-wide" width="16rem" />
+                    </div>
+
+                    <div className="fg-billing-ledger-row__cell">
+                      <SkeletonBlock className="fg-console-skeleton__item-title" width="6rem" />
+                    </div>
+
+                    <div className="fg-billing-ledger-row__cell">
+                      <SkeletonBlock className="fg-console-skeleton__item-title" width="6.75rem" />
+                    </div>
+
+                    <div className="fg-billing-ledger-row__cell">
+                      <SkeletonBlock className="fg-console-skeleton__item-title" width="7rem" />
+                      <SkeletonBlock className="fg-console-skeleton__item-meta" width="4.5rem" />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </PanelSection>
         </Panel>
       </section>

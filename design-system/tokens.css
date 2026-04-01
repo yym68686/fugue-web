@@ -239,6 +239,27 @@
   --fugue-selection-lens-shadow-active:
     0 18px 40px -32px rgba(7, 10, 14, 0.92),
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --fugue-slider-shell-bg:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.034), rgba(255, 255, 255, 0.014)),
+    rgba(8, 11, 15, 0.8);
+  --fugue-slider-shell-bg-hover:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.046), rgba(255, 255, 255, 0.018)),
+    rgba(10, 13, 18, 0.88);
+  --fugue-slider-shell-border: var(--fugue-border-default);
+  --fugue-slider-shell-border-hover: var(--fugue-border-strong);
+  --fugue-slider-value-bg:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(165, 191, 220, 0.03)),
+    rgba(10, 13, 18, 0.92);
+  --fugue-slider-value-border: rgba(255, 255, 255, 0.08);
+  --fugue-slider-track-base: rgba(255, 255, 255, 0.08);
+  --fugue-slider-track-fill: rgba(165, 191, 220, 0.92);
+  --fugue-slider-track-fill-muted: rgba(165, 191, 220, 0.34);
+  --fugue-slider-thumb-bg:
+    linear-gradient(180deg, rgba(244, 239, 231, 0.98), rgba(226, 219, 210, 0.94));
+  --fugue-slider-thumb-border: rgba(255, 255, 255, 0.18);
+  --fugue-slider-thumb-shadow:
+    0 14px 28px -16px rgba(0, 0, 0, 0.82),
+    inset 0 1px 0 rgba(255, 255, 255, 0.24);
   --fugue-segmented-height: var(--fugue-button-height-compact);
   --fugue-segmented-gap: 0.2rem;
   --fugue-segmented-padding: 0.1875rem;

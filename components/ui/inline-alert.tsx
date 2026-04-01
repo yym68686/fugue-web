@@ -4,7 +4,7 @@ import { cx } from "@/lib/ui/cx";
 
 type InlineAlertProps = {
   children: ReactNode;
-  variant?: "info" | "error" | "success";
+  variant?: "info" | "warning" | "error" | "success";
 };
 
 export function InlineAlert({ children, variant = "info" }: InlineAlertProps) {

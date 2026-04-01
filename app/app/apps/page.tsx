@@ -18,7 +18,7 @@ export default async function AppsPage() {
       <ToastOnMount message={errorMessage} variant="error" />
 
       <ConsolePageIntro
-        description="Cluster-wide apps."
+        description="Cluster-wide apps with current CPU, memory, and disk samples."
         eyebrow="Admin / Apps"
         title="Cluster apps"
       />

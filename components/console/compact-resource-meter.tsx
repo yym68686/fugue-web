@@ -11,8 +11,10 @@ function readMeterWidth(value?: number | null) {
 
 export function CompactResourceMeter({
   item,
+  showLabel = true,
 }: {
   item: ConsoleCompactResourceItemView;
+  showLabel?: boolean;
 }) {
   const showMeter = item.meterValue !== null && item.meterValue !== undefined;
 
@@ -25,7 +27,14 @@ export function CompactResourceMeter({
       )}
       title={item.title}
     >
-      <span className="fg-cluster-resource__label">{item.label}</span>
+      <span
+        className={cx(
+          "fg-cluster-resource__label",
+          !showLabel && "fg-cluster-resource__label--sr-only",
+        )}
+      >
+        {item.label}
+      </span>
       <div className="fg-cluster-resource__compact-values">
         <strong>{item.primaryLabel}</strong>
         {item.secondaryLabel ? <span>{item.secondaryLabel}</span> : null}

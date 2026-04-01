@@ -63,6 +63,7 @@ export type FugueBackingService = {
       database: string | null;
       image: string | null;
       password: string | null;
+      resources: FugueResourceSpec | null;
       serviceName: string | null;
       storagePath: string | null;
       user: string | null;
@@ -113,6 +114,11 @@ export type FugueAppTechnology = {
   source: string | null;
 };
 
+export type FugueResourceSpec = {
+  cpuMillicores: number;
+  memoryMebibytes: number;
+};
+
 export type FugueResourceUsage = {
   cpuMillicores: number | null;
   ephemeralStorageBytes: number | null;
@@ -155,6 +161,7 @@ export type FugueApp = {
     runtimeId: string | null;
     replicas: number | null;
     disabled: boolean | null;
+    resources: FugueResourceSpec | null;
     workspace: FugueAppWorkspace | null;
   };
   status: {
@@ -460,6 +467,46 @@ export type FugueRuntimeLogsResult = {
   warnings: string[];
 };
 
+export type FugueBillingPriceBook = {
+  currency: string;
+  hoursPerMonth: number;
+  cpuMicroCentsPerMillicoreHour: number;
+  memoryMicroCentsPerMibHour: number;
+};
+
+export type FugueBillingEvent = {
+  amountMicroCents: number;
+  balanceAfterMicroCents: number;
+  createdAt: string | null;
+  id: string;
+  metadata: Record<string, string>;
+  tenantId: string | null;
+  type: string;
+};
+
+export type FugueBillingSummary = {
+  balanceMicroCents: number;
+  balanceRestricted: boolean;
+  byoVpsFree: boolean;
+  currentUsage: FugueResourceUsage | null;
+  defaultAppResources: FugueResourceSpec;
+  defaultPostgresResources: FugueResourceSpec;
+  events: FugueBillingEvent[];
+  hourlyRateMicroCents: number;
+  lastAccruedAt: string | null;
+  managedAvailable: FugueResourceSpec;
+  managedCap: FugueResourceSpec;
+  managedCommitted: FugueResourceSpec;
+  monthlyEstimateMicroCents: number;
+  overCap: boolean;
+  priceBook: FugueBillingPriceBook;
+  runwayHours: number | null;
+  status: string;
+  statusReason: string | null;
+  tenantId: string;
+  updatedAt: string | null;
+};
+
 type FugueRequestOptions = {
   accessToken: string;
   body?: unknown;
@@ -655,6 +702,7 @@ function sanitizeBackingService(value: unknown): FugueBackingService | null {
             database: readString(postgres, "database"),
             image: readString(postgres, "image"),
             password: readString(postgres, "password"),
+            resources: sanitizeResourceSpec(postgres?.resources),
             serviceName: readString(postgres, "service_name"),
             storagePath: readString(postgres, "storage_path"),
             user: readString(postgres, "user"),
@@ -755,6 +803,19 @@ function sanitizeAppTechnology(value: unknown): FugueAppTechnology | null {
   };
 }
 
+function sanitizeResourceSpec(value: unknown): FugueResourceSpec | null {
+  const record = asRecord(value);
+
+  if (!record) {
+    return null;
+  }
+
+  return {
+    cpuMillicores: readNumber(record, "cpu_millicores") ?? 0,
+    memoryMebibytes: readNumber(record, "memory_mebibytes") ?? 0,
+  };
+}
+
 function sanitizeResourceUsage(value: unknown): FugueResourceUsage | null {
   const record = asRecord(value);
 
@@ -773,6 +834,96 @@ function sanitizeResourceUsage(value: unknown): FugueResourceUsage | null {
     usage.ephemeralStorageBytes !== null
     ? usage
     : null;
+}
+
+function sanitizeBillingPriceBook(value: unknown): FugueBillingPriceBook | null {
+  const record = asRecord(value);
+  const currency = readString(record, "currency");
+
+  if (!record || !currency) {
+    return null;
+  }
+
+  return {
+    currency,
+    hoursPerMonth: readNumber(record, "hours_per_month") ?? 0,
+    cpuMicroCentsPerMillicoreHour:
+      readNumber(record, "cpu_microcents_per_millicore_hour") ?? 0,
+    memoryMicroCentsPerMibHour:
+      readNumber(record, "memory_microcents_per_mib_hour") ?? 0,
+  };
+}
+
+function sanitizeBillingEvent(value: unknown): FugueBillingEvent | null {
+  const record = asRecord(value);
+  const id = readString(record, "id");
+  const type = readString(record, "type");
+
+  if (!record || !id || !type) {
+    return null;
+  }
+
+  return {
+    amountMicroCents: readNumber(record, "amount_microcents") ?? 0,
+    balanceAfterMicroCents: readNumber(record, "balance_after_microcents") ?? 0,
+    createdAt: readString(record, "created_at"),
+    id,
+    metadata: readStringMap(record?.metadata),
+    tenantId: readString(record, "tenant_id"),
+    type,
+  };
+}
+
+function sanitizeBillingSummary(value: unknown): FugueBillingSummary | null {
+  const record = asRecord(value);
+  const tenantId = readString(record, "tenant_id");
+  const status = readString(record, "status");
+  const priceBook = sanitizeBillingPriceBook(record?.price_book);
+  const managedCap = sanitizeResourceSpec(record?.managed_cap);
+  const managedCommitted = sanitizeResourceSpec(record?.managed_committed);
+  const managedAvailable = sanitizeResourceSpec(record?.managed_available);
+  const defaultAppResources = sanitizeResourceSpec(record?.default_app_resources);
+  const defaultPostgresResources = sanitizeResourceSpec(record?.default_postgres_resources);
+  const events = Array.isArray(record?.events) ? record.events : [];
+
+  if (
+    !record ||
+    !tenantId ||
+    !status ||
+    !priceBook ||
+    !managedCap ||
+    !managedCommitted ||
+    !managedAvailable ||
+    !defaultAppResources ||
+    !defaultPostgresResources
+  ) {
+    return null;
+  }
+
+  return {
+    balanceMicroCents: readNumber(record, "balance_microcents") ?? 0,
+    balanceRestricted: readBoolean(record, "balance_restricted") ?? false,
+    byoVpsFree: readBoolean(record, "byo_vps_free") ?? false,
+    currentUsage: sanitizeResourceUsage(record?.current_usage),
+    defaultAppResources,
+    defaultPostgresResources,
+    events: events
+      .map(sanitizeBillingEvent)
+      .filter((item): item is FugueBillingEvent => Boolean(item)),
+    hourlyRateMicroCents: readNumber(record, "hourly_rate_microcents") ?? 0,
+    lastAccruedAt: readString(record, "last_accrued_at"),
+    managedAvailable,
+    managedCap,
+    managedCommitted,
+    monthlyEstimateMicroCents: readNumber(record, "monthly_estimate_microcents") ?? 0,
+    overCap: readBoolean(record, "over_cap") ?? false,
+    priceBook,
+    runwayHours: readNumber(record, "runway_hours"),
+    status,
+    statusReason: readString(record, "status_reason"),
+    tenantId,
+    updatedAt: readString(record, "updated_at"),
+  };
 }
 
 function sanitizeAppSource(value: unknown): FugueAppSource {
@@ -833,6 +984,7 @@ function sanitizeApp(value: unknown): FugueApp | null {
       runtimeId: readString(spec, "runtime_id"),
       replicas: readNumber(spec, "replicas"),
       disabled: readBoolean(spec, "disabled"),
+      resources: sanitizeResourceSpec(spec?.resources),
       workspace: sanitizeAppWorkspace(spec?.workspace),
     },
     status: {
@@ -1604,6 +1756,113 @@ export async function getFugueNodeKeys(accessToken: string) {
   );
   const items = Array.isArray(payload?.node_keys) ? payload.node_keys : [];
   return items.map(sanitizeNodeKey).filter((item): item is FugueNodeKey => Boolean(item));
+}
+
+export async function getFugueBillingSummary(accessToken: string, tenantId?: string) {
+  const searchParams = new URLSearchParams();
+
+  if (tenantId) {
+    searchParams.set("tenant_id", tenantId);
+  }
+
+  const suffix = searchParams.size > 0 ? `?${searchParams.toString()}` : "";
+  const payload = asRecord(
+    await fugueRequest(`/v1/billing${suffix}`, {
+      accessToken,
+    }),
+  );
+  const billing = sanitizeBillingSummary(payload?.billing);
+
+  if (!billing) {
+    throw new Error("Fugue billing response was malformed.");
+  }
+
+  return billing;
+}
+
+export async function updateFugueBilling(
+  accessToken: string,
+  payload: {
+    managedCap: FugueResourceSpec;
+    tenantId?: string;
+  },
+) {
+  const response = asRecord(
+    await fugueRequest("/v1/billing", {
+      accessToken,
+      body: {
+        ...(payload.tenantId ? { tenant_id: payload.tenantId } : {}),
+        managed_cap: {
+          cpu_millicores: payload.managedCap.cpuMillicores,
+          memory_mebibytes: payload.managedCap.memoryMebibytes,
+        },
+      },
+      method: "PATCH",
+    }),
+  );
+  const billing = sanitizeBillingSummary(response?.billing);
+
+  if (!billing) {
+    throw new Error("Fugue billing update response was malformed.");
+  }
+
+  return billing;
+}
+
+export async function setFugueBillingBalance(
+  accessToken: string,
+  payload: {
+    balanceCents: number;
+    note?: string;
+    tenantId?: string;
+  },
+) {
+  const response = asRecord(
+    await fugueRequest("/v1/billing/balance", {
+      accessToken,
+      body: {
+        balance_cents: payload.balanceCents,
+        ...(payload.note ? { note: payload.note } : {}),
+        ...(payload.tenantId ? { tenant_id: payload.tenantId } : {}),
+      },
+      method: "PATCH",
+    }),
+  );
+  const billing = sanitizeBillingSummary(response?.billing);
+
+  if (!billing) {
+    throw new Error("Fugue billing balance response was malformed.");
+  }
+
+  return billing;
+}
+
+export async function topUpFugueBilling(
+  accessToken: string,
+  payload: {
+    amountCents: number;
+    note?: string;
+    tenantId?: string;
+  },
+) {
+  const response = asRecord(
+    await fugueRequest("/v1/billing/top-ups", {
+      accessToken,
+      body: {
+        amount_cents: payload.amountCents,
+        ...(payload.note ? { note: payload.note } : {}),
+        ...(payload.tenantId ? { tenant_id: payload.tenantId } : {}),
+      },
+      method: "POST",
+    }),
+  );
+  const billing = sanitizeBillingSummary(response?.billing);
+
+  if (!billing) {
+    throw new Error("Fugue billing top-up response was malformed.");
+  }
+
+  return billing;
 }
 
 export async function getFugueApps(accessToken: string) {

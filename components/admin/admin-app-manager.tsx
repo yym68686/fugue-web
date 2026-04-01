@@ -3,11 +3,13 @@
 import { startTransition, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { CompactResourceMeter } from "@/components/console/compact-resource-meter";
 import { ConsoleEmptyState } from "@/components/console/console-empty-state";
 import { StatusBadge } from "@/components/console/status-badge";
 import { InlineButton } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { TechStackLogo } from "@/components/ui/tech-stack-logo";
+import type { ConsoleCompactResourceItemView } from "@/lib/console/gallery-types";
 import type { TechStackBadgeKind } from "@/lib/tech-stack";
 import { useToast } from "@/components/ui/toast";
 
@@ -19,6 +21,7 @@ type AdminClusterAppView = {
   phase: string;
   phaseTone: "positive" | "warning" | "danger" | "info" | "neutral";
   projectLabel: string;
+  resourceUsage: ConsoleCompactResourceItemView[];
   routeHref: string | null;
   routeLabel: string;
   runtimeLabel: string;
@@ -35,6 +38,12 @@ type AdminClusterAppView = {
   updatedExact: string;
   updatedLabel: string;
 };
+
+const ADMIN_APP_USAGE_HEADINGS = [
+  { id: "cpu", label: "CPU" },
+  { id: "memory", label: "Memory" },
+  { id: "storage", label: "Disk" },
+] as const;
 
 function readErrorMessage(error: unknown) {
   if (error instanceof Error && error.message) {
@@ -164,6 +173,7 @@ export function AdminAppManager({
           <col className="fg-console-table__col fg-console-table__col--project" />
           <col className="fg-console-table__col fg-console-table__col--route" />
           <col className="fg-console-table__col fg-console-table__col--runtime" />
+          <col className="fg-console-table__col fg-console-table__col--usage" />
           <col className="fg-console-table__col fg-console-table__col--phase" />
           <col className="fg-console-table__col fg-console-table__col--source" />
           <col className="fg-console-table__col fg-console-table__col--stack" />
@@ -172,17 +182,27 @@ export function AdminAppManager({
         </colgroup>
         <thead>
           <tr>
-            <th>Name</th>
-            <th>App identifier</th>
-            <th>User email</th>
-            <th>Project</th>
-            <th>Route</th>
-            <th>Runtime</th>
-            <th>Phase</th>
-            <th>Source</th>
-            <th>Stack</th>
-            <th>Updated</th>
-            <th>Actions</th>
+            <th scope="col">Name</th>
+            <th scope="col">App identifier</th>
+            <th scope="col">User email</th>
+            <th scope="col">Project</th>
+            <th scope="col">Route</th>
+            <th scope="col">Runtime</th>
+            <th className="fg-console-table__head--usage" scope="col">
+              <div className="fg-console-table__resource-head">
+                <span className="fg-console-table__resource-head-label">Usage</span>
+                <div className="fg-console-table__resource-head-grid">
+                  {ADMIN_APP_USAGE_HEADINGS.map((resource) => (
+                    <span key={resource.id}>{resource.label}</span>
+                  ))}
+                </div>
+              </div>
+            </th>
+            <th scope="col">Phase</th>
+            <th scope="col">Source</th>
+            <th scope="col">Stack</th>
+            <th scope="col">Updated</th>
+            <th scope="col">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -229,6 +249,16 @@ export function AdminAppManager({
                 <span className="fg-console-table__clip" title={app.runtimeLabel}>
                   {app.runtimeLabel}
                 </span>
+              </td>
+              <td className="fg-console-table__cell--usage">
+                <div
+                  aria-label={`${app.name} resource usage`}
+                  className="fg-console-table__resource-grid"
+                >
+                  {app.resourceUsage.map((resource) => (
+                    <CompactResourceMeter item={resource} key={resource.id} showLabel={false} />
+                  ))}
+                </div>
               </td>
               <td>
                 <StatusBadge tone={app.phaseTone}>{app.phase}</StatusBadge>

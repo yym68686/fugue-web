@@ -1,19 +1,26 @@
 import "server-only";
 
 import { listAppUsers, type AppUserRecord } from "@/lib/app-users/store";
+import type { ConsoleCompactResourceItemView } from "@/lib/console/gallery-types";
 import type { ConsoleTone } from "@/lib/console/types";
 import {
+  getFugueBillingSummary,
   getFugueApps,
   getFugueClusterNodes,
   getFugueProjects,
   getFugueTenants,
+  setFugueBillingBalance,
+  updateFugueBilling,
   type FugueApp,
+  type FugueBillingPriceBook,
+  type FugueBillingSummary,
   type FugueClusterNode,
   type FugueClusterNodeCPUStats,
   type FugueClusterNodeMemoryStats,
   type FugueClusterNodeStorageStats,
   type FugueClusterNodeWorkload,
   type FugueProject,
+  type FugueResourceSpec,
   type FugueTenant,
 } from "@/lib/fugue/api";
 import { getFugueEnv } from "@/lib/fugue/env";
@@ -24,7 +31,11 @@ import {
   type TechStackBadgeKind,
 } from "@/lib/tech-stack";
 import { readCountryLocation } from "@/lib/geo/country";
-import { listWorkspaceSnapshots, type WorkspaceSnapshot } from "@/lib/workspace/store";
+import {
+  getWorkspaceSnapshotByEmail,
+  listWorkspaceSnapshots,
+  type WorkspaceSnapshot,
+} from "@/lib/workspace/store";
 
 export type AdminClusterAppView = {
   canRebuild: boolean;
@@ -34,6 +45,7 @@ export type AdminClusterAppView = {
   phase: string;
   phaseTone: ConsoleTone;
   projectLabel: string;
+  resourceUsage: ConsoleCompactResourceItemView[];
   routeHref: string | null;
   routeLabel: string;
   runtimeLabel: string;
@@ -63,7 +75,9 @@ export type AdminAppsPageData = {
 };
 
 export type AdminUserView = {
+  billing: AdminUserBillingView;
   canBlock: boolean;
+  canDemoteAdmin: boolean;
   canDelete: boolean;
   canPromoteToAdmin: boolean;
   canUnblock: boolean;
@@ -77,7 +91,31 @@ export type AdminUserView = {
   status: string;
   statusTone: ConsoleTone;
   tenantLabel: string;
+  usage: AdminUserServiceUsageView;
   verified: boolean;
+};
+
+export type AdminUserBillingView = {
+  balanceLabel: string | null;
+  balanceMicroCents: number | null;
+  cpuMillicores: number | null;
+  limitLabel: string;
+  loadError: string | null;
+  memoryMebibytes: number | null;
+  monthlyEstimateLabel: string | null;
+  priceBook: FugueBillingPriceBook | null;
+  statusLabel: string | null;
+  statusReason: string | null;
+  statusTone: ConsoleTone;
+  tenantId: string | null;
+};
+
+export type AdminUserServiceUsageView = {
+  cpuLabel: string;
+  diskLabel: string;
+  memoryLabel: string;
+  serviceCount: number;
+  serviceCountLabel: string;
 };
 
 export type AdminUsersPageData = {
@@ -167,6 +205,7 @@ const CLUSTER_READY_CONDITION = "Ready";
 const CLUSTER_MEMORY_PRESSURE_CONDITION = "MemoryPressure";
 const CLUSTER_DISK_PRESSURE_CONDITION = "DiskPressure";
 const CLUSTER_PID_PRESSURE_CONDITION = "PIDPressure";
+const MICRO_CENTS_PER_DOLLAR = 100_000_000;
 
 function readErrorMessage(error: unknown) {
   if (error instanceof Error && error.message) {
@@ -468,6 +507,7 @@ function mapAdminApps(
         phase: humanize(phase),
         phaseTone: toneForStatus(phase),
         projectLabel: app.projectId ? projectNames.get(app.projectId) ?? shortId(app.projectId) : "Unassigned",
+        resourceUsage: buildAdminAppResourceUsage(app),
         routeHref: route.href,
         routeLabel: route.label,
         runtimeLabel: runtimeId ? shortId(runtimeId) : "Unassigned",
@@ -524,30 +564,28 @@ function buildUserViews(
   workspaces: WorkspaceSnapshot[],
   apps: FugueApp[],
   tenants: FugueTenant[],
+  billingByTenant: Map<string, AdminTenantBillingLookup>,
 ) {
   const workspaceByEmail = new Map(
     workspaces.map((workspace) => [workspace.email, workspace] as const),
   );
-  const appCountByTenant = new Map<string, number>();
+  const tenantServiceUsageByTenant = buildAdminTenantServiceUsageLookup(apps);
   const tenantNames = new Map(
     tenants.map((tenant) => [tenant.id, tenant.name] as const),
   );
 
-  for (const app of apps) {
-    if (!app.tenantId) {
-      continue;
-    }
-
-    appCountByTenant.set(app.tenantId, (appCountByTenant.get(app.tenantId) ?? 0) + 1);
-  }
-
   return users.map((user) => {
     const workspace = workspaceByEmail.get(user.email);
-    const serviceCount =
-      workspace?.tenantId ? (appCountByTenant.get(workspace.tenantId) ?? 0) : 0;
+    const billing = workspace?.tenantId ? billingByTenant.get(workspace.tenantId) : undefined;
+    const tenantServiceUsage = workspace?.tenantId
+      ? tenantServiceUsageByTenant.get(workspace.tenantId)
+      : undefined;
+    const serviceCount = tenantServiceUsage?.serviceCount ?? 0;
 
     return {
+      billing: buildAdminUserBillingView(workspace, billing),
       canBlock: !user.isAdmin && user.status === "active",
+      canDemoteAdmin: user.isAdmin && user.status !== "deleted",
       canDelete: !user.isAdmin && user.status !== "deleted",
       canPromoteToAdmin: !user.isAdmin && user.status !== "deleted",
       canUnblock: !user.isAdmin && user.status === "blocked",
@@ -564,6 +602,7 @@ function buildUserViews(
         workspace?.tenantId
           ? tenantNames.get(workspace.tenantId) ?? workspace.tenantName ?? shortId(workspace.tenantId)
           : "No workspace",
+      usage: buildAdminUserServiceUsageView(tenantServiceUsage),
       verified: user.verified,
     } satisfies AdminUserView;
   });
@@ -573,6 +612,11 @@ function formatCountLabel(count: number, singular: string, plural = `${singular}
   return `${count} ${count === 1 ? singular : plural}`;
 }
 
+type AdminTenantBillingLookup = {
+  billing: FugueBillingSummary | null;
+  error: string | null;
+};
+
 function formatCompactNumber(value: number, digits = 1) {
   const formatter = new Intl.NumberFormat("en-US", {
     maximumFractionDigits: digits,
@@ -580,6 +624,128 @@ function formatCompactNumber(value: number, digits = 1) {
   });
 
   return formatter.format(value);
+}
+
+function formatCurrencyFromMicroCents(value: number, currency: string) {
+  return new Intl.NumberFormat("en-US", {
+    currency,
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 2,
+    style: "currency",
+  }).format(value / MICRO_CENTS_PER_DOLLAR);
+}
+
+function formatBillingCPU(cpuMillicores: number) {
+  const cores = cpuMillicores / 1000;
+
+  if (cpuMillicores === 0) {
+    return "0 cpu";
+  }
+
+  const digits = Number.isInteger(cores) ? 0 : cores >= 10 ? 1 : 2;
+  return `${formatCompactNumber(cores, digits)} cpu`;
+}
+
+function formatBillingMemory(memoryMebibytes: number) {
+  const gib = memoryMebibytes / 1024;
+  return `${formatCompactNumber(gib, Number.isInteger(gib) ? 0 : 2)} GiB`;
+}
+
+function formatBillingResourceSpec(spec: FugueResourceSpec) {
+  return `${formatBillingCPU(spec.cpuMillicores)} / ${formatBillingMemory(spec.memoryMebibytes)}`;
+}
+
+function estimateHourlyRateMicroCents(spec: FugueResourceSpec, priceBook: FugueBillingPriceBook) {
+  if (spec.cpuMillicores <= 0 || spec.memoryMebibytes <= 0) {
+    return 0;
+  }
+
+  return (
+    spec.cpuMillicores * priceBook.cpuMicroCentsPerMillicoreHour +
+    spec.memoryMebibytes * priceBook.memoryMicroCentsPerMibHour
+  );
+}
+
+function estimateMonthlyMicroCents(spec: FugueResourceSpec, priceBook: FugueBillingPriceBook) {
+  return estimateHourlyRateMicroCents(spec, priceBook) * priceBook.hoursPerMonth;
+}
+
+function readBillingStatusTone(billing: FugueBillingSummary): ConsoleTone {
+  if (billing.overCap || billing.status === "over-cap") {
+    return "warning";
+  }
+
+  if (billing.balanceRestricted || billing.status === "restricted") {
+    return "warning";
+  }
+
+  if (billing.status === "active") {
+    return "positive";
+  }
+
+  return "neutral";
+}
+
+function buildAdminUserBillingView(
+  workspace: WorkspaceSnapshot | undefined,
+  billingLookup: AdminTenantBillingLookup | undefined,
+): AdminUserBillingView {
+  if (!workspace?.tenantId) {
+    return {
+      balanceLabel: null,
+      balanceMicroCents: null,
+      cpuMillicores: null,
+      limitLabel: "No workspace",
+      loadError: null,
+      memoryMebibytes: null,
+      monthlyEstimateLabel: null,
+      priceBook: null,
+      statusLabel: null,
+      statusReason: null,
+      statusTone: "neutral",
+      tenantId: null,
+    };
+  }
+
+  if (!billingLookup?.billing) {
+    return {
+      balanceLabel: null,
+      balanceMicroCents: null,
+      cpuMillicores: null,
+      limitLabel: "Billing unavailable",
+      loadError: billingLookup?.error ?? "Fugue billing is unavailable for this workspace.",
+      memoryMebibytes: null,
+      monthlyEstimateLabel: null,
+      priceBook: null,
+      statusLabel: null,
+      statusReason: null,
+      statusTone: "neutral",
+      tenantId: workspace.tenantId,
+    };
+  }
+
+  const billing = billingLookup.billing;
+
+  return {
+    balanceLabel: formatCurrencyFromMicroCents(
+      billing.balanceMicroCents,
+      billing.priceBook.currency,
+    ),
+    balanceMicroCents: billing.balanceMicroCents,
+    cpuMillicores: billing.managedCap.cpuMillicores,
+    limitLabel: formatBillingResourceSpec(billing.managedCap),
+    loadError: null,
+    memoryMebibytes: billing.managedCap.memoryMebibytes,
+    monthlyEstimateLabel: formatCurrencyFromMicroCents(
+      estimateMonthlyMicroCents(billing.managedCap, billing.priceBook),
+      billing.priceBook.currency,
+    ),
+    priceBook: billing.priceBook,
+    statusLabel: humanize(billing.status),
+    statusReason: billing.statusReason,
+    statusTone: readBillingStatusTone(billing),
+    tenantId: billing.tenantId,
+  };
 }
 
 function formatPercentLabel(value?: number | null) {
@@ -624,6 +790,218 @@ function formatCPUCapacityLabel(value?: number | null) {
   }
 
   return `${Math.round(value)} millicores`;
+}
+
+type AdminTenantServiceUsageSummary = {
+  appIds: Set<string>;
+  backingServiceIds: Set<string>;
+  cpuMillicores: number | null;
+  ephemeralStorageBytes: number | null;
+  memoryBytes: number | null;
+  serviceCount: number;
+};
+
+function createAdminTenantServiceUsageSummary(): AdminTenantServiceUsageSummary {
+  return {
+    appIds: new Set<string>(),
+    backingServiceIds: new Set<string>(),
+    cpuMillicores: null,
+    ephemeralStorageBytes: null,
+    memoryBytes: null,
+    serviceCount: 0,
+  };
+}
+
+function appendResourceUsage(
+  summary: Pick<
+    AdminTenantServiceUsageSummary,
+    "cpuMillicores" | "ephemeralStorageBytes" | "memoryBytes"
+  >,
+  usage: FugueApp["currentResourceUsage"],
+) {
+  if (usage?.cpuMillicores !== null && usage?.cpuMillicores !== undefined) {
+    summary.cpuMillicores = (summary.cpuMillicores ?? 0) + usage.cpuMillicores;
+  }
+
+  if (usage?.memoryBytes !== null && usage?.memoryBytes !== undefined) {
+    summary.memoryBytes = (summary.memoryBytes ?? 0) + usage.memoryBytes;
+  }
+
+  if (
+    usage?.ephemeralStorageBytes !== null &&
+    usage?.ephemeralStorageBytes !== undefined
+  ) {
+    summary.ephemeralStorageBytes =
+      (summary.ephemeralStorageBytes ?? 0) + usage.ephemeralStorageBytes;
+  }
+}
+
+function buildAdminTenantServiceUsageLookup(apps: FugueApp[]) {
+  const byTenant = new Map<string, AdminTenantServiceUsageSummary>();
+
+  for (const app of apps) {
+    if (!app.tenantId) {
+      continue;
+    }
+
+    const summary =
+      byTenant.get(app.tenantId) ?? createAdminTenantServiceUsageSummary();
+
+    if (!byTenant.has(app.tenantId)) {
+      byTenant.set(app.tenantId, summary);
+    }
+
+    if (!summary.appIds.has(app.id)) {
+      summary.appIds.add(app.id);
+      summary.serviceCount += 1;
+      appendResourceUsage(summary, app.currentResourceUsage);
+    }
+
+    for (const service of app.backingServices) {
+      if (summary.backingServiceIds.has(service.id)) {
+        continue;
+      }
+
+      summary.backingServiceIds.add(service.id);
+      summary.serviceCount += 1;
+      appendResourceUsage(summary, service.currentResourceUsage);
+    }
+  }
+
+  return byTenant;
+}
+
+function buildAdminUserServiceUsageView(
+  summary: AdminTenantServiceUsageSummary | undefined,
+): AdminUserServiceUsageView {
+  const serviceCount = summary?.serviceCount ?? 0;
+
+  return {
+    cpuLabel: formatCPUCapacityLabel(summary?.cpuMillicores),
+    diskLabel: formatBytesLabel(summary?.ephemeralStorageBytes),
+    memoryLabel: formatBytesLabel(summary?.memoryBytes),
+    serviceCount,
+    serviceCountLabel: formatCountLabel(serviceCount, "service"),
+  };
+}
+
+function readPositiveNumber(value?: number | null) {
+  return value !== null && value !== undefined && Number.isFinite(value) && value > 0
+    ? value
+    : null;
+}
+
+function readAppReplicaCount(app: FugueApp) {
+  return readPositiveNumber(app.status.currentReplicas) ?? readPositiveNumber(app.spec.replicas);
+}
+
+function readUsagePercent(used?: number | null, total?: number | null) {
+  if (
+    used === null ||
+    used === undefined ||
+    !Number.isFinite(used) ||
+    total === null ||
+    total === undefined ||
+    !Number.isFinite(total) ||
+    total <= 0
+  ) {
+    return null;
+  }
+
+  return Math.max(0, (used / total) * 100);
+}
+
+function readUsageTone(percent: number | null, hasUsage: boolean): ConsoleTone {
+  if (percent === null) {
+    return hasUsage ? "info" : "neutral";
+  }
+
+  if (percent >= 90) {
+    return "danger";
+  }
+
+  if (percent >= 75) {
+    return "warning";
+  }
+
+  return "info";
+}
+
+function buildUsageContextLabel(percent: number | null, limitLabel: string | null) {
+  if (percent !== null && limitLabel) {
+    return `${formatPercentLabel(percent)} of ${limitLabel}`;
+  }
+
+  if (limitLabel) {
+    return `Limit ${limitLabel}`;
+  }
+
+  return null;
+}
+
+function buildResourceTitle(label: string, primaryLabel: string, secondaryLabel?: string | null) {
+  return secondaryLabel ? `${label} / ${primaryLabel} / ${secondaryLabel}` : `${label} / ${primaryLabel}`;
+}
+
+function buildAdminAppResourceUsage(app: FugueApp): ConsoleCompactResourceItemView[] {
+  const usage = app.currentResourceUsage;
+  const replicas = readAppReplicaCount(app);
+  const cpuLimit = app.spec.resources && replicas ? app.spec.resources.cpuMillicores * replicas : null;
+  const memoryLimitMebibytes =
+    app.spec.resources && replicas ? app.spec.resources.memoryMebibytes * replicas : null;
+  const memoryLimitBytes =
+    memoryLimitMebibytes !== null ? memoryLimitMebibytes * 1024 * 1024 : null;
+  const cpuPercent = readUsagePercent(usage?.cpuMillicores, cpuLimit);
+  const memoryPercent = readUsagePercent(usage?.memoryBytes, memoryLimitBytes);
+  const cpuPrimaryLabel = formatCPUCapacityLabel(usage?.cpuMillicores);
+  const memoryPrimaryLabel = formatBytesLabel(usage?.memoryBytes);
+  const diskPrimaryLabel = formatBytesLabel(usage?.ephemeralStorageBytes);
+  const cpuSecondaryLabel = buildUsageContextLabel(
+    cpuPercent,
+    cpuLimit !== null ? formatBillingCPU(cpuLimit) : null,
+  );
+  const memorySecondaryLabel = buildUsageContextLabel(
+    memoryPercent,
+    memoryLimitMebibytes !== null ? formatBillingMemory(memoryLimitMebibytes) : null,
+  );
+  const hasCpuUsage = usage?.cpuMillicores !== null && usage?.cpuMillicores !== undefined;
+  const hasMemoryUsage = usage?.memoryBytes !== null && usage?.memoryBytes !== undefined;
+  const hasDiskUsage =
+    usage?.ephemeralStorageBytes !== null && usage?.ephemeralStorageBytes !== undefined;
+
+  return [
+    {
+      id: "cpu",
+      label: "CPU",
+      meterValue: cpuPercent,
+      primaryLabel: cpuPrimaryLabel,
+      secondaryLabel: cpuSecondaryLabel,
+      title: buildResourceTitle("CPU", cpuPrimaryLabel, cpuSecondaryLabel),
+      tone: readUsageTone(cpuPercent, hasCpuUsage),
+    },
+    {
+      id: "memory",
+      label: "Memory",
+      meterValue: memoryPercent,
+      primaryLabel: memoryPrimaryLabel,
+      secondaryLabel: memorySecondaryLabel,
+      title: buildResourceTitle("Memory", memoryPrimaryLabel, memorySecondaryLabel),
+      tone: readUsageTone(memoryPercent, hasMemoryUsage),
+    },
+    {
+      id: "storage",
+      label: "Disk",
+      meterValue: null,
+      primaryLabel: diskPrimaryLabel,
+      secondaryLabel: null,
+      title: buildResourceTitle(
+        "Disk",
+        diskPrimaryLabel,
+        hasDiskUsage ? "Current live sample" : null,
+      ),
+      tone: hasDiskUsage ? "info" : "neutral",
+    },
+  ];
 }
 
 function toneWeight(tone: ConsoleTone) {
@@ -1070,6 +1448,61 @@ export async function getAdminAppsPageData(): Promise<AdminAppsPageData> {
   };
 }
 
+async function getAdminUserBillingLookup(
+  bootstrapKey: string,
+  workspaces: WorkspaceSnapshot[],
+) {
+  const uniqueWorkspaces = [...new Map(
+    workspaces
+      .filter((workspace) => workspace.tenantId)
+      .map((workspace) => [workspace.tenantId, workspace] as const),
+  ).values()];
+
+  if (!uniqueWorkspaces.length) {
+    return {
+      byTenant: new Map<string, AdminTenantBillingLookup>(),
+      errors: [],
+    };
+  }
+
+  const billingResults = await Promise.allSettled(
+    uniqueWorkspaces.map((workspace) =>
+      getFugueBillingSummary(bootstrapKey, workspace.tenantId),
+    ),
+  );
+
+  const byTenant = new Map<string, AdminTenantBillingLookup>();
+  const errors: string[] = [];
+
+  for (const [index, result] of billingResults.entries()) {
+    const workspace = uniqueWorkspaces[index];
+
+    if (!workspace) {
+      continue;
+    }
+
+    if (result.status === "fulfilled") {
+      byTenant.set(workspace.tenantId, {
+        billing: result.value,
+        error: null,
+      });
+      continue;
+    }
+
+    const message = readErrorMessage(result.reason);
+    byTenant.set(workspace.tenantId, {
+      billing: null,
+      error: message,
+    });
+    errors.push(`billing (${workspace.tenantName || workspace.tenantId}): ${message}`);
+  }
+
+  return {
+    byTenant,
+    errors,
+  };
+}
+
 export async function getAdminUsersPageData(): Promise<AdminUsersPageData> {
   const [usersResult, workspacesResult] = await Promise.allSettled([
     listAppUsers(),
@@ -1087,12 +1520,16 @@ export async function getAdminUsersPageData(): Promise<AdminUsersPageData> {
 
   let apps: FugueApp[] = [];
   let tenants: FugueTenant[] = [];
+  let billingByTenant = new Map<string, AdminTenantBillingLookup>();
 
   try {
     const bootstrapKey = getFugueEnv().bootstrapKey;
-    const [appsResult, tenantsResult] = await Promise.allSettled([
+    const userEmails = new Set(users.map((user) => user.email));
+    const billingWorkspaces = workspaces.filter((workspace) => userEmails.has(workspace.email));
+    const [appsResult, tenantsResult, billingResult] = await Promise.allSettled([
       getFugueApps(bootstrapKey),
       getFugueTenants(bootstrapKey),
+      getAdminUserBillingLookup(bootstrapKey, billingWorkspaces),
     ]);
 
     if (appsResult.status === "fulfilled") {
@@ -1106,11 +1543,18 @@ export async function getAdminUsersPageData(): Promise<AdminUsersPageData> {
     } else {
       errors.push(`tenants: ${readErrorMessage(tenantsResult.reason)}`);
     }
+
+    if (billingResult.status === "fulfilled") {
+      billingByTenant = billingResult.value.byTenant;
+      errors.push(...billingResult.value.errors);
+    } else {
+      errors.push(`billing: ${readErrorMessage(billingResult.reason)}`);
+    }
   } catch (error) {
     errors.push(readErrorMessage(error));
   }
 
-  const views = buildUserViews(users, workspaces, apps, tenants);
+  const views = buildUserViews(users, workspaces, apps, tenants, billingByTenant);
 
   return {
     errors,
@@ -1122,6 +1566,44 @@ export async function getAdminUsersPageData(): Promise<AdminUsersPageData> {
     },
     users: views,
   };
+}
+
+export async function updateAdminUserBillingForEmail(
+  email: string,
+  payload: {
+    managedCap: FugueResourceSpec;
+  },
+) {
+  const workspace = await getWorkspaceSnapshotByEmail(email);
+
+  if (!workspace?.tenantId) {
+    throw new Error("404 User has no workspace.");
+  }
+
+  return updateFugueBilling(getFugueEnv().bootstrapKey, {
+    managedCap: payload.managedCap,
+    tenantId: workspace.tenantId,
+  });
+}
+
+export async function setAdminUserBillingBalanceForEmail(
+  email: string,
+  payload: {
+    balanceCents: number;
+    note?: string;
+  },
+) {
+  const workspace = await getWorkspaceSnapshotByEmail(email);
+
+  if (!workspace?.tenantId) {
+    throw new Error("404 User has no workspace.");
+  }
+
+  return setFugueBillingBalance(getFugueEnv().bootstrapKey, {
+    balanceCents: payload.balanceCents,
+    note: payload.note,
+    tenantId: workspace.tenantId,
+  });
 }
 
 export async function getAdminClusterPageData(): Promise<AdminClusterPageData> {

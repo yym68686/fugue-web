@@ -2,6 +2,8 @@
 
 本仓库是 `fugue` 的产品层前端 / Web 包装层。凡是涉及前端的任务，不允许只凭通用经验直接下手，必须先到 `/Users/yanyuming/Downloads/GitHub/web-design/AGENTS.md` 里查对应 skill，再进入设计、实现、改版、评审或优化。
 
+`fugue` 的底层仓库 / 核心实现目录位于 `/Users/yanyuming/Downloads/GitHub/fugue`。凡是需要核对底层能力边界、共享对象模型、上游实现来源或 Web 包装层与产品核心之间的衔接关系时，优先参考该目录中的正式实现。
+
 ## 强制规则
 
 以下任务都属于“前端相关”，开始前必须先调查 `/Users/yanyuming/Downloads/GitHub/web-design/AGENTS.md`，并继续打开对应 `SKILL.md` 学习后再动手：
