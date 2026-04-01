@@ -40,8 +40,13 @@ import { readCountryLocation } from "@/lib/geo/country";
 import {
   readGitHubBranchHref,
   readGitHubCommitHref,
-  readGitHubSourceHref,
 } from "@/lib/fugue/source-links";
+import {
+  isDockerImageSourceType,
+  readFugueSourceHref,
+  readFugueSourceLabel,
+  readFugueSourceMeta,
+} from "@/lib/fugue/source-display";
 import { isGitHubSourceType } from "@/lib/github/repository";
 import {
   readBuildBadgeKind,
@@ -1000,22 +1005,12 @@ function readAppRouteBaseDomain(app: FugueApp) {
   return normalizeHostname(app.route.baseDomain) ?? readRouteBaseDomain(readRouteHostname(app));
 }
 
-function formatRepoLabel(repoUrl?: string | null, branch?: string | null) {
-  if (!repoUrl) {
-    return "Unspecified source";
-  }
-
-  try {
-    const url = new URL(repoUrl);
-    const repo = url.pathname.replace(/^\/|\/$/g, "");
-    return branch ? `${repo} · ${branch}` : repo;
-  } catch {
-    return branch ? `${repoUrl} · ${branch}` : repoUrl;
-  }
-}
-
 function isGitHubAppSource(source?: FugueAppSource | null) {
   return isGitHubSourceType(source?.type);
+}
+
+function isDockerImageAppSource(source?: FugueAppSource | null) {
+  return isDockerImageSourceType(source?.type);
 }
 
 function isUploadAppSource(source?: FugueAppSource | null) {
@@ -1023,19 +1018,7 @@ function isUploadAppSource(source?: FugueAppSource | null) {
 }
 
 function readSourceLabelFromSource(source: FugueAppSource) {
-  if (source.repoUrl) {
-    return formatRepoLabel(source.repoUrl, source.repoBranch);
-  }
-
-  if (source.type?.trim()) {
-    if (source.type === "upload") {
-      return "Local upload";
-    }
-
-    return humanize(source.type);
-  }
-
-  return "Unspecified source";
+  return readFugueSourceLabel(source);
 }
 
 function readSourceLabel(app: FugueApp) {
@@ -1048,6 +1031,10 @@ function isGitHubSource(app: FugueApp) {
 
 function isUploadSource(app: FugueApp) {
   return isUploadAppSource(app.source);
+}
+
+function isDockerImageSource(app: FugueApp) {
+  return isDockerImageAppSource(app.source);
 }
 
 function readSourceBranchLabelFromSource(source: FugueAppSource) {
@@ -1081,6 +1068,16 @@ function readRedeployAction(app: FugueApp) {
     };
   }
 
+  if (isDockerImageSource(app)) {
+    return {
+      description:
+        "Pull the saved image reference again, mirror it into Fugue’s internal registry, and roll out a new release.",
+      label: "Repull image",
+      loadingLabel: "Repulling image…",
+      queuedMessage: "Image repull queued.",
+    };
+  }
+
   return {
     description:
       "Rebuild from the saved source from scratch and roll out a new release. If a workspace is configured, the next rollout resets it.",
@@ -1091,7 +1088,7 @@ function readRedeployAction(app: FugueApp) {
 }
 
 function readDeployBehavior(app: FugueApp) {
-  if (isGitHubSource(app) || isUploadSource(app)) {
+  if (isGitHubSource(app) || isUploadSource(app) || isDockerImageSource(app)) {
     return "Deploy completes only after the new Kubernetes rollout is ready and old replicas have drained.";
   }
 
@@ -1101,7 +1098,7 @@ function readDeployBehavior(app: FugueApp) {
 function readRedeployState(app: FugueApp) {
   const sourceType = app.source.type?.trim().toLowerCase() ?? "";
 
-  if (isGitHubSourceType(sourceType) || sourceType === "upload") {
+  if (isGitHubSourceType(sourceType) || sourceType === "docker-image" || sourceType === "upload") {
     return {
       canRedeploy: true,
       redeployDisabledReason: null,
@@ -1117,7 +1114,7 @@ function readRedeployState(app: FugueApp) {
 
   return {
     canRedeploy: false,
-    redeployDisabledReason: `Redeploy only works for imported GitHub or upload apps. Current source: ${humanize(app.source.type)}.`,
+    redeployDisabledReason: `Redeploy only works for imported GitHub, Docker image, or upload apps. Current source: ${humanize(app.source.type)}.`,
   };
 }
 
@@ -1413,12 +1410,9 @@ function buildSharedAppView(
         : null,
     sourceBranchLabel,
     sourceBranchName: source.repoBranch?.trim() || null,
-    sourceHref: readGitHubSourceHref(source.repoUrl),
+    sourceHref: readFugueSourceHref(source),
     sourceLabel: readSourceLabelFromSource(source),
-    sourceMeta:
-      [humanize(source.buildStrategy), source.composeService, source.dockerfilePath]
-        .filter((value) => value && value !== "Unknown")
-        .join(" / ") || humanize(source.type),
+    sourceMeta: readFugueSourceMeta(source),
     sourceType: source.type,
     workspaceMountPath: app.spec.workspace ? app.spec.workspace.mountPath ?? "/workspace" : null,
   } satisfies Omit<

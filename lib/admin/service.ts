@@ -17,7 +17,7 @@ import {
   type FugueTenant,
 } from "@/lib/fugue/api";
 import { getFugueEnv } from "@/lib/fugue/env";
-import { readGitHubSourceHref } from "@/lib/fugue/source-links";
+import { readFugueSourceHref, readFugueSourceLabel } from "@/lib/fugue/source-display";
 import {
   readTechStackBadgeKind,
   readTechnologyLabel,
@@ -157,7 +157,12 @@ export type AdminClusterPageData = {
   };
 };
 
-const REBUILDABLE_APP_SOURCE_TYPES = new Set(["github-private", "github-public", "upload"]);
+const REBUILDABLE_APP_SOURCE_TYPES = new Set([
+  "docker-image",
+  "github-private",
+  "github-public",
+  "upload",
+]);
 const CLUSTER_READY_CONDITION = "Ready";
 const CLUSTER_MEMORY_PRESSURE_CONDITION = "MemoryPressure";
 const CLUSTER_DISK_PRESSURE_CONDITION = "DiskPressure";
@@ -393,22 +398,6 @@ function toneForStatus(status?: string | null): ConsoleTone {
   return "neutral";
 }
 
-function formatRepoLabel(app: FugueApp) {
-  const repoUrl = app.source.repoUrl?.trim();
-  const branch = app.source.repoBranch?.trim();
-
-  if (!repoUrl) {
-    return humanize(app.source.type);
-  }
-
-  const compact = repoUrl
-    .replace(/^https?:\/\/github\.com\//i, "")
-    .replace(/\.git$/i, "")
-    .replace(/\/$/, "");
-
-  return branch ? `${compact} / ${branch}` : compact;
-}
-
 function readRouteInfo(app: FugueApp) {
   const publicUrl = app.route.publicUrl?.trim();
 
@@ -482,8 +471,8 @@ function mapAdminApps(
         routeHref: route.href,
         routeLabel: route.label,
         runtimeLabel: runtimeId ? shortId(runtimeId) : "Unassigned",
-        sourceHref: readGitHubSourceHref(app.source.repoUrl),
-        sourceLabel: formatRepoLabel(app),
+        sourceHref: readFugueSourceHref(app.source),
+        sourceLabel: readFugueSourceLabel(app.source),
         stack: buildAppStack(app),
         updatedExact: formatExactTime(updatedAt),
         updatedLabel: formatRelativeTime(updatedAt),

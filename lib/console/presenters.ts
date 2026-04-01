@@ -21,7 +21,11 @@ import {
   getCurrentWorkspaceAccess,
   type WorkspaceAccess,
 } from "@/lib/workspace/current";
-import { readGitHubSourceHref } from "@/lib/fugue/source-links";
+import {
+  readFugueSourceHref,
+  readFugueSourceLabel,
+  readFugueSourceMeta,
+} from "@/lib/fugue/source-display";
 import { readManagedSharedRuntimeLabel } from "@/lib/fugue/runtime-location";
 
 const AUTO_GITHUB_SYNC_REQUESTED_BY_ID = "fugue-controller/github-sync";
@@ -236,20 +240,6 @@ function readRouteLabel(app: FugueApp) {
     href: null,
     label: "Unassigned",
   };
-}
-
-function formatRepoLabel(repoUrl?: string | null, branch?: string | null) {
-  if (!repoUrl) {
-    return "Unspecified source";
-  }
-
-  try {
-    const url = new URL(repoUrl);
-    const repo = url.pathname.replace(/^\/|\/$/g, "");
-    return branch ? `${repo} · ${branch}` : repo;
-  } catch {
-    return branch ? `${repoUrl} · ${branch}` : repoUrl;
-  }
 }
 
 function formatActorLabel(type?: string | null, id?: string | null) {
@@ -697,12 +687,9 @@ export async function getConsoleData(): Promise<ConsoleData> {
       routeHref: route.href,
       routeLabel: route.label,
       runtimeLabel: runtime ? readRuntimeLabel(runtime) : currentRuntimeId ? shortId(currentRuntimeId) : "Unassigned",
-      sourceHref: readGitHubSourceHref(app.source.repoUrl),
-      sourceLabel: formatRepoLabel(app.source.repoUrl, app.source.repoBranch),
-      sourceMeta:
-        [humanize(app.source.buildStrategy), app.source.composeService, app.source.dockerfilePath]
-          .filter((value) => value && value !== "Unknown")
-          .join(" / ") || humanize(app.source.type),
+      sourceHref: readFugueSourceHref(app.source),
+      sourceLabel: readFugueSourceLabel(app.source),
+      sourceMeta: readFugueSourceMeta(app.source),
       tenantLabel: resolveTenantLabel(app.tenantId, tenantNames),
       updatedExact: formatExactTime(app.status.updatedAt ?? app.updatedAt ?? app.createdAt),
       updatedLabel: formatRelativeTime(app.status.updatedAt ?? app.updatedAt ?? app.createdAt),

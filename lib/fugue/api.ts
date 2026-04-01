@@ -120,17 +120,19 @@ export type FugueResourceUsage = {
 };
 
 export type FugueAppSource = {
-  type: string | null;
-  repoUrl: string | null;
-  repoBranch: string | null;
   buildStrategy: string | null;
   composeService: string | null;
+  commitSha: string | null;
+  commitCommittedAt: string | null;
   detectedProvider: string | null;
   detectedStack: string | null;
   dockerfilePath: string | null;
-  commitSha: string | null;
-  commitCommittedAt: string | null;
+  imageRef: string | null;
+  repoBranch: string | null;
+  repoUrl: string | null;
+  resolvedImageRef: string | null;
   sourceDir: string | null;
+  type: string | null;
   uploadFilename: string | null;
 };
 
@@ -777,17 +779,19 @@ function sanitizeAppSource(value: unknown): FugueAppSource {
   const source = asRecord(value);
 
   return {
-    type: readString(source, "type"),
-    repoUrl: readString(source, "repo_url"),
-    repoBranch: readString(source, "repo_branch"),
     buildStrategy: readString(source, "build_strategy"),
     composeService: readString(source, "compose_service"),
+    commitSha: readString(source, "commit_sha"),
+    commitCommittedAt: readString(source, "commit_committed_at"),
     detectedProvider: readString(source, "detected_provider"),
     detectedStack: readString(source, "detected_stack"),
     dockerfilePath: readString(source, "dockerfile_path"),
-    commitSha: readString(source, "commit_sha"),
-    commitCommittedAt: readString(source, "commit_committed_at"),
+    imageRef: readString(source, "image_ref"),
+    repoBranch: readString(source, "repo_branch"),
+    repoUrl: readString(source, "repo_url"),
+    resolvedImageRef: readString(source, "resolved_image_ref"),
     sourceDir: readString(source, "source_dir"),
+    type: readString(source, "type"),
     uploadFilename: readString(source, "upload_filename"),
   };
 }
@@ -1656,6 +1660,56 @@ export async function getFugueAppBindings(accessToken: string, appId: string) {
   };
 }
 
+export async function importFugueDockerImageApp(
+  accessToken: string,
+  payload: {
+    imageRef: string;
+    name?: string;
+    project?: {
+      description?: string;
+      name: string;
+    };
+    projectId?: string;
+    runtimeId?: string;
+    servicePort?: number;
+    tenantId?: string;
+  },
+) {
+  const response = asRecord(
+    await fugueRequest("/v1/apps/import-image", {
+      accessToken,
+      body: {
+        ...(payload.tenantId ? { tenant_id: payload.tenantId } : {}),
+        ...(payload.projectId ? { project_id: payload.projectId } : {}),
+        ...(payload.project
+          ? {
+              project: {
+                ...(payload.project.description
+                  ? { description: payload.project.description }
+                  : {}),
+                name: payload.project.name,
+              },
+            }
+          : {}),
+        ...(payload.name ? { name: payload.name } : {}),
+        ...(payload.runtimeId ? { runtime_id: payload.runtimeId } : {}),
+        ...(typeof payload.servicePort === "number"
+          ? { service_port: payload.servicePort }
+          : {}),
+        image_ref: payload.imageRef,
+      },
+      method: "POST",
+    }),
+  );
+
+  return {
+    app: sanitizeApp(response?.app),
+    operation: sanitizeOperation(response?.operation),
+    replayed: readBoolean(response, "replayed") ?? false,
+    requestInProgress: readBoolean(response, "request_in_progress") ?? false,
+  };
+}
+
 export async function getFugueAppRouteAvailability(
   accessToken: string,
   appId: string,
@@ -2224,6 +2278,7 @@ export async function rebuildFugueApp(
     branch?: string;
     buildContextDir?: string;
     dockerfilePath?: string;
+    imageRef?: string;
     repoAuthToken?: string;
     sourceDir?: string;
   },
@@ -2240,6 +2295,7 @@ export async function rebuildFugueApp(
         ...(options?.buildContextDir !== undefined
           ? { build_context_dir: options.buildContextDir }
           : {}),
+        ...(options?.imageRef !== undefined ? { image_ref: options.imageRef } : {}),
         ...(options?.repoAuthToken !== undefined
           ? { repo_auth_token: options.repoAuthToken }
           : {}),

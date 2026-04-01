@@ -9,6 +9,7 @@ import { FormField } from "@/components/ui/form-field";
 import { useToast } from "@/components/ui/toast";
 import type { ConsoleGalleryAppView } from "@/lib/console/gallery-types";
 import type { ConsoleTone } from "@/lib/console/types";
+import { isDockerImageSourceType } from "@/lib/fugue/source-display";
 import { isGitHubSourceType, isPrivateGitHubSourceType } from "@/lib/github/repository";
 
 type ProjectPatchResponse = {
@@ -35,6 +36,13 @@ type GitHubSyncState = {
   actionLabel: string | null;
   description: string;
   label: string;
+  tone: ConsoleTone;
+};
+
+type ManualRefreshState = {
+  description: string;
+  label: string;
+  title: string;
   tone: ConsoleTone;
 };
 
@@ -70,6 +78,10 @@ function slugifyLikeFugue(value: string) {
 
   const trimmed = output.replace(/^-+/, "").replace(/-+$/, "");
   return trimmed || "item";
+}
+
+function isUploadSourceType(value?: string | null) {
+  return value?.trim().toLowerCase() === "upload";
 }
 
 function isPausedApp(app: Pick<ConsoleGalleryAppView, "phase">) {
@@ -188,6 +200,103 @@ function readRepositoryAccessHint(app: ConsoleGalleryAppView) {
   return "Leave blank to keep the saved token. Updating access queues a rebuild.";
 }
 
+function readSourceKindLabel(app: ConsoleGalleryAppView) {
+  if (isGitHubSourceType(app.sourceType)) {
+    return "GitHub";
+  }
+
+  if (isDockerImageSourceType(app.sourceType)) {
+    return "Docker image";
+  }
+
+  if (isUploadSourceType(app.sourceType)) {
+    return "Local upload";
+  }
+
+  return "Fixed source";
+}
+
+function readSourceSectionTitle(app: ConsoleGalleryAppView) {
+  if (isGitHubSourceType(app.sourceType)) {
+    return "Tracked branch";
+  }
+
+  if (isDockerImageSourceType(app.sourceType)) {
+    return "Saved image";
+  }
+
+  if (isUploadSourceType(app.sourceType)) {
+    return "Saved upload";
+  }
+
+  return "Source definition";
+}
+
+function readSourceSectionHint(app: ConsoleGalleryAppView) {
+  if (isGitHubSourceType(app.sourceType)) {
+    return readBranchFieldHint(app);
+  }
+
+  if (isDockerImageSourceType(app.sourceType)) {
+    return "Fugue stores this image reference and mirrors it into the internal registry whenever you repull the image.";
+  }
+
+  if (isUploadSourceType(app.sourceType)) {
+    return "Local uploads keep a fixed source package. Use Redeploy in the main actions bar to roll out the saved upload again.";
+  }
+
+  return "This service keeps a fixed source definition.";
+}
+
+function readSourceFieldLabel(app: ConsoleGalleryAppView) {
+  if (isGitHubSourceType(app.sourceType)) {
+    return "Tracked branch";
+  }
+
+  if (isDockerImageSourceType(app.sourceType)) {
+    return "Image reference";
+  }
+
+  if (isUploadSourceType(app.sourceType)) {
+    return "Source package";
+  }
+
+  return "Source";
+}
+
+function readManualRefreshState(app: ConsoleGalleryAppView): ManualRefreshState | null {
+  if (isGitHubSourceType(app.sourceType)) {
+    return null;
+  }
+
+  if (isDockerImageSourceType(app.sourceType)) {
+    return {
+      description:
+        "Docker image services do not poll registries in the background. Use Repull image in the main actions bar whenever you want Fugue to mirror the saved reference again.",
+      label: "On demand",
+      title: "Image refresh",
+      tone: "neutral",
+    };
+  }
+
+  if (isUploadSourceType(app.sourceType)) {
+    return {
+      description:
+        "Uploaded sources do not auto sync. Use Redeploy in the main actions bar to rebuild from the saved upload bundle.",
+      label: "On demand",
+      title: "Source refresh",
+      tone: "neutral",
+    };
+  }
+
+  return {
+    description: "This source stays fixed until you queue a new deploy manually.",
+    label: "Manual",
+    title: "Source refresh",
+    tone: "neutral",
+  };
+}
+
 export function AppSettingsPanel({
   app,
   projectCatalog,
@@ -237,11 +346,18 @@ export function AppSettingsPanel({
   const normalizedRepoAuthToken = normalizeText(repoAuthTokenDraft);
   const isGitHubSource = isGitHubSourceType(app.sourceType);
   const isPrivateGitHubSource = isPrivateGitHubSourceType(app.sourceType);
+  const isDockerImageSource = isDockerImageSourceType(app.sourceType);
+  const isUploadSource = isUploadSourceType(app.sourceType);
   const canEditBranch = isGitHubSource && app.serviceRole === "running" && !isPausedApp(app);
   const canUpdateRepoAccess =
     isPrivateGitHubSource && app.serviceRole === "running" && !isPausedApp(app);
   const syncState = readGitHubSyncState(app);
-  const repoLabel = normalizeText(app.sourceLabel) || "Unlinked source";
+  const sourceLabel = normalizeText(app.sourceLabel) || "Unlinked source";
+  const sourceKindLabel = readSourceKindLabel(app);
+  const sourceSectionTitle = readSourceSectionTitle(app);
+  const sourceSectionHint = readSourceSectionHint(app);
+  const sourceFieldLabel = readSourceFieldLabel(app);
+  const manualRefreshState = readManualRefreshState(app);
   const branchChanged = normalizedBranch !== normalizeText(currentBranch);
   const repoAuthTokenChanged = normalizedRepoAuthToken.length > 0;
   const projectChanged = normalizedProjectName !== currentProjectName;
@@ -259,7 +375,13 @@ export function AppSettingsPanel({
     projectManaged && projectChanged && !projectSaving && !projectNameError;
   const settingsSummary = isPrivateGitHubSource
     ? `Rename the shared project shell, change the tracked branch, rotate saved GitHub access, or pause background sync for ${app.name}.`
-    : `Rename the shared project shell, change which branch Fugue rebuilds from, or pause GitHub background sync for ${app.name}.`;
+    : isGitHubSource
+      ? `Rename the shared project shell, change which branch Fugue rebuilds from, or pause GitHub background sync for ${app.name}.`
+      : isDockerImageSource
+        ? `Rename the shared project shell and review the saved Docker image reference for ${app.name}. Image refresh stays on demand.`
+        : isUploadSource
+          ? `Rename the shared project shell and review the saved upload source for ${app.name}.`
+          : `Rename the shared project shell and review the saved source definition for ${app.name}.`;
   const projectSectionNote = projectManaged
     ? `${serviceCount} service${serviceCount === 1 ? "" : "s"} share this project shell. Renaming it updates the whole group.`
     : "This service still lives in the Unassigned bucket, so the shared shell cannot be renamed yet.";
@@ -569,96 +691,133 @@ export function AppSettingsPanel({
         )}
       </section>
 
-      <section aria-label="Tracked branch" className="fg-route-subsection fg-settings-section">
+      <section aria-label={sourceSectionTitle} className="fg-route-subsection fg-settings-section">
         <div className="fg-route-subsection__head">
           <div className="fg-route-subsection__copy fg-settings-section__copy">
             <p className="fg-label fg-panel__eyebrow">Source</p>
-            <h3 className="fg-route-subsection__title fg-ui-heading">Tracked branch</h3>
-            <p className="fg-route-subsection__note">{readBranchFieldHint(app)}</p>
+            <h3 className="fg-route-subsection__title fg-ui-heading">{sourceSectionTitle}</h3>
+            <p className="fg-route-subsection__note">{sourceSectionHint}</p>
           </div>
 
           <StatusBadge tone={isGitHubSource ? "info" : "neutral"}>
-            {isGitHubSource ? "GitHub" : "Fixed source"}
+            {sourceKindLabel}
           </StatusBadge>
         </div>
 
-        <form className="fg-settings-form" onSubmit={handleBranchSubmit}>
-          <FormField
-            htmlFor={`service-branch-${app.id}`}
-            label="Tracked branch"
-            optionalLabel="Optional"
-          >
-            <input
-              autoCapitalize="off"
-              autoComplete="off"
-              autoCorrect="off"
-              className="fg-input"
-              disabled={!canEditBranch || branchSaving}
-              id={`service-branch-${app.id}`}
-              name="trackedBranch"
-              onChange={(event) => setBranchDraft(event.target.value)}
-              placeholder="main"
-              spellCheck={false}
-              value={branchDraft}
-            />
-          </FormField>
+        {isGitHubSource ? (
+          <form className="fg-settings-form" onSubmit={handleBranchSubmit}>
+            <FormField
+              htmlFor={`service-branch-${app.id}`}
+              label="Tracked branch"
+              optionalLabel="Optional"
+            >
+              <input
+                autoCapitalize="off"
+                autoComplete="off"
+                autoCorrect="off"
+                className="fg-input"
+                disabled={!canEditBranch || branchSaving}
+                id={`service-branch-${app.id}`}
+                name="trackedBranch"
+                onChange={(event) => setBranchDraft(event.target.value)}
+                placeholder="main"
+                spellCheck={false}
+                value={branchDraft}
+              />
+            </FormField>
 
-          <dl className="fg-settings-meta">
-            <div>
-              <dt>Repository</dt>
-              <dd>
-                {app.sourceHref ? (
-                  <a
-                    className="fg-text-link"
-                    href={app.sourceHref}
-                    rel="noreferrer"
-                    target="_blank"
-                  >
-                    {repoLabel}
-                  </a>
-                ) : (
-                  repoLabel
-                )}
-              </dd>
-            </div>
-            <div>
-              <dt>Saved branch</dt>
-              <dd>{currentBranchLabel}</dd>
-            </div>
-            <div>
-              <dt>Build source</dt>
-              <dd>{normalizeText(app.sourceMeta) || "Unknown"}</dd>
-            </div>
-            <div>
-              <dt>Service state</dt>
-              <dd>{app.phase}</dd>
-            </div>
-          </dl>
+            <dl className="fg-settings-meta">
+              <div>
+                <dt>Repository</dt>
+                <dd>
+                  {app.sourceHref ? (
+                    <a
+                      className="fg-text-link"
+                      href={app.sourceHref}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      {sourceLabel}
+                    </a>
+                  ) : (
+                    sourceLabel
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt>Saved branch</dt>
+                <dd>{currentBranchLabel}</dd>
+              </div>
+              <div>
+                <dt>Build source</dt>
+                <dd>{normalizeText(app.sourceMeta) || "Unknown"}</dd>
+              </div>
+              <div>
+                <dt>Service state</dt>
+                <dd>{app.phase}</dd>
+              </div>
+            </dl>
 
-          {branchChanged || branchSaving ? (
-            <div className="fg-settings-form__actions">
-              <Button
-                disabled={branchSaving}
-                onClick={() => setBranchDraft(currentBranch)}
-                size="compact"
-                type="button"
-                variant="secondary"
-              >
-                Reset
-              </Button>
-              <Button
-                disabled={!canEditBranch || !branchChanged || branchSaving}
-                loading={branchSaving}
-                loadingLabel="Queueing…"
-                size="compact"
-                type="submit"
-                variant="primary"
-              >
-                Save and rebuild
-              </Button>
-            </div>
-          ) : null}
-        </form>
+            {branchChanged || branchSaving ? (
+              <div className="fg-settings-form__actions">
+                <Button
+                  disabled={branchSaving}
+                  onClick={() => setBranchDraft(currentBranch)}
+                  size="compact"
+                  type="button"
+                  variant="secondary"
+                >
+                  Reset
+                </Button>
+                <Button
+                  disabled={!canEditBranch || !branchChanged || branchSaving}
+                  loading={branchSaving}
+                  loadingLabel="Queueing…"
+                  size="compact"
+                  type="submit"
+                  variant="primary"
+                >
+                  Save and rebuild
+                </Button>
+              </div>
+            ) : null}
+          </form>
+        ) : (
+          <div className="fg-settings-form">
+            <FormField htmlFor={`service-source-${app.id}`} label={sourceFieldLabel}>
+              <input
+                autoCapitalize="off"
+                autoComplete="off"
+                autoCorrect="off"
+                className="fg-input"
+                id={`service-source-${app.id}`}
+                name="sourceReference"
+                readOnly
+                spellCheck={false}
+                value={sourceLabel}
+              />
+            </FormField>
+
+            <dl className="fg-settings-meta">
+              <div>
+                <dt>Source type</dt>
+                <dd>{sourceKindLabel}</dd>
+              </div>
+              <div>
+                <dt>Build source</dt>
+                <dd>{normalizeText(app.sourceMeta) || "Unknown"}</dd>
+              </div>
+              <div>
+                <dt>Update mode</dt>
+                <dd>{manualRefreshState?.label ?? "Manual"}</dd>
+              </div>
+              <div>
+                <dt>Service state</dt>
+                <dd>{app.phase}</dd>
+              </div>
+            </dl>
+          </div>
+        )}
       </section>
 
       {isPrivateGitHubSource ? (
@@ -703,19 +862,19 @@ export function AppSettingsPanel({
                 <dt>Repository</dt>
                 <dd>
                   {app.sourceHref ? (
-                    <a
-                      className="fg-text-link"
-                      href={app.sourceHref}
-                      rel="noreferrer"
-                      target="_blank"
-                    >
-                      {repoLabel}
-                    </a>
-                  ) : (
-                    repoLabel
-                  )}
-                </dd>
-              </div>
+                  <a
+                    className="fg-text-link"
+                    href={app.sourceHref}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    {sourceLabel}
+                  </a>
+                ) : (
+                  sourceLabel
+                )}
+              </dd>
+            </div>
               <div>
                 <dt>Access mode</dt>
                 <dd>Private repository</dd>
@@ -757,34 +916,57 @@ export function AppSettingsPanel({
         </section>
       ) : null}
 
-      <section aria-label="GitHub sync" className="fg-route-subsection fg-settings-section">
-        <div className="fg-route-subsection__head">
-          <div className="fg-route-subsection__copy fg-settings-section__copy">
-            <p className="fg-label fg-panel__eyebrow">Sync</p>
-            <h3 className="fg-route-subsection__title fg-ui-heading">GitHub auto sync</h3>
-            <p className="fg-route-subsection__note">{syncState.description}</p>
-          </div>
+      {isGitHubSource ? (
+        <section aria-label="GitHub sync" className="fg-route-subsection fg-settings-section">
+          <div className="fg-route-subsection__head">
+            <div className="fg-route-subsection__copy fg-settings-section__copy">
+              <p className="fg-label fg-panel__eyebrow">Sync</p>
+              <h3 className="fg-route-subsection__title fg-ui-heading">GitHub auto sync</h3>
+              <p className="fg-route-subsection__note">{syncState.description}</p>
+            </div>
 
-          <div className="fg-settings-sync__summary">
-            <StatusBadge live={syncState.action === "disable"} tone={syncState.tone}>
-              {syncState.label}
-            </StatusBadge>
+            <div className="fg-settings-sync__summary">
+              <StatusBadge live={syncState.action === "disable"} tone={syncState.tone}>
+                {syncState.label}
+              </StatusBadge>
 
-            {syncState.actionLabel ? (
-              <Button
-                loading={syncSaving}
-                loadingLabel={syncState.action === "disable" ? "Pausing…" : "Starting…"}
-                onClick={handleGitHubSyncToggle}
-                size="compact"
-                type="button"
-                variant={syncState.action === "disable" ? "secondary" : "primary"}
-              >
-                {syncState.actionLabel}
-              </Button>
-            ) : null}
+              {syncState.actionLabel ? (
+                <Button
+                  loading={syncSaving}
+                  loadingLabel={syncState.action === "disable" ? "Pausing…" : "Starting…"}
+                  onClick={handleGitHubSyncToggle}
+                  size="compact"
+                  type="button"
+                  variant={syncState.action === "disable" ? "secondary" : "primary"}
+                >
+                  {syncState.actionLabel}
+                </Button>
+              ) : null}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      ) : manualRefreshState ? (
+        <section
+          aria-label={manualRefreshState.title}
+          className="fg-route-subsection fg-settings-section"
+        >
+          <div className="fg-route-subsection__head">
+            <div className="fg-route-subsection__copy fg-settings-section__copy">
+              <p className="fg-label fg-panel__eyebrow">Sync</p>
+              <h3 className="fg-route-subsection__title fg-ui-heading">
+                {manualRefreshState.title}
+              </h3>
+              <p className="fg-route-subsection__note">{manualRefreshState.description}</p>
+            </div>
+
+            <div className="fg-settings-sync__summary">
+              <StatusBadge tone={manualRefreshState.tone}>
+                {manualRefreshState.label}
+              </StatusBadge>
+            </div>
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }

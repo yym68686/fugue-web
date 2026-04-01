@@ -10,17 +10,18 @@ import {
 } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-import { ConsoleDisclosureSection } from "@/components/console/console-disclosure-section";
-import { DeploymentTargetField } from "@/components/console/deployment-target-field";
-import { GitHubRepositoryAccessFields } from "@/components/console/github-repository-access-fields";
+import { ImportServiceFields } from "@/components/console/import-service-fields";
 import { Button } from "@/components/ui/button";
-import { FormField } from "@/components/ui/form-field";
 import { Panel, PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
-import { SelectField } from "@/components/ui/select-field";
 import { useToast } from "@/components/ui/toast";
 import type { ConsoleImportRuntimeTargetView } from "@/lib/console/gallery-types";
 import { readDefaultImportRuntimeId } from "@/lib/console/runtime-targets";
-import type { GitHubRepoVisibility } from "@/lib/github/repository";
+import {
+  buildImportServicePayload,
+  createImportServiceDraft,
+  validateImportServiceDraft,
+  type ImportServiceDraft,
+} from "@/lib/fugue/import-source";
 
 type OnboardingStage = "needs-workspace" | "needs-import";
 type FlashState = {
@@ -41,16 +42,6 @@ type ImportResponse = {
   requestInProgress?: boolean;
 };
 
-const BUILD_STRATEGY_OPTIONS = [
-  { label: "Auto detect", value: "auto" },
-  { label: "Static site", value: "static-site" },
-  { label: "Dockerfile", value: "dockerfile" },
-  { label: "Buildpacks", value: "buildpacks" },
-  { label: "Nixpacks", value: "nixpacks" },
-] as const;
-
-type BuildStrategyValue = (typeof BUILD_STRATEGY_OPTIONS)[number]["value"];
-
 function readErrorMessage(error: unknown) {
   if (error instanceof Error && error.message) {
     return error.message;
@@ -59,10 +50,7 @@ function readErrorMessage(error: unknown) {
   return "Request failed.";
 }
 
-async function requestJson<T>(
-  input: RequestInfo,
-  init?: RequestInit,
-) {
+async function requestJson<T>(input: RequestInfo, init?: RequestInit) {
   const response = await fetch(input, init);
   const data = (await response.json().catch(() => null)) as
     | (T & { error?: string })
@@ -100,18 +88,8 @@ export function ConsoleOnboarding({
   );
   const [isCreating, setIsCreating] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
-  const [repoUrl, setRepoUrl] = useState("");
-  const [repoVisibility, setRepoVisibility] = useState<GitHubRepoVisibility>("public");
-  const [repoAuthToken, setRepoAuthToken] = useState("");
-  const [branch, setBranch] = useState("");
-  const [name, setName] = useState("");
-  const [buildStrategy, setBuildStrategy] = useState<BuildStrategyValue>("auto");
-  const [sourceDir, setSourceDir] = useState("");
-  const [dockerfilePath, setDockerfilePath] = useState("");
-  const [buildContextDir, setBuildContextDir] = useState("");
-  const [servicePort, setServicePort] = useState("");
-  const [selectedRuntimeId, setSelectedRuntimeId] = useState<string | null>(
-    () => readDefaultImportRuntimeId(runtimeTargets),
+  const [draft, setDraft] = useState<ImportServiceDraft>(() =>
+    createImportServiceDraft(readDefaultImportRuntimeId(runtimeTargets)),
   );
   const importBackdropPressStartedRef = useRef(false);
   const importDialogRequested = searchParams.get("dialog") === "import";
@@ -164,11 +142,13 @@ export function ConsoleOnboarding({
   }, [importDialogRequested, initialStage]);
 
   useEffect(() => {
-    setSelectedRuntimeId((current) =>
-      current && runtimeTargets.some((target) => target.id === current)
-        ? current
-        : readDefaultImportRuntimeId(runtimeTargets),
-    );
+    setDraft((current) => ({
+      ...current,
+      runtimeId:
+        current.runtimeId && runtimeTargets.some((target) => target.id === current.runtimeId)
+          ? current.runtimeId
+          : readDefaultImportRuntimeId(runtimeTargets),
+    }));
   }, [runtimeTargets]);
 
   useEffect(() => {
@@ -215,12 +195,9 @@ export function ConsoleOnboarding({
     setIsCreating(true);
 
     try {
-      const data = await requestJson<BootstrapResponse>(
-        "/api/fugue/workspace/bootstrap",
-        {
-          method: "POST",
-        },
-      );
+      const data = await requestJson<BootstrapResponse>("/api/fugue/workspace/bootstrap", {
+        method: "POST",
+      });
 
       if (data?.workspace?.defaultProjectName) {
         setProjectName(data.workspace.defaultProjectName);
@@ -252,17 +229,7 @@ export function ConsoleOnboarding({
   }
 
   function resetImportForm() {
-    setRepoUrl("");
-    setRepoVisibility("public");
-    setRepoAuthToken("");
-    setBranch("");
-    setName("");
-    setBuildStrategy("auto");
-    setSourceDir("");
-    setDockerfilePath("");
-    setBuildContextDir("");
-    setServicePort("");
-    setSelectedRuntimeId(readDefaultImportRuntimeId(runtimeTargets));
+    setDraft(createImportServiceDraft(readDefaultImportRuntimeId(runtimeTargets)));
   }
 
   async function handleImport(event: FormEvent<HTMLFormElement>) {
@@ -272,21 +239,11 @@ export function ConsoleOnboarding({
       return;
     }
 
-    const normalizedRepoUrl = repoUrl.trim();
+    const validationError = validateImportServiceDraft(draft);
 
-    if (!normalizedRepoUrl) {
+    if (validationError) {
       setFlash({
-        message: "Repository link is required.",
-        variant: "error",
-      });
-      return;
-    }
-
-    const normalizedRepoAuthToken = repoAuthToken.trim();
-
-    if (repoVisibility === "private" && !normalizedRepoAuthToken) {
-      setFlash({
-        message: "Private GitHub repositories require a GitHub token.",
+        message: validationError,
         variant: "error",
       });
       return;
@@ -296,32 +253,18 @@ export function ConsoleOnboarding({
     setIsImporting(true);
 
     try {
-      const normalizedBranch = branch.trim();
-      const normalizedName = name.trim();
-      const normalizedSourceDir = sourceDir.trim();
-      const normalizedDockerfilePath = dockerfilePath.trim();
-      const normalizedBuildContextDir = buildContextDir.trim();
-      const normalizedServicePort = servicePort.trim();
-
-      await requestJson<ImportResponse>("/api/fugue/apps/import-github", {
-        body: JSON.stringify({
-          ...(normalizedBranch ? { branch: normalizedBranch } : {}),
-          buildStrategy,
-          ...(normalizedName ? { name: normalizedName } : {}),
-          ...(repoVisibility === "private" ? { repoAuthToken: normalizedRepoAuthToken } : {}),
-          repoUrl: normalizedRepoUrl,
-          repoVisibility,
-          ...(normalizedSourceDir ? { sourceDir: normalizedSourceDir } : {}),
-          ...(normalizedDockerfilePath ? { dockerfilePath: normalizedDockerfilePath } : {}),
-          ...(normalizedBuildContextDir ? { buildContextDir: normalizedBuildContextDir } : {}),
-          ...(normalizedServicePort ? { servicePort: normalizedServicePort } : {}),
-          ...(selectedRuntimeId ? { runtimeId: selectedRuntimeId } : {}),
-        }),
-        headers: {
-          "Content-Type": "application/json",
+      await requestJson<ImportResponse>(
+        draft.sourceMode === "github"
+          ? "/api/fugue/apps/import-github"
+          : "/api/fugue/apps/import-image",
+        {
+          body: JSON.stringify(buildImportServicePayload(draft)),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          method: "POST",
         },
-        method: "POST",
-      });
+      );
 
       setImportOpen(false);
       setFlash(null);
@@ -340,11 +283,11 @@ export function ConsoleOnboarding({
   const isWorkspaceStage = stage === "needs-workspace";
   const title = isWorkspaceStage
     ? "Create the first project."
-    : "Import the first repository.";
+    : "Import the first service.";
   const description = isWorkspaceStage
     ? `Set up the workspace and prepare ${projectName}.`
-    : "Import the first repository to create the first app.";
-  const primaryLabel = isWorkspaceStage ? "Create project" : "Import repository";
+    : "Import a GitHub repository or Docker image to create the first app.";
+  const primaryLabel = isWorkspaceStage ? "Create project" : "Import service";
   const disclosureTitle = isWorkspaceStage ? "What happens next" : "Import rules";
   const disclosureItems = isWorkspaceStage
     ? [
@@ -358,7 +301,7 @@ export function ConsoleOnboarding({
         },
         {
           label: "Next",
-          value: "Import one GitHub repo",
+          value: "Import one service",
         },
       ]
     : [
@@ -367,34 +310,31 @@ export function ConsoleOnboarding({
           value: projectName,
         },
         {
-          label: "Source",
-          value: "GitHub repositories",
+          label: "Sources",
+          value: "GitHub repositories or Docker images",
         },
         {
-          label: "Access",
-          value: "Public or private",
+          label: "GitHub access",
+          value: "Public or private with an optional stored token",
         },
         {
-          label: "Credentials",
-          value: "Private repos store a token for rebuilds and syncs",
+          label: "Docker images",
+          value: "Public image refs are mirrored into Fugue before rollout",
         },
         {
           label: "Optional",
-          value: "Branch, app name, build strategy",
+          value: "Branch, app name, build strategy, service port",
         },
         {
           label: "Updates",
-          value: "Later syncs reuse this branch and build strategy",
+          value: "GitHub services auto sync; image services can repull the saved image ref",
         },
       ];
   const eyebrow = "Console / first run";
-  const supportsSourceDir =
-    buildStrategy === "auto" ||
-    buildStrategy === "static-site" ||
-    buildStrategy === "buildpacks" ||
-    buildStrategy === "nixpacks";
-  const supportsDockerInputs =
-    buildStrategy === "auto" || buildStrategy === "dockerfile";
+  const importDialogCopy =
+    draft.sourceMode === "github"
+      ? "Paste a GitHub repository link and choose how Fugue should access it."
+      : "Point Fugue at a published Docker image. Fugue mirrors it into the internal registry before rollout.";
   const openImport = () => {
     setFlash(null);
     resetImportForm();
@@ -416,16 +356,8 @@ export function ConsoleOnboarding({
             <div className="fg-console-onboarding__actions">
               <Button
                 loading={isCreating || isImporting}
-                loadingLabel={
-                  isWorkspaceStage
-                    ? "Creating workspace…"
-                    : "Importing repository…"
-                }
-                onClick={
-                  isWorkspaceStage
-                    ? handleCreateWorkspace
-                    : openImport
-                }
+                loadingLabel={isWorkspaceStage ? "Creating workspace…" : "Importing service…"}
+                onClick={isWorkspaceStage ? handleCreateWorkspace : openImport}
                 type="button"
                 variant="primary"
               >
@@ -466,208 +398,27 @@ export function ConsoleOnboarding({
               <PanelSection>
                 <p className="fg-label fg-panel__eyebrow">Import / {projectName}</p>
                 <PanelTitle className="fg-console-dialog__title" id="fugue-import-title">
-                  Import repository
+                  Import service
                 </PanelTitle>
-                <PanelCopy>
-                  Paste a GitHub repository link and choose how Fugue should access it.
-                </PanelCopy>
+                <PanelCopy>{importDialogCopy}</PanelCopy>
               </PanelSection>
 
               <PanelSection>
                 <form className="fg-form-grid" onSubmit={handleImport}>
-                  <div className="fg-console-dialog__grid">
-                    <FormField
-                      hint="Use https://github.com/owner/repo."
-                      htmlFor="repo-url"
-                      label="Repository link"
-                    >
-                      <input
-                        autoComplete="url"
-                        autoCapitalize="none"
-                        className="fg-input"
-                        id="repo-url"
-                        inputMode="url"
-                        name="repoUrl"
-                        onChange={(event) => setRepoUrl(event.target.value)}
-                        placeholder="https://github.com/owner/repo"
-                        required
-                        spellCheck={false}
-                        type="url"
-                        value={repoUrl}
-                      />
-                    </FormField>
-
-                    <GitHubRepositoryAccessFields
-                      onTokenChange={setRepoAuthToken}
-                      onVisibilityChange={setRepoVisibility}
-                      token={repoAuthToken}
-                      tokenFieldId="repo-auth-token"
-                      tokenRequired={repoVisibility === "private"}
-                      visibility={repoVisibility}
-                    />
-
-                    <DeploymentTargetField
-                      inventoryError={runtimeTargetInventoryError}
-                      name="onboarding-runtime-target"
-                      onChange={setSelectedRuntimeId}
-                      targets={runtimeTargets}
-                      value={selectedRuntimeId}
-                    />
-
-                    <ConsoleDisclosureSection
-                      className="fg-console-dialog__advanced"
-                      description="Branch, app name, build strategy, and optional source paths."
-                      summary="Advanced settings"
-                    >
-                      <div className="fg-console-dialog__advanced-grid">
-                        <FormField
-                          hint="Leave blank to use the default branch."
-                          htmlFor="repo-branch"
-                          label="Branch"
-                          optionalLabel="Optional"
-                        >
-                          <input
-                            autoCapitalize="none"
-                            autoComplete="off"
-                            className="fg-input"
-                            id="repo-branch"
-                            name="branch"
-                            onChange={(event) => setBranch(event.target.value)}
-                            placeholder="main"
-                            spellCheck={false}
-                            value={branch}
-                          />
-                        </FormField>
-
-                        <FormField
-                          hint="Leave blank to reuse the repository name."
-                          htmlFor="app-name"
-                          label="App name"
-                          optionalLabel="Optional"
-                        >
-                          <input
-                            autoComplete="off"
-                            className="fg-input"
-                            id="app-name"
-                            name="name"
-                            onChange={(event) => setName(event.target.value)}
-                            placeholder="Marketing site"
-                            value={name}
-                          />
-                        </FormField>
-
-                        <FormField
-                          hint="This build strategy is reused for later syncs."
-                          htmlFor="build-strategy"
-                          label="Build strategy"
-                        >
-                          <SelectField
-                            autoComplete="off"
-                            id="build-strategy"
-                            name="buildStrategy"
-                            onChange={(event) =>
-                              setBuildStrategy(event.target.value as BuildStrategyValue)
-                            }
-                            value={buildStrategy}
-                          >
-                            {BUILD_STRATEGY_OPTIONS.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </SelectField>
-                        </FormField>
-
-                        {supportsSourceDir ? (
-                          <FormField
-                            hint="Use when the app lives below the repo root."
-                            htmlFor="import-source-dir"
-                            label="Source directory"
-                            optionalLabel="Optional"
-                          >
-                            <input
-                              autoCapitalize="none"
-                              autoComplete="off"
-                              className="fg-input"
-                              id="import-source-dir"
-                              name="sourceDir"
-                              onChange={(event) => setSourceDir(event.target.value)}
-                              placeholder="apps/web"
-                              spellCheck={false}
-                              value={sourceDir}
-                            />
-                          </FormField>
-                        ) : null}
-
-                        {supportsDockerInputs ? (
-                          <FormField
-                            hint="Required when the Dockerfile is outside the repo root."
-                            htmlFor="import-dockerfile-path"
-                            label="Dockerfile path"
-                            optionalLabel="Optional"
-                          >
-                            <input
-                              autoCapitalize="none"
-                              autoComplete="off"
-                              className="fg-input"
-                              id="import-dockerfile-path"
-                              name="dockerfilePath"
-                              onChange={(event) => setDockerfilePath(event.target.value)}
-                              placeholder="docker/Dockerfile"
-                              spellCheck={false}
-                              value={dockerfilePath}
-                            />
-                          </FormField>
-                        ) : null}
-
-                        {supportsDockerInputs ? (
-                          <FormField
-                            hint="Defaults to the repo root when omitted."
-                            htmlFor="import-build-context-dir"
-                            label="Build context"
-                            optionalLabel="Optional"
-                          >
-                            <input
-                              autoCapitalize="none"
-                              autoComplete="off"
-                              className="fg-input"
-                              id="import-build-context-dir"
-                              name="buildContextDir"
-                              onChange={(event) => setBuildContextDir(event.target.value)}
-                              placeholder="."
-                              spellCheck={false}
-                              value={buildContextDir}
-                            />
-                          </FormField>
-                        ) : null}
-
-                        <FormField
-                          hint="Override the public HTTP port when the image does not expose it."
-                          htmlFor="import-service-port"
-                          label="Service port"
-                          optionalLabel="Optional"
-                        >
-                          <input
-                            autoComplete="off"
-                            className="fg-input"
-                            id="import-service-port"
-                            inputMode="numeric"
-                            name="servicePort"
-                            onChange={(event) => setServicePort(event.target.value)}
-                            placeholder="3333"
-                            value={servicePort}
-                          />
-                        </FormField>
-                      </div>
-                    </ConsoleDisclosureSection>
-                  </div>
+                  <ImportServiceFields
+                    draft={draft}
+                    idPrefix="onboarding-import"
+                    inventoryError={runtimeTargetInventoryError}
+                    onDraftChange={setDraft}
+                    runtimeTargets={runtimeTargets}
+                  />
 
                   <div className="fg-console-dialog__actions">
                     <Button onClick={closeImport} type="button" variant="secondary">
                       Cancel
                     </Button>
-                    <Button loading={isImporting} loadingLabel="Importing repository…" type="submit" variant="primary">
-                      Import repository
+                    <Button loading={isImporting} loadingLabel="Importing service…" type="submit" variant="primary">
+                      Import service
                     </Button>
                   </div>
                 </form>

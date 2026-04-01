@@ -34,8 +34,8 @@ type SurfaceColumn = {
 const heroRouteNotes: LandingRouteNote[] = [
   {
     index: "01",
-    title: "Repository intake",
-    meta: "Repository / Branch / Builder",
+    title: "Source intake",
+    meta: "Repository / Image / Upload",
     toneClassName: "fg-landing-route-note--repo",
   },
   {
@@ -55,11 +55,11 @@ const heroRouteNotes: LandingRouteNote[] = [
 const routeChapters: RouteChapter[] = [
   {
     index: "01",
-    label: "Repository intake",
-    title: "Start with repository access, branch, and builder.",
+    label: "Source intake",
+    title: "Start from a repository, Docker image, or uploaded bundle.",
     description:
-      "Repository location, access mode, branch, and builder define the app before the first deploy. The app starts from real code, not a temporary setup.",
-    meta: "Repository / Access / Branch / Builder",
+      "Source location, access mode, and build metadata define the app before the first deploy. GitHub repositories, Docker images, and local uploads all enter the same route-first operating model.",
+    meta: "GitHub / Docker image / Upload / Builder",
   },
   {
     index: "02",
@@ -83,7 +83,7 @@ const surfaceColumns: SurfaceColumn[] = [
   {
     label: "Public route",
     items: [
-      { label: "GitHub import", meta: "Public or private repositories" },
+      { label: "Source import", meta: "GitHub, Docker image, local upload" },
       { label: "Shared runtime", meta: "Managed first path" },
       { label: "Node key setup", meta: "Attach a server later" },
       { label: "Logs and audit trail", meta: "Build / Runtime / Operations" },
@@ -103,7 +103,7 @@ const surfaceColumns: SurfaceColumn[] = [
 ];
 
 const runwayStops = [
-  "Start from the repository, branch, and builder.",
+  "Start from a repository, image, or uploaded bundle.",
   "Go live on shared infrastructure first.",
   "Move to your own machine without changing the route.",
 ];
@@ -173,7 +173,7 @@ export function LandingPage({ authenticatedAppPath }: LandingPageProps) {
 
       <header className="fg-landing-masthead">
         <div className="fg-shell fg-landing-masthead__shell">
-          <Brand meta="Deploy GitHub repos" />
+          <Brand meta="Deploy apps from source" />
 
           <PillNav ariaLabel="Primary" className="fg-landing-nav">
             {landingNav.map((item) => (
@@ -232,7 +232,7 @@ export function LandingPage({ authenticatedAppPath }: LandingPageProps) {
 
             <div className="fg-landing-hero-copy">
               <p className="fg-label fg-mono" data-stagger="1">
-                Deploy GitHub repositories, shared first
+                Deploy from source, shared first
               </p>
               <h1 className="fg-display-heading" data-stagger="2">
                 Start shared.
@@ -240,9 +240,9 @@ export function LandingPage({ authenticatedAppPath }: LandingPageProps) {
                 Move cleanly.
               </h1>
               <p className="fg-copy fg-landing-hero-lead" data-stagger="3">
-                Deploy a GitHub repository on managed shared k3s first. Public and private
-                repositories follow the same route model, and the same app can move onto your own
-                machine later without rebuilding the workflow.
+                Start from a GitHub repository, a published Docker image, or a local upload on
+                managed shared k3s first. The same app can move onto your own machine later without
+                rebuilding the route or changing the workflow.
               </p>
 
               <div className="fg-landing-hero-actions" data-stagger="4">
@@ -272,7 +272,7 @@ export function LandingPage({ authenticatedAppPath }: LandingPageProps) {
             {runwayStops.map((title, index) => (
               <article className="fg-landing-runway-stop" key={title}>
                 <p className="fg-label fg-mono">
-                  {String(index + 1).padStart(2, "0")} / {index === 0 ? "repo" : index === 1 ? "shared" : "attached"}
+                  {String(index + 1).padStart(2, "0")} / {index === 0 ? "source" : index === 1 ? "shared" : "attached"}
                 </p>
                 <h2>{title}</h2>
               </article>
@@ -287,7 +287,7 @@ export function LandingPage({ authenticatedAppPath }: LandingPageProps) {
               <h2 className="fg-display-heading">The route is the product.</h2>
               <p className="fg-copy fg-landing-section-copy">
                 The fastest path to a public URL should not trap the app in a throwaway setup. In
-                Fugue, the route stays stable while the runtime changes: import the repo, go live
+                Fugue, the route stays stable while the runtime changes: import the source, go live
                 on shared infrastructure, then migrate onto your own machine when you are ready.
               </p>
             </div>
@@ -367,8 +367,8 @@ export function LandingPage({ authenticatedAppPath }: LandingPageProps) {
 
             <ProofShell className="fg-landing-proof-shell">
               <ProofShellRibbon>
-                <span>GitHub import</span>
-                <span>Private repos supported</span>
+                <span>GitHub import example</span>
+                <span>Docker image import also available</span>
                 <span>Managed shared runtime</span>
                 <span>api.fugue.pro</span>
               </ProofShellRibbon>

@@ -9,8 +9,10 @@ import {
   readOptionalString,
 } from "@/lib/fugue/product-route";
 import {
+  importFugueDockerImageApp,
   importFugueGitHubApp,
 } from "@/lib/fugue/api";
+import { normalizeImportSourceMode } from "@/lib/fugue/import-source";
 import {
   isGitHubRepoUrl,
   normalizeGitHubRepoVisibility,
@@ -72,12 +74,15 @@ export async function POST(request: Request) {
   }
 
   const repoUrl = readOptionalString(body, "repoUrl");
+  const imageRef = readOptionalString(body, "imageRef");
   const branch = readOptionalString(body, "branch");
   const buildStrategy = readOptionalString(body, "buildStrategy");
   const sourceDir = readOptionalString(body, "sourceDir");
   const dockerfilePath = readOptionalString(body, "dockerfilePath");
   const buildContextDir = readOptionalString(body, "buildContextDir");
   const name = readOptionalString(body, "name");
+  const sourceModeInput = readOptionalString(body, "sourceMode");
+  const sourceMode = normalizeImportSourceMode(sourceModeInput || "github") || "github";
   const requestedProjectId = readOptionalString(body, "projectId");
   const requestedProjectName = readOptionalString(body, "projectName");
   const runtimeId = readOptionalString(body, "runtimeId");
@@ -91,27 +96,35 @@ export async function POST(request: Request) {
   );
   const projectName = requestedProjectName || "default";
 
-  if (!repoUrl) {
-    return jsonError(400, "Repository link is required.");
+  if (sourceModeInput && !normalizeImportSourceMode(sourceModeInput)) {
+    return jsonError(400, "Unsupported import source.");
   }
 
-  if (!isGitHubRepoUrl(repoUrl)) {
-    return jsonError(400, "GitHub repository links must use https://github.com/owner/repo.");
-  }
+  if (sourceMode === "github") {
+    if (!repoUrl) {
+      return jsonError(400, "Repository link is required.");
+    }
 
-  if (repoVisibilityInput && !repoVisibility) {
-    return jsonError(400, "Repository access must be public or private.");
-  }
+    if (!isGitHubRepoUrl(repoUrl)) {
+      return jsonError(400, "GitHub repository links must use https://github.com/owner/repo.");
+    }
 
-  if (resolvedRepoVisibility === "private" && !repoAuthToken) {
-    return jsonError(
-      400,
-      "Private GitHub repositories require a GitHub token with repository read access.",
-    );
-  }
+    if (repoVisibilityInput && !repoVisibility) {
+      return jsonError(400, "Repository access must be public or private.");
+    }
 
-  if (buildStrategy && !ALLOWED_BUILD_STRATEGIES.has(buildStrategy)) {
-    return jsonError(400, "Unsupported build strategy.");
+    if (resolvedRepoVisibility === "private" && !repoAuthToken) {
+      return jsonError(
+        400,
+        "Private GitHub repositories require a GitHub token with repository read access.",
+      );
+    }
+
+    if (buildStrategy && !ALLOWED_BUILD_STRATEGIES.has(buildStrategy)) {
+      return jsonError(400, "Unsupported build strategy.");
+    }
+  } else if (!imageRef) {
+    return jsonError(400, "Image reference is required.");
   }
 
   if (Number.isNaN(servicePort)) {
@@ -137,29 +150,39 @@ export async function POST(request: Request) {
     }
 
     const projectDescription = `${existingProject?.name ?? projectName} project`;
-    const result = await importFugueGitHubApp(workspace.adminKeySecret, {
-      branch: branch || undefined,
-      buildStrategy: buildStrategy || undefined,
-      buildContextDir: buildContextDir || undefined,
-      dockerfilePath: dockerfilePath || undefined,
-      name: name || undefined,
-      repoAuthToken: repoAuthToken || undefined,
-      runtimeId: runtimeId || undefined,
-      repoVisibility: resolvedRepoVisibility,
-      servicePort: servicePort ?? undefined,
-      sourceDir: sourceDir || undefined,
-      ...(existingProject
-        ? {
-            projectId: existingProject.id,
-          }
-        : {
-            project: {
-              description: projectDescription,
-              name: projectName,
-            },
-          }),
-      repoUrl,
-    });
+    const projectPayload = existingProject
+      ? {
+          projectId: existingProject.id,
+        }
+      : {
+          project: {
+            description: projectDescription,
+            name: projectName,
+          },
+        };
+    const result =
+      sourceMode === "github"
+        ? await importFugueGitHubApp(workspace.adminKeySecret, {
+            branch: branch || undefined,
+            buildStrategy: buildStrategy || undefined,
+            buildContextDir: buildContextDir || undefined,
+            dockerfilePath: dockerfilePath || undefined,
+            name: name || undefined,
+            repoAuthToken: repoAuthToken || undefined,
+            runtimeId: runtimeId || undefined,
+            repoVisibility: resolvedRepoVisibility,
+            servicePort: servicePort ?? undefined,
+            sourceDir: sourceDir || undefined,
+            ...projectPayload,
+            repoUrl,
+          })
+        : await importFugueDockerImageApp(workspace.adminKeySecret, {
+            imageRef,
+            name: name || undefined,
+            runtimeId: runtimeId || undefined,
+            servicePort: servicePort ?? undefined,
+            ...projectPayload,
+          });
     const resolvedProjectId = existingProject?.id ?? result.app?.projectId ?? null;
     const resolvedProjectName = existingProject?.name ?? projectName;
 
