@@ -69,6 +69,99 @@
   text-transform: none;
 }
 
+.fg-control-strip-shell {
+  --fg-control-strip-padding-block: var(--fugue-segmented-padding);
+  --fg-control-strip-padding-inline: var(--fugue-segmented-padding);
+  --fg-control-strip-border: var(--fugue-segmented-border);
+  --fg-control-strip-bg: var(--fugue-segmented-bg);
+  --fg-control-strip-shadow: var(--fugue-segmented-shadow);
+  --fg-control-strip-blur: none;
+  --fg-control-strip-fade-color: rgba(8, 10, 14, 0.82);
+  position: relative;
+  display: block;
+  width: fit-content;
+  min-width: 0;
+  max-width: 100%;
+  padding: var(--fg-control-strip-padding-block) var(--fg-control-strip-padding-inline);
+  border: 1px solid var(--fg-control-strip-border);
+  border-radius: var(--fugue-radius-pill);
+  background: var(--fg-control-strip-bg);
+  box-shadow: var(--fg-control-strip-shadow);
+  backdrop-filter: var(--fg-control-strip-blur);
+  overflow: hidden;
+}
+
+.fg-control-strip-shell::before,
+.fg-control-strip-shell::after {
+  content: "";
+  position: absolute;
+  top: 0.24rem;
+  bottom: 0.24rem;
+  z-index: 1;
+  width: 1.1rem;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--fugue-duration-fast) var(--fugue-ease-out-expo);
+}
+
+.fg-control-strip-shell::before {
+  left: 0.24rem;
+  background: linear-gradient(90deg, var(--fg-control-strip-fade-color), rgba(8, 10, 14, 0));
+}
+
+.fg-control-strip-shell::after {
+  right: 0.24rem;
+  background: linear-gradient(270deg, var(--fg-control-strip-fade-color), rgba(8, 10, 14, 0));
+}
+
+.fg-control-strip-shell[data-overflow="true"][data-scroll-start="false"]::before {
+  opacity: 1;
+}
+
+.fg-control-strip-shell[data-overflow="true"][data-scroll-end="false"]::after {
+  opacity: 1;
+}
+
+.fg-control-strip-shell--pill {
+  --fg-control-strip-padding-block: var(--fugue-nav-pill-padding-block);
+  --fg-control-strip-padding-inline: var(--fugue-nav-pill-padding-inline);
+  --fg-control-strip-border: var(--fugue-nav-pill-border);
+  --fg-control-strip-bg: var(--fugue-nav-pill-bg);
+  --fg-control-strip-shadow: var(--fugue-nav-pill-shadow);
+  --fg-control-strip-blur: blur(var(--fugue-nav-pill-blur));
+}
+
+.fg-control-strip__viewport {
+  position: relative;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  scroll-padding-inline: 0.5rem;
+  scroll-snap-type: x proximity;
+}
+
+.fg-control-strip__viewport::-webkit-scrollbar {
+  display: none;
+}
+
+.fg-control-strip__viewport > .fg-pill-nav,
+.fg-control-strip__viewport > .fg-segmented {
+  width: max-content;
+  min-width: max-content;
+  margin-inline: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  flex-wrap: nowrap;
+  overflow: visible;
+}
+
 .fg-pill-nav {
   display: inline-flex;
   align-items: center;
@@ -106,6 +199,11 @@
     color var(--fugue-duration-fast) var(--fugue-ease-out-expo),
     box-shadow var(--fugue-duration-fast) var(--fugue-ease-out-expo),
     opacity var(--fugue-duration-fast) var(--fugue-ease-out-expo);
+}
+
+.fg-control-strip__viewport > .fg-pill-nav a,
+.fg-control-strip__viewport > .fg-segmented > .fg-segmented__item {
+  scroll-snap-align: start;
 }
 
 .fg-pill-nav a:hover,

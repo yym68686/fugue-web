@@ -2109,11 +2109,7 @@
 }
 
 .fg-runtime-share-row__segmented {
-  width: min(100%, 25rem);
-}
-
-.fg-runtime-share-row__segmented .fg-segmented__item {
-  flex: 1 1 0;
+  max-width: min(100%, 25rem);
 }
 
 .fg-runtime-access-empty {
@@ -2626,11 +2622,13 @@
 .fg-console-topbar {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: "brand nav actions";
   align-items: center;
   gap: 1rem;
 }
 
 .fg-console-topbar__brand {
+  grid-area: brand;
   min-width: 0;
   display: inline-flex;
   align-items: baseline;
@@ -2638,6 +2636,7 @@
 }
 
 .fg-console-topbar__actions {
+  grid-area: actions;
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -2667,10 +2666,18 @@
   white-space: nowrap;
 }
 
-.fg-console-nav {
+.fg-console-nav-shell {
+  grid-area: nav;
   justify-self: center;
   min-width: 0;
+}
+
+.fg-console-nav__viewport {
   max-width: 100%;
+}
+
+.fg-console-nav {
+  min-width: 0;
 }
 
 .fg-console-nav__link {
@@ -3185,7 +3192,24 @@
 }
 
 .fg-project-workbench {
+  --fg-project-workbench-shell-padding: var(--fugue-proof-shell-padding);
+  --fg-project-workbench-shell-radius-outer: var(--fugue-proof-shell-radius-outer);
+  --fg-project-workbench-shell-radius-inner: var(--fugue-proof-shell-radius-inner);
+  --fg-project-workbench-panel-padding-block: var(--fugue-panel-padding-block);
+  --fg-project-workbench-panel-padding-inline: var(--fugue-panel-padding-inline);
   gap: 0;
+  padding: var(--fg-project-workbench-shell-padding);
+  border-radius: var(--fg-project-workbench-shell-radius-outer);
+}
+
+.fg-project-workbench > .fg-bezel__inner {
+  border-radius: var(--fg-project-workbench-shell-radius-inner);
+}
+
+.fg-project-workbench .fg-panel__section {
+  padding:
+    var(--fg-project-workbench-panel-padding-block)
+    var(--fg-project-workbench-panel-padding-inline);
 }
 
 .fg-project-workbench__inner {
@@ -3321,6 +3345,7 @@
 .fg-project-toolbar__group {
   display: grid;
   gap: 0.48rem;
+  min-width: 0;
 }
 
 .fg-project-toolbar__group--tabs {
@@ -3517,10 +3542,6 @@
   flex: 0 0 auto;
   flex-wrap: nowrap;
   align-items: center;
-}
-
-.fg-env-section__actions .fg-segmented {
-  flex-wrap: nowrap;
 }
 
 .fg-route-panel {
@@ -4578,8 +4599,13 @@
   }
 
   .fg-console-topbar {
-    grid-template-columns: 1fr;
-    justify-items: start;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "brand actions"
+      "nav nav";
+    align-items: center;
+    column-gap: 0.8rem;
+    row-gap: 0.72rem;
   }
 
   .fg-cluster-node-card__summary-head,
@@ -4628,6 +4654,15 @@
     gap: 0.8rem;
   }
 
+  .fg-project-toolbar {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .fg-project-toolbar__group--tabs {
+    justify-items: stretch;
+  }
+
   .fg-settings-sync {
     display: grid;
   }
@@ -4641,13 +4676,14 @@
     gap: 0.6rem;
   }
 
-  .fg-console-nav,
-  .fg-console-topbar__actions {
-    justify-self: stretch;
+  .fg-console-nav-shell {
+    justify-self: start;
   }
 
   .fg-console-topbar__actions {
-    justify-content: space-between;
+    justify-self: end;
+    justify-content: flex-end;
+    gap: 0.5rem;
     max-width: none;
   }
 
@@ -4655,14 +4691,35 @@
     width: auto;
     min-inline-size: 0;
     flex-basis: auto;
+    --fg-button-padding-inline-start: 0.84rem;
+    --fg-button-padding-inline-end: 0.84rem;
   }
 
-  .fg-console-profile__summary span {
-    display: block;
+  .fg-console-profile__summary {
+    display: none;
+  }
+
+  .fg-console-profile__trigger {
+    min-width: 2.84rem;
+    padding-inline-end: 0.42rem;
   }
 }
 
 @media (max-width: 640px) {
+  .fg-console-topbar {
+    column-gap: 0.65rem;
+  }
+
+  .fg-console-topbar__primary-action {
+    max-inline-size: 9.75rem;
+    --fg-button-padding-inline-start: 0.78rem;
+    --fg-button-padding-inline-end: 0.78rem;
+  }
+
+  .fg-console-topbar__brand .fg-brand__meta {
+    display: none;
+  }
+
   .fg-cluster-node-card__summary-shell,
   .fg-project-card {
     padding: 0.32rem;
@@ -4737,6 +4794,79 @@
     --fg-project-service-card-badge-size: 2.46rem;
   }
 
+  .fg-project-workbench {
+    --fg-project-workbench-shell-padding: 0.38rem;
+    --fg-project-workbench-shell-radius-outer: 1.36rem;
+    --fg-project-workbench-shell-radius-inner: 1.04rem;
+    --fg-project-workbench-panel-padding-block: 0.82rem;
+    --fg-project-workbench-panel-padding-inline: 0.78rem;
+  }
+
+  .fg-project-actions,
+  .fg-env-section__actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+    align-items: stretch;
+  }
+
+  .fg-project-actions > *,
+  .fg-env-section__actions > * {
+    min-width: 0;
+  }
+
+  .fg-project-actions > .fg-button,
+  .fg-env-section__actions > .fg-button {
+    width: 100%;
+  }
+
+  .fg-project-actions > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+
+  .fg-env-section__actions .fg-control-strip-shell {
+    grid-column: 1 / -1;
+  }
+
+  .fg-project-workbench .fg-button--compact {
+    --fg-button-padding-inline-start: 0.82rem;
+    --fg-button-padding-inline-end: 0.82rem;
+    --fg-button-font-size: 0.82rem;
+  }
+
+  .fg-project-workbench .fg-control-strip-shell--segmented {
+    --fg-control-strip-padding-block: 0.16rem;
+    --fg-control-strip-padding-inline: 0.16rem;
+  }
+
+  .fg-project-workbench .fg-segmented {
+    gap: 0.14rem;
+  }
+
+  .fg-project-workbench .fg-segmented__item {
+    padding-inline: 0.78rem;
+    font-size: 0.82rem;
+  }
+
+  .fg-project-workbench .fg-input,
+  .fg-project-workbench .fg-project-textarea {
+    padding-inline: 0.82rem;
+    border-radius: 0.92rem;
+  }
+
+  .fg-project-workbench .fg-project-textarea {
+    padding-block: 0.82rem;
+  }
+
+  .fg-project-workbench .fg-inline-alert {
+    padding: 0.72rem 0.82rem;
+    border-radius: 0.92rem;
+  }
+
+  .fg-env-row {
+    gap: 0.55rem;
+  }
+
   .fg-console-profile__summary {
     display: none;
   }
@@ -4761,5 +4891,21 @@
   .fg-route-panel__form-action .fg-button {
     width: 100%;
     min-width: 0;
+  }
+}
+
+@media (max-width: 520px) {
+  .fg-project-workbench {
+    --fg-project-workbench-shell-padding: 0.3rem;
+    --fg-project-workbench-panel-padding-inline: 0.7rem;
+  }
+
+  .fg-project-workbench .fg-button--compact {
+    --fg-button-padding-inline-start: 0.74rem;
+    --fg-button-padding-inline-end: 0.74rem;
+  }
+
+  .fg-project-workbench .fg-segmented__item {
+    padding-inline: 0.68rem;
   }
 }

@@ -1,3 +1,4 @@
+import { ScrollableControlStrip } from "@/components/ui/scrollable-control-strip";
 import type { KeyboardEvent, ReactNode } from "react";
 
 import { cx } from "@/lib/ui/cx";
@@ -89,31 +90,38 @@ export function SegmentedControl<Value extends string>({
   }
 
   return (
-    <div aria-label={ariaLabel} className={cx("fg-segmented", className)} role="group">
-      {options.map((option, index) => {
-        const isActive = option.value === value;
+    <ScrollableControlStrip
+      activeSelector='[aria-pressed="true"]'
+      className={className}
+      variant="segmented"
+      watchKey={value}
+    >
+      <div aria-label={ariaLabel} className="fg-segmented" role="group">
+        {options.map((option, index) => {
+          const isActive = option.value === value;
 
-        return (
-          <button
-            aria-pressed={isActive}
-            className={cx("fg-segmented__item", isActive && "is-active")}
-            data-state={isActive ? "active" : "inactive"}
-            disabled={option.disabled}
-            key={option.value}
-            onClick={() => {
-              if (option.disabled || isActive) {
-                return;
-              }
+          return (
+            <button
+              aria-pressed={isActive}
+              className={cx("fg-segmented__item", isActive && "is-active")}
+              data-state={isActive ? "active" : "inactive"}
+              disabled={option.disabled}
+              key={option.value}
+              onClick={() => {
+                if (option.disabled || isActive) {
+                  return;
+                }
 
-              onChange(option.value);
-            }}
-            onKeyDown={(event) => handleKeyDown(event, index)}
-            type="button"
-          >
-            <span className="fg-segmented__label">{option.label}</span>
-          </button>
-        );
-      })}
-    </div>
+                onChange(option.value);
+              }}
+              onKeyDown={(event) => handleKeyDown(event, index)}
+              type="button"
+            >
+              <span className="fg-segmented__label">{option.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </ScrollableControlStrip>
   );
 }

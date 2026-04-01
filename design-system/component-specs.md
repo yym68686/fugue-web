@@ -8,6 +8,7 @@ Included:
 
 - `Button`
 - `ConfirmDialog`
+- `ScrollableControlStrip`
 - `SegmentedControl`
 - `DisplayHeading`
 - `UiHeading`
@@ -182,6 +183,35 @@ Shared confirmation surface for destructive or high-impact product actions such 
 - Keep confirm labels action-specific: `Delete service`, `Revoke key`, `Make admin`.
 - Backdrop blur is functional context dismissal, not decorative chrome.
 
+## ScrollableControlStrip
+
+### Purpose
+
+Shared outer shell for local navigation rails that should hug their content in roomy layouts and switch to internal horizontal scrolling when the available slot gets tighter.
+
+### Anatomy
+
+```html
+<div
+  class="fg-control-strip-shell fg-control-strip-shell--segmented"
+  data-overflow="true"
+  data-scroll-start="true"
+  data-scroll-end="false"
+>
+  <div class="fg-control-strip__viewport">
+    <!-- fg-segmented or fg-pill-nav -->
+  </div>
+</div>
+```
+
+### Notes
+
+- Use this as a wrapper around `PillNav` or `SegmentedControl`, not as a standalone control.
+- Wide layouts should let the shell collapse to content width. Do not force full-width trays unless the surrounding layout genuinely needs them.
+- When the rail overflows, keep the outer shell fixed and move the contents inside the viewport. Do not wrap onto multiple rows and do not hide options behind a `More` menu by default.
+- Edge fades are an overflow affordance, not decoration. They should appear only when content extends past the current scroll position.
+- React implementation: `components/ui/scrollable-control-strip.tsx`.
+
 ## SegmentedControl
 
 ### Purpose
@@ -191,16 +221,20 @@ Shared local view switch for mutually exclusive app states such as `Environment 
 ### Anatomy
 
 ```html
-<div class="fg-segmented" aria-label="Workbench views" role="group">
-  <button class="fg-segmented__item is-active" type="button" aria-pressed="true">
-    <span class="fg-segmented__label">Environment</span>
-  </button>
-  <button class="fg-segmented__item" type="button" aria-pressed="false">
-    <span class="fg-segmented__label">Files</span>
-  </button>
-  <button class="fg-segmented__item" type="button" aria-pressed="false">
-    <span class="fg-segmented__label">Logs</span>
-  </button>
+<div class="fg-control-strip-shell fg-control-strip-shell--segmented">
+  <div class="fg-control-strip__viewport">
+    <div class="fg-segmented" aria-label="Workbench views" role="group">
+      <button class="fg-segmented__item is-active" type="button" aria-pressed="true">
+        <span class="fg-segmented__label">Environment</span>
+      </button>
+      <button class="fg-segmented__item" type="button" aria-pressed="false">
+        <span class="fg-segmented__label">Files</span>
+      </button>
+      <button class="fg-segmented__item" type="button" aria-pressed="false">
+        <span class="fg-segmented__label">Logs</span>
+      </button>
+    </div>
+  </div>
 </div>
 ```
 
@@ -220,8 +254,10 @@ Shared local view switch for mutually exclusive app states such as `Environment 
 - If clicking an option swaps a panel, picker, or content mode, prefer `SegmentedControl` over `Button`.
 - Keep all options in one shared rail so users read them as one mutually exclusive set.
 - The selected state must be visible without hover.
+- Let the tray hug content when space is available. If the rail becomes wider than its slot, keep the outer shell fixed and let the inner viewport scroll horizontally instead of switching to a dropdown or wrapping into multiple rows.
 - Segmented items, stateful pill-nav links, and file pills should reuse the same raised selection lens. Only the tray density and padding should change by context.
 - In mixed control rails, align the segmented outer height with adjacent compact buttons.
+- React implementation: `components/ui/segmented-control.tsx` composes `components/ui/scrollable-control-strip.tsx` so detail-page `Panels`, environment format switches, and similar rails all inherit the same overflow behavior.
 
 ## PillNav
 
@@ -232,11 +268,15 @@ Detached floating navigation container.
 ### Anatomy
 
 ```html
-<nav class="fg-pill-nav" aria-label="Primary">
-  <a href="#route" aria-current="page">Route</a>
-  <a href="#surface">Surface</a>
-  <a href="#proof">Proof</a>
-</nav>
+<div class="fg-control-strip-shell fg-control-strip-shell--pill">
+  <div class="fg-control-strip__viewport">
+    <nav class="fg-pill-nav" aria-label="Primary">
+      <a href="#route" aria-current="page">Route</a>
+      <a href="#surface">Surface</a>
+      <a href="#proof">Proof</a>
+    </nav>
+  </div>
+</div>
 ```
 
 ### States
@@ -252,8 +292,9 @@ Detached floating navigation container.
 
 - Use for top-level nav or small sub-nav clusters.
 - When one link represents the current page or current shell view, mark it with `aria-current="page"` and reuse the same active lens as segmented controls. Do not rely on text color alone.
+- Use the same fixed-shell, inner-scroll pattern when labels may overflow. The navigation tray should not grow a wide empty gutter just because the container has more room.
 - Not for dense app sidebars.
-- React wrapper: `components/ui/pill-nav.tsx` with `PillNav`, `PillNavLink`, and `PillNavAnchor`.
+- React wrapper: `components/ui/pill-nav.tsx` with `PillNav`, `PillNavLink`, and `PillNavAnchor`; compose it with `components/ui/scrollable-control-strip.tsx` when overflow safety matters.
 
 ## SectionLabel
 

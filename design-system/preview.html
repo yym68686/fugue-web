@@ -118,32 +118,44 @@
             <h2 class="fg-heading">Local views should read as one switchboard, not a row of mini buttons.</h2>
           </div>
           <div class="preview-actions">
-            <div class="fg-segmented" aria-label="Workbench views" role="group">
-              <button class="fg-segmented__item is-active" type="button" aria-pressed="true">
-                <span class="fg-segmented__label">Environment</span>
-              </button>
-              <button class="fg-segmented__item" type="button" aria-pressed="false">
-                <span class="fg-segmented__label">Files</span>
-              </button>
-              <button class="fg-segmented__item" type="button" aria-pressed="false">
-                <span class="fg-segmented__label">Logs</span>
-              </button>
+            <div class="fg-control-strip-shell fg-control-strip-shell--segmented">
+              <div class="fg-control-strip__viewport">
+                <div class="fg-segmented" aria-label="Workbench views" role="group">
+                  <button class="fg-segmented__item is-active" type="button" aria-pressed="true">
+                    <span class="fg-segmented__label">Environment</span>
+                  </button>
+                  <button class="fg-segmented__item" type="button" aria-pressed="false">
+                    <span class="fg-segmented__label">Files</span>
+                  </button>
+                  <button class="fg-segmented__item" type="button" aria-pressed="false">
+                    <span class="fg-segmented__label">Logs</span>
+                  </button>
+                </div>
+              </div>
             </div>
-            <div class="fg-segmented" aria-label="Environment formats" role="group">
-              <button class="fg-segmented__item is-active" type="button" aria-pressed="true">
-                <span class="fg-segmented__label">Variables</span>
-              </button>
-              <button class="fg-segmented__item" type="button" aria-pressed="false">
-                <span class="fg-segmented__label">Raw</span>
-              </button>
+            <div class="fg-control-strip-shell fg-control-strip-shell--segmented">
+              <div class="fg-control-strip__viewport">
+                <div class="fg-segmented" aria-label="Environment formats" role="group">
+                  <button class="fg-segmented__item is-active" type="button" aria-pressed="true">
+                    <span class="fg-segmented__label">Variables</span>
+                  </button>
+                  <button class="fg-segmented__item" type="button" aria-pressed="false">
+                    <span class="fg-segmented__label">Raw</span>
+                  </button>
+                </div>
+              </div>
             </div>
-            <div class="fg-segmented" aria-label="Log views" role="group">
-              <button class="fg-segmented__item" type="button" aria-pressed="false">
-                <span class="fg-segmented__label">Build</span>
-              </button>
-              <button class="fg-segmented__item is-active" type="button" aria-pressed="true">
-                <span class="fg-segmented__label">Runtime</span>
-              </button>
+            <div class="fg-control-strip-shell fg-control-strip-shell--segmented">
+              <div class="fg-control-strip__viewport">
+                <div class="fg-segmented" aria-label="Log views" role="group">
+                  <button class="fg-segmented__item" type="button" aria-pressed="false">
+                    <span class="fg-segmented__label">Build</span>
+                  </button>
+                  <button class="fg-segmented__item is-active" type="button" aria-pressed="true">
+                    <span class="fg-segmented__label">Runtime</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -153,11 +165,15 @@
             <p class="fg-label">Pill nav</p>
             <h2 class="fg-heading">Detached navigation should still advertise the current route clearly.</h2>
           </div>
-          <nav class="fg-pill-nav" aria-label="Preview navigation">
-            <a href="#notes" aria-current="page">Route</a>
-            <a href="#proof">Proof</a>
-            <a href="#objects">Objects</a>
-          </nav>
+          <div class="fg-control-strip-shell fg-control-strip-shell--pill">
+            <div class="fg-control-strip__viewport">
+              <nav class="fg-pill-nav" aria-label="Preview navigation">
+                <a href="#notes" aria-current="page">Route</a>
+                <a href="#proof">Proof</a>
+                <a href="#objects">Objects</a>
+              </nav>
+            </div>
+          </div>
         </section>
 
         <section class="preview-section" id="notes">
