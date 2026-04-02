@@ -109,6 +109,21 @@ function formatCurrencyFromMicroCents(value: number, currency: string) {
   }).format(value / MICRO_CENTS_PER_DOLLAR);
 }
 
+function formatHourlyCurrencyFromMicroCents(value: number, currency: string) {
+  const amount = value / MICRO_CENTS_PER_DOLLAR;
+
+  if (amount === 0 || Math.abs(amount) >= 0.01) {
+    return formatCurrencyFromMicroCents(value, currency);
+  }
+
+  return new Intl.NumberFormat("en-US", {
+    currency,
+    maximumSignificantDigits: 3,
+    minimumSignificantDigits: 1,
+    style: "currency",
+  }).format(amount);
+}
+
 function formatSignedCurrencyFromMicroCents(value: number, currency: string) {
   return new Intl.NumberFormat("en-US", {
     currency,
@@ -465,7 +480,7 @@ export function BillingPanel({
     previewMonthlyEstimateMicroCents,
     currency,
   );
-  const previewHourlyRateLabel = formatCurrencyFromMicroCents(
+  const previewHourlyRateLabel = formatHourlyCurrencyFromMicroCents(
     previewHourlyRateMicroCents,
     currency,
   );
