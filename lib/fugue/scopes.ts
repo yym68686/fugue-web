@@ -49,6 +49,10 @@ export const FUGUE_SCOPE_CATALOG = [
     value: "app.migrate",
   },
   {
+    description: "Trigger failover onto a secondary runtime.",
+    value: "app.failover",
+  },
+  {
     description: "Delete apps without broad write access.",
     value: "app.delete",
   },

@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 
+import { AUTH_ERROR_HANDOFF_FAILED, buildSignInErrorUrl } from "@/lib/auth/errors";
 import { buildSessionHandoffUrl, verifySessionHandoffToken } from "@/lib/auth/finalize";
 import { buildOriginUrl, isSecureRequest, readRequestOrigin } from "@/lib/auth/origin";
 import { buildSessionCookie } from "@/lib/auth/session";
 
 function redirectWithError(origin: string) {
-  return NextResponse.redirect(buildOriginUrl(origin, "/auth/sign-in?error=oauth_failed"), { status: 303 });
+  return NextResponse.redirect(buildSignInErrorUrl(origin, AUTH_ERROR_HANDOFF_FAILED), {
+    status: 303,
+  });
 }
 
 export async function POST(request: Request) {

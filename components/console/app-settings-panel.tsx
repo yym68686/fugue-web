@@ -3,11 +3,18 @@
 import { startTransition, useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
+import { DeploymentTargetField } from "@/components/console/deployment-target-field";
 import { StatusBadge } from "@/components/console/status-badge";
 import { Button } from "@/components/ui/button";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FormField } from "@/components/ui/form-field";
+import { InlineAlert } from "@/components/ui/inline-alert";
 import { useToast } from "@/components/ui/toast";
-import type { ConsoleGalleryAppView } from "@/lib/console/gallery-types";
+import type {
+  ConsoleGalleryAppView,
+  ConsoleImportRuntimeTargetView,
+} from "@/lib/console/gallery-types";
+import { readDefaultImportRuntimeId } from "@/lib/console/runtime-targets";
 import type { ConsoleTone } from "@/lib/console/types";
 import { isDockerImageSourceType } from "@/lib/fugue/source-display";
 import { isGitHubSourceType, isPrivateGitHubSourceType } from "@/lib/github/repository";
@@ -297,12 +304,391 @@ function readManualRefreshState(app: ConsoleGalleryAppView): ManualRefreshState 
   };
 }
 
+function shortId(value?: string | null) {
+  const normalized = normalizeText(value);
+
+  if (!normalized) {
+    return "Unknown";
+  }
+
+  return normalized.slice(0, 8);
+}
+
+function readRuntimeTargetLabel(
+  targets: ConsoleImportRuntimeTargetView[],
+  runtimeId?: string | null,
+  fallback = "Not assigned",
+) {
+  const normalized = normalizeText(runtimeId);
+
+  if (!normalized) {
+    return fallback;
+  }
+
+  return targets.find((target) => target.id === normalized)?.summaryLabel ?? shortId(normalized);
+}
+
+function readStatefulAssetLabel(app: ConsoleGalleryAppView) {
+  const hasWorkspace = Boolean(normalizeText(app.workspaceMountPath));
+
+  if (hasWorkspace && app.hasPostgresService) {
+    return "Workspace volume + PostgreSQL";
+  }
+
+  if (hasWorkspace) {
+    return "Workspace volume";
+  }
+
+  if (app.hasPostgresService) {
+    return "Managed PostgreSQL";
+  }
+
+  return "Stateless app";
+}
+
+function readStatefulAssetDescription(app: ConsoleGalleryAppView) {
+  const hasWorkspace = Boolean(normalizeText(app.workspaceMountPath));
+
+  if (hasWorkspace && app.hasPostgresService) {
+    return "a workspace volume and managed PostgreSQL";
+  }
+
+  if (hasWorkspace) {
+    return "a workspace volume";
+  }
+
+  if (app.hasPostgresService) {
+    return "managed PostgreSQL";
+  }
+
+  return "no stateful attachments";
+}
+
+function readFailoverPosture(app: ConsoleGalleryAppView): {
+  label: string;
+  note: string;
+  tone: ConsoleTone;
+} {
+  if (app.failoverTargetRuntimeId) {
+    if (app.failoverAuto) {
+      return {
+        label: "Armed",
+        note: "Automatic failover is configured for this service. You can still queue the handoff manually from the console.",
+        tone: "positive",
+      };
+    }
+
+    return {
+      label: "Manual target",
+      note: "A backup runtime is already saved for this service, but automatic triggering is off.",
+      tone: "info",
+    };
+  }
+
+  if (app.failoverConfigured) {
+    return {
+      label: "Incomplete",
+      note: "Fugue can see a failover stanza for this service, but no target runtime is currently exposed here.",
+      tone: "warning",
+    };
+  }
+
+  return {
+    label: "On demand",
+    note: "No saved failover target is exposed for this service yet. Choose a runtime below to queue a one-off handoff.",
+    tone: "neutral",
+  };
+}
+
+function readFailoverActionHint(app: ConsoleGalleryAppView) {
+  if (app.serviceRole === "pending") {
+    return "Wait for the current release operation to finish before queuing failover.";
+  }
+
+  if (isPausedApp(app)) {
+    return "Start the service before queuing failover.";
+  }
+
+  return null;
+}
+
+function readInitialFailoverTargetRuntimeId(
+  app: ConsoleGalleryAppView,
+  runtimeTargets: ConsoleImportRuntimeTargetView[],
+) {
+  const activeRuntimeId = app.currentRuntimeId ?? app.runtimeId;
+  const manualRuntimeTargets = activeRuntimeId
+    ? runtimeTargets.filter((target) => target.id !== activeRuntimeId)
+    : runtimeTargets;
+
+  if (
+    app.failoverTargetRuntimeId &&
+    manualRuntimeTargets.some((target) => target.id === app.failoverTargetRuntimeId)
+  ) {
+    return app.failoverTargetRuntimeId;
+  }
+
+  return readDefaultImportRuntimeId(manualRuntimeTargets);
+}
+
+function AppFailoverSection({
+  app,
+  runtimeTargetInventoryError,
+  runtimeTargets,
+}: {
+  app: ConsoleGalleryAppView;
+  runtimeTargetInventoryError: string | null;
+  runtimeTargets: ConsoleImportRuntimeTargetView[];
+}) {
+  const router = useRouter();
+  const confirm = useConfirmDialog();
+  const { showToast } = useToast();
+  const failoverPosture = readFailoverPosture(app);
+  const statefulAssetLabel = readStatefulAssetLabel(app);
+  const statefulAssetDescription = readStatefulAssetDescription(app);
+  const activeRuntimeId = app.currentRuntimeId ?? app.runtimeId;
+  const manualRuntimeTargets = activeRuntimeId
+    ? runtimeTargets.filter((target) => target.id !== activeRuntimeId)
+    : runtimeTargets;
+  const [targetRuntimeId, setTargetRuntimeId] = useState<string | null>(() =>
+    readInitialFailoverTargetRuntimeId(app, runtimeTargets),
+  );
+  const [failoverSaving, setFailoverSaving] = useState(false);
+
+  useEffect(() => {
+    setTargetRuntimeId(readInitialFailoverTargetRuntimeId(app, runtimeTargets));
+  }, [
+    app.currentRuntimeId,
+    app.failoverTargetRuntimeId,
+    app.id,
+    app.runtimeId,
+    runtimeTargets,
+  ]);
+
+  const requestTargetRuntimeId =
+    targetRuntimeId && targetRuntimeId !== activeRuntimeId ? targetRuntimeId : undefined;
+  const savedTargetRuntimeId =
+    app.failoverTargetRuntimeId && app.failoverTargetRuntimeId !== activeRuntimeId
+      ? app.failoverTargetRuntimeId
+      : null;
+  const effectiveTargetRuntimeId = requestTargetRuntimeId ?? savedTargetRuntimeId;
+  const effectiveTargetLabel = readRuntimeTargetLabel(
+    runtimeTargets,
+    effectiveTargetRuntimeId,
+    "No target selected",
+  );
+  const liveRuntimeLabel = readRuntimeTargetLabel(
+    runtimeTargets,
+    activeRuntimeId,
+    "Live runtime unavailable",
+  );
+  const desiredRuntimeLabel = readRuntimeTargetLabel(
+    runtimeTargets,
+    app.runtimeId,
+    "No desired runtime",
+  );
+  const savedTargetLabel = app.failoverTargetRuntimeId
+    ? readRuntimeTargetLabel(runtimeTargets, app.failoverTargetRuntimeId, "Saved target")
+    : "None saved";
+  const savedTargetMissingFromInventory = Boolean(
+    app.failoverTargetRuntimeId &&
+      !runtimeTargets.some((target) => target.id === app.failoverTargetRuntimeId),
+  );
+  const savedTargetMatchesActiveRuntime = Boolean(
+    activeRuntimeId && app.failoverTargetRuntimeId === activeRuntimeId,
+  );
+  const actionHint = readFailoverActionHint(app);
+  const targetSelectionHint =
+    runtimeTargetInventoryError && !savedTargetRuntimeId
+      ? "Runtime inventory is unavailable and this service does not have a saved failover target yet."
+      : !effectiveTargetRuntimeId
+        ? "Add or share another runtime before queuing failover."
+        : null;
+  const canQueueFailover =
+    !failoverSaving && !actionHint && !targetSelectionHint && Boolean(effectiveTargetRuntimeId);
+
+  async function handleFailoverSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (actionHint) {
+      showToast({
+        message: actionHint,
+        variant: "info",
+      });
+      return;
+    }
+
+    if (!effectiveTargetRuntimeId) {
+      showToast({
+        message: targetSelectionHint ?? "Choose a target runtime before queuing failover.",
+        variant: "info",
+      });
+      return;
+    }
+
+    const confirmed = await confirm({
+      confirmLabel: "Queue failover",
+      description:
+        statefulAssetLabel === "Stateless app"
+          ? `${app.name} will queue a failover from ${liveRuntimeLabel} to ${effectiveTargetLabel}.`
+          : `${app.name} will queue a failover from ${liveRuntimeLabel} to ${effectiveTargetLabel}. This service includes ${statefulAssetDescription}, so the backend controller will run the stateful workflow before the handoff completes.`,
+      eyebrow: statefulAssetLabel === "Stateless app" ? "Runtime handoff" : "Stateful failover",
+      title: "Queue failover?",
+      variant: "primary",
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
+    setFailoverSaving(true);
+
+    try {
+      await requestJson<AppOperationResponse>(`/api/fugue/apps/${app.id}/failover`, {
+        ...(requestTargetRuntimeId
+          ? {
+              body: JSON.stringify({
+                targetRuntimeId: requestTargetRuntimeId,
+              }),
+              headers: {
+                "Content-Type": "application/json",
+              },
+            }
+          : {}),
+        method: "POST",
+      });
+
+      showToast({
+        message: `Failover queued toward ${effectiveTargetLabel}.`,
+        variant: "success",
+      });
+      startTransition(() => {
+        router.refresh();
+      });
+    } catch (error) {
+      showToast({
+        message: readErrorMessage(error),
+        variant: "error",
+      });
+    } finally {
+      setFailoverSaving(false);
+    }
+  }
+
+  return (
+    <section aria-label="Failover" className="fg-route-subsection fg-settings-section">
+      <div className="fg-route-subsection__head">
+        <div className="fg-route-subsection__copy fg-settings-section__copy">
+          <p className="fg-label fg-panel__eyebrow">Continuity</p>
+          <h3 className="fg-route-subsection__title fg-ui-heading">Failover</h3>
+          <p className="fg-route-subsection__note">{failoverPosture.note}</p>
+        </div>
+
+        <div className="fg-settings-sync__summary">
+          <StatusBadge tone={failoverPosture.tone}>{failoverPosture.label}</StatusBadge>
+          <StatusBadge live={app.failoverAuto} tone={app.failoverAuto ? "positive" : "neutral"}>
+            {app.failoverAuto ? "Automatic" : "Manual"}
+          </StatusBadge>
+        </div>
+      </div>
+
+      <div className="fg-settings-form">
+        <InlineAlert variant="info">
+          The console can read the saved failover posture and queue the workflow, but persistent
+          failover policy editing still lives outside this surface.
+          {statefulAssetLabel !== "Stateless app"
+            ? ` This service includes ${statefulAssetDescription}, and detailed replication or fencing progress is not surfaced here yet.`
+            : null}
+        </InlineAlert>
+
+        {runtimeTargetInventoryError ? (
+          <InlineAlert variant="info">
+            {savedTargetRuntimeId
+              ? "Runtime inventory is currently unavailable. You can still queue failover to the saved target."
+              : "Runtime inventory is currently unavailable, so the console cannot suggest a new failover target yet."}
+          </InlineAlert>
+        ) : null}
+
+        {savedTargetMissingFromInventory ? (
+          <InlineAlert variant="warning">
+            The saved failover target is not currently visible in runtime inventory. Fugue will
+            still use the stored runtime ID if you queue failover without picking a replacement.
+          </InlineAlert>
+        ) : null}
+
+        {savedTargetMatchesActiveRuntime ? (
+          <InlineAlert variant="warning">
+            The saved failover target currently matches the live runtime. Choose a different target
+            before you rely on automatic handoff.
+          </InlineAlert>
+        ) : null}
+
+        {actionHint ? <InlineAlert variant="warning">{actionHint}</InlineAlert> : null}
+        {targetSelectionHint ? <InlineAlert variant="warning">{targetSelectionHint}</InlineAlert> : null}
+
+        <dl className="fg-settings-meta">
+          <div>
+            <dt>Live runtime</dt>
+            <dd>{liveRuntimeLabel}</dd>
+          </div>
+          <div>
+            <dt>Desired placement</dt>
+            <dd>{desiredRuntimeLabel}</dd>
+          </div>
+          <div>
+            <dt>Saved failover target</dt>
+            <dd>{savedTargetLabel}</dd>
+          </div>
+          <div>
+            <dt>Trigger mode</dt>
+            <dd>{app.failoverAuto ? "Automatic" : "Manual"}</dd>
+          </div>
+          <div>
+            <dt>Stateful assets</dt>
+            <dd>{statefulAssetLabel}</dd>
+          </div>
+        </dl>
+
+        {manualRuntimeTargets.length > 0 ? (
+          <DeploymentTargetField
+            fallbackToDefaultTarget={false}
+            inventoryError={null}
+            legendLabel="Failover target"
+            name={`failover-target-${app.id}`}
+            onChange={setTargetRuntimeId}
+            regionLabel="Target region"
+            targets={manualRuntimeTargets}
+            value={targetRuntimeId}
+          />
+        ) : null}
+
+        <form className="fg-settings-form" onSubmit={handleFailoverSubmit}>
+          <div className="fg-settings-form__actions">
+            <Button
+              disabled={!canQueueFailover}
+              loading={failoverSaving}
+              loadingLabel="Queueing…"
+              size="compact"
+              type="submit"
+              variant="primary"
+            >
+              Queue failover
+            </Button>
+          </div>
+        </form>
+      </div>
+    </section>
+  );
+}
+
 export function AppSettingsPanel({
   app,
   projectCatalog,
   projectId,
   projectManaged,
   projectName,
+  runtimeTargetInventoryError,
+  runtimeTargets,
   serviceCount,
 }: {
   app: ConsoleGalleryAppView;
@@ -310,6 +696,8 @@ export function AppSettingsPanel({
   projectId: string;
   projectManaged: boolean;
   projectName: string;
+  runtimeTargetInventoryError: string | null;
+  runtimeTargets: ConsoleImportRuntimeTargetView[];
   serviceCount: number;
 }) {
   const router = useRouter();
@@ -967,6 +1355,12 @@ export function AppSettingsPanel({
           </div>
         </section>
       ) : null}
+
+      <AppFailoverSection
+        app={app}
+        runtimeTargetInventoryError={runtimeTargetInventoryError}
+        runtimeTargets={runtimeTargets}
+      />
     </div>
   );
 }

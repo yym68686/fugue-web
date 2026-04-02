@@ -1095,6 +1095,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/apps/{id}/failover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Fail Over App */
+        post: operations["failoverApp"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/operations": {
         parameters: {
             query?: never;
@@ -1517,7 +1534,13 @@ export interface components {
         AppWorkspaceSpec: {
             mount_path?: string;
             storage_path?: string;
+            storage_size?: string;
+            storage_class_name?: string;
             reset_token?: string;
+        };
+        AppFailoverSpec: {
+            target_runtime_id?: string;
+            auto?: boolean;
         };
         AppPostgresSpec: {
             image?: string;
@@ -1526,6 +1549,12 @@ export interface components {
             password?: string;
             service_name?: string;
             storage_path?: string;
+            storage_size?: string;
+            storage_class_name?: string;
+            /** Format: int32 */
+            instances?: number;
+            /** Format: int32 */
+            synchronous_replicas?: number;
             resources?: components["schemas"]["ResourceSpec"];
         };
         BackingServiceSpec: {
@@ -1591,6 +1620,7 @@ export interface components {
             files?: components["schemas"]["AppFile"][];
             workspace?: components["schemas"]["AppWorkspaceSpec"];
             postgres?: components["schemas"]["AppPostgresSpec"];
+            failover?: components["schemas"]["AppFailoverSpec"];
             restart_token?: string;
         };
         App: {
@@ -1754,6 +1784,9 @@ export interface components {
             started_at?: string;
             /** Format: date-time */
             completed_at?: string;
+        };
+        FailoverAppRequest: {
+            target_runtime_id?: string;
         };
         AuditEvent: {
             id: string;
@@ -4404,6 +4437,33 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    failoverApp: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["FailoverAppRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperationResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];

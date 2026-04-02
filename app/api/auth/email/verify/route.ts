@@ -1,8 +1,16 @@
 import { NextResponse } from "next/server";
 
 import { ensureAppUserRecord } from "@/lib/app-users/store";
+import {
+  AUTH_ERROR_ACCOUNT_BLOCKED,
+  AUTH_ERROR_ACCOUNT_DELETED,
+  AUTH_ERROR_INVALID_TOKEN,
+  AUTH_ERROR_SESSION_OPEN_FAILED,
+  type AuthErrorCode,
+  buildSignInErrorUrl,
+} from "@/lib/auth/errors";
 import { buildSessionHandoffUrl } from "@/lib/auth/finalize";
-import { buildOriginUrl, normalizeAuthOrigin, readRequestOrigin } from "@/lib/auth/origin";
+import { normalizeAuthOrigin, readRequestOrigin } from "@/lib/auth/origin";
 import { verifyToken } from "@/lib/auth/token";
 import { ensureWorkspaceAccess } from "@/lib/workspace/bootstrap";
 
@@ -17,24 +25,26 @@ type EmailVerifyPayload = {
   type: "email-verify";
 };
 
+function redirectWithError(origin: string, error: AuthErrorCode) {
+  return NextResponse.redirect(buildSignInErrorUrl(origin, error), {
+    status: 303,
+  });
+}
+
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const requestOrigin = readRequestOrigin(request);
   const token = url.searchParams.get("token");
 
   if (!token) {
-    return NextResponse.redirect(buildOriginUrl(requestOrigin, "/auth/sign-in?error=invalid-token"), {
-      status: 303,
-    });
+    return redirectWithError(requestOrigin, AUTH_ERROR_INVALID_TOKEN);
   }
 
   const payload = verifyToken<EmailVerifyPayload>(token);
   const payloadOrigin = normalizeAuthOrigin(payload?.origin) ?? requestOrigin;
 
   if (!payload || payload.type !== "email-verify") {
-    return NextResponse.redirect(buildOriginUrl(requestOrigin, "/auth/sign-in?error=invalid-token"), {
-      status: 303,
-    });
+    return redirectWithError(requestOrigin, AUTH_ERROR_INVALID_TOKEN);
   }
 
   const sessionUser = {
@@ -51,20 +61,15 @@ export async function GET(request: Request) {
     await ensureWorkspaceAccess(sessionUser);
   } catch (error) {
     if (error instanceof Error && error.message.includes("blocked")) {
-      return NextResponse.redirect(buildOriginUrl(payloadOrigin, "/auth/sign-in?error=account-blocked"), {
-        status: 303,
-      });
+      return redirectWithError(payloadOrigin, AUTH_ERROR_ACCOUNT_BLOCKED);
     }
 
     if (error instanceof Error && error.message.includes("deleted")) {
-      return NextResponse.redirect(buildOriginUrl(payloadOrigin, "/auth/sign-in?error=account-deleted"), {
-        status: 303,
-      });
+      return redirectWithError(payloadOrigin, AUTH_ERROR_ACCOUNT_DELETED);
     }
 
-    return NextResponse.redirect(buildOriginUrl(payloadOrigin, "/auth/sign-in?error=invalid-token"), {
-      status: 303,
-    });
+    console.error("Email sign-in provisioning failed.", error);
+    return redirectWithError(payloadOrigin, AUTH_ERROR_SESSION_OPEN_FAILED);
   }
 
   const returnTo = payload.returnTo ?? "/app";

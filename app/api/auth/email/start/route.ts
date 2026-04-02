@@ -69,7 +69,11 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "This account has been deleted." }, { status: 403 });
       }
 
-      return NextResponse.json({ error: "Could not open the session." }, { status: 500 });
+      console.error("Email sign-in provisioning failed.", error);
+      return NextResponse.json(
+        { error: "Fugue could not open the workspace session. Try again." },
+        { status: 500 },
+      );
     }
 
     const response = NextResponse.json({

@@ -1,9 +1,18 @@
 import { NextResponse } from "next/server";
 
 import { ensureAppUserRecord } from "@/lib/app-users/store";
+import {
+  AUTH_ERROR_ACCOUNT_BLOCKED,
+  AUTH_ERROR_ACCOUNT_DELETED,
+  AUTH_ERROR_OAUTH_DENIED,
+  AUTH_ERROR_OAUTH_FAILED,
+  AUTH_ERROR_SESSION_OPEN_FAILED,
+  type AuthErrorCode,
+  buildSignInErrorUrl,
+} from "@/lib/auth/errors";
 import { buildSessionHandoffUrl } from "@/lib/auth/finalize";
 import { fetchGoogleUser, exchangeGoogleCode } from "@/lib/auth/google";
-import { buildOriginUrl, normalizeAuthOrigin, readRequestOrigin } from "@/lib/auth/origin";
+import { normalizeAuthOrigin, readRequestOrigin } from "@/lib/auth/origin";
 import { verifyToken } from "@/lib/auth/token";
 import { ensureWorkspaceAccess } from "@/lib/workspace/bootstrap";
 
@@ -16,9 +25,8 @@ type StatePayload = {
   type: "oauth-state";
 };
 
-function redirectWithError(origin: string, error: string) {
-  const destination = buildOriginUrl(origin, `/auth/sign-in?error=${error}`);
-  return NextResponse.redirect(destination, { status: 303 });
+function redirectWithError(origin: string, error: AuthErrorCode) {
+  return NextResponse.redirect(buildSignInErrorUrl(origin, error), { status: 303 });
 }
 
 export async function GET(request: Request) {
@@ -30,17 +38,17 @@ export async function GET(request: Request) {
   const stateOrigin = normalizeAuthOrigin(state?.origin) ?? requestOrigin;
 
   if (error) {
-    return redirectWithError(stateOrigin, "oauth_denied");
+    return redirectWithError(stateOrigin, AUTH_ERROR_OAUTH_DENIED);
   }
 
   const code = url.searchParams.get("code");
 
   if (!code || !stateToken) {
-    return redirectWithError(requestOrigin, "oauth_failed");
+    return redirectWithError(requestOrigin, AUTH_ERROR_OAUTH_FAILED);
   }
 
   if (!state || state.type !== "oauth-state") {
-    return redirectWithError(requestOrigin, "oauth_failed");
+    return redirectWithError(requestOrigin, AUTH_ERROR_OAUTH_FAILED);
   }
 
   try {
@@ -48,7 +56,7 @@ export async function GET(request: Request) {
     const user = await fetchGoogleUser(accessToken);
 
     if (!user.email || !user.email_verified) {
-      return redirectWithError(stateOrigin, "oauth_failed");
+      return redirectWithError(stateOrigin, AUTH_ERROR_OAUTH_FAILED);
     }
 
     const sessionUser = {
@@ -67,15 +75,15 @@ export async function GET(request: Request) {
       await ensureWorkspaceAccess(sessionUser);
     } catch (error) {
       if (error instanceof Error && error.message.includes("blocked")) {
-        return redirectWithError(stateOrigin, "account-blocked");
+        return redirectWithError(stateOrigin, AUTH_ERROR_ACCOUNT_BLOCKED);
       }
 
       if (error instanceof Error && error.message.includes("deleted")) {
-        return redirectWithError(stateOrigin, "account-deleted");
+        return redirectWithError(stateOrigin, AUTH_ERROR_ACCOUNT_DELETED);
       }
 
       console.error("Google sign-in provisioning failed.", error);
-      return redirectWithError(stateOrigin, "oauth_failed");
+      return redirectWithError(stateOrigin, AUTH_ERROR_SESSION_OPEN_FAILED);
     }
 
     return NextResponse.redirect(
@@ -84,6 +92,6 @@ export async function GET(request: Request) {
     );
   } catch (error) {
     console.error("Google OAuth callback failed.", error);
-    return redirectWithError(stateOrigin, "oauth_failed");
+    return redirectWithError(stateOrigin, AUTH_ERROR_OAUTH_FAILED);
   }
 }

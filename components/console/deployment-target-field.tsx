@@ -97,19 +97,32 @@ function RuntimeTargetCard({
 }
 
 export function DeploymentTargetField({
+  fallbackToDefaultTarget = true,
   inventoryError,
+  inventoryMessage = "Deployment targets are unavailable. This import will use the default internal cluster.",
+  legendLabel = "Deployment target",
   name,
   onChange,
+  regionLabel = "Deployment region",
   targets,
   value,
 }: {
+  fallbackToDefaultTarget?: boolean;
   inventoryError?: string | null;
+  inventoryMessage?: string;
+  legendLabel?: string;
   name: string;
   onChange?: (runtimeId: string | null) => void;
+  regionLabel?: string;
   targets: ConsoleImportRuntimeTargetView[];
   value: string | null;
 }) {
-  const availableTargets = targets.length > 0 ? targets : [DEFAULT_INTERNAL_CLUSTER_TARGET];
+  const availableTargets =
+    targets.length > 0
+      ? targets
+      : fallbackToDefaultTarget
+        ? [DEFAULT_INTERNAL_CLUSTER_TARGET]
+        : [];
   const groups = buildImportRuntimeTargetGroups(availableTargets);
   const selectedGroupId = readSelectedRuntimeTargetGroupId(groups, value);
   const selectedGroup =
@@ -146,13 +159,12 @@ export function DeploymentTargetField({
   return (
     <fieldset className="fg-field-stack fg-runtime-target-field">
       <legend className="fg-field-label fg-runtime-target-field__legend">
-        <span>Deployment target</span>
+        <span>{legendLabel}</span>
       </legend>
 
       {inventoryError ? (
         <InlineAlert variant="info">
-          Deployment targets are unavailable. This import will use the default
-          internal cluster.
+          {inventoryMessage}
         </InlineAlert>
       ) : null}
 
@@ -186,7 +198,7 @@ export function DeploymentTargetField({
           <FormField
             hint={regionHint}
             htmlFor={regionSelectId}
-            label="Deployment region"
+            label={regionLabel}
             optionalLabel={
               selectedGroup.options.length === 1 ? "Fixed" : undefined
             }

@@ -1386,7 +1386,11 @@ function buildSharedAppView(
 
   return {
     canRedeploy: redeploy.canRedeploy,
+    currentRuntimeId: app.status.currentRuntimeId ?? app.spec.runtimeId,
     deployBehavior: readDeployBehavior(app),
+    failoverAuto: app.spec.failover?.auto ?? false,
+    failoverConfigured: Boolean(app.spec.failover),
+    failoverTargetRuntimeId: app.spec.failover?.targetRuntimeId ?? null,
     hasPostgresService: app.backingServices.some((service) => service.type === "postgres"),
     id: app.id,
     locationCountryCode: options?.location?.locationCountryCode ?? null,
@@ -1403,6 +1407,7 @@ function buildSharedAppView(
     routeHostname,
     routeLabel: route.label,
     routePublicUrl: app.route.publicUrl?.trim() || null,
+    runtimeId: app.spec.runtimeId ?? null,
     serviceBadges,
     sourceBranchHref:
       sourceBranchLabel && sourceBranchLabel !== "Default branch"

@@ -41,7 +41,11 @@ export type ConsoleGalleryAppView = {
   currentCommitExact: string | null;
   currentCommitHref: string | null;
   currentCommitLabel: string | null;
+  currentRuntimeId: string | null;
   deployBehavior: string;
+  failoverAuto: boolean;
+  failoverConfigured: boolean;
+  failoverTargetRuntimeId: string | null;
   hasPostgresService: boolean;
   id: string;
   lastMessage: string | null;
@@ -61,6 +65,7 @@ export type ConsoleGalleryAppView = {
   routeHostname: string | null;
   routeLabel: string;
   routePublicUrl: string | null;
+  runtimeId: string | null;
   serviceBadges: ConsoleGalleryBadgeView[];
   serviceDurationLabel: string | null;
   serviceRole: ConsoleGalleryAppServiceRole;

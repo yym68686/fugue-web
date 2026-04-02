@@ -3341,6 +3341,8 @@ export function ConsoleProjectGallery({
                     projectId={project.id}
                     projectManaged={project.id !== "unassigned"}
                     projectName={project.name}
+                    runtimeTargetInventoryError={data.runtimeTargetInventoryError}
+                    runtimeTargets={data.runtimeTargets}
                     serviceCount={project.serviceCount}
                   />
                 ) : null}

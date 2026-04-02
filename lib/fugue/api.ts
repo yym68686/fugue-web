@@ -275,6 +275,13 @@ function buildAppWorkspaceView(workspace?: CamelizedSchema<"AppWorkspaceSpec"> |
   };
 }
 
+function buildAppFailoverView(failover?: CamelizedSchema<"AppFailoverSpec"> | null) {
+  return {
+    auto: failover?.auto ?? false,
+    targetRuntimeId: readNullableString(failover?.targetRuntimeId),
+  };
+}
+
 function buildFilesystemEntryView(entry: CamelizedSchema<"AppFilesystemEntry">) {
   return {
     hasChildren: entry.hasChildren ?? false,
@@ -460,6 +467,7 @@ function buildAppView(app: CamelizedSchema<"App">) {
       runtimeId: readNullableString(spec?.runtimeId),
       replicas,
       disabled: (replicas ?? 0) === 0,
+      failover: spec?.failover ? buildAppFailoverView(spec.failover) : null,
       resources: spec?.resources ? buildResourceSpecView(spec.resources) : null,
       workspace: spec?.workspace ? buildAppWorkspaceView(spec.workspace) : null,
     },
@@ -993,6 +1001,7 @@ export type FugueApiKey = ReturnType<typeof buildApiKeyView>;
 export type FugueNodeKey = ReturnType<typeof buildNodeKeyView>;
 export type FugueAppFile = ReturnType<typeof buildAppFileView>;
 export type FugueAppWorkspace = ReturnType<typeof buildAppWorkspaceView>;
+export type FugueAppFailover = ReturnType<typeof buildAppFailoverView>;
 export type FugueFilesystemEntry = ReturnType<typeof buildFilesystemEntryView>;
 export type FugueAppTechnology = ReturnType<typeof buildAppTechnologyView>;
 export type FugueResourceSpec = ReturnType<typeof buildResourceSpecView>;
@@ -2267,6 +2276,34 @@ export async function disableFugueApp(accessToken: string, appId: string) {
   );
 
   return buildDisableResultView(response);
+}
+
+export async function failoverFugueApp(
+  accessToken: string,
+  appId: string,
+  options?: {
+    targetRuntimeId?: string;
+  },
+) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}/failover`,
+      client.POST("/v1/apps/{id}/failover", {
+        body:
+          options?.targetRuntimeId !== undefined
+            ? {
+                target_runtime_id: options.targetRuntimeId,
+              }
+            : undefined,
+        params: {
+          path: { id: appId },
+        },
+      }),
+    ),
+  );
+
+  return buildOperationResultView(response);
 }
 
 export async function deleteFugueApp(accessToken: string, appId: string) {

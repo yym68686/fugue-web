@@ -4,6 +4,16 @@ import { AuthShell } from "@/components/auth/auth-shell";
 import { EmailAuthForm } from "@/components/auth/email-auth-form";
 import { ProviderButton } from "@/components/auth/provider-button";
 import { Panel, PanelCopy, PanelDivider, PanelSection, PanelTitle } from "@/components/ui/panel";
+import {
+  AUTH_ERROR_ACCOUNT_BLOCKED,
+  AUTH_ERROR_ACCOUNT_DELETED,
+  AUTH_ERROR_AUTH_REQUIRED,
+  AUTH_ERROR_HANDOFF_FAILED,
+  AUTH_ERROR_INVALID_TOKEN,
+  AUTH_ERROR_OAUTH_DENIED,
+  AUTH_ERROR_OAUTH_FAILED,
+  AUTH_ERROR_SESSION_OPEN_FAILED,
+} from "@/lib/auth/errors";
 import { readAuthenticatedAppPath } from "@/lib/auth/handoff";
 import { buildReturnToHref, sanitizeReturnTo } from "@/lib/auth/validation";
 import { ToastOnMount } from "@/components/ui/toast-on-mount";
@@ -19,27 +29,44 @@ function readFlash(params: Record<string, string | string[] | undefined>) {
   const error = readValue(params.error);
   const state = readValue(params.state);
 
-  if (error === "oauth_denied") {
+  if (error === AUTH_ERROR_OAUTH_DENIED) {
     return { message: "Google sign-in was cancelled before authorization finished.", variant: "error" as const };
   }
 
-  if (error === "oauth_failed") {
-    return { message: "Google sign-in failed. Check the provider setup and try again.", variant: "error" as const };
+  if (error === AUTH_ERROR_OAUTH_FAILED) {
+    return {
+      message: "Google sign-in could not be completed. Check the callback URL and provider credentials, then try again.",
+      variant: "error" as const,
+    };
   }
 
-  if (error === "invalid-token") {
+  if (error === AUTH_ERROR_INVALID_TOKEN) {
     return { message: "That email link is invalid or expired. Request a fresh one.", variant: "error" as const };
   }
 
-  if (error === "auth-required") {
+  if (error === AUTH_ERROR_SESSION_OPEN_FAILED) {
+    return {
+      message: "Sign-in was verified, but Fugue could not open your workspace session. Try again in a minute.",
+      variant: "error" as const,
+    };
+  }
+
+  if (error === AUTH_ERROR_HANDOFF_FAILED) {
+    return {
+      message: "Sign-in was verified, but the browser session handoff expired before the cookie was written. Start again.",
+      variant: "error" as const,
+    };
+  }
+
+  if (error === AUTH_ERROR_AUTH_REQUIRED) {
     return { message: "Sign in first to open the console.", variant: "info" as const };
   }
 
-  if (error === "account-blocked") {
+  if (error === AUTH_ERROR_ACCOUNT_BLOCKED) {
     return { message: "This account is blocked. Contact an administrator.", variant: "error" as const };
   }
 
-  if (error === "account-deleted") {
+  if (error === AUTH_ERROR_ACCOUNT_DELETED) {
     return { message: "This account has been deleted and can no longer sign in.", variant: "error" as const };
   }
 
