@@ -30,6 +30,12 @@ export function sanitizeReturnTo(value: string | null | undefined) {
   return value;
 }
 
+export function buildReturnToHref(pathname: string, returnTo: string | null | undefined) {
+  const sanitizedReturnTo = sanitizeReturnTo(returnTo);
+  const separator = pathname.includes("?") ? "&" : "?";
+  return `${pathname}${separator}returnTo=${encodeURIComponent(sanitizedReturnTo)}`;
+}
+
 export function readBooleanEnv(value: string | undefined, fallback = false) {
   if (value === undefined) {
     return fallback;

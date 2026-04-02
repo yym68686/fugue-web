@@ -2,8 +2,9 @@ import "server-only";
 
 import { getAppUserByEmail } from "@/lib/app-users/store";
 import { getCurrentSession } from "@/lib/auth/session";
+import { sanitizeReturnTo } from "@/lib/auth/validation";
 
-export async function readAuthenticatedAppPath() {
+export async function readAuthenticatedAppPath(returnTo?: string | null) {
   const session = await getCurrentSession();
 
   if (!session) {
@@ -17,7 +18,7 @@ export async function readAuthenticatedAppPath() {
       return null;
     }
 
-    return "/app";
+    return sanitizeReturnTo(returnTo);
   } catch {
     return null;
   }

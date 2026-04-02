@@ -7,6 +7,7 @@ import {
   getFugueBillingSummary,
   getFugueApps,
   getFugueClusterNodes,
+  getFugueControlPlaneStatus,
   getFugueProjects,
   getFugueTenants,
   setFugueBillingBalance,
@@ -19,6 +20,8 @@ import {
   type FugueClusterNodeMemoryStats,
   type FugueClusterNodeStorageStats,
   type FugueClusterNodeWorkload,
+  type FugueControlPlaneComponent,
+  type FugueControlPlaneStatus,
   type FugueProject,
   type FugueResourceSpec,
   type FugueTenant,
@@ -90,7 +93,6 @@ export type AdminUserView = {
   serviceCount: number;
   status: string;
   statusTone: ConsoleTone;
-  tenantLabel: string;
   usage: AdminUserServiceUsageView;
   verified: boolean;
 };
@@ -184,7 +186,35 @@ export type AdminClusterNodeView = {
   zoneLabel: string;
 };
 
+export type AdminControlPlaneComponentView = {
+  component: string;
+  componentLabel: string;
+  deploymentName: string;
+  imageExact: string;
+  imageRepositoryLabel: string;
+  imageTagExact: string;
+  imageTagLabel: string;
+  replicaLabel: string;
+  rolloutLabel: string;
+  statusLabel: string;
+  statusTone: ConsoleTone;
+};
+
+export type AdminControlPlaneView = {
+  components: AdminControlPlaneComponentView[];
+  namespaceLabel: string;
+  observedExact: string;
+  observedLabel: string;
+  releaseInstanceLabel: string;
+  statusLabel: string;
+  statusTone: ConsoleTone;
+  summaryLabel: string;
+  versionExact: string;
+  versionLabel: string;
+};
+
 export type AdminClusterPageData = {
+  controlPlane: AdminControlPlaneView | null;
   errors: string[];
   nodes: AdminClusterNodeView[];
   summary: {
@@ -205,6 +235,10 @@ const CLUSTER_READY_CONDITION = "Ready";
 const CLUSTER_MEMORY_PRESSURE_CONDITION = "MemoryPressure";
 const CLUSTER_DISK_PRESSURE_CONDITION = "DiskPressure";
 const CLUSTER_PID_PRESSURE_CONDITION = "PIDPressure";
+const CONTROL_PLANE_COMPONENT_ORDER = new Map([
+  ["api", 0],
+  ["controller", 1],
+]);
 const MICRO_CENTS_PER_DOLLAR = 100_000_000;
 
 function readErrorMessage(error: unknown) {
@@ -298,6 +332,29 @@ function shortId(value?: string | null) {
   return value.length <= 18 ? value : `${value.slice(0, 8)}…${value.slice(-6)}`;
 }
 
+function shortControlPlaneVersion(value?: string | null) {
+  const normalized = value?.trim();
+  if (!normalized) {
+    return "Unavailable";
+  }
+  if (/^[0-9a-f]{12,}$/i.test(normalized)) {
+    return normalized.slice(0, 12);
+  }
+  if (normalized.length <= 22) {
+    return normalized;
+  }
+  return `${normalized.slice(0, 14)}…${normalized.slice(-6)}`;
+}
+
+function shortImageRepository(value?: string | null) {
+  const normalized = value?.trim();
+  if (!normalized) {
+    return "Unknown image";
+  }
+  const segments = normalized.split("/").filter(Boolean);
+  return segments.at(-1) ?? normalized;
+}
+
 function readProviderLabel(value?: string | null) {
   switch (value?.trim().toLowerCase()) {
     case "google":
@@ -318,6 +375,98 @@ function normalizeTechKind(value?: string | null) {
 function canRebuildApp(app: FugueApp) {
   const sourceType = app.source.type?.trim().toLowerCase() ?? "";
   return REBUILDABLE_APP_SOURCE_TYPES.has(sourceType);
+}
+
+function readControlPlaneTone(value?: string | null): ConsoleTone {
+  switch (value?.trim().toLowerCase()) {
+    case "ready":
+      return "positive";
+    case "rolling":
+      return "info";
+    case "mixed":
+      return "warning";
+    case "degraded":
+    case "missing":
+      return "danger";
+    default:
+      return "neutral";
+  }
+}
+
+function readControlPlaneOverviewStatusLabel(value?: string | null) {
+  switch (value?.trim().toLowerCase()) {
+    case "ready":
+      return "Synced";
+    case "rolling":
+      return "Rolling";
+    case "mixed":
+      return "Mixed";
+    case "degraded":
+      return "Attention";
+    case "missing":
+      return "Missing";
+    default:
+      return humanize(value);
+  }
+}
+
+function readControlPlaneComponentStatusLabel(value?: string | null) {
+  switch (value?.trim().toLowerCase()) {
+    case "ready":
+      return "Ready";
+    case "rolling":
+      return "Rolling";
+    case "mixed":
+      return "Mixed";
+    case "degraded":
+      return "Attention";
+    case "missing":
+      return "Missing";
+    default:
+      return humanize(value);
+  }
+}
+
+function readControlPlaneVersionLabel(status?: string | null, version?: string | null) {
+  if (version?.trim()) {
+    return `Release ${shortControlPlaneVersion(version)}`;
+  }
+
+  switch (status?.trim().toLowerCase()) {
+    case "mixed":
+      return "Mixed release";
+    case "rolling":
+      return "Rolling release";
+    default:
+      return "Version unavailable";
+  }
+}
+
+function readControlPlaneSummaryLabel(value?: string | null) {
+  switch (value?.trim().toLowerCase()) {
+    case "ready":
+      return "API and controller report the same deployed image tag, with every replica updated and available.";
+    case "rolling":
+      return "At least one control plane deployment is still reconciling replicas or has not converged on a single image tag yet.";
+    case "mixed":
+      return "API and controller are healthy, but they currently advertise different deployed image tags.";
+    case "degraded":
+    case "missing":
+      return "One or more control plane deployments are missing or below the desired rollout state.";
+    default:
+      return "Current control plane rollout details from the in-cluster API.";
+  }
+}
+
+function readControlPlaneComponentLabel(value?: string | null) {
+  switch (value?.trim().toLowerCase()) {
+    case "api":
+      return "API";
+    case "controller":
+      return "Controller";
+    default:
+      return humanize(value);
+  }
 }
 
 function buildAppStack(app: FugueApp) {
@@ -563,7 +712,6 @@ function buildUserViews(
   users: AppUserRecord[],
   workspaces: WorkspaceSnapshot[],
   apps: FugueApp[],
-  tenants: FugueTenant[],
   billingByTenant: Map<string, AdminTenantBillingLookup>,
 ) {
   let bootstrapAdminEmail: string | null = null;
@@ -590,9 +738,6 @@ function buildUserViews(
     workspaces.map((workspace) => [workspace.email, workspace] as const),
   );
   const tenantServiceUsageByTenant = buildAdminTenantServiceUsageLookup(apps);
-  const tenantNames = new Map(
-    tenants.map((tenant) => [tenant.id, tenant.name] as const),
-  );
 
   return users.map((user) => {
     const workspace = workspaceByEmail.get(user.email);
@@ -621,10 +766,6 @@ function buildUserViews(
       serviceCount,
       status: humanize(user.status),
       statusTone: toneForStatus(user.status),
-      tenantLabel:
-        workspace?.tenantId
-          ? tenantNames.get(workspace.tenantId) ?? workspace.tenantName ?? shortId(workspace.tenantId)
-          : "No workspace",
       usage: buildAdminUserServiceUsageView(tenantServiceUsage),
       verified: user.verified,
     } satisfies AdminUserView;
@@ -1542,16 +1683,14 @@ export async function getAdminUsersPageData(): Promise<AdminUsersPageData> {
   ].filter((value): value is string => Boolean(value));
 
   let apps: FugueApp[] = [];
-  let tenants: FugueTenant[] = [];
   let billingByTenant = new Map<string, AdminTenantBillingLookup>();
 
   try {
     const bootstrapKey = getFugueEnv().bootstrapKey;
     const userEmails = new Set(users.map((user) => user.email));
     const billingWorkspaces = workspaces.filter((workspace) => userEmails.has(workspace.email));
-    const [appsResult, tenantsResult, billingResult] = await Promise.allSettled([
+    const [appsResult, billingResult] = await Promise.allSettled([
       getFugueApps(bootstrapKey),
-      getFugueTenants(bootstrapKey),
       getAdminUserBillingLookup(bootstrapKey, billingWorkspaces),
     ]);
 
@@ -1559,12 +1698,6 @@ export async function getAdminUsersPageData(): Promise<AdminUsersPageData> {
       apps = appsResult.value;
     } else {
       errors.push(`apps: ${readErrorMessage(appsResult.reason)}`);
-    }
-
-    if (tenantsResult.status === "fulfilled") {
-      tenants = tenantsResult.value;
-    } else {
-      errors.push(`tenants: ${readErrorMessage(tenantsResult.reason)}`);
     }
 
     if (billingResult.status === "fulfilled") {
@@ -1577,7 +1710,7 @@ export async function getAdminUsersPageData(): Promise<AdminUsersPageData> {
     errors.push(readErrorMessage(error));
   }
 
-  const views = buildUserViews(users, workspaces, apps, tenants, billingByTenant);
+  const views = buildUserViews(users, workspaces, apps, billingByTenant);
 
   return {
     errors,
@@ -1629,6 +1762,63 @@ export async function setAdminUserBillingBalanceForEmail(
   });
 }
 
+function buildControlPlaneComponentView(
+  component: FugueControlPlaneComponent,
+): AdminControlPlaneComponentView {
+  return {
+    component: component.component,
+    componentLabel: readControlPlaneComponentLabel(component.component),
+    deploymentName: component.deploymentName || "Unresolved deployment",
+    imageExact: component.image || "Unknown image",
+    imageRepositoryLabel: shortImageRepository(component.imageRepository),
+    imageTagExact: component.imageTag ?? "",
+    imageTagLabel: component.imageTag
+      ? shortControlPlaneVersion(component.imageTag)
+      : "No tag",
+    replicaLabel: `${component.readyReplicas}/${component.desiredReplicas} ready`,
+    rolloutLabel: `${component.updatedReplicas} updated / ${component.availableReplicas} available`,
+    statusLabel: readControlPlaneComponentStatusLabel(component.status),
+    statusTone: readControlPlaneTone(component.status),
+  };
+}
+
+function buildControlPlaneView(
+  controlPlane: FugueControlPlaneStatus,
+): AdminControlPlaneView {
+  const components = [...(controlPlane.components ?? [])]
+    .sort((left, right) => {
+      const leftOrder =
+        CONTROL_PLANE_COMPONENT_ORDER.get(left.component ?? "") ??
+        Number.MAX_SAFE_INTEGER;
+      const rightOrder =
+        CONTROL_PLANE_COMPONENT_ORDER.get(right.component ?? "") ??
+        Number.MAX_SAFE_INTEGER;
+
+      if (leftOrder !== rightOrder) {
+        return leftOrder - rightOrder;
+      }
+
+      return (left.component ?? "").localeCompare(right.component ?? "");
+    })
+    .map(buildControlPlaneComponentView);
+
+  return {
+    components,
+    namespaceLabel: controlPlane.namespace || "Unknown namespace",
+    observedExact: formatExactTime(controlPlane.observedAt),
+    observedLabel: formatRelativeTime(controlPlane.observedAt),
+    releaseInstanceLabel: controlPlane.releaseInstance || "Unknown release",
+    statusLabel: readControlPlaneOverviewStatusLabel(controlPlane.status),
+    statusTone: readControlPlaneTone(controlPlane.status),
+    summaryLabel: readControlPlaneSummaryLabel(controlPlane.status),
+    versionExact: controlPlane.version ?? "",
+    versionLabel: readControlPlaneVersionLabel(
+      controlPlane.status,
+      controlPlane.version,
+    ),
+  };
+}
+
 export async function getAdminClusterPageData(): Promise<AdminClusterPageData> {
   let bootstrapKey: string;
 
@@ -1636,6 +1826,7 @@ export async function getAdminClusterPageData(): Promise<AdminClusterPageData> {
     bootstrapKey = getFugueEnv().bootstrapKey;
   } catch (error) {
     return {
+      controlPlane: null,
       errors: [readErrorMessage(error)],
       nodes: [],
       summary: {
@@ -1647,9 +1838,10 @@ export async function getAdminClusterPageData(): Promise<AdminClusterPageData> {
     };
   }
 
-  const [tenantsResult, nodesResult] = await Promise.allSettled([
+  const [tenantsResult, nodesResult, controlPlaneResult] = await Promise.allSettled([
     getFugueTenants(bootstrapKey),
     getFugueClusterNodes(bootstrapKey),
+    getFugueControlPlaneStatus(bootstrapKey),
   ]);
 
   const errors = [
@@ -1659,13 +1851,21 @@ export async function getAdminClusterPageData(): Promise<AdminClusterPageData> {
     nodesResult.status === "rejected"
       ? `cluster nodes: ${readErrorMessage(nodesResult.reason)}`
       : null,
+    controlPlaneResult.status === "rejected"
+      ? `control plane: ${readErrorMessage(controlPlaneResult.reason)}`
+      : null,
   ].filter((value): value is string => Boolean(value));
 
   const tenants = tenantsResult.status === "fulfilled" ? tenantsResult.value : [];
   const nodes = nodesResult.status === "fulfilled" ? nodesResult.value : [];
+  const controlPlane =
+    controlPlaneResult.status === "fulfilled"
+      ? buildControlPlaneView(controlPlaneResult.value)
+      : null;
   const views = buildClusterNodeViews(nodes, tenants);
 
   return {
+    controlPlane,
     errors,
     nodes: views,
     summary: {

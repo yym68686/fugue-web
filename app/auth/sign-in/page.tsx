@@ -5,6 +5,7 @@ import { EmailAuthForm } from "@/components/auth/email-auth-form";
 import { ProviderButton } from "@/components/auth/provider-button";
 import { Panel, PanelCopy, PanelDivider, PanelSection, PanelTitle } from "@/components/ui/panel";
 import { readAuthenticatedAppPath } from "@/lib/auth/handoff";
+import { buildReturnToHref, sanitizeReturnTo } from "@/lib/auth/validation";
 import { ToastOnMount } from "@/components/ui/toast-on-mount";
 import { getEmailVerificationRequired } from "@/lib/auth/env";
 
@@ -54,13 +55,13 @@ export default async function SignInPage({
 }: {
   searchParams: SearchParams;
 }) {
-  const authenticatedAppPath = await readAuthenticatedAppPath();
+  const resolved = await Promise.resolve(searchParams);
+  const returnTo = sanitizeReturnTo(readValue(resolved.returnTo));
+  const authenticatedAppPath = await readAuthenticatedAppPath(returnTo);
 
   if (authenticatedAppPath) {
     redirect(authenticatedAppPath);
   }
-
-  const resolved = await Promise.resolve(searchParams);
   const flash = readFlash(resolved);
   const emailVerificationRequired = getEmailVerificationRequired();
 
@@ -84,13 +85,16 @@ export default async function SignInPage({
           <PanelTitle>Choose a sign-in method.</PanelTitle>
           <PanelCopy>Google is fastest. Email works with a magic link.</PanelCopy>
           <p className="fg-auth-footer">
-            Need a fresh account boundary? <a href="/auth/sign-up">Create an account</a>.
+            Need a fresh account boundary? <a href={buildReturnToHref("/auth/sign-up", returnTo)}>Create an account</a>.
           </p>
         </PanelSection>
 
         <PanelSection>
           <div className="fg-provider-stack">
-            <ProviderButton href="/api/auth/google/start?mode=signin&returnTo=/app" provider="google" />
+            <ProviderButton
+              href={`/api/auth/google/start?mode=signin&returnTo=${encodeURIComponent(returnTo)}`}
+              provider="google"
+            />
           </div>
         </PanelSection>
 
@@ -100,7 +104,11 @@ export default async function SignInPage({
 
         <PanelSection>
           <ToastOnMount message={flash?.message ?? null} variant={flash?.variant ?? "info"} />
-          <EmailAuthForm emailVerificationRequired={emailVerificationRequired} mode="signin" />
+          <EmailAuthForm
+            emailVerificationRequired={emailVerificationRequired}
+            mode="signin"
+            returnTo={returnTo}
+          />
         </PanelSection>
       </Panel>
     </AuthShell>

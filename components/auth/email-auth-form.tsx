@@ -14,6 +14,7 @@ type FormState =
 type EmailAuthFormProps = {
   emailVerificationRequired: boolean;
   mode: "signin" | "signup";
+  returnTo: string;
 };
 
 type ApiPayload = {
@@ -23,7 +24,11 @@ type ApiPayload = {
   redirectTo?: string;
 };
 
-export function EmailAuthForm({ emailVerificationRequired, mode }: EmailAuthFormProps) {
+export function EmailAuthForm({
+  emailVerificationRequired,
+  mode,
+  returnTo,
+}: EmailAuthFormProps) {
   const { showToast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [state, setState] = useState<FormState>({ kind: "idle" });
@@ -61,6 +66,7 @@ export function EmailAuthForm({ emailVerificationRequired, mode }: EmailAuthForm
       body: JSON.stringify({
         email: formData.get("email"),
         mode,
+        returnTo,
       }),
     });
 

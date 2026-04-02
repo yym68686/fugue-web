@@ -7,6 +7,7 @@ import { InlineAlert } from "@/components/ui/inline-alert";
 import { Panel, PanelCopy, PanelDivider, PanelSection, PanelTitle } from "@/components/ui/panel";
 import { getEmailVerificationRequired } from "@/lib/auth/env";
 import { readAuthenticatedAppPath } from "@/lib/auth/handoff";
+import { buildReturnToHref, sanitizeReturnTo } from "@/lib/auth/validation";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>> | Record<string, string | string[] | undefined>;
 
@@ -19,13 +20,13 @@ export default async function SignUpPage({
 }: {
   searchParams: SearchParams;
 }) {
-  const authenticatedAppPath = await readAuthenticatedAppPath();
+  const resolved = await Promise.resolve(searchParams);
+  const returnTo = sanitizeReturnTo(readValue(resolved.returnTo));
+  const authenticatedAppPath = await readAuthenticatedAppPath(returnTo);
 
   if (authenticatedAppPath) {
     redirect(authenticatedAppPath);
   }
-
-  const resolved = await Promise.resolve(searchParams);
   const state = readValue(resolved.state);
   const emailVerificationRequired = getEmailVerificationRequired();
 
@@ -49,13 +50,16 @@ export default async function SignUpPage({
           <PanelTitle>Choose a sign-up method.</PanelTitle>
           <PanelCopy>Google is fastest. Email works with a magic link.</PanelCopy>
           <p className="fg-auth-footer">
-            Already have access? <a href="/auth/sign-in">Sign in instead</a>.
+            Already have access? <a href={buildReturnToHref("/auth/sign-in", returnTo)}>Sign in instead</a>.
           </p>
         </PanelSection>
 
         <PanelSection>
           <div className="fg-provider-stack">
-            <ProviderButton href="/api/auth/google/start?mode=signup&returnTo=/app" provider="google" />
+            <ProviderButton
+              href={`/api/auth/google/start?mode=signup&returnTo=${encodeURIComponent(returnTo)}`}
+              provider="google"
+            />
           </div>
         </PanelSection>
 
@@ -70,7 +74,11 @@ export default async function SignUpPage({
               <div style={{ height: "1rem" }} aria-hidden="true" />
             </>
           ) : null}
-          <EmailAuthForm emailVerificationRequired={emailVerificationRequired} mode="signup" />
+          <EmailAuthForm
+            emailVerificationRequired={emailVerificationRequired}
+            mode="signup"
+            returnTo={returnTo}
+          />
         </PanelSection>
       </Panel>
     </AuthShell>

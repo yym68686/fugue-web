@@ -1,3 +1,4 @@
+import { AdminControlPlanePanel } from "@/components/admin/admin-control-plane-panel";
 import { AdminClusterOverview } from "@/components/admin/admin-cluster-overview";
 import { AdminSummaryGrid } from "@/components/admin/admin-summary-grid";
 import { ConsolePageIntro } from "@/components/console/console-page-intro";
@@ -17,10 +18,12 @@ export default async function ClusterPage() {
       <ToastOnMount message={errorMessage} variant="error" />
 
       <ConsolePageIntro
-        description="Node health, capacity, and workload placement across the cluster."
+        description="Control plane rollout, node health, capacity, and workload placement across the cluster."
         eyebrow="Admin / Cluster"
         title="Cluster"
       />
+
+      <AdminControlPlanePanel controlPlane={data.controlPlane} />
 
       <AdminSummaryGrid
         items={[

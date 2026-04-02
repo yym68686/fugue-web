@@ -62,7 +62,6 @@ type AdminUserView = {
   serviceCount: number;
   status: string;
   statusTone: ConsoleTone;
-  tenantLabel: string;
   usage: AdminUserServiceUsageView;
   verified: boolean;
 };
@@ -698,7 +697,7 @@ export function AdminUserManager({
             <col className="fg-console-table__col fg-console-table__col--user" />
             <col className="fg-console-table__col fg-console-table__col--status" />
             <col className="fg-console-table__col fg-console-table__col--provider" />
-            <col className="fg-console-table__col fg-console-table__col--tenant" />
+            <col className="fg-console-table__col fg-console-table__col--balance" />
             <col className="fg-console-table__col fg-console-table__col--billing" />
             <col className="fg-console-table__col fg-console-table__col--services" />
             <col className="fg-console-table__col fg-console-table__col--last-login" />
@@ -709,13 +708,16 @@ export function AdminUserManager({
               <th>User</th>
               <th>Status</th>
               <th>Provider</th>
-              <th>Tenant</th>
+              <th>
+                <span className="fg-admin-user-column-head">
+                  <span className="fg-admin-user-column-head__label">Balance</span>
+                  <span className="fg-admin-user-column-head__meta">Prepaid / status</span>
+                </span>
+              </th>
               <th>
                 <span className="fg-admin-user-column-head">
                   <span className="fg-admin-user-column-head__label">Managed limit</span>
-                  <span className="fg-admin-user-column-head__meta">
-                    CPU / Memory / Monthly / Status
-                  </span>
+                  <span className="fg-admin-user-column-head__meta">CPU / Memory / Monthly</span>
                 </span>
               </th>
               <th>
@@ -758,36 +760,57 @@ export function AdminUserManager({
                 : user.billing.loadError
                   ? "Unavailable"
                   : "No billing";
-              const billingSummaryLabel = [
+              const balanceValueLabel =
+                user.billing.balanceLabel ??
+                (user.billing.loadError
+                  ? "Unavailable"
+                  : user.billing.tenantId
+                    ? "No balance"
+                    : "No workspace");
+              const balanceMetaLabel = user.billing.statusLabel
+                ? user.billing.statusLabel
+                : user.billing.loadError
+                  ? "Billing unavailable"
+                  : user.billing.tenantId
+                    ? "No billing"
+                    : "No workspace";
+              const managedLimitSummaryLabel = [
                 `CPU ${billingCpuLabel}`,
                 `Memory ${billingMemoryLabel}`,
                 `Monthly ${billingMonthlyLabel}`,
-                `Status ${billingStatusLabel}`,
               ].join(" / ");
-              const billingTitle = [
-                billingSummaryLabel,
-                `Limit ${user.billing.limitLabel}`,
-                user.billing.balanceLabel ? `${user.billing.balanceLabel} balance` : null,
+              const balanceTitle = [
+                `Balance ${balanceValueLabel}`,
+                balanceMetaLabel,
                 user.billing.statusReason,
                 user.billing.loadError,
               ]
                 .filter(Boolean)
                 .join(" / ");
+              const managedLimitTitle = [
+                managedLimitSummaryLabel,
+                `Limit ${user.billing.limitLabel}`,
+                user.billing.statusLabel ? `Status ${billingStatusLabel}` : null,
+                user.billing.statusReason,
+                user.billing.loadError,
+              ]
+                .filter(Boolean)
+                .join(" / ");
+              const balanceStatusContent = user.billing.statusLabel ? (
+                <StatusBadge className="fg-admin-user-signal-badge" tone={user.billing.statusTone}>
+                  {user.billing.statusLabel}
+                </StatusBadge>
+              ) : (
+                <span className="fg-admin-user-signal__fallback">
+                  {balanceMetaLabel}
+                </span>
+              );
               const usageSummaryLabel = [
                 `Services ${user.usage.serviceCountLabel}`,
                 `CPU ${user.usage.cpuLabel}`,
                 `Memory ${user.usage.memoryLabel}`,
                 `Disk ${user.usage.diskLabel}`,
               ].join(" / ");
-              const billingStatusContent = user.billing.statusLabel ? (
-                <StatusBadge className="fg-admin-user-signal-badge" tone={user.billing.statusTone}>
-                  {user.billing.statusLabel}
-                </StatusBadge>
-              ) : (
-                <span className="fg-admin-user-signal__fallback">
-                  {user.billing.loadError ? "Unavailable" : "No billing"}
-                </span>
-              );
 
               return (
                 <tr key={user.email}>
@@ -813,17 +836,18 @@ export function AdminUserManager({
                     </div>
                   </td>
                   <td>
-                    <span className="fg-console-table__clip" title={user.tenantLabel}>
-                      {user.tenantLabel}
-                    </span>
+                    <div className="fg-console-table__stack fg-admin-user-balance" title={balanceTitle || undefined}>
+                      <strong>{balanceValueLabel}</strong>
+                      <div className="fg-admin-user-balance__meta">{balanceStatusContent}</div>
+                    </div>
                   </td>
                   <td>
                     <div
                       className="fg-admin-user-billing"
-                      title={billingTitle || undefined}
+                      title={managedLimitTitle || undefined}
                     >
                       <dl
-                        aria-label={billingSummaryLabel}
+                        aria-label={managedLimitSummaryLabel}
                         className="fg-admin-user-signal-strip fg-admin-user-signal-strip--values-only"
                       >
                         <div className="fg-admin-user-signal">
@@ -837,10 +861,6 @@ export function AdminUserManager({
                         <div className="fg-admin-user-signal">
                           <dt>Monthly</dt>
                           <dd>{billingMonthlyLabel}</dd>
-                        </div>
-                        <div className="fg-admin-user-signal fg-admin-user-signal--status">
-                          <dt>Status</dt>
-                          <dd>{billingStatusContent}</dd>
                         </div>
                       </dl>
                     </div>

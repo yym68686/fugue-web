@@ -1,6 +1,7 @@
 @import "../design-system/index.css";
 @import "./landing.css";
 @import "./console.css";
+@import "./deploy.css";
 
 *,
 *::before,

@@ -13,6 +13,7 @@ type EmailVerifyPayload = {
   mode: "signin" | "signup";
   name?: string;
   origin?: string;
+  returnTo?: string;
   type: "email-verify";
 };
 
@@ -66,7 +67,9 @@ export async function GET(request: Request) {
     });
   }
 
-  return NextResponse.redirect(buildSessionHandoffUrl(payloadOrigin, sessionUser, "/app"), {
+  const returnTo = payload.returnTo ?? "/app";
+
+  return NextResponse.redirect(buildSessionHandoffUrl(payloadOrigin, sessionUser, returnTo), {
     status: 303,
   });
 }

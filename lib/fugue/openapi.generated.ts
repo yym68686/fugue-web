@@ -368,6 +368,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/cluster/control-plane": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Control Plane Status */
+        get: operations["getControlPlaneStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/nodes": {
         parameters: {
             query?: never;
@@ -605,6 +622,23 @@ export interface paths {
         put?: never;
         /** Import Git Hub App */
         post: operations["importGitHubApp"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/templates/inspect-github": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Inspect Git Hub Template */
+        post: operations["inspectGitHubTemplate"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1901,6 +1935,34 @@ export interface components {
         ClusterNodeListResponse: {
             cluster_nodes: components["schemas"]["ClusterNode"][];
         };
+        ControlPlaneComponent: {
+            component: string;
+            deployment_name: string;
+            image: string;
+            image_repository: string;
+            image_tag: string;
+            status: string;
+            /** Format: int32 */
+            desired_replicas: number;
+            /** Format: int32 */
+            ready_replicas: number;
+            /** Format: int32 */
+            updated_replicas: number;
+            /** Format: int32 */
+            available_replicas: number;
+        };
+        ControlPlaneStatus: {
+            namespace: string;
+            release_instance: string;
+            version: string;
+            status: string;
+            /** Format: date-time */
+            observed_at: string;
+            components: components["schemas"]["ControlPlaneComponent"][];
+        };
+        ControlPlaneStatusResponse: {
+            control_plane: components["schemas"]["ControlPlaneStatus"];
+        };
         RuntimeListResponse: {
             runtimes: components["schemas"]["Runtime"][];
         };
@@ -1932,6 +1994,64 @@ export interface components {
         };
         AppResponse: {
             app: components["schemas"]["App"];
+        };
+        InspectGitHubTemplateRequest: {
+            repo_url: string;
+            repo_visibility?: string;
+            repo_auth_token?: string;
+            branch?: string;
+        };
+        InspectGitHubTemplateRepository: {
+            repo_url: string;
+            repo_visibility: string;
+            repo_owner: string;
+            repo_name: string;
+            branch: string;
+            commit_sha: string;
+            commit_committed_at: string;
+            default_app_name: string;
+        };
+        InspectGitHubTemplateManifestService: {
+            service: string;
+            kind: string;
+            build_strategy: string;
+            /** Format: int32 */
+            internal_port: number;
+            compose_service: string;
+            published: boolean;
+            source_dir: string;
+            dockerfile_path: string;
+            build_context_dir: string;
+        };
+        InspectGitHubTemplateManifest: {
+            manifest_path: string;
+            primary_service: string;
+            services: components["schemas"]["InspectGitHubTemplateManifestService"][];
+            warnings: string[];
+        };
+        TemplateVariable: {
+            key: string;
+            label: string;
+            description: string;
+            default_value: string;
+            secret: boolean;
+            required: boolean;
+            generate: string;
+        };
+        TemplateMetadata: {
+            slug: string;
+            name: string;
+            description: string;
+            demo_url: string;
+            docs_url: string;
+            source_mode: string;
+            default_runtime: string;
+            variables: components["schemas"]["TemplateVariable"][];
+        };
+        InspectGitHubTemplateResponse: {
+            repository: components["schemas"]["InspectGitHubTemplateRepository"];
+            fugue_manifest?: components["schemas"]["InspectGitHubTemplateManifest"];
+            template?: components["schemas"]["TemplateMetadata"];
         };
         ImportGitHubRequest: {
             tenant_id?: string;
@@ -2077,6 +2197,7 @@ export interface components {
             path: string;
             /** Format: int32 */
             depth: number;
+            /** @description Root path of the current filesystem scope. This is the persistent workspace mount when browsing workspace storage, or / when browsing the live container filesystem. */
             workspace_root: string;
             entries: components["schemas"]["AppFilesystemEntry"][];
         };
@@ -2084,6 +2205,7 @@ export interface components {
             component: string;
             pod: string;
             path: string;
+            /** @description Root path of the current filesystem scope. This is the persistent workspace mount when browsing workspace storage, or / when browsing the live container filesystem. */
             workspace_root: string;
             content: string;
             encoding: string;
@@ -2107,6 +2229,7 @@ export interface components {
             component: string;
             pod: string;
             path: string;
+            /** @description Root path of the current filesystem scope. This is the persistent workspace mount when browsing workspace storage, or / when browsing the live container filesystem. */
             workspace_root: string;
             kind?: string;
             /** Format: int64 */
@@ -2183,6 +2306,7 @@ export interface components {
         ComponentQueryParam: string;
         PodQueryParam: string;
         DepthQueryParam: number;
+        /** @description Absolute path inside the selected filesystem scope. Tree requests default to the persistent workspace mount when configured, otherwise to /. Read, write, and delete operations require an explicit file or directory path. */
         PathQueryParam: string;
         FilePathsQueryParam: string[];
         MaxBytesQueryParam: number;
@@ -2868,6 +2992,27 @@ export interface operations {
             default: components["responses"]["ErrorResponse"];
         };
     };
+    getControlPlaneStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ControlPlaneStatusResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
     listNodes: {
         parameters: {
             query?: never;
@@ -3347,6 +3492,31 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ImportGitHubResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    inspectGitHubTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["InspectGitHubTemplateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InspectGitHubTemplateResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
@@ -3941,6 +4111,7 @@ export interface operations {
             query?: {
                 component?: components["parameters"]["ComponentQueryParam"];
                 depth?: components["parameters"]["DepthQueryParam"];
+                /** @description Absolute path inside the selected filesystem scope. Tree requests default to the persistent workspace mount when configured, otherwise to /. Read, write, and delete operations require an explicit file or directory path. */
                 path?: components["parameters"]["PathQueryParam"];
                 pod?: components["parameters"]["PodQueryParam"];
             };
@@ -3969,6 +4140,7 @@ export interface operations {
             query?: {
                 component?: components["parameters"]["ComponentQueryParam"];
                 max_bytes?: components["parameters"]["MaxBytesQueryParam"];
+                /** @description Absolute path inside the selected filesystem scope. Tree requests default to the persistent workspace mount when configured, otherwise to /. Read, write, and delete operations require an explicit file or directory path. */
                 path?: components["parameters"]["PathQueryParam"];
                 pod?: components["parameters"]["PodQueryParam"];
             };
@@ -4056,6 +4228,7 @@ export interface operations {
         parameters: {
             query?: {
                 component?: components["parameters"]["ComponentQueryParam"];
+                /** @description Absolute path inside the selected filesystem scope. Tree requests default to the persistent workspace mount when configured, otherwise to /. Read, write, and delete operations require an explicit file or directory path. */
                 path?: components["parameters"]["PathQueryParam"];
                 pod?: components["parameters"]["PodQueryParam"];
                 recursive?: components["parameters"]["RecursiveQueryParam"];

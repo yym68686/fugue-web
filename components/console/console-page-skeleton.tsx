@@ -121,6 +121,50 @@ function SummaryGridSkeleton() {
   );
 }
 
+function ControlPlanePanelSkeleton() {
+  return (
+    <Panel className="fg-control-plane-panel">
+      <PanelSection className="fg-control-plane-panel__hero">
+        <div className="fg-control-plane-panel__copy">
+          <div className="fg-control-plane-panel__eyebrow-row">
+            <SkeletonBlock className="fg-console-skeleton__eyebrow" width="7rem" />
+            <SkeletonBlock className="fg-console-skeleton__badge" width="4.75rem" />
+          </div>
+          <SkeletonBlock className="fg-console-skeleton__section-title" width="13rem" />
+          <SkeletonBlock className="fg-console-skeleton__copy is-wide" width="21rem" />
+        </div>
+
+        <dl className="fg-console-inline-meta fg-console-inline-meta--stacked fg-control-plane-panel__meta">
+          <MetadataPairSkeleton labelWidth="4.75rem" valueWidth="7rem" />
+          <MetadataPairSkeleton labelWidth="3.75rem" valueWidth="5.5rem" />
+          <MetadataPairSkeleton labelWidth="4.5rem" valueWidth="6rem" />
+        </dl>
+      </PanelSection>
+
+      <PanelSection className="fg-control-plane-panel__components">
+        {Array.from({ length: 2 }, (_, index) => (
+          <article className="fg-control-plane-card" key={`control-plane-card-${index}`}>
+            <div className="fg-control-plane-card__head">
+              <div className="fg-control-plane-card__identity">
+                <SkeletonBlock className="fg-console-skeleton__eyebrow" width="4.5rem" />
+                <SkeletonBlock className="fg-console-skeleton__item-title" width="6rem" />
+                <SkeletonBlock className="fg-console-skeleton__item-meta" width="9rem" />
+              </div>
+              <SkeletonBlock className="fg-console-skeleton__badge" width="4.5rem" />
+            </div>
+
+            <dl className="fg-cluster-node-facts fg-control-plane-card__facts">
+              <MetadataPairSkeleton labelWidth="4rem" valueWidth="5.5rem" />
+              <MetadataPairSkeleton labelWidth="4rem" valueWidth="7rem" />
+              <MetadataPairSkeleton labelWidth="3rem" valueWidth="6rem" />
+            </dl>
+          </article>
+        ))}
+      </PanelSection>
+    </Panel>
+  );
+}
+
 function MetadataPairSkeleton({
   labelWidth = "5rem",
   valueWidth = "8rem",
@@ -537,14 +581,24 @@ function AdminUsersTableSkeleton() {
           <col className="fg-console-table__col fg-console-table__col--user" />
           <col className="fg-console-table__col fg-console-table__col--status" />
           <col className="fg-console-table__col fg-console-table__col--provider" />
-          <col className="fg-console-table__col fg-console-table__col--tenant" />
+          <col className="fg-console-table__col fg-console-table__col--balance" />
+          <col className="fg-console-table__col fg-console-table__col--billing" />
           <col className="fg-console-table__col fg-console-table__col--services" />
           <col className="fg-console-table__col fg-console-table__col--last-login" />
           <col className="fg-console-table__col fg-console-table__col--user-actions" />
         </colgroup>
         <thead>
           <tr>
-            {["3.5rem", "3.75rem", "4.5rem", "3.75rem", "3.5rem", "5rem", "4rem"].map((width, index) => (
+            {[
+              "3.5rem",
+              "3.75rem",
+              "4.5rem",
+              "4rem",
+              "5.5rem",
+              "3.5rem",
+              "5rem",
+              "4rem",
+            ].map((width, index) => (
               <th key={`users-head-${index}`}>
                 <SkeletonBlock className="fg-console-skeleton__table-label" width={width} />
               </th>
@@ -573,10 +627,25 @@ function AdminUsersTableSkeleton() {
                 </div>
               </td>
               <td>
-                <SkeletonBlock className="fg-console-skeleton__item-title" width="6rem" />
+                <div className="fg-console-table__stack">
+                  <SkeletonBlock className="fg-console-skeleton__item-title" width="5.75rem" />
+                  <SkeletonBlock className="fg-console-skeleton__badge" width="4.6rem" />
+                </div>
               </td>
               <td>
-                <SkeletonBlock className="fg-console-skeleton__item-title" width="2rem" />
+                <div className="fg-console-tech-list">
+                  <SkeletonBlock className="fg-console-skeleton__chip" width="3.4rem" />
+                  <SkeletonBlock className="fg-console-skeleton__chip" width="4.25rem" />
+                  <SkeletonBlock className="fg-console-skeleton__chip" width="5rem" />
+                </div>
+              </td>
+              <td>
+                <div className="fg-console-tech-list">
+                  <SkeletonBlock className="fg-console-skeleton__chip" width="4.25rem" />
+                  <SkeletonBlock className="fg-console-skeleton__chip" width="3.75rem" />
+                  <SkeletonBlock className="fg-console-skeleton__chip" width="4rem" />
+                  <SkeletonBlock className="fg-console-skeleton__chip" width="3.5rem" />
+                </div>
               </td>
               <td>
                 <SkeletonBlock className="fg-console-skeleton__item-meta" width="5rem" />
@@ -850,6 +919,7 @@ export function ConsoleAdminClusterPageSkeleton() {
   return (
     <ConsoleSkeletonPage>
       <PageIntroSkeleton copyWidths={["26rem"]} titleWidth="10rem" />
+      <ControlPlanePanelSkeleton />
       <SummaryGridSkeleton />
       <ClusterGallerySkeleton />
     </ConsoleSkeletonPage>

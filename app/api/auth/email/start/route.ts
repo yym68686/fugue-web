@@ -10,6 +10,7 @@ import {
   isValidEmail,
   normalizeEmail,
   parseAuthMode,
+  sanitizeReturnTo,
   sanitizeDisplayName,
 } from "@/lib/auth/validation";
 import { ensureWorkspaceAccess } from "@/lib/workspace/bootstrap";
@@ -18,6 +19,7 @@ type RequestPayload = {
   email?: string;
   mode?: string;
   name?: string;
+  returnTo?: string;
 };
 
 export async function POST(request: Request) {
@@ -35,6 +37,7 @@ export async function POST(request: Request) {
   const email = normalizeEmail(payload.email ?? "");
   const mode = parseAuthMode(payload.mode);
   const name = sanitizeDisplayName(payload.name ?? "");
+  const returnTo = sanitizeReturnTo(payload.returnTo);
 
   if (!isValidEmail(email)) {
     return NextResponse.json({ error: "Enter a valid email address." }, { status: 400 });
@@ -72,7 +75,7 @@ export async function POST(request: Request) {
     const response = NextResponse.json({
       ok: true,
       message: "Email accepted. Opening the session now.",
-      redirectTo: "/app",
+      redirectTo: returnTo,
     });
 
     response.cookies.set(
@@ -92,6 +95,7 @@ export async function POST(request: Request) {
       mode,
       name: name || undefined,
       origin: requestOrigin,
+      returnTo,
     },
     60 * 15,
   );

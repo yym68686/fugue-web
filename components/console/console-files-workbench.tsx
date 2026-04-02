@@ -4,12 +4,13 @@ import {
   useEffect,
   useState,
   type CSSProperties,
+  type ReactNode,
 } from "react";
 
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
-import { FormField } from "@/components/ui/form-field";
 import { InlineAlert } from "@/components/ui/inline-alert";
+import { SegmentedControl, type SegmentedControlOption } from "@/components/ui/segmented-control";
 import { useToast } from "@/components/ui/toast";
 import { cx } from "@/lib/ui/cx";
 
@@ -18,6 +19,13 @@ type ConsoleFilesWorkbenchProps = {
   appName: string;
   workspaceMountPath: string | null;
 };
+
+type FilesystemRootMode = "filesystem" | "workspace";
+
+const FILESYSTEM_ROOT_MODE_OPTIONS: readonly SegmentedControlOption<FilesystemRootMode>[] = [
+  { label: "Live filesystem", value: "filesystem" },
+  { label: "Persistent workspace", value: "workspace" },
+];
 
 type FilesystemTreeEntryRecord = {
   hasChildren?: boolean;
@@ -163,7 +171,14 @@ function normalizeTreeEntries(entries: FilesystemTreeEntryRecord[]) {
 }
 
 function isPathWithin(basePath: string, targetPath: string) {
-  return targetPath === basePath || targetPath.startsWith(`${basePath}/`);
+  const cleanBase = trimTrailingSlash(basePath);
+  const cleanTarget = trimTrailingSlash(targetPath);
+
+  if (cleanBase === "/") {
+    return cleanTarget === "/" || cleanTarget.startsWith("/");
+  }
+
+  return cleanTarget === cleanBase || cleanTarget.startsWith(`${cleanBase}/`);
 }
 
 function trimTrailingSlash(value: string) {
@@ -193,6 +208,32 @@ function basename(targetPath: string) {
   const cleanPath = trimTrailingSlash(targetPath);
   const parts = cleanPath.split("/").filter(Boolean);
   return parts[parts.length - 1] ?? cleanPath;
+}
+
+function normalizeAbsolutePathInput(value: string) {
+  const trimmed = value.trim();
+
+  if (!trimmed.startsWith("/")) {
+    return null;
+  }
+
+  const segments = trimmed.split("/");
+  const normalized: string[] = [];
+
+  for (const segment of segments) {
+    if (!segment || segment === ".") {
+      continue;
+    }
+
+    if (segment === "..") {
+      normalized.pop();
+      continue;
+    }
+
+    normalized.push(segment);
+  }
+
+  return normalized.length > 0 ? `/${normalized.join("/")}` : "/";
 }
 
 function parentDirectory(targetPath: string, workspaceRoot: string) {
@@ -236,39 +277,6 @@ function directoryChain(targetDirectory: string, workspaceRoot: string) {
   }
 
   return chain;
-}
-
-function formatTimestamp(value?: string | null) {
-  if (!value) {
-    return "Unknown";
-  }
-
-  const parsed = Date.parse(value);
-
-  if (!Number.isFinite(parsed)) {
-    return "Unknown";
-  }
-
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(parsed);
-}
-
-function formatBytes(value?: number | null) {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    return "Unknown size";
-  }
-
-  if (value < 1024) {
-    return `${value} ${value === 1 ? "byte" : "bytes"}`;
-  }
-
-  if (value < 1024 * 1024) {
-    return `${(value / 1024).toFixed(1)} KB`;
-  }
-
-  return `${(value / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function buildSuggestedFilePath(baseDirectory: string) {
@@ -425,11 +433,42 @@ function RefreshIcon() {
   );
 }
 
-function PlusIcon() {
+function FilePlusIcon() {
   return (
     <svg aria-hidden="true" className="fg-filesystem-action-icon" viewBox="0 0 20 20">
       <path
-        d="M10 4.5v11M4.5 10h11"
+        d="M4.8 2.8h5.8l3.1 3.2v10.7H4.8V2.8Z"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.35"
+      />
+      <path
+        d="M10.6 2.8v3.3h3.1M14.1 12.4v3.8M12.2 14.3H16"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.35"
+      />
+    </svg>
+  );
+}
+
+function FolderPlusIcon() {
+  return (
+    <svg aria-hidden="true" className="fg-filesystem-action-icon" viewBox="0 0 20 20">
+      <path
+        d="M2.5 5.6h4.5l1.4 1.7h8v7.8H2.5V5.6Z"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.35"
+      />
+      <path
+        d="M13.2 9.7v4.2M11.1 11.8h4.2"
         fill="none"
         stroke="currentColor"
         strokeLinecap="round"
@@ -478,6 +517,43 @@ function TrashIcon() {
   );
 }
 
+function ToolbarIconButton({
+  children,
+  danger = false,
+  disabled = false,
+  label,
+  loading = false,
+  onClick,
+}: {
+  children: ReactNode;
+  danger?: boolean;
+  disabled?: boolean;
+  label: string;
+  loading?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      aria-busy={loading || undefined}
+      aria-label={label}
+      className={cx("fg-filesystem__action-button", danger && "is-danger")}
+      data-loading={loading ? "true" : undefined}
+      disabled={disabled}
+      onClick={() => {
+        if (disabled || loading) {
+          return;
+        }
+
+        onClick();
+      }}
+      title={label}
+      type="button"
+    >
+      {children}
+    </button>
+  );
+}
+
 export function ConsoleFilesWorkbench({
   appId,
   appName,
@@ -485,18 +561,23 @@ export function ConsoleFilesWorkbench({
 }: ConsoleFilesWorkbenchProps) {
   const confirm = useConfirmDialog();
   const { showToast } = useToast();
-  const [workspaceRoot, setWorkspaceRoot] = useState(workspaceMountPath ?? "/workspace");
+  const [rootMode, setRootMode] = useState<FilesystemRootMode>(
+    workspaceMountPath ? "workspace" : "filesystem",
+  );
+  const [workspaceRoot, setWorkspaceRoot] = useState(workspaceMountPath ?? "/");
   const [directories, setDirectories] = useState<Record<string, DirectoryBucket>>({});
-  const [expandedPaths, setExpandedPaths] = useState<string[]>(workspaceMountPath ? [workspaceMountPath] : []);
+  const [expandedPaths, setExpandedPaths] = useState<string[]>([
+    workspaceMountPath ?? "/",
+  ]);
   const [selectedNode, setSelectedNode] = useState<SelectedNode | null>(
-    workspaceMountPath ? { kind: "dir", path: workspaceMountPath } : null,
+    { kind: "dir", path: workspaceMountPath ?? "/" },
   );
   const [fileDocuments, setFileDocuments] = useState<Record<string, FileDocument>>({});
   const [composer, setComposer] = useState<ComposerState | null>(null);
-  const [rootStatus, setRootStatus] = useState<"error" | "idle" | "loading" | "ready">(
-    workspaceMountPath ? "loading" : "idle",
-  );
+  const [rootStatus, setRootStatus] = useState<"error" | "idle" | "loading" | "ready">("loading");
   const [busyAction, setBusyAction] = useState<"delete" | "refresh" | "save" | null>(null);
+  const requestedRootPath =
+    rootMode === "workspace" && workspaceMountPath ? workspaceMountPath : "/";
 
   const selectedFile =
     !composer && selectedNode?.kind === "file" ? fileDocuments[selectedNode.path] ?? null : null;
@@ -509,6 +590,24 @@ export function ConsoleFilesWorkbench({
     !composer &&
     Boolean(selectedNode) &&
     selectedNode?.path !== workspaceRoot;
+  const rootModeOptions = FILESYSTEM_ROOT_MODE_OPTIONS.map((option) => ({
+    ...option,
+    disabled: Boolean(busyAction),
+  }));
+
+  function ensurePathIsWithinCurrentScope(targetPath: string) {
+    const normalizedPath = normalizeAbsolutePathInput(targetPath);
+
+    if (!normalizedPath) {
+      throw new Error("Path must be absolute.");
+    }
+
+    if (rootMode === "workspace" && !isPathWithin(workspaceRoot, normalizedPath)) {
+      throw new Error("Path must stay inside the persistent workspace. Switch to Live filesystem to work outside it.");
+    }
+
+    return normalizedPath;
+  }
 
   async function loadDirectory(
     targetPath: string,
@@ -533,34 +632,52 @@ export function ConsoleFilesWorkbench({
     const searchParams = new URLSearchParams();
     searchParams.set("path", targetPath);
     searchParams.set("depth", "1");
-    const response = await requestJson<FilesystemTreeResponse>(
-      `/api/fugue/apps/${appId}/filesystem/tree?${searchParams.toString()}`,
-    );
-    const resolvedRoot = response.workspaceRoot?.trim() || workspaceRoot;
-    const resolvedPath = response.path?.trim() || targetPath;
-    const entries = normalizeTreeEntries(response.entries ?? []);
+    try {
+      const response = await requestJson<FilesystemTreeResponse>(
+        `/api/fugue/apps/${appId}/filesystem/tree?${searchParams.toString()}`,
+      );
+      const resolvedPath = response.path?.trim() || targetPath;
+      const entries = normalizeTreeEntries(response.entries ?? []);
 
-    setWorkspaceRoot(resolvedRoot);
-    setDirectories((current) => {
-      const next = { ...current };
+      setDirectories((current) => {
+        const next = { ...current };
 
-      if (resolvedPath !== targetPath) {
-        delete next[targetPath];
+        if (resolvedPath !== targetPath) {
+          delete next[targetPath];
+        }
+
+        next[resolvedPath] = {
+          entries,
+          status: "ready",
+        };
+
+        return next;
+      });
+
+      if (targetPath === workspaceRoot || resolvedPath === workspaceRoot) {
+        setRootStatus("ready");
       }
 
-      next[resolvedPath] = {
+      return {
         entries,
-        status: "ready",
+        path: resolvedPath,
+        workspaceRoot,
       };
+    } catch (error) {
+      setDirectories((current) => ({
+        ...current,
+        [targetPath]: {
+          entries: current[targetPath]?.entries ?? [],
+          status: "error",
+        },
+      }));
 
-      return next;
-    });
+      if (targetPath === workspaceRoot) {
+        setRootStatus("error");
+      }
 
-    return {
-      entries,
-      path: resolvedPath,
-      workspaceRoot: resolvedRoot,
-    };
+      throw error;
+    }
   }
 
   async function loadFile(
@@ -593,36 +710,53 @@ export function ConsoleFilesWorkbench({
     const searchParams = new URLSearchParams();
     searchParams.set("path", targetPath);
     searchParams.set("max_bytes", "1048576");
-    const response = await requestJson<FilesystemFileResponse>(
-      `/api/fugue/apps/${appId}/filesystem/file?${searchParams.toString()}`,
-    );
-    const resolvedRoot = response.workspaceRoot?.trim() || workspaceRoot;
-    const resolvedPath = response.path?.trim() || targetPath;
-    const nextDocument = {
-      content: typeof response.content === "string" ? response.content : "",
-      dirty: false,
-      encoding: normalizeEncoding(response.encoding),
-      mode: typeof response.mode === "number" ? String(response.mode) : "",
-      modifiedAt: typeof response.modifiedAt === "string" ? response.modifiedAt : null,
-      path: resolvedPath,
-      size: typeof response.size === "number" ? response.size : null,
-      status: "ready",
-      truncated: Boolean(response.truncated),
-    } satisfies FileDocument;
+    try {
+      const response = await requestJson<FilesystemFileResponse>(
+        `/api/fugue/apps/${appId}/filesystem/file?${searchParams.toString()}`,
+      );
+      const resolvedPath = response.path?.trim() || targetPath;
+      const nextDocument = {
+        content: typeof response.content === "string" ? response.content : "",
+        dirty: false,
+        encoding: normalizeEncoding(response.encoding),
+        mode: typeof response.mode === "number" ? String(response.mode) : "",
+        modifiedAt: typeof response.modifiedAt === "string" ? response.modifiedAt : null,
+        path: resolvedPath,
+        size: typeof response.size === "number" ? response.size : null,
+        status: "ready",
+        truncated: Boolean(response.truncated),
+      } satisfies FileDocument;
 
-    setWorkspaceRoot(resolvedRoot);
-    setFileDocuments((current) => {
-      const next = { ...current };
+      setFileDocuments((current) => {
+        const next = { ...current };
 
-      if (resolvedPath !== targetPath) {
-        delete next[targetPath];
-      }
+        if (resolvedPath !== targetPath) {
+          delete next[targetPath];
+        }
 
-      next[resolvedPath] = nextDocument;
-      return next;
-    });
+        next[resolvedPath] = nextDocument;
+        return next;
+      });
 
-    return nextDocument;
+      return nextDocument;
+    } catch (error) {
+      setFileDocuments((current) => ({
+        ...current,
+        [targetPath]: {
+          content: current[targetPath]?.content ?? "",
+          dirty: current[targetPath]?.dirty ?? false,
+          encoding: current[targetPath]?.encoding ?? "utf-8",
+          mode: current[targetPath]?.mode ?? "",
+          modifiedAt: current[targetPath]?.modifiedAt ?? null,
+          path: current[targetPath]?.path ?? targetPath,
+          size: current[targetPath]?.size ?? null,
+          status: "error",
+          truncated: current[targetPath]?.truncated ?? false,
+        },
+      }));
+
+      throw error;
+    }
   }
 
   async function reloadDirectoryChain(targetDirectory: string) {
@@ -650,33 +784,30 @@ export function ConsoleFilesWorkbench({
   }
 
   useEffect(() => {
-    if (!workspaceMountPath) {
-      setWorkspaceRoot("/workspace");
-      setDirectories({});
-      setExpandedPaths([]);
-      setSelectedNode(null);
-      setFileDocuments({});
-      setComposer(null);
-      setRootStatus("idle");
-      return;
-    }
+    setRootMode(workspaceMountPath ? "workspace" : "filesystem");
+  }, [appId, workspaceMountPath]);
 
+  useEffect(() => {
     let cancelled = false;
-    setWorkspaceRoot(workspaceMountPath);
+    setWorkspaceRoot(requestedRootPath);
     setDirectories({});
-    setExpandedPaths([workspaceMountPath]);
-    setSelectedNode({ kind: "dir", path: workspaceMountPath });
+    setExpandedPaths([requestedRootPath]);
+    setSelectedNode({ kind: "dir", path: requestedRootPath });
     setFileDocuments({});
     setComposer(null);
     setRootStatus("loading");
+    const searchParams = new URLSearchParams();
+    searchParams.set("path", requestedRootPath);
 
-    requestJson<FilesystemTreeResponse>(`/api/fugue/apps/${appId}/filesystem/tree`)
+    requestJson<FilesystemTreeResponse>(
+      `/api/fugue/apps/${appId}/filesystem/tree?${searchParams.toString()}`,
+    )
       .then((response) => {
         if (cancelled) {
           return;
         }
 
-        const resolvedRoot = response.workspaceRoot?.trim() || workspaceMountPath;
+        const resolvedRoot = response.workspaceRoot?.trim() || requestedRootPath;
         const resolvedPath = response.path?.trim() || resolvedRoot;
         const entries = normalizeTreeEntries(response.entries ?? []);
 
@@ -706,7 +837,7 @@ export function ConsoleFilesWorkbench({
     return () => {
       cancelled = true;
     };
-  }, [appId, showToast, workspaceMountPath]);
+  }, [appId, requestedRootPath, showToast]);
 
   function handleDirectoryToggle(targetPath: string) {
     setComposer(null);
@@ -777,8 +908,12 @@ export function ConsoleFilesWorkbench({
     setComposer(null);
   }
 
+  function updateComposerPath(nextPath: string) {
+    setComposer((current) => (current ? { ...current, path: nextPath } : current));
+  }
+
   async function handleRefresh() {
-    if (!workspaceMountPath || busyAction) {
+    if (busyAction) {
       return;
     }
 
@@ -803,7 +938,7 @@ export function ConsoleFilesWorkbench({
       }
 
       showToast({
-        message: "Workspace refreshed.",
+        message: "Filesystem refreshed.",
         variant: "success",
       });
     } catch (error) {
@@ -817,7 +952,7 @@ export function ConsoleFilesWorkbench({
   }
 
   async function handleSave() {
-    if (!workspaceMountPath || busyAction) {
+    if (busyAction) {
       return;
     }
 
@@ -835,9 +970,13 @@ export function ConsoleFilesWorkbench({
 
     try {
       if (composer?.kind === "directory") {
-        if (!composer.path.trim()) {
+        const nextPath = composer.path.trim();
+
+        if (!nextPath) {
           throw new Error("Directory path is required.");
         }
+
+        const requestPath = ensurePathIsWithinCurrentScope(nextPath);
 
         const response = await requestJson<FilesystemMutationResponse>(
           `/api/fugue/apps/${appId}/filesystem/directory`,
@@ -845,7 +984,7 @@ export function ConsoleFilesWorkbench({
             body: JSON.stringify({
               ...(modeValue.value !== undefined ? { mode: modeValue.value } : {}),
               parents: composer.parents,
-              path: composer.path.trim(),
+              path: requestPath,
             }),
             headers: {
               "Content-Type": "application/json",
@@ -853,10 +992,7 @@ export function ConsoleFilesWorkbench({
             method: "POST",
           },
         );
-        const targetPath = response.path?.trim() || composer.path.trim();
-        const nextRoot = response.workspaceRoot?.trim() || workspaceRoot;
-
-        setWorkspaceRoot(nextRoot);
+        const targetPath = response.path?.trim() || requestPath;
         setComposer(null);
         setSelectedNode({ kind: "dir", path: targetPath });
         await reloadDirectoryChain(targetPath);
@@ -868,9 +1004,13 @@ export function ConsoleFilesWorkbench({
       }
 
       if (composer?.kind === "file") {
-        if (!composer.path.trim()) {
+        const nextPath = composer.path.trim();
+
+        if (!nextPath) {
           throw new Error("File path is required.");
         }
+
+        const requestPath = ensurePathIsWithinCurrentScope(nextPath);
 
         const response = await requestJson<FilesystemMutationResponse>(
           `/api/fugue/apps/${appId}/filesystem/file`,
@@ -880,7 +1020,7 @@ export function ConsoleFilesWorkbench({
               encoding: composer.encoding,
               mkdir_parents: composer.mkdirParents,
               ...(modeValue.value !== undefined ? { mode: modeValue.value } : {}),
-              path: composer.path.trim(),
+              path: requestPath,
             }),
             headers: {
               "Content-Type": "application/json",
@@ -888,10 +1028,7 @@ export function ConsoleFilesWorkbench({
             method: "PUT",
           },
         );
-        const targetPath = response.path?.trim() || composer.path.trim();
-        const nextRoot = response.workspaceRoot?.trim() || workspaceRoot;
-
-        setWorkspaceRoot(nextRoot);
+        const targetPath = response.path?.trim() || requestPath;
         setFileDocuments((current) => ({
           ...current,
           [targetPath]: {
@@ -909,7 +1046,7 @@ export function ConsoleFilesWorkbench({
         }));
         setComposer(null);
         setSelectedNode({ kind: "file", path: targetPath });
-        await reloadDirectoryChain(parentDirectory(targetPath, nextRoot));
+        await reloadDirectoryChain(parentDirectory(targetPath, workspaceRoot));
         showToast({
           message: "File saved.",
           variant: "success",
@@ -969,7 +1106,7 @@ export function ConsoleFilesWorkbench({
   }
 
   async function handleDelete() {
-    if (!workspaceMountPath || busyAction) {
+    if (busyAction) {
       return;
     }
 
@@ -1091,24 +1228,19 @@ export function ConsoleFilesWorkbench({
           >
             <span className="fg-filesystem-node__lead">
               {entry.kind === "dir" ? (
-                <span className="fg-filesystem-node__disclosure">
-                  <ChevronIcon expanded={isExpanded} />
-                </span>
+                entry.hasChildren ? (
+                  <span className="fg-filesystem-node__disclosure">
+                    <ChevronIcon expanded={isExpanded} />
+                  </span>
+                ) : (
+                  <span className="fg-filesystem-node__disclosure is-placeholder" />
+                )
               ) : (
                 <span className="fg-filesystem-node__disclosure is-placeholder" />
               )}
               {entry.kind === "dir" ? <FolderIcon open={isExpanded} /> : <FileIcon />}
             </span>
-            <span className="fg-filesystem-node__body">
-              <span className="fg-filesystem-node__label">{entry.name}</span>
-              <span className="fg-filesystem-node__meta">
-                {entry.kind === "dir"
-                  ? entry.hasChildren
-                    ? "folder"
-                    : "empty folder"
-                  : formatBytes(entry.size)}
-              </span>
-            </span>
+            <span className="fg-filesystem-node__label">{entry.name}</span>
           </button>
 
           {entry.kind === "dir" && isExpanded ? (
@@ -1119,23 +1251,23 @@ export function ConsoleFilesWorkbench({
     });
   }
 
-  if (!workspaceMountPath) {
-    return (
-      <div className="fg-workbench-section">
-        <InlineAlert variant="info">
-          Persistent workspace is not configured for {appName}.
-        </InlineAlert>
-      </div>
-    );
-  }
-
   const pathSegments = buildPathSegments(
-    composer?.path ?? selectedNode?.path ?? workspaceRoot,
+    selectedNode?.path ?? workspaceRoot,
     workspaceRoot,
   );
   const directoryEntries = selectedDirectory?.entries ?? [];
-  const directoryCount = directoryEntries.filter((entry) => entry.kind === "dir").length;
-  const fileCount = directoryEntries.filter((entry) => entry.kind === "file").length;
+  const selectedDirectoryStatus =
+    !composer && selectedNode?.kind === "dir"
+      ? selectedDirectory?.status ?? (selectedNode.path === workspaceRoot ? rootStatus : "loading")
+      : "idle";
+  const showDirectoryPlaceholder =
+    selectedDirectoryStatus === "loading" || directoryEntries.length === 0;
+  const directoryPlaceholderTitle =
+    selectedDirectoryStatus === "loading" ? "Loading folder" : "This folder is empty";
+  const directoryPlaceholderCopy =
+    selectedDirectoryStatus === "loading"
+      ? "Fetching the current directory contents."
+      : "Create a file or folder from the explorer toolbar.";
   const saveDisabled = Boolean(
     busyAction ||
       (
@@ -1144,117 +1276,56 @@ export function ConsoleFilesWorkbench({
           : !selectedFile || !selectedFile.dirty || selectedFile.status !== "ready" || selectedFile.truncated
       ),
   );
+  const isSelectedFileLoading =
+    !composer &&
+    selectedNode?.kind === "file" &&
+    (!selectedFile || selectedFile.status === "loading");
 
   return (
     <div className="fg-workbench-section">
-      <div className="fg-workbench-section__head">
-        <div className="fg-workbench-section__copy">
-          <p className="fg-label fg-panel__eyebrow">Files</p>
-          <p className="fg-console-note">Browse and edit the live workspace mounted into {appName}.</p>
-        </div>
-
-        <div className="fg-workbench-section__actions">
-          <Button
-            disabled={Boolean(busyAction)}
-            icon={<RefreshIcon />}
-            loading={busyAction === "refresh"}
-            loadingLabel="Refreshing…"
-            onClick={handleRefresh}
-            size="compact"
-            type="button"
-            variant="secondary"
-          >
-            Refresh
-          </Button>
-          <Button
-            disabled={Boolean(busyAction)}
-            icon={<PlusIcon />}
-            onClick={startNewFile}
-            size="compact"
-            type="button"
-            variant="secondary"
-          >
-            New file
-          </Button>
-          <Button
-            disabled={Boolean(busyAction)}
-            icon={<PlusIcon />}
-            onClick={startNewDirectory}
-            size="compact"
-            type="button"
-            variant="secondary"
-          >
-            New folder
-          </Button>
-          {composer ? (
-            <Button
-              disabled={Boolean(busyAction)}
-              onClick={cancelComposer}
-              size="compact"
-              type="button"
-              variant="ghost"
-            >
-              Cancel
-            </Button>
-          ) : null}
-          <Button
-            disabled={saveDisabled}
-            icon={<SaveIcon />}
-            loading={busyAction === "save"}
-            loadingLabel="Saving…"
-            onClick={handleSave}
-            size="compact"
-            type="button"
-            variant="primary"
-          >
-            Save
-          </Button>
-          <Button
-            disabled={!canDeleteSelection || Boolean(busyAction)}
-            icon={<TrashIcon />}
-            loading={busyAction === "delete"}
-            loadingLabel="Deleting…"
-            onClick={handleDelete}
-            size="compact"
-            type="button"
-            variant="danger"
-          >
-            Delete
-          </Button>
-        </div>
-      </div>
-
       <div className="fg-filesystem">
         <aside className="fg-filesystem__browser">
           <div className="fg-filesystem__browser-head">
-            <p className="fg-filesystem__eyebrow">Workspace</p>
-            <p className="fg-filesystem__root-path">{workspaceRoot}</p>
+            <div className="fg-filesystem__pane-row">
+              <p className="fg-filesystem__eyebrow">Explorer</p>
+
+              <div className="fg-filesystem__toolbar" role="toolbar" aria-label="Explorer actions">
+                <ToolbarIconButton
+                  disabled={Boolean(busyAction)}
+                  label="Refresh explorer"
+                  loading={busyAction === "refresh"}
+                  onClick={handleRefresh}
+                >
+                  <RefreshIcon />
+                </ToolbarIconButton>
+                <ToolbarIconButton
+                  disabled={Boolean(busyAction)}
+                  label="Create new file"
+                  onClick={startNewFile}
+                >
+                  <FilePlusIcon />
+                </ToolbarIconButton>
+                <ToolbarIconButton
+                  disabled={Boolean(busyAction)}
+                  label="Create new folder"
+                  onClick={startNewDirectory}
+                >
+                  <FolderPlusIcon />
+                </ToolbarIconButton>
+              </div>
+            </div>
+            {workspaceMountPath ? (
+              <SegmentedControl
+                ariaLabel="Filesystem scope"
+                className="fg-filesystem__scope-switch"
+                onChange={setRootMode}
+                options={rootModeOptions}
+                value={rootMode}
+              />
+            ) : null}
           </div>
 
           <div className="fg-filesystem__tree">
-            <button
-              className={cx(
-                "fg-filesystem-node__button",
-                highlightedPath === workspaceRoot && "is-active",
-                "is-directory",
-                "is-root",
-              )}
-              onClick={() => handleDirectoryToggle(workspaceRoot)}
-              title={workspaceRoot}
-              type="button"
-            >
-              <span className="fg-filesystem-node__lead">
-                <span className="fg-filesystem-node__disclosure is-placeholder" />
-                <FolderIcon open />
-              </span>
-              <span className="fg-filesystem-node__body">
-                <span className="fg-filesystem-node__label">{basename(workspaceRoot) || workspaceRoot}</span>
-                <span className="fg-filesystem-node__meta">
-                  {rootStatus === "loading" ? "loading" : "workspace root"}
-                </span>
-              </span>
-            </button>
-
             {rootStatus === "loading" && !directories[workspaceRoot]?.entries.length ? (
               <div className="fg-filesystem-tree__placeholder">
                 <div className="fg-filesystem-tree__skeleton" />
@@ -1264,59 +1335,97 @@ export function ConsoleFilesWorkbench({
             ) : null}
 
             {rootStatus === "error" ? (
-              <InlineAlert variant="error">Unable to load the workspace tree.</InlineAlert>
+              <InlineAlert variant="error">Unable to load this filesystem root.</InlineAlert>
             ) : null}
 
-            {renderTree(workspaceRoot, 1)}
+            {renderTree(workspaceRoot, 0)}
           </div>
         </aside>
 
         <section className="fg-filesystem__editor">
-          <div className="fg-filesystem__pathbar">
-            {pathSegments.map((segment, index) => (
-              <span className="fg-filesystem__crumb" key={segment.path}>
-                {index > 0 ? <span className="fg-filesystem__crumb-separator">/</span> : null}
-                <span>{segment.label}</span>
-              </span>
-            ))}
+          <div className="fg-filesystem__editor-head">
+            <div className="fg-filesystem__editor-copy">
+              {composer ? (
+                <div className="fg-route-composer fg-filesystem__path-composer">
+                  <div className="fg-route-composer__shell">
+                    <input
+                      aria-label={composer.kind === "directory" ? "New folder path" : "New file path"}
+                      autoCapitalize="off"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoFocus
+                      className="fg-route-composer__field"
+                      inputMode="text"
+                      onChange={(event) => {
+                        updateComposerPath(event.target.value);
+                      }}
+                      spellCheck={false}
+                      value={composer.path}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="fg-filesystem__pathbar">
+                  {pathSegments.map((segment, index) => (
+                    <span className="fg-filesystem__crumb" key={segment.path}>
+                      {index > 0 ? <span className="fg-filesystem__crumb-separator">/</span> : null}
+                      <span>{segment.label}</span>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="fg-filesystem__editor-actions">
+              {composer ? (
+                <Button
+                  disabled={Boolean(busyAction)}
+                  onClick={cancelComposer}
+                  size="tight"
+                  type="button"
+                  variant="ghost"
+                >
+                  Cancel
+                </Button>
+              ) : null}
+              {composer || selectedNode?.kind === "file" ? (
+                <Button
+                  disabled={saveDisabled}
+                  icon={<SaveIcon />}
+                  loading={busyAction === "save"}
+                  loadingLabel="Saving…"
+                  onClick={handleSave}
+                  size="tight"
+                  type="button"
+                  variant="primary"
+                >
+                  Save
+                </Button>
+              ) : null}
+              {!composer && canDeleteSelection ? (
+                <Button
+                  disabled={Boolean(busyAction)}
+                  icon={<TrashIcon />}
+                  loading={busyAction === "delete"}
+                  loadingLabel="Deleting…"
+                  onClick={handleDelete}
+                  size="tight"
+                  type="button"
+                  variant="danger"
+                >
+                  Delete
+                </Button>
+              ) : null}
+            </div>
           </div>
 
           {composer?.kind === "directory" ? (
             <div className="fg-filesystem-editor">
-              <div className="fg-filesystem-editor__meta">
-                <span className="fg-filesystem-editor__kind">New folder</span>
-                <span className="fg-filesystem-editor__summary">
-                  Created immediately inside the live workspace.
-                </span>
-              </div>
-
-              <div className="fg-filesystem-editor__grid">
-                <FormField
-                  hint="Absolute path inside the workspace."
-                  htmlFor={`filesystem-dir-path-${appId}`}
-                  label="Folder path"
-                >
+              <details className="fg-filesystem-editor__advanced">
+                <summary>Options</summary>
+                <div className="fg-filesystem-editor__advanced-grid">
                   <input
-                    className="fg-input"
-                    id={`filesystem-dir-path-${appId}`}
-                    onChange={(event) =>
-                      setComposer((current) =>
-                        current?.kind === "directory"
-                          ? { ...current, path: event.target.value }
-                          : current,
-                      )
-                    }
-                    spellCheck={false}
-                    value={composer.path}
-                  />
-                </FormField>
-
-                <FormField
-                  hint="Optional chmod value, for example 493."
-                  htmlFor={`filesystem-dir-mode-${appId}`}
-                  label="Mode"
-                >
-                  <input
+                    aria-label="Folder mode"
                     className="fg-input"
                     id={`filesystem-dir-mode-${appId}`}
                     onChange={(event) =>
@@ -1326,66 +1435,44 @@ export function ConsoleFilesWorkbench({
                           : current,
                       )
                     }
-                    placeholder="493"
+                    placeholder="Optional mode (493)"
                     spellCheck={false}
                     value={composer.mode}
                   />
-                </FormField>
-              </div>
 
-              <label className="fg-project-toggle">
-                <input
-                  checked={composer.parents}
-                  onChange={(event) =>
-                    setComposer((current) =>
-                      current?.kind === "directory"
-                        ? { ...current, parents: event.target.checked }
-                        : current,
-                    )
-                  }
-                  type="checkbox"
-                />
-                <span>Create parent folders when missing</span>
-              </label>
+                  <label className="fg-project-toggle fg-filesystem-editor__toggle">
+                    <input
+                      checked={composer.parents}
+                      onChange={(event) =>
+                        setComposer((current) =>
+                          current?.kind === "directory"
+                            ? { ...current, parents: event.target.checked }
+                            : current,
+                        )
+                      }
+                      type="checkbox"
+                    />
+                    <span>Create parent folders when missing</span>
+                  </label>
+                </div>
+              </details>
+
+              <div className="fg-filesystem-editor__placeholder">
+                <p className="fg-filesystem-editor__placeholder-title">New folder</p>
+                <p className="fg-filesystem-editor__placeholder-copy">
+                  Save to create this folder in the current scope.
+                </p>
+              </div>
             </div>
           ) : null}
 
           {composer?.kind === "file" ? (
-            <div className="fg-filesystem-editor">
-              <div className="fg-filesystem-editor__meta">
-                <span className="fg-filesystem-editor__kind">New file</span>
-                <span className="fg-filesystem-editor__summary">
-                  Saved directly into the live workspace.
-                </span>
-              </div>
-
-              <div className="fg-filesystem-editor__grid">
-                <FormField
-                  hint="Absolute path inside the workspace."
-                  htmlFor={`filesystem-file-path-${appId}`}
-                  label="File path"
-                >
+            <div className="fg-filesystem-editor fg-filesystem-editor--code">
+              <details className="fg-filesystem-editor__advanced">
+                <summary>Options</summary>
+                <div className="fg-filesystem-editor__advanced-grid">
                   <input
-                    className="fg-input"
-                    id={`filesystem-file-path-${appId}`}
-                    onChange={(event) =>
-                      setComposer((current) =>
-                        current?.kind === "file"
-                          ? { ...current, path: event.target.value }
-                          : current,
-                      )
-                    }
-                    spellCheck={false}
-                    value={composer.path}
-                  />
-                </FormField>
-
-                <FormField
-                  hint="Optional chmod value, for example 420."
-                  htmlFor={`filesystem-file-mode-${appId}`}
-                  label="Mode"
-                >
-                  <input
+                    aria-label="File mode"
                     className="fg-input"
                     id={`filesystem-file-mode-${appId}`}
                     onChange={(event) =>
@@ -1395,165 +1482,106 @@ export function ConsoleFilesWorkbench({
                           : current,
                       )
                     }
-                    placeholder="420"
+                    placeholder="Optional mode (420)"
                     spellCheck={false}
                     value={composer.mode}
                   />
-                </FormField>
-              </div>
 
-              <label className="fg-project-toggle">
-                <input
-                  checked={composer.mkdirParents}
-                  onChange={(event) =>
-                    setComposer((current) =>
-                      current?.kind === "file"
-                        ? { ...current, mkdirParents: event.target.checked }
-                        : current,
-                    )
-                  }
-                  type="checkbox"
-                />
-                <span>Create parent folders when missing</span>
-              </label>
+                  <label className="fg-project-toggle fg-filesystem-editor__toggle">
+                    <input
+                      checked={composer.mkdirParents}
+                      onChange={(event) =>
+                        setComposer((current) =>
+                          current?.kind === "file"
+                            ? { ...current, mkdirParents: event.target.checked }
+                            : current,
+                        )
+                      }
+                      type="checkbox"
+                    />
+                    <span>Create parent folders when missing</span>
+                  </label>
+                </div>
+              </details>
 
-              <FormField
-                hint={
-                  composer.encoding === "base64"
-                    ? "Content will be written as base64."
-                    : "The file will be written as utf-8 text."
+              <textarea
+                aria-label={`Draft editor for ${composer.path}`}
+                className="fg-project-textarea fg-filesystem-editor__textarea fg-filesystem-editor__textarea--code"
+                id={`filesystem-file-content-${appId}`}
+                onChange={(event) =>
+                  setComposer((current) =>
+                    current?.kind === "file"
+                      ? { ...current, content: event.target.value }
+                      : current,
+                  )
                 }
-                htmlFor={`filesystem-file-content-${appId}`}
-                label="Content"
-              >
-                <textarea
-                  className="fg-project-textarea fg-filesystem-editor__textarea"
-                  id={`filesystem-file-content-${appId}`}
-                  onChange={(event) =>
-                    setComposer((current) =>
-                      current?.kind === "file"
-                        ? { ...current, content: event.target.value }
-                        : current,
-                    )
-                  }
-                  spellCheck={false}
-                  value={composer.content}
-                />
-              </FormField>
+                spellCheck={false}
+                value={composer.content}
+              />
             </div>
           ) : null}
 
           {!composer && selectedNode?.kind === "dir" ? (
             <div className="fg-filesystem-editor">
-              <div className="fg-filesystem-editor__meta">
-                <span className="fg-filesystem-editor__kind">Folder</span>
-                <span className="fg-filesystem-editor__summary">
-                  {selectedDirectory?.status === "loading"
-                    ? "Loading…"
-                    : `${directoryCount} folder${directoryCount === 1 ? "" : "s"} · ${fileCount} file${fileCount === 1 ? "" : "s"}`}
-                </span>
-              </div>
-
-              <div className="fg-filesystem-editor__readout">
-                <span>{selectedNode.path}</span>
-                <span>
-                  {selectedDirectory?.status === "loading"
-                    ? "Updating"
-                    : selectedNode.path === workspaceRoot
-                      ? "Workspace root"
-                      : "Directory"}
-                </span>
-              </div>
-
-              {!directoryEntries.length && selectedDirectory?.status === "ready" ? (
-                <InlineAlert variant="info">This folder is empty.</InlineAlert>
+              {selectedDirectory?.status === "error" ? (
+                <InlineAlert variant="error">Unable to load this folder. Try refreshing the current scope.</InlineAlert>
               ) : null}
 
-              <p className="fg-console-note">
-                Select a file on the left to edit it, or create a new file or folder here.
-              </p>
+              {selectedDirectory?.status !== "error" && showDirectoryPlaceholder ? (
+                <div className="fg-filesystem-editor__placeholder">
+                  <p className="fg-filesystem-editor__placeholder-title">{directoryPlaceholderTitle}</p>
+                  <p className="fg-filesystem-editor__placeholder-copy">{directoryPlaceholderCopy}</p>
+                </div>
+              ) : null}
             </div>
           ) : null}
 
           {!composer && selectedNode?.kind === "file" ? (
-            <div className="fg-filesystem-editor">
-              <div className="fg-filesystem-editor__meta">
-                <span className="fg-filesystem-editor__kind">File</span>
-                <span className="fg-filesystem-editor__summary">
-                  {selectedFile?.status === "loading"
-                    ? "Loading…"
-                    : `${formatBytes(selectedFile?.size)} · ${selectedFile?.encoding === "base64" ? "base64" : "utf-8"}`}
-                </span>
-              </div>
-
-              <div className="fg-filesystem-editor__grid">
-                <FormField
-                  htmlFor={`filesystem-selected-path-${appId}`}
-                  label="Path"
+            <div className="fg-filesystem-editor fg-filesystem-editor--code">
+              {isSelectedFileLoading ? (
+                <div
+                  aria-busy="true"
+                  aria-label={`Loading ${basename(selectedNode.path)}`}
+                  className="fg-console-loading fg-filesystem-loading"
+                  role="status"
                 >
-                  <input
-                    className="fg-input"
-                    id={`filesystem-selected-path-${appId}`}
-                    readOnly
-                    spellCheck={false}
-                    value={selectedNode.path}
-                  />
-                </FormField>
+                  <div className="fg-filesystem-loading__body">
+                    <span aria-hidden="true" className="fg-filesystem-loading__spinner" />
+                    <p className="fg-filesystem-loading__label">Loading…</p>
+                  </div>
+                </div>
+              ) : null}
 
-                <FormField
-                  hint={`Last updated ${formatTimestamp(selectedFile?.modifiedAt)}`}
-                  htmlFor={`filesystem-selected-mode-${appId}`}
-                  label="Mode"
-                >
-                  <input
-                    className="fg-input"
-                    id={`filesystem-selected-mode-${appId}`}
-                    onChange={(event) =>
-                      updateSelectedFile({
-                        mode: event.target.value,
-                      })
-                    }
-                    placeholder="420"
-                    spellCheck={false}
-                    value={selectedFile?.mode ?? ""}
-                  />
-                </FormField>
-              </div>
+              {!isSelectedFileLoading && selectedFile?.status === "error" ? (
+                <InlineAlert variant="error">Unable to load this file. Refresh the current scope to try again.</InlineAlert>
+              ) : null}
 
-              {selectedFile?.encoding === "base64" ? (
+              {!isSelectedFileLoading && selectedFile?.encoding === "base64" ? (
                 <InlineAlert variant="info">
                   This file is shown as base64 because it is not valid utf-8 text.
                 </InlineAlert>
               ) : null}
 
-              {selectedFile?.truncated ? (
+              {!isSelectedFileLoading && selectedFile?.truncated ? (
                 <InlineAlert variant="error">
                   This preview was truncated at 1 MB. Save is disabled to avoid overwriting the file with partial content.
                 </InlineAlert>
               ) : null}
 
-              <FormField
-                hint={
-                  selectedFile?.truncated
-                    ? "Partial preview only."
-                    : `Last updated ${formatTimestamp(selectedFile?.modifiedAt)}`
-                }
-                htmlFor={`filesystem-selected-content-${appId}`}
-                label="Content"
-              >
+              {!isSelectedFileLoading ? (
                 <textarea
-                  className="fg-project-textarea fg-filesystem-editor__textarea"
-                  id={`filesystem-selected-content-${appId}`}
+                  aria-label={`File editor for ${selectedNode.path}`}
+                  className="fg-project-textarea fg-filesystem-editor__textarea fg-filesystem-editor__textarea--code"
                   onChange={(event) =>
                     updateSelectedFile({
                       content: event.target.value,
                     })
                   }
-                  readOnly={selectedFile?.truncated}
+                  readOnly={selectedFile?.status !== "ready" || selectedFile?.truncated}
                   spellCheck={false}
                   value={selectedFile?.content ?? ""}
                 />
-              </FormField>
+              ) : null}
             </div>
           ) : null}
         </section>

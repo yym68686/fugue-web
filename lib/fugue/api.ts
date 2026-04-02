@@ -150,6 +150,87 @@ function buildProjectView(project: CamelizedSchema<"Project">) {
   };
 }
 
+function buildInspectGitHubTemplateManifestServiceView(
+  service: CamelizedSchema<"InspectGitHubTemplateManifestService">,
+) {
+  return {
+    buildContextDir: service.buildContextDir,
+    buildStrategy: service.buildStrategy,
+    composeService: service.composeService,
+    dockerfilePath: service.dockerfilePath,
+    internalPort: service.internalPort,
+    kind: service.kind,
+    published: service.published,
+    service: service.service,
+    sourceDir: service.sourceDir,
+  };
+}
+
+function buildInspectGitHubTemplateManifestView(
+  manifest?: CamelizedSchema<"InspectGitHubTemplateManifest"> | null,
+) {
+  if (!manifest) {
+    return null;
+  }
+
+  return {
+    manifestPath: manifest.manifestPath,
+    primaryService: manifest.primaryService,
+    services: (manifest.services ?? []).map(buildInspectGitHubTemplateManifestServiceView),
+    warnings: readStringArray(manifest.warnings),
+  };
+}
+
+function buildTemplateVariableView(variable: CamelizedSchema<"TemplateVariable">) {
+  return {
+    defaultValue: variable.defaultValue,
+    description: variable.description,
+    generate: variable.generate,
+    key: variable.key,
+    label: variable.label,
+    required: variable.required,
+    secret: variable.secret,
+  };
+}
+
+function buildInspectGitHubTemplateMetadataView(
+  template?: CamelizedSchema<"TemplateMetadata"> | null,
+) {
+  if (!template) {
+    return null;
+  }
+
+  return {
+    defaultRuntime: template.defaultRuntime,
+    demoUrl: template.demoUrl,
+    description: template.description,
+    docsUrl: template.docsUrl,
+    name: template.name,
+    slug: template.slug,
+    sourceMode: template.sourceMode,
+    variables: (template.variables ?? []).map(buildTemplateVariableView),
+  };
+}
+
+function buildInspectGitHubTemplateResponseView(
+  response: CamelizedSchema<"InspectGitHubTemplateResponse">,
+) {
+  return {
+    fugueManifest: buildInspectGitHubTemplateManifestView(response.fugueManifest),
+    repository: {
+      branch: response.repository.branch,
+      commitCommittedAt: response.repository.commitCommittedAt,
+      commitSha: response.repository.commitSha,
+      defaultAppName: response.repository.defaultAppName,
+      repoName: response.repository.repoName,
+      repoOwner: response.repository.repoOwner,
+      repoUrl: response.repository.repoUrl,
+      repoVisibility: response.repository.repoVisibility as GitHubRepoVisibility,
+    },
+    template: buildInspectGitHubTemplateMetadataView(response.template),
+  };
+}
+
 function buildApiKeyView(apiKey: CamelizedSchema<"APIKey">) {
   return {
     createdAt: readNullableString(apiKey.createdAt),
@@ -603,6 +684,36 @@ function buildClusterNodeView(node: CamelizedSchema<"ClusterNode">) {
   };
 }
 
+function buildControlPlaneComponentView(
+  component: CamelizedSchema<"ControlPlaneComponent">,
+) {
+  return {
+    availableReplicas: readNullableNumber(component.availableReplicas) ?? 0,
+    component: component.component,
+    deploymentName: component.deploymentName,
+    desiredReplicas: readNullableNumber(component.desiredReplicas) ?? 0,
+    image: readNullableString(component.image),
+    imageRepository: readNullableString(component.imageRepository),
+    imageTag: readNullableString(component.imageTag),
+    readyReplicas: readNullableNumber(component.readyReplicas) ?? 0,
+    status: readNullableString(component.status),
+    updatedReplicas: readNullableNumber(component.updatedReplicas) ?? 0,
+  };
+}
+
+function buildControlPlaneStatusView(
+  status: CamelizedSchema<"ControlPlaneStatus">,
+) {
+  return {
+    components: (status.components ?? []).map(buildControlPlaneComponentView),
+    namespace: status.namespace,
+    observedAt: readNullableString(status.observedAt),
+    releaseInstance: readNullableString(status.releaseInstance),
+    status: readNullableString(status.status),
+    version: readNullableString(status.version),
+  };
+}
+
 function buildOperationView(operation: CamelizedSchema<"Operation">) {
   return {
     id: operation.id,
@@ -898,6 +1009,9 @@ export type FugueAppDomain = ReturnType<typeof buildAppDomainView>;
 export type FugueAppDomainAvailability = ReturnType<typeof buildAppDomainAvailabilityView>;
 export type FugueRuntime = ReturnType<typeof buildRuntimeView>;
 export type FugueRuntimeAccessGrant = ReturnType<typeof buildRuntimeAccessGrantView>;
+export type FugueGitHubTemplateInspection = ReturnType<
+  typeof buildInspectGitHubTemplateResponseView
+>;
 export type FugueClusterNodeCondition = ReturnType<typeof buildClusterNodeConditionView>;
 export type FugueClusterNodeCPUStats = NonNullable<
   ReturnType<typeof buildClusterNodeCpuStatsView>
@@ -911,6 +1025,12 @@ export type FugueClusterNodeStorageStats = NonNullable<
 export type FugueClusterNodeWorkloadPod = ReturnType<typeof buildClusterNodeWorkloadPodView>;
 export type FugueClusterNodeWorkload = ReturnType<typeof buildClusterNodeWorkloadView>;
 export type FugueClusterNode = ReturnType<typeof buildClusterNodeView>;
+export type FugueControlPlaneComponent = ReturnType<
+  typeof buildControlPlaneComponentView
+>;
+export type FugueControlPlaneStatus = ReturnType<
+  typeof buildControlPlaneStatusView
+>;
 export type FugueOperation = ReturnType<typeof buildOperationView>;
 export type FugueAuditEvent = ReturnType<typeof buildAuditEventView>;
 export type FugueImportResult = ReturnType<typeof buildImportResultView>;
@@ -1210,6 +1330,7 @@ export async function importFugueGitHubApp(
     buildStrategy?: string;
     buildContextDir?: string;
     dockerfilePath?: string;
+    env?: Record<string, string>;
     name?: string;
     project?: {
       description?: string;
@@ -1254,6 +1375,7 @@ export async function importFugueGitHubApp(
           ...(typeof payload.servicePort === "number"
             ? { service_port: payload.servicePort }
             : {}),
+          ...(payload.env ? { env: payload.env } : {}),
           ...(payload.repoVisibility ? { repo_visibility: payload.repoVisibility } : {}),
           ...(payload.repoAuthToken ? { repo_auth_token: payload.repoAuthToken } : {}),
           repo_url: payload.repoUrl,
@@ -1270,6 +1392,33 @@ export async function importFugueGitHubApp(
   );
 
   return buildImportResultView(response, idempotencyKey);
+}
+
+export async function inspectGitHubTemplate(
+  accessToken: string,
+  payload: {
+    branch?: string;
+    repoAuthToken?: string;
+    repoUrl: string;
+    repoVisibility?: GitHubRepoVisibility;
+  },
+) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      "/v1/templates/inspect-github",
+      client.POST("/v1/templates/inspect-github", {
+        body: {
+          ...(payload.branch ? { branch: payload.branch } : {}),
+          ...(payload.repoAuthToken ? { repo_auth_token: payload.repoAuthToken } : {}),
+          ...(payload.repoVisibility ? { repo_visibility: payload.repoVisibility } : {}),
+          repo_url: payload.repoUrl,
+        },
+      }),
+    ),
+  );
+
+  return buildInspectGitHubTemplateResponseView(response);
 }
 
 export async function getFugueTenants(accessToken: string) {
@@ -2241,6 +2390,18 @@ export async function getFugueClusterNodes(accessToken: string) {
   );
 
   return (response.clusterNodes ?? []).map(buildClusterNodeView);
+}
+
+export async function getFugueControlPlaneStatus(accessToken: string) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      "/v1/cluster/control-plane",
+      client.GET("/v1/cluster/control-plane"),
+    ),
+  );
+
+  return buildControlPlaneStatusView(response.controlPlane);
 }
 
 export async function getFugueOperations(accessToken: string) {

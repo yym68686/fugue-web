@@ -16,26 +16,25 @@ export default async function AuthFinalizePage({
 }: {
   searchParams: SearchParams;
 }) {
-  const authenticatedAppPath = await readAuthenticatedAppPath();
+  const resolved = await Promise.resolve(searchParams);
+  const returnTo = sanitizeReturnTo(readValue(resolved.returnTo));
+  const authenticatedAppPath = await readAuthenticatedAppPath(returnTo);
 
   if (authenticatedAppPath) {
     redirect(authenticatedAppPath);
   }
 
-  const resolved = await Promise.resolve(searchParams);
-  const returnTo = sanitizeReturnTo(readValue(resolved.returnTo));
-
   return (
     <AuthShell
-      description="We are converting the provider callback into a first-party session before opening the console."
+      description="We are converting the provider callback into a first-party session before opening the destination route."
       eyebrow="Auth / Finalize"
       footer={
-        <p>Privacy-focused browsers sometimes need one extra first-party handoff before the console session is available.</p>
+        <p>Privacy-focused browsers sometimes need one extra first-party handoff before the destination session is available.</p>
       }
       notes={[
         { index: "01", title: "Provider callback", meta: "Google / Email / Verified identity" },
         { index: "02", title: "Session handoff", meta: "First party / HttpOnly cookie" },
-        { index: "03", title: "Console route", meta: "Stable redirect / /app" },
+        { index: "03", title: "Return route", meta: "Stable redirect / returnTo" },
       ]}
       title="Finalizing your access."
     >
