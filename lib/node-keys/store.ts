@@ -18,6 +18,7 @@ type NodeKeyRow = {
   fugue_node_key_id: string;
   hash: string | null;
   label: string;
+  label_override: string | null;
   last_synced_at: Date | string | null;
   last_used_at: Date | string | null;
   prefix: string | null;
@@ -89,16 +90,21 @@ function normalizeNodeKeyStatus(
   return revokedAt ? "revoked" : "active";
 }
 
+function readDisplayLabel(row: Pick<NodeKeyRow, "label" | "label_override">) {
+  return readOptionalString(row.label_override) ?? row.label;
+}
+
 function recordFromRow(row: NodeKeyRow): NodeKeyRecord {
   const status = row.status;
 
   return {
+    attachedVpsCount: null,
     canCopy: Boolean(row.secret_sealed) && status === "active",
     canRevoke: status === "active",
     createdAt: readTimestamp(row.created_at) ?? new Date().toISOString(),
     hash: readOptionalString(row.hash),
     id: row.fugue_node_key_id,
-    label: row.label,
+    label: readDisplayLabel(row),
     lastSyncedAt: readTimestamp(row.last_synced_at),
     lastUsedAt: readTimestamp(row.last_used_at),
     prefix: readOptionalString(row.prefix),
@@ -124,6 +130,7 @@ async function getNodeKeyRow(
         user_email,
         tenant_id,
         label,
+        label_override,
         prefix,
         hash,
         secret_sealed,
@@ -262,6 +269,65 @@ export async function saveNodeKeyRecord(input: SaveNodeKeyInput) {
   });
 }
 
+export async function renameNodeKeyRecord(
+  email: string,
+  fugueNodeKeyId: string,
+  nextLabel: string,
+) {
+  await ensureDbSchema();
+
+  return withDbTransaction(async (client) => {
+    const row = await getNodeKeyRow(client, email, fugueNodeKeyId);
+
+    if (!row) {
+      throw new Error("Node key not found.");
+    }
+
+    const label = nextLabel.trim();
+
+    if (!label) {
+      throw new Error("Node key name is required.");
+    }
+
+    const labelOverride = label === row.label ? null : label;
+    const updatedAt = new Date().toISOString();
+    const result = await client.query<NodeKeyRow>(
+      `
+        UPDATE app_node_keys
+        SET label_override = $3,
+            updated_at = $4
+        WHERE user_email = $1
+          AND fugue_node_key_id = $2
+        RETURNING
+          fugue_node_key_id,
+          user_email,
+          tenant_id,
+          label,
+          label_override,
+          prefix,
+          hash,
+          secret_sealed,
+          status,
+          source,
+          last_used_at,
+          revoked_at,
+          last_synced_at,
+          created_at,
+          updated_at
+      `,
+      [normalizeEmail(email), fugueNodeKeyId, labelOverride, updatedAt],
+    );
+
+    const nextRow = result.rows[0];
+
+    if (!nextRow) {
+      throw new Error("Failed to persist node key.");
+    }
+
+    return recordFromRow(nextRow);
+  });
+}
+
 export async function syncNodeKeysForWorkspace(input: SyncNodeKeysInput) {
   await ensureDbSchema();
 
@@ -282,6 +348,7 @@ export async function syncNodeKeysForWorkspace(input: SyncNodeKeysInput) {
           user_email,
           tenant_id,
           label,
+          label_override,
           prefix,
           hash,
           secret_sealed,
@@ -301,7 +368,7 @@ export async function syncNodeKeysForWorkspace(input: SyncNodeKeysInput) {
             ELSE 1
           END,
           created_at DESC,
-          label ASC
+          COALESCE(NULLIF(BTRIM(label_override), ''), label) ASC
       `,
       [normalizeEmail(input.email), input.tenantId],
     );
@@ -335,6 +402,7 @@ export async function listNodeKeysByEmail(
         user_email,
         tenant_id,
         label,
+        label_override,
         prefix,
         hash,
         secret_sealed,
@@ -353,7 +421,7 @@ export async function listNodeKeysByEmail(
           ELSE 1
         END,
         created_at DESC,
-        label ASC
+        COALESCE(NULLIF(BTRIM(label_override), ''), label) ASC
     `,
     values,
   );
@@ -374,6 +442,7 @@ export async function getNodeKeyRecordById(
         user_email,
         tenant_id,
         label,
+        label_override,
         prefix,
         hash,
         secret_sealed,

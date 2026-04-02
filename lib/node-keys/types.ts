@@ -2,6 +2,7 @@ export type NodeKeyStatus = "active" | "revoked";
 export type NodeKeySource = "managed" | "external";
 
 export type NodeKeyRecord = {
+  attachedVpsCount: number | null;
   canCopy: boolean;
   canRevoke: boolean;
   createdAt: string;

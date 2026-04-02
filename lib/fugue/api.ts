@@ -1,1365 +1,954 @@
 import "server-only";
 
+import createClient from "openapi-fetch";
+
 import { getFugueEnv } from "@/lib/fugue/env";
 import type { GitHubRepoVisibility } from "@/lib/github/repository";
 
-type UnknownRecord = Record<string, unknown>;
+import type { components, paths } from "@/lib/fugue/openapi.generated";
 
-export type FugueTenant = {
-  createdAt: string | null;
-  id: string;
-  name: string;
-  slug: string | null;
-  status: string | null;
-  updatedAt: string | null;
-};
+type Primitive = bigint | boolean | null | number | string | symbol | undefined;
+type Simplify<T> = { [K in keyof T]: T[K] } & {};
+type CamelCase<S extends string> = S extends `${infer Head}_${infer Tail}`
+  ? `${Head}${Capitalize<CamelCase<Tail>>}`
+  : S;
+type CamelizeDeep<T> = T extends Primitive
+  ? T
+  : T extends ReadonlyArray<infer Item>
+    ? CamelizeDeep<Item>[]
+    : T extends Array<infer Item>
+      ? CamelizeDeep<Item>[]
+      : T extends Record<string, unknown>
+        ? {
+            [K in keyof T as K extends string ? CamelCase<K> : K]: CamelizeDeep<T[K]>;
+          }
+        : T;
 
-export type FugueProject = {
-  createdAt: string | null;
-  description: string | null;
-  id: string;
-  name: string;
-  slug: string | null;
-  tenantId: string | null;
-  updatedAt: string | null;
-};
+type Schemas = components["schemas"];
+type CamelizedSchema<Name extends keyof Schemas> = Simplify<CamelizeDeep<Schemas[Name]>>;
 
-export type FugueApiKey = {
-  createdAt: string | null;
-  disabledAt: string | null;
-  id: string;
-  label: string;
-  lastUsedAt: string | null;
-  prefix: string | null;
-  scopes: string[];
-  status: string | null;
-  tenantId: string | null;
-};
+const PRESERVE_DICTIONARY_KEYS = new Set(["conditions", "env", "labels", "metadata"]);
 
-export type FugueNodeKey = {
-  createdAt: string | null;
-  hash: string | null;
-  id: string;
-  label: string;
-  lastUsedAt: string | null;
-  prefix: string | null;
-  revokedAt: string | null;
-  status: string | null;
-  tenantId: string | null;
-  updatedAt: string | null;
-};
-
-export type FugueBackingService = {
-  createdAt: string | null;
-  currentResourceUsage: FugueResourceUsage | null;
-  description: string | null;
-  id: string;
-  name: string;
-  ownerAppId: string | null;
-  projectId: string | null;
-  provisioner: string | null;
-  spec: {
-    postgres: {
-      database: string | null;
-      image: string | null;
-      password: string | null;
-      resources: FugueResourceSpec | null;
-      serviceName: string | null;
-      storagePath: string | null;
-      user: string | null;
-    } | null;
-  };
-  status: string | null;
-  tenantId: string | null;
-  type: string | null;
-  updatedAt: string | null;
-};
-
-export type FugueServiceBinding = {
-  alias: string | null;
-  appId: string | null;
-  createdAt: string | null;
-  env: Record<string, string>;
-  id: string;
-  serviceId: string | null;
-  tenantId: string | null;
-  updatedAt: string | null;
-};
-
-export type FugueAppFile = {
-  content: string | null;
-  mode: number | null;
-  path: string;
-  secret: boolean;
-};
-
-export type FugueAppWorkspace = {
-  mountPath: string | null;
-};
-
-export type FugueFilesystemEntry = {
-  hasChildren: boolean;
-  kind: string;
-  mode: number | null;
-  modifiedAt: string | null;
-  name: string;
-  path: string;
-  size: number | null;
-};
-
-export type FugueAppTechnology = {
-  kind: string;
-  name: string;
-  slug: string;
-  source: string | null;
-};
-
-export type FugueResourceSpec = {
-  cpuMillicores: number;
-  memoryMebibytes: number;
-};
-
-export type FugueResourceUsage = {
-  cpuMillicores: number | null;
-  ephemeralStorageBytes: number | null;
-  memoryBytes: number | null;
-};
-
-export type FugueAppSource = {
-  buildStrategy: string | null;
-  composeService: string | null;
-  commitSha: string | null;
-  commitCommittedAt: string | null;
-  detectedProvider: string | null;
-  detectedStack: string | null;
-  dockerfilePath: string | null;
-  imageRef: string | null;
-  repoBranch: string | null;
-  repoUrl: string | null;
-  resolvedImageRef: string | null;
-  sourceDir: string | null;
-  type: string | null;
-  uploadFilename: string | null;
-};
-
-export type FugueApp = {
-  id: string;
-  tenantId: string | null;
-  projectId: string | null;
-  name: string;
-  createdAt: string | null;
-  currentResourceUsage: FugueResourceUsage | null;
-  updatedAt: string | null;
-  route: {
-    baseDomain: string | null;
-    hostname: string | null;
-    publicUrl: string | null;
-    servicePort: number | null;
-  };
-  source: FugueAppSource;
-  spec: {
-    runtimeId: string | null;
-    replicas: number | null;
-    disabled: boolean | null;
-    resources: FugueResourceSpec | null;
-    workspace: FugueAppWorkspace | null;
-  };
-  status: {
-    phase: string | null;
-    currentRuntimeId: string | null;
-    currentReplicas: number | null;
-    lastOperationId: string | null;
-    lastMessage: string | null;
-    updatedAt: string | null;
-  };
-  bindings: FugueServiceBinding[];
-  backingServices: FugueBackingService[];
-  techStack: FugueAppTechnology[];
-};
-
-export type FugueRuntime = {
-  id: string;
-  tenantId: string | null;
-  name: string | null;
-  machineName: string | null;
-  labels: Record<string, string>;
-  type: string | null;
-  accessMode: string | null;
-  poolMode: string | null;
-  connectionMode: string | null;
-  status: string | null;
-  endpoint: string | null;
-  clusterNodeName: string | null;
-  fingerprintPrefix: string | null;
-  lastSeenAt: string | null;
-  lastHeartbeatAt: string | null;
-  createdAt: string | null;
-  updatedAt: string | null;
-};
-
-export type FugueRuntimeAccessGrant = {
-  runtimeId: string;
-  tenantId: string;
-  createdAt: string | null;
-  updatedAt: string | null;
-};
-
-export type FugueClusterNodeCondition = {
-  lastTransitionAt: string | null;
-  message: string | null;
-  reason: string | null;
-  status: string | null;
-};
-
-export type FugueClusterNodeCPUStats = {
-  allocatableMilliCores: number | null;
-  capacityMilliCores: number | null;
-  usagePercent: number | null;
-  usedMilliCores: number | null;
-};
-
-export type FugueClusterNodeMemoryStats = {
-  allocatableBytes: number | null;
-  capacityBytes: number | null;
-  usagePercent: number | null;
-  usedBytes: number | null;
-};
-
-export type FugueClusterNodeStorageStats = {
-  allocatableBytes: number | null;
-  capacityBytes: number | null;
-  usagePercent: number | null;
-  usedBytes: number | null;
-};
-
-export type FugueClusterNodeWorkloadPod = {
-  name: string;
-  phase: string | null;
-};
-
-export type FugueClusterNodeWorkload = {
-  id: string;
-  kind: string;
-  name: string;
-  namespace: string | null;
-  ownerAppId: string | null;
-  podCount: number;
-  pods: FugueClusterNodeWorkloadPod[];
-  projectId: string | null;
-  runtimeId: string | null;
-  serviceType: string | null;
-  tenantId: string | null;
-};
-
-export type FugueClusterNode = {
-  conditions: Record<string, FugueClusterNodeCondition>;
-  containerRuntime: string | null;
-  cpu: FugueClusterNodeCPUStats | null;
-  createdAt: string | null;
-  ephemeralStorage: FugueClusterNodeStorageStats | null;
-  externalIp: string | null;
-  internalIp: string | null;
-  publicIp: string | null;
-  kernelVersion: string | null;
-  kubeletVersion: string | null;
-  memory: FugueClusterNodeMemoryStats | null;
-  name: string;
-  osImage: string | null;
-  region: string | null;
-  roles: string[];
-  runtimeId: string | null;
-  status: string | null;
-  tenantId: string | null;
-  workloads: FugueClusterNodeWorkload[];
-  zone: string | null;
-};
-
-export type FugueOperation = {
-  id: string;
-  tenantId: string | null;
-  type: string | null;
-  status: string | null;
-  executionMode: string | null;
-  requestedByType: string | null;
-  requestedById: string | null;
-  appId: string | null;
-  sourceRuntimeId: string | null;
-  targetRuntimeId: string | null;
-  desiredSource: FugueAppSource | null;
-  resultMessage: string | null;
-  errorMessage: string | null;
-  createdAt: string | null;
-  updatedAt: string | null;
-  startedAt: string | null;
-  completedAt: string | null;
-};
-
-export type FugueAuditEvent = {
-  id: string;
-  tenantId: string | null;
-  actorType: string | null;
-  actorId: string | null;
-  action: string | null;
-  targetType: string | null;
-  targetId: string | null;
-  createdAt: string | null;
-  metadata: {
-    appId: string | null;
-    component: string | null;
-    hostname: string | null;
-    label: string | null;
-    name: string | null;
-    operationId: string | null;
-    repoUrl: string | null;
-    runtimeId: string | null;
-  };
-};
-
-export type FugueImportResult = {
-  app: FugueApp | null;
-  idempotencyKey: string | null;
-  operation: FugueOperation | null;
-  replayed: boolean;
-  requestInProgress: boolean;
-};
-
-export type FugueAppEnvResult = {
-  alreadyCurrent: boolean;
-  env: Record<string, string>;
-  operation: FugueOperation | null;
-};
-
-export type FugueAppRouteAvailability = {
-  available: boolean;
-  baseDomain: string | null;
-  current: boolean;
-  hostname: string | null;
-  input: string | null;
-  label: string | null;
-  publicUrl: string | null;
-  reason: string | null;
-  valid: boolean;
-};
-
-export type FugueAppRouteAvailabilityResult = {
-  availability: FugueAppRouteAvailability | null;
-};
-
-export type FugueAppRouteResult = {
-  alreadyCurrent: boolean;
-  app: FugueApp | null;
-  availability: FugueAppRouteAvailability | null;
-};
-
-export type FugueAppDomain = {
-  appId: string | null;
-  createdAt: string | null;
-  hostname: string;
-  lastCheckedAt: string | null;
-  lastMessage: string | null;
-  routeTarget: string | null;
-  status: string | null;
-  tenantId: string | null;
-  tlsLastCheckedAt: string | null;
-  tlsLastMessage: string | null;
-  tlsReadyAt: string | null;
-  tlsStatus: string | null;
-  updatedAt: string | null;
-  verificationTxtName: string | null;
-  verificationTxtValue: string | null;
-  verifiedAt: string | null;
-};
-
-export type FugueAppDomainAvailability = {
-  available: boolean;
-  current: boolean;
-  hostname: string | null;
-  input: string | null;
-  reason: string | null;
-  valid: boolean;
-};
-
-export type FugueAppDomainListResult = {
-  domains: FugueAppDomain[];
-};
-
-export type FugueAppDomainAvailabilityResult = {
-  availability: FugueAppDomainAvailability | null;
-};
-
-export type FugueAppDomainResult = {
-  alreadyCurrent: boolean;
-  availability: FugueAppDomainAvailability | null;
-  domain: FugueAppDomain | null;
-};
-
-export type FugueAppDomainDeleteResult = {
-  domain: FugueAppDomain | null;
-};
-
-export type FugueAppDomainVerifyResult = {
-  domain: FugueAppDomain | null;
-  verified: boolean;
-};
-
-export type FugueAppFilesResult = {
-  alreadyCurrent: boolean;
-  files: FugueAppFile[];
-  operation: FugueOperation | null;
-};
-
-export type FugueAppFilesystemTreeResult = {
-  component: string | null;
-  depth: number | null;
-  entries: FugueFilesystemEntry[];
-  path: string | null;
-  pod: string | null;
-  workspaceRoot: string | null;
-};
-
-export type FugueAppFilesystemFileResult = {
-  component: string | null;
-  content: string;
-  encoding: string | null;
-  mode: number | null;
-  modifiedAt: string | null;
-  path: string | null;
-  pod: string | null;
-  size: number | null;
-  truncated: boolean;
-  workspaceRoot: string | null;
-};
-
-export type FugueAppFilesystemMutationResult = {
-  component: string | null;
-  deleted: boolean;
-  kind: string | null;
-  mode: number | null;
-  modifiedAt: string | null;
-  path: string | null;
-  pod: string | null;
-  size: number | null;
-  workspaceRoot: string | null;
-};
-
-export type FugueBuildLogsResult = {
-  available: boolean;
-  buildStrategy: string | null;
-  completedAt: string | null;
-  errorMessage: string | null;
-  jobName: string | null;
-  lastUpdatedAt: string | null;
-  logs: string;
-  operationId: string | null;
-  operationStatus: string | null;
-  resultMessage: string | null;
-  source: string | null;
-  startedAt: string | null;
-};
-
-export type FugueRuntimeLogsResult = {
-  component: string | null;
-  container: string | null;
-  logs: string;
-  namespace: string | null;
-  pods: string[];
-  selector: string | null;
-  warnings: string[];
-};
-
-export type FugueBillingPriceBook = {
-  currency: string;
-  hoursPerMonth: number;
-  cpuMicroCentsPerMillicoreHour: number;
-  memoryMicroCentsPerMibHour: number;
-};
-
-export type FugueBillingEvent = {
-  amountMicroCents: number;
-  balanceAfterMicroCents: number;
-  createdAt: string | null;
-  id: string;
-  metadata: Record<string, string>;
-  tenantId: string | null;
-  type: string;
-};
-
-export type FugueBillingSummary = {
-  balanceMicroCents: number;
-  balanceRestricted: boolean;
-  byoVpsFree: boolean;
-  currentUsage: FugueResourceUsage | null;
-  defaultAppResources: FugueResourceSpec;
-  defaultPostgresResources: FugueResourceSpec;
-  events: FugueBillingEvent[];
-  hourlyRateMicroCents: number;
-  lastAccruedAt: string | null;
-  managedAvailable: FugueResourceSpec;
-  managedCap: FugueResourceSpec;
-  managedCommitted: FugueResourceSpec;
-  monthlyEstimateMicroCents: number;
-  overCap: boolean;
-  priceBook: FugueBillingPriceBook;
-  runwayHours: number | null;
-  status: string;
-  statusReason: string | null;
-  tenantId: string;
-  updatedAt: string | null;
-};
-
-type FugueRequestOptions = {
-  accessToken: string;
-  body?: unknown;
-  headers?: Record<string, string>;
-  method?: string;
-};
-
-function asRecord(value: unknown): UnknownRecord | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return null;
-  }
-
-  return value as UnknownRecord;
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-function readString(record: UnknownRecord | null, key: string) {
-  const value = record?.[key];
+function camelizeKey(value: string) {
+  return value.replace(/_([a-z])/g, (_match, segment: string) => segment.toUpperCase());
+}
+
+function camelizeValue<T>(value: T, parentKey?: string): CamelizeDeep<T> {
+  if (Array.isArray(value)) {
+    return value.map((item) => camelizeValue(item)) as CamelizeDeep<T>;
+  }
+
+  if (!isPlainObject(value)) {
+    return value as CamelizeDeep<T>;
+  }
+
+  const preserveKeys = Boolean(parentKey && PRESERVE_DICTIONARY_KEYS.has(parentKey));
+  const output: Record<string, unknown> = {};
+
+  for (const [key, item] of Object.entries(value)) {
+    const nextKey = preserveKeys ? key : camelizeKey(key);
+    output[nextKey] = camelizeValue(item, key);
+  }
+
+  return output as CamelizeDeep<T>;
+}
+
+function camelizeData<T>(value: T) {
+  return camelizeValue(value);
+}
+
+function readErrorDetail(error: unknown) {
+  if (isPlainObject(error) && typeof error.error === "string" && error.error.trim()) {
+    return error.error.trim();
+  }
+
+  if (typeof error === "string" && error.trim()) {
+    return error.trim();
+  }
+
+  return null;
+}
+
+async function expectData<T>(
+  schemaPath: string,
+  request: Promise<{ data?: T; error?: unknown; response: Response }>,
+) {
+  const result = await request;
+
+  if (result.data !== undefined) {
+    return result.data;
+  }
+
+  const detail = readErrorDetail(result.error);
+  const suffix = detail ? ` ${detail.slice(0, 220)}` : "";
+  throw new Error(
+    `Fugue request failed for ${schemaPath}: ${result.response.status} ${result.response.statusText}.${suffix}`,
+  );
+}
+
+function getClient(accessToken: string) {
+  const env = getFugueEnv();
+
+  return createClient<paths>({
+    baseUrl: env.apiUrl,
+    cache: "no-store",
+    headers: {
+      Accept: "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+}
+
+function readNullableString(value: string | null | undefined) {
   return typeof value === "string" && value.trim() ? value : null;
 }
 
-function readStringArray(record: UnknownRecord | null, key: string) {
-  const value = record?.[key];
+function readNullableNumber(value: number | null | undefined) {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
 
+function readStringArray(value: string[] | undefined | null) {
   if (!Array.isArray(value)) {
-    return [];
+    return [] as string[];
   }
 
   return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
 }
 
-function readStringMap(value: unknown) {
-  const record = asRecord(value);
-
-  if (!record) {
+function readStringMap(value: Record<string, string> | undefined | null) {
+  if (!value) {
     return {} as Record<string, string>;
   }
 
-  const out: Record<string, string> = {};
-
-  for (const [key, rawValue] of Object.entries(record)) {
-    if (typeof rawValue === "string") {
-      out[key] = rawValue;
-    }
-  }
-
-  return out;
+  return { ...value };
 }
 
-function readNumber(record: UnknownRecord | null, key: string) {
-  const value = record?.[key];
-  return typeof value === "number" && Number.isFinite(value) ? value : null;
-}
-
-function readBoolean(record: UnknownRecord | null, key: string) {
-  const value = record?.[key];
-  return typeof value === "boolean" ? value : null;
-}
-
-async function fugueRequest(path: string, options: FugueRequestOptions) {
-  const env = getFugueEnv();
-  const url = new URL(path, env.apiUrl);
-  const response = await fetch(url, {
-    body: options.body === undefined ? undefined : JSON.stringify(options.body),
-    cache: "no-store",
-    headers: {
-      Accept: "application/json",
-      Authorization: `Bearer ${options.accessToken}`,
-      ...(options.body === undefined ? {} : { "Content-Type": "application/json" }),
-      ...options.headers,
-    },
-    method: options.method ?? "GET",
-  });
-
-  if (!response.ok) {
-    const body = await response.text();
-    const detail = body.trim() ? ` ${body.trim().slice(0, 220)}` : "";
-    throw new Error(
-      `Fugue request failed for ${path}: ${response.status} ${response.statusText}.${detail}`,
-    );
-  }
-
-  return response.json();
-}
-
-function sanitizeTenant(value: unknown): FugueTenant | null {
-  const record = asRecord(value);
-  const id = readString(record, "id");
-  const name = readString(record, "name");
-
-  if (!id || !name) {
-    return null;
-  }
-
+function buildTenantView(tenant: CamelizedSchema<"Tenant">) {
   return {
-    createdAt: readString(record, "created_at"),
-    id,
-    name,
-    slug: readString(record, "slug"),
-    status: readString(record, "status"),
-    updatedAt: readString(record, "updated_at"),
+    createdAt: readNullableString(tenant.createdAt),
+    id: tenant.id,
+    name: tenant.name,
+    slug: readNullableString(tenant.slug),
+    status: readNullableString(tenant.status),
+    updatedAt: readNullableString(tenant.updatedAt),
   };
 }
 
-function sanitizeProject(value: unknown): FugueProject | null {
-  const record = asRecord(value);
-  const id = readString(record, "id");
-  const name = readString(record, "name");
-
-  if (!id || !name) {
-    return null;
-  }
-
+function buildProjectView(project: CamelizedSchema<"Project">) {
   return {
-    createdAt: readString(record, "created_at"),
-    description: readString(record, "description"),
-    id,
-    name,
-    slug: readString(record, "slug"),
-    tenantId: readString(record, "tenant_id"),
-    updatedAt: readString(record, "updated_at"),
+    createdAt: readNullableString(project.createdAt),
+    description: readNullableString(project.description),
+    id: project.id,
+    name: project.name,
+    slug: readNullableString(project.slug),
+    tenantId: readNullableString(project.tenantId),
+    updatedAt: readNullableString(project.updatedAt),
   };
 }
 
-function sanitizeApiKey(value: unknown): FugueApiKey | null {
-  const record = asRecord(value);
-  const id = readString(record, "id");
-  const label = readString(record, "label");
-
-  if (!id || !label) {
-    return null;
-  }
-
+function buildApiKeyView(apiKey: CamelizedSchema<"APIKey">) {
   return {
-    createdAt: readString(record, "created_at"),
-    disabledAt: readString(record, "disabled_at"),
-    id,
-    label,
-    lastUsedAt: readString(record, "last_used_at"),
-    prefix: readString(record, "prefix"),
-    scopes: readStringArray(record, "scopes"),
-    status: readString(record, "status"),
-    tenantId: readString(record, "tenant_id"),
+    createdAt: readNullableString(apiKey.createdAt),
+    disabledAt: readNullableString(apiKey.disabledAt),
+    id: apiKey.id,
+    label: apiKey.label,
+    lastUsedAt: readNullableString(apiKey.lastUsedAt),
+    prefix: readNullableString(apiKey.prefix),
+    scopes: readStringArray(apiKey.scopes),
+    status: readNullableString(apiKey.status),
+    tenantId: readNullableString(apiKey.tenantId),
   };
 }
 
-function sanitizeNodeKey(value: unknown): FugueNodeKey | null {
-  const record = asRecord(value);
-  const id = readString(record, "id");
-  const label = readString(record, "label");
-
-  if (!id || !label) {
-    return null;
-  }
-
+function buildNodeKeyView(nodeKey: CamelizedSchema<"NodeKey">) {
   return {
-    createdAt: readString(record, "created_at"),
-    hash: readString(record, "hash"),
-    id,
-    label,
-    lastUsedAt: readString(record, "last_used_at"),
-    prefix: readString(record, "prefix"),
-    revokedAt: readString(record, "revoked_at"),
-    status: readString(record, "status"),
-    tenantId: readString(record, "tenant_id"),
-    updatedAt: readString(record, "updated_at"),
+    createdAt: readNullableString(nodeKey.createdAt),
+    hash: readNullableString(nodeKey.hash),
+    id: nodeKey.id,
+    label: nodeKey.label,
+    lastUsedAt: readNullableString(nodeKey.lastUsedAt),
+    prefix: readNullableString(nodeKey.prefix),
+    revokedAt: readNullableString(nodeKey.revokedAt),
+    status: readNullableString(nodeKey.status),
+    tenantId: readNullableString(nodeKey.tenantId),
+    updatedAt: readNullableString(nodeKey.updatedAt),
   };
 }
 
-function sanitizeBackingService(value: unknown): FugueBackingService | null {
-  const record = asRecord(value);
-  const id = readString(record, "id");
-  const name = readString(record, "name");
-
-  if (!id || !name) {
-    return null;
-  }
-
-  const spec = asRecord(record?.spec);
-  const postgres = asRecord(spec?.postgres);
-
+function buildAppFileView(file: CamelizedSchema<"AppFile">) {
   return {
-    createdAt: readString(record, "created_at"),
-    currentResourceUsage: sanitizeResourceUsage(record?.current_resource_usage),
-    description: readString(record, "description"),
-    id,
-    name,
-    ownerAppId: readString(record, "owner_app_id"),
-    projectId: readString(record, "project_id"),
-    provisioner: readString(record, "provisioner"),
-    spec: {
-      postgres: postgres
-        ? {
-            database: readString(postgres, "database"),
-            image: readString(postgres, "image"),
-            password: readString(postgres, "password"),
-            resources: sanitizeResourceSpec(postgres?.resources),
-            serviceName: readString(postgres, "service_name"),
-            storagePath: readString(postgres, "storage_path"),
-            user: readString(postgres, "user"),
-          }
-        : null,
-    },
-    status: readString(record, "status"),
-    tenantId: readString(record, "tenant_id"),
-    type: readString(record, "type"),
-    updatedAt: readString(record, "updated_at"),
+    content: readNullableString(file.content),
+    mode: readNullableNumber(file.mode),
+    path: file.path,
+    secret: file.secret ?? false,
   };
 }
 
-function sanitizeServiceBinding(value: unknown): FugueServiceBinding | null {
-  const record = asRecord(value);
-  const id = readString(record, "id");
-
-  if (!id) {
-    return null;
-  }
-
+function buildAppWorkspaceView(workspace?: CamelizedSchema<"AppWorkspaceSpec"> | null) {
   return {
-    alias: readString(record, "alias"),
-    appId: readString(record, "app_id"),
-    createdAt: readString(record, "created_at"),
-    env: readStringMap(record?.env),
-    id,
-    serviceId: readString(record, "service_id"),
-    tenantId: readString(record, "tenant_id"),
-    updatedAt: readString(record, "updated_at"),
+    mountPath: readNullableString(workspace?.mountPath),
   };
 }
 
-function sanitizeAppFile(value: unknown): FugueAppFile | null {
-  const record = asRecord(value);
-  const path = readString(record, "path");
-
-  if (!path) {
-    return null;
-  }
-
+function buildFilesystemEntryView(entry: CamelizedSchema<"AppFilesystemEntry">) {
   return {
-    content: readString(record, "content"),
-    mode: readNumber(record, "mode"),
-    path,
-    secret: readBoolean(record, "secret") ?? false,
+    hasChildren: entry.hasChildren ?? false,
+    kind: entry.kind,
+    mode: readNullableNumber(entry.mode),
+    modifiedAt: readNullableString(entry.modifiedAt),
+    name: entry.name,
+    path: entry.path,
+    size: readNullableNumber(entry.size),
   };
 }
 
-function sanitizeAppWorkspace(value: unknown): FugueAppWorkspace | null {
-  const record = asRecord(value);
-
-  if (!record) {
-    return null;
-  }
-
+function buildAppTechnologyView(technology: CamelizedSchema<"AppTechnology">) {
   return {
-    mountPath: readString(record, "mount_path"),
+    kind: technology.kind,
+    name: technology.name,
+    slug: technology.slug,
+    source: readNullableString(technology.source),
   };
 }
 
-function sanitizeFilesystemEntry(value: unknown): FugueFilesystemEntry | null {
-  const record = asRecord(value);
-  const path = readString(record, "path");
-  const name = readString(record, "name");
-  const kind = readString(record, "kind");
-
-  if (!path || !name || !kind) {
-    return null;
-  }
-
+function buildResourceSpecView(resource?: CamelizedSchema<"ResourceSpec"> | null) {
   return {
-    hasChildren: readBoolean(record, "has_children") ?? false,
-    kind,
-    mode: readNumber(record, "mode"),
-    modifiedAt: readString(record, "modified_at"),
-    name,
-    path,
-    size: readNumber(record, "size"),
+    cpuMillicores: readNullableNumber(resource?.cpuMillicores) ?? 0,
+    memoryMebibytes: readNullableNumber(resource?.memoryMebibytes) ?? 0,
   };
 }
 
-function sanitizeAppTechnology(value: unknown): FugueAppTechnology | null {
-  const record = asRecord(value);
-  const kind = readString(record, "kind");
-  const name = readString(record, "name");
-  const slug = readString(record, "slug");
-
-  if (!kind || !name || !slug) {
-    return null;
-  }
-
+function buildResourceUsageView(resource: CamelizedSchema<"ResourceUsage">) {
   return {
-    kind,
-    name,
-    slug,
-    source: readString(record, "source"),
+    cpuMillicores: readNullableNumber(resource.cpuMillicores),
+    ephemeralStorageBytes: readNullableNumber(resource.ephemeralStorageBytes),
+    memoryBytes: readNullableNumber(resource.memoryBytes),
   };
 }
 
-function sanitizeResourceSpec(value: unknown): FugueResourceSpec | null {
-  const record = asRecord(value);
-
-  if (!record) {
+function toResourceUsage(resource?: CamelizedSchema<"ResourceUsage"> | null) {
+  if (!resource) {
     return null;
   }
 
-  return {
-    cpuMillicores: readNumber(record, "cpu_millicores") ?? 0,
-    memoryMebibytes: readNumber(record, "memory_mebibytes") ?? 0,
-  };
-}
+  const view = buildResourceUsageView(resource);
 
-function sanitizeResourceUsage(value: unknown): FugueResourceUsage | null {
-  const record = asRecord(value);
-
-  if (!record) {
-    return null;
-  }
-
-  const usage = {
-    cpuMillicores: readNumber(record, "cpu_millicores"),
-    ephemeralStorageBytes: readNumber(record, "ephemeral_storage_bytes"),
-    memoryBytes: readNumber(record, "memory_bytes"),
-  } satisfies FugueResourceUsage;
-
-  return usage.cpuMillicores !== null ||
-    usage.memoryBytes !== null ||
-    usage.ephemeralStorageBytes !== null
-    ? usage
+  return view.cpuMillicores !== null ||
+    view.memoryBytes !== null ||
+    view.ephemeralStorageBytes !== null
+    ? view
     : null;
 }
 
-function sanitizeBillingPriceBook(value: unknown): FugueBillingPriceBook | null {
-  const record = asRecord(value);
-  const currency = readString(record, "currency");
-
-  if (!record || !currency) {
-    return null;
-  }
-
+function buildBillingPriceBookView(priceBook: CamelizedSchema<"BillingPriceBook">) {
   return {
-    currency,
-    hoursPerMonth: readNumber(record, "hours_per_month") ?? 0,
-    cpuMicroCentsPerMillicoreHour:
-      readNumber(record, "cpu_microcents_per_millicore_hour") ?? 0,
-    memoryMicroCentsPerMibHour:
-      readNumber(record, "memory_microcents_per_mib_hour") ?? 0,
+    currency: priceBook.currency,
+    hoursPerMonth: priceBook.hoursPerMonth,
+    cpuMicroCentsPerMillicoreHour: priceBook.cpuMicrocentsPerMillicoreHour,
+    memoryMicroCentsPerMibHour: priceBook.memoryMicrocentsPerMibHour,
   };
 }
 
-function sanitizeBillingEvent(value: unknown): FugueBillingEvent | null {
-  const record = asRecord(value);
-  const id = readString(record, "id");
-  const type = readString(record, "type");
-
-  if (!record || !id || !type) {
-    return null;
-  }
-
+function buildBillingEventView(event: CamelizedSchema<"TenantBillingEvent">) {
   return {
-    amountMicroCents: readNumber(record, "amount_microcents") ?? 0,
-    balanceAfterMicroCents: readNumber(record, "balance_after_microcents") ?? 0,
-    createdAt: readString(record, "created_at"),
-    id,
-    metadata: readStringMap(record?.metadata),
-    tenantId: readString(record, "tenant_id"),
-    type,
+    amountMicroCents: event.amountMicrocents,
+    balanceAfterMicroCents: event.balanceAfterMicrocents,
+    createdAt: readNullableString(event.createdAt),
+    id: event.id,
+    metadata: readStringMap(event.metadata),
+    tenantId: readNullableString(event.tenantId),
+    type: event.type,
   };
 }
 
-function sanitizeBillingSummary(value: unknown): FugueBillingSummary | null {
-  const record = asRecord(value);
-  const tenantId = readString(record, "tenant_id");
-  const status = readString(record, "status");
-  const priceBook = sanitizeBillingPriceBook(record?.price_book);
-  const managedCap = sanitizeResourceSpec(record?.managed_cap);
-  const managedCommitted = sanitizeResourceSpec(record?.managed_committed);
-  const managedAvailable = sanitizeResourceSpec(record?.managed_available);
-  const defaultAppResources = sanitizeResourceSpec(record?.default_app_resources);
-  const defaultPostgresResources = sanitizeResourceSpec(record?.default_postgres_resources);
-  const events = Array.isArray(record?.events) ? record.events : [];
-
-  if (
-    !record ||
-    !tenantId ||
-    !status ||
-    !priceBook ||
-    !managedCap ||
-    !managedCommitted ||
-    !managedAvailable ||
-    !defaultAppResources ||
-    !defaultPostgresResources
-  ) {
-    return null;
-  }
-
+function buildBillingSummaryView(summary: CamelizedSchema<"TenantBillingSummary">) {
   return {
-    balanceMicroCents: readNumber(record, "balance_microcents") ?? 0,
-    balanceRestricted: readBoolean(record, "balance_restricted") ?? false,
-    byoVpsFree: readBoolean(record, "byo_vps_free") ?? false,
-    currentUsage: sanitizeResourceUsage(record?.current_usage),
-    defaultAppResources,
-    defaultPostgresResources,
-    events: events
-      .map(sanitizeBillingEvent)
-      .filter((item): item is FugueBillingEvent => Boolean(item)),
-    hourlyRateMicroCents: readNumber(record, "hourly_rate_microcents") ?? 0,
-    lastAccruedAt: readString(record, "last_accrued_at"),
-    managedAvailable,
-    managedCap,
-    managedCommitted,
-    monthlyEstimateMicroCents: readNumber(record, "monthly_estimate_microcents") ?? 0,
-    overCap: readBoolean(record, "over_cap") ?? false,
-    priceBook,
-    runwayHours: readNumber(record, "runway_hours"),
-    status,
-    statusReason: readString(record, "status_reason"),
-    tenantId,
-    updatedAt: readString(record, "updated_at"),
+    balanceMicroCents: summary.balanceMicrocents,
+    balanceRestricted: summary.balanceRestricted,
+    byoVpsFree: summary.byoVpsFree,
+    currentUsage: toResourceUsage(summary.currentUsage),
+    defaultAppResources: buildResourceSpecView(summary.defaultAppResources),
+    defaultPostgresResources: buildResourceSpecView(summary.defaultPostgresResources),
+    events: (summary.events ?? []).map(buildBillingEventView),
+    hourlyRateMicroCents: summary.hourlyRateMicrocents,
+    lastAccruedAt: readNullableString(summary.lastAccruedAt),
+    managedAvailable: buildResourceSpecView(summary.managedAvailable),
+    managedCap: buildResourceSpecView(summary.managedCap),
+    managedCommitted: buildResourceSpecView(summary.managedCommitted),
+    monthlyEstimateMicroCents: summary.monthlyEstimateMicrocents,
+    overCap: summary.overCap,
+    priceBook: buildBillingPriceBookView(summary.priceBook),
+    runwayHours: readNullableNumber(summary.runwayHours),
+    status: summary.status,
+    statusReason: readNullableString(summary.statusReason),
+    tenantId: summary.tenantId,
+    updatedAt: readNullableString(summary.updatedAt),
   };
 }
 
-function sanitizeAppSource(value: unknown): FugueAppSource {
-  const source = asRecord(value);
-
+function buildAppSourceView(source?: CamelizedSchema<"AppSource"> | null) {
   return {
-    buildStrategy: readString(source, "build_strategy"),
-    composeService: readString(source, "compose_service"),
-    commitSha: readString(source, "commit_sha"),
-    commitCommittedAt: readString(source, "commit_committed_at"),
-    detectedProvider: readString(source, "detected_provider"),
-    detectedStack: readString(source, "detected_stack"),
-    dockerfilePath: readString(source, "dockerfile_path"),
-    imageRef: readString(source, "image_ref"),
-    repoBranch: readString(source, "repo_branch"),
-    repoUrl: readString(source, "repo_url"),
-    resolvedImageRef: readString(source, "resolved_image_ref"),
-    sourceDir: readString(source, "source_dir"),
-    type: readString(source, "type"),
-    uploadFilename: readString(source, "upload_filename"),
+    buildStrategy: readNullableString(source?.buildStrategy),
+    composeService: readNullableString(source?.composeService),
+    commitSha: readNullableString(source?.commitSha),
+    commitCommittedAt: readNullableString(source?.commitCommittedAt),
+    detectedProvider: readNullableString(source?.detectedProvider),
+    detectedStack: readNullableString(source?.detectedStack),
+    dockerfilePath: readNullableString(source?.dockerfilePath),
+    imageRef: readNullableString(source?.imageRef),
+    repoBranch: readNullableString(source?.repoBranch),
+    repoUrl: readNullableString(source?.repoUrl),
+    resolvedImageRef: readNullableString(source?.resolvedImageRef),
+    sourceDir: readNullableString(source?.sourceDir),
+    type: readNullableString(source?.type),
+    uploadFilename: readNullableString(source?.uploadFilename),
   };
 }
 
-function sanitizeApp(value: unknown): FugueApp | null {
-  const record = asRecord(value);
-  const id = readString(record, "id");
-  const name = readString(record, "name");
-
-  if (!id || !name) {
-    return null;
-  }
-
-  const route = asRecord(record?.route);
-  const spec = asRecord(record?.spec);
-  const status = asRecord(record?.status);
-  const bindings = Array.isArray(record?.bindings) ? record.bindings : [];
-  const backingServices = Array.isArray(record?.backing_services)
-    ? record.backing_services
-    : [];
-  const techStack = Array.isArray(record?.tech_stack) ? record.tech_stack : [];
+function buildBackingServiceView(service: CamelizedSchema<"BackingService">) {
+  const postgres = service.spec?.postgres;
 
   return {
-    id,
-    tenantId: readString(record, "tenant_id"),
-    projectId: readString(record, "project_id"),
-    name,
-    createdAt: readString(record, "created_at"),
-    currentResourceUsage: sanitizeResourceUsage(record?.current_resource_usage),
-    updatedAt: readString(record, "updated_at"),
-    route: {
-      baseDomain: readString(route, "base_domain"),
-      hostname: readString(route, "hostname"),
-      publicUrl: readString(route, "public_url"),
-      servicePort: readNumber(route, "service_port"),
-    },
-    source: sanitizeAppSource(record?.source),
+    createdAt: readNullableString(service.createdAt),
+    currentResourceUsage: toResourceUsage(service.currentResourceUsage),
+    description: readNullableString(service.description),
+    id: service.id,
+    name: service.name,
+    ownerAppId: readNullableString(service.ownerAppId),
+    projectId: readNullableString(service.projectId),
+    provisioner: readNullableString(service.provisioner),
     spec: {
-      runtimeId: readString(spec, "runtime_id"),
-      replicas: readNumber(spec, "replicas"),
-      disabled: readBoolean(spec, "disabled"),
-      resources: sanitizeResourceSpec(spec?.resources),
-      workspace: sanitizeAppWorkspace(spec?.workspace),
+      postgres: postgres
+        ? {
+            database: readNullableString(postgres.database),
+            image: readNullableString(postgres.image),
+            password: readNullableString(postgres.password),
+            resources: postgres.resources ? buildResourceSpecView(postgres.resources) : null,
+            serviceName: readNullableString(postgres.serviceName),
+            storagePath: readNullableString(postgres.storagePath),
+            user: readNullableString(postgres.user),
+          }
+        : null,
+    },
+    status: readNullableString(service.status),
+    tenantId: readNullableString(service.tenantId),
+    type: readNullableString(service.type),
+    updatedAt: readNullableString(service.updatedAt),
+  };
+}
+
+function buildServiceBindingView(binding: CamelizedSchema<"ServiceBinding">) {
+  return {
+    alias: readNullableString(binding.alias),
+    appId: readNullableString(binding.appId),
+    createdAt: readNullableString(binding.createdAt),
+    env: readStringMap(binding.env),
+    id: binding.id,
+    serviceId: readNullableString(binding.serviceId),
+    tenantId: readNullableString(binding.tenantId),
+    updatedAt: readNullableString(binding.updatedAt),
+  };
+}
+
+function buildAppView(app: CamelizedSchema<"App">) {
+  const route = app.route;
+  const spec = app.spec;
+  const status = app.status;
+  const replicas = readNullableNumber(spec?.replicas);
+
+  return {
+    id: app.id,
+    tenantId: readNullableString(app.tenantId),
+    projectId: readNullableString(app.projectId),
+    name: app.name,
+    createdAt: readNullableString(app.createdAt),
+    currentResourceUsage: toResourceUsage(app.currentResourceUsage),
+    updatedAt: readNullableString(app.updatedAt),
+    route: {
+      baseDomain: readNullableString(route?.baseDomain),
+      hostname: readNullableString(route?.hostname),
+      publicUrl: readNullableString(route?.publicUrl),
+      servicePort: readNullableNumber(route?.servicePort),
+    },
+    source: buildAppSourceView(app.source),
+    spec: {
+      runtimeId: readNullableString(spec?.runtimeId),
+      replicas,
+      disabled: (replicas ?? 0) === 0,
+      resources: spec?.resources ? buildResourceSpecView(spec.resources) : null,
+      workspace: spec?.workspace ? buildAppWorkspaceView(spec.workspace) : null,
     },
     status: {
-      phase: readString(status, "phase"),
-      currentRuntimeId: readString(status, "current_runtime_id"),
-      currentReplicas: readNumber(status, "current_replicas"),
-      lastOperationId: readString(status, "last_operation_id"),
-      lastMessage: readString(status, "last_message"),
-      updatedAt: readString(status, "updated_at"),
+      phase: readNullableString(status?.phase),
+      currentRuntimeId: readNullableString(status?.currentRuntimeId),
+      currentReplicas: readNullableNumber(status?.currentReplicas),
+      lastOperationId: readNullableString(status?.lastOperationId),
+      lastMessage: readNullableString(status?.lastMessage),
+      updatedAt: readNullableString(status?.updatedAt),
     },
-    bindings: bindings
-      .map(sanitizeServiceBinding)
-      .filter((item): item is FugueServiceBinding => Boolean(item)),
-    backingServices: backingServices
-      .map(sanitizeBackingService)
-      .filter((item): item is FugueBackingService => Boolean(item)),
-    techStack: techStack
-      .map(sanitizeAppTechnology)
-      .filter((item): item is FugueAppTechnology => Boolean(item)),
+    bindings: (app.bindings ?? []).map(buildServiceBindingView),
+    backingServices: (app.backingServices ?? []).map(buildBackingServiceView),
+    techStack: (app.techStack ?? []).map(buildAppTechnologyView),
   };
 }
 
-function sanitizeAppRouteAvailability(value: unknown): FugueAppRouteAvailability | null {
-  const record = asRecord(value);
-
-  if (!record) {
-    return null;
-  }
-
+function buildAppRouteAvailabilityView(
+  availability?: CamelizedSchema<"AppRouteAvailability"> | null,
+) {
   return {
-    available: Boolean(readBoolean(record, "available")),
-    baseDomain: readString(record, "base_domain"),
-    current: Boolean(readBoolean(record, "current")),
-    hostname: readString(record, "hostname"),
-    input: readString(record, "input"),
-    label: readString(record, "label"),
-    publicUrl: readString(record, "public_url"),
-    reason: readString(record, "reason"),
-    valid: Boolean(readBoolean(record, "valid")),
+    available: availability?.available ?? false,
+    baseDomain: readNullableString(availability?.baseDomain),
+    current: availability?.current ?? false,
+    hostname: readNullableString(availability?.hostname),
+    input: readNullableString(availability?.input),
+    label: readNullableString(availability?.label),
+    publicUrl: readNullableString(availability?.publicUrl),
+    reason: readNullableString(availability?.reason),
+    valid: availability?.valid ?? false,
   };
 }
 
-function sanitizeAppDomain(value: unknown): FugueAppDomain | null {
-  const record = asRecord(value);
-  const hostname = readString(record, "hostname");
-
-  if (!hostname) {
-    return null;
-  }
-
+function buildAppDomainView(domain: CamelizedSchema<"AppDomain">) {
   return {
-    appId: readString(record, "app_id"),
-    createdAt: readString(record, "created_at"),
-    hostname,
-    lastCheckedAt: readString(record, "last_checked_at"),
-    lastMessage: readString(record, "last_message"),
-    routeTarget: readString(record, "route_target"),
-    status: readString(record, "status"),
-    tenantId: readString(record, "tenant_id"),
-    tlsLastCheckedAt: readString(record, "tls_last_checked_at"),
-    tlsLastMessage: readString(record, "tls_last_message"),
-    tlsReadyAt: readString(record, "tls_ready_at"),
-    tlsStatus: readString(record, "tls_status"),
-    updatedAt: readString(record, "updated_at"),
-    verificationTxtName: readString(record, "verification_txt_name"),
-    verificationTxtValue: readString(record, "verification_txt_value"),
-    verifiedAt: readString(record, "verified_at"),
+    appId: readNullableString(domain.appId),
+    createdAt: readNullableString(domain.createdAt),
+    hostname: domain.hostname,
+    lastCheckedAt: readNullableString(domain.lastCheckedAt),
+    lastMessage: readNullableString(domain.lastMessage),
+    routeTarget: readNullableString(domain.routeTarget),
+    status: readNullableString(domain.status),
+    tenantId: readNullableString(domain.tenantId),
+    tlsLastCheckedAt: readNullableString(domain.tlsLastCheckedAt),
+    tlsLastMessage: readNullableString(domain.tlsLastMessage),
+    tlsReadyAt: readNullableString(domain.tlsReadyAt),
+    tlsStatus: readNullableString(domain.tlsStatus),
+    updatedAt: readNullableString(domain.updatedAt),
+    verificationTxtName: readNullableString(domain.verificationTxtName),
+    verificationTxtValue: readNullableString(domain.verificationTxtValue),
+    verifiedAt: readNullableString(domain.verifiedAt),
   };
 }
 
-function sanitizeAppDomainAvailability(value: unknown): FugueAppDomainAvailability | null {
-  const record = asRecord(value);
-
-  if (!record) {
-    return null;
-  }
-
+function buildAppDomainAvailabilityView(
+  availability?: CamelizedSchema<"AppDomainAvailability"> | null,
+) {
   return {
-    available: Boolean(readBoolean(record, "available")),
-    current: Boolean(readBoolean(record, "current")),
-    hostname: readString(record, "hostname"),
-    input: readString(record, "input"),
-    reason: readString(record, "reason"),
-    valid: Boolean(readBoolean(record, "valid")),
+    available: availability?.available ?? false,
+    current: availability?.current ?? false,
+    hostname: readNullableString(availability?.hostname),
+    input: readNullableString(availability?.input),
+    reason: readNullableString(availability?.reason),
+    valid: availability?.valid ?? false,
   };
 }
 
-function sanitizeRuntime(value: unknown): FugueRuntime | null {
-  const record = asRecord(value);
-  const id = readString(record, "id");
-
-  if (!id) {
-    return null;
-  }
-
+function buildRuntimeView(runtime: CamelizedSchema<"Runtime">) {
   return {
-    id,
-    tenantId: readString(record, "tenant_id"),
-    name: readString(record, "name"),
-    machineName: readString(record, "machine_name"),
-    labels: readStringMap(record?.labels),
-    type: readString(record, "type"),
-    accessMode: readString(record, "access_mode"),
-    poolMode: readString(record, "pool_mode"),
-    connectionMode: readString(record, "connection_mode"),
-    status: readString(record, "status"),
-    endpoint: readString(record, "endpoint"),
-    clusterNodeName: readString(record, "cluster_node_name"),
-    fingerprintPrefix: readString(record, "fingerprint_prefix"),
-    lastSeenAt: readString(record, "last_seen_at"),
-    lastHeartbeatAt: readString(record, "last_heartbeat_at"),
-    createdAt: readString(record, "created_at"),
-    updatedAt: readString(record, "updated_at"),
+    id: runtime.id,
+    tenantId: readNullableString(runtime.tenantId),
+    name: readNullableString(runtime.name),
+    machineName: readNullableString(runtime.machineName),
+    labels: readStringMap(runtime.labels),
+    type: readNullableString(runtime.type),
+    accessMode: readNullableString(runtime.accessMode),
+    poolMode: readNullableString(runtime.poolMode),
+    connectionMode: readNullableString(runtime.connectionMode),
+    status: readNullableString(runtime.status),
+    endpoint: readNullableString(runtime.endpoint),
+    clusterNodeName: readNullableString(runtime.clusterNodeName),
+    fingerprintPrefix: readNullableString(runtime.fingerprintPrefix),
+    lastSeenAt: readNullableString(runtime.lastSeenAt),
+    lastHeartbeatAt: readNullableString(runtime.lastHeartbeatAt),
+    createdAt: readNullableString(runtime.createdAt),
+    updatedAt: readNullableString(runtime.updatedAt),
   };
 }
 
-function sanitizeRuntimeAccessGrant(value: unknown): FugueRuntimeAccessGrant | null {
-  const record = asRecord(value);
-  const runtimeId = readString(record, "runtime_id");
-  const tenantId = readString(record, "tenant_id");
-
-  if (!runtimeId || !tenantId) {
-    return null;
-  }
-
+function buildRuntimeAccessGrantView(grant: CamelizedSchema<"RuntimeAccessGrant">) {
   return {
-    runtimeId,
-    tenantId,
-    createdAt: readString(record, "created_at"),
-    updatedAt: readString(record, "updated_at"),
+    runtimeId: grant.runtimeId,
+    tenantId: grant.tenantId,
+    createdAt: readNullableString(grant.createdAt),
+    updatedAt: readNullableString(grant.updatedAt),
   };
 }
 
-function sanitizeClusterNodeCondition(value: unknown): FugueClusterNodeCondition | null {
-  const record = asRecord(value);
-
-  if (!record) {
-    return null;
-  }
-
+function buildClusterNodeConditionView(condition: CamelizedSchema<"ClusterNodeCondition">) {
   return {
-    lastTransitionAt: readString(record, "last_transition_at"),
-    message: readString(record, "message"),
-    reason: readString(record, "reason"),
-    status: readString(record, "status"),
+    lastTransitionAt: readNullableString(condition.lastTransitionAt),
+    message: readNullableString(condition.message),
+    reason: readNullableString(condition.reason),
+    status: readNullableString(condition.status),
   };
 }
 
-function sanitizeClusterNodeConditionMap(value: unknown) {
-  const record = asRecord(value);
+function buildClusterNodeConditionMapView(
+  conditions?: Record<string, CamelizedSchema<"ClusterNodeCondition">> | null,
+) {
+  const output: Record<string, ReturnType<typeof buildClusterNodeConditionView>> = {};
 
-  if (!record) {
-    return {} as Record<string, FugueClusterNodeCondition>;
+  if (!conditions) {
+    return output;
   }
 
-  const out: Record<string, FugueClusterNodeCondition> = {};
-
-  for (const [key, rawValue] of Object.entries(record)) {
-    const condition = sanitizeClusterNodeCondition(rawValue);
-
-    if (!key.trim() || !condition) {
+  for (const [key, value] of Object.entries(conditions)) {
+    if (!key.trim()) {
       continue;
     }
 
-    out[key] = condition;
+    output[key] = buildClusterNodeConditionView(value);
   }
 
-  return out;
+  return output;
 }
 
-function sanitizeClusterNodeCPUStats(value: unknown): FugueClusterNodeCPUStats | null {
-  const record = asRecord(value);
-
-  if (!record) {
+function buildClusterNodeCpuStatsView(stats?: CamelizedSchema<"ClusterNodeCPUStats"> | null) {
+  if (!stats) {
     return null;
   }
 
   return {
-    allocatableMilliCores: readNumber(record, "allocatable_millicores"),
-    capacityMilliCores: readNumber(record, "capacity_millicores"),
-    usagePercent: readNumber(record, "usage_percent"),
-    usedMilliCores: readNumber(record, "used_millicores"),
+    allocatableMilliCores: readNullableNumber(stats.allocatableMillicores),
+    capacityMilliCores: readNullableNumber(stats.capacityMillicores),
+    usagePercent: readNullableNumber(stats.usagePercent),
+    usedMilliCores: readNullableNumber(stats.usedMillicores),
   };
 }
 
-function sanitizeClusterNodeMemoryStats(value: unknown): FugueClusterNodeMemoryStats | null {
-  const record = asRecord(value);
-
-  if (!record) {
+function buildClusterNodeMemoryStatsView(
+  stats?: CamelizedSchema<"ClusterNodeMemoryStats"> | null,
+) {
+  if (!stats) {
     return null;
   }
 
   return {
-    allocatableBytes: readNumber(record, "allocatable_bytes"),
-    capacityBytes: readNumber(record, "capacity_bytes"),
-    usagePercent: readNumber(record, "usage_percent"),
-    usedBytes: readNumber(record, "used_bytes"),
+    allocatableBytes: readNullableNumber(stats.allocatableBytes),
+    capacityBytes: readNullableNumber(stats.capacityBytes),
+    usagePercent: readNullableNumber(stats.usagePercent),
+    usedBytes: readNullableNumber(stats.usedBytes),
   };
 }
 
-function sanitizeClusterNodeStorageStats(value: unknown): FugueClusterNodeStorageStats | null {
-  const record = asRecord(value);
-
-  if (!record) {
+function buildClusterNodeStorageStatsView(
+  stats?: CamelizedSchema<"ClusterNodeStorageStats"> | null,
+) {
+  if (!stats) {
     return null;
   }
 
   return {
-    allocatableBytes: readNumber(record, "allocatable_bytes"),
-    capacityBytes: readNumber(record, "capacity_bytes"),
-    usagePercent: readNumber(record, "usage_percent"),
-    usedBytes: readNumber(record, "used_bytes"),
+    allocatableBytes: readNullableNumber(stats.allocatableBytes),
+    capacityBytes: readNullableNumber(stats.capacityBytes),
+    usagePercent: readNullableNumber(stats.usagePercent),
+    usedBytes: readNullableNumber(stats.usedBytes),
   };
 }
 
-function sanitizeClusterNodeWorkloadPod(value: unknown): FugueClusterNodeWorkloadPod | null {
-  const record = asRecord(value);
-  const name = readString(record, "name");
+function buildClusterNodeWorkloadPodView(
+  pod: CamelizedSchema<"ClusterNodeWorkloadPod">,
+) {
+  return {
+    name: pod.name,
+    phase: readNullableString(pod.phase),
+  };
+}
 
-  if (!name) {
-    return null;
-  }
+function buildClusterNodeWorkloadView(
+  workload: CamelizedSchema<"ClusterNodeWorkload">,
+) {
+  const pods = (workload.pods ?? []).map(buildClusterNodeWorkloadPodView);
 
   return {
-    name,
-    phase: readString(record, "phase"),
+    id: workload.id,
+    kind: workload.kind,
+    name: workload.name,
+    namespace: readNullableString(workload.namespace),
+    ownerAppId: readNullableString(workload.ownerAppId),
+    podCount: readNullableNumber(workload.podCount) ?? pods.length,
+    pods,
+    projectId: readNullableString(workload.projectId),
+    runtimeId: readNullableString(workload.runtimeId),
+    serviceType: readNullableString(workload.serviceType),
+    tenantId: readNullableString(workload.tenantId),
   };
 }
 
-function sanitizeClusterNodeWorkload(value: unknown): FugueClusterNodeWorkload | null {
-  const record = asRecord(value);
-  const id = readString(record, "id");
-  const kind = readString(record, "kind");
-  const name = readString(record, "name");
+function buildClusterNodeView(node: CamelizedSchema<"ClusterNode">) {
+  return {
+    conditions: buildClusterNodeConditionMapView(node.conditions),
+    containerRuntime: readNullableString(node.containerRuntime),
+    cpu: buildClusterNodeCpuStatsView(node.cpu),
+    createdAt: readNullableString(node.createdAt),
+    ephemeralStorage: buildClusterNodeStorageStatsView(node.ephemeralStorage),
+    externalIp: readNullableString(node.externalIp),
+    internalIp: readNullableString(node.internalIp),
+    publicIp: readNullableString(node.publicIp),
+    kernelVersion: readNullableString(node.kernelVersion),
+    kubeletVersion: readNullableString(node.kubeletVersion),
+    memory: buildClusterNodeMemoryStatsView(node.memory),
+    name: node.name,
+    osImage: readNullableString(node.osImage),
+    region: readNullableString(node.region),
+    roles: readStringArray(node.roles),
+    runtimeId: readNullableString(node.runtimeId),
+    status: readNullableString(node.status),
+    tenantId: readNullableString(node.tenantId),
+    workloads: (node.workloads ?? []).map(buildClusterNodeWorkloadView),
+    zone: readNullableString(node.zone),
+  };
+}
 
-  if (!id || !kind || !name) {
-    return null;
-  }
+function buildOperationView(operation: CamelizedSchema<"Operation">) {
+  return {
+    id: operation.id,
+    tenantId: readNullableString(operation.tenantId),
+    type: readNullableString(operation.type),
+    status: readNullableString(operation.status),
+    executionMode: readNullableString(operation.executionMode),
+    requestedByType: readNullableString(operation.requestedByType),
+    requestedById: readNullableString(operation.requestedById),
+    appId: readNullableString(operation.appId),
+    sourceRuntimeId: readNullableString(operation.sourceRuntimeId),
+    targetRuntimeId: readNullableString(operation.targetRuntimeId),
+    desiredSource: operation.desiredSource ? buildAppSourceView(operation.desiredSource) : null,
+    resultMessage: readNullableString(operation.resultMessage),
+    errorMessage: readNullableString(operation.errorMessage),
+    createdAt: readNullableString(operation.createdAt),
+    updatedAt: readNullableString(operation.updatedAt),
+    startedAt: readNullableString(operation.startedAt),
+    completedAt: readNullableString(operation.completedAt),
+  };
+}
 
-  const pods = Array.isArray(record?.pods) ? record.pods : [];
+function buildAuditEventView(event: CamelizedSchema<"AuditEvent">) {
+  return {
+    id: event.id,
+    tenantId: readNullableString(event.tenantId),
+    actorType: readNullableString(event.actorType),
+    actorId: readNullableString(event.actorId),
+    action: readNullableString(event.action),
+    targetType: readNullableString(event.targetType),
+    targetId: readNullableString(event.targetId),
+    createdAt: readNullableString(event.createdAt),
+    metadata: readStringMap(event.metadata),
+  };
+}
+
+function buildImportResultView(
+  response: CamelizedSchema<"ImportGitHubResponse">,
+  idempotencyKey?: string,
+) {
+  return {
+    app: response.app ? buildAppView(response.app) : null,
+    idempotencyKey: readNullableString(response.idempotency?.key) ?? idempotencyKey ?? null,
+    operation: response.operation ? buildOperationView(response.operation) : null,
+    replayed: response.idempotency?.replayed ?? false,
+    requestInProgress: response.requestInProgress ?? false,
+  };
+}
+
+function buildAppEnvResultView(response: CamelizedSchema<"AppEnvResponse">) {
+  return {
+    alreadyCurrent: response.alreadyCurrent ?? false,
+    env: readStringMap(response.env),
+    operation: response.operation ? buildOperationView(response.operation) : null,
+  };
+}
+
+function buildAppRouteAvailabilityResultView(
+  response: CamelizedSchema<"AppRouteAvailabilityResponse">,
+) {
+  return {
+    availability: buildAppRouteAvailabilityView(response.availability),
+  };
+}
+
+function buildAppRouteResultView(response: CamelizedSchema<"AppRoutePatchResponse">) {
+  return {
+    alreadyCurrent: response.alreadyCurrent ?? false,
+    app: response.app ? buildAppView(response.app) : null,
+    availability: buildAppRouteAvailabilityView(response.availability),
+  };
+}
+
+function buildAppDomainListResultView(response: CamelizedSchema<"AppDomainListResponse">) {
+  return {
+    domains: (response.domains ?? []).map(buildAppDomainView),
+  };
+}
+
+function buildAppDomainAvailabilityResultView(
+  response: CamelizedSchema<"AppDomainAvailabilityResponse">,
+) {
+  return {
+    availability: buildAppDomainAvailabilityView(response.availability),
+  };
+}
+
+function buildAppDomainResultView(response: CamelizedSchema<"AppDomainPutResponse">) {
+  return {
+    alreadyCurrent: response.alreadyCurrent ?? false,
+    availability: buildAppDomainAvailabilityView(response.availability),
+    domain: response.domain ? buildAppDomainView(response.domain) : null,
+  };
+}
+
+function buildAppDomainDeleteResultView(response: CamelizedSchema<"AppDomainResponse">) {
+  return {
+    domain: response.domain ? buildAppDomainView(response.domain) : null,
+  };
+}
+
+function buildAppDomainVerifyResultView(
+  response: CamelizedSchema<"AppDomainVerifyResponse">,
+) {
+  return {
+    domain: response.domain ? buildAppDomainView(response.domain) : null,
+    verified: response.verified ?? false,
+  };
+}
+
+function buildAppFilesResultView(response: CamelizedSchema<"AppFilesResponse">) {
+  return {
+    alreadyCurrent: response.alreadyCurrent ?? false,
+    files: (response.files ?? []).map(buildAppFileView),
+    operation: response.operation ? buildOperationView(response.operation) : null,
+  };
+}
+
+function buildAppFilesystemTreeResultView(
+  response: CamelizedSchema<"AppFilesystemTreeResponse">,
+) {
+  return {
+    component: readNullableString(response.component),
+    depth: readNullableNumber(response.depth),
+    entries: (response.entries ?? []).map(buildFilesystemEntryView),
+    path: readNullableString(response.path),
+    pod: readNullableString(response.pod),
+    workspaceRoot: readNullableString(response.workspaceRoot),
+  };
+}
+
+function buildAppFilesystemFileResultView(
+  response: CamelizedSchema<"AppFilesystemFileResponse">,
+) {
+  return {
+    component: readNullableString(response.component),
+    content: readNullableString(response.content) ?? "",
+    encoding: readNullableString(response.encoding),
+    mode: readNullableNumber(response.mode),
+    modifiedAt: readNullableString(response.modifiedAt),
+    path: readNullableString(response.path),
+    pod: readNullableString(response.pod),
+    size: readNullableNumber(response.size),
+    truncated: response.truncated ?? false,
+    workspaceRoot: readNullableString(response.workspaceRoot),
+  };
+}
+
+function buildAppFilesystemMutationResultView(
+  response: CamelizedSchema<"AppFilesystemMutationResponse">,
+) {
+  return {
+    component: readNullableString(response.component),
+    deleted: response.deleted ?? false,
+    kind: readNullableString(response.kind),
+    mode: readNullableNumber(response.mode),
+    modifiedAt: readNullableString(response.modifiedAt),
+    path: readNullableString(response.path),
+    pod: readNullableString(response.pod),
+    size: readNullableNumber(response.size),
+    workspaceRoot: readNullableString(response.workspaceRoot),
+  };
+}
+
+function buildBuildLogsResultView(response: CamelizedSchema<"BuildLogsResponse">) {
+  return {
+    available: response.available ?? false,
+    buildStrategy: readNullableString(response.buildStrategy),
+    completedAt: readNullableString(response.completedAt),
+    errorMessage: readNullableString(response.errorMessage),
+    jobName: readNullableString(response.jobName),
+    lastUpdatedAt: readNullableString(response.lastUpdatedAt),
+    logs: readNullableString(response.logs) ?? "",
+    operationId: readNullableString(response.operationId),
+    operationStatus: readNullableString(response.operationStatus),
+    resultMessage: readNullableString(response.resultMessage),
+    source: readNullableString(response.source),
+    startedAt: readNullableString(response.startedAt),
+  };
+}
+
+function buildRuntimeLogsResultView(response: CamelizedSchema<"RuntimeLogsResponse">) {
+  return {
+    component: readNullableString(response.component),
+    container: readNullableString(response.container),
+    logs: readNullableString(response.logs) ?? "",
+    namespace: readNullableString(response.namespace),
+    pods: readStringArray(response.pods),
+    selector: readNullableString(response.selector),
+    warnings: readStringArray(response.warnings),
+  };
+}
+
+function buildRuntimeSharingResultView(response: CamelizedSchema<"RuntimeSharingResponse">) {
+  return {
+    grants: (response.grants ?? []).map(buildRuntimeAccessGrantView),
+    runtime: buildRuntimeView(response.runtime),
+  };
+}
+
+function buildRuntimeAccessGrantResultView(
+  response: CamelizedSchema<"RuntimeAccessGrantResponse">,
+) {
+  return {
+    grant: response.grant ? buildRuntimeAccessGrantView(response.grant) : null,
+  };
+}
+
+function buildRuntimeAccessRevokeResultView(
+  response: CamelizedSchema<"RuntimeAccessRevokeResponse">,
+) {
+  return {
+    removed: response.removed ?? false,
+  };
+}
+
+function buildRuntimePoolModeResultView(
+  response: CamelizedSchema<"RuntimePoolModeResponse">,
+) {
+  return {
+    nodeReconciled: response.nodeReconciled ?? false,
+    runtime: response.runtime ? buildRuntimeView(response.runtime) : null,
+  };
+}
+
+function buildRestartResultView(response: CamelizedSchema<"AppRestartResponse">) {
+  return {
+    operation: response.operation ? buildOperationView(response.operation) : null,
+    restartToken: readNullableString(response.restartToken),
+  };
+}
+
+function buildRebuildResultView(response: CamelizedSchema<"AppRebuildResponse">) {
+  return {
+    build: response.build ? camelizeData(response.build) : null,
+    operation: response.operation ? buildOperationView(response.operation) : null,
+  };
+}
+
+function buildOperationResultView(response: CamelizedSchema<"OperationResponse">) {
+  return {
+    operation: response.operation ? buildOperationView(response.operation) : null,
+  };
+}
+
+function buildDisableResultView(response: CamelizedSchema<"AppDisableResponse">) {
+  return {
+    alreadyDisabled: response.alreadyDisabled ?? false,
+    app: response.app ? buildAppView(response.app) : null,
+    operation: response.operation ? buildOperationView(response.operation) : null,
+  };
+}
+
+function buildDeleteAppResultView(response: CamelizedSchema<"AppDeleteResponse">) {
+  return {
+    alreadyDeleting: response.alreadyDeleting ?? false,
+    operation: response.operation ? buildOperationView(response.operation) : null,
+  };
+}
+
+function buildNodeKeyUsageCountView(response: Record<string, unknown>) {
+  const usageCount =
+    typeof response.usageCount === "number" && Number.isFinite(response.usageCount)
+      ? response.usageCount
+      : Array.isArray(response.runtimes)
+        ? response.runtimes.length
+        : 0;
 
   return {
-    id,
-    kind,
-    name,
-    namespace: readString(record, "namespace"),
-    ownerAppId: readString(record, "owner_app_id"),
-    podCount:
-      readNumber(record, "pod_count") ??
-      pods.filter((item): item is FugueClusterNodeWorkloadPod => Boolean(sanitizeClusterNodeWorkloadPod(item))).length,
-    pods: pods
-      .map(sanitizeClusterNodeWorkloadPod)
-      .filter((item): item is FugueClusterNodeWorkloadPod => Boolean(item)),
-    projectId: readString(record, "project_id"),
-    runtimeId: readString(record, "runtime_id"),
-    serviceType: readString(record, "service_type"),
-    tenantId: readString(record, "tenant_id"),
+    usageCount,
   };
 }
 
-function sanitizeClusterNode(value: unknown): FugueClusterNode | null {
-  const record = asRecord(value);
-  const name = readString(record, "name");
-
-  if (!name) {
-    return null;
-  }
-
-  const workloads = Array.isArray(record?.workloads) ? record.workloads : [];
-
-  return {
-    conditions: sanitizeClusterNodeConditionMap(record?.conditions),
-    containerRuntime: readString(record, "container_runtime"),
-    cpu: sanitizeClusterNodeCPUStats(record?.cpu),
-    createdAt: readString(record, "created_at"),
-    ephemeralStorage: sanitizeClusterNodeStorageStats(record?.ephemeral_storage),
-    externalIp: readString(record, "external_ip"),
-    internalIp: readString(record, "internal_ip"),
-    publicIp: readString(record, "public_ip"),
-    kernelVersion: readString(record, "kernel_version"),
-    kubeletVersion: readString(record, "kubelet_version"),
-    memory: sanitizeClusterNodeMemoryStats(record?.memory),
-    name,
-    osImage: readString(record, "os_image"),
-    region: readString(record, "region"),
-    roles: readStringArray(record, "roles"),
-    runtimeId: readString(record, "runtime_id"),
-    status: readString(record, "status"),
-    tenantId: readString(record, "tenant_id"),
-    workloads: workloads
-      .map(sanitizeClusterNodeWorkload)
-      .filter((item): item is FugueClusterNodeWorkload => Boolean(item)),
-    zone: readString(record, "zone"),
-  };
-}
-
-function sanitizeOperation(value: unknown): FugueOperation | null {
-  const record = asRecord(value);
-  const id = readString(record, "id");
-
-  if (!id) {
-    return null;
-  }
-
-  return {
-    id,
-    tenantId: readString(record, "tenant_id"),
-    type: readString(record, "type"),
-    status: readString(record, "status"),
-    executionMode: readString(record, "execution_mode"),
-    requestedByType: readString(record, "requested_by_type"),
-    requestedById: readString(record, "requested_by_id"),
-    appId: readString(record, "app_id"),
-    sourceRuntimeId: readString(record, "source_runtime_id"),
-    targetRuntimeId: readString(record, "target_runtime_id"),
-    desiredSource: record?.desired_source ? sanitizeAppSource(record.desired_source) : null,
-    resultMessage: readString(record, "result_message"),
-    errorMessage: readString(record, "error_message"),
-    createdAt: readString(record, "created_at"),
-    updatedAt: readString(record, "updated_at"),
-    startedAt: readString(record, "started_at"),
-    completedAt: readString(record, "completed_at"),
-  };
-}
-
-function sanitizeAuditEvent(value: unknown): FugueAuditEvent | null {
-  const record = asRecord(value);
-  const id = readString(record, "id");
-
-  if (!id) {
-    return null;
-  }
-
-  const metadata = asRecord(record?.metadata);
-
-  return {
-    id,
-    tenantId: readString(record, "tenant_id"),
-    actorType: readString(record, "actor_type"),
-    actorId: readString(record, "actor_id"),
-    action: readString(record, "action"),
-    targetType: readString(record, "target_type"),
-    targetId: readString(record, "target_id"),
-    createdAt: readString(record, "created_at"),
-    metadata: {
-      appId: readString(metadata, "app_id"),
-      component: readString(metadata, "component"),
-      hostname: readString(metadata, "hostname"),
-      label: readString(metadata, "label"),
-      name: readString(metadata, "name"),
-      operationId: readString(metadata, "operation_id"),
-      repoUrl: readString(metadata, "repo_url"),
-      runtimeId: readString(metadata, "runtime_id"),
-    },
-  };
-}
+export type FugueTenant = ReturnType<typeof buildTenantView>;
+export type FugueProject = ReturnType<typeof buildProjectView>;
+export type FugueApiKey = ReturnType<typeof buildApiKeyView>;
+export type FugueNodeKey = ReturnType<typeof buildNodeKeyView>;
+export type FugueAppFile = ReturnType<typeof buildAppFileView>;
+export type FugueAppWorkspace = ReturnType<typeof buildAppWorkspaceView>;
+export type FugueFilesystemEntry = ReturnType<typeof buildFilesystemEntryView>;
+export type FugueAppTechnology = ReturnType<typeof buildAppTechnologyView>;
+export type FugueResourceSpec = ReturnType<typeof buildResourceSpecView>;
+export type FugueResourceUsage = ReturnType<typeof buildResourceUsageView>;
+export type FugueBillingPriceBook = ReturnType<typeof buildBillingPriceBookView>;
+export type FugueBillingEvent = ReturnType<typeof buildBillingEventView>;
+export type FugueBillingSummary = ReturnType<typeof buildBillingSummaryView>;
+export type FugueAppSource = ReturnType<typeof buildAppSourceView>;
+export type FugueBackingService = ReturnType<typeof buildBackingServiceView>;
+export type FugueServiceBinding = ReturnType<typeof buildServiceBindingView>;
+export type FugueApp = ReturnType<typeof buildAppView>;
+export type FugueAppRouteAvailability = ReturnType<typeof buildAppRouteAvailabilityView>;
+export type FugueAppDomain = ReturnType<typeof buildAppDomainView>;
+export type FugueAppDomainAvailability = ReturnType<typeof buildAppDomainAvailabilityView>;
+export type FugueRuntime = ReturnType<typeof buildRuntimeView>;
+export type FugueRuntimeAccessGrant = ReturnType<typeof buildRuntimeAccessGrantView>;
+export type FugueClusterNodeCondition = ReturnType<typeof buildClusterNodeConditionView>;
+export type FugueClusterNodeCPUStats = NonNullable<
+  ReturnType<typeof buildClusterNodeCpuStatsView>
+>;
+export type FugueClusterNodeMemoryStats = NonNullable<
+  ReturnType<typeof buildClusterNodeMemoryStatsView>
+>;
+export type FugueClusterNodeStorageStats = NonNullable<
+  ReturnType<typeof buildClusterNodeStorageStatsView>
+>;
+export type FugueClusterNodeWorkloadPod = ReturnType<typeof buildClusterNodeWorkloadPodView>;
+export type FugueClusterNodeWorkload = ReturnType<typeof buildClusterNodeWorkloadView>;
+export type FugueClusterNode = ReturnType<typeof buildClusterNodeView>;
+export type FugueOperation = ReturnType<typeof buildOperationView>;
+export type FugueAuditEvent = ReturnType<typeof buildAuditEventView>;
+export type FugueImportResult = ReturnType<typeof buildImportResultView>;
+export type FugueAppEnvResult = ReturnType<typeof buildAppEnvResultView>;
+export type FugueAppRouteAvailabilityResult = ReturnType<
+  typeof buildAppRouteAvailabilityResultView
+>;
+export type FugueAppRouteResult = ReturnType<typeof buildAppRouteResultView>;
+export type FugueAppDomainListResult = ReturnType<typeof buildAppDomainListResultView>;
+export type FugueAppDomainAvailabilityResult = ReturnType<
+  typeof buildAppDomainAvailabilityResultView
+>;
+export type FugueAppDomainResult = ReturnType<typeof buildAppDomainResultView>;
+export type FugueAppDomainDeleteResult = ReturnType<typeof buildAppDomainDeleteResultView>;
+export type FugueAppDomainVerifyResult = ReturnType<typeof buildAppDomainVerifyResultView>;
+export type FugueAppFilesResult = ReturnType<typeof buildAppFilesResultView>;
+export type FugueAppFilesystemTreeResult = ReturnType<
+  typeof buildAppFilesystemTreeResultView
+>;
+export type FugueAppFilesystemFileResult = ReturnType<
+  typeof buildAppFilesystemFileResultView
+>;
+export type FugueAppFilesystemMutationResult = ReturnType<
+  typeof buildAppFilesystemMutationResultView
+>;
+export type FugueBuildLogsResult = ReturnType<typeof buildBuildLogsResultView>;
+export type FugueRuntimeLogsResult = ReturnType<typeof buildRuntimeLogsResultView>;
 
 export async function createFugueTenant(
   accessToken: string,
   payload: { name: string },
 ) {
-  const response = asRecord(
-    await fugueRequest("/v1/tenants", {
-      accessToken,
-      body: payload,
-      method: "POST",
-    }),
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData("/v1/tenants", client.POST("/v1/tenants", { body: payload })),
   );
-  const tenant = sanitizeTenant(response?.tenant);
 
-  if (!tenant) {
-    throw new Error("Fugue tenant response was malformed.");
-  }
-
-  return tenant;
+  return buildTenantView(response.tenant);
 }
 
 export async function createFugueApiKey(
@@ -1370,27 +959,23 @@ export async function createFugueApiKey(
     tenantId?: string;
   },
 ) {
-  const response = asRecord(
-    await fugueRequest("/v1/api-keys", {
-      accessToken,
-      body: {
-        ...(payload.tenantId ? { tenant_id: payload.tenantId } : {}),
-        label: payload.label,
-        scopes: payload.scopes,
-      },
-      method: "POST",
-    }),
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      "/v1/api-keys",
+      client.POST("/v1/api-keys", {
+        body: {
+          ...(payload.tenantId ? { tenant_id: payload.tenantId } : {}),
+          label: payload.label,
+          scopes: payload.scopes,
+        },
+      }),
+    ),
   );
-  const apiKey = sanitizeApiKey(response?.api_key);
-  const secret = readString(response, "secret");
-
-  if (!apiKey || !secret) {
-    throw new Error("Fugue access-key response was malformed.");
-  }
 
   return {
-    apiKey,
-    secret,
+    apiKey: buildApiKeyView(response.apiKey),
+    secret: response.secret,
   };
 }
 
@@ -1402,23 +987,23 @@ export async function updateFugueApiKey(
     scopes?: string[];
   },
 ) {
-  const response = asRecord(
-    await fugueRequest(`/v1/api-keys/${encodeURIComponent(id)}`, {
-      accessToken,
-      body: {
-        ...(payload.label !== undefined ? { label: payload.label } : {}),
-        ...(payload.scopes !== undefined ? { scopes: payload.scopes } : {}),
-      },
-      method: "PATCH",
-    }),
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/api-keys/${encodeURIComponent(id)}`,
+      client.PATCH("/v1/api-keys/{id}", {
+        body: {
+          ...(payload.label !== undefined ? { label: payload.label } : {}),
+          ...(payload.scopes !== undefined ? { scopes: payload.scopes } : {}),
+        },
+        params: {
+          path: { id },
+        },
+      }),
+    ),
   );
-  const apiKey = sanitizeApiKey(response?.api_key);
 
-  if (!apiKey) {
-    throw new Error("Fugue access-key update response was malformed.");
-  }
-
-  return apiKey;
+  return buildApiKeyView(response.apiKey);
 }
 
 export async function rotateFugueApiKey(
@@ -1429,90 +1014,79 @@ export async function rotateFugueApiKey(
     scopes?: string[];
   },
 ) {
-  const response = asRecord(
-    await fugueRequest(`/v1/api-keys/${encodeURIComponent(id)}/rotate`, {
-      accessToken,
-      body:
-        payload && (payload.label !== undefined || payload.scopes !== undefined)
-          ? {
-              ...(payload.label !== undefined ? { label: payload.label } : {}),
-              ...(payload.scopes !== undefined ? { scopes: payload.scopes } : {}),
-            }
-          : {},
-      method: "POST",
-    }),
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/api-keys/${encodeURIComponent(id)}/rotate`,
+      client.POST("/v1/api-keys/{id}/rotate", {
+        body:
+          payload && (payload.label !== undefined || payload.scopes !== undefined)
+            ? {
+                ...(payload.label !== undefined ? { label: payload.label } : {}),
+                ...(payload.scopes !== undefined ? { scopes: payload.scopes } : {}),
+              }
+            : undefined,
+        params: {
+          path: { id },
+        },
+      }),
+    ),
   );
-  const apiKey = sanitizeApiKey(response?.api_key);
-  const secret = readString(response, "secret");
-
-  if (!apiKey || !secret) {
-    throw new Error("Fugue access-key rotate response was malformed.");
-  }
 
   return {
-    apiKey,
-    secret,
+    apiKey: buildApiKeyView(response.apiKey),
+    secret: response.secret,
   };
 }
 
-export async function disableFugueApiKey(
-  accessToken: string,
-  id: string,
-) {
-  const response = asRecord(
-    await fugueRequest(`/v1/api-keys/${encodeURIComponent(id)}/disable`, {
-      accessToken,
-      method: "POST",
-    }),
+export async function disableFugueApiKey(accessToken: string, id: string) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/api-keys/${encodeURIComponent(id)}/disable`,
+      client.POST("/v1/api-keys/{id}/disable", {
+        params: {
+          path: { id },
+        },
+      }),
+    ),
   );
-  const apiKey = sanitizeApiKey(response?.api_key);
 
-  if (!apiKey) {
-    throw new Error("Fugue access-key disable response was malformed.");
-  }
-
-  return apiKey;
+  return buildApiKeyView(response.apiKey);
 }
 
-export async function enableFugueApiKey(
-  accessToken: string,
-  id: string,
-) {
-  const response = asRecord(
-    await fugueRequest(`/v1/api-keys/${encodeURIComponent(id)}/enable`, {
-      accessToken,
-      method: "POST",
-    }),
+export async function enableFugueApiKey(accessToken: string, id: string) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/api-keys/${encodeURIComponent(id)}/enable`,
+      client.POST("/v1/api-keys/{id}/enable", {
+        params: {
+          path: { id },
+        },
+      }),
+    ),
   );
-  const apiKey = sanitizeApiKey(response?.api_key);
 
-  if (!apiKey) {
-    throw new Error("Fugue access-key enable response was malformed.");
-  }
-
-  return apiKey;
+  return buildApiKeyView(response.apiKey);
 }
 
-export async function deleteFugueApiKey(
-  accessToken: string,
-  id: string,
-) {
-  const response = asRecord(
-    await fugueRequest(`/v1/api-keys/${encodeURIComponent(id)}`, {
-      accessToken,
-      method: "DELETE",
-    }),
+export async function deleteFugueApiKey(accessToken: string, id: string) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/api-keys/${encodeURIComponent(id)}`,
+      client.DELETE("/v1/api-keys/{id}", {
+        params: {
+          path: { id },
+        },
+      }),
+    ),
   );
-  const apiKey = sanitizeApiKey(response?.api_key);
-  const deleted = readBoolean(response, "deleted");
-
-  if (!apiKey || !deleted) {
-    throw new Error("Fugue access-key delete response was malformed.");
-  }
 
   return {
-    apiKey,
-    deleted,
+    apiKey: buildApiKeyView(response.apiKey),
+    deleted: response.deleted ?? false,
   };
 }
 
@@ -1523,50 +1097,42 @@ export async function createFugueNodeKey(
     tenantId?: string;
   },
 ) {
-  const response = asRecord(
-    await fugueRequest("/v1/node-keys", {
-      accessToken,
-      body:
-        payload && (payload.label !== undefined || payload.tenantId !== undefined)
-          ? {
-              ...(payload.label !== undefined ? { label: payload.label } : {}),
-              ...(payload.tenantId !== undefined ? { tenant_id: payload.tenantId } : {}),
-            }
-          : {},
-      method: "POST",
-    }),
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      "/v1/node-keys",
+      client.POST("/v1/node-keys", {
+        body:
+          payload && (payload.label !== undefined || payload.tenantId !== undefined)
+            ? {
+                ...(payload.label !== undefined ? { label: payload.label } : {}),
+                ...(payload.tenantId !== undefined ? { tenant_id: payload.tenantId } : {}),
+              }
+            : undefined,
+      }),
+    ),
   );
-  const nodeKey = sanitizeNodeKey(response?.node_key);
-  const secret = readString(response, "secret");
-
-  if (!nodeKey || !secret) {
-    throw new Error("Fugue node key response was malformed.");
-  }
 
   return {
-    nodeKey,
-    secret,
+    nodeKey: buildNodeKeyView(response.nodeKey),
+    secret: response.secret,
   };
 }
 
-export async function revokeFugueNodeKey(
-  accessToken: string,
-  id: string,
-) {
-  const response = asRecord(
-    await fugueRequest(`/v1/node-keys/${encodeURIComponent(id)}/revoke`, {
-      accessToken,
-      body: {},
-      method: "POST",
-    }),
+export async function revokeFugueNodeKey(accessToken: string, id: string) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/node-keys/${encodeURIComponent(id)}/revoke`,
+      client.POST("/v1/node-keys/{id}/revoke", {
+        params: {
+          path: { id },
+        },
+      }),
+    ),
   );
-  const nodeKey = sanitizeNodeKey(response?.node_key);
 
-  if (!nodeKey) {
-    throw new Error("Fugue node key revoke response was malformed.");
-  }
-
-  return nodeKey;
+  return buildNodeKeyView(response.nodeKey);
 }
 
 export async function createFugueProject(
@@ -1577,24 +1143,21 @@ export async function createFugueProject(
     tenantId?: string;
   },
 ) {
-  const response = asRecord(
-    await fugueRequest("/v1/projects", {
-      accessToken,
-      body: {
-        ...(payload.tenantId ? { tenant_id: payload.tenantId } : {}),
-        ...(payload.description ? { description: payload.description } : {}),
-        name: payload.name,
-      },
-      method: "POST",
-    }),
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      "/v1/projects",
+      client.POST("/v1/projects", {
+        body: {
+          ...(payload.tenantId ? { tenant_id: payload.tenantId } : {}),
+          ...(payload.description ? { description: payload.description } : {}),
+          name: payload.name,
+        },
+      }),
+    ),
   );
-  const project = sanitizeProject(response?.project);
 
-  if (!project) {
-    throw new Error("Fugue project response was malformed.");
-  }
-
-  return project;
+  return buildProjectView(response.project);
 }
 
 export async function patchFugueProject(
@@ -1605,39 +1168,39 @@ export async function patchFugueProject(
     name?: string;
   },
 ) {
-  const response = asRecord(
-    await fugueRequest(`/v1/projects/${encodeURIComponent(id)}`, {
-      accessToken,
-      body: {
-        ...(payload.description !== undefined ? { description: payload.description } : {}),
-        ...(payload.name !== undefined ? { name: payload.name } : {}),
-      },
-      method: "PATCH",
-    }),
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/projects/${encodeURIComponent(id)}`,
+      client.PATCH("/v1/projects/{id}", {
+        body: {
+          ...(payload.description !== undefined ? { description: payload.description } : {}),
+          ...(payload.name !== undefined ? { name: payload.name } : {}),
+        },
+        params: {
+          path: { id },
+        },
+      }),
+    ),
   );
-  const project = sanitizeProject(response?.project);
 
-  if (!project) {
-    throw new Error("Fugue project update response was malformed.");
-  }
-
-  return project;
+  return buildProjectView(response.project);
 }
 
 export async function deleteFugueProject(accessToken: string, id: string) {
-  const response = asRecord(
-    await fugueRequest(`/v1/projects/${encodeURIComponent(id)}`, {
-      accessToken,
-      method: "DELETE",
-    }),
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/projects/${encodeURIComponent(id)}`,
+      client.DELETE("/v1/projects/{id}", {
+        params: {
+          path: { id },
+        },
+      }),
+    ),
   );
-  const project = sanitizeProject(response?.project);
 
-  if (!project) {
-    throw new Error("Fugue project delete response was malformed.");
-  }
-
-  return project;
+  return buildProjectView(response.project);
 }
 
 export async function importFugueGitHubApp(
@@ -1663,121 +1226,133 @@ export async function importFugueGitHubApp(
   },
   idempotencyKey?: string,
 ) {
-  const response = asRecord(
-    await fugueRequest("/v1/apps/import-github", {
-      accessToken,
-      body: {
-        ...(payload.tenantId ? { tenant_id: payload.tenantId } : {}),
-        ...(payload.projectId ? { project_id: payload.projectId } : {}),
-        ...(payload.project
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      "/v1/apps/import-github",
+      client.POST("/v1/apps/import-github", {
+        body: {
+          ...(payload.tenantId ? { tenant_id: payload.tenantId } : {}),
+          ...(payload.projectId ? { project_id: payload.projectId } : {}),
+          ...(payload.project
+            ? {
+                project: {
+                  ...(payload.project.description
+                    ? { description: payload.project.description }
+                    : {}),
+                  name: payload.project.name,
+                },
+              }
+            : {}),
+          ...(payload.branch ? { branch: payload.branch } : {}),
+          ...(payload.buildStrategy ? { build_strategy: payload.buildStrategy } : {}),
+          ...(payload.sourceDir ? { source_dir: payload.sourceDir } : {}),
+          ...(payload.dockerfilePath ? { dockerfile_path: payload.dockerfilePath } : {}),
+          ...(payload.buildContextDir ? { build_context_dir: payload.buildContextDir } : {}),
+          ...(payload.name ? { name: payload.name } : {}),
+          ...(payload.runtimeId ? { runtime_id: payload.runtimeId } : {}),
+          ...(typeof payload.servicePort === "number"
+            ? { service_port: payload.servicePort }
+            : {}),
+          ...(payload.repoVisibility ? { repo_visibility: payload.repoVisibility } : {}),
+          ...(payload.repoAuthToken ? { repo_auth_token: payload.repoAuthToken } : {}),
+          repo_url: payload.repoUrl,
+        },
+        params: idempotencyKey
           ? {
-              project: {
-                ...(payload.project.description
-                  ? { description: payload.project.description }
-                  : {}),
-                name: payload.project.name,
+              header: {
+                "Idempotency-Key": idempotencyKey,
               },
             }
-          : {}),
-        ...(payload.branch ? { branch: payload.branch } : {}),
-        ...(payload.buildStrategy ? { build_strategy: payload.buildStrategy } : {}),
-        ...(payload.sourceDir ? { source_dir: payload.sourceDir } : {}),
-        ...(payload.dockerfilePath ? { dockerfile_path: payload.dockerfilePath } : {}),
-        ...(payload.buildContextDir ? { build_context_dir: payload.buildContextDir } : {}),
-        ...(payload.name ? { name: payload.name } : {}),
-        ...(payload.runtimeId ? { runtime_id: payload.runtimeId } : {}),
-        ...(typeof payload.servicePort === "number"
-          ? { service_port: payload.servicePort }
-          : {}),
-        ...(payload.repoVisibility ? { repo_visibility: payload.repoVisibility } : {}),
-        ...(payload.repoAuthToken ? { repo_auth_token: payload.repoAuthToken } : {}),
-        repo_url: payload.repoUrl,
-      },
-      headers: idempotencyKey
-        ? {
-            "Idempotency-Key": idempotencyKey,
-          }
-        : undefined,
-      method: "POST",
-    }),
+          : undefined,
+      }),
+    ),
   );
 
-  return {
-    app: sanitizeApp(response?.app),
-    idempotencyKey:
-      readString(asRecord(response?.idempotency), "key") ?? idempotencyKey ?? null,
-    operation: sanitizeOperation(response?.operation),
-    replayed: Boolean(asRecord(response?.idempotency)?.replayed),
-    requestInProgress: Boolean(response?.request_in_progress),
-  } satisfies FugueImportResult;
+  return buildImportResultView(response, idempotencyKey);
 }
 
 export async function getFugueTenants(accessToken: string) {
-  const payload = asRecord(
-    await fugueRequest("/v1/tenants", {
-      accessToken,
-    }),
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData("/v1/tenants", client.GET("/v1/tenants")),
   );
-  const items = Array.isArray(payload?.tenants) ? payload.tenants : [];
-  return items.map(sanitizeTenant).filter((item): item is FugueTenant => Boolean(item));
+
+  return (response.tenants ?? []).map(buildTenantView);
 }
 
-export async function getFugueProjects(
-  accessToken: string,
-  tenantId?: string,
-) {
-  const searchParams = tenantId
-    ? `?tenant_id=${encodeURIComponent(tenantId)}`
-    : "";
-  const payload = asRecord(
-    await fugueRequest(`/v1/projects${searchParams}`, {
-      accessToken,
-    }),
+export async function getFugueProjects(accessToken: string, tenantId?: string) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      "/v1/projects",
+      client.GET("/v1/projects", {
+        params: tenantId
+          ? {
+              query: {
+                tenant_id: tenantId,
+              },
+            }
+          : undefined,
+      }),
+    ),
   );
-  const items = Array.isArray(payload?.projects) ? payload.projects : [];
-  return items.map(sanitizeProject).filter((item): item is FugueProject => Boolean(item));
+
+  return (response.projects ?? []).map(buildProjectView);
 }
 
 export async function getFugueApiKeys(accessToken: string) {
-  const payload = asRecord(
-    await fugueRequest("/v1/api-keys", {
-      accessToken,
-    }),
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData("/v1/api-keys", client.GET("/v1/api-keys")),
   );
-  const items = Array.isArray(payload?.api_keys) ? payload.api_keys : [];
-  return items.map(sanitizeApiKey).filter((item): item is FugueApiKey => Boolean(item));
+
+  return (response.apiKeys ?? []).map(buildApiKeyView);
 }
 
 export async function getFugueNodeKeys(accessToken: string) {
-  const payload = asRecord(
-    await fugueRequest("/v1/node-keys", {
-      accessToken,
-    }),
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData("/v1/node-keys", client.GET("/v1/node-keys")),
   );
-  const items = Array.isArray(payload?.node_keys) ? payload.node_keys : [];
-  return items.map(sanitizeNodeKey).filter((item): item is FugueNodeKey => Boolean(item));
+
+  return (response.nodeKeys ?? []).map(buildNodeKeyView);
+}
+
+export async function getFugueNodeKeyUsageCount(accessToken: string, id: string) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/node-keys/${encodeURIComponent(id)}/usages`,
+      client.GET("/v1/node-keys/{id}/usages", {
+        params: {
+          path: { id },
+        },
+      }),
+    ),
+  ) as Record<string, unknown>;
+
+  return buildNodeKeyUsageCountView(response).usageCount;
 }
 
 export async function getFugueBillingSummary(accessToken: string, tenantId?: string) {
-  const searchParams = new URLSearchParams();
-
-  if (tenantId) {
-    searchParams.set("tenant_id", tenantId);
-  }
-
-  const suffix = searchParams.size > 0 ? `?${searchParams.toString()}` : "";
-  const payload = asRecord(
-    await fugueRequest(`/v1/billing${suffix}`, {
-      accessToken,
-    }),
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      "/v1/billing",
+      client.GET("/v1/billing", {
+        params: tenantId
+          ? {
+              query: {
+                tenant_id: tenantId,
+              },
+            }
+          : undefined,
+      }),
+    ),
   );
-  const billing = sanitizeBillingSummary(payload?.billing);
 
-  if (!billing) {
-    throw new Error("Fugue billing response was malformed.");
-  }
-
-  return billing;
+  return buildBillingSummaryView(response.billing);
 }
 
 export async function updateFugueBilling(
@@ -1787,26 +1362,23 @@ export async function updateFugueBilling(
     tenantId?: string;
   },
 ) {
-  const response = asRecord(
-    await fugueRequest("/v1/billing", {
-      accessToken,
-      body: {
-        ...(payload.tenantId ? { tenant_id: payload.tenantId } : {}),
-        managed_cap: {
-          cpu_millicores: payload.managedCap.cpuMillicores,
-          memory_mebibytes: payload.managedCap.memoryMebibytes,
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      "/v1/billing",
+      client.PATCH("/v1/billing", {
+        body: {
+          ...(payload.tenantId ? { tenant_id: payload.tenantId } : {}),
+          managed_cap: {
+            cpu_millicores: payload.managedCap.cpuMillicores,
+            memory_mebibytes: payload.managedCap.memoryMebibytes,
+          },
         },
-      },
-      method: "PATCH",
-    }),
+      }),
+    ),
   );
-  const billing = sanitizeBillingSummary(response?.billing);
 
-  if (!billing) {
-    throw new Error("Fugue billing update response was malformed.");
-  }
-
-  return billing;
+  return buildBillingSummaryView(response.billing);
 }
 
 export async function setFugueBillingBalance(
@@ -1817,24 +1389,21 @@ export async function setFugueBillingBalance(
     tenantId?: string;
   },
 ) {
-  const response = asRecord(
-    await fugueRequest("/v1/billing/balance", {
-      accessToken,
-      body: {
-        balance_cents: payload.balanceCents,
-        ...(payload.note ? { note: payload.note } : {}),
-        ...(payload.tenantId ? { tenant_id: payload.tenantId } : {}),
-      },
-      method: "PATCH",
-    }),
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      "/v1/billing/balance",
+      client.PATCH("/v1/billing/balance", {
+        body: {
+          balance_cents: payload.balanceCents,
+          ...(payload.note ? { note: payload.note } : {}),
+          ...(payload.tenantId ? { tenant_id: payload.tenantId } : {}),
+        },
+      }),
+    ),
   );
-  const billing = sanitizeBillingSummary(response?.billing);
 
-  if (!billing) {
-    throw new Error("Fugue billing balance response was malformed.");
-  }
-
-  return billing;
+  return buildBillingSummaryView(response.billing);
 }
 
 export async function topUpFugueBilling(
@@ -1845,77 +1414,71 @@ export async function topUpFugueBilling(
     tenantId?: string;
   },
 ) {
-  const response = asRecord(
-    await fugueRequest("/v1/billing/top-ups", {
-      accessToken,
-      body: {
-        amount_cents: payload.amountCents,
-        ...(payload.note ? { note: payload.note } : {}),
-        ...(payload.tenantId ? { tenant_id: payload.tenantId } : {}),
-      },
-      method: "POST",
-    }),
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      "/v1/billing/top-ups",
+      client.POST("/v1/billing/top-ups", {
+        body: {
+          amount_cents: payload.amountCents,
+          ...(payload.note ? { note: payload.note } : {}),
+          ...(payload.tenantId ? { tenant_id: payload.tenantId } : {}),
+        },
+      }),
+    ),
   );
-  const billing = sanitizeBillingSummary(response?.billing);
 
-  if (!billing) {
-    throw new Error("Fugue billing top-up response was malformed.");
-  }
-
-  return billing;
+  return buildBillingSummaryView(response.billing);
 }
 
 export async function getFugueApps(accessToken: string) {
-  const payload = asRecord(
-    await fugueRequest("/v1/apps", {
-      accessToken,
-    }),
-  );
-  const items = Array.isArray(payload?.apps) ? payload.apps : [];
-  return items.map(sanitizeApp).filter((item): item is FugueApp => Boolean(item));
+  const client = getClient(accessToken);
+  const response = camelizeData(await expectData("/v1/apps", client.GET("/v1/apps")));
+
+  return (response.apps ?? []).map(buildAppView);
 }
 
 export async function getFugueApp(accessToken: string, appId: string) {
-  const payload = asRecord(
-    await fugueRequest(`/v1/apps/${encodeURIComponent(appId)}`, {
-      accessToken,
-    }),
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}`,
+      client.GET("/v1/apps/{id}", {
+        params: {
+          path: { id: appId },
+        },
+      }),
+    ),
   );
 
-  return sanitizeApp(payload?.app);
+  return response.app ? buildAppView(response.app) : null;
 }
 
 export async function getFugueBackingServices(accessToken: string) {
-  const payload = asRecord(
-    await fugueRequest("/v1/backing-services", {
-      accessToken,
-    }),
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData("/v1/backing-services", client.GET("/v1/backing-services")),
   );
-  const items = Array.isArray(payload?.backing_services)
-    ? payload.backing_services
-    : [];
-  return items
-    .map(sanitizeBackingService)
-    .filter((item): item is FugueBackingService => Boolean(item));
+
+  return (response.backingServices ?? []).map(buildBackingServiceView);
 }
 
 export async function getFugueAppBindings(accessToken: string, appId: string) {
-  const payload = asRecord(
-    await fugueRequest(`/v1/apps/${encodeURIComponent(appId)}/bindings`, {
-      accessToken,
-    }),
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}/bindings`,
+      client.GET("/v1/apps/{id}/bindings", {
+        params: {
+          path: { id: appId },
+        },
+      }),
+    ),
   );
 
   return {
-    backingServices: (Array.isArray(payload?.backing_services)
-      ? payload.backing_services
-      : []
-    )
-      .map(sanitizeBackingService)
-      .filter((item): item is FugueBackingService => Boolean(item)),
-    bindings: (Array.isArray(payload?.bindings) ? payload.bindings : [])
-      .map(sanitizeServiceBinding)
-      .filter((item): item is FugueServiceBinding => Boolean(item)),
+    backingServices: (response.backingServices ?? []).map(buildBackingServiceView),
+    bindings: (response.bindings ?? []).map(buildServiceBindingView),
   };
 }
 
@@ -1934,38 +1497,41 @@ export async function importFugueDockerImageApp(
     tenantId?: string;
   },
 ) {
-  const response = asRecord(
-    await fugueRequest("/v1/apps/import-image", {
-      accessToken,
-      body: {
-        ...(payload.tenantId ? { tenant_id: payload.tenantId } : {}),
-        ...(payload.projectId ? { project_id: payload.projectId } : {}),
-        ...(payload.project
-          ? {
-              project: {
-                ...(payload.project.description
-                  ? { description: payload.project.description }
-                  : {}),
-                name: payload.project.name,
-              },
-            }
-          : {}),
-        ...(payload.name ? { name: payload.name } : {}),
-        ...(payload.runtimeId ? { runtime_id: payload.runtimeId } : {}),
-        ...(typeof payload.servicePort === "number"
-          ? { service_port: payload.servicePort }
-          : {}),
-        image_ref: payload.imageRef,
-      },
-      method: "POST",
-    }),
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      "/v1/apps/import-image",
+      client.POST("/v1/apps/import-image", {
+        body: {
+          ...(payload.tenantId ? { tenant_id: payload.tenantId } : {}),
+          ...(payload.projectId ? { project_id: payload.projectId } : {}),
+          ...(payload.project
+            ? {
+                project: {
+                  ...(payload.project.description
+                    ? { description: payload.project.description }
+                    : {}),
+                  name: payload.project.name,
+                },
+              }
+            : {}),
+          ...(payload.name ? { name: payload.name } : {}),
+          ...(payload.runtimeId ? { runtime_id: payload.runtimeId } : {}),
+          ...(typeof payload.servicePort === "number"
+            ? { service_port: payload.servicePort }
+            : {}),
+          image_ref: payload.imageRef,
+        },
+      }),
+    ),
   );
 
   return {
-    app: sanitizeApp(response?.app),
-    operation: sanitizeOperation(response?.operation),
-    replayed: readBoolean(response, "replayed") ?? false,
-    requestInProgress: readBoolean(response, "request_in_progress") ?? false,
+    app: response.app ? buildAppView(response.app) : null,
+    idempotencyKey: null,
+    operation: response.operation ? buildOperationView(response.operation) : null,
+    replayed: false,
+    requestInProgress: false,
   };
 }
 
@@ -1974,20 +1540,22 @@ export async function getFugueAppRouteAvailability(
   appId: string,
   hostname: string,
 ) {
-  const searchParams = new URLSearchParams();
-  searchParams.set("hostname", hostname);
-  const payload = asRecord(
-    await fugueRequest(
-      `/v1/apps/${encodeURIComponent(appId)}/route/availability?${searchParams.toString()}`,
-      {
-        accessToken,
-      },
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}/route/availability`,
+      client.GET("/v1/apps/{id}/route/availability", {
+        params: {
+          path: { id: appId },
+          query: {
+            hostname,
+          },
+        },
+      }),
     ),
   );
 
-  return {
-    availability: sanitizeAppRouteAvailability(payload?.availability),
-  } satisfies FugueAppRouteAvailabilityResult;
+  return buildAppRouteAvailabilityResultView(response);
 }
 
 export async function patchFugueAppRoute(
@@ -1997,35 +1565,38 @@ export async function patchFugueAppRoute(
     hostname: string;
   },
 ) {
-  const response = asRecord(
-    await fugueRequest(`/v1/apps/${encodeURIComponent(appId)}/route`, {
-      accessToken,
-      body: {
-        hostname: payload.hostname,
-      },
-      method: "PATCH",
-    }),
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}/route`,
+      client.PATCH("/v1/apps/{id}/route", {
+        body: {
+          hostname: payload.hostname,
+        },
+        params: {
+          path: { id: appId },
+        },
+      }),
+    ),
   );
 
-  return {
-    alreadyCurrent: Boolean(response?.already_current),
-    app: sanitizeApp(response?.app),
-    availability: sanitizeAppRouteAvailability(response?.availability),
-  } satisfies FugueAppRouteResult;
+  return buildAppRouteResultView(response);
 }
 
 export async function getFugueAppDomains(accessToken: string, appId: string) {
-  const payload = asRecord(
-    await fugueRequest(`/v1/apps/${encodeURIComponent(appId)}/domains`, {
-      accessToken,
-    }),
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}/domains`,
+      client.GET("/v1/apps/{id}/domains", {
+        params: {
+          path: { id: appId },
+        },
+      }),
+    ),
   );
 
-  return {
-    domains: (Array.isArray(payload?.domains) ? payload.domains : [])
-      .map(sanitizeAppDomain)
-      .filter((item): item is FugueAppDomain => Boolean(item)),
-  } satisfies FugueAppDomainListResult;
+  return buildAppDomainListResultView(response);
 }
 
 export async function getFugueAppDomainAvailability(
@@ -2033,20 +1604,22 @@ export async function getFugueAppDomainAvailability(
   appId: string,
   hostname: string,
 ) {
-  const searchParams = new URLSearchParams();
-  searchParams.set("hostname", hostname);
-  const payload = asRecord(
-    await fugueRequest(
-      `/v1/apps/${encodeURIComponent(appId)}/domains/availability?${searchParams.toString()}`,
-      {
-        accessToken,
-      },
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}/domains/availability`,
+      client.GET("/v1/apps/{id}/domains/availability", {
+        params: {
+          path: { id: appId },
+          query: {
+            hostname,
+          },
+        },
+      }),
     ),
   );
 
-  return {
-    availability: sanitizeAppDomainAvailability(payload?.availability),
-  } satisfies FugueAppDomainAvailabilityResult;
+  return buildAppDomainAvailabilityResultView(response);
 }
 
 export async function createFugueAppDomain(
@@ -2056,21 +1629,22 @@ export async function createFugueAppDomain(
     hostname: string;
   },
 ) {
-  const response = asRecord(
-    await fugueRequest(`/v1/apps/${encodeURIComponent(appId)}/domains`, {
-      accessToken,
-      body: {
-        hostname: payload.hostname,
-      },
-      method: "POST",
-    }),
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}/domains`,
+      client.POST("/v1/apps/{id}/domains", {
+        body: {
+          hostname: payload.hostname,
+        },
+        params: {
+          path: { id: appId },
+        },
+      }),
+    ),
   );
 
-  return {
-    alreadyCurrent: Boolean(response?.already_current),
-    availability: sanitizeAppDomainAvailability(response?.availability),
-    domain: sanitizeAppDomain(response?.domain),
-  } satisfies FugueAppDomainResult;
+  return buildAppDomainResultView(response);
 }
 
 export async function verifyFugueAppDomain(
@@ -2080,20 +1654,22 @@ export async function verifyFugueAppDomain(
     hostname: string;
   },
 ) {
-  const response = asRecord(
-    await fugueRequest(`/v1/apps/${encodeURIComponent(appId)}/domains/verify`, {
-      accessToken,
-      body: {
-        hostname: payload.hostname,
-      },
-      method: "POST",
-    }),
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}/domains/verify`,
+      client.POST("/v1/apps/{id}/domains/verify", {
+        body: {
+          hostname: payload.hostname,
+        },
+        params: {
+          path: { id: appId },
+        },
+      }),
+    ),
   );
 
-  return {
-    domain: sanitizeAppDomain(response?.domain),
-    verified: Boolean(response?.verified),
-  } satisfies FugueAppDomainVerifyResult;
+  return buildAppDomainVerifyResultView(response);
 }
 
 export async function deleteFugueAppDomain(
@@ -2101,35 +1677,38 @@ export async function deleteFugueAppDomain(
   appId: string,
   hostname: string,
 ) {
-  const searchParams = new URLSearchParams();
-  searchParams.set("hostname", hostname);
-  const response = asRecord(
-    await fugueRequest(
-      `/v1/apps/${encodeURIComponent(appId)}/domains?${searchParams.toString()}`,
-      {
-        accessToken,
-        method: "DELETE",
-      },
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}/domains`,
+      client.DELETE("/v1/apps/{id}/domains", {
+        params: {
+          path: { id: appId },
+          query: {
+            hostname,
+          },
+        },
+      }),
     ),
   );
 
-  return {
-    domain: sanitizeAppDomain(response?.domain),
-  } satisfies FugueAppDomainDeleteResult;
+  return buildAppDomainDeleteResultView(response);
 }
 
 export async function getFugueAppEnv(accessToken: string, appId: string) {
-  const payload = asRecord(
-    await fugueRequest(`/v1/apps/${encodeURIComponent(appId)}/env`, {
-      accessToken,
-    }),
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}/env`,
+      client.GET("/v1/apps/{id}/env", {
+        params: {
+          path: { id: appId },
+        },
+      }),
+    ),
   );
 
-  return {
-    alreadyCurrent: Boolean(payload?.already_current),
-    env: readStringMap(payload?.env),
-    operation: sanitizeOperation(payload?.operation),
-  } satisfies FugueAppEnvResult;
+  return buildAppEnvResultView(response);
 }
 
 export async function patchFugueAppEnv(
@@ -2140,38 +1719,39 @@ export async function patchFugueAppEnv(
     set?: Record<string, string>;
   },
 ) {
-  const response = asRecord(
-    await fugueRequest(`/v1/apps/${encodeURIComponent(appId)}/env`, {
-      accessToken,
-      body: {
-        ...(payload.set ? { set: payload.set } : {}),
-        ...(payload.delete ? { delete: payload.delete } : {}),
-      },
-      method: "PATCH",
-    }),
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}/env`,
+      client.PATCH("/v1/apps/{id}/env", {
+        body: {
+          ...(payload.set ? { set: payload.set } : {}),
+          ...(payload.delete ? { delete: payload.delete } : {}),
+        },
+        params: {
+          path: { id: appId },
+        },
+      }),
+    ),
   );
 
-  return {
-    alreadyCurrent: Boolean(response?.already_current),
-    env: readStringMap(response?.env),
-    operation: sanitizeOperation(response?.operation),
-  } satisfies FugueAppEnvResult;
+  return buildAppEnvResultView(response);
 }
 
 export async function getFugueAppFiles(accessToken: string, appId: string) {
-  const payload = asRecord(
-    await fugueRequest(`/v1/apps/${encodeURIComponent(appId)}/files`, {
-      accessToken,
-    }),
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}/files`,
+      client.GET("/v1/apps/{id}/files", {
+        params: {
+          path: { id: appId },
+        },
+      }),
+    ),
   );
 
-  return {
-    alreadyCurrent: Boolean(payload?.already_current),
-    files: (Array.isArray(payload?.files) ? payload.files : [])
-      .map(sanitizeAppFile)
-      .filter((item): item is FugueAppFile => Boolean(item)),
-    operation: sanitizeOperation(payload?.operation),
-  } satisfies FugueAppFilesResult;
+  return buildAppFilesResultView(response);
 }
 
 export async function putFugueAppFiles(
@@ -2184,53 +1764,45 @@ export async function putFugueAppFiles(
     secret?: boolean;
   }>,
 ) {
-  const payload = asRecord(
-    await fugueRequest(`/v1/apps/${encodeURIComponent(appId)}/files`, {
-      accessToken,
-      body: {
-        files,
-      },
-      method: "PUT",
-    }),
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}/files`,
+      client.PUT("/v1/apps/{id}/files", {
+        body: {
+          files,
+        },
+        params: {
+          path: { id: appId },
+        },
+      }),
+    ),
   );
 
-  return {
-    alreadyCurrent: Boolean(payload?.already_current),
-    files: (Array.isArray(payload?.files) ? payload.files : [])
-      .map(sanitizeAppFile)
-      .filter((item): item is FugueAppFile => Boolean(item)),
-    operation: sanitizeOperation(payload?.operation),
-  } satisfies FugueAppFilesResult;
+  return buildAppFilesResultView(response);
 }
 
 export async function deleteFugueAppFiles(
   accessToken: string,
   appId: string,
-  paths: string[],
+  pathsToDelete: string[],
 ) {
-  const searchParams = new URLSearchParams();
-
-  for (const path of paths) {
-    searchParams.append("path", path);
-  }
-
-  const payload = asRecord(
-    await fugueRequest(
-      `/v1/apps/${encodeURIComponent(appId)}/files?${searchParams.toString()}`,
-      {
-        accessToken,
-        method: "DELETE",
-      },
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}/files`,
+      client.DELETE("/v1/apps/{id}/files", {
+        params: {
+          path: { id: appId },
+          query: {
+            path: pathsToDelete,
+          },
+        },
+      }),
     ),
   );
 
-  return {
-    alreadyCurrent: Boolean(payload?.already_current),
-    files: (Array.isArray(payload?.files) ? payload.files : [])
-      .map(sanitizeAppFile)
-      .filter((item): item is FugueAppFile => Boolean(item)),
-    operation: sanitizeOperation(payload?.operation),
-  } satisfies FugueAppFilesResult;
+  return buildAppFilesResultView(response);
 }
 
 export async function getFugueAppFilesystemTree(
@@ -2242,37 +1814,24 @@ export async function getFugueAppFilesystemTree(
     pod?: string;
   },
 ) {
-  const searchParams = new URLSearchParams();
-
-  if (options?.depth !== undefined) {
-    searchParams.set("depth", String(options.depth));
-  }
-
-  if (options?.path) {
-    searchParams.set("path", options.path);
-  }
-
-  if (options?.pod) {
-    searchParams.set("pod", options.pod);
-  }
-
-  const suffix = searchParams.size > 0 ? `?${searchParams.toString()}` : "";
-  const payload = asRecord(
-    await fugueRequest(`/v1/apps/${encodeURIComponent(appId)}/filesystem/tree${suffix}`, {
-      accessToken,
-    }),
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}/filesystem/tree`,
+      client.GET("/v1/apps/{id}/filesystem/tree", {
+        params: {
+          path: { id: appId },
+          query: {
+            ...(options?.depth !== undefined ? { depth: options.depth } : {}),
+            ...(options?.path ? { path: options.path } : {}),
+            ...(options?.pod ? { pod: options.pod } : {}),
+          },
+        },
+      }),
+    ),
   );
 
-  return {
-    component: readString(payload, "component"),
-    depth: readNumber(payload, "depth"),
-    entries: (Array.isArray(payload?.entries) ? payload.entries : [])
-      .map(sanitizeFilesystemEntry)
-      .filter((item): item is FugueFilesystemEntry => Boolean(item)),
-    path: readString(payload, "path"),
-    pod: readString(payload, "pod"),
-    workspaceRoot: readString(payload, "workspace_root"),
-  } satisfies FugueAppFilesystemTreeResult;
+  return buildAppFilesystemTreeResultView(response);
 }
 
 export async function getFugueAppFilesystemFile(
@@ -2284,38 +1843,24 @@ export async function getFugueAppFilesystemFile(
     pod?: string;
   },
 ) {
-  const searchParams = new URLSearchParams();
-  searchParams.set("path", options.path);
-
-  if (options.maxBytes !== undefined) {
-    searchParams.set("max_bytes", String(options.maxBytes));
-  }
-
-  if (options.pod) {
-    searchParams.set("pod", options.pod);
-  }
-
-  const payload = asRecord(
-    await fugueRequest(
-      `/v1/apps/${encodeURIComponent(appId)}/filesystem/file?${searchParams.toString()}`,
-      {
-        accessToken,
-      },
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}/filesystem/file`,
+      client.GET("/v1/apps/{id}/filesystem/file", {
+        params: {
+          path: { id: appId },
+          query: {
+            ...(options.maxBytes !== undefined ? { max_bytes: options.maxBytes } : {}),
+            path: options.path,
+            ...(options.pod ? { pod: options.pod } : {}),
+          },
+        },
+      }),
     ),
   );
 
-  return {
-    component: readString(payload, "component"),
-    content: readString(payload, "content") ?? "",
-    encoding: readString(payload, "encoding"),
-    mode: readNumber(payload, "mode"),
-    modifiedAt: readString(payload, "modified_at"),
-    path: readString(payload, "path"),
-    pod: readString(payload, "pod"),
-    size: readNumber(payload, "size"),
-    truncated: readBoolean(payload, "truncated") ?? false,
-    workspaceRoot: readString(payload, "workspace_root"),
-  } satisfies FugueAppFilesystemFileResult;
+  return buildAppFilesystemFileResultView(response);
 }
 
 export async function putFugueAppFilesystemFile(
@@ -2329,31 +1874,32 @@ export async function putFugueAppFilesystemFile(
     path: string;
   },
 ) {
-  const response = asRecord(
-    await fugueRequest(`/v1/apps/${encodeURIComponent(appId)}/filesystem/file`, {
-      accessToken,
-      body: {
-        content: payload.content,
-        ...(payload.encoding ? { encoding: payload.encoding } : {}),
-        ...(payload.mkdirParents !== undefined ? { mkdir_parents: payload.mkdirParents } : {}),
-        ...(payload.mode !== undefined ? { mode: payload.mode } : {}),
-        path: payload.path,
-      },
-      method: "PUT",
-    }),
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}/filesystem/file`,
+      client.PUT("/v1/apps/{id}/filesystem/file", {
+        body: {
+          content: payload.content,
+          ...(payload.encoding ? { encoding: payload.encoding } : {}),
+          ...(payload.mkdirParents !== undefined ? { mkdir_parents: payload.mkdirParents } : {}),
+          ...(payload.mode !== undefined ? { mode: payload.mode } : {}),
+          path: payload.path,
+        },
+        params: {
+          path: { id: appId },
+        },
+      }),
+    ),
   );
 
+  const result = buildAppFilesystemMutationResultView(response);
+
   return {
-    component: readString(response, "component"),
+    ...result,
     deleted: false,
     kind: "file",
-    mode: readNumber(response, "mode"),
-    modifiedAt: readString(response, "modified_at"),
-    path: readString(response, "path"),
-    pod: readString(response, "pod"),
-    size: readNumber(response, "size"),
-    workspaceRoot: readString(response, "workspace_root"),
-  } satisfies FugueAppFilesystemMutationResult;
+  };
 }
 
 export async function createFugueAppFilesystemDirectory(
@@ -2365,29 +1911,29 @@ export async function createFugueAppFilesystemDirectory(
     path: string;
   },
 ) {
-  const response = asRecord(
-    await fugueRequest(`/v1/apps/${encodeURIComponent(appId)}/filesystem/directory`, {
-      accessToken,
-      body: {
-        ...(payload.mode !== undefined ? { mode: payload.mode } : {}),
-        ...(payload.parents !== undefined ? { parents: payload.parents } : {}),
-        path: payload.path,
-      },
-      method: "POST",
-    }),
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}/filesystem/directory`,
+      client.POST("/v1/apps/{id}/filesystem/directory", {
+        body: {
+          ...(payload.mode !== undefined ? { mode: payload.mode } : {}),
+          ...(payload.parents !== undefined ? { parents: payload.parents } : {}),
+          path: payload.path,
+        },
+        params: {
+          path: { id: appId },
+        },
+      }),
+    ),
   );
 
+  const result = buildAppFilesystemMutationResultView(response);
+
   return {
-    component: readString(response, "component"),
+    ...result,
     deleted: false,
-    kind: readString(response, "kind"),
-    mode: readNumber(response, "mode"),
-    modifiedAt: readString(response, "modified_at"),
-    path: readString(response, "path"),
-    pod: readString(response, "pod"),
-    size: readNumber(response, "size"),
-    workspaceRoot: readString(response, "workspace_root"),
-  } satisfies FugueAppFilesystemMutationResult;
+  };
 }
 
 export async function deleteFugueAppFilesystemPath(
@@ -2398,34 +1944,23 @@ export async function deleteFugueAppFilesystemPath(
     recursive?: boolean;
   },
 ) {
-  const searchParams = new URLSearchParams();
-  searchParams.set("path", options.path);
-
-  if (options.recursive !== undefined) {
-    searchParams.set("recursive", String(options.recursive));
-  }
-
-  const payload = asRecord(
-    await fugueRequest(
-      `/v1/apps/${encodeURIComponent(appId)}/filesystem?${searchParams.toString()}`,
-      {
-        accessToken,
-        method: "DELETE",
-      },
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}/filesystem`,
+      client.DELETE("/v1/apps/{id}/filesystem", {
+        params: {
+          path: { id: appId },
+          query: {
+            path: options.path,
+            ...(options.recursive !== undefined ? { recursive: options.recursive } : {}),
+          },
+        },
+      }),
     ),
   );
 
-  return {
-    component: readString(payload, "component"),
-    deleted: readBoolean(payload, "deleted") ?? false,
-    kind: null,
-    mode: readNumber(payload, "mode"),
-    modifiedAt: readString(payload, "modified_at"),
-    path: readString(payload, "path"),
-    pod: readString(payload, "pod"),
-    size: readNumber(payload, "size"),
-    workspaceRoot: readString(payload, "workspace_root"),
-  } satisfies FugueAppFilesystemMutationResult;
+  return buildAppFilesystemMutationResultView(response);
 }
 
 export async function getFugueAppBuildLogs(
@@ -2436,37 +1971,25 @@ export async function getFugueAppBuildLogs(
     tailLines?: number;
   },
 ) {
-  const searchParams = new URLSearchParams();
-
-  if (options?.operationId) {
-    searchParams.set("operation_id", options.operationId);
-  }
-
-  if (typeof options?.tailLines === "number" && Number.isFinite(options.tailLines)) {
-    searchParams.set("tail_lines", String(options.tailLines));
-  }
-
-  const suffix = searchParams.size > 0 ? `?${searchParams.toString()}` : "";
-  const payload = asRecord(
-    await fugueRequest(`/v1/apps/${encodeURIComponent(appId)}/build-logs${suffix}`, {
-      accessToken,
-    }),
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}/build-logs`,
+      client.GET("/v1/apps/{id}/build-logs", {
+        params: {
+          path: { id: appId },
+          query: {
+            ...(options?.operationId ? { operation_id: options.operationId } : {}),
+            ...(typeof options?.tailLines === "number" && Number.isFinite(options.tailLines)
+              ? { tail_lines: options.tailLines }
+              : {}),
+          },
+        },
+      }),
+    ),
   );
 
-  return {
-    available: Boolean(payload?.available),
-    buildStrategy: readString(payload, "build_strategy"),
-    completedAt: readString(payload, "completed_at"),
-    errorMessage: readString(payload, "error_message"),
-    jobName: readString(payload, "job_name"),
-    lastUpdatedAt: readString(payload, "last_updated_at"),
-    logs: readString(payload, "logs") ?? "",
-    operationId: readString(payload, "operation_id"),
-    operationStatus: readString(payload, "operation_status"),
-    resultMessage: readString(payload, "result_message"),
-    source: readString(payload, "source"),
-    startedAt: readString(payload, "started_at"),
-  } satisfies FugueBuildLogsResult;
+  return buildBuildLogsResultView(response);
 }
 
 export async function getFugueAppRuntimeLogs(
@@ -2479,55 +2002,43 @@ export async function getFugueAppRuntimeLogs(
     tailLines?: number;
   },
 ) {
-  const searchParams = new URLSearchParams();
-
-  if (options?.component) {
-    searchParams.set("component", options.component);
-  }
-
-  if (options?.pod) {
-    searchParams.set("pod", options.pod);
-  }
-
-  if (typeof options?.tailLines === "number" && Number.isFinite(options.tailLines)) {
-    searchParams.set("tail_lines", String(options.tailLines));
-  }
-
-  if (typeof options?.previous === "boolean") {
-    searchParams.set("previous", String(options.previous));
-  }
-
-  const suffix = searchParams.size > 0 ? `?${searchParams.toString()}` : "";
-  const payload = asRecord(
-    await fugueRequest(`/v1/apps/${encodeURIComponent(appId)}/runtime-logs${suffix}`, {
-      accessToken,
-    }),
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}/runtime-logs`,
+      client.GET("/v1/apps/{id}/runtime-logs", {
+        params: {
+          path: { id: appId },
+          query: {
+            ...(options?.component ? { component: options.component } : {}),
+            ...(options?.pod ? { pod: options.pod } : {}),
+            ...(typeof options?.previous === "boolean" ? { previous: options.previous } : {}),
+            ...(typeof options?.tailLines === "number" && Number.isFinite(options.tailLines)
+              ? { tail_lines: options.tailLines }
+              : {}),
+          },
+        },
+      }),
+    ),
   );
 
-  return {
-    component: readString(payload, "component"),
-    container: readString(payload, "container"),
-    logs: readString(payload, "logs") ?? "",
-    namespace: readString(payload, "namespace"),
-    pods: readStringArray(payload, "pods"),
-    selector: readString(payload, "selector"),
-    warnings: readStringArray(payload, "warnings"),
-  } satisfies FugueRuntimeLogsResult;
+  return buildRuntimeLogsResultView(response);
 }
 
 export async function restartFugueApp(accessToken: string, appId: string) {
-  const payload = asRecord(
-    await fugueRequest(`/v1/apps/${encodeURIComponent(appId)}/restart`, {
-      accessToken,
-      body: {},
-      method: "POST",
-    }),
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}/restart`,
+      client.POST("/v1/apps/{id}/restart", {
+        params: {
+          path: { id: appId },
+        },
+      }),
+    ),
   );
 
-  return {
-    operation: sanitizeOperation(payload?.operation),
-    restartToken: readString(payload, "restart_token"),
-  };
+  return buildRestartResultView(response);
 }
 
 export async function rebuildFugueApp(
@@ -2542,105 +2053,112 @@ export async function rebuildFugueApp(
     sourceDir?: string;
   },
 ) {
-  const payload = asRecord(
-    await fugueRequest(`/v1/apps/${encodeURIComponent(appId)}/rebuild`, {
-      accessToken,
-      body: {
-        ...(options?.branch !== undefined ? { branch: options.branch } : {}),
-        ...(options?.sourceDir !== undefined ? { source_dir: options.sourceDir } : {}),
-        ...(options?.dockerfilePath !== undefined
-          ? { dockerfile_path: options.dockerfilePath }
-          : {}),
-        ...(options?.buildContextDir !== undefined
-          ? { build_context_dir: options.buildContextDir }
-          : {}),
-        ...(options?.imageRef !== undefined ? { image_ref: options.imageRef } : {}),
-        ...(options?.repoAuthToken !== undefined
-          ? { repo_auth_token: options.repoAuthToken }
-          : {}),
-      },
-      method: "POST",
-    }),
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}/rebuild`,
+      client.POST("/v1/apps/{id}/rebuild", {
+        body:
+          options && Object.keys(options).length > 0
+            ? {
+                ...(options.branch !== undefined ? { branch: options.branch } : {}),
+                ...(options.sourceDir !== undefined ? { source_dir: options.sourceDir } : {}),
+                ...(options.dockerfilePath !== undefined
+                  ? { dockerfile_path: options.dockerfilePath }
+                  : {}),
+                ...(options.buildContextDir !== undefined
+                  ? { build_context_dir: options.buildContextDir }
+                  : {}),
+                ...(options.imageRef !== undefined ? { image_ref: options.imageRef } : {}),
+                ...(options.repoAuthToken !== undefined
+                  ? { repo_auth_token: options.repoAuthToken }
+                  : {}),
+              }
+            : undefined,
+        params: {
+          path: { id: appId },
+        },
+      }),
+    ),
   );
 
-  return {
-    build: asRecord(payload?.build),
-    operation: sanitizeOperation(payload?.operation),
-  };
+  return buildRebuildResultView(response);
 }
 
 export async function startFugueApp(accessToken: string, appId: string) {
-  const payload = asRecord(
-    await fugueRequest(`/v1/apps/${encodeURIComponent(appId)}/scale`, {
-      accessToken,
-      body: {
-        replicas: 1,
-      },
-      method: "POST",
-    }),
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}/scale`,
+      client.POST("/v1/apps/{id}/scale", {
+        body: {
+          replicas: 1,
+        },
+        params: {
+          path: { id: appId },
+        },
+      }),
+    ),
   );
 
-  return {
-    operation: sanitizeOperation(payload?.operation),
-  };
+  return buildOperationResultView(response);
 }
 
 export async function disableFugueApp(accessToken: string, appId: string) {
-  const payload = asRecord(
-    await fugueRequest(`/v1/apps/${encodeURIComponent(appId)}/disable`, {
-      accessToken,
-      body: {},
-      method: "POST",
-    }),
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}/disable`,
+      client.POST("/v1/apps/{id}/disable", {
+        params: {
+          path: { id: appId },
+        },
+      }),
+    ),
   );
 
-  return {
-    alreadyDisabled: Boolean(payload?.already_disabled),
-    app: sanitizeApp(payload?.app),
-    operation: sanitizeOperation(payload?.operation),
-  };
+  return buildDisableResultView(response);
 }
 
 export async function deleteFugueApp(accessToken: string, appId: string) {
-  const payload = asRecord(
-    await fugueRequest(`/v1/apps/${encodeURIComponent(appId)}`, {
-      accessToken,
-      method: "DELETE",
-    }),
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}`,
+      client.DELETE("/v1/apps/{id}", {
+        params: {
+          path: { id: appId },
+        },
+      }),
+    ),
   );
 
-  return {
-    alreadyDeleting: Boolean(payload?.already_deleting),
-    operation: sanitizeOperation(payload?.operation),
-  };
+  return buildDeleteAppResultView(response);
 }
 
 export async function getFugueRuntimes(accessToken: string) {
-  const payload = asRecord(
-    await fugueRequest("/v1/runtimes", {
-      accessToken,
-    }),
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData("/v1/runtimes", client.GET("/v1/runtimes")),
   );
-  const items = Array.isArray(payload?.runtimes) ? payload.runtimes : [];
-  return items
-    .map(sanitizeRuntime)
-    .filter((item): item is FugueRuntime => Boolean(item));
+
+  return (response.runtimes ?? []).map(buildRuntimeView);
 }
 
 export async function getFugueRuntimeSharing(accessToken: string, runtimeId: string) {
-  const payload = asRecord(
-    await fugueRequest(`/v1/runtimes/${encodeURIComponent(runtimeId)}/sharing`, {
-      accessToken,
-    }),
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/runtimes/${encodeURIComponent(runtimeId)}/sharing`,
+      client.GET("/v1/runtimes/{id}/sharing", {
+        params: {
+          path: { id: runtimeId },
+        },
+      }),
+    ),
   );
-  const grants = Array.isArray(payload?.grants) ? payload.grants : [];
 
-  return {
-    grants: grants
-      .map(sanitizeRuntimeAccessGrant)
-      .filter((item): item is FugueRuntimeAccessGrant => Boolean(item)),
-    runtime: sanitizeRuntime(payload?.runtime),
-  };
+  return buildRuntimeSharingResultView(response);
 }
 
 export async function grantFugueRuntimeAccess(
@@ -2650,19 +2168,22 @@ export async function grantFugueRuntimeAccess(
     tenantId: string;
   },
 ) {
-  const response = asRecord(
-    await fugueRequest(`/v1/runtimes/${encodeURIComponent(runtimeId)}/sharing/grants`, {
-      accessToken,
-      body: {
-        tenant_id: payload.tenantId,
-      },
-      method: "POST",
-    }),
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/runtimes/${encodeURIComponent(runtimeId)}/sharing/grants`,
+      client.POST("/v1/runtimes/{id}/sharing/grants", {
+        body: {
+          tenant_id: payload.tenantId,
+        },
+        params: {
+          path: { id: runtimeId },
+        },
+      }),
+    ),
   );
 
-  return {
-    grant: sanitizeRuntimeAccessGrant(response?.grant),
-  };
+  return buildRuntimeAccessGrantResultView(response);
 }
 
 export async function revokeFugueRuntimeAccess(
@@ -2670,19 +2191,22 @@ export async function revokeFugueRuntimeAccess(
   runtimeId: string,
   tenantId: string,
 ) {
-  const response = asRecord(
-    await fugueRequest(
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
       `/v1/runtimes/${encodeURIComponent(runtimeId)}/sharing/grants/${encodeURIComponent(tenantId)}`,
-      {
-        accessToken,
-        method: "DELETE",
-      },
+      client.DELETE("/v1/runtimes/{id}/sharing/grants/{tenant_id}", {
+        params: {
+          path: {
+            id: runtimeId,
+            tenant_id: tenantId,
+          },
+        },
+      }),
     ),
   );
 
-  return {
-    removed: Boolean(readBoolean(response, "removed")),
-  };
+  return buildRuntimeAccessRevokeResultView(response);
 }
 
 export async function setFugueRuntimePoolMode(
@@ -2692,54 +2216,47 @@ export async function setFugueRuntimePoolMode(
     poolMode: string;
   },
 ) {
-  const response = asRecord(
-    await fugueRequest(`/v1/runtimes/${encodeURIComponent(runtimeId)}/pool-mode`, {
-      accessToken,
-      body: {
-        pool_mode: payload.poolMode,
-      },
-      method: "POST",
-    }),
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/runtimes/${encodeURIComponent(runtimeId)}/pool-mode`,
+      client.POST("/v1/runtimes/{id}/pool-mode", {
+        body: {
+          pool_mode: payload.poolMode,
+        },
+        params: {
+          path: { id: runtimeId },
+        },
+      }),
+    ),
   );
 
-  return {
-    nodeReconciled: Boolean(readBoolean(response, "node_reconciled")),
-    runtime: sanitizeRuntime(response?.runtime),
-  };
+  return buildRuntimePoolModeResultView(response);
 }
 
 export async function getFugueClusterNodes(accessToken: string) {
-  const payload = asRecord(
-    await fugueRequest("/v1/cluster/nodes", {
-      accessToken,
-    }),
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData("/v1/cluster/nodes", client.GET("/v1/cluster/nodes")),
   );
-  const items = Array.isArray(payload?.cluster_nodes) ? payload.cluster_nodes : [];
-  return items
-    .map(sanitizeClusterNode)
-    .filter((item): item is FugueClusterNode => Boolean(item));
+
+  return (response.clusterNodes ?? []).map(buildClusterNodeView);
 }
 
 export async function getFugueOperations(accessToken: string) {
-  const payload = asRecord(
-    await fugueRequest("/v1/operations", {
-      accessToken,
-    }),
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData("/v1/operations", client.GET("/v1/operations")),
   );
-  const items = Array.isArray(payload?.operations) ? payload.operations : [];
-  return items
-    .map(sanitizeOperation)
-    .filter((item): item is FugueOperation => Boolean(item));
+
+  return (response.operations ?? []).map(buildOperationView);
 }
 
 export async function getFugueAuditEvents(accessToken: string) {
-  const payload = asRecord(
-    await fugueRequest("/v1/audit-events", {
-      accessToken,
-    }),
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData("/v1/audit-events", client.GET("/v1/audit-events")),
   );
-  const items = Array.isArray(payload?.audit_events) ? payload.audit_events : [];
-  return items
-    .map(sanitizeAuditEvent)
-    .filter((item): item is FugueAuditEvent => Boolean(item));
+
+  return (response.auditEvents ?? []).map(buildAuditEventView);
 }

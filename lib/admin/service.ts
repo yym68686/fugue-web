@@ -566,6 +566,26 @@ function buildUserViews(
   tenants: FugueTenant[],
   billingByTenant: Map<string, AdminTenantBillingLookup>,
 ) {
+  let bootstrapAdminEmail: string | null = null;
+  let bootstrapAdminCreatedAt = Number.POSITIVE_INFINITY;
+
+  for (const user of users) {
+    if (user.status === "deleted") {
+      continue;
+    }
+
+    const createdAt = parseTimestamp(user.createdAt);
+
+    if (
+      createdAt < bootstrapAdminCreatedAt ||
+      (createdAt === bootstrapAdminCreatedAt &&
+        user.email.localeCompare(bootstrapAdminEmail ?? user.email) < 0)
+    ) {
+      bootstrapAdminEmail = user.email;
+      bootstrapAdminCreatedAt = createdAt;
+    }
+  }
+
   const workspaceByEmail = new Map(
     workspaces.map((workspace) => [workspace.email, workspace] as const),
   );
@@ -585,7 +605,10 @@ function buildUserViews(
     return {
       billing: buildAdminUserBillingView(workspace, billing),
       canBlock: !user.isAdmin && user.status === "active",
-      canDemoteAdmin: user.isAdmin && user.status !== "deleted",
+      canDemoteAdmin:
+        user.isAdmin &&
+        user.status !== "deleted" &&
+        user.email !== bootstrapAdminEmail,
       canDelete: !user.isAdmin && user.status !== "deleted",
       canPromoteToAdmin: !user.isAdmin && user.status !== "deleted",
       canUnblock: !user.isAdmin && user.status === "blocked",

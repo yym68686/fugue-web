@@ -133,6 +133,27 @@ async function ensureActiveAdmin(client: PoolClient, now: string) {
   return promoted.rows[0]?.email ? normalizeEmail(promoted.rows[0].email) : null;
 }
 
+async function getBootstrapAdminEmail(
+  client: PoolClient,
+  options?: {
+    forUpdate?: boolean;
+  },
+) {
+  const result = await client.query<{ email: string }>(
+    `
+      SELECT email
+      FROM app_users
+      WHERE status <> 'deleted'
+      ORDER BY created_at ASC, email ASC
+      LIMIT 1
+      ${options?.forUpdate ? "FOR UPDATE" : ""}
+    `,
+  );
+
+  const email = result.rows[0]?.email;
+  return email ? normalizeEmail(email) : null;
+}
+
 async function getUserRow(
   client: PoolClient,
   email: string,
@@ -463,6 +484,14 @@ export async function setAppUserAdmin(email: string, isAdmin: boolean) {
     }
 
     if (!nextIsAdmin) {
+      const bootstrapAdminEmail = await getBootstrapAdminEmail(client, {
+        forUpdate: true,
+      });
+
+      if (bootstrapAdminEmail === normalizedEmail) {
+        throw new Error("400 Bootstrap admin cannot be demoted.");
+      }
+
       const otherAdmin = await client.query<{ email: string }>(
         `
           SELECT email

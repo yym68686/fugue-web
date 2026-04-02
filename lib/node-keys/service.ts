@@ -3,6 +3,7 @@ import "server-only";
 import {
   getNodeKeyRecordById,
   listNodeKeysByEmail,
+  renameNodeKeyRecord,
   saveNodeKeyRecord,
   syncNodeKeysForWorkspace,
 } from "@/lib/node-keys/store";
@@ -10,6 +11,7 @@ import type { NodeKeyRecord } from "@/lib/node-keys/types";
 import {
   createFugueNodeKey,
   getFugueNodeKeys,
+  getFugueNodeKeyUsageCount,
   revokeFugueNodeKey,
 } from "@/lib/fugue/api";
 import { getWorkspaceAccessByEmail } from "@/lib/workspace/store";
@@ -65,6 +67,32 @@ function normalizeLabel(label: string) {
   return value;
 }
 
+async function attachNodeKeyUsageCounts(
+  accessToken: string,
+  keys: NodeKeyRecord[],
+) {
+  if (!keys.length) {
+    return keys;
+  }
+
+  const counts = await Promise.all(
+    keys.map(async (key) => {
+      try {
+        return [key.id, await getFugueNodeKeyUsageCount(accessToken, key.id)] as const;
+      } catch {
+        return [key.id, key.attachedVpsCount] as const;
+      }
+    }),
+  );
+
+  const countsById = new Map(counts);
+
+  return keys.map((key) => ({
+    ...key,
+    attachedVpsCount: countsById.get(key.id) ?? key.attachedVpsCount,
+  }));
+}
+
 export async function getNodeKeyPageData(
   email: string,
   options?: {
@@ -79,6 +107,7 @@ export async function getNodeKeyPageData(
 
   let keys: NodeKeyRecord[] = [];
   let syncError: string | null = null;
+  let didLiveSync = false;
 
   try {
     const visibleKeys = await getFugueNodeKeys(workspace.adminKeySecret);
@@ -87,6 +116,7 @@ export async function getNodeKeyPageData(
       tenantId: workspace.tenantId,
       visibleKeys,
     });
+    didLiveSync = true;
   } catch (error) {
     keys = await listNodeKeysByEmail(email, {
       tenantId: workspace.tenantId,
@@ -104,6 +134,13 @@ export async function getNodeKeyPageData(
     } catch (error) {
       syncError ??= readErrorMessage(error);
     }
+  }
+
+  if (didLiveSync) {
+    visibleKeys = await attachNodeKeyUsageCounts(
+      workspace.adminKeySecret,
+      visibleKeys,
+    );
   }
 
   return {
@@ -142,7 +179,10 @@ export async function createNodeKeyForEmail(
   });
 
   return {
-    key: record,
+    key: {
+      ...record,
+      attachedVpsCount: 0,
+    },
     secret: created.secret,
   };
 }
@@ -186,5 +226,44 @@ export async function revokeNodeKeyForEmail(email: string, id: string) {
 
   return {
     key: record,
+  };
+}
+
+export async function renameNodeKeyForEmail(
+  email: string,
+  id: string,
+  payload: {
+    label: string;
+  },
+) {
+  const workspace = await getWorkspaceAccessByEmail(email);
+
+  if (!workspace) {
+    throw new Error("Create a workspace first.");
+  }
+
+  const current = await getNodeKeyRecordById(email, id);
+
+  if (!current) {
+    throw new Error("Node key not found.");
+  }
+
+  if (current.status === "revoked") {
+    throw new Error("Revoked node keys cannot be renamed.");
+  }
+
+  const nextLabel = normalizeLabel(payload.label);
+
+  if (nextLabel === current.label) {
+    throw new Error("Nothing to update.");
+  }
+
+  const record = await renameNodeKeyRecord(email, id, nextLabel);
+
+  return {
+    key: {
+      ...record,
+      attachedVpsCount: current.attachedVpsCount,
+    },
   };
 }

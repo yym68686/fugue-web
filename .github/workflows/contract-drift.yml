@@ -1,0 +1,40 @@
+name: contract-drift
+
+on:
+  pull_request:
+  push:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout fugue-web
+        uses: actions/checkout@v4
+
+      - name: Checkout fugue contract source
+        uses: actions/checkout@v4
+        with:
+          repository: yym68686/fugue
+          ref: main
+          path: fugue
+          fetch-depth: 1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check contract drift
+        env:
+          FUGUE_OPENAPI_SOURCE: ${{ github.workspace }}/fugue/openapi/openapi.yaml
+        run: npm run contract:check

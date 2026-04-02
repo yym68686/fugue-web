@@ -605,13 +605,14 @@ function NodeKeysTableSkeleton() {
           <col className="fg-console-table__col fg-console-table__col--node-key-name" />
           <col className="fg-console-table__col fg-console-table__col--node-key-prefix" />
           <col className="fg-console-table__col fg-console-table__col--node-key-status" />
+          <col className="fg-console-table__col fg-console-table__col--node-key-vps" />
           <col className="fg-console-table__col fg-console-table__col--node-key-last-used" />
           <col className="fg-console-table__col fg-console-table__col--node-key-created" />
           <col className="fg-console-table__col fg-console-table__col--node-key-actions" />
         </colgroup>
         <thead>
           <tr>
-            {["4rem", "4rem", "3.75rem", "4rem", "4rem", "4rem"].map((width, index) => (
+            {["4rem", "4rem", "3.75rem", "5rem", "4rem", "4rem", "4rem"].map((width, index) => (
               <th key={`node-keys-head-${index}`}>
                 <SkeletonBlock className="fg-console-skeleton__table-label" width={width} />
               </th>
@@ -634,6 +635,12 @@ function NodeKeysTableSkeleton() {
                 <div className="fg-console-table__pair fg-node-key-table__pair">
                   <SkeletonBlock className="fg-console-skeleton__item-title" width="4rem" />
                   <SkeletonBlock className="fg-console-skeleton__item-meta" width="4rem" />
+                </div>
+              </td>
+              <td>
+                <div className="fg-console-table__pair fg-node-key-table__pair">
+                  <SkeletonBlock className="fg-console-skeleton__item-title" width="1.75rem" />
+                  <SkeletonBlock className="fg-console-skeleton__item-meta" width="2.4rem" />
                 </div>
               </td>
               <td>

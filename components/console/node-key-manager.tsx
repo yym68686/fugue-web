@@ -1,10 +1,18 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 
-import { InlineButton } from "@/components/ui/button";
+import { Button, InlineButton } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
-import { Panel, PanelSection } from "@/components/ui/panel";
+import { FormField } from "@/components/ui/form-field";
+import { Panel, PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
 import { useToast } from "@/components/ui/toast";
 import { NODE_KEY_CREATE_REQUEST_EVENT } from "@/lib/console/events";
 import {
@@ -19,12 +27,35 @@ type NodeKeyPagePayload = {
   syncError: string | null;
 };
 
+type RenameState = {
+  error: string | null;
+  keyId: string;
+  label: string;
+};
+
+const FOCUSABLE_SELECTOR = [
+  "button:not([disabled])",
+  "[href]",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  "[tabindex]:not([tabindex='-1'])",
+].join(", ");
+
 function readErrorMessage(error: unknown) {
   if (error instanceof Error && error.message) {
     return error.message;
   }
 
   return "Request failed.";
+}
+
+function validateRenameLabel(label: string) {
+  if (!label.trim()) {
+    return "Node key name is required.";
+  }
+
+  return null;
 }
 
 async function requestJson<T>(input: RequestInfo, init?: RequestInit) {
@@ -118,6 +149,31 @@ function describeStatus(record: NodeKeyRecord) {
   };
 }
 
+function describeAttachedVps(record: NodeKeyRecord) {
+  if (record.attachedVpsCount === null) {
+    return null;
+  }
+
+  return {
+    primary: String(record.attachedVpsCount),
+    secondary: "VPS",
+  };
+}
+
+function readFocusableElements(container: HTMLElement | null) {
+  if (!container) {
+    return [];
+  }
+
+  return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
+    (element) => {
+      const style = window.getComputedStyle(element);
+
+      return style.display !== "none" && style.visibility !== "hidden";
+    },
+  );
+}
+
 export function NodeKeyManager({
   apiBaseUrl,
   initialKeys,
@@ -131,10 +187,30 @@ export function NodeKeyManager({
   const { showToast } = useToast();
   const createRequestRef = useRef<() => void>(() => {});
   const copyInFlightRef = useRef<string | null>(null);
+  const renameDialogRef = useRef<HTMLDivElement | null>(null);
+  const renameBackdropPressStartedRef = useRef(false);
+  const renameReturnFocusRef = useRef<HTMLElement | null>(null);
+  const renameInputRef = useRef<HTMLInputElement | null>(null);
   const normalizedApiBaseUrl = apiBaseUrl.replace(/\/+$/, "");
   const [keys, setKeys] = useState(() => sortNodeKeys(initialKeys));
   const [syncError, setSyncError] = useState<string | null>(initialSyncError);
   const [busyAction, setBusyAction] = useState<string | null>(null);
+  const [renameState, setRenameState] = useState<RenameState | null>(null);
+  const renameRecord = renameState
+    ? keys.find((key) => key.id === renameState.keyId) ?? null
+    : null;
+  const renameBusy = renameRecord
+    ? busyAction === `rename:${renameRecord.id}`
+    : false;
+  const renameDialogIdBase = renameRecord?.id ?? "node-key-rename";
+  const renameTitleId = `node-key-rename-title-${renameDialogIdBase}`;
+  const renameDescriptionId = `node-key-rename-description-${renameDialogIdBase}`;
+  const renameFormId = `node-key-rename-form-${renameDialogIdBase}`;
+  const renameFieldId = `node-key-rename-field-${renameDialogIdBase}`;
+  const renameChanged =
+    renameRecord && renameState
+      ? renameState.label.trim() !== renameRecord.label
+      : false;
 
   useEffect(() => {
     if (!initialSyncError) {
@@ -158,6 +234,49 @@ export function NodeKeyManager({
       window.removeEventListener(NODE_KEY_CREATE_REQUEST_EVENT, handleCreateRequest);
     };
   }, []);
+
+  useEffect(() => {
+    if (!renameRecord) {
+      return;
+    }
+
+    const body = document.body;
+    const previousOverflow = body.style.overflow;
+    const previousPaddingRight = body.style.paddingRight;
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+
+    body.style.overflow = "hidden";
+
+    if (scrollbarWidth > 0) {
+      body.style.paddingRight = `${scrollbarWidth}px`;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      const input = renameInputRef.current;
+
+      input?.focus({ preventScroll: true });
+      input?.select();
+    });
+
+    return () => {
+      renameBackdropPressStartedRef.current = false;
+      window.cancelAnimationFrame(frame);
+      body.style.overflow = previousOverflow;
+      body.style.paddingRight = previousPaddingRight;
+    };
+  }, [renameRecord]);
+
+  useEffect(() => {
+    if (!renameState) {
+      return;
+    }
+
+    if (renameRecord) {
+      return;
+    }
+
+    dismissRenameDialog(false);
+  }, [renameRecord, renameState]);
 
   function syncLocalState(data: NodeKeyPagePayload) {
     setKeys(sortNodeKeys(data.keys));
@@ -240,6 +359,78 @@ export function NodeKeyManager({
     void handleCreate();
   };
 
+  function dismissRenameDialog(restoreFocus: boolean) {
+    setRenameState(null);
+
+    const returnFocusTarget = renameReturnFocusRef.current;
+    renameReturnFocusRef.current = null;
+
+    if (!restoreFocus || !returnFocusTarget) {
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      if (returnFocusTarget.isConnected) {
+        returnFocusTarget.focus();
+      }
+    });
+  }
+
+  function handleStartRename(record: NodeKeyRecord) {
+    if (busyAction) {
+      return;
+    }
+
+    if (renameState) {
+      return;
+    }
+
+    renameReturnFocusRef.current =
+      typeof document !== "undefined" && document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    setRenameState({
+      error: null,
+      keyId: record.id,
+      label: record.label,
+    });
+  }
+
+  function handleRenameDraftChange(nextLabel: string) {
+    setRenameState((current) => {
+      if (!current) {
+        return current;
+      }
+
+      return {
+        ...current,
+        error: current.error ? validateRenameLabel(nextLabel) : null,
+        label: nextLabel,
+      };
+    });
+  }
+
+  function handleRenameBlur() {
+    setRenameState((current) => {
+      if (!current) {
+        return current;
+      }
+
+      return {
+        ...current,
+        error: validateRenameLabel(current.label),
+      };
+    });
+  }
+
+  function handleRenameCancel() {
+    if (renameBusy) {
+      return;
+    }
+
+    dismissRenameDialog(true);
+  }
+
   async function handleCopy(keyId: string) {
     if (busyAction || copyInFlightRef.current) {
       return;
@@ -266,6 +457,152 @@ export function NodeKeyManager({
     } finally {
       copyInFlightRef.current = null;
     }
+  }
+
+  async function handleRename(record: NodeKeyRecord) {
+    if (busyAction || !renameState || renameState.keyId !== record.id) {
+      return;
+    }
+
+    const error = validateRenameLabel(renameState.label);
+
+    if (error) {
+      setRenameState((current) =>
+        current && current.keyId === record.id
+          ? {
+              ...current,
+              error,
+            }
+          : current,
+      );
+      renameInputRef.current?.focus({ preventScroll: true });
+      return;
+    }
+
+    const nextLabel = renameState.label.trim();
+
+    if (nextLabel === record.label) {
+      showToast({
+        message: "No node key name changes.",
+        variant: "info",
+      });
+      return;
+    }
+
+    setBusyAction(`rename:${record.id}`);
+
+    try {
+      const updated = await requestJson<{
+        key: NodeKeyRecord;
+      }>(`/api/fugue/node-keys/${encodeURIComponent(record.id)}`, {
+        body: JSON.stringify({
+          label: nextLabel,
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "PATCH",
+      });
+
+      setKeys((current) => upsertKey(current, updated.key));
+      dismissRenameDialog(true);
+
+      showToast({
+        message: "Node key name updated.",
+        variant: "success",
+      });
+    } catch (error) {
+      const message = readErrorMessage(error);
+
+      setRenameState((current) =>
+        current && current.keyId === record.id
+          ? {
+              ...current,
+              error: message.includes("required") ? message : current.error,
+            }
+          : current,
+      );
+
+      showToast({
+        message,
+        variant: "error",
+      });
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
+  function handleRenameDialogKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
+    if (!renameRecord) {
+      return;
+    }
+
+    if (event.key === "Escape") {
+      if (renameBusy) {
+        return;
+      }
+
+      event.preventDefault();
+      dismissRenameDialog(true);
+      return;
+    }
+
+    if (event.key !== "Tab") {
+      return;
+    }
+
+    const focusableElements = readFocusableElements(renameDialogRef.current);
+
+    if (!focusableElements.length) {
+      event.preventDefault();
+      return;
+    }
+
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+    const activeElement =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const activeInsideDialog = activeElement
+      ? renameDialogRef.current?.contains(activeElement)
+      : false;
+
+    if (event.shiftKey) {
+      if (!activeInsideDialog || activeElement === firstElement) {
+        event.preventDefault();
+        lastElement.focus();
+      }
+
+      return;
+    }
+
+    if (!activeInsideDialog || activeElement === lastElement) {
+      event.preventDefault();
+      firstElement.focus();
+    }
+  }
+
+  function handleRenameBackdropPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
+    if (renameBusy) {
+      renameBackdropPressStartedRef.current = false;
+      return;
+    }
+
+    renameBackdropPressStartedRef.current = event.target === event.currentTarget;
+  }
+
+  function handleRenameBackdropClick(event: ReactMouseEvent<HTMLDivElement>) {
+    const shouldClose =
+      !renameBusy &&
+      renameBackdropPressStartedRef.current &&
+      event.target === event.currentTarget;
+
+    renameBackdropPressStartedRef.current = false;
+
+    if (!shouldClose) {
+      return;
+    }
+
+    dismissRenameDialog(true);
   }
 
   async function handleCopyCommand(record: NodeKeyRecord) {
@@ -343,8 +680,9 @@ export function NodeKeyManager({
   }
 
   return (
-    <Panel>
-      <PanelSection>
+    <>
+      <Panel>
+        <PanelSection>
         <div className="fg-credential-section__head">
           <div className="fg-credential-section__copy">
             <strong>Node keys</strong>
@@ -385,6 +723,7 @@ export function NodeKeyManager({
                 <col className="fg-console-table__col fg-console-table__col--node-key-name" />
                 <col className="fg-console-table__col fg-console-table__col--node-key-prefix" />
                 <col className="fg-console-table__col fg-console-table__col--node-key-status" />
+                <col className="fg-console-table__col fg-console-table__col--node-key-vps" />
                 <col className="fg-console-table__col fg-console-table__col--node-key-last-used" />
                 <col className="fg-console-table__col fg-console-table__col--node-key-created" />
                 <col className="fg-console-table__col fg-console-table__col--node-key-actions" />
@@ -394,6 +733,7 @@ export function NodeKeyManager({
                   <th>Node key</th>
                   <th>Prefix</th>
                   <th>Status</th>
+                  <th>Attached VPS</th>
                   <th>Last used</th>
                   <th>Created</th>
                   <th>Actions</th>
@@ -403,6 +743,7 @@ export function NodeKeyManager({
                 {keys.map((record) => {
                   const canCopyCommand = canUseNodeKeyForClusterJoin(record);
                   const status = describeStatus(record);
+                  const attachedVps = describeAttachedVps(record);
 
                   return (
                     <tr key={record.id}>
@@ -434,15 +775,33 @@ export function NodeKeyManager({
                         </div>
                       </td>
                       <td>
+                        {attachedVps ? (
+                          <div className="fg-console-table__pair fg-node-key-table__pair">
+                            <strong>{attachedVps.primary}</strong>
+                            <span>/ {attachedVps.secondary}</span>
+                          </div>
+                        ) : (
+                          <span className="fg-console-tech-empty">Unavailable</span>
+                        )}
+                      </td>
+                      <td>
                         <span title={record.lastUsedAt ?? "Never"}>{formatRelativeTime(record.lastUsedAt)}</span>
                       </td>
                       <td>
                         <span title={record.createdAt}>{formatRelativeTime(record.createdAt)}</span>
                       </td>
                       <td>
-                        <div className="fg-console-toolbar">
+                        <div className="fg-console-toolbar fg-node-key-row__actions">
                           <InlineButton
-                            blocked={Boolean(busyAction)}
+                            blocked={Boolean(busyAction) || Boolean(renameState)}
+                            label="Rename"
+                            onClick={() => {
+                              handleStartRename(record);
+                            }}
+                          />
+
+                          <InlineButton
+                            blocked={Boolean(busyAction) || Boolean(renameState)}
                             disabled={!canCopyCommand}
                             label="Copy command"
                             onClick={() => {
@@ -451,7 +810,7 @@ export function NodeKeyManager({
                           />
 
                           <InlineButton
-                            blocked={Boolean(busyAction)}
+                            blocked={Boolean(busyAction) || Boolean(renameState)}
                             disabled={!record.canCopy}
                             label="Copy secret"
                             onClick={() => {
@@ -462,7 +821,8 @@ export function NodeKeyManager({
                           {record.canRevoke ? (
                             <InlineButton
                               blocked={Boolean(
-                                busyAction && busyAction !== `revoke:${record.id}`,
+                                renameState ||
+                                  (busyAction && busyAction !== `revoke:${record.id}`),
                               )}
                               busy={busyAction === `revoke:${record.id}`}
                               busyLabel="Revoking…"
@@ -487,7 +847,102 @@ export function NodeKeyManager({
             <p>Create one, then copy a join command.</p>
           </div>
         )}
-      </PanelSection>
-    </Panel>
+        </PanelSection>
+      </Panel>
+      {renameRecord ? (
+        <div
+          className="fg-console-dialog-backdrop"
+          onClick={handleRenameBackdropClick}
+          onPointerDown={handleRenameBackdropPointerDown}
+        >
+          <div
+            aria-busy={renameBusy || undefined}
+            aria-describedby={renameDescriptionId}
+            aria-labelledby={renameTitleId}
+            aria-modal="true"
+            className="fg-console-dialog-shell fg-node-key-rename-dialog-shell"
+            onClick={(event) => event.stopPropagation()}
+            onKeyDown={handleRenameDialogKeyDown}
+            ref={renameDialogRef}
+            role="dialog"
+          >
+            <Panel className="fg-console-dialog-panel">
+              <PanelSection>
+                <p className="fg-label fg-panel__eyebrow">Node key</p>
+                <PanelTitle className="fg-console-dialog__title" id={renameTitleId}>
+                  Rename node key
+                </PanelTitle>
+                <PanelCopy id={renameDescriptionId}>
+                  Update the display name used in this workspace. The key ID, secret, prefix,
+                  and attached VPS stay the same.
+                </PanelCopy>
+                <p
+                  className="fg-node-key-rename-dialog__meta"
+                  title={`${renameRecord.label} / ${renameRecord.id}`}
+                >
+                  Current key / {renameRecord.id}
+                </p>
+              </PanelSection>
+
+              <PanelSection className="fg-console-dialog__body">
+                <form
+                  className="fg-console-dialog__form"
+                  id={renameFormId}
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void handleRename(renameRecord);
+                  }}
+                >
+                  <FormField
+                    error={renameState?.error ?? undefined}
+                    hint="Shown in this workspace only. Use a short label you can recognize later."
+                    htmlFor={renameFieldId}
+                    label="Node key name"
+                  >
+                    <input
+                      autoComplete="off"
+                      className="fg-input"
+                      id={renameFieldId}
+                      name="label"
+                      onBlur={handleRenameBlur}
+                      onChange={(event) => {
+                        handleRenameDraftChange(event.target.value);
+                      }}
+                      placeholder="Primary VPS key…"
+                      ref={renameInputRef}
+                      spellCheck={false}
+                      value={renameState?.label ?? renameRecord.label}
+                    />
+                  </FormField>
+                </form>
+              </PanelSection>
+
+              <PanelSection className="fg-console-dialog__footer">
+                <div className="fg-console-dialog__actions">
+                  <Button
+                    disabled={renameBusy}
+                    onClick={handleRenameCancel}
+                    type="button"
+                    variant="secondary"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    disabled={Boolean(renameState?.error) || !renameChanged}
+                    form={renameFormId}
+                    loading={renameBusy}
+                    loadingLabel="Saving…"
+                    type="submit"
+                    variant="primary"
+                  >
+                    Save name
+                  </Button>
+                </div>
+              </PanelSection>
+            </Panel>
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }

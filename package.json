@@ -8,11 +8,18 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "openapi:sync": "node ./scripts/sync-fugue-openapi.mjs",
+    "openapi:sync:check": "node ./scripts/sync-fugue-openapi.mjs --check",
+    "openapi:generate": "openapi-typescript ./openapi/fugue.yaml -o ./lib/fugue/openapi.generated.ts",
+    "openapi:generate:check": "openapi-typescript ./openapi/fugue.yaml -o ./lib/fugue/openapi.generated.ts --check",
+    "openapi:refresh": "npm run openapi:sync && npm run openapi:generate",
+    "contract:check": "npm run openapi:sync:check && npm run openapi:generate:check && npm run typecheck"
   },
   "dependencies": {
     "@types/pg": "^8.20.0",
     "next": "latest",
+    "openapi-fetch": "^0.17.0",
     "pg": "^8.20.0",
     "react": "latest",
     "react-dom": "latest"
@@ -21,6 +28,7 @@
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
+    "openapi-typescript": "^7.13.0",
     "typescript": "latest"
   }
 }

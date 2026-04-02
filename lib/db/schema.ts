@@ -7,7 +7,7 @@ declare global {
   var __fugueDbSchemaVersion: string | undefined;
 }
 
-const SCHEMA_VERSION = "2026-03-25-node-keys";
+const SCHEMA_VERSION = "2026-04-02-node-key-rename";
 
 const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS app_users (
@@ -85,6 +85,9 @@ CREATE TABLE IF NOT EXISTS app_node_keys (
   CONSTRAINT app_node_keys_status_check CHECK (status IN ('active', 'revoked')),
   CONSTRAINT app_node_keys_source_check CHECK (source IN ('managed', 'external'))
 );
+
+ALTER TABLE app_node_keys
+  ADD COLUMN IF NOT EXISTS label_override TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_app_workspaces_tenant_id
   ON app_workspaces (tenant_id);

@@ -110,6 +110,75 @@
 - 已沉淀出的共享实现种子位于 `design-system/`；当任务目标是共享 UI、token、组件或页面骨架时，优先复用这里，再结合 `app/`、`components/` 里的当前已落地实现继续抽取。
 - 涉及 `frontend-website-plan.md`、设计方案、页面结构、控制台 IA、auth flow、onboarding flow 的修改，也属于前端任务，同样必须先参考 `/Users/yanyuming/Downloads/GitHub/web-design/AGENTS.md` 中的对应 skills。
 
+## API 协作规范
+
+- `fugue` 后端现在采用 OpenAPI-first。后端 HTTP API 的唯一权威来源是 `/Users/yanyuming/Downloads/GitHub/fugue/openapi/openapi.yaml`。
+- 不要把 README、抓包结果、控制台现有调用、临时返回体、测试桩、口头约定当作 API 真源。
+- 当前可直接查看的权威 API 产物包括：
+  - `/Users/yanyuming/Downloads/GitHub/fugue/openapi/openapi.yaml`
+  - 后端运行时暴露的 `/openapi.yaml`
+  - 后端运行时暴露的 `/openapi.json`
+  - 后端运行时暴露的 `/docs`
+- 本仓库与 OpenAPI 相关的派生产物包括：
+  - `/Users/yanyuming/Downloads/GitHub/fugue-web/openapi/fugue.yaml`
+  - `/Users/yanyuming/Downloads/GitHub/fugue-web/lib/fugue/openapi.generated.ts`
+- 这两个文件都是从后端权威契约派生出来的，禁止手写维护、禁止直接当作“可以随手修”的本地事实源。
+- 当前端任务涉及 API 接入、字段消费、鉴权方式、请求体、响应体、轮询、日志流、上传、下载、错误处理时，必须先对照上述权威契约。
+- 如果前端发现后端行为与 OpenAPI 契约不一致，应优先视为后端契约/实现漂移问题，不能直接在前端写“猜测性兼容”并把错误固化下来。
+
+## 新增或更新 API 的跨仓库流程
+
+凡是需求涉及新增接口、修改接口、删除接口、改字段、改鉴权、改 content-type、改上传下载协议，按这个顺序执行：
+
+1. 先在 `/Users/yanyuming/Downloads/GitHub/fugue/openapi/openapi.yaml` 修改契约。
+2. 在 `fugue` 仓库生成并校验后端产物：
+   - `make generate-openapi`
+   - `make test`
+3. 再更新 `fugue` 后端 handler、测试和必要的 README 摘要。
+4. 最后回到本仓库同步和生成前端契约产物：
+   - `npm run openapi:sync`
+   - `npm run openapi:generate`
+5. 然后再更新本仓库里的前端调用、状态处理、错误提示、空状态和 loading 状态。
+6. 最后执行前端契约校验：
+   - `npm run contract:check`
+
+- 禁止反过来先在前端发明字段，再要求后端事后补齐。
+- 禁止只改前端 mock 或本地类型而不核对后端权威契约。
+- 禁止只在 README 里加接口说明却不更新底层 OpenAPI 契约。
+
+## 前端消费 API 的实现要求
+
+- 优先从权威 OpenAPI 契约推导请求/响应结构，不要散落手写重复类型。
+- `lib/fugue/openapi.generated.ts` 是生成文件，禁止手改。
+- `lib/fugue/api.ts` 的职责是：
+  - 基于生成出来的 OpenAPI 类型和 client 做请求。
+  - 只在确实需要兼容前端现有 view model 时，做薄适配。
+- 不要重新引入以前那套基于 `unknown` + `sanitize*` 的大段手写响应解析器，除非后端协议确实无法在 OpenAPI 中表达。
+- 如果本仓库已经存在与后端对象同义的本地 TypeScript 类型，修改 API 时必须同步检查这些类型是否与契约一致。
+- 前端对错误态的处理不能只覆盖 `200` 成功流，至少要考虑：
+  - 权限错误
+  - 参数错误
+  - 资源不存在
+  - 长任务进行中 / 空结果
+  - 流式接口或上传接口失败
+- 对于日志流、上传、下载、轮询这类接口，不要凭经验假设协议细节，必须核对后端契约和实际实现。
+
+## 评审要求
+
+- 评审 API 相关前端改动时，先核对 `/Users/yanyuming/Downloads/GitHub/fugue/openapi/openapi.yaml`，再看页面代码。
+- 再核对 `/Users/yanyuming/Downloads/GitHub/fugue-web/openapi/fugue.yaml` 和 `/Users/yanyuming/Downloads/GitHub/fugue-web/lib/fugue/openapi.generated.ts` 是否已经同步。
+- 如果需求需要改 API，但 PR 里没有对应的后端契约变更或没有明确说明“后端已完成在哪个提交/分支”，应视为信息不完整。
+- 如果 `npm run contract:check` 没跑过或已经失败，视为 API 改动未完成。
+
+## 前端 CI 契约检查
+
+- 本仓库的契约漂移检查工作流位于 `/Users/yanyuming/Downloads/GitHub/fugue-web/.github/workflows/contract-drift.yml`。
+- 该工作流会从 `yym68686/fugue` 拉取后端仓库，用后端真实 `openapi/openapi.yaml` 对本仓库执行：
+  - `npm run openapi:sync:check`
+  - `npm run openapi:generate:check`
+  - `npm run typecheck`
+- 如果 CI 报 snapshot drift 或 generated drift，不要在前端临时兼容；先同步 OpenAPI snapshot/codegen，再修真正受影响的前端逻辑。
+
 ## 当前设计基线
 
 - 当前视觉与交互基线来源按优先级读取：

@@ -1199,7 +1199,7 @@
 
 .fg-console-table--node-keys {
   width: 100%;
-  min-width: 84rem;
+  min-width: 92rem;
 }
 
 .fg-console-table--admin.fg-console-table--node-keys th:not(:last-child),
@@ -1572,6 +1572,10 @@
   width: 10.5rem;
 }
 
+.fg-console-table__col--node-key-vps {
+  width: 8rem;
+}
+
 .fg-console-table__col--node-key-last-used {
   width: 8rem;
 }
@@ -1581,7 +1585,7 @@
 }
 
 .fg-console-table__col--node-key-actions {
-  width: auto;
+  width: 31rem;
 }
 
 .fg-console-toolbar {
@@ -1610,6 +1614,24 @@
 .fg-console-table--node-keys .fg-node-key-table__id {
   flex: 1 1 auto;
   min-width: 0;
+}
+
+.fg-console-table--node-keys .fg-node-key-row__actions {
+  justify-content: flex-start;
+}
+
+.fg-node-key-rename-dialog-shell {
+  width: min(100%, 32rem);
+}
+
+.fg-node-key-rename-dialog__meta {
+  margin: 0.48rem 0 0;
+  color: var(--fugue-text-muted);
+  font-family: var(--fugue-font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  line-height: 1.45;
+  word-break: break-all;
 }
 
 .fg-console-tech-list {
