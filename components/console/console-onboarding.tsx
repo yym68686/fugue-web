@@ -327,7 +327,7 @@ export function ConsoleOnboarding({
         },
         {
           label: "Updates",
-          value: "GitHub services auto sync; image services can repull the saved image ref",
+          value: "Repository-backed services auto sync; image-backed services can repull the saved image ref",
         },
       ];
   const eyebrow = "Console / first run";
