@@ -1180,6 +1180,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/apps/{id}/continuity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Patch App Continuity */
+        patch: operations["patchAppContinuity"];
+        trace?: never;
+    };
     "/v1/operations": {
         parameters: {
             query?: never;
@@ -1475,6 +1492,14 @@ export interface components {
             /** Format: int64 */
             memory_mebibytes?: number;
         };
+        BillingResourceSpec: {
+            /** Format: int64 */
+            cpu_millicores?: number;
+            /** Format: int64 */
+            memory_mebibytes?: number;
+            /** Format: int64 */
+            storage_gibibytes?: number;
+        };
         ResourceUsage: {
             /** Format: int64 */
             cpu_millicores?: number;
@@ -1491,6 +1516,8 @@ export interface components {
             cpu_microcents_per_millicore_hour: number;
             /** Format: int64 */
             memory_microcents_per_mib_hour: number;
+            /** Format: int64 */
+            storage_microcents_per_gib_hour: number;
         };
         TenantBillingEvent: {
             id: string;
@@ -1511,12 +1538,12 @@ export interface components {
             byo_vps_free: boolean;
             over_cap: boolean;
             balance_restricted: boolean;
-            managed_cap: components["schemas"]["ResourceSpec"];
-            managed_committed: components["schemas"]["ResourceSpec"];
-            managed_available: components["schemas"]["ResourceSpec"];
+            managed_cap: components["schemas"]["BillingResourceSpec"];
+            managed_committed: components["schemas"]["BillingResourceSpec"];
+            managed_available: components["schemas"]["BillingResourceSpec"];
             current_usage?: components["schemas"]["ResourceUsage"];
-            default_app_resources: components["schemas"]["ResourceSpec"];
-            default_postgres_resources: components["schemas"]["ResourceSpec"];
+            default_app_resources: components["schemas"]["BillingResourceSpec"];
+            default_postgres_resources: components["schemas"]["BillingResourceSpec"];
             price_book: components["schemas"]["BillingPriceBook"];
             /** Format: int64 */
             hourly_rate_microcents: number;
@@ -1616,6 +1643,8 @@ export interface components {
             user?: string;
             password?: string;
             service_name?: string;
+            runtime_id?: string;
+            failover_target_runtime_id?: string;
             storage_size?: string;
             storage_class_name?: string;
             /** Format: int32 */
@@ -1855,6 +1884,18 @@ export interface components {
         FailoverAppRequest: {
             target_runtime_id?: string;
         };
+        AppContinuityAppFailoverRequest: {
+            enabled: boolean;
+            target_runtime_id?: string;
+        };
+        AppContinuityDatabaseFailoverRequest: {
+            enabled: boolean;
+            target_runtime_id?: string;
+        };
+        PatchAppContinuityRequest: {
+            app_failover?: components["schemas"]["AppContinuityAppFailoverRequest"];
+            database_failover?: components["schemas"]["AppContinuityDatabaseFailoverRequest"];
+        };
         AuditEvent: {
             id: string;
             tenant_id?: string;
@@ -2072,7 +2113,7 @@ export interface components {
         };
         UpdateBillingRequest: {
             tenant_id?: string;
-            managed_cap: components["schemas"]["ResourceSpec"];
+            managed_cap: components["schemas"]["BillingResourceSpec"];
         };
         SetBillingBalanceRequest: {
             tenant_id?: string;
@@ -2460,6 +2501,12 @@ export interface components {
         AppRestartResponse: {
             operation: components["schemas"]["Operation"];
             restart_token: string;
+        };
+        AppContinuityResponse: {
+            app_failover?: components["schemas"]["AppFailoverSpec"];
+            database?: components["schemas"]["AppPostgresSpec"];
+            already_current?: boolean;
+            operation?: components["schemas"]["Operation"];
         };
         ScaleAppRequest: {
             /** Format: int32 */
@@ -4728,6 +4775,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OperationResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    patchAppContinuity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatchAppContinuityRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppContinuityResponse"];
+                };
+            };
+            /** @description Successful response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppContinuityResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];

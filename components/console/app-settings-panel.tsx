@@ -14,10 +14,16 @@ import type {
   ConsoleGalleryAppView,
   ConsoleImportRuntimeTargetView,
 } from "@/lib/console/gallery-types";
-import { readDefaultImportRuntimeId } from "@/lib/console/runtime-targets";
+import {
+  readDefaultImportRuntimeId,
+  readRuntimeTargetLabel,
+} from "@/lib/console/runtime-targets";
 import type { ConsoleTone } from "@/lib/console/types";
 import { isDockerImageSourceType } from "@/lib/fugue/source-display";
-import { isGitHubSourceType, isPrivateGitHubSourceType } from "@/lib/github/repository";
+import {
+  isGitHubSourceType,
+  isPrivateGitHubSourceType,
+} from "@/lib/github/repository";
 
 type ProjectPatchResponse = {
   project?: {
@@ -36,6 +42,10 @@ type AppOperationResponse = {
   operation?: {
     id?: string | null;
   } | null;
+};
+
+type ContinuityResponse = {
+  alreadyCurrent?: boolean;
 };
 
 type GitHubSyncState = {
@@ -259,7 +269,9 @@ function readSourceFieldLabel(app: ConsoleGalleryAppView) {
   return "Source";
 }
 
-function readManualRefreshState(app: ConsoleGalleryAppView): ManualRefreshState | null {
+function readManualRefreshState(
+  app: ConsoleGalleryAppView,
+): ManualRefreshState | null {
   if (isGitHubSourceType(app.sourceType)) {
     return null;
   }
@@ -290,28 +302,23 @@ function readManualRefreshState(app: ConsoleGalleryAppView): ManualRefreshState 
   };
 }
 
-function shortId(value?: string | null) {
-  const normalized = normalizeText(value);
-
-  if (!normalized) {
-    return "Unknown";
-  }
-
-  return normalized.slice(0, 8);
-}
-
-function readRuntimeTargetLabel(
-  targets: ConsoleImportRuntimeTargetView[],
-  runtimeId?: string | null,
-  fallback = "Not assigned",
+function readInitialContinuityTargetRuntimeId(
+  primaryRuntimeId: string | null,
+  configuredTargetRuntimeId: string | null,
+  runtimeTargets: ConsoleImportRuntimeTargetView[],
 ) {
-  const normalized = normalizeText(runtimeId);
+  const continuityTargets = primaryRuntimeId
+    ? runtimeTargets.filter((target) => target.id !== primaryRuntimeId)
+    : runtimeTargets;
 
-  if (!normalized) {
-    return fallback;
+  if (
+    configuredTargetRuntimeId &&
+    continuityTargets.some((target) => target.id === configuredTargetRuntimeId)
+  ) {
+    return configuredTargetRuntimeId;
   }
 
-  return targets.find((target) => target.id === normalized)?.summaryLabel ?? shortId(normalized);
+  return readDefaultImportRuntimeId(continuityTargets);
 }
 
 function readTransferPreparationNote(app: ConsoleGalleryAppView) {
@@ -355,12 +362,280 @@ function readInitialTransferTargetRuntimeId(
 
   if (
     app.failoverTargetRuntimeId &&
-    manualRuntimeTargets.some((target) => target.id === app.failoverTargetRuntimeId)
+    manualRuntimeTargets.some(
+      (target) => target.id === app.failoverTargetRuntimeId,
+    )
   ) {
     return app.failoverTargetRuntimeId;
   }
 
   return readDefaultImportRuntimeId(manualRuntimeTargets);
+}
+
+function AppAutomaticFailoverSection({
+  app,
+  runtimeTargetInventoryError,
+  runtimeTargets,
+}: {
+  app: ConsoleGalleryAppView;
+  runtimeTargetInventoryError: string | null;
+  runtimeTargets: ConsoleImportRuntimeTargetView[];
+}) {
+  const router = useRouter();
+  const { showToast } = useToast();
+  const primaryRuntimeId = app.runtimeId ?? app.currentRuntimeId;
+  const activeRuntimeId = app.currentRuntimeId ?? app.runtimeId;
+  const continuityTargets = primaryRuntimeId
+    ? runtimeTargets.filter((target) => target.id !== primaryRuntimeId)
+    : runtimeTargets;
+  const [targetRuntimeId, setTargetRuntimeId] = useState<string | null>(() =>
+    readInitialContinuityTargetRuntimeId(
+      primaryRuntimeId,
+      app.failoverTargetRuntimeId,
+      runtimeTargets,
+    ),
+  );
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setTargetRuntimeId(
+      readInitialContinuityTargetRuntimeId(
+        app.runtimeId ?? app.currentRuntimeId,
+        app.failoverTargetRuntimeId,
+        runtimeTargets,
+      ),
+    );
+  }, [
+    app.currentRuntimeId,
+    app.failoverTargetRuntimeId,
+    app.id,
+    app.runtimeId,
+    runtimeTargets,
+  ]);
+
+  const selectedTargetRuntimeId =
+    targetRuntimeId && targetRuntimeId !== primaryRuntimeId
+      ? targetRuntimeId
+      : null;
+  const primaryRuntimeLabel = readRuntimeTargetLabel(
+    runtimeTargets,
+    primaryRuntimeId,
+    "Primary runtime unavailable",
+  );
+  const activeRuntimeLabel = readRuntimeTargetLabel(
+    runtimeTargets,
+    activeRuntimeId,
+    "Runtime unavailable",
+  );
+  const configuredTargetLabel = readRuntimeTargetLabel(
+    runtimeTargets,
+    app.failoverTargetRuntimeId,
+    "Not configured",
+  );
+  const selectedTargetLabel = readRuntimeTargetLabel(
+    runtimeTargets,
+    selectedTargetRuntimeId,
+    "No standby selected",
+  );
+  const blockerMessage = runtimeTargetInventoryError
+    ? "Runtime list unavailable."
+    : !primaryRuntimeId
+      ? "Primary runtime unavailable."
+      : continuityTargets.length === 0
+        ? "Add another runtime before turning on automatic failover."
+        : null;
+  const canSave =
+    !saving && !blockerMessage && Boolean(selectedTargetRuntimeId);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!selectedTargetRuntimeId) {
+      showToast({
+        message: blockerMessage ?? "Choose a standby runtime.",
+        variant: "info",
+      });
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      const result = await requestJson<ContinuityResponse>(
+        `/api/fugue/apps/${app.id}/continuity`,
+        {
+          body: JSON.stringify({
+            appFailover: {
+              enabled: true,
+              targetRuntimeId: selectedTargetRuntimeId,
+            },
+          }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          method: "PATCH",
+        },
+      );
+
+      showToast({
+        message: result?.alreadyCurrent
+          ? `Automatic failover already points to ${selectedTargetLabel}.`
+          : `Automatic failover saved. Standby runtime: ${selectedTargetLabel}.`,
+        variant: "success",
+      });
+      startTransition(() => {
+        router.refresh();
+      });
+    } catch (error) {
+      showToast({
+        message: readErrorMessage(error),
+        variant: "error",
+      });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDisable() {
+    if (!app.failoverConfigured || saving) {
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      const result = await requestJson<ContinuityResponse>(
+        `/api/fugue/apps/${app.id}/continuity`,
+        {
+          body: JSON.stringify({
+            appFailover: {
+              enabled: false,
+            },
+          }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          method: "PATCH",
+        },
+      );
+
+      showToast({
+        message: result?.alreadyCurrent
+          ? "Automatic failover is already off."
+          : "Automatic failover disabled.",
+        variant: "success",
+      });
+      startTransition(() => {
+        router.refresh();
+      });
+    } catch (error) {
+      showToast({
+        message: readErrorMessage(error),
+        variant: "error",
+      });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <section
+      aria-label="Automatic failover"
+      className="fg-route-subsection fg-settings-section"
+    >
+      <div className="fg-route-subsection__head">
+        <div className="fg-route-subsection__copy fg-settings-section__copy">
+          <p className="fg-label fg-panel__eyebrow">Continuity</p>
+          <h3 className="fg-route-subsection__title fg-ui-heading">
+            Automatic failover
+          </h3>
+          <p className="fg-route-subsection__note">
+            Keep a standby runtime ready. Traffic only moves there if the
+            primary runtime disappears.
+          </p>
+        </div>
+
+        <StatusBadge tone={app.failoverConfigured ? "info" : "neutral"}>
+          {app.failoverConfigured ? "Configured" : "Off"}
+        </StatusBadge>
+      </div>
+
+      <dl className="fg-settings-meta">
+        <div>
+          <dt>Primary runtime</dt>
+          <dd>{primaryRuntimeLabel}</dd>
+        </div>
+        {activeRuntimeId && activeRuntimeId !== primaryRuntimeId ? (
+          <div>
+            <dt>Serving now</dt>
+            <dd>{activeRuntimeLabel}</dd>
+          </div>
+        ) : null}
+        <div>
+          <dt>Standby runtime</dt>
+          <dd>
+            {app.failoverConfigured ? configuredTargetLabel : "Not configured"}
+          </dd>
+        </div>
+      </dl>
+
+      <form className="fg-settings-form" onSubmit={handleSubmit}>
+        {blockerMessage ? (
+          <InlineAlert variant="warning">{blockerMessage}</InlineAlert>
+        ) : null}
+
+        {continuityTargets.length > 0 ? (
+          <FormField
+            htmlFor={`automatic-failover-target-${app.id}`}
+            label="Standby runtime"
+          >
+            <SelectField
+              disabled={saving}
+              id={`automatic-failover-target-${app.id}`}
+              name="automaticFailoverTarget"
+              onChange={(event) =>
+                setTargetRuntimeId(event.target.value || null)
+              }
+              value={selectedTargetRuntimeId ?? ""}
+            >
+              <option disabled value="">
+                Select a standby runtime…
+              </option>
+              {continuityTargets.map((target) => (
+                <option key={target.id} value={target.id}>
+                  {target.summaryLabel}
+                </option>
+              ))}
+            </SelectField>
+          </FormField>
+        ) : null}
+
+        <div className="fg-settings-form__actions">
+          {app.failoverConfigured ? (
+            <Button
+              disabled={saving}
+              onClick={handleDisable}
+              size="compact"
+              type="button"
+              variant="secondary"
+            >
+              Disable
+            </Button>
+          ) : null}
+          <Button
+            disabled={!canSave}
+            loading={saving}
+            loadingLabel="Saving…"
+            size="compact"
+            type="submit"
+            variant="primary"
+          >
+            {app.failoverConfigured ? "Save standby" : "Enable failover"}
+          </Button>
+        </div>
+      </form>
+    </section>
+  );
 }
 
 function AppTransferSection({
@@ -396,7 +671,9 @@ function AppTransferSection({
   ]);
 
   const selectedTargetRuntimeId =
-    targetRuntimeId && targetRuntimeId !== activeRuntimeId ? targetRuntimeId : null;
+    targetRuntimeId && targetRuntimeId !== activeRuntimeId
+      ? targetRuntimeId
+      : null;
   const selectedTargetLabel = readRuntimeTargetLabel(
     runtimeTargets,
     selectedTargetRuntimeId,
@@ -453,15 +730,18 @@ function AppTransferSection({
     setTransferSaving(true);
 
     try {
-      await requestJson<AppOperationResponse>(`/api/fugue/apps/${app.id}/failover`, {
-        body: JSON.stringify({
-          targetRuntimeId: selectedTargetRuntimeId,
-        }),
-        headers: {
-          "Content-Type": "application/json",
+      await requestJson<AppOperationResponse>(
+        `/api/fugue/apps/${app.id}/failover`,
+        {
+          body: JSON.stringify({
+            targetRuntimeId: selectedTargetRuntimeId,
+          }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          method: "POST",
         },
-        method: "POST",
-      });
+      );
 
       showToast({
         message: `Transfer queued to ${selectedTargetLabel}.`,
@@ -481,30 +761,37 @@ function AppTransferSection({
   }
 
   return (
-    <section aria-label="One-Click Transfer" className="fg-route-subsection fg-settings-section">
+    <section
+      aria-label="One-Click Transfer"
+      className="fg-route-subsection fg-settings-section"
+    >
       <div className="fg-route-subsection__head">
         <div className="fg-route-subsection__copy fg-settings-section__copy">
           <p className="fg-label fg-panel__eyebrow">Runtime</p>
-          <h3 className="fg-route-subsection__title fg-ui-heading">One-Click Transfer</h3>
+          <h3 className="fg-route-subsection__title fg-ui-heading">
+            One-Click Transfer
+          </h3>
           <p className="fg-route-subsection__note">
-            Current: {liveRuntimeLabel}. Choose a destination and move this service now.
+            Current: {liveRuntimeLabel}. Choose a destination and move this
+            service now.
           </p>
         </div>
       </div>
 
       <form className="fg-settings-form" onSubmit={handleTransferSubmit}>
-        {blockerMessage ? <InlineAlert variant="warning">{blockerMessage}</InlineAlert> : null}
+        {blockerMessage ? (
+          <InlineAlert variant="warning">{blockerMessage}</InlineAlert>
+        ) : null}
 
         {transferTargets.length > 0 ? (
-          <FormField
-            htmlFor={`transfer-target-${app.id}`}
-            label="Destination"
-          >
+          <FormField htmlFor={`transfer-target-${app.id}`} label="Destination">
             <SelectField
               disabled={transferSaving}
               id={`transfer-target-${app.id}`}
               name="transferTarget"
-              onChange={(event) => setTargetRuntimeId(event.target.value || null)}
+              onChange={(event) =>
+                setTargetRuntimeId(event.target.value || null)
+              }
               value={selectedTargetRuntimeId ?? ""}
             >
               <option disabled value="">
@@ -561,7 +848,9 @@ export function AppSettingsPanel({
   const [projectBaseline, setProjectBaseline] = useState(projectName);
   const [projectSaving, setProjectSaving] = useState(false);
   const [branchDraft, setBranchDraft] = useState(app.sourceBranchName ?? "");
-  const [branchBaseline, setBranchBaseline] = useState(app.sourceBranchName ?? "");
+  const [branchBaseline, setBranchBaseline] = useState(
+    app.sourceBranchName ?? "",
+  );
   const [branchSaving, setBranchSaving] = useState(false);
   const [repoAuthTokenDraft, setRepoAuthTokenDraft] = useState("");
   const [repoAuthTokenSaving, setRepoAuthTokenSaving] = useState(false);
@@ -591,7 +880,8 @@ export function AppSettingsPanel({
   const isPrivateGitHubSource = isPrivateGitHubSourceType(app.sourceType);
   const isDockerImageSource = isDockerImageSourceType(app.sourceType);
   const isUploadSource = isUploadSourceType(app.sourceType);
-  const canEditBranch = isGitHubSource && app.serviceRole === "running" && !isPausedApp(app);
+  const canEditBranch =
+    isGitHubSource && app.serviceRole === "running" && !isPausedApp(app);
   const canUpdateRepoAccess =
     isPrivateGitHubSource && app.serviceRole === "running" && !isPausedApp(app);
   const syncState = readGitHubSyncState(app);
@@ -608,7 +898,8 @@ export function AppSettingsPanel({
   const projectChanged = normalizedProjectName !== currentProjectName;
   const projectSlug = slugifyLikeFugue(normalizedProjectName);
   const conflictingProject = projectCatalog.find(
-    (entry) => entry.id !== projectId && slugifyLikeFugue(entry.name) === projectSlug,
+    (entry) =>
+      entry.id !== projectId && slugifyLikeFugue(entry.name) === projectSlug,
   );
   const projectNameError =
     projectManaged && projectChanged && !normalizedProjectName
@@ -619,14 +910,14 @@ export function AppSettingsPanel({
   const canSaveProject =
     projectManaged && projectChanged && !projectSaving && !projectNameError;
   const settingsSummary = isPrivateGitHubSource
-    ? `Rename the shared project shell, change the tracked branch, rotate saved GitHub access, or pause background sync for ${app.name}.`
+    ? `Rename the shared project shell, change the tracked branch, rotate saved GitHub access, set automatic failover, or move ${app.name} by hand.`
     : isGitHubSource
-      ? `Rename the shared project shell, change which branch Fugue rebuilds from, or pause GitHub background sync for ${app.name}.`
+      ? `Rename the shared project shell, change which branch Fugue rebuilds from, set automatic failover, or move ${app.name} by hand.`
       : isDockerImageSource
-        ? `Rename the shared project shell and review the saved Docker image reference for ${app.name}. Image refresh stays on demand.`
+        ? `Rename the shared project shell, review the saved Docker image reference, set automatic failover, or move ${app.name} by hand.`
         : isUploadSource
-          ? `Rename the shared project shell and review the saved upload source for ${app.name}.`
-          : `Rename the shared project shell and review the saved source definition for ${app.name}.`;
+          ? `Rename the shared project shell, review the saved upload source, set automatic failover, or move ${app.name} by hand.`
+          : `Rename the shared project shell, review the saved source definition, set automatic failover, or move ${app.name} by hand.`;
   const projectSectionNote = projectManaged
     ? `${serviceCount} service${serviceCount === 1 ? "" : "s"} share this project shell. Renaming it updates the whole group.`
     : "This service still lives in the Unassigned bucket, so the shared shell cannot be renamed yet.";
@@ -669,15 +960,18 @@ export function AppSettingsPanel({
     setProjectSaving(true);
 
     try {
-      await requestJson<ProjectPatchResponse>(`/api/fugue/projects/${projectId}`, {
-        body: JSON.stringify({
-          name: normalizedProjectName,
-        }),
-        headers: {
-          "Content-Type": "application/json",
+      await requestJson<ProjectPatchResponse>(
+        `/api/fugue/projects/${projectId}`,
+        {
+          body: JSON.stringify({
+            name: normalizedProjectName,
+          }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          method: "PATCH",
         },
-        method: "PATCH",
-      });
+      );
 
       setProjectBaseline(normalizedProjectName);
       setProjectNameDraft(normalizedProjectName);
@@ -692,7 +986,8 @@ export function AppSettingsPanel({
       const message = readErrorMessage(error);
       showToast({
         message:
-          message.includes("resource conflict") || message.includes("409 Conflict")
+          message.includes("resource conflict") ||
+          message.includes("409 Conflict")
             ? "Another project already uses this name. Project names must be unique within the workspace."
             : message,
         variant: "error",
@@ -782,9 +1077,7 @@ export function AppSettingsPanel({
 
       showToast({
         message:
-          syncState.action === "disable"
-            ? "Pause queued."
-            : "Resume queued.",
+          syncState.action === "disable" ? "Pause queued." : "Resume queued.",
         variant: "success",
       });
       startTransition(() => {
@@ -800,12 +1093,15 @@ export function AppSettingsPanel({
     }
   }
 
-  async function handleRepositoryAccessSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleRepositoryAccessSubmit(
+    event: FormEvent<HTMLFormElement>,
+  ) {
     event.preventDefault();
 
     if (!isPrivateGitHubSource) {
       showToast({
-        message: "Only private GitHub-backed services store a repository token.",
+        message:
+          "Only private GitHub-backed services store a repository token.",
         variant: "info",
       });
       return;
@@ -865,11 +1161,16 @@ export function AppSettingsPanel({
         <p className="fg-console-note">{settingsSummary}</p>
       </div>
 
-      <section aria-label="Project shell" className="fg-route-subsection fg-settings-section">
+      <section
+        aria-label="Project shell"
+        className="fg-route-subsection fg-settings-section"
+      >
         <div className="fg-route-subsection__head">
           <div className="fg-route-subsection__copy fg-settings-section__copy">
             <p className="fg-label fg-panel__eyebrow">Project</p>
-            <h3 className="fg-route-subsection__title fg-ui-heading">Project shell</h3>
+            <h3 className="fg-route-subsection__title fg-ui-heading">
+              Project shell
+            </h3>
             <p className="fg-route-subsection__note">{projectSectionNote}</p>
           </div>
 
@@ -935,11 +1236,16 @@ export function AppSettingsPanel({
         )}
       </section>
 
-      <section aria-label={sourceSectionTitle} className="fg-route-subsection fg-settings-section">
+      <section
+        aria-label={sourceSectionTitle}
+        className="fg-route-subsection fg-settings-section"
+      >
         <div className="fg-route-subsection__head">
           <div className="fg-route-subsection__copy fg-settings-section__copy">
             <p className="fg-label fg-panel__eyebrow">Source</p>
-            <h3 className="fg-route-subsection__title fg-ui-heading">{sourceSectionTitle}</h3>
+            <h3 className="fg-route-subsection__title fg-ui-heading">
+              {sourceSectionTitle}
+            </h3>
             {sourceSectionHint ? (
               <p className="fg-route-subsection__note">{sourceSectionHint}</p>
             ) : null}
@@ -951,10 +1257,15 @@ export function AppSettingsPanel({
         </div>
 
         {isGitHubSource ? (
-          <form className="fg-settings-form fg-settings-form--source" onSubmit={handleBranchSubmit}>
+          <form
+            className="fg-settings-form fg-settings-form--source"
+            onSubmit={handleBranchSubmit}
+          >
             <div className="fg-settings-source-toolbar">
               <div className="fg-settings-source-meta">
-                <span className="fg-settings-source-meta__label">Repository</span>
+                <span className="fg-settings-source-meta__label">
+                  Repository
+                </span>
                 <span className="fg-settings-source-meta__value">
                   {app.sourceHref ? (
                     <a
@@ -973,18 +1284,29 @@ export function AppSettingsPanel({
 
               <div className="fg-settings-source-control">
                 <div className="fg-settings-source-control__row">
-                  <span className="fg-settings-source-control__label">Auto sync</span>
-                  <StatusBadge live={syncState.action === "disable"} tone={syncState.tone}>
+                  <span className="fg-settings-source-control__label">
+                    Auto sync
+                  </span>
+                  <StatusBadge
+                    live={syncState.action === "disable"}
+                    tone={syncState.tone}
+                  >
                     {syncState.label}
                   </StatusBadge>
                   {syncState.actionLabel ? (
                     <Button
                       loading={syncSaving}
-                      loadingLabel={syncState.action === "disable" ? "Pausing…" : "Starting…"}
+                      loadingLabel={
+                        syncState.action === "disable"
+                          ? "Pausing…"
+                          : "Starting…"
+                      }
                       onClick={handleGitHubSyncToggle}
                       size="compact"
                       type="button"
-                      variant={syncState.action === "disable" ? "secondary" : "primary"}
+                      variant={
+                        syncState.action === "disable" ? "secondary" : "primary"
+                      }
                     >
                       {syncState.actionLabel}
                     </Button>
@@ -992,7 +1314,9 @@ export function AppSettingsPanel({
                 </div>
 
                 {syncState.description ? (
-                  <p className="fg-settings-source-control__note">{syncState.description}</p>
+                  <p className="fg-settings-source-control__note">
+                    {syncState.description}
+                  </p>
                 ) : null}
               </div>
             </div>
@@ -1047,14 +1371,20 @@ export function AppSettingsPanel({
           <div className="fg-settings-form fg-settings-form--source">
             <div className="fg-settings-source-toolbar">
               <div className="fg-settings-source-meta">
-                <span className="fg-settings-source-meta__label">{sourceFieldLabel}</span>
-                <span className="fg-settings-source-meta__value">{sourceLabel}</span>
+                <span className="fg-settings-source-meta__label">
+                  {sourceFieldLabel}
+                </span>
+                <span className="fg-settings-source-meta__value">
+                  {sourceLabel}
+                </span>
               </div>
 
               {manualRefreshState ? (
                 <div className="fg-settings-source-control">
                   <div className="fg-settings-source-control__row">
-                    <span className="fg-settings-source-control__label">{manualRefreshState.title}</span>
+                    <span className="fg-settings-source-control__label">
+                      {manualRefreshState.title}
+                    </span>
                     <StatusBadge tone={manualRefreshState.tone}>
                       {manualRefreshState.label}
                     </StatusBadge>
@@ -1080,16 +1410,23 @@ export function AppSettingsPanel({
           <div className="fg-route-subsection__head">
             <div className="fg-route-subsection__copy fg-settings-section__copy">
               <p className="fg-label fg-panel__eyebrow">Source</p>
-              <h3 className="fg-route-subsection__title fg-ui-heading">Repository token</h3>
+              <h3 className="fg-route-subsection__title fg-ui-heading">
+                Repository token
+              </h3>
               {repositoryAccessHint ? (
-                <p className="fg-route-subsection__note">{repositoryAccessHint}</p>
+                <p className="fg-route-subsection__note">
+                  {repositoryAccessHint}
+                </p>
               ) : null}
             </div>
 
             <StatusBadge tone="info">Stored token</StatusBadge>
           </div>
 
-          <form className="fg-settings-form" onSubmit={handleRepositoryAccessSubmit}>
+          <form
+            className="fg-settings-form"
+            onSubmit={handleRepositoryAccessSubmit}
+          >
             <div className="fg-settings-source-meta">
               <span className="fg-settings-source-meta__label">Repository</span>
               <span className="fg-settings-source-meta__value">
@@ -1140,7 +1477,11 @@ export function AppSettingsPanel({
                   Reset
                 </Button>
                 <Button
-                  disabled={!canUpdateRepoAccess || !repoAuthTokenChanged || repoAuthTokenSaving}
+                  disabled={
+                    !canUpdateRepoAccess ||
+                    !repoAuthTokenChanged ||
+                    repoAuthTokenSaving
+                  }
                   loading={repoAuthTokenSaving}
                   loadingLabel="Queueing…"
                   size="compact"
@@ -1154,6 +1495,12 @@ export function AppSettingsPanel({
           </form>
         </section>
       ) : null}
+
+      <AppAutomaticFailoverSection
+        app={app}
+        runtimeTargetInventoryError={runtimeTargetInventoryError}
+        runtimeTargets={runtimeTargets}
+      />
 
       <AppTransferSection
         app={app}

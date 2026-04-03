@@ -80,6 +80,11 @@ export type ConsoleGalleryAppView = {
 };
 
 export type ConsoleGalleryBackingServiceView = {
+  databaseFailoverConfigured: boolean;
+  databaseFailoverTargetRuntimeId: string | null;
+  databaseInstances: number | null;
+  databaseRuntimeId: string | null;
+  databaseSynchronousReplicas: number | null;
   description: string;
   id: string;
   locationCountryCode: string | null;

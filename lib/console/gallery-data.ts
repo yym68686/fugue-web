@@ -153,7 +153,12 @@ function formatCompactNumber(value: number, digits = 1) {
 }
 
 function formatBytesLabel(value?: number | null) {
-  if (value === null || value === undefined || !Number.isFinite(value) || value < 0) {
+  if (
+    value === null ||
+    value === undefined ||
+    !Number.isFinite(value) ||
+    value < 0
+  ) {
     return "No stats";
   }
 
@@ -177,7 +182,12 @@ function formatBytesLabel(value?: number | null) {
 }
 
 function formatCPUMillicoresLabel(value?: number | null) {
-  if (value === null || value === undefined || !Number.isFinite(value) || value < 0) {
+  if (
+    value === null ||
+    value === undefined ||
+    !Number.isFinite(value) ||
+    value < 0
+  ) {
     return "No stats";
   }
 
@@ -189,7 +199,9 @@ function formatCPUMillicoresLabel(value?: number | null) {
   return `${Math.round(value)} millicores`;
 }
 
-function sumCurrentResourceUsage(items: Array<FugueResourceUsage | null | undefined>) {
+function sumCurrentResourceUsage(
+  items: Array<FugueResourceUsage | null | undefined>,
+) {
   let cpuMillicores: number | null = null;
   let memoryBytes: number | null = null;
   let ephemeralStorageBytes: number | null = null;
@@ -207,7 +219,8 @@ function sumCurrentResourceUsage(items: Array<FugueResourceUsage | null | undefi
       item?.ephemeralStorageBytes !== null &&
       item?.ephemeralStorageBytes !== undefined
     ) {
-      ephemeralStorageBytes = (ephemeralStorageBytes ?? 0) + item.ephemeralStorageBytes;
+      ephemeralStorageBytes =
+        (ephemeralStorageBytes ?? 0) + item.ephemeralStorageBytes;
     }
   }
 
@@ -239,12 +252,17 @@ function buildProjectResourceUsageView(
   imageUsage?: FugueProjectImageUsageSummary | null,
 ): ConsoleCompactResourceItemView[] {
   const imageTotalBytes =
-    imageUsage && imageUsage.versionCount > 0 ? imageUsage.totalSizeBytes : null;
+    imageUsage && imageUsage.versionCount > 0
+      ? imageUsage.totalSizeBytes
+      : null;
   const reclaimableImageBytes =
     imageUsage && imageUsage.reclaimableSizeBytes > 0
       ? imageUsage.reclaimableSizeBytes
       : null;
-  const diskTotalBytes = sumNullableNumbers(usage.ephemeralStorageBytes, imageTotalBytes);
+  const diskTotalBytes = sumNullableNumbers(
+    usage.ephemeralStorageBytes,
+    imageTotalBytes,
+  );
   const diskSecondaryLabel =
     imageUsage && imageUsage.versionCount > 0
       ? reclaimableImageBytes !== null
@@ -256,7 +274,9 @@ function buildProjectResourceUsageView(
     usage.ephemeralStorageBytes !== null
       ? `runtime ${formatBytesLabel(usage.ephemeralStorageBytes)}`
       : null,
-    imageTotalBytes !== null ? `images ${formatBytesLabel(imageTotalBytes)}` : null,
+    imageTotalBytes !== null
+      ? `images ${formatBytesLabel(imageTotalBytes)}`
+      : null,
     reclaimableImageBytes !== null
       ? `${formatBytesLabel(reclaimableImageBytes)} reclaimable after image cleanup`
       : null,
@@ -396,10 +416,7 @@ function buildRuntimeTargetLocationMap(nodes: FugueClusterNode[]) {
         continue;
       }
 
-      if (
-        existing &&
-        !isSameLocation(existing, nextLocation)
-      ) {
+      if (existing && !isSameLocation(existing, nextLocation)) {
         locations.set(runtimeId, ambiguousLocation);
         continue;
       }
@@ -440,7 +457,8 @@ function shortId(value?: string | null) {
 }
 
 function normalizeHostname(value?: string | null) {
-  const normalized = value?.trim().toLowerCase().replace(/^\.+/, "").replace(/\.+$/, "") ?? "";
+  const normalized =
+    value?.trim().toLowerCase().replace(/^\.+/, "").replace(/\.+$/, "") ?? "";
   return normalized || null;
 }
 
@@ -469,7 +487,12 @@ function shortCommitSha(value?: string | null) {
   return commit.length > 8 ? commit.slice(0, 8) : commit;
 }
 
-const terminalOperationStatuses = new Set(["canceled", "cancelled", "completed", "failed"]);
+const terminalOperationStatuses = new Set([
+  "canceled",
+  "cancelled",
+  "completed",
+  "failed",
+]);
 
 type AppCommitOperations = {
   active: FugueOperation | null;
@@ -488,7 +511,10 @@ function formatElapsedDuration(value?: string | null) {
     return null;
   }
 
-  const elapsedSeconds = Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
+  const elapsedSeconds = Math.max(
+    0,
+    Math.floor((Date.now() - timestamp) / 1000),
+  );
 
   if (elapsedSeconds < 60) {
     return `${elapsedSeconds}s`;
@@ -498,20 +524,26 @@ function formatElapsedDuration(value?: string | null) {
   const remainingSeconds = elapsedSeconds % 60;
 
   if (elapsedMinutes < 60) {
-    return remainingSeconds > 0 ? `${elapsedMinutes}m ${remainingSeconds}s` : `${elapsedMinutes}m`;
+    return remainingSeconds > 0
+      ? `${elapsedMinutes}m ${remainingSeconds}s`
+      : `${elapsedMinutes}m`;
   }
 
   const elapsedHours = Math.floor(elapsedMinutes / 60);
   const remainingMinutes = elapsedMinutes % 60;
 
   if (elapsedHours < 24) {
-    return remainingMinutes > 0 ? `${elapsedHours}h ${remainingMinutes}m` : `${elapsedHours}h`;
+    return remainingMinutes > 0
+      ? `${elapsedHours}h ${remainingMinutes}m`
+      : `${elapsedHours}h`;
   }
 
   const elapsedDays = Math.floor(elapsedHours / 24);
   const remainingHours = elapsedHours % 24;
 
-  return remainingHours > 0 ? `${elapsedDays}d ${remainingHours}h` : `${elapsedDays}d`;
+  return remainingHours > 0
+    ? `${elapsedDays}d ${remainingHours}h`
+    : `${elapsedDays}d`;
 }
 
 function toneForStatus(status?: string | null): ConsoleTone {
@@ -566,7 +598,10 @@ function isActiveOperation(status?: string | null) {
 
 function readOperationTimestamp(operation: FugueOperation) {
   return parseTimestamp(
-    operation.completedAt ?? operation.updatedAt ?? operation.startedAt ?? operation.createdAt,
+    operation.completedAt ??
+      operation.updatedAt ??
+      operation.startedAt ??
+      operation.createdAt,
   );
 }
 
@@ -621,10 +656,15 @@ function findBuildLogsOperationForCommit(
   },
 ) {
   const releaseMatches = operations.filter(
-    (operation) => readOperationCommitSha(operation) === commitSha && isReleaseOperationCandidate(operation),
+    (operation) =>
+      readOperationCommitSha(operation) === commitSha &&
+      isReleaseOperationCandidate(operation),
   );
-  const buildMatches = releaseMatches.filter((operation) => isBuildLogsOperationCandidate(operation));
-  const readActiveMatch = (items: FugueOperation[]) => items.find((operation) => isActiveOperation(operation.status)) ?? null;
+  const buildMatches = releaseMatches.filter((operation) =>
+    isBuildLogsOperationCandidate(operation),
+  );
+  const readActiveMatch = (items: FugueOperation[]) =>
+    items.find((operation) => isActiveOperation(operation.status)) ?? null;
   const readTerminalMatch = (items: FugueOperation[]) =>
     items.find((operation) => !isActiveOperation(operation.status)) ?? null;
 
@@ -647,14 +687,21 @@ function findBuildLogsOperationForCommit(
   );
 }
 
-function readRunningBuildLogsOperation(app: FugueApp, commitOperations?: AppCommitOperations) {
+function readRunningBuildLogsOperation(
+  app: FugueApp,
+  commitOperations?: AppCommitOperations,
+) {
   const releaseOperations = commitOperations?.releases ?? [];
   const runningCommitSha = app.source.commitSha?.trim() || null;
 
   if (runningCommitSha) {
-    const matchingCommitOperation = findBuildLogsOperationForCommit(releaseOperations, runningCommitSha, {
-      preferActive: false,
-    });
+    const matchingCommitOperation = findBuildLogsOperationForCommit(
+      releaseOperations,
+      runningCommitSha,
+      {
+        preferActive: false,
+      },
+    );
 
     if (matchingCommitOperation) {
       return matchingCommitOperation;
@@ -665,7 +712,9 @@ function readRunningBuildLogsOperation(app: FugueApp, commitOperations?: AppComm
 
   if (lastOperationId) {
     const matchingLastOperation = releaseOperations.find(
-      (operation) => operation.id === lastOperationId && !isActiveOperation(operation.status),
+      (operation) =>
+        operation.id === lastOperationId &&
+        !isActiveOperation(operation.status),
     );
 
     if (matchingLastOperation) {
@@ -675,9 +724,13 @@ function readRunningBuildLogsOperation(app: FugueApp, commitOperations?: AppComm
 
   return (
     releaseOperations.find(
-      (operation) => isBuildLogsOperationCandidate(operation) && !isActiveOperation(operation.status),
+      (operation) =>
+        isBuildLogsOperationCandidate(operation) &&
+        !isActiveOperation(operation.status),
     ) ??
-    releaseOperations.find((operation) => !isActiveOperation(operation.status)) ??
+    releaseOperations.find(
+      (operation) => !isActiveOperation(operation.status),
+    ) ??
     null
   );
 }
@@ -690,9 +743,13 @@ function readPendingBuildLogsOperation(
   const pendingCommitSha = readOperationCommitSha(activeOperation);
 
   if (pendingCommitSha) {
-    const matchingCommitOperation = findBuildLogsOperationForCommit(releaseOperations, pendingCommitSha, {
-      preferActive: true,
-    });
+    const matchingCommitOperation = findBuildLogsOperationForCommit(
+      releaseOperations,
+      pendingCommitSha,
+      {
+        preferActive: true,
+      },
+    );
 
     if (matchingCommitOperation) {
       return matchingCommitOperation;
@@ -705,9 +762,13 @@ function readPendingBuildLogsOperation(
 
   return (
     releaseOperations.find(
-      (operation) => isBuildLogsOperationCandidate(operation) && isActiveOperation(operation.status),
+      (operation) =>
+        isBuildLogsOperationCandidate(operation) &&
+        isActiveOperation(operation.status),
     ) ??
-    releaseOperations.find((operation) => isActiveOperation(operation.status)) ??
+    releaseOperations.find((operation) =>
+      isActiveOperation(operation.status),
+    ) ??
     null
   );
 }
@@ -742,18 +803,16 @@ function hasLiveRelease(app: FugueApp) {
 
   return (
     normalizedPhase.length > 0 &&
-    [
-      "running",
-      "healthy",
-      "active",
-      "deployed",
-      "disabled",
-      "paused",
-    ].some((keyword) => normalizedPhase.includes(keyword))
+    ["running", "healthy", "active", "deployed", "disabled", "paused"].some(
+      (keyword) => normalizedPhase.includes(keyword),
+    )
   );
 }
 
-function readActiveReleaseOperation(operation: FugueOperation | null | undefined, app: FugueApp) {
+function readActiveReleaseOperation(
+  operation: FugueOperation | null | undefined,
+  app: FugueApp,
+) {
   if (!operation) {
     return null;
   }
@@ -763,7 +822,11 @@ function readActiveReleaseOperation(operation: FugueOperation | null | undefined
   const desiredCommit = readOperationCommitSha(operation);
   const runningCommit = app.source.commitSha?.trim() || null;
 
-  if (normalizedType === "import" || normalizedType === "build" || normalizedType === "deploy") {
+  if (
+    normalizedType === "import" ||
+    normalizedType === "build" ||
+    normalizedType === "deploy"
+  ) {
     return operation;
   }
 
@@ -792,7 +855,10 @@ function readActiveReleaseOperation(operation: FugueOperation | null | undefined
   return null;
 }
 
-function readRunningServiceMessage(app: FugueApp, activeOperation?: FugueOperation | null) {
+function readRunningServiceMessage(
+  app: FugueApp,
+  activeOperation?: FugueOperation | null,
+) {
   if (activeOperation) {
     return null;
   }
@@ -818,11 +884,16 @@ function readPendingServiceMessage(app: FugueApp, operation: FugueOperation) {
   return `${readPendingCommitState(operation).stateLabel} the next release.`;
 }
 
-function readPendingCommitState(operation?: FugueOperation | null): Pick<ConsoleGalleryCommitView, "stateLabel" | "tone"> {
+function readPendingCommitState(
+  operation?: FugueOperation | null,
+): Pick<ConsoleGalleryCommitView, "stateLabel" | "tone"> {
   const normalizedStatus = operation?.status?.trim().toLowerCase() ?? "";
   const normalizedType = operation?.type?.trim().toLowerCase() ?? "";
 
-  if (normalizedStatus.includes("queued") || normalizedStatus.includes("pending")) {
+  if (
+    normalizedStatus.includes("queued") ||
+    normalizedStatus.includes("pending")
+  ) {
     return {
       stateLabel: "Queued",
       tone: "warning",
@@ -905,9 +976,7 @@ function buildCommitViews(
 
   const runningCommit = buildCommitView({
     fallbackLabel:
-      isGitHubSource(app) && !pendingCommitSha
-        ? "Pending first import"
-        : null,
+      isGitHubSource(app) && !pendingCommitSha ? "Pending first import" : null,
     fallbackRepoUrl: app.source.repoUrl,
     kind: "running",
     // `app.source` stays on the live release until the deploy finishes.
@@ -946,7 +1015,10 @@ function buildCommitViews(
 function collectCommitOperationsByAppId(operations: FugueOperation[]) {
   const commitOperationsByAppId = new Map<string, AppCommitOperations>();
 
-  for (const operation of sortByTimestampDesc(operations, readOperationTimestamp)) {
+  for (const operation of sortByTimestampDesc(
+    operations,
+    readOperationTimestamp,
+  )) {
     if (!operation.appId) {
       continue;
     }
@@ -1045,7 +1117,10 @@ function readRouteBaseDomain(hostname?: string | null) {
 }
 
 function readAppRouteBaseDomain(app: FugueApp) {
-  return normalizeHostname(app.route.baseDomain) ?? readRouteBaseDomain(readRouteHostname(app));
+  return (
+    normalizeHostname(app.route.baseDomain) ??
+    readRouteBaseDomain(readRouteHostname(app))
+  );
 }
 
 function isGitHubAppSource(source?: FugueAppSource | null) {
@@ -1141,7 +1216,11 @@ function readDeployBehavior(app: FugueApp) {
 function readRedeployState(app: FugueApp) {
   const sourceType = app.source.type?.trim().toLowerCase() ?? "";
 
-  if (isGitHubSourceType(sourceType) || sourceType === "docker-image" || sourceType === "upload") {
+  if (
+    isGitHubSourceType(sourceType) ||
+    sourceType === "docker-image" ||
+    sourceType === "upload"
+  ) {
     return {
       canRedeploy: true,
       redeployDisabledReason: null,
@@ -1151,7 +1230,8 @@ function readRedeployState(app: FugueApp) {
   if (!sourceType) {
     return {
       canRedeploy: false,
-      redeployDisabledReason: "Redeploy requires an imported source definition.",
+      redeployDisabledReason:
+        "Redeploy requires an imported source definition.",
     };
   }
 
@@ -1161,8 +1241,13 @@ function readRedeployState(app: FugueApp) {
   };
 }
 
-function sortByTimestampDesc<T>(items: T[], readTimestamp: (item: T) => number) {
-  return [...items].sort((left, right) => readTimestamp(right) - readTimestamp(left));
+function sortByTimestampDesc<T>(
+  items: T[],
+  readTimestamp: (item: T) => number,
+) {
+  return [...items].sort(
+    (left, right) => readTimestamp(right) - readTimestamp(left),
+  );
 }
 
 function readAppTimestamp(app: FugueApp) {
@@ -1196,7 +1281,10 @@ function buildBadgeFromTechStack(
   }
 
   if (normalizedKind === "language" || normalizedKind === "stack") {
-    const label = normalizedName || readTechnologyLabel(normalizedSlug) || humanize(normalizedSlug);
+    const label =
+      normalizedName ||
+      readTechnologyLabel(normalizedSlug) ||
+      humanize(normalizedSlug);
     const kind = readLanguageBadgeKind(normalizedSlug) ?? "runtime";
     return {
       id: readBadgeKey(kind, label),
@@ -1239,7 +1327,9 @@ function buildBadgeFromTechStack(
   };
 }
 
-function buildDetectedStackTech(source?: FugueAppSource | null): FugueAppTechnology[] {
+function buildDetectedStackTech(
+  source?: FugueAppSource | null,
+): FugueAppTechnology[] {
   const detectedStack = source?.detectedStack?.trim();
 
   if (!detectedStack) {
@@ -1274,7 +1364,8 @@ function readDisplayTechStack(app: FugueApp, source?: FugueAppSource | null) {
 }
 
 function buildSourceBadges(source: FugueAppSource) {
-  const detectedStackKind = readLanguageBadgeKind(source.detectedStack) ?? "runtime";
+  const detectedStackKind =
+    readLanguageBadgeKind(source.detectedStack) ?? "runtime";
   const detectedProviderKind = readLanguageBadgeKind(source.detectedProvider);
 
   return [
@@ -1282,11 +1373,13 @@ function buildSourceBadges(source: FugueAppSource) {
       ? {
           id: readBadgeKey(
             detectedStackKind,
-            readTechnologyLabel(source.detectedStack) || humanize(source.detectedStack),
+            readTechnologyLabel(source.detectedStack) ||
+              humanize(source.detectedStack),
           ),
           kind: detectedStackKind,
           label:
-            readTechnologyLabel(source.detectedStack) || humanize(source.detectedStack),
+            readTechnologyLabel(source.detectedStack) ||
+            humanize(source.detectedStack),
           meta: "Stack",
         }
       : null,
@@ -1294,13 +1387,16 @@ function buildSourceBadges(source: FugueAppSource) {
       ? {
           id: readBadgeKey(
             detectedProviderKind,
-            readTechnologyLabel(source.detectedProvider) || humanize(source.detectedProvider),
+            readTechnologyLabel(source.detectedProvider) ||
+              humanize(source.detectedProvider),
           ),
           kind: detectedProviderKind,
           label:
-            readTechnologyLabel(source.detectedProvider) || humanize(source.detectedProvider),
+            readTechnologyLabel(source.detectedProvider) ||
+            humanize(source.detectedProvider),
           meta:
-            detectedProviderKind === "nextjs" || detectedProviderKind === "react"
+            detectedProviderKind === "nextjs" ||
+            detectedProviderKind === "react"
               ? "Stack"
               : "Language",
         }
@@ -1323,7 +1419,9 @@ function readPrimaryBadge(badges: ConsoleGalleryBadgeView[]) {
   return (
     badges.find((badge) => badge.meta === "Stack") ??
     badges.find((badge) => badge.meta === "Language") ??
-    badges.find((badge) => badge.kind !== "postgres" && badge.meta !== "Build") ??
+    badges.find(
+      (badge) => badge.kind !== "postgres" && badge.meta !== "Build",
+    ) ??
     badges.find((badge) => badge.kind !== "postgres") ??
     badges[0] ??
     null
@@ -1341,10 +1439,12 @@ function buildAppBadges(
   const displayTechStack = options?.techStack ?? app.techStack;
   const badges = new Map<string, ConsoleGalleryBadgeView>();
   const sourceBadges = buildSourceBadges(displaySource);
-  const sourceLanguageBadge = sourceBadges.find(
-    (badge) => badge.meta === "Language" || badge.meta === "Stack",
-  ) ?? null;
-  const sourceBuildBadge = sourceBadges.find((badge) => badge.meta === "Build") ?? null;
+  const sourceLanguageBadge =
+    sourceBadges.find(
+      (badge) => badge.meta === "Language" || badge.meta === "Stack",
+    ) ?? null;
+  const sourceBuildBadge =
+    sourceBadges.find((badge) => badge.meta === "Build") ?? null;
 
   const addBadge = (badge: ConsoleGalleryBadgeView | null) => {
     if (!badge || badges.has(badge.id)) {
@@ -1418,8 +1518,7 @@ function buildSharedAppView(
   const redeployAction = readRedeployAction(app);
   const sourceBranchLabel = readSourceBranchLabelFromSource(source);
   const serviceBadges = buildAppBadges(app, { source, techStack });
-  const primaryBadge =
-    readPrimaryBadge(serviceBadges) ??
+  const primaryBadge = readPrimaryBadge(serviceBadges) ??
     serviceBadges[0] ?? {
       id: readBadgeKey("runtime", humanize(source.type)),
       kind: "runtime",
@@ -1434,7 +1533,9 @@ function buildSharedAppView(
     failoverAuto: app.spec.failover?.auto ?? false,
     failoverConfigured: Boolean(app.spec.failover),
     failoverTargetRuntimeId: app.spec.failover?.targetRuntimeId ?? null,
-    hasPostgresService: app.backingServices.some((service) => service.type === "postgres"),
+    hasPostgresService: app.backingServices.some(
+      (service) => service.type === "postgres",
+    ),
     id: app.id,
     locationCountryCode: options?.location?.locationCountryCode ?? null,
     locationLabel: options?.location?.locationLabel ?? null,
@@ -1462,7 +1563,9 @@ function buildSharedAppView(
     sourceLabel: readSourceLabelFromSource(source),
     sourceMeta: readFugueSourceMeta(source),
     sourceType: source.type,
-    workspaceMountPath: app.spec.workspace ? app.spec.workspace.mountPath ?? "/workspace" : null,
+    workspaceMountPath: app.spec.workspace
+      ? (app.spec.workspace.mountPath ?? "/workspace")
+      : null,
   } satisfies Omit<
     ConsoleGalleryAppView,
     | "buildLogsOperationId"
@@ -1484,17 +1587,30 @@ function buildAppView(
   commitOperations?: AppCommitOperations,
   location?: WorkloadLocationView | null,
 ): ConsoleGalleryAppView[] {
-  const activeOperation = readActiveReleaseOperation(commitOperations?.active ?? null, app);
+  const activeOperation = readActiveReleaseOperation(
+    commitOperations?.active ?? null,
+    app,
+  );
   const commitViews = buildCommitViews(app, activeOperation);
-  const runningBuildLogsOperation = readRunningBuildLogsOperation(app, commitOperations);
+  const runningBuildLogsOperation = readRunningBuildLogsOperation(
+    app,
+    commitOperations,
+  );
   const pendingBuildLogsOperation = activeOperation
     ? readPendingBuildLogsOperation(activeOperation, commitOperations)
     : null;
-  const activePhase = activeOperation ? readPendingCommitState(activeOperation) : null;
-  const primaryCommit = commitViews.find((entry) => entry.kind === "running") ?? commitViews[0] ?? null;
+  const activePhase = activeOperation
+    ? readPendingCommitState(activeOperation)
+    : null;
+  const primaryCommit =
+    commitViews.find((entry) => entry.kind === "running") ??
+    commitViews[0] ??
+    null;
   const currentCommitLabel =
-    primaryCommit?.label ?? (isGitHubSource(app) ? readCurrentCommitLabel(app) : null);
-  const fallbackPhase = app.status.phase ?? (app.spec.disabled ? "disabled" : "unknown");
+    primaryCommit?.label ??
+    (isGitHubSource(app) ? readCurrentCommitLabel(app) : null);
+  const fallbackPhase =
+    app.status.phase ?? (app.spec.disabled ? "disabled" : "unknown");
   const sharedView = buildSharedAppView(app, { location });
   const pendingSharedView = activeOperation
     ? buildSharedAppView(app, {
@@ -1535,7 +1651,9 @@ function buildAppView(
           lastMessage: readPendingServiceMessage(app, activeOperation),
           phase: activePhase.stateLabel,
           phaseTone: activePhase.tone,
-          serviceDurationLabel: formatElapsedDuration(readOperationStartedAt(activeOperation)),
+          serviceDurationLabel: formatElapsedDuration(
+            readOperationStartedAt(activeOperation),
+          ),
           serviceRole: "pending",
         } satisfies ConsoleGalleryAppView)
       : null;
@@ -1556,20 +1674,41 @@ function buildAppView(
 function buildBackingServiceView(
   service: FugueBackingService,
   appNames: Map<string, string>,
+  appRuntimeIds: Map<string, string | null>,
   location?: WorkloadLocationView | null,
 ): ConsoleGalleryBackingServiceView {
+  const postgres = service.spec.postgres;
+  const ownerAppRuntimeId = service.ownerAppId
+    ? (appRuntimeIds.get(service.ownerAppId) ?? null)
+    : null;
+  const databaseRuntimeId = postgres?.runtimeId ?? ownerAppRuntimeId ?? null;
+  const databaseFailoverTargetRuntimeId =
+    postgres?.failoverTargetRuntimeId ?? null;
+  const databaseInstances = postgres?.instances ?? null;
+  const databaseSynchronousReplicas = postgres?.synchronousReplicas ?? null;
+  const databaseFailoverConfigured = Boolean(
+    databaseFailoverTargetRuntimeId ||
+    ((databaseInstances ?? 0) > 1 && (databaseSynchronousReplicas ?? 0) > 0),
+  );
+
   return {
-    description:
-      service.spec.postgres?.database ??
-      service.description ??
-      "Attached backing service.",
+    databaseFailoverConfigured,
+    databaseFailoverTargetRuntimeId,
+    databaseInstances,
+    databaseRuntimeId,
+    databaseSynchronousReplicas,
+    description: postgres
+      ? databaseFailoverConfigured
+        ? "Standby runtime configured."
+        : "Single-runtime database."
+      : (service.description ?? "Attached backing service."),
     id: service.id,
     locationCountryCode: location?.locationCountryCode ?? null,
     locationLabel: location?.locationLabel ?? null,
     name: service.name,
     ownerAppId: service.ownerAppId,
     ownerAppLabel: service.ownerAppId
-      ? appNames.get(service.ownerAppId) ?? "Attached app"
+      ? (appNames.get(service.ownerAppId) ?? "Attached app")
       : "Attached app",
     primaryBadge: {
       id: readBadgeKey("postgres", "PostgreSQL"),
@@ -1594,7 +1733,11 @@ function buildProjectServiceBadges(
         ? `project-service:app:${service.id}`
         : `project-service:${service.kind}:${service.id}`;
 
-    if (service.kind === "app" && service.serviceRole === "pending" && badges.has(key)) {
+    if (
+      service.kind === "app" &&
+      service.serviceRole === "pending" &&
+      badges.has(key)
+    ) {
       continue;
     }
 
@@ -1607,7 +1750,11 @@ function buildProjectServiceBadges(
   return [...badges.values()];
 }
 
-function projectNameMap(projects: FugueProject[], fallbackId?: string | null, fallbackName?: string | null) {
+function projectNameMap(
+  projects: FugueProject[],
+  fallbackId?: string | null,
+  fallbackName?: string | null,
+) {
   const names = new Map<string, string>(
     projects.map((project) => [project.id, project.name] as const),
   );
@@ -1633,11 +1780,15 @@ function buildImportRuntimeTargetView(
     ...runtimeLocation,
     locationCountryCode:
       runtimeLocation.locationCountryCode ??
-      (shouldUseFallbackLocation ? fallbackLocation?.locationCountryCode : null) ??
+      (shouldUseFallbackLocation
+        ? fallbackLocation?.locationCountryCode
+        : null) ??
       null,
     locationCountryLabel:
       runtimeLocation.locationCountryLabel ??
-      (shouldUseFallbackLocation ? fallbackLocation?.locationCountryLabel : null) ??
+      (shouldUseFallbackLocation
+        ? fallbackLocation?.locationCountryLabel
+        : null) ??
       null,
     locationLabel:
       runtimeLocation.locationLabel ??
@@ -1653,13 +1804,16 @@ function buildImportRuntimeTargetView(
       !hasInternalClusterLocationTarget(runtime.labels);
     const primaryLabel = isGenericInternalCluster
       ? "Any available region"
-      : location.locationCountryLabel ?? location.locationLabel ?? "Region unavailable";
+      : (location.locationCountryLabel ??
+        location.locationLabel ??
+        "Region unavailable");
 
     return {
       category: "internal-cluster",
-      description: !isGenericInternalCluster && location.hasPlacementConstraint
-        ? "Use shared capacity in this region."
-        : "Deploy onto the internal cluster.",
+      description:
+        !isGenericInternalCluster && location.hasPlacementConstraint
+          ? "Use shared capacity in this region."
+          : "Deploy onto the internal cluster.",
       id: runtime.id,
       kindLabel: "Internal cluster",
       locationCountryCode: location.locationCountryCode,
@@ -1673,9 +1827,7 @@ function buildImportRuntimeTargetView(
   }
 
   const primaryLabel =
-    runtime.name?.trim() ||
-    runtime.machineName?.trim() ||
-    shortId(runtime.id);
+    runtime.name?.trim() || runtime.machineName?.trim() || shortId(runtime.id);
   const isSharedMachine =
     runtime.type !== "managed-shared" &&
     Boolean(runtime.tenantId) &&
@@ -1721,9 +1873,13 @@ function compareImportRuntimeTargets(
     return leftIsDefaultShared ? -1 : 1;
   }
 
-  const primaryLabelComparison = left.primaryLabel.localeCompare(right.primaryLabel, "en", {
-    sensitivity: "base",
-  });
+  const primaryLabelComparison = left.primaryLabel.localeCompare(
+    right.primaryLabel,
+    "en",
+    {
+      sensitivity: "base",
+    },
+  );
 
   if (primaryLabelComparison !== 0) {
     return primaryLabelComparison;
@@ -1762,7 +1918,10 @@ export const getConsoleProjectGalleryData = cache(async () => {
 
   async function loadWorkspaceData(workspace: WorkspaceAccess) {
     return Promise.allSettled([
-      getFugueProjects(workspace.adminKeySecret, workspace.tenantId ?? undefined),
+      getFugueProjects(
+        workspace.adminKeySecret,
+        workspace.tenantId ?? undefined,
+      ),
       getFugueApps(workspace.adminKeySecret),
       getFugueOperations(workspace.adminKeySecret),
       getFugueClusterNodes(workspace.adminKeySecret),
@@ -1831,18 +1990,24 @@ export const getConsoleProjectGalleryData = cache(async () => {
       : null,
   ].filter((value): value is string => Boolean(value));
 
-  const projects = projectsResult.status === "fulfilled" ? projectsResult.value : [];
+  const projects =
+    projectsResult.status === "fulfilled" ? projectsResult.value : [];
   const apps = appsResult.status === "fulfilled" ? appsResult.value : [];
-  const operations = operationsResult.status === "fulfilled" ? operationsResult.value : [];
-  const clusterNodes = clusterNodesResult.status === "fulfilled" ? clusterNodesResult.value : [];
+  const operations =
+    operationsResult.status === "fulfilled" ? operationsResult.value : [];
+  const clusterNodes =
+    clusterNodesResult.status === "fulfilled" ? clusterNodesResult.value : [];
   const projectImageUsage =
     projectImageUsageResult.status === "fulfilled"
       ? projectImageUsageResult.value
       : null;
   const projectImageUsageByProjectId = new Map(
-    (projectImageUsage?.projects ?? []).map((summary) => [summary.projectId, summary] as const),
+    (projectImageUsage?.projects ?? []).map(
+      (summary) => [summary.projectId, summary] as const,
+    ),
   );
-  const runtimeTargetLocationsByRuntimeId = buildRuntimeTargetLocationMap(clusterNodes);
+  const runtimeTargetLocationsByRuntimeId =
+    buildRuntimeTargetLocationMap(clusterNodes);
   const runtimeTargetInventoryError =
     runtimesResult.status === "rejected"
       ? readErrorMessage(runtimesResult.reason)
@@ -1875,15 +2040,33 @@ export const getConsoleProjectGalleryData = cache(async () => {
     appsByProjectId.set(projectId, bucket);
   }
 
-  const projectsById = new Map(projects.map((project) => [project.id, project] as const));
-  const projectIds = [...new Set([...projects.map((project) => project.id), ...appsByProjectId.keys()])];
+  const projectsById = new Map(
+    projects.map((project) => [project.id, project] as const),
+  );
+  const projectIds = [
+    ...new Set([
+      ...projects.map((project) => project.id),
+      ...appsByProjectId.keys(),
+    ]),
+  ];
 
   const projectViews = projectIds
     .map((projectId) => {
       const project = projectsById.get(projectId) ?? null;
       const projectApps = appsByProjectId.get(projectId) ?? [];
       const sortedApps = sortByTimestampDesc(projectApps, readAppTimestamp);
-      const appNames = new Map(sortedApps.map((app) => [app.id, app.name] as const));
+      const appNames = new Map(
+        sortedApps.map((app) => [app.id, app.name] as const),
+      );
+      const appRuntimeIds = new Map(
+        sortedApps.map(
+          (app) =>
+            [
+              app.id,
+              app.spec.runtimeId ?? app.status.currentRuntimeId ?? null,
+            ] as const,
+        ),
+      );
       const backingServicesById = new Map<string, FugueBackingService>();
 
       for (const app of sortedApps) {
@@ -1920,6 +2103,7 @@ export const getConsoleProjectGalleryData = cache(async () => {
         ...buildBackingServiceView(
           service,
           appNames,
+          appRuntimeIds,
           workloadLocationsById.get(service.id) ?? null,
         ),
       }));
@@ -1942,10 +2126,11 @@ export const getConsoleProjectGalleryData = cache(async () => {
         sortTimestamp: latestActivity,
       };
     })
-    .sort(
-      (left, right) => right.sortTimestamp - left.sortTimestamp,
-    )
-    .map(({ sortTimestamp: _sortTimestamp, ...project }) => project as ConsoleGalleryProjectView);
+    .sort((left, right) => right.sortTimestamp - left.sortTimestamp)
+    .map(
+      ({ sortTimestamp: _sortTimestamp, ...project }) =>
+        project as ConsoleGalleryProjectView,
+    );
 
   return {
     errors,

@@ -16,6 +16,20 @@ export type ConsoleImportRuntimeTargetGroupView = {
 
 const INTERNAL_CLUSTER_GROUP_ID = "internal-cluster";
 
+function normalizeText(value?: string | null) {
+  return value?.trim() ?? "";
+}
+
+function shortId(value?: string | null) {
+  const normalized = normalizeText(value);
+
+  if (!normalized) {
+    return "Unknown";
+  }
+
+  return normalized.slice(0, 8);
+}
+
 function readSharedGroupStatus(
   targets: ConsoleImportRuntimeTargetView[],
 ): Pick<ConsoleImportRuntimeTargetGroupView, "statusLabel" | "statusTone"> {
@@ -23,8 +37,7 @@ function readSharedGroupStatus(
   const statusTone = targets[0]?.statusTone ?? null;
   const hasUniformStatus = targets.every(
     (target) =>
-      target.statusLabel === statusLabel &&
-      target.statusTone === statusTone,
+      target.statusLabel === statusLabel && target.statusTone === statusTone,
   );
 
   if (hasUniformStatus) {
@@ -63,6 +76,23 @@ export function readRuntimeTargetOptionLabel(
   }
 
   return "Country unavailable";
+}
+
+export function readRuntimeTargetLabel(
+  targets: ConsoleImportRuntimeTargetView[],
+  runtimeId?: string | null,
+  fallback = "Not assigned",
+) {
+  const normalized = normalizeText(runtimeId);
+
+  if (!normalized) {
+    return fallback;
+  }
+
+  return (
+    targets.find((target) => target.id === normalized)?.summaryLabel ??
+    shortId(normalized)
+  );
 }
 
 export function buildImportRuntimeTargetGroups(

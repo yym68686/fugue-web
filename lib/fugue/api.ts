@@ -310,6 +310,14 @@ function buildResourceSpecView(resource?: CamelizedSchema<"ResourceSpec"> | null
   };
 }
 
+function buildBillingResourceSpecView(resource?: CamelizedSchema<"BillingResourceSpec"> | null) {
+  return {
+    cpuMillicores: readNullableNumber(resource?.cpuMillicores) ?? 0,
+    memoryMebibytes: readNullableNumber(resource?.memoryMebibytes) ?? 0,
+    storageGibibytes: readNullableNumber(resource?.storageGibibytes) ?? 0,
+  };
+}
+
 function buildResourceUsageView(resource: CamelizedSchema<"ResourceUsage">) {
   return {
     cpuMillicores: readNullableNumber(resource.cpuMillicores),
@@ -338,6 +346,7 @@ function buildBillingPriceBookView(priceBook: CamelizedSchema<"BillingPriceBook"
     hoursPerMonth: priceBook.hoursPerMonth,
     cpuMicroCentsPerMillicoreHour: priceBook.cpuMicrocentsPerMillicoreHour,
     memoryMicroCentsPerMibHour: priceBook.memoryMicrocentsPerMibHour,
+    storageMicroCentsPerGibHour: priceBook.storageMicrocentsPerGibHour,
   };
 }
 
@@ -359,14 +368,14 @@ function buildBillingSummaryView(summary: CamelizedSchema<"TenantBillingSummary"
     balanceRestricted: summary.balanceRestricted,
     byoVpsFree: summary.byoVpsFree,
     currentUsage: toResourceUsage(summary.currentUsage),
-    defaultAppResources: buildResourceSpecView(summary.defaultAppResources),
-    defaultPostgresResources: buildResourceSpecView(summary.defaultPostgresResources),
+    defaultAppResources: buildBillingResourceSpecView(summary.defaultAppResources),
+    defaultPostgresResources: buildBillingResourceSpecView(summary.defaultPostgresResources),
     events: (summary.events ?? []).map(buildBillingEventView),
     hourlyRateMicroCents: summary.hourlyRateMicrocents,
     lastAccruedAt: readNullableString(summary.lastAccruedAt),
-    managedAvailable: buildResourceSpecView(summary.managedAvailable),
-    managedCap: buildResourceSpecView(summary.managedCap),
-    managedCommitted: buildResourceSpecView(summary.managedCommitted),
+    managedAvailable: buildBillingResourceSpecView(summary.managedAvailable),
+    managedCap: buildBillingResourceSpecView(summary.managedCap),
+    managedCommitted: buildBillingResourceSpecView(summary.managedCommitted),
     monthlyEstimateMicroCents: summary.monthlyEstimateMicrocents,
     overCap: summary.overCap,
     priceBook: buildBillingPriceBookView(summary.priceBook),
@@ -413,10 +422,14 @@ function buildBackingServiceView(service: CamelizedSchema<"BackingService">) {
       postgres: postgres
         ? {
             database: readNullableString(postgres.database),
+            failoverTargetRuntimeId: readNullableString(postgres.failoverTargetRuntimeId),
             image: readNullableString(postgres.image),
+            instances: readNullableNumber(postgres.instances),
             password: readNullableString(postgres.password),
             resources: postgres.resources ? buildResourceSpecView(postgres.resources) : null,
+            runtimeId: readNullableString(postgres.runtimeId),
             serviceName: readNullableString(postgres.serviceName),
+            synchronousReplicas: readNullableNumber(postgres.synchronousReplicas),
             user: readNullableString(postgres.user),
           }
         : null,
@@ -1073,6 +1086,29 @@ function buildOperationResultView(response: CamelizedSchema<"OperationResponse">
   };
 }
 
+function buildContinuityResultView(response: CamelizedSchema<"AppContinuityResponse">) {
+  return {
+    alreadyCurrent: response.alreadyCurrent ?? false,
+    appFailover: response.appFailover ? buildAppFailoverView(response.appFailover) : null,
+    database: response.database
+      ? {
+          database: readNullableString(response.database.database),
+          failoverTargetRuntimeId: readNullableString(response.database.failoverTargetRuntimeId),
+          image: readNullableString(response.database.image),
+          instances: readNullableNumber(response.database.instances),
+          resources: response.database.resources
+            ? buildResourceSpecView(response.database.resources)
+            : null,
+          runtimeId: readNullableString(response.database.runtimeId),
+          serviceName: readNullableString(response.database.serviceName),
+          synchronousReplicas: readNullableNumber(response.database.synchronousReplicas),
+          user: readNullableString(response.database.user),
+        }
+      : null,
+    operation: response.operation ? buildOperationView(response.operation) : null,
+  };
+}
+
 function buildDisableResultView(response: CamelizedSchema<"AppDisableResponse">) {
   return {
     alreadyDisabled: response.alreadyDisabled ?? false,
@@ -1110,7 +1146,9 @@ export type FugueAppWorkspace = ReturnType<typeof buildAppWorkspaceView>;
 export type FugueAppFailover = ReturnType<typeof buildAppFailoverView>;
 export type FugueFilesystemEntry = ReturnType<typeof buildFilesystemEntryView>;
 export type FugueAppTechnology = ReturnType<typeof buildAppTechnologyView>;
-export type FugueResourceSpec = ReturnType<typeof buildResourceSpecView>;
+export type FugueResourceSpec = ReturnType<typeof buildResourceSpecView> & {
+  storageGibibytes?: number;
+};
 export type FugueResourceUsage = ReturnType<typeof buildResourceUsageView>;
 export type FugueBillingPriceBook = ReturnType<typeof buildBillingPriceBookView>;
 export type FugueBillingEvent = ReturnType<typeof buildBillingEventView>;
@@ -1161,6 +1199,7 @@ export type FugueAppDomainAvailabilityResult = ReturnType<
 export type FugueAppDomainResult = ReturnType<typeof buildAppDomainResultView>;
 export type FugueAppDomainDeleteResult = ReturnType<typeof buildAppDomainDeleteResultView>;
 export type FugueAppDomainVerifyResult = ReturnType<typeof buildAppDomainVerifyResultView>;
+export type FugueAppContinuityResult = ReturnType<typeof buildContinuityResultView>;
 export type FugueAppFilesResult = ReturnType<typeof buildAppFilesResultView>;
 export type FugueAppFilesystemTreeResult = ReturnType<
   typeof buildAppFilesystemTreeResultView
@@ -1666,6 +1705,9 @@ export async function updateFugueBilling(
           managed_cap: {
             cpu_millicores: payload.managedCap.cpuMillicores,
             memory_mebibytes: payload.managedCap.memoryMebibytes,
+            ...(payload.managedCap.storageGibibytes !== undefined
+              ? { storage_gibibytes: payload.managedCap.storageGibibytes }
+              : {}),
           },
         },
       }),
@@ -2502,6 +2544,49 @@ export async function failoverFugueApp(
   );
 
   return buildOperationResultView(response);
+}
+
+export async function patchFugueAppContinuity(
+  accessToken: string,
+  appId: string,
+  options: {
+    appFailover?: {
+      enabled: boolean;
+      targetRuntimeId?: string;
+    };
+    databaseFailover?: {
+      enabled: boolean;
+      targetRuntimeId?: string;
+    };
+  },
+) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}/continuity`,
+      client.PATCH("/v1/apps/{id}/continuity", {
+        body: {
+          app_failover: options.appFailover
+            ? {
+                enabled: options.appFailover.enabled,
+                target_runtime_id: options.appFailover.targetRuntimeId,
+              }
+            : undefined,
+          database_failover: options.databaseFailover
+            ? {
+                enabled: options.databaseFailover.enabled,
+                target_runtime_id: options.databaseFailover.targetRuntimeId,
+              }
+            : undefined,
+        },
+        params: {
+          path: { id: appId },
+        },
+      }),
+    ),
+  );
+
+  return buildContinuityResultView(response);
 }
 
 export async function deleteFugueApp(accessToken: string, appId: string) {

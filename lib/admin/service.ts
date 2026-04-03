@@ -1670,8 +1670,16 @@ export async function updateAdminUserBillingForEmail(
     throw new Error("404 User has no workspace.");
   }
 
-  return updateFugueBilling(getFugueEnv().bootstrapKey, {
-    managedCap: payload.managedCap,
+  const accessToken = getFugueEnv().bootstrapKey;
+  const storageGibibytes =
+    payload.managedCap.storageGibibytes ??
+    (await getFugueBillingSummary(accessToken, workspace.tenantId)).managedCap.storageGibibytes;
+
+  return updateFugueBilling(accessToken, {
+    managedCap: {
+      ...payload.managedCap,
+      storageGibibytes,
+    },
     tenantId: workspace.tenantId,
   });
 }

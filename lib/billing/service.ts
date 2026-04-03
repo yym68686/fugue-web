@@ -73,9 +73,15 @@ export async function updateBillingForEmail(
   },
 ) {
   const workspace = await requireWorkspaceAccess(email);
+  const storageGibibytes =
+    payload.managedCap.storageGibibytes ??
+    (await getFugueBillingSummary(workspace.adminKeySecret)).managedCap.storageGibibytes;
 
   return updateFugueBilling(workspace.adminKeySecret, {
-    managedCap: payload.managedCap,
+    managedCap: {
+      ...payload.managedCap,
+      storageGibibytes,
+    },
   });
 }
 
