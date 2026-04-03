@@ -2,7 +2,6 @@ import "server-only";
 
 import { cache } from "react";
 
-import { getCurrentSession } from "@/lib/auth/session";
 import type { ConsoleTone } from "@/lib/console/types";
 import type {
   ConsoleGalleryAppView,
@@ -61,6 +60,7 @@ import {
   getCurrentWorkspaceAccess,
   type WorkspaceAccess,
 } from "@/lib/workspace/current";
+import { getRequestSession } from "@/lib/server/request-context";
 
 type RuntimeTargetLocationView = {
   locationCountryCode: string | null;
@@ -1255,12 +1255,36 @@ function readAppTimestamp(app: FugueApp) {
   return parseTimestamp(app.status.updatedAt ?? app.updatedAt ?? app.createdAt);
 }
 
+function readAppCreationTimestamp(app: FugueApp) {
+  return parseTimestamp(app.createdAt ?? app.updatedAt);
+}
+
 function readServiceTimestamp(service: FugueBackingService) {
   return parseTimestamp(service.updatedAt ?? service.createdAt);
 }
 
-function readProjectTimestamp(project: FugueProject) {
-  return parseTimestamp(project.updatedAt ?? project.createdAt);
+function readServiceCreationTimestamp(service: FugueBackingService) {
+  return parseTimestamp(service.createdAt ?? service.updatedAt);
+}
+
+function readProjectCreationTimestamp(project: FugueProject) {
+  return parseTimestamp(project.createdAt ?? project.updatedAt);
+}
+
+function readDerivedProjectCreationTimestamp(
+  apps: FugueApp[],
+  services: FugueBackingService[],
+) {
+  const timestamps = [
+    ...apps.map(readAppCreationTimestamp),
+    ...services.map(readServiceCreationTimestamp),
+  ].filter((timestamp) => timestamp > 0);
+
+  if (!timestamps.length) {
+    return 0;
+  }
+
+  return Math.min(...timestamps);
 }
 
 function readBadgeKey(kind: ConsoleGalleryBadgeKind, label: string) {
@@ -1964,7 +1988,7 @@ const getConsoleProjectGalleryDataCached = cache(
       isUnauthorizedFugueError(operationsResult.reason) &&
       isUnauthorizedFugueError(runtimesResult.reason)
     ) {
-      const session = await getCurrentSession();
+      const session = await getRequestSession();
 
       if (session) {
         try {
@@ -2101,11 +2125,6 @@ const getConsoleProjectGalleryDataCached = cache(
           ephemeralStorageBytes: resourceUsage.ephemeralStorageBytes ?? null,
           memoryBytes: resourceUsage.memoryBytes ?? null,
         } satisfies ConsoleProjectResourceUsageSnapshot;
-        const latestActivity = Math.max(
-          project ? readProjectTimestamp(project) : 0,
-          ...sortedApps.map(readAppTimestamp),
-          ...backingServices.map(readServiceTimestamp),
-        );
         const appViews = sortedApps.flatMap((app) =>
           buildAppView(
             app,
@@ -2126,6 +2145,10 @@ const getConsoleProjectGalleryDataCached = cache(
           ),
         }));
         const services = [...appViews, ...backingServiceViews];
+        const sortTimestamp =
+          project !== null
+            ? readProjectCreationTimestamp(project)
+            : readDerivedProjectCreationTimestamp(sortedApps, backingServices);
 
         return {
           appCount: sortedApps.length,
@@ -2142,10 +2165,16 @@ const getConsoleProjectGalleryDataCached = cache(
           serviceBadges: buildProjectServiceBadges(services),
           serviceCount: services.length,
           services,
-          sortTimestamp: latestActivity,
+          sortTimestamp,
         };
       })
-      .sort((left, right) => right.sortTimestamp - left.sortTimestamp)
+      // Keep project cards anchored by creation order so status polls do not
+      // reshuffle interactive rows while someone is clicking inside the list.
+      .sort(
+        (left, right) =>
+          right.sortTimestamp - left.sortTimestamp ||
+          left.id.localeCompare(right.id),
+      )
       .map(
         ({ sortTimestamp: _sortTimestamp, ...project }) =>
           project as ConsoleGalleryProjectView,

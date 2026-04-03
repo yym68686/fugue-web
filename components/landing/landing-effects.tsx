@@ -302,25 +302,56 @@ export function LandingEffects() {
       const roots = Array.from(landingRoot.querySelectorAll<HTMLElement>("[data-tilt-root]"));
 
       roots.forEach((root) => {
-        const handlePointerMove = (event: Event) => {
-          const pointerEvent = event as PointerEvent;
+        let frameId: number | null = null;
+        let latestPointerEvent: PointerEvent | null = null;
+
+        const applyTilt = () => {
+          frameId = null;
+
+          if (!latestPointerEvent) {
+            return;
+          }
+
           const rect = root.getBoundingClientRect();
-          const x = ((pointerEvent.clientX - rect.left) / rect.width) * 2 - 1;
-          const y = ((pointerEvent.clientY - rect.top) / rect.height) * 2 - 1;
+          const x = ((latestPointerEvent.clientX - rect.left) / rect.width) * 2 - 1;
+          const y = ((latestPointerEvent.clientY - rect.top) / rect.height) * 2 - 1;
 
           root.style.setProperty("--tilt-x", (x * 5).toFixed(2));
           root.style.setProperty("--tilt-y", (y * -3.5).toFixed(2));
         };
 
+        const handlePointerMove = (event: Event) => {
+          latestPointerEvent = event as PointerEvent;
+
+          if (frameId !== null) {
+            return;
+          }
+
+          frameId = window.requestAnimationFrame(applyTilt);
+        };
+
         const handlePointerLeave = () => {
+          latestPointerEvent = null;
+
+          if (frameId !== null) {
+            window.cancelAnimationFrame(frameId);
+            frameId = null;
+          }
+
           root.style.setProperty("--tilt-x", "0");
           root.style.setProperty("--tilt-y", "0");
         };
 
-        root.addEventListener("pointermove", handlePointerMove);
+        root.addEventListener("pointermove", handlePointerMove, {
+          passive: true,
+        });
         root.addEventListener("pointerleave", handlePointerLeave);
 
         cleanups.push(() => {
+          if (frameId !== null) {
+            window.cancelAnimationFrame(frameId);
+          }
+
           root.removeEventListener("pointermove", handlePointerMove);
           root.removeEventListener("pointerleave", handlePointerLeave);
         });

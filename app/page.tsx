@@ -1,6 +1,8 @@
+import { LandingEffectsShell } from "@/components/landing/landing-effects-shell";
 import { LandingPage } from "@/components/landing/landing-page";
-import { LandingEffects } from "@/components/landing/landing-effects";
 import { readAuthenticatedAppPath } from "@/lib/auth/handoff";
+
+import "./landing.css";
 
 export default async function HomePage() {
   const authenticatedAppPath = await readAuthenticatedAppPath();
@@ -8,7 +10,7 @@ export default async function HomePage() {
   return (
     <>
       <LandingPage authenticatedAppPath={authenticatedAppPath} />
-      <LandingEffects />
+      <LandingEffectsShell />
     </>
   );
 }

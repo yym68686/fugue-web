@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
-import { ConfirmDialogProvider } from "@/components/ui/confirm-dialog";
-import { ToastProvider } from "@/components/ui/toast";
-
+import { fugueFontVariables } from "@/app/fonts";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -19,20 +17,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head>
-        <link href="https://fonts.googleapis.com" rel="preconnect" />
-        <link crossOrigin="" href="https://fonts.gstatic.com" rel="preconnect" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&family=Syne:wght@500;600;700;800&display=swap"
-          rel="stylesheet"
-        />
-      </head>
-
-      <body className="fg-theme-dark">
-        <ToastProvider>
-          <ConfirmDialogProvider>{children}</ConfirmDialogProvider>
-        </ToastProvider>
-      </body>
+      <body className={`${fugueFontVariables} fg-theme-dark`}>{children}</body>
     </html>
   );
 }

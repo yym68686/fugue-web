@@ -156,6 +156,15 @@ Shared confirmation surface for destructive or high-impact product actions such 
         <p class="fg-panel__copy fg-confirm-dialog__copy">
           This queues removal and the route will stop serving once the operation completes.
         </p>
+        <label class="fg-field-stack fg-confirm-dialog__field" for="service-name-confirm">
+          <span class="fg-field-label">
+            <span>Service name</span>
+          </span>
+          <span class="fg-field-control">
+            <input class="fg-input" id="service-name-confirm" name="confirmation" type="text" />
+          </span>
+          <span class="fg-field-hint">Type the service name exactly as shown to enable deletion.</span>
+        </label>
       </div>
       <div class="fg-panel__section fg-confirm-dialog__actions">
         <button class="fg-button fg-button--secondary" type="button">Cancel</button>
@@ -174,12 +183,14 @@ Shared confirmation surface for destructive or high-impact product actions such 
 | focus-visible | Both actions keep the shared product focus ring; initial focus defaults to the cancel action |
 | danger | Danger eyebrow plus danger confirm button; copy explains the irreversible effect clearly |
 | dismiss | Escape, backdrop click, and cancel button all close the dialog without side effects |
+| text confirmation | For irreversible object deletes, show a labeled input and keep the danger action disabled until the typed value exactly matches the named object |
 
 ### Notes
 
 - Use `alertdialog` for destructive actions and `dialog` for neutral confirmations.
 - Default the initial focus to the least destructive option.
 - Dialog copy must name the object being changed and describe the real effect; do not rely on generic `Are you sure?`.
+- For high-risk product deletes such as removing a service, require exact-text confirmation with a visible label, helper copy, and inline mismatch feedback.
 - Keep confirm labels action-specific: `Delete service`, `Revoke key`, `Make admin`.
 - Backdrop blur is functional context dismissal, not decorative chrome.
 

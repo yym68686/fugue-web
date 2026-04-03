@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import {
+  startTransition,
+  useEffect,
+  useEffectEvent,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
@@ -60,6 +67,8 @@ type DomainFieldState = {
   label: string;
   variant: "error" | "info" | "neutral" | "success";
 };
+
+const DOMAIN_AUTO_REFRESH_INTERVAL_MS = 4_000;
 
 function asRecord(value: unknown) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value)
@@ -346,6 +355,14 @@ function domainHasUnresolvedIssue(domain: AppDomain) {
   return Boolean(domain.lastMessage?.trim()) || !isDomainVerified(domain);
 }
 
+function domainNeedsStatusRefresh(domain?: AppDomain | null) {
+  if (!domain) {
+    return false;
+  }
+
+  return domainHasUnresolvedIssue(domain) || readDomainSetupStatus(domain) !== "ready";
+}
+
 function readDomainAttentionMessage(domain: AppDomain) {
   const target = extractDomainTarget(domain.lastMessage) ?? domain.routeTarget;
 
@@ -543,6 +560,8 @@ export function AppCustomDomainsPanel({
   const [availabilityState, setAvailabilityState] = useState<AvailabilityState>("idle");
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const domainsRefreshAbortRef = useRef<AbortController | null>(null);
+  const domainsRefreshPendingRef = useRef(false);
 
   const normalizedDraft = normalizeHostname(draft);
   const normalizedBaseline = normalizeHostname(baselineHostname);
@@ -579,34 +598,83 @@ export function AppCustomDomainsPanel({
     Boolean(availability?.valid) &&
     Boolean(availability?.available) &&
     !availability?.current;
+  const isDirtyRef = useRef(isDirty);
 
-  async function loadDomains() {
-    setDomainsState("loading");
+  useEffect(() => {
+    isDirtyRef.current = isDirty;
+  }, [isDirty]);
 
-    try {
-      const payload = readDomainListResponse(
-        await requestJson(`/api/fugue/apps/${appId}/domains`, {
-          cache: "no-store",
-        }),
-      );
+  const refreshDomains = useEffectEvent(
+    async (options?: { silent?: boolean; syncDraft?: boolean }) => {
+      if (domainsRefreshPendingRef.current) {
+        return false;
+      }
 
-      const nextDomains = sortDomains(payload.domains);
-      const nextDomain = nextDomains[0] ?? null;
-      const nextHostname = nextDomain?.hostname ?? "";
+      const silent = options?.silent ?? false;
+      const syncDraft = options?.syncDraft ?? false;
 
-      setDomains(nextDomains);
-      setDraft(nextHostname);
-      setBaselineHostname(nextHostname);
-      setAvailability(buildAvailabilityForDomain(nextDomain));
-      setAvailabilityError(null);
-      setAvailabilityState(nextHostname ? "ready" : "idle");
-      setSubmissionError(null);
-      setDomainsState("ready");
-    } catch (error) {
-      setAvailabilityError(readErrorMessage(error));
-      setDomainsState("error");
-    }
-  }
+      if (!silent) {
+        setDomainsState("loading");
+      }
+
+      domainsRefreshPendingRef.current = true;
+      const controller = new AbortController();
+      domainsRefreshAbortRef.current = controller;
+
+      try {
+        const payload = readDomainListResponse(
+          await requestJson(`/api/fugue/apps/${appId}/domains`, {
+            cache: "no-store",
+            signal: controller.signal,
+          }),
+        );
+
+        if (controller.signal.aborted) {
+          return false;
+        }
+
+        const nextDomains = sortDomains(payload.domains);
+        const nextDomain = nextDomains[0] ?? null;
+        const nextHostname = nextDomain?.hostname ?? "";
+
+        startTransition(() => {
+          setDomains(nextDomains);
+          setBaselineHostname(nextHostname);
+          if (syncDraft) {
+            setDraft(nextHostname);
+          }
+          if (syncDraft || !isDirtyRef.current) {
+            setAvailability(buildAvailabilityForDomain(nextDomain));
+            setAvailabilityError(null);
+            setAvailabilityState(nextHostname ? "ready" : "idle");
+          }
+          if (syncDraft) {
+            setSubmissionError(null);
+          }
+          setDomainsState("ready");
+        });
+
+        return true;
+      } catch (error) {
+        if (controller.signal.aborted) {
+          return false;
+        }
+
+        if (!silent) {
+          setAvailabilityError(readErrorMessage(error));
+          setDomainsState("error");
+        }
+
+        return false;
+      } finally {
+        if (domainsRefreshAbortRef.current === controller) {
+          domainsRefreshAbortRef.current = null;
+        }
+
+        domainsRefreshPendingRef.current = false;
+      }
+    },
+  );
 
   function resetDraft() {
     const baselineDomain = findDomain(domains, baselineHostname);
@@ -619,8 +687,18 @@ export function AppCustomDomainsPanel({
   }
 
   useEffect(() => {
-    void loadDomains();
-  }, [appId]);
+    domainsRefreshAbortRef.current?.abort();
+    domainsRefreshAbortRef.current = null;
+    domainsRefreshPendingRef.current = false;
+
+    void refreshDomains({ syncDraft: true });
+  }, [appId, refreshDomains]);
+
+  useEffect(() => {
+    return () => {
+      domainsRefreshAbortRef.current?.abort();
+    };
+  }, []);
 
   useEffect(() => {
     if (domainsState !== "ready") {
@@ -684,6 +762,39 @@ export function AppCustomDomainsPanel({
       window.clearTimeout(timeoutId);
     };
   }, [appId, domains, domainsState, isDirty, normalizedBaseline, normalizedDraft]);
+
+  useEffect(() => {
+    const baselineDomain = findDomain(domains, normalizedBaseline);
+
+    if (
+      domainsState !== "ready" ||
+      !normalizedBaseline ||
+      isDirty ||
+      submitting ||
+      !domainNeedsStatusRefresh(baselineDomain)
+    ) {
+      return undefined;
+    }
+
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState !== "visible") {
+        return;
+      }
+
+      void refreshDomains({ silent: true });
+    }, DOMAIN_AUTO_REFRESH_INTERVAL_MS);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [
+    domains,
+    domainsState,
+    isDirty,
+    normalizedBaseline,
+    refreshDomains,
+    submitting,
+  ]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

@@ -865,7 +865,6 @@ export function BillingPanel({
 
                 <SteppedSliderField
                   disabled={isSavingEnvelope}
-                  hint="Retained managed images from older service revisions still count toward committed storage until they are cleaned up."
                   id="billing-envelope-storage"
                   label="Storage"
                   max={STORAGE_SLIDER_MAX_GIB}

@@ -3436,7 +3436,7 @@
 }
 
 .fg-project-card__detail {
-  padding: 0 0.72rem 0.72rem;
+  padding: 0.28rem 0 0;
   animation: fg-project-detail-in 360ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -3455,18 +3455,25 @@
 }
 
 .fg-project-workbench {
-  --fg-project-workbench-shell-padding: var(--fugue-proof-shell-padding);
-  --fg-project-workbench-shell-radius-outer: var(--fugue-proof-shell-radius-outer);
-  --fg-project-workbench-shell-radius-inner: var(--fugue-proof-shell-radius-inner);
+  --fg-project-workbench-surface-radius: 1.32rem;
   --fg-project-workbench-panel-padding-block: var(--fugue-panel-padding-block);
   --fg-project-workbench-panel-padding-inline: var(--fugue-panel-padding-inline);
   gap: 0;
-  padding: var(--fg-project-workbench-shell-padding);
-  border-radius: var(--fg-project-workbench-shell-radius-outer);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .fg-project-workbench > .fg-bezel__inner {
-  border-radius: var(--fg-project-workbench-shell-radius-inner);
+  border-radius: var(--fg-project-workbench-surface-radius);
+  border-color: rgba(255, 255, 255, 0.08);
+  background:
+    radial-gradient(circle at top left, rgba(165, 191, 220, 0.1), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.032), rgba(255, 255, 255, 0.012)),
+    rgba(7, 10, 14, 0.92);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
 }
 
 .fg-project-workbench .fg-panel__section {
@@ -6196,11 +6203,13 @@
   }
 
   .fg-project-workbench {
-    --fg-project-workbench-shell-padding: 0.38rem;
-    --fg-project-workbench-shell-radius-outer: 1.36rem;
-    --fg-project-workbench-shell-radius-inner: 1.04rem;
+    --fg-project-workbench-surface-radius: 1.04rem;
     --fg-project-workbench-panel-padding-block: 0.82rem;
     --fg-project-workbench-panel-padding-inline: 0.78rem;
+  }
+
+  .fg-project-card__detail {
+    padding-top: 0.22rem;
   }
 
   .fg-project-actions,
@@ -6297,7 +6306,7 @@
 
 @media (max-width: 520px) {
   .fg-project-workbench {
-    --fg-project-workbench-shell-padding: 0.3rem;
+    --fg-project-workbench-surface-radius: 0.96rem;
     --fg-project-workbench-panel-padding-inline: 0.7rem;
   }
 

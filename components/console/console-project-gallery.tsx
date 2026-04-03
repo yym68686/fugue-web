@@ -2,7 +2,9 @@
 
 import {
   startTransition,
+  useDeferredValue,
   useEffect,
+  useEffectEvent,
   useRef,
   useState,
   type FormEvent,
@@ -10,7 +12,6 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
 
 import { CompactResourceMeter } from "@/components/console/compact-resource-meter";
 import { ImportServiceFields } from "@/components/console/import-service-fields";
@@ -776,14 +777,14 @@ function buildLogsResponseFromStatus(
   };
 }
 
-function trimLogBody(body: string) {
-  const lines = body.split("\n");
+function trimLogLines(lines: string[]) {
+  const overflow = lines.length - LOG_MAX_VISIBLE_LINES;
 
-  if (lines.length <= LOG_MAX_VISIBLE_LINES) {
-    return body;
+  if (overflow > 0) {
+    lines.splice(0, overflow);
   }
 
-  return lines.slice(lines.length - LOG_MAX_VISIBLE_LINES).join("\n");
+  return lines;
 }
 
 function isLogViewportNearBottom(element: HTMLElement) {
@@ -833,8 +834,8 @@ function readLogStreamSourceLabel(source?: LogStreamSource | null) {
   );
 }
 
-function appendLogBodyLine(
-  currentBody: string,
+function appendLogLine(
+  currentLines: string[],
   line: string,
   source: LogStreamSource | null,
   previousSourceId: string | null,
@@ -844,26 +845,25 @@ function appendLogBodyLine(
     sourceId && sourceId !== previousSourceId
       ? readLogStreamSourceLabel(source)
       : null;
-  const parts = currentBody ? [currentBody] : [];
 
   if (sourceLabel) {
-    if (currentBody) {
-      parts.push("");
+    if (currentLines.length > 0) {
+      currentLines.push("");
     }
 
-    parts.push(`==> ${sourceLabel} <==`);
+    currentLines.push(`==> ${sourceLabel} <==`);
   }
 
-  parts.push(line);
+  currentLines.push(line);
 
   return {
-    body: trimLogBody(parts.join("\n")),
+    lines: trimLogLines(currentLines),
     sourceId: sourceId ?? previousSourceId,
   };
 }
 
-function appendLogBodyWarning(
-  currentBody: string,
+function appendLogWarning(
+  currentLines: string[],
   warning: LogStreamWarning,
   previousSourceId: string | null,
 ) {
@@ -871,17 +871,21 @@ function appendLogBodyWarning(
 
   if (!message) {
     return {
-      body: currentBody,
+      lines: currentLines,
       sourceId: previousSourceId,
     };
   }
 
-  return appendLogBodyLine(
-    currentBody,
+  return appendLogLine(
+    currentLines,
     `[warning] ${message}`,
     warning.source,
     previousSourceId,
   );
+}
+
+function joinLogLines(lines: string[]) {
+  return lines.join("\n");
 }
 
 class LogStreamRequestError extends Error {
@@ -1650,6 +1654,578 @@ function readPlainLogBody(value: string) {
     .join("");
 }
 
+type ConsoleLogsPanelProps = {
+  effectiveLogsMode: LogsView;
+  externalRefreshToken: number;
+  onLogsModeChange: (nextMode: LogsView) => void;
+  onPendingCommitHintChange: (nextValue: ConsoleGalleryCommitView | null) => void;
+  runtimeLogsUnavailable: RuntimeLogsUnavailableState | null;
+  selectedApp: ConsoleGalleryAppView;
+  selectedAppNeedsPendingCommitHint: boolean;
+  selectedService: ConsoleGalleryServiceView;
+  selectedServiceApp: ConsoleGalleryAppView | null;
+  selectedServiceLogViewOptions: readonly SegmentedControlOption<LogsView>[];
+};
+
+function ConsoleLogsPanel({
+  effectiveLogsMode,
+  externalRefreshToken,
+  onLogsModeChange,
+  onPendingCommitHintChange,
+  runtimeLogsUnavailable,
+  selectedApp,
+  selectedAppNeedsPendingCommitHint,
+  selectedService,
+  selectedServiceApp,
+  selectedServiceLogViewOptions,
+}: ConsoleLogsPanelProps) {
+  const { showToast } = useToast();
+  const [logsConnectionState, setLogsConnectionState] =
+    useState<LogsConnectionState>("idle");
+  const [logsStatus, setLogsStatus] = useState<
+    "error" | "idle" | "loading" | "ready"
+  >("idle");
+  const [logLines, setLogLines] = useState<string[]>([]);
+  const deferredLogLines = useDeferredValue(logLines);
+  const [logsCopyState, setLogsCopyState] = useState<
+    "copied" | "idle" | "pending"
+  >("idle");
+  const [buildLogsOperationStatus, setBuildLogsOperationStatus] = useState<
+    string | null
+  >(null);
+  const [manualRefreshToken, setManualRefreshToken] = useState(0);
+  const logsAutoFollowRef = useRef(true);
+  const logsCopyResetRef = useRef<number | null>(null);
+  const logsViewportRef = useRef<HTMLPreElement | null>(null);
+  const logsFlushFrameRef = useRef<number | null>(null);
+  const logLinesRef = useRef<string[]>([]);
+  const lastRenderedSourceIdRef = useRef<string | null>(null);
+  const selectedServiceBuildLogsOperationId =
+    selectedService.kind === "app"
+      ? selectedService.buildLogsOperationId?.trim() || null
+      : null;
+  const logsRequestKey = `${serviceKey(selectedService)}:${effectiveLogsMode}:${effectiveLogsMode === "build" ? (selectedServiceBuildLogsOperationId ?? "latest") : "live"}`;
+  const logsStreamInput =
+    selectedService.kind === "backing-service"
+      ? `/api/fugue/apps/${selectedApp.id}/runtime-logs/stream?component=postgres&follow=true&tail_lines=${LOG_TAIL_LINES}`
+      : effectiveLogsMode === "build"
+        ? `/api/fugue/apps/${selectedApp.id}/build-logs/stream?${new URLSearchParams(
+            {
+              ...(selectedServiceBuildLogsOperationId
+                ? { operation_id: selectedServiceBuildLogsOperationId }
+                : {}),
+              follow: "true",
+              tail_lines: String(LOG_TAIL_LINES),
+            },
+          ).toString()}`
+        : `/api/fugue/apps/${selectedApp.id}/runtime-logs/stream?component=app&follow=true&tail_lines=${LOG_TAIL_LINES}`;
+  const runtimeLogsUnavailableKey = runtimeLogsUnavailable
+    ? `${selectedApp.id}:${runtimeLogsUnavailable.label}`
+    : null;
+  const logsBody = joinLogLines(deferredLogLines);
+  const canCopyLogs =
+    logsStatus === "ready" &&
+    !runtimeLogsUnavailable &&
+    logLinesRef.current.length > 0;
+  const logsRefreshStateLabel = runtimeLogsUnavailable
+    ? runtimeLogsUnavailable.label
+    : logsConnectionState === "connecting"
+      ? "Connecting"
+      : logsConnectionState === "reconnecting"
+        ? "Reconnecting"
+        : logsConnectionState === "live"
+          ? "Live"
+          : logsConnectionState === "ended"
+            ? effectiveLogsMode === "build" && buildLogsOperationStatus
+              ? humanizeUiLabel(buildLogsOperationStatus)
+              : "Ended"
+            : logsConnectionState === "error"
+              ? "Error"
+              : "Idle";
+  const logsPanelNote = runtimeLogsUnavailable
+    ? runtimeLogsUnavailable.description
+    : logsConnectionState === "reconnecting"
+      ? `Connection dropped. Reconnecting to ${humanizeUiLabel(effectiveLogsMode).toLowerCase()} output.`
+      : logsConnectionState === "ended"
+        ? `${humanizeUiLabel(effectiveLogsMode)} stream closed. Use Refresh now to reopen the latest snapshot.`
+        : logsConnectionState === "error"
+          ? `Unable to open the ${humanizeUiLabel(effectiveLogsMode).toLowerCase()} stream. Use Refresh now to try again.`
+          : `Live ${humanizeUiLabel(effectiveLogsMode).toLowerCase()} output for ${selectedService.name}.`;
+
+  function cancelScheduledLogCommit() {
+    if (logsFlushFrameRef.current !== null) {
+      window.cancelAnimationFrame(logsFlushFrameRef.current);
+      logsFlushFrameRef.current = null;
+    }
+  }
+
+  function scheduleLogCommit() {
+    if (logsFlushFrameRef.current !== null) {
+      return;
+    }
+
+    logsFlushFrameRef.current = window.requestAnimationFrame(() => {
+      logsFlushFrameRef.current = null;
+      startTransition(() => {
+        setLogLines([...logLinesRef.current]);
+      });
+    });
+  }
+
+  function resetLogBuffer() {
+    cancelScheduledLogCommit();
+    logLinesRef.current = [];
+    lastRenderedSourceIdRef.current = null;
+    setLogLines([]);
+  }
+
+  function clearLogsCopyResetTimer() {
+    if (logsCopyResetRef.current !== null) {
+      window.clearTimeout(logsCopyResetRef.current);
+      logsCopyResetRef.current = null;
+    }
+  }
+
+  function scrollLogsToBottom() {
+    const viewport = logsViewportRef.current;
+
+    if (!viewport) {
+      return;
+    }
+
+    viewport.scrollTop = viewport.scrollHeight;
+  }
+
+  function handleLogsViewportScroll() {
+    const viewport = logsViewportRef.current;
+
+    if (!viewport) {
+      return;
+    }
+
+    logsAutoFollowRef.current = isLogViewportNearBottom(viewport);
+  }
+
+  function refreshLogs() {
+    setManualRefreshToken((value) => value + 1);
+  }
+
+  async function handleCopyLogs() {
+    if (!canCopyLogs || logsCopyState === "pending") {
+      return;
+    }
+
+    clearLogsCopyResetTimer();
+    setLogsCopyState("pending");
+
+    try {
+      const plainLogsBody = readPlainLogBody(joinLogLines(logLinesRef.current));
+
+      if (!plainLogsBody.trim()) {
+        setLogsCopyState("idle");
+        return;
+      }
+
+      const copied = await copyText(plainLogsBody);
+
+      if (!copied) {
+        setLogsCopyState("idle");
+        showToast({
+          message: `${humanizeUiLabel(effectiveLogsMode)} logs are ready, but clipboard access failed.`,
+          variant: "info",
+        });
+        return;
+      }
+
+      setLogsCopyState("copied");
+      logsCopyResetRef.current = window.setTimeout(() => {
+        setLogsCopyState("idle");
+        logsCopyResetRef.current = null;
+      }, 1400);
+    } catch (error) {
+      setLogsCopyState("idle");
+      showToast({
+        message: readErrorMessage(error),
+        variant: "error",
+      });
+    }
+  }
+
+  useEffect(() => {
+    logsAutoFollowRef.current = true;
+
+    const frame = window.requestAnimationFrame(() => {
+      scrollLogsToBottom();
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
+  }, [externalRefreshToken, logsRequestKey, manualRefreshToken]);
+
+  useEffect(() => {
+    if (!logsAutoFollowRef.current) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      scrollLogsToBottom();
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
+  }, [logLines]);
+
+  useEffect(() => {
+    setLogsCopyState("idle");
+    clearLogsCopyResetTimer();
+  }, [externalRefreshToken, logsRequestKey, manualRefreshToken]);
+
+  useEffect(() => {
+    return () => {
+      clearLogsCopyResetTimer();
+      cancelScheduledLogCommit();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (runtimeLogsUnavailable) {
+      resetLogBuffer();
+      setLogsConnectionState("idle");
+      setLogsStatus("idle");
+      setBuildLogsOperationStatus(null);
+
+      if (effectiveLogsMode === "build") {
+        onPendingCommitHintChange(null);
+      }
+
+      return;
+    }
+
+    let cancelled = false;
+    let retryDelayMs = LOG_AUTO_REFRESH_INTERVAL_MS;
+    let reconnectTimer: number | null = null;
+    let activeController: AbortController | null = null;
+    let latestCursor = "";
+    let streamEnded = false;
+
+    function clearReconnectTimer() {
+      if (reconnectTimer !== null) {
+        window.clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
+    }
+
+    function scheduleReconnect() {
+      if (cancelled || streamEnded) {
+        return;
+      }
+
+      clearReconnectTimer();
+      setLogsConnectionState("reconnecting");
+      setLogsStatus((current) => (current === "ready" ? "ready" : "loading"));
+      reconnectTimer = window.setTimeout(() => {
+        void openStream("reconnect");
+      }, retryDelayMs);
+    }
+
+    async function openStream(mode: "initial" | "reconnect") {
+      if (cancelled) {
+        return;
+      }
+
+      clearReconnectTimer();
+      activeController?.abort();
+      activeController = new AbortController();
+      streamEnded = false;
+
+      if (mode === "initial") {
+        latestCursor = "";
+        resetLogBuffer();
+        setLogsStatus("loading");
+        setLogsConnectionState("connecting");
+        setBuildLogsOperationStatus(null);
+
+        if (effectiveLogsMode === "build") {
+          onPendingCommitHintChange(null);
+        }
+      } else {
+        setLogsConnectionState("reconnecting");
+        setLogsStatus((current) => (current === "ready" ? "ready" : "loading"));
+      }
+
+      const streamUrl =
+        mode === "reconnect" && latestCursor
+          ? `${logsStreamInput}&cursor=${encodeURIComponent(latestCursor)}`
+          : logsStreamInput;
+
+      try {
+        const response = await fetch(streamUrl, {
+          cache: "no-store",
+          headers: {
+            Accept: "text/event-stream",
+          },
+          signal: activeController.signal,
+        });
+
+        if (!response.ok) {
+          throw new LogStreamRequestError(
+            response.status,
+            await readResponseError(response),
+          );
+        }
+
+        if (!response.body) {
+          throw new Error("Streaming response body is unavailable.");
+        }
+
+        await consumeSSEStream(response, {
+          onRetry(milliseconds) {
+            if (milliseconds > 0) {
+              retryDelayMs = milliseconds;
+            }
+          },
+          onEvent(event) {
+            if (event.id) {
+              latestCursor = event.id;
+            }
+
+            switch (event.event) {
+              case "ready":
+                setLogsConnectionState("live");
+                setLogsStatus("ready");
+                return;
+              case "status": {
+                const status = parseBuildLogStreamStatus(event);
+
+                if (!status) {
+                  return;
+                }
+
+                if (status.cursor) {
+                  latestCursor = status.cursor;
+                }
+
+                setLogsConnectionState("live");
+                setLogsStatus("ready");
+                setBuildLogsOperationStatus(status.operationStatus ?? null);
+                onPendingCommitHintChange(
+                  selectedServiceApp && selectedAppNeedsPendingCommitHint
+                    ? inferPendingCommitHint(
+                        selectedServiceApp,
+                        buildLogsResponseFromStatus(status),
+                      )
+                    : null,
+                );
+                return;
+              }
+              case "state": {
+                const state = parseRuntimeLogStreamState(event);
+
+                if (!state) {
+                  return;
+                }
+
+                if (state.cursor) {
+                  latestCursor = state.cursor;
+                }
+
+                setLogsConnectionState("live");
+                setLogsStatus("ready");
+                return;
+              }
+              case "log": {
+                const logLine = parseLogStreamLogLine(event);
+
+                if (!logLine) {
+                  return;
+                }
+
+                if (logLine.cursor) {
+                  latestCursor = logLine.cursor;
+                }
+
+                setLogsConnectionState("live");
+                setLogsStatus("ready");
+                lastRenderedSourceIdRef.current = appendLogLine(
+                  logLinesRef.current,
+                  logLine.line,
+                  logLine.source,
+                  lastRenderedSourceIdRef.current,
+                ).sourceId;
+                scheduleLogCommit();
+                return;
+              }
+              case "warning": {
+                const warning = parseLogStreamWarning(event);
+
+                if (!warning) {
+                  return;
+                }
+
+                if (warning.cursor) {
+                  latestCursor = warning.cursor;
+                }
+
+                setLogsConnectionState("live");
+                setLogsStatus("ready");
+                lastRenderedSourceIdRef.current = appendLogWarning(
+                  logLinesRef.current,
+                  warning,
+                  lastRenderedSourceIdRef.current,
+                ).sourceId;
+                scheduleLogCommit();
+                return;
+              }
+              case "heartbeat":
+                setLogsConnectionState("live");
+                setLogsStatus("ready");
+                return;
+              case "end": {
+                const endEvent = parseLogStreamEnd(event);
+
+                if (endEvent?.cursor) {
+                  latestCursor = endEvent.cursor;
+                }
+
+                if (endEvent?.operationStatus) {
+                  setBuildLogsOperationStatus(endEvent.operationStatus);
+                }
+
+                streamEnded = true;
+                setLogsConnectionState("ended");
+                setLogsStatus("ready");
+                return;
+              }
+              default:
+                return;
+            }
+          },
+        });
+
+        if (cancelled || activeController.signal.aborted || streamEnded) {
+          return;
+        }
+
+        scheduleReconnect();
+      } catch (error) {
+        if (cancelled || activeController?.signal.aborted) {
+          return;
+        }
+
+        if (!isRetryableLogStreamError(error)) {
+          if (effectiveLogsMode === "build") {
+            onPendingCommitHintChange(
+              selectedServiceApp && selectedAppNeedsPendingCommitHint
+                ? inferPendingCommitHint(selectedServiceApp, null)
+                : null,
+            );
+          }
+
+          setLogsConnectionState("error");
+          setLogsStatus("error");
+          showToast({
+            message: readErrorMessage(error),
+            variant: "error",
+          });
+          return;
+        }
+
+        scheduleReconnect();
+      }
+    }
+
+    void openStream("initial");
+
+    return () => {
+      cancelled = true;
+      clearReconnectTimer();
+      activeController?.abort();
+    };
+  }, [
+    effectiveLogsMode,
+    externalRefreshToken,
+    logsRequestKey,
+    logsStreamInput,
+    manualRefreshToken,
+    onPendingCommitHintChange,
+    runtimeLogsUnavailable,
+    runtimeLogsUnavailableKey,
+    selectedAppNeedsPendingCommitHint,
+    selectedServiceApp,
+    showToast,
+  ]);
+
+  return (
+    <div className="fg-workbench-section">
+      <div className="fg-workbench-section__head">
+        <div className="fg-workbench-section__copy">
+          <p className="fg-label fg-panel__eyebrow">Logs</p>
+          <p className="fg-console-note">{logsPanelNote}</p>
+        </div>
+
+        <div className="fg-workbench-section__actions">
+          {selectedService.kind === "app" ? (
+            <SegmentedControl
+              ariaLabel="Log views"
+              onChange={onLogsModeChange}
+              options={selectedServiceLogViewOptions}
+              value={effectiveLogsMode}
+            />
+          ) : null}
+
+          <Button
+            disabled={!canCopyLogs}
+            loading={logsCopyState === "pending"}
+            loadingLabel="Copying…"
+            onClick={() => {
+              void handleCopyLogs();
+            }}
+            size="compact"
+            type="button"
+            variant="secondary"
+          >
+            {logsCopyState === "copied" ? "Copied" : "Copy logs"}
+          </Button>
+          <Button
+            onClick={refreshLogs}
+            size="compact"
+            type="button"
+            variant="secondary"
+          >
+            Refresh now
+          </Button>
+        </div>
+      </div>
+
+      <ProofShell>
+        <ProofShellRibbon>
+          <span>{logsRefreshStateLabel}</span>
+        </ProofShellRibbon>
+        {runtimeLogsUnavailable ? (
+          <ProofShellEmpty
+            description={runtimeLogsUnavailable.description}
+            title={runtimeLogsUnavailable.title}
+          />
+        ) : (
+          <pre
+            className="fg-log-output__viewport"
+            onScroll={handleLogsViewportScroll}
+            ref={logsViewportRef}
+          >
+            <code className="fg-log-output">
+              {renderAnsiLogBody(
+                readLogsDisplayBody(logsStatus, logsBody, logsConnectionState),
+              )}
+            </code>
+          </pre>
+        )}
+      </ProofShell>
+    </div>
+  );
+}
+
 function ProjectBadge({
   kind,
   label,
@@ -1680,16 +2256,16 @@ function projectTitle(project: ConsoleGalleryProjectView) {
 }
 
 export function ConsoleProjectGallery({
-  data,
+  initialData,
   defaultCreateOpen = false,
 }: {
-  data: ConsoleProjectGalleryData;
+  initialData: ConsoleProjectGalleryData;
   defaultCreateOpen?: boolean;
 }) {
   const confirm = useConfirmDialog();
-  const router = useRouter();
   const { showToast } = useToast();
   const [flash, setFlash] = useState<FlashState | null>(null);
+  const [data, setData] = useState(initialData);
   const [projectImageUsageByProjectId, setProjectImageUsageByProjectId] =
     useState<Record<string, ProjectImageUsageSummary>>(() =>
       buildProjectImageUsageMap(readCachedProjectImageUsage() ?? []),
@@ -1698,10 +2274,12 @@ export function ConsoleProjectGallery({
   const [createTargetProject, setCreateTargetProject] =
     useState<CreateDialogTarget | null>(null);
   const [projectName, setProjectName] = useState(
-    buildSuggestedProjectName(data.projects.length),
+    buildSuggestedProjectName(initialData.projects.length),
   );
   const [importDraft, setImportDraft] = useState<ImportServiceDraft>(() =>
-    createImportServiceDraft(readDefaultImportRuntimeId(data.runtimeTargets)),
+    createImportServiceDraft(
+      readDefaultImportRuntimeId(initialData.runtimeTargets),
+    ),
   );
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
     null,
@@ -1729,27 +2307,12 @@ export function ConsoleProjectGallery({
   );
   const [envSaving, setEnvSaving] = useState(false);
   const [logsMode, setLogsMode] = useState<LogsView>("build");
-  const [logsConnectionState, setLogsConnectionState] =
-    useState<LogsConnectionState>("idle");
-  const [logsStatus, setLogsStatus] = useState<
-    "error" | "idle" | "loading" | "ready"
-  >("idle");
-  const [logsBody, setLogsBody] = useState("");
-  const [logsCopyState, setLogsCopyState] = useState<
-    "copied" | "idle" | "pending"
-  >("idle");
-  const [buildLogsOperationStatus, setBuildLogsOperationStatus] = useState<
-    string | null
-  >(null);
-  const [logsRefreshToken, setLogsRefreshToken] = useState(0);
+  const [logsResetSignal, setLogsResetSignal] = useState(0);
   const [refreshWindowUntil, setRefreshWindowUntil] = useState(0);
-  const logsAutoFollowRef = useRef(true);
-  const logsCopyResetRef = useRef<number | null>(null);
-  const logsViewportRef = useRef<HTMLPreElement | null>(null);
+  const galleryRefreshAbortRef = useRef<AbortController | null>(null);
+  const galleryRefreshPendingRef = useRef(false);
   const pendingCommitHintRequestPendingRef = useRef(false);
   const createBackdropPressStartedRef = useRef(false);
-  const selectedServiceAppRef = useRef<ConsoleGalleryAppView | null>(null);
-  const selectedAppNeedsPendingCommitHintRef = useRef(false);
 
   const selectedProject =
     data.projects.find((project) => project.id === selectedProjectId) ?? null;
@@ -1795,38 +2358,11 @@ export function ConsoleProjectGallery({
     selectedServiceApp !== null &&
     activeTab === "logs" &&
     effectiveLogsMode === "build";
-  const selectedServiceBuildLogsOperationId =
-    selectedService?.kind === "app"
-      ? selectedService.buildLogsOperationId?.trim() || null
-      : null;
   const selectedServicePaused = isPausedAppService(selectedServiceApp);
-  const logsRequestKey =
-    selectedApp && selectedService
-      ? `${serviceKey(selectedService)}:${effectiveLogsMode}:${effectiveLogsMode === "build" ? (selectedServiceBuildLogsOperationId ?? "latest") : "live"}`
-      : null;
-  const logsStreamInput =
-    selectedApp && selectedService
-      ? selectedService.kind === "backing-service"
-        ? `/api/fugue/apps/${selectedApp.id}/runtime-logs/stream?component=postgres&follow=true&tail_lines=${LOG_TAIL_LINES}`
-        : effectiveLogsMode === "build"
-          ? `/api/fugue/apps/${selectedApp.id}/build-logs/stream?${new URLSearchParams(
-              {
-                ...(selectedServiceBuildLogsOperationId
-                  ? { operation_id: selectedServiceBuildLogsOperationId }
-                  : {}),
-                follow: "true",
-                tail_lines: String(LOG_TAIL_LINES),
-              },
-            ).toString()}`
-          : `/api/fugue/apps/${selectedApp.id}/runtime-logs/stream?component=app&follow=true&tail_lines=${LOG_TAIL_LINES}`
-      : null;
   const runtimeLogsUnavailable = readRuntimeLogsUnavailableState(
     selectedServiceApp,
     effectiveLogsMode,
   );
-  const runtimeLogsUnavailableKey = runtimeLogsUnavailable
-    ? `${selectedApp?.id ?? "none"}:${runtimeLogsUnavailable.label}`
-    : null;
   const dataErrorMessage = data.errors.length
     ? `Partial Fugue data: ${data.errors.join(" | ")}.`
     : null;
@@ -1866,43 +2402,6 @@ export function ConsoleProjectGallery({
       ? "Add service"
       : "Create project";
   const createDialogFormId = "fugue-create-project-form";
-  selectedServiceAppRef.current = selectedServiceApp;
-  selectedAppNeedsPendingCommitHintRef.current =
-    selectedAppNeedsPendingCommitHint;
-  const logsDisplayBody = readLogsDisplayBody(
-    logsStatus,
-    logsBody,
-    logsConnectionState,
-  );
-  const canCopyLogs =
-    activeTab === "logs" &&
-    logsStatus === "ready" &&
-    !runtimeLogsUnavailable &&
-    logsBody.trim().length > 0;
-  const logsRefreshStateLabel = runtimeLogsUnavailable
-    ? runtimeLogsUnavailable.label
-    : logsConnectionState === "connecting"
-      ? "Connecting"
-      : logsConnectionState === "reconnecting"
-        ? "Reconnecting"
-        : logsConnectionState === "live"
-          ? "Live"
-          : logsConnectionState === "ended"
-            ? effectiveLogsMode === "build" && buildLogsOperationStatus
-              ? humanizeUiLabel(buildLogsOperationStatus)
-              : "Ended"
-            : logsConnectionState === "error"
-              ? "Error"
-              : "Idle";
-  const logsPanelNote = runtimeLogsUnavailable
-    ? runtimeLogsUnavailable.description
-    : logsConnectionState === "reconnecting"
-      ? `Connection dropped. Reconnecting to ${humanizeUiLabel(effectiveLogsMode).toLowerCase()} output.`
-      : logsConnectionState === "ended"
-        ? `${humanizeUiLabel(effectiveLogsMode)} stream closed. Use Refresh now to reopen the latest snapshot.`
-        : logsConnectionState === "error"
-          ? `Unable to open the ${humanizeUiLabel(effectiveLogsMode).toLowerCase()} stream. Use Refresh now to try again.`
-          : `Live ${humanizeUiLabel(effectiveLogsMode).toLowerCase()} output for ${selectedService?.name ?? "this service"}.`;
 
   function clearCreateDialogUrl() {
     if (typeof window === "undefined") {
@@ -1920,13 +2419,6 @@ export function ConsoleProjectGallery({
     const nextUrl = `${url.pathname}${nextSearch ? `?${nextSearch}` : ""}${url.hash}`;
 
     window.history.replaceState(window.history.state, "", nextUrl);
-  }
-
-  function clearLogsCopyResetTimer() {
-    if (logsCopyResetRef.current !== null) {
-      window.clearTimeout(logsCopyResetRef.current);
-      logsCopyResetRef.current = null;
-    }
   }
 
   function handleCreateBackdropPointerDown(
@@ -1950,25 +2442,55 @@ export function ConsoleProjectGallery({
     closeCreate();
   }
 
-  function scrollLogsToBottom() {
-    const viewport = logsViewportRef.current;
+  const refreshGallery = useEffectEvent(
+    async (options?: { silent?: boolean }) => {
+      if (galleryRefreshPendingRef.current) {
+        return false;
+      }
 
-    if (!viewport) {
-      return;
-    }
+      galleryRefreshPendingRef.current = true;
+      const controller = new AbortController();
+      galleryRefreshAbortRef.current = controller;
 
-    viewport.scrollTop = viewport.scrollHeight;
-  }
+      try {
+        const nextData = await requestJson<ConsoleProjectGalleryData>(
+          "/api/fugue/console/gallery",
+          {
+            cache: "no-store",
+            signal: controller.signal,
+          },
+        );
 
-  function handleLogsViewportScroll() {
-    const viewport = logsViewportRef.current;
+        if (controller.signal.aborted) {
+          return false;
+        }
 
-    if (!viewport) {
-      return;
-    }
+        startTransition(() => {
+          setData(nextData);
+        });
+        return true;
+      } catch (error) {
+        if (controller.signal.aborted) {
+          return false;
+        }
 
-    logsAutoFollowRef.current = isLogViewportNearBottom(viewport);
-  }
+        if (!options?.silent) {
+          setFlash({
+            message: readErrorMessage(error),
+            variant: "error",
+          });
+        }
+
+        return false;
+      } finally {
+        if (galleryRefreshAbortRef.current === controller) {
+          galleryRefreshAbortRef.current = null;
+        }
+
+        galleryRefreshPendingRef.current = false;
+      }
+    },
+  );
 
   useEffect(() => {
     if (!flash) {
@@ -1991,6 +2513,22 @@ export function ConsoleProjectGallery({
       variant: dataErrorVariant,
     });
   }, [dataErrorMessage, dataErrorVariant, showToast]);
+
+  useEffect(() => {
+    galleryRefreshAbortRef.current?.abort();
+    galleryRefreshAbortRef.current = null;
+    galleryRefreshPendingRef.current = false;
+
+    startTransition(() => {
+      setData(initialData);
+    });
+  }, [initialData]);
+
+  useEffect(() => {
+    return () => {
+      galleryRefreshAbortRef.current?.abort();
+    };
+  }, []);
 
   useEffect(() => {
     setImportDraft((current) => ({
@@ -2100,36 +2638,6 @@ export function ConsoleProjectGallery({
   ]);
 
   useEffect(() => {
-    if (activeTab !== "logs") {
-      return;
-    }
-
-    logsAutoFollowRef.current = true;
-
-    const frame = window.requestAnimationFrame(() => {
-      scrollLogsToBottom();
-    });
-
-    return () => {
-      window.cancelAnimationFrame(frame);
-    };
-  }, [activeTab, logsRequestKey, logsRefreshToken]);
-
-  useEffect(() => {
-    if (activeTab !== "logs" || !logsAutoFollowRef.current) {
-      return;
-    }
-
-    const frame = window.requestAnimationFrame(() => {
-      scrollLogsToBottom();
-    });
-
-    return () => {
-      window.cancelAnimationFrame(frame);
-    };
-  }, [activeTab, logsBody]);
-
-  useEffect(() => {
     if (!createOpen) {
       return undefined;
     }
@@ -2141,17 +2649,6 @@ export function ConsoleProjectGallery({
       document.body.style.overflow = previousOverflow;
     };
   }, [createOpen]);
-
-  useEffect(() => {
-    setLogsCopyState("idle");
-    clearLogsCopyResetTimer();
-  }, [activeTab, logsRefreshToken, logsRequestKey]);
-
-  useEffect(() => {
-    return () => {
-      clearLogsCopyResetTimer();
-    };
-  }, []);
 
   useEffect(() => {
     const handleCreateProjectDialogOpen = () => {
@@ -2313,17 +2810,6 @@ export function ConsoleProjectGallery({
   ]);
 
   useEffect(() => {
-    if (selectedApp) {
-      return;
-    }
-
-    setLogsConnectionState("idle");
-    setLogsStatus("idle");
-    setLogsBody("");
-    setBuildLogsOperationStatus(null);
-  }, [selectedApp?.id]);
-
-  useEffect(() => {
     pendingCommitHintRequestPendingRef.current = false;
     setSelectedAppPendingCommitHint(null);
   }, [selectedServiceApp?.id, selectedServiceKey]);
@@ -2407,288 +2893,6 @@ export function ConsoleProjectGallery({
   ]);
 
   useEffect(() => {
-    if (
-      !selectedApp ||
-      activeTab !== "logs" ||
-      !logsStreamInput ||
-      !logsRequestKey
-    ) {
-      return;
-    }
-
-    const streamInput = logsStreamInput;
-
-    if (runtimeLogsUnavailable) {
-      setLogsConnectionState("idle");
-      setLogsStatus("idle");
-      setLogsBody("");
-
-      if (effectiveLogsMode !== "build") {
-        setBuildLogsOperationStatus(null);
-      }
-
-      return;
-    }
-
-    let cancelled = false;
-    let retryDelayMs = LOG_AUTO_REFRESH_INTERVAL_MS;
-    let reconnectTimer: number | null = null;
-    let activeController: AbortController | null = null;
-    let latestCursor = "";
-    let lastRenderedSourceId: string | null = null;
-    let streamEnded = false;
-
-    function clearReconnectTimer() {
-      if (reconnectTimer !== null) {
-        window.clearTimeout(reconnectTimer);
-        reconnectTimer = null;
-      }
-    }
-
-    function scheduleReconnect() {
-      if (cancelled || streamEnded) {
-        return;
-      }
-
-      clearReconnectTimer();
-      setLogsConnectionState("reconnecting");
-      setLogsStatus((current) => (current === "ready" ? "ready" : "loading"));
-      reconnectTimer = window.setTimeout(() => {
-        void openStream("reconnect");
-      }, retryDelayMs);
-    }
-
-    async function openStream(mode: "initial" | "reconnect") {
-      if (cancelled) {
-        return;
-      }
-
-      clearReconnectTimer();
-      activeController?.abort();
-      activeController = new AbortController();
-      streamEnded = false;
-
-      if (mode === "initial") {
-        latestCursor = "";
-        lastRenderedSourceId = null;
-        setLogsBody("");
-        setLogsStatus("loading");
-        setLogsConnectionState("connecting");
-        setBuildLogsOperationStatus(null);
-      } else {
-        setLogsConnectionState("reconnecting");
-        setLogsStatus((current) => (current === "ready" ? "ready" : "loading"));
-      }
-
-      const streamUrl =
-        mode === "reconnect" && latestCursor
-          ? `${streamInput}&cursor=${encodeURIComponent(latestCursor)}`
-          : streamInput;
-
-      try {
-        const response = await fetch(streamUrl, {
-          cache: "no-store",
-          headers: {
-            Accept: "text/event-stream",
-          },
-          signal: activeController.signal,
-        });
-
-        if (!response.ok) {
-          throw new LogStreamRequestError(
-            response.status,
-            await readResponseError(response),
-          );
-        }
-
-        if (!response.body) {
-          throw new Error("Streaming response body is unavailable.");
-        }
-
-        await consumeSSEStream(response, {
-          onRetry(milliseconds) {
-            if (milliseconds > 0) {
-              retryDelayMs = milliseconds;
-            }
-          },
-          onEvent(event) {
-            if (event.id) {
-              latestCursor = event.id;
-            }
-
-            switch (event.event) {
-              case "ready":
-                setLogsConnectionState("live");
-                setLogsStatus("ready");
-                return;
-              case "status": {
-                const status = parseBuildLogStreamStatus(event);
-
-                if (!status) {
-                  return;
-                }
-
-                if (status.cursor) {
-                  latestCursor = status.cursor;
-                }
-
-                setLogsConnectionState("live");
-                setLogsStatus("ready");
-                setBuildLogsOperationStatus(status.operationStatus ?? null);
-
-                const app = selectedServiceAppRef.current;
-                setSelectedAppPendingCommitHint(
-                  app && selectedAppNeedsPendingCommitHintRef.current
-                    ? inferPendingCommitHint(
-                        app,
-                        buildLogsResponseFromStatus(status),
-                      )
-                    : null,
-                );
-                return;
-              }
-              case "state": {
-                const state = parseRuntimeLogStreamState(event);
-
-                if (!state) {
-                  return;
-                }
-
-                if (state.cursor) {
-                  latestCursor = state.cursor;
-                }
-
-                setLogsConnectionState("live");
-                setLogsStatus("ready");
-                return;
-              }
-              case "log": {
-                const logLine = parseLogStreamLogLine(event);
-
-                if (!logLine) {
-                  return;
-                }
-
-                if (logLine.cursor) {
-                  latestCursor = logLine.cursor;
-                }
-
-                setLogsConnectionState("live");
-                setLogsStatus("ready");
-                setLogsBody((current) => {
-                  const next = appendLogBodyLine(
-                    current,
-                    logLine.line,
-                    logLine.source,
-                    lastRenderedSourceId,
-                  );
-                  lastRenderedSourceId = next.sourceId;
-                  return next.body;
-                });
-                return;
-              }
-              case "warning": {
-                const warning = parseLogStreamWarning(event);
-
-                if (!warning) {
-                  return;
-                }
-
-                if (warning.cursor) {
-                  latestCursor = warning.cursor;
-                }
-
-                setLogsConnectionState("live");
-                setLogsStatus("ready");
-                setLogsBody((current) => {
-                  const next = appendLogBodyWarning(
-                    current,
-                    warning,
-                    lastRenderedSourceId,
-                  );
-                  lastRenderedSourceId = next.sourceId;
-                  return next.body;
-                });
-                return;
-              }
-              case "heartbeat":
-                setLogsConnectionState("live");
-                setLogsStatus("ready");
-                return;
-              case "end": {
-                const endEvent = parseLogStreamEnd(event);
-
-                if (endEvent?.cursor) {
-                  latestCursor = endEvent.cursor;
-                }
-
-                if (endEvent?.operationStatus) {
-                  setBuildLogsOperationStatus(endEvent.operationStatus);
-                }
-
-                streamEnded = true;
-                setLogsConnectionState("ended");
-                setLogsStatus("ready");
-                return;
-              }
-              default:
-                return;
-            }
-          },
-        });
-
-        if (cancelled || activeController.signal.aborted || streamEnded) {
-          return;
-        }
-
-        scheduleReconnect();
-      } catch (error) {
-        if (cancelled || activeController?.signal.aborted) {
-          return;
-        }
-
-        if (!isRetryableLogStreamError(error)) {
-          if (effectiveLogsMode === "build") {
-            const app = selectedServiceAppRef.current;
-            setSelectedAppPendingCommitHint(
-              app && selectedAppNeedsPendingCommitHintRef.current
-                ? inferPendingCommitHint(app, null)
-                : null,
-            );
-          }
-
-          setLogsConnectionState("error");
-          setLogsStatus("error");
-          setFlash({
-            message: readErrorMessage(error),
-            variant: "error",
-          });
-          return;
-        }
-
-        scheduleReconnect();
-      }
-    }
-
-    void openStream("initial");
-
-    return () => {
-      cancelled = true;
-      clearReconnectTimer();
-      activeController?.abort();
-    };
-  }, [
-    activeTab,
-    effectiveLogsMode,
-    logsRefreshToken,
-    logsRequestKey,
-    logsStreamInput,
-    selectedApp?.id,
-    selectedServiceApp?.phase,
-    runtimeLogsUnavailableKey,
-  ]);
-
-  useEffect(() => {
     if (!projectRefreshIntervalMs) {
       return undefined;
     }
@@ -2708,9 +2912,7 @@ export function ConsoleProjectGallery({
         return;
       }
 
-      startTransition(() => {
-        router.refresh();
-      });
+      void refreshGallery({ silent: true });
     }, projectRefreshIntervalMs);
 
     return () => {
@@ -2721,7 +2923,7 @@ export function ConsoleProjectGallery({
     hasPassiveSyncProjects,
     projectRefreshIntervalMs,
     refreshWindowUntil,
-    router,
+    refreshGallery,
   ]);
 
   function resetCreateForm(nextProjectName: string) {
@@ -2831,9 +3033,7 @@ export function ConsoleProjectGallery({
       });
       resetCreateForm(buildSuggestedProjectName(data.projects.length + 1));
       clearCreateDialogUrl();
-      startTransition(() => {
-        router.refresh();
-      });
+      void refreshGallery({ silent: true });
     } catch (error) {
       setFlash({
         message: readErrorMessage(error),
@@ -2898,6 +3098,18 @@ export function ConsoleProjectGallery({
       const confirmed = await confirm({
         confirmLabel: "Delete service",
         description: `${selectedServiceApp.name} will be queued for deletion from this project.`,
+        textConfirmation: {
+          hint: (
+            <>
+              Type{" "}
+              <span className="fg-confirm-dialog__match-text">{selectedServiceApp.name}</span>{" "}
+              exactly to enable deletion.
+            </>
+          ),
+          label: "Service name",
+          matchText: selectedServiceApp.name,
+          mismatchMessage: "Enter the service name exactly as shown.",
+        },
         title: "Delete service?",
       });
 
@@ -2950,16 +3162,14 @@ export function ConsoleProjectGallery({
       if (nextAction === "redeploy") {
         setActiveTab("logs");
         setLogsMode("build");
-        setLogsRefreshToken((value) => value + 1);
+        setLogsResetSignal((value) => value + 1);
       }
 
       setFlash({
         message: successMessage,
         variant: "success",
       });
-      startTransition(() => {
-        router.refresh();
-      });
+      void refreshGallery({ silent: true });
     } catch (error) {
       setFlash({
         message: readErrorMessage(error),
@@ -3001,9 +3211,7 @@ export function ConsoleProjectGallery({
         message: "Project deleted.",
         variant: "success",
       });
-      startTransition(() => {
-        router.refresh();
-      });
+      void refreshGallery({ silent: true });
     } catch (error) {
       setFlash({
         message: readErrorMessage(error),
@@ -3235,52 +3443,6 @@ export function ConsoleProjectGallery({
       });
     } finally {
       setEnvSaving(false);
-    }
-  }
-
-  function refreshLogs() {
-    setFlash(null);
-    setLogsRefreshToken((value) => value + 1);
-  }
-
-  async function handleCopyLogs() {
-    if (!canCopyLogs || logsCopyState === "pending") {
-      return;
-    }
-
-    clearLogsCopyResetTimer();
-    setLogsCopyState("pending");
-
-    try {
-      const plainLogsBody = readPlainLogBody(logsBody);
-
-      if (!plainLogsBody.trim()) {
-        setLogsCopyState("idle");
-        return;
-      }
-
-      const copied = await copyText(plainLogsBody);
-
-      if (!copied) {
-        setLogsCopyState("idle");
-        showToast({
-          message: `${humanizeUiLabel(effectiveLogsMode)} logs are ready, but clipboard access failed.`,
-          variant: "info",
-        });
-        return;
-      }
-
-      setLogsCopyState("copied");
-      logsCopyResetRef.current = window.setTimeout(() => {
-        setLogsCopyState("idle");
-        logsCopyResetRef.current = null;
-      }, 1400);
-    } catch (error) {
-      setLogsCopyState("idle");
-      showToast({
-        message: readErrorMessage(error),
-        variant: "error",
-      });
     }
   }
 
@@ -3980,71 +4142,22 @@ export function ConsoleProjectGallery({
                 ) : null}
 
                 {activeTab === "logs" ? (
-                  <div className="fg-workbench-section">
-                    <div className="fg-workbench-section__head">
-                      <div className="fg-workbench-section__copy">
-                        <p className="fg-label fg-panel__eyebrow">Logs</p>
-                        <p className="fg-console-note">{logsPanelNote}</p>
-                      </div>
-
-                      <div className="fg-workbench-section__actions">
-                        {selectedService.kind === "app" ? (
-                          <SegmentedControl
-                            ariaLabel="Log views"
-                            onChange={(nextMode) => {
-                              setLogsMode(nextMode);
-                            }}
-                            options={selectedServiceLogViewOptions}
-                            value={effectiveLogsMode}
-                          />
-                        ) : null}
-
-                        <Button
-                          disabled={!canCopyLogs}
-                          loading={logsCopyState === "pending"}
-                          loadingLabel="Copying…"
-                          onClick={() => {
-                            void handleCopyLogs();
-                          }}
-                          size="compact"
-                          type="button"
-                          variant="secondary"
-                        >
-                          {logsCopyState === "copied" ? "Copied" : "Copy logs"}
-                        </Button>
-                        <Button
-                          onClick={refreshLogs}
-                          size="compact"
-                          type="button"
-                          variant="secondary"
-                        >
-                          Refresh now
-                        </Button>
-                      </div>
-                    </div>
-
-                    <ProofShell>
-                      <ProofShellRibbon>
-                        <span>{logsRefreshStateLabel}</span>
-                      </ProofShellRibbon>
-                      {runtimeLogsUnavailable ? (
-                        <ProofShellEmpty
-                          description={runtimeLogsUnavailable.description}
-                          title={runtimeLogsUnavailable.title}
-                        />
-                      ) : (
-                        <pre
-                          className="fg-log-output__viewport"
-                          onScroll={handleLogsViewportScroll}
-                          ref={logsViewportRef}
-                        >
-                          <code className="fg-log-output">
-                            {renderAnsiLogBody(logsDisplayBody)}
-                          </code>
-                        </pre>
-                      )}
-                    </ProofShell>
-                  </div>
+                  <ConsoleLogsPanel
+                    effectiveLogsMode={effectiveLogsMode}
+                    externalRefreshToken={logsResetSignal}
+                    onLogsModeChange={setLogsMode}
+                    onPendingCommitHintChange={setSelectedAppPendingCommitHint}
+                    runtimeLogsUnavailable={runtimeLogsUnavailable}
+                    selectedApp={selectedApp}
+                    selectedAppNeedsPendingCommitHint={
+                      selectedAppNeedsPendingCommitHint
+                    }
+                    selectedService={selectedService}
+                    selectedServiceApp={selectedServiceApp}
+                    selectedServiceLogViewOptions={
+                      selectedServiceLogViewOptions
+                    }
+                  />
                 ) : null}
 
                 {selectedService.kind === "app" && activeTab === "settings" ? (

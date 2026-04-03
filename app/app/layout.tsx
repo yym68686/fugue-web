@@ -1,27 +1,54 @@
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 
-import { ensureAppUserRecord } from "@/lib/app-users/store";
+import { ConfirmDialogProvider } from "@/components/ui/confirm-dialog";
 import { ConsoleShell } from "@/components/console/console-shell";
-import { getCurrentSession } from "@/lib/auth/session";
+import { ToastProvider } from "@/components/ui/toast";
+import {
+  ensureRequestAppUserRecord,
+  getRequestSession,
+  getRequestWorkspaceAccess,
+} from "@/lib/server/request-context";
+
+import "../console.css";
 
 export default async function AppLayout({
   children,
 }: {
   children: ReactNode;
 }) {
-  const session = await getCurrentSession();
+  const session = await getRequestSession();
 
   if (!session) {
     redirect("/auth/sign-in?error=auth-required");
   }
 
   try {
-    const user = await ensureAppUserRecord(session);
+    const [user, workspace] = await Promise.all([
+      ensureRequestAppUserRecord(),
+      getRequestWorkspaceAccess(),
+    ]);
+
+    if (!user) {
+      redirect("/auth/sign-in?error=auth-required");
+    }
+
+    const hasProjects = Boolean(
+      workspace?.firstAppId ?? workspace?.defaultProjectId,
+    );
+
     return (
-      <ConsoleShell isAdmin={user.isAdmin} session={session}>
-        {children}
-      </ConsoleShell>
+      <ToastProvider>
+        <ConfirmDialogProvider>
+          <ConsoleShell
+            hasProjects={hasProjects}
+            isAdmin={user.isAdmin}
+            session={session}
+          >
+            {children}
+          </ConsoleShell>
+        </ConfirmDialogProvider>
+      </ToastProvider>
     );
   } catch (error) {
     if (error instanceof Error && error.message.includes("blocked")) {

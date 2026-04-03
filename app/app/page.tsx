@@ -26,7 +26,7 @@ async function AppConsolePageContent({
 
   return (
     <ConsoleProjectGallery
-      data={data}
+      initialData={data}
       defaultCreateOpen={defaultCreateOpen}
     />
   );

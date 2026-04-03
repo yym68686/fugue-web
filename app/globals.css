@@ -1,7 +1,4 @@
 @import "../design-system/index.css";
-@import "./landing.css";
-@import "./console.css";
-@import "./deploy.css";
 
 *,
 *::before,
@@ -530,6 +527,26 @@ canvas {
 
 .fg-confirm-dialog__copy {
   overflow-wrap: anywhere;
+}
+
+.fg-confirm-dialog__field {
+  margin-top: 0.45rem;
+}
+
+.fg-confirm-dialog__field .fg-input {
+  font-family: var(--fugue-font-mono);
+  font-size: 0.9rem;
+}
+
+.fg-confirm-dialog__field .fg-field-hint,
+.fg-confirm-dialog__field .fg-field-error {
+  overflow-wrap: anywhere;
+}
+
+.fg-confirm-dialog__match-text {
+  color: var(--fugue-text-primary);
+  font-family: var(--fugue-font-mono);
+  letter-spacing: 0.04em;
 }
 
 .fg-confirm-dialog__actions {

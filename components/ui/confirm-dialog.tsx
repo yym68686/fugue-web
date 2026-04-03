@@ -20,12 +20,19 @@ import { Panel, PanelCopy, PanelSection, PanelTitle } from "@/components/ui/pane
 import { cx } from "@/lib/ui/cx";
 
 type ConfirmDialogVariant = "danger" | "primary";
+type ConfirmDialogTextConfirmation = {
+  hint?: ReactNode;
+  label?: string;
+  matchText: string;
+  mismatchMessage?: ReactNode;
+};
 
 export type ConfirmDialogOptions = {
   cancelLabel?: string;
   confirmLabel?: string;
   description?: ReactNode;
   eyebrow?: string;
+  textConfirmation?: ConfirmDialogTextConfirmation;
   title: ReactNode;
   variant?: ConfirmDialogVariant;
 };
@@ -37,6 +44,7 @@ type ConfirmDialogRecord = {
   eyebrow: string;
   id: string;
   returnFocus: HTMLElement | null;
+  textConfirmation?: ConfirmDialogTextConfirmation;
   title: ReactNode;
   variant: ConfirmDialogVariant;
   resolve: (value: boolean) => void;
@@ -60,6 +68,10 @@ function createConfirmDialogId() {
   return `confirm-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function normalizeTextConfirmationValue(value: string) {
+  return value.trim();
+}
+
 function normalizeRecord(
   options: ConfirmDialogOptions,
   returnFocus: HTMLElement | null,
@@ -75,6 +87,7 @@ function normalizeRecord(
     id: createConfirmDialogId(),
     resolve,
     returnFocus,
+    textConfirmation: options.textConfirmation,
     title: options.title,
     variant,
   };
@@ -97,14 +110,50 @@ function readFocusableElements(container: HTMLElement | null) {
 export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
   const [isMounted, setIsMounted] = useState(false);
   const [queue, setQueue] = useState<ConfirmDialogRecord[]>([]);
+  const [textConfirmationInteracted, setTextConfirmationInteracted] = useState(false);
+  const [textConfirmationValue, setTextConfirmationValue] = useState("");
   const queueRef = useRef<ConfirmDialogRecord[]>([]);
   const previousRecordRef = useRef<ConfirmDialogRecord | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const textConfirmationInputRef = useRef<HTMLInputElement | null>(null);
   const backdropPressStartedRef = useRef(false);
   const activeRecord = queue[0] ?? null;
+  const activeTextConfirmation = activeRecord?.textConfirmation ?? null;
   const titleId = activeRecord ? `fg-confirm-dialog-title-${activeRecord.id}` : undefined;
   const descriptionId =
     activeRecord?.description ? `fg-confirm-dialog-description-${activeRecord.id}` : undefined;
+  const textConfirmationFieldId =
+    activeRecord && activeTextConfirmation
+      ? `fg-confirm-dialog-text-confirmation-${activeRecord.id}`
+      : undefined;
+  const textConfirmationHintId =
+    activeRecord && activeTextConfirmation
+      ? `fg-confirm-dialog-text-confirmation-hint-${activeRecord.id}`
+      : undefined;
+  const textConfirmationErrorId =
+    activeRecord && activeTextConfirmation
+      ? `fg-confirm-dialog-text-confirmation-error-${activeRecord.id}`
+      : undefined;
+  const normalizedTextConfirmationValue = normalizeTextConfirmationValue(textConfirmationValue);
+  const textConfirmationMatches =
+    !activeTextConfirmation ||
+    normalizedTextConfirmationValue === activeTextConfirmation.matchText;
+  const textConfirmationError =
+    activeTextConfirmation &&
+    textConfirmationInteracted &&
+    normalizedTextConfirmationValue.length > 0 &&
+    !textConfirmationMatches
+      ? (activeTextConfirmation.mismatchMessage ??
+        `Enter ${activeTextConfirmation.matchText} exactly to continue.`)
+      : null;
+  const textConfirmationHint =
+    activeTextConfirmation?.hint ??
+    (activeTextConfirmation
+      ? `Type ${activeTextConfirmation.matchText} exactly to enable ${activeRecord?.confirmLabel.toLowerCase() ?? "continue"}.`
+      : null);
+  const textConfirmationDescriptionId = textConfirmationError
+    ? textConfirmationErrorId
+    : textConfirmationHintId;
 
   useEffect(() => {
     setIsMounted(true);
@@ -122,6 +171,11 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
       queueRef.current = [];
     };
   }, []);
+
+  useEffect(() => {
+    setTextConfirmationInteracted(false);
+    setTextConfirmationValue("");
+  }, [activeRecord?.id]);
 
   useEffect(() => {
     if (!activeRecord) {
@@ -207,6 +261,16 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
     }),
     [confirm],
   );
+
+  function handleConfirm() {
+    if (activeTextConfirmation && !textConfirmationMatches) {
+      setTextConfirmationInteracted(true);
+      textConfirmationInputRef.current?.focus();
+      return;
+    }
+
+    dismissActiveRecord(true);
+  }
 
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (!activeRecord) {
@@ -312,6 +376,65 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
                         {activeRecord.description}
                       </PanelCopy>
                     ) : null}
+                    {activeTextConfirmation && textConfirmationFieldId ? (
+                      <label
+                        className="fg-field-stack fg-confirm-dialog__field"
+                        htmlFor={textConfirmationFieldId}
+                      >
+                        <span className="fg-field-label">
+                          <span>{activeTextConfirmation.label ?? "Type the name to confirm"}</span>
+                        </span>
+                        <span
+                          className={cx(
+                            "fg-field-control",
+                            Boolean(textConfirmationError) && "is-invalid",
+                          )}
+                        >
+                          <input
+                            aria-describedby={textConfirmationDescriptionId}
+                            aria-invalid={Boolean(textConfirmationError) || undefined}
+                            autoCapitalize="none"
+                            autoComplete="off"
+                            autoCorrect="off"
+                            className="fg-input"
+                            id={textConfirmationFieldId}
+                            inputMode="text"
+                            name="confirmation"
+                            onBlur={(event) => {
+                              if (normalizeTextConfirmationValue(event.target.value).length > 0) {
+                                setTextConfirmationInteracted(true);
+                              }
+                            }}
+                            onChange={(event) => setTextConfirmationValue(event.target.value)}
+                            onKeyDown={(event) => {
+                              if (event.key !== "Enter") {
+                                return;
+                              }
+
+                              event.preventDefault();
+                              handleConfirm();
+                            }}
+                            ref={textConfirmationInputRef}
+                            spellCheck={false}
+                            type="text"
+                            value={textConfirmationValue}
+                          />
+                        </span>
+                        {textConfirmationError ? (
+                          <span
+                            aria-live="polite"
+                            className="fg-field-error"
+                            id={textConfirmationErrorId}
+                          >
+                            {textConfirmationError}
+                          </span>
+                        ) : textConfirmationHint ? (
+                          <span className="fg-field-hint" id={textConfirmationHintId}>
+                            {textConfirmationHint}
+                          </span>
+                        ) : null}
+                      </label>
+                    ) : null}
                   </PanelSection>
 
                   <PanelSection className="fg-confirm-dialog__actions">
@@ -325,7 +448,8 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
                     </Button>
                     <Button
                       data-fg-confirm-dialog-confirm
-                      onClick={() => dismissActiveRecord(true)}
+                      disabled={Boolean(activeTextConfirmation) && !textConfirmationMatches}
+                      onClick={handleConfirm}
                       type="button"
                       variant={activeRecord.variant === "danger" ? "danger" : "primary"}
                     >

@@ -1170,7 +1170,6 @@ export function AdminUserManager({
 
                           <SteppedSliderField
                             disabled={quotaBusy || quotaBlocked}
-                            hint="Retained images from older service revisions still count toward committed storage until they are cleaned up."
                             id={`quota-storage-${editingQuotaUser.email}`}
                             label="Storage limit"
                             max={STORAGE_SLIDER_MAX_GIB}

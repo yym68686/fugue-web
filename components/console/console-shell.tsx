@@ -5,29 +5,18 @@ import { ConsoleNav } from "@/components/console/console-nav";
 import { ConsoleProfileMenu } from "@/components/console/console-profile-menu";
 import { ConsolePrimaryAction } from "@/components/console/console-primary-action";
 import type { SessionUser } from "@/lib/auth/session";
-import { getWorkspaceAccessByEmail } from "@/lib/workspace/store";
 
-export async function ConsoleShell({
+export function ConsoleShell({
   children,
+  hasProjects = false,
   isAdmin = false,
   session,
 }: {
   children: ReactNode;
+  hasProjects?: boolean;
   isAdmin?: boolean;
   session: SessionUser;
 }) {
-  let hasProjects = false;
-
-  try {
-    const workspace = await getWorkspaceAccessByEmail(session.email);
-
-    if (workspace) {
-      hasProjects = Boolean(workspace.firstAppId ?? workspace.defaultProjectId);
-    }
-  } catch {
-    hasProjects = false;
-  }
-
   return (
     <main className="fg-console">
       <div className="fg-console-shell fg-console-shell--stacked">
