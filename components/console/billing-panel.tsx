@@ -45,7 +45,7 @@ const MEMORY_SLIDER_MAX_MEBIBYTES = MEMORY_SLIDER_MAX_GIB * MEBIBYTES_PER_GIB;
 const DEFAULT_FREE_TIER_CAP: FugueResourceSpec = {
   cpuMillicores: 500,
   memoryMebibytes: 512,
-  storageGibibytes: 0,
+  storageGibibytes: 5,
 };
 
 function readErrorMessage(error: unknown) {
