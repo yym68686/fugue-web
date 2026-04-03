@@ -1049,85 +1049,15 @@ function buildAdminUserServiceUsageView(
   };
 }
 
-function readPositiveNumber(value?: number | null) {
-  return value !== null && value !== undefined && Number.isFinite(value) && value > 0
-    ? value
-    : null;
-}
-
-function readAppReplicaCount(app: FugueApp) {
-  return readPositiveNumber(app.status.currentReplicas) ?? readPositiveNumber(app.spec.replicas);
-}
-
-function readUsagePercent(used?: number | null, total?: number | null) {
-  if (
-    used === null ||
-    used === undefined ||
-    !Number.isFinite(used) ||
-    total === null ||
-    total === undefined ||
-    !Number.isFinite(total) ||
-    total <= 0
-  ) {
-    return null;
-  }
-
-  return Math.max(0, (used / total) * 100);
-}
-
-function readUsageTone(percent: number | null, hasUsage: boolean): ConsoleTone {
-  if (percent === null) {
-    return hasUsage ? "info" : "neutral";
-  }
-
-  if (percent >= 90) {
-    return "danger";
-  }
-
-  if (percent >= 75) {
-    return "warning";
-  }
-
-  return "info";
-}
-
-function buildUsageContextLabel(percent: number | null, limitLabel: string | null) {
-  if (percent !== null && limitLabel) {
-    return `${formatPercentLabel(percent)} of ${limitLabel}`;
-  }
-
-  if (limitLabel) {
-    return `Limit ${limitLabel}`;
-  }
-
-  return null;
-}
-
 function buildResourceTitle(label: string, primaryLabel: string, secondaryLabel?: string | null) {
   return secondaryLabel ? `${label} / ${primaryLabel} / ${secondaryLabel}` : `${label} / ${primaryLabel}`;
 }
 
 function buildAdminAppResourceUsage(app: FugueApp): ConsoleCompactResourceItemView[] {
   const usage = app.currentResourceUsage;
-  const replicas = readAppReplicaCount(app);
-  const cpuLimit = app.spec.resources && replicas ? app.spec.resources.cpuMillicores * replicas : null;
-  const memoryLimitMebibytes =
-    app.spec.resources && replicas ? app.spec.resources.memoryMebibytes * replicas : null;
-  const memoryLimitBytes =
-    memoryLimitMebibytes !== null ? memoryLimitMebibytes * 1024 * 1024 : null;
-  const cpuPercent = readUsagePercent(usage?.cpuMillicores, cpuLimit);
-  const memoryPercent = readUsagePercent(usage?.memoryBytes, memoryLimitBytes);
   const cpuPrimaryLabel = formatCPUCapacityLabel(usage?.cpuMillicores);
   const memoryPrimaryLabel = formatBytesLabel(usage?.memoryBytes);
   const diskPrimaryLabel = formatBytesLabel(usage?.ephemeralStorageBytes);
-  const cpuSecondaryLabel = buildUsageContextLabel(
-    cpuPercent,
-    cpuLimit !== null ? formatBillingCPU(cpuLimit) : null,
-  );
-  const memorySecondaryLabel = buildUsageContextLabel(
-    memoryPercent,
-    memoryLimitMebibytes !== null ? formatBillingMemory(memoryLimitMebibytes) : null,
-  );
   const hasCpuUsage = usage?.cpuMillicores !== null && usage?.cpuMillicores !== undefined;
   const hasMemoryUsage = usage?.memoryBytes !== null && usage?.memoryBytes !== undefined;
   const hasDiskUsage =
@@ -1137,20 +1067,24 @@ function buildAdminAppResourceUsage(app: FugueApp): ConsoleCompactResourceItemVi
     {
       id: "cpu",
       label: "CPU",
-      meterValue: cpuPercent,
+      meterValue: null,
       primaryLabel: cpuPrimaryLabel,
-      secondaryLabel: cpuSecondaryLabel,
-      title: buildResourceTitle("CPU", cpuPrimaryLabel, cpuSecondaryLabel),
-      tone: readUsageTone(cpuPercent, hasCpuUsage),
+      secondaryLabel: null,
+      title: buildResourceTitle("CPU", cpuPrimaryLabel, hasCpuUsage ? "Current live sample" : null),
+      tone: hasCpuUsage ? "info" : "neutral",
     },
     {
       id: "memory",
       label: "Memory",
-      meterValue: memoryPercent,
+      meterValue: null,
       primaryLabel: memoryPrimaryLabel,
-      secondaryLabel: memorySecondaryLabel,
-      title: buildResourceTitle("Memory", memoryPrimaryLabel, memorySecondaryLabel),
-      tone: readUsageTone(memoryPercent, hasMemoryUsage),
+      secondaryLabel: null,
+      title: buildResourceTitle(
+        "Memory",
+        memoryPrimaryLabel,
+        hasMemoryUsage ? "Current live sample" : null,
+      ),
+      tone: hasMemoryUsage ? "info" : "neutral",
     },
     {
       id: "storage",
