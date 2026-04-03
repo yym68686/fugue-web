@@ -6,9 +6,13 @@ import type { SessionUser } from "@/lib/auth/session";
 import { sanitizeDisplayName } from "@/lib/auth/validation";
 import {
   enableFugueApiKey,
+  getFugueApps,
   getFugueApiKeys,
+  getFugueProjects,
   getFugueTenants,
   type FugueApiKey,
+  type FugueApp,
+  type FugueProject,
   type FugueTenant,
   createFugueApiKey,
   createFugueTenant,
@@ -62,6 +66,101 @@ function parseTimestamp(value?: string | null) {
 
   const parsed = Date.parse(value);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function compareByTimestampAsc<
+  T extends {
+    createdAt?: string | null;
+    updatedAt?: string | null;
+  },
+>(left: T, right: T) {
+  return (
+    parseTimestamp(left.createdAt ?? left.updatedAt) -
+    parseTimestamp(right.createdAt ?? right.updatedAt)
+  );
+}
+
+function resolveWorkspaceDefaultProject(
+  projects: FugueProject[],
+  defaultProjectId: string | null,
+) {
+  if (!projects.length) {
+    return null;
+  }
+
+  if (defaultProjectId) {
+    return projects.find((project) => project.id === defaultProjectId) ?? null;
+  }
+
+  return [...projects].sort(compareByTimestampAsc)[0] ?? null;
+}
+
+function resolveWorkspaceFirstApp(
+  apps: FugueApp[],
+  tenantId: string,
+) {
+  const tenantApps = apps.filter((app) => app.tenantId === tenantId);
+  const appsWithoutTenant = apps.filter((app) => !app.tenantId);
+  const candidates = tenantApps.length > 0 ? tenantApps : appsWithoutTenant;
+
+  return [...candidates].sort(compareByTimestampAsc)[0] ?? null;
+}
+
+async function backfillWorkspaceResourcePointers(workspace: WorkspaceAccess) {
+  const needsProjectBackfill =
+    !workspace.defaultProjectId || !workspace.defaultProjectName;
+  const needsAppBackfill = !workspace.firstAppId;
+
+  if (!needsProjectBackfill && !needsAppBackfill) {
+    return workspace;
+  }
+
+  try {
+    const [projects, apps] = await Promise.all([
+      needsProjectBackfill
+        ? getFugueProjects(workspace.adminKeySecret, workspace.tenantId)
+        : Promise.resolve([] as FugueProject[]),
+      needsAppBackfill
+        ? getFugueApps(workspace.adminKeySecret, {
+            includeLiveStatus: false,
+            includeResourceUsage: false,
+          })
+        : Promise.resolve([] as FugueApp[]),
+    ]);
+    const defaultProject = needsProjectBackfill
+      ? resolveWorkspaceDefaultProject(projects, workspace.defaultProjectId)
+      : null;
+    const firstApp = needsAppBackfill
+      ? resolveWorkspaceFirstApp(apps, workspace.tenantId)
+      : null;
+
+    if (!defaultProject && !firstApp) {
+      return workspace;
+    }
+
+    return {
+      ...workspace,
+      ...(defaultProject
+        ? {
+            defaultProjectId: defaultProject.id,
+            defaultProjectName: defaultProject.name,
+          }
+        : {}),
+      ...(firstApp
+        ? {
+            firstAppId: firstApp.id,
+          }
+        : {}),
+    } satisfies WorkspaceAccess;
+  } catch (error) {
+    console.warn("Workspace resource pointer backfill failed.", {
+      email: workspace.email,
+      tenantId: workspace.tenantId,
+      reason: error instanceof Error ? error.message : String(error),
+    });
+
+    return workspace;
+  }
 }
 
 function findWorkspaceTenantForSession(
@@ -276,7 +375,7 @@ export async function ensureWorkspaceAccess(session: SessionUser) {
     throw new Error("Workspace admin key secret could not be recovered.");
   }
 
-  const nextWorkspace = {
+  const nextWorkspace = await backfillWorkspaceResourcePointers({
     adminKeyId: reconciled.apiKey.id,
     adminKeyLabel: reconciled.apiKey.label,
     adminKeyPrefix: reconciled.apiKey.prefix,
@@ -290,7 +389,7 @@ export async function ensureWorkspaceAccess(session: SessionUser) {
     tenantId: tenant.id,
     tenantName: tenant.name,
     updatedAt: new Date().toISOString(),
-  } satisfies WorkspaceAccess;
+  } satisfies WorkspaceAccess);
 
   await saveWorkspaceAccess(nextWorkspace);
   const createdWorkspace = await getWorkspaceAccessByEmail(session.email);

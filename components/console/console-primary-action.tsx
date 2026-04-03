@@ -9,10 +9,6 @@ export function ConsolePrimaryAction({ hasProjects }: { hasProjects: boolean }) 
   const className = "fg-console-topbar__primary-action";
   const pathname = usePathname();
 
-  if (!hasProjects) {
-    return null;
-  }
-
   if (pathname === "/app") {
     return (
       <Button
@@ -25,6 +21,10 @@ export function ConsolePrimaryAction({ hasProjects }: { hasProjects: boolean }) 
         Create project
       </Button>
     );
+  }
+
+  if (!hasProjects) {
+    return null;
   }
 
   return (

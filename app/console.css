@@ -3620,10 +3620,17 @@
 
 .fg-project-toolbar__group--tabs {
   justify-items: start;
+  min-inline-size: 0;
+  max-inline-size: min(
+    100%,
+    calc(100vw - 1.2rem - (var(--fg-project-workbench-panel-padding-inline) * 2))
+  );
 }
 
 .fg-project-toolbar__panels-switch {
   justify-self: start;
+  min-inline-size: 0;
+  max-inline-size: 100%;
   --fg-control-strip-padding-block: var(--fugue-nav-pill-padding-block);
   --fg-control-strip-padding-inline: var(--fugue-nav-pill-padding-inline);
   --fg-control-strip-border: var(--fugue-nav-pill-border);
@@ -3634,6 +3641,11 @@
   --fugue-segmented-item-min-height: var(--fugue-nav-pill-item-min-height);
   --fugue-segmented-item-padding-inline: var(--fugue-nav-pill-item-padding-inline);
   --fugue-segmented-item-font-size: var(--fugue-nav-pill-item-font-size);
+}
+
+.fg-project-toolbar__panels-switch > .fg-control-strip__viewport {
+  inline-size: 100%;
+  max-inline-size: 100%;
 }
 
 .fg-project-toolbar__label {
@@ -6055,7 +6067,13 @@
   }
 
   .fg-project-toolbar__group--tabs {
+    inline-size: 100%;
     justify-items: stretch;
+  }
+
+  .fg-project-toolbar__panels-switch {
+    inline-size: 100%;
+    justify-self: stretch;
   }
 
   .fg-settings-sync {
