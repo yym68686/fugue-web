@@ -318,7 +318,7 @@ function readTransferPreparationNote(app: ConsoleGalleryAppView) {
   const hasWorkspace = Boolean(normalizeText(app.workspaceMountPath));
 
   if (hasWorkspace && app.hasPostgresService) {
-    return "Workspace & database sync run before the move completes.";
+    return "Workspace sync runs before the move completes. Database stays where it is.";
   }
 
   if (hasWorkspace) {
@@ -326,7 +326,7 @@ function readTransferPreparationNote(app: ConsoleGalleryAppView) {
   }
 
   if (app.hasPostgresService) {
-    return "Database sync runs before the move completes.";
+    return "Database stays where it is.";
   }
 
   return null;
