@@ -142,6 +142,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/projects/image-usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Project Image Usage */
+        get: operations["listProjectImageUsage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/projects/{id}": {
         parameters: {
             query?: never;
@@ -692,6 +709,57 @@ export interface paths {
         post?: never;
         /** Delete App */
         delete: operations["deleteApp"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/apps/{id}/images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get App Images */
+        get: operations["getAppImages"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/apps/{id}/images/redeploy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Redeploy App Image */
+        post: operations["redeployAppImage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/apps/{id}/images/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Delete App Image */
+        post: operations["deleteAppImage"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1892,6 +1960,105 @@ export interface components {
         ProjectResponse: {
             project: components["schemas"]["Project"];
         };
+        AppImageSummary: {
+            /** Format: int32 */
+            version_count: number;
+            /** Format: int32 */
+            current_version_count: number;
+            /** Format: int32 */
+            stale_version_count: number;
+            /** Format: int64 */
+            total_size_bytes: number;
+            /** Format: int64 */
+            current_size_bytes: number;
+            /** Format: int64 */
+            stale_size_bytes: number;
+            /** Format: int64 */
+            reclaimable_size_bytes: number;
+        };
+        AppImageVersion: {
+            image_ref: string;
+            runtime_image_ref?: string;
+            digest?: string;
+            status: string;
+            current: boolean;
+            /** Format: int64 */
+            size_bytes?: number;
+            /** Format: int64 */
+            reclaimable_size_bytes?: number;
+            delete_supported: boolean;
+            redeploy_supported: boolean;
+            /** Format: date-time */
+            last_deployed_at?: string;
+            source?: components["schemas"]["AppSource"];
+        };
+        AppImageActionRequest: {
+            image_ref: string;
+        };
+        AppImageInventoryResponse: {
+            app_id: string;
+            registry_configured: boolean;
+            reclaim_requires_gc: boolean;
+            reclaim_note?: string;
+            summary: components["schemas"]["AppImageSummary"];
+            versions: components["schemas"]["AppImageVersion"][];
+        };
+        AppImageDeleteResponse: {
+            image?: components["schemas"]["AppImageVersion"];
+            deleted: boolean;
+            already_missing: boolean;
+            registry_configured: boolean;
+            reclaim_requires_gc: boolean;
+            reclaim_note?: string;
+            /** Format: int64 */
+            reclaimed_size_bytes?: number;
+        };
+        AppImageRedeployResponse: {
+            image?: components["schemas"]["AppImageVersion"];
+            operation: components["schemas"]["Operation"];
+        };
+        ProjectImageUsageAppSummary: {
+            app_id: string;
+            app_name: string;
+            /** Format: int32 */
+            version_count: number;
+            /** Format: int32 */
+            current_version_count: number;
+            /** Format: int32 */
+            stale_version_count: number;
+            /** Format: int64 */
+            total_size_bytes: number;
+            /** Format: int64 */
+            current_size_bytes: number;
+            /** Format: int64 */
+            stale_size_bytes: number;
+            /** Format: int64 */
+            reclaimable_size_bytes: number;
+        };
+        ProjectImageUsageSummary: {
+            project_id: string;
+            /** Format: int32 */
+            version_count: number;
+            /** Format: int32 */
+            current_version_count: number;
+            /** Format: int32 */
+            stale_version_count: number;
+            /** Format: int64 */
+            total_size_bytes: number;
+            /** Format: int64 */
+            current_size_bytes: number;
+            /** Format: int64 */
+            stale_size_bytes: number;
+            /** Format: int64 */
+            reclaimable_size_bytes: number;
+            apps: components["schemas"]["ProjectImageUsageAppSummary"][];
+        };
+        ProjectImageUsageResponse: {
+            registry_configured: boolean;
+            reclaim_requires_gc: boolean;
+            reclaim_note?: string;
+            projects: components["schemas"]["ProjectImageUsageSummary"][];
+        };
         CreateProjectRequest: {
             tenant_id?: string;
             name: string;
@@ -2588,6 +2755,27 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProjectResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    listProjectImageUsage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectImageUsageResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
@@ -3650,6 +3838,83 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AppDeleteResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getAppImages: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppImageInventoryResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    redeployAppImage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AppImageActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppImageRedeployResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    deleteAppImage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AppImageActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppImageDeleteResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];

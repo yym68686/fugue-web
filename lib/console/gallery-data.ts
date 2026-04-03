@@ -20,6 +20,7 @@ import {
   getFugueClusterNodes,
   getFugueOperations,
   getFugueProjects,
+  getFugueProjectImageUsage,
   getFugueRuntimes,
   type FugueApp,
   type FugueAppSource,
@@ -27,6 +28,7 @@ import {
   type FugueClusterNode,
   type FugueOperation,
   type FugueProject,
+  type FugueProjectImageUsageSummary,
   type FugueAppTechnology,
   type FugueResourceUsage,
   type FugueRuntime,
@@ -216,9 +218,50 @@ function sumCurrentResourceUsage(items: Array<FugueResourceUsage | null | undefi
   } satisfies FugueResourceUsage;
 }
 
+function sumNullableNumbers(...values: Array<number | null | undefined>) {
+  let total = 0;
+  let hasValue = false;
+
+  for (const value of values) {
+    if (value === null || value === undefined || !Number.isFinite(value)) {
+      continue;
+    }
+
+    total += value;
+    hasValue = true;
+  }
+
+  return hasValue ? total : null;
+}
+
 function buildProjectResourceUsageView(
   usage: FugueResourceUsage,
+  imageUsage?: FugueProjectImageUsageSummary | null,
 ): ConsoleCompactResourceItemView[] {
+  const imageTotalBytes =
+    imageUsage && imageUsage.versionCount > 0 ? imageUsage.totalSizeBytes : null;
+  const reclaimableImageBytes =
+    imageUsage && imageUsage.reclaimableSizeBytes > 0
+      ? imageUsage.reclaimableSizeBytes
+      : null;
+  const diskTotalBytes = sumNullableNumbers(usage.ephemeralStorageBytes, imageTotalBytes);
+  const diskSecondaryLabel =
+    imageUsage && imageUsage.versionCount > 0
+      ? reclaimableImageBytes !== null
+        ? `Images ${formatBytesLabel(imageUsage.totalSizeBytes)} · ${formatBytesLabel(reclaimableImageBytes)} reclaimable`
+        : `Images ${formatBytesLabel(imageUsage.totalSizeBytes)}`
+      : null;
+  const diskTitleParts = [
+    `Disk / ${formatBytesLabel(diskTotalBytes)} / Current project total`,
+    usage.ephemeralStorageBytes !== null
+      ? `runtime ${formatBytesLabel(usage.ephemeralStorageBytes)}`
+      : null,
+    imageTotalBytes !== null ? `images ${formatBytesLabel(imageTotalBytes)}` : null,
+    reclaimableImageBytes !== null
+      ? `${formatBytesLabel(reclaimableImageBytes)} reclaimable after image cleanup`
+      : null,
+  ].filter((value): value is string => Boolean(value));
+
   return [
     {
       id: "cpu",
@@ -242,10 +285,10 @@ function buildProjectResourceUsageView(
       id: "storage",
       label: "Disk",
       meterValue: null,
-      primaryLabel: formatBytesLabel(usage.ephemeralStorageBytes),
-      secondaryLabel: null,
-      title: `Disk / ${formatBytesLabel(usage.ephemeralStorageBytes)} / Current project total`,
-      tone: usage.ephemeralStorageBytes !== null ? "info" : "neutral",
+      primaryLabel: formatBytesLabel(diskTotalBytes),
+      secondaryLabel: diskSecondaryLabel,
+      title: diskTitleParts.join(" / "),
+      tone: diskTotalBytes !== null ? "info" : "neutral",
     },
   ];
 }
@@ -1724,22 +1767,31 @@ export const getConsoleProjectGalleryData = cache(async () => {
       getFugueOperations(workspace.adminKeySecret),
       getFugueClusterNodes(workspace.adminKeySecret),
       getFugueRuntimes(workspace.adminKeySecret),
+      getFugueProjectImageUsage(workspace.adminKeySecret),
     ]);
   }
 
   let workspace = initialWorkspace;
-  let [projectsResult, appsResult, operationsResult, clusterNodesResult, runtimesResult] =
-    await loadWorkspaceData(workspace);
+  let [
+    projectsResult,
+    appsResult,
+    operationsResult,
+    clusterNodesResult,
+    runtimesResult,
+    projectImageUsageResult,
+  ] = await loadWorkspaceData(workspace);
 
   if (
     projectsResult.status === "rejected" &&
     appsResult.status === "rejected" &&
     operationsResult.status === "rejected" &&
     runtimesResult.status === "rejected" &&
+    projectImageUsageResult.status === "rejected" &&
     isUnauthorizedFugueError(projectsResult.reason) &&
     isUnauthorizedFugueError(appsResult.reason) &&
     isUnauthorizedFugueError(operationsResult.reason) &&
-    isUnauthorizedFugueError(runtimesResult.reason)
+    isUnauthorizedFugueError(runtimesResult.reason) &&
+    isUnauthorizedFugueError(projectImageUsageResult.reason)
   ) {
     const session = await getCurrentSession();
 
@@ -1747,8 +1799,14 @@ export const getConsoleProjectGalleryData = cache(async () => {
       try {
         const refreshed = await ensureWorkspaceAccess(session);
         workspace = refreshed.workspace;
-        [projectsResult, appsResult, operationsResult, clusterNodesResult, runtimesResult] =
-          await loadWorkspaceData(workspace);
+        [
+          projectsResult,
+          appsResult,
+          operationsResult,
+          clusterNodesResult,
+          runtimesResult,
+          projectImageUsageResult,
+        ] = await loadWorkspaceData(workspace);
       } catch {
         // Keep the original 401 results when recovery fails.
       }
@@ -1768,12 +1826,22 @@ export const getConsoleProjectGalleryData = cache(async () => {
     clusterNodesResult.status === "rejected"
       ? `cluster nodes: ${readErrorMessage(clusterNodesResult.reason)}`
       : null,
+    projectImageUsageResult.status === "rejected"
+      ? `project image usage: ${readErrorMessage(projectImageUsageResult.reason)}`
+      : null,
   ].filter((value): value is string => Boolean(value));
 
   const projects = projectsResult.status === "fulfilled" ? projectsResult.value : [];
   const apps = appsResult.status === "fulfilled" ? appsResult.value : [];
   const operations = operationsResult.status === "fulfilled" ? operationsResult.value : [];
   const clusterNodes = clusterNodesResult.status === "fulfilled" ? clusterNodesResult.value : [];
+  const projectImageUsage =
+    projectImageUsageResult.status === "fulfilled"
+      ? projectImageUsageResult.value
+      : null;
+  const projectImageUsageByProjectId = new Map(
+    (projectImageUsage?.projects ?? []).map((summary) => [summary.projectId, summary] as const),
+  );
   const runtimeTargetLocationsByRuntimeId = buildRuntimeTargetLocationMap(clusterNodes);
   const runtimeTargetInventoryError =
     runtimesResult.status === "rejected"
@@ -1864,7 +1932,10 @@ export const getConsoleProjectGalleryData = cache(async () => {
           namesByProjectId.get(projectId) ??
           project?.name ??
           (projectId === "unassigned" ? "Unassigned" : humanize(projectId)),
-        resourceUsage: buildProjectResourceUsageView(resourceUsage),
+        resourceUsage: buildProjectResourceUsageView(
+          resourceUsage,
+          projectImageUsageByProjectId.get(projectId) ?? null,
+        ),
         serviceBadges: buildProjectServiceBadges(services),
         serviceCount: services.length,
         services,

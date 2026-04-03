@@ -779,6 +779,113 @@ function buildAppEnvResultView(response: CamelizedSchema<"AppEnvResponse">) {
   };
 }
 
+function buildAppImageSummaryView(summary: CamelizedSchema<"AppImageSummary">) {
+  return {
+    currentSizeBytes: readNullableNumber(summary.currentSizeBytes) ?? 0,
+    currentVersionCount: readNullableNumber(summary.currentVersionCount) ?? 0,
+    reclaimableSizeBytes: readNullableNumber(summary.reclaimableSizeBytes) ?? 0,
+    staleSizeBytes: readNullableNumber(summary.staleSizeBytes) ?? 0,
+    staleVersionCount: readNullableNumber(summary.staleVersionCount) ?? 0,
+    totalSizeBytes: readNullableNumber(summary.totalSizeBytes) ?? 0,
+    versionCount: readNullableNumber(summary.versionCount) ?? 0,
+  };
+}
+
+function buildAppImageVersionView(version: CamelizedSchema<"AppImageVersion">) {
+  return {
+    current: version.current ?? false,
+    deleteSupported: version.deleteSupported ?? false,
+    digest: readNullableString(version.digest),
+    imageRef: version.imageRef,
+    lastDeployedAt: readNullableString(version.lastDeployedAt),
+    reclaimableSizeBytes: readNullableNumber(version.reclaimableSizeBytes) ?? 0,
+    redeploySupported: version.redeploySupported ?? false,
+    runtimeImageRef: readNullableString(version.runtimeImageRef),
+    sizeBytes: readNullableNumber(version.sizeBytes),
+    source: buildAppSourceView(version.source),
+    status: readNullableString(version.status),
+  };
+}
+
+function buildAppImageInventoryResultView(
+  response: CamelizedSchema<"AppImageInventoryResponse">,
+) {
+  return {
+    appId: response.appId,
+    reclaimNote: readNullableString(response.reclaimNote),
+    reclaimRequiresGc: response.reclaimRequiresGc ?? false,
+    registryConfigured: response.registryConfigured ?? false,
+    summary: buildAppImageSummaryView(response.summary),
+    versions: (response.versions ?? []).map(buildAppImageVersionView),
+  };
+}
+
+function buildAppImageDeleteResultView(
+  response: CamelizedSchema<"AppImageDeleteResponse">,
+) {
+  return {
+    alreadyMissing: response.alreadyMissing ?? false,
+    deleted: response.deleted ?? false,
+    image: response.image ? buildAppImageVersionView(response.image) : null,
+    reclaimNote: readNullableString(response.reclaimNote),
+    reclaimRequiresGc: response.reclaimRequiresGc ?? false,
+    reclaimedSizeBytes: readNullableNumber(response.reclaimedSizeBytes) ?? 0,
+    registryConfigured: response.registryConfigured ?? false,
+  };
+}
+
+function buildAppImageRedeployResultView(
+  response: CamelizedSchema<"AppImageRedeployResponse">,
+) {
+  return {
+    image: response.image ? buildAppImageVersionView(response.image) : null,
+    operation: response.operation ? buildOperationView(response.operation) : null,
+  };
+}
+
+function buildProjectImageUsageAppSummaryView(
+  summary: CamelizedSchema<"ProjectImageUsageAppSummary">,
+) {
+  return {
+    appId: summary.appId,
+    appName: summary.appName,
+    currentSizeBytes: readNullableNumber(summary.currentSizeBytes) ?? 0,
+    currentVersionCount: readNullableNumber(summary.currentVersionCount) ?? 0,
+    reclaimableSizeBytes: readNullableNumber(summary.reclaimableSizeBytes) ?? 0,
+    staleSizeBytes: readNullableNumber(summary.staleSizeBytes) ?? 0,
+    staleVersionCount: readNullableNumber(summary.staleVersionCount) ?? 0,
+    totalSizeBytes: readNullableNumber(summary.totalSizeBytes) ?? 0,
+    versionCount: readNullableNumber(summary.versionCount) ?? 0,
+  };
+}
+
+function buildProjectImageUsageSummaryView(
+  summary: CamelizedSchema<"ProjectImageUsageSummary">,
+) {
+  return {
+    apps: (summary.apps ?? []).map(buildProjectImageUsageAppSummaryView),
+    currentSizeBytes: readNullableNumber(summary.currentSizeBytes) ?? 0,
+    currentVersionCount: readNullableNumber(summary.currentVersionCount) ?? 0,
+    projectId: summary.projectId,
+    reclaimableSizeBytes: readNullableNumber(summary.reclaimableSizeBytes) ?? 0,
+    staleSizeBytes: readNullableNumber(summary.staleSizeBytes) ?? 0,
+    staleVersionCount: readNullableNumber(summary.staleVersionCount) ?? 0,
+    totalSizeBytes: readNullableNumber(summary.totalSizeBytes) ?? 0,
+    versionCount: readNullableNumber(summary.versionCount) ?? 0,
+  };
+}
+
+function buildProjectImageUsageResultView(
+  response: CamelizedSchema<"ProjectImageUsageResponse">,
+) {
+  return {
+    projects: (response.projects ?? []).map(buildProjectImageUsageSummaryView),
+    reclaimNote: readNullableString(response.reclaimNote),
+    reclaimRequiresGc: response.reclaimRequiresGc ?? false,
+    registryConfigured: response.registryConfigured ?? false,
+  };
+}
+
 function buildAppRouteAvailabilityResultView(
   response: CamelizedSchema<"AppRouteAvailabilityResponse">,
 ) {
@@ -1067,6 +1174,24 @@ export type FugueAppFilesystemMutationResult = ReturnType<
 >;
 export type FugueBuildLogsResult = ReturnType<typeof buildBuildLogsResultView>;
 export type FugueRuntimeLogsResult = ReturnType<typeof buildRuntimeLogsResultView>;
+export type FugueAppImageSummary = ReturnType<typeof buildAppImageSummaryView>;
+export type FugueAppImageVersion = ReturnType<typeof buildAppImageVersionView>;
+export type FugueAppImageInventoryResult = ReturnType<
+  typeof buildAppImageInventoryResultView
+>;
+export type FugueAppImageDeleteResult = ReturnType<typeof buildAppImageDeleteResultView>;
+export type FugueAppImageRedeployResult = ReturnType<
+  typeof buildAppImageRedeployResultView
+>;
+export type FugueProjectImageUsageAppSummary = ReturnType<
+  typeof buildProjectImageUsageAppSummaryView
+>;
+export type FugueProjectImageUsageSummary = ReturnType<
+  typeof buildProjectImageUsageSummaryView
+>;
+export type FugueProjectImageUsageResult = ReturnType<
+  typeof buildProjectImageUsageResultView
+>;
 
 export async function createFugueTenant(
   accessToken: string,
@@ -1459,6 +1584,18 @@ export async function getFugueProjects(accessToken: string, tenantId?: string) {
   return (response.projects ?? []).map(buildProjectView);
 }
 
+export async function getFugueProjectImageUsage(accessToken: string) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      "/v1/projects/image-usage",
+      client.GET("/v1/projects/image-usage"),
+    ),
+  );
+
+  return buildProjectImageUsageResultView(response);
+}
+
 export async function getFugueApiKeys(accessToken: string) {
   const client = getClient(accessToken);
   const response = camelizeData(
@@ -1610,6 +1747,68 @@ export async function getFugueApp(accessToken: string, appId: string) {
   );
 
   return response.app ? buildAppView(response.app) : null;
+}
+
+export async function getFugueAppImages(accessToken: string, appId: string) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}/images`,
+      client.GET("/v1/apps/{id}/images", {
+        params: {
+          path: { id: appId },
+        },
+      }),
+    ),
+  );
+
+  return buildAppImageInventoryResultView(response);
+}
+
+export async function redeployFugueAppImage(
+  accessToken: string,
+  appId: string,
+  payload: { imageRef: string },
+) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}/images/redeploy`,
+      client.POST("/v1/apps/{id}/images/redeploy", {
+        body: {
+          image_ref: payload.imageRef,
+        },
+        params: {
+          path: { id: appId },
+        },
+      }),
+    ),
+  );
+
+  return buildAppImageRedeployResultView(response);
+}
+
+export async function deleteFugueAppImage(
+  accessToken: string,
+  appId: string,
+  payload: { imageRef: string },
+) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}/images/delete`,
+      client.POST("/v1/apps/{id}/images/delete", {
+        body: {
+          image_ref: payload.imageRef,
+        },
+        params: {
+          path: { id: appId },
+        },
+      }),
+    ),
+  );
+
+  return buildAppImageDeleteResultView(response);
 }
 
 export async function getFugueBackingServices(accessToken: string) {

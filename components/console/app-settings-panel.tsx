@@ -3,12 +3,12 @@
 import { startTransition, useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
-import { DeploymentTargetField } from "@/components/console/deployment-target-field";
 import { StatusBadge } from "@/components/console/status-badge";
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FormField } from "@/components/ui/form-field";
 import { InlineAlert } from "@/components/ui/inline-alert";
+import { SelectField } from "@/components/ui/select-field";
 import { useToast } from "@/components/ui/toast";
 import type {
   ConsoleGalleryAppView,
@@ -41,13 +41,13 @@ type AppOperationResponse = {
 type GitHubSyncState = {
   action: "disable" | "start" | null;
   actionLabel: string | null;
-  description: string;
+  description: string | null;
   label: string;
   tone: ConsoleTone;
 };
 
 type ManualRefreshState = {
-  description: string;
+  description: string | null;
   label: string;
   title: string;
   tone: ConsoleTone;
@@ -140,8 +140,8 @@ function readGitHubSyncState(app: ConsoleGalleryAppView): GitHubSyncState {
     return {
       action: null,
       actionLabel: null,
-      description: "Automatic background sync is only available for services imported from GitHub repositories.",
-      label: "Not available",
+      description: null,
+      label: "Manual",
       tone: "neutral",
     };
   }
@@ -150,8 +150,8 @@ function readGitHubSyncState(app: ConsoleGalleryAppView): GitHubSyncState {
     return {
       action: null,
       actionLabel: null,
-      description: "The first import is still running. GitHub polling starts after the service reaches its first live replica.",
-      label: "Pending import",
+      description: "Starts after first deploy.",
+      label: "Pending",
       tone: "info",
     };
   }
@@ -159,8 +159,8 @@ function readGitHubSyncState(app: ConsoleGalleryAppView): GitHubSyncState {
   if (isPausedApp(app)) {
     return {
       action: "start",
-      actionLabel: "Turn on sync",
-      description: "This app is paused at 0 replicas, so Fugue is not polling GitHub. Starting the app resumes background updates.",
+      actionLabel: "Resume",
+      description: "Resume to poll new commits.",
       label: "Off",
       tone: "warning",
     };
@@ -168,8 +168,8 @@ function readGitHubSyncState(app: ConsoleGalleryAppView): GitHubSyncState {
 
   return {
     action: "disable",
-    actionLabel: "Turn off sync",
-    description: "Fugue polls the tracked branch in the background and queues rebuilds when new commits arrive. Turning this off pauses the app at 0 replicas.",
+    actionLabel: "Pause",
+    description: null,
     label: "On",
     tone: "positive",
   };
@@ -177,34 +177,34 @@ function readGitHubSyncState(app: ConsoleGalleryAppView): GitHubSyncState {
 
 function readBranchFieldHint(app: ConsoleGalleryAppView) {
   if (!isGitHubSourceType(app.sourceType)) {
-    return "Only GitHub-backed services keep a tracked source branch.";
+    return null;
   }
 
   if (app.serviceRole === "pending") {
-    return "Wait for the first import to finish before changing the tracked branch.";
+    return "Available after first deploy.";
   }
 
   if (isPausedApp(app)) {
-    return "Start the app before changing the tracked branch. Rebuilding from settings resumes replicas.";
+    return "Resume first.";
   }
 
-  return "Leave blank to follow the repository default branch. Saving queues a rebuild.";
+  return "Blank = default branch.";
 }
 
 function readRepositoryAccessHint(app: ConsoleGalleryAppView) {
   if (!isPrivateGitHubSourceType(app.sourceType)) {
-    return "Only private GitHub repositories store an access token.";
+    return null;
   }
 
   if (app.serviceRole === "pending") {
-    return "Wait for the first import to finish before rotating the saved token.";
+    return "Available after first deploy.";
   }
 
   if (isPausedApp(app)) {
-    return "Start the app before rotating the saved token. Updating access queues a rebuild.";
+    return "Resume first.";
   }
 
-  return "Leave blank to keep the saved token. Updating access queues a rebuild.";
+  return "Blank = keep current token.";
 }
 
 function readSourceKindLabel(app: ConsoleGalleryAppView) {
@@ -225,34 +225,22 @@ function readSourceKindLabel(app: ConsoleGalleryAppView) {
 
 function readSourceSectionTitle(app: ConsoleGalleryAppView) {
   if (isGitHubSourceType(app.sourceType)) {
-    return "Tracked branch";
+    return "Repository";
   }
 
   if (isDockerImageSourceType(app.sourceType)) {
-    return "Saved image";
+    return "Image";
   }
 
   if (isUploadSourceType(app.sourceType)) {
-    return "Saved upload";
+    return "Upload";
   }
 
-  return "Source definition";
+  return "Source";
 }
 
 function readSourceSectionHint(app: ConsoleGalleryAppView) {
-  if (isGitHubSourceType(app.sourceType)) {
-    return readBranchFieldHint(app);
-  }
-
-  if (isDockerImageSourceType(app.sourceType)) {
-    return "Fugue stores this image reference and mirrors it into the internal registry whenever you repull the image.";
-  }
-
-  if (isUploadSourceType(app.sourceType)) {
-    return "Local uploads keep a fixed source package. Use Redeploy in the main actions bar to roll out the saved upload again.";
-  }
-
-  return "This service keeps a fixed source definition.";
+  return null;
 }
 
 function readSourceFieldLabel(app: ConsoleGalleryAppView) {
@@ -278,28 +266,26 @@ function readManualRefreshState(app: ConsoleGalleryAppView): ManualRefreshState 
 
   if (isDockerImageSourceType(app.sourceType)) {
     return {
-      description:
-        "Docker image services do not poll registries in the background. Use Repull image in the main actions bar whenever you want Fugue to mirror the saved reference again.",
-      label: "On demand",
-      title: "Image refresh",
+      description: null,
+      label: "Manual",
+      title: "Refresh",
       tone: "neutral",
     };
   }
 
   if (isUploadSourceType(app.sourceType)) {
     return {
-      description:
-        "Uploaded sources do not auto sync. Use Redeploy in the main actions bar to rebuild from the saved upload bundle.",
-      label: "On demand",
-      title: "Source refresh",
+      description: null,
+      label: "Manual",
+      title: "Refresh",
       tone: "neutral",
     };
   }
 
   return {
-    description: "This source stays fixed until you queue a new deploy manually.",
+    description: null,
     label: "Manual",
-    title: "Source refresh",
+    title: "Refresh",
     tone: "neutral",
   };
 }
@@ -328,91 +314,37 @@ function readRuntimeTargetLabel(
   return targets.find((target) => target.id === normalized)?.summaryLabel ?? shortId(normalized);
 }
 
-function readStatefulAssetLabel(app: ConsoleGalleryAppView) {
+function readTransferPreparationNote(app: ConsoleGalleryAppView) {
   const hasWorkspace = Boolean(normalizeText(app.workspaceMountPath));
 
   if (hasWorkspace && app.hasPostgresService) {
-    return "Workspace volume + PostgreSQL";
+    return "Workspace & database sync run before the move completes.";
   }
 
   if (hasWorkspace) {
-    return "Workspace volume";
+    return "Workspace sync runs before the move completes.";
   }
 
   if (app.hasPostgresService) {
-    return "Managed PostgreSQL";
-  }
-
-  return "Stateless app";
-}
-
-function readStatefulAssetDescription(app: ConsoleGalleryAppView) {
-  const hasWorkspace = Boolean(normalizeText(app.workspaceMountPath));
-
-  if (hasWorkspace && app.hasPostgresService) {
-    return "a workspace volume and managed PostgreSQL";
-  }
-
-  if (hasWorkspace) {
-    return "a workspace volume";
-  }
-
-  if (app.hasPostgresService) {
-    return "managed PostgreSQL";
-  }
-
-  return "no stateful attachments";
-}
-
-function readFailoverPosture(app: ConsoleGalleryAppView): {
-  label: string;
-  note: string;
-  tone: ConsoleTone;
-} {
-  if (app.failoverTargetRuntimeId) {
-    if (app.failoverAuto) {
-      return {
-        label: "Armed",
-        note: "Automatic failover is configured for this service. You can still queue the handoff manually from the console.",
-        tone: "positive",
-      };
-    }
-
-    return {
-      label: "Manual target",
-      note: "A backup runtime is already saved for this service, but automatic triggering is off.",
-      tone: "info",
-    };
-  }
-
-  if (app.failoverConfigured) {
-    return {
-      label: "Incomplete",
-      note: "Fugue can see a failover stanza for this service, but no target runtime is currently exposed here.",
-      tone: "warning",
-    };
-  }
-
-  return {
-    label: "On demand",
-    note: "No saved failover target is exposed for this service yet. Choose a runtime below to queue a one-off handoff.",
-    tone: "neutral",
-  };
-}
-
-function readFailoverActionHint(app: ConsoleGalleryAppView) {
-  if (app.serviceRole === "pending") {
-    return "Wait for the current release operation to finish before queuing failover.";
-  }
-
-  if (isPausedApp(app)) {
-    return "Start the service before queuing failover.";
+    return "Database sync runs before the move completes.";
   }
 
   return null;
 }
 
-function readInitialFailoverTargetRuntimeId(
+function readTransferActionHint(app: ConsoleGalleryAppView) {
+  if (app.serviceRole === "pending") {
+    return "Wait for the current release to finish.";
+  }
+
+  if (isPausedApp(app)) {
+    return "Start the service before moving it.";
+  }
+
+  return null;
+}
+
+function readInitialTransferTargetRuntimeId(
   app: ConsoleGalleryAppView,
   runtimeTargets: ConsoleImportRuntimeTargetView[],
 ) {
@@ -431,7 +363,7 @@ function readInitialFailoverTargetRuntimeId(
   return readDefaultImportRuntimeId(manualRuntimeTargets);
 }
 
-function AppFailoverSection({
+function AppTransferSection({
   app,
   runtimeTargetInventoryError,
   runtimeTargets,
@@ -443,20 +375,18 @@ function AppFailoverSection({
   const router = useRouter();
   const confirm = useConfirmDialog();
   const { showToast } = useToast();
-  const failoverPosture = readFailoverPosture(app);
-  const statefulAssetLabel = readStatefulAssetLabel(app);
-  const statefulAssetDescription = readStatefulAssetDescription(app);
+  const transferPreparationNote = readTransferPreparationNote(app);
   const activeRuntimeId = app.currentRuntimeId ?? app.runtimeId;
-  const manualRuntimeTargets = activeRuntimeId
+  const transferTargets = activeRuntimeId
     ? runtimeTargets.filter((target) => target.id !== activeRuntimeId)
     : runtimeTargets;
   const [targetRuntimeId, setTargetRuntimeId] = useState<string | null>(() =>
-    readInitialFailoverTargetRuntimeId(app, runtimeTargets),
+    readInitialTransferTargetRuntimeId(app, runtimeTargets),
   );
-  const [failoverSaving, setFailoverSaving] = useState(false);
+  const [transferSaving, setTransferSaving] = useState(false);
 
   useEffect(() => {
-    setTargetRuntimeId(readInitialFailoverTargetRuntimeId(app, runtimeTargets));
+    setTargetRuntimeId(readInitialTransferTargetRuntimeId(app, runtimeTargets));
   }, [
     app.currentRuntimeId,
     app.failoverTargetRuntimeId,
@@ -465,49 +395,29 @@ function AppFailoverSection({
     runtimeTargets,
   ]);
 
-  const requestTargetRuntimeId =
-    targetRuntimeId && targetRuntimeId !== activeRuntimeId ? targetRuntimeId : undefined;
-  const savedTargetRuntimeId =
-    app.failoverTargetRuntimeId && app.failoverTargetRuntimeId !== activeRuntimeId
-      ? app.failoverTargetRuntimeId
-      : null;
-  const effectiveTargetRuntimeId = requestTargetRuntimeId ?? savedTargetRuntimeId;
-  const effectiveTargetLabel = readRuntimeTargetLabel(
+  const selectedTargetRuntimeId =
+    targetRuntimeId && targetRuntimeId !== activeRuntimeId ? targetRuntimeId : null;
+  const selectedTargetLabel = readRuntimeTargetLabel(
     runtimeTargets,
-    effectiveTargetRuntimeId,
+    selectedTargetRuntimeId,
     "No target selected",
   );
   const liveRuntimeLabel = readRuntimeTargetLabel(
     runtimeTargets,
     activeRuntimeId,
-    "Live runtime unavailable",
+    "Current runtime unavailable",
   );
-  const desiredRuntimeLabel = readRuntimeTargetLabel(
-    runtimeTargets,
-    app.runtimeId,
-    "No desired runtime",
-  );
-  const savedTargetLabel = app.failoverTargetRuntimeId
-    ? readRuntimeTargetLabel(runtimeTargets, app.failoverTargetRuntimeId, "Saved target")
-    : "None saved";
-  const savedTargetMissingFromInventory = Boolean(
-    app.failoverTargetRuntimeId &&
-      !runtimeTargets.some((target) => target.id === app.failoverTargetRuntimeId),
-  );
-  const savedTargetMatchesActiveRuntime = Boolean(
-    activeRuntimeId && app.failoverTargetRuntimeId === activeRuntimeId,
-  );
-  const actionHint = readFailoverActionHint(app);
-  const targetSelectionHint =
-    runtimeTargetInventoryError && !savedTargetRuntimeId
-      ? "Runtime inventory is unavailable and this service does not have a saved failover target yet."
-      : !effectiveTargetRuntimeId
-        ? "Add or share another runtime before queuing failover."
-        : null;
-  const canQueueFailover =
-    !failoverSaving && !actionHint && !targetSelectionHint && Boolean(effectiveTargetRuntimeId);
+  const actionHint = readTransferActionHint(app);
+  const targetSelectionHint = runtimeTargetInventoryError
+    ? "Runtime list unavailable."
+    : transferTargets.length === 0
+      ? "Add another runtime before moving this service."
+      : null;
+  const blockerMessage = actionHint ?? targetSelectionHint;
+  const canTransfer =
+    !transferSaving && !blockerMessage && Boolean(selectedTargetRuntimeId);
 
-  async function handleFailoverSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleTransferSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (actionHint) {
@@ -518,22 +428,21 @@ function AppFailoverSection({
       return;
     }
 
-    if (!effectiveTargetRuntimeId) {
+    if (!selectedTargetRuntimeId) {
       showToast({
-        message: targetSelectionHint ?? "Choose a target runtime before queuing failover.",
+        message: targetSelectionHint ?? "Choose a destination.",
         variant: "info",
       });
       return;
     }
 
     const confirmed = await confirm({
-      confirmLabel: "Queue failover",
-      description:
-        statefulAssetLabel === "Stateless app"
-          ? `${app.name} will queue a failover from ${liveRuntimeLabel} to ${effectiveTargetLabel}.`
-          : `${app.name} will queue a failover from ${liveRuntimeLabel} to ${effectiveTargetLabel}. This service includes ${statefulAssetDescription}, so the backend controller will run the stateful workflow before the handoff completes.`,
-      eyebrow: statefulAssetLabel === "Stateless app" ? "Runtime handoff" : "Stateful failover",
-      title: "Queue failover?",
+      confirmLabel: "Transfer Now",
+      description: transferPreparationNote
+        ? `${app.name} will move from ${liveRuntimeLabel} to ${selectedTargetLabel}. ${transferPreparationNote}`
+        : `${app.name} will move from ${liveRuntimeLabel} to ${selectedTargetLabel}.`,
+      eyebrow: "Runtime Move",
+      title: "Transfer Service?",
       variant: "primary",
     });
 
@@ -541,25 +450,21 @@ function AppFailoverSection({
       return;
     }
 
-    setFailoverSaving(true);
+    setTransferSaving(true);
 
     try {
       await requestJson<AppOperationResponse>(`/api/fugue/apps/${app.id}/failover`, {
-        ...(requestTargetRuntimeId
-          ? {
-              body: JSON.stringify({
-                targetRuntimeId: requestTargetRuntimeId,
-              }),
-              headers: {
-                "Content-Type": "application/json",
-              },
-            }
-          : {}),
+        body: JSON.stringify({
+          targetRuntimeId: selectedTargetRuntimeId,
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
         method: "POST",
       });
 
       showToast({
-        message: `Failover queued toward ${effectiveTargetLabel}.`,
+        message: `Transfer queued to ${selectedTargetLabel}.`,
         variant: "success",
       });
       startTransition(() => {
@@ -571,112 +476,62 @@ function AppFailoverSection({
         variant: "error",
       });
     } finally {
-      setFailoverSaving(false);
+      setTransferSaving(false);
     }
   }
 
   return (
-    <section aria-label="Failover" className="fg-route-subsection fg-settings-section">
+    <section aria-label="One-Click Transfer" className="fg-route-subsection fg-settings-section">
       <div className="fg-route-subsection__head">
         <div className="fg-route-subsection__copy fg-settings-section__copy">
-          <p className="fg-label fg-panel__eyebrow">Continuity</p>
-          <h3 className="fg-route-subsection__title fg-ui-heading">Failover</h3>
-          <p className="fg-route-subsection__note">{failoverPosture.note}</p>
-        </div>
-
-        <div className="fg-settings-sync__summary">
-          <StatusBadge tone={failoverPosture.tone}>{failoverPosture.label}</StatusBadge>
-          <StatusBadge live={app.failoverAuto} tone={app.failoverAuto ? "positive" : "neutral"}>
-            {app.failoverAuto ? "Automatic" : "Manual"}
-          </StatusBadge>
+          <p className="fg-label fg-panel__eyebrow">Runtime</p>
+          <h3 className="fg-route-subsection__title fg-ui-heading">One-Click Transfer</h3>
+          <p className="fg-route-subsection__note">
+            Current: {liveRuntimeLabel}. Choose a destination and move this service now.
+          </p>
         </div>
       </div>
 
-      <div className="fg-settings-form">
-        <InlineAlert variant="info">
-          The console can read the saved failover posture and queue the workflow, but persistent
-          failover policy editing still lives outside this surface.
-          {statefulAssetLabel !== "Stateless app"
-            ? ` This service includes ${statefulAssetDescription}, and detailed replication or fencing progress is not surfaced here yet.`
-            : null}
-        </InlineAlert>
+      <form className="fg-settings-form" onSubmit={handleTransferSubmit}>
+        {blockerMessage ? <InlineAlert variant="warning">{blockerMessage}</InlineAlert> : null}
 
-        {runtimeTargetInventoryError ? (
-          <InlineAlert variant="info">
-            {savedTargetRuntimeId
-              ? "Runtime inventory is currently unavailable. You can still queue failover to the saved target."
-              : "Runtime inventory is currently unavailable, so the console cannot suggest a new failover target yet."}
-          </InlineAlert>
-        ) : null}
-
-        {savedTargetMissingFromInventory ? (
-          <InlineAlert variant="warning">
-            The saved failover target is not currently visible in runtime inventory. Fugue will
-            still use the stored runtime ID if you queue failover without picking a replacement.
-          </InlineAlert>
-        ) : null}
-
-        {savedTargetMatchesActiveRuntime ? (
-          <InlineAlert variant="warning">
-            The saved failover target currently matches the live runtime. Choose a different target
-            before you rely on automatic handoff.
-          </InlineAlert>
-        ) : null}
-
-        {actionHint ? <InlineAlert variant="warning">{actionHint}</InlineAlert> : null}
-        {targetSelectionHint ? <InlineAlert variant="warning">{targetSelectionHint}</InlineAlert> : null}
-
-        <dl className="fg-settings-meta">
-          <div>
-            <dt>Live runtime</dt>
-            <dd>{liveRuntimeLabel}</dd>
-          </div>
-          <div>
-            <dt>Desired placement</dt>
-            <dd>{desiredRuntimeLabel}</dd>
-          </div>
-          <div>
-            <dt>Saved failover target</dt>
-            <dd>{savedTargetLabel}</dd>
-          </div>
-          <div>
-            <dt>Trigger mode</dt>
-            <dd>{app.failoverAuto ? "Automatic" : "Manual"}</dd>
-          </div>
-          <div>
-            <dt>Stateful assets</dt>
-            <dd>{statefulAssetLabel}</dd>
-          </div>
-        </dl>
-
-        {manualRuntimeTargets.length > 0 ? (
-          <DeploymentTargetField
-            fallbackToDefaultTarget={false}
-            inventoryError={null}
-            legendLabel="Failover target"
-            name={`failover-target-${app.id}`}
-            onChange={setTargetRuntimeId}
-            regionLabel="Target region"
-            targets={manualRuntimeTargets}
-            value={targetRuntimeId}
-          />
-        ) : null}
-
-        <form className="fg-settings-form" onSubmit={handleFailoverSubmit}>
-          <div className="fg-settings-form__actions">
-            <Button
-              disabled={!canQueueFailover}
-              loading={failoverSaving}
-              loadingLabel="Queueing…"
-              size="compact"
-              type="submit"
-              variant="primary"
+        {transferTargets.length > 0 ? (
+          <FormField
+            htmlFor={`transfer-target-${app.id}`}
+            label="Destination"
+          >
+            <SelectField
+              disabled={transferSaving}
+              id={`transfer-target-${app.id}`}
+              name="transferTarget"
+              onChange={(event) => setTargetRuntimeId(event.target.value || null)}
+              value={selectedTargetRuntimeId ?? ""}
             >
-              Queue failover
-            </Button>
-          </div>
-        </form>
-      </div>
+              <option disabled value="">
+                Select a destination…
+              </option>
+              {transferTargets.map((target) => (
+                <option key={target.id} value={target.id}>
+                  {target.summaryLabel}
+                </option>
+              ))}
+            </SelectField>
+          </FormField>
+        ) : null}
+
+        <div className="fg-settings-form__actions">
+          <Button
+            disabled={!canTransfer}
+            loading={transferSaving}
+            loadingLabel="Queueing…"
+            size="compact"
+            type="submit"
+            variant="primary"
+          >
+            Transfer Now
+          </Button>
+        </div>
+      </form>
     </section>
   );
 }
@@ -746,6 +601,8 @@ export function AppSettingsPanel({
   const sourceSectionHint = readSourceSectionHint(app);
   const sourceFieldLabel = readSourceFieldLabel(app);
   const manualRefreshState = readManualRefreshState(app);
+  const branchFieldHint = readBranchFieldHint(app);
+  const repositoryAccessHint = readRepositoryAccessHint(app);
   const branchChanged = normalizedBranch !== normalizeText(currentBranch);
   const repoAuthTokenChanged = normalizedRepoAuthToken.length > 0;
   const projectChanged = normalizedProjectName !== currentProjectName;
@@ -773,7 +630,6 @@ export function AppSettingsPanel({
   const projectSectionNote = projectManaged
     ? `${serviceCount} service${serviceCount === 1 ? "" : "s"} share this project shell. Renaming it updates the whole group.`
     : "This service still lives in the Unassigned bucket, so the shared shell cannot be renamed yet.";
-  const currentBranchLabel = normalizeText(currentBranch) || "Default branch";
 
   async function handleProjectSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -859,7 +715,7 @@ export function AppSettingsPanel({
 
     if (!canEditBranch) {
       showToast({
-        message: readBranchFieldHint(app),
+        message: branchFieldHint ?? "Branch changes are unavailable.",
         variant: "info",
       });
       return;
@@ -891,7 +747,7 @@ export function AppSettingsPanel({
       showToast({
         message: normalizedBranch
           ? `Rebuild queued from ${normalizedBranch}.`
-          : "Rebuild queued from the repository default branch.",
+          : "Rebuild queued from default branch.",
         variant: "success",
       });
       startTransition(() => {
@@ -927,8 +783,8 @@ export function AppSettingsPanel({
       showToast({
         message:
           syncState.action === "disable"
-            ? "Pause queued. GitHub background sync will stop when replicas reach 0."
-            : "Start queued. GitHub background sync will resume at 1 replica.",
+            ? "Pause queued."
+            : "Resume queued.",
         variant: "success",
       });
       startTransition(() => {
@@ -957,7 +813,7 @@ export function AppSettingsPanel({
 
     if (!canUpdateRepoAccess) {
       showToast({
-        message: readRepositoryAccessHint(app),
+        message: repositoryAccessHint ?? "Token updates are unavailable.",
         variant: "info",
       });
       return;
@@ -1084,7 +940,9 @@ export function AppSettingsPanel({
           <div className="fg-route-subsection__copy fg-settings-section__copy">
             <p className="fg-label fg-panel__eyebrow">Source</p>
             <h3 className="fg-route-subsection__title fg-ui-heading">{sourceSectionTitle}</h3>
-            <p className="fg-route-subsection__note">{sourceSectionHint}</p>
+            {sourceSectionHint ? (
+              <p className="fg-route-subsection__note">{sourceSectionHint}</p>
+            ) : null}
           </div>
 
           <StatusBadge tone={isGitHubSource ? "info" : "neutral"}>
@@ -1093,31 +951,11 @@ export function AppSettingsPanel({
         </div>
 
         {isGitHubSource ? (
-          <form className="fg-settings-form" onSubmit={handleBranchSubmit}>
-            <FormField
-              htmlFor={`service-branch-${app.id}`}
-              label="Tracked branch"
-              optionalLabel="Optional"
-            >
-              <input
-                autoCapitalize="off"
-                autoComplete="off"
-                autoCorrect="off"
-                className="fg-input"
-                disabled={!canEditBranch || branchSaving}
-                id={`service-branch-${app.id}`}
-                name="trackedBranch"
-                onChange={(event) => setBranchDraft(event.target.value)}
-                placeholder="main"
-                spellCheck={false}
-                value={branchDraft}
-              />
-            </FormField>
-
-            <dl className="fg-settings-meta">
-              <div>
-                <dt>Repository</dt>
-                <dd>
+          <form className="fg-settings-form fg-settings-form--source" onSubmit={handleBranchSubmit}>
+            <div className="fg-settings-source-toolbar">
+              <div className="fg-settings-source-meta">
+                <span className="fg-settings-source-meta__label">Repository</span>
+                <span className="fg-settings-source-meta__value">
                   {app.sourceHref ? (
                     <a
                       className="fg-text-link"
@@ -1130,80 +968,106 @@ export function AppSettingsPanel({
                   ) : (
                     sourceLabel
                   )}
-                </dd>
+                </span>
               </div>
-              <div>
-                <dt>Saved branch</dt>
-                <dd>{currentBranchLabel}</dd>
-              </div>
-              <div>
-                <dt>Build source</dt>
-                <dd>{normalizeText(app.sourceMeta) || "Unknown"}</dd>
-              </div>
-              <div>
-                <dt>Service state</dt>
-                <dd>{app.phase}</dd>
-              </div>
-            </dl>
 
-            {branchChanged || branchSaving ? (
-              <div className="fg-settings-form__actions">
-                <Button
-                  disabled={branchSaving}
-                  onClick={() => setBranchDraft(currentBranch)}
-                  size="compact"
-                  type="button"
-                  variant="secondary"
-                >
-                  Reset
-                </Button>
-                <Button
-                  disabled={!canEditBranch || !branchChanged || branchSaving}
-                  loading={branchSaving}
-                  loadingLabel="Queueing…"
-                  size="compact"
-                  type="submit"
-                  variant="primary"
-                >
-                  Save and rebuild
-                </Button>
+              <div className="fg-settings-source-control">
+                <div className="fg-settings-source-control__row">
+                  <span className="fg-settings-source-control__label">Auto sync</span>
+                  <StatusBadge live={syncState.action === "disable"} tone={syncState.tone}>
+                    {syncState.label}
+                  </StatusBadge>
+                  {syncState.actionLabel ? (
+                    <Button
+                      loading={syncSaving}
+                      loadingLabel={syncState.action === "disable" ? "Pausing…" : "Starting…"}
+                      onClick={handleGitHubSyncToggle}
+                      size="compact"
+                      type="button"
+                      variant={syncState.action === "disable" ? "secondary" : "primary"}
+                    >
+                      {syncState.actionLabel}
+                    </Button>
+                  ) : null}
+                </div>
+
+                {syncState.description ? (
+                  <p className="fg-settings-source-control__note">{syncState.description}</p>
+                ) : null}
               </div>
-            ) : null}
+            </div>
+
+            <div className="fg-settings-source-field">
+              <FormField
+                hint={branchFieldHint ?? undefined}
+                htmlFor={`service-branch-${app.id}`}
+                label="Tracked branch"
+              >
+                <input
+                  autoCapitalize="off"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  className="fg-input"
+                  disabled={!canEditBranch || branchSaving}
+                  id={`service-branch-${app.id}`}
+                  name="trackedBranch"
+                  onChange={(event) => setBranchDraft(event.target.value)}
+                  placeholder="main"
+                  spellCheck={false}
+                  value={branchDraft}
+                />
+              </FormField>
+
+              {branchChanged || branchSaving ? (
+                <div className="fg-settings-form__actions">
+                  <Button
+                    disabled={branchSaving}
+                    onClick={() => setBranchDraft(currentBranch)}
+                    size="compact"
+                    type="button"
+                    variant="secondary"
+                  >
+                    Reset
+                  </Button>
+                  <Button
+                    disabled={!canEditBranch || !branchChanged || branchSaving}
+                    loading={branchSaving}
+                    loadingLabel="Queueing…"
+                    size="compact"
+                    type="submit"
+                    variant="primary"
+                  >
+                    Save and rebuild
+                  </Button>
+                </div>
+              ) : null}
+            </div>
           </form>
         ) : (
-          <div className="fg-settings-form">
-            <FormField htmlFor={`service-source-${app.id}`} label={sourceFieldLabel}>
-              <input
-                autoCapitalize="off"
-                autoComplete="off"
-                autoCorrect="off"
-                className="fg-input"
-                id={`service-source-${app.id}`}
-                name="sourceReference"
-                readOnly
-                spellCheck={false}
-                value={sourceLabel}
-              />
-            </FormField>
+          <div className="fg-settings-form fg-settings-form--source">
+            <div className="fg-settings-source-toolbar">
+              <div className="fg-settings-source-meta">
+                <span className="fg-settings-source-meta__label">{sourceFieldLabel}</span>
+                <span className="fg-settings-source-meta__value">{sourceLabel}</span>
+              </div>
 
-            <dl className="fg-settings-meta">
-              <div>
-                <dt>Source type</dt>
-                <dd>{sourceKindLabel}</dd>
-              </div>
-              <div>
-                <dt>Build source</dt>
-                <dd>{normalizeText(app.sourceMeta) || "Unknown"}</dd>
-              </div>
-              <div>
-                <dt>Update mode</dt>
-                <dd>{manualRefreshState?.label ?? "Manual"}</dd>
-              </div>
-              <div>
-                <dt>Service state</dt>
-                <dd>{app.phase}</dd>
-              </div>
-            </dl>
+              {manualRefreshState ? (
+                <div className="fg-settings-source-control">
+                  <div className="fg-settings-source-control__row">
+                    <span className="fg-settings-source-control__label">{manualRefreshState.title}</span>
+                    <StatusBadge tone={manualRefreshState.tone}>
+                      {manualRefreshState.label}
+                    </StatusBadge>
+                  </div>
+
+                  {manualRefreshState.description ? (
+                    <p className="fg-settings-source-control__note">
+                      {manualRefreshState.description}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
           </div>
         )}
       </section>
@@ -1216,19 +1080,38 @@ export function AppSettingsPanel({
           <div className="fg-route-subsection__head">
             <div className="fg-route-subsection__copy fg-settings-section__copy">
               <p className="fg-label fg-panel__eyebrow">Source</p>
-              <h3 className="fg-route-subsection__title fg-ui-heading">Private repository access</h3>
-              <p className="fg-route-subsection__note">{readRepositoryAccessHint(app)}</p>
+              <h3 className="fg-route-subsection__title fg-ui-heading">Repository token</h3>
+              {repositoryAccessHint ? (
+                <p className="fg-route-subsection__note">{repositoryAccessHint}</p>
+              ) : null}
             </div>
 
             <StatusBadge tone="info">Stored token</StatusBadge>
           </div>
 
           <form className="fg-settings-form" onSubmit={handleRepositoryAccessSubmit}>
+            <div className="fg-settings-source-meta">
+              <span className="fg-settings-source-meta__label">Repository</span>
+              <span className="fg-settings-source-meta__value">
+                {app.sourceHref ? (
+                  <a
+                    className="fg-text-link"
+                    href={app.sourceHref}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    {sourceLabel}
+                  </a>
+                ) : (
+                  sourceLabel
+                )}
+              </span>
+            </div>
+
             <FormField
-              hint="Use a GitHub token with repository read access. Fugue stores it server-side for later rebuilds and syncs."
+              hint="Needs GitHub repo read access."
               htmlFor={`repo-auth-token-${app.id}`}
               label="Replace token"
-              optionalLabel="Optional"
             >
               <input
                 autoCapitalize="none"
@@ -1244,38 +1127,6 @@ export function AppSettingsPanel({
                 value={repoAuthTokenDraft}
               />
             </FormField>
-
-            <dl className="fg-settings-meta">
-              <div>
-                <dt>Repository</dt>
-                <dd>
-                  {app.sourceHref ? (
-                  <a
-                    className="fg-text-link"
-                    href={app.sourceHref}
-                    rel="noreferrer"
-                    target="_blank"
-                  >
-                    {sourceLabel}
-                  </a>
-                ) : (
-                  sourceLabel
-                )}
-              </dd>
-            </div>
-              <div>
-                <dt>Access mode</dt>
-                <dd>Private repository</dd>
-              </div>
-              <div>
-                <dt>Stored credential</dt>
-                <dd>Server-side token</dd>
-              </div>
-              <div>
-                <dt>Save behavior</dt>
-                <dd>Queues a rebuild</dd>
-              </div>
-            </dl>
 
             {repoAuthTokenChanged || repoAuthTokenSaving ? (
               <div className="fg-settings-form__actions">
@@ -1304,59 +1155,7 @@ export function AppSettingsPanel({
         </section>
       ) : null}
 
-      {isGitHubSource ? (
-        <section aria-label="GitHub sync" className="fg-route-subsection fg-settings-section">
-          <div className="fg-route-subsection__head">
-            <div className="fg-route-subsection__copy fg-settings-section__copy">
-              <p className="fg-label fg-panel__eyebrow">Sync</p>
-              <h3 className="fg-route-subsection__title fg-ui-heading">GitHub auto sync</h3>
-              <p className="fg-route-subsection__note">{syncState.description}</p>
-            </div>
-
-            <div className="fg-settings-sync__summary">
-              <StatusBadge live={syncState.action === "disable"} tone={syncState.tone}>
-                {syncState.label}
-              </StatusBadge>
-
-              {syncState.actionLabel ? (
-                <Button
-                  loading={syncSaving}
-                  loadingLabel={syncState.action === "disable" ? "Pausing…" : "Starting…"}
-                  onClick={handleGitHubSyncToggle}
-                  size="compact"
-                  type="button"
-                  variant={syncState.action === "disable" ? "secondary" : "primary"}
-                >
-                  {syncState.actionLabel}
-                </Button>
-              ) : null}
-            </div>
-          </div>
-        </section>
-      ) : manualRefreshState ? (
-        <section
-          aria-label={manualRefreshState.title}
-          className="fg-route-subsection fg-settings-section"
-        >
-          <div className="fg-route-subsection__head">
-            <div className="fg-route-subsection__copy fg-settings-section__copy">
-              <p className="fg-label fg-panel__eyebrow">Sync</p>
-              <h3 className="fg-route-subsection__title fg-ui-heading">
-                {manualRefreshState.title}
-              </h3>
-              <p className="fg-route-subsection__note">{manualRefreshState.description}</p>
-            </div>
-
-            <div className="fg-settings-sync__summary">
-              <StatusBadge tone={manualRefreshState.tone}>
-                {manualRefreshState.label}
-              </StatusBadge>
-            </div>
-          </div>
-        </section>
-      ) : null}
-
-      <AppFailoverSection
+      <AppTransferSection
         app={app}
         runtimeTargetInventoryError={runtimeTargetInventoryError}
         runtimeTargets={runtimeTargets}

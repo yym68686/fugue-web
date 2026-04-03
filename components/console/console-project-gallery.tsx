@@ -16,6 +16,7 @@ import { ImportServiceFields } from "@/components/console/import-service-fields"
 import { StatusBadge } from "@/components/console/status-badge";
 import { AppSettingsPanel } from "@/components/console/app-settings-panel";
 import { AppRoutePanel } from "@/components/console/app-route-panel";
+import { AppImagesPanel } from "@/components/console/app-images-panel";
 import { ConsoleFilesWorkbench } from "@/components/console/console-files-workbench";
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -162,7 +163,7 @@ type LogStreamEnd = {
 
 type AppAction = "delete" | "disable" | "redeploy" | "restart" | "start";
 type ProjectAction = "delete";
-type WorkbenchView = "env" | "files" | "logs" | "route" | "settings";
+type WorkbenchView = "env" | "files" | "images" | "logs" | "route" | "settings";
 type EnvironmentFormat = "raw" | "table";
 type LogsView = "build" | "runtime";
 
@@ -195,6 +196,7 @@ const WORKBENCH_VIEW_OPTIONS: readonly SegmentedControlOption<WorkbenchView>[] =
   { value: "route", label: "Route" },
   { value: "files", label: "Files" },
   { value: "logs", label: "Logs" },
+  { value: "images", label: "Images" },
   { value: "settings", label: "Settings" },
 ];
 
@@ -202,6 +204,7 @@ const ENV_ROUTE_AND_LOGS_WORKBENCH_OPTIONS: readonly SegmentedControlOption<Work
   { value: "env", label: "Environment" },
   { value: "route", label: "Route" },
   { value: "logs", label: "Logs" },
+  { value: "images", label: "Images" },
   { value: "settings", label: "Settings" },
 ];
 
@@ -3267,6 +3270,14 @@ export function ConsoleProjectGallery({
                     appName={selectedService.name}
                     key={selectedService.id}
                     workspaceMountPath={selectedService.workspaceMountPath}
+                  />
+                ) : null}
+
+                {selectedService.kind === "app" && activeTab === "images" ? (
+                  <AppImagesPanel
+                    appId={selectedService.id}
+                    appName={selectedService.name}
+                    key={selectedService.id}
                   />
                 ) : null}
 
