@@ -29,6 +29,7 @@ import type { ConsoleTone } from "@/lib/console/types";
 type AdminUserBillingView = {
   balanceLabel: string | null;
   balanceMicroCents: number | null;
+  committedStorageGibibytes: number | null;
   cpuMillicores: number | null;
   limitLabel: string;
   loadError: string | null;
@@ -39,7 +40,9 @@ type AdminUserBillingView = {
     currency: string;
     hoursPerMonth: number;
     memoryMicroCentsPerMibHour: number;
+    storageMicroCentsPerGibHour: number;
   } | null;
+  storageGibibytes: number | null;
   statusLabel: string | null;
   statusReason: string | null;
   statusTone: ConsoleTone;
@@ -80,8 +83,10 @@ const MILLICORES_PER_VCPU = 1000;
 const MEBIBYTES_PER_GIB = 1024;
 const CPU_STEP_CORES = 0.5;
 const MEMORY_STEP_GIB = 0.25;
+const STORAGE_STEP_GIB = 1;
 const CPU_SLIDER_MAX_CORES = 2;
 const MEMORY_SLIDER_MAX_GIB = 4;
+const STORAGE_SLIDER_MAX_GIB = 30;
 const CPU_SLIDER_MAX_MILLICORES = CPU_SLIDER_MAX_CORES * MILLICORES_PER_VCPU;
 const MEMORY_SLIDER_MAX_MEBIBYTES = MEMORY_SLIDER_MAX_GIB * MEBIBYTES_PER_GIB;
 const FOCUSABLE_SELECTOR = [
@@ -194,6 +199,10 @@ function formatMemory(memoryMebibytes: number) {
   return `${formatCompactNumber(gib, Number.isInteger(gib) ? 0 : 2)} GiB`;
 }
 
+function formatStorage(storageGibibytes: number) {
+  return `${formatCompactNumber(storageGibibytes, Number.isInteger(storageGibibytes) ? 0 : 2)} GiB`;
+}
+
 function clampQuotaCpuMillicores(value: number) {
   return Math.round(
     clampSteppedValue({
@@ -214,19 +223,38 @@ function clampQuotaMemoryMebibytes(value: number) {
   );
 }
 
+function clampQuotaStorageGibibytes(value: number) {
+  return Math.round(
+    clampSteppedValue({
+      max: STORAGE_SLIDER_MAX_GIB,
+      step: STORAGE_STEP_GIB,
+      value,
+    }),
+  );
+}
+
 function formatResourceSpec(spec: {
   cpuMillicores: number;
   memoryMebibytes: number;
+  storageGibibytes?: number;
 }) {
-  return `${formatCPU(spec.cpuMillicores)} / ${formatMemory(spec.memoryMebibytes)}`;
+  const parts = [formatCPU(spec.cpuMillicores), formatMemory(spec.memoryMebibytes)];
+
+  if (spec.storageGibibytes !== undefined) {
+    parts.push(formatStorage(spec.storageGibibytes));
+  }
+
+  return parts.join(" / ");
 }
 
 function estimateMonthlyMicroCents(
   spec: {
     cpuMillicores: number;
     memoryMebibytes: number;
+    storageGibibytes?: number;
   },
   priceBook: NonNullable<AdminUserBillingView["priceBook"]>,
+  committedStorageGibibytes = 0,
 ) {
   if (spec.cpuMillicores <= 0 || spec.memoryMebibytes <= 0) {
     return 0;
@@ -234,7 +262,9 @@ function estimateMonthlyMicroCents(
 
   return (
     spec.cpuMillicores * priceBook.cpuMicroCentsPerMillicoreHour +
-    spec.memoryMebibytes * priceBook.memoryMicroCentsPerMibHour
+    spec.memoryMebibytes * priceBook.memoryMicroCentsPerMibHour +
+    Math.max(spec.storageGibibytes ?? 0, committedStorageGibibytes) *
+      priceBook.storageMicroCentsPerGibHour
   ) * priceBook.hoursPerMonth;
 }
 
@@ -244,6 +274,7 @@ function canEditQuota(user: AdminUserView) {
       user.billing.priceBook &&
       user.billing.cpuMillicores !== null &&
       user.billing.memoryMebibytes !== null &&
+      user.billing.storageGibibytes !== null &&
       !user.billing.loadError,
   );
 }
@@ -260,6 +291,7 @@ export function AdminUserManager({
   const [editingQuotaEmail, setEditingQuotaEmail] = useState<string | null>(null);
   const [quotaCpu, setQuotaCpu] = useState(0);
   const [quotaMemory, setQuotaMemory] = useState(0);
+  const [quotaStorage, setQuotaStorage] = useState(0);
   const [balanceAmount, setBalanceAmount] = useState("0.00");
   const [quotaError, setQuotaError] = useState<string | null>(null);
   const [balanceError, setBalanceError] = useState<string | null>(null);
@@ -271,15 +303,26 @@ export function AdminUserManager({
     : null;
   const quotaCpuCores = quotaCpu / MILLICORES_PER_VCPU;
   const quotaMemoryGib = quotaMemory / MEBIBYTES_PER_GIB;
+  const committedStorageGibibytes = editingQuotaUser?.billing.committedStorageGibibytes ?? 0;
   const previewPriceBook = editingQuotaUser?.billing.priceBook ?? null;
+  const previewSpec = {
+    cpuMillicores: quotaCpu,
+    memoryMebibytes: quotaMemory,
+    storageGibibytes: quotaStorage,
+  };
+  const previewBilledSpec = {
+    ...previewSpec,
+    storageGibibytes:
+      quotaCpu > 0 && quotaMemory > 0
+        ? Math.max(quotaStorage, committedStorageGibibytes)
+        : 0,
+  };
   const previewMonthly =
     previewPriceBook && editingQuotaUser
       ? estimateMonthlyMicroCents(
-          {
-            cpuMillicores: quotaCpu,
-            memoryMebibytes: quotaMemory,
-          },
+          previewSpec,
           previewPriceBook,
+          committedStorageGibibytes,
         )
       : null;
   const currentBalanceMicroCents = editingQuotaUser?.billing.balanceMicroCents ?? null;
@@ -292,7 +335,8 @@ export function AdminUserManager({
     editingQuotaUser &&
       canEditQuota(editingQuotaUser) &&
       (quotaCpu !== editingQuotaUser.billing.cpuMillicores ||
-        quotaMemory !== editingQuotaUser.billing.memoryMebibytes),
+        quotaMemory !== editingQuotaUser.billing.memoryMebibytes ||
+        quotaStorage !== editingQuotaUser.billing.storageGibibytes),
   );
   const balanceDirty = Boolean(
     editingQuotaUser &&
@@ -303,7 +347,8 @@ export function AdminUserManager({
   const quotaExceedsUiCap = Boolean(
     editingQuotaUser &&
       ((editingQuotaUser.billing.cpuMillicores ?? 0) > CPU_SLIDER_MAX_MILLICORES ||
-        (editingQuotaUser.billing.memoryMebibytes ?? 0) > MEMORY_SLIDER_MAX_MEBIBYTES),
+        (editingQuotaUser.billing.memoryMebibytes ?? 0) > MEMORY_SLIDER_MAX_MEBIBYTES ||
+        (editingQuotaUser.billing.storageGibibytes ?? 0) > STORAGE_SLIDER_MAX_GIB),
   );
   const quotaBusy = Boolean(editingQuotaUser && busyAction === `quota:${editingQuotaUser.email}`);
   const quotaBlocked = Boolean(
@@ -323,6 +368,7 @@ export function AdminUserManager({
     setEditingQuotaEmail(null);
     setQuotaCpu(0);
     setQuotaMemory(0);
+    setQuotaStorage(0);
     setBalanceAmount("0.00");
     setQuotaError(null);
     setBalanceError(null);
@@ -361,6 +407,7 @@ export function AdminUserManager({
     setEditingQuotaEmail(null);
     setQuotaCpu(0);
     setQuotaMemory(0);
+    setQuotaStorage(0);
     setBalanceAmount("0.00");
     setQuotaError(null);
     setBalanceError(null);
@@ -393,6 +440,7 @@ export function AdminUserManager({
     setEditingQuotaEmail(user.email);
     setQuotaCpu(clampQuotaCpuMillicores(user.billing.cpuMillicores ?? 0));
     setQuotaMemory(clampQuotaMemoryMebibytes(user.billing.memoryMebibytes ?? 0));
+    setQuotaStorage(clampQuotaStorageGibibytes(user.billing.storageGibibytes ?? 0));
     setBalanceAmount(formatBalanceDraftFromMicroCents(user.billing.balanceMicroCents));
     setQuotaError(null);
     setBalanceError(null);
@@ -585,6 +633,7 @@ export function AdminUserManager({
             managedCap: {
               cpuMillicores: quotaCpu,
               memoryMebibytes: quotaMemory,
+              storageGibibytes: quotaStorage,
             },
           }),
           headers: {
@@ -717,7 +766,9 @@ export function AdminUserManager({
               <th>
                 <span className="fg-admin-user-column-head">
                   <span className="fg-admin-user-column-head__label">Managed limit</span>
-                  <span className="fg-admin-user-column-head__meta">CPU / Memory / Monthly</span>
+                  <span className="fg-admin-user-column-head__meta">
+                    CPU / Memory / Storage / Monthly
+                  </span>
                 </span>
               </th>
               <th>
@@ -750,6 +801,10 @@ export function AdminUserManager({
                 user.billing.memoryMebibytes !== null
                   ? formatMemory(user.billing.memoryMebibytes)
                   : "No stats";
+              const billingStorageLabel =
+                user.billing.storageGibibytes !== null
+                  ? formatStorage(user.billing.storageGibibytes)
+                  : "No stats";
               const billingMonthlyLabel = user.billing.monthlyEstimateLabel
                 ? `${user.billing.monthlyEstimateLabel}/mo`
                 : user.billing.loadError
@@ -777,6 +832,7 @@ export function AdminUserManager({
               const managedLimitSummaryLabel = [
                 `CPU ${billingCpuLabel}`,
                 `Memory ${billingMemoryLabel}`,
+                `Storage ${billingStorageLabel}`,
                 `Monthly ${billingMonthlyLabel}`,
               ].join(" / ");
               const balanceTitle = [
@@ -857,6 +913,10 @@ export function AdminUserManager({
                         <div className="fg-admin-user-signal">
                           <dt>Memory</dt>
                           <dd>{billingMemoryLabel}</dd>
+                        </div>
+                        <div className="fg-admin-user-signal">
+                          <dt>Storage</dt>
+                          <dd>{billingStorageLabel}</dd>
                         </div>
                         <div className="fg-admin-user-signal">
                           <dt>Monthly</dt>
@@ -1039,8 +1099,9 @@ export function AdminUserManager({
                   ) : null}
                   {quotaExceedsUiCap ? (
                     <InlineAlert variant="warning">
-                      The saved limit is above the temporary control cap of 2 cpu and 4 GiB.
-                      Save a new limit here to bring the user back inside the current range.
+                      The saved limit is above the temporary control cap of 2 cpu / 4 GiB /
+                      30 GiB storage. Save a new limit here to bring the user back inside the
+                      current range.
                     </InlineAlert>
                   ) : null}
 
@@ -1106,6 +1167,26 @@ export function AdminUserManager({
                             value={quotaMemoryGib}
                             valueLabel={formatMemory(quotaMemory)}
                           />
+
+                          <SteppedSliderField
+                            disabled={quotaBusy || quotaBlocked}
+                            hint="Retained images from older service revisions still count toward committed storage until they are cleaned up."
+                            id={`quota-storage-${editingQuotaUser.email}`}
+                            label="Storage limit"
+                            max={STORAGE_SLIDER_MAX_GIB}
+                            maxLabel={formatStorage(STORAGE_SLIDER_MAX_GIB)}
+                            minLabel={formatStorage(0)}
+                            name="quotaStorage"
+                            onChange={(nextValue) => {
+                              setQuotaStorage(clampQuotaStorageGibibytes(nextValue));
+                              if (quotaError) {
+                                setQuotaError(null);
+                              }
+                            }}
+                            step={STORAGE_STEP_GIB}
+                            value={quotaStorage}
+                            valueLabel={formatStorage(quotaStorage)}
+                          />
                         </div>
 
                         <div className="fg-admin-user-quota-form__footer">
@@ -1121,10 +1202,9 @@ export function AdminUserManager({
                             <p>
                               {quotaCpu === 0 || quotaMemory === 0
                                 ? "Set CPU or memory to 0 to pause managed billing."
-                                : formatResourceSpec({
-                                    cpuMillicores: quotaCpu,
-                                    memoryMebibytes: quotaMemory,
-                                  })}
+                                : previewBilledSpec.storageGibibytes !== quotaStorage
+                                  ? `${formatResourceSpec(previewSpec)} limit. Billed as ${formatResourceSpec(previewBilledSpec)} until live storage shrinks.`
+                                  : formatResourceSpec(previewSpec)}
                             </p>
                           </div>
 

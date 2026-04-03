@@ -636,6 +636,7 @@ function AdminUsersTableSkeleton() {
                 <div className="fg-console-tech-list">
                   <SkeletonBlock className="fg-console-skeleton__chip" width="3.4rem" />
                   <SkeletonBlock className="fg-console-skeleton__chip" width="4.25rem" />
+                  <SkeletonBlock className="fg-console-skeleton__chip" width="4rem" />
                   <SkeletonBlock className="fg-console-skeleton__chip" width="5rem" />
                 </div>
               </td>
@@ -1152,7 +1153,7 @@ export function ConsoleBillingPageSkeleton() {
                   </div>
 
                   <div className="fg-billing-hero__meta">
-                    {["7.5rem", "8.25rem", "6rem"].map((width) => (
+                    {["8rem", "8.5rem", "8.25rem", "6rem"].map((width) => (
                       <SkeletonBlock className="fg-console-skeleton__chip" key={width} width={width} />
                     ))}
                   </div>
@@ -1168,16 +1169,16 @@ export function ConsoleBillingPageSkeleton() {
 
           <PanelSection>
             <div className="fg-billing-form__grid">
-              {[0, 1].map((item) => (
+              {[0, 1, 2].map((item) => (
                 <div className="fg-field-stack" key={`billing-envelope-skeleton-${item}`}>
                   <SkeletonBlock
                     className="fg-console-skeleton__section-label"
-                    width={item === 0 ? "3rem" : "4rem"}
+                    width={item === 0 ? "3rem" : item === 1 ? "4rem" : "4.5rem"}
                   />
                   <SkeletonBlock className="fg-console-skeleton__field" height="4.25rem" radius="1.15rem" />
                   <SkeletonBlock
                     className="fg-console-skeleton__copy"
-                    width={item === 0 ? "13rem" : "14rem"}
+                    width={item === 0 ? "13rem" : item === 1 ? "14rem" : "15rem"}
                   />
                 </div>
               ))}

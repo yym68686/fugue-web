@@ -100,12 +100,14 @@ export type AdminUserView = {
 export type AdminUserBillingView = {
   balanceLabel: string | null;
   balanceMicroCents: number | null;
+  committedStorageGibibytes: number | null;
   cpuMillicores: number | null;
   limitLabel: string;
   loadError: string | null;
   memoryMebibytes: number | null;
   monthlyEstimateLabel: string | null;
   priceBook: FugueBillingPriceBook | null;
+  storageGibibytes: number | null;
   statusLabel: string | null;
   statusReason: string | null;
   statusTone: ConsoleTone;
@@ -815,23 +817,21 @@ function formatBillingMemory(memoryMebibytes: number) {
   return `${formatCompactNumber(gib, Number.isInteger(gib) ? 0 : 2)} GiB`;
 }
 
-function formatBillingResourceSpec(spec: FugueResourceSpec) {
-  return `${formatBillingCPU(spec.cpuMillicores)} / ${formatBillingMemory(spec.memoryMebibytes)}`;
+function formatBillingStorage(storageGibibytes: number) {
+  return `${formatCompactNumber(storageGibibytes, Number.isInteger(storageGibibytes) ? 0 : 2)} GiB`;
 }
 
-function estimateHourlyRateMicroCents(spec: FugueResourceSpec, priceBook: FugueBillingPriceBook) {
-  if (spec.cpuMillicores <= 0 || spec.memoryMebibytes <= 0) {
-    return 0;
+function formatBillingResourceSpec(spec: FugueResourceSpec) {
+  const parts = [
+    formatBillingCPU(spec.cpuMillicores),
+    formatBillingMemory(spec.memoryMebibytes),
+  ];
+
+  if (spec.storageGibibytes !== undefined) {
+    parts.push(formatBillingStorage(spec.storageGibibytes));
   }
 
-  return (
-    spec.cpuMillicores * priceBook.cpuMicroCentsPerMillicoreHour +
-    spec.memoryMebibytes * priceBook.memoryMicroCentsPerMibHour
-  );
-}
-
-function estimateMonthlyMicroCents(spec: FugueResourceSpec, priceBook: FugueBillingPriceBook) {
-  return estimateHourlyRateMicroCents(spec, priceBook) * priceBook.hoursPerMonth;
+  return parts.join(" / ");
 }
 
 function readBillingStatusTone(billing: FugueBillingSummary): ConsoleTone {
@@ -858,12 +858,14 @@ function buildAdminUserBillingView(
     return {
       balanceLabel: null,
       balanceMicroCents: null,
+      committedStorageGibibytes: null,
       cpuMillicores: null,
       limitLabel: "No workspace",
       loadError: null,
       memoryMebibytes: null,
       monthlyEstimateLabel: null,
       priceBook: null,
+      storageGibibytes: null,
       statusLabel: null,
       statusReason: null,
       statusTone: "neutral",
@@ -875,12 +877,14 @@ function buildAdminUserBillingView(
     return {
       balanceLabel: null,
       balanceMicroCents: null,
+      committedStorageGibibytes: null,
       cpuMillicores: null,
       limitLabel: "Billing unavailable",
       loadError: billingLookup?.error ?? "Fugue billing is unavailable for this workspace.",
       memoryMebibytes: null,
       monthlyEstimateLabel: null,
       priceBook: null,
+      storageGibibytes: null,
       statusLabel: null,
       statusReason: null,
       statusTone: "neutral",
@@ -896,15 +900,17 @@ function buildAdminUserBillingView(
       billing.priceBook.currency,
     ),
     balanceMicroCents: billing.balanceMicroCents,
+    committedStorageGibibytes: billing.managedCommitted.storageGibibytes,
     cpuMillicores: billing.managedCap.cpuMillicores,
     limitLabel: formatBillingResourceSpec(billing.managedCap),
     loadError: null,
     memoryMebibytes: billing.managedCap.memoryMebibytes,
     monthlyEstimateLabel: formatCurrencyFromMicroCents(
-      estimateMonthlyMicroCents(billing.managedCap, billing.priceBook),
+      billing.monthlyEstimateMicroCents,
       billing.priceBook.currency,
     ),
     priceBook: billing.priceBook,
+    storageGibibytes: billing.managedCap.storageGibibytes,
     statusLabel: humanize(billing.status),
     statusReason: billing.statusReason,
     statusTone: readBillingStatusTone(billing),

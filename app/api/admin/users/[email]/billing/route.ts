@@ -80,6 +80,14 @@ export async function PATCH(request: Request, context: RouteContext) {
           managedCap: {
             cpuMillicores: readWholeNumber(managedCap.cpuMillicores, "CPU"),
             memoryMebibytes: readWholeNumber(managedCap.memoryMebibytes, "Memory"),
+            ...(managedCap.storageGibibytes !== undefined
+              ? {
+                  storageGibibytes: readWholeNumber(
+                    managedCap.storageGibibytes,
+                    "Storage",
+                  ),
+                }
+              : {}),
           },
         })
       : await setAdminUserBillingBalanceForEmail(email, {

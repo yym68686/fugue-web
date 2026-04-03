@@ -36,13 +36,16 @@ const MILLICORES_PER_VCPU = 1000;
 const MEBIBYTES_PER_GIB = 1024;
 const CPU_STEP_CORES = 0.5;
 const MEMORY_STEP_GIB = 0.25;
+const STORAGE_STEP_GIB = 1;
 const CPU_SLIDER_MAX_CORES = 2;
 const MEMORY_SLIDER_MAX_GIB = 4;
+const STORAGE_SLIDER_MAX_GIB = 30;
 const CPU_SLIDER_MAX_MILLICORES = CPU_SLIDER_MAX_CORES * MILLICORES_PER_VCPU;
 const MEMORY_SLIDER_MAX_MEBIBYTES = MEMORY_SLIDER_MAX_GIB * MEBIBYTES_PER_GIB;
 const DEFAULT_FREE_TIER_CAP: FugueResourceSpec = {
   cpuMillicores: 500,
   memoryMebibytes: 512,
+  storageGibibytes: 0,
 };
 
 function readErrorMessage(error: unknown) {
@@ -150,6 +153,10 @@ function formatMemoryMebibytes(memoryMebibytes: number) {
   return `${formatCompactNumber(gib, Number.isInteger(gib) ? 0 : 2)} GiB`;
 }
 
+function formatStorageGibibytes(storageGibibytes: number) {
+  return `${formatCompactNumber(storageGibibytes, Number.isInteger(storageGibibytes) ? 0 : 2)} GiB`;
+}
+
 function clampEnvelopeCpuMillicores(value: number) {
   return Math.round(
     clampSteppedValue({
@@ -170,8 +177,27 @@ function clampEnvelopeMemoryMebibytes(value: number) {
   );
 }
 
+function clampEnvelopeStorageGibibytes(value: number) {
+  return Math.round(
+    clampSteppedValue({
+      max: STORAGE_SLIDER_MAX_GIB,
+      step: STORAGE_STEP_GIB,
+      value,
+    }),
+  );
+}
+
 function formatResourceSpec(spec: FugueResourceSpec) {
-  return `${formatCPU(spec.cpuMillicores)} / ${formatMemoryMebibytes(spec.memoryMebibytes)}`;
+  const parts = [
+    formatCPU(spec.cpuMillicores),
+    formatMemoryMebibytes(spec.memoryMebibytes),
+  ];
+
+  if (spec.storageGibibytes !== undefined) {
+    parts.push(formatStorageGibibytes(spec.storageGibibytes));
+  }
+
+  return parts.join(" / ");
 }
 
 function formatRelativeTime(value?: string | null) {
@@ -289,6 +315,7 @@ function readCallout(billing: FugueBillingSummary) {
 function estimateHourlyRateMicroCents(
   spec: FugueResourceSpec,
   priceBook: FugueBillingPriceBook,
+  committedStorageGibibytes = 0,
 ) {
   if (spec.cpuMillicores <= 0 || spec.memoryMebibytes <= 0) {
     return 0;
@@ -296,15 +323,21 @@ function estimateHourlyRateMicroCents(
 
   return (
     spec.cpuMillicores * priceBook.cpuMicroCentsPerMillicoreHour +
-    spec.memoryMebibytes * priceBook.memoryMicroCentsPerMibHour
+    spec.memoryMebibytes * priceBook.memoryMicroCentsPerMibHour +
+    Math.max(spec.storageGibibytes ?? 0, committedStorageGibibytes) *
+      priceBook.storageMicroCentsPerGibHour
   );
 }
 
 function estimateMonthlyMicroCents(
   spec: FugueResourceSpec,
   priceBook: FugueBillingPriceBook,
+  committedStorageGibibytes = 0,
 ) {
-  return estimateHourlyRateMicroCents(spec, priceBook) * priceBook.hoursPerMonth;
+  return (
+    estimateHourlyRateMicroCents(spec, priceBook, committedStorageGibibytes) *
+    priceBook.hoursPerMonth
+  );
 }
 
 function sumVisibleFundingMicroCents(events: FugueBillingEvent[]) {
@@ -368,6 +401,7 @@ function readEventTitle(event: FugueBillingEvent) {
 function readEventResourceSpec(event: FugueBillingEvent) {
   const cpuMillicores = Number(event.metadata.cpu_millicores);
   const memoryMebibytes = Number(event.metadata.memory_mebibytes);
+  const storageGibibytes = Number(event.metadata.storage_gibibytes);
 
   if (!Number.isFinite(cpuMillicores) || !Number.isFinite(memoryMebibytes)) {
     return null;
@@ -376,6 +410,7 @@ function readEventResourceSpec(event: FugueBillingEvent) {
   return formatResourceSpec({
     cpuMillicores,
     memoryMebibytes,
+    ...(Number.isFinite(storageGibibytes) ? { storageGibibytes } : {}),
   });
 }
 
@@ -443,6 +478,9 @@ export function BillingPanel({
   const [envelopeMemory, setEnvelopeMemory] = useState(
     clampEnvelopeMemoryMebibytes(initialBilling?.managedCap.memoryMebibytes ?? 0),
   );
+  const [envelopeStorage, setEnvelopeStorage] = useState(
+    clampEnvelopeStorageGibibytes(initialBilling?.managedCap.storageGibibytes ?? 0),
+  );
   const [topUpAmount, setTopUpAmount] = useState("");
   const [envelopeError, setEnvelopeError] = useState<string | null>(null);
   const [topUpError, setTopUpError] = useState<string | null>(null);
@@ -454,6 +492,9 @@ export function BillingPanel({
     setEnvelopeMemory(
       clampEnvelopeMemoryMebibytes(initialBilling?.managedCap.memoryMebibytes ?? 0),
     );
+    setEnvelopeStorage(
+      clampEnvelopeStorageGibibytes(initialBilling?.managedCap.storageGibibytes ?? 0),
+    );
     setEnvelopeError(null);
   }, [initialBilling, initialSyncError]);
 
@@ -463,19 +504,33 @@ export function BillingPanel({
   const currency = billing?.priceBook.currency ?? "USD";
   const envelopeCpuCores = envelopeCpu / MILLICORES_PER_VCPU;
   const envelopeMemoryGib = envelopeMemory / MEBIBYTES_PER_GIB;
+  const committedStorageGibibytes = billing?.managedCommitted.storageGibibytes ?? 0;
   const parsedTopUpCents = parseDollarAmountToCents(topUpAmount);
   const previewSpec: FugueResourceSpec = {
     cpuMillicores: envelopeCpu,
     memoryMebibytes: envelopeMemory,
+    storageGibibytes: envelopeStorage,
+  };
+  const previewBilledSpec: FugueResourceSpec = {
+    ...previewSpec,
+    storageGibibytes:
+      envelopeCpu > 0 && envelopeMemory > 0
+        ? Math.max(envelopeStorage, committedStorageGibibytes)
+        : 0,
   };
   const hasEnvelopeChanges =
     billing !== null &&
     (envelopeCpu !== billing.managedCap.cpuMillicores ||
-      envelopeMemory !== billing.managedCap.memoryMebibytes);
+      envelopeMemory !== billing.managedCap.memoryMebibytes ||
+      envelopeStorage !== billing.managedCap.storageGibibytes);
   const previewHourlyRateMicroCents =
-    billing !== null ? estimateHourlyRateMicroCents(previewSpec, billing.priceBook) : 0;
+    billing !== null
+      ? estimateHourlyRateMicroCents(previewSpec, billing.priceBook, committedStorageGibibytes)
+      : 0;
   const previewMonthlyEstimateMicroCents =
-    billing !== null ? estimateMonthlyMicroCents(previewSpec, billing.priceBook) : 0;
+    billing !== null
+      ? estimateMonthlyMicroCents(previewSpec, billing.priceBook, committedStorageGibibytes)
+      : 0;
   const previewMonthlyEstimateLabel = formatCurrencyFromMicroCents(
     previewMonthlyEstimateMicroCents,
     currency,
@@ -492,16 +547,19 @@ export function BillingPanel({
       envelopeMemory - (billing?.managedCommitted.memoryMebibytes ?? 0),
       0,
     ),
+    storageGibibytes: Math.max(envelopeStorage - committedStorageGibibytes, 0),
   };
   const envelopeExceedsUiCap =
     billing !== null &&
     (billing.managedCap.cpuMillicores > CPU_SLIDER_MAX_MILLICORES ||
-      billing.managedCap.memoryMebibytes > MEMORY_SLIDER_MAX_MEBIBYTES);
+      billing.managedCap.memoryMebibytes > MEMORY_SLIDER_MAX_MEBIBYTES ||
+      billing.managedCap.storageGibibytes > STORAGE_SLIDER_MAX_GIB);
 
   function applyBillingSnapshot(nextBilling: FugueBillingSummary) {
     setBilling(nextBilling);
     setEnvelopeCpu(clampEnvelopeCpuMillicores(nextBilling.managedCap.cpuMillicores));
     setEnvelopeMemory(clampEnvelopeMemoryMebibytes(nextBilling.managedCap.memoryMebibytes));
+    setEnvelopeStorage(clampEnvelopeStorageGibibytes(nextBilling.managedCap.storageGibibytes));
     setEnvelopeError(null);
   }
 
@@ -571,6 +629,7 @@ export function BillingPanel({
           managedCap: {
             cpuMillicores: envelopeCpu,
             memoryMebibytes: envelopeMemory,
+            storageGibibytes: envelopeStorage,
           },
         }),
         headers: {
@@ -734,7 +793,8 @@ export function BillingPanel({
                     <span>per month</span>
                   </div>
                   <div className="fg-billing-hero__meta">
-                    <span>{formatResourceSpec(previewSpec)}</span>
+                    <span>{`Envelope ${formatResourceSpec(previewSpec)}`}</span>
+                    <span>{`Billed as ${formatResourceSpec(previewBilledSpec)}`}</span>
                     <span>{`Headroom ${formatResourceSpec(previewHeadroom)}`}</span>
                     <span>
                       {previewHourlyRateMicroCents > 0
@@ -756,8 +816,8 @@ export function BillingPanel({
             {callout ? <InlineAlert variant={callout.variant}>{callout.message}</InlineAlert> : null}
             {envelopeExceedsUiCap ? (
               <InlineAlert variant="warning">
-                Saved envelope exceeds the temporary 2 cpu / 4 GiB UI cap. Save again to bring it
-                back into range.
+                Saved envelope exceeds the temporary 2 cpu / 4 GiB / 30 GiB storage UI cap.
+                Save again to bring it back into range.
               </InlineAlert>
             ) : null}
 
@@ -801,6 +861,25 @@ export function BillingPanel({
                   step={MEMORY_STEP_GIB}
                   value={envelopeMemoryGib}
                   valueLabel={formatMemoryMebibytes(envelopeMemory)}
+                />
+
+                <SteppedSliderField
+                  disabled={isSavingEnvelope}
+                  hint="Retained managed images from older service revisions still count toward committed storage until they are cleaned up."
+                  id="billing-envelope-storage"
+                  label="Storage"
+                  max={STORAGE_SLIDER_MAX_GIB}
+                  maxLabel={formatStorageGibibytes(STORAGE_SLIDER_MAX_GIB)}
+                  minLabel={formatStorageGibibytes(0)}
+                  onChange={(nextValue) => {
+                    setEnvelopeStorage(clampEnvelopeStorageGibibytes(nextValue));
+                    if (envelopeError) {
+                      setEnvelopeError(null);
+                    }
+                  }}
+                  step={STORAGE_STEP_GIB}
+                  value={envelopeStorage}
+                  valueLabel={formatStorageGibibytes(envelopeStorage)}
                 />
               </div>
 

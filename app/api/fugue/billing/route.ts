@@ -89,6 +89,14 @@ export async function PATCH(request: Request) {
       managedCap: {
         cpuMillicores: readWholeNumber(managedCap.cpuMillicores, "CPU"),
         memoryMebibytes: readWholeNumber(managedCap.memoryMebibytes, "Memory"),
+        ...(managedCap.storageGibibytes !== undefined
+          ? {
+              storageGibibytes: readWholeNumber(
+                managedCap.storageGibibytes,
+                "Storage",
+              ),
+            }
+          : {}),
       },
     });
 
