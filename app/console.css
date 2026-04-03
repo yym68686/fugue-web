@@ -3622,6 +3622,20 @@
   justify-items: start;
 }
 
+.fg-project-toolbar__panels-switch {
+  justify-self: start;
+  --fg-control-strip-padding-block: var(--fugue-nav-pill-padding-block);
+  --fg-control-strip-padding-inline: var(--fugue-nav-pill-padding-inline);
+  --fg-control-strip-border: var(--fugue-nav-pill-border);
+  --fg-control-strip-bg: var(--fugue-nav-pill-bg);
+  --fg-control-strip-shadow: var(--fugue-nav-pill-shadow);
+  --fg-control-strip-blur: blur(var(--fugue-nav-pill-blur));
+  --fugue-segmented-gap: var(--fugue-nav-pill-gap);
+  --fugue-segmented-item-min-height: var(--fugue-nav-pill-item-min-height);
+  --fugue-segmented-item-padding-inline: var(--fugue-nav-pill-item-padding-inline);
+  --fugue-segmented-item-font-size: var(--fugue-nav-pill-item-font-size);
+}
+
 .fg-project-toolbar__label {
   color: var(--fugue-text-muted);
 }
@@ -6244,16 +6258,20 @@
     --fg-button-font-size: 0.82rem;
   }
 
-  .fg-project-workbench .fg-control-strip-shell--segmented {
+  .fg-project-workbench .fg-control-strip-shell--segmented:not(.fg-project-toolbar__panels-switch) {
     --fg-control-strip-padding-block: 0.16rem;
     --fg-control-strip-padding-inline: 0.16rem;
   }
 
-  .fg-project-workbench .fg-segmented {
+  .fg-project-workbench
+    .fg-control-strip-shell--segmented:not(.fg-project-toolbar__panels-switch)
+    .fg-segmented {
     gap: 0.14rem;
   }
 
-  .fg-project-workbench .fg-segmented__item {
+  .fg-project-workbench
+    .fg-control-strip-shell--segmented:not(.fg-project-toolbar__panels-switch)
+    .fg-segmented__item {
     padding-inline: 0.78rem;
     font-size: 0.82rem;
   }
@@ -6315,7 +6333,9 @@
     --fg-button-padding-inline-end: 0.74rem;
   }
 
-  .fg-project-workbench .fg-segmented__item {
+  .fg-project-workbench
+    .fg-control-strip-shell--segmented:not(.fg-project-toolbar__panels-switch)
+    .fg-segmented__item {
     padding-inline: 0.68rem;
   }
 }

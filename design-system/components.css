@@ -144,6 +144,10 @@
   scroll-snap-type: x proximity;
 }
 
+.fg-control-strip-shell[data-overflow="true"] .fg-control-strip__viewport {
+  touch-action: pan-x pinch-zoom;
+}
+
 .fg-control-strip__viewport::-webkit-scrollbar {
   display: none;
 }

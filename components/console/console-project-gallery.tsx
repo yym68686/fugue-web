@@ -3914,6 +3914,7 @@ export function ConsoleProjectGallery({
                     <p className="fg-label fg-project-toolbar__label">Panels</p>
                     <SegmentedControl
                       ariaLabel="Service panels"
+                      className="fg-project-toolbar__panels-switch"
                       onChange={setActiveTab}
                       options={selectedServiceWorkbenchOptions}
                       value={

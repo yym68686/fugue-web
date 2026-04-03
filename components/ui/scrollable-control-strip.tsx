@@ -1,6 +1,11 @@
 "use client";
 
-import type { ReactNode, WheelEvent } from "react";
+import type {
+  MouseEvent as ReactMouseEvent,
+  PointerEvent as ReactPointerEvent,
+  ReactNode,
+  WheelEvent,
+} from "react";
 import { useEffect, useRef } from "react";
 
 import { cx } from "@/lib/ui/cx";
@@ -14,6 +19,8 @@ type ScrollableControlStripProps = {
   watchKey: string | number;
 };
 
+const POINTER_DRAG_THRESHOLD = 8;
+
 export function ScrollableControlStrip({
   activeSelector,
   children,
@@ -24,6 +31,22 @@ export function ScrollableControlStrip({
 }: ScrollableControlStripProps) {
   const shellRef = useRef<HTMLDivElement | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
+  const pointerStateRef = useRef({
+    pointerId: null as number | null,
+    startX: 0,
+    startY: 0,
+  });
+  const suppressClickRef = useRef(false);
+
+  function clearPointerTracking({ keepSuppressedClick = false } = {}) {
+    pointerStateRef.current.pointerId = null;
+    pointerStateRef.current.startX = 0;
+    pointerStateRef.current.startY = 0;
+
+    if (!keepSuppressedClick) {
+      suppressClickRef.current = false;
+    }
+  }
 
   function handleWheel(event: WheelEvent<HTMLDivElement>) {
     const viewport = viewportRef.current;
@@ -48,6 +71,59 @@ export function ScrollableControlStrip({
       behavior: "auto",
     });
     event.preventDefault();
+  }
+
+  function handlePointerDown(event: ReactPointerEvent<HTMLDivElement>) {
+    if (event.pointerType !== "touch" && event.pointerType !== "pen") {
+      return;
+    }
+
+    pointerStateRef.current.pointerId = event.pointerId;
+    pointerStateRef.current.startX = event.clientX;
+    pointerStateRef.current.startY = event.clientY;
+    suppressClickRef.current = false;
+  }
+
+  function handlePointerMove(event: ReactPointerEvent<HTMLDivElement>) {
+    if (pointerStateRef.current.pointerId !== event.pointerId || suppressClickRef.current) {
+      return;
+    }
+
+    const deltaX = Math.abs(event.clientX - pointerStateRef.current.startX);
+    const deltaY = Math.abs(event.clientY - pointerStateRef.current.startY);
+
+    if (deltaX < POINTER_DRAG_THRESHOLD || deltaX <= deltaY) {
+      return;
+    }
+
+    suppressClickRef.current = true;
+  }
+
+  function handlePointerEnd(event: ReactPointerEvent<HTMLDivElement>) {
+    if (pointerStateRef.current.pointerId !== event.pointerId) {
+      return;
+    }
+
+    clearPointerTracking({
+      keepSuppressedClick: suppressClickRef.current,
+    });
+  }
+
+  function handleClickCapture(event: ReactMouseEvent<HTMLDivElement>) {
+    if (!suppressClickRef.current) {
+      return;
+    }
+
+    clearPointerTracking();
+
+    const target = event.target;
+
+    if (!(target instanceof Element) || !target.closest("a, button, [role='button'], [role='tab']")) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
   }
 
   useEffect(() => {
@@ -115,6 +191,11 @@ export function ScrollableControlStrip({
     >
       <div
         className={cx("fg-control-strip__viewport", viewportClassName)}
+        onClickCapture={handleClickCapture}
+        onPointerCancel={handlePointerEnd}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerEnd}
         onWheel={handleWheel}
         ref={viewportRef}
       >
