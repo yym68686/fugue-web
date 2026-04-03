@@ -417,7 +417,6 @@ function buildBackingServiceView(service: CamelizedSchema<"BackingService">) {
             password: readNullableString(postgres.password),
             resources: postgres.resources ? buildResourceSpecView(postgres.resources) : null,
             serviceName: readNullableString(postgres.serviceName),
-            storagePath: readNullableString(postgres.storagePath),
             user: readNullableString(postgres.user),
           }
         : null,

@@ -1616,7 +1616,6 @@ export interface components {
             user?: string;
             password?: string;
             service_name?: string;
-            storage_path?: string;
             storage_size?: string;
             storage_class_name?: string;
             /** Format: int32 */
