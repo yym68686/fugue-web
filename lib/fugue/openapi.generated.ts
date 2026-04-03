@@ -3330,7 +3330,10 @@ export interface operations {
     };
     listRuntimes: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description When false, skip sync-on-read for managed shared runtime locations. */
+                sync_locations?: boolean;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -3689,7 +3692,12 @@ export interface operations {
     };
     listApps: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description When false, skip the managed app live status overlay. */
+                include_live_status?: boolean;
+                /** @description When false, skip the current resource usage overlay. */
+                include_resource_usage?: boolean;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -4818,7 +4826,10 @@ export interface operations {
     };
     listOperations: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Limit operations to a single app. */
+                app_id?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;

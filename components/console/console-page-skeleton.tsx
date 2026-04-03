@@ -1280,4 +1280,79 @@ export function ConsoleBillingPageSkeleton() {
   );
 }
 
+export function ConsoleProjectGalleryTransitionSkeleton() {
+  return (
+    <ConsoleSkeletonPage className="fg-console-skeleton--projects">
+      <PageIntroSkeleton
+        actions={["8rem"]}
+        copyWidths={["22rem", "16rem"]}
+        eyebrowWidth="5.25rem"
+        titleWidth="12rem"
+      />
+
+      <section className="fg-console-project-gallery">
+        <Panel>
+          <PanelSection>
+            <div className="fg-project-card__summary-head">
+              <div className="fg-project-card__summary-copy">
+                <SkeletonBlock
+                  className="fg-console-skeleton__item-title"
+                  width="10rem"
+                />
+                <SkeletonBlock
+                  className="fg-console-skeleton__item-meta"
+                  width="16rem"
+                />
+              </div>
+
+              <div className="fg-project-card__summary-resources">
+                {["5.5rem", "5rem", "5.75rem"].map((width) => (
+                  <SkeletonBlock
+                    className="fg-console-skeleton__badge"
+                    key={width}
+                    width={width}
+                  />
+                ))}
+              </div>
+            </div>
+          </PanelSection>
+        </Panel>
+
+        <Panel>
+          <PanelSection>
+            <SkeletonBlock
+              className="fg-console-skeleton__eyebrow"
+              width="6rem"
+            />
+            <PanelTitle>
+              <SkeletonBlock
+                className="fg-console-skeleton__section-title"
+                width="11rem"
+              />
+            </PanelTitle>
+            <PanelCopy>
+              <SkeletonBlock
+                className="fg-console-skeleton__copy is-wide"
+                width="20rem"
+              />
+            </PanelCopy>
+          </PanelSection>
+
+          <PanelSection>
+            <div className="fg-workbench-section__actions">
+              {["7rem", "6.5rem", "6rem"].map((width) => (
+                <SkeletonBlock
+                  className="fg-console-skeleton__pill"
+                  key={width}
+                  width={width}
+                />
+              ))}
+            </div>
+          </PanelSection>
+        </Panel>
+      </section>
+    </ConsoleSkeletonPage>
+  );
+}
+
 export const ConsolePageSkeleton = ConsoleProjectGallerySkeleton;

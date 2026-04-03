@@ -20,6 +20,12 @@ export type ConsoleCompactResourceItemView = {
   tone: ConsoleTone;
 };
 
+export type ConsoleProjectResourceUsageSnapshot = {
+  cpuMillicores: number | null;
+  ephemeralStorageBytes: number | null;
+  memoryBytes: number | null;
+};
+
 export type ConsoleGalleryCommitView = {
   committedAt: string | null;
   exact: string | null;
@@ -103,6 +109,7 @@ export type ConsoleGalleryProjectView = {
   id: string;
   name: string;
   resourceUsage: ConsoleCompactResourceItemView[];
+  resourceUsageSnapshot: ConsoleProjectResourceUsageSnapshot;
   serviceBadges: ConsoleGalleryBadgeView[];
   serviceCount: number;
   services: Array<

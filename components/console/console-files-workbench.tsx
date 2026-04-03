@@ -113,6 +113,20 @@ type DirectoryComposer = {
 
 type ComposerState = DirectoryComposer | FileComposer;
 
+type CachedWorkbenchState = {
+  composer: ComposerState | null;
+  directories: Record<string, DirectoryBucket>;
+  expandedPaths: string[];
+  fileDocuments: Record<string, FileDocument>;
+  requestedRootPath: string;
+  rootMode: FilesystemRootMode;
+  rootStatus: "error" | "idle" | "loading" | "ready";
+  selectedNode: SelectedNode | null;
+  workspaceRoot: string;
+};
+
+const filesWorkbenchCache = new Map<string, CachedWorkbenchState>();
+
 function readErrorMessage(error: unknown) {
   if (error instanceof Error && error.message) {
     return error.message;
@@ -559,22 +573,41 @@ export function ConsoleFilesWorkbench({
   appName,
   workspaceMountPath,
 }: ConsoleFilesWorkbenchProps) {
+  const cachedWorkbench = filesWorkbenchCache.get(appId) ?? null;
   const confirm = useConfirmDialog();
   const { showToast } = useToast();
   const [rootMode, setRootMode] = useState<FilesystemRootMode>(
-    workspaceMountPath ? "workspace" : "filesystem",
+    () =>
+      cachedWorkbench?.rootMode === "workspace" && !workspaceMountPath
+        ? "filesystem"
+        : (cachedWorkbench?.rootMode ??
+          (workspaceMountPath ? "workspace" : "filesystem")),
   );
-  const [workspaceRoot, setWorkspaceRoot] = useState(workspaceMountPath ?? "/");
-  const [directories, setDirectories] = useState<Record<string, DirectoryBucket>>({});
-  const [expandedPaths, setExpandedPaths] = useState<string[]>([
-    workspaceMountPath ?? "/",
-  ]);
+  const [workspaceRoot, setWorkspaceRoot] = useState(
+    () => cachedWorkbench?.workspaceRoot ?? workspaceMountPath ?? "/",
+  );
+  const [directories, setDirectories] = useState<Record<string, DirectoryBucket>>(
+    () => cachedWorkbench?.directories ?? {},
+  );
+  const [expandedPaths, setExpandedPaths] = useState<string[]>(
+    () => cachedWorkbench?.expandedPaths ?? [workspaceMountPath ?? "/"],
+  );
   const [selectedNode, setSelectedNode] = useState<SelectedNode | null>(
-    { kind: "dir", path: workspaceMountPath ?? "/" },
+    () =>
+      cachedWorkbench?.selectedNode ?? {
+        kind: "dir",
+        path: workspaceMountPath ?? "/",
+      },
   );
-  const [fileDocuments, setFileDocuments] = useState<Record<string, FileDocument>>({});
-  const [composer, setComposer] = useState<ComposerState | null>(null);
-  const [rootStatus, setRootStatus] = useState<"error" | "idle" | "loading" | "ready">("loading");
+  const [fileDocuments, setFileDocuments] = useState<
+    Record<string, FileDocument>
+  >(() => cachedWorkbench?.fileDocuments ?? {});
+  const [composer, setComposer] = useState<ComposerState | null>(
+    () => cachedWorkbench?.composer ?? null,
+  );
+  const [rootStatus, setRootStatus] = useState<
+    "error" | "idle" | "loading" | "ready"
+  >(() => cachedWorkbench?.rootStatus ?? "loading");
   const [busyAction, setBusyAction] = useState<"delete" | "refresh" | "save" | null>(null);
   const requestedRootPath =
     rootMode === "workspace" && workspaceMountPath ? workspaceMountPath : "/";
@@ -784,11 +817,29 @@ export function ConsoleFilesWorkbench({
   }
 
   useEffect(() => {
-    setRootMode(workspaceMountPath ? "workspace" : "filesystem");
-  }, [appId, workspaceMountPath]);
+    if (!workspaceMountPath && rootMode !== "filesystem") {
+      setRootMode("filesystem");
+    }
+  }, [rootMode, workspaceMountPath]);
 
   useEffect(() => {
     let cancelled = false;
+    const cachedState = filesWorkbenchCache.get(appId);
+
+    if (cachedState && cachedState.requestedRootPath === requestedRootPath) {
+      setWorkspaceRoot(cachedState.workspaceRoot);
+      setDirectories(cachedState.directories);
+      setExpandedPaths(cachedState.expandedPaths);
+      setSelectedNode(cachedState.selectedNode);
+      setFileDocuments(cachedState.fileDocuments);
+      setComposer(cachedState.composer);
+      setRootStatus(cachedState.rootStatus);
+
+      return () => {
+        cancelled = true;
+      };
+    }
+
     setWorkspaceRoot(requestedRootPath);
     setDirectories({});
     setExpandedPaths([requestedRootPath]);
@@ -838,6 +889,31 @@ export function ConsoleFilesWorkbench({
       cancelled = true;
     };
   }, [appId, requestedRootPath, showToast]);
+
+  useEffect(() => {
+    filesWorkbenchCache.set(appId, {
+      composer,
+      directories,
+      expandedPaths,
+      fileDocuments,
+      requestedRootPath,
+      rootMode,
+      rootStatus,
+      selectedNode,
+      workspaceRoot,
+    });
+  }, [
+    appId,
+    composer,
+    directories,
+    expandedPaths,
+    fileDocuments,
+    requestedRootPath,
+    rootMode,
+    rootStatus,
+    selectedNode,
+    workspaceRoot,
+  ]);
 
   function handleDirectoryToggle(targetPath: string) {
     setComposer(null);

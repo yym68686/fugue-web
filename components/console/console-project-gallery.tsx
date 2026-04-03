@@ -9,16 +9,12 @@ import {
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 
 import { CompactResourceMeter } from "@/components/console/compact-resource-meter";
 import { ImportServiceFields } from "@/components/console/import-service-fields";
 import { StatusBadge } from "@/components/console/status-badge";
-import { AppSettingsPanel } from "@/components/console/app-settings-panel";
-import { AppRoutePanel } from "@/components/console/app-route-panel";
-import { AppImagesPanel } from "@/components/console/app-images-panel";
-import { BackingServiceSettingsPanel } from "@/components/console/backing-service-settings-panel";
-import { ConsoleFilesWorkbench } from "@/components/console/console-files-workbench";
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { CountryFlagLabel } from "@/components/ui/country-flag-label";
@@ -56,6 +52,7 @@ import type {
   ConsoleProjectGalleryData,
 } from "@/lib/console/gallery-types";
 import { OPEN_CREATE_PROJECT_DIALOG_EVENT } from "@/lib/console/dialog-events";
+import { buildProjectResourceUsageView } from "@/lib/console/project-resource-usage";
 import { readDefaultImportRuntimeId } from "@/lib/console/runtime-targets";
 import {
   buildImportServicePayload,
@@ -94,6 +91,17 @@ type CreateDialogTarget = {
 
 type EnvResponse = {
   env?: Record<string, string>;
+};
+
+type ProjectImageUsageSummary = {
+  projectId: string;
+  reclaimableSizeBytes: number;
+  totalSizeBytes: number;
+  versionCount: number;
+};
+
+type ProjectImageUsageResponse = {
+  projects?: ProjectImageUsageSummary[];
 };
 
 type BuildLogsResponse = {
@@ -253,6 +261,145 @@ const LOG_AUTO_REFRESH_INTERVAL_MS = 3_000;
 const PROJECT_ACTIVE_REFRESH_INTERVAL_MS = 3_000;
 const PROJECT_PASSIVE_REFRESH_INTERVAL_MS = 6_000;
 const LOG_TAIL_LINES = 200;
+const PROJECT_IMAGE_USAGE_CACHE_TTL_MS = 60_000;
+
+type CachedEnvState = {
+  baseline: Record<string, string>;
+  format: EnvironmentFormat;
+  rawDraft: string;
+  rawFeedback: EnvRawFeedback;
+  rows: EnvRow[];
+};
+
+type CachedProjectImageUsage = {
+  cachedAt: number;
+  projects: ProjectImageUsageSummary[];
+};
+
+const envStateCache = new Map<string, CachedEnvState>();
+let cachedProjectImageUsage: CachedProjectImageUsage | null = null;
+
+function createDefaultEnvRawFeedback(): EnvRawFeedback {
+  return {
+    message: "Paste a .env block to expand it into individual variables.",
+    tone: "info",
+    valid: true,
+  };
+}
+
+function cloneEnvRows(rows: EnvRow[]) {
+  return rows.map((row) => ({ ...row }));
+}
+
+function cloneCachedEnvState(state: CachedEnvState): CachedEnvState {
+  return {
+    baseline: { ...state.baseline },
+    format: state.format,
+    rawDraft: state.rawDraft,
+    rawFeedback: { ...state.rawFeedback },
+    rows: cloneEnvRows(state.rows),
+  };
+}
+
+function readCachedEnvState(appId: string) {
+  const cached = envStateCache.get(appId);
+  return cached ? cloneCachedEnvState(cached) : null;
+}
+
+function writeCachedEnvState(appId: string, state: CachedEnvState) {
+  envStateCache.set(appId, cloneCachedEnvState(state));
+}
+
+function WorkbenchLoadingNote({ label }: { label: string }) {
+  return (
+    <div className="fg-workbench-section">
+      <p className="fg-console-note">{label}</p>
+    </div>
+  );
+}
+
+const AppRoutePanel = dynamic(
+  () =>
+    import("@/components/console/app-route-panel").then(
+      (module) => module.AppRoutePanel,
+    ),
+  {
+    loading: () => <WorkbenchLoadingNote label="Loading route settings…" />,
+  },
+);
+
+const AppSettingsPanel = dynamic(
+  () =>
+    import("@/components/console/app-settings-panel").then(
+      (module) => module.AppSettingsPanel,
+    ),
+  {
+    loading: () => <WorkbenchLoadingNote label="Loading app settings…" />,
+  },
+);
+
+const BackingServiceSettingsPanel = dynamic(
+  () =>
+    import("@/components/console/backing-service-settings-panel").then(
+      (module) => module.BackingServiceSettingsPanel,
+    ),
+  {
+    loading: () => <WorkbenchLoadingNote label="Loading service settings…" />,
+  },
+);
+
+const ConsoleFilesWorkbench = dynamic(
+  () =>
+    import("@/components/console/console-files-workbench").then(
+      (module) => module.ConsoleFilesWorkbench,
+    ),
+  {
+    loading: () => <WorkbenchLoadingNote label="Loading files…" />,
+  },
+);
+
+const AppImagesPanel = dynamic(
+  () =>
+    import("@/components/console/app-images-panel").then(
+      (module) => module.AppImagesPanel,
+    ),
+  {
+    loading: () => <WorkbenchLoadingNote label="Loading saved images…" />,
+  },
+);
+
+function readCachedProjectImageUsage() {
+  if (
+    !cachedProjectImageUsage ||
+    Date.now() - cachedProjectImageUsage.cachedAt >
+      PROJECT_IMAGE_USAGE_CACHE_TTL_MS
+  ) {
+    cachedProjectImageUsage = null;
+    return null;
+  }
+
+  return cachedProjectImageUsage.projects;
+}
+
+function writeCachedProjectImageUsage(projects: ProjectImageUsageSummary[]) {
+  cachedProjectImageUsage = {
+    cachedAt: Date.now(),
+    projects,
+  };
+}
+
+function buildProjectImageUsageMap(projects: ProjectImageUsageSummary[]) {
+  return projects.reduce<Record<string, ProjectImageUsageSummary>>(
+    (accumulator, project) => {
+      if (project.projectId.trim()) {
+        accumulator[project.projectId] = project;
+      }
+
+      return accumulator;
+    },
+    {},
+  );
+}
 const LOG_AUTO_FOLLOW_THRESHOLD_PX = 32;
 const LOG_MAX_VISIBLE_LINES = 1_000;
 const PENDING_COMMIT_HINT_TAIL_LINES = 1;
@@ -1543,6 +1690,10 @@ export function ConsoleProjectGallery({
   const router = useRouter();
   const { showToast } = useToast();
   const [flash, setFlash] = useState<FlashState | null>(null);
+  const [projectImageUsageByProjectId, setProjectImageUsageByProjectId] =
+    useState<Record<string, ProjectImageUsageSummary>>(() =>
+      buildProjectImageUsageMap(readCachedProjectImageUsage() ?? []),
+    );
   const [createOpen, setCreateOpen] = useState(defaultCreateOpen);
   const [createTargetProject, setCreateTargetProject] =
     useState<CreateDialogTarget | null>(null);
@@ -1572,13 +1723,10 @@ export function ConsoleProjectGallery({
   >("idle");
   const [envBaseline, setEnvBaseline] = useState<Record<string, string>>({});
   const [envRows, setEnvRows] = useState<EnvRow[]>([]);
-  const [envLoadedAppId, setEnvLoadedAppId] = useState<string | null>(null);
   const [envRawDraft, setEnvRawDraft] = useState("");
-  const [envRawFeedback, setEnvRawFeedback] = useState<EnvRawFeedback>({
-    message: "Paste a .env block to expand it into individual variables.",
-    tone: "info",
-    valid: true,
-  });
+  const [envRawFeedback, setEnvRawFeedback] = useState<EnvRawFeedback>(
+    createDefaultEnvRawFeedback,
+  );
   const [envSaving, setEnvSaving] = useState(false);
   const [logsMode, setLogsMode] = useState<LogsView>("build");
   const [logsConnectionState, setLogsConnectionState] =
@@ -2024,21 +2172,78 @@ export function ConsoleProjectGallery({
   }, [data.projects.length, data.runtimeTargets]);
 
   useEffect(() => {
+    if (!data.projects.length) {
+      setProjectImageUsageByProjectId({});
+      return undefined;
+    }
+
+    const cachedProjects = readCachedProjectImageUsage();
+
+    if (cachedProjects) {
+      setProjectImageUsageByProjectId(buildProjectImageUsageMap(cachedProjects));
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    requestJson<ProjectImageUsageResponse>("/api/fugue/projects/image-usage", {
+      cache: "no-store",
+    })
+      .then((response) => {
+        if (cancelled) {
+          return;
+        }
+
+        const nextProjects = response.projects ?? [];
+        writeCachedProjectImageUsage(nextProjects);
+        setProjectImageUsageByProjectId(buildProjectImageUsageMap(nextProjects));
+      })
+      .catch(() => {
+        if (cancelled) {
+          return;
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [data.projects]);
+
+  useEffect(() => {
     if (!selectedServiceApp) {
       setEnvStatus("idle");
       setEnvBaseline({});
       setEnvRows([]);
-      setEnvLoadedAppId(null);
       setEnvRawDraft("");
-      setEnvRawFeedback({
-        message: "Paste a .env block to expand it into individual variables.",
-        tone: "info",
-        valid: true,
-      });
+      setEnvRawFeedback(createDefaultEnvRawFeedback());
       return;
     }
 
-    if (activeTab !== "env" || envLoadedAppId === selectedServiceApp.id) {
+    const cachedState = readCachedEnvState(selectedServiceApp.id);
+
+    if (cachedState) {
+      setEnvBaseline(cachedState.baseline);
+      setEnvRows(cachedState.rows);
+      setEnvFormat(cachedState.format);
+      setEnvRawDraft(cachedState.rawDraft);
+      setEnvRawFeedback(cachedState.rawFeedback);
+      setEnvStatus("ready");
+      return;
+    }
+
+    setEnvStatus("idle");
+    setEnvBaseline({});
+    setEnvRows([]);
+    setEnvRawDraft("");
+    setEnvRawFeedback(createDefaultEnvRawFeedback());
+  }, [selectedServiceApp?.id]);
+
+  useEffect(() => {
+    if (!selectedServiceApp || activeTab !== "env") {
+      return;
+    }
+
+    if (readCachedEnvState(selectedServiceApp.id)) {
       return;
     }
 
@@ -2053,11 +2258,19 @@ export function ConsoleProjectGallery({
 
         const nextEnv = response.env ?? {};
         const nextRows = rowsFromEnv(nextEnv);
+        const nextState = {
+          baseline: nextEnv,
+          format: envFormat,
+          rawDraft: serializeEnvEntries(entriesFromEnvRecord(nextEnv)),
+          rawFeedback: buildEnvRawFeedback(nextRows),
+          rows: nextRows,
+        } satisfies CachedEnvState;
+
+        writeCachedEnvState(selectedServiceApp.id, nextState);
         setEnvBaseline(nextEnv);
         setEnvRows(nextRows);
-        setEnvLoadedAppId(selectedServiceApp.id);
-        setEnvRawDraft(serializeEnvEntries(entriesFromEnvRecord(nextEnv)));
-        setEnvRawFeedback(buildEnvRawFeedback(nextRows));
+        setEnvRawDraft(nextState.rawDraft);
+        setEnvRawFeedback(nextState.rawFeedback);
         setEnvStatus("ready");
       })
       .catch((error) => {
@@ -2075,7 +2288,29 @@ export function ConsoleProjectGallery({
     return () => {
       cancelled = true;
     };
-  }, [activeTab, envLoadedAppId, selectedServiceApp]);
+  }, [activeTab, envFormat, selectedServiceApp]);
+
+  useEffect(() => {
+    if (!selectedServiceApp || envStatus !== "ready") {
+      return;
+    }
+
+    writeCachedEnvState(selectedServiceApp.id, {
+      baseline: envBaseline,
+      format: envFormat,
+      rawDraft: envRawDraft,
+      rawFeedback: envRawFeedback,
+      rows: envRows,
+    });
+  }, [
+    envBaseline,
+    envFormat,
+    envRawDraft,
+    envRawFeedback,
+    envRows,
+    envStatus,
+    selectedServiceApp,
+  ]);
 
   useEffect(() => {
     if (selectedApp) {
@@ -2975,17 +3210,23 @@ export function ConsoleProjectGallery({
       armRefreshWindow(45_000);
       const nextEnv = response.env ?? {};
       const nextRows = rowsFromEnv(nextEnv);
+      const nextState = {
+        baseline: nextEnv,
+        format: envFormat,
+        rawDraft: serializeEnvEntries(entriesFromEnvRecord(nextEnv)),
+        rawFeedback: buildEnvRawFeedback(nextRows),
+        rows: nextRows,
+      } satisfies CachedEnvState;
+
+      writeCachedEnvState(selectedServiceApp.id, nextState);
       setEnvBaseline(nextEnv);
       setEnvRows(nextRows);
-      setEnvLoadedAppId(selectedServiceApp.id);
-      setEnvRawDraft(serializeEnvEntries(entriesFromEnvRecord(nextEnv)));
-      setEnvRawFeedback(buildEnvRawFeedback(nextRows));
+      setEnvRawDraft(nextState.rawDraft);
+      setEnvRawFeedback(nextState.rawFeedback);
+      setEnvStatus("ready");
       setFlash({
         message: "Environment changes queued.",
         variant: "success",
-      });
-      startTransition(() => {
-        router.refresh();
       });
     } catch (error) {
       setFlash({
@@ -3734,6 +3975,7 @@ export function ConsoleProjectGallery({
                     appId={selectedService.id}
                     appName={selectedService.name}
                     key={selectedService.id}
+                    onRequestRefreshWindow={armRefreshWindow}
                   />
                 ) : null}
 
@@ -3854,6 +4096,13 @@ export function ConsoleProjectGallery({
               {data.projects.map((project) => {
                 const expanded = selectedProjectId === project.id;
                 const detailId = `project-detail-${project.id}`;
+                const projectResourceUsage =
+                  projectImageUsageByProjectId[project.id]
+                    ? buildProjectResourceUsageView(
+                        project.resourceUsageSnapshot,
+                        projectImageUsageByProjectId[project.id],
+                      )
+                    : project.resourceUsage;
 
                 return (
                   <article
@@ -3898,7 +4147,7 @@ export function ConsoleProjectGallery({
                         </div>
 
                         <div className="fg-project-card__summary-resources">
-                          {project.resourceUsage.map((resource) => (
+                          {projectResourceUsage.map((resource) => (
                             <CompactResourceMeter
                               item={resource}
                               key={resource.id}

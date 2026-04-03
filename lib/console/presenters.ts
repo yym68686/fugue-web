@@ -605,7 +605,10 @@ export async function getConsoleData(): Promise<ConsoleData> {
   ] = await Promise.allSettled([
     getFugueTenants(workspace.adminKeySecret),
     getFugueProjects(workspace.adminKeySecret),
-    getFugueApps(workspace.adminKeySecret),
+    getFugueApps(workspace.adminKeySecret, {
+      includeLiveStatus: false,
+      includeResourceUsage: false,
+    }),
     getFugueRuntimes(workspace.adminKeySecret),
     getFugueOperations(workspace.adminKeySecret),
     getFugueAuditEvents(workspace.adminKeySecret),

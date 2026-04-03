@@ -773,7 +773,9 @@ export async function getClusterNodesPageData(email: string): Promise<ClusterNod
 
   const [nodesResult, runtimesResult] = await Promise.allSettled([
     getFugueClusterNodes(workspace.adminKeySecret),
-    getFugueRuntimes(workspace.adminKeySecret),
+    getFugueRuntimes(workspace.adminKeySecret, {
+      syncLocations: false,
+    }),
   ]);
 
   const errors: string[] = [];

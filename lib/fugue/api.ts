@@ -1767,9 +1767,39 @@ export async function topUpFugueBilling(
   return buildBillingSummaryView(response.billing);
 }
 
-export async function getFugueApps(accessToken: string) {
+export async function getFugueApps(
+  accessToken: string,
+  options?: {
+    includeLiveStatus?: boolean;
+    includeResourceUsage?: boolean;
+  },
+) {
   const client = getClient(accessToken);
-  const response = camelizeData(await expectData("/v1/apps", client.GET("/v1/apps")));
+  const response = camelizeData(
+    await expectData(
+      "/v1/apps",
+      client.GET("/v1/apps", {
+        params:
+          options?.includeLiveStatus !== undefined ||
+          options?.includeResourceUsage !== undefined
+            ? {
+                query: {
+                  ...(options.includeLiveStatus !== undefined
+                    ? {
+                        include_live_status: options.includeLiveStatus,
+                      }
+                    : {}),
+                  ...(options.includeResourceUsage !== undefined
+                    ? {
+                        include_resource_usage: options.includeResourceUsage,
+                      }
+                    : {}),
+                },
+              }
+            : undefined,
+      }),
+    ),
+  );
 
   return (response.apps ?? []).map(buildAppView);
 }
@@ -2605,10 +2635,27 @@ export async function deleteFugueApp(accessToken: string, appId: string) {
   return buildDeleteAppResultView(response);
 }
 
-export async function getFugueRuntimes(accessToken: string) {
+export async function getFugueRuntimes(
+  accessToken: string,
+  options?: {
+    syncLocations?: boolean;
+  },
+) {
   const client = getClient(accessToken);
   const response = camelizeData(
-    await expectData("/v1/runtimes", client.GET("/v1/runtimes")),
+    await expectData(
+      "/v1/runtimes",
+      client.GET("/v1/runtimes", {
+        params:
+          options?.syncLocations !== undefined
+            ? {
+                query: {
+                  sync_locations: options.syncLocations,
+                },
+              }
+            : undefined,
+      }),
+    ),
   );
 
   return (response.runtimes ?? []).map(buildRuntimeView);
@@ -2724,10 +2771,27 @@ export async function getFugueControlPlaneStatus(accessToken: string) {
   return buildControlPlaneStatusView(response.controlPlane);
 }
 
-export async function getFugueOperations(accessToken: string) {
+export async function getFugueOperations(
+  accessToken: string,
+  options?: {
+    appId?: string;
+  },
+) {
   const client = getClient(accessToken);
   const response = camelizeData(
-    await expectData("/v1/operations", client.GET("/v1/operations")),
+    await expectData(
+      "/v1/operations",
+      client.GET("/v1/operations", {
+        params:
+          options?.appId
+            ? {
+                query: {
+                  app_id: options.appId,
+                },
+              }
+            : undefined,
+      }),
+    ),
   );
 
   return (response.operations ?? []).map(buildOperationView);

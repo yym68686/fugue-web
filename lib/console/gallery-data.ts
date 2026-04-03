@@ -12,6 +12,7 @@ import type {
   ConsoleGalleryCommitView,
   ConsoleCompactResourceItemView,
   ConsoleGalleryProjectView,
+  ConsoleProjectResourceUsageSnapshot,
   ConsoleImportRuntimeTargetView,
   ConsoleProjectGalleryData,
 } from "@/lib/console/gallery-types";
@@ -1900,7 +1901,8 @@ function compareImportRuntimeTargets(
   return left.id.localeCompare(right.id, "en", { sensitivity: "base" });
 }
 
-export const getConsoleProjectGalleryData = cache(async () => {
+const getConsoleProjectGalleryDataCached = cache(
+  async (includeProjectImageUsage: boolean) => {
   const initialWorkspace = await getCurrentWorkspaceAccess();
 
   if (!initialWorkspace) {
@@ -1916,230 +1918,256 @@ export const getConsoleProjectGalleryData = cache(async () => {
     } satisfies ConsoleProjectGalleryData;
   }
 
-  async function loadWorkspaceData(workspace: WorkspaceAccess) {
-    return Promise.allSettled([
-      getFugueProjects(
-        workspace.adminKeySecret,
-        workspace.tenantId ?? undefined,
-      ),
-      getFugueApps(workspace.adminKeySecret),
-      getFugueOperations(workspace.adminKeySecret),
-      getFugueClusterNodes(workspace.adminKeySecret),
-      getFugueRuntimes(workspace.adminKeySecret),
-      getFugueProjectImageUsage(workspace.adminKeySecret),
-    ]);
-  }
-
-  let workspace = initialWorkspace;
-  let [
-    projectsResult,
-    appsResult,
-    operationsResult,
-    clusterNodesResult,
-    runtimesResult,
-    projectImageUsageResult,
-  ] = await loadWorkspaceData(workspace);
-
-  if (
-    projectsResult.status === "rejected" &&
-    appsResult.status === "rejected" &&
-    operationsResult.status === "rejected" &&
-    runtimesResult.status === "rejected" &&
-    projectImageUsageResult.status === "rejected" &&
-    isUnauthorizedFugueError(projectsResult.reason) &&
-    isUnauthorizedFugueError(appsResult.reason) &&
-    isUnauthorizedFugueError(operationsResult.reason) &&
-    isUnauthorizedFugueError(runtimesResult.reason) &&
-    isUnauthorizedFugueError(projectImageUsageResult.reason)
-  ) {
-    const session = await getCurrentSession();
-
-    if (session) {
-      try {
-        const refreshed = await ensureWorkspaceAccess(session);
-        workspace = refreshed.workspace;
-        [
-          projectsResult,
-          appsResult,
-          operationsResult,
-          clusterNodesResult,
-          runtimesResult,
-          projectImageUsageResult,
-        ] = await loadWorkspaceData(workspace);
-      } catch {
-        // Keep the original 401 results when recovery fails.
-      }
-    }
-  }
-
-  const errors = [
-    projectsResult.status === "rejected"
-      ? `projects: ${readErrorMessage(projectsResult.reason)}`
-      : null,
-    appsResult.status === "rejected"
-      ? `apps: ${readErrorMessage(appsResult.reason)}`
-      : null,
-    operationsResult.status === "rejected"
-      ? `operations: ${readErrorMessage(operationsResult.reason)}`
-      : null,
-    clusterNodesResult.status === "rejected"
-      ? `cluster nodes: ${readErrorMessage(clusterNodesResult.reason)}`
-      : null,
-    projectImageUsageResult.status === "rejected"
-      ? `project image usage: ${readErrorMessage(projectImageUsageResult.reason)}`
-      : null,
-  ].filter((value): value is string => Boolean(value));
-
-  const projects =
-    projectsResult.status === "fulfilled" ? projectsResult.value : [];
-  const apps = appsResult.status === "fulfilled" ? appsResult.value : [];
-  const operations =
-    operationsResult.status === "fulfilled" ? operationsResult.value : [];
-  const clusterNodes =
-    clusterNodesResult.status === "fulfilled" ? clusterNodesResult.value : [];
-  const projectImageUsage =
-    projectImageUsageResult.status === "fulfilled"
-      ? projectImageUsageResult.value
-      : null;
-  const projectImageUsageByProjectId = new Map(
-    (projectImageUsage?.projects ?? []).map(
-      (summary) => [summary.projectId, summary] as const,
-    ),
-  );
-  const runtimeTargetLocationsByRuntimeId =
-    buildRuntimeTargetLocationMap(clusterNodes);
-  const runtimeTargetInventoryError =
-    runtimesResult.status === "rejected"
-      ? readErrorMessage(runtimesResult.reason)
-      : null;
-  const runtimeTargets =
-    runtimesResult.status === "fulfilled"
-      ? [...runtimesResult.value]
-          .map((runtime) =>
-            buildImportRuntimeTargetView(
-              runtime,
-              workspace.tenantId,
-              runtimeTargetLocationsByRuntimeId.get(runtime.id) ?? null,
-            ),
-          )
-          .sort(compareImportRuntimeTargets)
-      : [];
-  const namesByProjectId = projectNameMap(
-    projects,
-    workspace.defaultProjectId,
-    workspace.defaultProjectName,
-  );
-  const commitOperationsByAppId = collectCommitOperationsByAppId(operations);
-  const workloadLocationsById = buildWorkloadLocationMap(clusterNodes);
-  const appsByProjectId = new Map<string, FugueApp[]>();
-
-  for (const app of apps) {
-    const projectId = app.projectId ?? "unassigned";
-    const bucket = appsByProjectId.get(projectId) ?? [];
-    bucket.push(app);
-    appsByProjectId.set(projectId, bucket);
-  }
-
-  const projectsById = new Map(
-    projects.map((project) => [project.id, project] as const),
-  );
-  const projectIds = [
-    ...new Set([
-      ...projects.map((project) => project.id),
-      ...appsByProjectId.keys(),
-    ]),
-  ];
-
-  const projectViews = projectIds
-    .map((projectId) => {
-      const project = projectsById.get(projectId) ?? null;
-      const projectApps = appsByProjectId.get(projectId) ?? [];
-      const sortedApps = sortByTimestampDesc(projectApps, readAppTimestamp);
-      const appNames = new Map(
-        sortedApps.map((app) => [app.id, app.name] as const),
-      );
-      const appRuntimeIds = new Map(
-        sortedApps.map(
-          (app) =>
-            [
-              app.id,
-              app.spec.runtimeId ?? app.status.currentRuntimeId ?? null,
-            ] as const,
+    async function loadWorkspaceData(workspace: WorkspaceAccess) {
+      return Promise.allSettled([
+        getFugueProjects(
+          workspace.adminKeySecret,
+          workspace.tenantId ?? undefined,
         ),
-      );
-      const backingServicesById = new Map<string, FugueBackingService>();
+        getFugueApps(workspace.adminKeySecret, {
+          includeLiveStatus: false,
+        }),
+        getFugueOperations(workspace.adminKeySecret),
+        getFugueClusterNodes(workspace.adminKeySecret),
+        getFugueRuntimes(workspace.adminKeySecret, {
+          syncLocations: false,
+        }),
+        includeProjectImageUsage
+          ? getFugueProjectImageUsage(workspace.adminKeySecret)
+          : Promise.resolve(null),
+      ]);
+    }
 
-      for (const app of sortedApps) {
-        for (const service of app.backingServices) {
-          backingServicesById.set(service.id, service);
+    let workspace = initialWorkspace;
+    let [
+      projectsResult,
+      appsResult,
+      operationsResult,
+      clusterNodesResult,
+      runtimesResult,
+      projectImageUsageResult,
+    ] = await loadWorkspaceData(workspace);
+
+    const shouldRetryProjectImageUsage =
+      !includeProjectImageUsage ||
+      (projectImageUsageResult.status === "rejected" &&
+        isUnauthorizedFugueError(projectImageUsageResult.reason));
+
+    if (
+      projectsResult.status === "rejected" &&
+      appsResult.status === "rejected" &&
+      operationsResult.status === "rejected" &&
+      runtimesResult.status === "rejected" &&
+      shouldRetryProjectImageUsage &&
+      isUnauthorizedFugueError(projectsResult.reason) &&
+      isUnauthorizedFugueError(appsResult.reason) &&
+      isUnauthorizedFugueError(operationsResult.reason) &&
+      isUnauthorizedFugueError(runtimesResult.reason)
+    ) {
+      const session = await getCurrentSession();
+
+      if (session) {
+        try {
+          const refreshed = await ensureWorkspaceAccess(session);
+          workspace = refreshed.workspace;
+          [
+            projectsResult,
+            appsResult,
+            operationsResult,
+            clusterNodesResult,
+            runtimesResult,
+            projectImageUsageResult,
+          ] = await loadWorkspaceData(workspace);
+        } catch {
+          // Keep the original 401 results when recovery fails.
         }
       }
+    }
 
-      const backingServices = sortByTimestampDesc(
-        [...backingServicesById.values()],
-        readServiceTimestamp,
-      );
-      const resourceUsage = sumCurrentResourceUsage([
-        ...sortedApps.map((app) => app.currentResourceUsage),
-        ...backingServices.map((service) => service.currentResourceUsage),
-      ]);
-      const latestActivity = Math.max(
-        project ? readProjectTimestamp(project) : 0,
-        ...sortedApps.map(readAppTimestamp),
-        ...backingServices.map(readServiceTimestamp),
-      );
-      const appViews = sortedApps.flatMap((app) =>
-        buildAppView(
-          app,
-          commitOperationsByAppId.get(app.id),
-          workloadLocationsById.get(app.id) ?? null,
-        ).map((service) => ({
-          kind: "app" as const,
-          ...service,
-        })),
-      );
-      const backingServiceViews = backingServices.map((service) => ({
-        kind: "backing-service" as const,
-        ...buildBackingServiceView(
-          service,
-          appNames,
-          appRuntimeIds,
-          workloadLocationsById.get(service.id) ?? null,
-        ),
-      }));
-      const services = [...appViews, ...backingServiceViews];
+    const errors = [
+      projectsResult.status === "rejected"
+        ? `projects: ${readErrorMessage(projectsResult.reason)}`
+        : null,
+      appsResult.status === "rejected"
+        ? `apps: ${readErrorMessage(appsResult.reason)}`
+        : null,
+      operationsResult.status === "rejected"
+        ? `operations: ${readErrorMessage(operationsResult.reason)}`
+        : null,
+      clusterNodesResult.status === "rejected"
+        ? `cluster nodes: ${readErrorMessage(clusterNodesResult.reason)}`
+        : null,
+      includeProjectImageUsage &&
+      projectImageUsageResult.status === "rejected"
+        ? `project image usage: ${readErrorMessage(projectImageUsageResult.reason)}`
+        : null,
+    ].filter((value): value is string => Boolean(value));
 
-      return {
-        appCount: sortedApps.length,
-        id: projectId,
-        name:
-          namesByProjectId.get(projectId) ??
-          project?.name ??
-          (projectId === "unassigned" ? "Unassigned" : humanize(projectId)),
-        resourceUsage: buildProjectResourceUsageView(
-          resourceUsage,
-          projectImageUsageByProjectId.get(projectId) ?? null,
-        ),
-        serviceBadges: buildProjectServiceBadges(services),
-        serviceCount: services.length,
-        services,
-        sortTimestamp: latestActivity,
-      };
-    })
-    .sort((left, right) => right.sortTimestamp - left.sortTimestamp)
-    .map(
-      ({ sortTimestamp: _sortTimestamp, ...project }) =>
-        project as ConsoleGalleryProjectView,
+    const projects =
+      projectsResult.status === "fulfilled" ? projectsResult.value : [];
+    const apps = appsResult.status === "fulfilled" ? appsResult.value : [];
+    const operations =
+      operationsResult.status === "fulfilled" ? operationsResult.value : [];
+    const clusterNodes =
+      clusterNodesResult.status === "fulfilled" ? clusterNodesResult.value : [];
+    const projectImageUsage =
+      projectImageUsageResult.status === "fulfilled"
+        ? projectImageUsageResult.value
+        : null;
+    const projectImageUsageByProjectId = new Map(
+      (projectImageUsage?.projects ?? []).map(
+        (summary) => [summary.projectId, summary] as const,
+      ),
     );
+    const runtimeTargetLocationsByRuntimeId =
+      buildRuntimeTargetLocationMap(clusterNodes);
+    const runtimeTargetInventoryError =
+      runtimesResult.status === "rejected"
+        ? readErrorMessage(runtimesResult.reason)
+        : null;
+    const runtimeTargets =
+      runtimesResult.status === "fulfilled"
+        ? [...runtimesResult.value]
+            .map((runtime) =>
+              buildImportRuntimeTargetView(
+                runtime,
+                workspace.tenantId,
+                runtimeTargetLocationsByRuntimeId.get(runtime.id) ?? null,
+              ),
+            )
+            .sort(compareImportRuntimeTargets)
+        : [];
+    const namesByProjectId = projectNameMap(
+      projects,
+      workspace.defaultProjectId,
+      workspace.defaultProjectName,
+    );
+    const commitOperationsByAppId = collectCommitOperationsByAppId(operations);
+    const workloadLocationsById = buildWorkloadLocationMap(clusterNodes);
+    const appsByProjectId = new Map<string, FugueApp[]>();
 
-  return {
-    errors,
-    projects: projectViews,
-    runtimeTargetInventoryError,
-    runtimeTargets,
-    workspace: {
-      exists: true,
-      stage: projectViews.length > 0 ? "ready" : "empty",
-    },
-  } satisfies ConsoleProjectGalleryData;
-});
+    for (const app of apps) {
+      const projectId = app.projectId ?? "unassigned";
+      const bucket = appsByProjectId.get(projectId) ?? [];
+      bucket.push(app);
+      appsByProjectId.set(projectId, bucket);
+    }
+
+    const projectsById = new Map(
+      projects.map((project) => [project.id, project] as const),
+    );
+    const projectIds = [
+      ...new Set([
+        ...projects.map((project) => project.id),
+        ...appsByProjectId.keys(),
+      ]),
+    ];
+
+    const projectViews = projectIds
+      .map((projectId) => {
+        const project = projectsById.get(projectId) ?? null;
+        const projectApps = appsByProjectId.get(projectId) ?? [];
+        const sortedApps = sortByTimestampDesc(projectApps, readAppTimestamp);
+        const appNames = new Map(
+          sortedApps.map((app) => [app.id, app.name] as const),
+        );
+        const appRuntimeIds = new Map(
+          sortedApps.map(
+            (app) =>
+              [
+                app.id,
+                app.spec.runtimeId ?? app.status.currentRuntimeId ?? null,
+              ] as const,
+          ),
+        );
+        const backingServicesById = new Map<string, FugueBackingService>();
+
+        for (const app of sortedApps) {
+          for (const service of app.backingServices) {
+            backingServicesById.set(service.id, service);
+          }
+        }
+
+        const backingServices = sortByTimestampDesc(
+          [...backingServicesById.values()],
+          readServiceTimestamp,
+        );
+        const resourceUsage = sumCurrentResourceUsage([
+          ...sortedApps.map((app) => app.currentResourceUsage),
+          ...backingServices.map((service) => service.currentResourceUsage),
+        ]);
+        const resourceUsageSnapshot = {
+          cpuMillicores: resourceUsage.cpuMillicores ?? null,
+          ephemeralStorageBytes: resourceUsage.ephemeralStorageBytes ?? null,
+          memoryBytes: resourceUsage.memoryBytes ?? null,
+        } satisfies ConsoleProjectResourceUsageSnapshot;
+        const latestActivity = Math.max(
+          project ? readProjectTimestamp(project) : 0,
+          ...sortedApps.map(readAppTimestamp),
+          ...backingServices.map(readServiceTimestamp),
+        );
+        const appViews = sortedApps.flatMap((app) =>
+          buildAppView(
+            app,
+            commitOperationsByAppId.get(app.id),
+            workloadLocationsById.get(app.id) ?? null,
+          ).map((service) => ({
+            kind: "app" as const,
+            ...service,
+          })),
+        );
+        const backingServiceViews = backingServices.map((service) => ({
+          kind: "backing-service" as const,
+          ...buildBackingServiceView(
+            service,
+            appNames,
+            appRuntimeIds,
+            workloadLocationsById.get(service.id) ?? null,
+          ),
+        }));
+        const services = [...appViews, ...backingServiceViews];
+
+        return {
+          appCount: sortedApps.length,
+          id: projectId,
+          name:
+            namesByProjectId.get(projectId) ??
+            project?.name ??
+            (projectId === "unassigned" ? "Unassigned" : humanize(projectId)),
+          resourceUsage: buildProjectResourceUsageView(
+            resourceUsage,
+            projectImageUsageByProjectId.get(projectId) ?? null,
+          ),
+          resourceUsageSnapshot,
+          serviceBadges: buildProjectServiceBadges(services),
+          serviceCount: services.length,
+          services,
+          sortTimestamp: latestActivity,
+        };
+      })
+      .sort((left, right) => right.sortTimestamp - left.sortTimestamp)
+      .map(
+        ({ sortTimestamp: _sortTimestamp, ...project }) =>
+          project as ConsoleGalleryProjectView,
+      );
+
+    return {
+      errors,
+      projects: projectViews,
+      runtimeTargetInventoryError,
+      runtimeTargets,
+      workspace: {
+        exists: true,
+        stage: projectViews.length > 0 ? "ready" : "empty",
+      },
+    } satisfies ConsoleProjectGalleryData;
+  },
+);
+
+export async function getConsoleProjectGalleryData(options?: {
+  includeProjectImageUsage?: boolean;
+}) {
+  return getConsoleProjectGalleryDataCached(
+    options?.includeProjectImageUsage ?? true,
+  );
+}

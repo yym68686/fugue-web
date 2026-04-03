@@ -1,12 +1,12 @@
 import {
   ConsoleLoadingState,
-  ConsoleProjectGallerySkeleton,
+  ConsoleProjectGalleryTransitionSkeleton,
 } from "@/components/console/console-page-skeleton";
 
 export default function AppLoading() {
   return (
     <ConsoleLoadingState>
-      <ConsoleProjectGallerySkeleton />
+      <ConsoleProjectGalleryTransitionSkeleton />
     </ConsoleLoadingState>
   );
 }

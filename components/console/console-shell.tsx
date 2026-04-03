@@ -5,8 +5,6 @@ import { ConsoleNav } from "@/components/console/console-nav";
 import { ConsoleProfileMenu } from "@/components/console/console-profile-menu";
 import { ConsolePrimaryAction } from "@/components/console/console-primary-action";
 import type { SessionUser } from "@/lib/auth/session";
-import { getFugueApps } from "@/lib/fugue/api";
-import { ensureWorkspaceAccess } from "@/lib/workspace/bootstrap";
 import { getWorkspaceAccessByEmail } from "@/lib/workspace/store";
 
 export async function ConsoleShell({
@@ -21,22 +19,10 @@ export async function ConsoleShell({
   let hasProjects = false;
 
   try {
-    let workspace = await getWorkspaceAccessByEmail(session.email);
+    const workspace = await getWorkspaceAccessByEmail(session.email);
 
     if (workspace) {
-      try {
-        const apps = await getFugueApps(workspace.adminKeySecret);
-        hasProjects = apps.length > 0;
-      } catch (error) {
-        if (!(error instanceof Error) || !error.message.includes("401")) {
-          throw error;
-        }
-
-        const refreshed = await ensureWorkspaceAccess(session);
-        workspace = refreshed.workspace;
-        const apps = await getFugueApps(workspace.adminKeySecret);
-        hasProjects = apps.length > 0;
-      }
+      hasProjects = Boolean(workspace.firstAppId ?? workspace.defaultProjectId);
     }
   } catch {
     hasProjects = false;

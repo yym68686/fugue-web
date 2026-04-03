@@ -1,7 +1,6 @@
 "use client";
 
-import { startTransition, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import { StatusBadge } from "@/components/console/status-badge";
 import { Button } from "@/components/ui/button";
@@ -82,9 +81,19 @@ type AppImageRedeployResponse = {
 type AppImagesPanelProps = {
   appId: string;
   appName: string;
+  onRequestRefreshWindow?: (durationMs?: number) => void;
 };
 
 type InventoryState = "error" | "idle" | "loading" | "ready";
+
+const APP_IMAGE_CACHE_TTL_MS = 60_000;
+
+type CachedAppImageInventory = {
+  cachedAt: number;
+  inventory: AppImageInventoryResponse;
+};
+
+const appImageInventoryCache = new Map<string, CachedAppImageInventory>();
 
 function formatCompactNumber(value: number, digits = 1) {
   const formatter = new Intl.NumberFormat("en-US", {
@@ -355,21 +364,127 @@ function readRuntimeImageRef(version: AppImageVersion) {
   return version.runtimeImageRef;
 }
 
-export function AppImagesPanel({ appId, appName }: AppImagesPanelProps) {
+function sortImageVersions(versions: AppImageVersion[]) {
+  return [...versions].sort((left, right) => {
+    if (left.current !== right.current) {
+      return left.current ? -1 : 1;
+    }
+
+    const leftTimestamp = parseTimestamp(left.lastDeployedAt);
+    const rightTimestamp = parseTimestamp(right.lastDeployedAt);
+
+    if (leftTimestamp !== rightTimestamp) {
+      return rightTimestamp - leftTimestamp;
+    }
+
+    return left.imageRef.localeCompare(right.imageRef);
+  });
+}
+
+function buildInventorySummary(versions: AppImageVersion[]): AppImageSummary {
+  let currentSizeBytes = 0;
+  let currentVersionCount = 0;
+  let reclaimableSizeBytes = 0;
+  let staleSizeBytes = 0;
+  let staleVersionCount = 0;
+  let totalSizeBytes = 0;
+
+  for (const version of versions) {
+    const sizeBytes =
+      typeof version.sizeBytes === "number" && Number.isFinite(version.sizeBytes)
+        ? Math.max(version.sizeBytes, 0)
+        : 0;
+
+    totalSizeBytes += sizeBytes;
+    reclaimableSizeBytes += Math.max(version.reclaimableSizeBytes ?? 0, 0);
+
+    if (version.current) {
+      currentVersionCount += 1;
+      currentSizeBytes += sizeBytes;
+      continue;
+    }
+
+    staleVersionCount += 1;
+    staleSizeBytes += sizeBytes;
+  }
+
+  return {
+    currentSizeBytes,
+    currentVersionCount,
+    reclaimableSizeBytes,
+    staleSizeBytes,
+    staleVersionCount,
+    totalSizeBytes,
+    versionCount: versions.length,
+  };
+}
+
+function readCachedInventory(appId: string) {
+  const cached = appImageInventoryCache.get(appId);
+
+  if (!cached) {
+    return null;
+  }
+
+  if (Date.now() - cached.cachedAt > APP_IMAGE_CACHE_TTL_MS) {
+    appImageInventoryCache.delete(appId);
+    return null;
+  }
+
+  return cached.inventory;
+}
+
+function writeCachedInventory(
+  appId: string,
+  inventory: AppImageInventoryResponse | null,
+) {
+  if (!inventory) {
+    appImageInventoryCache.delete(appId);
+    return;
+  }
+
+  appImageInventoryCache.set(appId, {
+    cachedAt: Date.now(),
+    inventory,
+  });
+}
+
+export function AppImagesPanel({
+  appId,
+  appName,
+  onRequestRefreshWindow,
+}: AppImagesPanelProps) {
   const confirm = useConfirmDialog();
-  const router = useRouter();
   const { showToast } = useToast();
   const [inventory, setInventory] = useState<AppImageInventoryResponse | null>(
-    null,
+    () => readCachedInventory(appId),
   );
-  const [status, setStatus] = useState<InventoryState>("idle");
+  const [status, setStatus] = useState<InventoryState>(() =>
+    readCachedInventory(appId) ? "ready" : "idle",
+  );
+  const [refreshing, setRefreshing] = useState(false);
   const [refreshToken, setRefreshToken] = useState(0);
   const [busyKey, setBusyKey] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    const cachedInventory = readCachedInventory(appId);
 
-    setStatus("loading");
+    if (cachedInventory) {
+      setInventory(cachedInventory);
+      setStatus("ready");
+      if (refreshToken === 0) {
+        setRefreshing(false);
+        return () => {
+          cancelled = true;
+        };
+      }
+
+      setRefreshing(true);
+    } else {
+      setStatus("loading");
+      setRefreshing(false);
+    }
 
     requestJson<AppImageInventoryResponse>(`/api/fugue/apps/${appId}/images`, {
       cache: "no-store",
@@ -379,15 +494,20 @@ export function AppImagesPanel({ appId, appName }: AppImagesPanelProps) {
           return;
         }
 
+        writeCachedInventory(appId, response);
         setInventory(response);
         setStatus("ready");
+        setRefreshing(false);
       })
       .catch((error) => {
         if (cancelled) {
           return;
         }
 
-        setStatus("error");
+        if (!cachedInventory) {
+          setStatus("error");
+        }
+        setRefreshing(false);
         showToast({
           message: readErrorMessage(error),
           variant: "error",
@@ -407,6 +527,48 @@ export function AppImagesPanel({ appId, appName }: AppImagesPanelProps) {
     (version) => version.deleteSupported,
   );
   const clearHistoryKey = "clear-history";
+
+  function applyInventory(
+    nextInventory:
+      | AppImageInventoryResponse
+      | null
+      | ((
+          current: AppImageInventoryResponse | null,
+        ) => AppImageInventoryResponse | null),
+  ) {
+    setInventory((current) => {
+      const resolvedInventory =
+        typeof nextInventory === "function" ? nextInventory(current) : nextInventory;
+      writeCachedInventory(appId, resolvedInventory);
+      return resolvedInventory;
+    });
+  }
+
+  function removeVersionsFromInventory(imageRefs: Iterable<string>) {
+    const imageRefSet = new Set(imageRefs);
+
+    if (imageRefSet.size === 0) {
+      return;
+    }
+
+    applyInventory((currentInventory) => {
+      if (!currentInventory) {
+        return currentInventory;
+      }
+
+      const nextVersions = sortImageVersions(
+        currentInventory.versions.filter(
+          (version) => !imageRefSet.has(version.imageRef),
+        ),
+      );
+
+      return {
+        ...currentInventory,
+        summary: buildInventorySummary(nextVersions),
+        versions: nextVersions,
+      };
+    });
+  }
 
   async function handleCopy(value: string, label: string) {
     try {
@@ -463,10 +625,7 @@ export function AppImagesPanel({ appId, appName }: AppImagesPanelProps) {
           : "Historical image selected for deploy.",
         variant: "success",
       });
-
-      startTransition(() => {
-        router.refresh();
-      });
+      onRequestRefreshWindow?.(90_000);
     } catch (error) {
       showToast({
         message: readErrorMessage(error),
@@ -495,10 +654,8 @@ export function AppImagesPanel({ appId, appName }: AppImagesPanelProps) {
     }
 
     setBusyKey(actionKey);
-    let shouldRefresh = false;
 
     try {
-      shouldRefresh = true;
       const response = await deleteVersion(version);
 
       const reclaimedSizeBytes = response?.reclaimedSizeBytes ?? 0;
@@ -506,6 +663,10 @@ export function AppImagesPanel({ appId, appName }: AppImagesPanelProps) {
         reclaimedSizeBytes > 0
           ? ` Estimated reclaim: ${formatBytesLabel(reclaimedSizeBytes)}.`
           : "";
+
+      if (response?.deleted || response?.alreadyMissing) {
+        removeVersionsFromInventory([version.imageRef]);
+      }
 
       showToast({
         message: response?.alreadyMissing
@@ -519,12 +680,6 @@ export function AppImagesPanel({ appId, appName }: AppImagesPanelProps) {
         variant: "error",
       });
     } finally {
-      if (shouldRefresh) {
-        setRefreshToken((value) => value + 1);
-        startTransition(() => {
-          router.refresh();
-        });
-      }
       setBusyKey(null);
     }
   }
@@ -553,6 +708,7 @@ export function AppImagesPanel({ appId, appName }: AppImagesPanelProps) {
     let deletedCount = 0;
     let alreadyMissingCount = 0;
     let failedCount = 0;
+    const removedImageRefs: string[] = [];
     let reclaimedSizeBytes = 0;
 
     for (const version of clearableVersions) {
@@ -561,12 +717,14 @@ export function AppImagesPanel({ appId, appName }: AppImagesPanelProps) {
 
         if (response?.alreadyMissing) {
           alreadyMissingCount += 1;
+          removedImageRefs.push(version.imageRef);
           continue;
         }
 
         if (response?.deleted) {
           deletedCount += 1;
           reclaimedSizeBytes += response.reclaimedSizeBytes ?? 0;
+          removedImageRefs.push(version.imageRef);
           continue;
         }
 
@@ -576,10 +734,7 @@ export function AppImagesPanel({ appId, appName }: AppImagesPanelProps) {
       }
     }
 
-    setRefreshToken((value) => value + 1);
-    startTransition(() => {
-      router.refresh();
-    });
+    removeVersionsFromInventory(removedImageRefs);
     showToast(
       buildClearHistoryToast(
         deletedCount,
@@ -754,7 +909,9 @@ export function AppImagesPanel({ appId, appName }: AppImagesPanelProps) {
 
         <div className="fg-workbench-section__actions">
           <Button
-            disabled={status === "loading" || Boolean(busyKey)}
+            disabled={status === "loading" || refreshing || Boolean(busyKey)}
+            loading={refreshing}
+            loadingLabel="Refreshing…"
             onClick={() => {
               setRefreshToken((value) => value + 1);
             }}
@@ -782,7 +939,7 @@ export function AppImagesPanel({ appId, appName }: AppImagesPanelProps) {
         </div>
       </div>
 
-      {status === "loading" ? (
+      {status === "loading" && !inventory ? (
         <p className="fg-console-note">Loading saved images…</p>
       ) : null}
 

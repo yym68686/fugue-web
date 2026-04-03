@@ -1,4 +1,10 @@
+import { Suspense } from "react";
+
 import { ConsoleProjectGallery } from "@/components/console/console-project-gallery";
+import {
+  ConsoleLoadingState,
+  ConsoleProjectGalleryTransitionSkeleton,
+} from "@/components/console/console-page-skeleton";
 import { getConsoleProjectGalleryData } from "@/lib/console/gallery-data";
 
 type SearchParams =
@@ -9,19 +15,40 @@ function readValue(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
+async function AppConsolePageContent({
+  defaultCreateOpen,
+}: {
+  defaultCreateOpen: boolean;
+}) {
+  const data = await getConsoleProjectGalleryData({
+    includeProjectImageUsage: false,
+  });
+
+  return (
+    <ConsoleProjectGallery
+      data={data}
+      defaultCreateOpen={defaultCreateOpen}
+    />
+  );
+}
+
 export default async function AppConsolePage({
   searchParams,
 }: {
   searchParams: SearchParams;
 }) {
-  const data = await getConsoleProjectGalleryData();
   const resolved = await Promise.resolve(searchParams);
   const dialog = readValue(resolved.dialog);
 
   return (
-    <ConsoleProjectGallery
-      data={data}
-      defaultCreateOpen={dialog === "create"}
-    />
+    <Suspense
+      fallback={
+        <ConsoleLoadingState label="Loading projects">
+          <ConsoleProjectGalleryTransitionSkeleton />
+        </ConsoleLoadingState>
+      }
+    >
+      <AppConsolePageContent defaultCreateOpen={dialog === "create"} />
+    </Suspense>
   );
 }
