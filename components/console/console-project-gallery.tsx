@@ -487,6 +487,12 @@ function shouldShowLiveStatusBadge(value?: string | null) {
 function readProjectLifecycle(
   project: ConsoleGalleryProjectView,
 ): ProjectLifecycle {
+  const hasRunningApp = project.services.some(
+    (service) => service.kind === "app" && service.serviceRole === "running",
+  );
+  const hasPendingApp = project.services.some(
+    (service) => service.kind === "app" && service.serviceRole === "pending",
+  );
   const tracksGitHubBranch = project.services.some(
     (service) =>
       service.kind === "app" && isGitHubSourceType(service.sourceType),
@@ -513,6 +519,15 @@ function readProjectLifecycle(
     )
   ) {
     return { label: "Error", tone: "danger", live: false, syncMode: "passive" };
+  }
+
+  if (hasRunningApp && hasPendingApp) {
+    return {
+      label: "Updating",
+      tone: "info",
+      live: true,
+      syncMode: "active",
+    };
   }
 
   if (
@@ -582,6 +597,14 @@ function readProjectLifecycle(
   }
 
   return { label: "Idle", tone: "neutral", live: false, syncMode: "idle" };
+}
+
+function readAppServiceRoleLabel(
+  service?: Pick<ConsoleGalleryAppView, "serviceRole"> | null,
+) {
+  return service?.serviceRole === "pending"
+    ? "Next release"
+    : "Current release";
 }
 
 function readErrorMessage(error: unknown) {
@@ -3763,7 +3786,12 @@ export function ConsoleProjectGallery({
                         : service.statusTone;
                     const cardSecondaryLines =
                       service.kind === "app"
-                        ? [readDistinctText(service.sourceMeta, [service.name])]
+                        ? [
+                            readAppServiceRoleLabel(service),
+                            readDistinctText(service.sourceMeta, [
+                              service.name,
+                            ]),
+                          ].filter((value): value is string => Boolean(value))
                         : [
                             readDistinctText(service.ownerAppLabel, [
                               service.name,
@@ -3844,6 +3872,11 @@ export function ConsoleProjectGallery({
               <PanelSection className="fg-project-inspector__head">
                 <div className="fg-project-inspector__header-row">
                   <div className="fg-project-inspector__hero">
+                    {selectedService.kind === "app" ? (
+                      <p className="fg-label">
+                        {readAppServiceRoleLabel(selectedService)}
+                      </p>
+                    ) : null}
                     <PanelTitle>{selectedService.name}</PanelTitle>
                     {selectedServiceSummary ? (
                       <PanelCopy className="fg-project-inspector__copy">
@@ -3856,6 +3889,10 @@ export function ConsoleProjectGallery({
                 <div className="fg-project-inspector__meta-grid">
                   {selectedService.kind === "app" ? (
                     <>
+                      <div>
+                        <dt>Release</dt>
+                        <dd>{readAppServiceRoleLabel(selectedService)}</dd>
+                      </div>
                       <div>
                         <dt>Commit</dt>
                         <dd>
@@ -5475,7 +5512,10 @@ export function ConsoleProjectWorkbench({
                       : service.statusTone;
                   const cardSecondaryLines =
                     service.kind === "app"
-                      ? [readDistinctText(service.sourceMeta, [service.name])]
+                      ? [
+                          readAppServiceRoleLabel(service),
+                          readDistinctText(service.sourceMeta, [service.name]),
+                        ].filter((value): value is string => Boolean(value))
                       : [
                           readDistinctText(service.ownerAppLabel, [service.name]),
                           readDistinctText(service.description, [
@@ -5552,6 +5592,11 @@ export function ConsoleProjectWorkbench({
             <PanelSection className="fg-project-inspector__head">
               <div className="fg-project-inspector__header-row">
                 <div className="fg-project-inspector__hero">
+                  {selectedService.kind === "app" ? (
+                    <p className="fg-label">
+                      {readAppServiceRoleLabel(selectedService)}
+                    </p>
+                  ) : null}
                   <PanelTitle>{selectedService.name}</PanelTitle>
                   {selectedServiceSummary ? (
                     <PanelCopy className="fg-project-inspector__copy">
@@ -5564,6 +5609,10 @@ export function ConsoleProjectWorkbench({
               <div className="fg-project-inspector__meta-grid">
                 {selectedService.kind === "app" ? (
                   <>
+                    <div>
+                      <dt>Release</dt>
+                      <dd>{readAppServiceRoleLabel(selectedService)}</dd>
+                    </div>
                     <div>
                       <dt>Commit</dt>
                       <dd>

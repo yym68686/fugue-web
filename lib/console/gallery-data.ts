@@ -487,6 +487,26 @@ function readAppPhaseLabel(value?: string | null) {
   return humanize(value);
 }
 
+function readRunningReleaseStatus(
+  app: FugueApp,
+  fallbackPhase: string,
+  activeOperation?: FugueOperation | null,
+) {
+  if (activeOperation && (app.status.currentReplicas ?? 0) > 0) {
+    // In-flight import/deploy operations temporarily overwrite `app.status.phase`
+    // even while the current release still has live replicas serving traffic.
+    return {
+      phase: "Running",
+      tone: "positive" as const,
+    };
+  }
+
+  return {
+    phase: readAppPhaseLabel(fallbackPhase),
+    tone: toneForStatus(fallbackPhase),
+  };
+}
+
 function shortCommitSha(value?: string | null) {
   const commit = value?.trim();
 
@@ -870,7 +890,17 @@ function readRunningServiceMessage(
   activeOperation?: FugueOperation | null,
 ) {
   if (activeOperation) {
-    return null;
+    const pendingState = readPendingCommitState(activeOperation).stateLabel;
+
+    if (pendingState === "Queued") {
+      return "Serving the current release while the next release waits to start.";
+    }
+
+    if (pendingState === "Deploying") {
+      return "Serving the current release while the next release deploys.";
+    }
+
+    return "Serving the current release while the next release builds.";
   }
 
   return normalizeServiceMessage(app.status.lastMessage);
@@ -1645,6 +1675,11 @@ function buildAppView(
     (isGitHubSource(app) ? readCurrentCommitLabel(app) : null);
   const fallbackPhase =
     app.status.phase ?? (app.spec.disabled ? "disabled" : "unknown");
+  const runningReleaseStatus = readRunningReleaseStatus(
+    app,
+    fallbackPhase,
+    activeOperation,
+  );
   const sharedView = buildSharedAppView(app, { location });
   const pendingSharedView = activeOperation
     ? buildSharedAppView(app, {
@@ -1665,8 +1700,8 @@ function buildAppView(
           currentCommitHref: primaryCommit?.href ?? null,
           currentCommitLabel,
           lastMessage: readRunningServiceMessage(app, activeOperation),
-          phase: readAppPhaseLabel(fallbackPhase),
-          phaseTone: toneForStatus(fallbackPhase),
+          phase: runningReleaseStatus.phase,
+          phaseTone: runningReleaseStatus.tone,
           serviceDurationLabel: null,
           serviceRole: "running",
         } satisfies ConsoleGalleryAppView)
