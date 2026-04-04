@@ -40,7 +40,11 @@ import {
 } from "@/lib/fugue/import-source";
 import { consumeSSEStream, type ParsedSSEEvent } from "@/lib/ui/sse";
 import { cx } from "@/lib/ui/cx";
-import { readRequestError, requestJson } from "@/lib/ui/request-json";
+import {
+  isAbortRequestError,
+  readRequestError,
+  requestJson,
+} from "@/lib/ui/request-json";
 
 type FlashState = {
   message: string;
@@ -292,7 +296,11 @@ export function ConsoleProjectGallery({
 
         return true;
       } catch (error) {
-        if (!controller.signal.aborted && !options?.silent) {
+        if (
+          !controller.signal.aborted &&
+          !isAbortRequestError(error) &&
+          !options?.silent
+        ) {
           setFlash({
             message: readRequestError(error),
             variant: "error",
@@ -384,6 +392,8 @@ export function ConsoleProjectGallery({
       return;
     }
 
+    preloadConsoleProjectWorkbench();
+
     const controller = new AbortController();
     let idleHandle: number | null = null;
     let timeoutHandle: number | null = null;
@@ -391,10 +401,10 @@ export function ConsoleProjectGallery({
     const warmProjectWorkbench = () => {
       idleHandle = null;
       timeoutHandle = null;
-      preloadConsoleProjectWorkbench();
       void warmConsoleProjectDetails(
         data.projects.map((project) => project.id),
         {
+          concurrency: 1,
           signal: controller.signal,
         },
       );

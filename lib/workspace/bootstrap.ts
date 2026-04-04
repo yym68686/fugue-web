@@ -3,7 +3,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 
 import type { SessionUser } from "@/lib/auth/session";
-import { sanitizeDisplayName } from "@/lib/auth/validation";
+import { normalizeEmail, sanitizeDisplayName } from "@/lib/auth/validation";
 import {
   enableFugueApiKey,
   getFugueApps,
@@ -30,6 +30,13 @@ import {
 } from "@/lib/workspace/store";
 
 const WORKSPACE_ADMIN_KEY_LABEL = "workspace-admin";
+const workspaceAccessRequests = new Map<
+  string,
+  Promise<{
+    created: boolean;
+    workspace: WorkspaceAccess;
+  }>
+>();
 
 function slugSeed(value: string) {
   const seed = value
@@ -349,7 +356,7 @@ async function resolveWorkspaceTenant(
   }
 }
 
-export async function ensureWorkspaceAccess(session: SessionUser) {
+async function ensureWorkspaceAccessInternal(session: SessionUser) {
   await ensureAppUser(session);
 
   const existing = await getWorkspaceBootstrapStateByEmail(session.email);
@@ -402,4 +409,22 @@ export async function ensureWorkspaceAccess(session: SessionUser) {
     created,
     workspace: createdWorkspace,
   };
+}
+
+export async function ensureWorkspaceAccess(session: SessionUser) {
+  const normalizedEmail = normalizeEmail(session.email);
+  const pendingRequest = workspaceAccessRequests.get(normalizedEmail);
+
+  if (pendingRequest) {
+    return pendingRequest;
+  }
+
+  const request = ensureWorkspaceAccessInternal(session).finally(() => {
+    if (workspaceAccessRequests.get(normalizedEmail) === request) {
+      workspaceAccessRequests.delete(normalizedEmail);
+    }
+  });
+
+  workspaceAccessRequests.set(normalizedEmail, request);
+  return request;
 }

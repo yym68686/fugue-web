@@ -1,4 +1,42 @@
+function isAbortMessage(message: string) {
+  const normalized = message.trim().toLowerCase();
+
+  return (
+    normalized.includes("aborterror") ||
+    normalized.includes("signal is aborted") ||
+    normalized.includes("request was aborted") ||
+    normalized.includes("request aborted") ||
+    normalized.includes("aborted")
+  );
+}
+
+export function createAbortRequestError(message = "Request was aborted.") {
+  if (typeof DOMException === "function") {
+    return new DOMException(message, "AbortError");
+  }
+
+  const error = new Error(message);
+  error.name = "AbortError";
+  return error;
+}
+
+export function isAbortRequestError(error: unknown) {
+  if (typeof DOMException === "function" && error instanceof DOMException) {
+    return error.name === "AbortError";
+  }
+
+  if (error instanceof Error) {
+    return error.name === "AbortError" || isAbortMessage(error.message);
+  }
+
+  return typeof error === "string" && isAbortMessage(error);
+}
+
 export function readRequestError(error: unknown) {
+  if (isAbortRequestError(error)) {
+    return "Request canceled.";
+  }
+
   if (error instanceof Error && error.message) {
     return error.message;
   }

@@ -75,6 +75,7 @@ import type { ConsoleTone } from "@/lib/console/types";
 import { parseAnsiText } from "@/lib/ui/ansi";
 import { copyText } from "@/lib/ui/clipboard";
 import { cx } from "@/lib/ui/cx";
+import { isAbortRequestError } from "@/lib/ui/request-json";
 import { consumeSSEStream, type ParsedSSEEvent } from "@/lib/ui/sse";
 
 type FlashState = {
@@ -579,6 +580,10 @@ function readProjectLifecycle(
 }
 
 function readErrorMessage(error: unknown) {
+  if (isAbortRequestError(error)) {
+    return "Request canceled.";
+  }
+
   if (error instanceof Error && error.message) {
     return error.message;
   }
@@ -4551,7 +4556,7 @@ export function ConsoleProjectWorkbench({
         setDetailStatus("ready");
         return true;
       } catch (error) {
-        if (controller.signal.aborted) {
+        if (controller.signal.aborted || isAbortRequestError(error)) {
           return false;
         }
 

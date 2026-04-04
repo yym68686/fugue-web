@@ -1,8 +1,12 @@
 import type { ConsoleProjectDetailData } from "@/lib/console/gallery-types";
-import { requestJson } from "@/lib/ui/request-json";
+import {
+  createAbortRequestError,
+  isAbortRequestError,
+  requestJson,
+} from "@/lib/ui/request-json";
 
 const PROJECT_DETAIL_CACHE_TTL_MS = 60_000;
-const PROJECT_DETAIL_PREFETCH_CONCURRENCY = 3;
+const PROJECT_DETAIL_PREFETCH_CONCURRENCY = 1;
 
 type CachedProjectDetail = {
   cachedAt: number;
@@ -59,31 +63,32 @@ export async function fetchConsoleProjectDetail(
     throw new Error("Project id is required.");
   }
 
+  if (options?.signal?.aborted) {
+    throw createAbortRequestError();
+  }
+
   if (!options?.force) {
     const cached = readCachedConsoleProjectDetail(normalizedProjectId);
 
     if (cached) {
       return cached;
     }
+  }
 
-    const pendingRequest = projectDetailRequestCache.get(normalizedProjectId);
+  const pendingRequest = projectDetailRequestCache.get(normalizedProjectId);
 
-    if (pendingRequest) {
-      return pendingRequest;
-    }
+  if (pendingRequest) {
+    return pendingRequest;
   }
 
   const request = requestJson<ConsoleProjectDetailData>(
     `/api/fugue/console/projects/${normalizedProjectId}`,
     {
       cache: "no-store",
-      signal: options?.signal,
     },
   )
     .then((detail) => {
-      if (!options?.signal?.aborted) {
-        writeCachedConsoleProjectDetail(normalizedProjectId, detail);
-      }
+      writeCachedConsoleProjectDetail(normalizedProjectId, detail);
 
       return detail;
     })
@@ -135,8 +140,8 @@ export async function warmConsoleProjectDetails(
           await fetchConsoleProjectDetail(projectId, {
             signal: options?.signal,
           });
-        } catch {
-          if (options?.signal?.aborted) {
+        } catch (error) {
+          if (options?.signal?.aborted || isAbortRequestError(error)) {
             return;
           }
         }

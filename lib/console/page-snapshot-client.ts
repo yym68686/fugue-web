@@ -11,7 +11,12 @@ import type {
   ConsoleClusterNodesPageSnapshot,
   ConsoleWorkspaceSettingsPageSnapshot,
 } from "@/lib/console/page-snapshot-types";
-import { readRequestError, requestJson } from "@/lib/ui/request-json";
+import {
+  createAbortRequestError,
+  isAbortRequestError,
+  readRequestError,
+  requestJson,
+} from "@/lib/ui/request-json";
 
 const DEFAULT_CONSOLE_PAGE_SNAPSHOT_TTL_MS = 60_000;
 
@@ -151,6 +156,10 @@ export async function fetchConsolePageSnapshot<T>(
   key: string,
   options?: SnapshotFetchOptions,
 ) {
+  if (options?.signal?.aborted) {
+    throw createAbortRequestError();
+  }
+
   if (!options?.force) {
     const cached = readConsolePageSnapshot<T>(key, {
       ttlMs: options?.ttlMs,
@@ -160,30 +169,26 @@ export async function fetchConsolePageSnapshot<T>(
       return cached;
     }
 
-    const pending = snapshotRequests.get(key);
+  }
 
-    if (pending) {
-      return pending as Promise<T>;
-    }
+  const pending = snapshotRequests.get(key);
+
+  if (pending) {
+    return pending as Promise<T>;
   }
 
   const request = requestJson<T>(key, {
     cache: "no-store",
-    signal: options?.signal,
   })
     .then((value) => {
-      if (!options?.signal?.aborted) {
-        writeConsolePageSnapshot(key, value);
+      writeConsolePageSnapshot(key, value);
 
-        return (
-          readConsolePageSnapshot<T>(key, {
-            allowStale: true,
-            ttlMs: options?.ttlMs,
-          }) ?? value
-        );
-      }
-
-      return value;
+      return (
+        readConsolePageSnapshot<T>(key, {
+          allowStale: true,
+          ttlMs: options?.ttlMs,
+        }) ?? value
+      );
     })
     .finally(() => {
       if (snapshotRequests.get(key) === request) {
@@ -201,8 +206,8 @@ export async function warmConsolePageSnapshot(
 ) {
   try {
     await fetchConsolePageSnapshot(key, options);
-  } catch {
-    if (options?.signal?.aborted) {
+  } catch (error) {
+    if (options?.signal?.aborted || isAbortRequestError(error)) {
       return;
     }
   }
@@ -295,6 +300,26 @@ export function useConsolePageSnapshot<T>(
           return;
         }
 
+        if (isAbortRequestError(nextError)) {
+          const fallbackData = readConsolePageSnapshot<T>(key, {
+            allowStale: true,
+            ttlMs: options?.ttlMs,
+          });
+
+          if (fallbackData) {
+            startTransition(() => {
+              setData(fallbackData);
+              setError(null);
+              setLoading(false);
+            });
+            return;
+          }
+
+          setError(null);
+          setLoading(false);
+          return;
+        }
+
         setError(readRequestError(nextError));
         setLoading(false);
       });
@@ -309,19 +334,40 @@ export function useConsolePageSnapshot<T>(
     error,
     loading,
     refresh: async (refreshOptions?: SnapshotFetchOptions) => {
-      const nextData = await fetchConsolePageSnapshot<T>(key, {
-        force: refreshOptions?.force ?? true,
-        signal: refreshOptions?.signal,
-        ttlMs: options?.ttlMs,
-      });
+      try {
+        const nextData = await fetchConsolePageSnapshot<T>(key, {
+          force: refreshOptions?.force ?? true,
+          signal: refreshOptions?.signal,
+          ttlMs: options?.ttlMs,
+        });
 
-      startTransition(() => {
-        setData(nextData);
-        setError(null);
-        setLoading(false);
-      });
+        startTransition(() => {
+          setData(nextData);
+          setError(null);
+          setLoading(false);
+        });
 
-      return nextData;
+        return nextData;
+      } catch (error) {
+        if (isAbortRequestError(error)) {
+          const fallbackData = readConsolePageSnapshot<T>(key, {
+            allowStale: true,
+            ttlMs: options?.ttlMs,
+          });
+
+          if (fallbackData) {
+            startTransition(() => {
+              setData(fallbackData);
+              setError(null);
+              setLoading(false);
+            });
+
+            return fallbackData;
+          }
+        }
+
+        throw error;
+      }
     },
   };
 }

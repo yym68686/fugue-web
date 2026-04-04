@@ -62,37 +62,64 @@ export function ConsoleNav({ isAdmin = false }: { isAdmin?: boolean }) {
       return;
     }
 
+    let cancelled = false;
     let idleHandle: number | null = null;
+    let pauseHandle: number | null = null;
     let timeoutHandle: number | null = null;
 
-      const warmRoutes = () => {
-        idleHandle = null;
-        timeoutHandle = null;
+    const pauseBetweenRoutes = () =>
+      new Promise<void>((resolve) => {
+        pauseHandle = window.setTimeout(() => {
+          pauseHandle = null;
+          resolve();
+        }, 140);
+      });
 
-        queue.forEach((href) => {
-          prepareRoute(href);
-        });
-      };
+    const warmRoutes = async () => {
+      idleHandle = null;
+      timeoutHandle = null;
+
+      for (const href of queue) {
+        if (cancelled) {
+          return;
+        }
+
+        prefetchRoute(href);
+        await warmConsoleRouteData(href);
+
+        if (cancelled) {
+          return;
+        }
+
+        await pauseBetweenRoutes();
+      }
+    };
 
     if (typeof window.requestIdleCallback === "function") {
       idleHandle = window.requestIdleCallback(
         () => {
-          warmRoutes();
+          void warmRoutes();
         },
         { timeout: 1400 },
       );
     } else {
       timeoutHandle = window.setTimeout(() => {
-        warmRoutes();
+        void warmRoutes();
       }, 180);
     }
 
     return () => {
+      cancelled = true;
+
       if (
         idleHandle !== null &&
         typeof window.cancelIdleCallback === "function"
       ) {
         window.cancelIdleCallback(idleHandle);
+      }
+
+      if (pauseHandle !== null) {
+        window.clearTimeout(pauseHandle);
       }
 
       if (timeoutHandle !== null) {
