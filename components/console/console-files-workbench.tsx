@@ -4,13 +4,11 @@ import {
   useEffect,
   useState,
   type CSSProperties,
-  type ReactNode,
 } from "react";
 
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { InlineAlert } from "@/components/ui/inline-alert";
-import { SelectField } from "@/components/ui/select-field";
 import { SegmentedControl, type SegmentedControlOption } from "@/components/ui/segmented-control";
 import type { ConsoleGalleryPersistentStorageMountView } from "@/lib/console/gallery-types";
 import { useToast } from "@/components/ui/toast";
@@ -28,6 +26,8 @@ const FILESYSTEM_ROOT_MODE_OPTIONS: readonly SegmentedControlOption<FilesystemRo
   { label: "Live filesystem", value: "filesystem" },
   { label: "Persistent storage", value: "storage" },
 ];
+
+const PERSISTENT_STORAGE_COLLECTION_ROOT = "::persistent-storage::";
 
 type FilesystemTreeEntryRecord = {
   hasChildren?: boolean;
@@ -120,11 +120,11 @@ type CachedWorkbenchState = {
   directories: Record<string, DirectoryBucket>;
   expandedPaths: string[];
   fileDocuments: Record<string, FileDocument>;
-  persistentStorageRootPath: string | null;
   requestedRootPath: string;
   rootMode: FilesystemRootMode;
   rootStatus: "error" | "idle" | "loading" | "ready";
   selectedNode: SelectedNode | null;
+  storageMountSignature: string;
   workspaceRoot: string;
 };
 
@@ -321,36 +321,43 @@ function normalizePersistentStorageMounts(
   });
 }
 
-function readPreferredPersistentStorageMount(
+type NormalizedPersistentStorageMount =
+  ReturnType<typeof normalizePersistentStorageMounts>[number];
+
+function readPersistentStorageMountSignature(
   mounts: ReturnType<typeof normalizePersistentStorageMounts>,
-  preferredPath?: string | null,
 ) {
-  const normalizedPreferredPath = normalizeAbsolutePathInput(preferredPath ?? "");
-
-  if (normalizedPreferredPath) {
-    const preferredMount = mounts.find(
-      (mount) => mount.path === normalizedPreferredPath,
-    );
-
-    if (preferredMount) {
-      return preferredMount;
-    }
-  }
-
-  return mounts.find((mount) => mount.kind === "directory") ?? mounts[0] ?? null;
+  return mounts
+    .map((mount) => `${mount.kind ?? "unknown"}:${mount.path}:${mount.mode ?? "null"}`)
+    .join("|");
 }
 
-function readPersistentStorageRootLabel(
-  mount: ReturnType<typeof normalizePersistentStorageMounts>[number],
+function buildPersistentStorageMountEntries(
+  mounts: ReturnType<typeof normalizePersistentStorageMounts>,
 ) {
-  const kindLabel =
-    mount.kind === "file"
-      ? "File"
-      : mount.kind === "directory"
-        ? "Directory"
-        : "Mount";
+  return mounts
+    .flatMap((mount) => {
+      if (mount.kind !== "directory" && mount.kind !== "file") {
+        return [];
+      }
 
-  return `${kindLabel}: ${mount.path}`;
+      return [
+        {
+          hasChildren: mount.kind === "directory",
+          kind: mount.kind === "directory" ? "dir" : "file",
+          mode: mount.mode,
+          modifiedAt: null,
+          name: mount.path,
+          path: mount.path,
+          size: null,
+        } satisfies FilesystemEntry,
+      ];
+    })
+    .sort((left, right) => left.path.localeCompare(right.path));
+}
+
+function isPersistentStorageCollectionRoot(targetPath: string) {
+  return targetPath === PERSISTENT_STORAGE_COLLECTION_ROOT;
 }
 
 function parseModeInput(value: string) {
@@ -376,55 +383,6 @@ function parseModeInput(value: string) {
     message: null,
     value: parsed,
   } as const;
-}
-
-function buildPathSegments(targetPath: string, workspaceRoot: string) {
-  const cleanRoot = trimTrailingSlash(workspaceRoot);
-  const cleanTarget = trimTrailingSlash(targetPath);
-  const rootLabel = basename(cleanRoot) || cleanRoot;
-
-  if (cleanTarget === cleanRoot) {
-    return [{ label: rootLabel, path: cleanRoot }];
-  }
-
-  const relativePath = cleanTarget.slice(cleanRoot.length).replace(/^\/+/, "");
-  const segments = relativePath.split("/").filter(Boolean);
-  const out = [{ label: rootLabel, path: cleanRoot }];
-  let currentPath = cleanRoot;
-
-  for (const segment of segments) {
-    currentPath = joinPath(currentPath, segment);
-    out.push({
-      label: segment,
-      path: currentPath,
-    });
-  }
-
-  return out;
-}
-
-function currentDirectoryPath(
-  composer: ComposerState | null,
-  selectedNode: SelectedNode | null,
-  workspaceRoot: string,
-) {
-  if (composer?.kind === "directory") {
-    return parentDirectory(composer.path, workspaceRoot);
-  }
-
-  if (composer?.kind === "file") {
-    return parentDirectory(composer.path, workspaceRoot);
-  }
-
-  if (!selectedNode) {
-    return workspaceRoot;
-  }
-
-  if (selectedNode.kind === "dir") {
-    return selectedNode.path;
-  }
-
-  return parentDirectory(selectedNode.path, workspaceRoot);
 }
 
 function FolderIcon({ open = false }: { open?: boolean }) {
@@ -583,40 +541,18 @@ function TrashIcon() {
   );
 }
 
-function ToolbarIconButton({
-  children,
-  danger = false,
-  disabled = false,
-  label,
-  loading = false,
-  onClick,
-}: {
-  children: ReactNode;
-  danger?: boolean;
-  disabled?: boolean;
-  label: string;
-  loading?: boolean;
-  onClick: () => void;
-}) {
+function CloseIcon() {
   return (
-    <button
-      aria-busy={loading || undefined}
-      aria-label={label}
-      className={cx("fg-filesystem__action-button", danger && "is-danger")}
-      data-loading={loading ? "true" : undefined}
-      disabled={disabled}
-      onClick={() => {
-        if (disabled || loading) {
-          return;
-        }
-
-        onClick();
-      }}
-      title={label}
-      type="button"
-    >
-      {children}
-    </button>
+    <svg aria-hidden="true" className="fg-filesystem-action-icon" viewBox="0 0 20 20">
+      <path
+        d="m6 6 8 8M14 6l-8 8"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.35"
+      />
+    </svg>
   );
 }
 
@@ -626,108 +562,208 @@ export function ConsoleFilesWorkbench({
   persistentStorageMounts,
 }: ConsoleFilesWorkbenchProps) {
   const cachedWorkbench = filesWorkbenchCache.get(appId) ?? null;
+  const confirm = useConfirmDialog();
+  const { showToast } = useToast();
   const normalizedPersistentStorageMounts = normalizePersistentStorageMounts(
     persistentStorageMounts,
   );
-  const initialPersistentStorageMount = readPreferredPersistentStorageMount(
-    normalizedPersistentStorageMounts,
-    cachedWorkbench?.persistentStorageRootPath ?? null,
+  const sortedPersistentStorageMounts = [...normalizedPersistentStorageMounts].sort(
+    (left, right) =>
+      right.path.length - left.path.length || left.path.localeCompare(right.path),
   );
-  const confirm = useConfirmDialog();
-  const { showToast } = useToast();
-  const [rootMode, setRootMode] = useState<FilesystemRootMode>(
-    () =>
-      cachedWorkbench?.rootMode === "storage" && !initialPersistentStorageMount
-        ? "filesystem"
-        : (cachedWorkbench?.rootMode ??
-          (initialPersistentStorageMount ? "storage" : "filesystem")),
+  const storageDirectoryMounts = sortedPersistentStorageMounts.filter(
+    (
+      mount,
+    ): mount is NormalizedPersistentStorageMount & {
+      kind: "directory";
+    } => mount.kind === "directory",
   );
-  const [persistentStorageRootPath, setPersistentStorageRootPath] = useState<
-    string | null
-  >(() => initialPersistentStorageMount?.path ?? null);
-  const activePersistentStorageMount = readPreferredPersistentStorageMount(
+  const storageFileMounts = sortedPersistentStorageMounts.filter(
+    (
+      mount,
+    ): mount is NormalizedPersistentStorageMount & {
+      kind: "file";
+    } => mount.kind === "file",
+  );
+  const storageMountEntries = buildPersistentStorageMountEntries(
     normalizedPersistentStorageMounts,
-    persistentStorageRootPath,
+  );
+  const storageMountSignature = readPersistentStorageMountSignature(
+    normalizedPersistentStorageMounts,
   );
   const hasPersistentStorage = normalizedPersistentStorageMounts.length > 0;
-  const persistentStorageRootIsFile =
-    rootMode === "storage" && activePersistentStorageMount?.kind === "file";
-  const initialSelectedPath = initialPersistentStorageMount?.path ?? "/";
-  const [workspaceRoot, setWorkspaceRoot] = useState(
-    () => cachedWorkbench?.workspaceRoot ?? initialSelectedPath,
+  const initialRootMode: FilesystemRootMode =
+    cachedWorkbench?.rootMode === "storage" && !hasPersistentStorage
+      ? "filesystem"
+      : (cachedWorkbench?.rootMode ??
+        (hasPersistentStorage ? "storage" : "filesystem"));
+  const initialRequestedRootPath =
+    initialRootMode === "storage" ? PERSISTENT_STORAGE_COLLECTION_ROOT : "/";
+  const canRestoreInitialState =
+    cachedWorkbench !== null &&
+    cachedWorkbench.requestedRootPath === initialRequestedRootPath &&
+    (initialRequestedRootPath !== PERSISTENT_STORAGE_COLLECTION_ROOT ||
+      cachedWorkbench.storageMountSignature === storageMountSignature);
+  const [rootMode, setRootMode] = useState<FilesystemRootMode>(
+    initialRootMode,
+  );
+  const [workspaceRoot, setWorkspaceRoot] = useState(() =>
+    canRestoreInitialState
+      ? cachedWorkbench!.workspaceRoot
+      : initialRequestedRootPath,
   );
   const [directories, setDirectories] = useState<Record<string, DirectoryBucket>>(
-    () => cachedWorkbench?.directories ?? {},
+    () =>
+      canRestoreInitialState
+        ? cachedWorkbench!.directories
+        : initialRequestedRootPath === PERSISTENT_STORAGE_COLLECTION_ROOT
+          ? {
+              [PERSISTENT_STORAGE_COLLECTION_ROOT]: {
+                entries: storageMountEntries,
+                status: "ready",
+              },
+            }
+          : {},
   );
   const [expandedPaths, setExpandedPaths] = useState<string[]>(
     () =>
-      cachedWorkbench?.expandedPaths ??
-      (initialPersistentStorageMount?.kind === "file"
-        ? []
-        : [initialSelectedPath]),
+      canRestoreInitialState
+        ? cachedWorkbench!.expandedPaths
+        : initialRequestedRootPath === PERSISTENT_STORAGE_COLLECTION_ROOT
+          ? []
+          : [initialRequestedRootPath],
   );
   const [selectedNode, setSelectedNode] = useState<SelectedNode | null>(
     () =>
-      cachedWorkbench?.selectedNode ?? {
-        kind: initialPersistentStorageMount?.kind === "file" ? "file" : "dir",
-        path: initialSelectedPath,
-      },
+      canRestoreInitialState
+        ? cachedWorkbench!.selectedNode
+        : {
+            kind: "dir",
+            path: initialRequestedRootPath,
+          },
   );
   const [fileDocuments, setFileDocuments] = useState<
     Record<string, FileDocument>
-  >(() => cachedWorkbench?.fileDocuments ?? {});
+  >(() => (canRestoreInitialState ? cachedWorkbench!.fileDocuments : {}));
   const [composer, setComposer] = useState<ComposerState | null>(
-    () => cachedWorkbench?.composer ?? null,
+    () => (canRestoreInitialState ? cachedWorkbench!.composer : null),
   );
   const [rootStatus, setRootStatus] = useState<
     "error" | "idle" | "loading" | "ready"
-  >(() => cachedWorkbench?.rootStatus ?? "loading");
+  >(() =>
+    canRestoreInitialState
+      ? cachedWorkbench!.rootStatus
+      : initialRequestedRootPath === PERSISTENT_STORAGE_COLLECTION_ROOT
+        ? "ready"
+        : "loading",
+  );
   const [busyAction, setBusyAction] = useState<"delete" | "refresh" | "save" | null>(null);
-  const requestedRootPath =
-    rootMode === "storage" && activePersistentStorageMount
-      ? activePersistentStorageMount.path
-      : "/";
+  const isStorageMode = rootMode === "storage";
+  const requestedRootPath = isStorageMode
+    ? PERSISTENT_STORAGE_COLLECTION_ROOT
+    : "/";
 
-  const selectedFile =
-    !composer && selectedNode?.kind === "file" ? fileDocuments[selectedNode.path] ?? null : null;
-  const selectedDirectory =
-    !composer && selectedNode?.kind === "dir" ? directories[selectedNode.path] ?? null : null;
-  const highlightedPath = composer
-    ? currentDirectoryPath(composer, selectedNode, workspaceRoot)
-    : selectedNode?.path ?? workspaceRoot;
-  const canDeleteSelection =
-    !composer &&
-    Boolean(selectedNode) &&
-    selectedNode?.path !== workspaceRoot;
-  const rootModeOptions = FILESYSTEM_ROOT_MODE_OPTIONS.map((option) => ({
-    ...option,
-    disabled:
-      option.value === "storage"
-        ? Boolean(busyAction) || !hasPersistentStorage
-        : Boolean(busyAction),
-  }));
-  const persistentStorageRootOptions = normalizedPersistentStorageMounts.map(
-    (mount) => ({
-      label: readPersistentStorageRootLabel(mount),
-      value: mount.path,
-    }),
-  );
+  function readExactStorageMount(targetPath: string) {
+    const cleanTarget = trimTrailingSlash(targetPath);
 
-  const canCreateInsideCurrentScope = !(
-    rootMode === "storage" && persistentStorageRootIsFile
-  );
+    return (
+      normalizedPersistentStorageMounts.find(
+        (mount) => trimTrailingSlash(mount.path) === cleanTarget,
+      ) ?? null
+    );
+  }
 
-  const activeScopeLabel =
-    rootMode === "storage"
-      ? activePersistentStorageMount
-        ? readPersistentStorageRootLabel(activePersistentStorageMount)
-        : "Persistent storage"
-      : "Live filesystem";
+  function readStorageDirectoryMountForPath(targetPath: string) {
+    if (isPersistentStorageCollectionRoot(targetPath)) {
+      return null;
+    }
 
-  const rootScopeHint =
-    rootMode === "storage" && persistentStorageRootIsFile
-      ? "This root is a mounted file. Edit its contents directly."
-      : null;
+    return (
+      storageDirectoryMounts.find((mount) => isPathWithin(mount.path, targetPath)) ??
+      null
+    );
+  }
+
+  function readStorageMountForPath(targetPath: string) {
+    if (isPersistentStorageCollectionRoot(targetPath)) {
+      return null;
+    }
+
+    const cleanTarget = trimTrailingSlash(targetPath);
+
+    return (
+      storageFileMounts.find(
+        (mount) => trimTrailingSlash(mount.path) === cleanTarget,
+      ) ??
+      storageDirectoryMounts.find((mount) => isPathWithin(mount.path, targetPath)) ??
+      null
+    );
+  }
+
+  function readDirectoryChainWithinScope(targetDirectory: string) {
+    if (!isStorageMode) {
+      return directoryChain(targetDirectory, workspaceRoot);
+    }
+
+    if (isPersistentStorageCollectionRoot(targetDirectory)) {
+      return [workspaceRoot];
+    }
+
+    const mount = readStorageDirectoryMountForPath(targetDirectory);
+
+    if (!mount) {
+      return [workspaceRoot];
+    }
+
+    const cleanMount = trimTrailingSlash(mount.path);
+    const cleanTarget = trimTrailingSlash(targetDirectory);
+
+    if (cleanTarget === cleanMount) {
+      return [workspaceRoot, mount.path];
+    }
+
+    const relativePath = cleanTarget
+      .slice(cleanMount.length)
+      .replace(/^\/+/, "");
+    const segments = relativePath.split("/").filter(Boolean);
+    const chain = [workspaceRoot, mount.path];
+    let currentPath = mount.path;
+
+    for (const segment of segments) {
+      currentPath = joinPath(currentPath, segment);
+      chain.push(currentPath);
+    }
+
+    return chain;
+  }
+
+  function readParentDirectoryWithinScope(targetPath: string) {
+    if (!isStorageMode) {
+      return parentDirectory(targetPath, workspaceRoot);
+    }
+
+    if (isPersistentStorageCollectionRoot(targetPath)) {
+      return workspaceRoot;
+    }
+
+    const exactMount = readExactStorageMount(targetPath);
+
+    if (exactMount?.kind === "file") {
+      return workspaceRoot;
+    }
+
+    const directoryMount = readStorageDirectoryMountForPath(targetPath);
+
+    if (!directoryMount) {
+      return workspaceRoot;
+    }
+
+    if (trimTrailingSlash(targetPath) === trimTrailingSlash(directoryMount.path)) {
+      return workspaceRoot;
+    }
+
+    return parentDirectory(targetPath, directoryMount.path);
+  }
 
   function ensurePathIsWithinCurrentScope(targetPath: string) {
     const normalizedPath = normalizeAbsolutePathInput(targetPath);
@@ -736,7 +772,7 @@ export function ConsoleFilesWorkbench({
       throw new Error("Path must be absolute.");
     }
 
-    if (rootMode === "storage" && !isPathWithin(workspaceRoot, normalizedPath)) {
+    if (isStorageMode && !readStorageMountForPath(normalizedPath)) {
       throw new Error(
         "Path must stay inside persistent storage. Switch to Live filesystem to work outside it.",
       );
@@ -745,12 +781,126 @@ export function ConsoleFilesWorkbench({
     return normalizedPath;
   }
 
+  function ensureDirectoryPathIsWithinCurrentScope(targetPath: string) {
+    const normalizedPath = normalizeAbsolutePathInput(targetPath);
+
+    if (!normalizedPath) {
+      throw new Error("Path must be absolute.");
+    }
+
+    if (isStorageMode && !readStorageDirectoryMountForPath(normalizedPath)) {
+      throw new Error(
+        "Folders can only be created inside mounted persistent directories.",
+      );
+    }
+
+    return normalizedPath;
+  }
+
+  function readWritableDirectory() {
+    if (!isStorageMode) {
+      if (composer) {
+        return parentDirectory(composer.path, workspaceRoot);
+      }
+
+      if (!selectedNode) {
+        return workspaceRoot;
+      }
+
+      return selectedNode.kind === "dir"
+        ? selectedNode.path
+        : parentDirectory(selectedNode.path, workspaceRoot);
+    }
+
+    if (composer) {
+      const parentPath = readParentDirectoryWithinScope(composer.path);
+      return isPersistentStorageCollectionRoot(parentPath) ? null : parentPath;
+    }
+
+    if (!selectedNode) {
+      return null;
+    }
+
+    if (selectedNode.kind === "dir") {
+      return isPersistentStorageCollectionRoot(selectedNode.path)
+        ? null
+        : (readStorageDirectoryMountForPath(selectedNode.path)?.path
+            ? selectedNode.path
+            : null);
+    }
+
+    const parentPath = readParentDirectoryWithinScope(selectedNode.path);
+    return isPersistentStorageCollectionRoot(parentPath) ? null : parentPath;
+  }
+
+  function readRefreshTargetDirectory() {
+    if (composer) {
+      return readParentDirectoryWithinScope(composer.path);
+    }
+
+    if (!selectedNode) {
+      return workspaceRoot;
+    }
+
+    return selectedNode.kind === "dir"
+      ? selectedNode.path
+      : readParentDirectoryWithinScope(selectedNode.path);
+  }
+
+  function readHighlightedPath() {
+    if (composer) {
+      return readParentDirectoryWithinScope(composer.path);
+    }
+
+    return selectedNode?.path ?? workspaceRoot;
+  }
+
+  const selectedFile =
+    !composer && selectedNode?.kind === "file" ? fileDocuments[selectedNode.path] ?? null : null;
+  const selectedDirectory =
+    !composer && selectedNode?.kind === "dir" ? directories[selectedNode.path] ?? null : null;
+  const writableDirectory = readWritableDirectory();
+  const highlightedPath = readHighlightedPath();
+  const selectedMountRoot =
+    isStorageMode && selectedNode ? readExactStorageMount(selectedNode.path) : null;
+  const canDeleteSelection =
+    !composer &&
+    selectedNode !== null &&
+    selectedNode.path !== workspaceRoot &&
+    !selectedMountRoot;
+  const canCreateInsideCurrentScope = Boolean(writableDirectory);
+  const rootModeOptions = FILESYSTEM_ROOT_MODE_OPTIONS.map((option) => ({
+    ...option,
+    label: (
+      <span className="fg-filesystem__view-tab-label">{option.label}</span>
+    ),
+    disabled:
+      Boolean(busyAction) ||
+      Boolean(composer) ||
+      (option.value === "storage" && !hasPersistentStorage),
+  }));
+
   async function loadDirectory(
     targetPath: string,
     options?: {
       force?: boolean;
     },
   ) {
+    if (isStorageMode && isPersistentStorageCollectionRoot(targetPath)) {
+      const nextBucket = {
+        entries: storageMountEntries,
+        status: "ready",
+      } satisfies DirectoryBucket;
+
+      setDirectories((current) => ({
+        ...current,
+        [targetPath]: nextBucket,
+      }));
+      setRootStatus("ready");
+
+      return nextBucket.entries;
+    }
+
     const existing = directories[targetPath];
 
     if (!options?.force && existing?.status === "ready") {
@@ -896,12 +1046,7 @@ export function ConsoleFilesWorkbench({
   }
 
   async function reloadDirectoryChain(targetDirectory: string) {
-    if (persistentStorageRootIsFile) {
-      await loadFile(workspaceRoot, { force: true });
-      return;
-    }
-
-    const chain = directoryChain(targetDirectory, workspaceRoot);
+    const chain = readDirectoryChainWithinScope(targetDirectory);
 
     setExpandedPaths((current) => Array.from(new Set([...current, ...chain])));
 
@@ -925,31 +1070,42 @@ export function ConsoleFilesWorkbench({
   }
 
   useEffect(() => {
-    if (!activePersistentStorageMount && rootMode !== "filesystem") {
+    if (!hasPersistentStorage && rootMode !== "filesystem") {
       setRootMode("filesystem");
     }
-  }, [activePersistentStorageMount, rootMode]);
-
-  useEffect(() => {
-    const nextRootPath = activePersistentStorageMount?.path ?? null;
-
-    if (persistentStorageRootPath !== nextRootPath) {
-      setPersistentStorageRootPath(nextRootPath);
-    }
-  }, [activePersistentStorageMount, persistentStorageRootPath]);
+  }, [hasPersistentStorage, rootMode]);
 
   useEffect(() => {
     let cancelled = false;
     const cachedState = filesWorkbenchCache.get(appId);
+    const canRestoreCachedState =
+      cachedState &&
+      cachedState.requestedRootPath === requestedRootPath &&
+      (requestedRootPath !== PERSISTENT_STORAGE_COLLECTION_ROOT ||
+        cachedState.storageMountSignature === storageMountSignature);
 
-    if (cachedState && cachedState.requestedRootPath === requestedRootPath) {
+    if (canRestoreCachedState && cachedState) {
       setWorkspaceRoot(cachedState.workspaceRoot);
-      setDirectories(cachedState.directories);
+      setDirectories(
+        requestedRootPath === PERSISTENT_STORAGE_COLLECTION_ROOT
+          ? {
+              ...cachedState.directories,
+              [requestedRootPath]: {
+                entries: storageMountEntries,
+                status: "ready",
+              },
+            }
+          : cachedState.directories,
+      );
       setExpandedPaths(cachedState.expandedPaths);
       setSelectedNode(cachedState.selectedNode);
       setFileDocuments(cachedState.fileDocuments);
       setComposer(cachedState.composer);
-      setRootStatus(cachedState.rootStatus);
+      setRootStatus(
+        requestedRootPath === PERSISTENT_STORAGE_COLLECTION_ROOT
+          ? "ready"
+          : cachedState.rootStatus,
+      );
 
       return () => {
         cancelled = true;
@@ -957,108 +1113,72 @@ export function ConsoleFilesWorkbench({
     }
 
     setWorkspaceRoot(requestedRootPath);
-    setDirectories({});
-    setExpandedPaths(persistentStorageRootIsFile ? [] : [requestedRootPath]);
-    setSelectedNode({
-      kind: persistentStorageRootIsFile ? "file" : "dir",
-      path: requestedRootPath,
-    });
     setFileDocuments({});
     setComposer(null);
+
+    if (requestedRootPath === PERSISTENT_STORAGE_COLLECTION_ROOT) {
+      setDirectories({
+        [requestedRootPath]: {
+          entries: storageMountEntries,
+          status: "ready",
+        },
+      });
+      setExpandedPaths([]);
+      setSelectedNode({ kind: "dir", path: requestedRootPath });
+      setRootStatus("ready");
+
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setDirectories({});
+    setExpandedPaths([requestedRootPath]);
+    setSelectedNode({ kind: "dir", path: requestedRootPath });
     setRootStatus("loading");
 
-    if (persistentStorageRootIsFile) {
-      const searchParams = new URLSearchParams();
-      searchParams.set("path", requestedRootPath);
-      searchParams.set("max_bytes", "1048576");
+    const searchParams = new URLSearchParams();
+    searchParams.set("path", requestedRootPath);
 
-      requestJson<FilesystemFileResponse>(
-        `/api/fugue/apps/${appId}/filesystem/file?${searchParams.toString()}`,
-      )
-        .then((response) => {
-          if (cancelled) {
-            return;
-          }
+    requestJson<FilesystemTreeResponse>(
+      `/api/fugue/apps/${appId}/filesystem/tree?${searchParams.toString()}`,
+    )
+      .then((response) => {
+        if (cancelled) {
+          return;
+        }
 
-          const resolvedRoot = response.workspaceRoot?.trim() || requestedRootPath;
-          const resolvedPath = response.path?.trim() || resolvedRoot;
+        const resolvedRoot = response.workspaceRoot?.trim() || requestedRootPath;
+        const resolvedPath = response.path?.trim() || resolvedRoot;
+        const entries = normalizeTreeEntries(response.entries ?? []);
 
-          setWorkspaceRoot(resolvedRoot);
-          setFileDocuments({
-            [resolvedPath]: {
-              content: typeof response.content === "string" ? response.content : "",
-              dirty: false,
-              encoding: normalizeEncoding(response.encoding),
-              mode: typeof response.mode === "number" ? String(response.mode) : "",
-              modifiedAt:
-                typeof response.modifiedAt === "string"
-                  ? response.modifiedAt
-                  : null,
-              path: resolvedPath,
-              size: typeof response.size === "number" ? response.size : null,
-              status: "ready",
-              truncated: Boolean(response.truncated),
-            },
-          });
-          setExpandedPaths([]);
-          setSelectedNode({ kind: "file", path: resolvedPath });
-          setRootStatus("ready");
-        })
-        .catch((error) => {
-          if (cancelled) {
-            return;
-          }
-
-          setRootStatus("error");
-          showToast({
-            message: readErrorMessage(error),
-            variant: "error",
-          });
+        setWorkspaceRoot(resolvedRoot);
+        setDirectories({
+          [resolvedPath]: {
+            entries,
+            status: "ready",
+          },
         });
-    } else {
-      const searchParams = new URLSearchParams();
-      searchParams.set("path", requestedRootPath);
+        setExpandedPaths([resolvedRoot]);
+        setSelectedNode({ kind: "dir", path: resolvedRoot });
+        setRootStatus("ready");
+      })
+      .catch((error) => {
+        if (cancelled) {
+          return;
+        }
 
-      requestJson<FilesystemTreeResponse>(
-        `/api/fugue/apps/${appId}/filesystem/tree?${searchParams.toString()}`,
-      )
-        .then((response) => {
-          if (cancelled) {
-            return;
-          }
-
-          const resolvedRoot = response.workspaceRoot?.trim() || requestedRootPath;
-          const resolvedPath = response.path?.trim() || resolvedRoot;
-          const entries = normalizeTreeEntries(response.entries ?? []);
-
-          setWorkspaceRoot(resolvedRoot);
-          setDirectories({
-            [resolvedPath]: {
-              entries,
-              status: "ready",
-            },
-          });
-          setExpandedPaths([resolvedRoot]);
-          setSelectedNode({ kind: "dir", path: resolvedRoot });
-          setRootStatus("ready");
-        })
-        .catch((error) => {
-          if (cancelled) {
-            return;
-          }
-
-          setRootStatus("error");
-          showToast({
-            message: readErrorMessage(error),
-            variant: "error",
-          });
+        setRootStatus("error");
+        showToast({
+          message: readErrorMessage(error),
+          variant: "error",
         });
-    }
+      });
 
     return () => {
       cancelled = true;
     };
-  }, [appId, persistentStorageRootIsFile, requestedRootPath, showToast]);
+  }, [appId, requestedRootPath, showToast, storageMountSignature]);
 
   useEffect(() => {
     filesWorkbenchCache.set(appId, {
@@ -1066,11 +1186,11 @@ export function ConsoleFilesWorkbench({
       directories,
       expandedPaths,
       fileDocuments,
-      persistentStorageRootPath,
       requestedRootPath,
       rootMode,
       rootStatus,
       selectedNode,
+      storageMountSignature,
       workspaceRoot,
     });
   }, [
@@ -1079,11 +1199,11 @@ export function ConsoleFilesWorkbench({
     directories,
     expandedPaths,
     fileDocuments,
-    persistentStorageRootPath,
     requestedRootPath,
     rootMode,
     rootStatus,
     selectedNode,
+    storageMountSignature,
     workspaceRoot,
   ]);
 
@@ -1131,32 +1251,30 @@ export function ConsoleFilesWorkbench({
   }
 
   function startNewFile() {
-    if (!canCreateInsideCurrentScope) {
+    if (!writableDirectory) {
       return;
     }
 
-    const baseDirectory = currentDirectoryPath(composer, selectedNode, workspaceRoot);
     setComposer({
       content: "",
       encoding: "utf-8",
       kind: "file",
       mkdirParents: true,
       mode: "",
-      path: buildSuggestedFilePath(baseDirectory),
+      path: buildSuggestedFilePath(writableDirectory),
     });
   }
 
   function startNewDirectory() {
-    if (!canCreateInsideCurrentScope) {
+    if (!writableDirectory) {
       return;
     }
 
-    const baseDirectory = currentDirectoryPath(composer, selectedNode, workspaceRoot);
     setComposer({
       kind: "directory",
       mode: "",
       parents: true,
-      path: buildSuggestedDirectoryPath(baseDirectory),
+      path: buildSuggestedDirectoryPath(writableDirectory),
     });
   }
 
@@ -1176,28 +1294,16 @@ export function ConsoleFilesWorkbench({
     setBusyAction("refresh");
 
     try {
-      const targetDirectory =
-        composer?.kind === "directory"
-          ? parentDirectory(composer.path, workspaceRoot)
-          : composer?.kind === "file"
-            ? parentDirectory(composer.path, workspaceRoot)
-            : selectedNode?.kind === "dir"
-              ? selectedNode.path
-              : selectedNode?.kind === "file"
-                ? parentDirectory(selectedNode.path, workspaceRoot)
-                : workspaceRoot;
+      const targetDirectory = readRefreshTargetDirectory();
 
       await reloadDirectoryChain(targetDirectory);
 
-      if (
-        selectedNode?.kind === "file" &&
-        !(persistentStorageRootIsFile && selectedNode.path === workspaceRoot)
-      ) {
+      if (selectedNode?.kind === "file") {
         await loadFile(selectedNode.path, { force: true });
       }
 
       showToast({
-        message: "Filesystem refreshed.",
+        message: isStorageMode ? "Persistent storage refreshed." : "Filesystem refreshed.",
         variant: "success",
       });
     } catch (error) {
@@ -1235,7 +1341,7 @@ export function ConsoleFilesWorkbench({
           throw new Error("Directory path is required.");
         }
 
-        const requestPath = ensurePathIsWithinCurrentScope(nextPath);
+        const requestPath = ensureDirectoryPathIsWithinCurrentScope(nextPath);
 
         const response = await requestJson<FilesystemMutationResponse>(
           `/api/fugue/apps/${appId}/filesystem/directory`,
@@ -1305,7 +1411,7 @@ export function ConsoleFilesWorkbench({
         }));
         setComposer(null);
         setSelectedNode({ kind: "file", path: targetPath });
-        await reloadDirectoryChain(parentDirectory(targetPath, workspaceRoot));
+        await reloadDirectoryChain(readParentDirectoryWithinScope(targetPath));
         showToast({
           message: "File saved.",
           variant: "success",
@@ -1349,7 +1455,7 @@ export function ConsoleFilesWorkbench({
           status: "ready",
         },
       }));
-      await reloadDirectoryChain(parentDirectory(selectedFile.path, workspaceRoot));
+      await reloadDirectoryChain(readParentDirectoryWithinScope(selectedFile.path));
       showToast({
         message: "File saved.",
         variant: "success",
@@ -1369,7 +1475,7 @@ export function ConsoleFilesWorkbench({
       return;
     }
 
-    if (!selectedNode || selectedNode.path === workspaceRoot) {
+    if (!selectedNode || selectedNode.path === workspaceRoot || selectedMountRoot) {
       return;
     }
 
@@ -1400,7 +1506,7 @@ export function ConsoleFilesWorkbench({
         method: "DELETE",
       });
 
-      const nextSelectedPath = parentDirectory(selectedNode.path, workspaceRoot);
+      const nextSelectedPath = readParentDirectoryWithinScope(selectedNode.path);
       prunePathState(selectedNode.path);
       setComposer(null);
       setSelectedNode({ kind: "dir", path: nextSelectedPath });
@@ -1510,43 +1616,27 @@ export function ConsoleFilesWorkbench({
     });
   }
 
-  function renderRootFileNode(targetPath: string) {
-    const isSelected = highlightedPath === targetPath;
-
-    return (
-      <div className="fg-filesystem-node" key={targetPath}>
-        <button
-          className={cx("fg-filesystem-node__button", isSelected && "is-active")}
-          onClick={() => handleFileSelect(targetPath)}
-          style={{ "--fg-filesystem-depth": 0 } as CSSProperties}
-          title={targetPath}
-          type="button"
-        >
-          <span className="fg-filesystem-node__lead">
-            <span className="fg-filesystem-node__disclosure is-placeholder" />
-            <FileIcon />
-          </span>
-          <span className="fg-filesystem-node__label">{basename(targetPath)}</span>
-        </button>
-      </div>
-    );
-  }
-
-  const pathSegments = buildPathSegments(
-    selectedNode?.path ?? workspaceRoot,
-    workspaceRoot,
-  );
   const directoryEntries = selectedDirectory?.entries ?? [];
+  const isSyntheticStorageRootSelected =
+    isStorageMode &&
+    selectedNode?.kind === "dir" &&
+    isPersistentStorageCollectionRoot(selectedNode.path);
   const selectedDirectoryStatus =
     !composer && selectedNode?.kind === "dir"
       ? selectedDirectory?.status ?? (selectedNode.path === workspaceRoot ? rootStatus : "loading")
       : "idle";
   const showDirectoryPlaceholder =
-    selectedDirectoryStatus === "loading" || directoryEntries.length === 0;
-  const directoryPlaceholderTitle =
-    selectedDirectoryStatus === "loading" ? "Loading folder" : "This folder is empty";
-  const directoryPlaceholderCopy =
-    selectedDirectoryStatus === "loading"
+    isSyntheticStorageRootSelected ||
+    selectedDirectoryStatus === "loading" ||
+    directoryEntries.length === 0;
+  const directoryPlaceholderTitle = isSyntheticStorageRootSelected
+    ? "Select a mounted file or directory"
+    : selectedDirectoryStatus === "loading"
+      ? "Loading folder"
+      : "This folder is empty";
+  const directoryPlaceholderCopy = isSyntheticStorageRootSelected
+    ? "Choose a mounted path from the explorer to inspect or edit it."
+    : selectedDirectoryStatus === "loading"
       ? "Fetching the current directory contents."
       : "Create a file or folder from the explorer toolbar.";
   const saveDisabled = Boolean(
@@ -1564,134 +1654,104 @@ export function ConsoleFilesWorkbench({
 
   return (
     <div className="fg-workbench-section">
-      <div className="fg-filesystem">
-        <aside className="fg-filesystem__browser">
-          <div className="fg-filesystem__browser-head">
-            <div className="fg-filesystem__pane-row">
-              <p className="fg-filesystem__eyebrow">Explorer</p>
-
-              <div className="fg-filesystem__toolbar" role="toolbar" aria-label="Explorer actions">
-                <ToolbarIconButton
-                  disabled={Boolean(busyAction)}
-                  label="Refresh explorer"
-                  loading={busyAction === "refresh"}
-                  onClick={handleRefresh}
-                >
-                  <RefreshIcon />
-                </ToolbarIconButton>
-                <ToolbarIconButton
-                  disabled={Boolean(busyAction) || !canCreateInsideCurrentScope}
-                  label="Create new file"
-                  onClick={startNewFile}
-                >
-                  <FilePlusIcon />
-                </ToolbarIconButton>
-                <ToolbarIconButton
-                  disabled={Boolean(busyAction) || !canCreateInsideCurrentScope}
-                  label="Create new folder"
-                  onClick={startNewDirectory}
-                >
-                  <FolderPlusIcon />
-                </ToolbarIconButton>
-              </div>
+      <div className="fg-filesystem-layout">
+        <div
+          className={cx(
+            "fg-filesystem__topbar",
+            !hasPersistentStorage && "is-toolbar-only",
+          )}
+        >
+          {hasPersistentStorage ? (
+            <div className="fg-filesystem__mode-slot">
+              <SegmentedControl
+                ariaLabel="Filesystem scope"
+                className="fg-project-toolbar__panels-switch fg-filesystem__mode-switch"
+                onChange={setRootMode}
+                options={rootModeOptions}
+                value={rootMode}
+              />
             </div>
-            {hasPersistentStorage ? (
-              <div className="fg-filesystem__scope-controls">
-                <SegmentedControl
-                  ariaLabel="Filesystem scope"
-                  className="fg-filesystem__scope-switch"
-                  onChange={setRootMode}
-                  options={rootModeOptions}
-                  value={rootMode}
-                />
-                {rootMode === "storage" &&
-                persistentStorageRootOptions.length > 1 ? (
-                  <SelectField
-                    aria-label="Persistent storage root"
+          ) : null}
+
+          <div className="fg-filesystem__controls">
+            {composer ? (
+              <div className="fg-route-composer fg-filesystem__path-composer">
+                <div className="fg-route-composer__shell">
+                  <input
+                    aria-label={composer.kind === "directory" ? "New folder path" : "New file path"}
+                    autoCapitalize="off"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoFocus
+                    className="fg-route-composer__field"
+                    inputMode="text"
                     onChange={(event) => {
-                      setPersistentStorageRootPath(event.target.value);
+                      updateComposerPath(event.target.value);
                     }}
-                    value={activePersistentStorageMount?.path ?? ""}
-                    wrapperClassName="fg-filesystem__root-select"
-                  >
-                    {persistentStorageRootOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </SelectField>
-                ) : null}
-              </div>
-            ) : null}
-            {rootMode === "storage" ? (
-              <p className="fg-console-note">
-                {activeScopeLabel}
-                {rootScopeHint ? ` ${rootScopeHint}` : ""}
-              </p>
-            ) : null}
-          </div>
-
-          <div className="fg-filesystem__tree">
-            {rootStatus === "loading" && !directories[workspaceRoot]?.entries.length ? (
-              <div className="fg-filesystem-tree__placeholder">
-                <div className="fg-filesystem-tree__skeleton" />
-                <div className="fg-filesystem-tree__skeleton" />
-                <div className="fg-filesystem-tree__skeleton" />
+                    spellCheck={false}
+                    value={composer.path}
+                  />
+                </div>
               </div>
             ) : null}
 
-            {rootStatus === "error" ? (
-              <InlineAlert variant="error">Unable to load this filesystem root.</InlineAlert>
-            ) : null}
-
-            {persistentStorageRootIsFile
-              ? rootStatus === "ready"
-                ? renderRootFileNode(workspaceRoot)
-                : null
-              : renderTree(workspaceRoot, 0)}
-          </div>
-        </aside>
-
-        <section className="fg-filesystem__editor">
-          <div className="fg-filesystem__editor-head">
-            <div className="fg-filesystem__editor-copy">
-              {composer ? (
-                <div className="fg-route-composer fg-filesystem__path-composer">
-                  <div className="fg-route-composer__shell">
-                    <input
-                      aria-label={composer.kind === "directory" ? "New folder path" : "New file path"}
-                      autoCapitalize="off"
-                      autoComplete="off"
-                      autoCorrect="off"
-                      autoFocus
-                      className="fg-route-composer__field"
-                      inputMode="text"
-                      onChange={(event) => {
-                        updateComposerPath(event.target.value);
-                      }}
-                      spellCheck={false}
-                      value={composer.path}
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="fg-filesystem__pathbar">
-                  {pathSegments.map((segment, index) => (
-                    <span className="fg-filesystem__crumb" key={segment.path}>
-                      {index > 0 ? <span className="fg-filesystem__crumb-separator">/</span> : null}
-                      <span>{segment.label}</span>
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="fg-filesystem__editor-actions">
+            <div
+              className="fg-filesystem__actions"
+              role="toolbar"
+              aria-label="Filesystem actions"
+            >
+              <Button
+                disabled={Boolean(busyAction)}
+                icon={<RefreshIcon />}
+                loading={busyAction === "refresh"}
+                loadingLabel="Refreshing…"
+                onClick={handleRefresh}
+                size="compact"
+                type="button"
+                variant="secondary"
+              >
+                Refresh
+              </Button>
+              <Button
+                disabled={Boolean(busyAction) || Boolean(composer) || !canCreateInsideCurrentScope}
+                icon={<FilePlusIcon />}
+                onClick={startNewFile}
+                size="compact"
+                type="button"
+                variant="secondary"
+              >
+                New file
+              </Button>
+              <Button
+                disabled={Boolean(busyAction) || Boolean(composer) || !canCreateInsideCurrentScope}
+                icon={<FolderPlusIcon />}
+                onClick={startNewDirectory}
+                size="compact"
+                type="button"
+                variant="secondary"
+              >
+                New folder
+              </Button>
+              {!composer && canDeleteSelection ? (
+                <Button
+                  disabled={Boolean(busyAction)}
+                  icon={<TrashIcon />}
+                  loading={busyAction === "delete"}
+                  loadingLabel="Deleting…"
+                  onClick={handleDelete}
+                  size="compact"
+                  type="button"
+                  variant="danger"
+                >
+                  Delete
+                </Button>
+              ) : null}
               {composer ? (
                 <Button
                   disabled={Boolean(busyAction)}
+                  icon={<CloseIcon />}
                   onClick={cancelComposer}
-                  size="tight"
+                  size="compact"
                   type="button"
                   variant="ghost"
                 >
@@ -1705,196 +1765,211 @@ export function ConsoleFilesWorkbench({
                   loading={busyAction === "save"}
                   loadingLabel="Saving…"
                   onClick={handleSave}
-                  size="tight"
+                  size="compact"
                   type="button"
                   variant="primary"
                 >
                   Save
                 </Button>
               ) : null}
-              {!composer && canDeleteSelection ? (
-                <Button
-                  disabled={Boolean(busyAction)}
-                  icon={<TrashIcon />}
-                  loading={busyAction === "delete"}
-                  loadingLabel="Deleting…"
-                  onClick={handleDelete}
-                  size="tight"
-                  type="button"
-                  variant="danger"
-                >
-                  Delete
-                </Button>
-              ) : null}
             </div>
           </div>
+        </div>
 
-          {composer?.kind === "directory" ? (
-            <div className="fg-filesystem-editor">
-              <details className="fg-filesystem-editor__advanced">
-                <summary>Options</summary>
-                <div className="fg-filesystem-editor__advanced-grid">
-                  <input
-                    aria-label="Folder mode"
-                    className="fg-input"
-                    id={`filesystem-dir-mode-${appId}`}
-                    onChange={(event) =>
-                      setComposer((current) =>
-                        current?.kind === "directory"
-                          ? { ...current, mode: event.target.value }
-                          : current,
-                      )
-                    }
-                    placeholder="Optional mode (493)"
-                    spellCheck={false}
-                    value={composer.mode}
-                  />
+        <div className="fg-filesystem-shell">
+          <div className="fg-filesystem">
+            <aside className="fg-filesystem__browser">
+              <div className="fg-filesystem__tree">
+                {rootStatus === "loading" && !directories[workspaceRoot]?.entries.length ? (
+                  <div className="fg-filesystem-tree__placeholder">
+                    <div className="fg-filesystem-tree__skeleton" />
+                    <div className="fg-filesystem-tree__skeleton" />
+                    <div className="fg-filesystem-tree__skeleton" />
+                  </div>
+                ) : null}
 
-                  <label className="fg-project-toggle fg-filesystem-editor__toggle">
+                {rootStatus === "error" ? (
+                  <InlineAlert variant="error">
+                    {isStorageMode
+                      ? "Unable to load persistent storage."
+                      : "Unable to load this filesystem root."}
+                  </InlineAlert>
+                ) : null}
+
+                {renderTree(workspaceRoot, 0)}
+              </div>
+            </aside>
+
+            <section className="fg-filesystem__editor">
+
+            {composer?.kind === "directory" ? (
+              <div className="fg-filesystem-editor">
+                <details className="fg-filesystem-editor__advanced">
+                  <summary>Options</summary>
+                  <div className="fg-filesystem-editor__advanced-grid">
                     <input
-                      checked={composer.parents}
+                      aria-label="Folder mode"
+                      className="fg-input"
+                      id={`filesystem-dir-mode-${appId}`}
                       onChange={(event) =>
                         setComposer((current) =>
                           current?.kind === "directory"
-                            ? { ...current, parents: event.target.checked }
+                            ? { ...current, mode: event.target.value }
                             : current,
                         )
                       }
-                      type="checkbox"
+                      placeholder="Optional mode (493)"
+                      spellCheck={false}
+                      value={composer.mode}
                     />
-                    <span>Create parent folders when missing</span>
-                  </label>
+
+                    <label className="fg-project-toggle fg-filesystem-editor__toggle">
+                      <input
+                        checked={composer.parents}
+                        onChange={(event) =>
+                          setComposer((current) =>
+                            current?.kind === "directory"
+                              ? { ...current, parents: event.target.checked }
+                              : current,
+                          )
+                        }
+                        type="checkbox"
+                      />
+                      <span>Create parent folders when missing</span>
+                    </label>
+                  </div>
+                </details>
+
+                <div className="fg-filesystem-editor__placeholder">
+                  <p className="fg-filesystem-editor__placeholder-title">New folder</p>
+                  <p className="fg-filesystem-editor__placeholder-copy">
+                    Save to create this folder in the current scope.
+                  </p>
                 </div>
-              </details>
-
-              <div className="fg-filesystem-editor__placeholder">
-                <p className="fg-filesystem-editor__placeholder-title">New folder</p>
-                <p className="fg-filesystem-editor__placeholder-copy">
-                  Save to create this folder in the current scope.
-                </p>
               </div>
-            </div>
-          ) : null}
+            ) : null}
 
-          {composer?.kind === "file" ? (
-            <div className="fg-filesystem-editor fg-filesystem-editor--code">
-              <details className="fg-filesystem-editor__advanced">
-                <summary>Options</summary>
-                <div className="fg-filesystem-editor__advanced-grid">
-                  <input
-                    aria-label="File mode"
-                    className="fg-input"
-                    id={`filesystem-file-mode-${appId}`}
-                    onChange={(event) =>
-                      setComposer((current) =>
-                        current?.kind === "file"
-                          ? { ...current, mode: event.target.value }
-                          : current,
-                      )
-                    }
-                    placeholder="Optional mode (420)"
-                    spellCheck={false}
-                    value={composer.mode}
-                  />
-
-                  <label className="fg-project-toggle fg-filesystem-editor__toggle">
+            {composer?.kind === "file" ? (
+              <div className="fg-filesystem-editor fg-filesystem-editor--code">
+                <details className="fg-filesystem-editor__advanced">
+                  <summary>Options</summary>
+                  <div className="fg-filesystem-editor__advanced-grid">
                     <input
-                      checked={composer.mkdirParents}
+                      aria-label="File mode"
+                      className="fg-input"
+                      id={`filesystem-file-mode-${appId}`}
                       onChange={(event) =>
                         setComposer((current) =>
                           current?.kind === "file"
-                            ? { ...current, mkdirParents: event.target.checked }
+                            ? { ...current, mode: event.target.value }
                             : current,
                         )
                       }
-                      type="checkbox"
+                      placeholder="Optional mode (420)"
+                      spellCheck={false}
+                      value={composer.mode}
                     />
-                    <span>Create parent folders when missing</span>
-                  </label>
-                </div>
-              </details>
 
-              <textarea
-                aria-label={`Draft editor for ${composer.path}`}
-                className="fg-project-textarea fg-filesystem-editor__textarea fg-filesystem-editor__textarea--code"
-                id={`filesystem-file-content-${appId}`}
-                onChange={(event) =>
-                  setComposer((current) =>
-                    current?.kind === "file"
-                      ? { ...current, content: event.target.value }
-                      : current,
-                  )
-                }
-                spellCheck={false}
-                value={composer.content}
-              />
-            </div>
-          ) : null}
-
-          {!composer && selectedNode?.kind === "dir" ? (
-            <div className="fg-filesystem-editor">
-              {selectedDirectory?.status === "error" ? (
-                <InlineAlert variant="error">Unable to load this folder. Try refreshing the current scope.</InlineAlert>
-              ) : null}
-
-              {selectedDirectory?.status !== "error" && showDirectoryPlaceholder ? (
-                <div className="fg-filesystem-editor__placeholder">
-                  <p className="fg-filesystem-editor__placeholder-title">{directoryPlaceholderTitle}</p>
-                  <p className="fg-filesystem-editor__placeholder-copy">{directoryPlaceholderCopy}</p>
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-
-          {!composer && selectedNode?.kind === "file" ? (
-            <div className="fg-filesystem-editor fg-filesystem-editor--code">
-              {isSelectedFileLoading ? (
-                <div
-                  aria-busy="true"
-                  aria-label={`Loading ${basename(selectedNode.path)}`}
-                  className="fg-console-loading fg-filesystem-loading"
-                  role="status"
-                >
-                  <div className="fg-filesystem-loading__body">
-                    <span aria-hidden="true" className="fg-filesystem-loading__spinner" />
-                    <p className="fg-filesystem-loading__label">Loading…</p>
+                    <label className="fg-project-toggle fg-filesystem-editor__toggle">
+                      <input
+                        checked={composer.mkdirParents}
+                        onChange={(event) =>
+                          setComposer((current) =>
+                            current?.kind === "file"
+                              ? { ...current, mkdirParents: event.target.checked }
+                              : current,
+                          )
+                        }
+                        type="checkbox"
+                      />
+                      <span>Create parent folders when missing</span>
+                    </label>
                   </div>
-                </div>
-              ) : null}
+                </details>
 
-              {!isSelectedFileLoading && selectedFile?.status === "error" ? (
-                <InlineAlert variant="error">Unable to load this file. Refresh the current scope to try again.</InlineAlert>
-              ) : null}
-
-              {!isSelectedFileLoading && selectedFile?.encoding === "base64" ? (
-                <InlineAlert variant="info">
-                  This file is shown as base64 because it is not valid utf-8 text.
-                </InlineAlert>
-              ) : null}
-
-              {!isSelectedFileLoading && selectedFile?.truncated ? (
-                <InlineAlert variant="error">
-                  This preview was truncated at 1 MB. Save is disabled to avoid overwriting the file with partial content.
-                </InlineAlert>
-              ) : null}
-
-              {!isSelectedFileLoading ? (
                 <textarea
-                  aria-label={`File editor for ${selectedNode.path}`}
+                  aria-label={`Draft editor for ${composer.path}`}
                   className="fg-project-textarea fg-filesystem-editor__textarea fg-filesystem-editor__textarea--code"
+                  id={`filesystem-file-content-${appId}`}
                   onChange={(event) =>
-                    updateSelectedFile({
-                      content: event.target.value,
-                    })
+                    setComposer((current) =>
+                      current?.kind === "file"
+                        ? { ...current, content: event.target.value }
+                        : current,
+                    )
                   }
-                  readOnly={selectedFile?.status !== "ready" || selectedFile?.truncated}
                   spellCheck={false}
-                  value={selectedFile?.content ?? ""}
+                  value={composer.content}
                 />
-              ) : null}
-            </div>
-          ) : null}
-        </section>
+              </div>
+            ) : null}
+
+            {!composer && selectedNode?.kind === "dir" ? (
+              <div className="fg-filesystem-editor">
+                {selectedDirectory?.status === "error" ? (
+                  <InlineAlert variant="error">Unable to load this folder. Try refreshing the current scope.</InlineAlert>
+                ) : null}
+
+                {selectedDirectory?.status !== "error" && showDirectoryPlaceholder ? (
+                  <div className="fg-filesystem-editor__placeholder">
+                    <p className="fg-filesystem-editor__placeholder-title">{directoryPlaceholderTitle}</p>
+                    <p className="fg-filesystem-editor__placeholder-copy">{directoryPlaceholderCopy}</p>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
+            {!composer && selectedNode?.kind === "file" ? (
+              <div className="fg-filesystem-editor fg-filesystem-editor--code">
+                {isSelectedFileLoading ? (
+                  <div
+                    aria-busy="true"
+                    aria-label={`Loading ${basename(selectedNode.path)}`}
+                    className="fg-console-loading fg-filesystem-loading"
+                    role="status"
+                  >
+                    <div className="fg-filesystem-loading__body">
+                      <span aria-hidden="true" className="fg-filesystem-loading__spinner" />
+                      <p className="fg-filesystem-loading__label">Loading…</p>
+                    </div>
+                  </div>
+                ) : null}
+
+                {!isSelectedFileLoading && selectedFile?.status === "error" ? (
+                  <InlineAlert variant="error">Unable to load this file. Refresh the current scope to try again.</InlineAlert>
+                ) : null}
+
+                {!isSelectedFileLoading && selectedFile?.encoding === "base64" ? (
+                  <InlineAlert variant="info">
+                    This file is shown as base64 because it is not valid utf-8 text.
+                  </InlineAlert>
+                ) : null}
+
+                {!isSelectedFileLoading && selectedFile?.truncated ? (
+                  <InlineAlert variant="error">
+                    This preview was truncated at 1 MB. Save is disabled to avoid overwriting the file with partial content.
+                  </InlineAlert>
+                ) : null}
+
+                {!isSelectedFileLoading ? (
+                  <textarea
+                    aria-label={`File editor for ${selectedNode.path}`}
+                    className="fg-project-textarea fg-filesystem-editor__textarea fg-filesystem-editor__textarea--code"
+                    onChange={(event) =>
+                      updateSelectedFile({
+                        content: event.target.value,
+                      })
+                    }
+                    readOnly={selectedFile?.status !== "ready" || selectedFile?.truncated}
+                    spellCheck={false}
+                    value={selectedFile?.content ?? ""}
+                  />
+                ) : null}
+              </div>
+            ) : null}
+          </section>
+        </div>
+        </div>
       </div>
     </div>
   );

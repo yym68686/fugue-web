@@ -1978,6 +1978,10 @@ function readLogsDisplayBody(
   logsBody: string,
   connectionState: LogsConnectionState,
 ) {
+  if (logsBody) {
+    return logsBody;
+  }
+
   if (logsStatus === "loading") {
     return connectionState === "reconnecting"
       ? "Reconnecting to live logs…"
@@ -1988,12 +1992,12 @@ function readLogsDisplayBody(
     return "Unable to open the log stream.";
   }
 
-  if (logsBody) {
-    return logsBody;
-  }
-
   if (connectionState === "live" || connectionState === "reconnecting") {
     return "Waiting for log output…";
+  }
+
+  if (connectionState === "ended") {
+    return "No log lines were received before the stream closed.";
   }
 
   return "No logs available.";
@@ -2100,10 +2104,10 @@ function ConsoleLogsPanel({
     ? `${selectedApp.id}:${runtimeLogsUnavailable.label}`
     : null;
   const logsBody = joinLogLines(deferredLogLines);
+  const hasBufferedLogOutput = logLines.length > 0;
   const canCopyLogs =
-    logsStatus === "ready" &&
-    !runtimeLogsUnavailable &&
-    logLinesRef.current.length > 0;
+    !runtimeLogsUnavailable && logLinesRef.current.length > 0;
+  const logsStreamLabel = humanizeUiLabel(effectiveLogsMode).toLowerCase();
   const logsRefreshStateLabel = runtimeLogsUnavailable
     ? runtimeLogsUnavailable.label
     : logsConnectionState === "connecting"
@@ -2119,15 +2123,64 @@ function ConsoleLogsPanel({
             : logsConnectionState === "error"
               ? "Error"
               : "Idle";
+  const logsRefreshStateDetail = runtimeLogsUnavailable
+    ? null
+    : logsConnectionState === "reconnecting" && hasBufferedLogOutput
+      ? "Showing latest output"
+      : logsConnectionState === "error" && hasBufferedLogOutput
+        ? "Last output preserved"
+        : logsConnectionState === "ended" && hasBufferedLogOutput
+          ? "Showing latest snapshot"
+          : null;
   const logsPanelNote = runtimeLogsUnavailable
     ? runtimeLogsUnavailable.description
     : logsConnectionState === "reconnecting"
-      ? `Connection dropped. Reconnecting to ${humanizeUiLabel(effectiveLogsMode).toLowerCase()} output.`
+      ? hasBufferedLogOutput
+        ? `Connection dropped. Reconnecting to ${logsStreamLabel} output. Showing the latest received output.`
+        : `Connection dropped. Reconnecting to ${logsStreamLabel} output.`
       : logsConnectionState === "ended"
-        ? `${humanizeUiLabel(effectiveLogsMode)} stream closed. Use Refresh now to reopen the latest snapshot.`
+        ? hasBufferedLogOutput
+          ? `${humanizeUiLabel(effectiveLogsMode)} stream closed. Showing the latest received snapshot. Use Refresh now to reopen the latest output.`
+          : `${humanizeUiLabel(effectiveLogsMode)} stream closed. Use Refresh now to reopen the latest snapshot.`
         : logsConnectionState === "error"
-          ? `${logsErrorMessage ?? `Unable to open the ${humanizeUiLabel(effectiveLogsMode).toLowerCase()} stream.`} Use Refresh now to try again.`
-          : `Live ${humanizeUiLabel(effectiveLogsMode).toLowerCase()} output for ${selectedService.name}.`;
+          ? hasBufferedLogOutput
+            ? `${logsErrorMessage ?? `Unable to open the ${logsStreamLabel} stream.`} Showing the latest received output. Use Refresh now to try again.`
+            : `${logsErrorMessage ?? `Unable to open the ${logsStreamLabel} stream.`} Use Refresh now to try again.`
+          : logsConnectionState === "connecting"
+            ? `Opening live ${logsStreamLabel} output for ${selectedService.name}.`
+            : `Live ${logsStreamLabel} output for ${selectedService.name}.`;
+  const logsPanelNoteRole: "alert" | "status" | undefined =
+    runtimeLogsUnavailable ||
+    logsConnectionState === "idle" ||
+    logsConnectionState === "live"
+      ? undefined
+      : logsConnectionState === "error"
+        ? "alert"
+        : "status";
+  const logsPanelNoteLive = logsPanelNoteRole
+    ? logsConnectionState === "error"
+      ? "assertive"
+      : "polite"
+    : undefined;
+  const syncPendingCommitHint = useEffectEvent(
+    (buildStatus: BuildLogStreamStatus | null) => {
+      if (effectiveLogsMode !== "build") {
+        return;
+      }
+
+      onPendingCommitHintChange(
+        selectedServiceApp && selectedAppNeedsPendingCommitHint
+          ? inferPendingCommitHint(
+              selectedServiceApp,
+              buildStatus ? buildLogsResponseFromStatus(buildStatus) : null,
+            )
+          : null,
+      );
+    },
+  );
+  const isRetryableStreamError = useEffectEvent((error: unknown) =>
+    isRetryableLogStreamError(error, effectiveLogsMode, selectedServiceApp),
+  );
 
   function cancelScheduledLogCommit() {
     if (logsFlushFrameRef.current !== null) {
@@ -2274,9 +2327,7 @@ function ConsoleLogsPanel({
       setLogsErrorMessage(null);
       setBuildLogsOperationStatus(null);
 
-      if (effectiveLogsMode === "build") {
-        onPendingCommitHintChange(null);
-      }
+      syncPendingCommitHint(null);
 
       return;
     }
@@ -2325,10 +2376,7 @@ function ConsoleLogsPanel({
         setLogsConnectionState("connecting");
         setLogsErrorMessage(null);
         setBuildLogsOperationStatus(null);
-
-        if (effectiveLogsMode === "build") {
-          onPendingCommitHintChange(null);
-        }
+        syncPendingCommitHint(null);
       } else {
         setLogsConnectionState("reconnecting");
         setLogsStatus((current) => (current === "ready" ? "ready" : "loading"));
@@ -2391,14 +2439,7 @@ function ConsoleLogsPanel({
                 setLogsStatus("ready");
                 setLogsErrorMessage(null);
                 setBuildLogsOperationStatus(status.operationStatus ?? null);
-                onPendingCommitHintChange(
-                  selectedServiceApp && selectedAppNeedsPendingCommitHint
-                    ? inferPendingCommitHint(
-                        selectedServiceApp,
-                        buildLogsResponseFromStatus(status),
-                      )
-                    : null,
-                );
+                syncPendingCommitHint(status);
                 return;
               }
               case "state": {
@@ -2500,20 +2541,9 @@ function ConsoleLogsPanel({
         }
 
         if (
-          !isRetryableLogStreamError(
-            error,
-            effectiveLogsMode,
-            selectedServiceApp,
-          )
+          !isRetryableStreamError(error)
         ) {
-          if (effectiveLogsMode === "build") {
-            onPendingCommitHintChange(
-              selectedServiceApp && selectedAppNeedsPendingCommitHint
-                ? inferPendingCommitHint(selectedServiceApp, null)
-                : null,
-            );
-          }
-
+          syncPendingCommitHint(null);
           setLogsConnectionState("error");
           setLogsStatus("error");
           setLogsErrorMessage(
@@ -2539,11 +2569,7 @@ function ConsoleLogsPanel({
     logsRequestKey,
     logsStreamInput,
     manualRefreshToken,
-    onPendingCommitHintChange,
-    runtimeLogsUnavailable,
     runtimeLogsUnavailableKey,
-    selectedAppNeedsPendingCommitHint,
-    selectedServiceApp,
   ]);
 
   return (
@@ -2551,7 +2577,13 @@ function ConsoleLogsPanel({
       <div className="fg-workbench-section__head">
         <div className="fg-workbench-section__copy">
           <p className="fg-label fg-panel__eyebrow">Logs</p>
-          <p className="fg-console-note">{logsPanelNote}</p>
+          <p
+            aria-live={logsPanelNoteLive}
+            className="fg-console-note"
+            role={logsPanelNoteRole}
+          >
+            {logsPanelNote}
+          </p>
         </div>
 
         <div className="fg-workbench-section__actions">
@@ -2591,6 +2623,7 @@ function ConsoleLogsPanel({
       <ProofShell>
         <ProofShellRibbon>
           <span>{logsRefreshStateLabel}</span>
+          {logsRefreshStateDetail ? <span>{logsRefreshStateDetail}</span> : null}
         </ProofShellRibbon>
         {runtimeLogsUnavailable ? (
           <ProofShellEmpty
@@ -2599,9 +2632,13 @@ function ConsoleLogsPanel({
           />
         ) : (
           <pre
+            aria-busy={logsStatus === "loading" && !hasBufferedLogOutput}
+            aria-label={`${humanizeUiLabel(effectiveLogsMode)} logs for ${selectedService.name}`}
+            aria-relevant="additions text"
             className="fg-log-output__viewport"
             onScroll={handleLogsViewportScroll}
             ref={logsViewportRef}
+            role="log"
           >
             <code className="fg-log-output">
               {renderAnsiLogBody(
