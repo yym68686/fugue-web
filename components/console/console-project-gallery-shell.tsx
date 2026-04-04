@@ -147,6 +147,105 @@ function projectTitle(project: ConsoleProjectSummaryView) {
   return `${project.appCount} app${project.appCount === 1 ? "" : "s"} · ${project.serviceCount} service${project.serviceCount === 1 ? "" : "s"}`;
 }
 
+function isDeletingProjectLifecycleLabel(value?: string | null) {
+  const normalized = value?.trim().toLowerCase() ?? "";
+  return normalized.includes("deleting");
+}
+
+function applyOptimisticDeletingToProjectSummaries(
+  projects: ConsoleProjectSummaryView[],
+  deletingProjectIds: ReadonlySet<string>,
+) {
+  if (deletingProjectIds.size === 0) {
+    return projects;
+  }
+
+  let didChange = false;
+  const nextProjects = projects.map((project) => {
+    if (
+      !deletingProjectIds.has(project.id) ||
+      isDeletingProjectLifecycleLabel(project.lifecycle.label)
+    ) {
+      return project;
+    }
+
+    didChange = true;
+    return {
+      ...project,
+      lifecycle: {
+        ...project.lifecycle,
+        label: "Deleting",
+        live: true,
+        syncMode: "active",
+        tone: "danger",
+      },
+    } satisfies ConsoleProjectSummaryView;
+  });
+
+  return didChange ? nextProjects : projects;
+}
+
+function pruneOptimisticDeletingProjectIds(
+  current: Set<string>,
+  projects: ConsoleProjectSummaryView[],
+) {
+  if (current.size === 0) {
+    return current;
+  }
+
+  const next = new Set<string>();
+
+  projects.forEach((project) => {
+    if (
+      current.has(project.id) &&
+      !isDeletingProjectLifecycleLabel(project.lifecycle.label)
+    ) {
+      next.add(project.id);
+    }
+  });
+
+  return next.size === current.size ? current : next;
+}
+
+function useOptimisticDeletingProjectSummaries(
+  projects: ConsoleProjectSummaryView[],
+) {
+  const [optimisticDeletingProjectIds, setOptimisticDeletingProjectIds] =
+    useState<Set<string>>(() => new Set());
+
+  useEffect(() => {
+    setOptimisticDeletingProjectIds((current) =>
+      pruneOptimisticDeletingProjectIds(current, projects),
+    );
+  }, [projects]);
+
+  const markProjectDeleting = useEffectEvent((projectId: string) => {
+    const normalizedProjectId = projectId.trim();
+
+    if (!normalizedProjectId) {
+      return;
+    }
+
+    setOptimisticDeletingProjectIds((current) => {
+      if (current.has(normalizedProjectId)) {
+        return current;
+      }
+
+      const next = new Set(current);
+      next.add(normalizedProjectId);
+      return next;
+    });
+  });
+
+  return {
+    markProjectDeleting,
+    optimisticProjects: applyOptimisticDeletingToProjectSummaries(
+      projects,
+      optimisticDeletingProjectIds,
+    ),
+  };
+}
+
 function clearCreateDialogUrl() {
   if (typeof window === "undefined") {
     return;
@@ -222,9 +321,12 @@ export function ConsoleProjectGallery({
   const projectPrefetchKey = data.projects
     .map((project) => project.id)
     .join("|");
+  const { markProjectDeleting, optimisticProjects } =
+    useOptimisticDeletingProjectSummaries(data.projects);
 
   const selectedProject =
-    data.projects.find((project) => project.id === selectedProjectId) ?? null;
+    optimisticProjects.find((project) => project.id === selectedProjectId) ??
+    null;
   const isCreateServiceMode = createTargetProject !== null;
   const createDialogEyebrow = isCreateServiceMode
     ? "Add service"
@@ -801,7 +903,17 @@ export function ConsoleProjectGallery({
     void refreshGallery({ silent: true });
   }
 
-  function handleProjectMutation() {
+  function handleProjectMutation(
+    options?: number | { optimisticDeletingProjectId?: string },
+  ) {
+    if (
+      options &&
+      typeof options === "object" &&
+      options.optimisticDeletingProjectId
+    ) {
+      markProjectDeleting(options.optimisticDeletingProjectId);
+    }
+
     setWorkbenchRefreshToken((value) => value + 1);
     void refreshGallery({ silent: true });
   }
@@ -812,7 +924,7 @@ export function ConsoleProjectGallery({
         <section
           className={cx(
             "fg-project-gallery__shelf",
-            !data.projects.length && "fg-project-gallery__shelf--empty",
+            !optimisticProjects.length && "fg-project-gallery__shelf--empty",
           )}
         >
           {workspaceMissing ? (
@@ -828,9 +940,9 @@ export function ConsoleProjectGallery({
                 </PanelSection>
               </Panel>
             </div>
-          ) : data.projects.length ? (
+          ) : optimisticProjects.length ? (
             <div className="fg-project-gallery__stack">
-              {data.projects.map((project) => {
+              {optimisticProjects.map((project) => {
                 const expanded = selectedProjectId === project.id;
                 const cachedProjectDetail = expanded
                   ? readCachedConsoleProjectDetail(project.id)

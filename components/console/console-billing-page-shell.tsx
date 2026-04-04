@@ -14,6 +14,9 @@ import {
   useConsolePageSnapshot,
 } from "@/lib/console/page-snapshot-client";
 
+const BILLING_PAGE_DESCRIPTION =
+  "Set a tenant-wide managed capacity envelope, show the monthly estimate, and top up prepaid balance. Fugue meters managed capacity hourly for internal-cluster services and leaves BYO VPS deployments unrestricted.";
+
 export function ConsoleBillingPageShell() {
   const { data, error, loading } =
     useConsolePageSnapshot<ConsoleBillingPageSnapshot>(
@@ -32,7 +35,7 @@ export function ConsoleBillingPageShell() {
     return (
       <div className="fg-console-page">
         <ConsolePageIntro
-          description="Set a tenant-wide managed capacity envelope, show the monthly estimate, and top up prepaid balance. Fugue meters managed capacity hourly and excludes external-owned BYO VPS."
+          description={BILLING_PAGE_DESCRIPTION}
           eyebrow="Billing"
           title="Managed capacity billing"
         />
@@ -52,7 +55,7 @@ export function ConsoleBillingPageShell() {
   return (
     <div className="fg-console-page">
       <ConsolePageIntro
-        description="Set a tenant-wide managed capacity envelope, show the monthly estimate, and top up prepaid balance. Fugue meters managed capacity hourly and excludes external-owned BYO VPS."
+        description={BILLING_PAGE_DESCRIPTION}
         eyebrow="Billing"
         title="Managed capacity billing"
       />

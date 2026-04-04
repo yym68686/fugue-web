@@ -230,6 +230,10 @@ type RuntimeLogsUnavailableState = {
 };
 
 type ConsoleGalleryServiceView = ConsoleGalleryProjectView["services"][number];
+type ConsoleGalleryAppServiceView = Extract<
+  ConsoleGalleryServiceView,
+  { kind: "app" }
+>;
 
 const WORKBENCH_VIEW_OPTIONS: readonly SegmentedControlOption<WorkbenchView>[] =
   [
@@ -468,6 +472,15 @@ function isPausedLifecycleValue(value?: string | null) {
   );
 }
 
+function isDeletingLifecycleValue(value?: string | null) {
+  const normalized = value?.trim().toLowerCase() ?? "";
+
+  return (
+    normalized.length > 0 &&
+    includesLifecycleKeyword(normalized, ["deleting"])
+  );
+}
+
 function isPausedAppService(app?: ConsoleGalleryAppView | null) {
   return isPausedLifecycleValue(app?.phase);
 }
@@ -600,8 +613,12 @@ function readProjectLifecycle(
 }
 
 function readAppServiceRoleLabel(
-  service?: Pick<ConsoleGalleryAppView, "serviceRole"> | null,
+  service?: Pick<ConsoleGalleryAppView, "phase" | "serviceRole"> | null,
 ) {
+  if (isDeletingLifecycleValue(service?.phase)) {
+    return "Deleting service";
+  }
+
   return service?.serviceRole === "pending"
     ? "Next release"
     : "Current release";
@@ -943,6 +960,14 @@ function isRetryableLogStreamError(error: unknown) {
   return !(error instanceof LogStreamRequestError) || error.status >= 500;
 }
 
+function readLogStreamErrorMessage(error: unknown, logsMode: LogsView) {
+  if (error instanceof LogStreamRequestError && error.status === 404) {
+    return `${humanizeUiLabel(logsMode)} logs are not available yet. Fugue may still be preparing this service.`;
+  }
+
+  return readErrorMessage(error);
+}
+
 function projectApps(project: ConsoleGalleryProjectView) {
   const runningApps = project.services.filter(
     (service): service is { kind: "app" } & ConsoleGalleryAppView =>
@@ -975,6 +1000,127 @@ function readPreferredProjectService(
     services[0] ??
     null
   );
+}
+
+function applyOptimisticDeletingToApp(
+  app: ConsoleGalleryAppServiceView,
+  deletingAppIds: ReadonlySet<string>,
+) {
+  if (!deletingAppIds.has(app.id) || isDeletingLifecycleValue(app.phase)) {
+    return app;
+  }
+
+  return {
+    ...app,
+    phase: "Deleting",
+    phaseTone: "danger",
+  } satisfies ConsoleGalleryAppServiceView;
+}
+
+function applyOptimisticDeletingToProjects(
+  projects: ConsoleGalleryProjectView[],
+  deletingAppIds: ReadonlySet<string>,
+) {
+  if (deletingAppIds.size === 0) {
+    return projects;
+  }
+
+  let didChange = false;
+  const nextProjects = projects.map((project) => {
+    let projectChanged = false;
+    const nextServices: ConsoleGalleryProjectView["services"] =
+      project.services.map((service) => {
+        if (service.kind !== "app") {
+          return service;
+        }
+
+        const nextService = applyOptimisticDeletingToApp(
+          service,
+          deletingAppIds,
+        );
+
+        if (nextService !== service) {
+          projectChanged = true;
+        }
+
+        return nextService;
+      });
+
+    if (!projectChanged) {
+      return project;
+    }
+
+    didChange = true;
+    return {
+      ...project,
+      services: nextServices,
+    } satisfies ConsoleGalleryProjectView;
+  });
+
+  return didChange ? nextProjects : projects;
+}
+
+function pruneOptimisticDeletingAppIds(
+  current: Set<string>,
+  projects: ConsoleGalleryProjectView[],
+) {
+  if (current.size === 0) {
+    return current;
+  }
+
+  const next = new Set<string>();
+
+  projects.forEach((project) => {
+    project.services.forEach((service) => {
+      if (
+        service.kind === "app" &&
+        current.has(service.id) &&
+        !isDeletingLifecycleValue(service.phase)
+      ) {
+        next.add(service.id);
+      }
+    });
+  });
+
+  return next.size === current.size ? current : next;
+}
+
+function useOptimisticDeletingProjects(projects: ConsoleGalleryProjectView[]) {
+  const [optimisticDeletingAppIds, setOptimisticDeletingAppIds] = useState<
+    Set<string>
+  >(() => new Set());
+
+  useEffect(() => {
+    setOptimisticDeletingAppIds((current) =>
+      pruneOptimisticDeletingAppIds(current, projects),
+    );
+  }, [projects]);
+
+  const markAppDeleting = useEffectEvent((appId: string) => {
+    const normalizedAppId = appId.trim();
+
+    if (!normalizedAppId) {
+      return;
+    }
+
+    setOptimisticDeletingAppIds((current) => {
+      if (current.has(normalizedAppId)) {
+        return current;
+      }
+
+      const next = new Set(current);
+      next.add(normalizedAppId);
+      return next;
+    });
+  });
+
+  return {
+    markAppDeleting,
+    optimisticProjects: applyOptimisticDeletingToProjects(
+      projects,
+      optimisticDeletingAppIds,
+    ),
+  };
 }
 
 function readServiceWorkbenchOptions(
@@ -1836,6 +1982,7 @@ function ConsoleLogsPanel({
   const [logsStatus, setLogsStatus] = useState<
     "error" | "idle" | "loading" | "ready"
   >("idle");
+  const [logsErrorMessage, setLogsErrorMessage] = useState<string | null>(null);
   const [logLines, setLogLines] = useState<string[]>([]);
   const deferredLogLines = useDeferredValue(logLines);
   const [logsCopyState, setLogsCopyState] = useState<
@@ -1900,7 +2047,7 @@ function ConsoleLogsPanel({
       : logsConnectionState === "ended"
         ? `${humanizeUiLabel(effectiveLogsMode)} stream closed. Use Refresh now to reopen the latest snapshot.`
         : logsConnectionState === "error"
-          ? `Unable to open the ${humanizeUiLabel(effectiveLogsMode).toLowerCase()} stream. Use Refresh now to try again.`
+          ? `${logsErrorMessage ?? `Unable to open the ${humanizeUiLabel(effectiveLogsMode).toLowerCase()} stream.`} Use Refresh now to try again.`
           : `Live ${humanizeUiLabel(effectiveLogsMode).toLowerCase()} output for ${selectedService.name}.`;
 
   function cancelScheduledLogCommit() {
@@ -2045,6 +2192,7 @@ function ConsoleLogsPanel({
       resetLogBuffer();
       setLogsConnectionState("idle");
       setLogsStatus("idle");
+      setLogsErrorMessage(null);
       setBuildLogsOperationStatus(null);
 
       if (effectiveLogsMode === "build") {
@@ -2096,6 +2244,7 @@ function ConsoleLogsPanel({
         resetLogBuffer();
         setLogsStatus("loading");
         setLogsConnectionState("connecting");
+        setLogsErrorMessage(null);
         setBuildLogsOperationStatus(null);
 
         if (effectiveLogsMode === "build") {
@@ -2146,6 +2295,7 @@ function ConsoleLogsPanel({
               case "ready":
                 setLogsConnectionState("live");
                 setLogsStatus("ready");
+                setLogsErrorMessage(null);
                 return;
               case "status": {
                 const status = parseBuildLogStreamStatus(event);
@@ -2160,6 +2310,7 @@ function ConsoleLogsPanel({
 
                 setLogsConnectionState("live");
                 setLogsStatus("ready");
+                setLogsErrorMessage(null);
                 setBuildLogsOperationStatus(status.operationStatus ?? null);
                 onPendingCommitHintChange(
                   selectedServiceApp && selectedAppNeedsPendingCommitHint
@@ -2184,6 +2335,7 @@ function ConsoleLogsPanel({
 
                 setLogsConnectionState("live");
                 setLogsStatus("ready");
+                setLogsErrorMessage(null);
                 return;
               }
               case "log": {
@@ -2199,6 +2351,7 @@ function ConsoleLogsPanel({
 
                 setLogsConnectionState("live");
                 setLogsStatus("ready");
+                setLogsErrorMessage(null);
                 lastRenderedSourceIdRef.current = appendLogLine(
                   logLinesRef.current,
                   logLine.line,
@@ -2221,6 +2374,7 @@ function ConsoleLogsPanel({
 
                 setLogsConnectionState("live");
                 setLogsStatus("ready");
+                setLogsErrorMessage(null);
                 lastRenderedSourceIdRef.current = appendLogWarning(
                   logLinesRef.current,
                   warning,
@@ -2232,6 +2386,7 @@ function ConsoleLogsPanel({
               case "heartbeat":
                 setLogsConnectionState("live");
                 setLogsStatus("ready");
+                setLogsErrorMessage(null);
                 return;
               case "end": {
                 const endEvent = parseLogStreamEnd(event);
@@ -2276,10 +2431,9 @@ function ConsoleLogsPanel({
 
           setLogsConnectionState("error");
           setLogsStatus("error");
-          showToast({
-            message: readErrorMessage(error),
-            variant: "error",
-          });
+          setLogsErrorMessage(
+            readLogStreamErrorMessage(error, effectiveLogsMode),
+          );
           return;
         }
 
@@ -2305,7 +2459,6 @@ function ConsoleLogsPanel({
     runtimeLogsUnavailableKey,
     selectedAppNeedsPendingCommitHint,
     selectedServiceApp,
-    showToast,
   ]);
 
   return (
@@ -2464,9 +2617,12 @@ export function ConsoleProjectGallery({
   const galleryRefreshPendingRef = useRef(false);
   const pendingCommitHintRequestPendingRef = useRef(false);
   const createBackdropPressStartedRef = useRef(false);
+  const { markAppDeleting, optimisticProjects } =
+    useOptimisticDeletingProjects(data.projects);
 
   const selectedProject =
-    data.projects.find((project) => project.id === selectedProjectId) ?? null;
+    optimisticProjects.find((project) => project.id === selectedProjectId) ??
+    null;
   const selectedProjectServices = selectedProject?.services ?? [];
   const selectedProjectApps = selectedProject
     ? projectApps(selectedProject)
@@ -2510,6 +2666,9 @@ export function ConsoleProjectGallery({
     activeTab === "logs" &&
     effectiveLogsMode === "build";
   const selectedServicePaused = isPausedAppService(selectedServiceApp);
+  const selectedServiceDeleting = isDeletingLifecycleValue(
+    selectedServiceApp?.phase,
+  );
   const runtimeLogsUnavailable = readRuntimeLogsUnavailableState(
     selectedServiceApp,
     effectiveLogsMode,
@@ -2518,7 +2677,7 @@ export function ConsoleProjectGallery({
     ? `Partial Fugue data: ${data.errors.join(" | ")}.`
     : null;
   const dataErrorVariant = data.errors.length >= 3 ? "error" : "info";
-  const projectLifecycles = data.projects.map((project) =>
+  const projectLifecycles = optimisticProjects.map((project) =>
     readProjectLifecycle(project),
   );
   const hasLiveProjects = projectLifecycles.some(
@@ -3297,7 +3456,17 @@ export function ConsoleProjectGallery({
           break;
       }
 
-      await requestJson(input, { method });
+      const result = await requestJson<{ alreadyDeleting?: boolean }>(input, {
+        method,
+      });
+
+      if (nextAction === "delete") {
+        markAppDeleting(selectedServiceApp.id);
+        successMessage = result.alreadyDeleting
+          ? "Delete is already queued."
+          : "Delete queued.";
+      }
+
       armRefreshWindow(refreshWindowMs);
 
       if (nextAction === "redeploy") {
@@ -3976,7 +4145,8 @@ export function ConsoleProjectGallery({
               <PanelSection className="fg-project-inspector__controls">
                 <div className="fg-project-toolbar">
                   {selectedService.kind === "app" &&
-                  selectedService.serviceRole === "running" ? (
+                  selectedService.serviceRole === "running" &&
+                  !selectedServiceDeleting ? (
                     <div className="fg-project-toolbar__group">
                       <p className="fg-label fg-project-toolbar__label">
                         Actions
@@ -4357,12 +4527,12 @@ export function ConsoleProjectGallery({
         <section
           className={cx(
             "fg-project-gallery__shelf",
-            !data.projects.length && "fg-project-gallery__shelf--empty",
+            !optimisticProjects.length && "fg-project-gallery__shelf--empty",
           )}
         >
-          {data.projects.length ? (
+          {optimisticProjects.length ? (
             <div className="fg-project-gallery__stack">
-              {data.projects.map((project) => {
+              {optimisticProjects.map((project) => {
                 const expanded = selectedProjectId === project.id;
                 const detailId = `project-detail-${project.id}`;
                 const projectResourceUsage =
@@ -4579,7 +4749,9 @@ export function ConsoleProjectWorkbench({
 }: {
   detailId: string;
   onProjectDeleted: (projectId: string) => void;
-  onProjectMutation: () => void;
+  onProjectMutation: (
+    options?: number | { optimisticDeletingProjectId?: string },
+  ) => void;
   onRequestCreateService: (project: ConsoleProjectSummaryView) => void;
   projectCatalog: Array<{
     id: string;
@@ -4627,8 +4799,10 @@ export function ConsoleProjectWorkbench({
   const runtimeInventory = useConsoleRuntimeTargetInventory(
     activeTab === "settings",
   );
+  const { markAppDeleting, optimisticProjects } =
+    useOptimisticDeletingProjects(detail?.project ? [detail.project] : []);
 
-  const detailProject = detail?.project ?? null;
+  const detailProject = optimisticProjects[0] ?? null;
   const detailProjectServices = detailProject?.services ?? [];
   const detailProjectApps = detailProject ? projectApps(detailProject) : [];
   const selectedService =
@@ -4665,6 +4839,9 @@ export function ConsoleProjectWorkbench({
     isGitHubTrackedApp(selectedServiceApp) &&
     !hasPendingCommitView(selectedServiceApp);
   const selectedServicePaused = isPausedAppService(selectedServiceApp);
+  const selectedServiceDeleting = isDeletingLifecycleValue(
+    selectedServiceApp?.phase,
+  );
   const runtimeLogsUnavailable = readRuntimeLogsUnavailableState(
     selectedServiceApp,
     effectiveLogsMode,
@@ -5001,7 +5178,16 @@ export function ConsoleProjectWorkbench({
           break;
       }
 
-      await requestJson(input, { method });
+      const result = await requestJson<{ alreadyDeleting?: boolean }>(input, {
+        method,
+      });
+
+      if (nextAction === "delete") {
+        markAppDeleting(selectedServiceApp.id);
+        successMessage = result.alreadyDeleting
+          ? "Delete is already queued."
+          : "Delete queued.";
+      }
 
       if (nextAction === "redeploy") {
         setActiveTab("logs");
@@ -5014,7 +5200,13 @@ export function ConsoleProjectWorkbench({
         variant: "success",
       });
       lastRefreshTokenRef.current = refreshToken + 1;
-      onProjectMutation();
+      onProjectMutation(
+        nextAction === "delete"
+          ? {
+              optimisticDeletingProjectId: project.id,
+            }
+          : undefined,
+      );
       void refreshDetail({ force: true, silent: true });
     } catch (error) {
       setFlash({
@@ -5696,7 +5888,8 @@ export function ConsoleProjectWorkbench({
             <PanelSection className="fg-project-inspector__controls">
               <div className="fg-project-toolbar">
                 {selectedService.kind === "app" &&
-                selectedService.serviceRole === "running" ? (
+                selectedService.serviceRole === "running" &&
+                !selectedServiceDeleting ? (
                   <div className="fg-project-toolbar__group">
                     <p className="fg-label fg-project-toolbar__label">
                       Actions
@@ -6004,7 +6197,7 @@ export function ConsoleProjectWorkbench({
               {activeTab === "logs" ? (
                 <ConsoleLogsPanel
                   effectiveLogsMode={effectiveLogsMode}
-                  externalRefreshToken={logsResetSignal + refreshToken}
+                  externalRefreshToken={logsResetSignal}
                   onLogsModeChange={setLogsMode}
                   onPendingCommitHintChange={setSelectedAppPendingCommitHint}
                   runtimeLogsUnavailable={runtimeLogsUnavailable}
