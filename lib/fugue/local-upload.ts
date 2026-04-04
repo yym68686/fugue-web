@@ -105,7 +105,7 @@ export function normalizeLocalUploadItems(
 }
 
 export function buildLocalUploadFormData(
-  payload: Record<string, string>,
+  payload: Record<string, unknown>,
   localUpload: LocalUploadState,
 ) {
   const formData = new FormData();

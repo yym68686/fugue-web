@@ -1031,10 +1031,6 @@ function buildAdminImageUsageSecondaryLabel(
     return null;
   }
 
-  if (imageUsage.reclaimableSizeBytes > 0) {
-    return `${formatBytesLabel(imageUsage.reclaimableSizeBytes)} reclaimable`;
-  }
-
   return formatCountLabel(imageUsage.versionCount, "version");
 }
 

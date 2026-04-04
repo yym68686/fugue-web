@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
+
 import { ConsoleDisclosureSection } from "@/components/console/console-disclosure-section";
 import { DeploymentTargetField } from "@/components/console/deployment-target-field";
 import { GitHubRepositoryAccessFields } from "@/components/console/github-repository-access-fields";
@@ -18,9 +20,11 @@ import {
   readRuntimeTargetOptionLabel,
   readSelectedRuntimeTargetGroupId,
 } from "@/lib/console/runtime-targets";
+import type { FugueGitHubTemplateInspection } from "@/lib/fugue/api";
 import {
   BUILD_STRATEGY_OPTIONS,
   localUploadPreservesDetectedTopology,
+  preservesGitHubTopologyImport,
   supportsGitHubDockerInputs,
   supportsGitHubSourceDir,
   type BuildStrategyValue,
@@ -31,7 +35,18 @@ import {
   inspectLocalUploadState,
   type LocalUploadState,
 } from "@/lib/fugue/local-upload";
+import {
+  buildPersistentStorageSeedFileKey,
+  readInspectionPersistentStorageSeedFiles,
+  type InspectionPersistentStorageSeedField,
+} from "@/lib/fugue/template-inspection";
+import { isGitHubRepoUrl } from "@/lib/github/repository";
 import type { GitHubConnectionView } from "@/lib/github/types";
+import {
+  isAbortRequestError,
+  readRequestError,
+  requestJson,
+} from "@/lib/ui/request-json";
 
 const SOURCE_MODE_OPTIONS: readonly SegmentedControlOption<ImportSourceMode>[] =
   [
@@ -39,6 +54,33 @@ const SOURCE_MODE_OPTIONS: readonly SegmentedControlOption<ImportSourceMode>[] =
     { label: "Local upload", value: "local-upload" },
     { label: "Docker image", value: "docker-image" },
   ];
+
+type GitHubTemplateInspectionResponse = {
+  inspection?: FugueGitHubTemplateInspection | null;
+};
+
+function buildPersistentStorageSeedFieldId(key: string) {
+  return `${key.replace(/[^a-zA-Z0-9_-]+/g, "-")}-seed`;
+}
+
+function samePersistentStorageSeedFiles(
+  left: ImportServiceDraft["persistentStorageSeedFiles"],
+  right: ImportServiceDraft["persistentStorageSeedFiles"],
+) {
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  return left.every((file, index) => {
+    const candidate = right[index];
+
+    return (
+      candidate?.service === file.service &&
+      candidate?.path === file.path &&
+      candidate?.seedContent === file.seedContent
+    );
+  });
+}
 
 type ImportServiceFieldProps = {
   draft: ImportServiceDraft;
@@ -74,6 +116,13 @@ export function ImportServiceFields({
   const localUploadInspection = inspectLocalUploadState(localUpload);
   const localUploadKeepsTopologyImport =
     localUploadPreservesDetectedTopology(draft);
+  const githubKeepsTopologyImport =
+    draft.sourceMode === "github" && preservesGitHubTopologyImport(draft);
+  const [githubInspection, setGitHubInspection] =
+    useState<FugueGitHubTemplateInspection | null>(null);
+  const [githubInspectionError, setGitHubInspectionError] = useState<
+    string | null
+  >(null);
   const runtimeTargetGroups = buildImportRuntimeTargetGroups(runtimeTargets);
   const selectedRuntimeTargetGroupId = readSelectedRuntimeTargetGroupId(
     runtimeTargetGroups,
@@ -144,6 +193,118 @@ export function ImportServiceFields({
           : "App name, build strategy, and optional source overrides.";
   const deploymentDisclosureSummary =
     draft.sourceMode === "github" ? "Access & deployment" : "Deployment";
+  const persistentStorageSeedFields = useMemo<
+    InspectionPersistentStorageSeedField[]
+  >(
+    () =>
+      githubKeepsTopologyImport
+        ? readInspectionPersistentStorageSeedFiles(githubInspection)
+        : [],
+    [githubInspection, githubKeepsTopologyImport],
+  );
+  const persistentStorageDescription =
+    persistentStorageSeedFields.length > 0
+      ? `${persistentStorageSeedFields.length} missing file${persistentStorageSeedFields.length === 1 ? "" : "s"} before first deploy`
+      : null;
+
+  useEffect(() => {
+    const repoUrl = draft.repoUrl.trim();
+    const repoAuthToken = draft.repoAuthToken.trim();
+    const requiresPrivateRepoAccess = draft.repoVisibility === "private";
+    const canInspectPrivateRepo =
+      !requiresPrivateRepoAccess ||
+      Boolean(repoAuthToken) ||
+      Boolean(githubConnection?.connected);
+
+    setGitHubInspection(null);
+    setGitHubInspectionError(null);
+
+    if (
+      !githubKeepsTopologyImport ||
+      !repoUrl ||
+      !isGitHubRepoUrl(repoUrl) ||
+      (requiresPrivateRepoAccess &&
+        (githubConnectionLoading || !canInspectPrivateRepo))
+    ) {
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => {
+      void requestJson<GitHubTemplateInspectionResponse>(
+        "/api/fugue/templates/inspect-github",
+        {
+          body: JSON.stringify({
+            branch: draft.branch.trim(),
+            repoAuthToken,
+            repoUrl,
+            repoVisibility: draft.repoVisibility,
+          }),
+          cache: "no-store",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          method: "POST",
+          signal: controller.signal,
+        },
+      )
+        .then((response) => {
+          setGitHubInspection(response.inspection ?? null);
+          setGitHubInspectionError(null);
+        })
+        .catch((error) => {
+          if (isAbortRequestError(error)) {
+            return;
+          }
+
+          setGitHubInspection(null);
+          setGitHubInspectionError(readRequestError(error));
+        });
+    }, 300);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [
+    draft.branch,
+    draft.repoAuthToken,
+    draft.repoUrl,
+    draft.repoVisibility,
+    githubConnection?.connected,
+    githubConnectionLoading,
+    githubKeepsTopologyImport,
+  ]);
+
+  useEffect(() => {
+    const currentValues = new Map(
+      draft.persistentStorageSeedFiles.map((file) => [
+        buildPersistentStorageSeedFileKey(file.service, file.path),
+        file.seedContent,
+      ]),
+    );
+    const nextPersistentStorageSeedFiles = persistentStorageSeedFields.map(
+      (file) => ({
+        path: file.path,
+        seedContent: currentValues.get(file.key) ?? file.seedContent,
+        service: file.service,
+      }),
+    );
+
+    if (
+      samePersistentStorageSeedFiles(
+        draft.persistentStorageSeedFiles,
+        nextPersistentStorageSeedFiles,
+      )
+    ) {
+      return;
+    }
+
+    onDraftChange({
+      ...draft,
+      persistentStorageSeedFiles: nextPersistentStorageSeedFiles,
+    });
+  }, [draft, onDraftChange, persistentStorageSeedFields]);
 
   function updateField<Key extends keyof ImportServiceDraft>(
     key: Key,
@@ -159,10 +320,26 @@ export function ImportServiceFields({
     onDraftChange({
       ...draft,
       imageRef: nextMode === "docker-image" ? draft.imageRef : "",
+      persistentStorageSeedFiles:
+        nextMode === "github" ? draft.persistentStorageSeedFiles : [],
       repoAuthToken: nextMode === "github" ? draft.repoAuthToken : "",
       repoUrl: nextMode === "github" ? draft.repoUrl : "",
       repoVisibility: nextMode === "github" ? draft.repoVisibility : "public",
       sourceMode: nextMode,
+    });
+  }
+
+  function updatePersistentStorageSeedValue(key: string, value: string) {
+    onDraftChange({
+      ...draft,
+      persistentStorageSeedFiles: draft.persistentStorageSeedFiles.map((file) =>
+        buildPersistentStorageSeedFileKey(file.service, file.path) === key
+          ? {
+              ...file,
+              seedContent: value,
+            }
+          : file,
+      ),
     });
   }
 
@@ -175,9 +352,13 @@ export function ImportServiceFields({
         <div className="fg-field-control">
           <SegmentedControl
             ariaLabel="Import source mode"
+            controlClassName="fg-console-nav"
+            itemClassName="fg-console-nav__link"
+            labelClassName="fg-console-nav__title"
             onChange={updateSourceMode}
             options={SOURCE_MODE_OPTIONS}
             value={draft.sourceMode}
+            variant="pill"
           />
         </div>
       </div>
@@ -245,6 +426,10 @@ export function ImportServiceFields({
             ? "Whole-topology import is ready. Leave build strategy on Auto detect and keep manual path overrides blank to import every service from fugue.yaml or docker-compose."
             : "Manual build overrides are active. Clear build strategy and path overrides if you want Fugue to import every service from fugue.yaml or docker-compose."}
         </InlineAlert>
+      ) : null}
+
+      {draft.sourceMode === "github" && githubInspectionError ? (
+        <InlineAlert variant="warning">{githubInspectionError}</InlineAlert>
       ) : null}
 
       <ConsoleDisclosureSection
@@ -439,6 +624,55 @@ export function ImportServiceFields({
           ) : null}
         </div>
       </ConsoleDisclosureSection>
+
+      {draft.sourceMode === "github" &&
+      persistentStorageSeedFields.length > 0 ? (
+        <ConsoleDisclosureSection
+          className="fg-console-dialog__advanced"
+          description={persistentStorageDescription ?? undefined}
+          summary="Persistent files"
+        >
+          <div className="fg-console-dialog__advanced-grid">
+            {persistentStorageSeedFields.map((file) => {
+              const fieldId = buildPersistentStorageSeedFieldId(file.key);
+              const value =
+                draft.persistentStorageSeedFiles.find(
+                  (candidate) =>
+                    buildPersistentStorageSeedFileKey(
+                      candidate.service,
+                      candidate.path,
+                    ) === file.key,
+                )?.seedContent ?? "";
+
+              return (
+                <FormField
+                  hint={`Service ${file.service}. Leave blank to create an empty file on first deploy.`}
+                  htmlFor={fieldId}
+                  key={file.key}
+                  label={file.path}
+                  optionalLabel="Optional"
+                >
+                  <textarea
+                    autoCapitalize="off"
+                    autoCorrect="off"
+                    className="fg-input fg-console-seed-textarea"
+                    id={fieldId}
+                    onChange={(event) =>
+                      updatePersistentStorageSeedValue(
+                        file.key,
+                        event.target.value,
+                      )
+                    }
+                    placeholder="Leave blank to create an empty file."
+                    spellCheck={false}
+                    value={value}
+                  />
+                </FormField>
+              );
+            })}
+          </div>
+        </ConsoleDisclosureSection>
+      ) : null}
     </>
   );
 

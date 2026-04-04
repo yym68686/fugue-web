@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getCurrentSession } from "@/lib/auth/session";
 import { ensureAppUser } from "@/lib/workspace/store";
 import { importFugueGitHubApp } from "@/lib/fugue/api";
+import { preservesGitHubTopologyImport } from "@/lib/fugue/import-source";
 import {
   isGitHubRepoUrl,
   normalizeGitHubRepoVisibility,
@@ -25,6 +26,12 @@ const ALLOWED_BUILD_STRATEGIES = new Set([
   "buildpacks",
   "nixpacks",
 ]);
+
+type PersistentStorageSeedFileInput = {
+  path: string;
+  seedContent: string;
+  service: string;
+};
 
 function readErrorMessage(error: unknown) {
   if (error instanceof Error && error.message) {
@@ -82,6 +89,57 @@ function readOptionalPositiveInteger(record: Record<string, unknown>, key: strin
   return Number.isInteger(parsed) && parsed > 0 ? parsed : Number.NaN;
 }
 
+function readPersistentStorageSeedFiles(value: unknown) {
+  if (value === undefined) {
+    return [] as PersistentStorageSeedFileInput[];
+  }
+
+  if (!Array.isArray(value)) {
+    throw new Error("Persistent storage files must be an array.");
+  }
+
+  return value.map((entry, index) => {
+    if (!isObject(entry)) {
+      throw new Error(
+        `Persistent storage file ${index + 1} must be an object.`,
+      );
+    }
+
+    const service =
+      typeof entry.service === "string" ? entry.service.trim() : "";
+    const path = typeof entry.path === "string" ? entry.path.trim() : "";
+    const seedContent =
+      typeof entry.seedContent === "string" ? entry.seedContent : "";
+
+    if (!service) {
+      throw new Error(
+        `Persistent storage file ${index + 1} is missing a service.`,
+      );
+    }
+
+    if (!path) {
+      throw new Error(
+        `Persistent storage file ${index + 1} is missing a path.`,
+      );
+    }
+
+    if (
+      entry.seedContent !== undefined &&
+      typeof entry.seedContent !== "string"
+    ) {
+      throw new Error(
+        `Persistent storage file ${index + 1} must use text content.`,
+      );
+    }
+
+    return {
+      path,
+      seedContent,
+      service,
+    };
+  });
+}
+
 export async function POST(request: Request) {
   const session = await getCurrentSession();
 
@@ -117,6 +175,15 @@ export async function POST(request: Request) {
     repoVisibilityInput,
     Boolean(repoAuthToken),
   );
+  let persistentStorageSeedFiles: PersistentStorageSeedFileInput[];
+
+  try {
+    persistentStorageSeedFiles = readPersistentStorageSeedFiles(
+      body.persistentStorageSeedFiles,
+    );
+  } catch (error) {
+    return jsonError(400, readErrorMessage(error));
+  }
 
   if (!repoUrl) {
     return jsonError(400, "Repository link is required.");
@@ -132,6 +199,21 @@ export async function POST(request: Request) {
 
   if (buildStrategy && !ALLOWED_BUILD_STRATEGIES.has(buildStrategy)) {
     return jsonError(400, "Unsupported build strategy.");
+  }
+
+  if (
+    persistentStorageSeedFiles.length > 0 &&
+    !preservesGitHubTopologyImport({
+      buildContextDir,
+      buildStrategy,
+      dockerfilePath,
+      sourceDir,
+    })
+  ) {
+    return jsonError(
+      400,
+      "Persistent storage files require auto-detected topology import. Clear manual build overrides and try again.",
+    );
   }
 
   if (Number.isNaN(servicePort)) {
@@ -163,6 +245,10 @@ export async function POST(request: Request) {
       buildContextDir: buildContextDir || undefined,
       dockerfilePath: dockerfilePath || undefined,
       name: name || undefined,
+      persistentStorageSeedFiles:
+        persistentStorageSeedFiles.length > 0
+          ? persistentStorageSeedFiles
+          : undefined,
       projectId: workspace.defaultProjectId ?? undefined,
       repoAuthToken: repoAccess.token || undefined,
       repoUrl,

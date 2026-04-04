@@ -69,9 +69,13 @@ export function GitHubRepositoryAccessFields({
         <div className="fg-field-control">
           <SegmentedControl
             ariaLabel={visibilityLabel}
+            controlClassName="fg-console-nav"
+            itemClassName="fg-console-nav__link"
+            labelClassName="fg-console-nav__title"
             onChange={onVisibilityChange}
             options={REPOSITORY_ACCESS_OPTIONS}
             value={visibility}
+            variant="pill"
           />
         </div>
         <span className="fg-field-hint">{visibilityHint}</span>

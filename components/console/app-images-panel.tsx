@@ -14,6 +14,10 @@ import {
 } from "@/lib/fugue/source-display";
 import { copyText } from "@/lib/ui/clipboard";
 import { cx } from "@/lib/ui/cx";
+import {
+  createAbortRequestError,
+  isAbortRequestError,
+} from "@/lib/ui/request-json";
 
 type AppImageSource = {
   buildStrategy?: string | null;
@@ -94,6 +98,10 @@ type CachedAppImageInventory = {
 };
 
 const appImageInventoryCache = new Map<string, CachedAppImageInventory>();
+const appImageInventoryRequestCache = new Map<
+  string,
+  Promise<AppImageInventoryResponse | null>
+>();
 
 function formatCompactNumber(value: number, digits = 1) {
   const formatter = new Intl.NumberFormat("en-US", {
@@ -290,10 +298,13 @@ function readVersionStatusLabel(version: AppImageVersion) {
 function readDeleteDescription(version: AppImageVersion, appName: string) {
   const details = [
     `${readVersionTitle(version)} will be removed from ${appName}'s saved image history.`,
-    version.reclaimableSizeBytes > 0
-      ? `Estimated reclaimable space: ${formatBytesLabel(version.reclaimableSizeBytes)}.`
-      : "This version shares most of its blobs with other images, so reclaim may be limited.",
   ];
+
+  if (version.reclaimableSizeBytes <= 0) {
+    details.push(
+      "Most image data for this version is still shared with other saved images.",
+    );
+  }
 
   return details.join(" ");
 }
@@ -305,10 +316,13 @@ function readClearHistoryDescription(
 ) {
   const parts = [
     `${versions.length} saved image version${versions.length === 1 ? "" : "s"} will be removed from ${appName}.`,
-    reclaimableSizeBytes > 0
-      ? `Estimated reclaimable space: ${formatBytesLabel(reclaimableSizeBytes)}.`
-      : "These versions share most of their blobs with other images, so reclaim may be limited.",
   ];
+
+  if (reclaimableSizeBytes <= 0) {
+    parts.push(
+      "Most image data in this history is still shared with other saved images.",
+    );
+  }
 
   return parts.join(" ");
 }
@@ -317,7 +331,6 @@ function buildClearHistoryToast(
   deletedCount: number,
   alreadyMissingCount: number,
   failedCount: number,
-  reclaimedSizeBytes: number,
 ) {
   const parts = [];
 
@@ -331,10 +344,6 @@ function buildClearHistoryToast(
     parts.push(
       `${alreadyMissingCount} version${alreadyMissingCount === 1 ? "" : "s"} were already missing.`,
     );
-  }
-
-  if (reclaimedSizeBytes > 0) {
-    parts.push(`Estimated reclaim: ${formatBytesLabel(reclaimedSizeBytes)}.`);
   }
 
   if (failedCount > 0) {
@@ -449,6 +458,74 @@ function writeCachedInventory(
   });
 }
 
+export function readCachedAppImageInventory(appId: string) {
+  return readCachedInventory(appId);
+}
+
+async function fetchAppImageInventory(
+  appId: string,
+  options?: {
+    force?: boolean;
+    signal?: AbortSignal;
+  },
+) {
+  if (options?.signal?.aborted) {
+    throw createAbortRequestError();
+  }
+
+  if (!options?.force) {
+    const cachedInventory = readCachedInventory(appId);
+
+    if (cachedInventory) {
+      return cachedInventory;
+    }
+
+    const pendingRequest = appImageInventoryRequestCache.get(appId);
+
+    if (pendingRequest) {
+      return pendingRequest;
+    }
+  }
+
+  const request = requestJson<AppImageInventoryResponse>(
+    `/api/fugue/apps/${appId}/images`,
+    {
+      cache: "no-store",
+      signal: options?.signal,
+    },
+  )
+    .then((response) => {
+      writeCachedInventory(appId, response);
+      return readCachedInventory(appId) ?? response;
+    })
+    .finally(() => {
+      if (appImageInventoryRequestCache.get(appId) === request) {
+        appImageInventoryRequestCache.delete(appId);
+      }
+    });
+
+  appImageInventoryRequestCache.set(appId, request);
+  return request;
+}
+
+export async function warmAppImageInventory(
+  appId: string,
+  options?: {
+    force?: boolean;
+    signal?: AbortSignal;
+  },
+) {
+  try {
+    return await fetchAppImageInventory(appId, options);
+  } catch (error) {
+    if (options?.signal?.aborted || isAbortRequestError(error)) {
+      return null;
+    }
+
+    throw error;
+  }
+}
+
 export function AppImagesPanel({
   appId,
   appName,
@@ -486,8 +563,8 @@ export function AppImagesPanel({
       setRefreshing(false);
     }
 
-    requestJson<AppImageInventoryResponse>(`/api/fugue/apps/${appId}/images`, {
-      cache: "no-store",
+    fetchAppImageInventory(appId, {
+      force: refreshToken > 0,
     })
       .then((response) => {
         if (cancelled) {
@@ -658,20 +735,14 @@ export function AppImagesPanel({
     try {
       const response = await deleteVersion(version);
 
-      const reclaimedSizeBytes = response?.reclaimedSizeBytes ?? 0;
-      const detail =
-        reclaimedSizeBytes > 0
-          ? ` Estimated reclaim: ${formatBytesLabel(reclaimedSizeBytes)}.`
-          : "";
-
       if (response?.deleted || response?.alreadyMissing) {
         removeVersionsFromInventory([version.imageRef]);
       }
 
       showToast({
         message: response?.alreadyMissing
-          ? `Saved image was already missing.${detail}`
-          : `Saved image deleted.${detail}`,
+          ? "Saved image was already missing."
+          : "Saved image deleted.",
         variant: "success",
       });
     } catch (error) {
@@ -709,7 +780,6 @@ export function AppImagesPanel({
     let alreadyMissingCount = 0;
     let failedCount = 0;
     const removedImageRefs: string[] = [];
-    let reclaimedSizeBytes = 0;
 
     for (const version of clearableVersions) {
       try {
@@ -723,7 +793,6 @@ export function AppImagesPanel({
 
         if (response?.deleted) {
           deletedCount += 1;
-          reclaimedSizeBytes += response.reclaimedSizeBytes ?? 0;
           removedImageRefs.push(version.imageRef);
           continue;
         }
@@ -740,7 +809,6 @@ export function AppImagesPanel({
         deletedCount,
         alreadyMissingCount,
         failedCount,
-        reclaimedSizeBytes,
       ),
     );
     setBusyKey(null);
@@ -861,12 +929,6 @@ export function AppImagesPanel({
             <dt>Stored size</dt>
             <dd>{formatBytesLabel(version.sizeBytes)}</dd>
           </div>
-          {!version.current ? (
-            <div>
-              <dt>Reclaimable</dt>
-              <dd>{formatBytesLabel(version.reclaimableSizeBytes)}</dd>
-            </div>
-          ) : null}
           {version.lastDeployedAt ? (
             <div>
               <dt>Last deployed</dt>
@@ -989,13 +1051,6 @@ export function AppImagesPanel({
                   {inventory.summary.staleVersionCount} old version
                   {inventory.summary.staleVersionCount === 1 ? "" : "s"}
                 </p>
-              </article>
-              <article className="fg-app-images__summary-card">
-                <span>Reclaimable</span>
-                <strong>
-                  {formatBytesLabel(inventory.summary.reclaimableSizeBytes)}
-                </strong>
-                <p>After stale image cleanup</p>
               </article>
             </div>
           ) : null}

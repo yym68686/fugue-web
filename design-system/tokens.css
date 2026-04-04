@@ -277,12 +277,12 @@
   --fugue-segmented-item-bg-hover: var(--fugue-selection-lens-bg-hover);
   --fugue-segmented-item-bg-active: var(--fugue-selection-lens-bg-active);
   --fugue-segmented-item-border: transparent;
-  --fugue-segmented-item-border-hover: var(--fugue-selection-lens-border-hover);
-  --fugue-segmented-item-border-active: var(--fugue-selection-lens-border-active);
+  --fugue-segmented-item-border-hover: transparent;
+  --fugue-segmented-item-border-active: transparent;
   --fugue-segmented-item-text: var(--fugue-selection-lens-text);
   --fugue-segmented-item-text-hover: var(--fugue-selection-lens-text-hover);
   --fugue-segmented-item-text-active: var(--fugue-selection-lens-text-active);
-  --fugue-segmented-item-shadow-active: var(--fugue-selection-lens-shadow-active);
+  --fugue-segmented-item-shadow-active: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 
   --fugue-nav-pill-bg:
     linear-gradient(180deg, rgba(255, 255, 255, 0.038), rgba(255, 255, 255, 0.012)),
@@ -298,6 +298,10 @@
   --fugue-nav-pill-item-min-height: var(--fugue-segmented-item-min-height);
   --fugue-nav-pill-item-padding-inline: 0.92rem;
   --fugue-nav-pill-item-font-size: 0.84rem;
+  --fugue-nav-pill-item-border: transparent;
+  --fugue-nav-pill-item-border-hover: transparent;
+  --fugue-nav-pill-item-border-active: transparent;
+  --fugue-nav-pill-item-shadow-active: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 
   --fugue-label-font-size: var(--fugue-type-label);
   --fugue-label-tracking: var(--fugue-tracking-label);
@@ -316,8 +320,8 @@
     transparent
   );
 
-  --fugue-proof-shell-padding: 0.8rem;
-  --fugue-proof-shell-radius-outer: 2rem;
+  --fugue-proof-shell-padding: 0;
+  --fugue-proof-shell-radius-outer: 1.5rem;
   --fugue-proof-shell-radius-inner: 1.5rem;
   --fugue-proof-shell-bg: linear-gradient(
     145deg,

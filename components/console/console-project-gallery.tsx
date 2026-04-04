@@ -5,6 +5,7 @@ import {
   useDeferredValue,
   useEffect,
   useEffectEvent,
+  useLayoutEffect,
   useRef,
   useState,
   type FormEvent,
@@ -63,7 +64,10 @@ import {
 } from "@/lib/console/project-detail-client";
 import { readProjectLifecycleTone } from "@/lib/console/project-lifecycle-tone";
 import { buildProjectResourceUsageView } from "@/lib/console/project-resource-usage";
-import { useConsoleRuntimeTargetInventory } from "@/lib/console/runtime-target-inventory-client";
+import {
+  useConsoleRuntimeTargetInventory,
+  warmConsoleRuntimeTargetInventory,
+} from "@/lib/console/runtime-target-inventory-client";
 import { readDefaultImportRuntimeId } from "@/lib/console/runtime-targets";
 import {
   buildImportServicePayload,
@@ -86,6 +90,7 @@ import { readGitHubCommitHref } from "@/lib/fugue/source-links";
 import { isGitHubSourceType } from "@/lib/github/repository";
 import type { ConsoleTone } from "@/lib/console/types";
 import { parseAnsiText } from "@/lib/ui/ansi";
+import { useAnticipatoryWarmup } from "@/lib/ui/anticipatory-warmup";
 import { copyText } from "@/lib/ui/clipboard";
 import { cx } from "@/lib/ui/cx";
 import {
@@ -214,7 +219,13 @@ type LogStreamEnd = {
   reason: string | null;
 };
 
-type AppAction = "delete" | "disable" | "redeploy" | "restart" | "start";
+type AppAction =
+  | "delete"
+  | "disable"
+  | "force-delete"
+  | "redeploy"
+  | "restart"
+  | "start";
 type ProjectAction = "delete";
 type WorkbenchView = "env" | "files" | "images" | "logs" | "route" | "settings";
 type EnvironmentFormat = "raw" | "table";
@@ -242,11 +253,12 @@ type RuntimeLogsUnavailableState = {
   title: string;
 };
 
+type DeleteAppActionResult = {
+  alreadyDeleting?: boolean;
+  deleted?: boolean;
+};
+
 type ConsoleGalleryServiceView = ConsoleGalleryProjectView["services"][number];
-type ConsoleGalleryAppServiceView = Extract<
-  ConsoleGalleryServiceView,
-  { kind: "app" }
->;
 
 const WORKBENCH_VIEW_OPTIONS: readonly SegmentedControlOption<WorkbenchView>[] =
   [
@@ -666,6 +678,102 @@ function readAppServiceRoleLabel(
     : "Current release";
 }
 
+function isPendingForceDeletePhase(phase?: string | null) {
+  const normalized = phase?.trim().toLowerCase() ?? "";
+
+  return (
+    normalized.length > 0 &&
+    includesLifecycleKeyword(normalized, [
+      "importing",
+      "building",
+      "deploying",
+      "queued",
+      "pending",
+      "migrating",
+      "updating",
+    ])
+  );
+}
+
+function canForceDeletePendingService(
+  service?: Pick<ConsoleGalleryAppView, "phase" | "serviceRole"> | null,
+) {
+  return (
+    service?.serviceRole === "pending" &&
+    isPendingForceDeletePhase(service.phase)
+  );
+}
+
+function readForceDeleteActionLabel(phase?: string | null) {
+  const normalized = phase?.trim().toLowerCase() ?? "";
+
+  if (includesLifecycleKeyword(normalized, ["importing", "building"])) {
+    return "Abort build & delete";
+  }
+
+  if (includesLifecycleKeyword(normalized, ["deploying", "updating"])) {
+    return "Abort deploy & delete";
+  }
+
+  if (includesLifecycleKeyword(normalized, ["queued", "pending", "migrating"])) {
+    return "Cancel rollout & delete";
+  }
+
+  return "Force delete";
+}
+
+function readForceDeleteActionDescription(phase?: string | null) {
+  const normalized = phase?.trim().toLowerCase() ?? "";
+
+  if (includesLifecycleKeyword(normalized, ["importing", "building"])) {
+    return "Abort the in-flight build and force delete this service.";
+  }
+
+  if (includesLifecycleKeyword(normalized, ["deploying", "updating"])) {
+    return "Abort the in-flight deploy and force delete this service.";
+  }
+
+  if (includesLifecycleKeyword(normalized, ["queued", "pending", "migrating"])) {
+    return "Cancel the queued rollout and force delete this service.";
+  }
+
+  return "Force delete this pending service.";
+}
+
+function readDeleteActionSuccessMessage(
+  action: "delete" | "force-delete",
+  result: DeleteAppActionResult,
+  phase?: string | null,
+) {
+  if (result.deleted) {
+    return "Service deleted.";
+  }
+
+  if (action === "delete") {
+    return result.alreadyDeleting ? "Delete is already queued." : "Delete queued.";
+  }
+
+  if (result.alreadyDeleting) {
+    return "Force delete is already queued.";
+  }
+
+  const normalized = phase?.trim().toLowerCase() ?? "";
+
+  if (includesLifecycleKeyword(normalized, ["importing", "building"])) {
+    return "Build aborted. Force delete queued.";
+  }
+
+  if (includesLifecycleKeyword(normalized, ["deploying", "updating"])) {
+    return "Deploy aborted. Force delete queued.";
+  }
+
+  if (includesLifecycleKeyword(normalized, ["queued", "pending", "migrating"])) {
+    return "Queued rollout canceled. Force delete queued.";
+  }
+
+  return "Force delete queued.";
+}
+
 function readErrorMessage(error: unknown) {
   if (isAbortRequestError(error)) {
     return "Request canceled.";
@@ -1024,7 +1132,7 @@ function isRetryableLogStreamError(
 
 function readLogStreamErrorMessage(error: unknown, logsMode: LogsView) {
   if (error instanceof LogStreamRequestError && error.status === 404) {
-    return `${humanizeUiLabel(logsMode)} logs are not available yet. Fugue may still be preparing this service.`;
+    return `${humanizeUiLabel(logsMode)} logs are not ready yet.`;
   }
 
   return readErrorMessage(error);
@@ -1064,49 +1172,161 @@ function readPreferredProjectService(
   );
 }
 
-function applyOptimisticDeletingToApp(
-  app: ConsoleGalleryAppServiceView,
-  deletingAppIds: ReadonlySet<string>,
-) {
-  if (!deletingAppIds.has(app.id) || isDeletingLifecycleValue(app.phase)) {
-    return app;
+function readServiceWarmupKey(service: ConsoleGalleryServiceView | null) {
+  if (!service) {
+    return "";
   }
 
-  return {
-    ...app,
-    phase: "Deleting",
-    phaseTone: "danger",
-  } satisfies ConsoleGalleryAppServiceView;
+  if (service.kind !== "app") {
+    return serviceKey(service);
+  }
+
+  const storageSignature = service.persistentStorageMounts
+    .map(
+      (mount) =>
+        `${mount.kind ?? "unknown"}:${mount.path}:${mount.mode ?? "null"}`,
+    )
+    .join("|");
+
+  return `${serviceKey(service)}:${service.phase}:${storageSignature}`;
+}
+
+function useWorkbenchAnticipatoryWarmup(
+  selectedService: ConsoleGalleryServiceView | null,
+) {
+  const warmWorkbenchResources = useEffectEvent(async (signal: AbortSignal) => {
+    if (!selectedService) {
+      return;
+    }
+
+    const tasks: Promise<unknown>[] = [];
+
+    if (selectedService.kind === "app") {
+      tasks.push(import("@/components/console/app-route-panel"));
+      tasks.push(import("@/components/console/app-settings-panel"));
+      tasks.push(
+        import("@/components/console/app-images-panel").then((module) =>
+          module.warmAppImageInventory(selectedService.id, {
+            signal,
+          }),
+        ),
+      );
+      tasks.push(
+        warmConsoleAppEnvStates([selectedService.id], {
+          concurrency: 1,
+          signal,
+        }),
+      );
+      tasks.push(
+        warmConsoleRuntimeTargetInventory({
+          signal,
+        }),
+      );
+
+      if (
+        selectedService.serviceRole === "running" &&
+        !isPausedAppService(selectedService)
+      ) {
+        tasks.push(
+          import("@/components/console/console-files-workbench").then(
+            (module) =>
+              module.warmConsoleFilesWorkbench({
+                appId: selectedService.id,
+                persistentStorageMounts: selectedService.persistentStorageMounts,
+                signal,
+              }),
+          ),
+        );
+      }
+    } else {
+      tasks.push(import("@/components/console/backing-service-settings-panel"));
+      tasks.push(
+        warmConsoleRuntimeTargetInventory({
+          signal,
+        }),
+      );
+    }
+
+    await Promise.allSettled(tasks);
+  });
+
+  useAnticipatoryWarmup(
+    selectedService ? warmWorkbenchResources : null,
+    [readServiceWarmupKey(selectedService)],
+    {
+      mode: "idle",
+      timeoutMs: 1_000,
+    },
+  );
+}
+
+function shouldHideOptimisticallyDeletingService(
+  service: ConsoleGalleryServiceView,
+  deletingAppIds: ReadonlySet<string>,
+) {
+  return (
+    service.kind === "app" &&
+    (deletingAppIds.has(service.id) || isDeletingLifecycleValue(service.phase))
+  );
+}
+
+function buildOptimisticProjectServiceBadges(
+  services: ConsoleGalleryProjectView["services"],
+) {
+  const badges = new Map<
+    string,
+    ConsoleGalleryProjectView["serviceBadges"][number]
+  >();
+
+  for (const service of services) {
+    const key =
+      service.kind === "app"
+        ? `project-service:app:${service.id}`
+        : `project-service:${service.kind}:${service.id}`;
+
+    if (
+      service.kind === "app" &&
+      service.serviceRole === "pending" &&
+      badges.has(key)
+    ) {
+      continue;
+    }
+
+    badges.set(key, {
+      ...service.primaryBadge,
+      id: key,
+    });
+  }
+
+  return [...badges.values()];
+}
+
+function countProjectApps(services: ConsoleGalleryProjectView["services"]) {
+  return services.reduce(
+    (count, service) => count + (service.kind === "app" ? 1 : 0),
+    0,
+  );
 }
 
 function applyOptimisticDeletingToProjects(
   projects: ConsoleGalleryProjectView[],
   deletingAppIds: ReadonlySet<string>,
 ) {
-  if (deletingAppIds.size === 0) {
-    return projects;
-  }
-
   let didChange = false;
   const nextProjects = projects.map((project) => {
     let projectChanged = false;
-    const nextServices: ConsoleGalleryProjectView["services"] =
-      project.services.map((service) => {
-        if (service.kind !== "app") {
-          return service;
-        }
+    const nextServices = project.services.filter((service) => {
+      const shouldHide = shouldHideOptimisticallyDeletingService(
+        service,
+        deletingAppIds,
+      );
 
-        const nextService = applyOptimisticDeletingToApp(
-          service,
-          deletingAppIds,
-        );
+      if (shouldHide) {
+        projectChanged = true;
+      }
 
-        if (nextService !== service) {
-          projectChanged = true;
-        }
-
-        return nextService;
-      });
+      return !shouldHide;
+    });
 
     if (!projectChanged) {
       return project;
@@ -1115,6 +1335,9 @@ function applyOptimisticDeletingToProjects(
     didChange = true;
     return {
       ...project,
+      appCount: countProjectApps(nextServices),
+      serviceBadges: buildOptimisticProjectServiceBadges(nextServices),
+      serviceCount: nextServices.length,
       services: nextServices,
     } satisfies ConsoleGalleryProjectView;
   });
@@ -2144,8 +2367,8 @@ function ConsoleLogsPanel({
           : `${humanizeUiLabel(effectiveLogsMode)} stream closed. Use Refresh now to reopen the latest snapshot.`
         : logsConnectionState === "error"
           ? hasBufferedLogOutput
-            ? `${logsErrorMessage ?? `Unable to open the ${logsStreamLabel} stream.`} Showing the latest received output. Use Refresh now to try again.`
-            : `${logsErrorMessage ?? `Unable to open the ${logsStreamLabel} stream.`} Use Refresh now to try again.`
+            ? `${logsErrorMessage ?? `Unable to open the ${logsStreamLabel} stream.`} Showing the latest received output. Refresh to try again.`
+            : `${logsErrorMessage ?? `Unable to open the ${logsStreamLabel} stream.`} Refresh to try again.`
           : logsConnectionState === "connecting"
             ? `Opening live ${logsStreamLabel} output for ${selectedService.name}.`
             : `Live ${logsStreamLabel} output for ${selectedService.name}.`;
@@ -2283,29 +2506,15 @@ function ConsoleLogsPanel({
 
   useEffect(() => {
     logsAutoFollowRef.current = true;
-
-    const frame = window.requestAnimationFrame(() => {
-      scrollLogsToBottom();
-    });
-
-    return () => {
-      window.cancelAnimationFrame(frame);
-    };
   }, [externalRefreshToken, logsRequestKey, manualRefreshToken]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!logsAutoFollowRef.current) {
       return;
     }
 
-    const frame = window.requestAnimationFrame(() => {
-      scrollLogsToBottom();
-    });
-
-    return () => {
-      window.cancelAnimationFrame(frame);
-    };
-  }, [logLines]);
+    scrollLogsToBottom();
+  }, [deferredLogLines]);
 
   useEffect(() => {
     setLogsCopyState("idle");
@@ -2590,9 +2799,13 @@ function ConsoleLogsPanel({
           {selectedService.kind === "app" ? (
             <SegmentedControl
               ariaLabel="Log views"
+              controlClassName="fg-console-nav"
+              itemClassName="fg-console-nav__link"
+              labelClassName="fg-console-nav__title"
               onChange={onLogsModeChange}
               options={selectedServiceLogViewOptions}
               value={effectiveLogsMode}
+              variant="pill"
             />
           ) : null}
 
@@ -2805,6 +3018,9 @@ export function ConsoleProjectGallery({
     : "restart";
   const selectedServiceCanPause =
     !selectedServicePaused && !selectedServiceFailed;
+  const selectedServiceCanForceDelete = canForceDeletePendingService(
+    selectedServiceApp,
+  );
   const selectedServiceDeleting = isDeletingLifecycleValue(
     selectedServiceApp?.phase,
   );
@@ -2812,6 +3028,7 @@ export function ConsoleProjectGallery({
     selectedServiceApp,
     effectiveLogsMode,
   );
+  useWorkbenchAnticipatoryWarmup(selectedService);
   const dataErrorMessage = data.errors.length
     ? `Partial Fugue data: ${data.errors.join(" | ")}.`
     : null;
@@ -3592,10 +3809,15 @@ export function ConsoleProjectGallery({
       return;
     }
 
-    if (action === "delete") {
+    if (action === "delete" || action === "force-delete") {
+      const forceDelete = action === "force-delete";
       const confirmed = await confirm({
-        confirmLabel: "Delete service",
-        description: `${selectedServiceApp.name} will be queued for deletion from this project.`,
+        confirmLabel: forceDelete
+          ? readForceDeleteActionLabel(selectedServiceApp.phase)
+          : "Delete service",
+        description: forceDelete
+          ? `${selectedServiceApp.name} is currently ${selectedServiceApp.phase}. ${readForceDeleteActionDescription(selectedServiceApp.phase)}`
+          : `${selectedServiceApp.name} will be queued for deletion from this project.`,
         textConfirmation: {
           hint: (
             <>
@@ -3608,7 +3830,7 @@ export function ConsoleProjectGallery({
           matchText: selectedServiceApp.name,
           mismatchMessage: "Enter the service name exactly as shown.",
         },
-        title: "Delete service?",
+        title: forceDelete ? "Force delete service?" : "Delete service?",
       });
 
       if (!confirmed) {
@@ -3652,17 +3874,25 @@ export function ConsoleProjectGallery({
           method = "DELETE";
           successMessage = "Delete queued.";
           break;
+        case "force-delete":
+          input = `/api/fugue/apps/${selectedServiceApp.id}?force=true`;
+          method = "DELETE";
+          successMessage = "Force delete queued.";
+          refreshWindowMs = 90_000;
+          break;
       }
 
-      const result = await requestJson<{ alreadyDeleting?: boolean }>(input, {
+      const result = await requestJson<DeleteAppActionResult>(input, {
         method,
       });
 
-      if (nextAction === "delete") {
+      if (nextAction === "delete" || nextAction === "force-delete") {
         markAppDeleting(selectedServiceApp.id);
-        successMessage = result.alreadyDeleting
-          ? "Delete is already queued."
-          : "Delete queued.";
+        successMessage = readDeleteActionSuccessMessage(
+          nextAction,
+          result,
+          selectedServiceApp.phase,
+        );
       }
 
       armRefreshWindow(refreshWindowMs);
@@ -4343,84 +4573,115 @@ export function ConsoleProjectGallery({
               <PanelSection className="fg-project-inspector__controls">
                 <div className="fg-project-toolbar">
                   {selectedService.kind === "app" &&
-                  selectedService.serviceRole === "running" &&
-                  !selectedServiceDeleting ? (
+                  !selectedServiceDeleting &&
+                  (selectedService.serviceRole === "running" ||
+                    selectedServiceCanForceDelete) ? (
                     <div className="fg-project-toolbar__group">
                       <p className="fg-label fg-project-toolbar__label">
                         Actions
                       </p>
                       <div className="fg-project-actions">
-                        <Button
-                          disabled={
-                            !selectedService.canRedeploy ||
-                            Boolean(busyAction && busyAction !== "redeploy")
-                          }
-                          loading={busyAction === "redeploy"}
-                          loadingLabel={
-                            selectedService.redeployActionLoadingLabel
-                          }
-                          onClick={() => handleAppAction("redeploy")}
-                          size="compact"
-                          title={
-                            selectedService.canRedeploy
-                              ? selectedService.redeployActionDescription
-                              : (selectedService.redeployDisabledReason ??
-                                undefined)
-                          }
-                          type="button"
-                          variant="primary"
-                        >
-                          {selectedService.redeployActionLabel}
-                        </Button>
-                        <Button
-                          disabled={Boolean(
-                            busyAction &&
-                            busyAction !== selectedServiceLifecycleAction,
-                          )}
-                          loading={busyAction === selectedServiceLifecycleAction}
-                          loadingLabel={
-                            selectedServicePaused ? "Starting…" : "Restarting…"
-                          }
-                          onClick={() => handleAppAction(selectedServiceLifecycleAction)}
-                          size="compact"
-                          title={
-                            selectedServicePaused
-                              ? "Start this paused app at 1 replica without rebuilding the image."
-                              : "Restart the current release without rebuilding the image. Persistent storage is preserved when configured."
-                          }
-                          type="button"
-                          variant="secondary"
-                        >
-                          {selectedServicePaused ? "Start" : "Restart"}
-                        </Button>
-                        {selectedServiceCanPause ? (
+                        {selectedService.serviceRole === "running" ? (
+                          <>
+                            <Button
+                              disabled={
+                                !selectedService.canRedeploy ||
+                                Boolean(
+                                  busyAction && busyAction !== "redeploy",
+                                )
+                              }
+                              loading={busyAction === "redeploy"}
+                              loadingLabel={
+                                selectedService.redeployActionLoadingLabel
+                              }
+                              onClick={() => handleAppAction("redeploy")}
+                              size="compact"
+                              title={
+                                selectedService.canRedeploy
+                                  ? selectedService.redeployActionDescription
+                                  : (selectedService.redeployDisabledReason ??
+                                    undefined)
+                              }
+                              type="button"
+                              variant="primary"
+                            >
+                              {selectedService.redeployActionLabel}
+                            </Button>
+                            <Button
+                              disabled={Boolean(
+                                busyAction &&
+                                  busyAction !== selectedServiceLifecycleAction,
+                              )}
+                              loading={
+                                busyAction === selectedServiceLifecycleAction
+                              }
+                              loadingLabel={
+                                selectedServicePaused
+                                  ? "Starting…"
+                                  : "Restarting…"
+                              }
+                              onClick={() =>
+                                handleAppAction(selectedServiceLifecycleAction)
+                              }
+                              size="compact"
+                              title={
+                                selectedServicePaused
+                                  ? "Start this paused app at 1 replica without rebuilding the image."
+                                  : "Restart the current release without rebuilding the image. Persistent storage is preserved when configured."
+                              }
+                              type="button"
+                              variant="secondary"
+                            >
+                              {selectedServicePaused ? "Start" : "Restart"}
+                            </Button>
+                            {selectedServiceCanPause ? (
+                              <Button
+                                disabled={Boolean(
+                                  busyAction && busyAction !== "disable",
+                                )}
+                                loading={busyAction === "disable"}
+                                loadingLabel="Pausing…"
+                                onClick={() => handleAppAction("disable")}
+                                size="compact"
+                                type="button"
+                                variant="secondary"
+                              >
+                                Pause
+                              </Button>
+                            ) : null}
+                            <Button
+                              disabled={Boolean(
+                                busyAction && busyAction !== "delete",
+                              )}
+                              loading={busyAction === "delete"}
+                              loadingLabel="Deleting…"
+                              onClick={() => handleAppAction("delete")}
+                              size="compact"
+                              type="button"
+                              variant="danger"
+                            >
+                              Delete
+                            </Button>
+                          </>
+                        ) : null}
+                        {selectedServiceCanForceDelete ? (
                           <Button
                             disabled={Boolean(
-                              busyAction && busyAction !== "disable",
+                              busyAction && busyAction !== "force-delete",
                             )}
-                            loading={busyAction === "disable"}
-                            loadingLabel="Pausing…"
-                            onClick={() => handleAppAction("disable")}
+                            loading={busyAction === "force-delete"}
+                            loadingLabel="Aborting…"
+                            onClick={() => handleAppAction("force-delete")}
                             size="compact"
+                            title={readForceDeleteActionDescription(
+                              selectedService.phase,
+                            )}
                             type="button"
-                            variant="secondary"
+                            variant="danger"
                           >
-                            Pause
+                            {readForceDeleteActionLabel(selectedService.phase)}
                           </Button>
                         ) : null}
-                        <Button
-                          disabled={Boolean(
-                            busyAction && busyAction !== "delete",
-                          )}
-                          loading={busyAction === "delete"}
-                          loadingLabel="Deleting…"
-                          onClick={() => handleAppAction("delete")}
-                          size="compact"
-                          type="button"
-                          variant="danger"
-                        >
-                          Delete
-                        </Button>
                       </div>
                     </div>
                   ) : null}
@@ -4430,6 +4691,9 @@ export function ConsoleProjectGallery({
                     <SegmentedControl
                       ariaLabel="Service panels"
                       className="fg-project-toolbar__panels-switch"
+                      controlClassName="fg-console-nav"
+                      itemClassName="fg-console-nav__link"
+                      labelClassName="fg-console-nav__title"
                       onChange={setActiveTab}
                       options={selectedServiceWorkbenchOptions}
                       value={
@@ -4439,6 +4703,7 @@ export function ConsoleProjectGallery({
                           ? activeTab
                           : "logs"
                       }
+                      variant="pill"
                     />
                   </div>
                 </div>
@@ -4473,9 +4738,13 @@ export function ConsoleProjectGallery({
                       <div className="fg-workbench-section__actions fg-env-section__actions">
                         <SegmentedControl
                           ariaLabel="Environment formats"
+                          controlClassName="fg-console-nav"
+                          itemClassName="fg-console-nav__link"
+                          labelClassName="fg-console-nav__title"
                           onChange={changeEnvFormat}
                           options={ENVIRONMENT_FORMAT_OPTIONS}
                           value={envFormat}
+                          variant="pill"
                         />
                         {envFormat === "table" ? (
                           <Button
@@ -4954,7 +5223,12 @@ export function ConsoleProjectWorkbench({
   detailId: string;
   onProjectDeleted: (projectId: string) => void;
   onProjectMutation: (
-    options?: number | { optimisticDeletingProjectId?: string },
+    options?:
+      | number
+      | {
+          optimisticDeletingProjectId?: string;
+          optimisticDeletingServiceCount?: number;
+        },
   ) => void;
   onRequestCreateService: (project: ConsoleProjectSummaryView) => void;
   projectCatalog: Array<{
@@ -5049,6 +5323,9 @@ export function ConsoleProjectWorkbench({
     : "restart";
   const selectedServiceCanPause =
     !selectedServicePaused && !selectedServiceFailed;
+  const selectedServiceCanForceDelete = canForceDeletePendingService(
+    selectedServiceApp,
+  );
   const selectedServiceDeleting = isDeletingLifecycleValue(
     selectedServiceApp?.phase,
   );
@@ -5056,6 +5333,7 @@ export function ConsoleProjectWorkbench({
     selectedServiceApp,
     effectiveLogsMode,
   );
+  useWorkbenchAnticipatoryWarmup(selectedService);
 
   const refreshDetail = useEffectEvent(
     async (options?: { force?: boolean; silent?: boolean }) => {
@@ -5327,10 +5605,15 @@ export function ConsoleProjectWorkbench({
       return;
     }
 
-    if (action === "delete") {
+    if (action === "delete" || action === "force-delete") {
+      const forceDelete = action === "force-delete";
       const confirmed = await confirm({
-        confirmLabel: "Delete service",
-        description: `${selectedServiceApp.name} will be queued for deletion from this project.`,
+        confirmLabel: forceDelete
+          ? readForceDeleteActionLabel(selectedServiceApp.phase)
+          : "Delete service",
+        description: forceDelete
+          ? `${selectedServiceApp.name} is currently ${selectedServiceApp.phase}. ${readForceDeleteActionDescription(selectedServiceApp.phase)}`
+          : `${selectedServiceApp.name} will be queued for deletion from this project.`,
         textConfirmation: {
           hint: (
             <>
@@ -5345,7 +5628,7 @@ export function ConsoleProjectWorkbench({
           matchText: selectedServiceApp.name,
           mismatchMessage: "Enter the service name exactly as shown.",
         },
-        title: "Delete service?",
+        title: forceDelete ? "Force delete service?" : "Delete service?",
       });
 
       if (!confirmed) {
@@ -5359,6 +5642,7 @@ export function ConsoleProjectWorkbench({
         : action;
 
     setBusyAction(nextAction);
+    setFlash(null);
 
     try {
       let input = `/api/fugue/apps/${selectedServiceApp.id}`;
@@ -5386,17 +5670,24 @@ export function ConsoleProjectWorkbench({
           method = "DELETE";
           successMessage = "Delete queued.";
           break;
+        case "force-delete":
+          input = `/api/fugue/apps/${selectedServiceApp.id}?force=true`;
+          method = "DELETE";
+          successMessage = "Force delete queued.";
+          break;
       }
 
-      const result = await requestJson<{ alreadyDeleting?: boolean }>(input, {
+      const result = await requestJson<DeleteAppActionResult>(input, {
         method,
       });
 
-      if (nextAction === "delete") {
+      if (nextAction === "delete" || nextAction === "force-delete") {
         markAppDeleting(selectedServiceApp.id);
-        successMessage = result.alreadyDeleting
-          ? "Delete is already queued."
-          : "Delete queued.";
+        successMessage = readDeleteActionSuccessMessage(
+          nextAction,
+          result,
+          selectedServiceApp.phase,
+        );
       }
 
       if (nextAction === "redeploy") {
@@ -5411,9 +5702,11 @@ export function ConsoleProjectWorkbench({
       });
       lastRefreshTokenRef.current = refreshToken + 1;
       onProjectMutation(
-        nextAction === "delete"
+        nextAction === "delete" || nextAction === "force-delete"
           ? {
               optimisticDeletingProjectId: project.id,
+              optimisticDeletingServiceCount:
+                detailProject?.serviceCount ?? project.serviceCount,
             }
           : undefined,
       );
@@ -6098,87 +6391,121 @@ export function ConsoleProjectWorkbench({
             <PanelSection className="fg-project-inspector__controls">
               <div className="fg-project-toolbar">
                 {selectedService.kind === "app" &&
-                selectedService.serviceRole === "running" &&
-                !selectedServiceDeleting ? (
+                !selectedServiceDeleting &&
+                (selectedService.serviceRole === "running" ||
+                  selectedServiceCanForceDelete) ? (
                   <div className="fg-project-toolbar__group">
                     <p className="fg-label fg-project-toolbar__label">
                       Actions
                     </p>
                     <div className="fg-project-actions">
-                      <Button
-                        disabled={
-                          !selectedService.canRedeploy ||
-                          Boolean(busyAction && busyAction !== "redeploy")
-                        }
-                        loading={busyAction === "redeploy"}
-                        loadingLabel={
-                          selectedService.redeployActionLoadingLabel
-                        }
-                        onClick={() => {
-                          void handleAppAction("redeploy");
-                        }}
-                        size="compact"
-                        title={
-                          selectedService.canRedeploy
-                            ? selectedService.redeployActionDescription
-                            : (selectedService.redeployDisabledReason ?? undefined)
-                        }
-                        type="button"
-                        variant="primary"
-                      >
-                        {selectedService.redeployActionLabel}
-                      </Button>
-                      <Button
-                        disabled={Boolean(
-                          busyAction &&
-                            busyAction !== selectedServiceLifecycleAction,
-                        )}
-                        loading={busyAction === selectedServiceLifecycleAction}
-                        loadingLabel={
-                          selectedServicePaused ? "Starting…" : "Restarting…"
-                        }
-                        onClick={() => {
-                          void handleAppAction(selectedServiceLifecycleAction);
-                        }}
-                        size="compact"
-                        title={
-                          selectedServicePaused
-                            ? "Start this paused app at 1 replica without rebuilding the image."
-                            : "Restart the current release without rebuilding the image. Persistent storage is preserved when configured."
-                        }
-                        type="button"
-                        variant="secondary"
-                      >
-                        {selectedServicePaused ? "Start" : "Restart"}
-                      </Button>
-                      {selectedServiceCanPause ? (
+                      {selectedService.serviceRole === "running" ? (
+                        <>
+                          <Button
+                            disabled={
+                              !selectedService.canRedeploy ||
+                              Boolean(busyAction && busyAction !== "redeploy")
+                            }
+                            loading={busyAction === "redeploy"}
+                            loadingLabel={
+                              selectedService.redeployActionLoadingLabel
+                            }
+                            onClick={() => {
+                              void handleAppAction("redeploy");
+                            }}
+                            size="compact"
+                            title={
+                              selectedService.canRedeploy
+                                ? selectedService.redeployActionDescription
+                                : (selectedService.redeployDisabledReason ??
+                                  undefined)
+                            }
+                            type="button"
+                            variant="primary"
+                          >
+                            {selectedService.redeployActionLabel}
+                          </Button>
+                          <Button
+                            disabled={Boolean(
+                              busyAction &&
+                                busyAction !== selectedServiceLifecycleAction,
+                            )}
+                            loading={
+                              busyAction === selectedServiceLifecycleAction
+                            }
+                            loadingLabel={
+                              selectedServicePaused
+                                ? "Starting…"
+                                : "Restarting…"
+                            }
+                            onClick={() => {
+                              void handleAppAction(selectedServiceLifecycleAction);
+                            }}
+                            size="compact"
+                            title={
+                              selectedServicePaused
+                                ? "Start this paused app at 1 replica without rebuilding the image."
+                                : "Restart the current release without rebuilding the image. Persistent storage is preserved when configured."
+                            }
+                            type="button"
+                            variant="secondary"
+                          >
+                            {selectedServicePaused ? "Start" : "Restart"}
+                          </Button>
+                          {selectedServiceCanPause ? (
+                            <Button
+                              disabled={Boolean(
+                                busyAction && busyAction !== "disable",
+                              )}
+                              loading={busyAction === "disable"}
+                              loadingLabel="Pausing…"
+                              onClick={() => {
+                                void handleAppAction("disable");
+                              }}
+                              size="compact"
+                              type="button"
+                              variant="secondary"
+                            >
+                              Pause
+                            </Button>
+                          ) : null}
+                          <Button
+                            disabled={Boolean(
+                              busyAction && busyAction !== "delete",
+                            )}
+                            loading={busyAction === "delete"}
+                            loadingLabel="Deleting…"
+                            onClick={() => {
+                              void handleAppAction("delete");
+                            }}
+                            size="compact"
+                            type="button"
+                            variant="danger"
+                          >
+                            Delete
+                          </Button>
+                        </>
+                      ) : null}
+                      {selectedServiceCanForceDelete ? (
                         <Button
-                          disabled={Boolean(busyAction && busyAction !== "disable")}
-                          loading={busyAction === "disable"}
-                          loadingLabel="Pausing…"
+                          disabled={Boolean(
+                            busyAction && busyAction !== "force-delete",
+                          )}
+                          loading={busyAction === "force-delete"}
+                          loadingLabel="Aborting…"
                           onClick={() => {
-                            void handleAppAction("disable");
+                            void handleAppAction("force-delete");
                           }}
                           size="compact"
+                          title={readForceDeleteActionDescription(
+                            selectedService.phase,
+                          )}
                           type="button"
-                          variant="secondary"
+                          variant="danger"
                         >
-                          Pause
+                          {readForceDeleteActionLabel(selectedService.phase)}
                         </Button>
                       ) : null}
-                      <Button
-                        disabled={Boolean(busyAction && busyAction !== "delete")}
-                        loading={busyAction === "delete"}
-                        loadingLabel="Deleting…"
-                        onClick={() => {
-                          void handleAppAction("delete");
-                        }}
-                        size="compact"
-                        type="button"
-                        variant="danger"
-                      >
-                        Delete
-                      </Button>
                     </div>
                   </div>
                 ) : null}
@@ -6188,6 +6515,9 @@ export function ConsoleProjectWorkbench({
                   <SegmentedControl
                     ariaLabel="Service panels"
                     className="fg-project-toolbar__panels-switch"
+                    controlClassName="fg-console-nav"
+                    itemClassName="fg-console-nav__link"
+                    labelClassName="fg-console-nav__title"
                     onChange={setActiveTab}
                     options={selectedServiceWorkbenchOptions}
                     value={
@@ -6197,6 +6527,7 @@ export function ConsoleProjectWorkbench({
                         ? activeTab
                         : "logs"
                     }
+                    variant="pill"
                   />
                 </div>
               </div>
@@ -6229,9 +6560,13 @@ export function ConsoleProjectWorkbench({
                     <div className="fg-workbench-section__actions fg-env-section__actions">
                       <SegmentedControl
                         ariaLabel="Environment formats"
+                        controlClassName="fg-console-nav"
+                        itemClassName="fg-console-nav__link"
+                        labelClassName="fg-console-nav__title"
                         onChange={changeEnvFormat}
                         options={ENVIRONMENT_FORMAT_OPTIONS}
                         value={envFormat}
+                        variant="pill"
                       />
                       {envFormat === "table" ? (
                         <Button

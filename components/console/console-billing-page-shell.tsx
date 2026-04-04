@@ -2,7 +2,6 @@
 
 import { ConsoleEmptyState } from "@/components/console/console-empty-state";
 import { BillingPanel } from "@/components/console/billing-panel";
-import { ConsolePageIntro } from "@/components/console/console-page-intro";
 import {
   ConsoleBillingPageSkeleton,
   ConsoleLoadingState,
@@ -13,9 +12,6 @@ import {
   type ConsoleBillingPageSnapshot,
   useConsolePageSnapshot,
 } from "@/lib/console/page-snapshot-client";
-
-const BILLING_PAGE_DESCRIPTION =
-  "Set a tenant-wide managed capacity envelope, show the monthly estimate, and top up prepaid balance. Fugue meters managed capacity hourly for internal-cluster services and leaves BYO VPS deployments unrestricted.";
 
 export function ConsoleBillingPageShell() {
   const { data, error, loading } =
@@ -34,12 +30,6 @@ export function ConsoleBillingPageShell() {
   if (!data) {
     return (
       <div className="fg-console-page">
-        <ConsolePageIntro
-          description={BILLING_PAGE_DESCRIPTION}
-          eyebrow="Billing"
-          title="Managed capacity billing"
-        />
-
         <Panel>
           <PanelSection>
             <ConsoleEmptyState
@@ -54,12 +44,6 @@ export function ConsoleBillingPageShell() {
 
   return (
     <div className="fg-console-page">
-      <ConsolePageIntro
-        description={BILLING_PAGE_DESCRIPTION}
-        eyebrow="Billing"
-        title="Managed capacity billing"
-      />
-
       {data.state === "ready" ? (
         <BillingPanel
           initialBilling={data.data.billing}

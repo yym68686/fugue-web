@@ -6,6 +6,7 @@ import { DeployWizard } from "@/components/deploy/deploy-wizard";
 import { Button, ButtonAnchor } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { InlineAlert } from "@/components/ui/inline-alert";
+import { PillNav, PillNavAnchor } from "@/components/ui/pill-nav";
 import {
   Panel,
   PanelCopy,
@@ -18,6 +19,7 @@ import {
   ProofShellRibbon,
 } from "@/components/ui/proof-shell";
 import { RouteNote } from "@/components/ui/route-note";
+import { ScrollableControlStrip } from "@/components/ui/scrollable-control-strip";
 import { buildReturnToHref } from "@/lib/auth/validation";
 import type { DeployPageData } from "@/lib/deploy/page-data";
 import {
@@ -200,36 +202,36 @@ export function DeployPage({
     routeMode === "repository" && !isLocalUploadMode && !isImageMode;
   const sourceModeSwitch =
     routeMode === "repository" ? (
-      <div
-        aria-label="Deploy source mode"
-        className="fg-segmented fg-deploy-source-switch"
-        role="navigation"
+      <ScrollableControlStrip
+        activeSelector='[aria-current="page"]'
+        className="fg-deploy-source-switch"
+        variant="pill"
+        watchKey={effectiveSourceMode}
       >
-        <a
-          aria-current={!isLocalUploadMode && !isImageMode ? "page" : undefined}
-          className={`fg-segmented__item${!isLocalUploadMode && !isImageMode ? " is-active" : ""}`}
-          data-state={!isLocalUploadMode && !isImageMode ? "active" : "inactive"}
-          href={repositoryModeHref ?? "/new/repository"}
-        >
-          <span className="fg-segmented__label">GitHub repository</span>
-        </a>
-        <a
-          aria-current={isLocalUploadMode ? "page" : undefined}
-          className={`fg-segmented__item${isLocalUploadMode ? " is-active" : ""}`}
-          data-state={isLocalUploadMode ? "active" : "inactive"}
-          href={localUploadModeHref ?? "/new/repository?source-mode=local-upload"}
-        >
-          <span className="fg-segmented__label">Local upload</span>
-        </a>
-        <a
-          aria-current={isImageMode ? "page" : undefined}
-          className={`fg-segmented__item${isImageMode ? " is-active" : ""}`}
-          data-state={isImageMode ? "active" : "inactive"}
-          href={dockerImageModeHref ?? "/new/repository?source-mode=docker-image"}
-        >
-          <span className="fg-segmented__label">Docker image</span>
-        </a>
-      </div>
+        <PillNav ariaLabel="Deploy source mode" className="fg-console-nav">
+          <PillNavAnchor
+            active={!isLocalUploadMode && !isImageMode}
+            className="fg-console-nav__link"
+            href={repositoryModeHref ?? "/new/repository"}
+          >
+            <span className="fg-console-nav__title">GitHub repository</span>
+          </PillNavAnchor>
+          <PillNavAnchor
+            active={isLocalUploadMode}
+            className="fg-console-nav__link"
+            href={localUploadModeHref ?? "/new/repository?source-mode=local-upload"}
+          >
+            <span className="fg-console-nav__title">Local upload</span>
+          </PillNavAnchor>
+          <PillNavAnchor
+            active={isImageMode}
+            className="fg-console-nav__link"
+            href={dockerImageModeHref ?? "/new/repository?source-mode=docker-image"}
+          >
+            <span className="fg-console-nav__title">Docker image</span>
+          </PillNavAnchor>
+        </PillNav>
+      </ScrollableControlStrip>
     ) : null;
 
   return (

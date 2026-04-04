@@ -247,6 +247,11 @@ function buildInspectGitHubTemplateManifestServiceView(
     dockerfilePath: service.dockerfilePath,
     internalPort: service.internalPort,
     kind: service.kind,
+    persistentStorageSeedFiles: (
+      service.persistentStorageSeedFiles ?? []
+    )
+      .map(buildPersistentStorageSeedFileView)
+      .flatMap((file) => (file.path ? [file] : [])),
     published: service.published,
     service: service.service,
     serviceType: readNullableString(service.serviceType),
@@ -271,6 +276,24 @@ function buildInspectGitHubTemplateManifestView(
       buildInspectGitHubTemplateManifestServiceView,
     ),
     warnings: readStringArray(manifest.warnings),
+  };
+}
+
+function buildInspectGitHubTemplateComposeStackView(
+  stack?: CamelizedSchema<"InspectGitHubTemplateComposeStack"> | null,
+) {
+  if (!stack) {
+    return null;
+  }
+
+  return {
+    composePath: stack.composePath,
+    inferenceReport: (stack.inferenceReport ?? []).map(buildTopologyInferenceView),
+    primaryService: stack.primaryService,
+    services: (stack.services ?? []).map(
+      buildInspectGitHubTemplateManifestServiceView,
+    ),
+    warnings: readStringArray(stack.warnings),
   };
 }
 
@@ -347,6 +370,9 @@ function buildInspectGitHubTemplateResponseView(
   response: CamelizedSchema<"InspectGitHubTemplateResponse">,
 ) {
   return {
+    composeStack: buildInspectGitHubTemplateComposeStackView(
+      response.composeStack,
+    ),
     fugueManifest: buildInspectGitHubTemplateManifestView(
       response.fugueManifest,
     ),
@@ -411,6 +437,16 @@ function buildAppPersistentStorageMountView(
     mode: readNullableNumber(mount?.mode),
     path: readNullableString(mount?.path),
     secret: mount?.secret ?? false,
+  };
+}
+
+function buildPersistentStorageSeedFileView(
+  file?: CamelizedSchema<"PersistentStorageSeedFile"> | null,
+) {
+  return {
+    mode: readNullableNumber(file?.mode),
+    path: readNullableString(file?.path),
+    seedContent: file?.seedContent ?? "",
   };
 }
 
@@ -1444,6 +1480,7 @@ function buildDeleteAppResultView(
 ) {
   return {
     alreadyDeleting: response.alreadyDeleting ?? false,
+    deleted: response.deleted ?? false,
     operation: response.operation
       ? buildOperationView(response.operation)
       : null,
@@ -1471,6 +1508,9 @@ export type FugueNodeKey = ReturnType<typeof buildNodeKeyView>;
 export type FugueAppFile = ReturnType<typeof buildAppFileView>;
 export type FugueAppPersistentStorageMount = ReturnType<
   typeof buildAppPersistentStorageMountView
+>;
+export type FuguePersistentStorageSeedFile = ReturnType<
+  typeof buildPersistentStorageSeedFileView
 >;
 export type FugueAppPersistentStorage = ReturnType<
   typeof buildAppPersistentStorageView
@@ -1893,6 +1933,11 @@ export async function importFugueGitHubApp(
     dockerfilePath?: string;
     env?: Record<string, string>;
     name?: string;
+    persistentStorageSeedFiles?: Array<{
+      path: string;
+      seedContent: string;
+      service: string;
+    }>;
     project?: {
       description?: string;
       name: string;
@@ -1943,6 +1988,16 @@ export async function importFugueGitHubApp(
             ? { service_port: payload.servicePort }
             : {}),
           ...(payload.env ? { env: payload.env } : {}),
+          ...(payload.persistentStorageSeedFiles?.length
+            ? {
+                persistent_storage_seed_files:
+                  payload.persistentStorageSeedFiles.map((file) => ({
+                    path: file.path,
+                    seed_content: file.seedContent,
+                    service: file.service,
+                  })),
+              }
+            : {}),
           ...(payload.repoVisibility
             ? { repo_visibility: payload.repoVisibility }
             : {}),
@@ -3155,13 +3210,20 @@ export async function patchFugueAppContinuity(
   return buildContinuityResultView(response);
 }
 
-export async function deleteFugueApp(accessToken: string, appId: string) {
+export async function deleteFugueApp(
+  accessToken: string,
+  appId: string,
+  options?: {
+    force?: boolean;
+  },
+) {
   const client = getClient(accessToken);
   const response = camelizeData(
     await expectData(
       `/v1/apps/${encodeURIComponent(appId)}`,
       client.DELETE("/v1/apps/{id}", {
         params: {
+          query: options?.force ? { force: true } : undefined,
           path: { id: appId },
         },
       }),

@@ -15,6 +15,12 @@ export const BUILD_STRATEGY_OPTIONS = [
 export type BuildStrategyValue =
   (typeof BUILD_STRATEGY_OPTIONS)[number]["value"];
 
+export type PersistentStorageSeedFileDraft = {
+  path: string;
+  seedContent: string;
+  service: string;
+};
+
 export type ImportServiceDraft = {
   branch: string;
   buildContextDir: string;
@@ -22,6 +28,7 @@ export type ImportServiceDraft = {
   dockerfilePath: string;
   imageRef: string;
   name: string;
+  persistentStorageSeedFiles: PersistentStorageSeedFileDraft[];
   repoAuthToken: string;
   repoUrl: string;
   repoVisibility: GitHubRepoVisibility;
@@ -56,6 +63,7 @@ export function createImportServiceDraft(
     dockerfilePath: "",
     imageRef: "",
     name: "",
+    persistentStorageSeedFiles: [],
     repoAuthToken: "",
     repoUrl: "",
     repoVisibility: "public",
@@ -77,6 +85,22 @@ export function supportsGitHubSourceDir(buildStrategy: BuildStrategyValue) {
 
 export function supportsGitHubDockerInputs(buildStrategy: BuildStrategyValue) {
   return buildStrategy === "auto" || buildStrategy === "dockerfile";
+}
+
+export function preservesGitHubTopologyImport(value: {
+  buildContextDir?: string | null;
+  buildStrategy?: string | null;
+  dockerfilePath?: string | null;
+  sourceDir?: string | null;
+}) {
+  const buildStrategy = value.buildStrategy?.trim() ?? "";
+
+  return (
+    (!buildStrategy || buildStrategy === "auto") &&
+    !value.sourceDir?.trim() &&
+    !value.dockerfilePath?.trim() &&
+    !value.buildContextDir?.trim()
+  );
 }
 
 export function localUploadPreservesDetectedTopology(
@@ -135,7 +159,7 @@ export function validateImportServiceDraft(
 }
 
 export function buildImportServicePayload(draft: ImportServiceDraft) {
-  const payload: Record<string, string> = {
+  const payload: Record<string, unknown> = {
     sourceMode: draft.sourceMode,
   };
 
@@ -177,6 +201,30 @@ export function buildImportServicePayload(draft: ImportServiceDraft) {
 
     if (draft.buildContextDir.trim()) {
       payload.buildContextDir = draft.buildContextDir.trim();
+    }
+
+    if (preservesGitHubTopologyImport(draft)) {
+      const persistentStorageSeedFiles =
+        draft.persistentStorageSeedFiles.flatMap((file) => {
+          const service = file.service.trim();
+          const path = file.path.trim();
+
+          if (!service || !path) {
+            return [];
+          }
+
+          return [
+            {
+              path,
+              seedContent: file.seedContent,
+              service,
+            },
+          ];
+        });
+
+      if (persistentStorageSeedFiles.length > 0) {
+        payload.persistentStorageSeedFiles = persistentStorageSeedFiles;
+      }
     }
 
     return payload;

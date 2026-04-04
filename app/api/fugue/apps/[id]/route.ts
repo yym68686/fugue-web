@@ -75,7 +75,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 }
 
-export async function DELETE(_request: Request, context: RouteContext) {
+export async function DELETE(request: Request, context: RouteContext) {
   const { response, session } = await requireSession();
 
   if (response || !session) {
@@ -90,9 +90,13 @@ export async function DELETE(_request: Request, context: RouteContext) {
 
   try {
     const appId = await readRouteParam(context, "id");
+    const force = new URL(request.url).searchParams.get("force") === "true";
     const result = await deleteFugueApp(
       workspaceState.workspace.adminKeySecret,
       appId,
+      {
+        force,
+      },
     );
 
     return NextResponse.json(result);

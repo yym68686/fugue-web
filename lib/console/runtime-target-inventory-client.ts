@@ -3,7 +3,12 @@
 import { useEffect, useState } from "react";
 
 import type { ConsoleRuntimeTargetInventoryData } from "@/lib/console/gallery-types";
-import { readRequestError, requestJson } from "@/lib/ui/request-json";
+import {
+  createAbortRequestError,
+  isAbortRequestError,
+  readRequestError,
+  requestJson,
+} from "@/lib/ui/request-json";
 
 const RUNTIME_TARGET_CACHE_TTL_MS = 60_000;
 
@@ -48,6 +53,25 @@ async function loadRuntimeTargetInventory(force = false) {
     });
 
   return runtimeTargetInventoryRequest;
+}
+
+export async function warmConsoleRuntimeTargetInventory(options?: {
+  force?: boolean;
+  signal?: AbortSignal;
+}) {
+  if (options?.signal?.aborted) {
+    throw createAbortRequestError();
+  }
+
+  try {
+    return await loadRuntimeTargetInventory(options?.force);
+  } catch (error) {
+    if (options?.signal?.aborted || isAbortRequestError(error)) {
+      throw createAbortRequestError();
+    }
+
+    throw error;
+  }
 }
 
 export function useConsoleRuntimeTargetInventory(enabled: boolean) {

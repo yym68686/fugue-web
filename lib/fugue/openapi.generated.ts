@@ -1710,6 +1710,17 @@ export interface components {
             /** Format: int32 */
             mode?: number;
         };
+        PersistentStorageSeedFile: {
+            path: string;
+            /** Format: int32 */
+            mode: number;
+            seed_content: string;
+        };
+        ImportGitHubPersistentStorageSeedFile: {
+            service: string;
+            path: string;
+            seed_content: string;
+        };
         AppPersistentStorageSpec: {
             storage_path?: string;
             storage_size?: string;
@@ -2403,9 +2414,17 @@ export interface components {
             source_dir: string;
             dockerfile_path: string;
             build_context_dir: string;
+            persistent_storage_seed_files: components["schemas"]["PersistentStorageSeedFile"][];
         };
         InspectGitHubTemplateManifest: {
             manifest_path: string;
+            primary_service: string;
+            services: components["schemas"]["InspectGitHubTemplateManifestService"][];
+            warnings: string[];
+            inference_report: components["schemas"]["TopologyInference"][];
+        };
+        InspectGitHubTemplateComposeStack: {
+            compose_path: string;
             primary_service: string;
             services: components["schemas"]["InspectGitHubTemplateManifestService"][];
             warnings: string[];
@@ -2433,6 +2452,7 @@ export interface components {
         InspectGitHubTemplateResponse: {
             repository: components["schemas"]["InspectGitHubTemplateRepository"];
             fugue_manifest?: components["schemas"]["InspectGitHubTemplateManifest"];
+            compose_stack?: components["schemas"]["InspectGitHubTemplateComposeStack"];
             template?: components["schemas"]["TemplateMetadata"];
         };
         ImportGitHubRequest: {
@@ -2457,6 +2477,7 @@ export interface components {
             env?: components["schemas"]["StringMap"];
             config_content?: string;
             files?: components["schemas"]["AppFile"][];
+            persistent_storage_seed_files?: components["schemas"]["ImportGitHubPersistentStorageSeedFile"][];
             postgres?: components["schemas"]["AppPostgresSpec"];
             idempotency_key?: string;
         };
@@ -2703,6 +2724,7 @@ export interface components {
         AppDeleteResponse: {
             operation?: components["schemas"]["Operation"];
             already_deleting?: boolean;
+            deleted?: boolean;
         };
         OperationListResponse: {
             operations: components["schemas"]["Operation"][];
@@ -4138,7 +4160,10 @@ export interface operations {
     };
     deleteApp: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Abort in-flight build or deploy work before deleting the app, and purge the app immediately when no live runtime still needs cleanup. */
+                force?: boolean;
+            };
             header?: never;
             path: {
                 id: components["parameters"]["IdPathParam"];

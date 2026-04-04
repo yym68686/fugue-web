@@ -3,7 +3,6 @@
 import { AdminAppManager } from "@/components/admin/admin-app-manager";
 import { AdminSummaryGrid } from "@/components/admin/admin-summary-grid";
 import { ConsoleEmptyState } from "@/components/console/console-empty-state";
-import { ConsolePageIntro } from "@/components/console/console-page-intro";
 import {
   ConsoleAdminAppsPageSkeleton,
   ConsoleLoadingState,
@@ -33,12 +32,6 @@ export function AdminAppsPageShell() {
   if (!data) {
     return (
       <div className="fg-console-page">
-        <ConsolePageIntro
-          description="Cluster-wide apps with current CPU, memory, and disk samples."
-          eyebrow="Admin / Apps"
-          title="Cluster apps"
-        />
-
         <Panel>
           <PanelSection>
             <ConsoleEmptyState
@@ -58,12 +51,6 @@ export function AdminAppsPageShell() {
   return (
     <div className="fg-console-page">
       <ToastOnMount message={errorMessage} variant="error" />
-
-      <ConsolePageIntro
-        description="Cluster-wide apps with current CPU, memory, and disk samples."
-        eyebrow="Admin / Apps"
-        title="Cluster apps"
-      />
 
       <AdminSummaryGrid
         items={[

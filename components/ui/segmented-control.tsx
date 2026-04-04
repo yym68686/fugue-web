@@ -12,16 +12,33 @@ export type SegmentedControlOption<Value extends string> = {
 export function SegmentedControl<Value extends string>({
   ariaLabel,
   className,
+  controlClassName,
+  itemClassName,
+  labelClassName,
   onChange,
   options,
   value,
+  variant = "segmented",
 }: {
   ariaLabel: string;
   className?: string;
+  controlClassName?: string;
+  itemClassName?: string;
+  labelClassName?: string;
   onChange: (value: Value) => void;
   options: readonly SegmentedControlOption<Value>[];
   value: Value;
+  variant?: "pill" | "segmented";
 }) {
+  const controlBaseClassName =
+    variant === "pill" ? "fg-pill-nav" : "fg-segmented";
+  const itemBaseClassName =
+    variant === "pill" ? "fg-pill-nav__button" : "fg-segmented__item";
+  const labelBaseClassName =
+    variant === "pill" ? "fg-pill-nav__label" : "fg-segmented__label";
+  const itemSelector =
+    variant === "pill" ? ".fg-pill-nav__button" : ".fg-segmented__item";
+
   function moveSelection(index: number, direction: 1 | -1) {
     const total = options.length;
 
@@ -83,7 +100,7 @@ export function SegmentedControl<Value extends string>({
     event.preventDefault();
 
     const group = event.currentTarget.parentElement;
-    const buttons = group?.querySelectorAll<HTMLButtonElement>(".fg-segmented__item");
+    const buttons = group?.querySelectorAll<HTMLButtonElement>(itemSelector);
     const nextButton = buttons?.[targetIndex];
 
     nextButton?.focus();
@@ -93,17 +110,21 @@ export function SegmentedControl<Value extends string>({
     <ScrollableControlStrip
       activeSelector='[aria-pressed="true"]'
       className={className}
-      variant="segmented"
+      variant={variant}
       watchKey={value}
     >
-      <div aria-label={ariaLabel} className="fg-segmented" role="group">
+      <div
+        aria-label={ariaLabel}
+        className={cx(controlBaseClassName, controlClassName)}
+        role="group"
+      >
         {options.map((option, index) => {
           const isActive = option.value === value;
 
           return (
             <button
               aria-pressed={isActive}
-              className={cx("fg-segmented__item", isActive && "is-active")}
+              className={cx(itemBaseClassName, itemClassName, isActive && "is-active")}
               data-state={isActive ? "active" : "inactive"}
               disabled={option.disabled}
               key={option.value}
@@ -117,7 +138,9 @@ export function SegmentedControl<Value extends string>({
               onKeyDown={(event) => handleKeyDown(event, index)}
               type="button"
             >
-              <span className="fg-segmented__label">{option.label}</span>
+              <span className={cx(labelBaseClassName, labelClassName)}>
+                {option.label}
+              </span>
             </button>
           );
         })}

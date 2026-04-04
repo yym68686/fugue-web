@@ -3,7 +3,6 @@
 import { ApiKeyEmptyState } from "@/components/console/api-key-empty-state";
 import { AttachedServerOverview } from "@/components/console/attached-server-overview";
 import { ConsoleEmptyState } from "@/components/console/console-empty-state";
-import { ConsolePageIntro } from "@/components/console/console-page-intro";
 import {
   ConsoleClusterNodesPageSkeleton,
   ConsoleLoadingState,
@@ -34,12 +33,6 @@ export function ConsoleClusterNodesPageShell() {
   if (!data) {
     return (
       <div className="fg-console-page">
-        <ConsolePageIntro
-          description="Attach a server, or use a server shared with your workspace, then confirm heartbeat and placement here."
-          eyebrow="Servers"
-          title="Servers"
-        />
-
         <Panel>
           <PanelSection>
             <ConsoleEmptyState
@@ -55,12 +48,6 @@ export function ConsoleClusterNodesPageShell() {
   if (data.state === "workspace-missing") {
     return (
       <div className="fg-console-page">
-        <ConsolePageIntro
-          description="Attach a server, or use a server shared with your workspace, then confirm heartbeat and placement here."
-          eyebrow="Servers"
-          title="Servers"
-        />
-
         <Panel>
           <PanelSection>
             <ApiKeyEmptyState />
@@ -77,12 +64,6 @@ export function ConsoleClusterNodesPageShell() {
   return (
     <div className="fg-console-page">
       <ToastOnMount message={errorMessage} variant="error" />
-
-      <ConsolePageIntro
-        description="Health, sharing, and placement for servers visible to this workspace."
-        eyebrow="Servers"
-        title="Servers"
-      />
 
       <ConsoleSummaryGrid
         ariaLabel="Server summary"

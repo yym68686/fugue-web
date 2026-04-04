@@ -20,10 +20,14 @@ import type {
 } from "@/lib/fugue/api";
 import {
   BUILD_STRATEGY_OPTIONS,
+  preservesGitHubTopologyImport,
   supportsGitHubDockerInputs,
   supportsGitHubSourceDir,
   type BuildStrategyValue,
 } from "@/lib/fugue/import-source";
+import {
+  readInspectionPersistentStorageSeedFiles,
+} from "@/lib/fugue/template-inspection";
 import { useGitHubConnection } from "@/lib/github/connection-client";
 import { PRIVATE_GITHUB_AUTH_REQUIRED_MESSAGE } from "@/lib/github/messages";
 import type { GitHubRepoVisibility } from "@/lib/github/repository";
@@ -54,6 +58,13 @@ type SubmitResponse = {
   } | null;
   error?: string;
   redirectTo?: string;
+};
+
+type PersistentStorageSeedField = {
+  key: string;
+  path: string;
+  seedContent: string;
+  service: string;
 };
 
 function readErrorMessage(error: unknown) {
@@ -132,6 +143,21 @@ function readInitialVariableValues(
   ) as Record<string, string>;
 }
 
+function buildPersistentStorageSeedFieldId(key: string) {
+  return `persistent-storage-seed-${key.replace(/[^a-zA-Z0-9_-]+/g, "-")}`;
+}
+
+function readInitialPersistentStorageSeedValues(
+  inspection: FugueGitHubTemplateInspection | null,
+) {
+  return Object.fromEntries(
+    readInspectionPersistentStorageSeedFiles(inspection).map((file) => [
+      file.key,
+      file.seedContent,
+    ]),
+  ) as Record<string, string>;
+}
+
 export function DeployWizard({
   initialBranch,
   initialRepoVisibility,
@@ -173,11 +199,30 @@ export function DeployWizard({
   const [variableValues, setVariableValues] = useState<Record<string, string>>(
     readInitialVariableValues(inspection),
   );
+  const [persistentStorageSeedValues, setPersistentStorageSeedValues] =
+    useState<Record<string, string>>(
+      readInitialPersistentStorageSeedValues(inspection),
+    );
 
   const manifest = inspection?.fugueManifest ?? null;
   const manifestSummary = summarizeInspectManifest(manifest);
   const hasFugueManifest = Boolean(manifest);
+  const preservesTopologyImport =
+    hasFugueManifest ||
+    preservesGitHubTopologyImport({
+      buildContextDir,
+      buildStrategy,
+      dockerfilePath,
+      sourceDir,
+    });
   const templateVariables = inspection?.template?.variables ?? [];
+  const persistentStorageSeedFiles = useMemo<PersistentStorageSeedField[]>(
+    () =>
+      preservesTopologyImport
+        ? readInspectionPersistentStorageSeedFiles(inspection)
+        : [],
+    [inspection, preservesTopologyImport],
+  );
   const supportsSourceDir = supportsGitHubSourceDir(buildStrategy);
   const supportsDockerInputs = supportsGitHubDockerInputs(buildStrategy);
   const deploymentSummaryCopy = `${repoVisibility === "private" ? "Private repo" : "Public repo"} · ${hasFugueManifest ? "Manifest import" : "Repository build"}`;
@@ -197,6 +242,10 @@ export function DeployWizard({
   const templateVariablesSummaryCopy =
     templateVariables.length > 0
       ? `${pluralize(templateVariables.length, "variable")} before first deploy`
+      : null;
+  const persistentStorageSummaryCopy =
+    persistentStorageSeedFiles.length > 0
+      ? `${pluralize(persistentStorageSeedFiles.length, "missing file")} before first deploy`
       : null;
   const projectOptions = useMemo(
     () =>
@@ -218,6 +267,12 @@ export function DeployWizard({
 
   useEffect(() => {
     setVariableValues(readInitialVariableValues(inspection));
+  }, [inspection]);
+
+  useEffect(() => {
+    setPersistentStorageSeedValues(
+      readInitialPersistentStorageSeedValues(inspection),
+    );
   }, [inspection]);
 
   function validate() {
@@ -273,6 +328,13 @@ export function DeployWizard({
     }));
   }
 
+  function updatePersistentStorageSeedValue(key: string, value: string) {
+    setPersistentStorageSeedValues((current) => ({
+      ...current,
+      [key]: value,
+    }));
+  }
+
   async function submit() {
     const validationError = validate();
 
@@ -306,6 +368,17 @@ export function DeployWizard({
         runtimeId,
         sourceDir: sourceDir.trim(),
         templateSlug: inspection?.template?.slug ?? "",
+        ...(persistentStorageSeedFiles.length > 0
+          ? {
+              persistentStorageSeedFiles: persistentStorageSeedFiles.map(
+                (file) => ({
+                  path: file.path,
+                  seedContent: persistentStorageSeedValues[file.key] ?? "",
+                  service: file.service,
+                }),
+              ),
+            }
+          : {}),
         variables: variableValues,
       }),
     });
@@ -520,6 +593,46 @@ export function DeployWizard({
             </InlineAlert>
           ) : null}
         </ConsoleDisclosureSection>
+
+        {persistentStorageSeedFiles.length > 0 ? (
+          <ConsoleDisclosureSection
+            className="fg-console-dialog__advanced"
+            description={persistentStorageSummaryCopy ?? undefined}
+            summary="Persistent files"
+          >
+            <div className="fg-console-dialog__advanced-grid">
+              {persistentStorageSeedFiles.map((file) => {
+                const fieldId = buildPersistentStorageSeedFieldId(file.key);
+
+                return (
+                  <FormField
+                    hint={`Service ${file.service}. Leave blank to create an empty file on first deploy.`}
+                    htmlFor={fieldId}
+                    key={file.key}
+                    label={file.path}
+                    optionalLabel="Optional"
+                  >
+                    <textarea
+                      autoCapitalize="off"
+                      autoCorrect="off"
+                      className="fg-input fg-deploy-seed-textarea"
+                      id={fieldId}
+                      onChange={(event) =>
+                        updatePersistentStorageSeedValue(
+                          file.key,
+                          event.target.value,
+                        )
+                      }
+                      placeholder="Leave blank to create an empty file."
+                      spellCheck={false}
+                      value={persistentStorageSeedValues[file.key] ?? ""}
+                    />
+                  </FormField>
+                );
+              })}
+            </div>
+          </ConsoleDisclosureSection>
+        ) : null}
 
         {templateVariables.length > 0 ? (
           <ConsoleDisclosureSection

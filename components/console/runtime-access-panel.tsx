@@ -565,12 +565,16 @@ export function RuntimeAccessPanel({
                 <SegmentedControl
                   ariaLabel="Internal cluster access"
                   className="fg-runtime-share-row__segmented"
+                  controlClassName="fg-console-nav"
+                  itemClassName="fg-console-nav__link"
+                  labelClassName="fg-console-nav__title"
                   onChange={handlePoolModeChange}
                   options={POOL_MODE_OPTIONS.map((option) => ({
                     ...option,
                     disabled: busyAction !== null,
                   }))}
                   value={currentPoolMode}
+                  variant="pill"
                 />
               ) : null
             }

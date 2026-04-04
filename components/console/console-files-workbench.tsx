@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useEffectEvent,
   useState,
   type CSSProperties,
 } from "react";
@@ -12,7 +13,12 @@ import { InlineAlert } from "@/components/ui/inline-alert";
 import { SegmentedControl, type SegmentedControlOption } from "@/components/ui/segmented-control";
 import type { ConsoleGalleryPersistentStorageMountView } from "@/lib/console/gallery-types";
 import { useToast } from "@/components/ui/toast";
+import { useAnticipatoryWarmup } from "@/lib/ui/anticipatory-warmup";
 import { cx } from "@/lib/ui/cx";
+import {
+  createAbortRequestError,
+  isAbortRequestError,
+} from "@/lib/ui/request-json";
 
 type ConsoleFilesWorkbenchProps = {
   appId: string;
@@ -129,6 +135,22 @@ type CachedWorkbenchState = {
 };
 
 const filesWorkbenchCache = new Map<string, CachedWorkbenchState>();
+const FILESYSTEM_TREE_CACHE_TTL_MS = 30_000;
+const FILESYSTEM_WARMUP_CONCURRENCY = 4;
+const FILESYSTEM_WARMUP_LIMIT_DEFAULT = 240;
+const FILESYSTEM_WARMUP_LIMIT_REDUCED = 64;
+const FILESYSTEM_WARMUP_LIMIT_MINIMAL = 24;
+
+type CachedFilesystemTree = {
+  cachedAt: number;
+  response: FilesystemTreeResponse;
+};
+
+const filesystemTreeCache = new Map<string, CachedFilesystemTree>();
+const filesystemTreeRequestCache = new Map<
+  string,
+  Promise<FilesystemTreeResponse>
+>();
 
 function readErrorMessage(error: unknown) {
   if (error instanceof Error && error.message) {
@@ -149,6 +171,154 @@ async function requestJson<T>(input: RequestInfo, init?: RequestInit) {
   }
 
   return (data ?? {}) as T;
+}
+
+function readFilesystemTreeCacheKey(appId: string, targetPath: string) {
+  return `${appId}:${trimTrailingSlash(targetPath)}`;
+}
+
+function readCachedFilesystemTree(
+  appId: string,
+  targetPath: string,
+) {
+  const cacheKey = readFilesystemTreeCacheKey(appId, targetPath);
+  const cached = filesystemTreeCache.get(cacheKey);
+
+  if (!cached) {
+    return null;
+  }
+
+  if (Date.now() - cached.cachedAt > FILESYSTEM_TREE_CACHE_TTL_MS) {
+    filesystemTreeCache.delete(cacheKey);
+    return null;
+  }
+
+  return cached.response;
+}
+
+function writeCachedFilesystemTree(
+  appId: string,
+  requestedPath: string,
+  response: FilesystemTreeResponse,
+) {
+  const resolvedPath = response.path?.trim() || requestedPath;
+  const nextEntry = {
+    cachedAt: Date.now(),
+    response: {
+      ...response,
+      path: resolvedPath,
+    },
+  } satisfies CachedFilesystemTree;
+
+  filesystemTreeCache.set(
+    readFilesystemTreeCacheKey(appId, requestedPath),
+    nextEntry,
+  );
+  filesystemTreeCache.set(
+    readFilesystemTreeCacheKey(appId, resolvedPath),
+    nextEntry,
+  );
+}
+
+function pruneCachedFilesystemTree(appId: string, targetPath: string) {
+  const normalizedPath = trimTrailingSlash(targetPath);
+
+  for (const cacheKey of filesystemTreeCache.keys()) {
+    if (!cacheKey.startsWith(`${appId}:`)) {
+      continue;
+    }
+
+    const cachePath = cacheKey.slice(appId.length + 1);
+
+    if (isPathWithin(normalizedPath, cachePath)) {
+      filesystemTreeCache.delete(cacheKey);
+      filesystemTreeRequestCache.delete(cacheKey);
+    }
+  }
+}
+
+function readFilesystemWarmupLimit() {
+  if (typeof navigator === "undefined") {
+    return FILESYSTEM_WARMUP_LIMIT_DEFAULT;
+  }
+
+  const connection = (
+    navigator as Navigator & {
+      connection?: {
+        effectiveType?: string;
+        saveData?: boolean;
+      };
+    }
+  ).connection;
+
+  if (connection?.saveData) {
+    return FILESYSTEM_WARMUP_LIMIT_MINIMAL;
+  }
+
+  const effectiveType = connection?.effectiveType?.toLowerCase() ?? "";
+
+  if (effectiveType.includes("2g")) {
+    return FILESYSTEM_WARMUP_LIMIT_MINIMAL;
+  }
+
+  if (effectiveType.includes("3g")) {
+    return FILESYSTEM_WARMUP_LIMIT_REDUCED;
+  }
+
+  return FILESYSTEM_WARMUP_LIMIT_DEFAULT;
+}
+
+async function fetchFilesystemTree(
+  appId: string,
+  targetPath: string,
+  options?: {
+    force?: boolean;
+    signal?: AbortSignal;
+  },
+) {
+  if (options?.signal?.aborted) {
+    throw createAbortRequestError();
+  }
+
+  if (!options?.force) {
+    const cached = readCachedFilesystemTree(appId, targetPath);
+
+    if (cached) {
+      return cached;
+    }
+
+    const pendingRequest = filesystemTreeRequestCache.get(
+      readFilesystemTreeCacheKey(appId, targetPath),
+    );
+
+    if (pendingRequest) {
+      return pendingRequest;
+    }
+  }
+
+  const searchParams = new URLSearchParams();
+  searchParams.set("path", targetPath);
+  searchParams.set("depth", "1");
+  const requestKey = readFilesystemTreeCacheKey(appId, targetPath);
+  const request = requestJson<FilesystemTreeResponse>(
+    `/api/fugue/apps/${appId}/filesystem/tree?${searchParams.toString()}`,
+    {
+      cache: "no-store",
+      signal: options?.signal,
+    },
+  )
+    .then((response) => {
+      writeCachedFilesystemTree(appId, targetPath, response);
+      return readCachedFilesystemTree(appId, targetPath) ?? response;
+    })
+    .finally(() => {
+      if (filesystemTreeRequestCache.get(requestKey) === request) {
+        filesystemTreeRequestCache.delete(requestKey);
+      }
+    });
+
+  filesystemTreeRequestCache.set(requestKey, request);
+  return request;
 }
 
 function normalizeEncoding(value?: string | null): "base64" | "utf-8" {
@@ -360,6 +530,120 @@ function isPersistentStorageCollectionRoot(targetPath: string) {
   return targetPath === PERSISTENT_STORAGE_COLLECTION_ROOT;
 }
 
+function readFilesystemWarmupSeedPaths(
+  mounts: ReturnType<typeof normalizePersistentStorageMounts>,
+) {
+  return Array.from(
+    new Set([
+      "/",
+      ...mounts.flatMap((mount) =>
+        mount.kind === "directory" ? [mount.path] : [],
+      ),
+    ]),
+  );
+}
+
+function readFilesystemWarmupConcurrency(maxDirectories: number) {
+  return Math.max(
+    1,
+    Math.min(FILESYSTEM_WARMUP_CONCURRENCY, maxDirectories),
+  );
+}
+
+export async function warmConsoleFilesWorkbench(options: {
+  appId: string;
+  concurrency?: number;
+  maxDirectories?: number;
+  persistentStorageMounts: ConsoleGalleryPersistentStorageMountView[];
+  signal?: AbortSignal;
+}) {
+  if (options.signal?.aborted) {
+    throw createAbortRequestError();
+  }
+
+  const normalizedMounts = normalizePersistentStorageMounts(
+    options.persistentStorageMounts,
+  );
+  const maxDirectories = Math.max(
+    1,
+    options.maxDirectories ?? readFilesystemWarmupLimit(),
+  );
+  const concurrency = Math.max(
+    1,
+    Math.min(
+      options.concurrency ??
+        readFilesystemWarmupConcurrency(maxDirectories),
+      maxDirectories,
+    ),
+  );
+  const queue = readFilesystemWarmupSeedPaths(normalizedMounts);
+  const queued = new Set(queue.map((path) => trimTrailingSlash(path)));
+  const visited = new Set<string>();
+  let warmedCount = 0;
+
+  const takeNextPath = () => {
+    while (queue.length > 0) {
+      const nextPath = trimTrailingSlash(queue.shift() ?? "/");
+
+      if (visited.has(nextPath)) {
+        continue;
+      }
+
+      visited.add(nextPath);
+      warmedCount += 1;
+      return nextPath;
+    }
+
+    return null;
+  };
+
+  async function worker() {
+    while (!options.signal?.aborted && warmedCount < maxDirectories) {
+      const targetPath = takeNextPath();
+
+      if (!targetPath) {
+        return;
+      }
+
+      try {
+        const response = await fetchFilesystemTree(options.appId, targetPath, {
+          signal: options.signal,
+        });
+        const entries = normalizeTreeEntries(response.entries ?? []);
+
+        for (const entry of entries) {
+          if (
+            entry.kind !== "dir" ||
+            !entry.hasChildren ||
+            warmedCount + queue.length >= maxDirectories
+          ) {
+            continue;
+          }
+
+          const nextPath = trimTrailingSlash(entry.path);
+
+          if (queued.has(nextPath) || visited.has(nextPath)) {
+            continue;
+          }
+
+          queued.add(nextPath);
+          queue.push(nextPath);
+        }
+      } catch (error) {
+        if (options.signal?.aborted || isAbortRequestError(error)) {
+          return;
+        }
+      }
+    }
+  }
+
+  await Promise.all(
+    Array.from({ length: concurrency }, async () => {
+      await worker();
+    }),
+  );
+}
+
 function parseModeInput(value: string) {
   const trimmed = value.trim();
 
@@ -432,90 +716,6 @@ function ChevronIcon({ expanded = false }: { expanded?: boolean }) {
     >
       <path
         d="M5.5 3.5 10 8l-4.5 4.5"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.35"
-      />
-    </svg>
-  );
-}
-
-function RefreshIcon() {
-  return (
-    <svg aria-hidden="true" className="fg-filesystem-action-icon" viewBox="0 0 20 20">
-      <path
-        d="M15.8 9.1a5.8 5.8 0 1 1-1.1-3.3M15.8 4.8v4.4h-4.4"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.35"
-      />
-    </svg>
-  );
-}
-
-function FilePlusIcon() {
-  return (
-    <svg aria-hidden="true" className="fg-filesystem-action-icon" viewBox="0 0 20 20">
-      <path
-        d="M4.8 2.8h5.8l3.1 3.2v10.7H4.8V2.8Z"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.35"
-      />
-      <path
-        d="M10.6 2.8v3.3h3.1M14.1 12.4v3.8M12.2 14.3H16"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.35"
-      />
-    </svg>
-  );
-}
-
-function FolderPlusIcon() {
-  return (
-    <svg aria-hidden="true" className="fg-filesystem-action-icon" viewBox="0 0 20 20">
-      <path
-        d="M2.5 5.6h4.5l1.4 1.7h8v7.8H2.5V5.6Z"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.35"
-      />
-      <path
-        d="M13.2 9.7v4.2M11.1 11.8h4.2"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.35"
-      />
-    </svg>
-  );
-}
-
-function SaveIcon() {
-  return (
-    <svg aria-hidden="true" className="fg-filesystem-action-icon" viewBox="0 0 20 20">
-      <path
-        d="M4.3 3.3h9.1l2.3 2.4v11H4.3V3.3Z"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.35"
-      />
-      <path
-        d="M6.4 3.3v4.1h6.6V3.3M7 16.7v-4.5h6v4.5"
         fill="none"
         stroke="currentColor"
         strokeLinecap="round"
@@ -604,13 +804,24 @@ export function ConsoleFilesWorkbench({
     cachedWorkbench.requestedRootPath === initialRequestedRootPath &&
     (initialRequestedRootPath !== PERSISTENT_STORAGE_COLLECTION_ROOT ||
       cachedWorkbench.storageMountSignature === storageMountSignature);
+  const initialCachedRootTree =
+    canRestoreInitialState ||
+    initialRequestedRootPath === PERSISTENT_STORAGE_COLLECTION_ROOT
+      ? null
+      : readCachedFilesystemTree(appId, initialRequestedRootPath);
+  const initialResolvedRootPath =
+    initialCachedRootTree?.path?.trim() ||
+    initialCachedRootTree?.workspaceRoot?.trim() ||
+    initialRequestedRootPath;
+  const initialWorkspaceRoot =
+    initialCachedRootTree?.workspaceRoot?.trim() || initialResolvedRootPath;
   const [rootMode, setRootMode] = useState<FilesystemRootMode>(
     initialRootMode,
   );
   const [workspaceRoot, setWorkspaceRoot] = useState(() =>
     canRestoreInitialState
       ? cachedWorkbench!.workspaceRoot
-      : initialRequestedRootPath,
+      : initialWorkspaceRoot,
   );
   const [directories, setDirectories] = useState<Record<string, DirectoryBucket>>(
     () =>
@@ -623,6 +834,15 @@ export function ConsoleFilesWorkbench({
                 status: "ready",
               },
             }
+          : initialCachedRootTree
+            ? {
+                [initialResolvedRootPath]: {
+                  entries: normalizeTreeEntries(
+                    initialCachedRootTree.entries ?? [],
+                  ),
+                  status: "ready",
+                },
+              }
           : {},
   );
   const [expandedPaths, setExpandedPaths] = useState<string[]>(
@@ -631,7 +851,7 @@ export function ConsoleFilesWorkbench({
         ? cachedWorkbench!.expandedPaths
         : initialRequestedRootPath === PERSISTENT_STORAGE_COLLECTION_ROOT
           ? []
-          : [initialRequestedRootPath],
+          : [initialResolvedRootPath],
   );
   const [selectedNode, setSelectedNode] = useState<SelectedNode | null>(
     () =>
@@ -639,7 +859,7 @@ export function ConsoleFilesWorkbench({
         ? cachedWorkbench!.selectedNode
         : {
             kind: "dir",
-            path: initialRequestedRootPath,
+            path: initialResolvedRootPath,
           },
   );
   const [fileDocuments, setFileDocuments] = useState<
@@ -655,7 +875,9 @@ export function ConsoleFilesWorkbench({
       ? cachedWorkbench!.rootStatus
       : initialRequestedRootPath === PERSISTENT_STORAGE_COLLECTION_ROOT
         ? "ready"
-        : "loading",
+        : initialCachedRootTree
+          ? "ready"
+          : "loading",
   );
   const [busyAction, setBusyAction] = useState<"delete" | "refresh" | "save" | null>(null);
   const isStorageMode = rootMode === "storage";
@@ -907,6 +1129,41 @@ export function ConsoleFilesWorkbench({
       return existing.entries;
     }
 
+    if (!options?.force) {
+      const cachedResponse = readCachedFilesystemTree(appId, targetPath);
+
+      if (cachedResponse) {
+        const resolvedPath = cachedResponse.path?.trim() || targetPath;
+        const entries = normalizeTreeEntries(cachedResponse.entries ?? []);
+
+        setDirectories((current) => {
+          const next = { ...current };
+
+          if (resolvedPath !== targetPath) {
+            delete next[targetPath];
+          }
+
+          next[resolvedPath] = {
+            entries,
+            status: "ready",
+          };
+
+          return next;
+        });
+
+        if (targetPath === workspaceRoot || resolvedPath === workspaceRoot) {
+          setRootStatus("ready");
+        }
+
+        return {
+          entries,
+          path: resolvedPath,
+          workspaceRoot:
+            cachedResponse.workspaceRoot?.trim() || workspaceRoot,
+        };
+      }
+    }
+
     setDirectories((current) => ({
       ...current,
       [targetPath]: {
@@ -915,12 +1172,13 @@ export function ConsoleFilesWorkbench({
       },
     }));
 
-    const searchParams = new URLSearchParams();
-    searchParams.set("path", targetPath);
-    searchParams.set("depth", "1");
     try {
-      const response = await requestJson<FilesystemTreeResponse>(
-        `/api/fugue/apps/${appId}/filesystem/tree?${searchParams.toString()}`,
+      const response = await fetchFilesystemTree(
+        appId,
+        targetPath,
+        {
+          force: options?.force,
+        },
       );
       const resolvedPath = response.path?.trim() || targetPath;
       const entries = normalizeTreeEntries(response.entries ?? []);
@@ -947,7 +1205,7 @@ export function ConsoleFilesWorkbench({
       return {
         entries,
         path: resolvedPath,
-        workspaceRoot,
+        workspaceRoot: response.workspaceRoot?.trim() || workspaceRoot,
       };
     } catch (error) {
       setDirectories((current) => ({
@@ -1077,6 +1335,7 @@ export function ConsoleFilesWorkbench({
 
   useEffect(() => {
     let cancelled = false;
+    const controller = new AbortController();
     const cachedState = filesWorkbenchCache.get(appId);
     const canRestoreCachedState =
       cachedState &&
@@ -1109,10 +1368,20 @@ export function ConsoleFilesWorkbench({
 
       return () => {
         cancelled = true;
+        controller.abort();
       };
     }
 
-    setWorkspaceRoot(requestedRootPath);
+    const cachedRootTree =
+      requestedRootPath === PERSISTENT_STORAGE_COLLECTION_ROOT
+        ? null
+        : readCachedFilesystemTree(appId, requestedRootPath);
+    const cachedResolvedRoot =
+      cachedRootTree?.workspaceRoot?.trim() ||
+      cachedRootTree?.path?.trim() ||
+      requestedRootPath;
+
+    setWorkspaceRoot(cachedResolvedRoot);
     setFileDocuments({});
     setComposer(null);
 
@@ -1129,6 +1398,24 @@ export function ConsoleFilesWorkbench({
 
       return () => {
         cancelled = true;
+        controller.abort();
+      };
+    }
+
+    if (cachedRootTree) {
+      setDirectories({
+        [cachedRootTree.path?.trim() || cachedResolvedRoot]: {
+          entries: normalizeTreeEntries(cachedRootTree.entries ?? []),
+          status: "ready",
+        },
+      });
+      setExpandedPaths([cachedResolvedRoot]);
+      setSelectedNode({ kind: "dir", path: cachedResolvedRoot });
+      setRootStatus("ready");
+
+      return () => {
+        cancelled = true;
+        controller.abort();
       };
     }
 
@@ -1137,12 +1424,9 @@ export function ConsoleFilesWorkbench({
     setSelectedNode({ kind: "dir", path: requestedRootPath });
     setRootStatus("loading");
 
-    const searchParams = new URLSearchParams();
-    searchParams.set("path", requestedRootPath);
-
-    requestJson<FilesystemTreeResponse>(
-      `/api/fugue/apps/${appId}/filesystem/tree?${searchParams.toString()}`,
-    )
+    fetchFilesystemTree(appId, requestedRootPath, {
+      signal: controller.signal,
+    })
       .then((response) => {
         if (cancelled) {
           return;
@@ -1177,8 +1461,27 @@ export function ConsoleFilesWorkbench({
 
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, [appId, requestedRootPath, showToast, storageMountSignature]);
+
+  const warmFilesystemTree = useEffectEvent(async (signal: AbortSignal) => {
+    await warmConsoleFilesWorkbench({
+      appId,
+      persistentStorageMounts,
+      signal,
+    });
+  });
+
+  useAnticipatoryWarmup(
+    warmFilesystemTree,
+    [appId, storageMountSignature],
+    {
+      enabled: rootStatus !== "error",
+      mode: "idle",
+      timeoutMs: 1_200,
+    },
+  );
 
   useEffect(() => {
     filesWorkbenchCache.set(appId, {
@@ -1296,6 +1599,7 @@ export function ConsoleFilesWorkbench({
     try {
       const targetDirectory = readRefreshTargetDirectory();
 
+      pruneCachedFilesystemTree(appId, targetDirectory);
       await reloadDirectoryChain(targetDirectory);
 
       if (selectedNode?.kind === "file") {
@@ -1360,6 +1664,7 @@ export function ConsoleFilesWorkbench({
         const targetPath = response.path?.trim() || requestPath;
         setComposer(null);
         setSelectedNode({ kind: "dir", path: targetPath });
+        pruneCachedFilesystemTree(appId, targetPath);
         await reloadDirectoryChain(targetPath);
         showToast({
           message: "Folder created.",
@@ -1411,6 +1716,10 @@ export function ConsoleFilesWorkbench({
         }));
         setComposer(null);
         setSelectedNode({ kind: "file", path: targetPath });
+        pruneCachedFilesystemTree(
+          appId,
+          readParentDirectoryWithinScope(targetPath),
+        );
         await reloadDirectoryChain(readParentDirectoryWithinScope(targetPath));
         showToast({
           message: "File saved.",
@@ -1455,6 +1764,10 @@ export function ConsoleFilesWorkbench({
           status: "ready",
         },
       }));
+      pruneCachedFilesystemTree(
+        appId,
+        readParentDirectoryWithinScope(selectedFile.path),
+      );
       await reloadDirectoryChain(readParentDirectoryWithinScope(selectedFile.path));
       showToast({
         message: "File saved.",
@@ -1507,6 +1820,8 @@ export function ConsoleFilesWorkbench({
       });
 
       const nextSelectedPath = readParentDirectoryWithinScope(selectedNode.path);
+      pruneCachedFilesystemTree(appId, selectedNode.path);
+      pruneCachedFilesystemTree(appId, nextSelectedPath);
       prunePathState(selectedNode.path);
       setComposer(null);
       setSelectedNode({ kind: "dir", path: nextSelectedPath });
@@ -1626,17 +1941,12 @@ export function ConsoleFilesWorkbench({
       ? selectedDirectory?.status ?? (selectedNode.path === workspaceRoot ? rootStatus : "loading")
       : "idle";
   const showDirectoryPlaceholder =
-    isSyntheticStorageRootSelected ||
-    selectedDirectoryStatus === "loading" ||
-    directoryEntries.length === 0;
-  const directoryPlaceholderTitle = isSyntheticStorageRootSelected
-    ? "Select a mounted file or directory"
-    : selectedDirectoryStatus === "loading"
-      ? "Loading folder"
-      : "This folder is empty";
-  const directoryPlaceholderCopy = isSyntheticStorageRootSelected
-    ? "Choose a mounted path from the explorer to inspect or edit it."
-    : selectedDirectoryStatus === "loading"
+    !isSyntheticStorageRootSelected &&
+    (selectedDirectoryStatus === "loading" || directoryEntries.length === 0);
+  const directoryPlaceholderTitle =
+    selectedDirectoryStatus === "loading" ? "Loading folder" : "This folder is empty";
+  const directoryPlaceholderCopy =
+    selectedDirectoryStatus === "loading"
       ? "Fetching the current directory contents."
       : "Create a file or folder from the explorer toolbar.";
   const saveDisabled = Boolean(
@@ -1666,9 +1976,13 @@ export function ConsoleFilesWorkbench({
               <SegmentedControl
                 ariaLabel="Filesystem scope"
                 className="fg-project-toolbar__panels-switch fg-filesystem__mode-switch"
+                controlClassName="fg-console-nav"
+                itemClassName="fg-console-nav__link"
+                labelClassName="fg-console-nav__title"
                 onChange={setRootMode}
                 options={rootModeOptions}
                 value={rootMode}
+                variant="pill"
               />
             </div>
           ) : null}
@@ -1702,7 +2016,6 @@ export function ConsoleFilesWorkbench({
             >
               <Button
                 disabled={Boolean(busyAction)}
-                icon={<RefreshIcon />}
                 loading={busyAction === "refresh"}
                 loadingLabel="Refreshing…"
                 onClick={handleRefresh}
@@ -1714,7 +2027,6 @@ export function ConsoleFilesWorkbench({
               </Button>
               <Button
                 disabled={Boolean(busyAction) || Boolean(composer) || !canCreateInsideCurrentScope}
-                icon={<FilePlusIcon />}
                 onClick={startNewFile}
                 size="compact"
                 type="button"
@@ -1724,7 +2036,6 @@ export function ConsoleFilesWorkbench({
               </Button>
               <Button
                 disabled={Boolean(busyAction) || Boolean(composer) || !canCreateInsideCurrentScope}
-                icon={<FolderPlusIcon />}
                 onClick={startNewDirectory}
                 size="compact"
                 type="button"
@@ -1761,7 +2072,6 @@ export function ConsoleFilesWorkbench({
               {composer || selectedNode?.kind === "file" ? (
                 <Button
                   disabled={saveDisabled}
-                  icon={<SaveIcon />}
                   loading={busyAction === "save"}
                   loadingLabel="Saving…"
                   onClick={handleSave}

@@ -159,19 +159,31 @@ function isDeletingProjectLifecycleLabel(value?: string | null) {
   return normalized.includes("deleting");
 }
 
+function shouldKeepOptimisticDeletingProject(
+  project: ConsoleProjectSummaryView,
+  expectedServiceCount: number,
+) {
+  return (
+    !isDeletingProjectLifecycleLabel(project.lifecycle.label) &&
+    project.serviceCount >= expectedServiceCount
+  );
+}
+
 function applyOptimisticDeletingToProjectSummaries(
   projects: ConsoleProjectSummaryView[],
-  deletingProjectIds: ReadonlySet<string>,
+  deletingProjects: ReadonlyMap<string, number>,
 ) {
-  if (deletingProjectIds.size === 0) {
+  if (deletingProjects.size === 0) {
     return projects;
   }
 
   let didChange = false;
   const nextProjects = projects.map((project) => {
+    const expectedServiceCount = deletingProjects.get(project.id);
+
     if (
-      !deletingProjectIds.has(project.id) ||
-      isDeletingProjectLifecycleLabel(project.lifecycle.label)
+      expectedServiceCount === undefined ||
+      !shouldKeepOptimisticDeletingProject(project, expectedServiceCount)
     ) {
       return project;
     }
@@ -193,62 +205,78 @@ function applyOptimisticDeletingToProjectSummaries(
 }
 
 function pruneOptimisticDeletingProjectIds(
-  current: Set<string>,
+  current: Map<string, number>,
   projects: ConsoleProjectSummaryView[],
 ) {
   if (current.size === 0) {
     return current;
   }
 
-  const next = new Set<string>();
+  const next = new Map<string, number>();
 
   projects.forEach((project) => {
+    const expectedServiceCount = current.get(project.id);
+
     if (
-      current.has(project.id) &&
-      !isDeletingProjectLifecycleLabel(project.lifecycle.label)
+      expectedServiceCount !== undefined &&
+      shouldKeepOptimisticDeletingProject(project, expectedServiceCount)
     ) {
-      next.add(project.id);
+      next.set(project.id, expectedServiceCount);
     }
   });
 
-  return next.size === current.size ? current : next;
+  if (next.size !== current.size) {
+    return next;
+  }
+
+  for (const [projectId, expectedServiceCount] of current) {
+    if (next.get(projectId) !== expectedServiceCount) {
+      return next;
+    }
+  }
+
+  return current;
 }
 
 function useOptimisticDeletingProjectSummaries(
   projects: ConsoleProjectSummaryView[],
 ) {
-  const [optimisticDeletingProjectIds, setOptimisticDeletingProjectIds] =
-    useState<Set<string>>(() => new Set());
+  const [optimisticDeletingProjects, setOptimisticDeletingProjects] = useState<
+    Map<string, number>
+  >(() => new Map());
 
   useEffect(() => {
-    setOptimisticDeletingProjectIds((current) =>
+    setOptimisticDeletingProjects((current) =>
       pruneOptimisticDeletingProjectIds(current, projects),
     );
   }, [projects]);
 
-  const markProjectDeleting = useEffectEvent((projectId: string) => {
-    const normalizedProjectId = projectId.trim();
+  const markProjectDeleting = useEffectEvent(
+    (projectId: string, serviceCount: number) => {
+      const normalizedProjectId = projectId.trim();
+      const normalizedServiceCount = Math.max(0, serviceCount);
 
-    if (!normalizedProjectId) {
-      return;
-    }
-
-    setOptimisticDeletingProjectIds((current) => {
-      if (current.has(normalizedProjectId)) {
-        return current;
+      if (!normalizedProjectId || normalizedServiceCount === 0) {
+        return;
       }
 
-      const next = new Set(current);
-      next.add(normalizedProjectId);
-      return next;
-    });
-  });
+      setOptimisticDeletingProjects((current) => {
+        if (current.get(normalizedProjectId) === normalizedServiceCount) {
+          return current;
+        }
+
+        const next = new Map(current);
+        next.set(normalizedProjectId, normalizedServiceCount);
+        return next;
+      });
+    },
+  );
 
   return {
     markProjectDeleting,
     optimisticProjects: applyOptimisticDeletingToProjectSummaries(
       projects,
-      optimisticDeletingProjectIds,
+      optimisticDeletingProjects,
     ),
   };
 }
@@ -981,14 +1009,23 @@ export function ConsoleProjectGallery({
   }
 
   function handleProjectMutation(
-    options?: number | { optimisticDeletingProjectId?: string },
+    options?:
+      | number
+      | {
+          optimisticDeletingProjectId?: string;
+          optimisticDeletingServiceCount?: number;
+        },
   ) {
     if (
       options &&
       typeof options === "object" &&
-      options.optimisticDeletingProjectId
+      options.optimisticDeletingProjectId &&
+      typeof options.optimisticDeletingServiceCount === "number"
     ) {
-      markProjectDeleting(options.optimisticDeletingProjectId);
+      markProjectDeleting(
+        options.optimisticDeletingProjectId,
+        options.optimisticDeletingServiceCount,
+      );
     }
 
     setWorkbenchRefreshToken((value) => value + 1);

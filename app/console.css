@@ -257,7 +257,7 @@
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.034), rgba(255, 255, 255, 0.012)),
     rgba(8, 11, 15, 0.84);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.028);
+  box-shadow: none;
 }
 
 .fg-console-disclosure--section > summary {
@@ -420,6 +420,14 @@
 
 .fg-console-dialog__advanced {
   padding-top: 0.18rem;
+}
+
+.fg-console-seed-textarea {
+  min-height: 11rem;
+  font-family: var(--fugue-font-mono);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  resize: vertical;
 }
 
 .fg-console-dialog__actions {
@@ -1664,13 +1672,16 @@
 }
 
 .fg-console-tech-pill__glyph {
+  display: grid;
+  place-items: center;
   width: 0.8rem;
   height: 0.8rem;
   flex: 0 0 auto;
   color: var(--fugue-text-secondary);
+  line-height: 0;
 }
 
-.fg-console-tech-pill__glyph svg {
+.fg-console-tech-pill__glyph :where(.fg-tech-stack-logo, svg, img) {
   width: 100%;
   height: 100%;
   display: block;
@@ -3193,6 +3204,10 @@
   border-left: 0;
 }
 
+.fg-project-card__summary-resources .fg-cluster-resource__compact-values strong {
+  white-space: nowrap;
+}
+
 .fg-project-card__summary-side {
   grid-area: side;
   display: inline-flex;
@@ -3269,14 +3284,36 @@
 }
 
 .fg-project-badge__glyph {
+  display: grid;
+  place-items: center;
   width: 1.12rem;
   height: 1.12rem;
+  line-height: 0;
 }
 
-.fg-project-badge__glyph svg {
+.fg-project-badge__glyph :where(.fg-tech-stack-logo, svg, img) {
   width: 100%;
   height: 100%;
   display: block;
+}
+
+.fg-tech-stack-logo {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.fg-tech-stack-logo__image,
+.fg-tech-stack-logo svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+}
+
+.fg-tech-stack-logo--image[data-kind="nextjs"] .fg-tech-stack-logo__image {
+  border-radius: 0.18rem;
 }
 
 .fg-project-badge__sr {
@@ -5327,13 +5364,17 @@
   inline-size: 100%;
 }
 
-.fg-filesystem__mode-switch .fg-segmented {
+.fg-filesystem__mode-switch .fg-segmented,
+.fg-filesystem__mode-switch .fg-pill-nav {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   inline-size: 100%;
+  min-inline-size: 100%;
+  width: 100%;
 }
 
-.fg-filesystem__mode-switch .fg-segmented__item {
+.fg-filesystem__mode-switch .fg-segmented__item,
+.fg-filesystem__mode-switch .fg-pill-nav__button {
   justify-content: center;
 }
 

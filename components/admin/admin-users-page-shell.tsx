@@ -3,7 +3,6 @@
 import { AdminSummaryGrid } from "@/components/admin/admin-summary-grid";
 import { AdminUserManager } from "@/components/admin/admin-user-manager";
 import { ConsoleEmptyState } from "@/components/console/console-empty-state";
-import { ConsolePageIntro } from "@/components/console/console-page-intro";
 import {
   ConsoleAdminUsersPageSkeleton,
   ConsoleLoadingState,
@@ -33,12 +32,6 @@ export function AdminUsersPageShell() {
   if (!data) {
     return (
       <div className="fg-console-page">
-        <ConsolePageIntro
-          description="Users, access state, prepaid balance, and managed capacity limits."
-          eyebrow="Admin / Users"
-          title="Users"
-        />
-
         <Panel>
           <PanelSection>
             <ConsoleEmptyState
@@ -58,12 +51,6 @@ export function AdminUsersPageShell() {
   return (
     <div className="fg-console-page">
       <ToastOnMount message={errorMessage} variant="error" />
-
-      <ConsolePageIntro
-        description="Users, access state, prepaid balance, and managed capacity limits."
-        eyebrow="Admin / Users"
-        title="Users"
-      />
 
       <AdminSummaryGrid
         items={[

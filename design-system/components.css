@@ -203,13 +203,13 @@
   backdrop-filter: blur(var(--fugue-nav-pill-blur));
 }
 
-.fg-pill-nav a {
+.fg-pill-nav :is(a, .fg-pill-nav__button) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-height: var(--fugue-nav-pill-item-min-height);
   padding: 0.45rem var(--fugue-nav-pill-item-padding-inline);
-  border: 1px solid transparent;
+  border: 1px solid var(--fugue-nav-pill-item-border);
   border-radius: var(--fugue-radius-pill);
   background: transparent;
   color: var(--fugue-selection-lens-text);
@@ -219,6 +219,8 @@
   letter-spacing: -0.018em;
   line-height: 1;
   text-decoration: none;
+  appearance: none;
+  cursor: pointer;
   touch-action: manipulation;
   white-space: nowrap;
   transition:
@@ -229,27 +231,34 @@
     opacity var(--fugue-duration-fast) var(--fugue-ease-out-expo);
 }
 
-.fg-control-strip__viewport > .fg-pill-nav a,
+.fg-pill-nav__label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fg-control-strip__viewport > .fg-pill-nav > :is(a, .fg-pill-nav__button),
 .fg-control-strip__viewport > .fg-segmented > .fg-segmented__item {
   scroll-snap-align: start;
 }
 
-.fg-pill-nav a:hover,
-.fg-pill-nav a:focus-visible {
-  border-color: var(--fugue-selection-lens-border-hover);
+.fg-pill-nav :is(a, .fg-pill-nav__button):hover,
+.fg-pill-nav :is(a, .fg-pill-nav__button):focus-visible {
+  border-color: var(--fugue-nav-pill-item-border-hover);
   background: var(--fugue-selection-lens-bg-hover);
   color: var(--fugue-selection-lens-text-hover);
 }
 
 .fg-pill-nav a[aria-current="page"],
-.fg-pill-nav a.is-active {
-  border-color: var(--fugue-selection-lens-border-active);
+.fg-pill-nav :is(a, .fg-pill-nav__button).is-active,
+.fg-pill-nav .fg-pill-nav__button[aria-pressed="true"] {
+  border-color: var(--fugue-nav-pill-item-border-active);
   background: var(--fugue-selection-lens-bg-active);
-  box-shadow: var(--fugue-selection-lens-shadow-active);
+  box-shadow: var(--fugue-nav-pill-item-shadow-active);
   color: var(--fugue-selection-lens-text-active);
 }
 
-.fg-pill-nav a:active {
+.fg-pill-nav :is(a, .fg-pill-nav__button):active {
   transform: scale(0.985);
 }
 
@@ -754,9 +763,14 @@
   overflow-wrap: anywhere;
 }
 
-.fg-pill-nav a:focus-visible {
+.fg-pill-nav :is(a, .fg-pill-nav__button):focus-visible {
   outline: 2px solid var(--fugue-focus-ring);
   outline-offset: 3px;
+}
+
+.fg-pill-nav .fg-pill-nav__button:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
 }
 
 .fg-route-note {
@@ -804,16 +818,16 @@
 
 .fg-bezel {
   padding: var(--fugue-proof-shell-padding);
-  border-radius: var(--fugue-proof-shell-radius-outer);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  background: var(--fugue-proof-shell-bg);
+  border-radius: var(--fugue-proof-shell-radius-inner);
+  border: 0;
+  background: transparent;
   box-shadow: var(--fugue-shadow-proof);
 }
 
 .fg-bezel__inner {
   min-width: 0;
   overflow: hidden;
-  border-radius: var(--fugue-proof-shell-radius-inner);
+  border-radius: inherit;
   border: 1px solid var(--fugue-border-default);
   background: var(--fugue-proof-shell-inner-bg);
 }
@@ -955,7 +969,8 @@
   .fg-button__icon,
   .fg-button__status,
   .fg-segmented__item,
-  .fg-pill-nav a {
+  .fg-pill-nav a,
+  .fg-pill-nav__button {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;

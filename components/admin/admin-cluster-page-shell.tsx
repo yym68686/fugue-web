@@ -4,7 +4,6 @@ import { AdminControlPlanePanel } from "@/components/admin/admin-control-plane-p
 import { AdminClusterOverview } from "@/components/admin/admin-cluster-overview";
 import { AdminSummaryGrid } from "@/components/admin/admin-summary-grid";
 import { ConsoleEmptyState } from "@/components/console/console-empty-state";
-import { ConsolePageIntro } from "@/components/console/console-page-intro";
 import {
   ConsoleAdminClusterPageSkeleton,
   ConsoleLoadingState,
@@ -34,12 +33,6 @@ export function AdminClusterPageShell() {
   if (!data) {
     return (
       <div className="fg-console-page">
-        <ConsolePageIntro
-          description="Control plane rollout, node health, capacity, and workload placement across the cluster."
-          eyebrow="Admin / Cluster"
-          title="Cluster"
-        />
-
         <Panel>
           <PanelSection>
             <ConsoleEmptyState
@@ -59,12 +52,6 @@ export function AdminClusterPageShell() {
   return (
     <div className="fg-console-page">
       <ToastOnMount message={errorMessage} variant="error" />
-
-      <ConsolePageIntro
-        description="Control plane rollout, node health, capacity, and workload placement across the cluster."
-        eyebrow="Admin / Cluster"
-        title="Cluster"
-      />
 
       <AdminControlPlanePanel controlPlane={data.controlPlane} />
 

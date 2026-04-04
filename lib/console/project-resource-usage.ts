@@ -75,24 +75,15 @@ export function buildProjectResourceUsageView(
 ): ConsoleCompactResourceItemView[] {
   const imageTotalBytes =
     imageUsage && imageUsage.versionCount > 0 ? imageUsage.totalSizeBytes : null;
-  const reclaimableImageBytes =
-    imageUsage && imageUsage.reclaimableSizeBytes > 0
-      ? imageUsage.reclaimableSizeBytes
-      : null;
   const hasImageUsage = imageTotalBytes !== null;
   const imageSecondaryLabel =
     hasImageUsage && imageUsage
-      ? reclaimableImageBytes !== null
-        ? `${formatBytesLabel(reclaimableImageBytes)} reclaimable`
-        : formatVersionCountLabel(imageUsage.versionCount)
+      ? formatVersionCountLabel(imageUsage.versionCount)
       : null;
   const imageTitleParts = hasImageUsage
     ? [
         `Image storage / ${formatBytesLabel(imageTotalBytes)} / Stored project images`,
         imageUsage ? formatVersionCountLabel(imageUsage.versionCount) : null,
-        reclaimableImageBytes !== null
-          ? `${formatBytesLabel(reclaimableImageBytes)} reclaimable after image cleanup`
-          : null,
       ].filter((value): value is string => Boolean(value))
     : [];
 

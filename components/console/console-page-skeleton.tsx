@@ -909,15 +909,12 @@ export function ConsoleProjectWorkbenchSkeleton({
 }
 
 function AdminTablePageSkeleton({
-  introTitleWidth,
   table,
 }: {
-  introTitleWidth: string;
   table: "apps" | "users";
 }) {
   return (
     <ConsoleSkeletonPage>
-      <PageIntroSkeleton copyWidths={["16rem"]} titleWidth={introTitleWidth} />
       <SummaryGridSkeleton />
       <Panel>
         <PanelSection>{table === "apps" ? <AdminAppsTableSkeleton /> : <AdminUsersTableSkeleton />}</PanelSection>
@@ -927,17 +924,16 @@ function AdminTablePageSkeleton({
 }
 
 export function ConsoleAdminAppsPageSkeleton() {
-  return <AdminTablePageSkeleton introTitleWidth="12rem" table="apps" />;
+  return <AdminTablePageSkeleton table="apps" />;
 }
 
 export function ConsoleAdminUsersPageSkeleton() {
-  return <AdminTablePageSkeleton introTitleWidth="8rem" table="users" />;
+  return <AdminTablePageSkeleton table="users" />;
 }
 
 export function ConsoleAdminClusterPageSkeleton() {
   return (
     <ConsoleSkeletonPage>
-      <PageIntroSkeleton copyWidths={["26rem"]} titleWidth="10rem" />
       <ControlPlanePanelSkeleton />
       <SummaryGridSkeleton />
       <ClusterGallerySkeleton />
@@ -1043,7 +1039,6 @@ export function ConsoleApiKeysPageSkeleton() {
 export function ConsoleClusterNodesPageSkeleton() {
   return (
     <ConsoleSkeletonPage>
-      <PageIntroSkeleton copyWidths={["28rem"]} titleWidth="9rem" />
       <SummaryGridSkeleton />
       <ClusterGallerySkeleton includeInventoryHead />
     </ConsoleSkeletonPage>
@@ -1147,12 +1142,6 @@ export function ConsoleWorkspaceSettingsPageSkeleton() {
 export function ConsoleBillingPageSkeleton() {
   return (
     <ConsoleSkeletonPage>
-      <PageIntroSkeleton
-        copyWidths={["31rem", "23rem"]}
-        eyebrowWidth="4.25rem"
-        titleWidth="17rem"
-      />
-
       <SummaryGridSkeleton />
 
       <section className="fg-billing-stack">

@@ -6,7 +6,8 @@
 .fg-deploy-grid--repository {
   grid-template-columns: minmax(0, 1fr);
   justify-items: center;
-  align-items: center;
+  align-items: start;
+  align-content: start;
   gap: clamp(1.2rem, 4vw, 2rem);
   padding-block: clamp(1.6rem, 7vh, 4rem) 2rem;
 }
@@ -162,6 +163,14 @@
   gap: 1rem;
 }
 
+.fg-deploy-seed-textarea {
+  min-height: 11rem;
+  font-family: var(--fugue-font-mono);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  resize: vertical;
+}
+
 .fg-deploy-entry-row,
 .fg-deploy-form-grid {
   display: grid;
@@ -193,6 +202,7 @@
 .fg-deploy-page--repository .fg-auth-panel-slot {
   display: grid;
   justify-items: center;
+  align-self: start;
 }
 
 .fg-deploy-page--repository .fg-console-dialog-panel {
