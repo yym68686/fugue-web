@@ -1,4 +1,7 @@
-import type { ConsoleProjectDetailData } from "@/lib/console/gallery-types";
+import type {
+  ConsoleGalleryProjectView,
+  ConsoleProjectDetailData,
+} from "@/lib/console/gallery-types";
 import {
   createAbortRequestError,
   isAbortRequestError,
@@ -6,7 +9,12 @@ import {
 } from "@/lib/ui/request-json";
 
 const PROJECT_DETAIL_CACHE_TTL_MS = 60_000;
-const PROJECT_DETAIL_PREFETCH_CONCURRENCY = 1;
+const PROJECT_DETAIL_PREFETCH_CONCURRENCY = 3;
+
+type ConsoleProjectDetailWarmupData = {
+  errors?: string[];
+  projects?: ConsoleGalleryProjectView[];
+};
 
 type CachedProjectDetail = {
   cachedAt: number;
@@ -18,6 +26,8 @@ const projectDetailRequestCache = new Map<
   string,
   Promise<ConsoleProjectDetailData>
 >();
+let projectDetailWarmupAt = 0;
+let projectDetailWarmupRequest: Promise<void> | null = null;
 
 export function readCachedConsoleProjectDetail(projectId: string) {
   const normalizedProjectId = projectId.trim();
@@ -48,6 +58,68 @@ function writeCachedConsoleProjectDetail(
     cachedAt: Date.now(),
     detail,
   });
+}
+
+function hasFreshProjectDetailWarmup() {
+  return Date.now() - projectDetailWarmupAt < PROJECT_DETAIL_CACHE_TTL_MS;
+}
+
+export function primeConsoleProjectDetails(projects: ConsoleGalleryProjectView[]) {
+  const normalizedProjects = projects
+    .map((project) => ({
+      ...project,
+      id: project.id.trim(),
+    }))
+    .filter((project) => project.id);
+
+  for (const project of normalizedProjects) {
+    writeCachedConsoleProjectDetail(project.id, {
+      project,
+    });
+  }
+
+  if (normalizedProjects.length > 0) {
+    projectDetailWarmupAt = Date.now();
+  }
+}
+
+async function warmAllConsoleProjectDetails(options?: {
+  force?: boolean;
+  signal?: AbortSignal;
+}) {
+  if (options?.signal?.aborted) {
+    throw createAbortRequestError();
+  }
+
+  if (!options?.force && hasFreshProjectDetailWarmup()) {
+    return;
+  }
+
+  if (!options?.force && projectDetailWarmupRequest) {
+    return projectDetailWarmupRequest;
+  }
+
+  const request = requestJson<ConsoleProjectDetailWarmupData>(
+    "/api/fugue/console/projects",
+    {
+      cache: "no-store",
+    },
+  )
+    .then((data) => {
+      primeConsoleProjectDetails(data.projects ?? []);
+
+      if ((data.projects ?? []).length === 0) {
+        projectDetailWarmupAt = Date.now();
+      }
+    })
+    .finally(() => {
+      if (projectDetailWarmupRequest === request) {
+        projectDetailWarmupRequest = null;
+      }
+    });
+
+  projectDetailWarmupRequest = request;
+  return request;
 }
 
 export async function fetchConsoleProjectDetail(
@@ -117,11 +189,31 @@ export async function warmConsoleProjectDetails(
     return;
   }
 
+  if (queue.length > 1) {
+    try {
+      await warmAllConsoleProjectDetails({
+        signal: options?.signal,
+      });
+    } catch (error) {
+      if (options?.signal?.aborted || isAbortRequestError(error)) {
+        return;
+      }
+    }
+  }
+
+  const remainingQueue = queue.filter(
+    (projectId) => !readCachedConsoleProjectDetail(projectId),
+  );
+
+  if (!remainingQueue.length) {
+    return;
+  }
+
   const concurrency = Math.max(
     1,
     Math.min(
       options?.concurrency ?? PROJECT_DETAIL_PREFETCH_CONCURRENCY,
-      queue.length,
+      remainingQueue.length,
     ),
   );
   let nextIndex = 0;
@@ -129,7 +221,7 @@ export async function warmConsoleProjectDetails(
   await Promise.all(
     Array.from({ length: concurrency }, async () => {
       while (!options?.signal?.aborted) {
-        const projectId = queue[nextIndex];
+        const projectId = remainingQueue[nextIndex];
         nextIndex += 1;
 
         if (!projectId) {

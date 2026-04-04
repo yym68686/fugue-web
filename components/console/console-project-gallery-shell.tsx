@@ -13,7 +13,10 @@ import {
 
 import { CompactResourceMeter } from "@/components/console/compact-resource-meter";
 import { ConsoleProjectBadge } from "@/components/console/console-project-badge";
-import { ConsoleProjectWorkbench } from "@/components/console/console-project-gallery";
+import {
+  ConsoleProjectWorkbench,
+  warmConsoleAppEnvStates,
+} from "@/components/console/console-project-gallery";
 import { ConsoleProjectWorkbenchSkeleton } from "@/components/console/console-page-skeleton";
 import { ImportServiceFields } from "@/components/console/import-service-fields";
 import { StatusBadge } from "@/components/console/status-badge";
@@ -427,42 +430,63 @@ export function ConsoleProjectGallery({
     }
 
     const controller = new AbortController();
-    let idleHandle: number | null = null;
+    let animationFrameHandle: number | null = null;
     let timeoutHandle: number | null = null;
 
     const warmProjectWorkbench = () => {
-      idleHandle = null;
+      animationFrameHandle = null;
       timeoutHandle = null;
-      void warmConsoleProjectDetails(
-        data.projects.map((project) => project.id),
-        {
-          concurrency: 1,
+      void (async () => {
+        await warmConsoleProjectDetails(
+          data.projects.map((project) => project.id),
+          {
+            concurrency: Math.min(3, data.projects.length),
+            signal: controller.signal,
+          },
+        );
+
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        const appIds = data.projects.flatMap((project) => {
+          const cachedProjectDetail = readCachedConsoleProjectDetail(project.id);
+          const detailProject = cachedProjectDetail?.project;
+
+          if (!detailProject) {
+            return [];
+          }
+
+          return detailProject.services.flatMap((service) =>
+            service.kind === "app" ? [service.id] : [],
+          );
+        });
+
+        if (!appIds.length) {
+          return;
+        }
+
+        await warmConsoleAppEnvStates(appIds, {
+          concurrency: 3,
           signal: controller.signal,
-        },
-      );
+        });
+      })();
     };
 
-    if (typeof window.requestIdleCallback === "function") {
-      idleHandle = window.requestIdleCallback(
-        () => {
-          warmProjectWorkbench();
-        },
-        { timeout: 1200 },
-      );
+    if (typeof window.requestAnimationFrame === "function") {
+      animationFrameHandle = window.requestAnimationFrame(warmProjectWorkbench);
     } else {
-      timeoutHandle = window.setTimeout(() => {
-        warmProjectWorkbench();
-      }, 180);
+      timeoutHandle = window.setTimeout(warmProjectWorkbench, 0);
     }
 
     return () => {
       controller.abort();
 
       if (
-        idleHandle !== null &&
-        typeof window.cancelIdleCallback === "function"
+        animationFrameHandle !== null &&
+        typeof window.cancelAnimationFrame === "function"
       ) {
-        window.cancelIdleCallback(idleHandle);
+        window.cancelAnimationFrame(animationFrameHandle);
       }
 
       if (timeoutHandle !== null) {

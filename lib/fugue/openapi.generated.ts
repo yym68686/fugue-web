@@ -2006,6 +2006,12 @@ export interface components {
             name: string;
             description?: string;
         };
+        TopologyInference: {
+            level: string;
+            category: string;
+            service: string;
+            message: string;
+        };
         ImportServiceDetail: {
             service: string;
             kind: string;
@@ -2016,6 +2022,8 @@ export interface components {
             /** Format: int32 */
             internal_port: number;
             compose_service: string;
+            service_type?: string;
+            binding_targets?: string[];
             public_url?: string;
             owns_postgres?: boolean;
         };
@@ -2024,12 +2032,14 @@ export interface components {
             primary_service: string;
             services: components["schemas"]["ImportServiceDetail"][];
             warnings: string[];
+            inference_report: components["schemas"]["TopologyInference"][];
         };
         FugueManifestSummary: {
             manifest_path: string;
             primary_service: string;
             services: components["schemas"]["ImportServiceDetail"][];
             warnings: string[];
+            inference_report: components["schemas"]["TopologyInference"][];
         };
         ImportGitHubIdempotency: {
             key: string;
@@ -2342,6 +2352,9 @@ export interface components {
             /** Format: int32 */
             internal_port: number;
             compose_service: string;
+            service_type?: string;
+            backing_service?: boolean;
+            binding_targets?: string[];
             published: boolean;
             source_dir: string;
             dockerfile_path: string;
@@ -2352,6 +2365,7 @@ export interface components {
             primary_service: string;
             services: components["schemas"]["InspectGitHubTemplateManifestService"][];
             warnings: string[];
+            inference_report: components["schemas"]["TopologyInference"][];
         };
         TemplateVariable: {
             key: string;

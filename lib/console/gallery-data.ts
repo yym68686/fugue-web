@@ -2198,7 +2198,10 @@ async function loadRuntimeInventoryData(
 }
 
 const getConsoleProjectGalleryDataCached = cache(
-  async (includeProjectImageUsage: boolean) => {
+  async (
+    includeProjectImageUsage: boolean,
+    includeRuntimeTargets: boolean,
+  ) => {
   const initialWorkspace = await getCurrentWorkspaceAccess();
 
   if (!initialWorkspace) {
@@ -2225,9 +2228,11 @@ const getConsoleProjectGalleryDataCached = cache(
         }),
         getFugueOperations(workspace.adminKeySecret),
         getFugueClusterNodes(workspace.adminKeySecret),
-        getFugueRuntimes(workspace.adminKeySecret, {
-          syncLocations: false,
-        }),
+        includeRuntimeTargets
+          ? getFugueRuntimes(workspace.adminKeySecret, {
+              syncLocations: false,
+            })
+          : Promise.resolve(null),
         includeProjectImageUsage
           ? getFugueProjectImageUsage(workspace.adminKeySecret)
           : Promise.resolve(null),
@@ -2244,6 +2249,10 @@ const getConsoleProjectGalleryDataCached = cache(
       projectImageUsageResult,
     ] = await loadWorkspaceData(workspace);
 
+    const shouldRetryRuntimeTargets =
+      !includeRuntimeTargets ||
+      (runtimesResult.status === "rejected" &&
+        isUnauthorizedFugueError(runtimesResult.reason));
     const shouldRetryProjectImageUsage =
       !includeProjectImageUsage ||
       (projectImageUsageResult.status === "rejected" &&
@@ -2253,12 +2262,11 @@ const getConsoleProjectGalleryDataCached = cache(
       projectsResult.status === "rejected" &&
       appsResult.status === "rejected" &&
       operationsResult.status === "rejected" &&
-      runtimesResult.status === "rejected" &&
+      shouldRetryRuntimeTargets &&
       shouldRetryProjectImageUsage &&
       isUnauthorizedFugueError(projectsResult.reason) &&
       isUnauthorizedFugueError(appsResult.reason) &&
-      isUnauthorizedFugueError(operationsResult.reason) &&
-      isUnauthorizedFugueError(runtimesResult.reason)
+      isUnauthorizedFugueError(operationsResult.reason)
     ) {
       const session = await getRequestSession();
 
@@ -2318,12 +2326,12 @@ const getConsoleProjectGalleryDataCached = cache(
     const runtimeTargetLocationsByRuntimeId =
       buildRuntimeTargetLocationMap(clusterNodes);
     const runtimeTargetInventoryError =
-      runtimesResult.status === "rejected"
+      includeRuntimeTargets && runtimesResult.status === "rejected"
         ? readErrorMessage(runtimesResult.reason)
         : null;
     const runtimeTargets =
-      runtimesResult.status === "fulfilled"
-        ? [...runtimesResult.value]
+      includeRuntimeTargets && runtimesResult.status === "fulfilled"
+        ? [...(runtimesResult.value ?? [])]
             .map((runtime) =>
               buildImportRuntimeTargetView(
                 runtime,
@@ -2467,9 +2475,11 @@ const getConsoleProjectGalleryDataCached = cache(
 
 export async function getConsoleProjectGalleryData(options?: {
   includeProjectImageUsage?: boolean;
+  includeRuntimeTargets?: boolean;
 }) {
   return getConsoleProjectGalleryDataCached(
     options?.includeProjectImageUsage ?? true,
+    options?.includeRuntimeTargets ?? true,
   );
 }
 

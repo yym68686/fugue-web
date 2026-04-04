@@ -75,7 +75,10 @@ import type { ConsoleTone } from "@/lib/console/types";
 import { parseAnsiText } from "@/lib/ui/ansi";
 import { copyText } from "@/lib/ui/clipboard";
 import { cx } from "@/lib/ui/cx";
-import { isAbortRequestError } from "@/lib/ui/request-json";
+import {
+  createAbortRequestError,
+  isAbortRequestError,
+} from "@/lib/ui/request-json";
 import { consumeSSEStream, type ParsedSSEEvent } from "@/lib/ui/sse";
 
 type FlashState = {
@@ -271,6 +274,7 @@ const LOG_AUTO_REFRESH_INTERVAL_MS = 3_000;
 const PROJECT_ACTIVE_REFRESH_INTERVAL_MS = 3_000;
 const PROJECT_PASSIVE_REFRESH_INTERVAL_MS = 6_000;
 const LOG_TAIL_LINES = 200;
+const APP_ENV_PREFETCH_CONCURRENCY = 3;
 const PROJECT_IMAGE_USAGE_CACHE_TTL_MS = 60_000;
 
 type CachedEnvState = {
@@ -287,6 +291,7 @@ type CachedProjectImageUsage = {
 };
 
 const envStateCache = new Map<string, CachedEnvState>();
+const envStateRequestCache = new Map<string, Promise<CachedEnvState>>();
 let cachedProjectImageUsage: CachedProjectImageUsage | null = null;
 
 function createDefaultEnvRawFeedback(): EnvRawFeedback {
@@ -1132,6 +1137,116 @@ function buildEnvRawFeedback(
     tone: changeCount > 0 ? "success" : "info",
     valid: true,
   };
+}
+
+function buildCachedEnvState(
+  env: Record<string, string>,
+  format: EnvironmentFormat = "table",
+): CachedEnvState {
+  const nextRows = rowsFromEnv(env);
+
+  return {
+    baseline: env,
+    format,
+    rawDraft: serializeEnvEntries(entriesFromEnvRecord(env)),
+    rawFeedback: buildEnvRawFeedback(nextRows),
+    rows: nextRows,
+  };
+}
+
+async function fetchCachedEnvState(
+  appId: string,
+  options?: {
+    signal?: AbortSignal;
+  },
+) {
+  const normalizedAppId = appId.trim();
+
+  if (!normalizedAppId) {
+    throw new Error("App id is required.");
+  }
+
+  if (options?.signal?.aborted) {
+    throw createAbortRequestError();
+  }
+
+  const cached = readCachedEnvState(normalizedAppId);
+
+  if (cached) {
+    return cached;
+  }
+
+  const pendingRequest = envStateRequestCache.get(normalizedAppId);
+
+  if (pendingRequest) {
+    return pendingRequest;
+  }
+
+  const request = requestJson<EnvResponse>(
+    `/api/fugue/apps/${normalizedAppId}/env`,
+    {
+      cache: "no-store",
+    },
+  )
+    .then((response) => {
+      const nextState = buildCachedEnvState(response.env ?? {});
+      writeCachedEnvState(normalizedAppId, nextState);
+      return readCachedEnvState(normalizedAppId) ?? nextState;
+    })
+    .finally(() => {
+      if (envStateRequestCache.get(normalizedAppId) === request) {
+        envStateRequestCache.delete(normalizedAppId);
+      }
+    });
+
+  envStateRequestCache.set(normalizedAppId, request);
+  return request;
+}
+
+export async function warmConsoleAppEnvStates(
+  appIds: string[],
+  options?: {
+    concurrency?: number;
+    signal?: AbortSignal;
+  },
+) {
+  const queue = Array.from(
+    new Set(appIds.map((appId) => appId.trim()).filter(Boolean)),
+  ).filter((appId) => !readCachedEnvState(appId));
+
+  if (!queue.length) {
+    return;
+  }
+
+  const concurrency = Math.max(
+    1,
+    Math.min(
+      options?.concurrency ?? APP_ENV_PREFETCH_CONCURRENCY,
+      queue.length,
+    ),
+  );
+  let nextIndex = 0;
+
+  await Promise.all(
+    Array.from({ length: concurrency }, async () => {
+      while (!options?.signal?.aborted) {
+        const appId = queue[nextIndex];
+        nextIndex += 1;
+
+        if (!appId) {
+          return;
+        }
+
+        try {
+          await fetchCachedEnvState(appId);
+        } catch (error) {
+          if (options?.signal?.aborted || isAbortRequestError(error)) {
+            return;
+          }
+        }
+      }
+    }),
+  );
 }
 
 function humanizeUiLabel(value?: string | null) {
@@ -2760,31 +2875,21 @@ export function ConsoleProjectGallery({
     let cancelled = false;
     setEnvStatus("loading");
 
-    requestJson<EnvResponse>(`/api/fugue/apps/${selectedServiceApp.id}/env`)
-      .then((response) => {
+    fetchCachedEnvState(selectedServiceApp.id)
+      .then((cachedState) => {
         if (cancelled) {
           return;
         }
 
-        const nextEnv = response.env ?? {};
-        const nextRows = rowsFromEnv(nextEnv);
-        const nextState = {
-          baseline: nextEnv,
-          format: envFormat,
-          rawDraft: serializeEnvEntries(entriesFromEnvRecord(nextEnv)),
-          rawFeedback: buildEnvRawFeedback(nextRows),
-          rows: nextRows,
-        } satisfies CachedEnvState;
-
-        writeCachedEnvState(selectedServiceApp.id, nextState);
-        setEnvBaseline(nextEnv);
-        setEnvRows(nextRows);
-        setEnvRawDraft(nextState.rawDraft);
-        setEnvRawFeedback(nextState.rawFeedback);
+        setEnvBaseline(cachedState.baseline);
+        setEnvRows(cachedState.rows);
+        setEnvFormat(cachedState.format);
+        setEnvRawDraft(cachedState.rawDraft);
+        setEnvRawFeedback(cachedState.rawFeedback);
         setEnvStatus("ready");
       })
       .catch((error) => {
-        if (cancelled) {
+        if (cancelled || isAbortRequestError(error)) {
           return;
         }
 
@@ -2798,7 +2903,7 @@ export function ConsoleProjectGallery({
     return () => {
       cancelled = true;
     };
-  }, [activeTab, envFormat, selectedServiceApp]);
+  }, [activeTab, selectedServiceApp]);
 
   useEffect(() => {
     if (!selectedServiceApp || envStatus !== "ready") {
@@ -4720,31 +4825,21 @@ export function ConsoleProjectWorkbench({
     let cancelled = false;
     setEnvStatus("loading");
 
-    requestJson<EnvResponse>(`/api/fugue/apps/${selectedServiceAppId}/env`)
-      .then((response) => {
+    fetchCachedEnvState(selectedServiceAppId)
+      .then((cachedState) => {
         if (cancelled) {
           return;
         }
 
-        const nextEnv = response.env ?? {};
-        const nextRows = rowsFromEnv(nextEnv);
-        const nextState = {
-          baseline: nextEnv,
-          format: envFormat,
-          rawDraft: serializeEnvEntries(entriesFromEnvRecord(nextEnv)),
-          rawFeedback: buildEnvRawFeedback(nextRows),
-          rows: nextRows,
-        } satisfies CachedEnvState;
-
-        writeCachedEnvState(selectedServiceAppId, nextState);
-        setEnvBaseline(nextEnv);
-        setEnvRows(nextRows);
-        setEnvRawDraft(nextState.rawDraft);
-        setEnvRawFeedback(nextState.rawFeedback);
+        setEnvBaseline(cachedState.baseline);
+        setEnvRows(cachedState.rows);
+        setEnvFormat(cachedState.format);
+        setEnvRawDraft(cachedState.rawDraft);
+        setEnvRawFeedback(cachedState.rawFeedback);
         setEnvStatus("ready");
       })
       .catch((error) => {
-        if (cancelled) {
+        if (cancelled || isAbortRequestError(error)) {
           return;
         }
 
