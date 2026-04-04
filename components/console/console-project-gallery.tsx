@@ -2894,6 +2894,109 @@ function projectTitle(project: ConsoleGalleryProjectView) {
   return `${project.appCount} app${project.appCount === 1 ? "" : "s"} · ${project.serviceCount} service${project.serviceCount === 1 ? "" : "s"}`;
 }
 
+function EnvironmentVariableTable({
+  rows,
+  onRemoveRow,
+  onUpdateRow,
+}: {
+  rows: EnvRow[];
+  onRemoveRow: (rowId: string) => void;
+  onUpdateRow: (
+    rowId: string,
+    field: "key" | "value",
+    value: string,
+  ) => void;
+}) {
+  if (!rows.length) {
+    return (
+      <p className="fg-console-note">
+        No environment variables yet. Add one manually or switch to Raw to
+        paste a .env block.
+      </p>
+    );
+  }
+
+  return (
+    <>
+      <div aria-hidden="true" className="fg-env-table__head">
+        <span>Key</span>
+        <span>Value</span>
+        <span>Action</span>
+      </div>
+      {rows.map((row, index) => {
+        const rowTitle = row.key || row.originalKey || "New variable";
+        const rowIndexLabel = `Variable ${index + 1}`;
+        const actionLabel = row.existing
+          ? row.removed
+            ? "Undo"
+            : "Remove"
+          : "Discard";
+        const actionAriaLabel = row.existing
+          ? row.removed
+            ? `${rowTitle} undo removal`
+            : `${rowTitle} remove variable`
+          : `${rowTitle} discard variable`;
+
+        return (
+          <div
+            className={cx("fg-env-row", row.removed && "is-removed")}
+            key={row.id}
+          >
+            <div aria-hidden="true" className="fg-env-row__header">
+              <div className="fg-env-row__identity">
+                <p className="fg-env-row__eyebrow">{rowIndexLabel}</p>
+                <p className="fg-env-row__title">{rowTitle}</p>
+              </div>
+            </div>
+            <label className="fg-env-row__field fg-env-row__field--key">
+              <span className="fg-env-row__field-label">Variable name</span>
+              <input
+                aria-label={`${row.key || row.originalKey || "New variable"} Key`}
+                autoCapitalize="off"
+                autoCorrect="off"
+                className="fg-input"
+                disabled={row.removed}
+                onChange={(event) =>
+                  onUpdateRow(row.id, "key", event.target.value)
+                }
+                placeholder="Name"
+                spellCheck={false}
+                value={row.key}
+              />
+            </label>
+            <label className="fg-env-row__field fg-env-row__field--value">
+              <span className="fg-env-row__field-label">Value</span>
+              <input
+                aria-label={`${row.key || row.originalKey || "New variable"} Value`}
+                autoCapitalize="off"
+                autoCorrect="off"
+                className="fg-input"
+                disabled={row.removed}
+                onChange={(event) =>
+                  onUpdateRow(row.id, "value", event.target.value)
+                }
+                placeholder="Value"
+                spellCheck={false}
+                value={row.value}
+              />
+            </label>
+            <div className="fg-env-row__action">
+              <Button
+                aria-label={actionAriaLabel}
+                onClick={() => onRemoveRow(row.id)}
+                type="button"
+                variant="ghost"
+              >
+                {actionLabel}
+              </Button>
+            </div>
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
 export function ConsoleProjectGallery({
   initialData,
   defaultCreateOpen = false,
@@ -4786,78 +4889,11 @@ export function ConsoleProjectGallery({
                       <p className="fg-console-note">Loading environment…</p>
                     ) : envFormat === "table" ? (
                       <div className="fg-env-table">
-                        {envRows.length ? (
-                          <>
-                            <div
-                              aria-hidden="true"
-                              className="fg-env-table__head"
-                            >
-                              <span>Key</span>
-                              <span>Value</span>
-                              <span>Action</span>
-                            </div>
-                            {envRows.map((row) => (
-                              <div
-                                className={cx(
-                                  "fg-env-row",
-                                  row.removed && "is-removed",
-                                )}
-                                key={row.id}
-                              >
-                                <input
-                                  aria-label={`${row.key || row.originalKey || "New variable"} Key`}
-                                  autoCapitalize="off"
-                                  autoCorrect="off"
-                                  className="fg-input"
-                                  disabled={row.removed}
-                                  onChange={(event) =>
-                                    updateEnvRow(
-                                      row.id,
-                                      "key",
-                                      event.target.value,
-                                    )
-                                  }
-                                  placeholder="Name"
-                                  spellCheck={false}
-                                  value={row.key}
-                                />
-                                <input
-                                  aria-label={`${row.key || row.originalKey || "New variable"} Value`}
-                                  autoCapitalize="off"
-                                  autoCorrect="off"
-                                  className="fg-input"
-                                  disabled={row.removed}
-                                  onChange={(event) =>
-                                    updateEnvRow(
-                                      row.id,
-                                      "value",
-                                      event.target.value,
-                                    )
-                                  }
-                                  placeholder="Value"
-                                  spellCheck={false}
-                                  value={row.value}
-                                />
-                                <Button
-                                  onClick={() => removeEnvRow(row.id)}
-                                  type="button"
-                                  variant="ghost"
-                                >
-                                  {row.existing
-                                    ? row.removed
-                                      ? "Undo"
-                                      : "Remove"
-                                    : "Discard"}
-                                </Button>
-                              </div>
-                            ))}
-                          </>
-                        ) : (
-                          <p className="fg-console-note">
-                            No environment variables yet. Add one manually or
-                            switch to Raw to paste a .env block.
-                          </p>
-                        )}
+                        <EnvironmentVariableTable
+                          onRemoveRow={removeEnvRow}
+                          onUpdateRow={updateEnvRow}
+                          rows={envRows}
+                        />
                       </div>
                     ) : (
                       <div className="fg-env-raw">
@@ -6610,67 +6646,11 @@ export function ConsoleProjectWorkbench({
                     <p className="fg-console-note">Loading environment…</p>
                   ) : envFormat === "table" ? (
                     <div className="fg-env-table">
-                      {envRows.length ? (
-                        <>
-                          <div aria-hidden="true" className="fg-env-table__head">
-                            <span>Key</span>
-                            <span>Value</span>
-                            <span>Action</span>
-                          </div>
-                          {envRows.map((row) => (
-                            <div
-                              className={cx(
-                                "fg-env-row",
-                                row.removed && "is-removed",
-                              )}
-                              key={row.id}
-                            >
-                              <input
-                                aria-label={`${row.key || row.originalKey || "New variable"} Key`}
-                                autoCapitalize="off"
-                                autoCorrect="off"
-                                className="fg-input"
-                                disabled={row.removed}
-                                onChange={(event) =>
-                                  updateEnvRow(row.id, "key", event.target.value)
-                                }
-                                placeholder="Name"
-                                spellCheck={false}
-                                value={row.key}
-                              />
-                              <input
-                                aria-label={`${row.key || row.originalKey || "New variable"} Value`}
-                                autoCapitalize="off"
-                                autoCorrect="off"
-                                className="fg-input"
-                                disabled={row.removed}
-                                onChange={(event) =>
-                                  updateEnvRow(row.id, "value", event.target.value)
-                                }
-                                placeholder="Value"
-                                spellCheck={false}
-                                value={row.value}
-                              />
-                              <Button
-                                onClick={() => removeEnvRow(row.id)}
-                                type="button"
-                                variant="ghost"
-                              >
-                                {row.existing
-                                  ? row.removed
-                                    ? "Undo"
-                                    : "Remove"
-                                  : "Discard"}
-                              </Button>
-                            </div>
-                          ))}
-                        </>
-                      ) : (
-                        <p className="fg-console-note">
-                          No environment variables yet. Add one manually or switch
-                          to Raw to paste a .env block.
-                        </p>
-                      )}
+                      <EnvironmentVariableTable
+                        onRemoveRow={removeEnvRow}
+                        onUpdateRow={updateEnvRow}
+                        rows={envRows}
+                      />
                     </div>
                   ) : (
                     <div className="fg-env-raw">
