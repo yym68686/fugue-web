@@ -2635,6 +2635,10 @@ export interface components {
             mode?: number;
             parents?: boolean;
         };
+        DeployAppRequest: {
+            spec?: components["schemas"]["AppSpec"];
+            workspace?: components["schemas"]["AppWorkspaceSpec"];
+        };
         RebuildAppRequest: {
             branch?: string;
             image_ref?: string;
@@ -4872,7 +4876,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["DeployAppRequest"];
+            };
+        };
         responses: {
             /** @description Successful response */
             202: {
@@ -4880,9 +4888,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["OperationResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];

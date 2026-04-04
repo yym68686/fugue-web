@@ -69,8 +69,32 @@ type ProjectNameEntry = {
   name: string;
 };
 
+const DEFAULT_WORKSPACE_MOUNT_PATH = "/workspace";
+
 function normalizeText(value?: string | null) {
   return value?.trim() ?? "";
+}
+
+function readDefaultWorkspaceMountPath(value?: string | null) {
+  return normalizeText(value) || DEFAULT_WORKSPACE_MOUNT_PATH;
+}
+
+function readWorkspaceMountPathError(value: string) {
+  const normalized = normalizeText(value);
+
+  if (!normalized) {
+    return "Mount path is required.";
+  }
+
+  if (!normalized.startsWith("/")) {
+    return "Mount path must start with /.";
+  }
+
+  if (normalized === "/") {
+    return "Mount path cannot be /.";
+  }
+
+  return null;
 }
 
 function slugifyLikeFugue(value: string) {
@@ -412,7 +436,7 @@ function buildWorkspaceSummaryItems(
     const items = [
       {
         label: "Mount path",
-        value: app.workspaceMountPath || "/workspace",
+        value: readDefaultWorkspaceMountPath(app.workspaceMountPath),
       },
       {
         label: "Storage",
@@ -457,6 +481,8 @@ function AppPersistentWorkspaceSection({
   runtimeTargetInventoryError: string | null;
   runtimeTargets: ConsoleImportRuntimeTargetView[];
 }) {
+  const router = useRouter();
+  const { showToast } = useToast();
   const hasWorkspace = Boolean(normalizeText(app.workspaceMountPath));
   const currentRuntimeId = app.currentRuntimeId ?? app.runtimeId;
   const currentRuntimeTarget =
@@ -528,6 +554,90 @@ function AppPersistentWorkspaceSection({
       : isPausedApp(app)
         ? "Start the service before opening Files."
         : null;
+  const canAttachWorkspace =
+    !hasWorkspace &&
+    runtimeReadyForWorkspace === true &&
+    replicasReadyForWorkspace;
+  const attachActionHint =
+    runtimeReadyForWorkspace === false
+      ? workspaceCallout
+      : runtimeReadyForWorkspace === null
+        ? "Workspace readiness is temporarily unavailable."
+        : !replicasReadyForWorkspace
+          ? "Persistent workspace can only be attached while the app stays at one replica or fewer."
+          : null;
+  const [attachFormOpen, setAttachFormOpen] = useState(false);
+  const [attachSaving, setAttachSaving] = useState(false);
+  const [mountPathDraft, setMountPathDraft] = useState(() =>
+    readDefaultWorkspaceMountPath(app.workspaceMountPath),
+  );
+  const [mountPathError, setMountPathError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setAttachFormOpen(false);
+    setAttachSaving(false);
+    setMountPathDraft(readDefaultWorkspaceMountPath(app.workspaceMountPath));
+    setMountPathError(null);
+  }, [app.id, app.workspaceMountPath]);
+
+  async function handleAttachSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!canAttachWorkspace) {
+      showToast({
+        message: attachActionHint ?? "Persistent workspace is unavailable.",
+        variant: "info",
+      });
+      return;
+    }
+
+    const normalizedMountPath = normalizeText(mountPathDraft);
+    const nextMountPathError = readWorkspaceMountPathError(normalizedMountPath);
+    if (nextMountPathError) {
+      setMountPathError(nextMountPathError);
+      return;
+    }
+
+    setAttachSaving(true);
+
+    try {
+      await requestJson<AppOperationResponse>(`/api/fugue/apps/${app.id}/deploy`, {
+        body: JSON.stringify({
+          mountPath: normalizedMountPath,
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+      });
+
+      setMountPathError(null);
+      showToast({
+        message: `Workspace attach queued at ${normalizedMountPath}.`,
+        variant: "success",
+      });
+      startTransition(() => {
+        router.refresh();
+      });
+    } catch (error) {
+      showToast({
+        message: readErrorMessage(error),
+        variant: "error",
+      });
+    } finally {
+      setAttachSaving(false);
+    }
+  }
+
+  function handleAttachCancel() {
+    if (attachSaving) {
+      return;
+    }
+
+    setAttachFormOpen(false);
+    setMountPathDraft(readDefaultWorkspaceMountPath(app.workspaceMountPath));
+    setMountPathError(null);
+  }
 
   return (
     <section
@@ -561,17 +671,90 @@ function AppPersistentWorkspaceSection({
         </InlineAlert>
       ) : null}
 
-      <div className="fg-settings-form__actions">
-        <Button
-          disabled={!onOpenFiles}
-          onClick={onOpenFiles ?? undefined}
-          size="compact"
-          type="button"
-          variant={hasWorkspace ? "primary" : "secondary"}
-        >
-          {filesActionLabel}
-        </Button>
-      </div>
+      {canAttachWorkspace && attachFormOpen ? (
+        <form className="fg-settings-form" onSubmit={handleAttachSubmit}>
+          <FormField
+            error={mountPathError ?? undefined}
+            hint="Use an absolute path inside the container. / is not allowed."
+            htmlFor={`workspace-mount-path-${app.id}`}
+            label="Mount Path"
+          >
+            <input
+              autoComplete="off"
+              className="fg-input"
+              id={`workspace-mount-path-${app.id}`}
+              name="mountPath"
+              onChange={(event) => {
+                setMountPathDraft(event.target.value);
+                if (mountPathError) {
+                  setMountPathError(null);
+                }
+              }}
+              spellCheck={false}
+              type="text"
+              value={mountPathDraft}
+            />
+          </FormField>
+
+          <div className="fg-settings-form__actions">
+            <Button
+              loading={attachSaving}
+              loadingLabel="Attaching…"
+              size="compact"
+              type="submit"
+              variant="primary"
+            >
+              Attach Workspace
+            </Button>
+            <Button
+              disabled={attachSaving}
+              onClick={handleAttachCancel}
+              size="compact"
+              type="button"
+              variant="secondary"
+            >
+              Cancel
+            </Button>
+            <Button
+              disabled={!onOpenFiles || attachSaving}
+              onClick={onOpenFiles ?? undefined}
+              size="compact"
+              type="button"
+              variant="ghost"
+            >
+              Browse Live Files
+            </Button>
+          </div>
+        </form>
+      ) : (
+        <div className="fg-settings-form__actions">
+          {canAttachWorkspace ? (
+            <Button
+              onClick={() => {
+                setAttachFormOpen(true);
+                setMountPathDraft(
+                  readDefaultWorkspaceMountPath(app.workspaceMountPath),
+                );
+                setMountPathError(null);
+              }}
+              size="compact"
+              type="button"
+              variant="primary"
+            >
+              Attach Workspace
+            </Button>
+          ) : null}
+          <Button
+            disabled={!onOpenFiles}
+            onClick={onOpenFiles ?? undefined}
+            size="compact"
+            type="button"
+            variant={hasWorkspace ? "primary" : "secondary"}
+          >
+            {filesActionLabel}
+          </Button>
+        </div>
+      )}
 
       {availabilityHint ? (
         <p className="fg-console-note">{availabilityHint}</p>

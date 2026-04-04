@@ -2993,6 +2993,28 @@ export async function rebuildFugueApp(
   return buildRebuildResultView(response);
 }
 
+export async function deployFugueApp(
+  accessToken: string,
+  appId: string,
+  options?: components["schemas"]["DeployAppRequest"],
+) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}/deploy`,
+      client.POST("/v1/apps/{id}/deploy", {
+        body:
+          options && Object.keys(options).length > 0 ? options : undefined,
+        params: {
+          path: { id: appId },
+        },
+      }),
+    ),
+  );
+
+  return buildOperationResultView(response);
+}
+
 export async function startFugueApp(accessToken: string, appId: string) {
   const client = getClient(accessToken);
   const response = camelizeData(
