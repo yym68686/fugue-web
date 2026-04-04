@@ -3,11 +3,29 @@ import { DeployWizard } from "@/components/deploy/deploy-wizard";
 import { Button, ButtonAnchor } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { InlineAlert } from "@/components/ui/inline-alert";
-import { Panel, PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
-import { ProofShell, ProofShellEmpty, ProofShellRibbon } from "@/components/ui/proof-shell";
+import {
+  Panel,
+  PanelCopy,
+  PanelSection,
+  PanelTitle,
+} from "@/components/ui/panel";
+import {
+  ProofShell,
+  ProofShellEmpty,
+  ProofShellRibbon,
+} from "@/components/ui/proof-shell";
 import { RouteNote } from "@/components/ui/route-note";
 import { buildReturnToHref } from "@/lib/auth/validation";
 import type { DeployPageData } from "@/lib/deploy/page-data";
+import {
+  describeManifestBuild,
+  describeManifestServiceRole,
+  humanizeDeployValue,
+  pluralize,
+  readInferenceTone,
+  readManifestBindingTargets,
+  summarizeInspectManifest,
+} from "@/lib/deploy/topology-display";
 import type { DeploySearchState } from "@/lib/deploy/query";
 import { buildDeployHref } from "@/lib/deploy/query";
 import { isGitHubRepoUrl } from "@/lib/github/repository";
@@ -38,6 +56,8 @@ export function DeployPage({
     : false;
   const template = inspection?.template ?? null;
   const manifest = inspection?.fugueManifest ?? null;
+  const manifestSummary = summarizeInspectManifest(manifest);
+  const visibleInferences = manifestSummary.inferenceReport.slice(0, 6);
   const templateHref = template
     ? buildDeployHref(`/new/template/${template.slug}`, search)
     : null;
@@ -59,7 +79,10 @@ export function DeployPage({
   const notes = [
     {
       index: "01",
-      meta: search.repoVisibility === "private" ? "Private / Token handoff" : "Public / Anonymous read",
+      meta:
+        search.repoVisibility === "private"
+          ? "Private / Token handoff"
+          : "Public / Anonymous read",
       title: "Repository access",
     },
     {
@@ -73,7 +96,9 @@ export function DeployPage({
     },
     {
       index: "03",
-      meta: sessionPresent ? "Signed in / Workspace route" : "Auth handoff / ReturnTo preserved",
+      meta: sessionPresent
+        ? "Signed in / Workspace route"
+        : "Auth handoff / ReturnTo preserved",
       title: sessionPresent ? "Deploy ready" : "Sign in",
     },
   ];
@@ -83,20 +108,38 @@ export function DeployPage({
       <div className="fg-auth-grid fg-deploy-grid">
         <section className="fg-auth-stage fg-deploy-stage">
           <div className="fg-auth-stage__top">
-            <Brand meta={routeMode === "template" ? "Template deploy" : "Repository deploy"} />
+            <Brand
+              meta={
+                routeMode === "template"
+                  ? "Template deploy"
+                  : "Repository deploy"
+              }
+            />
           </div>
 
           <div className="fg-auth-stage__copy">
             <p className="fg-label">
-              {routeMode === "template" ? "Deploy / Template" : "Deploy / Repository"}
+              {routeMode === "template"
+                ? "Deploy / Template"
+                : "Deploy / Repository"}
             </p>
             <h1 className="fg-display-heading">{title}</h1>
             <p className="fg-copy">{description}</p>
           </div>
 
-          <svg className="fg-route-signal fg-auth-stage__signal" viewBox="0 0 1200 170" aria-hidden="true">
-            <path className="fg-route-signal__base" d="M40 118 C232 26, 372 32, 538 96 S860 180, 1160 36" />
-            <path className="fg-route-signal__active" d="M40 118 C232 26, 372 32, 538 96 S860 180, 1160 36" />
+          <svg
+            className="fg-route-signal fg-auth-stage__signal"
+            viewBox="0 0 1200 170"
+            aria-hidden="true"
+          >
+            <path
+              className="fg-route-signal__base"
+              d="M40 118 C232 26, 372 32, 538 96 S860 180, 1160 36"
+            />
+            <path
+              className="fg-route-signal__active"
+              d="M40 118 C232 26, 372 32, 538 96 S860 180, 1160 36"
+            />
             <circle className="fg-route-signal__dot" cx="40" cy="118" r="7" />
             <circle className="fg-route-signal__dot" cx="538" cy="96" r="7" />
             <circle className="fg-route-signal__dot" cx="1160" cy="36" r="7" />
@@ -123,13 +166,18 @@ export function DeployPage({
                 <div className="fg-deploy-proof__head">
                   <div className="fg-deploy-proof__stat">
                     <span className="fg-label">Repository</span>
-                    <strong>{inspection.repository.repoOwner}/{inspection.repository.repoName}</strong>
+                    <strong>
+                      {inspection.repository.repoOwner}/
+                      {inspection.repository.repoName}
+                    </strong>
                     <span>{inspection.repository.repoVisibility} access</span>
                   </div>
                   <div className="fg-deploy-proof__stat">
                     <span className="fg-label">Branch</span>
                     <strong>{inspection.repository.branch}</strong>
-                    <span>Commit {shortCommit(inspection.repository.commitSha)}</span>
+                    <span>
+                      Commit {shortCommit(inspection.repository.commitSha)}
+                    </span>
                   </div>
                   <div className="fg-deploy-proof__stat">
                     <span className="fg-label">Deploy mode</span>
@@ -144,7 +192,7 @@ export function DeployPage({
                       {template?.defaultRuntime
                         ? `Default runtime ${template.defaultRuntime}`
                         : manifest?.primaryService
-                          ? `Primary service ${manifest.primaryService}`
+                          ? `Primary ${manifest.primaryService} · ${pluralize(manifestSummary.serviceCount, "service")} / ${pluralize(manifestSummary.backingServiceCount, "backing service")} / ${pluralize(manifestSummary.bindingEdgeCount, "binding")}`
                           : "Build inputs required"}
                     </span>
                   </div>
@@ -153,7 +201,11 @@ export function DeployPage({
                 {template ? (
                   <div className="fg-deploy-template-actions">
                     {routeMode === "repository" && templateHref ? (
-                      <ButtonAnchor href={templateHref} size="compact" variant="secondary">
+                      <ButtonAnchor
+                        href={templateHref}
+                        size="compact"
+                        variant="secondary"
+                      >
                         Open template route
                       </ButtonAnchor>
                     ) : null}
@@ -183,22 +235,112 @@ export function DeployPage({
                 ) : null}
 
                 {manifest?.services?.length ? (
-                  <ul className="fg-deploy-service-list">
-                    {manifest.services.map((service) => (
-                      <li className="fg-deploy-service-item" key={`${service.service}-${service.kind}`}>
-                        <strong>{service.service}</strong>
-                        <span>
-                          {service.kind} · {service.published ? "public" : "internal"} · port{" "}
-                          {service.internalPort}
-                        </span>
-                        <span>
-                          {service.buildStrategy || "auto"}
-                          {service.sourceDir ? ` / ${service.sourceDir}` : ""}
-                          {service.dockerfilePath ? ` / ${service.dockerfilePath}` : ""}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
+                  <>
+                    <ul className="fg-deploy-service-list">
+                      {manifest.services.map((service) => {
+                        const bindingTargets =
+                          readManifestBindingTargets(service);
+
+                        return (
+                          <li
+                            className="fg-deploy-service-item"
+                            key={`${service.service}-${service.kind}`}
+                          >
+                            <strong>{service.service}</strong>
+                            <div className="fg-deploy-service-item__pills">
+                              <span className="fg-deploy-service-pill">
+                                {describeManifestServiceRole(service)}
+                              </span>
+                              {service.backingService ? (
+                                <span className="fg-deploy-service-pill">
+                                  Backing service
+                                </span>
+                              ) : null}
+                              <span className="fg-deploy-service-pill">
+                                {service.published ? "Published" : "Internal"}
+                              </span>
+                              <span className="fg-deploy-service-pill">
+                                Port {service.internalPort}
+                              </span>
+                            </div>
+                            <span>{describeManifestBuild(service)}</span>
+                            {service.composeService &&
+                            service.composeService !== service.service ? (
+                              <span>
+                                Source service {service.composeService}
+                              </span>
+                            ) : null}
+                            {bindingTargets.length ? (
+                              <span>Bindings {bindingTargets.join(", ")}</span>
+                            ) : null}
+                          </li>
+                        );
+                      })}
+                    </ul>
+
+                    {manifestSummary.warnings.length ||
+                    visibleInferences.length ? (
+                      <div className="fg-deploy-topology-grid">
+                        {manifestSummary.warnings.length ? (
+                          <div className="fg-deploy-topology-card">
+                            <span className="fg-label">Warnings</span>
+                            <ul className="fg-deploy-note-list">
+                              {manifestSummary.warnings.map(
+                                (warning, index) => (
+                                  <li
+                                    className="fg-deploy-note-item"
+                                    key={`warning-${index}`}
+                                  >
+                                    <span>{warning}</span>
+                                  </li>
+                                ),
+                              )}
+                            </ul>
+                          </div>
+                        ) : null}
+
+                        {visibleInferences.length ? (
+                          <div className="fg-deploy-topology-card">
+                            <span className="fg-label">Inference report</span>
+                            <ul className="fg-deploy-note-list">
+                              {visibleInferences.map((item, index) => (
+                                <li
+                                  className="fg-deploy-note-item"
+                                  key={`${item.service}-${item.category}-${index}`}
+                                >
+                                  <div className="fg-deploy-note-item__head">
+                                    <span
+                                      className={`fg-deploy-note-pill fg-deploy-note-pill--${readInferenceTone(item.level)}`}
+                                    >
+                                      {humanizeDeployValue(item.level)}
+                                    </span>
+                                    <strong>
+                                      {humanizeDeployValue(item.service)}
+                                    </strong>
+                                    <span className="fg-deploy-note-pill">
+                                      {humanizeDeployValue(item.category)}
+                                    </span>
+                                  </div>
+                                  <span>{item.message}</span>
+                                </li>
+                              ))}
+                              {manifestSummary.inferenceReport.length >
+                              visibleInferences.length ? (
+                                <li className="fg-deploy-note-item">
+                                  <span>
+                                    +
+                                    {manifestSummary.inferenceReport.length -
+                                      visibleInferences.length}{" "}
+                                    more topology inferences
+                                  </span>
+                                </li>
+                              ) : null}
+                            </ul>
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </>
                 ) : (
                   <ProofShellEmpty
                     description="No fugue.yaml services were detected. Fugue will fall back to the generic GitHub import path."
@@ -212,7 +354,11 @@ export function DeployPage({
                   inspectionError ||
                   "Paste a GitHub repository URL to inspect manifest metadata, template variables, and default runtime hints before you sign in."
                 }
-                title={inspectionError ? "Inspection unavailable" : "Waiting for a repository"}
+                title={
+                  inspectionError
+                    ? "Inspection unavailable"
+                    : "Waiting for a repository"
+                }
               />
             )}
           </ProofShell>
@@ -230,7 +376,9 @@ export function DeployPage({
           <Panel>
             <PanelSection>
               <p className="fg-label fg-panel__eyebrow">
-                {routeMode === "template" ? "Template intake" : "Repository intake"}
+                {routeMode === "template"
+                  ? "Template intake"
+                  : "Repository intake"}
               </p>
               <PanelTitle>
                 {search.repositoryUrl
@@ -238,10 +386,16 @@ export function DeployPage({
                   : "Paste a GitHub repository link."}
               </PanelTitle>
               <PanelCopy>
-                Public repositories can be inspected immediately. Private repositories can be authorized after sign-in with a GitHub token.
+                Public repositories can be inspected immediately. Private
+                repositories can be authorized after sign-in with a GitHub
+                token.
               </PanelCopy>
 
-              <form action={panelAction} className="fg-deploy-entry-form" method="GET">
+              <form
+                action={panelAction}
+                className="fg-deploy-entry-form"
+                method="GET"
+              >
                 <div className="fg-deploy-entry-row">
                   <FormField
                     hint="Use https://github.com/owner/repo."
@@ -279,7 +433,11 @@ export function DeployPage({
                 </div>
 
                 {search.repoVisibility !== "public" ? (
-                  <input name="repo-visibility" type="hidden" value={search.repoVisibility} />
+                  <input
+                    name="repo-visibility"
+                    type="hidden"
+                    value={search.repoVisibility}
+                  />
                 ) : null}
 
                 <div className="fg-deploy-inline-actions">
@@ -288,7 +446,8 @@ export function DeployPage({
                   </Button>
                 </div>
                 <p className="fg-deploy-inline-copy">
-                  The deploy link is stable. Auth handoff preserves this exact route and returns here after sign-in.
+                  The deploy link is stable. Auth handoff preserves this exact
+                  route and returns here after sign-in.
                 </p>
               </form>
             </PanelSection>
@@ -299,10 +458,15 @@ export function DeployPage({
               </PanelSection>
             ) : null}
 
-            {routeMode === "template" && search.repositoryUrl && !template && !inspectionError ? (
+            {routeMode === "template" &&
+            search.repositoryUrl &&
+            !template &&
+            !inspectionError ? (
               <PanelSection>
                 <InlineAlert variant="info">
-                  This repository does not expose template metadata in <code>fugue.yaml</code>. Fugue can still deploy it as a repository import.
+                  This repository does not expose template metadata in{" "}
+                  <code>fugue.yaml</code>. Fugue can still deploy it as a
+                  repository import.
                 </InlineAlert>
               </PanelSection>
             ) : null}
@@ -310,38 +474,58 @@ export function DeployPage({
             {!search.repositoryUrl || !isValidRepositoryUrl ? (
               <PanelSection>
                 <PanelCopy>
-                  Use a GitHub repository URL to unlock inspection, auth handoff, and the deploy wizard.
+                  Use a GitHub repository URL to unlock inspection, auth
+                  handoff, and the deploy wizard.
                 </PanelCopy>
               </PanelSection>
             ) : sessionPresent ? (
               workspaceInventory.workspaceError ? (
                 <PanelSection>
-                  <InlineAlert variant="error">{workspaceInventory.workspaceError}</InlineAlert>
+                  <InlineAlert variant="error">
+                    {workspaceInventory.workspaceError}
+                  </InlineAlert>
                 </PanelSection>
               ) : (
                 <DeployWizard
-                  initialBranch={search.branch || inspection?.repository.branch || ""}
+                  initialBranch={
+                    search.branch || inspection?.repository.branch || ""
+                  }
                   initialRepoVisibility={search.repoVisibility}
                   inspection={inspection}
-                  projectInventoryError={workspaceInventory.projectInventoryError}
+                  projectInventoryError={
+                    workspaceInventory.projectInventoryError
+                  }
                   projects={workspaceInventory.projects}
                   repositoryUrl={search.repositoryUrl}
-                  runtimeTargetInventoryError={workspaceInventory.runtimeTargetInventoryError}
+                  runtimeTargetInventoryError={
+                    workspaceInventory.runtimeTargetInventoryError
+                  }
                   runtimeTargets={workspaceInventory.runtimeTargets}
-                  workspaceDefaultProjectId={workspaceInventory.workspace?.defaultProjectId}
-                  workspaceDefaultProjectName={workspaceInventory.workspace?.defaultProjectName}
+                  workspaceDefaultProjectId={
+                    workspaceInventory.workspace?.defaultProjectId
+                  }
+                  workspaceDefaultProjectName={
+                    workspaceInventory.workspace?.defaultProjectName
+                  }
                 />
               )
             ) : (
               <PanelSection>
                 <p className="fg-label fg-panel__eyebrow">Sign in</p>
-                <PanelTitle>Authenticate before the deploy is queued.</PanelTitle>
+                <PanelTitle>
+                  Authenticate before the deploy is queued.
+                </PanelTitle>
                 <PanelCopy>
-                  Fugue keeps the repository link in <code>returnTo</code>, creates a first-party session, and sends you back to this exact deploy route.
+                  Fugue keeps the repository link in <code>returnTo</code>,
+                  creates a first-party session, and sends you back to this
+                  exact deploy route.
                 </PanelCopy>
 
                 <div className="fg-deploy-auth-actions">
-                  <ButtonAnchor href={buildReturnToHref("/auth/sign-in", currentPath)} variant="route">
+                  <ButtonAnchor
+                    href={buildReturnToHref("/auth/sign-in", currentPath)}
+                    variant="route"
+                  >
                     Sign in to deploy
                   </ButtonAnchor>
                   <ButtonAnchor
@@ -352,7 +536,8 @@ export function DeployPage({
                   </ButtonAnchor>
                 </div>
                 <p className="fg-deploy-inline-copy">
-                  After sign-in, the wizard reopens with the same repository and branch already filled in.
+                  After sign-in, the wizard reopens with the same repository and
+                  branch already filled in.
                 </p>
               </PanelSection>
             )}

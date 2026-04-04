@@ -12,6 +12,13 @@ import { PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
 import { SelectField } from "@/components/ui/select-field";
 import { useToast } from "@/components/ui/toast";
 import type { ConsoleImportRuntimeTargetView } from "@/lib/console/gallery-types";
+import {
+  humanizeDeployValue,
+  pluralize,
+  readInferenceTone,
+  readManifestBindingTargets,
+  summarizeInspectManifest,
+} from "@/lib/deploy/topology-display";
 import { readDefaultImportRuntimeId } from "@/lib/console/runtime-targets";
 import type {
   FugueGitHubTemplateInspection,
@@ -63,7 +70,10 @@ function resolveInitialRuntimeId(
 ) {
   const templateRuntimeId = inspection?.template?.defaultRuntime?.trim() ?? "";
 
-  if (templateRuntimeId && runtimeTargets.some((target) => target.id === templateRuntimeId)) {
+  if (
+    templateRuntimeId &&
+    runtimeTargets.some((target) => target.id === templateRuntimeId)
+  ) {
     return templateRuntimeId;
   }
 
@@ -84,10 +94,7 @@ function buildProjectOptions(
   return [
     ...Array.from(deduped.entries()).map(([id, name]) => ({
       id,
-      label:
-        defaultProjectId === id
-          ? `${name} · Default project`
-          : name,
+      label: defaultProjectId === id ? `${name} · Default project` : name,
     })),
     {
       id: NEW_PROJECT_VALUE,
@@ -100,7 +107,10 @@ function readInitialProjectSelection(
   projects: FugueProject[],
   defaultProjectId?: string | null,
 ) {
-  if (defaultProjectId && projects.some((project) => project.id === defaultProjectId)) {
+  if (
+    defaultProjectId &&
+    projects.some((project) => project.id === defaultProjectId)
+  ) {
     return defaultProjectId;
   }
 
@@ -111,7 +121,9 @@ function readInitialProjectSelection(
   return NEW_PROJECT_VALUE;
 }
 
-function readInitialVariableValues(inspection: FugueGitHubTemplateInspection | null) {
+function readInitialVariableValues(
+  inspection: FugueGitHubTemplateInspection | null,
+) {
   return Object.fromEntries(
     (inspection?.template?.variables ?? []).map((variable) => [
       variable.key,
@@ -135,19 +147,23 @@ export function DeployWizard({
   const router = useRouter();
   const { showToast } = useToast();
   const [isPending, startTransition] = useTransition();
-  const [repoVisibility, setRepoVisibility] =
-    useState<GitHubRepoVisibility>(initialRepoVisibility);
+  const [repoVisibility, setRepoVisibility] = useState<GitHubRepoVisibility>(
+    initialRepoVisibility,
+  );
   const [repoAuthToken, setRepoAuthToken] = useState("");
   const [branch, setBranch] = useState(initialBranch);
   const [name, setName] = useState("");
   const [selectedProjectId, setSelectedProjectId] = useState(
     readInitialProjectSelection(projects, workspaceDefaultProjectId),
   );
-  const [projectName, setProjectName] = useState(workspaceDefaultProjectName ?? "default");
+  const [projectName, setProjectName] = useState(
+    workspaceDefaultProjectName ?? "default",
+  );
   const [runtimeId, setRuntimeId] = useState<string | null>(
     resolveInitialRuntimeId(inspection, runtimeTargets),
   );
-  const [buildStrategy, setBuildStrategy] = useState<BuildStrategyValue>("auto");
+  const [buildStrategy, setBuildStrategy] =
+    useState<BuildStrategyValue>("auto");
   const [sourceDir, setSourceDir] = useState("");
   const [dockerfilePath, setDockerfilePath] = useState("");
   const [buildContextDir, setBuildContextDir] = useState("");
@@ -155,12 +171,24 @@ export function DeployWizard({
     readInitialVariableValues(inspection),
   );
 
-  const hasFugueManifest = Boolean(inspection?.fugueManifest);
+  const manifest = inspection?.fugueManifest ?? null;
+  const manifestSummary = summarizeInspectManifest(manifest);
+  const visibleBindingServices = manifestSummary.servicesWithBindings.slice(
+    0,
+    4,
+  );
+  const visibleInferences = manifestSummary.inferenceReport.slice(0, 4);
+  const hasFugueManifest = Boolean(manifest);
   const templateVariables = inspection?.template?.variables ?? [];
   const supportsSourceDir = supportsGitHubSourceDir(buildStrategy);
   const supportsDockerInputs = supportsGitHubDockerInputs(buildStrategy);
   const projectOptions = useMemo(
-    () => buildProjectOptions(projects, workspaceDefaultProjectId, workspaceDefaultProjectName),
+    () =>
+      buildProjectOptions(
+        projects,
+        workspaceDefaultProjectId,
+        workspaceDefaultProjectName,
+      ),
     [projects, workspaceDefaultProjectId, workspaceDefaultProjectName],
   );
 
@@ -196,7 +224,12 @@ export function DeployWizard({
     for (const variable of templateVariables) {
       const value = variableValues[variable.key]?.trim() ?? "";
 
-      if (!value && !variable.defaultValue && !variable.generate && variable.required) {
+      if (
+        !value &&
+        !variable.defaultValue &&
+        !variable.generate &&
+        variable.required
+      ) {
         return `${variable.label || variable.key} is required.`;
       }
     }
@@ -233,8 +266,10 @@ export function DeployWizard({
         buildStrategy,
         dockerfilePath: dockerfilePath.trim(),
         name: name.trim(),
-        projectId: selectedProjectId !== NEW_PROJECT_VALUE ? selectedProjectId : "",
-        projectName: selectedProjectId === NEW_PROJECT_VALUE ? projectName.trim() : "",
+        projectId:
+          selectedProjectId !== NEW_PROJECT_VALUE ? selectedProjectId : "",
+        projectName:
+          selectedProjectId === NEW_PROJECT_VALUE ? projectName.trim() : "",
         repoAuthToken: repoAuthToken.trim(),
         repoUrl: repositoryUrl,
         repoVisibility,
@@ -245,7 +280,9 @@ export function DeployWizard({
       }),
     });
 
-    const payload = (await response.json().catch(() => null)) as SubmitResponse | null;
+    const payload = (await response
+      .json()
+      .catch(() => null)) as SubmitResponse | null;
 
     if (!response.ok) {
       throw new Error(payload?.error ?? "Deploy request failed.");
@@ -288,7 +325,8 @@ export function DeployWizard({
 
         {projectInventoryError ? (
           <InlineAlert variant="info">
-            Project inventory is unavailable right now. You can still deploy into a new project.
+            Project inventory is unavailable right now. You can still deploy
+            into a new project.
           </InlineAlert>
         ) : null}
 
@@ -336,7 +374,9 @@ export function DeployWizard({
                 className="fg-input"
                 id="deploy-name"
                 onChange={(event) => setName(event.target.value)}
-                placeholder={inspection?.repository.defaultAppName ?? "marketing-site"}
+                placeholder={
+                  inspection?.repository.defaultAppName ?? "marketing-site"
+                }
                 value={name}
               />
             </FormField>
@@ -354,7 +394,9 @@ export function DeployWizard({
               className="fg-input"
               id="deploy-name"
               onChange={(event) => setName(event.target.value)}
-              placeholder={inspection?.repository.defaultAppName ?? "marketing-site"}
+              placeholder={
+                inspection?.repository.defaultAppName ?? "marketing-site"
+              }
               value={name}
             />
           </FormField>
@@ -381,7 +423,8 @@ export function DeployWizard({
       <PanelSection>
         <PanelTitle>Access and target</PanelTitle>
         <PanelCopy>
-          Choose how Fugue reads the repository, then pick where the first deployment should land.
+          Choose how Fugue reads the repository, then pick where the first
+          deployment should land.
         </PanelCopy>
 
         <GitHubRepositoryAccessFields
@@ -407,20 +450,120 @@ export function DeployWizard({
           <PanelTitle>Topology</PanelTitle>
           <PanelCopy>
             This repository declares deployment topology in{" "}
-            <code>{inspection?.fugueManifest?.manifestPath ?? "fugue.yaml"}</code>.
+            <code>{manifest?.manifestPath ?? "fugue.yaml"}</code>.
           </PanelCopy>
 
           <InlineAlert variant="info">
             Primary service:{" "}
-            <strong>{inspection?.fugueManifest?.primaryService ?? "not declared"}</strong>.
-            Fugue will import every service declared in the manifest.
+            <strong>{manifest?.primaryService ?? "not declared"}</strong>. Fugue
+            will import {pluralize(manifestSummary.serviceCount, "service")},
+            including{" "}
+            {pluralize(manifestSummary.backingServiceCount, "backing service")}{" "}
+            and {pluralize(manifestSummary.bindingEdgeCount, "binding")}.
           </InlineAlert>
+
+          {manifestSummary.warnings.length ? (
+            <InlineAlert variant="warning">
+              Review {pluralize(manifestSummary.warnings.length, "warning")}{" "}
+              before importing the topology.
+            </InlineAlert>
+          ) : null}
+
+          {manifestSummary.warnings.length ||
+          visibleBindingServices.length ||
+          visibleInferences.length ? (
+            <div className="fg-deploy-topology-grid">
+              {manifestSummary.warnings.length ? (
+                <div className="fg-deploy-topology-card">
+                  <span className="fg-label">Warnings</span>
+                  <ul className="fg-deploy-note-list">
+                    {manifestSummary.warnings.map((warning, index) => (
+                      <li
+                        className="fg-deploy-note-item"
+                        key={`wizard-warning-${index}`}
+                      >
+                        <span>{warning}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              {visibleBindingServices.length ? (
+                <div className="fg-deploy-topology-card">
+                  <span className="fg-label">Bindings</span>
+                  <ul className="fg-deploy-note-list">
+                    {visibleBindingServices.map((service) => (
+                      <li
+                        className="fg-deploy-note-item"
+                        key={`binding-${service.service}`}
+                      >
+                        <div className="fg-deploy-note-item__head">
+                          <strong>{service.service}</strong>
+                        </div>
+                        <span>
+                          {readManifestBindingTargets(service).join(", ")}
+                        </span>
+                      </li>
+                    ))}
+                    {manifestSummary.servicesWithBindings.length >
+                    visibleBindingServices.length ? (
+                      <li className="fg-deploy-note-item">
+                        <span>
+                          +
+                          {manifestSummary.servicesWithBindings.length -
+                            visibleBindingServices.length}{" "}
+                          more services with bindings
+                        </span>
+                      </li>
+                    ) : null}
+                  </ul>
+                </div>
+              ) : null}
+
+              {visibleInferences.length ? (
+                <div className="fg-deploy-topology-card">
+                  <span className="fg-label">Inference report</span>
+                  <ul className="fg-deploy-note-list">
+                    {visibleInferences.map((item, index) => (
+                      <li
+                        className="fg-deploy-note-item"
+                        key={`wizard-inference-${item.service}-${item.category}-${index}`}
+                      >
+                        <div className="fg-deploy-note-item__head">
+                          <span
+                            className={`fg-deploy-note-pill fg-deploy-note-pill--${readInferenceTone(item.level)}`}
+                          >
+                            {humanizeDeployValue(item.level)}
+                          </span>
+                          <strong>{humanizeDeployValue(item.service)}</strong>
+                        </div>
+                        <span>{item.message}</span>
+                      </li>
+                    ))}
+                    {manifestSummary.inferenceReport.length >
+                    visibleInferences.length ? (
+                      <li className="fg-deploy-note-item">
+                        <span>
+                          +
+                          {manifestSummary.inferenceReport.length -
+                            visibleInferences.length}{" "}
+                          more topology inferences
+                        </span>
+                      </li>
+                    ) : null}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </PanelSection>
       ) : (
         <PanelSection>
           <PanelTitle>Build inputs</PanelTitle>
           <PanelCopy>
-            Adjust these only when the repository needs a non-default build context or a fixed Dockerfile path.
+            Adjust these only when the repository needs a non-default build
+            context or a fixed Dockerfile path.
           </PanelCopy>
 
           <div className="fg-deploy-form-grid">
@@ -431,7 +574,9 @@ export function DeployWizard({
             >
               <SelectField
                 id="deploy-build-strategy"
-                onChange={(event) => setBuildStrategy(event.target.value as BuildStrategyValue)}
+                onChange={(event) =>
+                  setBuildStrategy(event.target.value as BuildStrategyValue)
+                }
                 value={buildStrategy}
               >
                 {BUILD_STRATEGY_OPTIONS.map((option) => (
@@ -506,7 +651,8 @@ export function DeployWizard({
         <PanelSection>
           <PanelTitle>Template variables</PanelTitle>
           <PanelCopy>
-            Fill the values that must exist before the first deployment. Generated secrets can be left blank.
+            Fill the values that must exist before the first deployment.
+            Generated secrets can be left blank.
           </PanelCopy>
 
           <div className="fg-deploy-variable-list">
@@ -520,7 +666,9 @@ export function DeployWizard({
                     {variable.description || "Used during first deploy."}
                   </p>
                   <div className="fg-deploy-variable-card__meta">
-                    <span className="fg-deploy-variable-pill">{variable.key}</span>
+                    <span className="fg-deploy-variable-pill">
+                      {variable.key}
+                    </span>
                     {variable.required ? (
                       <span className="fg-deploy-variable-pill">Required</span>
                     ) : (
@@ -547,20 +695,30 @@ export function DeployWizard({
                   }
                   htmlFor={`template-variable-${variable.key}`}
                   label="Value"
-                  optionalLabel={variable.required && !variable.generate ? undefined : "Optional"}
+                  optionalLabel={
+                    variable.required && !variable.generate
+                      ? undefined
+                      : "Optional"
+                  }
                 >
                   <input
                     autoCapitalize="none"
                     autoComplete={variable.secret ? "new-password" : "off"}
                     className="fg-input"
                     id={`template-variable-${variable.key}`}
-                    onChange={(event) => updateVariableValue(variable.key, event.target.value)}
+                    onChange={(event) =>
+                      updateVariableValue(variable.key, event.target.value)
+                    }
                     placeholder={
                       variable.generate
                         ? "Auto-generate on deploy"
                         : variable.defaultValue || "Enter value"
                     }
-                    required={variable.required && !variable.generate && !variable.defaultValue}
+                    required={
+                      variable.required &&
+                      !variable.generate &&
+                      !variable.defaultValue
+                    }
                     spellCheck={false}
                     type={variable.secret ? "password" : "text"}
                     value={variableValues[variable.key] ?? ""}
@@ -584,7 +742,8 @@ export function DeployWizard({
           </Button>
         </div>
         <p className="fg-deploy-inline-copy">
-          Fugue creates the project if needed, imports the repository, and then sends you back to the console.
+          Fugue creates the project if needed, imports the repository, and then
+          sends you back to the console.
         </p>
       </PanelSection>
     </form>

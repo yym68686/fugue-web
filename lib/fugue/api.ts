@@ -20,21 +20,32 @@ type CamelizeDeep<T> = T extends Primitive
       ? CamelizeDeep<Item>[]
       : T extends Record<string, unknown>
         ? {
-            [K in keyof T as K extends string ? CamelCase<K> : K]: CamelizeDeep<T[K]>;
+            [K in keyof T as K extends string ? CamelCase<K> : K]: CamelizeDeep<
+              T[K]
+            >;
           }
         : T;
 
 type Schemas = components["schemas"];
-type CamelizedSchema<Name extends keyof Schemas> = Simplify<CamelizeDeep<Schemas[Name]>>;
+type CamelizedSchema<Name extends keyof Schemas> = Simplify<
+  CamelizeDeep<Schemas[Name]>
+>;
 
-const PRESERVE_DICTIONARY_KEYS = new Set(["conditions", "env", "labels", "metadata"]);
+const PRESERVE_DICTIONARY_KEYS = new Set([
+  "conditions",
+  "env",
+  "labels",
+  "metadata",
+]);
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
 function camelizeKey(value: string) {
-  return value.replace(/_([a-z])/g, (_match, segment: string) => segment.toUpperCase());
+  return value.replace(/_([a-z])/g, (_match, segment: string) =>
+    segment.toUpperCase(),
+  );
 }
 
 function camelizeValue<T>(value: T, parentKey?: string): CamelizeDeep<T> {
@@ -46,7 +57,9 @@ function camelizeValue<T>(value: T, parentKey?: string): CamelizeDeep<T> {
     return value as CamelizeDeep<T>;
   }
 
-  const preserveKeys = Boolean(parentKey && PRESERVE_DICTIONARY_KEYS.has(parentKey));
+  const preserveKeys = Boolean(
+    parentKey && PRESERVE_DICTIONARY_KEYS.has(parentKey),
+  );
   const output: Record<string, unknown> = {};
 
   for (const [key, item] of Object.entries(value)) {
@@ -62,7 +75,11 @@ function camelizeData<T>(value: T) {
 }
 
 function readErrorDetail(error: unknown) {
-  if (isPlainObject(error) && typeof error.error === "string" && error.error.trim()) {
+  if (
+    isPlainObject(error) &&
+    typeof error.error === "string" &&
+    error.error.trim()
+  ) {
     return error.error.trim();
   }
 
@@ -116,7 +133,10 @@ function readStringArray(value: string[] | undefined | null) {
     return [] as string[];
   }
 
-  return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+  return value.filter(
+    (item): item is string =>
+      typeof item === "string" && item.trim().length > 0,
+  );
 }
 
 function readStringMap(value: Record<string, string> | undefined | null) {
@@ -150,10 +170,42 @@ function buildProjectView(project: CamelizedSchema<"Project">) {
   };
 }
 
+function buildTopologyInferenceView(
+  inference: CamelizedSchema<"TopologyInference">,
+) {
+  return {
+    category: inference.category,
+    level: inference.level,
+    message: inference.message,
+    service: inference.service,
+  };
+}
+
+function buildImportServiceDetailView(
+  service: CamelizedSchema<"ImportServiceDetail">,
+) {
+  return {
+    appId: service.appId,
+    appName: service.appName,
+    bindingTargets: readStringArray(service.bindingTargets),
+    buildStrategy: service.buildStrategy,
+    composeService: service.composeService,
+    internalPort: service.internalPort,
+    kind: service.kind,
+    operationId: service.operationId,
+    ownsPostgres: service.ownsPostgres ?? false,
+    publicUrl: readNullableString(service.publicUrl),
+    service: service.service,
+    serviceType: readNullableString(service.serviceType),
+  };
+}
+
 function buildInspectGitHubTemplateManifestServiceView(
   service: CamelizedSchema<"InspectGitHubTemplateManifestService">,
 ) {
   return {
+    backingService: service.backingService ?? false,
+    bindingTargets: readStringArray(service.bindingTargets),
     buildContextDir: service.buildContextDir,
     buildStrategy: service.buildStrategy,
     composeService: service.composeService,
@@ -162,6 +214,7 @@ function buildInspectGitHubTemplateManifestServiceView(
     kind: service.kind,
     published: service.published,
     service: service.service,
+    serviceType: readNullableString(service.serviceType),
     sourceDir: service.sourceDir,
   };
 }
@@ -174,14 +227,57 @@ function buildInspectGitHubTemplateManifestView(
   }
 
   return {
+    inferenceReport: (manifest.inferenceReport ?? []).map(
+      buildTopologyInferenceView,
+    ),
     manifestPath: manifest.manifestPath,
     primaryService: manifest.primaryService,
-    services: (manifest.services ?? []).map(buildInspectGitHubTemplateManifestServiceView),
+    services: (manifest.services ?? []).map(
+      buildInspectGitHubTemplateManifestServiceView,
+    ),
     warnings: readStringArray(manifest.warnings),
   };
 }
 
-function buildTemplateVariableView(variable: CamelizedSchema<"TemplateVariable">) {
+function buildComposeStackSummaryView(
+  summary?: CamelizedSchema<"ComposeStackSummary"> | null,
+) {
+  if (!summary) {
+    return null;
+  }
+
+  return {
+    composePath: summary.composePath,
+    inferenceReport: (summary.inferenceReport ?? []).map(
+      buildTopologyInferenceView,
+    ),
+    primaryService: summary.primaryService,
+    services: (summary.services ?? []).map(buildImportServiceDetailView),
+    warnings: readStringArray(summary.warnings),
+  };
+}
+
+function buildFugueManifestSummaryView(
+  summary?: CamelizedSchema<"FugueManifestSummary"> | null,
+) {
+  if (!summary) {
+    return null;
+  }
+
+  return {
+    inferenceReport: (summary.inferenceReport ?? []).map(
+      buildTopologyInferenceView,
+    ),
+    manifestPath: summary.manifestPath,
+    primaryService: summary.primaryService,
+    services: (summary.services ?? []).map(buildImportServiceDetailView),
+    warnings: readStringArray(summary.warnings),
+  };
+}
+
+function buildTemplateVariableView(
+  variable: CamelizedSchema<"TemplateVariable">,
+) {
   return {
     defaultValue: variable.defaultValue,
     description: variable.description,
@@ -216,7 +312,9 @@ function buildInspectGitHubTemplateResponseView(
   response: CamelizedSchema<"InspectGitHubTemplateResponse">,
 ) {
   return {
-    fugueManifest: buildInspectGitHubTemplateManifestView(response.fugueManifest),
+    fugueManifest: buildInspectGitHubTemplateManifestView(
+      response.fugueManifest,
+    ),
     repository: {
       branch: response.repository.branch,
       commitCommittedAt: response.repository.commitCommittedAt,
@@ -225,7 +323,8 @@ function buildInspectGitHubTemplateResponseView(
       repoName: response.repository.repoName,
       repoOwner: response.repository.repoOwner,
       repoUrl: response.repository.repoUrl,
-      repoVisibility: response.repository.repoVisibility as GitHubRepoVisibility,
+      repoVisibility: response.repository
+        .repoVisibility as GitHubRepoVisibility,
     },
     template: buildInspectGitHubTemplateMetadataView(response.template),
   };
@@ -269,20 +368,26 @@ function buildAppFileView(file: CamelizedSchema<"AppFile">) {
   };
 }
 
-function buildAppWorkspaceView(workspace?: CamelizedSchema<"AppWorkspaceSpec"> | null) {
+function buildAppWorkspaceView(
+  workspace?: CamelizedSchema<"AppWorkspaceSpec"> | null,
+) {
   return {
     mountPath: readNullableString(workspace?.mountPath),
   };
 }
 
-function buildAppFailoverView(failover?: CamelizedSchema<"AppFailoverSpec"> | null) {
+function buildAppFailoverView(
+  failover?: CamelizedSchema<"AppFailoverSpec"> | null,
+) {
   return {
     auto: failover?.auto ?? false,
     targetRuntimeId: readNullableString(failover?.targetRuntimeId),
   };
 }
 
-function buildFilesystemEntryView(entry: CamelizedSchema<"AppFilesystemEntry">) {
+function buildFilesystemEntryView(
+  entry: CamelizedSchema<"AppFilesystemEntry">,
+) {
   return {
     hasChildren: entry.hasChildren ?? false,
     kind: entry.kind,
@@ -303,14 +408,18 @@ function buildAppTechnologyView(technology: CamelizedSchema<"AppTechnology">) {
   };
 }
 
-function buildResourceSpecView(resource?: CamelizedSchema<"ResourceSpec"> | null) {
+function buildResourceSpecView(
+  resource?: CamelizedSchema<"ResourceSpec"> | null,
+) {
   return {
     cpuMillicores: readNullableNumber(resource?.cpuMillicores) ?? 0,
     memoryMebibytes: readNullableNumber(resource?.memoryMebibytes) ?? 0,
   };
 }
 
-function buildBillingResourceSpecView(resource?: CamelizedSchema<"BillingResourceSpec"> | null) {
+function buildBillingResourceSpecView(
+  resource?: CamelizedSchema<"BillingResourceSpec"> | null,
+) {
   return {
     cpuMillicores: readNullableNumber(resource?.cpuMillicores) ?? 0,
     memoryMebibytes: readNullableNumber(resource?.memoryMebibytes) ?? 0,
@@ -340,7 +449,9 @@ function toResourceUsage(resource?: CamelizedSchema<"ResourceUsage"> | null) {
     : null;
 }
 
-function buildBillingPriceBookView(priceBook: CamelizedSchema<"BillingPriceBook">) {
+function buildBillingPriceBookView(
+  priceBook: CamelizedSchema<"BillingPriceBook">,
+) {
   return {
     currency: priceBook.currency,
     hoursPerMonth: priceBook.hoursPerMonth,
@@ -362,14 +473,20 @@ function buildBillingEventView(event: CamelizedSchema<"TenantBillingEvent">) {
   };
 }
 
-function buildBillingSummaryView(summary: CamelizedSchema<"TenantBillingSummary">) {
+function buildBillingSummaryView(
+  summary: CamelizedSchema<"TenantBillingSummary">,
+) {
   return {
     balanceMicroCents: summary.balanceMicrocents,
     balanceRestricted: summary.balanceRestricted,
     byoVpsFree: summary.byoVpsFree,
     currentUsage: toResourceUsage(summary.currentUsage),
-    defaultAppResources: buildBillingResourceSpecView(summary.defaultAppResources),
-    defaultPostgresResources: buildBillingResourceSpecView(summary.defaultPostgresResources),
+    defaultAppResources: buildBillingResourceSpecView(
+      summary.defaultAppResources,
+    ),
+    defaultPostgresResources: buildBillingResourceSpecView(
+      summary.defaultPostgresResources,
+    ),
     events: (summary.events ?? []).map(buildBillingEventView),
     hourlyRateMicroCents: summary.hourlyRateMicrocents,
     lastAccruedAt: readNullableString(summary.lastAccruedAt),
@@ -422,14 +539,20 @@ function buildBackingServiceView(service: CamelizedSchema<"BackingService">) {
       postgres: postgres
         ? {
             database: readNullableString(postgres.database),
-            failoverTargetRuntimeId: readNullableString(postgres.failoverTargetRuntimeId),
+            failoverTargetRuntimeId: readNullableString(
+              postgres.failoverTargetRuntimeId,
+            ),
             image: readNullableString(postgres.image),
             instances: readNullableNumber(postgres.instances),
             password: readNullableString(postgres.password),
-            resources: postgres.resources ? buildResourceSpecView(postgres.resources) : null,
+            resources: postgres.resources
+              ? buildResourceSpecView(postgres.resources)
+              : null,
             runtimeId: readNullableString(postgres.runtimeId),
             serviceName: readNullableString(postgres.serviceName),
-            synchronousReplicas: readNullableNumber(postgres.synchronousReplicas),
+            synchronousReplicas: readNullableNumber(
+              postgres.synchronousReplicas,
+            ),
             user: readNullableString(postgres.user),
           }
         : null,
@@ -569,7 +692,9 @@ function buildRuntimeView(runtime: CamelizedSchema<"Runtime">) {
   };
 }
 
-function buildRuntimeAccessGrantView(grant: CamelizedSchema<"RuntimeAccessGrant">) {
+function buildRuntimeAccessGrantView(
+  grant: CamelizedSchema<"RuntimeAccessGrant">,
+) {
   return {
     runtimeId: grant.runtimeId,
     tenantId: grant.tenantId,
@@ -578,7 +703,9 @@ function buildRuntimeAccessGrantView(grant: CamelizedSchema<"RuntimeAccessGrant"
   };
 }
 
-function buildClusterNodeConditionView(condition: CamelizedSchema<"ClusterNodeCondition">) {
+function buildClusterNodeConditionView(
+  condition: CamelizedSchema<"ClusterNodeCondition">,
+) {
   return {
     lastTransitionAt: readNullableString(condition.lastTransitionAt),
     message: readNullableString(condition.message),
@@ -590,7 +717,10 @@ function buildClusterNodeConditionView(condition: CamelizedSchema<"ClusterNodeCo
 function buildClusterNodeConditionMapView(
   conditions?: Record<string, CamelizedSchema<"ClusterNodeCondition">> | null,
 ) {
-  const output: Record<string, ReturnType<typeof buildClusterNodeConditionView>> = {};
+  const output: Record<
+    string,
+    ReturnType<typeof buildClusterNodeConditionView>
+  > = {};
 
   if (!conditions) {
     return output;
@@ -607,7 +737,9 @@ function buildClusterNodeConditionMapView(
   return output;
 }
 
-function buildClusterNodeCpuStatsView(stats?: CamelizedSchema<"ClusterNodeCPUStats"> | null) {
+function buildClusterNodeCpuStatsView(
+  stats?: CamelizedSchema<"ClusterNodeCPUStats"> | null,
+) {
   if (!stats) {
     return null;
   }
@@ -810,7 +942,9 @@ function buildOperationView(operation: CamelizedSchema<"Operation">) {
     appId: readNullableString(operation.appId),
     sourceRuntimeId: readNullableString(operation.sourceRuntimeId),
     targetRuntimeId: readNullableString(operation.targetRuntimeId),
-    desiredSource: operation.desiredSource ? buildAppSourceView(operation.desiredSource) : null,
+    desiredSource: operation.desiredSource
+      ? buildAppSourceView(operation.desiredSource)
+      : null,
     resultMessage: readNullableString(operation.resultMessage),
     errorMessage: readNullableString(operation.errorMessage),
     createdAt: readNullableString(operation.createdAt),
@@ -840,8 +974,15 @@ function buildImportResultView(
 ) {
   return {
     app: response.app ? buildAppView(response.app) : null,
-    idempotencyKey: readNullableString(response.idempotency?.key) ?? idempotencyKey ?? null,
-    operation: response.operation ? buildOperationView(response.operation) : null,
+    apps: (response.apps ?? []).map(buildAppView),
+    composeStack: buildComposeStackSummaryView(response.composeStack),
+    fugueManifest: buildFugueManifestSummaryView(response.fugueManifest),
+    idempotencyKey:
+      readNullableString(response.idempotency?.key) ?? idempotencyKey ?? null,
+    operation: response.operation
+      ? buildOperationView(response.operation)
+      : null,
+    operations: (response.operations ?? []).map(buildOperationView),
     replayed: response.idempotency?.replayed ?? false,
     requestInProgress: response.requestInProgress ?? false,
   };
@@ -851,7 +992,9 @@ function buildAppEnvResultView(response: CamelizedSchema<"AppEnvResponse">) {
   return {
     alreadyCurrent: response.alreadyCurrent ?? false,
     env: readStringMap(response.env),
-    operation: response.operation ? buildOperationView(response.operation) : null,
+    operation: response.operation
+      ? buildOperationView(response.operation)
+      : null,
   };
 }
 
@@ -915,7 +1058,9 @@ function buildAppImageRedeployResultView(
 ) {
   return {
     image: response.image ? buildAppImageVersionView(response.image) : null,
-    operation: response.operation ? buildOperationView(response.operation) : null,
+    operation: response.operation
+      ? buildOperationView(response.operation)
+      : null,
   };
 }
 
@@ -970,7 +1115,9 @@ function buildAppRouteAvailabilityResultView(
   };
 }
 
-function buildAppRouteResultView(response: CamelizedSchema<"AppRoutePatchResponse">) {
+function buildAppRouteResultView(
+  response: CamelizedSchema<"AppRoutePatchResponse">,
+) {
   return {
     alreadyCurrent: response.alreadyCurrent ?? false,
     app: response.app ? buildAppView(response.app) : null,
@@ -978,7 +1125,9 @@ function buildAppRouteResultView(response: CamelizedSchema<"AppRoutePatchRespons
   };
 }
 
-function buildAppDomainListResultView(response: CamelizedSchema<"AppDomainListResponse">) {
+function buildAppDomainListResultView(
+  response: CamelizedSchema<"AppDomainListResponse">,
+) {
   return {
     domains: (response.domains ?? []).map(buildAppDomainView),
   };
@@ -992,7 +1141,9 @@ function buildAppDomainAvailabilityResultView(
   };
 }
 
-function buildAppDomainResultView(response: CamelizedSchema<"AppDomainPutResponse">) {
+function buildAppDomainResultView(
+  response: CamelizedSchema<"AppDomainPutResponse">,
+) {
   return {
     alreadyCurrent: response.alreadyCurrent ?? false,
     availability: buildAppDomainAvailabilityView(response.availability),
@@ -1000,7 +1151,9 @@ function buildAppDomainResultView(response: CamelizedSchema<"AppDomainPutRespons
   };
 }
 
-function buildAppDomainDeleteResultView(response: CamelizedSchema<"AppDomainResponse">) {
+function buildAppDomainDeleteResultView(
+  response: CamelizedSchema<"AppDomainResponse">,
+) {
   return {
     domain: response.domain ? buildAppDomainView(response.domain) : null,
   };
@@ -1015,11 +1168,15 @@ function buildAppDomainVerifyResultView(
   };
 }
 
-function buildAppFilesResultView(response: CamelizedSchema<"AppFilesResponse">) {
+function buildAppFilesResultView(
+  response: CamelizedSchema<"AppFilesResponse">,
+) {
   return {
     alreadyCurrent: response.alreadyCurrent ?? false,
     files: (response.files ?? []).map(buildAppFileView),
-    operation: response.operation ? buildOperationView(response.operation) : null,
+    operation: response.operation
+      ? buildOperationView(response.operation)
+      : null,
   };
 }
 
@@ -1069,7 +1226,9 @@ function buildAppFilesystemMutationResultView(
   };
 }
 
-function buildBuildLogsResultView(response: CamelizedSchema<"BuildLogsResponse">) {
+function buildBuildLogsResultView(
+  response: CamelizedSchema<"BuildLogsResponse">,
+) {
   return {
     available: response.available ?? false,
     buildStrategy: readNullableString(response.buildStrategy),
@@ -1086,7 +1245,9 @@ function buildBuildLogsResultView(response: CamelizedSchema<"BuildLogsResponse">
   };
 }
 
-function buildRuntimeLogsResultView(response: CamelizedSchema<"RuntimeLogsResponse">) {
+function buildRuntimeLogsResultView(
+  response: CamelizedSchema<"RuntimeLogsResponse">,
+) {
   return {
     component: readNullableString(response.component),
     container: readNullableString(response.container),
@@ -1098,7 +1259,9 @@ function buildRuntimeLogsResultView(response: CamelizedSchema<"RuntimeLogsRespon
   };
 }
 
-function buildRuntimeSharingResultView(response: CamelizedSchema<"RuntimeSharingResponse">) {
+function buildRuntimeSharingResultView(
+  response: CamelizedSchema<"RuntimeSharingResponse">,
+) {
   return {
     grants: (response.grants ?? []).map(buildRuntimeAccessGrantView),
     runtime: buildRuntimeView(response.runtime),
@@ -1130,34 +1293,52 @@ function buildRuntimePoolModeResultView(
   };
 }
 
-function buildRestartResultView(response: CamelizedSchema<"AppRestartResponse">) {
+function buildRestartResultView(
+  response: CamelizedSchema<"AppRestartResponse">,
+) {
   return {
-    operation: response.operation ? buildOperationView(response.operation) : null,
+    operation: response.operation
+      ? buildOperationView(response.operation)
+      : null,
     restartToken: readNullableString(response.restartToken),
   };
 }
 
-function buildRebuildResultView(response: CamelizedSchema<"AppRebuildResponse">) {
+function buildRebuildResultView(
+  response: CamelizedSchema<"AppRebuildResponse">,
+) {
   return {
     build: response.build ? camelizeData(response.build) : null,
-    operation: response.operation ? buildOperationView(response.operation) : null,
+    operation: response.operation
+      ? buildOperationView(response.operation)
+      : null,
   };
 }
 
-function buildOperationResultView(response: CamelizedSchema<"OperationResponse">) {
+function buildOperationResultView(
+  response: CamelizedSchema<"OperationResponse">,
+) {
   return {
-    operation: response.operation ? buildOperationView(response.operation) : null,
+    operation: response.operation
+      ? buildOperationView(response.operation)
+      : null,
   };
 }
 
-function buildContinuityResultView(response: CamelizedSchema<"AppContinuityResponse">) {
+function buildContinuityResultView(
+  response: CamelizedSchema<"AppContinuityResponse">,
+) {
   return {
     alreadyCurrent: response.alreadyCurrent ?? false,
-    appFailover: response.appFailover ? buildAppFailoverView(response.appFailover) : null,
+    appFailover: response.appFailover
+      ? buildAppFailoverView(response.appFailover)
+      : null,
     database: response.database
       ? {
           database: readNullableString(response.database.database),
-          failoverTargetRuntimeId: readNullableString(response.database.failoverTargetRuntimeId),
+          failoverTargetRuntimeId: readNullableString(
+            response.database.failoverTargetRuntimeId,
+          ),
           image: readNullableString(response.database.image),
           instances: readNullableNumber(response.database.instances),
           resources: response.database.resources
@@ -1165,32 +1346,45 @@ function buildContinuityResultView(response: CamelizedSchema<"AppContinuityRespo
             : null,
           runtimeId: readNullableString(response.database.runtimeId),
           serviceName: readNullableString(response.database.serviceName),
-          synchronousReplicas: readNullableNumber(response.database.synchronousReplicas),
+          synchronousReplicas: readNullableNumber(
+            response.database.synchronousReplicas,
+          ),
           user: readNullableString(response.database.user),
         }
       : null,
-    operation: response.operation ? buildOperationView(response.operation) : null,
+    operation: response.operation
+      ? buildOperationView(response.operation)
+      : null,
   };
 }
 
-function buildDisableResultView(response: CamelizedSchema<"AppDisableResponse">) {
+function buildDisableResultView(
+  response: CamelizedSchema<"AppDisableResponse">,
+) {
   return {
     alreadyDisabled: response.alreadyDisabled ?? false,
     app: response.app ? buildAppView(response.app) : null,
-    operation: response.operation ? buildOperationView(response.operation) : null,
+    operation: response.operation
+      ? buildOperationView(response.operation)
+      : null,
   };
 }
 
-function buildDeleteAppResultView(response: CamelizedSchema<"AppDeleteResponse">) {
+function buildDeleteAppResultView(
+  response: CamelizedSchema<"AppDeleteResponse">,
+) {
   return {
     alreadyDeleting: response.alreadyDeleting ?? false,
-    operation: response.operation ? buildOperationView(response.operation) : null,
+    operation: response.operation
+      ? buildOperationView(response.operation)
+      : null,
   };
 }
 
 function buildNodeKeyUsageCountView(response: Record<string, unknown>) {
   const usageCount =
-    typeof response.usageCount === "number" && Number.isFinite(response.usageCount)
+    typeof response.usageCount === "number" &&
+    Number.isFinite(response.usageCount)
       ? response.usageCount
       : Array.isArray(response.runtimes)
         ? response.runtimes.length
@@ -1214,22 +1408,32 @@ export type FugueResourceSpec = ReturnType<typeof buildResourceSpecView> & {
   storageGibibytes?: number;
 };
 export type FugueResourceUsage = ReturnType<typeof buildResourceUsageView>;
-export type FugueBillingPriceBook = ReturnType<typeof buildBillingPriceBookView>;
+export type FugueBillingPriceBook = ReturnType<
+  typeof buildBillingPriceBookView
+>;
 export type FugueBillingEvent = ReturnType<typeof buildBillingEventView>;
 export type FugueBillingSummary = ReturnType<typeof buildBillingSummaryView>;
 export type FugueAppSource = ReturnType<typeof buildAppSourceView>;
 export type FugueBackingService = ReturnType<typeof buildBackingServiceView>;
 export type FugueServiceBinding = ReturnType<typeof buildServiceBindingView>;
 export type FugueApp = ReturnType<typeof buildAppView>;
-export type FugueAppRouteAvailability = ReturnType<typeof buildAppRouteAvailabilityView>;
+export type FugueAppRouteAvailability = ReturnType<
+  typeof buildAppRouteAvailabilityView
+>;
 export type FugueAppDomain = ReturnType<typeof buildAppDomainView>;
-export type FugueAppDomainAvailability = ReturnType<typeof buildAppDomainAvailabilityView>;
+export type FugueAppDomainAvailability = ReturnType<
+  typeof buildAppDomainAvailabilityView
+>;
 export type FugueRuntime = ReturnType<typeof buildRuntimeView>;
-export type FugueRuntimeAccessGrant = ReturnType<typeof buildRuntimeAccessGrantView>;
+export type FugueRuntimeAccessGrant = ReturnType<
+  typeof buildRuntimeAccessGrantView
+>;
 export type FugueGitHubTemplateInspection = ReturnType<
   typeof buildInspectGitHubTemplateResponseView
 >;
-export type FugueClusterNodeCondition = ReturnType<typeof buildClusterNodeConditionView>;
+export type FugueClusterNodeCondition = ReturnType<
+  typeof buildClusterNodeConditionView
+>;
 export type FugueClusterNodeCPUStats = NonNullable<
   ReturnType<typeof buildClusterNodeCpuStatsView>
 >;
@@ -1239,8 +1443,12 @@ export type FugueClusterNodeMemoryStats = NonNullable<
 export type FugueClusterNodeStorageStats = NonNullable<
   ReturnType<typeof buildClusterNodeStorageStatsView>
 >;
-export type FugueClusterNodeWorkloadPod = ReturnType<typeof buildClusterNodeWorkloadPodView>;
-export type FugueClusterNodeWorkload = ReturnType<typeof buildClusterNodeWorkloadView>;
+export type FugueClusterNodeWorkloadPod = ReturnType<
+  typeof buildClusterNodeWorkloadPodView
+>;
+export type FugueClusterNodeWorkload = ReturnType<
+  typeof buildClusterNodeWorkloadView
+>;
 export type FugueClusterNode = ReturnType<typeof buildClusterNodeView>;
 export type FugueControlPlaneComponent = ReturnType<
   typeof buildControlPlaneComponentView
@@ -1271,14 +1479,22 @@ export type FugueAppRouteAvailabilityResult = ReturnType<
   typeof buildAppRouteAvailabilityResultView
 >;
 export type FugueAppRouteResult = ReturnType<typeof buildAppRouteResultView>;
-export type FugueAppDomainListResult = ReturnType<typeof buildAppDomainListResultView>;
+export type FugueAppDomainListResult = ReturnType<
+  typeof buildAppDomainListResultView
+>;
 export type FugueAppDomainAvailabilityResult = ReturnType<
   typeof buildAppDomainAvailabilityResultView
 >;
 export type FugueAppDomainResult = ReturnType<typeof buildAppDomainResultView>;
-export type FugueAppDomainDeleteResult = ReturnType<typeof buildAppDomainDeleteResultView>;
-export type FugueAppDomainVerifyResult = ReturnType<typeof buildAppDomainVerifyResultView>;
-export type FugueAppContinuityResult = ReturnType<typeof buildContinuityResultView>;
+export type FugueAppDomainDeleteResult = ReturnType<
+  typeof buildAppDomainDeleteResultView
+>;
+export type FugueAppDomainVerifyResult = ReturnType<
+  typeof buildAppDomainVerifyResultView
+>;
+export type FugueAppContinuityResult = ReturnType<
+  typeof buildContinuityResultView
+>;
 export type FugueAppFilesResult = ReturnType<typeof buildAppFilesResultView>;
 export type FugueAppFilesystemTreeResult = ReturnType<
   typeof buildAppFilesystemTreeResultView
@@ -1290,13 +1506,17 @@ export type FugueAppFilesystemMutationResult = ReturnType<
   typeof buildAppFilesystemMutationResultView
 >;
 export type FugueBuildLogsResult = ReturnType<typeof buildBuildLogsResultView>;
-export type FugueRuntimeLogsResult = ReturnType<typeof buildRuntimeLogsResultView>;
+export type FugueRuntimeLogsResult = ReturnType<
+  typeof buildRuntimeLogsResultView
+>;
 export type FugueAppImageSummary = ReturnType<typeof buildAppImageSummaryView>;
 export type FugueAppImageVersion = ReturnType<typeof buildAppImageVersionView>;
 export type FugueAppImageInventoryResult = ReturnType<
   typeof buildAppImageInventoryResultView
 >;
-export type FugueAppImageDeleteResult = ReturnType<typeof buildAppImageDeleteResultView>;
+export type FugueAppImageDeleteResult = ReturnType<
+  typeof buildAppImageDeleteResultView
+>;
 export type FugueAppImageRedeployResult = ReturnType<
   typeof buildAppImageRedeployResultView
 >;
@@ -1316,7 +1536,10 @@ export async function createFugueTenant(
 ) {
   const client = getClient(accessToken);
   const response = camelizeData(
-    await expectData("/v1/tenants", client.POST("/v1/tenants", { body: payload })),
+    await expectData(
+      "/v1/tenants",
+      client.POST("/v1/tenants", { body: payload }),
+    ),
   );
 
   return buildTenantView(response.tenant);
@@ -1391,10 +1614,15 @@ export async function rotateFugueApiKey(
       `/v1/api-keys/${encodeURIComponent(id)}/rotate`,
       client.POST("/v1/api-keys/{id}/rotate", {
         body:
-          payload && (payload.label !== undefined || payload.scopes !== undefined)
+          payload &&
+          (payload.label !== undefined || payload.scopes !== undefined)
             ? {
-                ...(payload.label !== undefined ? { label: payload.label } : {}),
-                ...(payload.scopes !== undefined ? { scopes: payload.scopes } : {}),
+                ...(payload.label !== undefined
+                  ? { label: payload.label }
+                  : {}),
+                ...(payload.scopes !== undefined
+                  ? { scopes: payload.scopes }
+                  : {}),
               }
             : undefined,
         params: {
@@ -1474,10 +1702,15 @@ export async function createFugueNodeKey(
       "/v1/node-keys",
       client.POST("/v1/node-keys", {
         body:
-          payload && (payload.label !== undefined || payload.tenantId !== undefined)
+          payload &&
+          (payload.label !== undefined || payload.tenantId !== undefined)
             ? {
-                ...(payload.label !== undefined ? { label: payload.label } : {}),
-                ...(payload.tenantId !== undefined ? { tenant_id: payload.tenantId } : {}),
+                ...(payload.label !== undefined
+                  ? { label: payload.label }
+                  : {}),
+                ...(payload.tenantId !== undefined
+                  ? { tenant_id: payload.tenantId }
+                  : {}),
               }
             : undefined,
       }),
@@ -1545,7 +1778,9 @@ export async function patchFugueProject(
       `/v1/projects/${encodeURIComponent(id)}`,
       client.PATCH("/v1/projects/{id}", {
         body: {
-          ...(payload.description !== undefined ? { description: payload.description } : {}),
+          ...(payload.description !== undefined
+            ? { description: payload.description }
+            : {}),
           ...(payload.name !== undefined ? { name: payload.name } : {}),
         },
         params: {
@@ -1617,18 +1852,28 @@ export async function importFugueGitHubApp(
               }
             : {}),
           ...(payload.branch ? { branch: payload.branch } : {}),
-          ...(payload.buildStrategy ? { build_strategy: payload.buildStrategy } : {}),
+          ...(payload.buildStrategy
+            ? { build_strategy: payload.buildStrategy }
+            : {}),
           ...(payload.sourceDir ? { source_dir: payload.sourceDir } : {}),
-          ...(payload.dockerfilePath ? { dockerfile_path: payload.dockerfilePath } : {}),
-          ...(payload.buildContextDir ? { build_context_dir: payload.buildContextDir } : {}),
+          ...(payload.dockerfilePath
+            ? { dockerfile_path: payload.dockerfilePath }
+            : {}),
+          ...(payload.buildContextDir
+            ? { build_context_dir: payload.buildContextDir }
+            : {}),
           ...(payload.name ? { name: payload.name } : {}),
           ...(payload.runtimeId ? { runtime_id: payload.runtimeId } : {}),
           ...(typeof payload.servicePort === "number"
             ? { service_port: payload.servicePort }
             : {}),
           ...(payload.env ? { env: payload.env } : {}),
-          ...(payload.repoVisibility ? { repo_visibility: payload.repoVisibility } : {}),
-          ...(payload.repoAuthToken ? { repo_auth_token: payload.repoAuthToken } : {}),
+          ...(payload.repoVisibility
+            ? { repo_visibility: payload.repoVisibility }
+            : {}),
+          ...(payload.repoAuthToken
+            ? { repo_auth_token: payload.repoAuthToken }
+            : {}),
           repo_url: payload.repoUrl,
         },
         params: idempotencyKey
@@ -1661,8 +1906,12 @@ export async function inspectGitHubTemplate(
       client.POST("/v1/templates/inspect-github", {
         body: {
           ...(payload.branch ? { branch: payload.branch } : {}),
-          ...(payload.repoAuthToken ? { repo_auth_token: payload.repoAuthToken } : {}),
-          ...(payload.repoVisibility ? { repo_visibility: payload.repoVisibility } : {}),
+          ...(payload.repoAuthToken
+            ? { repo_auth_token: payload.repoAuthToken }
+            : {}),
+          ...(payload.repoVisibility
+            ? { repo_visibility: payload.repoVisibility }
+            : {}),
           repo_url: payload.repoUrl,
         },
       }),
@@ -1731,7 +1980,10 @@ export async function getFugueNodeKeys(accessToken: string) {
   return (response.nodeKeys ?? []).map(buildNodeKeyView);
 }
 
-export async function getFugueNodeKeyUsageCount(accessToken: string, id: string) {
+export async function getFugueNodeKeyUsageCount(
+  accessToken: string,
+  id: string,
+) {
   const client = getClient(accessToken);
   const response = camelizeData(
     await expectData(
@@ -1747,7 +1999,10 @@ export async function getFugueNodeKeyUsageCount(accessToken: string, id: string)
   return buildNodeKeyUsageCountView(response).usageCount;
 }
 
-export async function getFugueBillingSummary(accessToken: string, tenantId?: string) {
+export async function getFugueBillingSummary(
+  accessToken: string,
+  tenantId?: string,
+) {
   const client = getClient(accessToken);
   const response = camelizeData(
     await expectData(
@@ -1964,7 +2219,10 @@ export async function deleteFugueAppImage(
 export async function getFugueBackingServices(accessToken: string) {
   const client = getClient(accessToken);
   const response = camelizeData(
-    await expectData("/v1/backing-services", client.GET("/v1/backing-services")),
+    await expectData(
+      "/v1/backing-services",
+      client.GET("/v1/backing-services"),
+    ),
   );
 
   return (response.backingServices ?? []).map(buildBackingServiceView);
@@ -1984,7 +2242,9 @@ export async function getFugueAppBindings(accessToken: string, appId: string) {
   );
 
   return {
-    backingServices: (response.backingServices ?? []).map(buildBackingServiceView),
+    backingServices: (response.backingServices ?? []).map(
+      buildBackingServiceView,
+    ),
     bindings: (response.bindings ?? []).map(buildServiceBindingView),
   };
 }
@@ -2036,7 +2296,9 @@ export async function importFugueDockerImageApp(
   return {
     app: response.app ? buildAppView(response.app) : null,
     idempotencyKey: null,
-    operation: response.operation ? buildOperationView(response.operation) : null,
+    operation: response.operation
+      ? buildOperationView(response.operation)
+      : null,
     replayed: false,
     requestInProgress: false,
   };
@@ -2358,7 +2620,9 @@ export async function getFugueAppFilesystemFile(
         params: {
           path: { id: appId },
           query: {
-            ...(options.maxBytes !== undefined ? { max_bytes: options.maxBytes } : {}),
+            ...(options.maxBytes !== undefined
+              ? { max_bytes: options.maxBytes }
+              : {}),
             path: options.path,
             ...(options.pod ? { pod: options.pod } : {}),
           },
@@ -2389,7 +2653,9 @@ export async function putFugueAppFilesystemFile(
         body: {
           content: payload.content,
           ...(payload.encoding ? { encoding: payload.encoding } : {}),
-          ...(payload.mkdirParents !== undefined ? { mkdir_parents: payload.mkdirParents } : {}),
+          ...(payload.mkdirParents !== undefined
+            ? { mkdir_parents: payload.mkdirParents }
+            : {}),
           ...(payload.mode !== undefined ? { mode: payload.mode } : {}),
           path: payload.path,
         },
@@ -2425,7 +2691,9 @@ export async function createFugueAppFilesystemDirectory(
       client.POST("/v1/apps/{id}/filesystem/directory", {
         body: {
           ...(payload.mode !== undefined ? { mode: payload.mode } : {}),
-          ...(payload.parents !== undefined ? { parents: payload.parents } : {}),
+          ...(payload.parents !== undefined
+            ? { parents: payload.parents }
+            : {}),
           path: payload.path,
         },
         params: {
@@ -2460,7 +2728,9 @@ export async function deleteFugueAppFilesystemPath(
           path: { id: appId },
           query: {
             path: options.path,
-            ...(options.recursive !== undefined ? { recursive: options.recursive } : {}),
+            ...(options.recursive !== undefined
+              ? { recursive: options.recursive }
+              : {}),
           },
         },
       }),
@@ -2486,8 +2756,11 @@ export async function getFugueAppBuildLogs(
         params: {
           path: { id: appId },
           query: {
-            ...(options?.operationId ? { operation_id: options.operationId } : {}),
-            ...(typeof options?.tailLines === "number" && Number.isFinite(options.tailLines)
+            ...(options?.operationId
+              ? { operation_id: options.operationId }
+              : {}),
+            ...(typeof options?.tailLines === "number" &&
+            Number.isFinite(options.tailLines)
               ? { tail_lines: options.tailLines }
               : {}),
           },
@@ -2519,8 +2792,11 @@ export async function getFugueAppRuntimeLogs(
           query: {
             ...(options?.component ? { component: options.component } : {}),
             ...(options?.pod ? { pod: options.pod } : {}),
-            ...(typeof options?.previous === "boolean" ? { previous: options.previous } : {}),
-            ...(typeof options?.tailLines === "number" && Number.isFinite(options.tailLines)
+            ...(typeof options?.previous === "boolean"
+              ? { previous: options.previous }
+              : {}),
+            ...(typeof options?.tailLines === "number" &&
+            Number.isFinite(options.tailLines)
               ? { tail_lines: options.tailLines }
               : {}),
           },
@@ -2568,15 +2844,21 @@ export async function rebuildFugueApp(
         body:
           options && Object.keys(options).length > 0
             ? {
-                ...(options.branch !== undefined ? { branch: options.branch } : {}),
-                ...(options.sourceDir !== undefined ? { source_dir: options.sourceDir } : {}),
+                ...(options.branch !== undefined
+                  ? { branch: options.branch }
+                  : {}),
+                ...(options.sourceDir !== undefined
+                  ? { source_dir: options.sourceDir }
+                  : {}),
                 ...(options.dockerfilePath !== undefined
                   ? { dockerfile_path: options.dockerfilePath }
                   : {}),
                 ...(options.buildContextDir !== undefined
                   ? { build_context_dir: options.buildContextDir }
                   : {}),
-                ...(options.imageRef !== undefined ? { image_ref: options.imageRef } : {}),
+                ...(options.imageRef !== undefined
+                  ? { image_ref: options.imageRef }
+                  : {}),
                 ...(options.repoAuthToken !== undefined
                   ? { repo_auth_token: options.repoAuthToken }
                   : {}),
@@ -2740,7 +3022,10 @@ export async function getFugueRuntimes(
   return (response.runtimes ?? []).map(buildRuntimeView);
 }
 
-export async function getFugueRuntimeSharing(accessToken: string, runtimeId: string) {
+export async function getFugueRuntimeSharing(
+  accessToken: string,
+  runtimeId: string,
+) {
   const client = getClient(accessToken);
   const response = camelizeData(
     await expectData(
@@ -2841,10 +3126,7 @@ export async function getFugueClusterNodes(accessToken: string) {
 export async function getFugueConsoleGallery(accessToken: string) {
   const client = getClient(accessToken);
   const response = camelizeData(
-    await expectData(
-      "/v1/console/gallery",
-      client.GET("/v1/console/gallery"),
-    ),
+    await expectData("/v1/console/gallery", client.GET("/v1/console/gallery")),
   );
 
   return buildConsoleGalleryResponseView(response);
@@ -2892,14 +3174,13 @@ export async function getFugueOperations(
     await expectData(
       "/v1/operations",
       client.GET("/v1/operations", {
-        params:
-          options?.appId
-            ? {
-                query: {
-                  app_id: options.appId,
-                },
-              }
-            : undefined,
+        params: options?.appId
+          ? {
+              query: {
+                app_id: options.appId,
+              },
+            }
+          : undefined,
       }),
     ),
   );
