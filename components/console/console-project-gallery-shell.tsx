@@ -10,10 +10,10 @@ import {
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import dynamic from "next/dynamic";
 
 import { CompactResourceMeter } from "@/components/console/compact-resource-meter";
 import { ConsoleProjectBadge } from "@/components/console/console-project-badge";
+import { ConsoleProjectWorkbench } from "@/components/console/console-project-gallery";
 import { ConsoleProjectWorkbenchSkeleton } from "@/components/console/console-page-skeleton";
 import { ImportServiceFields } from "@/components/console/import-service-fields";
 import { StatusBadge } from "@/components/console/status-badge";
@@ -29,7 +29,11 @@ import type {
 import {
   useConsoleRuntimeTargetInventory,
 } from "@/lib/console/runtime-target-inventory-client";
-import { warmConsoleProjectDetails } from "@/lib/console/project-detail-client";
+import {
+  fetchConsoleProjectDetail,
+  readCachedConsoleProjectDetail,
+  warmConsoleProjectDetails,
+} from "@/lib/console/project-detail-client";
 import { buildProjectResourceUsageView } from "@/lib/console/project-resource-usage";
 import { readDefaultImportRuntimeId } from "@/lib/console/runtime-targets";
 import {
@@ -91,44 +95,13 @@ type CachedProjectImageUsage = {
 
 let cachedProjectImageUsage: CachedProjectImageUsage | null = null;
 
-let consoleProjectWorkbenchModulePromise:
-  | Promise<typeof import("@/components/console/console-project-gallery")>
-  | null = null;
-
-function loadConsoleProjectWorkbenchModule() {
-  if (!consoleProjectWorkbenchModulePromise) {
-    consoleProjectWorkbenchModulePromise = import(
-      "@/components/console/console-project-gallery"
-    );
-  }
-
-  return consoleProjectWorkbenchModulePromise;
-}
-
-function preloadConsoleProjectWorkbench() {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  void loadConsoleProjectWorkbenchModule();
-}
-
 function prepareProjectWorkbench(projectId?: string | null) {
-  preloadConsoleProjectWorkbench();
-
   if (!projectId) {
     return;
   }
 
   void warmConsoleProjectDetails([projectId]);
 }
-
-const ConsoleProjectWorkbench = dynamic(
-  () => loadConsoleProjectWorkbenchModule().then((module) => module.ConsoleProjectWorkbench),
-  {
-    loading: () => <ConsoleProjectWorkbenchSkeleton />,
-  },
-);
 
 function buildSuggestedProjectName(existingProjectsCount: number) {
   return `Project ${Math.max(existingProjectsCount + 1, 1)}`;
@@ -216,6 +189,12 @@ export function ConsoleProjectGallery({
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
     null,
   );
+  const [selectedProjectDetailError, setSelectedProjectDetailError] =
+    useState<string | null>(null);
+  const [selectedProjectDetailRequestToken, setSelectedProjectDetailRequestToken] =
+    useState(0);
+  const [selectedProjectDetailStatus, setSelectedProjectDetailStatus] =
+    useState<"error" | "idle" | "loading" | "ready">("idle");
   const [workbenchRefreshToken, setWorkbenchRefreshToken] = useState(0);
   const [createOpen, setCreateOpen] = useState(defaultCreateOpen);
   const [createTargetProject, setCreateTargetProject] =
@@ -379,6 +358,8 @@ export function ConsoleProjectGallery({
       selectedProjectId &&
       !data.projects.some((project) => project.id === selectedProjectId)
     ) {
+      setSelectedProjectDetailError(null);
+      setSelectedProjectDetailStatus("idle");
       setSelectedProjectId(null);
     }
   }, [data.projects, selectedProjectId]);
@@ -387,12 +368,63 @@ export function ConsoleProjectGallery({
     selectedProjectIdRef.current = selectedProjectId;
   }, [selectedProjectId]);
 
+  const loadSelectedProjectDetail = useEffectEvent(async (projectId: string) => {
+    const cachedDetail = readCachedConsoleProjectDetail(projectId);
+
+    if (cachedDetail?.project) {
+      setSelectedProjectDetailError(null);
+      setSelectedProjectDetailStatus("ready");
+      return;
+    }
+
+    setSelectedProjectDetailError(null);
+    setSelectedProjectDetailStatus("loading");
+
+    try {
+      const detail = await fetchConsoleProjectDetail(projectId);
+
+      if (selectedProjectIdRef.current !== projectId) {
+        return;
+      }
+
+      if (detail.project) {
+        setSelectedProjectDetailStatus("ready");
+        return;
+      }
+
+      setSelectedProjectDetailError("Project detail is not available yet.");
+      setSelectedProjectDetailStatus("error");
+    } catch (error) {
+      if (
+        selectedProjectIdRef.current !== projectId ||
+        isAbortRequestError(error)
+      ) {
+        return;
+      }
+
+      setSelectedProjectDetailError(readRequestError(error));
+      setSelectedProjectDetailStatus("error");
+    }
+  });
+
+  useEffect(() => {
+    if (!selectedProjectId) {
+      setSelectedProjectDetailError(null);
+      setSelectedProjectDetailStatus("idle");
+      return;
+    }
+
+    void loadSelectedProjectDetail(selectedProjectId);
+  }, [
+    loadSelectedProjectDetail,
+    selectedProjectDetailRequestToken,
+    selectedProjectId,
+  ]);
+
   useEffect(() => {
     if (workspaceMissing || !data.projects.length) {
       return;
     }
-
-    preloadConsoleProjectWorkbench();
 
     const controller = new AbortController();
     let idleHandle: number | null = null;
@@ -656,7 +688,16 @@ export function ConsoleProjectGallery({
   }
 
   function chooseProject(project: ConsoleProjectSummaryView) {
-    setSelectedProjectId((current) => (current === project.id ? null : project.id));
+    if (selectedProjectId === project.id) {
+      setSelectedProjectDetailError(null);
+      setSelectedProjectDetailStatus("idle");
+      setSelectedProjectId(null);
+      return;
+    }
+
+    setSelectedProjectDetailError(null);
+    setSelectedProjectDetailStatus("idle");
+    setSelectedProjectId(project.id);
   }
 
   async function handleCreateProject(event: FormEvent<HTMLFormElement>) {
@@ -767,6 +808,9 @@ export function ConsoleProjectGallery({
             <div className="fg-project-gallery__stack">
               {data.projects.map((project) => {
                 const expanded = selectedProjectId === project.id;
+                const cachedProjectDetail = expanded
+                  ? readCachedConsoleProjectDetail(project.id)
+                  : null;
                 const detailId = `project-detail-${project.id}`;
                 const projectResourceUsage =
                   projectImageUsageByProjectId[project.id]
@@ -856,18 +900,49 @@ export function ConsoleProjectGallery({
                     </button>
 
                     {expanded ? (
-                      <ConsoleProjectWorkbench
-                        detailId={detailId}
-                        onProjectDeleted={handleProjectDeleted}
-                        onProjectMutation={handleProjectMutation}
-                        onRequestCreateService={openCreateDialog}
-                        projectCatalog={data.projects.map((item) => ({
-                          id: item.id,
-                          name: item.name,
-                        }))}
-                        project={project}
-                        refreshToken={workbenchRefreshToken}
-                      />
+                      cachedProjectDetail?.project ? (
+                        <ConsoleProjectWorkbench
+                          detailId={detailId}
+                          onProjectDeleted={handleProjectDeleted}
+                          onProjectMutation={handleProjectMutation}
+                          onRequestCreateService={openCreateDialog}
+                          projectCatalog={data.projects.map((item) => ({
+                            id: item.id,
+                            name: item.name,
+                          }))}
+                          project={project}
+                          refreshToken={workbenchRefreshToken}
+                        />
+                      ) : selectedProjectDetailStatus === "error" ? (
+                        <div className="fg-project-card__detail" id={detailId}>
+                          <section className="fg-bezel fg-panel fg-project-workbench">
+                            <div className="fg-bezel__inner fg-project-workbench__inner">
+                              <div className="fg-workbench-section">
+                                <p className="fg-console-note">
+                                  {selectedProjectDetailError ??
+                                    "Unable to load this project right now."}
+                                </p>
+                                <div className="fg-project-actions">
+                                  <Button
+                                    onClick={() => {
+                                      setSelectedProjectDetailRequestToken(
+                                        (value) => value + 1,
+                                      );
+                                    }}
+                                    size="compact"
+                                    type="button"
+                                    variant="secondary"
+                                  >
+                                    Retry
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          </section>
+                        </div>
+                      ) : (
+                        <ConsoleProjectWorkbenchSkeleton detailId={detailId} />
+                      )
                     ) : null}
                   </article>
                 );
