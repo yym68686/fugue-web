@@ -127,7 +127,7 @@ async function expectMultipartData<T>(
   body: FormData,
 ) {
   const env = getFugueEnv();
-  const response = await fetch(`${env.apiUrl}${path}`, {
+  const response = await fetch(new URL(path, env.apiUrl), {
     method: "POST",
     headers: {
       Accept: "application/json",

@@ -60,6 +60,7 @@ import {
   fetchConsoleProjectDetail,
   readCachedConsoleProjectDetail,
 } from "@/lib/console/project-detail-client";
+import { readProjectLifecycleTone } from "@/lib/console/project-lifecycle-tone";
 import { buildProjectResourceUsageView } from "@/lib/console/project-resource-usage";
 import { useConsoleRuntimeTargetInventory } from "@/lib/console/runtime-target-inventory-client";
 import { readDefaultImportRuntimeId } from "@/lib/console/runtime-targets";
@@ -526,7 +527,7 @@ function readProjectLifecycle(
   ) {
     return {
       label: "Deleting",
-      tone: "danger",
+      tone: readProjectLifecycleTone("Deleting"),
       live: true,
       syncMode: "active",
     };
@@ -537,13 +538,18 @@ function readProjectLifecycle(
       includesLifecycleKeyword(status, ["error", "fail", "stopped"]),
     )
   ) {
-    return { label: "Error", tone: "danger", live: false, syncMode: "passive" };
+    return {
+      label: "Error",
+      tone: readProjectLifecycleTone("Error"),
+      live: false,
+      syncMode: "passive",
+    };
   }
 
   if (hasRunningApp && hasPendingApp) {
     return {
       label: "Updating",
-      tone: "info",
+      tone: readProjectLifecycleTone("Updating"),
       live: true,
       syncMode: "active",
     };
@@ -554,7 +560,7 @@ function readProjectLifecycle(
   ) {
     return {
       label: "Importing",
-      tone: "positive",
+      tone: readProjectLifecycleTone("Importing"),
       live: true,
       syncMode: "active",
     };
@@ -565,7 +571,7 @@ function readProjectLifecycle(
   ) {
     return {
       label: "Building",
-      tone: "positive",
+      tone: readProjectLifecycleTone("Building"),
       live: true,
       syncMode: "active",
     };
@@ -576,7 +582,7 @@ function readProjectLifecycle(
   ) {
     return {
       label: "Deploying",
-      tone: "positive",
+      tone: readProjectLifecycleTone("Deploying"),
       live: true,
       syncMode: "active",
     };
@@ -589,7 +595,7 @@ function readProjectLifecycle(
   ) {
     return {
       label: "Queued",
-      tone: "positive",
+      tone: readProjectLifecycleTone("Queued"),
       live: true,
       syncMode: "active",
     };
@@ -599,23 +605,38 @@ function readProjectLifecycle(
     statuses.length > 0 &&
     statuses.every((status) => isPausedLifecycleValue(status))
   ) {
-    return { label: "Paused", tone: "warning", live: false, syncMode: "idle" };
+    return {
+      label: "Paused",
+      tone: readProjectLifecycleTone("Paused"),
+      live: false,
+      syncMode: "idle",
+    };
   }
 
   if (project.appCount > 0) {
     return {
       label: "Running",
-      tone: "positive",
+      tone: readProjectLifecycleTone("Running"),
       live: false,
       syncMode: tracksGitHubBranch ? "passive" : "idle",
     };
   }
 
   if (project.serviceCount > 0) {
-    return { label: "Ready", tone: "positive", live: false, syncMode: "idle" };
+    return {
+      label: "Ready",
+      tone: readProjectLifecycleTone("Ready"),
+      live: false,
+      syncMode: "idle",
+    };
   }
 
-  return { label: "Idle", tone: "neutral", live: false, syncMode: "idle" };
+  return {
+    label: "Idle",
+    tone: readProjectLifecycleTone("Idle"),
+    live: false,
+    syncMode: "idle",
+  };
 }
 
 function readAppServiceRoleLabel(

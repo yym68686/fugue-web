@@ -19,6 +19,7 @@ import type {
   ConsoleProjectSummaryView,
   ConsoleRuntimeTargetInventoryData,
 } from "@/lib/console/gallery-types";
+import { readProjectLifecycleTone } from "@/lib/console/project-lifecycle-tone";
 import { buildProjectResourceUsageView } from "@/lib/console/project-resource-usage";
 import {
   getFugueApps,
@@ -1835,23 +1836,6 @@ function compareImportRuntimeTargets(
   return left.id.localeCompare(right.id, "en", { sensitivity: "base" });
 }
 
-function normalizeProjectLifecycleTone(
-  value?: string | null,
-): ConsoleProjectLifecycleView["tone"] {
-  switch (value?.trim().toLowerCase()) {
-    case "positive":
-      return "positive";
-    case "warning":
-      return "warning";
-    case "danger":
-      return "danger";
-    case "info":
-      return "info";
-    default:
-      return "neutral";
-  }
-}
-
 function normalizeProjectLifecycleSyncMode(
   value?: string | null,
 ): ConsoleProjectLifecycleView["syncMode"] {
@@ -1897,7 +1881,10 @@ function buildConsoleProjectSummaryView(
       label: project.lifecycle.label,
       live: project.lifecycle.live,
       syncMode: normalizeProjectLifecycleSyncMode(project.lifecycle.syncMode),
-      tone: normalizeProjectLifecycleTone(project.lifecycle.tone),
+      tone: readProjectLifecycleTone(
+        project.lifecycle.label,
+        project.lifecycle.tone,
+      ),
     },
     name: project.name,
     resourceUsage: buildProjectResourceUsageView(resourceUsageSnapshot),
