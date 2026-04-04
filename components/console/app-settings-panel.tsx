@@ -352,33 +352,98 @@ function readTransferActionHint(app: ConsoleGalleryAppView) {
   return null;
 }
 
+function runtimeSupportsPersistentWorkspace(runtimeType?: string | null) {
+  const normalized = normalizeText(runtimeType);
+  return normalized === "managed-owned" || normalized === "managed-shared";
+}
+
 function readWorkspaceRuntimeGuidance(
   currentRuntimeId: string | null,
-  currentRuntimeTarget: ConsoleImportRuntimeTargetView | null,
   runtimeTargets: ConsoleImportRuntimeTargetView[],
 ) {
-  const managedOwnedTargets = runtimeTargets.filter(
+  const eligibleTargets = runtimeTargets.filter(
     (target) =>
-      target.runtimeType === "managed-owned" && target.id !== currentRuntimeId,
+      runtimeSupportsPersistentWorkspace(target.runtimeType) &&
+      target.id !== currentRuntimeId,
   );
 
-  if (managedOwnedTargets.length === 0) {
+  if (eligibleTargets.length === 0) {
     return null;
   }
 
-  if (currentRuntimeTarget?.runtimeType === "managed-shared") {
-    if (managedOwnedTargets.length === 1) {
-      return `This service still uses the internal cluster. Even if the pod lands on your attached server through the shared pool, persistent workspace only becomes available after you move the app onto ${managedOwnedTargets[0].summaryLabel}.`;
+  if (eligibleTargets.length === 1) {
+    return `Move this service onto ${eligibleTargets[0].summaryLabel} to attach a persistent workspace.`;
+  }
+
+  return "Move this service onto an eligible managed runtime to attach a persistent workspace.";
+}
+
+function readWorkspaceSummaryNote(
+  hasWorkspace: boolean,
+  runtimeReadyForWorkspace: boolean | null,
+  replicasReadyForWorkspace: boolean,
+) {
+  if (hasWorkspace) {
+    return "Mounted storage survives restarts, managed transfers, and failover.";
+  }
+
+  if (!replicasReadyForWorkspace) {
+    return "Persistent workspace needs 1 replica or fewer.";
+  }
+
+  if (runtimeReadyForWorkspace === false) {
+    return "This service is not on a runtime that supports persistent workspace yet.";
+  }
+
+  if (runtimeReadyForWorkspace === null) {
+    return "Workspace readiness is temporarily unavailable.";
+  }
+
+  return "Files still live in the running container until a workspace is attached.";
+}
+
+function buildWorkspaceSummaryItems(
+  app: ConsoleGalleryAppView,
+  hasWorkspace: boolean,
+  currentRuntimeLabel: string,
+  replicas: number | null,
+) {
+  if (hasWorkspace) {
+    const items = [
+      {
+        label: "Mount path",
+        value: app.workspaceMountPath || "/workspace",
+      },
+      {
+        label: "Storage",
+        value: app.workspaceStorageSize || "Platform default",
+      },
+    ];
+
+    if (normalizeText(app.workspaceStorageClassName)) {
+      items.push({
+        label: "Storage class",
+        value: app.workspaceStorageClassName || "Platform default",
+      });
     }
 
-    return "This service still uses the internal cluster. Even if the pod lands on one of your attached servers through the shared pool, persistent workspace only becomes available after you move the app onto a machine runtime.";
+    return items;
   }
 
-  if (managedOwnedTargets.length === 1) {
-    return `Move this service onto ${managedOwnedTargets[0].summaryLabel} to attach a persistent workspace.`;
-  }
-
-  return "Move this service onto a machine runtime to attach a persistent workspace.";
+  return [
+    {
+      label: "File storage",
+      value: "Live container filesystem",
+    },
+    {
+      label: "Current runtime",
+      value: currentRuntimeLabel,
+    },
+    {
+      label: "Replica plan",
+      value: replicas === null ? "Unknown" : `${replicas}`,
+    },
+  ];
 }
 
 function AppPersistentWorkspaceSection({
@@ -409,22 +474,30 @@ function AppPersistentWorkspaceSection({
       ? app.replicaCount
       : null;
   const runtimeReadyForWorkspace =
-    currentRuntimeTarget?.runtimeType === "managed-owned"
-      ? true
-      : currentRuntimeTarget
-        ? false
-        : runtimeTargetInventoryError
-          ? null
-          : false;
+    currentRuntimeTarget
+      ? runtimeSupportsPersistentWorkspace(currentRuntimeTarget.runtimeType)
+      : runtimeTargetInventoryError
+        ? null
+        : false;
   const runtimeGuidance =
     runtimeReadyForWorkspace === false
       ? readWorkspaceRuntimeGuidance(
           currentRuntimeId,
-          currentRuntimeTarget,
           runtimeTargets,
         )
       : null;
   const replicasReadyForWorkspace = replicas === null || replicas <= 1;
+  const summaryNote = readWorkspaceSummaryNote(
+    hasWorkspace,
+    runtimeReadyForWorkspace,
+    replicasReadyForWorkspace,
+  );
+  const summaryItems = buildWorkspaceSummaryItems(
+    app,
+    hasWorkspace,
+    currentRuntimeLabel,
+    replicas,
+  );
   const hasWorkspaceBlocker =
     !hasWorkspace &&
     (runtimeReadyForWorkspace === false || !replicasReadyForWorkspace);
@@ -434,10 +507,21 @@ function AppPersistentWorkspaceSection({
       ? "warning"
       : "neutral";
   const statusLabel = hasWorkspace
-    ? "Configured"
+    ? "Attached"
     : hasWorkspaceBlocker
       ? "Unavailable"
-      : "Not configured";
+      : runtimeReadyForWorkspace === null
+        ? "Checking"
+        : "Not attached";
+  const workspaceCallout = hasWorkspace
+    ? "Rebuild from source resets this workspace on the next rollout."
+    : runtimeReadyForWorkspace === false
+      ? runtimeGuidance ??
+        "Persistent workspace currently requires a managed-shared or managed-owned runtime. This service is not on an eligible runtime yet."
+      : !replicasReadyForWorkspace
+        ? "Persistent workspace can only be attached while the app stays at one replica or fewer."
+        : null;
+  const filesActionLabel = hasWorkspace ? "Open Files" : "Browse Live Files";
   const availabilityHint =
     app.serviceRole === "pending"
       ? "Wait for the current release to finish before browsing files."
@@ -456,73 +540,26 @@ function AppPersistentWorkspaceSection({
           <h3 className="fg-route-subsection__title fg-ui-heading">
             Persistent workspace
           </h3>
-          <p className="fg-route-subsection__note">
-            Keep service files outside the live container filesystem. Files
-            survive restarts and follow managed transfer or failover handoffs.
-          </p>
+          <p className="fg-route-subsection__note">{summaryNote}</p>
         </div>
 
         <StatusBadge tone={statusTone}>{statusLabel}</StatusBadge>
       </div>
 
       <dl className="fg-settings-meta">
-        <div>
-          <dt>Current runtime</dt>
-          <dd>{currentRuntimeLabel}</dd>
-        </div>
-        <div>
-          <dt>Replica plan</dt>
-          <dd>{replicas === null ? "Unknown" : `${replicas}`}</dd>
-        </div>
-        <div>
-          <dt>Mount path</dt>
-          <dd>{hasWorkspace ? app.workspaceMountPath : "Not attached"}</dd>
-        </div>
-        <div>
-          <dt>Storage</dt>
-          <dd>
-            {hasWorkspace
-              ? app.workspaceStorageSize || "Platform default"
-              : "Attach first"}
-          </dd>
-        </div>
-        <div>
-          <dt>Storage class</dt>
-          <dd>
-            {hasWorkspace
-              ? app.workspaceStorageClassName || "Platform default"
-              : "Attach first"}
-          </dd>
-        </div>
+        {summaryItems.map((item) => (
+          <div key={item.label}>
+            <dt>{item.label}</dt>
+            <dd>{item.value}</dd>
+          </div>
+        ))}
       </dl>
 
-      {hasWorkspace ? (
-        <InlineAlert variant="info">
-          Rebuild from source resets the workspace on the next rollout. Use
-          Files to inspect or edit the persistent volume directly.
+      {workspaceCallout ? (
+        <InlineAlert variant={hasWorkspace ? "info" : "warning"}>
+          {workspaceCallout}
         </InlineAlert>
-      ) : runtimeReadyForWorkspace === false ? (
-        <InlineAlert variant="warning">
-          {runtimeGuidance ??
-            "Persistent workspace currently requires a managed-owned runtime. This service is not on an eligible runtime yet."}
-        </InlineAlert>
-      ) : !replicasReadyForWorkspace ? (
-        <InlineAlert variant="warning">
-          Persistent workspace can only be attached while the app stays at one
-          replica or fewer.
-        </InlineAlert>
-      ) : runtimeReadyForWorkspace === null ? (
-        <InlineAlert variant="info">
-          Runtime inventory is temporarily unavailable, so this panel cannot
-          verify workspace eligibility right now.
-        </InlineAlert>
-      ) : (
-        <InlineAlert variant="info">
-          Files stays on the live container filesystem until a persistent
-          workspace is attached. This panel now shows readiness and the mounted
-          storage details when it exists.
-        </InlineAlert>
-      )}
+      ) : null}
 
       <div className="fg-settings-form__actions">
         <Button
@@ -532,7 +569,7 @@ function AppPersistentWorkspaceSection({
           type="button"
           variant={hasWorkspace ? "primary" : "secondary"}
         >
-          Open Files
+          {filesActionLabel}
         </Button>
       </div>
 
