@@ -408,6 +408,8 @@ function buildAppWorkspaceView(
 ) {
   return {
     mountPath: readNullableString(workspace?.mountPath),
+    storageClassName: readNullableString(workspace?.storageClassName),
+    storageSize: readNullableString(workspace?.storageSize),
   };
 }
 

@@ -1466,6 +1466,7 @@ function buildSharedAppView(
     locationLabel: options?.location?.locationLabel ?? null,
     name: app.name,
     primaryBadge,
+    replicaCount: app.spec.replicas ?? null,
     redeployActionDescription: redeployAction.description,
     redeployActionLabel: redeployAction.label,
     redeployActionLoadingLabel: redeployAction.loadingLabel,
@@ -1488,6 +1489,8 @@ function buildSharedAppView(
     sourceLabel: readSourceLabelFromSource(source),
     sourceMeta: readFugueSourceMeta(source),
     sourceType: source.type,
+    workspaceStorageClassName: app.spec.workspace?.storageClassName ?? null,
+    workspaceStorageSize: app.spec.workspace?.storageSize ?? null,
     workspaceMountPath: app.spec.workspace
       ? (app.spec.workspace.mountPath ?? "/workspace")
       : null,
@@ -1750,6 +1753,7 @@ function buildImportRuntimeTargetView(
       locationCountryLabel: location.locationCountryLabel,
       locationLabel: isGenericInternalCluster ? null : location.locationLabel,
       primaryLabel,
+      runtimeType: runtime.type ?? null,
       statusLabel,
       statusTone,
       summaryLabel: `Internal cluster / ${primaryLabel}`,
@@ -1780,6 +1784,7 @@ function buildImportRuntimeTargetView(
     locationCountryLabel: location.locationCountryLabel,
     locationLabel: location.locationLabel,
     primaryLabel,
+    runtimeType: runtime.type ?? null,
     statusLabel,
     statusTone,
     summaryLabel: location.locationLabel

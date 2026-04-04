@@ -1313,7 +1313,7 @@
 
 .fg-console-table__resource-head-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.58rem;
   color: var(--fugue-text-muted);
   font-family: var(--fugue-font-mono);
@@ -1462,7 +1462,7 @@
 }
 
 .fg-console-table__col--usage {
-  width: 18rem;
+  width: 24rem;
 }
 
 .fg-console-table__col--phase {
@@ -1487,7 +1487,7 @@
 
 .fg-console-table__resource-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.58rem;
   min-width: 0;
 }
@@ -1561,7 +1561,7 @@
 }
 
 .fg-console-table--users .fg-console-table__col--services {
-  width: 20rem;
+  width: 24rem;
 }
 
 .fg-console-table--users .fg-console-table__col--user-actions {
@@ -2848,11 +2848,11 @@
   }
 
   .fg-console-table--apps {
-    width: 92rem;
+    width: 98rem;
   }
 
   .fg-console-table--users {
-    width: 114rem;
+    width: 118rem;
   }
 }
 

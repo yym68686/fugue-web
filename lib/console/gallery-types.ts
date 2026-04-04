@@ -68,6 +68,7 @@ export type ConsoleGalleryAppView = {
   phase: string;
   phaseTone: ConsoleTone;
   primaryBadge: ConsoleGalleryBadgeView;
+  replicaCount: number | null;
   redeployActionDescription: string;
   redeployActionLabel: string;
   redeployActionLoadingLabel: string;
@@ -89,6 +90,8 @@ export type ConsoleGalleryAppView = {
   sourceLabel: string;
   sourceMeta: string;
   sourceType: string | null;
+  workspaceStorageClassName: string | null;
+  workspaceStorageSize: string | null;
   workspaceMountPath: string | null;
 };
 
@@ -154,6 +157,7 @@ export type ConsoleImportRuntimeTargetView = {
   locationCountryLabel: string | null;
   locationLabel: string | null;
   primaryLabel: string;
+  runtimeType: string | null;
   statusLabel: string | null;
   statusTone: ConsoleTone | null;
   summaryLabel: string;

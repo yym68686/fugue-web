@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 
 import { rebuildFugueApp } from "@/lib/fugue/api";
 import {
+  resolveGitHubRepoAuthTokenForEmail,
+} from "@/lib/github/connection-store";
+import {
   jsonError,
   readErrorMessage,
   readErrorStatus,
@@ -40,11 +43,15 @@ export async function POST(request: Request, context: RouteContext) {
   try {
     const appId = await readRouteParam(context, "id");
     const body = asRecord(await request.json().catch(() => null));
+    const repoAccess = await resolveGitHubRepoAuthTokenForEmail(session.email, {
+      explicitToken: readOptionalString(body, "repoAuthToken"),
+      repoVisibility: "private",
+    });
     const result = await rebuildFugueApp(workspaceState.workspace.adminKeySecret, appId, {
       branch: readOptionalString(body, "branch"),
       buildContextDir: readOptionalString(body, "buildContextDir"),
       dockerfilePath: readOptionalString(body, "dockerfilePath"),
-      repoAuthToken: readOptionalString(body, "repoAuthToken"),
+      repoAuthToken: repoAccess.token || undefined,
       sourceDir: readOptionalString(body, "sourceDir"),
     });
 

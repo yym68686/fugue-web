@@ -31,6 +31,7 @@ import {
   inspectLocalUploadState,
   type LocalUploadState,
 } from "@/lib/fugue/local-upload";
+import type { GitHubConnectionView } from "@/lib/github/types";
 
 const SOURCE_MODE_OPTIONS: readonly SegmentedControlOption<ImportSourceMode>[] =
   [
@@ -41,6 +42,10 @@ const SOURCE_MODE_OPTIONS: readonly SegmentedControlOption<ImportSourceMode>[] =
 
 type ImportServiceFieldProps = {
   draft: ImportServiceDraft;
+  githubConnectHref?: string | null;
+  githubConnection?: GitHubConnectionView | null;
+  githubConnectionError?: string | null;
+  githubConnectionLoading?: boolean;
   idPrefix: string;
   includeWrapper?: boolean;
   inventoryError?: string | null;
@@ -52,6 +57,10 @@ type ImportServiceFieldProps = {
 
 export function ImportServiceFields({
   draft,
+  githubConnectHref = null,
+  githubConnection = null,
+  githubConnectionError = null,
+  githubConnectionLoading = false,
   idPrefix,
   includeWrapper = true,
   inventoryError = null,
@@ -245,6 +254,10 @@ export function ImportServiceFields({
       >
         {draft.sourceMode === "github" ? (
           <GitHubRepositoryAccessFields
+            githubConnectHref={githubConnectHref}
+            githubConnection={githubConnection}
+            githubConnectionError={githubConnectionError}
+            githubConnectionLoading={githubConnectionLoading}
             onTokenChange={(value) => updateField("repoAuthToken", value)}
             onVisibilityChange={(value) => updateField("repoVisibility", value)}
             token={draft.repoAuthToken}

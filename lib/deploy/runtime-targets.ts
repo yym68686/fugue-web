@@ -85,6 +85,7 @@ function buildDeployRuntimeTarget(
       locationCountryLabel: location.locationCountryLabel,
       locationLabel: isGenericInternalCluster ? null : location.locationLabel,
       primaryLabel,
+      runtimeType: runtime.type ?? null,
       statusLabel,
       statusTone,
       summaryLabel: `Internal cluster / ${primaryLabel}`,
@@ -117,6 +118,7 @@ function buildDeployRuntimeTarget(
     locationCountryLabel: location.locationCountryLabel,
     locationLabel: location.locationLabel,
     primaryLabel,
+    runtimeType: runtime.type ?? null,
     statusLabel,
     statusTone,
     summaryLabel: location.locationLabel

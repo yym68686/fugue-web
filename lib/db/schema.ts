@@ -7,7 +7,7 @@ declare global {
   var __fugueDbSchemaVersion: string | undefined;
 }
 
-const SCHEMA_VERSION = "2026-04-02-node-key-rename";
+const SCHEMA_VERSION = "2026-04-04-github-oauth";
 
 const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS app_users (
@@ -89,6 +89,18 @@ CREATE TABLE IF NOT EXISTS app_node_keys (
 ALTER TABLE app_node_keys
   ADD COLUMN IF NOT EXISTS label_override TEXT;
 
+CREATE TABLE IF NOT EXISTS app_github_connections (
+  user_email TEXT PRIMARY KEY REFERENCES app_users(email) ON DELETE CASCADE,
+  github_user_id TEXT NOT NULL,
+  github_login TEXT NOT NULL,
+  github_name TEXT,
+  github_avatar_url TEXT,
+  github_scopes JSONB NOT NULL DEFAULT '[]'::jsonb,
+  access_token_sealed TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 CREATE INDEX IF NOT EXISTS idx_app_workspaces_tenant_id
   ON app_workspaces (tenant_id);
 
@@ -112,6 +124,9 @@ CREATE INDEX IF NOT EXISTS idx_app_node_keys_tenant_id
 
 CREATE INDEX IF NOT EXISTS idx_app_node_keys_status
   ON app_node_keys (status);
+
+CREATE INDEX IF NOT EXISTS idx_app_github_connections_github_user_id
+  ON app_github_connections (github_user_id);
 
 UPDATE app_users
 SET is_admin = TRUE

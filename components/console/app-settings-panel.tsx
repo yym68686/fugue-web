@@ -4,7 +4,7 @@ import { startTransition, useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
 import { StatusBadge } from "@/components/console/status-badge";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonAnchor } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FormField } from "@/components/ui/form-field";
 import { InlineAlert } from "@/components/ui/inline-alert";
@@ -24,6 +24,7 @@ import {
   isGitHubSourceType,
   isPrivateGitHubSourceType,
 } from "@/lib/github/repository";
+import { useGitHubConnection } from "@/lib/github/connection-client";
 
 type ProjectPatchResponse = {
   project?: {
@@ -214,7 +215,7 @@ function readRepositoryAccessHint(app: ConsoleGalleryAppView) {
     return "Resume first.";
   }
 
-  return "Blank = keep current token.";
+  return "Blank = keep current access.";
 }
 
 function readSourceKindLabel(app: ConsoleGalleryAppView) {
@@ -349,6 +350,160 @@ function readTransferActionHint(app: ConsoleGalleryAppView) {
   }
 
   return null;
+}
+
+function AppPersistentWorkspaceSection({
+  app,
+  onOpenFiles,
+  runtimeTargetInventoryError,
+  runtimeTargets,
+}: {
+  app: ConsoleGalleryAppView;
+  onOpenFiles?: (() => void) | null;
+  runtimeTargetInventoryError: string | null;
+  runtimeTargets: ConsoleImportRuntimeTargetView[];
+}) {
+  const hasWorkspace = Boolean(normalizeText(app.workspaceMountPath));
+  const currentRuntimeId = app.currentRuntimeId ?? app.runtimeId;
+  const currentRuntimeTarget =
+    runtimeTargets.find((target) => target.id === currentRuntimeId) ?? null;
+  const currentRuntimeLabel =
+    currentRuntimeTarget || !runtimeTargetInventoryError
+      ? readRuntimeTargetLabel(
+          runtimeTargets,
+          currentRuntimeId,
+          "Runtime unavailable",
+        )
+      : "Inventory unavailable";
+  const replicas =
+    typeof app.replicaCount === "number" && Number.isFinite(app.replicaCount)
+      ? app.replicaCount
+      : null;
+  const runtimeReadyForWorkspace =
+    currentRuntimeTarget?.runtimeType === "managed-owned"
+      ? true
+      : currentRuntimeTarget
+        ? false
+        : runtimeTargetInventoryError
+          ? null
+          : false;
+  const replicasReadyForWorkspace = replicas === null || replicas <= 1;
+  const hasWorkspaceBlocker =
+    !hasWorkspace &&
+    (runtimeReadyForWorkspace === false || !replicasReadyForWorkspace);
+  const statusTone: ConsoleTone = hasWorkspace
+    ? "info"
+    : hasWorkspaceBlocker
+      ? "warning"
+      : "neutral";
+  const statusLabel = hasWorkspace
+    ? "Configured"
+    : hasWorkspaceBlocker
+      ? "Unavailable"
+      : "Not configured";
+  const availabilityHint =
+    app.serviceRole === "pending"
+      ? "Wait for the current release to finish before browsing files."
+      : isPausedApp(app)
+        ? "Start the service before opening Files."
+        : null;
+
+  return (
+    <section
+      aria-label="Persistent workspace"
+      className="fg-route-subsection fg-settings-section"
+    >
+      <div className="fg-route-subsection__head">
+        <div className="fg-route-subsection__copy fg-settings-section__copy">
+          <p className="fg-label fg-panel__eyebrow">Storage</p>
+          <h3 className="fg-route-subsection__title fg-ui-heading">
+            Persistent workspace
+          </h3>
+          <p className="fg-route-subsection__note">
+            Keep service files outside the live container filesystem. Files
+            survive restarts and follow managed transfer or failover handoffs.
+          </p>
+        </div>
+
+        <StatusBadge tone={statusTone}>{statusLabel}</StatusBadge>
+      </div>
+
+      <dl className="fg-settings-meta">
+        <div>
+          <dt>Current runtime</dt>
+          <dd>{currentRuntimeLabel}</dd>
+        </div>
+        <div>
+          <dt>Replica plan</dt>
+          <dd>{replicas === null ? "Unknown" : `${replicas}`}</dd>
+        </div>
+        <div>
+          <dt>Mount path</dt>
+          <dd>{hasWorkspace ? app.workspaceMountPath : "Not attached"}</dd>
+        </div>
+        <div>
+          <dt>Storage</dt>
+          <dd>
+            {hasWorkspace
+              ? app.workspaceStorageSize || "Platform default"
+              : "Attach first"}
+          </dd>
+        </div>
+        <div>
+          <dt>Storage class</dt>
+          <dd>
+            {hasWorkspace
+              ? app.workspaceStorageClassName || "Platform default"
+              : "Attach first"}
+          </dd>
+        </div>
+      </dl>
+
+      {hasWorkspace ? (
+        <InlineAlert variant="info">
+          Rebuild from source resets the workspace on the next rollout. Use
+          Files to inspect or edit the persistent volume directly.
+        </InlineAlert>
+      ) : runtimeReadyForWorkspace === false ? (
+        <InlineAlert variant="warning">
+          Persistent workspace currently requires a managed-owned runtime. This
+          service is not on an eligible runtime yet.
+        </InlineAlert>
+      ) : !replicasReadyForWorkspace ? (
+        <InlineAlert variant="warning">
+          Persistent workspace can only be attached while the app stays at one
+          replica or fewer.
+        </InlineAlert>
+      ) : runtimeReadyForWorkspace === null ? (
+        <InlineAlert variant="info">
+          Runtime inventory is temporarily unavailable, so this panel cannot
+          verify workspace eligibility right now.
+        </InlineAlert>
+      ) : (
+        <InlineAlert variant="info">
+          Files stays on the live container filesystem until a persistent
+          workspace is attached. This panel now shows readiness and the mounted
+          storage details when it exists.
+        </InlineAlert>
+      )}
+
+      <div className="fg-settings-form__actions">
+        <Button
+          disabled={!onOpenFiles}
+          onClick={onOpenFiles ?? undefined}
+          size="compact"
+          type="button"
+          variant={hasWorkspace ? "primary" : "secondary"}
+        >
+          Open Files
+        </Button>
+      </div>
+
+      {availabilityHint ? (
+        <p className="fg-console-note">{availabilityHint}</p>
+      ) : null}
+    </section>
+  );
 }
 
 function readInitialTransferTargetRuntimeId(
@@ -825,6 +980,7 @@ function AppTransferSection({
 
 export function AppSettingsPanel({
   app,
+  onOpenFiles,
   projectCatalog,
   projectId,
   projectManaged,
@@ -834,6 +990,7 @@ export function AppSettingsPanel({
   serviceCount,
 }: {
   app: ConsoleGalleryAppView;
+  onOpenFiles?: (() => void) | null;
   projectCatalog: ProjectNameEntry[];
   projectId: string;
   projectManaged: boolean;
@@ -855,6 +1012,14 @@ export function AppSettingsPanel({
   const [repoAuthTokenDraft, setRepoAuthTokenDraft] = useState("");
   const [repoAuthTokenSaving, setRepoAuthTokenSaving] = useState(false);
   const [syncSaving, setSyncSaving] = useState(false);
+  const {
+    connectHref: githubConnectHref,
+    connection: githubConnection,
+    error: githubConnectionError,
+    loading: githubConnectionLoading,
+  } = useGitHubConnection({
+    enabled: isPrivateGitHubSourceType(app.sourceType),
+  });
 
   useEffect(() => {
     setProjectBaseline(projectName);
@@ -893,8 +1058,15 @@ export function AppSettingsPanel({
   const manualRefreshState = readManualRefreshState(app);
   const branchFieldHint = readBranchFieldHint(app);
   const repositoryAccessHint = readRepositoryAccessHint(app);
+  const hasWorkspace = Boolean(normalizeText(app.workspaceMountPath));
   const branchChanged = normalizedBranch !== normalizeText(currentBranch);
   const repoAuthTokenChanged = normalizedRepoAuthToken.length > 0;
+  const hasSavedGitHubAccess = Boolean(githubConnection?.connected);
+  const repoAccessActionsVisible =
+    repoAuthTokenChanged || repoAuthTokenSaving || hasSavedGitHubAccess;
+  const repoAccessSubmitLabel = normalizedRepoAuthToken
+    ? "Update token and rebuild"
+    : "Use saved access and rebuild";
   const projectChanged = normalizedProjectName !== currentProjectName;
   const projectSlug = slugifyLikeFugue(normalizedProjectName);
   const conflictingProject = projectCatalog.find(
@@ -909,15 +1081,18 @@ export function AppSettingsPanel({
         : undefined;
   const canSaveProject =
     projectManaged && projectChanged && !projectSaving && !projectNameError;
+  const workspaceSummaryAction = hasWorkspace
+    ? "inspect the persistent workspace"
+    : "review persistent workspace readiness";
   const settingsSummary = isPrivateGitHubSource
-    ? `Rename the shared project shell, change the tracked branch, rotate saved GitHub access, set automatic failover, or move ${app.name} by hand.`
+    ? `Rename the shared project shell, change the tracked branch, rotate saved GitHub access, ${workspaceSummaryAction}, set automatic failover, or move ${app.name} by hand.`
     : isGitHubSource
-      ? `Rename the shared project shell, change which branch Fugue rebuilds from, set automatic failover, or move ${app.name} by hand.`
+      ? `Rename the shared project shell, change which branch Fugue rebuilds from, ${workspaceSummaryAction}, set automatic failover, or move ${app.name} by hand.`
       : isDockerImageSource
-        ? `Rename the shared project shell, review the saved Docker image reference, set automatic failover, or move ${app.name} by hand.`
+        ? `Rename the shared project shell, review the saved Docker image reference, ${workspaceSummaryAction}, set automatic failover, or move ${app.name} by hand.`
         : isUploadSource
-          ? `Rename the shared project shell, review the saved upload source, set automatic failover, or move ${app.name} by hand.`
-          : `Rename the shared project shell, review the saved source definition, set automatic failover, or move ${app.name} by hand.`;
+          ? `Rename the shared project shell, review the saved upload source, ${workspaceSummaryAction}, set automatic failover, or move ${app.name} by hand.`
+          : `Rename the shared project shell, review the saved source definition, ${workspaceSummaryAction}, set automatic failover, or move ${app.name} by hand.`;
   const projectSectionNote = projectManaged
     ? `${serviceCount} service${serviceCount === 1 ? "" : "s"} share this project shell. Renaming it updates the whole group.`
     : "This service still lives in the Unassigned bucket, so the shared shell cannot be renamed yet.";
@@ -1115,9 +1290,11 @@ export function AppSettingsPanel({
       return;
     }
 
-    if (!normalizedRepoAuthToken) {
+    if (!normalizedRepoAuthToken && !hasSavedGitHubAccess) {
       showToast({
-        message: "Paste a new GitHub token first.",
+        message: githubConnectionLoading
+          ? "Still checking saved GitHub access. Try again in a moment or paste a token."
+          : "Authorize GitHub or paste a new token first.",
         variant: "info",
       });
       return;
@@ -1127,9 +1304,13 @@ export function AppSettingsPanel({
 
     try {
       await requestJson<RebuildResponse>(`/api/fugue/apps/${app.id}/rebuild`, {
-        body: JSON.stringify({
-          repoAuthToken: normalizedRepoAuthToken,
-        }),
+        body: JSON.stringify(
+          normalizedRepoAuthToken
+            ? {
+                repoAuthToken: normalizedRepoAuthToken,
+              }
+            : {},
+        ),
         headers: {
           "Content-Type": "application/json",
         },
@@ -1138,7 +1319,9 @@ export function AppSettingsPanel({
 
       setRepoAuthTokenDraft("");
       showToast({
-        message: "Repository token updated. Rebuild queued.",
+        message: normalizedRepoAuthToken
+          ? "Repository token updated. Rebuild queued."
+          : "Saved GitHub access applied. Rebuild queued.",
         variant: "success",
       });
       startTransition(() => {
@@ -1411,7 +1594,7 @@ export function AppSettingsPanel({
             <div className="fg-route-subsection__copy fg-settings-section__copy">
               <p className="fg-label fg-panel__eyebrow">Source</p>
               <h3 className="fg-route-subsection__title fg-ui-heading">
-                Repository token
+                GitHub access
               </h3>
               {repositoryAccessHint ? (
                 <p className="fg-route-subsection__note">
@@ -1420,7 +1603,9 @@ export function AppSettingsPanel({
               ) : null}
             </div>
 
-            <StatusBadge tone="info">Stored token</StatusBadge>
+            <StatusBadge tone="info">
+              {hasSavedGitHubAccess ? "Saved access" : "Stored token"}
+            </StatusBadge>
           </div>
 
           <form
@@ -1445,8 +1630,50 @@ export function AppSettingsPanel({
               </span>
             </div>
 
+            {githubConnectionLoading ? (
+              <InlineAlert>Checking saved GitHub access…</InlineAlert>
+            ) : githubConnectionError ? (
+              <InlineAlert variant="warning">
+                {githubConnectionError}
+                {githubConnection?.authEnabled && githubConnectHref ? (
+                  <>
+                    {" "}
+                    <ButtonAnchor href={githubConnectHref} size="compact" variant="secondary">
+                      Reconnect GitHub
+                    </ButtonAnchor>
+                  </>
+                ) : null}
+              </InlineAlert>
+            ) : hasSavedGitHubAccess ? (
+              <InlineAlert variant="success">
+                {githubConnection?.login
+                  ? `Saved GitHub access is ready as @${githubConnection.login}.`
+                  : "Saved GitHub access is ready."}
+                {githubConnection?.authEnabled && githubConnectHref ? (
+                  <>
+                    {" "}
+                    <ButtonAnchor href={githubConnectHref} size="compact" variant="secondary">
+                      Reconnect GitHub
+                    </ButtonAnchor>
+                  </>
+                ) : null}
+              </InlineAlert>
+            ) : githubConnection?.authEnabled && githubConnectHref ? (
+              <InlineAlert>
+                Authorize GitHub in the browser, or paste a replacement token below.
+                {" "}
+                <ButtonAnchor href={githubConnectHref} size="compact" variant="secondary">
+                  Connect GitHub
+                </ButtonAnchor>
+              </InlineAlert>
+            ) : null}
+
             <FormField
-              hint="Needs GitHub repo read access."
+              hint={
+                hasSavedGitHubAccess
+                  ? "Leave blank to use saved GitHub access. Paste a token only to override it."
+                  : "Needs GitHub repo read access."
+              }
               htmlFor={`repo-auth-token-${app.id}`}
               label="Replace token"
             >
@@ -1458,28 +1685,34 @@ export function AppSettingsPanel({
                 id={`repo-auth-token-${app.id}`}
                 name="repoAuthToken"
                 onChange={(event) => setRepoAuthTokenDraft(event.target.value)}
-                placeholder="github_pat_..."
+                placeholder={
+                  hasSavedGitHubAccess
+                    ? "Paste a token to override saved GitHub access"
+                    : "github_pat_..."
+                }
                 spellCheck={false}
                 type="password"
                 value={repoAuthTokenDraft}
               />
             </FormField>
 
-            {repoAuthTokenChanged || repoAuthTokenSaving ? (
+            {repoAccessActionsVisible ? (
               <div className="fg-settings-form__actions">
-                <Button
-                  disabled={repoAuthTokenSaving}
-                  onClick={() => setRepoAuthTokenDraft("")}
-                  size="compact"
-                  type="button"
-                  variant="secondary"
-                >
-                  Reset
-                </Button>
+                {repoAuthTokenChanged || repoAuthTokenSaving ? (
+                  <Button
+                    disabled={repoAuthTokenSaving}
+                    onClick={() => setRepoAuthTokenDraft("")}
+                    size="compact"
+                    type="button"
+                    variant="secondary"
+                  >
+                    Reset
+                  </Button>
+                ) : null}
                 <Button
                   disabled={
                     !canUpdateRepoAccess ||
-                    !repoAuthTokenChanged ||
+                    (!repoAuthTokenChanged && !hasSavedGitHubAccess) ||
                     repoAuthTokenSaving
                   }
                   loading={repoAuthTokenSaving}
@@ -1488,13 +1721,20 @@ export function AppSettingsPanel({
                   type="submit"
                   variant="primary"
                 >
-                  Update token and rebuild
+                  {repoAccessSubmitLabel}
                 </Button>
               </div>
             ) : null}
           </form>
         </section>
       ) : null}
+
+      <AppPersistentWorkspaceSection
+        app={app}
+        onOpenFiles={onOpenFiles}
+        runtimeTargetInventoryError={runtimeTargetInventoryError}
+        runtimeTargets={runtimeTargets}
+      />
 
       <AppAutomaticFailoverSection
         app={app}

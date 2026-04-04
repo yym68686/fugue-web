@@ -45,6 +45,7 @@ import {
   validateImportServiceDraft,
   type ImportServiceDraft,
 } from "@/lib/fugue/import-source";
+import { useGitHubConnection } from "@/lib/github/connection-client";
 import {
   buildLocalUploadFormData,
   createLocalUploadState,
@@ -316,6 +317,14 @@ export function ConsoleProjectGallery({
   const [localUpload, setLocalUpload] = useState<LocalUploadState>(() =>
     createLocalUploadState(),
   );
+  const {
+    connectHref: githubConnectHref,
+    connection: githubConnection,
+    error: githubConnectionError,
+    loading: githubConnectionLoading,
+  } = useGitHubConnection({
+    enabled: createOpen,
+  });
   const [projectImageUsageByProjectId, setProjectImageUsageByProjectId] =
     useState<Record<string, ProjectImageUsageSummary>>(() =>
       buildProjectImageUsageMap(readCachedProjectImageUsage() ?? []),
@@ -846,6 +855,8 @@ export function ConsoleProjectGallery({
 
     const validationError = validateImportServiceDraft(importDraft, {
       localUpload,
+      privateGitHubAuthorized:
+        githubConnectionLoading || Boolean(githubConnection?.connected),
     });
 
     if (validationError) {
@@ -1200,6 +1211,10 @@ export function ConsoleProjectGallery({
 
                     <ImportServiceFields
                       draft={importDraft}
+                      githubConnectHref={githubConnectHref}
+                      githubConnection={githubConnection}
+                      githubConnectionError={githubConnectionError}
+                      githubConnectionLoading={githubConnectionLoading}
                       idPrefix="create-service"
                       includeWrapper={false}
                       inventoryError={runtimeInventory.runtimeTargetInventoryError}

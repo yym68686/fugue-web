@@ -378,7 +378,7 @@ Specialized bezel shell for command blocks and control-plane proof.
 <section class="fg-bezel fg-proof-shell">
   <div class="fg-bezel__inner">
     <div class="fg-proof-shell__ribbon">
-      <span>Public repos only</span>
+      <span>Public or private access</span>
       <span>Managed shared runtime</span>
     </div>
     <pre><code>curl -sS "${FUGUE_BASE_URL}/healthz"</code></pre>

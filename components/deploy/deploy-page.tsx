@@ -164,7 +164,7 @@ export function DeployPage({
           index: "01",
           meta:
             search.repoVisibility === "private"
-              ? "Private / Token handoff"
+              ? "Private / GitHub auth"
               : "Public / Anonymous read",
           title: "Repository access",
         },
@@ -962,8 +962,8 @@ export function DeployPage({
                   </PanelTitle>
                   <PanelCopy>
                     Public repositories can be inspected immediately. Private
-                    repositories can be authorized after sign-in with a GitHub
-                    token.
+                    repositories can be authorized after sign-in with GitHub or
+                    a token override.
                   </PanelCopy>
 
                   <form

@@ -20,6 +20,7 @@ const DEFAULT_INTERNAL_CLUSTER_TARGET = {
   locationCountryLabel: null,
   locationLabel: null,
   primaryLabel: "Internal cluster",
+  runtimeType: "managed-shared",
   statusLabel: null,
   statusTone: null,
   summaryLabel: "Internal cluster",

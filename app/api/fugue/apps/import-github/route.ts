@@ -9,6 +9,10 @@ import {
   resolveGitHubRepoVisibility,
 } from "@/lib/github/repository";
 import {
+  resolveGitHubRepoAuthTokenForEmail,
+} from "@/lib/github/connection-store";
+import { PRIVATE_GITHUB_AUTH_REQUIRED_MESSAGE } from "@/lib/github/messages";
+import {
   getWorkspaceAccessByEmail,
   saveWorkspaceAccess,
   type WorkspaceAccess,
@@ -126,13 +130,6 @@ export async function POST(request: Request) {
     return jsonError(400, "Repository access must be public or private.");
   }
 
-  if (resolvedRepoVisibility === "private" && !repoAuthToken) {
-    return jsonError(
-      400,
-      "Private GitHub repositories require a GitHub token with repository read access.",
-    );
-  }
-
   if (buildStrategy && !ALLOWED_BUILD_STRATEGIES.has(buildStrategy)) {
     return jsonError(400, "Unsupported build strategy.");
   }
@@ -143,6 +140,15 @@ export async function POST(request: Request) {
 
   try {
     await ensureAppUser(session);
+    const repoAccess = await resolveGitHubRepoAuthTokenForEmail(session.email, {
+      explicitToken: repoAuthToken,
+      repoVisibility: resolvedRepoVisibility,
+    });
+
+    if (resolvedRepoVisibility === "private" && !repoAccess.token) {
+      return jsonError(400, PRIVATE_GITHUB_AUTH_REQUIRED_MESSAGE);
+    }
+
     const existing = await getWorkspaceAccessByEmail(session.email);
 
     if (!existing) {
@@ -158,7 +164,7 @@ export async function POST(request: Request) {
       dockerfilePath: dockerfilePath || undefined,
       name: name || undefined,
       projectId: workspace.defaultProjectId ?? undefined,
-      repoAuthToken: repoAuthToken || undefined,
+      repoAuthToken: repoAccess.token || undefined,
       repoUrl,
       repoVisibility: resolvedRepoVisibility,
       runtimeId: runtimeId || undefined,

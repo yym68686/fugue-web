@@ -43,6 +43,7 @@ const ADMIN_APP_USAGE_HEADINGS = [
   { id: "cpu", label: "CPU" },
   { id: "memory", label: "Memory" },
   { id: "storage", label: "Disk" },
+  { id: "images", label: "Images" },
 ] as const;
 
 function readErrorMessage(error: unknown) {

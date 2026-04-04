@@ -71,6 +71,7 @@ type AdminUserView = {
 type AdminUserServiceUsageView = {
   cpuLabel: string;
   diskLabel: string;
+  imageLabel: string;
   memoryLabel: string;
   serviceCount: number;
   serviceCountLabel: string;
@@ -779,7 +780,7 @@ export function AdminUserManager({
                 <span className="fg-admin-user-column-head">
                   <span className="fg-admin-user-column-head__label">Service usage</span>
                   <span className="fg-admin-user-column-head__meta">
-                    Services / CPU / Memory / Disk
+                    Services / CPU / Memory / Disk / Images
                   </span>
                 </span>
               </th>
@@ -870,6 +871,7 @@ export function AdminUserManager({
                 `CPU ${user.usage.cpuLabel}`,
                 `Memory ${user.usage.memoryLabel}`,
                 `Disk ${user.usage.diskLabel}`,
+                `Images ${user.usage.imageLabel}`,
               ].join(" / ");
 
               return (
@@ -950,6 +952,10 @@ export function AdminUserManager({
                         <div className="fg-admin-user-signal">
                           <dt>Disk</dt>
                           <dd>{user.usage.diskLabel}</dd>
+                        </div>
+                        <div className="fg-admin-user-signal">
+                          <dt>Images</dt>
+                          <dd>{user.usage.imageLabel}</dd>
                         </div>
                       </dl>
                     </div>

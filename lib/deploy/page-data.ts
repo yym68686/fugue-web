@@ -11,9 +11,14 @@ import {
   inspectGitHubTemplate,
 } from "@/lib/fugue/api";
 import { getFugueEnv } from "@/lib/fugue/env";
+import {
+  resolveGitHubRepoAuthTokenForEmail,
+} from "@/lib/github/connection-store";
+import { PRIVATE_GITHUB_AUTH_REQUIRED_MESSAGE } from "@/lib/github/messages";
 import { isGitHubRepoUrl } from "@/lib/github/repository";
 import type { DeploySearchState } from "@/lib/deploy/query";
 import { buildDeployRuntimeTargets } from "@/lib/deploy/runtime-targets";
+import type { SessionUser } from "@/lib/auth/session";
 import { getCurrentSession } from "@/lib/auth/session";
 import { ensureWorkspaceAccess } from "@/lib/workspace/bootstrap";
 import type { WorkspaceAccess } from "@/lib/workspace/store";
@@ -44,7 +49,10 @@ function readErrorMessage(error: unknown) {
     .trim();
 }
 
-async function loadInspection(search: DeploySearchState) {
+async function loadInspection(
+  search: DeploySearchState,
+  session: SessionUser | null,
+) {
   if (search.sourceMode !== "repository") {
     return {
       inspection: null,
@@ -68,9 +76,26 @@ async function loadInspection(search: DeploySearchState) {
   }
 
   try {
+    const repoAccess =
+      search.repoVisibility === "private" && session
+        ? await resolveGitHubRepoAuthTokenForEmail(session.email, {
+            repoVisibility: search.repoVisibility,
+          })
+        : null;
+
+    if (search.repoVisibility === "private" && !repoAccess?.token) {
+      return {
+        inspection: null,
+        inspectionError: session
+          ? PRIVATE_GITHUB_AUTH_REQUIRED_MESSAGE
+          : "Sign in and authorize GitHub before inspecting private repositories.",
+      };
+    }
+
     return {
       inspection: await inspectGitHubTemplate(getFugueEnv().bootstrapKey, {
         branch: search.branch || undefined,
+        repoAuthToken: repoAccess?.token || undefined,
         repoUrl: search.repositoryUrl,
         repoVisibility: search.repoVisibility,
       }),
@@ -84,9 +109,9 @@ async function loadInspection(search: DeploySearchState) {
   }
 }
 
-async function loadWorkspaceInventory(): Promise<DeployWorkspaceInventory> {
-  const session = await getCurrentSession();
-
+async function loadWorkspaceInventory(
+  session: SessionUser | null,
+): Promise<DeployWorkspaceInventory> {
   if (!session) {
     return {
       projectInventoryError: null,
@@ -141,10 +166,10 @@ async function loadWorkspaceInventory(): Promise<DeployWorkspaceInventory> {
 export async function getDeployPageData(
   search: DeploySearchState,
 ): Promise<DeployPageData> {
-  const [session, inspectionState, workspaceInventory] = await Promise.all([
-    getCurrentSession(),
-    loadInspection(search),
-    loadWorkspaceInventory(),
+  const session = await getCurrentSession();
+  const [inspectionState, workspaceInventory] = await Promise.all([
+    loadInspection(search, session),
+    loadWorkspaceInventory(session),
   ]);
 
   return {

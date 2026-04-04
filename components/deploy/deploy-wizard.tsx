@@ -30,6 +30,8 @@ import {
   supportsGitHubSourceDir,
   type BuildStrategyValue,
 } from "@/lib/fugue/import-source";
+import { useGitHubConnection } from "@/lib/github/connection-client";
+import { PRIVATE_GITHUB_AUTH_REQUIRED_MESSAGE } from "@/lib/github/messages";
 import type { GitHubRepoVisibility } from "@/lib/github/repository";
 import { isGitHubRepoUrl } from "@/lib/github/repository";
 
@@ -151,6 +153,12 @@ export function DeployWizard({
     initialRepoVisibility,
   );
   const [repoAuthToken, setRepoAuthToken] = useState("");
+  const {
+    connectHref: githubConnectHref,
+    connection: githubConnection,
+    error: githubConnectionError,
+    loading: githubConnectionLoading,
+  } = useGitHubConnection();
   const [branch, setBranch] = useState(initialBranch);
   const [name, setName] = useState("");
   const [selectedProjectId, setSelectedProjectId] = useState(
@@ -213,8 +221,13 @@ export function DeployWizard({
       return "GitHub repository links must use https://github.com/owner/repo.";
     }
 
-    if (repoVisibility === "private" && !repoAuthToken.trim()) {
-      return "Private GitHub repositories require a GitHub token with repository read access.";
+    if (
+      repoVisibility === "private" &&
+      !repoAuthToken.trim() &&
+      !githubConnection?.connected &&
+      !githubConnectionLoading
+    ) {
+      return PRIVATE_GITHUB_AUTH_REQUIRED_MESSAGE;
     }
 
     if (selectedProjectId === NEW_PROJECT_VALUE && !projectName.trim()) {
@@ -428,6 +441,10 @@ export function DeployWizard({
         </PanelCopy>
 
         <GitHubRepositoryAccessFields
+          githubConnectHref={githubConnectHref}
+          githubConnection={githubConnection}
+          githubConnectionError={githubConnectionError}
+          githubConnectionLoading={githubConnectionLoading}
           onTokenChange={setRepoAuthToken}
           onVisibilityChange={setRepoVisibility}
           token={repoAuthToken}

@@ -529,10 +529,9 @@
 
 不要放：
 
-- Connect GitHub App
-- private repo import
+- GitHub App installation
 
-因为核心还没支持。
+因为当前落地是 GitHub 网页授权或手填 token，不是 GitHub App 安装流。
 
 ## 7.7 接入 VPS
 
@@ -1156,8 +1155,8 @@ fugue-web/
 
 ### GitHub import
 
-- 只支持 public repo
-- 不要出现 private repo UI
+- 支持 public repo
+- private repo 需要 GitHub 网页授权或 token override
 
 ### Runtime logs
 
@@ -1303,7 +1302,7 @@ Product：
 
 - 不要把 Fugue tenant key 放进浏览器 localStorage
 - 不要把 bootstrap key 放进前端环境变量
-- 不要在 UI 假装 private repo import 已可用
+- 不要把 GitHub App installation 假装成现有实现
 - 不要把“Create database”按钮做出来但背后没有 API
 
 ---
@@ -1314,7 +1313,6 @@ Product：
 
 - billing / paywall
 - pricing table
-- private GitHub repo import
 - GitHub App installation
 - custom domain management UI
 - SSO / SCIM

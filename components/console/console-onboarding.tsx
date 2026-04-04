@@ -22,6 +22,7 @@ import {
   validateImportServiceDraft,
   type ImportServiceDraft,
 } from "@/lib/fugue/import-source";
+import { useGitHubConnection } from "@/lib/github/connection-client";
 import {
   buildLocalUploadFormData,
   createLocalUploadState,
@@ -99,6 +100,14 @@ export function ConsoleOnboarding({
   const [localUpload, setLocalUpload] = useState<LocalUploadState>(() =>
     createLocalUploadState(),
   );
+  const {
+    connectHref: githubConnectHref,
+    connection: githubConnection,
+    error: githubConnectionError,
+    loading: githubConnectionLoading,
+  } = useGitHubConnection({
+    enabled: importOpen,
+  });
   const importBackdropPressStartedRef = useRef(false);
   const importDialogRequested = searchParams.get("dialog") === "import";
 
@@ -250,6 +259,8 @@ export function ConsoleOnboarding({
 
     const validationError = validateImportServiceDraft(draft, {
       localUpload,
+      privateGitHubAuthorized:
+        githubConnectionLoading || Boolean(githubConnection?.connected),
     });
 
     if (validationError) {
@@ -335,7 +346,7 @@ export function ConsoleOnboarding({
         },
         {
           label: "GitHub access",
-          value: "Public or private with an optional stored token",
+          value: "Public or private with GitHub authorization or a stored token",
         },
         {
           label: "Docker images",
@@ -357,7 +368,7 @@ export function ConsoleOnboarding({
   const eyebrow = "Console / first run";
   const importDialogCopy =
     draft.sourceMode === "github"
-      ? "Paste a GitHub repository link and choose how Fugue should access it."
+      ? "Paste a GitHub repository link and choose GitHub authorization or a token for private access."
       : draft.sourceMode === "local-upload"
         ? "Drop a local folder or source files. Fugue packages them on the server, then imports the result through the upload path."
       : "Point Fugue at a published Docker image. Fugue mirrors it into the internal registry before rollout.";
@@ -437,6 +448,10 @@ export function ConsoleOnboarding({
                 >
                   <ImportServiceFields
                     draft={draft}
+                    githubConnectHref={githubConnectHref}
+                    githubConnection={githubConnection}
+                    githubConnectionError={githubConnectionError}
+                    githubConnectionLoading={githubConnectionLoading}
                     idPrefix="onboarding-import"
                     inventoryError={runtimeTargetInventoryError}
                     localUpload={localUpload}

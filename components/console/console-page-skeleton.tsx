@@ -492,6 +492,7 @@ function AdminAppsTableSkeleton() {
                   <SkeletonBlock className="fg-console-skeleton__table-label" width="1.9rem" />
                   <SkeletonBlock className="fg-console-skeleton__table-label" width="2.7rem" />
                   <SkeletonBlock className="fg-console-skeleton__table-label" width="2rem" />
+                  <SkeletonBlock className="fg-console-skeleton__table-label" width="2.8rem" />
                 </div>
               </div>
             </th>
@@ -537,6 +538,12 @@ function AdminAppsTableSkeleton() {
                 <div className="fg-console-table__resource-grid">
                   <ClusterResourceSkeleton compact showLabel={false} />
                   <ClusterResourceSkeleton compact showLabel={false} />
+                  <ClusterResourceSkeleton
+                    compact
+                    showLabel={false}
+                    showMeter={false}
+                    showSecondary={false}
+                  />
                   <ClusterResourceSkeleton
                     compact
                     showLabel={false}

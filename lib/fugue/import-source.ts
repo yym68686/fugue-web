@@ -1,5 +1,6 @@
 import type { GitHubRepoVisibility } from "@/lib/github/repository";
 import type { LocalUploadState } from "@/lib/fugue/local-upload";
+import { PRIVATE_GITHUB_AUTH_REQUIRED_MESSAGE } from "@/lib/github/messages";
 
 export type ImportSourceMode = "github" | "docker-image" | "local-upload";
 
@@ -91,15 +92,22 @@ export function localUploadPreservesDetectedTopology(
 
 export function validateImportServiceDraft(
   draft: ImportServiceDraft,
-  options?: { localUpload?: LocalUploadState | null },
+  options?: {
+    localUpload?: LocalUploadState | null;
+    privateGitHubAuthorized?: boolean;
+  },
 ) {
   if (draft.sourceMode === "github") {
     if (!draft.repoUrl.trim()) {
       return "Repository link is required.";
     }
 
-    if (draft.repoVisibility === "private" && !draft.repoAuthToken.trim()) {
-      return "Private GitHub repositories require a GitHub token.";
+    if (
+      draft.repoVisibility === "private" &&
+      !draft.repoAuthToken.trim() &&
+      !options?.privateGitHubAuthorized
+    ) {
+      return PRIVATE_GITHUB_AUTH_REQUIRED_MESSAGE;
     }
   }
 

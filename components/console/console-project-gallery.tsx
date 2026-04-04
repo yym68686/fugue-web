@@ -69,6 +69,7 @@ import {
   validateImportServiceDraft,
   type ImportServiceDraft,
 } from "@/lib/fugue/import-source";
+import { useGitHubConnection } from "@/lib/github/connection-client";
 import {
   buildLocalUploadFormData,
   createLocalUploadState,
@@ -2593,6 +2594,14 @@ export function ConsoleProjectGallery({
   const [localUpload, setLocalUpload] = useState<LocalUploadState>(() =>
     createLocalUploadState(),
   );
+  const {
+    connectHref: githubConnectHref,
+    connection: githubConnection,
+    error: githubConnectionError,
+    loading: githubConnectionLoading,
+  } = useGitHubConnection({
+    enabled: createOpen,
+  });
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
     null,
   );
@@ -3290,6 +3299,8 @@ export function ConsoleProjectGallery({
 
     const validationError = validateImportServiceDraft(importDraft, {
       localUpload,
+      privateGitHubAuthorized:
+        githubConnectionLoading || Boolean(githubConnection?.connected),
     });
 
     if (validationError) {
@@ -4523,6 +4534,12 @@ export function ConsoleProjectGallery({
                 {selectedService.kind === "app" && activeTab === "settings" ? (
                   <AppSettingsPanel
                     app={selectedService}
+                    onOpenFiles={
+                      selectedService.serviceRole === "running" &&
+                      !selectedServicePaused
+                        ? () => setActiveTab("files")
+                        : null
+                    }
                     projectCatalog={data.projects.map((item) => ({
                       id: item.id,
                       name: item.name,
@@ -4734,6 +4751,10 @@ export function ConsoleProjectGallery({
 
                     <ImportServiceFields
                       draft={importDraft}
+                      githubConnectHref={githubConnectHref}
+                      githubConnection={githubConnection}
+                      githubConnectionError={githubConnectionError}
+                      githubConnectionLoading={githubConnectionLoading}
                       idPrefix="create-service"
                       includeWrapper={false}
                       inventoryError={data.runtimeTargetInventoryError}
@@ -6250,6 +6271,12 @@ export function ConsoleProjectWorkbench({
               {selectedService.kind === "app" && activeTab === "settings" ? (
                 <AppSettingsPanel
                   app={selectedService}
+                  onOpenFiles={
+                    selectedService.serviceRole === "running" &&
+                    !selectedServicePaused
+                      ? () => setActiveTab("files")
+                      : null
+                  }
                   projectCatalog={projectCatalog}
                   projectId={detailProject.id}
                   projectManaged={detailProject.id !== "unassigned"}

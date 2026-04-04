@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { ConsoleEmptyState } from "@/components/console/console-empty-state";
@@ -10,12 +10,17 @@ import {
   ConsoleWorkspaceSettingsPageSkeleton,
 } from "@/components/console/console-page-skeleton";
 import { StatusBadge } from "@/components/console/status-badge";
+import { Button, ButtonAnchor } from "@/components/ui/button";
+import { InlineAlert } from "@/components/ui/inline-alert";
 import { Panel, PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
+import { useToast } from "@/components/ui/toast";
 import {
   CONSOLE_WORKSPACE_SETTINGS_PAGE_SNAPSHOT_URL,
   type ConsoleWorkspaceSettingsPageSnapshot,
   useConsolePageSnapshot,
 } from "@/lib/console/page-snapshot-client";
+import { useGitHubConnection } from "@/lib/github/connection-client";
+import { requestJson } from "@/lib/ui/request-json";
 
 function readSessionName(name: string | undefined, email: string) {
   return name?.trim() || email.split("@")[0] || email;
@@ -36,12 +41,38 @@ function readVerificationLabel(verified: boolean) {
   return verified ? "Verified" : "Unverified";
 }
 
+function readConnectionTimeLabel(value: string | null | undefined) {
+  if (!value) {
+    return "Not connected";
+  }
+
+  const parsed = new Date(value);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(parsed);
+}
+
 export function ConsoleWorkspaceSettingsPageShell() {
   const router = useRouter();
+  const { showToast } = useToast();
   const { data, error, loading } =
     useConsolePageSnapshot<ConsoleWorkspaceSettingsPageSnapshot>(
       CONSOLE_WORKSPACE_SETTINGS_PAGE_SNAPSHOT_URL,
     );
+  const {
+    connectHref: githubConnectHref,
+    connection: githubConnection,
+    error: githubConnectionError,
+    loading: githubConnectionLoading,
+    refresh: refreshGitHubConnection,
+  } = useGitHubConnection();
+  const [disconnectingGitHub, setDisconnectingGitHub] = useState(false);
 
   useEffect(() => {
     if (data?.state !== "workspace-missing") {
@@ -90,6 +121,35 @@ export function ConsoleWorkspaceSettingsPageShell() {
         <ConsoleWorkspaceSettingsPageSkeleton />
       </ConsoleLoadingState>
     );
+  }
+
+  async function handleDisconnectGitHub() {
+    if (disconnectingGitHub) {
+      return;
+    }
+
+    setDisconnectingGitHub(true);
+
+    try {
+      await requestJson("/api/auth/github/connection", {
+        method: "DELETE",
+      });
+      await refreshGitHubConnection();
+      showToast({
+        message: "GitHub access disconnected.",
+        variant: "success",
+      });
+    } catch (error) {
+      showToast({
+        message:
+          error instanceof Error && error.message.trim()
+            ? error.message
+            : "Could not disconnect GitHub access.",
+        variant: "error",
+      });
+    } finally {
+      setDisconnectingGitHub(false);
+    }
   }
 
   return (
@@ -188,6 +248,92 @@ export function ConsoleWorkspaceSettingsPageShell() {
                 <dd>{readVerificationLabel(data.session.verified)}</dd>
               </div>
             </dl>
+          </PanelSection>
+        </Panel>
+
+        <Panel>
+          <PanelSection>
+            <p className="fg-label fg-panel__eyebrow">Source access</p>
+            <PanelTitle>GitHub authorization</PanelTitle>
+            <PanelCopy>
+              Authorize once to deploy and auto-sync private repositories without pasting a token into each service.
+            </PanelCopy>
+          </PanelSection>
+
+          <PanelSection>
+            {githubConnectionLoading ? (
+              <InlineAlert>Checking saved GitHub access…</InlineAlert>
+            ) : githubConnectionError ? (
+              <InlineAlert variant="warning">{githubConnectionError}</InlineAlert>
+            ) : githubConnection?.connected ? (
+              <>
+                <div className="fg-console-inline-status">
+                  <StatusBadge tone="positive">Connected</StatusBadge>
+                  <StatusBadge tone="neutral">
+                    {githubConnection.login ? `@${githubConnection.login}` : "GitHub"}
+                  </StatusBadge>
+                </div>
+                <dl className="fg-console-inline-meta fg-console-inline-meta--stacked">
+                  <div>
+                    <dt>Account</dt>
+                    <dd>
+                      {githubConnection.login
+                        ? `@${githubConnection.login}`
+                        : "Saved GitHub access"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Name</dt>
+                    <dd>{githubConnection.name ?? "Not provided"}</dd>
+                  </div>
+                  <div>
+                    <dt>Scopes</dt>
+                    <dd>
+                      {githubConnection.scopes.length
+                        ? githubConnection.scopes.join(", ")
+                        : "Unknown"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Updated</dt>
+                    <dd>{readConnectionTimeLabel(githubConnection.updatedAt)}</dd>
+                  </div>
+                </dl>
+                <div className="fg-settings-form__actions">
+                  {githubConnection.authEnabled ? (
+                    <ButtonAnchor href={githubConnectHref} size="compact" variant="secondary">
+                      Reconnect GitHub
+                    </ButtonAnchor>
+                  ) : null}
+                  <Button
+                    disabled={disconnectingGitHub}
+                    loading={disconnectingGitHub}
+                    loadingLabel="Disconnecting…"
+                    size="compact"
+                    type="button"
+                    variant="danger"
+                    onClick={handleDisconnectGitHub}
+                  >
+                    Disconnect
+                  </Button>
+                </div>
+              </>
+            ) : githubConnection?.authEnabled ? (
+              <>
+                <InlineAlert>
+                  GitHub web authorization is available. Use it when a repository needs private access.
+                </InlineAlert>
+                <div className="fg-settings-form__actions">
+                  <ButtonAnchor href={githubConnectHref} size="compact" variant="primary">
+                    Connect GitHub
+                  </ButtonAnchor>
+                </div>
+              </>
+            ) : (
+              <InlineAlert variant="warning">
+                GitHub web authorization is not configured in this environment. Private repositories still need a pasted token.
+              </InlineAlert>
+            )}
           </PanelSection>
         </Panel>
       </section>

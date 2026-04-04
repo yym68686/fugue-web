@@ -8,6 +8,7 @@ import {
   getFugueApps,
   getFugueClusterNodes,
   getFugueControlPlaneStatus,
+  getFugueProjectImageUsage,
   getFugueProjects,
   getFugueTenants,
   setFugueBillingBalance,
@@ -23,6 +24,8 @@ import {
   type FugueControlPlaneComponent,
   type FugueControlPlaneStatus,
   type FugueProject,
+  type FugueProjectImageUsageAppSummary,
+  type FugueProjectImageUsageResult,
   type FugueResourceSpec,
   type FugueTenant,
 } from "@/lib/fugue/api";
@@ -117,6 +120,7 @@ export type AdminUserBillingView = {
 export type AdminUserServiceUsageView = {
   cpuLabel: string;
   diskLabel: string;
+  imageLabel: string;
   memoryLabel: string;
   serviceCount: number;
   serviceCountLabel: string;
@@ -623,6 +627,7 @@ function mapAdminApps(
   projects: FugueProject[],
   workspaces: WorkspaceSnapshot[],
   tenants: FugueTenant[],
+  appImageUsage: AdminAppImageUsageLookup,
 ) {
   const projectNames = new Map(
     projects.map((project) => [project.id, project.name] as const),
@@ -658,7 +663,7 @@ function mapAdminApps(
         phase: humanize(phase),
         phaseTone: toneForStatus(phase),
         projectLabel: app.projectId ? projectNames.get(app.projectId) ?? shortId(app.projectId) : "Unassigned",
-        resourceUsage: buildAdminAppResourceUsage(app),
+        resourceUsage: buildAdminAppResourceUsage(app, appImageUsage),
         routeHref: route.href,
         routeLabel: route.label,
         runtimeLabel: runtimeId ? shortId(runtimeId) : "Unassigned",
@@ -715,6 +720,7 @@ function buildUserViews(
   workspaces: WorkspaceSnapshot[],
   apps: FugueApp[],
   billingByTenant: Map<string, AdminTenantBillingLookup>,
+  appImageUsage: AdminAppImageUsageLookup,
 ) {
   let bootstrapAdminEmail: string | null = null;
   let bootstrapAdminCreatedAt = Number.POSITIVE_INFINITY;
@@ -739,7 +745,10 @@ function buildUserViews(
   const workspaceByEmail = new Map(
     workspaces.map((workspace) => [workspace.email, workspace] as const),
   );
-  const tenantServiceUsageByTenant = buildAdminTenantServiceUsageLookup(apps);
+  const tenantServiceUsageByTenant = buildAdminTenantServiceUsageLookup(
+    apps,
+    appImageUsage,
+  );
 
   return users.map((user) => {
     const workspace = workspaceByEmail.get(user.email);
@@ -768,7 +777,10 @@ function buildUserViews(
       serviceCount,
       status: humanize(user.status),
       statusTone: toneForStatus(user.status),
-      usage: buildAdminUserServiceUsageView(tenantServiceUsage),
+      usage: buildAdminUserServiceUsageView(
+        tenantServiceUsage,
+        appImageUsage.loaded,
+      ),
       verified: user.verified,
     } satisfies AdminUserView;
   });
@@ -962,21 +974,89 @@ function formatCPUCapacityLabel(value?: number | null) {
   return `${Math.round(value)} millicores`;
 }
 
+type AdminAppImageUsageLookup = {
+  byAppId: Map<string, FugueProjectImageUsageAppSummary>;
+  loaded: boolean;
+};
+
+function createAdminAppImageUsageLookup(
+  result?: FugueProjectImageUsageResult | null,
+): AdminAppImageUsageLookup {
+  if (!result) {
+    return {
+      byAppId: new Map<string, FugueProjectImageUsageAppSummary>(),
+      loaded: false,
+    };
+  }
+
+  const byAppId = new Map<string, FugueProjectImageUsageAppSummary>();
+
+  for (const project of result.projects ?? []) {
+    for (const app of project.apps ?? []) {
+      byAppId.set(app.appId, app);
+    }
+  }
+
+  return {
+    byAppId,
+    loaded: true,
+  };
+}
+
+function formatAdminImageUsageLabel(
+  imageUsage: FugueProjectImageUsageAppSummary | null | undefined,
+  loaded: boolean,
+) {
+  if (!loaded) {
+    return "No stats";
+  }
+
+  if (!imageUsage || imageUsage.versionCount <= 0 || imageUsage.totalSizeBytes <= 0) {
+    return "No images";
+  }
+
+  return formatBytesLabel(imageUsage.totalSizeBytes);
+}
+
+function buildAdminImageUsageSecondaryLabel(
+  imageUsage: FugueProjectImageUsageAppSummary | null | undefined,
+  loaded: boolean,
+) {
+  if (
+    !loaded ||
+    !imageUsage ||
+    imageUsage.versionCount <= 0 ||
+    imageUsage.totalSizeBytes <= 0
+  ) {
+    return null;
+  }
+
+  if (imageUsage.reclaimableSizeBytes > 0) {
+    return `${formatBytesLabel(imageUsage.reclaimableSizeBytes)} reclaimable`;
+  }
+
+  return formatCountLabel(imageUsage.versionCount, "version");
+}
+
 type AdminTenantServiceUsageSummary = {
   appIds: Set<string>;
   backingServiceIds: Set<string>;
   cpuMillicores: number | null;
   ephemeralStorageBytes: number | null;
+  imageBytes: number | null;
   memoryBytes: number | null;
   serviceCount: number;
 };
 
-function createAdminTenantServiceUsageSummary(): AdminTenantServiceUsageSummary {
+function createAdminTenantServiceUsageSummary(
+  imageUsageLoaded: boolean,
+): AdminTenantServiceUsageSummary {
   return {
     appIds: new Set<string>(),
     backingServiceIds: new Set<string>(),
     cpuMillicores: null,
     ephemeralStorageBytes: null,
+    imageBytes: imageUsageLoaded ? 0 : null,
     memoryBytes: null,
     serviceCount: 0,
   };
@@ -1006,7 +1086,10 @@ function appendResourceUsage(
   }
 }
 
-function buildAdminTenantServiceUsageLookup(apps: FugueApp[]) {
+function buildAdminTenantServiceUsageLookup(
+  apps: FugueApp[],
+  appImageUsage: AdminAppImageUsageLookup,
+) {
   const byTenant = new Map<string, AdminTenantServiceUsageSummary>();
 
   for (const app of apps) {
@@ -1015,7 +1098,8 @@ function buildAdminTenantServiceUsageLookup(apps: FugueApp[]) {
     }
 
     const summary =
-      byTenant.get(app.tenantId) ?? createAdminTenantServiceUsageSummary();
+      byTenant.get(app.tenantId) ??
+      createAdminTenantServiceUsageSummary(appImageUsage.loaded);
 
     if (!byTenant.has(app.tenantId)) {
       byTenant.set(app.tenantId, summary);
@@ -1025,6 +1109,11 @@ function buildAdminTenantServiceUsageLookup(apps: FugueApp[]) {
       summary.appIds.add(app.id);
       summary.serviceCount += 1;
       appendResourceUsage(summary, app.currentResourceUsage);
+      if (appImageUsage.loaded) {
+        summary.imageBytes =
+          (summary.imageBytes ?? 0) +
+          (appImageUsage.byAppId.get(app.id)?.totalSizeBytes ?? 0);
+      }
     }
 
     for (const service of app.backingServices) {
@@ -1043,12 +1132,18 @@ function buildAdminTenantServiceUsageLookup(apps: FugueApp[]) {
 
 function buildAdminUserServiceUsageView(
   summary: AdminTenantServiceUsageSummary | undefined,
+  imageUsageLoaded: boolean,
 ): AdminUserServiceUsageView {
   const serviceCount = summary?.serviceCount ?? 0;
 
   return {
     cpuLabel: formatCPUCapacityLabel(summary?.cpuMillicores),
     diskLabel: formatBytesLabel(summary?.ephemeralStorageBytes),
+    imageLabel: imageUsageLoaded
+      ? summary?.imageBytes && summary.imageBytes > 0
+        ? formatBytesLabel(summary.imageBytes)
+        : "No images"
+      : "No stats",
     memoryLabel: formatBytesLabel(summary?.memoryBytes),
     serviceCount,
     serviceCountLabel: formatCountLabel(serviceCount, "service"),
@@ -1059,15 +1154,30 @@ function buildResourceTitle(label: string, primaryLabel: string, secondaryLabel?
   return secondaryLabel ? `${label} / ${primaryLabel} / ${secondaryLabel}` : `${label} / ${primaryLabel}`;
 }
 
-function buildAdminAppResourceUsage(app: FugueApp): ConsoleCompactResourceItemView[] {
+function buildAdminAppResourceUsage(
+  app: FugueApp,
+  appImageUsage: AdminAppImageUsageLookup,
+): ConsoleCompactResourceItemView[] {
   const usage = app.currentResourceUsage;
+  const imageUsage = appImageUsage.byAppId.get(app.id);
   const cpuPrimaryLabel = formatCPUCapacityLabel(usage?.cpuMillicores);
   const memoryPrimaryLabel = formatBytesLabel(usage?.memoryBytes);
   const diskPrimaryLabel = formatBytesLabel(usage?.ephemeralStorageBytes);
+  const imagePrimaryLabel = formatAdminImageUsageLabel(
+    imageUsage,
+    appImageUsage.loaded,
+  );
+  const imageSecondaryLabel = buildAdminImageUsageSecondaryLabel(
+    imageUsage,
+    appImageUsage.loaded,
+  );
   const hasCpuUsage = usage?.cpuMillicores !== null && usage?.cpuMillicores !== undefined;
   const hasMemoryUsage = usage?.memoryBytes !== null && usage?.memoryBytes !== undefined;
   const hasDiskUsage =
     usage?.ephemeralStorageBytes !== null && usage?.ephemeralStorageBytes !== undefined;
+  const hasImageUsage =
+    appImageUsage.loaded &&
+    Boolean(imageUsage && imageUsage.versionCount > 0 && imageUsage.totalSizeBytes > 0);
 
   return [
     {
@@ -1104,6 +1214,21 @@ function buildAdminAppResourceUsage(app: FugueApp): ConsoleCompactResourceItemVi
         hasDiskUsage ? "Current live sample" : null,
       ),
       tone: hasDiskUsage ? "info" : "neutral",
+    },
+    {
+      id: "images",
+      label: "Images",
+      meterValue: null,
+      primaryLabel: imagePrimaryLabel,
+      secondaryLabel: imageSecondaryLabel,
+      title: buildResourceTitle(
+        "Images",
+        imagePrimaryLabel,
+        appImageUsage.loaded
+          ? imageSecondaryLabel ?? "Stored app images"
+          : null,
+      ),
+      tone: hasImageUsage ? "info" : "neutral",
     },
   ];
 }
@@ -1511,10 +1636,16 @@ export async function getAdminAppsPageData(): Promise<AdminAppsPageData> {
     };
   }
 
-  const [tenantsResult, appsResult, workspacesResult] = await Promise.allSettled([
+  const [
+    tenantsResult,
+    appsResult,
+    workspacesResult,
+    projectImageUsageResult,
+  ] = await Promise.allSettled([
     getFugueTenants(bootstrapKey),
     getFugueApps(bootstrapKey),
     listWorkspaceSnapshots(),
+    getFugueProjectImageUsage(bootstrapKey),
   ]);
 
   const errors = [
@@ -1527,18 +1658,26 @@ export async function getAdminAppsPageData(): Promise<AdminAppsPageData> {
     workspacesResult.status === "rejected"
       ? `workspaces: ${readErrorMessage(workspacesResult.reason)}`
       : null,
+    projectImageUsageResult.status === "rejected"
+      ? `project image usage: ${readErrorMessage(projectImageUsageResult.reason)}`
+      : null,
   ].filter((value): value is string => Boolean(value));
 
   const tenants = tenantsResult.status === "fulfilled" ? tenantsResult.value : [];
   const apps = appsResult.status === "fulfilled" ? appsResult.value : [];
   const workspaces = workspacesResult.status === "fulfilled" ? workspacesResult.value : [];
+  const appImageUsage = createAdminAppImageUsageLookup(
+    projectImageUsageResult.status === "fulfilled"
+      ? projectImageUsageResult.value
+      : null,
+  );
   const projectData =
     tenantsResult.status === "fulfilled"
       ? await getClusterProjects(bootstrapKey, tenants)
       : { errors: [], projects: [] };
   const projects = projectData.projects;
   errors.push(...projectData.errors);
-  const views = mapAdminApps(apps, projects, workspaces, tenants);
+  const views = mapAdminApps(apps, projects, workspaces, tenants, appImageUsage);
 
   return {
     apps: views,
@@ -1624,14 +1763,16 @@ export async function getAdminUsersPageData(): Promise<AdminUsersPageData> {
 
   let apps: FugueApp[] = [];
   let billingByTenant = new Map<string, AdminTenantBillingLookup>();
+  let appImageUsage = createAdminAppImageUsageLookup(null);
 
   try {
     const bootstrapKey = getFugueEnv().bootstrapKey;
     const userEmails = new Set(users.map((user) => user.email));
     const billingWorkspaces = workspaces.filter((workspace) => userEmails.has(workspace.email));
-    const [appsResult, billingResult] = await Promise.allSettled([
+    const [appsResult, billingResult, projectImageUsageResult] = await Promise.allSettled([
       getFugueApps(bootstrapKey),
       getAdminUserBillingLookup(bootstrapKey, billingWorkspaces),
+      getFugueProjectImageUsage(bootstrapKey),
     ]);
 
     if (appsResult.status === "fulfilled") {
@@ -1646,11 +1787,23 @@ export async function getAdminUsersPageData(): Promise<AdminUsersPageData> {
     } else {
       errors.push(`billing: ${readErrorMessage(billingResult.reason)}`);
     }
+
+    if (projectImageUsageResult.status === "fulfilled") {
+      appImageUsage = createAdminAppImageUsageLookup(projectImageUsageResult.value);
+    } else {
+      errors.push(`project image usage: ${readErrorMessage(projectImageUsageResult.reason)}`);
+    }
   } catch (error) {
     errors.push(readErrorMessage(error));
   }
 
-  const views = buildUserViews(users, workspaces, apps, billingByTenant);
+  const views = buildUserViews(
+    users,
+    workspaces,
+    apps,
+    billingByTenant,
+    appImageUsage,
+  );
 
   return {
     errors,
