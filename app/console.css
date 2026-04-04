@@ -3139,7 +3139,7 @@
 
 .fg-project-card__summary-head {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(18rem, 0.9fr) auto;
+  grid-template-columns: minmax(0, 1.1fr) minmax(26rem, 0.9fr) auto;
   grid-template-areas: "main resources side";
   gap: 1rem;
   align-items: center;
@@ -3182,7 +3182,7 @@
 .fg-project-card__summary-resources {
   grid-area: resources;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(6rem, 1fr));
   gap: 0.55rem;
   min-width: 0;
   align-self: center;

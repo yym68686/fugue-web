@@ -902,8 +902,8 @@ export function AppImagesPanel({
           <p className="fg-label fg-panel__eyebrow">Images</p>
           <p className="fg-console-note">
             Review the current managed image and older saved versions for{" "}
-            {appName}. These stored images count toward project disk usage, and
-            stale ones can be redeployed or removed here.
+            {appName}. Image storage is tracked separately from live service
+            disk usage here, and stale versions can be redeployed or removed.
           </p>
         </div>
 

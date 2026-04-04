@@ -65,20 +65,8 @@ function formatCPUMillicoresLabel(value?: number | null) {
   return `${Math.round(value)} millicores`;
 }
 
-function sumNullableNumbers(...values: Array<number | null | undefined>) {
-  let total = 0;
-  let hasValue = false;
-
-  for (const value of values) {
-    if (value === null || value === undefined || !Number.isFinite(value)) {
-      continue;
-    }
-
-    total += value;
-    hasValue = true;
-  }
-
-  return hasValue ? total : null;
+function formatVersionCountLabel(value: number) {
+  return `${value} version${value === 1 ? "" : "s"}`;
 }
 
 export function buildProjectResourceUsageView(
@@ -91,28 +79,22 @@ export function buildProjectResourceUsageView(
     imageUsage && imageUsage.reclaimableSizeBytes > 0
       ? imageUsage.reclaimableSizeBytes
       : null;
-  const diskTotalBytes = sumNullableNumbers(
-    usage.ephemeralStorageBytes,
-    imageTotalBytes,
-  );
-  const diskSecondaryLabel =
-    imageUsage && imageUsage.versionCount > 0
+  const hasImageUsage = imageTotalBytes !== null;
+  const imageSecondaryLabel =
+    hasImageUsage && imageUsage
       ? reclaimableImageBytes !== null
-        ? `Images ${formatBytesLabel(imageUsage.totalSizeBytes)} · ${formatBytesLabel(reclaimableImageBytes)} reclaimable`
-        : `Images ${formatBytesLabel(imageUsage.totalSizeBytes)}`
+        ? `${formatBytesLabel(reclaimableImageBytes)} reclaimable`
+        : formatVersionCountLabel(imageUsage.versionCount)
       : null;
-  const diskTitleParts = [
-    `Disk / ${formatBytesLabel(diskTotalBytes)} / Current project total`,
-    usage.ephemeralStorageBytes !== null
-      ? `runtime ${formatBytesLabel(usage.ephemeralStorageBytes)}`
-      : null,
-    imageTotalBytes !== null
-      ? `images ${formatBytesLabel(imageTotalBytes)}`
-      : null,
-    reclaimableImageBytes !== null
-      ? `${formatBytesLabel(reclaimableImageBytes)} reclaimable after image cleanup`
-      : null,
-  ].filter((value): value is string => Boolean(value));
+  const imageTitleParts = hasImageUsage
+    ? [
+        `Image storage / ${formatBytesLabel(imageTotalBytes)} / Stored project images`,
+        imageUsage ? formatVersionCountLabel(imageUsage.versionCount) : null,
+        reclaimableImageBytes !== null
+          ? `${formatBytesLabel(reclaimableImageBytes)} reclaimable after image cleanup`
+          : null,
+      ].filter((value): value is string => Boolean(value))
+    : [];
 
   return [
     {
@@ -137,10 +119,23 @@ export function buildProjectResourceUsageView(
       id: "storage",
       label: "Disk",
       meterValue: null,
-      primaryLabel: formatBytesLabel(diskTotalBytes),
-      secondaryLabel: diskSecondaryLabel,
-      title: diskTitleParts.join(" / "),
-      tone: diskTotalBytes !== null ? "info" : "neutral",
+      primaryLabel: formatBytesLabel(usage.ephemeralStorageBytes),
+      secondaryLabel: null,
+      title: `Disk / ${formatBytesLabel(usage.ephemeralStorageBytes)} / Live service runtime only`,
+      tone: usage.ephemeralStorageBytes !== null ? "info" : "neutral",
     },
+    ...(hasImageUsage
+      ? [
+          {
+            id: "images",
+            label: "Images",
+            meterValue: null,
+            primaryLabel: formatBytesLabel(imageTotalBytes),
+            secondaryLabel: imageSecondaryLabel,
+            title: imageTitleParts.join(" / "),
+            tone: "info" as const,
+          },
+        ]
+      : []),
   ];
 }

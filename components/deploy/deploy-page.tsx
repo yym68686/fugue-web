@@ -1,4 +1,5 @@
 import { Brand } from "@/components/brand";
+import { DeployImageWizard } from "@/components/deploy/deploy-image-wizard";
 import { DeployUploadWizard } from "@/components/deploy/deploy-upload-wizard";
 import { DeployWizard } from "@/components/deploy/deploy-wizard";
 import { Button, ButtonAnchor } from "@/components/ui/button";
@@ -54,7 +55,9 @@ export function DeployPage({
 }: DeployPageProps) {
   const effectiveSourceMode =
     routeMode === "repository" ? search.sourceMode : "repository";
+  const isImageMode = effectiveSourceMode === "docker-image";
   const isLocalUploadMode = effectiveSourceMode === "local-upload";
+  const hasImageRef = Boolean(search.imageRef.trim());
   const isValidRepositoryUrl =
     effectiveSourceMode === "repository" && search.repositoryUrl
       ? isGitHubRepoUrl(search.repositoryUrl)
@@ -83,6 +86,13 @@ export function DeployPage({
           sourceMode: "local-upload",
         })
       : null;
+  const dockerImageModeHref =
+    routeMode === "repository"
+      ? buildDeployHref("/new/repository", {
+          ...search,
+          sourceMode: "docker-image",
+        })
+      : null;
   const panelAction =
     routeMode === "template" && requestedTemplateSlug
       ? `/new/template/${requestedTemplateSlug}`
@@ -92,6 +102,10 @@ export function DeployPage({
       ? template?.name || "Deploy template."
       : isLocalUploadMode
         ? "Deploy from a local folder."
+        : isImageMode
+          ? search.appName
+            ? `Deploy ${search.appName}.`
+            : "Deploy from a Docker image."
         : inspection?.repository.repoName
           ? `Deploy ${inspection.repository.repoName}.`
           : "Deploy from GitHub.";
@@ -100,6 +114,8 @@ export function DeployPage({
       ? template.description
       : isLocalUploadMode
         ? "Drag a local folder, docker-compose.yml, fugue.yaml, Dockerfile, or source files into the browser. Fugue packages the upload on the server, then imports the detected topology without losing the route model."
+        : isImageMode
+          ? "Paste a public image reference, choose a project and runtime, and queue the first deployment. Fugue mirrors the image into the internal registry before rollout."
         : manifest
           ? "Fugue found fugue.yaml and can import the declared topology without losing the route model."
           : "Paste a GitHub repository link, inspect the source, and queue the first deployment onto shared or attached infrastructure.";
@@ -123,6 +139,26 @@ export function DeployPage({
           title: sessionPresent ? "Deploy ready" : "Sign in",
         },
       ]
+    : isImageMode
+      ? [
+          {
+            index: "01",
+            meta: "Public image / Pullable registry",
+            title: "Registry access",
+          },
+          {
+            index: "02",
+            meta: "Mirror / Internal registry",
+            title: "Image import",
+          },
+          {
+            index: "03",
+            meta: sessionPresent
+              ? "Signed in / Workspace route"
+              : "Auth handoff / ReturnTo preserved",
+            title: sessionPresent ? "Deploy ready" : "Sign in",
+          },
+        ]
     : [
         {
           index: "01",
@@ -161,6 +197,8 @@ export function DeployPage({
                   ? "Template deploy"
                   : isLocalUploadMode
                     ? "Local upload deploy"
+                    : isImageMode
+                      ? "Image deploy"
                     : "Repository deploy"
               }
             />
@@ -172,6 +210,8 @@ export function DeployPage({
                 ? "Deploy / Template"
                 : isLocalUploadMode
                   ? "Deploy / Local upload"
+                  : isImageMode
+                    ? "Deploy / Docker image"
                   : "Deploy / Repository"}
             </p>
             <h1 className="fg-display-heading">{title}</h1>
@@ -211,6 +251,8 @@ export function DeployPage({
             <ProofShellRibbon>
               {isLocalUploadMode
                 ? "Local source intake"
+                : isImageMode
+                  ? "Image intake"
                 : inspection
                   ? "Inspection result"
                   : "Repository intake"}
@@ -295,6 +337,95 @@ export function DeployPage({
                   </div>
                 </div>
               </div>
+            ) : isImageMode ? (
+              hasImageRef ? (
+                <div className="fg-deploy-proof__content">
+                  <div className="fg-deploy-proof__head">
+                    <div className="fg-deploy-proof__stat">
+                      <span className="fg-label">Image</span>
+                      <strong>{search.imageRef}</strong>
+                      <span>Published reference queued for mirror.</span>
+                    </div>
+                    <div className="fg-deploy-proof__stat">
+                      <span className="fg-label">Deploy mode</span>
+                      <strong>Single app image</strong>
+                      <span>
+                        {search.appName
+                          ? `Prefill app name ${search.appName}`
+                          : "App name is optional."}
+                      </span>
+                    </div>
+                    <div className="fg-deploy-proof__stat">
+                      <span className="fg-label">Service port</span>
+                      <strong>
+                        {search.servicePort
+                          ? `Port ${search.servicePort}`
+                          : "Set in wizard"}
+                      </strong>
+                      <span>
+                        {search.servicePort
+                          ? "Prefilled from the deploy link."
+                          : "Specify when the container listens on a known port."}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="fg-deploy-topology-grid">
+                    <div className="fg-deploy-topology-card">
+                      <span className="fg-label">Registry rules</span>
+                      <ul className="fg-deploy-note-list">
+                        <li className="fg-deploy-note-item">
+                          <span>
+                            Use a pullable public image reference from Docker
+                            Hub, GHCR, or another accessible registry.
+                          </span>
+                        </li>
+                        <li className="fg-deploy-note-item">
+                          <span>
+                            This one-click flow does not collect registry
+                            credentials before import.
+                          </span>
+                        </li>
+                        <li className="fg-deploy-note-item">
+                          <span>
+                            Fugue mirrors the image into the internal registry
+                            before rollout.
+                          </span>
+                        </li>
+                      </ul>
+                    </div>
+
+                    <div className="fg-deploy-topology-card">
+                      <span className="fg-label">Deploy rules</span>
+                      <ul className="fg-deploy-note-list">
+                        <li className="fg-deploy-note-item">
+                          <span>
+                            Runtime and project are still chosen before the
+                            deploy is queued.
+                          </span>
+                        </li>
+                        <li className="fg-deploy-note-item">
+                          <span>
+                            Service port is optional but useful for known
+                            container listeners like <code>8080</code>.
+                          </span>
+                        </li>
+                        <li className="fg-deploy-note-item">
+                          <span>
+                            The route stays stable across sign-in and returns to
+                            this exact deploy path.
+                          </span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <ProofShellEmpty
+                  description="Paste a public image reference to prefill the deploy route, then sign in to choose the project, runtime, and optional service port."
+                  title="Waiting for an image"
+                />
+              )
             ) : inspection ? (
               <div className="fg-deploy-proof__content">
                 <div className="fg-deploy-proof__head">
@@ -498,8 +629,20 @@ export function DeployPage({
           </ProofShell>
 
           <div className="fg-object-belt" aria-label="Deploy path">
-            <span>{isLocalUploadMode ? "Folder" : "Repository"}</span>
-            <span>{isLocalUploadMode ? "Archive" : "Template"}</span>
+            <span>
+              {isLocalUploadMode
+                ? "Folder"
+                : isImageMode
+                  ? "Image"
+                  : "Repository"}
+            </span>
+            <span>
+              {isLocalUploadMode
+                ? "Archive"
+                : isImageMode
+                  ? "Mirror"
+                  : "Template"}
+            </span>
             <span>Workspace</span>
             <span>Runtime</span>
             <span>Operation</span>
@@ -515,7 +658,8 @@ export function DeployPage({
                 <PanelCopy>
                   GitHub repository keeps preflight inspection and template
                   discovery. Local upload handles folders and one-off source
-                  files directly from the browser.
+                  files directly from the browser. Docker image mode starts
+                  from a published container reference.
                 </PanelCopy>
 
                 <div
@@ -524,9 +668,15 @@ export function DeployPage({
                   role="navigation"
                 >
                   <a
-                    aria-current={!isLocalUploadMode ? "page" : undefined}
-                    className={`fg-segmented__item${!isLocalUploadMode ? " is-active" : ""}`}
-                    data-state={!isLocalUploadMode ? "active" : "inactive"}
+                    aria-current={
+                      !isLocalUploadMode && !isImageMode ? "page" : undefined
+                    }
+                    className={`fg-segmented__item${!isLocalUploadMode && !isImageMode ? " is-active" : ""}`}
+                    data-state={
+                      !isLocalUploadMode && !isImageMode
+                        ? "active"
+                        : "inactive"
+                    }
                     href={repositoryModeHref ?? "/new/repository"}
                   >
                     <span className="fg-segmented__label">
@@ -543,6 +693,17 @@ export function DeployPage({
                     }
                   >
                     <span className="fg-segmented__label">Local upload</span>
+                  </a>
+                  <a
+                    aria-current={isImageMode ? "page" : undefined}
+                    className={`fg-segmented__item${isImageMode ? " is-active" : ""}`}
+                    data-state={isImageMode ? "active" : "inactive"}
+                    href={
+                      dockerImageModeHref ??
+                      "/new/repository?source-mode=docker-image"
+                    }
+                  >
+                    <span className="fg-segmented__label">Docker image</span>
                   </a>
                 </div>
               </PanelSection>
@@ -627,6 +788,161 @@ export function DeployPage({
                     <p className="fg-deploy-inline-copy">
                       After sign-in, this page reopens in Local upload mode so
                       you can drag the folder directly into the browser.
+                    </p>
+                  </PanelSection>
+                )}
+              </>
+            ) : isImageMode ? (
+              <>
+                <PanelSection>
+                  <p className="fg-label fg-panel__eyebrow">Image intake</p>
+                  <PanelTitle>
+                    {hasImageRef
+                      ? "Review the image and continue."
+                      : "Paste a container image reference."}
+                  </PanelTitle>
+                  <PanelCopy>
+                    Use a pullable public image reference. After sign-in, choose
+                    the project, runtime, and optional service port before the
+                    deploy is queued.
+                  </PanelCopy>
+
+                  <form
+                    action="/new/repository"
+                    className="fg-deploy-entry-form"
+                    method="GET"
+                  >
+                    <input
+                      name="source-mode"
+                      type="hidden"
+                      value="docker-image"
+                    />
+
+                    <div className="fg-deploy-entry-row">
+                      <FormField
+                        hint="Use a published image such as ghcr.io/example/api:1.2.3."
+                        htmlFor="deploy-entry-image-ref"
+                        label="Image reference"
+                      >
+                        <input
+                          autoCapitalize="none"
+                          className="fg-input"
+                          defaultValue={search.imageRef}
+                          id="deploy-entry-image-ref"
+                          name="image-ref"
+                          placeholder="ghcr.io/example/api:1.2.3"
+                          spellCheck={false}
+                        />
+                      </FormField>
+
+                      <FormField
+                        hint="Optional app name override."
+                        htmlFor="deploy-entry-image-name"
+                        label="App name"
+                        optionalLabel="Optional"
+                      >
+                        <input
+                          className="fg-input"
+                          defaultValue={search.appName}
+                          id="deploy-entry-image-name"
+                          name="name"
+                          placeholder="chatgpt"
+                        />
+                      </FormField>
+                    </div>
+
+                    <FormField
+                      hint="Optional known listener port such as 8080."
+                      htmlFor="deploy-entry-service-port"
+                      label="Service port"
+                      optionalLabel="Optional"
+                    >
+                      <input
+                        className="fg-input"
+                        defaultValue={search.servicePort}
+                        id="deploy-entry-service-port"
+                        inputMode="numeric"
+                        name="service-port"
+                        placeholder="8080"
+                      />
+                    </FormField>
+
+                    <div className="fg-deploy-inline-actions">
+                      <Button type="submit" variant="route">
+                        Review image
+                      </Button>
+                    </div>
+                    <p className="fg-deploy-inline-copy">
+                      The deploy link is stable. Auth handoff preserves this
+                      exact image route and returns here after sign-in.
+                    </p>
+                  </form>
+                </PanelSection>
+
+                {!hasImageRef ? (
+                  <PanelSection>
+                    <PanelCopy>
+                      Use a public image reference to unlock the deploy wizard
+                      and auth handoff.
+                    </PanelCopy>
+                  </PanelSection>
+                ) : sessionPresent ? (
+                  workspaceInventory.workspaceError ? (
+                    <PanelSection>
+                      <InlineAlert variant="error">
+                        {workspaceInventory.workspaceError}
+                      </InlineAlert>
+                    </PanelSection>
+                  ) : (
+                    <DeployImageWizard
+                      initialImageRef={search.imageRef}
+                      initialName={search.appName}
+                      initialServicePort={search.servicePort}
+                      projectInventoryError={
+                        workspaceInventory.projectInventoryError
+                      }
+                      projects={workspaceInventory.projects}
+                      runtimeTargetInventoryError={
+                        workspaceInventory.runtimeTargetInventoryError
+                      }
+                      runtimeTargets={workspaceInventory.runtimeTargets}
+                      workspaceDefaultProjectId={
+                        workspaceInventory.workspace?.defaultProjectId
+                      }
+                      workspaceDefaultProjectName={
+                        workspaceInventory.workspace?.defaultProjectName
+                      }
+                    />
+                  )
+                ) : (
+                  <PanelSection>
+                    <p className="fg-label fg-panel__eyebrow">Sign in</p>
+                    <PanelTitle>
+                      Authenticate before the deploy is queued.
+                    </PanelTitle>
+                    <PanelCopy>
+                      Fugue keeps the image reference in <code>returnTo</code>,
+                      creates a first-party session, and sends you back to this
+                      exact deploy route.
+                    </PanelCopy>
+
+                    <div className="fg-deploy-auth-actions">
+                      <ButtonAnchor
+                        href={buildReturnToHref("/auth/sign-in", currentPath)}
+                        variant="route"
+                      >
+                        Sign in to deploy
+                      </ButtonAnchor>
+                      <ButtonAnchor
+                        href={buildReturnToHref("/auth/sign-up", currentPath)}
+                        variant="secondary"
+                      >
+                        Create account
+                      </ButtonAnchor>
+                    </div>
+                    <p className="fg-deploy-inline-copy">
+                      After sign-in, the wizard reopens with the same image,
+                      app name, and port already filled in.
                     </p>
                   </PanelSection>
                 )}

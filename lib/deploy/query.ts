@@ -1,12 +1,18 @@
 import type { GitHubRepoVisibility } from "@/lib/github/repository";
 import { normalizeGitHubRepoVisibility } from "@/lib/github/repository";
 
-export type DeploySourceMode = "repository" | "local-upload";
+export type DeploySourceMode =
+  | "repository"
+  | "local-upload"
+  | "docker-image";
 
 export type DeploySearchState = {
+  appName: string;
   branch: string;
+  imageRef: string;
   repoVisibility: GitHubRepoVisibility;
   repositoryUrl: string;
+  servicePort: string;
   sourceMode: DeploySourceMode;
 };
 
@@ -33,6 +39,11 @@ function readFirstNonEmptyParam(
 
 function normalizeDeploySourceMode(value?: string | null): DeploySourceMode {
   switch (value?.trim().toLowerCase()) {
+    case "container-image":
+    case "docker":
+    case "docker-image":
+    case "image":
+      return "docker-image";
     case "local-upload":
       return "local-upload";
     case "repository":
@@ -45,7 +56,14 @@ export function readDeploySearchState(
   params: SearchParamRecord,
 ): DeploySearchState {
   return {
+    appName: readFirstNonEmptyParam(params, ["name", "app-name", "appName"]),
     branch: readFirstNonEmptyParam(params, ["branch", "ref"]),
+    imageRef: readFirstNonEmptyParam(params, [
+      "image-ref",
+      "imageRef",
+      "image",
+      "container-image",
+    ]),
     repoVisibility:
       normalizeGitHubRepoVisibility(
         readFirstNonEmptyParam(params, ["repo-visibility", "repoVisibility"]),
@@ -54,6 +72,11 @@ export function readDeploySearchState(
       "repository-url",
       "repositoryUrl",
       "repoUrl",
+    ]),
+    servicePort: readFirstNonEmptyParam(params, [
+      "service-port",
+      "servicePort",
+      "port",
     ]),
     sourceMode: normalizeDeploySourceMode(
       readFirstNonEmptyParam(params, ["source-mode", "sourceMode"]),
@@ -67,12 +90,24 @@ export function buildDeployHref(
 ) {
   const params = new URLSearchParams();
 
+  if (search.appName?.trim()) {
+    params.set("name", search.appName.trim());
+  }
+
   if (search.repositoryUrl?.trim()) {
     params.set("repository-url", search.repositoryUrl.trim());
   }
 
+  if (search.imageRef?.trim()) {
+    params.set("image-ref", search.imageRef.trim());
+  }
+
   if (search.branch?.trim()) {
     params.set("branch", search.branch.trim());
+  }
+
+  if (search.servicePort?.trim()) {
+    params.set("service-port", search.servicePort.trim());
   }
 
   if (search.repoVisibility && search.repoVisibility !== "public") {

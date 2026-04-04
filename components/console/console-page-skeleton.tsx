@@ -10,6 +10,7 @@ const SERVICE_ITEMS = Array.from({ length: 4 }, (_, index) => index);
 const API_KEY_ITEMS = Array.from({ length: 3 }, (_, index) => index);
 const PERMISSION_ITEMS = Array.from({ length: 6 }, (_, index) => index);
 const RESOURCE_ITEMS = Array.from({ length: 3 }, (_, index) => index);
+const PROJECT_RESOURCE_ITEMS = Array.from({ length: 4 }, (_, index) => index);
 const FACT_ITEMS = Array.from({ length: 6 }, (_, index) => index);
 const CONDITION_ITEMS = Array.from({ length: 3 }, (_, index) => index);
 const WORKLOAD_ITEMS = Array.from({ length: 3 }, (_, index) => index);
@@ -763,7 +764,7 @@ export function ConsoleProjectGallerySkeleton() {
                       </div>
 
                       <div className="fg-project-card__summary-resources">
-                        {RESOURCE_ITEMS.map((resource) => (
+                        {PROJECT_RESOURCE_ITEMS.map((resource) => (
                           <ClusterResourceSkeleton
                             compact
                             key={`project-summary-resource-${resource}`}
@@ -1317,7 +1318,7 @@ export function ConsoleProjectGalleryTransitionSkeleton() {
               </div>
 
               <div className="fg-project-card__summary-resources">
-                {["5.5rem", "5rem", "5.75rem"].map((width) => (
+                {["5.5rem", "5rem", "5.75rem", "5.25rem"].map((width) => (
                   <SkeletonBlock
                     className="fg-console-skeleton__badge"
                     key={width}
