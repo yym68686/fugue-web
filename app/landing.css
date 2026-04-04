@@ -157,9 +157,9 @@ body.is-ready .fg-landing-masthead {
   grid-template-columns: minmax(18rem, 38rem) minmax(16rem, 22rem);
   justify-content: space-between;
   gap: clamp(2rem, 7vw, 7rem);
-  align-items: end;
-  padding-top: clamp(4.5rem, 12vh, 10rem);
-  padding-bottom: clamp(3rem, 8vh, 6rem);
+  align-items: center;
+  padding-top: clamp(2.75rem, 7vh, 6rem);
+  padding-bottom: clamp(2.75rem, 6vh, 5rem);
 }
 
 .fg-landing-hero-media {
@@ -200,6 +200,10 @@ body.is-ready .fg-landing-hero-media {
 .fg-landing-hero-rail {
   position: relative;
   z-index: 2;
+}
+
+.fg-landing-hero-copy {
+  margin-top: clamp(-2.6rem, -4vh, -1.1rem);
 }
 
 .fg-landing-hero-copy [data-stagger],
@@ -253,14 +257,14 @@ body.is-ready .fg-landing-hero-rail[data-stagger] {
 
 .fg-landing-hero-lead {
   max-width: 31rem;
-  margin-top: 1.1rem;
+  margin-top: 0.8rem;
 }
 
 .fg-landing-hero-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.85rem;
-  margin-top: 1.55rem;
+  margin-top: 1rem;
 }
 
 .fg-landing-hero-actions--left {
@@ -649,6 +653,7 @@ body.has-scene .fg-landing-scene-container::before {
 
   .fg-landing-hero-copy {
     max-width: 40rem;
+    margin-top: 0;
   }
 
   .fg-landing-hero-rail {

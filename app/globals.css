@@ -377,14 +377,15 @@ canvas {
   min-height: 100dvh;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(20rem, 28rem);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   justify-content: space-between;
-  gap: clamp(1.5rem, 5vw, 4.25rem);
+  gap: clamp(1.5rem, 4vw, 4rem);
   align-items: center;
   padding: 0.9rem 0 1.15rem;
 }
 
 .fg-auth-stage {
+  min-width: 0;
   display: grid;
   gap: 1rem;
   align-content: center;
@@ -430,7 +431,39 @@ canvas {
 }
 
 .fg-auth-panel-slot {
+  min-width: 0;
   width: 100%;
+}
+
+.fg-auth-page--account .fg-auth-panel-slot {
+  display: grid;
+  justify-items: center;
+}
+
+.fg-auth-page--account .fg-auth-panel-slot .fg-panel {
+  width: min(100%, 32rem);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.fg-auth-page--account .fg-auth-panel-slot .fg-panel > .fg-bezel__inner {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+  display: grid;
+  gap: 1.35rem;
+}
+
+.fg-auth-page--account .fg-auth-panel-slot .fg-panel__section {
+  padding: 0;
+}
+
+.fg-auth-page--account .fg-auth-panel-slot .fg-panel__section + .fg-panel__section {
+  border-top: 0;
 }
 
 .fg-panel {
@@ -1090,7 +1123,6 @@ canvas {
 
 @media (max-width: 1120px) {
   .fg-auth-grid {
-    grid-template-columns: minmax(0, 1fr) minmax(19rem, 24rem);
     gap: 1.25rem;
   }
 
@@ -1106,7 +1138,6 @@ canvas {
 
 @media (max-width: 960px) {
   .fg-auth-grid {
-    grid-template-columns: minmax(0, 1fr) minmax(17.5rem, 22rem);
     gap: 1rem;
   }
 
@@ -1128,6 +1159,29 @@ canvas {
   .fg-auth-grid {
     grid-template-columns: 1fr;
     min-height: auto;
+    align-items: start;
+  }
+
+  .fg-auth-page--account .fg-auth-panel-slot .fg-panel {
+    width: 100%;
+    max-width: 34rem;
+  }
+
+  .fg-auth-page--account .fg-auth-stage {
+    gap: 0;
+  }
+
+  .fg-auth-page--account .fg-auth-stage__top {
+    padding-top: 0;
+    margin-bottom: 0.35rem;
+  }
+
+  .fg-auth-page--account .fg-auth-stage__copy,
+  .fg-auth-page--account .fg-auth-stage__signal,
+  .fg-auth-page--account .fg-auth-stage__notes,
+  .fg-auth-page--account .fg-object-belt,
+  .fg-auth-page--account .fg-auth-stage__footer {
+    display: none;
   }
 }
 

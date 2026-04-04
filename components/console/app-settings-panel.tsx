@@ -352,6 +352,35 @@ function readTransferActionHint(app: ConsoleGalleryAppView) {
   return null;
 }
 
+function readWorkspaceRuntimeGuidance(
+  currentRuntimeId: string | null,
+  currentRuntimeTarget: ConsoleImportRuntimeTargetView | null,
+  runtimeTargets: ConsoleImportRuntimeTargetView[],
+) {
+  const managedOwnedTargets = runtimeTargets.filter(
+    (target) =>
+      target.runtimeType === "managed-owned" && target.id !== currentRuntimeId,
+  );
+
+  if (managedOwnedTargets.length === 0) {
+    return null;
+  }
+
+  if (currentRuntimeTarget?.runtimeType === "managed-shared") {
+    if (managedOwnedTargets.length === 1) {
+      return `This service still uses the internal cluster. Even if the pod lands on your attached server through the shared pool, persistent workspace only becomes available after you move the app onto ${managedOwnedTargets[0].summaryLabel}.`;
+    }
+
+    return "This service still uses the internal cluster. Even if the pod lands on one of your attached servers through the shared pool, persistent workspace only becomes available after you move the app onto a machine runtime.";
+  }
+
+  if (managedOwnedTargets.length === 1) {
+    return `Move this service onto ${managedOwnedTargets[0].summaryLabel} to attach a persistent workspace.`;
+  }
+
+  return "Move this service onto a machine runtime to attach a persistent workspace.";
+}
+
 function AppPersistentWorkspaceSection({
   app,
   onOpenFiles,
@@ -387,6 +416,14 @@ function AppPersistentWorkspaceSection({
         : runtimeTargetInventoryError
           ? null
           : false;
+  const runtimeGuidance =
+    runtimeReadyForWorkspace === false
+      ? readWorkspaceRuntimeGuidance(
+          currentRuntimeId,
+          currentRuntimeTarget,
+          runtimeTargets,
+        )
+      : null;
   const replicasReadyForWorkspace = replicas === null || replicas <= 1;
   const hasWorkspaceBlocker =
     !hasWorkspace &&
@@ -466,8 +503,8 @@ function AppPersistentWorkspaceSection({
         </InlineAlert>
       ) : runtimeReadyForWorkspace === false ? (
         <InlineAlert variant="warning">
-          Persistent workspace currently requires a managed-owned runtime. This
-          service is not on an eligible runtime yet.
+          {runtimeGuidance ??
+            "Persistent workspace currently requires a managed-owned runtime. This service is not on an eligible runtime yet."}
         </InlineAlert>
       ) : !replicasReadyForWorkspace ? (
         <InlineAlert variant="warning">
