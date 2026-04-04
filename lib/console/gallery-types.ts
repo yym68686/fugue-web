@@ -46,6 +46,13 @@ export type ConsoleGalleryCommitView = {
 
 export type ConsoleGalleryAppServiceRole = "pending" | "running";
 
+export type ConsoleGalleryPersistentStorageMountView = {
+  kind: "directory" | "file" | null;
+  mode: number | null;
+  path: string;
+  secret: boolean;
+};
+
 export type ConsoleGalleryAppView = {
   buildLogsOperationId: string | null;
   commitViews: ConsoleGalleryCommitView[];
@@ -91,9 +98,9 @@ export type ConsoleGalleryAppView = {
   sourceLabel: string;
   sourceMeta: string;
   sourceType: string | null;
-  workspaceStorageClassName: string | null;
-  workspaceStorageSize: string | null;
-  workspaceMountPath: string | null;
+  persistentStorageMounts: ConsoleGalleryPersistentStorageMountView[];
+  persistentStorageStorageClassName: string | null;
+  persistentStorageStorageSize: string | null;
 };
 
 export type ConsoleGalleryBackingServiceView = {

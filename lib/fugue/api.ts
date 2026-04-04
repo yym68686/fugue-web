@@ -403,13 +403,26 @@ function buildAppFileView(file: CamelizedSchema<"AppFile">) {
   };
 }
 
-function buildAppWorkspaceView(
-  workspace?: CamelizedSchema<"AppWorkspaceSpec"> | null,
+function buildAppPersistentStorageMountView(
+  mount?: CamelizedSchema<"AppPersistentStorageMount"> | null,
 ) {
   return {
-    mountPath: readNullableString(workspace?.mountPath),
-    storageClassName: readNullableString(workspace?.storageClassName),
-    storageSize: readNullableString(workspace?.storageSize),
+    kind: readNullableString(mount?.kind),
+    mode: readNullableNumber(mount?.mode),
+    path: readNullableString(mount?.path),
+    secret: mount?.secret ?? false,
+  };
+}
+
+function buildAppPersistentStorageView(
+  storage?: CamelizedSchema<"AppPersistentStorageSpec"> | null,
+) {
+  return {
+    mounts: (storage?.mounts ?? [])
+      .map(buildAppPersistentStorageMountView)
+      .flatMap((mount) => (mount.path ? [mount] : [])),
+    storageClassName: readNullableString(storage?.storageClassName),
+    storageSize: readNullableString(storage?.storageSize),
   };
 }
 
@@ -641,8 +654,10 @@ function buildAppView(app: CamelizedSchema<"App">) {
       replicas,
       disabled: (replicas ?? 0) === 0,
       failover: spec?.failover ? buildAppFailoverView(spec.failover) : null,
+      persistentStorage: spec?.persistentStorage
+        ? buildAppPersistentStorageView(spec.persistentStorage)
+        : null,
       resources: spec?.resources ? buildResourceSpecView(spec.resources) : null,
-      workspace: spec?.workspace ? buildAppWorkspaceView(spec.workspace) : null,
     },
     status: {
       phase: readNullableString(status?.phase),
@@ -1454,7 +1469,12 @@ export type FugueProject = ReturnType<typeof buildProjectView>;
 export type FugueApiKey = ReturnType<typeof buildApiKeyView>;
 export type FugueNodeKey = ReturnType<typeof buildNodeKeyView>;
 export type FugueAppFile = ReturnType<typeof buildAppFileView>;
-export type FugueAppWorkspace = ReturnType<typeof buildAppWorkspaceView>;
+export type FugueAppPersistentStorageMount = ReturnType<
+  typeof buildAppPersistentStorageMountView
+>;
+export type FugueAppPersistentStorage = ReturnType<
+  typeof buildAppPersistentStorageView
+>;
 export type FugueAppFailover = ReturnType<typeof buildAppFailoverView>;
 export type FugueFilesystemEntry = ReturnType<typeof buildFilesystemEntryView>;
 export type FugueAppTechnology = ReturnType<typeof buildAppTechnologyView>;
@@ -3027,27 +3047,6 @@ export async function rebuildFugueApp(
   );
 
   return buildRebuildResultView(response);
-}
-
-export async function deployFugueApp(
-  accessToken: string,
-  appId: string,
-  options?: components["schemas"]["DeployAppRequest"],
-) {
-  const client = getClient(accessToken);
-  const response = camelizeData(
-    await expectData(
-      `/v1/apps/${encodeURIComponent(appId)}/deploy`,
-      client.POST("/v1/apps/{id}/deploy", {
-        body: options && Object.keys(options).length > 0 ? options : undefined,
-        params: {
-          path: { id: appId },
-        },
-      }),
-    ),
-  );
-
-  return buildOperationResultView(response);
 }
 
 export async function startFugueApp(accessToken: string, appId: string) {

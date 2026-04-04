@@ -73,33 +73,10 @@ type ProjectNameEntry = {
   name: string;
 };
 
-const DEFAULT_WORKSPACE_MOUNT_PATH = "/workspace";
 const DEFAULT_IMAGE_MIRROR_LIMIT = 5;
 
 function normalizeText(value?: string | null) {
   return value?.trim() ?? "";
-}
-
-function readDefaultWorkspaceMountPath(value?: string | null) {
-  return normalizeText(value) || DEFAULT_WORKSPACE_MOUNT_PATH;
-}
-
-function readWorkspaceMountPathError(value: string) {
-  const normalized = normalizeText(value);
-
-  if (!normalized) {
-    return "Mount path is required.";
-  }
-
-  if (!normalized.startsWith("/")) {
-    return "Mount path must start with /.";
-  }
-
-  if (normalized === "/") {
-    return "Mount path cannot be /.";
-  }
-
-  return null;
 }
 
 function readImageMirrorLimit(value?: number | null) {
@@ -380,14 +357,14 @@ function readInitialContinuityTargetRuntimeId(
 }
 
 function readTransferPreparationNote(app: ConsoleGalleryAppView) {
-  const hasWorkspace = Boolean(normalizeText(app.workspaceMountPath));
+  const hasPersistentStorage = app.persistentStorageMounts.length > 0;
 
-  if (hasWorkspace && app.hasPostgresService) {
-    return "Workspace sync runs before the move completes. Database stays where it is.";
+  if (hasPersistentStorage && app.hasPostgresService) {
+    return "Persistent storage sync runs before the move completes. Database stays where it is.";
   }
 
-  if (hasWorkspace) {
-    return "Workspace sync runs before the move completes.";
+  if (hasPersistentStorage) {
+    return "Persistent storage sync runs before the move completes.";
   }
 
   if (app.hasPostgresService) {
@@ -409,78 +386,40 @@ function readTransferActionHint(app: ConsoleGalleryAppView) {
   return null;
 }
 
-function runtimeSupportsPersistentWorkspace(runtimeType?: string | null) {
-  const normalized = normalizeText(runtimeType);
-  return normalized === "managed-owned" || normalized === "managed-shared";
+function readPersistentStorageSummaryNote(hasPersistentStorage: boolean) {
+  if (hasPersistentStorage) {
+    return "Mounted storage survives restarts, rebuilds, managed transfers, and failover.";
+  }
+
+  return "Files still live in the running container until persistent storage is configured.";
 }
 
-function readWorkspaceRuntimeGuidance(
-  currentRuntimeId: string | null,
-  runtimeTargets: ConsoleImportRuntimeTargetView[],
-) {
-  const eligibleTargets = runtimeTargets.filter(
-    (target) =>
-      runtimeSupportsPersistentWorkspace(target.runtimeType) &&
-      target.id !== currentRuntimeId,
-  );
-
-  if (eligibleTargets.length === 0) {
-    return null;
-  }
-
-  if (eligibleTargets.length === 1) {
-    return `Move this service onto ${eligibleTargets[0].summaryLabel} to attach persistent storage.`;
-  }
-
-  return "Move this service onto an eligible managed runtime to attach persistent storage.";
-}
-
-function readWorkspaceSummaryNote(
-  hasWorkspace: boolean,
-  runtimeReadyForWorkspace: boolean | null,
-  replicasReadyForWorkspace: boolean,
-) {
-  if (hasWorkspace) {
-    return "Mounted storage survives restarts, managed transfers, and failover.";
-  }
-
-  if (!replicasReadyForWorkspace) {
-    return "Persistent storage needs 1 replica or fewer.";
-  }
-
-  if (runtimeReadyForWorkspace === false) {
-    return "This service is not on a runtime that supports persistent storage yet.";
-  }
-
-  if (runtimeReadyForWorkspace === null) {
-    return "Persistent storage readiness is temporarily unavailable.";
-  }
-
-  return "Files still live in the running container until persistent storage is attached.";
-}
-
-function buildWorkspaceSummaryItems(
+function buildPersistentStorageSummaryItems(
   app: ConsoleGalleryAppView,
-  hasWorkspace: boolean,
+  hasPersistentStorage: boolean,
   currentRuntimeLabel: string,
   replicas: number | null,
 ) {
-  if (hasWorkspace) {
+  if (hasPersistentStorage) {
     const items = [
       {
-        label: "Mount path",
-        value: readDefaultWorkspaceMountPath(app.workspaceMountPath),
+        label: "Mounted items",
+        value: `${app.persistentStorageMounts.length}`,
       },
       {
         label: "Storage",
-        value: app.workspaceStorageSize || "Platform default",
+        value: app.persistentStorageStorageSize || "Platform default",
+      },
+      {
+        label: "Current runtime",
+        value: currentRuntimeLabel,
       },
     ];
 
-    if (normalizeText(app.workspaceStorageClassName)) {
+    if (normalizeText(app.persistentStorageStorageClassName)) {
       items.push({
         label: "Storage class",
-        value: app.workspaceStorageClassName || "Platform default",
+        value: app.persistentStorageStorageClassName || "Platform default",
       });
     }
 
@@ -501,6 +440,25 @@ function buildWorkspaceSummaryItems(
       value: replicas === null ? "Unknown" : `${replicas}`,
     },
   ];
+}
+
+function buildPersistentStorageMountItems(
+  mounts: ConsoleGalleryAppView["persistentStorageMounts"],
+) {
+  return mounts.map((mount, index) => {
+    const kindLabel =
+      mount.kind === "file"
+        ? "File"
+        : mount.kind === "directory"
+          ? "Directory"
+          : "Mount";
+    const suffix = mounts.length > 1 ? ` ${index + 1}` : " mount";
+
+    return {
+      label: `${kindLabel}${suffix}`,
+      value: mount.path,
+    };
+  });
 }
 
 function AppImageMirrorLimitSection({ app }: { app: ConsoleGalleryAppView }) {
@@ -692,7 +650,7 @@ function AppImageMirrorLimitSection({ app }: { app: ConsoleGalleryAppView }) {
   );
 }
 
-function AppPersistentWorkspaceSection({
+function AppPersistentStorageSection({
   app,
   onOpenFiles,
   runtimeTargetInventoryError,
@@ -703,9 +661,7 @@ function AppPersistentWorkspaceSection({
   runtimeTargetInventoryError: string | null;
   runtimeTargets: ConsoleImportRuntimeTargetView[];
 }) {
-  const router = useRouter();
-  const { showToast } = useToast();
-  const hasWorkspace = Boolean(normalizeText(app.workspaceMountPath));
+  const hasPersistentStorage = app.persistentStorageMounts.length > 0;
   const currentRuntimeId = app.currentRuntimeId ?? app.runtimeId;
   const currentRuntimeTarget =
     runtimeTargets.find((target) => target.id === currentRuntimeId) ?? null;
@@ -721,144 +677,27 @@ function AppPersistentWorkspaceSection({
     typeof app.replicaCount === "number" && Number.isFinite(app.replicaCount)
       ? app.replicaCount
       : null;
-  const runtimeReadyForWorkspace = currentRuntimeTarget
-    ? runtimeSupportsPersistentWorkspace(currentRuntimeTarget.runtimeType)
-    : runtimeTargetInventoryError
-      ? null
-      : false;
-  const runtimeGuidance =
-    runtimeReadyForWorkspace === false
-      ? readWorkspaceRuntimeGuidance(currentRuntimeId, runtimeTargets)
-      : null;
-  const replicasReadyForWorkspace = replicas === null || replicas <= 1;
-  const summaryNote = readWorkspaceSummaryNote(
-    hasWorkspace,
-    runtimeReadyForWorkspace,
-    replicasReadyForWorkspace,
-  );
-  const summaryItems = buildWorkspaceSummaryItems(
+  const summaryNote = readPersistentStorageSummaryNote(hasPersistentStorage);
+  const summaryItems = buildPersistentStorageSummaryItems(
     app,
-    hasWorkspace,
+    hasPersistentStorage,
     currentRuntimeLabel,
     replicas,
   );
-  const hasWorkspaceBlocker =
-    !hasWorkspace &&
-    (runtimeReadyForWorkspace === false || !replicasReadyForWorkspace);
-  const statusTone: ConsoleTone = hasWorkspace
-    ? "info"
-    : hasWorkspaceBlocker
-      ? "warning"
-      : "neutral";
-  const statusLabel = hasWorkspace
-    ? "Attached"
-    : hasWorkspaceBlocker
-      ? "Unavailable"
-      : runtimeReadyForWorkspace === null
-        ? "Checking"
-        : "Not attached";
-  const workspaceCallout = hasWorkspace
-    ? "Rebuild from source resets this storage on the next rollout."
-    : runtimeReadyForWorkspace === false
-      ? (runtimeGuidance ??
-        "Persistent storage currently requires a managed-shared or managed-owned runtime. This service is not on an eligible runtime yet.")
-      : !replicasReadyForWorkspace
-        ? "Persistent storage can only be attached while the app stays at one replica or fewer."
-        : null;
-  const filesActionLabel = hasWorkspace ? "Open Files" : "Browse Live Files";
+  const mountItems = buildPersistentStorageMountItems(
+    app.persistentStorageMounts,
+  );
+  const statusTone: ConsoleTone = hasPersistentStorage ? "info" : "neutral";
+  const statusLabel = hasPersistentStorage ? "Attached" : "Not configured";
+  const filesActionLabel = hasPersistentStorage
+    ? "Open Files"
+    : "Browse Live Files";
   const availabilityHint =
     app.serviceRole === "pending"
       ? "Wait for the current release to finish before browsing files."
       : isPausedApp(app)
         ? "Start the service before opening Files."
         : null;
-  const canAttachWorkspace =
-    !hasWorkspace &&
-    runtimeReadyForWorkspace === true &&
-    replicasReadyForWorkspace;
-  const attachActionHint =
-    runtimeReadyForWorkspace === false
-      ? workspaceCallout
-      : runtimeReadyForWorkspace === null
-        ? "Persistent storage readiness is temporarily unavailable."
-        : !replicasReadyForWorkspace
-          ? "Persistent storage can only be attached while the app stays at one replica or fewer."
-          : null;
-  const [attachFormOpen, setAttachFormOpen] = useState(false);
-  const [attachSaving, setAttachSaving] = useState(false);
-  const [mountPathDraft, setMountPathDraft] = useState(() =>
-    readDefaultWorkspaceMountPath(app.workspaceMountPath),
-  );
-  const [mountPathError, setMountPathError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setAttachFormOpen(false);
-    setAttachSaving(false);
-    setMountPathDraft(readDefaultWorkspaceMountPath(app.workspaceMountPath));
-    setMountPathError(null);
-  }, [app.id, app.workspaceMountPath]);
-
-  async function handleAttachSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (!canAttachWorkspace) {
-      showToast({
-        message: attachActionHint ?? "Persistent storage is unavailable.",
-        variant: "info",
-      });
-      return;
-    }
-
-    const normalizedMountPath = normalizeText(mountPathDraft);
-    const nextMountPathError = readWorkspaceMountPathError(normalizedMountPath);
-    if (nextMountPathError) {
-      setMountPathError(nextMountPathError);
-      return;
-    }
-
-    setAttachSaving(true);
-
-    try {
-      await requestJson<AppOperationResponse>(
-        `/api/fugue/apps/${app.id}/deploy`,
-        {
-          body: JSON.stringify({
-            mountPath: normalizedMountPath,
-          }),
-          headers: {
-            "Content-Type": "application/json",
-          },
-          method: "POST",
-        },
-      );
-
-      setMountPathError(null);
-      showToast({
-        message: `Persistent storage attach queued at ${normalizedMountPath}.`,
-        variant: "success",
-      });
-      startTransition(() => {
-        router.refresh();
-      });
-    } catch (error) {
-      showToast({
-        message: readErrorMessage(error),
-        variant: "error",
-      });
-    } finally {
-      setAttachSaving(false);
-    }
-  }
-
-  function handleAttachCancel() {
-    if (attachSaving) {
-      return;
-    }
-
-    setAttachFormOpen(false);
-    setMountPathDraft(readDefaultWorkspaceMountPath(app.workspaceMountPath));
-    setMountPathError(null);
-  }
 
   return (
     <section
@@ -886,96 +725,28 @@ function AppPersistentWorkspaceSection({
         ))}
       </dl>
 
-      {workspaceCallout ? (
-        <InlineAlert variant={hasWorkspace ? "info" : "warning"}>
-          {workspaceCallout}
-        </InlineAlert>
+      {mountItems.length > 0 ? (
+        <dl className="fg-settings-meta">
+          {mountItems.map((item) => (
+            <div key={`${item.label}:${item.value}`}>
+              <dt>{item.label}</dt>
+              <dd>{item.value}</dd>
+            </div>
+          ))}
+        </dl>
       ) : null}
 
-      {canAttachWorkspace && attachFormOpen ? (
-        <form className="fg-settings-form" onSubmit={handleAttachSubmit}>
-          <FormField
-            error={mountPathError ?? undefined}
-            hint="Use an absolute path inside the container. / is not allowed."
-            htmlFor={`workspace-mount-path-${app.id}`}
-            label="Mount Path"
-          >
-            <input
-              autoComplete="off"
-              className="fg-input"
-              id={`workspace-mount-path-${app.id}`}
-              name="mountPath"
-              onChange={(event) => {
-                setMountPathDraft(event.target.value);
-                if (mountPathError) {
-                  setMountPathError(null);
-                }
-              }}
-              spellCheck={false}
-              type="text"
-              value={mountPathDraft}
-            />
-          </FormField>
-
-          <div className="fg-settings-form__actions">
-            <Button
-              loading={attachSaving}
-              loadingLabel="Attaching…"
-              size="compact"
-              type="submit"
-              variant="primary"
-            >
-              Attach Workspace
-            </Button>
-            <Button
-              disabled={attachSaving}
-              onClick={handleAttachCancel}
-              size="compact"
-              type="button"
-              variant="secondary"
-            >
-              Cancel
-            </Button>
-            <Button
-              disabled={!onOpenFiles || attachSaving}
-              onClick={onOpenFiles ?? undefined}
-              size="compact"
-              type="button"
-              variant="ghost"
-            >
-              Browse Live Files
-            </Button>
-          </div>
-        </form>
-      ) : (
-        <div className="fg-settings-form__actions">
-          {canAttachWorkspace ? (
-            <Button
-              onClick={() => {
-                setAttachFormOpen(true);
-                setMountPathDraft(
-                  readDefaultWorkspaceMountPath(app.workspaceMountPath),
-                );
-                setMountPathError(null);
-              }}
-              size="compact"
-              type="button"
-              variant="primary"
-            >
-              Attach Workspace
-            </Button>
-          ) : null}
-          <Button
-            disabled={!onOpenFiles}
-            onClick={onOpenFiles ?? undefined}
-            size="compact"
-            type="button"
-            variant={hasWorkspace ? "primary" : "secondary"}
-          >
-            {filesActionLabel}
-          </Button>
-        </div>
-      )}
+      <div className="fg-settings-form__actions">
+        <Button
+          disabled={!onOpenFiles}
+          onClick={onOpenFiles ?? undefined}
+          size="compact"
+          type="button"
+          variant={hasPersistentStorage ? "primary" : "secondary"}
+        >
+          {filesActionLabel}
+        </Button>
+      </div>
 
       {availabilityHint ? (
         <p className="fg-console-note">{availabilityHint}</p>
@@ -1536,7 +1307,7 @@ export function AppSettingsPanel({
   const manualRefreshState = readManualRefreshState(app);
   const branchFieldHint = readBranchFieldHint(app);
   const repositoryAccessHint = readRepositoryAccessHint(app);
-  const hasWorkspace = Boolean(normalizeText(app.workspaceMountPath));
+  const hasPersistentStorage = app.persistentStorageMounts.length > 0;
   const branchChanged = normalizedBranch !== normalizeText(currentBranch);
   const repoAuthTokenChanged = normalizedRepoAuthToken.length > 0;
   const hasSavedGitHubAccess = Boolean(githubConnection?.connected);
@@ -1559,9 +1330,9 @@ export function AppSettingsPanel({
         : undefined;
   const canSaveProject =
     projectManaged && projectChanged && !projectSaving && !projectNameError;
-  const workspaceSummaryAction = hasWorkspace
+  const workspaceSummaryAction = hasPersistentStorage
     ? "inspect persistent storage"
-    : "review persistent storage readiness";
+    : "review persistent storage configuration";
   const settingsSummary = isPrivateGitHubSource
     ? `Rename the shared project shell, change the tracked branch, rotate saved GitHub access, tune saved image retention, ${workspaceSummaryAction}, set automatic failover, or move ${app.name} by hand.`
     : isGitHubSource
@@ -2221,7 +1992,7 @@ export function AppSettingsPanel({
 
       <AppImageMirrorLimitSection app={app} />
 
-      <AppPersistentWorkspaceSection
+      <AppPersistentStorageSection
         app={app}
         onOpenFiles={onOpenFiles}
         runtimeTargetInventoryError={runtimeTargetInventoryError}

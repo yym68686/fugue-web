@@ -50,6 +50,7 @@ import type {
   ConsoleGalleryAppView,
   ConsoleGalleryBadgeKind,
   ConsoleGalleryCommitView,
+  ConsoleGalleryPersistentStorageMountView,
   ConsoleProjectDetailData,
   ConsoleGalleryProjectView,
   ConsoleProjectGalleryData,
@@ -1522,6 +1523,24 @@ function readDistinctText(
   });
 
   return duplicate ? null : trimmedValue;
+}
+
+function readPersistentStorageLabel(
+  mounts: ConsoleGalleryPersistentStorageMountView[],
+) {
+  const paths = mounts
+    .map((mount) => mount.path.trim())
+    .filter((path) => path.length > 0);
+
+  if (paths.length === 0) {
+    return null;
+  }
+
+  if (paths.length === 1) {
+    return paths[0];
+  }
+
+  return `${paths.length} mounts`;
 }
 
 function renderExternalText(
@@ -4040,11 +4059,11 @@ export function ConsoleProjectGallery({
             selectedService.type,
             humanizeUiLabel(selectedService.type),
           ]);
-    const selectedServiceWorkspacePath =
+    const selectedServiceStorageLabel =
       selectedService.kind === "app" &&
       selectedService.serviceRole === "running" &&
       !selectedServicePaused
-        ? readDistinctText(selectedService.workspaceMountPath)
+        ? readPersistentStorageLabel(selectedService.persistentStorageMounts)
         : null;
     const backingServiceOwnerLabel =
       selectedService.kind === "backing-service"
@@ -4238,10 +4257,10 @@ export function ConsoleProjectGallery({
                         </dd>
                       </div>
                       {selectedService.serviceRole === "running" &&
-                      selectedServiceWorkspacePath ? (
+                      selectedServiceStorageLabel ? (
                         <div>
-                          <dt>Workspace</dt>
-                          <dd>{selectedServiceWorkspacePath}</dd>
+                          <dt>Persistent storage</dt>
+                          <dd>{selectedServiceStorageLabel}</dd>
                         </div>
                       ) : null}
                       {selectedService.serviceRole === "pending" &&
@@ -4588,7 +4607,9 @@ export function ConsoleProjectGallery({
                     appId={selectedService.id}
                     appName={selectedService.name}
                     key={selectedService.id}
-                    workspaceMountPath={selectedService.workspaceMountPath}
+                    persistentStorageMounts={
+                      selectedService.persistentStorageMounts
+                    }
                   />
                 ) : null}
 
@@ -5802,11 +5823,11 @@ export function ConsoleProjectWorkbench({
           selectedService.type,
           humanizeUiLabel(selectedService.type),
         ]);
-  const selectedServiceWorkspacePath =
+  const selectedServiceStorageLabel =
     selectedService.kind === "app" &&
     selectedService.serviceRole === "running" &&
     !selectedServicePaused
-      ? readDistinctText(selectedService.workspaceMountPath)
+      ? readPersistentStorageLabel(selectedService.persistentStorageMounts)
       : null;
   const backingServiceOwnerLabel =
     selectedService.kind === "backing-service"
@@ -5991,10 +6012,10 @@ export function ConsoleProjectWorkbench({
                       </dd>
                     </div>
                     {selectedService.serviceRole === "running" &&
-                    selectedServiceWorkspacePath ? (
+                    selectedServiceStorageLabel ? (
                       <div>
-                        <dt>Workspace</dt>
-                        <dd>{selectedServiceWorkspacePath}</dd>
+                        <dt>Persistent storage</dt>
+                        <dd>{selectedServiceStorageLabel}</dd>
                       </div>
                     ) : null}
                     {selectedService.serviceRole === "pending" &&
@@ -6327,7 +6348,9 @@ export function ConsoleProjectWorkbench({
                   appId={selectedService.id}
                   appName={selectedService.name}
                   key={selectedService.id}
-                  workspaceMountPath={selectedService.workspaceMountPath}
+                  persistentStorageMounts={
+                    selectedService.persistentStorageMounts
+                  }
                 />
               ) : null}
 

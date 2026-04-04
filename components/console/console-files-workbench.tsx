@@ -10,21 +10,23 @@ import {
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { InlineAlert } from "@/components/ui/inline-alert";
+import { SelectField } from "@/components/ui/select-field";
 import { SegmentedControl, type SegmentedControlOption } from "@/components/ui/segmented-control";
+import type { ConsoleGalleryPersistentStorageMountView } from "@/lib/console/gallery-types";
 import { useToast } from "@/components/ui/toast";
 import { cx } from "@/lib/ui/cx";
 
 type ConsoleFilesWorkbenchProps = {
   appId: string;
   appName: string;
-  workspaceMountPath: string | null;
+  persistentStorageMounts: ConsoleGalleryPersistentStorageMountView[];
 };
 
-type FilesystemRootMode = "filesystem" | "workspace";
+type FilesystemRootMode = "filesystem" | "storage";
 
 const FILESYSTEM_ROOT_MODE_OPTIONS: readonly SegmentedControlOption<FilesystemRootMode>[] = [
   { label: "Live filesystem", value: "filesystem" },
-  { label: "Persistent storage", value: "workspace" },
+  { label: "Persistent storage", value: "storage" },
 ];
 
 type FilesystemTreeEntryRecord = {
@@ -118,6 +120,7 @@ type CachedWorkbenchState = {
   directories: Record<string, DirectoryBucket>;
   expandedPaths: string[];
   fileDocuments: Record<string, FileDocument>;
+  persistentStorageRootPath: string | null;
   requestedRootPath: string;
   rootMode: FilesystemRootMode;
   rootStatus: "error" | "idle" | "loading" | "ready";
@@ -299,6 +302,55 @@ function buildSuggestedFilePath(baseDirectory: string) {
 
 function buildSuggestedDirectoryPath(baseDirectory: string) {
   return joinPath(baseDirectory, "new-folder");
+}
+
+function normalizePersistentStorageMounts(
+  mounts: ConsoleGalleryPersistentStorageMountView[],
+) {
+  return mounts.flatMap((mount) => {
+    const path = normalizeAbsolutePathInput(mount.path);
+
+    return path
+      ? [
+          {
+            ...mount,
+            path,
+          },
+        ]
+      : [];
+  });
+}
+
+function readPreferredPersistentStorageMount(
+  mounts: ReturnType<typeof normalizePersistentStorageMounts>,
+  preferredPath?: string | null,
+) {
+  const normalizedPreferredPath = normalizeAbsolutePathInput(preferredPath ?? "");
+
+  if (normalizedPreferredPath) {
+    const preferredMount = mounts.find(
+      (mount) => mount.path === normalizedPreferredPath,
+    );
+
+    if (preferredMount) {
+      return preferredMount;
+    }
+  }
+
+  return mounts.find((mount) => mount.kind === "directory") ?? mounts[0] ?? null;
+}
+
+function readPersistentStorageRootLabel(
+  mount: ReturnType<typeof normalizePersistentStorageMounts>[number],
+) {
+  const kindLabel =
+    mount.kind === "file"
+      ? "File"
+      : mount.kind === "directory"
+        ? "Directory"
+        : "Mount";
+
+  return `${kindLabel}: ${mount.path}`;
 }
 
 function parseModeInput(value: string) {
@@ -571,32 +623,54 @@ function ToolbarIconButton({
 export function ConsoleFilesWorkbench({
   appId,
   appName,
-  workspaceMountPath,
+  persistentStorageMounts,
 }: ConsoleFilesWorkbenchProps) {
   const cachedWorkbench = filesWorkbenchCache.get(appId) ?? null;
+  const normalizedPersistentStorageMounts = normalizePersistentStorageMounts(
+    persistentStorageMounts,
+  );
+  const initialPersistentStorageMount = readPreferredPersistentStorageMount(
+    normalizedPersistentStorageMounts,
+    cachedWorkbench?.persistentStorageRootPath ?? null,
+  );
   const confirm = useConfirmDialog();
   const { showToast } = useToast();
   const [rootMode, setRootMode] = useState<FilesystemRootMode>(
     () =>
-      cachedWorkbench?.rootMode === "workspace" && !workspaceMountPath
+      cachedWorkbench?.rootMode === "storage" && !initialPersistentStorageMount
         ? "filesystem"
         : (cachedWorkbench?.rootMode ??
-          (workspaceMountPath ? "workspace" : "filesystem")),
+          (initialPersistentStorageMount ? "storage" : "filesystem")),
   );
+  const [persistentStorageRootPath, setPersistentStorageRootPath] = useState<
+    string | null
+  >(() => initialPersistentStorageMount?.path ?? null);
+  const activePersistentStorageMount = readPreferredPersistentStorageMount(
+    normalizedPersistentStorageMounts,
+    persistentStorageRootPath,
+  );
+  const hasPersistentStorage = normalizedPersistentStorageMounts.length > 0;
+  const persistentStorageRootIsFile =
+    rootMode === "storage" && activePersistentStorageMount?.kind === "file";
+  const initialSelectedPath = initialPersistentStorageMount?.path ?? "/";
   const [workspaceRoot, setWorkspaceRoot] = useState(
-    () => cachedWorkbench?.workspaceRoot ?? workspaceMountPath ?? "/",
+    () => cachedWorkbench?.workspaceRoot ?? initialSelectedPath,
   );
   const [directories, setDirectories] = useState<Record<string, DirectoryBucket>>(
     () => cachedWorkbench?.directories ?? {},
   );
   const [expandedPaths, setExpandedPaths] = useState<string[]>(
-    () => cachedWorkbench?.expandedPaths ?? [workspaceMountPath ?? "/"],
+    () =>
+      cachedWorkbench?.expandedPaths ??
+      (initialPersistentStorageMount?.kind === "file"
+        ? []
+        : [initialSelectedPath]),
   );
   const [selectedNode, setSelectedNode] = useState<SelectedNode | null>(
     () =>
       cachedWorkbench?.selectedNode ?? {
-        kind: "dir",
-        path: workspaceMountPath ?? "/",
+        kind: initialPersistentStorageMount?.kind === "file" ? "file" : "dir",
+        path: initialSelectedPath,
       },
   );
   const [fileDocuments, setFileDocuments] = useState<
@@ -610,7 +684,9 @@ export function ConsoleFilesWorkbench({
   >(() => cachedWorkbench?.rootStatus ?? "loading");
   const [busyAction, setBusyAction] = useState<"delete" | "refresh" | "save" | null>(null);
   const requestedRootPath =
-    rootMode === "workspace" && workspaceMountPath ? workspaceMountPath : "/";
+    rootMode === "storage" && activePersistentStorageMount
+      ? activePersistentStorageMount.path
+      : "/";
 
   const selectedFile =
     !composer && selectedNode?.kind === "file" ? fileDocuments[selectedNode.path] ?? null : null;
@@ -625,8 +701,33 @@ export function ConsoleFilesWorkbench({
     selectedNode?.path !== workspaceRoot;
   const rootModeOptions = FILESYSTEM_ROOT_MODE_OPTIONS.map((option) => ({
     ...option,
-    disabled: Boolean(busyAction),
+    disabled:
+      option.value === "storage"
+        ? Boolean(busyAction) || !hasPersistentStorage
+        : Boolean(busyAction),
   }));
+  const persistentStorageRootOptions = normalizedPersistentStorageMounts.map(
+    (mount) => ({
+      label: readPersistentStorageRootLabel(mount),
+      value: mount.path,
+    }),
+  );
+
+  const canCreateInsideCurrentScope = !(
+    rootMode === "storage" && persistentStorageRootIsFile
+  );
+
+  const activeScopeLabel =
+    rootMode === "storage"
+      ? activePersistentStorageMount
+        ? readPersistentStorageRootLabel(activePersistentStorageMount)
+        : "Persistent storage"
+      : "Live filesystem";
+
+  const rootScopeHint =
+    rootMode === "storage" && persistentStorageRootIsFile
+      ? "This root is a mounted file. Edit its contents directly."
+      : null;
 
   function ensurePathIsWithinCurrentScope(targetPath: string) {
     const normalizedPath = normalizeAbsolutePathInput(targetPath);
@@ -635,7 +736,7 @@ export function ConsoleFilesWorkbench({
       throw new Error("Path must be absolute.");
     }
 
-    if (rootMode === "workspace" && !isPathWithin(workspaceRoot, normalizedPath)) {
+    if (rootMode === "storage" && !isPathWithin(workspaceRoot, normalizedPath)) {
       throw new Error(
         "Path must stay inside persistent storage. Switch to Live filesystem to work outside it.",
       );
@@ -795,6 +896,11 @@ export function ConsoleFilesWorkbench({
   }
 
   async function reloadDirectoryChain(targetDirectory: string) {
+    if (persistentStorageRootIsFile) {
+      await loadFile(workspaceRoot, { force: true });
+      return;
+    }
+
     const chain = directoryChain(targetDirectory, workspaceRoot);
 
     setExpandedPaths((current) => Array.from(new Set([...current, ...chain])));
@@ -819,10 +925,18 @@ export function ConsoleFilesWorkbench({
   }
 
   useEffect(() => {
-    if (!workspaceMountPath && rootMode !== "filesystem") {
+    if (!activePersistentStorageMount && rootMode !== "filesystem") {
       setRootMode("filesystem");
     }
-  }, [rootMode, workspaceMountPath]);
+  }, [activePersistentStorageMount, rootMode]);
+
+  useEffect(() => {
+    const nextRootPath = activePersistentStorageMount?.path ?? null;
+
+    if (persistentStorageRootPath !== nextRootPath) {
+      setPersistentStorageRootPath(nextRootPath);
+    }
+  }, [activePersistentStorageMount, persistentStorageRootPath]);
 
   useEffect(() => {
     let cancelled = false;
@@ -844,53 +958,107 @@ export function ConsoleFilesWorkbench({
 
     setWorkspaceRoot(requestedRootPath);
     setDirectories({});
-    setExpandedPaths([requestedRootPath]);
-    setSelectedNode({ kind: "dir", path: requestedRootPath });
+    setExpandedPaths(persistentStorageRootIsFile ? [] : [requestedRootPath]);
+    setSelectedNode({
+      kind: persistentStorageRootIsFile ? "file" : "dir",
+      path: requestedRootPath,
+    });
     setFileDocuments({});
     setComposer(null);
     setRootStatus("loading");
-    const searchParams = new URLSearchParams();
-    searchParams.set("path", requestedRootPath);
 
-    requestJson<FilesystemTreeResponse>(
-      `/api/fugue/apps/${appId}/filesystem/tree?${searchParams.toString()}`,
-    )
-      .then((response) => {
-        if (cancelled) {
-          return;
-        }
+    if (persistentStorageRootIsFile) {
+      const searchParams = new URLSearchParams();
+      searchParams.set("path", requestedRootPath);
+      searchParams.set("max_bytes", "1048576");
 
-        const resolvedRoot = response.workspaceRoot?.trim() || requestedRootPath;
-        const resolvedPath = response.path?.trim() || resolvedRoot;
-        const entries = normalizeTreeEntries(response.entries ?? []);
+      requestJson<FilesystemFileResponse>(
+        `/api/fugue/apps/${appId}/filesystem/file?${searchParams.toString()}`,
+      )
+        .then((response) => {
+          if (cancelled) {
+            return;
+          }
 
-        setWorkspaceRoot(resolvedRoot);
-        setDirectories({
-          [resolvedPath]: {
-            entries,
-            status: "ready",
-          },
+          const resolvedRoot = response.workspaceRoot?.trim() || requestedRootPath;
+          const resolvedPath = response.path?.trim() || resolvedRoot;
+
+          setWorkspaceRoot(resolvedRoot);
+          setFileDocuments({
+            [resolvedPath]: {
+              content: typeof response.content === "string" ? response.content : "",
+              dirty: false,
+              encoding: normalizeEncoding(response.encoding),
+              mode: typeof response.mode === "number" ? String(response.mode) : "",
+              modifiedAt:
+                typeof response.modifiedAt === "string"
+                  ? response.modifiedAt
+                  : null,
+              path: resolvedPath,
+              size: typeof response.size === "number" ? response.size : null,
+              status: "ready",
+              truncated: Boolean(response.truncated),
+            },
+          });
+          setExpandedPaths([]);
+          setSelectedNode({ kind: "file", path: resolvedPath });
+          setRootStatus("ready");
+        })
+        .catch((error) => {
+          if (cancelled) {
+            return;
+          }
+
+          setRootStatus("error");
+          showToast({
+            message: readErrorMessage(error),
+            variant: "error",
+          });
         });
-        setExpandedPaths([resolvedRoot]);
-        setSelectedNode({ kind: "dir", path: resolvedRoot });
-        setRootStatus("ready");
-      })
-      .catch((error) => {
-        if (cancelled) {
-          return;
-        }
+    } else {
+      const searchParams = new URLSearchParams();
+      searchParams.set("path", requestedRootPath);
 
-        setRootStatus("error");
-        showToast({
-          message: readErrorMessage(error),
-          variant: "error",
+      requestJson<FilesystemTreeResponse>(
+        `/api/fugue/apps/${appId}/filesystem/tree?${searchParams.toString()}`,
+      )
+        .then((response) => {
+          if (cancelled) {
+            return;
+          }
+
+          const resolvedRoot = response.workspaceRoot?.trim() || requestedRootPath;
+          const resolvedPath = response.path?.trim() || resolvedRoot;
+          const entries = normalizeTreeEntries(response.entries ?? []);
+
+          setWorkspaceRoot(resolvedRoot);
+          setDirectories({
+            [resolvedPath]: {
+              entries,
+              status: "ready",
+            },
+          });
+          setExpandedPaths([resolvedRoot]);
+          setSelectedNode({ kind: "dir", path: resolvedRoot });
+          setRootStatus("ready");
+        })
+        .catch((error) => {
+          if (cancelled) {
+            return;
+          }
+
+          setRootStatus("error");
+          showToast({
+            message: readErrorMessage(error),
+            variant: "error",
+          });
         });
-      });
+    }
 
     return () => {
       cancelled = true;
     };
-  }, [appId, requestedRootPath, showToast]);
+  }, [appId, persistentStorageRootIsFile, requestedRootPath, showToast]);
 
   useEffect(() => {
     filesWorkbenchCache.set(appId, {
@@ -898,6 +1066,7 @@ export function ConsoleFilesWorkbench({
       directories,
       expandedPaths,
       fileDocuments,
+      persistentStorageRootPath,
       requestedRootPath,
       rootMode,
       rootStatus,
@@ -910,6 +1079,7 @@ export function ConsoleFilesWorkbench({
     directories,
     expandedPaths,
     fileDocuments,
+    persistentStorageRootPath,
     requestedRootPath,
     rootMode,
     rootStatus,
@@ -961,6 +1131,10 @@ export function ConsoleFilesWorkbench({
   }
 
   function startNewFile() {
+    if (!canCreateInsideCurrentScope) {
+      return;
+    }
+
     const baseDirectory = currentDirectoryPath(composer, selectedNode, workspaceRoot);
     setComposer({
       content: "",
@@ -973,6 +1147,10 @@ export function ConsoleFilesWorkbench({
   }
 
   function startNewDirectory() {
+    if (!canCreateInsideCurrentScope) {
+      return;
+    }
+
     const baseDirectory = currentDirectoryPath(composer, selectedNode, workspaceRoot);
     setComposer({
       kind: "directory",
@@ -1011,7 +1189,10 @@ export function ConsoleFilesWorkbench({
 
       await reloadDirectoryChain(targetDirectory);
 
-      if (selectedNode?.kind === "file") {
+      if (
+        selectedNode?.kind === "file" &&
+        !(persistentStorageRootIsFile && selectedNode.path === workspaceRoot)
+      ) {
         await loadFile(selectedNode.path, { force: true });
       }
 
@@ -1329,6 +1510,28 @@ export function ConsoleFilesWorkbench({
     });
   }
 
+  function renderRootFileNode(targetPath: string) {
+    const isSelected = highlightedPath === targetPath;
+
+    return (
+      <div className="fg-filesystem-node" key={targetPath}>
+        <button
+          className={cx("fg-filesystem-node__button", isSelected && "is-active")}
+          onClick={() => handleFileSelect(targetPath)}
+          style={{ "--fg-filesystem-depth": 0 } as CSSProperties}
+          title={targetPath}
+          type="button"
+        >
+          <span className="fg-filesystem-node__lead">
+            <span className="fg-filesystem-node__disclosure is-placeholder" />
+            <FileIcon />
+          </span>
+          <span className="fg-filesystem-node__label">{basename(targetPath)}</span>
+        </button>
+      </div>
+    );
+  }
+
   const pathSegments = buildPathSegments(
     selectedNode?.path ?? workspaceRoot,
     workspaceRoot,
@@ -1377,14 +1580,14 @@ export function ConsoleFilesWorkbench({
                   <RefreshIcon />
                 </ToolbarIconButton>
                 <ToolbarIconButton
-                  disabled={Boolean(busyAction)}
+                  disabled={Boolean(busyAction) || !canCreateInsideCurrentScope}
                   label="Create new file"
                   onClick={startNewFile}
                 >
                   <FilePlusIcon />
                 </ToolbarIconButton>
                 <ToolbarIconButton
-                  disabled={Boolean(busyAction)}
+                  disabled={Boolean(busyAction) || !canCreateInsideCurrentScope}
                   label="Create new folder"
                   onClick={startNewDirectory}
                 >
@@ -1392,14 +1595,39 @@ export function ConsoleFilesWorkbench({
                 </ToolbarIconButton>
               </div>
             </div>
-            {workspaceMountPath ? (
-              <SegmentedControl
-                ariaLabel="Filesystem scope"
-                className="fg-filesystem__scope-switch"
-                onChange={setRootMode}
-                options={rootModeOptions}
-                value={rootMode}
-              />
+            {hasPersistentStorage ? (
+              <div className="fg-filesystem__scope-controls">
+                <SegmentedControl
+                  ariaLabel="Filesystem scope"
+                  className="fg-filesystem__scope-switch"
+                  onChange={setRootMode}
+                  options={rootModeOptions}
+                  value={rootMode}
+                />
+                {rootMode === "storage" &&
+                persistentStorageRootOptions.length > 1 ? (
+                  <SelectField
+                    aria-label="Persistent storage root"
+                    onChange={(event) => {
+                      setPersistentStorageRootPath(event.target.value);
+                    }}
+                    value={activePersistentStorageMount?.path ?? ""}
+                    wrapperClassName="fg-filesystem__root-select"
+                  >
+                    {persistentStorageRootOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </SelectField>
+                ) : null}
+              </div>
+            ) : null}
+            {rootMode === "storage" ? (
+              <p className="fg-console-note">
+                {activeScopeLabel}
+                {rootScopeHint ? ` ${rootScopeHint}` : ""}
+              </p>
             ) : null}
           </div>
 
@@ -1416,7 +1644,11 @@ export function ConsoleFilesWorkbench({
               <InlineAlert variant="error">Unable to load this filesystem root.</InlineAlert>
             ) : null}
 
-            {renderTree(workspaceRoot, 0)}
+            {persistentStorageRootIsFile
+              ? rootStatus === "ready"
+                ? renderRootFileNode(workspaceRoot)
+                : null
+              : renderTree(workspaceRoot, 0)}
           </div>
         </aside>
 

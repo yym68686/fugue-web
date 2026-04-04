@@ -9,6 +9,7 @@ import type {
   ConsoleGalleryBadgeView,
   ConsoleGalleryBackingServiceView,
   ConsoleGalleryCommitView,
+  ConsoleGalleryPersistentStorageMountView,
   ConsoleProjectDetailData,
   ConsoleGalleryProjectView,
   ConsoleProjectGallerySummaryData,
@@ -31,6 +32,7 @@ import {
   getFugueProjectImageUsage,
   getFugueRuntimes,
   type FugueApp,
+  type FugueAppPersistentStorageMount,
   type FugueAppSource,
   type FugueBackingService,
   type FugueClusterNode,
@@ -1095,7 +1097,7 @@ function readRedeployAction(app: FugueApp) {
   if (isGitHubSource(app)) {
     return {
       description:
-        "Pull the latest code from the tracked branch, rebuild from scratch, and roll out the new release. Fugue also redeploys automatically when upstream commits change and the app is idle.",
+        "Pull the latest code from the tracked branch, rebuild from scratch, and roll out the new release. Persistent storage is preserved when configured. Fugue also redeploys automatically when upstream commits change and the app is idle.",
       label: "Redeploy",
       loadingLabel: "Redeploying…",
       queuedMessage: "Redeploy queued.",
@@ -1105,7 +1107,7 @@ function readRedeployAction(app: FugueApp) {
   if (isDockerImageSource(app)) {
     return {
       description:
-        "Pull the saved image reference again, mirror it into Fugue’s internal registry, and roll out a new release.",
+        "Pull the saved image reference again, mirror it into Fugue’s internal registry, and roll out a new release. Persistent storage is preserved when configured.",
       label: "Repull image",
       loadingLabel: "Repulling image…",
       queuedMessage: "Image repull queued.",
@@ -1114,7 +1116,7 @@ function readRedeployAction(app: FugueApp) {
 
   return {
     description:
-      "Rebuild from the saved source from scratch and roll out a new release. If a workspace is configured, the next rollout resets it.",
+      "Rebuild from the saved source from scratch and roll out a new release. Persistent storage is preserved when configured.",
     label: "Redeploy",
     loadingLabel: "Redeploying…",
     queuedMessage: "Redeploy queued.",
@@ -1442,6 +1444,28 @@ function buildAppBadges(
   return [...badges.values()].slice(0, 6);
 }
 
+function buildPersistentStorageMountView(
+  mount: FugueAppPersistentStorageMount,
+): ConsoleGalleryPersistentStorageMountView | null {
+  const path = mount.path?.trim() ?? "";
+  let normalizedKind: ConsoleGalleryPersistentStorageMountView["kind"] = null;
+
+  if (mount.kind === "directory" || mount.kind === "file") {
+    normalizedKind = mount.kind;
+  }
+
+  if (!path) {
+    return null;
+  }
+
+  return {
+    kind: normalizedKind,
+    mode: mount.mode ?? null,
+    path,
+    secret: mount.secret ?? false,
+  };
+}
+
 function buildSharedAppView(
   app: FugueApp,
   options?: {
@@ -1458,6 +1482,10 @@ function buildSharedAppView(
   const redeployAction = readRedeployAction(app);
   const sourceBranchLabel = readSourceBranchLabelFromSource(source);
   const serviceBadges = buildAppBadges(app, { source, techStack });
+  const persistentStorageMounts =
+    app.spec.persistentStorage?.mounts
+      .map(buildPersistentStorageMountView)
+      .flatMap((mount) => (mount ? [mount] : [])) ?? [];
   const primaryBadge = readPrimaryBadge(serviceBadges) ??
     serviceBadges[0] ?? {
       id: readBadgeKey("runtime", humanize(source.type)),
@@ -1505,11 +1533,11 @@ function buildSharedAppView(
     sourceLabel: readSourceLabelFromSource(source),
     sourceMeta: readFugueSourceMeta(source),
     sourceType: source.type,
-    workspaceStorageClassName: app.spec.workspace?.storageClassName ?? null,
-    workspaceStorageSize: app.spec.workspace?.storageSize ?? null,
-    workspaceMountPath: app.spec.workspace
-      ? (app.spec.workspace.mountPath ?? "/workspace")
-      : null,
+    persistentStorageMounts,
+    persistentStorageStorageClassName:
+      app.spec.persistentStorage?.storageClassName ?? null,
+    persistentStorageStorageSize:
+      app.spec.persistentStorage?.storageSize ?? null,
   } satisfies Omit<
     ConsoleGalleryAppView,
     | "buildLogsOperationId"

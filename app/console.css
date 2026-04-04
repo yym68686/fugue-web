@@ -5320,6 +5320,18 @@
   max-width: 100%;
 }
 
+.fg-filesystem__scope-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.fg-filesystem__root-select {
+  width: fit-content;
+  max-width: min(100%, 28rem);
+}
+
 .fg-filesystem__toolbar,
 .fg-filesystem__editor-actions {
   display: flex;
