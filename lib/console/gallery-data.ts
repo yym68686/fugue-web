@@ -484,6 +484,16 @@ function toneForStatus(status?: string | null): ConsoleTone {
   return "neutral";
 }
 
+function isTerminalAppFailurePhase(phase?: string | null) {
+  const normalized = phase?.trim().toLowerCase() ?? "";
+
+  return (
+    normalized.includes("error") ||
+    normalized.includes("fail") ||
+    normalized.includes("stopped")
+  );
+}
+
 function isActiveOperation(status?: string | null) {
   return !terminalOperationStatuses.has(status?.trim().toLowerCase() ?? "");
 }
@@ -689,9 +699,9 @@ function hasLiveRelease(app: FugueApp) {
   // `commitSha` and runtime placement can be populated before the first rollout
   // is actually live. During that window the console should keep showing a
   // single pending service card instead of inventing a second "running" card.
-  // Failed/error/stopped phases also do not represent a live release, so a
-  // queued rebuild for those apps should transition into the pending view
-  // instead of pinning the stale failed card.
+  // Terminal failed states also do not count as a live release, but they stay
+  // visible through `readActiveReleaseOperation` so the operator can inspect
+  // the failure instead of losing the failed card behind a pending rollout.
 
   return (
     normalizedPhase.length > 0 &&
@@ -706,6 +716,10 @@ function readActiveReleaseOperation(
   app: FugueApp,
 ) {
   if (!operation) {
+    return null;
+  }
+
+  if (isTerminalAppFailurePhase(app.status.phase)) {
     return null;
   }
 

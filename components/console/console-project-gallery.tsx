@@ -983,8 +983,28 @@ class LogStreamRequestError extends Error {
   }
 }
 
-function isRetryableLogStreamError(error: unknown) {
-  return !(error instanceof LogStreamRequestError) || error.status >= 500;
+function isRetryableLogStreamError(
+  error: unknown,
+  logsMode: LogsView,
+  app: ConsoleGalleryAppView | null,
+) {
+  if (!(error instanceof LogStreamRequestError)) {
+    return true;
+  }
+
+  if (error.status >= 500) {
+    return true;
+  }
+
+  if (
+    error.status === 404 &&
+    logsMode === "runtime" &&
+    includesLifecycleKeyword(app?.phase ?? "", ["deploying"])
+  ) {
+    return true;
+  }
+
+  return false;
 }
 
 function readLogStreamErrorMessage(error: unknown, logsMode: LogsView) {
@@ -1216,10 +1236,18 @@ function readServiceDefaultLogsMode(
   service: ConsoleGalleryServiceView | null,
   services: ConsoleGalleryProjectView["services"],
 ): LogsView {
+  const preferredMode =
+    service?.kind === "app" &&
+    includesLifecycleKeyword(service.phase, ["error", "fail", "stopped"])
+      ? "runtime"
+      : service?.kind === "app"
+        ? "build"
+        : "runtime";
+
   return normalizeLogsModeForService(
     service,
     services,
-    service?.kind === "app" ? "build" : "runtime",
+    preferredMode,
   );
 }
 
@@ -1891,15 +1919,6 @@ function readRuntimeLogsUnavailableState(
     };
   }
 
-  if (includesLifecycleKeyword(phase, ["deploying"])) {
-    return {
-      description:
-        "Deploy is still in progress. Runtime logs unlock once the rollout is ready.",
-      label: "Waiting for deploy",
-      title: "Runtime logs are not ready",
-    };
-  }
-
   if (includesLifecycleKeyword(phase, ["queued", "pending", "migrating"])) {
     return {
       description:
@@ -2447,7 +2466,13 @@ function ConsoleLogsPanel({
           return;
         }
 
-        if (!isRetryableLogStreamError(error)) {
+        if (
+          !isRetryableLogStreamError(
+            error,
+            effectiveLogsMode,
+            selectedServiceApp,
+          )
+        ) {
           if (effectiveLogsMode === "build") {
             onPendingCommitHintChange(
               selectedServiceApp && selectedAppNeedsPendingCommitHint
