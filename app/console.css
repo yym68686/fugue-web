@@ -3214,6 +3214,32 @@
   white-space: nowrap;
 }
 
+.fg-project-card--pending {
+  border-color: rgba(165, 191, 220, 0.2);
+}
+
+.fg-project-card__summary-resources--pending {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: center;
+}
+
+.fg-project-pending-summary {
+  min-height: 2.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.52rem 0.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.95rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.034), rgba(255, 255, 255, 0.014)),
+    rgba(14, 18, 24, 0.72);
+  color: var(--fugue-text-secondary);
+  font-size: 0.76rem;
+  line-height: 1.45;
+  text-align: center;
+}
+
 .fg-project-card__summary-side {
   grid-area: side;
   display: inline-flex;
@@ -3504,6 +3530,13 @@
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
 }
 
+.fg-project-workbench--pending > .fg-bezel__inner {
+  background:
+    radial-gradient(circle at top left, rgba(165, 191, 220, 0.16), transparent 30%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.038), rgba(255, 255, 255, 0.014)),
+    rgba(7, 10, 14, 0.94);
+}
+
 .fg-project-workbench .fg-panel__section {
   padding:
     var(--fg-project-workbench-panel-padding-block)
@@ -3561,6 +3594,60 @@
 .fg-project-inspector__controls {
   display: grid;
   gap: 0.95rem;
+}
+
+.fg-project-pending-steps {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.fg-project-pending-step {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.fg-project-pending-step__index {
+  min-width: 2rem;
+  padding: 0.34rem 0.48rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--fugue-text-tertiary);
+  font-family: var(--fugue-font-mono);
+  font-size: 0.68rem;
+  line-height: 1;
+  text-align: center;
+}
+
+.fg-project-pending-step__copy {
+  display: grid;
+  gap: 0.24rem;
+}
+
+.fg-project-pending-step__copy strong {
+  color: var(--fugue-text-primary);
+  font-family: var(--fugue-font-ui-heading);
+  font-size: 0.96rem;
+  line-height: 1.08;
+  letter-spacing: var(--fugue-tracking-ui-heading);
+}
+
+.fg-project-pending-shell {
+  gap: 0.9rem;
+}
+
+.fg-project-pending-shell__head {
+  align-items: start;
+}
+
+.fg-project-pending-shell__actions {
+  align-self: start;
+}
+
+.fg-project-pending-shell__facts {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .fg-project-inspector__header-row {
@@ -3767,9 +3854,72 @@
   max-width: 38rem;
 }
 
-.fg-settings-form--source {
-  max-width: none;
-  gap: 0.9rem;
+.fg-settings-summary-list {
+  margin: 0;
+  max-width: 44rem;
+  display: grid;
+  gap: 0;
+}
+
+.fg-settings-summary-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem 1rem;
+  align-items: start;
+  padding: 0.72rem 0;
+  border-top: 1px solid var(--fugue-border-subtle);
+}
+
+.fg-settings-summary-row:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.fg-settings-summary-row__copy {
+  margin: 0;
+  min-width: 0;
+  display: grid;
+  gap: 0.18rem;
+}
+
+.fg-settings-summary-row__label {
+  color: var(--fugue-text-muted);
+  font-family: var(--fugue-font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-transform: none;
+}
+
+.fg-settings-summary-row__value {
+  color: var(--fugue-text-secondary);
+  font-size: 0.92rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.fg-settings-summary-row__note {
+  color: var(--fugue-text-tertiary);
+  font-size: 0.78rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.fg-settings-summary-row__side {
+  margin: 0;
+}
+
+.fg-settings-summary-row__side,
+.fg-settings-summary-row__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.fg-settings-disclosure {
+  max-width: 38rem;
 }
 
 .fg-settings-form .fg-field-stack {
@@ -4490,27 +4640,13 @@
   align-content: start;
 }
 
-.fg-settings-source-toolbar {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.9rem 1.5rem;
-  align-items: start;
-}
-
-.fg-settings-source-field {
-  display: grid;
-  gap: 0.75rem;
-  max-width: 38rem;
-}
-
 .fg-settings-source-meta {
   min-width: 0;
   display: grid;
   gap: 0.2rem;
 }
 
-.fg-settings-source-meta__label,
-.fg-settings-source-control__label {
+.fg-settings-source-meta__label {
   color: var(--fugue-text-muted);
   font-family: var(--fugue-font-mono);
   font-size: 0.66rem;
@@ -4524,31 +4660,6 @@
   font-size: 0.92rem;
   line-height: 1.45;
   overflow-wrap: anywhere;
-}
-
-.fg-settings-source-control {
-  min-width: 0;
-  display: grid;
-  gap: 0.42rem;
-  justify-items: start;
-  justify-self: end;
-  align-content: start;
-}
-
-.fg-settings-source-control__row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.55rem;
-  align-items: center;
-  justify-content: flex-end;
-}
-
-.fg-settings-source-control__note {
-  margin: 0;
-  max-width: 14rem;
-  color: var(--fugue-text-secondary);
-  font-size: 0.76rem;
-  line-height: 1.45;
 }
 
 .fg-workbench-section__head {
@@ -5943,6 +6054,29 @@
   width: min(100%, 42rem);
 }
 
+.fg-project-create-dialog-shell {
+  place-self: start center;
+  margin: 0;
+}
+
+.fg-project-create-dialog-panel > .fg-bezel__inner {
+  max-height: none;
+  overflow: visible;
+}
+
+.fg-project-create-dialog__body {
+  overflow: visible;
+}
+
+.fg-project-create-dialog__form {
+  min-height: 0;
+}
+
+.fg-project-create-dialog__grid {
+  align-content: start;
+  overflow-anchor: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .fg-cluster-node-card,
   .fg-cluster-node-card__summary,
@@ -6003,6 +6137,10 @@
     border-right: 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   }
+
+  .fg-project-pending-shell__facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 1320px) {
@@ -6038,6 +6176,11 @@
 }
 
 @media (max-width: 860px) {
+  .fg-project-card__summary-resources--pending,
+  .fg-project-pending-shell__facts {
+    grid-template-columns: 1fr;
+  }
+
   .fg-console-shell--stacked {
     width: min(calc(100% - 1.2rem), var(--fugue-max-width));
     padding: 1rem 0 1.35rem;
@@ -6154,17 +6297,17 @@
     justify-items: start;
   }
 
-  .fg-settings-source-toolbar {
+  .fg-settings-summary-row {
     grid-template-columns: 1fr;
-    gap: 0.75rem;
   }
 
-  .fg-settings-source-control {
-    justify-self: start;
-  }
-
-  .fg-settings-source-control__row {
+  .fg-settings-summary-row__side,
+  .fg-settings-summary-row__actions {
     justify-content: flex-start;
+  }
+
+  .fg-settings-disclosure {
+    max-width: none;
   }
 
   .fg-route-subsection__head {

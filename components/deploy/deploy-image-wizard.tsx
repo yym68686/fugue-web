@@ -3,6 +3,11 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
+import {
+  createPendingProjectIntent,
+  failPendingProjectIntent,
+  resolvePendingProjectIntent,
+} from "@/lib/console/pending-project-intents";
 import { DeploymentTargetField } from "@/components/console/deployment-target-field";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
@@ -34,6 +39,10 @@ type DeployImageWizardProps = {
 
 type SubmitResponse = {
   error?: string;
+  project?: {
+    id?: string;
+  } | null;
+  requestInProgress?: boolean;
 };
 
 function readErrorMessage(error: unknown) {
@@ -179,38 +188,70 @@ export function DeployImageWizard({
 
     const normalizedName = name.trim();
     const normalizedServicePort = servicePort.trim();
-    const response = await fetch("/api/fugue/projects/create-and-import", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        imageRef: imageRef.trim(),
-        ...(normalizedName ? { name: normalizedName } : {}),
-        ...(selectedProjectId !== NEW_PROJECT_VALUE
-          ? { projectId: selectedProjectId }
-          : {
-              projectMode: "create",
-              projectName: projectName.trim(),
-            }),
-        ...(runtimeId ? { runtimeId } : {}),
-        ...(normalizedServicePort
-          ? { servicePort: Number(normalizedServicePort) }
-          : {}),
-        sourceMode: "docker-image",
-      }),
+    const normalizedProjectName =
+      selectedProjectId === NEW_PROJECT_VALUE
+        ? projectName.trim()
+        : (projects.find((project) => project.id === selectedProjectId)?.name ??
+          workspaceDefaultProjectName ??
+          "Project");
+    const intent = createPendingProjectIntent({
+      appName: normalizedName,
+      projectId:
+        selectedProjectId !== NEW_PROJECT_VALUE ? selectedProjectId : null,
+      projectName: normalizedProjectName,
+      retryHref:
+        typeof window === "undefined"
+          ? null
+          : `${window.location.pathname}${window.location.search}`,
+      sourceLabel: imageRef.trim(),
+      sourceMode: "docker-image",
     });
+    const requestBody = {
+      imageRef: imageRef.trim(),
+      ...(normalizedName ? { name: normalizedName } : {}),
+      ...(selectedProjectId !== NEW_PROJECT_VALUE
+        ? { projectId: selectedProjectId }
+        : {
+            projectMode: "create",
+            projectName: projectName.trim(),
+          }),
+      ...(runtimeId ? { runtimeId } : {}),
+      ...(normalizedServicePort
+        ? { servicePort: Number(normalizedServicePort) }
+        : {}),
+      sourceMode: "docker-image",
+    };
 
-    const payload = (await response
-      .json()
-      .catch(() => null)) as SubmitResponse | null;
+    void (async () => {
+      try {
+        const response = await fetch("/api/fugue/projects/create-and-import", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(requestBody),
+        });
 
-    if (!response.ok) {
-      throw new Error(payload?.error ?? "Deploy request failed.");
-    }
+        const payload = (await response
+          .json()
+          .catch(() => null)) as SubmitResponse | null;
 
-    router.push("/app");
-    router.refresh();
+        if (!response.ok) {
+          throw new Error(payload?.error ?? "Deploy request failed.");
+        }
+
+        resolvePendingProjectIntent(intent.id, {
+          projectId:
+            payload?.project?.id ??
+            (selectedProjectId !== NEW_PROJECT_VALUE ? selectedProjectId : null),
+          requestInProgress: Boolean(payload?.requestInProgress),
+        });
+      } catch (error) {
+        failPendingProjectIntent(intent.id, readErrorMessage(error));
+      }
+    })();
+
+    router.push(`/app?intent=${encodeURIComponent(intent.id)}`);
   }
 
   return (

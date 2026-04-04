@@ -17,8 +17,10 @@ function readValue(value: string | string[] | undefined) {
 
 async function AppConsolePageContent({
   defaultCreateOpen,
+  initialPendingIntentId,
 }: {
   defaultCreateOpen: boolean;
+  initialPendingIntentId: string | null;
 }) {
   const data = await getConsoleProjectGallerySummaryData();
 
@@ -26,6 +28,7 @@ async function AppConsolePageContent({
     <ConsoleProjectGallery
       initialData={data}
       defaultCreateOpen={defaultCreateOpen}
+      initialPendingIntentId={initialPendingIntentId}
     />
   );
 }
@@ -37,6 +40,7 @@ export default async function AppConsolePage({
 }) {
   const resolved = await Promise.resolve(searchParams);
   const dialog = readValue(resolved.dialog);
+  const initialPendingIntentId = readValue(resolved.intent) ?? null;
 
   return (
     <Suspense
@@ -46,7 +50,10 @@ export default async function AppConsolePage({
         </ConsoleLoadingState>
       }
     >
-      <AppConsolePageContent defaultCreateOpen={dialog === "create"} />
+      <AppConsolePageContent
+        defaultCreateOpen={dialog === "create"}
+        initialPendingIntentId={initialPendingIntentId}
+      />
     </Suspense>
   );
 }

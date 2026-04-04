@@ -4,6 +4,11 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { ConsoleDisclosureSection } from "@/components/console/console-disclosure-section";
+import {
+  createPendingProjectIntent,
+  failPendingProjectIntent,
+  resolvePendingProjectIntent,
+} from "@/lib/console/pending-project-intents";
 import { DeploymentTargetField } from "@/components/console/deployment-target-field";
 import { GitHubRepositoryAccessFields } from "@/components/console/github-repository-access-fields";
 import { Button } from "@/components/ui/button";
@@ -55,8 +60,10 @@ type DeployWizardProps = {
 type SubmitResponse = {
   app?: {
     id?: string;
+    projectId?: string;
   } | null;
   error?: string;
+  requestInProgress?: boolean;
   redirectTo?: string;
 };
 
@@ -346,53 +353,86 @@ export function DeployWizard({
       return;
     }
 
-    const response = await fetch("/api/deploy/template", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        branch: initialBranch.trim(),
-        buildContextDir: buildContextDir.trim(),
-        buildStrategy,
-        dockerfilePath: dockerfilePath.trim(),
-        name: name.trim(),
-        projectId:
-          selectedProjectId !== NEW_PROJECT_VALUE ? selectedProjectId : "",
-        projectName:
-          selectedProjectId === NEW_PROJECT_VALUE ? projectName.trim() : "",
-        projectMode: selectedProjectId === NEW_PROJECT_VALUE ? "create" : "",
-        repoAuthToken: repoAuthToken.trim(),
-        repoUrl: repositoryUrl,
-        repoVisibility,
-        runtimeId,
-        sourceDir: sourceDir.trim(),
-        templateSlug: inspection?.template?.slug ?? "",
-        ...(persistentStorageSeedFiles.length > 0
-          ? {
-              persistentStorageSeedFiles: persistentStorageSeedFiles.map(
-                (file) => ({
-                  path: file.path,
-                  seedContent: persistentStorageSeedValues[file.key] ?? "",
-                  service: file.service,
-                }),
-              ),
-            }
-          : {}),
-        variables: variableValues,
-      }),
+    const normalizedProjectName =
+      selectedProjectId === NEW_PROJECT_VALUE
+        ? projectName.trim()
+        : (projects.find((project) => project.id === selectedProjectId)?.name ??
+          workspaceDefaultProjectName ??
+          "Project");
+    const intent = createPendingProjectIntent({
+      appName: name.trim(),
+      projectId:
+        selectedProjectId !== NEW_PROJECT_VALUE ? selectedProjectId : null,
+      projectName: normalizedProjectName,
+      retryHref:
+        typeof window === "undefined"
+          ? null
+          : `${window.location.pathname}${window.location.search}`,
+      sourceLabel: repositoryUrl,
+      sourceMode: "github",
     });
+    const requestBody = {
+      branch: initialBranch.trim(),
+      buildContextDir: buildContextDir.trim(),
+      buildStrategy,
+      dockerfilePath: dockerfilePath.trim(),
+      name: name.trim(),
+      projectId:
+        selectedProjectId !== NEW_PROJECT_VALUE ? selectedProjectId : "",
+      projectName:
+        selectedProjectId === NEW_PROJECT_VALUE ? projectName.trim() : "",
+      projectMode: selectedProjectId === NEW_PROJECT_VALUE ? "create" : "",
+      repoAuthToken: repoAuthToken.trim(),
+      repoUrl: repositoryUrl,
+      repoVisibility,
+      runtimeId,
+      sourceDir: sourceDir.trim(),
+      templateSlug: inspection?.template?.slug ?? "",
+      ...(persistentStorageSeedFiles.length > 0
+        ? {
+            persistentStorageSeedFiles: persistentStorageSeedFiles.map(
+              (file) => ({
+                path: file.path,
+                seedContent: persistentStorageSeedValues[file.key] ?? "",
+                service: file.service,
+              }),
+            ),
+          }
+        : {}),
+      variables: variableValues,
+    };
 
-    const payload = (await response
-      .json()
-      .catch(() => null)) as SubmitResponse | null;
+    void (async () => {
+      try {
+        const response = await fetch("/api/deploy/template", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(requestBody),
+        });
 
-    if (!response.ok) {
-      throw new Error(payload?.error ?? "Deploy request failed.");
-    }
+        const payload = (await response
+          .json()
+          .catch(() => null)) as SubmitResponse | null;
 
-    router.push(payload?.redirectTo ?? "/app");
-    router.refresh();
+        if (!response.ok) {
+          throw new Error(payload?.error ?? "Deploy request failed.");
+        }
+
+        resolvePendingProjectIntent(intent.id, {
+          appId: payload?.app?.id ?? null,
+          projectId:
+            payload?.app?.projectId ??
+            (selectedProjectId !== NEW_PROJECT_VALUE ? selectedProjectId : null),
+          requestInProgress: Boolean(payload?.requestInProgress),
+        });
+      } catch (error) {
+        failPendingProjectIntent(intent.id, readErrorMessage(error));
+      }
+    })();
+
+    router.push(`/app?intent=${encodeURIComponent(intent.id)}`);
   }
 
   return (

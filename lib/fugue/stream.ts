@@ -32,17 +32,61 @@ function buildProxyHeaders(upstream: Response) {
 
   headers.set(
     "Cache-Control",
-    upstream.headers.get("Cache-Control") || "no-cache, no-store, must-revalidate",
+    upstream.headers.get("Cache-Control") ||
+      "no-cache, no-store, must-revalidate, no-transform",
   );
   headers.set("Content-Type", upstream.headers.get("Content-Type") || "text/event-stream");
+  headers.set("Connection", "keep-alive");
 
   const xAccelBuffering = upstream.headers.get("X-Accel-Buffering");
 
-  if (xAccelBuffering) {
-    headers.set("X-Accel-Buffering", xAccelBuffering);
-  }
+  headers.set("X-Accel-Buffering", xAccelBuffering || "no");
 
   return headers;
+}
+
+function proxyEventStreamBody(
+  upstream: ReadableStream<Uint8Array>,
+  signal?: AbortSignal,
+) {
+  return new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const reader = upstream.getReader();
+      const abortUpstream = () => {
+        void reader.cancel().catch(() => undefined);
+      };
+
+      signal?.addEventListener("abort", abortUpstream, { once: true });
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+
+          if (done) {
+            controller.close();
+            return;
+          }
+
+          if (value && value.byteLength > 0) {
+            controller.enqueue(value);
+          }
+        }
+      } catch (error) {
+        if (signal?.aborted) {
+          controller.close();
+          return;
+        }
+
+        controller.error(error);
+      } finally {
+        signal?.removeEventListener("abort", abortUpstream);
+        reader.releaseLock();
+      }
+    },
+    async cancel(reason) {
+      await upstream.cancel(reason).catch(() => undefined);
+    },
+  });
 }
 
 export async function proxyFugueEventStream({
@@ -76,7 +120,7 @@ export async function proxyFugueEventStream({
     });
   }
 
-  return new Response(upstream.body, {
+  return new Response(proxyEventStreamBody(upstream.body, signal), {
     headers: buildProxyHeaders(upstream),
     status: upstream.status,
     statusText: upstream.statusText,

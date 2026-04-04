@@ -1,8 +1,15 @@
 "use client";
 
-import { startTransition, useEffect, useState, type FormEvent } from "react";
+import {
+  startTransition,
+  useEffect,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import { useRouter } from "next/navigation";
 
+import { ConsoleDisclosureSection } from "@/components/console/console-disclosure-section";
 import { StatusBadge } from "@/components/console/status-badge";
 import { Button, ButtonAnchor } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -337,6 +344,33 @@ function readManualRefreshState(
   };
 }
 
+function SettingsSummaryList({ children }: { children: ReactNode }) {
+  return <dl className="fg-settings-summary-list">{children}</dl>;
+}
+
+function SettingsSummaryRow({
+  label,
+  note,
+  side,
+  value,
+}: {
+  label: string;
+  note?: ReactNode;
+  side?: ReactNode;
+  value: ReactNode;
+}) {
+  return (
+    <div className="fg-settings-summary-row">
+      <dt className="fg-settings-summary-row__copy">
+        <span className="fg-settings-summary-row__label">{label}</span>
+        <span className="fg-settings-summary-row__value">{value}</span>
+        {note ? <span className="fg-settings-summary-row__note">{note}</span> : null}
+      </dt>
+      {side ? <dd className="fg-settings-summary-row__side">{side}</dd> : null}
+    </div>
+  );
+}
+
 function readInitialContinuityTargetRuntimeId(
   primaryRuntimeId: string | null,
   configuredTargetRuntimeId: string | null,
@@ -493,12 +527,8 @@ function AppImageMirrorLimitSection({ app }: { app: ConsoleGalleryAppView }) {
       : normalizedDraftLimit !== `${baselineLimit}`;
   const canSaveLimit =
     !saving && limitChanged && !draftLimitError && parsedDraftLimit !== null;
-  const statusTone: ConsoleTone =
-    baselineLimit === DEFAULT_IMAGE_MIRROR_LIMIT ? "neutral" : "info";
-  const statusLabel =
-    baselineLimit === DEFAULT_IMAGE_MIRROR_LIMIT
-      ? "Default"
-      : `${baselineLimit} saved`;
+  const savedImageLimitLabel =
+    baselineLimit === 1 ? "1 saved image" : `${baselineLimit} saved images`;
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -570,82 +600,75 @@ function AppImageMirrorLimitSection({ app }: { app: ConsoleGalleryAppView }) {
         <div className="fg-route-subsection__copy fg-settings-section__copy">
           <p className="fg-label fg-panel__eyebrow">Images</p>
           <h3 className="fg-route-subsection__title fg-ui-heading">
-            Mirrored image limit
+            Image retention
           </h3>
           <p className="fg-route-subsection__note">
-            Keep this many saved mirrored images, including the current release.
-            Older saved images are pruned automatically.
+            Older mirrored images are pruned automatically.
           </p>
         </div>
-
-        <StatusBadge tone={statusTone}>{statusLabel}</StatusBadge>
       </div>
 
-      <dl className="fg-settings-meta">
-        <div>
-          <dt>Saved versions</dt>
-          <dd>{baselineLimit}</dd>
-        </div>
-        <div>
-          <dt>Default</dt>
-          <dd>{DEFAULT_IMAGE_MIRROR_LIMIT}</dd>
-        </div>
-      </dl>
-
-      <form className="fg-settings-form" onSubmit={handleSubmit}>
-        <FormField
-          error={
-            limitError ?? (limitChanged ? draftLimitError : null) ?? undefined
-          }
-          hint="Use 1 or more. The current release counts toward this limit."
-          htmlFor={`mirrored-image-limit-${app.id}`}
-          label="Saved image limit"
-        >
-          <input
-            className="fg-input"
-            id={`mirrored-image-limit-${app.id}`}
-            inputMode="numeric"
-            min={1}
-            name="imageMirrorLimit"
-            onChange={(event) => {
-              setDraftLimit(event.target.value);
-              if (limitError) {
-                setLimitError(null);
-              }
-            }}
-            step={1}
-            type="number"
-            value={draftLimit}
-          />
-        </FormField>
-
-        {limitChanged || saving ? (
-          <div className="fg-settings-form__actions">
-            <Button
-              disabled={saving}
-              onClick={() => {
-                setDraftLimit(`${baselineLimit}`);
-                setLimitError(null);
+      <ConsoleDisclosureSection
+        className="fg-settings-disclosure"
+        defaultOpen={limitChanged || saving}
+        description={`Default is ${DEFAULT_IMAGE_MIRROR_LIMIT} saved images. The current release counts toward this limit.`}
+        summary={`Saved image limit · ${savedImageLimitLabel}`}
+      >
+        <form className="fg-settings-form" onSubmit={handleSubmit}>
+          <FormField
+            error={
+              limitError ?? (limitChanged ? draftLimitError : null) ?? undefined
+            }
+            hint="Use 1 or more."
+            htmlFor={`mirrored-image-limit-${app.id}`}
+            label="Saved image limit"
+          >
+            <input
+              className="fg-input"
+              id={`mirrored-image-limit-${app.id}`}
+              inputMode="numeric"
+              min={1}
+              name="imageMirrorLimit"
+              onChange={(event) => {
+                setDraftLimit(event.target.value);
+                if (limitError) {
+                  setLimitError(null);
+                }
               }}
-              size="compact"
-              type="button"
-              variant="secondary"
-            >
-              Reset
-            </Button>
-            <Button
-              disabled={!canSaveLimit}
-              loading={saving}
-              loadingLabel="Saving…"
-              size="compact"
-              type="submit"
-              variant="primary"
-            >
-              Save limit
-            </Button>
-          </div>
-        ) : null}
-      </form>
+              step={1}
+              type="number"
+              value={draftLimit}
+            />
+          </FormField>
+
+          {limitChanged || saving ? (
+            <div className="fg-settings-form__actions">
+              <Button
+                disabled={saving}
+                onClick={() => {
+                  setDraftLimit(`${baselineLimit}`);
+                  setLimitError(null);
+                }}
+                size="compact"
+                type="button"
+                variant="secondary"
+              >
+                Reset
+              </Button>
+              <Button
+                disabled={!canSaveLimit}
+                loading={saving}
+                loadingLabel="Saving…"
+                size="compact"
+                type="submit"
+                variant="primary"
+              >
+                Save limit
+              </Button>
+            </div>
+          ) : null}
+        </form>
+      </ConsoleDisclosureSection>
     </section>
   );
 }
@@ -1334,17 +1357,33 @@ export function AppSettingsPanel({
     ? "inspect persistent storage"
     : "review persistent storage configuration";
   const settingsSummary = isPrivateGitHubSource
-    ? `Rename the shared project shell, change the tracked branch, rotate saved GitHub access, tune saved image retention, ${workspaceSummaryAction}, set automatic failover, or move ${app.name} by hand.`
+    ? `Rename the shared project, manage repository sync and GitHub access, tune image retention, ${workspaceSummaryAction}, set automatic failover, or move ${app.name} by hand.`
     : isGitHubSource
-      ? `Rename the shared project shell, change which branch Fugue rebuilds from, tune saved image retention, ${workspaceSummaryAction}, set automatic failover, or move ${app.name} by hand.`
+      ? `Rename the shared project, manage repository sync, tune image retention, ${workspaceSummaryAction}, set automatic failover, or move ${app.name} by hand.`
       : isDockerImageSource
-        ? `Rename the shared project shell, review the saved Docker image reference, tune saved image retention, ${workspaceSummaryAction}, set automatic failover, or move ${app.name} by hand.`
+        ? `Rename the shared project, review the saved Docker image reference, tune image retention, ${workspaceSummaryAction}, set automatic failover, or move ${app.name} by hand.`
         : isUploadSource
-          ? `Rename the shared project shell, review the saved upload source, tune saved image retention, ${workspaceSummaryAction}, set automatic failover, or move ${app.name} by hand.`
-          : `Rename the shared project shell, review the saved source definition, tune saved image retention, ${workspaceSummaryAction}, set automatic failover, or move ${app.name} by hand.`;
+          ? `Rename the shared project, review the saved upload source, tune image retention, ${workspaceSummaryAction}, set automatic failover, or move ${app.name} by hand.`
+          : `Rename the shared project, review the saved source definition, tune image retention, ${workspaceSummaryAction}, set automatic failover, or move ${app.name} by hand.`;
   const projectSectionNote = projectManaged
     ? `${serviceCount} service${serviceCount === 1 ? "" : "s"} share this project shell. Renaming it updates the whole group.`
     : "This service still lives in the Unassigned bucket, so the shared shell cannot be renamed yet.";
+  const syncSummaryValue =
+    syncState.action === "disable"
+      ? "Polling for new commits"
+      : syncState.action === "start"
+        ? "Updates paused"
+        : "Starts after first deploy";
+  const branchSummaryValue = currentBranch || "Default branch";
+  const branchDisclosureDescription = !canEditBranch
+    ? branchFieldHint ?? "Branch changes are unavailable."
+    : currentBranch
+      ? "Change the branch used for rebuilds."
+      : "Leave it blank to follow the repository default branch.";
+  const manualRefreshValue =
+    manualRefreshState?.label === "Manual"
+      ? "Refresh on demand"
+      : manualRefreshState?.label ?? "Manual refresh";
 
   async function handleProjectSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -1689,17 +1728,12 @@ export function AppSettingsPanel({
         </div>
 
         {isGitHubSource ? (
-          <form
-            className="fg-settings-form fg-settings-form--source"
-            onSubmit={handleBranchSubmit}
-          >
-            <div className="fg-settings-source-toolbar">
-              <div className="fg-settings-source-meta">
-                <span className="fg-settings-source-meta__label">
-                  Repository
-                </span>
-                <span className="fg-settings-source-meta__value">
-                  {app.sourceHref ? (
+          <>
+            <SettingsSummaryList>
+              <SettingsSummaryRow
+                label="Repository"
+                value={
+                  app.sourceHref ? (
                     <a
                       className="fg-text-link"
                       href={app.sourceHref}
@@ -1710,127 +1744,125 @@ export function AppSettingsPanel({
                     </a>
                   ) : (
                     sourceLabel
-                  )}
-                </span>
-              </div>
-
-              <div className="fg-settings-source-control">
-                <div className="fg-settings-source-control__row">
-                  <span className="fg-settings-source-control__label">
-                    Auto sync
-                  </span>
-                  <StatusBadge
-                    live={syncState.action === "disable"}
-                    tone={syncState.tone}
-                  >
-                    {syncState.label}
-                  </StatusBadge>
-                  {syncState.actionLabel ? (
-                    <Button
-                      loading={syncSaving}
-                      loadingLabel={
-                        syncState.action === "disable"
-                          ? "Pausing…"
-                          : "Starting…"
-                      }
-                      onClick={handleGitHubSyncToggle}
-                      size="compact"
-                      type="button"
-                      variant={
-                        syncState.action === "disable" ? "secondary" : "primary"
-                      }
+                  )
+                }
+              />
+              <SettingsSummaryRow
+                label="Auto sync"
+                side={
+                  <div className="fg-settings-summary-row__actions">
+                    <StatusBadge
+                      live={syncState.action === "disable"}
+                      tone={syncState.tone}
                     >
-                      {syncState.actionLabel}
-                    </Button>
-                  ) : null}
-                </div>
+                      {syncState.label}
+                    </StatusBadge>
+                    {syncState.actionLabel ? (
+                      <Button
+                        loading={syncSaving}
+                        loadingLabel={
+                          syncState.action === "disable"
+                            ? "Pausing…"
+                            : "Starting…"
+                        }
+                        onClick={handleGitHubSyncToggle}
+                        size="compact"
+                        type="button"
+                        variant={
+                          syncState.action === "disable"
+                            ? "secondary"
+                            : "primary"
+                        }
+                      >
+                        {syncState.actionLabel}
+                      </Button>
+                    ) : null}
+                  </div>
+                }
+                value={syncSummaryValue}
+              />
+            </SettingsSummaryList>
 
-                {syncState.description ? (
-                  <p className="fg-settings-source-control__note">
-                    {syncState.description}
-                  </p>
-                ) : null}
-              </div>
-            </div>
-
-            <div className="fg-settings-source-field">
-              <FormField
-                hint={branchFieldHint ?? undefined}
-                htmlFor={`service-branch-${app.id}`}
-                label="Tracked branch"
+            {canEditBranch ? (
+              <ConsoleDisclosureSection
+                className="fg-settings-disclosure"
+                defaultOpen={branchChanged || branchSaving}
+                description={branchDisclosureDescription}
+                summary={`Tracked branch · ${branchSummaryValue}`}
               >
-                <input
-                  autoCapitalize="off"
-                  autoComplete="off"
-                  autoCorrect="off"
-                  className="fg-input"
-                  disabled={!canEditBranch || branchSaving}
-                  id={`service-branch-${app.id}`}
-                  name="trackedBranch"
-                  onChange={(event) => setBranchDraft(event.target.value)}
-                  placeholder="main"
-                  spellCheck={false}
-                  value={branchDraft}
+                <form className="fg-settings-form" onSubmit={handleBranchSubmit}>
+                  <FormField
+                    hint={branchFieldHint ?? undefined}
+                    htmlFor={`service-branch-${app.id}`}
+                    label="Tracked branch"
+                  >
+                    <input
+                      autoCapitalize="off"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      className="fg-input"
+                      disabled={!canEditBranch || branchSaving}
+                      id={`service-branch-${app.id}`}
+                      name="trackedBranch"
+                      onChange={(event) => setBranchDraft(event.target.value)}
+                      placeholder="main"
+                      spellCheck={false}
+                      value={branchDraft}
+                    />
+                  </FormField>
+
+                  {branchChanged || branchSaving ? (
+                    <div className="fg-settings-form__actions">
+                      <Button
+                        disabled={branchSaving}
+                        onClick={() => setBranchDraft(currentBranch)}
+                        size="compact"
+                        type="button"
+                        variant="secondary"
+                      >
+                        Reset
+                      </Button>
+                      <Button
+                        disabled={!canEditBranch || !branchChanged || branchSaving}
+                        loading={branchSaving}
+                        loadingLabel="Queueing…"
+                        size="compact"
+                        type="submit"
+                        variant="primary"
+                      >
+                        Save and rebuild
+                      </Button>
+                    </div>
+                  ) : null}
+                </form>
+              </ConsoleDisclosureSection>
+            ) : (
+              <SettingsSummaryList>
+                <SettingsSummaryRow
+                  label="Tracked branch"
+                  note={branchFieldHint ?? undefined}
+                  value={branchSummaryValue}
                 />
-              </FormField>
-
-              {branchChanged || branchSaving ? (
-                <div className="fg-settings-form__actions">
-                  <Button
-                    disabled={branchSaving}
-                    onClick={() => setBranchDraft(currentBranch)}
-                    size="compact"
-                    type="button"
-                    variant="secondary"
-                  >
-                    Reset
-                  </Button>
-                  <Button
-                    disabled={!canEditBranch || !branchChanged || branchSaving}
-                    loading={branchSaving}
-                    loadingLabel="Queueing…"
-                    size="compact"
-                    type="submit"
-                    variant="primary"
-                  >
-                    Save and rebuild
-                  </Button>
-                </div>
-              ) : null}
-            </div>
-          </form>
+              </SettingsSummaryList>
+            )}
+          </>
         ) : (
-          <div className="fg-settings-form fg-settings-form--source">
-            <div className="fg-settings-source-toolbar">
-              <div className="fg-settings-source-meta">
-                <span className="fg-settings-source-meta__label">
-                  {sourceFieldLabel}
-                </span>
-                <span className="fg-settings-source-meta__value">
-                  {sourceLabel}
-                </span>
-              </div>
-
-              {manualRefreshState ? (
-                <div className="fg-settings-source-control">
-                  <div className="fg-settings-source-control__row">
-                    <span className="fg-settings-source-control__label">
-                      {manualRefreshState.title}
-                    </span>
+          <SettingsSummaryList>
+            <SettingsSummaryRow label={sourceFieldLabel} value={sourceLabel} />
+            {manualRefreshState ? (
+              <SettingsSummaryRow
+                label={manualRefreshState.title}
+                side={
+                  <div className="fg-settings-summary-row__actions">
                     <StatusBadge tone={manualRefreshState.tone}>
                       {manualRefreshState.label}
                     </StatusBadge>
                   </div>
-
-                  {manualRefreshState.description ? (
-                    <p className="fg-settings-source-control__note">
-                      {manualRefreshState.description}
-                    </p>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
-          </div>
+                }
+                value={manualRefreshValue}
+              />
+            ) : null}
+          </SettingsSummaryList>
         )}
       </section>
 

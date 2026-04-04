@@ -3,6 +3,11 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
+import {
+  createPendingProjectIntent,
+  failPendingProjectIntent,
+  resolvePendingProjectIntent,
+} from "@/lib/console/pending-project-intents";
 import { DeploymentTargetField } from "@/components/console/deployment-target-field";
 import { LocalUploadSourceField } from "@/components/console/local-upload-source-field";
 import { Button } from "@/components/ui/button";
@@ -48,6 +53,10 @@ type DeployUploadWizardProps = {
 
 type SubmitResponse = {
   error?: string;
+  project?: {
+    id?: string;
+  } | null;
+  requestInProgress?: boolean;
 };
 
 function readErrorMessage(error: unknown) {
@@ -192,35 +201,67 @@ export function DeployUploadWizard({
       throw new Error(validationError);
     }
 
-    const response = await fetch(
-      "/api/fugue/projects/create-and-import-upload",
+    const normalizedProjectName =
+      selectedProjectId === NEW_PROJECT_VALUE
+        ? projectName.trim()
+        : (projects.find((project) => project.id === selectedProjectId)?.name ??
+          workspaceDefaultProjectName ??
+          "Project");
+    const intent = createPendingProjectIntent({
+      appName: name.trim(),
+      projectId:
+        selectedProjectId !== NEW_PROJECT_VALUE ? selectedProjectId : null,
+      projectName: normalizedProjectName,
+      retryHref:
+        typeof window === "undefined"
+          ? null
+          : `${window.location.pathname}${window.location.search}`,
+      sourceLabel: "Local source",
+      sourceMode: "local-upload",
+    });
+    const requestBody = buildLocalUploadFormData(
       {
-        method: "POST",
-        body: buildLocalUploadFormData(
-          {
-            ...buildImportServicePayload(uploadDraft),
-            ...(selectedProjectId !== NEW_PROJECT_VALUE
-              ? { projectId: selectedProjectId }
-              : {
-                  projectMode: "create",
-                  projectName: projectName.trim(),
-                }),
-          },
-          localUpload,
-        ),
+        ...buildImportServicePayload(uploadDraft),
+        ...(selectedProjectId !== NEW_PROJECT_VALUE
+          ? { projectId: selectedProjectId }
+          : {
+              projectMode: "create",
+              projectName: projectName.trim(),
+            }),
       },
+      localUpload,
     );
 
-    const payload = (await response
-      .json()
-      .catch(() => null)) as SubmitResponse | null;
+    void (async () => {
+      try {
+        const response = await fetch(
+          "/api/fugue/projects/create-and-import-upload",
+          {
+            method: "POST",
+            body: requestBody,
+          },
+        );
 
-    if (!response.ok) {
-      throw new Error(payload?.error ?? "Deploy request failed.");
-    }
+        const payload = (await response
+          .json()
+          .catch(() => null)) as SubmitResponse | null;
 
-    router.push("/app");
-    router.refresh();
+        if (!response.ok) {
+          throw new Error(payload?.error ?? "Deploy request failed.");
+        }
+
+        resolvePendingProjectIntent(intent.id, {
+          projectId:
+            payload?.project?.id ??
+            (selectedProjectId !== NEW_PROJECT_VALUE ? selectedProjectId : null),
+          requestInProgress: Boolean(payload?.requestInProgress),
+        });
+      } catch (error) {
+        failPendingProjectIntent(intent.id, readErrorMessage(error));
+      }
+    })();
+
+    router.push(`/app?intent=${encodeURIComponent(intent.id)}`);
   }
 
   return (

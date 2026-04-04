@@ -21,7 +21,7 @@ import {
 import { ConsoleProjectWorkbenchSkeleton } from "@/components/console/console-page-skeleton";
 import { ImportServiceFields } from "@/components/console/import-service-fields";
 import { StatusBadge } from "@/components/console/status-badge";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonAnchor } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { Panel, PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
 import { useToast } from "@/components/ui/toast";
@@ -30,6 +30,14 @@ import type {
   ConsoleProjectGallerySummaryData,
   ConsoleProjectSummaryView,
 } from "@/lib/console/gallery-types";
+import {
+  clearPendingProjectIntent,
+  createPendingProjectIntent,
+  failPendingProjectIntent,
+  resolvePendingProjectIntent,
+  usePendingProjectIntent,
+  type PendingProjectIntent,
+} from "@/lib/console/pending-project-intents";
 import {
   useConsoleRuntimeTargetInventory,
 } from "@/lib/console/runtime-target-inventory-client";
@@ -74,6 +82,7 @@ type FlashState = {
 type CreateProjectResponse = {
   app?: {
     id?: string;
+    projectId?: string;
   } | null;
   project?: {
     id?: string;
@@ -301,6 +310,338 @@ function clearCreateDialogUrl() {
   window.history.replaceState(window.history.state, "", nextUrl);
 }
 
+function clearPendingProjectIntentUrl(intentId?: string | null) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const url = new URL(window.location.href);
+  const currentIntentId = url.searchParams.get("intent");
+
+  if (!currentIntentId) {
+    return;
+  }
+
+  if (intentId && currentIntentId !== intentId) {
+    return;
+  }
+
+  url.searchParams.delete("intent");
+  const nextSearch = url.searchParams.toString();
+  const nextUrl = `${url.pathname}${nextSearch ? `?${nextSearch}` : ""}${url.hash}`;
+
+  window.history.replaceState(window.history.state, "", nextUrl);
+}
+
+function resolveCreateProjectId(
+  response: CreateProjectResponse,
+  fallbackProjectId?: string | null,
+) {
+  return (
+    response.project?.id?.trim() ||
+    response.app?.projectId?.trim() ||
+    fallbackProjectId?.trim() ||
+    null
+  );
+}
+
+function readPendingProjectIntentStatus(intent: PendingProjectIntent) {
+  if (intent.status === "error") {
+    return {
+      eyebrow: "Queue failed",
+      label: "Needs retry",
+      live: false,
+      tone: "danger" as const,
+    };
+  }
+
+  if (intent.projectId) {
+    return {
+      eyebrow: intent.requestInProgress ? "Build already running" : "Build queued",
+      label: intent.requestInProgress ? "Syncing" : "Ready soon",
+      live: true,
+      tone: "info" as const,
+    };
+  }
+
+  return {
+    eyebrow: "Starting build",
+    label: "Creating",
+    live: true,
+    tone: "info" as const,
+  };
+}
+
+function readPendingProjectIntentSourceLabel(intent: PendingProjectIntent) {
+  switch (intent.sourceMode) {
+    case "docker-image":
+      return intent.sourceLabel
+        ? `Docker image / ${intent.sourceLabel}`
+        : "Docker image";
+    case "local-upload":
+      return intent.sourceLabel
+        ? `Local upload / ${intent.sourceLabel}`
+        : "Local upload";
+    case "github":
+    default:
+      return intent.sourceLabel ? `GitHub / ${intent.sourceLabel}` : "GitHub import";
+  }
+}
+
+function readPendingProjectIntentSummary(intent: PendingProjectIntent) {
+  if (intent.status === "error") {
+    return "Project shell was not created.";
+  }
+
+  if (intent.projectId) {
+    return "Project shell is ready. Waiting for the console to attach live build state.";
+  }
+
+  switch (intent.sourceMode) {
+    case "docker-image":
+      return "Mirroring the image and reserving the first route.";
+    case "local-upload":
+      return "Packaging the local source and creating the first build.";
+    case "github":
+    default:
+      return "Creating the project shell and queuing the first repository build.";
+  }
+}
+
+function readPendingProjectIntentDetailCopy(intent: PendingProjectIntent) {
+  if (intent.status === "error") {
+    return intent.errorMessage ?? "The deployment could not be queued.";
+  }
+
+  if (intent.projectId) {
+    return "Fugue accepted the request. This page will switch to the live project workbench as soon as the new service finishes syncing into the console.";
+  }
+
+  switch (intent.sourceMode) {
+    case "docker-image":
+      return "Fugue is creating the project record and mirroring the image into the internal registry before the first rollout starts.";
+    case "local-upload":
+      return "Fugue is creating the project record and packaging the uploaded source on the server before the first build starts.";
+    case "github":
+    default:
+      return "Fugue is creating the project record and queueing the repository import. Build logs and route controls will appear here automatically.";
+  }
+}
+
+function readPendingProjectIntentSteps(intent: PendingProjectIntent) {
+  const intakeLabel =
+    intent.sourceMode === "docker-image"
+      ? "Image import"
+      : intent.sourceMode === "local-upload"
+        ? "Source package"
+        : "Repository intake";
+  const intakeCopy =
+    intent.sourceMode === "docker-image"
+      ? "Pull the published image, mirror it internally, and prepare the rollout."
+      : intent.sourceMode === "local-upload"
+        ? "Archive the uploaded source and stage the first build on the server."
+        : "Inspect the repository, prepare the build plan, and reserve the first route.";
+
+  return [
+    {
+      copy: "Create the project shell and reserve the first service slot.",
+      index: "01",
+      label: "Project shell",
+    },
+    {
+      copy: intakeCopy,
+      index: "02",
+      label: intakeLabel,
+    },
+    {
+      copy: "Attach build logs, runtime state, and route controls when the app record is available.",
+      index: "03",
+      label: "Console handoff",
+    },
+  ];
+}
+
+function PendingProjectCard({
+  expanded,
+  intent,
+  onOpen,
+}: {
+  expanded: boolean;
+  intent: PendingProjectIntent;
+  onOpen: () => void;
+}) {
+  const status = readPendingProjectIntentStatus(intent);
+  const detailId = `project-detail-pending-${intent.id}`;
+  const facts = [
+    {
+      label: "Source",
+      value: readPendingProjectIntentSourceLabel(intent),
+    },
+    {
+      label: "App name",
+      value: intent.appName ?? "Use detected default",
+    },
+    {
+      label: "Handoff",
+      value:
+        intent.status === "error"
+          ? "Return to the retry flow"
+          : "Stay on this page for live build state",
+    },
+  ];
+
+  return (
+    <article
+      className={cx(
+        "fg-project-card",
+        "fg-project-card--pending",
+        expanded && "is-active",
+        expanded && "is-expanded",
+      )}
+    >
+      <button
+        aria-controls={detailId}
+        aria-expanded={expanded}
+        className="fg-project-card__summary"
+        onClick={onOpen}
+        type="button"
+      >
+        <div className="fg-project-card__summary-head">
+          <div className="fg-project-card__summary-copy">
+            <div className="fg-project-card__summary-meta">
+              <strong>{intent.projectName}</strong>
+              <StatusBadge live={status.live} tone={status.tone}>
+                {status.label}
+              </StatusBadge>
+            </div>
+
+            <div className="fg-project-card__summary-meta">
+              <span className="fg-project-card__summary-kicker">
+                {readPendingProjectIntentSummary(intent)}
+              </span>
+            </div>
+          </div>
+
+          <div className="fg-project-card__summary-resources fg-project-card__summary-resources--pending">
+            <span className="fg-project-pending-summary">
+              {readPendingProjectIntentSourceLabel(intent)}
+            </span>
+            <span className="fg-project-pending-summary">
+              {intent.status === "error"
+                ? "Waiting for retry"
+                : intent.projectId
+                  ? "Syncing console state"
+                  : "Preparing build state"}
+            </span>
+          </div>
+
+          <div className="fg-project-card__summary-side">
+            <span className="fg-project-card__summary-expand" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path
+                  d="m7.2 9.4 4.8 5.2 4.8-5.2"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="1.7"
+                />
+              </svg>
+            </span>
+          </div>
+        </div>
+      </button>
+
+      {expanded ? (
+        <div className="fg-project-card__detail" id={detailId}>
+          <section className="fg-bezel fg-panel fg-project-workbench fg-project-workbench--pending">
+            <div className="fg-bezel__inner fg-project-workbench__inner">
+              <aside className="fg-project-services fg-project-services--rail fg-project-workbench__rail">
+                <PanelSection className="fg-project-services__head">
+                  <div className="fg-project-services__title-row">
+                    <p className="fg-label fg-panel__eyebrow">{status.eyebrow}</p>
+                    <StatusBadge live={status.live} tone={status.tone}>
+                      {status.label}
+                    </StatusBadge>
+                  </div>
+                  <p className="fg-console-note">
+                    {intent.status === "error"
+                      ? "Open the retry flow to adjust the source or project name."
+                      : "This shell stays visible while Fugue prepares the first service."}
+                  </p>
+                </PanelSection>
+
+                <PanelSection className="fg-project-pending-steps">
+                  {readPendingProjectIntentSteps(intent).map((step) => (
+                    <div className="fg-project-pending-step" key={step.index}>
+                      <span className="fg-project-pending-step__index">
+                        {step.index}
+                      </span>
+
+                      <div className="fg-project-pending-step__copy">
+                        <strong>{step.label}</strong>
+                        <p className="fg-console-note">{step.copy}</p>
+                      </div>
+                    </div>
+                  ))}
+                </PanelSection>
+              </aside>
+
+              <div className="fg-project-inspector fg-project-workbench__main">
+                <PanelSection className="fg-project-inspector__head">
+                  <div className="fg-project-inspector__header-row fg-project-pending-shell__head">
+                    <div className="fg-project-inspector__hero">
+                      <p className="fg-label fg-panel__eyebrow">
+                        {readPendingProjectIntentSourceLabel(intent)}
+                      </p>
+                      <PanelTitle>{intent.projectName}</PanelTitle>
+                      <PanelCopy className="fg-project-inspector__copy">
+                        {readPendingProjectIntentDetailCopy(intent)}
+                      </PanelCopy>
+                    </div>
+
+                    {intent.status === "error" && intent.retryHref ? (
+                      <div className="fg-project-actions fg-project-pending-shell__actions">
+                        <ButtonAnchor href={intent.retryHref} variant="secondary">
+                          Open retry flow
+                        </ButtonAnchor>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <dl className="fg-console-inline-meta fg-console-inline-meta--stacked fg-project-pending-shell__facts">
+                    {facts.map((fact) => (
+                      <div key={fact.label}>
+                        <dt>{fact.label}</dt>
+                        <dd>{fact.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </PanelSection>
+
+                <PanelSection className="fg-project-pane">
+                  <div className="fg-workbench-section fg-project-pending-shell">
+                    <div className="fg-workbench-section__head">
+                      <div className="fg-workbench-section__copy">
+                        <p className="fg-label fg-panel__eyebrow">What happens next</p>
+                        <p className="fg-console-note">
+                          {intent.status === "error"
+                            ? "The request never reached a live project state, so no build logs or route controls were attached."
+                            : "Build logs, route controls, and environment panels will attach here automatically as soon as the app record is visible."}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </PanelSection>
+              </div>
+            </div>
+          </section>
+        </div>
+      ) : null}
+    </article>
+  );
+}
+
 function asRecord(value: unknown) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -318,15 +659,20 @@ function parseGalleryStreamPayload(event: ParsedSSEEvent) {
 export function ConsoleProjectGallery({
   initialData,
   defaultCreateOpen = false,
+  initialPendingIntentId = null,
 }: {
   initialData: ConsoleProjectGallerySummaryData;
   defaultCreateOpen?: boolean;
+  initialPendingIntentId?: string | null;
 }) {
   const router = useRouter();
   const { showToast } = useToast();
   const [flash, setFlash] = useState<FlashState | null>(null);
   const [data, setData] = useState(initialData);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
+    null,
+  );
+  const [requestedProjectId, setRequestedProjectId] = useState<string | null>(
     null,
   );
   const [selectedProjectDetailError, setSelectedProjectDetailError] =
@@ -337,6 +683,12 @@ export function ConsoleProjectGallery({
     useState<"error" | "idle" | "loading" | "ready">("idle");
   const [workbenchRefreshToken, setWorkbenchRefreshToken] = useState(0);
   const [createOpen, setCreateOpen] = useState(defaultCreateOpen);
+  const [activePendingIntentId, setActivePendingIntentId] = useState<string | null>(
+    initialPendingIntentId,
+  );
+  const [pendingIntentFocused, setPendingIntentFocused] = useState(
+    Boolean(initialPendingIntentId),
+  );
   const [createTargetProject, setCreateTargetProject] =
     useState<CreateDialogTarget | null>(null);
   const [projectName, setProjectName] = useState(
@@ -361,17 +713,24 @@ export function ConsoleProjectGallery({
     useState<Record<string, ProjectImageUsageSummary>>(() =>
       buildProjectImageUsageMap(readCachedProjectImageUsage() ?? []),
     );
+  const pendingIntent = usePendingProjectIntent(activePendingIntentId);
   const createBackdropPressStartedRef = useRef(false);
   const galleryRefreshAbortRef = useRef<AbortController | null>(null);
   const galleryRefreshPendingRef = useRef(false);
   const galleryStreamAbortRef = useRef<AbortController | null>(null);
   const selectedProjectIdRef = useRef<string | null>(selectedProjectId);
+  const announcedPendingIntentErrorRef = useRef<string | null>(null);
   const runtimeInventory = useConsoleRuntimeTargetInventory(createOpen);
   const projectPrefetchKey = data.projects
     .map((project) => project.id)
     .join("|");
   const { markProjectDeleting, optimisticProjects } =
     useOptimisticDeletingProjectSummaries(data.projects);
+  const pendingProjectVisible = Boolean(
+    pendingIntent &&
+      (!pendingIntent.projectId ||
+        !optimisticProjects.some((project) => project.id === pendingIntent.projectId)),
+  );
 
   const selectedProject =
     optimisticProjects.find((project) => project.id === selectedProjectId) ??
@@ -514,6 +873,120 @@ export function ConsoleProjectGallery({
       setData(initialData);
     });
   }, [initialData]);
+
+  useEffect(() => {
+    if (!initialPendingIntentId) {
+      return;
+    }
+
+    setActivePendingIntentId(initialPendingIntentId);
+    setPendingIntentFocused(true);
+  }, [initialPendingIntentId]);
+
+  useEffect(() => {
+    if (!activePendingIntentId || pendingIntent) {
+      return;
+    }
+
+    clearPendingProjectIntentUrl(activePendingIntentId);
+    setActivePendingIntentId(null);
+    setPendingIntentFocused(false);
+  }, [activePendingIntentId, pendingIntent]);
+
+  useEffect(() => {
+    if (!pendingIntent?.projectId) {
+      return;
+    }
+
+    setRequestedProjectId(pendingIntent.projectId);
+  }, [pendingIntent?.projectId]);
+
+  useEffect(() => {
+    if (!requestedProjectId) {
+      return;
+    }
+
+    if (!data.projects.some((project) => project.id === requestedProjectId)) {
+      return;
+    }
+
+    setSelectedProjectDetailError(null);
+    setSelectedProjectDetailStatus("idle");
+    setSelectedProjectId(requestedProjectId);
+    setPendingIntentFocused(false);
+    setRequestedProjectId(null);
+  }, [data.projects, requestedProjectId]);
+
+  useEffect(() => {
+    if (
+      !pendingIntent?.id ||
+      pendingIntent.status !== "error" ||
+      !pendingIntent.errorMessage
+    ) {
+      return;
+    }
+
+    const signature = `${pendingIntent.id}:${pendingIntent.errorMessage}`;
+
+    if (announcedPendingIntentErrorRef.current === signature) {
+      return;
+    }
+
+    announcedPendingIntentErrorRef.current = signature;
+    showToast({
+      message: pendingIntent.errorMessage,
+      variant: "error",
+    });
+  }, [pendingIntent, showToast]);
+
+  useEffect(() => {
+    if (!pendingIntent || pendingIntent.status === "error") {
+      return;
+    }
+
+    const projectVisible = pendingIntent.projectId
+      ? data.projects.some((project) => project.id === pendingIntent.projectId)
+      : false;
+
+    if (pendingIntent.status === "resolved" && projectVisible) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState !== "visible") {
+        return;
+      }
+
+      void refreshGallery({
+        refreshWorkbench: Boolean(pendingIntent.projectId),
+        silent: true,
+      });
+    }, 2500);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [data.projects, pendingIntent, refreshGallery]);
+
+  useEffect(() => {
+    if (
+      !pendingIntent?.id ||
+      pendingIntent.status !== "resolved" ||
+      !pendingIntent.projectId
+    ) {
+      return;
+    }
+
+    if (!data.projects.some((project) => project.id === pendingIntent.projectId)) {
+      return;
+    }
+
+    clearPendingProjectIntent(pendingIntent.id);
+    clearPendingProjectIntentUrl(pendingIntent.id);
+    setActivePendingIntentId((current) =>
+      current === pendingIntent.id ? null : current,
+    );
+  }, [data.projects, pendingIntent]);
 
   useEffect(() => {
     if (
@@ -871,7 +1344,18 @@ export function ConsoleProjectGallery({
     closeCreate();
   }
 
+  function focusPendingIntentCard() {
+    setPendingIntentFocused(true);
+    setRequestedProjectId(null);
+    setSelectedProjectDetailError(null);
+    setSelectedProjectDetailStatus("idle");
+    setSelectedProjectId(null);
+  }
+
   function chooseProject(project: ConsoleProjectSummaryView) {
+    setPendingIntentFocused(false);
+    setRequestedProjectId(null);
+
     if (selectedProjectId === project.id) {
       setSelectedProjectDetailError(null);
       setSelectedProjectDetailStatus("idle");
@@ -926,34 +1410,15 @@ export function ConsoleProjectGallery({
     }
 
     setFlash(null);
-    setIsCreating(true);
-
-    try {
-      const endpoint =
-        importDraft.sourceMode === "local-upload"
-          ? "/api/fugue/projects/create-and-import-upload"
-          : "/api/fugue/projects/create-and-import";
-      const requestInit =
-        importDraft.sourceMode === "local-upload"
-          ? {
-              body: buildLocalUploadFormData(
-                {
-                  ...buildImportServicePayload(importDraft),
-                  ...(createTargetProject
-                    ? {
-                        projectId: createTargetProject.id,
-                      }
-                    : {
-                        projectMode: "create",
-                        projectName: normalizedProjectName,
-                      }),
-                },
-                localUpload,
-              ),
-              method: "POST",
-            }
-          : {
-              body: JSON.stringify({
+    const endpoint =
+      importDraft.sourceMode === "local-upload"
+        ? "/api/fugue/projects/create-and-import-upload"
+        : "/api/fugue/projects/create-and-import";
+    const requestInit =
+      importDraft.sourceMode === "local-upload"
+        ? {
+            body: buildLocalUploadFormData(
+              {
                 ...buildImportServicePayload(importDraft),
                 ...(createTargetProject
                   ? {
@@ -963,23 +1428,114 @@ export function ConsoleProjectGallery({
                       projectMode: "create",
                       projectName: normalizedProjectName,
                     }),
-              }),
-              headers: {
-                "Content-Type": "application/json",
               },
-              method: "POST",
-            };
+              localUpload,
+            ),
+            method: "POST",
+          }
+        : {
+            body: JSON.stringify({
+              ...buildImportServicePayload(importDraft),
+              ...(createTargetProject
+                ? {
+                    projectId: createTargetProject.id,
+                  }
+                : {
+                    projectMode: "create",
+                    projectName: normalizedProjectName,
+                  }),
+            }),
+            headers: {
+              "Content-Type": "application/json",
+            },
+            method: "POST",
+          };
 
+    if (!createTargetProject) {
+      const intent = createPendingProjectIntent({
+        appName: importDraft.name,
+        projectName: normalizedProjectName,
+        retryHref: "/app?dialog=create",
+        sourceLabel:
+          importDraft.sourceMode === "github"
+            ? importDraft.repoUrl
+            : importDraft.sourceMode === "docker-image"
+              ? importDraft.imageRef
+              : "Local source",
+        sourceMode: importDraft.sourceMode,
+      });
+
+      setActivePendingIntentId(intent.id);
+      focusPendingIntentCard();
+      setCreateTargetProject(null);
+      setCreateOpen(false);
+      setFlash({
+        message: "Creating project and queueing the first deployment.",
+        variant: "info",
+      });
+      resetCreateForm(
+        buildSuggestedProjectName([
+          ...data.projects,
+          {
+            name: normalizedProjectName,
+          },
+        ]),
+      );
+      clearCreateDialogUrl();
+
+      void (async () => {
+        try {
+          const response = await requestJson<CreateProjectResponse>(
+            endpoint,
+            requestInit,
+          );
+          const affectedProjectId = resolveCreateProjectId(response);
+
+          if (affectedProjectId) {
+            invalidateConsoleProjectDetails(affectedProjectId);
+          }
+
+          resolvePendingProjectIntent(intent.id, {
+            appId: response.app?.id ?? null,
+            projectId: affectedProjectId,
+            requestInProgress: Boolean(response.requestInProgress),
+          });
+          setFlash({
+            message: response.requestInProgress
+              ? "Import is already running."
+              : "Project import queued.",
+            variant: "success",
+          });
+          void refreshGallery({
+            refreshWorkbench: Boolean(affectedProjectId),
+            silent: true,
+          });
+          refreshRoute();
+        } catch (error) {
+          const message = readRequestError(error);
+
+          failPendingProjectIntent(intent.id, message);
+        }
+      })();
+
+      return;
+    }
+
+    setIsCreating(true);
+
+    try {
       const response = await requestJson<CreateProjectResponse>(endpoint, requestInit);
-      const affectedProjectId =
-        response.project?.id?.trim() || createTargetProject?.id || null;
+      const affectedProjectId = resolveCreateProjectId(
+        response,
+        createTargetProject?.id,
+      );
 
       if (affectedProjectId) {
         invalidateConsoleProjectDetails(affectedProjectId);
       }
 
-      if (response.project?.id) {
-        setSelectedProjectId(response.project.id);
+      if (affectedProjectId) {
+        setRequestedProjectId(affectedProjectId);
       }
 
       setCreateOpen(false);
@@ -987,24 +1543,13 @@ export function ConsoleProjectGallery({
       setFlash({
         message: response.requestInProgress
           ? "Import is already running."
-          : createTargetProject
-            ? "Service import queued."
-            : "Project import queued.",
+          : "Service import queued.",
         variant: "success",
       });
-      resetCreateForm(
-        createTargetProject
-          ? buildSuggestedProjectName(data.projects)
-          : buildSuggestedProjectName([
-              ...data.projects,
-              {
-                name: response.project?.name ?? normalizedProjectName,
-              },
-            ]),
-      );
+      resetCreateForm(buildSuggestedProjectName(data.projects));
       clearCreateDialogUrl();
       void refreshGallery({
-        refreshWorkbench: Boolean(response.project?.id),
+        refreshWorkbench: Boolean(affectedProjectId),
         silent: true,
       });
       refreshRoute();
@@ -1066,7 +1611,9 @@ export function ConsoleProjectGallery({
         <section
           className={cx(
             "fg-project-gallery__shelf",
-            !optimisticProjects.length && "fg-project-gallery__shelf--empty",
+            !optimisticProjects.length &&
+              !pendingProjectVisible &&
+              "fg-project-gallery__shelf--empty",
           )}
         >
           {workspaceMissing ? (
@@ -1082,8 +1629,16 @@ export function ConsoleProjectGallery({
                 </PanelSection>
               </Panel>
             </div>
-          ) : optimisticProjects.length ? (
+          ) : optimisticProjects.length || pendingProjectVisible ? (
             <div className="fg-project-gallery__stack">
+              {pendingProjectVisible && pendingIntent ? (
+                <PendingProjectCard
+                  expanded={pendingIntentFocused}
+                  intent={pendingIntent}
+                  onOpen={focusPendingIntentCard}
+                />
+              ) : null}
+
               {optimisticProjects.map((project) => {
                 const expanded = selectedProjectId === project.id;
                 const cachedProjectDetail = expanded
@@ -1249,11 +1804,11 @@ export function ConsoleProjectGallery({
           <div
             aria-labelledby="fugue-create-project-title"
             aria-modal="true"
-            className="fg-console-dialog-shell fg-project-dialog-shell"
+            className="fg-console-dialog-shell fg-project-dialog-shell fg-project-create-dialog-shell"
             onClick={(event) => event.stopPropagation()}
             role="dialog"
           >
-            <Panel className="fg-console-dialog-panel">
+            <Panel className="fg-console-dialog-panel fg-project-create-dialog-panel">
               <PanelSection>
                 <p className="fg-label fg-panel__eyebrow">{createDialogEyebrow}</p>
                 <PanelTitle
@@ -1265,13 +1820,13 @@ export function ConsoleProjectGallery({
                 <PanelCopy>{createDialogCopy}</PanelCopy>
               </PanelSection>
 
-              <PanelSection className="fg-console-dialog__body">
+              <PanelSection className="fg-console-dialog__body fg-project-create-dialog__body">
                 <form
-                  className="fg-console-dialog__form"
+                  className="fg-console-dialog__form fg-project-create-dialog__form"
                   id={createDialogFormId}
                   onSubmit={handleCreateProject}
                 >
-                  <div className="fg-console-dialog__grid">
+                  <div className="fg-console-dialog__grid fg-project-create-dialog__grid">
                     {createTargetProject ? (
                       <FormField htmlFor="create-project-current" label="Project">
                         <input
