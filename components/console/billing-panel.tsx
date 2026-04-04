@@ -3,6 +3,12 @@
 import { startTransition, useEffect, useState, type FormEvent } from "react";
 
 import { ConsoleEmptyState } from "@/components/console/console-empty-state";
+import {
+  CONSOLE_BILLING_PAGE_SNAPSHOT_URL,
+  type ConsoleBillingPageSnapshot,
+  readConsolePageSnapshot,
+  writeConsolePageSnapshot,
+} from "@/lib/console/page-snapshot-client";
 import { ConsoleSummaryGrid } from "@/components/console/console-summary-grid";
 import { StatusBadge } from "@/components/console/status-badge";
 import { Button } from "@/components/ui/button";
@@ -30,6 +36,47 @@ type BillingRoutePayload = {
     tenantName: string;
   };
 };
+
+function syncBillingPageSnapshot(nextData: BillingRoutePayload) {
+  const currentSnapshot = readConsolePageSnapshot<ConsoleBillingPageSnapshot>(
+    CONSOLE_BILLING_PAGE_SNAPSHOT_URL,
+    {
+      allowStale: true,
+    },
+  );
+
+  writeConsolePageSnapshot<ConsoleBillingPageSnapshot>(
+    CONSOLE_BILLING_PAGE_SNAPSHOT_URL,
+    {
+      data:
+        currentSnapshot?.state === "ready"
+          ? {
+              ...currentSnapshot.data,
+              ...nextData,
+            }
+          : nextData,
+      state: "ready",
+    },
+  );
+}
+
+function readBillingSnapshotWorkspace(fallbackWorkspaceName?: string | null) {
+  const currentSnapshot = readConsolePageSnapshot<ConsoleBillingPageSnapshot>(
+    CONSOLE_BILLING_PAGE_SNAPSHOT_URL,
+    {
+      allowStale: true,
+    },
+  );
+
+  if (currentSnapshot?.state === "ready") {
+    return currentSnapshot.data.workspace;
+  }
+
+  return {
+    tenantId: "",
+    tenantName: fallbackWorkspaceName ?? "",
+  };
+}
 
 const MICRO_CENTS_PER_DOLLAR = 100_000_000;
 const MILLICORES_PER_VCPU = 1000;
@@ -572,6 +619,8 @@ export function BillingPanel({
       throw new Error("Empty response.");
     }
 
+    syncBillingPageSnapshot(data);
+
     startTransition(() => {
       setSyncError(data.syncError);
 
@@ -642,6 +691,12 @@ export function BillingPanel({
         throw new Error("Billing update response was malformed.");
       }
 
+      syncBillingPageSnapshot({
+        billing: data.billing,
+        syncError: null,
+        workspace: readBillingSnapshotWorkspace(workspaceName),
+      });
+
       startTransition(() => {
         setSyncError(null);
         applyBillingSnapshot(data.billing);
@@ -697,6 +752,12 @@ export function BillingPanel({
       if (!data?.billing) {
         throw new Error("Billing top-up response was malformed.");
       }
+
+      syncBillingPageSnapshot({
+        billing: data.billing,
+        syncError: null,
+        workspace: readBillingSnapshotWorkspace(workspaceName),
+      });
 
       startTransition(() => {
         setSyncError(null);

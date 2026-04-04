@@ -10,14 +10,21 @@ import type {
   ConsoleGalleryBackingServiceView,
   ConsoleGalleryCommitView,
   ConsoleCompactResourceItemView,
+  ConsoleProjectDetailData,
   ConsoleGalleryProjectView,
+  ConsoleProjectGallerySummaryData,
+  ConsoleProjectLifecycleView,
   ConsoleProjectResourceUsageSnapshot,
   ConsoleImportRuntimeTargetView,
   ConsoleProjectGalleryData,
+  ConsoleProjectSummaryView,
+  ConsoleRuntimeTargetInventoryData,
 } from "@/lib/console/gallery-types";
 import {
   getFugueApps,
   getFugueClusterNodes,
+  getFugueConsoleGallery,
+  getFugueConsoleProject,
   getFugueOperations,
   getFugueProjects,
   getFugueProjectImageUsage,
@@ -26,6 +33,8 @@ import {
   type FugueAppSource,
   type FugueBackingService,
   type FugueClusterNode,
+  type FugueConsoleProjectDetail,
+  type FugueConsoleProjectSummary,
   type FugueOperation,
   type FugueProject,
   type FugueProjectImageUsageSummary,
@@ -1925,6 +1934,269 @@ function compareImportRuntimeTargets(
   return left.id.localeCompare(right.id, "en", { sensitivity: "base" });
 }
 
+function normalizeProjectLifecycleTone(
+  value?: string | null,
+): ConsoleProjectLifecycleView["tone"] {
+  switch (value?.trim().toLowerCase()) {
+    case "positive":
+      return "positive";
+    case "warning":
+      return "warning";
+    case "danger":
+      return "danger";
+    case "info":
+      return "info";
+    default:
+      return "neutral";
+  }
+}
+
+function normalizeProjectLifecycleSyncMode(
+  value?: string | null,
+): ConsoleProjectLifecycleView["syncMode"] {
+  switch (value?.trim().toLowerCase()) {
+    case "active":
+      return "active";
+    case "passive":
+      return "passive";
+    default:
+      return "idle";
+  }
+}
+
+function buildConsoleProjectSummaryBadgeView(
+  badge: FugueConsoleProjectSummary["serviceBadges"][number],
+): ConsoleGalleryBadgeView {
+  const kind = (badge.kind?.trim() || "runtime") as ConsoleGalleryBadgeKind;
+  const label = badge.label?.trim() || "Unknown";
+  const meta = badge.meta?.trim() || "Service";
+
+  return {
+    id: readBadgeKey(kind, `${label}:${meta}`),
+    kind,
+    label,
+    meta,
+  };
+}
+
+function buildConsoleProjectSummaryView(
+  project: FugueConsoleProjectSummary,
+): ConsoleProjectSummaryView {
+  const resourceUsageSnapshot = {
+    cpuMillicores: project.resourceUsageSnapshot.cpuMillicores ?? null,
+    ephemeralStorageBytes:
+      project.resourceUsageSnapshot.ephemeralStorageBytes ?? null,
+    memoryBytes: project.resourceUsageSnapshot.memoryBytes ?? null,
+  } satisfies ConsoleProjectResourceUsageSnapshot;
+
+  return {
+    appCount: project.appCount,
+    id: project.id,
+    lifecycle: {
+      label: project.lifecycle.label,
+      live: project.lifecycle.live,
+      syncMode: normalizeProjectLifecycleSyncMode(project.lifecycle.syncMode),
+      tone: normalizeProjectLifecycleTone(project.lifecycle.tone),
+    },
+    name: project.name,
+    resourceUsage: buildProjectResourceUsageView(resourceUsageSnapshot),
+    resourceUsageSnapshot,
+    serviceBadges: (project.serviceBadges ?? []).map(
+      buildConsoleProjectSummaryBadgeView,
+    ),
+    serviceCount: project.serviceCount,
+  };
+}
+
+function buildConsoleProjectViewFromDetail(
+  detail: FugueConsoleProjectDetail,
+): ConsoleGalleryProjectView {
+  const sortedApps = sortByTimestampDesc(detail.apps, readAppTimestamp);
+  const appNames = new Map(sortedApps.map((app) => [app.id, app.name] as const));
+  const appRuntimeIds = new Map(
+    sortedApps.map(
+      (app) =>
+        [
+          app.id,
+          app.spec.runtimeId ?? app.status.currentRuntimeId ?? null,
+        ] as const,
+    ),
+  );
+  const commitOperationsByAppId = collectCommitOperationsByAppId(
+    detail.operations,
+  );
+  const workloadLocationsById = buildWorkloadLocationMap(detail.clusterNodes);
+  const backingServicesById = new Map<string, FugueBackingService>();
+
+  for (const app of sortedApps) {
+    for (const service of app.backingServices) {
+      backingServicesById.set(service.id, service);
+    }
+  }
+
+  const backingServices = sortByTimestampDesc(
+    [...backingServicesById.values()],
+    readServiceTimestamp,
+  );
+  const resourceUsage = sumCurrentResourceUsage([
+    ...sortedApps.map((app) => app.currentResourceUsage),
+    ...backingServices.map((service) => service.currentResourceUsage),
+  ]);
+  const resourceUsageSnapshot = {
+    cpuMillicores: resourceUsage.cpuMillicores ?? null,
+    ephemeralStorageBytes: resourceUsage.ephemeralStorageBytes ?? null,
+    memoryBytes: resourceUsage.memoryBytes ?? null,
+  } satisfies ConsoleProjectResourceUsageSnapshot;
+  const appViews = sortedApps.flatMap((app) =>
+    buildAppView(
+      app,
+      commitOperationsByAppId.get(app.id),
+      workloadLocationsById.get(app.id) ?? null,
+    ).map((service) => ({
+      kind: "app" as const,
+      ...service,
+    })),
+  );
+  const backingServiceViews = backingServices.map((service) => ({
+    kind: "backing-service" as const,
+    ...buildBackingServiceView(
+      service,
+      appNames,
+      appRuntimeIds,
+      workloadLocationsById.get(service.id) ?? null,
+    ),
+  }));
+  const services = [...appViews, ...backingServiceViews];
+
+  return {
+    appCount: sortedApps.length,
+    id: detail.projectId,
+    name: detail.project?.name ?? detail.projectName,
+    resourceUsage: buildProjectResourceUsageView(resourceUsage),
+    resourceUsageSnapshot,
+    serviceBadges: buildProjectServiceBadges(services),
+    serviceCount: services.length,
+    services,
+  };
+}
+
+async function requestWithWorkspaceRefresh<T>(
+  workspace: WorkspaceAccess,
+  request: (workspace: WorkspaceAccess) => Promise<T>,
+) {
+  try {
+    return await request(workspace);
+  } catch (error) {
+    if (!isUnauthorizedFugueError(error)) {
+      throw error;
+    }
+
+    const session = await getRequestSession();
+
+    if (!session) {
+      throw error;
+    }
+
+    const refreshed = await ensureWorkspaceAccess(session);
+    return request(refreshed.workspace);
+  }
+}
+
+const getConsoleProjectGallerySummaryDataCached = cache(async () => {
+  const workspace = await getCurrentWorkspaceAccess();
+
+  if (!workspace) {
+    return {
+      errors: [],
+      projects: [],
+      workspace: {
+        exists: false,
+        stage: "needs-workspace",
+      },
+    } satisfies ConsoleProjectGallerySummaryData;
+  }
+
+  try {
+    const gallery = await requestWithWorkspaceRefresh(workspace, (active) =>
+      getFugueConsoleGallery(active.adminKeySecret),
+    );
+
+    return {
+      errors: [],
+      projects: gallery.projects.map(buildConsoleProjectSummaryView),
+      workspace: {
+        exists: true,
+        stage: gallery.projects.length > 0 ? "ready" : "empty",
+      },
+    } satisfies ConsoleProjectGallerySummaryData;
+  } catch (error) {
+    return {
+      errors: [`projects: ${readErrorMessage(error)}`],
+      projects: [],
+      workspace: {
+        exists: true,
+        stage: "empty",
+      },
+    } satisfies ConsoleProjectGallerySummaryData;
+  }
+});
+
+async function loadRuntimeInventoryData(
+  workspace: WorkspaceAccess,
+): Promise<ConsoleRuntimeTargetInventoryData> {
+  const loadInventory = (active: WorkspaceAccess) =>
+    Promise.allSettled([
+      getFugueRuntimes(active.adminKeySecret, {
+        syncLocations: false,
+      }),
+      getFugueClusterNodes(active.adminKeySecret),
+    ]);
+
+  let [runtimesResult, clusterNodesResult] = await loadInventory(workspace);
+
+  if (
+    runtimesResult.status === "rejected" &&
+    clusterNodesResult.status === "rejected" &&
+    isUnauthorizedFugueError(runtimesResult.reason) &&
+    isUnauthorizedFugueError(clusterNodesResult.reason)
+  ) {
+    const session = await getRequestSession();
+
+    if (session) {
+      const refreshed = await ensureWorkspaceAccess(session);
+      [runtimesResult, clusterNodesResult] = await loadInventory(
+        refreshed.workspace,
+      );
+    }
+  }
+
+  const clusterNodes =
+    clusterNodesResult.status === "fulfilled" ? clusterNodesResult.value : [];
+  const runtimeTargetLocationsByRuntimeId =
+    buildRuntimeTargetLocationMap(clusterNodes);
+  const runtimeTargetInventoryError =
+    runtimesResult.status === "rejected"
+      ? readErrorMessage(runtimesResult.reason)
+      : null;
+  const runtimeTargets =
+    runtimesResult.status === "fulfilled"
+      ? [...runtimesResult.value]
+          .map((runtime) =>
+            buildImportRuntimeTargetView(
+              runtime,
+              workspace.tenantId,
+              runtimeTargetLocationsByRuntimeId.get(runtime.id) ?? null,
+            ),
+          )
+          .sort(compareImportRuntimeTargets)
+      : [];
+
+  return {
+    runtimeTargetInventoryError,
+    runtimeTargets,
+  };
+}
+
 const getConsoleProjectGalleryDataCached = cache(
   async (includeProjectImageUsage: boolean) => {
   const initialWorkspace = await getCurrentWorkspaceAccess();
@@ -2199,4 +2471,41 @@ export async function getConsoleProjectGalleryData(options?: {
   return getConsoleProjectGalleryDataCached(
     options?.includeProjectImageUsage ?? true,
   );
+}
+
+export async function getConsoleProjectGallerySummaryData() {
+  return getConsoleProjectGallerySummaryDataCached();
+}
+
+export async function getConsoleProjectDetailData(
+  projectId: string,
+): Promise<ConsoleProjectDetailData> {
+  const workspace = await getCurrentWorkspaceAccess();
+
+  if (!workspace) {
+    return {
+      project: null,
+    };
+  }
+
+  const detail = await requestWithWorkspaceRefresh(workspace, (active) =>
+    getFugueConsoleProject(active.adminKeySecret, projectId),
+  );
+
+  return {
+    project: buildConsoleProjectViewFromDetail(detail),
+  };
+}
+
+export async function getConsoleRuntimeTargetInventoryData() {
+  const workspace = await getCurrentWorkspaceAccess();
+
+  if (!workspace) {
+    return {
+      runtimeTargetInventoryError: null,
+      runtimeTargets: [],
+    } satisfies ConsoleRuntimeTargetInventoryData;
+  }
+
+  return loadRuntimeInventoryData(workspace);
 }

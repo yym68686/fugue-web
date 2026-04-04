@@ -1,11 +1,11 @@
 import { Suspense } from "react";
 
-import { ConsoleProjectGallery } from "@/components/console/console-project-gallery";
+import { ConsoleProjectGallery } from "@/components/console/console-project-gallery-shell";
 import {
   ConsoleLoadingState,
   ConsoleProjectGalleryTransitionSkeleton,
 } from "@/components/console/console-page-skeleton";
-import { getConsoleProjectGalleryData } from "@/lib/console/gallery-data";
+import { getConsoleProjectGallerySummaryData } from "@/lib/console/gallery-data";
 
 type SearchParams =
   | Promise<Record<string, string | string[] | undefined>>
@@ -20,9 +20,7 @@ async function AppConsolePageContent({
 }: {
   defaultCreateOpen: boolean;
 }) {
-  const data = await getConsoleProjectGalleryData({
-    includeProjectImageUsage: false,
-  });
+  const data = await getConsoleProjectGallerySummaryData();
 
   return (
     <ConsoleProjectGallery

@@ -8,6 +8,12 @@ import { Panel, PanelSection } from "@/components/ui/panel";
 import { useToast } from "@/components/ui/toast";
 import type { ApiKeyRecord } from "@/lib/api-keys/types";
 import {
+  CONSOLE_API_KEYS_PAGE_SNAPSHOT_URL,
+  type ConsoleApiKeysPageSnapshot,
+  readConsolePageSnapshot,
+  writeConsolePageSnapshot,
+} from "@/lib/console/page-snapshot-client";
+import {
   getFugueScopeDescription,
   sortFugueScopes,
   WORKSPACE_ADMIN_SCOPES,
@@ -136,10 +142,12 @@ export function ApiKeyManager({
   availableScopes,
   initialKeys,
   initialSyncError,
+  initialWorkspaceAdminKeyId,
 }: {
   availableScopes: string[];
   initialKeys: ApiKeyRecord[];
   initialSyncError: string | null;
+  initialWorkspaceAdminKeyId: string;
 }) {
   const confirm = useConfirmDialog();
   const { showToast } = useToast();
@@ -149,6 +157,9 @@ export function ApiKeyManager({
   const [syncError, setSyncError] = useState<string | null>(initialSyncError);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [busyAction, setBusyAction] = useState<string | null>(null);
+  const [workspaceAdminKeyId, setWorkspaceAdminKeyId] = useState(
+    initialWorkspaceAdminKeyId,
+  );
 
   useEffect(() => {
     if (!initialSyncError) {
@@ -161,10 +172,68 @@ export function ApiKeyManager({
     });
   }, [initialSyncError, showToast]);
 
+  useEffect(() => {
+    setKeys(sortKeys(initialKeys));
+    setScopeCatalog(sortFugueScopes(availableScopes));
+    setSyncError(initialSyncError);
+    setWorkspaceAdminKeyId(initialWorkspaceAdminKeyId);
+  }, [
+    availableScopes,
+    initialKeys,
+    initialSyncError,
+    initialWorkspaceAdminKeyId,
+  ]);
+
   function syncLocalState(data: ApiKeyPagePayload) {
     setKeys(sortKeys(data.keys));
     setScopeCatalog(sortFugueScopes(data.availableScopes));
     setSyncError(data.syncError);
+    setWorkspaceAdminKeyId(data.workspace.adminKeyId);
+    writeApiKeysPageSnapshot(data);
+  }
+
+  function writeApiKeysPageSnapshot(data: ApiKeyPagePayload) {
+    const currentSnapshot = readConsolePageSnapshot<ConsoleApiKeysPageSnapshot>(
+      CONSOLE_API_KEYS_PAGE_SNAPSHOT_URL,
+      {
+        allowStale: true,
+      },
+    );
+
+    if (!currentSnapshot || currentSnapshot.state !== "ready") {
+      return;
+    }
+
+    writeConsolePageSnapshot<ConsoleApiKeysPageSnapshot>(
+      CONSOLE_API_KEYS_PAGE_SNAPSHOT_URL,
+      {
+        ...currentSnapshot,
+        apiKeys: data,
+        state: "ready",
+      },
+    );
+  }
+
+  function syncApiKeysPageSnapshot(
+    overrides: Partial<ApiKeyPagePayload> & {
+      workspaceAdminKeyId?: string;
+    },
+  ) {
+    writeApiKeysPageSnapshot({
+      availableScopes:
+        overrides.availableScopes === undefined
+          ? scopeCatalog
+          : sortFugueScopes(overrides.availableScopes),
+      keys: overrides.keys === undefined ? keys : sortKeys(overrides.keys),
+      syncError:
+        overrides.syncError === undefined ? syncError : overrides.syncError,
+      workspace: {
+        adminKeyId:
+          overrides.workspaceAdminKeyId === undefined
+            ? workspaceAdminKeyId
+            : overrides.workspaceAdminKeyId,
+      },
+    });
   }
 
   async function refreshKeys() {
@@ -263,16 +332,27 @@ export function ApiKeyManager({
       const copied = await copiedPromise;
 
       if (rotated.key.isWorkspaceAdmin) {
-        setKeys((current) =>
-          upsertKey(
-            current.filter(
-              (key) => !(key.isWorkspaceAdmin && key.id !== rotated.key.id),
-            ),
-            rotated.key,
-          ),
+        const nextKeys = upsertKey(
+          keys.filter((key) => !(key.isWorkspaceAdmin && key.id !== rotated.key.id)),
+          rotated.key,
         );
+
+        setKeys(nextKeys);
+        setWorkspaceAdminKeyId(rotated.key.id);
+        syncApiKeysPageSnapshot({
+          availableScopes: rotated.key.scopes,
+          keys: nextKeys,
+          syncError: null,
+          workspaceAdminKeyId: rotated.key.id,
+        });
       } else {
-        setKeys((current) => upsertKey(current, rotated.key));
+        const nextKeys = upsertKey(keys, rotated.key);
+
+        setKeys(nextKeys);
+        syncApiKeysPageSnapshot({
+          keys: nextKeys,
+          syncError: null,
+        });
       }
       if (rotated.key.isWorkspaceAdmin) {
         setScopeCatalog(sortFugueScopes(rotated.key.scopes));
@@ -324,9 +404,15 @@ export function ApiKeyManager({
         method: "DELETE",
       });
 
-      setKeys((current) => current.filter((key) => key.id !== record.id));
+      const nextKeys = keys.filter((key) => key.id !== record.id);
+
+      setKeys(nextKeys);
       setSyncError(null);
       setExpandedId((current) => (current === record.id ? null : current));
+      syncApiKeysPageSnapshot({
+        keys: nextKeys,
+        syncError: null,
+      });
 
       showToast({
         message: "Key deleted.",
@@ -357,9 +443,15 @@ export function ApiKeyManager({
         method: "POST",
       });
 
-      setKeys((current) => upsertKey(current, updated.key));
+      const nextKeys = upsertKey(keys, updated.key);
+
+      setKeys(nextKeys);
       setSyncError(null);
       setExpandedId(updated.key.id);
+      syncApiKeysPageSnapshot({
+        keys: nextKeys,
+        syncError: null,
+      });
 
       showToast({
         message: nextAction === "enable" ? "Key restored." : "Key disabled.",
@@ -419,12 +511,21 @@ export function ApiKeyManager({
         method: "PATCH",
       });
 
-      setKeys((current) => upsertKey(current, updated.key));
+      const nextKeys = upsertKey(keys, updated.key);
+
+      setKeys(nextKeys);
       if (updated.key.isWorkspaceAdmin) {
         setScopeCatalog(sortFugueScopes(updated.key.scopes));
       }
       setSyncError(null);
       setExpandedId(updated.key.id);
+      syncApiKeysPageSnapshot({
+        availableScopes: updated.key.isWorkspaceAdmin
+          ? updated.key.scopes
+          : scopeCatalog,
+        keys: nextKeys,
+        syncError: null,
+      });
 
       showToast({
         message: "Permissions updated.",

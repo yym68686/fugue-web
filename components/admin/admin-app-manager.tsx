@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { CompactResourceMeter } from "@/components/console/compact-resource-meter";
@@ -72,13 +72,24 @@ async function requestJson<T>(input: RequestInfo, init?: RequestInit) {
 
 export function AdminAppManager({
   apps,
+  onRefresh,
 }: {
   apps: AdminClusterAppView[];
+  onRefresh?: () => void;
 }) {
   const router = useRouter();
   const confirm = useConfirmDialog();
   const { showToast } = useToast();
   const [busyAction, setBusyAction] = useState<string | null>(null);
+
+  function refreshPage() {
+    if (onRefresh) {
+      onRefresh();
+      return;
+    }
+
+    router.refresh();
+  }
 
   async function handleRebuild(app: AdminClusterAppView) {
     if (busyAction || !app.canRebuild) {
@@ -100,9 +111,7 @@ export function AdminAppManager({
         message: result.operation?.id ? "Rebuild queued." : "Rebuild requested.",
         variant: "success",
       });
-      startTransition(() => {
-        router.refresh();
-      });
+      refreshPage();
     } catch (error) {
       showToast({
         message: readErrorMessage(error),
@@ -141,9 +150,7 @@ export function AdminAppManager({
         message: result.alreadyDeleting ? "Delete is already queued." : "Delete queued.",
         variant: "success",
       });
-      startTransition(() => {
-        router.refresh();
-      });
+      refreshPage();
     } catch (error) {
       showToast({
         message: readErrorMessage(error),

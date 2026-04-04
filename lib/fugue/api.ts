@@ -734,6 +734,70 @@ function buildControlPlaneStatusView(
   };
 }
 
+function buildConsoleProjectBadgeView(
+  badge: CamelizedSchema<"ConsoleProjectBadge">,
+) {
+  return {
+    kind: readNullableString(badge.kind) ?? "runtime",
+    label: badge.label,
+    meta: badge.meta,
+  };
+}
+
+function buildConsoleProjectLifecycleView(
+  lifecycle?: CamelizedSchema<"ConsoleProjectLifecycle"> | null,
+) {
+  return {
+    label: readNullableString(lifecycle?.label) ?? "Unknown",
+    live: lifecycle?.live ?? false,
+    syncMode: readNullableString(lifecycle?.syncMode),
+    tone: readNullableString(lifecycle?.tone),
+  };
+}
+
+function buildConsoleProjectSummaryView(
+  summary: CamelizedSchema<"ConsoleProjectSummary">,
+) {
+  return {
+    appCount: readNullableNumber(summary.appCount) ?? 0,
+    id: summary.id,
+    lifecycle: buildConsoleProjectLifecycleView(summary.lifecycle),
+    name: summary.name,
+    resourceUsageSnapshot: summary.resourceUsageSnapshot
+      ? buildResourceUsageView(summary.resourceUsageSnapshot)
+      : {
+          cpuMillicores: null,
+          ephemeralStorageBytes: null,
+          memoryBytes: null,
+        },
+    serviceBadges: (summary.serviceBadges ?? []).map(
+      buildConsoleProjectBadgeView,
+    ),
+    serviceCount: readNullableNumber(summary.serviceCount) ?? 0,
+  };
+}
+
+function buildConsoleGalleryResponseView(
+  response: CamelizedSchema<"ConsoleGalleryResponse">,
+) {
+  return {
+    projects: (response.projects ?? []).map(buildConsoleProjectSummaryView),
+  };
+}
+
+function buildConsoleProjectDetailResponseView(
+  response: CamelizedSchema<"ConsoleProjectDetailResponse">,
+) {
+  return {
+    apps: (response.apps ?? []).map(buildAppView),
+    clusterNodes: (response.clusterNodes ?? []).map(buildClusterNodeView),
+    operations: (response.operations ?? []).map(buildOperationView),
+    project: response.project ? buildProjectView(response.project) : null,
+    projectId: response.projectId,
+    projectName: response.projectName,
+  };
+}
+
 function buildOperationView(operation: CamelizedSchema<"Operation">) {
   return {
     id: operation.id,
@@ -1183,6 +1247,21 @@ export type FugueControlPlaneComponent = ReturnType<
 >;
 export type FugueControlPlaneStatus = ReturnType<
   typeof buildControlPlaneStatusView
+>;
+export type FugueConsoleProjectBadge = ReturnType<
+  typeof buildConsoleProjectBadgeView
+>;
+export type FugueConsoleProjectLifecycle = ReturnType<
+  typeof buildConsoleProjectLifecycleView
+>;
+export type FugueConsoleProjectSummary = ReturnType<
+  typeof buildConsoleProjectSummaryView
+>;
+export type FugueConsoleGallery = ReturnType<
+  typeof buildConsoleGalleryResponseView
+>;
+export type FugueConsoleProjectDetail = ReturnType<
+  typeof buildConsoleProjectDetailResponseView
 >;
 export type FugueOperation = ReturnType<typeof buildOperationView>;
 export type FugueAuditEvent = ReturnType<typeof buildAuditEventView>;
@@ -2757,6 +2836,37 @@ export async function getFugueClusterNodes(accessToken: string) {
   );
 
   return (response.clusterNodes ?? []).map(buildClusterNodeView);
+}
+
+export async function getFugueConsoleGallery(accessToken: string) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      "/v1/console/gallery",
+      client.GET("/v1/console/gallery"),
+    ),
+  );
+
+  return buildConsoleGalleryResponseView(response);
+}
+
+export async function getFugueConsoleProject(
+  accessToken: string,
+  projectId: string,
+) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/console/projects/${encodeURIComponent(projectId)}`,
+      client.GET("/v1/console/projects/{id}", {
+        params: {
+          path: { id: projectId },
+        },
+      }),
+    ),
+  );
+
+  return buildConsoleProjectDetailResponseView(response);
 }
 
 export async function getFugueControlPlaneStatus(accessToken: string) {

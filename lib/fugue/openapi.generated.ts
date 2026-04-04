@@ -159,6 +159,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/console/gallery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Console Gallery */
+        get: operations["getConsoleGallery"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/console/gallery/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Stream Console Gallery Changes */
+        get: operations["streamConsoleGallery"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/console/projects/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Console Project */
+        get: operations["getConsoleProject"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/projects/{id}": {
         parameters: {
             query?: never;
@@ -2000,6 +2051,39 @@ export interface components {
         ProjectResponse: {
             project: components["schemas"]["Project"];
         };
+        ConsoleProjectBadge: {
+            kind: string;
+            label: string;
+            meta: string;
+        };
+        ConsoleProjectLifecycle: {
+            label: string;
+            live: boolean;
+            sync_mode: string;
+            tone: string;
+        };
+        ConsoleProjectSummary: {
+            id: string;
+            name: string;
+            /** Format: int32 */
+            app_count: number;
+            /** Format: int32 */
+            service_count: number;
+            resource_usage_snapshot: components["schemas"]["ResourceUsage"];
+            service_badges: components["schemas"]["ConsoleProjectBadge"][];
+            lifecycle: components["schemas"]["ConsoleProjectLifecycle"];
+        };
+        ConsoleGalleryResponse: {
+            projects: components["schemas"]["ConsoleProjectSummary"][];
+        };
+        ConsoleProjectDetailResponse: {
+            project?: components["schemas"]["Project"];
+            project_id: string;
+            project_name: string;
+            apps: components["schemas"]["App"][];
+            operations: components["schemas"]["Operation"][];
+            cluster_nodes: components["schemas"]["ClusterNode"][];
+        };
         AppImageSummary: {
             /** Format: int32 */
             version_count: number;
@@ -2822,6 +2906,71 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProjectImageUsageResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getConsoleGallery: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsoleGalleryResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    streamConsoleGallery: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": string;
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getConsoleProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsoleProjectDetailResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];

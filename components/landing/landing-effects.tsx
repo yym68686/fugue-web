@@ -15,6 +15,14 @@ declare global {
 const UNICORN_SCRIPT_SRC =
   "https://cdn.jsdelivr.net/gh/hiunicornstudio/unicornstudio.js@v2.0.5/dist/unicornStudio.umd.js";
 
+type LandingNavigator = Navigator & {
+  connection?: {
+    effectiveType?: string;
+    saveData?: boolean;
+  };
+  deviceMemory?: number;
+};
+
 export function LandingEffects() {
   useEffect(() => {
     const root = document.querySelector<HTMLElement>("[data-landing-root]");
@@ -25,12 +33,16 @@ export function LandingEffects() {
     }
 
     const landingRoot = root;
+    const landingHero = hero;
     const body = document.body;
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const timeouts: number[] = [];
     const cleanups: Array<() => void> = [];
     let sceneObserver: MutationObserver | null = null;
+    let sceneViewportObserver: IntersectionObserver | null = null;
     let sectionObserver: IntersectionObserver | null = null;
+    let idleHandle: number | null = null;
+    let sceneLoadRequested = false;
 
     body.classList.remove("is-ready", "has-scene", "is-fallback", "menu-open");
 
@@ -42,6 +54,49 @@ export function LandingEffects() {
       window.requestAnimationFrame(() => {
         body.classList.add("is-ready");
       });
+    }
+
+    function scheduleIdleTask(callback: () => void) {
+      if (typeof window.requestIdleCallback === "function") {
+        idleHandle = window.requestIdleCallback(
+          () => {
+            idleHandle = null;
+            callback();
+          },
+          { timeout: 1800 },
+        );
+        return;
+      }
+
+      trackTimeout(
+        window.setTimeout(() => {
+          idleHandle = null;
+          callback();
+        }, 180),
+      );
+    }
+
+    function canUseDynamicScene() {
+      if (prefersReducedMotion) {
+        return false;
+      }
+
+      const navigatorWithHints = navigator as LandingNavigator;
+      const saveData = navigatorWithHints.connection?.saveData ?? false;
+      const effectiveType = navigatorWithHints.connection?.effectiveType ?? "";
+      const deviceMemory = navigatorWithHints.deviceMemory ?? 8;
+      const hardwareConcurrency = navigator.hardwareConcurrency ?? 8;
+      const smallViewport = window.matchMedia("(max-width: 900px)").matches;
+      const constrainedNetwork =
+        effectiveType === "slow-2g" ||
+        effectiveType === "2g" ||
+        effectiveType === "3g";
+
+      return !saveData &&
+        !constrainedNetwork &&
+        !smallViewport &&
+        deviceMemory >= 4 &&
+        hardwareConcurrency >= 4;
     }
 
     function ensureUnicornScript(onReady: () => void) {
@@ -81,7 +136,7 @@ export function LandingEffects() {
         return;
       }
 
-      if (prefersReducedMotion) {
+      if (!canUseDynamicScene()) {
         body.classList.add("is-fallback");
         return;
       }
@@ -105,6 +160,28 @@ export function LandingEffects() {
         }
       };
 
+      const requestSceneLoad = () => {
+        if (sceneLoadRequested) {
+          return;
+        }
+
+        sceneLoadRequested = true;
+        scheduleIdleTask(() => {
+          ensureUnicornScript(maybeInit);
+
+          trackTimeout(
+            window.setTimeout(() => {
+              if (hasCanvas()) {
+                return;
+              }
+
+              body.classList.add("is-fallback");
+              sceneObserver?.disconnect();
+            }, 4200),
+          );
+        });
+      };
+
       if (hasCanvas()) {
         body.classList.add("has-scene");
       }
@@ -123,18 +200,25 @@ export function LandingEffects() {
         subtree: true,
       });
 
-      ensureUnicornScript(maybeInit);
+      if ("IntersectionObserver" in window) {
+        sceneViewportObserver = new IntersectionObserver(
+          (entries) => {
+            if (!entries.some((entry) => entry.isIntersecting)) {
+              return;
+            }
 
-      trackTimeout(
-        window.setTimeout(() => {
-          if (hasCanvas()) {
-            return;
-          }
-
-          body.classList.add("is-fallback");
-          sceneObserver?.disconnect();
-        }, 4200),
-      );
+            sceneViewportObserver?.disconnect();
+            requestSceneLoad();
+          },
+          {
+            rootMargin: "240px 0px",
+            threshold: 0.01,
+          },
+        );
+        sceneViewportObserver.observe(landingHero);
+      } else {
+        requestSceneLoad();
+      }
     }
 
     function initSectionReveal() {
@@ -366,7 +450,13 @@ export function LandingEffects() {
 
     return () => {
       sceneObserver?.disconnect();
+      sceneViewportObserver?.disconnect();
       sectionObserver?.disconnect();
+
+      if (idleHandle !== null && typeof window.cancelIdleCallback === "function") {
+        window.cancelIdleCallback(idleHandle);
+      }
+
       cleanups.forEach((cleanup) => cleanup());
       timeouts.forEach((timeoutId) => window.clearTimeout(timeoutId));
       body.classList.remove("is-ready", "has-scene", "is-fallback", "menu-open");

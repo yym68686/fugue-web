@@ -26,6 +26,13 @@ export type ConsoleProjectResourceUsageSnapshot = {
   memoryBytes: number | null;
 };
 
+export type ConsoleProjectLifecycleView = {
+  label: string;
+  live: boolean;
+  syncMode: "active" | "idle" | "passive";
+  tone: ConsoleTone;
+};
+
 export type ConsoleGalleryCommitView = {
   committedAt: string | null;
   exact: string | null;
@@ -122,6 +129,17 @@ export type ConsoleGalleryProjectView = {
   >;
 };
 
+export type ConsoleProjectSummaryView = {
+  appCount: number;
+  id: string;
+  lifecycle: ConsoleProjectLifecycleView;
+  name: string;
+  resourceUsage: ConsoleCompactResourceItemView[];
+  resourceUsageSnapshot: ConsoleProjectResourceUsageSnapshot;
+  serviceBadges: ConsoleGalleryBadgeView[];
+  serviceCount: number;
+};
+
 export type ConsoleGalleryWorkspaceView = {
   exists: boolean;
   stage: "empty" | "needs-workspace" | "ready";
@@ -147,4 +165,19 @@ export type ConsoleProjectGalleryData = {
   runtimeTargetInventoryError: string | null;
   runtimeTargets: ConsoleImportRuntimeTargetView[];
   workspace: ConsoleGalleryWorkspaceView;
+};
+
+export type ConsoleProjectGallerySummaryData = {
+  errors: string[];
+  projects: ConsoleProjectSummaryView[];
+  workspace: ConsoleGalleryWorkspaceView;
+};
+
+export type ConsoleProjectDetailData = {
+  project: ConsoleGalleryProjectView | null;
+};
+
+export type ConsoleRuntimeTargetInventoryData = {
+  runtimeTargetInventoryError: string | null;
+  runtimeTargets: ConsoleImportRuntimeTargetView[];
 };

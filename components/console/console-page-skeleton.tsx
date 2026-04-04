@@ -780,105 +780,7 @@ export function ConsoleProjectGallerySkeleton() {
                   </div>
 
                   {expanded ? (
-                    <div className="fg-project-card__detail">
-                      <section className="fg-bezel fg-panel fg-project-workbench">
-                        <div className="fg-bezel__inner fg-project-workbench__inner">
-                          <aside className="fg-project-services fg-project-services--rail fg-project-workbench__rail">
-                            <PanelSection className="fg-project-services__head">
-                              <div className="fg-project-services__title-row">
-                                <SkeletonBlock className="fg-console-skeleton__eyebrow" width="5rem" />
-                                <SkeletonBlock className="fg-console-skeleton__pill" width="7rem" />
-                              </div>
-                            </PanelSection>
-
-                            <PanelSection>
-                              <ul className="fg-project-service-list">
-                                {SERVICE_ITEMS.map((service) => (
-                                  <ProjectServiceCardSkeleton active={service === 0} key={`service-${service}`} />
-                                ))}
-                              </ul>
-                            </PanelSection>
-                          </aside>
-
-                          <div className="fg-project-inspector fg-project-workbench__main">
-                            <PanelSection className="fg-project-inspector__head">
-                              <div className="fg-project-inspector__header-row">
-                                <div className="fg-project-inspector__hero">
-                                  <PanelTitle>
-                                    <SkeletonBlock className="fg-console-skeleton__section-title" width="11rem" />
-                                  </PanelTitle>
-                                  <PanelCopy className="fg-project-inspector__copy">
-                                    <SkeletonBlock className="fg-console-skeleton__copy is-wide" width="22rem" />
-                                  </PanelCopy>
-                                </div>
-                              </div>
-
-                              <div className="fg-project-inspector__meta-grid">
-                                <MetadataPairSkeleton labelWidth="4rem" valueWidth="8rem" />
-                                <MetadataPairSkeleton labelWidth="3.5rem" valueWidth="7rem" />
-                                <MetadataPairSkeleton labelWidth="2.5rem" valueWidth="9rem" />
-                                <MetadataPairSkeleton labelWidth="4rem" valueWidth="6rem" />
-                              </div>
-                            </PanelSection>
-
-                            <PanelSection className="fg-project-inspector__controls">
-                              <div className="fg-project-toolbar">
-                                <div className="fg-project-toolbar__group">
-                                  <SkeletonBlock className="fg-console-skeleton__eyebrow" width="4.5rem" />
-                                  <div className="fg-project-actions">
-                                    <SkeletonBlock className="fg-console-skeleton__pill" width="8rem" />
-                                    <SkeletonBlock className="fg-console-skeleton__pill" width="7rem" />
-                                    <SkeletonBlock className="fg-console-skeleton__pill" width="6rem" />
-                                  </div>
-                                </div>
-
-                                <div className="fg-project-toolbar__group fg-project-toolbar__group--tabs">
-                                  <SkeletonBlock className="fg-console-skeleton__eyebrow" width="4rem" />
-                                  <div className="fg-project-actions">
-                                    {["5rem", "4rem", "4rem", "5rem"].map((width) => (
-                                      <SkeletonBlock className="fg-console-skeleton__chip" key={width} width={width} />
-                                    ))}
-                                  </div>
-                                </div>
-                              </div>
-                            </PanelSection>
-
-                            <PanelSection className="fg-project-pane">
-                              <div className="fg-workbench-section">
-                                <div className="fg-workbench-section__head">
-                                  <div className="fg-workbench-section__copy fg-env-section__copy">
-                                    <SkeletonBlock className="fg-console-skeleton__eyebrow" width="6rem" />
-                                    <SkeletonBlock className="fg-console-skeleton__copy is-wide" width="20rem" />
-                                  </div>
-
-                                  <div className="fg-workbench-section__actions fg-env-section__actions">
-                                    <SkeletonBlock className="fg-console-skeleton__pill" width="11rem" />
-                                    <SkeletonBlock className="fg-console-skeleton__pill" width="7rem" />
-                                    <SkeletonBlock className="fg-console-skeleton__pill" width="5.5rem" />
-                                  </div>
-                                </div>
-
-                                <div className="fg-env-table">
-                                  <div aria-hidden="true" className="fg-env-table__head">
-                                    <SkeletonBlock className="fg-console-skeleton__table-label" width="2.5rem" />
-                                    <SkeletonBlock className="fg-console-skeleton__table-label" width="3rem" />
-                                    <SkeletonBlock className="fg-console-skeleton__table-label" width="3.25rem" />
-                                  </div>
-
-                                  {TABLE_ROWS.map((row) => (
-                                    <div className="fg-env-row" key={`env-row-${row}`}>
-                                      <SkeletonBlock className="fg-console-skeleton__field" />
-                                      <SkeletonBlock className="fg-console-skeleton__field" />
-                                      <SkeletonBlock className="fg-console-skeleton__pill" width="6rem" />
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            </PanelSection>
-                          </div>
-                        </div>
-                      </section>
-                    </div>
+                    <ConsoleProjectWorkbenchSkeleton />
                   ) : null}
                 </article>
               );
@@ -887,6 +789,114 @@ export function ConsoleProjectGallerySkeleton() {
         </section>
       </div>
     </ConsoleSkeletonPage>
+  );
+}
+
+export function ConsoleProjectWorkbenchSkeleton({
+  detailId,
+}: {
+  detailId?: string;
+}) {
+  return (
+    <div className="fg-project-card__detail" id={detailId}>
+      <section className="fg-bezel fg-panel fg-project-workbench">
+        <div className="fg-bezel__inner fg-project-workbench__inner">
+          <aside className="fg-project-services fg-project-services--rail fg-project-workbench__rail">
+            <PanelSection className="fg-project-services__head">
+              <div className="fg-project-services__title-row">
+                <SkeletonBlock className="fg-console-skeleton__eyebrow" width="5rem" />
+                <SkeletonBlock className="fg-console-skeleton__pill" width="7rem" />
+              </div>
+            </PanelSection>
+
+            <PanelSection>
+              <ul className="fg-project-service-list">
+                {SERVICE_ITEMS.map((service) => (
+                  <ProjectServiceCardSkeleton active={service === 0} key={`service-${service}`} />
+                ))}
+              </ul>
+            </PanelSection>
+          </aside>
+
+          <div className="fg-project-inspector fg-project-workbench__main">
+            <PanelSection className="fg-project-inspector__head">
+              <div className="fg-project-inspector__header-row">
+                <div className="fg-project-inspector__hero">
+                  <PanelTitle>
+                    <SkeletonBlock className="fg-console-skeleton__section-title" width="11rem" />
+                  </PanelTitle>
+                  <PanelCopy className="fg-project-inspector__copy">
+                    <SkeletonBlock className="fg-console-skeleton__copy is-wide" width="22rem" />
+                  </PanelCopy>
+                </div>
+              </div>
+
+              <div className="fg-project-inspector__meta-grid">
+                <MetadataPairSkeleton labelWidth="4rem" valueWidth="8rem" />
+                <MetadataPairSkeleton labelWidth="3.5rem" valueWidth="7rem" />
+                <MetadataPairSkeleton labelWidth="2.5rem" valueWidth="9rem" />
+                <MetadataPairSkeleton labelWidth="4rem" valueWidth="6rem" />
+              </div>
+            </PanelSection>
+
+            <PanelSection className="fg-project-inspector__controls">
+              <div className="fg-project-toolbar">
+                <div className="fg-project-toolbar__group">
+                  <SkeletonBlock className="fg-console-skeleton__eyebrow" width="4.5rem" />
+                  <div className="fg-project-actions">
+                    <SkeletonBlock className="fg-console-skeleton__pill" width="8rem" />
+                    <SkeletonBlock className="fg-console-skeleton__pill" width="7rem" />
+                    <SkeletonBlock className="fg-console-skeleton__pill" width="6rem" />
+                  </div>
+                </div>
+
+                <div className="fg-project-toolbar__group fg-project-toolbar__group--tabs">
+                  <SkeletonBlock className="fg-console-skeleton__eyebrow" width="4rem" />
+                  <div className="fg-project-actions">
+                    {["5rem", "4rem", "4rem", "5rem"].map((width) => (
+                      <SkeletonBlock className="fg-console-skeleton__chip" key={width} width={width} />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </PanelSection>
+
+            <PanelSection className="fg-project-pane">
+              <div className="fg-workbench-section">
+                <div className="fg-workbench-section__head">
+                  <div className="fg-workbench-section__copy fg-env-section__copy">
+                    <SkeletonBlock className="fg-console-skeleton__eyebrow" width="6rem" />
+                    <SkeletonBlock className="fg-console-skeleton__copy is-wide" width="20rem" />
+                  </div>
+
+                  <div className="fg-workbench-section__actions fg-env-section__actions">
+                    <SkeletonBlock className="fg-console-skeleton__pill" width="11rem" />
+                    <SkeletonBlock className="fg-console-skeleton__pill" width="7rem" />
+                    <SkeletonBlock className="fg-console-skeleton__pill" width="5.5rem" />
+                  </div>
+                </div>
+
+                <div className="fg-env-table">
+                  <div aria-hidden="true" className="fg-env-table__head">
+                    <SkeletonBlock className="fg-console-skeleton__table-label" width="2.5rem" />
+                    <SkeletonBlock className="fg-console-skeleton__table-label" width="3rem" />
+                    <SkeletonBlock className="fg-console-skeleton__table-label" width="3.25rem" />
+                  </div>
+
+                  {TABLE_ROWS.map((row) => (
+                    <div className="fg-env-row" key={`env-row-${row}`}>
+                      <SkeletonBlock className="fg-console-skeleton__field" />
+                      <SkeletonBlock className="fg-console-skeleton__field" />
+                      <SkeletonBlock className="fg-console-skeleton__pill" width="6rem" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </PanelSection>
+          </div>
+        </div>
+      </section>
+    </div>
   );
 }
 

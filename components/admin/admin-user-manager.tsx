@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  startTransition,
   useEffect,
   useRef,
   useState,
@@ -281,8 +280,10 @@ function canEditQuota(user: AdminUserView) {
 
 export function AdminUserManager({
   users,
+  onRefresh,
 }: {
   users: AdminUserView[];
+  onRefresh?: () => void;
 }) {
   const router = useRouter();
   const confirm = useConfirmDialog();
@@ -359,6 +360,15 @@ export function AdminUserManager({
     editingQuotaUser && busyAction && busyAction !== `balance:${editingQuotaUser.email}`,
   );
   const isBillingDialogBusy = quotaBusy || balanceBusy;
+
+  function refreshPage() {
+    if (onRefresh) {
+      onRefresh();
+      return;
+    }
+
+    router.refresh();
+  }
 
   useEffect(() => {
     if (!editingQuotaEmail || editingQuotaUser) {
@@ -599,12 +609,10 @@ export function AdminUserManager({
                 : "User promoted to admin."
               : action === "demote"
                 ? "Admin access removed."
-                : "User deleted.",
+              : "User deleted.",
         variant: "success",
       });
-      startTransition(() => {
-        router.refresh();
-      });
+      refreshPage();
     } catch (error) {
       showToast({
         message: readErrorMessage(error),
@@ -648,9 +656,7 @@ export function AdminUserManager({
         message: "Managed limit updated.",
         variant: "success",
       });
-      startTransition(() => {
-        router.refresh();
-      });
+      refreshPage();
     } catch (error) {
       const message = readErrorMessage(error);
       setQuotaError(message);
@@ -704,9 +710,7 @@ export function AdminUserManager({
         message: "Balance updated.",
         variant: "success",
       });
-      startTransition(() => {
-        router.refresh();
-      });
+      refreshPage();
     } catch (error) {
       const message = readErrorMessage(error);
       setBalanceError(message);

@@ -15,6 +15,7 @@ import dynamic from "next/dynamic";
 
 import { CompactResourceMeter } from "@/components/console/compact-resource-meter";
 import { ImportServiceFields } from "@/components/console/import-service-fields";
+import { ConsoleProjectWorkbenchSkeleton } from "@/components/console/console-page-skeleton";
 import { StatusBadge } from "@/components/console/status-badge";
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -49,11 +50,18 @@ import type {
   ConsoleGalleryAppView,
   ConsoleGalleryBadgeKind,
   ConsoleGalleryCommitView,
+  ConsoleProjectDetailData,
   ConsoleGalleryProjectView,
   ConsoleProjectGalleryData,
+  ConsoleProjectSummaryView,
 } from "@/lib/console/gallery-types";
 import { OPEN_CREATE_PROJECT_DIALOG_EVENT } from "@/lib/console/dialog-events";
+import {
+  fetchConsoleProjectDetail,
+  readCachedConsoleProjectDetail,
+} from "@/lib/console/project-detail-client";
 import { buildProjectResourceUsageView } from "@/lib/console/project-resource-usage";
+import { useConsoleRuntimeTargetInventory } from "@/lib/console/runtime-target-inventory-client";
 import { readDefaultImportRuntimeId } from "@/lib/console/runtime-targets";
 import {
   buildImportServicePayload,
@@ -4410,5 +4418,1485 @@ export function ConsoleProjectGallery({
         </div>
       ) : null}
     </>
+  );
+}
+
+export function ConsoleProjectWorkbench({
+  detailId,
+  onProjectDeleted,
+  onProjectMutation,
+  onRequestCreateService,
+  projectCatalog,
+  project,
+  refreshToken,
+}: {
+  detailId: string;
+  onProjectDeleted: (projectId: string) => void;
+  onProjectMutation: () => void;
+  onRequestCreateService: (project: ConsoleProjectSummaryView) => void;
+  projectCatalog: Array<{
+    id: string;
+    name: string;
+  }>;
+  project: ConsoleProjectSummaryView;
+  refreshToken: number;
+}) {
+  const initialDetail = readCachedConsoleProjectDetail(project.id);
+  const confirm = useConfirmDialog();
+  const { showToast } = useToast();
+  const [flash, setFlash] = useState<FlashState | null>(null);
+  const [detailStatus, setDetailStatus] = useState<
+    "error" | "loading" | "ready"
+  >(() => (initialDetail ? "ready" : "loading"));
+  const [detailError, setDetailError] = useState<string | null>(null);
+  const [detail, setDetail] = useState<ConsoleProjectDetailData | null>(
+    () => initialDetail,
+  );
+  const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
+  const [selectedServiceKey, setSelectedServiceKey] = useState<string | null>(
+    null,
+  );
+  const [selectedAppPendingCommitHint, setSelectedAppPendingCommitHint] =
+    useState<ConsoleGalleryCommitView | null>(null);
+  const [activeTab, setActiveTab] = useState<WorkbenchView>("env");
+  const [busyAction, setBusyAction] = useState<AppAction | null>(null);
+  const [busyProjectAction, setBusyProjectAction] =
+    useState<ProjectAction | null>(null);
+  const [envFormat, setEnvFormat] = useState<EnvironmentFormat>("table");
+  const [envStatus, setEnvStatus] = useState<
+    "error" | "idle" | "loading" | "ready"
+  >("idle");
+  const [envBaseline, setEnvBaseline] = useState<Record<string, string>>({});
+  const [envRows, setEnvRows] = useState<EnvRow[]>([]);
+  const [envRawDraft, setEnvRawDraft] = useState("");
+  const [envRawFeedback, setEnvRawFeedback] = useState<EnvRawFeedback>(
+    createDefaultEnvRawFeedback,
+  );
+  const [envSaving, setEnvSaving] = useState(false);
+  const [logsMode, setLogsMode] = useState<LogsView>("build");
+  const [logsResetSignal, setLogsResetSignal] = useState(0);
+  const detailRefreshAbortRef = useRef<AbortController | null>(null);
+  const lastRefreshTokenRef = useRef(refreshToken);
+  const runtimeInventory = useConsoleRuntimeTargetInventory(
+    activeTab === "settings",
+  );
+
+  const detailProject = detail?.project ?? null;
+  const detailProjectServices = detailProject?.services ?? [];
+  const detailProjectApps = detailProject ? projectApps(detailProject) : [];
+  const selectedService =
+    detailProjectServices.find(
+      (service) => serviceKey(service) === selectedServiceKey,
+    ) ??
+    readPreferredProjectService(detailProjectServices) ??
+    null;
+  const selectedServiceApp =
+    selectedService?.kind === "app" ? selectedService : null;
+  const selectedServiceAppId = selectedServiceApp?.id ?? null;
+  const selectedApp =
+    selectedServiceApp ??
+    (selectedService?.kind === "backing-service"
+      ? (detailProjectApps.find((app) => app.id === selectedService.ownerAppId) ??
+        detailProjectApps.find((app) => app.id === selectedAppId) ??
+        detailProjectApps[0] ??
+        null)
+      : (detailProjectApps.find((app) => app.id === selectedAppId) ??
+        detailProjectApps[0] ??
+        null));
+  const selectedServiceWorkbenchOptions =
+    readServiceWorkbenchOptions(selectedService);
+  const selectedServiceLogViewOptions = readServiceLogViewOptions(
+    selectedService,
+    detailProjectServices,
+  );
+  const effectiveLogsMode = normalizeLogsModeForService(
+    selectedService,
+    detailProjectServices,
+    logsMode,
+  );
+  const selectedAppNeedsPendingCommitHint =
+    isGitHubTrackedApp(selectedServiceApp) &&
+    !hasPendingCommitView(selectedServiceApp);
+  const selectedServicePaused = isPausedAppService(selectedServiceApp);
+  const runtimeLogsUnavailable = readRuntimeLogsUnavailableState(
+    selectedServiceApp,
+    effectiveLogsMode,
+  );
+
+  const refreshDetail = useEffectEvent(
+    async (options?: { force?: boolean; silent?: boolean }) => {
+      const controller = new AbortController();
+      detailRefreshAbortRef.current?.abort();
+      detailRefreshAbortRef.current = controller;
+
+      if (!detail?.project) {
+        setDetailStatus("loading");
+      }
+
+      setDetailError(null);
+
+      try {
+        const nextDetail = await fetchConsoleProjectDetail(project.id, {
+          force: options?.force,
+          signal: controller.signal,
+        });
+
+        if (controller.signal.aborted) {
+          return false;
+        }
+
+        startTransition(() => {
+          setDetail(nextDetail);
+        });
+        setDetailStatus("ready");
+        return true;
+      } catch (error) {
+        if (controller.signal.aborted) {
+          return false;
+        }
+
+        setDetailStatus("error");
+        setDetailError(readErrorMessage(error));
+
+        if (!options?.silent) {
+          setFlash({
+            message: readErrorMessage(error),
+            variant: "error",
+          });
+        }
+
+        return false;
+      }
+    },
+  );
+
+  useEffect(() => {
+    if (!flash) {
+      return;
+    }
+
+    showToast({
+      message: flash.message,
+      variant: flash.variant,
+    });
+  }, [flash, showToast]);
+
+  useEffect(() => {
+    const forceRefresh = lastRefreshTokenRef.current !== refreshToken;
+    lastRefreshTokenRef.current = refreshToken;
+
+    void refreshDetail({
+      force: forceRefresh,
+      silent: Boolean(detail?.project ?? initialDetail),
+    });
+  }, [project.id, refreshDetail, refreshToken]);
+
+  useEffect(() => {
+    return () => {
+      detailRefreshAbortRef.current?.abort();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!selectedServiceApp || !selectedAppNeedsPendingCommitHint) {
+      setSelectedAppPendingCommitHint(null);
+      return;
+    }
+
+    setSelectedAppPendingCommitHint(buildPendingCommitHint(selectedServiceApp));
+  }, [selectedAppNeedsPendingCommitHint, selectedServiceApp]);
+
+  useEffect(() => {
+    if (!detailProject) {
+      return;
+    }
+
+    if (!selectedService) {
+      const defaultService = readPreferredProjectService(detailProject.services);
+
+      if (!defaultService) {
+        setSelectedAppId(null);
+        return;
+      }
+
+      setSelectedServiceKey(serviceKey(defaultService));
+      setSelectedAppId(
+        defaultService.kind === "app"
+          ? defaultService.id
+          : (defaultService.ownerAppId ?? detailProjectApps[0]?.id ?? null),
+      );
+      return;
+    }
+
+    if (
+      selectedService.kind === "backing-service" &&
+      selectedAppId !== selectedService.ownerAppId
+    ) {
+      setSelectedAppId(
+        selectedService.ownerAppId ?? detailProjectApps[0]?.id ?? null,
+      );
+    }
+  }, [detailProject, detailProjectApps, selectedAppId, selectedService]);
+
+  useEffect(() => {
+    if (!selectedService) {
+      return;
+    }
+
+    const defaultTab = readServiceDefaultTab(selectedService);
+    const supportsActiveTab = selectedServiceWorkbenchOptions.some(
+      (option) => option.value === activeTab,
+    );
+    const nextLogsMode = normalizeLogsModeForService(
+      selectedService,
+      detailProjectServices,
+      logsMode,
+    );
+
+    if (!supportsActiveTab) {
+      setActiveTab(
+        selectedServiceWorkbenchOptions.some(
+          (option) => option.value === defaultTab,
+        )
+          ? defaultTab
+          : (selectedServiceWorkbenchOptions[0]?.value ?? "logs"),
+      );
+    }
+
+    if (logsMode !== nextLogsMode) {
+      setLogsMode(nextLogsMode);
+    }
+  }, [
+    activeTab,
+    detailProjectServices,
+    logsMode,
+    selectedService,
+    selectedServiceWorkbenchOptions,
+  ]);
+
+  useEffect(() => {
+    if (!selectedServiceAppId) {
+      setEnvStatus("idle");
+      setEnvBaseline({});
+      setEnvRows([]);
+      setEnvRawDraft("");
+      setEnvRawFeedback(createDefaultEnvRawFeedback());
+      return;
+    }
+
+    const cachedState = readCachedEnvState(selectedServiceAppId);
+
+    if (cachedState) {
+      setEnvBaseline(cachedState.baseline);
+      setEnvRows(cachedState.rows);
+      setEnvFormat(cachedState.format);
+      setEnvRawDraft(cachedState.rawDraft);
+      setEnvRawFeedback(cachedState.rawFeedback);
+      setEnvStatus("ready");
+      return;
+    }
+
+    setEnvStatus("idle");
+    setEnvBaseline({});
+    setEnvRows([]);
+    setEnvRawDraft("");
+    setEnvRawFeedback(createDefaultEnvRawFeedback());
+  }, [selectedServiceAppId]);
+
+  useEffect(() => {
+    if (!selectedServiceAppId || activeTab !== "env") {
+      return;
+    }
+
+    if (readCachedEnvState(selectedServiceAppId)) {
+      return;
+    }
+
+    let cancelled = false;
+    setEnvStatus("loading");
+
+    requestJson<EnvResponse>(`/api/fugue/apps/${selectedServiceAppId}/env`)
+      .then((response) => {
+        if (cancelled) {
+          return;
+        }
+
+        const nextEnv = response.env ?? {};
+        const nextRows = rowsFromEnv(nextEnv);
+        const nextState = {
+          baseline: nextEnv,
+          format: envFormat,
+          rawDraft: serializeEnvEntries(entriesFromEnvRecord(nextEnv)),
+          rawFeedback: buildEnvRawFeedback(nextRows),
+          rows: nextRows,
+        } satisfies CachedEnvState;
+
+        writeCachedEnvState(selectedServiceAppId, nextState);
+        setEnvBaseline(nextEnv);
+        setEnvRows(nextRows);
+        setEnvRawDraft(nextState.rawDraft);
+        setEnvRawFeedback(nextState.rawFeedback);
+        setEnvStatus("ready");
+      })
+      .catch((error) => {
+        if (cancelled) {
+          return;
+        }
+
+        setEnvStatus("error");
+        setFlash({
+          message: readErrorMessage(error),
+          variant: "error",
+        });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, selectedServiceAppId]);
+
+  useEffect(() => {
+    if (!selectedServiceAppId || envStatus !== "ready") {
+      return;
+    }
+
+    writeCachedEnvState(selectedServiceAppId, {
+      baseline: envBaseline,
+      format: envFormat,
+      rawDraft: envRawDraft,
+      rawFeedback: envRawFeedback,
+      rows: envRows,
+    });
+  }, [
+    envBaseline,
+    envFormat,
+    envRawDraft,
+    envRawFeedback,
+    envRows,
+    envStatus,
+    selectedServiceAppId,
+  ]);
+
+  function chooseService(service: ConsoleGalleryServiceView) {
+    setSelectedServiceKey(serviceKey(service));
+    setSelectedAppId(
+      service.kind === "app" ? service.id : (service.ownerAppId ?? selectedAppId),
+    );
+    if (readServiceDefaultTab(service) === "logs") {
+      setActiveTab("logs");
+    }
+    setLogsMode(readServiceDefaultLogsMode(service, detailProjectServices));
+  }
+
+  async function handleAppAction(action: AppAction) {
+    if (!selectedServiceApp || busyAction) {
+      return;
+    }
+
+    if (action === "redeploy" && !selectedServiceApp.canRedeploy) {
+      setFlash({
+        message:
+          selectedServiceApp.redeployDisabledReason ??
+          "Redeploy is not available for this app.",
+        variant: "error",
+      });
+      return;
+    }
+
+    if (action === "delete") {
+      const confirmed = await confirm({
+        confirmLabel: "Delete service",
+        description: `${selectedServiceApp.name} will be queued for deletion from this project.`,
+        textConfirmation: {
+          hint: (
+            <>
+              Type{" "}
+              <span className="fg-confirm-dialog__match-text">
+                {selectedServiceApp.name}
+              </span>{" "}
+              exactly to enable deletion.
+            </>
+          ),
+          label: "Service name",
+          matchText: selectedServiceApp.name,
+          mismatchMessage: "Enter the service name exactly as shown.",
+        },
+        title: "Delete service?",
+      });
+
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    const nextAction =
+      action === "restart" && isPausedAppService(selectedServiceApp)
+        ? "start"
+        : action;
+
+    setBusyAction(nextAction);
+
+    try {
+      let input = `/api/fugue/apps/${selectedServiceApp.id}`;
+      let method = "POST";
+      let successMessage = "Request queued.";
+
+      switch (nextAction) {
+        case "redeploy":
+          input = `/api/fugue/apps/${selectedServiceApp.id}/rebuild`;
+          successMessage = selectedServiceApp.redeployQueuedMessage;
+          break;
+        case "start":
+          input = `/api/fugue/apps/${selectedServiceApp.id}/start`;
+          successMessage = "Start queued at 1 replica.";
+          break;
+        case "restart":
+          input = `/api/fugue/apps/${selectedServiceApp.id}/restart`;
+          successMessage = "Restart queued.";
+          break;
+        case "disable":
+          input = `/api/fugue/apps/${selectedServiceApp.id}/disable`;
+          successMessage = "Pause queued.";
+          break;
+        case "delete":
+          method = "DELETE";
+          successMessage = "Delete queued.";
+          break;
+      }
+
+      await requestJson(input, { method });
+
+      if (nextAction === "redeploy") {
+        setActiveTab("logs");
+        setLogsMode("build");
+        setLogsResetSignal((value) => value + 1);
+      }
+
+      setFlash({
+        message: successMessage,
+        variant: "success",
+      });
+      lastRefreshTokenRef.current = refreshToken + 1;
+      onProjectMutation();
+      void refreshDetail({ force: true, silent: true });
+    } catch (error) {
+      setFlash({
+        message: readErrorMessage(error),
+        variant: "error",
+      });
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
+  async function handleProjectDelete() {
+    if (busyProjectAction || !detailProject || detailProject.serviceCount > 0) {
+      return;
+    }
+
+    const confirmed = await confirm({
+      confirmLabel: "Delete project",
+      description: `${detailProject.name} is empty and will be removed from the workspace.`,
+      title: "Delete empty project?",
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
+    setBusyProjectAction("delete");
+
+    try {
+      await requestJson(`/api/fugue/projects/${detailProject.id}`, {
+        method: "DELETE",
+      });
+      showToast({
+        message: "Project deleted.",
+        variant: "success",
+      });
+      onProjectDeleted(detailProject.id);
+    } catch (error) {
+      setFlash({
+        message: readErrorMessage(error),
+        variant: "error",
+      });
+    } finally {
+      setBusyProjectAction(null);
+    }
+  }
+
+  function addEnvRow() {
+    setEnvRows((current) => [
+      ...current,
+      {
+        existing: false,
+        id: createClientId("env"),
+        key: "",
+        originalKey: "",
+        originalValue: "",
+        removed: false,
+        value: "",
+      },
+    ]);
+  }
+
+  function changeEnvFormat(nextFormat: EnvironmentFormat) {
+    if (nextFormat === "raw" && envFormat !== "raw") {
+      const nextRows = envRows;
+      setEnvRawDraft(serializeEnvEntries(entriesFromEnvRows(nextRows)));
+      setEnvRawFeedback(buildEnvRawFeedback(nextRows));
+    }
+
+    setEnvFormat(nextFormat);
+  }
+
+  function resetEnvRawDraft() {
+    setEnvRawDraft(serializeEnvEntries(entriesFromEnvRows(envRows)));
+    setEnvRawFeedback(buildEnvRawFeedback(envRows));
+  }
+
+  function updateEnvRow(
+    rowId: string,
+    field: "key" | "value",
+    nextValue: string,
+  ) {
+    setEnvRows((current) =>
+      current.map((row) =>
+        row.id === rowId ? { ...row, [field]: nextValue } : row,
+      ),
+    );
+  }
+
+  function removeEnvRow(rowId: string) {
+    setEnvRows((current) =>
+      current.flatMap((row) => {
+        if (row.id !== rowId) {
+          return [row];
+        }
+
+        if (!row.existing) {
+          return [];
+        }
+
+        return [{ ...row, removed: !row.removed }];
+      }),
+    );
+  }
+
+  function updateEnvRaw(nextValue: string) {
+    setEnvRawDraft(nextValue);
+
+    const parsed = parseRawEnvInput(nextValue);
+
+    if (!parsed.ok) {
+      setEnvRawFeedback({
+        message: `Line ${parsed.line}: ${parsed.message}`,
+        tone: "error",
+        valid: false,
+      });
+      return;
+    }
+
+    const nextRows = rowsFromEnvDrafts(
+      buildEnvDraftRowsFromEntries(parsed.entries, envBaseline),
+    );
+    setEnvRows(nextRows);
+    setEnvRawFeedback(buildEnvRawFeedback(nextRows, parsed.ignoredLineCount));
+  }
+
+  async function saveEnv() {
+    if (!selectedServiceApp || envSaving) {
+      return;
+    }
+
+    if (envFormat === "raw" && !envRawFeedback.valid) {
+      setFlash({
+        message: envRawFeedback.message,
+        variant: "error",
+      });
+      return;
+    }
+
+    const activeRows = envRows.filter((row) => !row.removed);
+    const emptyKeyRows = activeRows.filter(
+      (row) =>
+        readEnvRowKey(row).length === 0 &&
+        (row.existing || row.value.length > 0),
+    );
+    const duplicateKeys = new Set<string>();
+    const seenKeys = new Set<string>();
+
+    if (emptyKeyRows.length > 0) {
+      setFlash({
+        message: "Environment variable names cannot be empty.",
+        variant: "error",
+      });
+      return;
+    }
+
+    for (const row of activeRows) {
+      const key = readEnvRowKey(row);
+
+      if (!key) {
+        continue;
+      }
+
+      if (seenKeys.has(key)) {
+        duplicateKeys.add(key);
+      }
+
+      seenKeys.add(key);
+    }
+
+    if (duplicateKeys.size > 0) {
+      setFlash({
+        message: `Duplicate env keys: ${[...duplicateKeys].join(", ")}.`,
+        variant: "error",
+      });
+      return;
+    }
+
+    const setPayload: Record<string, string> = {};
+    const deleteSet = new Set<string>();
+
+    for (const row of envRows) {
+      if (row.existing) {
+        if (row.removed) {
+          deleteSet.add(row.originalKey);
+          continue;
+        }
+
+        const key = readEnvRowKey(row);
+        const keyChanged = key !== row.originalKey;
+
+        if (keyChanged) {
+          deleteSet.add(row.originalKey);
+          setPayload[key] = row.value;
+          continue;
+        }
+
+        if (row.value !== row.originalValue) {
+          setPayload[row.originalKey] = row.value;
+        }
+        continue;
+      }
+
+      const key = readEnvRowKey(row);
+
+      if (key) {
+        setPayload[key] = row.value;
+      }
+    }
+
+    for (const key of Object.keys(setPayload)) {
+      deleteSet.delete(key);
+    }
+
+    const deletePayload = [...deleteSet].sort((left, right) =>
+      left.localeCompare(right),
+    );
+
+    if (!Object.keys(setPayload).length && !deletePayload.length) {
+      setFlash({
+        message: "No environment changes.",
+        variant: "info",
+      });
+      return;
+    }
+
+    setEnvSaving(true);
+
+    try {
+      const response = await requestJson<EnvResponse>(
+        `/api/fugue/apps/${selectedServiceApp.id}/env`,
+        {
+          body: JSON.stringify({
+            delete: deletePayload,
+            set: setPayload,
+          }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          method: "PATCH",
+        },
+      );
+
+      const nextEnv = response.env ?? {};
+      const nextRows = rowsFromEnv(nextEnv);
+      const nextState = {
+        baseline: nextEnv,
+        format: envFormat,
+        rawDraft: serializeEnvEntries(entriesFromEnvRecord(nextEnv)),
+        rawFeedback: buildEnvRawFeedback(nextRows),
+        rows: nextRows,
+      } satisfies CachedEnvState;
+
+      writeCachedEnvState(selectedServiceApp.id, nextState);
+      setEnvBaseline(nextEnv);
+      setEnvRows(nextRows);
+      setEnvRawDraft(nextState.rawDraft);
+      setEnvRawFeedback(nextState.rawFeedback);
+      setEnvStatus("ready");
+      setFlash({
+        message: "Environment changes queued.",
+        variant: "success",
+      });
+      lastRefreshTokenRef.current = refreshToken + 1;
+      onProjectMutation();
+      void refreshDetail({ force: true, silent: true });
+    } catch (error) {
+      setFlash({
+        message: readErrorMessage(error),
+        variant: "error",
+      });
+    } finally {
+      setEnvSaving(false);
+    }
+  }
+
+  if (detailStatus === "loading" && !detailProject) {
+    return <ConsoleProjectWorkbenchSkeleton detailId={detailId} />;
+  }
+
+  if (detailStatus === "error" || !detailProject) {
+    return (
+      <div className="fg-project-card__detail" id={detailId}>
+        <section className="fg-bezel fg-panel fg-project-workbench">
+          <div className="fg-bezel__inner fg-project-workbench__inner">
+            <div className="fg-workbench-section">
+              <p className="fg-console-note">
+                {detailError ?? "Unable to load this project right now."}
+              </p>
+              <div className="fg-project-actions">
+                <Button
+                  onClick={() => {
+                    void refreshDetail();
+                  }}
+                  size="compact"
+                  type="button"
+                  variant="secondary"
+                >
+                  Retry
+                </Button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  if (detailProject.serviceCount === 0) {
+    return (
+      <div className="fg-project-card__detail" id={detailId}>
+        <section className="fg-bezel fg-panel fg-project-workbench">
+          <div className="fg-bezel__inner fg-project-workbench__inner">
+            <aside className="fg-project-services fg-project-services--rail fg-project-workbench__rail">
+              <PanelSection className="fg-project-services__head">
+                <div className="fg-project-services__title-row">
+                  <p className="fg-label fg-panel__eyebrow">Services</p>
+                  <Button
+                    onClick={() => onRequestCreateService(project)}
+                    size="compact"
+                    type="button"
+                    variant="primary"
+                  >
+                    Add service
+                  </Button>
+                </div>
+              </PanelSection>
+
+              <PanelSection>
+                <p className="fg-console-note">
+                  No services are attached to this project yet.
+                </p>
+              </PanelSection>
+            </aside>
+
+            <div className="fg-project-inspector fg-project-workbench__main">
+              <PanelSection className="fg-project-inspector__head">
+                <div className="fg-project-inspector__header-row">
+                  <div className="fg-project-inspector__hero">
+                    <PanelTitle>{detailProject.name}</PanelTitle>
+                    <PanelCopy className="fg-project-inspector__copy">
+                      This project still exists in Fugue, but it does not
+                      currently have any running services or attached backing
+                      services.
+                    </PanelCopy>
+                  </div>
+                </div>
+
+                <div className="fg-project-inspector__meta-grid">
+                  <div>
+                    <dt>Apps</dt>
+                    <dd>{detailProject.appCount}</dd>
+                  </div>
+                  <div>
+                    <dt>Services</dt>
+                    <dd>{detailProject.serviceCount}</dd>
+                  </div>
+                  <div>
+                    <dt>Project id</dt>
+                    <dd>{detailProject.id}</dd>
+                  </div>
+                  <div>
+                    <dt>State</dt>
+                    <dd>Empty</dd>
+                  </div>
+                </div>
+              </PanelSection>
+
+              <PanelSection className="fg-project-inspector__controls">
+                <div className="fg-project-toolbar">
+                  <div className="fg-project-toolbar__group">
+                    <p className="fg-label fg-project-toolbar__label">
+                      Actions
+                    </p>
+                    <div className="fg-project-actions">
+                      <Button
+                        onClick={() => onRequestCreateService(project)}
+                        size="compact"
+                        type="button"
+                        variant="primary"
+                      >
+                        Add service
+                      </Button>
+                      <Button
+                        disabled={busyProjectAction === "delete"}
+                        loading={busyProjectAction === "delete"}
+                        loadingLabel="Deleting…"
+                        onClick={() => {
+                          void handleProjectDelete();
+                        }}
+                        size="compact"
+                        type="button"
+                        variant="danger"
+                      >
+                        Delete project
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </PanelSection>
+
+              <PanelSection className="fg-project-pane">
+                <div className="fg-console-empty-state fg-project-empty-state">
+                  <div>
+                    <strong>Empty project</strong>
+                    <p>
+                      Empty projects stay visible so you can reuse the shell or
+                      delete it explicitly.
+                    </p>
+                  </div>
+
+                  <div className="fg-console-empty-state__actions">
+                    <Button
+                      onClick={() => onRequestCreateService(project)}
+                      size="compact"
+                      type="button"
+                      variant="primary"
+                    >
+                      Import a new service
+                    </Button>
+                  </div>
+                </div>
+              </PanelSection>
+            </div>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  if (!selectedService || !selectedApp) {
+    return <ConsoleProjectWorkbenchSkeleton detailId={detailId} />;
+  }
+
+  const selectedServiceSummary =
+    selectedService.kind === "app"
+      ? readDistinctText(selectedService.lastMessage, [selectedService.name])
+      : readDistinctText(selectedService.description, [
+          selectedService.name,
+          selectedService.ownerAppLabel,
+          selectedService.type,
+          humanizeUiLabel(selectedService.type),
+        ]);
+  const selectedServiceWorkspacePath =
+    selectedService.kind === "app" &&
+    selectedService.serviceRole === "running" &&
+    !selectedServicePaused
+      ? readDistinctText(selectedService.workspaceMountPath)
+      : null;
+  const backingServiceOwnerLabel =
+    selectedService.kind === "backing-service"
+      ? readDistinctText(selectedService.ownerAppLabel, [selectedService.name])
+      : null;
+  const backingServiceDescription =
+    selectedService.kind === "backing-service"
+      ? readDistinctText(selectedService.description, [
+          selectedService.name,
+          selectedService.ownerAppLabel,
+          selectedService.type,
+          humanizeUiLabel(selectedService.type),
+        ])
+      : null;
+  const selectedServiceUrl = readServicePublicUrl(selectedService);
+  const selectedServiceLocationLabel = selectedService.locationLabel ?? "Unavailable";
+
+  return (
+    <div className="fg-project-card__detail" id={detailId}>
+      <section className="fg-bezel fg-panel fg-project-workbench">
+        <div className="fg-bezel__inner fg-project-workbench__inner">
+          <aside className="fg-project-services fg-project-services--rail fg-project-workbench__rail">
+            <PanelSection className="fg-project-services__head">
+              <div className="fg-project-services__title-row">
+                <p className="fg-label fg-panel__eyebrow">Services</p>
+                <Button
+                  onClick={() => onRequestCreateService(project)}
+                  size="compact"
+                  type="button"
+                  variant="primary"
+                >
+                  Add service
+                </Button>
+              </div>
+            </PanelSection>
+
+            <PanelSection>
+              <ul className="fg-project-service-list">
+                {detailProject.services.map((service) => {
+                  const active =
+                    serviceKey(selectedService) === serviceKey(service);
+                  const serviceStatus =
+                    service.kind === "app" ? service.phase : service.status;
+                  const serviceStatusTone =
+                    service.kind === "app"
+                      ? service.phaseTone
+                      : service.statusTone;
+                  const cardSecondaryLines =
+                    service.kind === "app"
+                      ? [readDistinctText(service.sourceMeta, [service.name])]
+                      : [
+                          readDistinctText(service.ownerAppLabel, [service.name]),
+                          readDistinctText(service.description, [
+                            service.name,
+                            service.ownerAppLabel,
+                            service.type,
+                            humanizeUiLabel(service.type),
+                          ]),
+                        ].filter((value): value is string => Boolean(value));
+                  const cardStatusMeta =
+                    service.kind === "app" && service.serviceDurationLabel
+                      ? `${service.serviceDurationLabel} elapsed`
+                      : null;
+
+                  return (
+                    <li key={serviceKey(service)}>
+                      <button
+                        aria-label={`Inspect ${service.name}${service.kind === "app" ? ` (${service.phase})` : ` (${service.type})`}`}
+                        aria-pressed={active}
+                        className={cx(
+                          "fg-project-service-card",
+                          active && "is-active",
+                        )}
+                        onClick={() => chooseService(service)}
+                        type="button"
+                      >
+                        <div className="fg-project-service-card__head">
+                          <div className="fg-project-service-card__title-row">
+                            <div className="fg-project-service-card__summary">
+                              <span className="fg-project-service-card__primary-badge">
+                                <ProjectBadge
+                                  kind={service.primaryBadge.kind}
+                                  label={service.primaryBadge.label}
+                                  meta={service.primaryBadge.meta}
+                                />
+                              </span>
+                              <div className="fg-project-service-card__identity">
+                                <strong>{service.name}</strong>
+                              </div>
+                            </div>
+
+                            <div className="fg-project-service-card__status">
+                              <StatusBadge
+                                live={shouldShowLiveStatusBadge(serviceStatus)}
+                                tone={serviceStatusTone}
+                              >
+                                {serviceStatus}
+                              </StatusBadge>
+                              {cardStatusMeta ? (
+                                <span className="fg-project-service-card__status-meta">
+                                  {cardStatusMeta}
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
+
+                          {cardSecondaryLines.length ? (
+                            <div className="fg-project-service-card__meta">
+                              {cardSecondaryLines.map((line) => (
+                                <span key={line}>{line}</span>
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </PanelSection>
+          </aside>
+
+          <div className="fg-project-inspector fg-project-workbench__main">
+            <PanelSection className="fg-project-inspector__head">
+              <div className="fg-project-inspector__header-row">
+                <div className="fg-project-inspector__hero">
+                  <PanelTitle>{selectedService.name}</PanelTitle>
+                  {selectedServiceSummary ? (
+                    <PanelCopy className="fg-project-inspector__copy">
+                      {selectedServiceSummary}
+                    </PanelCopy>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="fg-project-inspector__meta-grid">
+                {selectedService.kind === "app" ? (
+                  <>
+                    <div>
+                      <dt>Commit</dt>
+                      <dd>
+                        {renderCommitText(
+                          selectedService,
+                          selectedAppPendingCommitHint,
+                        )}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Build</dt>
+                      <dd>{selectedService.sourceMeta}</dd>
+                    </div>
+                    {selectedServiceUrl ? (
+                      <div>
+                        <dt>URL</dt>
+                        <dd>
+                          {renderExternalText(
+                            selectedServiceUrl.label,
+                            selectedServiceUrl.href,
+                          )}
+                        </dd>
+                      </div>
+                    ) : null}
+                    <div>
+                      <dt>Location</dt>
+                      <dd>
+                        <CountryFlagLabel
+                          countryCode={selectedService.locationCountryCode}
+                          label={selectedServiceLocationLabel}
+                        />
+                      </dd>
+                    </div>
+                    {selectedService.serviceRole === "running" &&
+                    selectedServiceWorkspacePath ? (
+                      <div>
+                        <dt>Workspace</dt>
+                        <dd>{selectedServiceWorkspacePath}</dd>
+                      </div>
+                    ) : null}
+                    {selectedService.serviceRole === "pending" &&
+                    selectedService.serviceDurationLabel ? (
+                      <div>
+                        <dt>Elapsed</dt>
+                        <dd>{`${selectedService.serviceDurationLabel} elapsed`}</dd>
+                      </div>
+                    ) : null}
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <dt>Service</dt>
+                      <dd>{selectedService.type}</dd>
+                    </div>
+                    <div>
+                      <dt>Location</dt>
+                      <dd>
+                        <CountryFlagLabel
+                          countryCode={selectedService.locationCountryCode}
+                          label={selectedServiceLocationLabel}
+                        />
+                      </dd>
+                    </div>
+                    {backingServiceOwnerLabel ? (
+                      <div>
+                        <dt>Attached to</dt>
+                        <dd>{backingServiceOwnerLabel}</dd>
+                      </div>
+                    ) : null}
+                    {backingServiceDescription ? (
+                      <div>
+                        <dt>Description</dt>
+                        <dd>{backingServiceDescription}</dd>
+                      </div>
+                    ) : null}
+                  </>
+                )}
+              </div>
+            </PanelSection>
+
+            <PanelSection className="fg-project-inspector__controls">
+              <div className="fg-project-toolbar">
+                {selectedService.kind === "app" &&
+                selectedService.serviceRole === "running" ? (
+                  <div className="fg-project-toolbar__group">
+                    <p className="fg-label fg-project-toolbar__label">
+                      Actions
+                    </p>
+                    <div className="fg-project-actions">
+                      <Button
+                        disabled={
+                          !selectedService.canRedeploy ||
+                          Boolean(busyAction && busyAction !== "redeploy")
+                        }
+                        loading={busyAction === "redeploy"}
+                        loadingLabel={
+                          selectedService.redeployActionLoadingLabel
+                        }
+                        onClick={() => {
+                          void handleAppAction("redeploy");
+                        }}
+                        size="compact"
+                        title={
+                          selectedService.canRedeploy
+                            ? selectedService.redeployActionDescription
+                            : (selectedService.redeployDisabledReason ?? undefined)
+                        }
+                        type="button"
+                        variant="primary"
+                      >
+                        {selectedService.redeployActionLabel}
+                      </Button>
+                      <Button
+                        disabled={Boolean(
+                          busyAction &&
+                            busyAction !==
+                              (selectedServicePaused ? "start" : "restart"),
+                        )}
+                        loading={
+                          busyAction ===
+                          (selectedServicePaused ? "start" : "restart")
+                        }
+                        loadingLabel={
+                          selectedServicePaused ? "Starting…" : "Restarting…"
+                        }
+                        onClick={() => {
+                          void handleAppAction(
+                            selectedServicePaused ? "start" : "restart",
+                          );
+                        }}
+                        size="compact"
+                        title={
+                          selectedServicePaused
+                            ? "Start this paused app at 1 replica without rebuilding the image."
+                            : "Restart the current release without rebuilding the image. Persistent workspace is preserved when configured."
+                        }
+                        type="button"
+                        variant="secondary"
+                      >
+                        {selectedServicePaused ? "Start" : "Restart"}
+                      </Button>
+                      {selectedServicePaused ? null : (
+                        <Button
+                          disabled={Boolean(busyAction && busyAction !== "disable")}
+                          loading={busyAction === "disable"}
+                          loadingLabel="Pausing…"
+                          onClick={() => {
+                            void handleAppAction("disable");
+                          }}
+                          size="compact"
+                          type="button"
+                          variant="secondary"
+                        >
+                          Pause
+                        </Button>
+                      )}
+                      <Button
+                        disabled={Boolean(busyAction && busyAction !== "delete")}
+                        loading={busyAction === "delete"}
+                        loadingLabel="Deleting…"
+                        onClick={() => {
+                          void handleAppAction("delete");
+                        }}
+                        size="compact"
+                        type="button"
+                        variant="danger"
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className="fg-project-toolbar__group fg-project-toolbar__group--tabs">
+                  <p className="fg-label fg-project-toolbar__label">Panels</p>
+                  <SegmentedControl
+                    ariaLabel="Service panels"
+                    className="fg-project-toolbar__panels-switch"
+                    onChange={setActiveTab}
+                    options={selectedServiceWorkbenchOptions}
+                    value={
+                      selectedServiceWorkbenchOptions.some(
+                        (option) => option.value === activeTab,
+                      )
+                        ? activeTab
+                        : "logs"
+                    }
+                  />
+                </div>
+              </div>
+            </PanelSection>
+
+            <PanelSection className="fg-project-pane">
+              {selectedService.kind === "app" && activeTab === "route" ? (
+                <AppRoutePanel
+                  appId={selectedService.id}
+                  appName={selectedService.name}
+                  initialBaseDomain={selectedService.routeBaseDomain}
+                  initialHostname={selectedService.routeHostname}
+                  initialPublicUrl={selectedService.routePublicUrl}
+                  key={selectedService.id}
+                />
+              ) : null}
+
+              {selectedService.kind === "app" && activeTab === "env" ? (
+                <div className="fg-workbench-section">
+                  <div className="fg-workbench-section__head">
+                    <div className="fg-workbench-section__copy fg-env-section__copy">
+                      <p className="fg-label fg-panel__eyebrow">Environment</p>
+                      <p className="fg-console-note">
+                        {envFormat === "raw"
+                          ? `Paste a .env block for ${selectedService.name}. Comments, blank lines, and export prefixes are ignored.`
+                          : `Review variables for ${selectedService.name}, or switch to Raw to paste a .env block. Saving queues a deploy.`}
+                      </p>
+                    </div>
+
+                    <div className="fg-workbench-section__actions fg-env-section__actions">
+                      <SegmentedControl
+                        ariaLabel="Environment formats"
+                        onChange={changeEnvFormat}
+                        options={ENVIRONMENT_FORMAT_OPTIONS}
+                        value={envFormat}
+                      />
+                      {envFormat === "table" ? (
+                        <Button
+                          onClick={addEnvRow}
+                          size="compact"
+                          type="button"
+                          variant="secondary"
+                        >
+                          Add variable
+                        </Button>
+                      ) : (
+                        <Button
+                          onClick={resetEnvRawDraft}
+                          size="compact"
+                          type="button"
+                          variant="secondary"
+                        >
+                          Reset raw
+                        </Button>
+                      )}
+                      <Button
+                        disabled={
+                          envStatus === "loading" ||
+                          (envFormat === "raw" && !envRawFeedback.valid)
+                        }
+                        loading={envSaving}
+                        loadingLabel="Saving…"
+                        onClick={() => {
+                          void saveEnv();
+                        }}
+                        size="compact"
+                        type="button"
+                        variant="primary"
+                      >
+                        Save
+                      </Button>
+                    </div>
+                  </div>
+
+                  {envStatus === "loading" ? (
+                    <p className="fg-console-note">Loading environment…</p>
+                  ) : envFormat === "table" ? (
+                    <div className="fg-env-table">
+                      {envRows.length ? (
+                        <>
+                          <div aria-hidden="true" className="fg-env-table__head">
+                            <span>Key</span>
+                            <span>Value</span>
+                            <span>Action</span>
+                          </div>
+                          {envRows.map((row) => (
+                            <div
+                              className={cx(
+                                "fg-env-row",
+                                row.removed && "is-removed",
+                              )}
+                              key={row.id}
+                            >
+                              <input
+                                aria-label={`${row.key || row.originalKey || "New variable"} Key`}
+                                autoCapitalize="off"
+                                autoCorrect="off"
+                                className="fg-input"
+                                disabled={row.removed}
+                                onChange={(event) =>
+                                  updateEnvRow(row.id, "key", event.target.value)
+                                }
+                                placeholder="Name"
+                                spellCheck={false}
+                                value={row.key}
+                              />
+                              <input
+                                aria-label={`${row.key || row.originalKey || "New variable"} Value`}
+                                autoCapitalize="off"
+                                autoCorrect="off"
+                                className="fg-input"
+                                disabled={row.removed}
+                                onChange={(event) =>
+                                  updateEnvRow(row.id, "value", event.target.value)
+                                }
+                                placeholder="Value"
+                                spellCheck={false}
+                                value={row.value}
+                              />
+                              <Button
+                                onClick={() => removeEnvRow(row.id)}
+                                type="button"
+                                variant="ghost"
+                              >
+                                {row.existing
+                                  ? row.removed
+                                    ? "Undo"
+                                    : "Remove"
+                                  : "Discard"}
+                              </Button>
+                            </div>
+                          ))}
+                        </>
+                      ) : (
+                        <p className="fg-console-note">
+                          No environment variables yet. Add one manually or switch
+                          to Raw to paste a .env block.
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="fg-env-raw">
+                      <FormField
+                        hint="Paste KEY=value lines directly from a .env file. Quoted values, blank lines, comments, and export prefixes are supported."
+                        htmlFor={`env-raw-${selectedService.id}`}
+                        label="Raw environment"
+                        optionalLabel="Paste .env"
+                      >
+                        <textarea
+                          aria-invalid={envRawFeedback.valid ? undefined : true}
+                          autoCapitalize="off"
+                          autoCorrect="off"
+                          className="fg-project-textarea fg-env-raw__textarea"
+                          id={`env-raw-${selectedService.id}`}
+                          onChange={(event) => updateEnvRaw(event.target.value)}
+                          placeholder={`DATABASE_URL=postgres://user:pass@host/db\nPUBLIC_API_BASE=https://api.example.com\n# comments are ignored`}
+                          spellCheck={false}
+                          value={envRawDraft}
+                        />
+                      </FormField>
+                      <div
+                        aria-live={envRawFeedback.valid ? "polite" : "assertive"}
+                        className={cx(
+                          "fg-inline-alert",
+                          envRawFeedback.tone === "error" &&
+                            "fg-inline-alert--error",
+                          envRawFeedback.tone === "info" &&
+                            "fg-inline-alert--info",
+                          envRawFeedback.tone === "success" &&
+                            "fg-inline-alert--success",
+                        )}
+                        role={envRawFeedback.valid ? "status" : "alert"}
+                      >
+                        {envRawFeedback.message}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : null}
+
+              {selectedService.kind === "app" &&
+              selectedService.serviceRole === "running" &&
+              !selectedServicePaused &&
+              activeTab === "files" ? (
+                <ConsoleFilesWorkbench
+                  appId={selectedService.id}
+                  appName={selectedService.name}
+                  key={selectedService.id}
+                  workspaceMountPath={selectedService.workspaceMountPath}
+                />
+              ) : null}
+
+              {selectedService.kind === "app" && activeTab === "images" ? (
+                <AppImagesPanel
+                  appId={selectedService.id}
+                  appName={selectedService.name}
+                  key={selectedService.id}
+                  onRequestRefreshWindow={onProjectMutation}
+                />
+              ) : null}
+
+              {activeTab === "logs" ? (
+                <ConsoleLogsPanel
+                  effectiveLogsMode={effectiveLogsMode}
+                  externalRefreshToken={logsResetSignal + refreshToken}
+                  onLogsModeChange={setLogsMode}
+                  onPendingCommitHintChange={setSelectedAppPendingCommitHint}
+                  runtimeLogsUnavailable={runtimeLogsUnavailable}
+                  selectedApp={selectedApp}
+                  selectedAppNeedsPendingCommitHint={
+                    selectedAppNeedsPendingCommitHint
+                  }
+                  selectedService={selectedService}
+                  selectedServiceApp={selectedServiceApp}
+                  selectedServiceLogViewOptions={selectedServiceLogViewOptions}
+                />
+              ) : null}
+
+              {selectedService.kind === "app" && activeTab === "settings" ? (
+                <AppSettingsPanel
+                  app={selectedService}
+                  projectCatalog={projectCatalog}
+                  projectId={detailProject.id}
+                  projectManaged={detailProject.id !== "unassigned"}
+                  projectName={detailProject.name}
+                  runtimeTargetInventoryError={
+                    runtimeInventory.runtimeTargetInventoryError
+                  }
+                  runtimeTargets={runtimeInventory.runtimeTargets}
+                  serviceCount={detailProject.serviceCount}
+                />
+              ) : selectedService.kind === "backing-service" &&
+                activeTab === "settings" ? (
+                <BackingServiceSettingsPanel
+                  ownerAppRuntimeId={selectedApp?.runtimeId ?? null}
+                  runtimeTargetInventoryError={
+                    runtimeInventory.runtimeTargetInventoryError
+                  }
+                  runtimeTargets={runtimeInventory.runtimeTargets}
+                  service={selectedService}
+                />
+              ) : null}
+            </PanelSection>
+          </div>
+        </div>
+      </section>
+    </div>
   );
 }

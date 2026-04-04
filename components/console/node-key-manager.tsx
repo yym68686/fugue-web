@@ -14,6 +14,12 @@ import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FormField } from "@/components/ui/form-field";
 import { Panel, PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
 import { useToast } from "@/components/ui/toast";
+import {
+  CONSOLE_API_KEYS_PAGE_SNAPSHOT_URL,
+  type ConsoleApiKeysPageSnapshot,
+  readConsolePageSnapshot,
+  writeConsolePageSnapshot,
+} from "@/lib/console/page-snapshot-client";
 import { NODE_KEY_CREATE_REQUEST_EVENT } from "@/lib/console/events";
 import {
   canUseNodeKeyForClusterJoin,
@@ -224,6 +230,11 @@ export function NodeKeyManager({
   }, [initialSyncError, showToast]);
 
   useEffect(() => {
+    setKeys(sortNodeKeys(initialKeys));
+    setSyncError(initialSyncError);
+  }, [initialKeys, initialSyncError]);
+
+  useEffect(() => {
     const handleCreateRequest = () => {
       createRequestRef.current();
     };
@@ -281,6 +292,37 @@ export function NodeKeyManager({
   function syncLocalState(data: NodeKeyPagePayload) {
     setKeys(sortNodeKeys(data.keys));
     setSyncError(data.syncError);
+    writeNodeKeysPageSnapshot(data);
+  }
+
+  function writeNodeKeysPageSnapshot(data: NodeKeyPagePayload) {
+    const currentSnapshot = readConsolePageSnapshot<ConsoleApiKeysPageSnapshot>(
+      CONSOLE_API_KEYS_PAGE_SNAPSHOT_URL,
+      {
+        allowStale: true,
+      },
+    );
+
+    if (!currentSnapshot || currentSnapshot.state !== "ready") {
+      return;
+    }
+
+    writeConsolePageSnapshot<ConsoleApiKeysPageSnapshot>(
+      CONSOLE_API_KEYS_PAGE_SNAPSHOT_URL,
+      {
+        ...currentSnapshot,
+        nodeKeys: data,
+        state: "ready",
+      },
+    );
+  }
+
+  function syncNodeKeysPageSnapshot(overrides: Partial<NodeKeyPagePayload>) {
+    writeNodeKeysPageSnapshot({
+      keys: overrides.keys === undefined ? keys : sortNodeKeys(overrides.keys),
+      syncError:
+        overrides.syncError === undefined ? syncError : overrides.syncError,
+    });
   }
 
   async function refreshKeys() {
@@ -340,6 +382,10 @@ export function NodeKeyManager({
 
       setKeys(nextKeys);
       setSyncError(null);
+      syncNodeKeysPageSnapshot({
+        keys: nextKeys,
+        syncError: null,
+      });
 
       showToast({
         message: copied ? "Node key created and secret copied." : "Node key created.",
@@ -504,7 +550,12 @@ export function NodeKeyManager({
         method: "PATCH",
       });
 
-      setKeys((current) => upsertKey(current, updated.key));
+      const nextKeys = upsertKey(keys, updated.key);
+
+      setKeys(nextKeys);
+      syncNodeKeysPageSnapshot({
+        keys: nextKeys,
+      });
       dismissRenameDialog(true);
 
       showToast({
@@ -664,6 +715,10 @@ export function NodeKeyManager({
 
       setKeys(nextKeys);
       setSyncError(null);
+      syncNodeKeysPageSnapshot({
+        keys: nextKeys,
+        syncError: null,
+      });
 
       showToast({
         message: "Node key revoked and removed from the list.",
