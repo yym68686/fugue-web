@@ -51,6 +51,11 @@ import {
   createLocalUploadState,
   type LocalUploadState,
 } from "@/lib/fugue/local-upload";
+import {
+  buildSuggestedProjectName,
+  DUPLICATE_PROJECT_NAME_MESSAGE,
+  findProjectByName,
+} from "@/lib/project-names";
 import { consumeSSEStream, type ParsedSSEEvent } from "@/lib/ui/sse";
 import { cx } from "@/lib/ui/cx";
 import {
@@ -110,10 +115,6 @@ function prepareProjectWorkbench(projectId?: string | null) {
   }
 
   void warmConsoleProjectDetails([projectId]);
-}
-
-function buildSuggestedProjectName(existingProjectsCount: number) {
-  return `Project ${Math.max(existingProjectsCount + 1, 1)}`;
 }
 
 function readCachedProjectImageUsage() {
@@ -308,7 +309,7 @@ export function ConsoleProjectGallery({
   const [createTargetProject, setCreateTargetProject] =
     useState<CreateDialogTarget | null>(null);
   const [projectName, setProjectName] = useState(
-    buildSuggestedProjectName(initialData.projects.length),
+    buildSuggestedProjectName(initialData.projects),
   );
   const [isCreating, setIsCreating] = useState(false);
   const [importDraft, setImportDraft] = useState<ImportServiceDraft>(() =>
@@ -437,7 +438,7 @@ export function ConsoleProjectGallery({
           : null,
       );
       setProjectName(
-        target?.name ?? buildSuggestedProjectName(data.projects.length),
+        target?.name ?? buildSuggestedProjectName(data.projects),
       );
       setImportDraft((current) => ({
         ...createImportServiceDraft(
@@ -618,9 +619,9 @@ export function ConsoleProjectGallery({
 
   useEffect(() => {
     if (!createOpen && !isCreating) {
-      setProjectName(buildSuggestedProjectName(data.projects.length));
+      setProjectName(buildSuggestedProjectName(data.projects));
     }
-  }, [createOpen, data.projects.length, isCreating]);
+  }, [createOpen, data.projects, isCreating]);
 
   useEffect(() => {
     if (!runtimeInventory.runtimeTargets.length) {
@@ -853,6 +854,26 @@ export function ConsoleProjectGallery({
       return;
     }
 
+    const normalizedProjectName = projectName.trim();
+
+    if (!createTargetProject) {
+      if (!normalizedProjectName) {
+        setFlash({
+          message: "Project name is required when creating a new project.",
+          variant: "error",
+        });
+        return;
+      }
+
+      if (findProjectByName(data.projects, normalizedProjectName)) {
+        setFlash({
+          message: DUPLICATE_PROJECT_NAME_MESSAGE,
+          variant: "error",
+        });
+        return;
+      }
+    }
+
     const validationError = validateImportServiceDraft(importDraft, {
       localUpload,
       privateGitHubAuthorized:
@@ -886,7 +907,8 @@ export function ConsoleProjectGallery({
                         projectId: createTargetProject.id,
                       }
                     : {
-                        projectName,
+                        projectMode: "create",
+                        projectName: normalizedProjectName,
                       }),
                 },
                 localUpload,
@@ -901,7 +923,8 @@ export function ConsoleProjectGallery({
                       projectId: createTargetProject.id,
                     }
                   : {
-                      projectName,
+                      projectMode: "create",
+                      projectName: normalizedProjectName,
                     }),
               }),
               headers: {
@@ -926,7 +949,16 @@ export function ConsoleProjectGallery({
             : "Project import queued.",
         variant: "success",
       });
-      resetCreateForm(buildSuggestedProjectName(data.projects.length + 1));
+      resetCreateForm(
+        createTargetProject
+          ? buildSuggestedProjectName(data.projects)
+          : buildSuggestedProjectName([
+              ...data.projects,
+              {
+                name: response.project?.name ?? normalizedProjectName,
+              },
+            ]),
+      );
       clearCreateDialogUrl();
       void refreshGallery({
         refreshWorkbench: Boolean(response.project?.id),

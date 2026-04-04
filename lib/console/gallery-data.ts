@@ -1477,6 +1477,7 @@ function buildSharedAppView(
       (service) => service.type === "postgres",
     ),
     id: app.id,
+    imageMirrorLimit: app.spec.imageMirrorLimit ?? 5,
     locationCountryCode: options?.location?.locationCountryCode ?? null,
     locationLabel: options?.location?.locationLabel ?? null,
     name: app.name,
@@ -1914,7 +1915,9 @@ function buildConsoleProjectViewFromDetail(
   detail: FugueConsoleProjectDetail,
 ): ConsoleGalleryProjectView {
   const sortedApps = sortByTimestampDesc(detail.apps, readAppTimestamp);
-  const appNames = new Map(sortedApps.map((app) => [app.id, app.name] as const));
+  const appNames = new Map(
+    sortedApps.map((app) => [app.id, app.name] as const),
+  );
   const appRuntimeIds = new Map(
     sortedApps.map(
       (app) =>
@@ -2100,24 +2103,21 @@ async function loadRuntimeInventoryData(
 }
 
 const getConsoleProjectGalleryDataCached = cache(
-  async (
-    includeProjectImageUsage: boolean,
-    includeRuntimeTargets: boolean,
-  ) => {
-  const initialWorkspace = await getCurrentWorkspaceAccess();
+  async (includeProjectImageUsage: boolean, includeRuntimeTargets: boolean) => {
+    const initialWorkspace = await getCurrentWorkspaceAccess();
 
-  if (!initialWorkspace) {
-    return {
-      errors: [],
-      projects: [],
-      runtimeTargetInventoryError: null,
-      runtimeTargets: [],
-      workspace: {
-        exists: false,
-        stage: "needs-workspace",
-      },
-    } satisfies ConsoleProjectGalleryData;
-  }
+    if (!initialWorkspace) {
+      return {
+        errors: [],
+        projects: [],
+        runtimeTargetInventoryError: null,
+        runtimeTargets: [],
+        workspace: {
+          exists: false,
+          stage: "needs-workspace",
+        },
+      } satisfies ConsoleProjectGalleryData;
+    }
 
     async function loadWorkspaceData(workspace: WorkspaceAccess) {
       return Promise.allSettled([
@@ -2203,8 +2203,7 @@ const getConsoleProjectGalleryDataCached = cache(
       clusterNodesResult.status === "rejected"
         ? `cluster nodes: ${readErrorMessage(clusterNodesResult.reason)}`
         : null,
-      includeProjectImageUsage &&
-      projectImageUsageResult.status === "rejected"
+      includeProjectImageUsage && projectImageUsageResult.status === "rejected"
         ? `project image usage: ${readErrorMessage(projectImageUsageResult.reason)}`
         : null,
     ].filter((value): value is string => Boolean(value));

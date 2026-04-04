@@ -636,6 +636,7 @@ function buildAppView(app: CamelizedSchema<"App">) {
     },
     source: buildAppSourceView(app.source),
     spec: {
+      imageMirrorLimit: readNullableNumber(spec?.imageMirrorLimit) ?? 5,
       runtimeId: readNullableString(spec?.runtimeId),
       replicas,
       disabled: (replicas ?? 0) === 0,
@@ -1169,6 +1170,15 @@ function buildAppRouteResultView(
   };
 }
 
+function buildAppPatchResultView(
+  response: CamelizedSchema<"AppPatchResponse">,
+) {
+  return {
+    alreadyCurrent: response.alreadyCurrent ?? false,
+    app: response.app ? buildAppView(response.app) : null,
+  };
+}
+
 function buildAppDomainListResultView(
   response: CamelizedSchema<"AppDomainListResponse">,
 ) {
@@ -1461,6 +1471,7 @@ export type FugueAppSource = ReturnType<typeof buildAppSourceView>;
 export type FugueBackingService = ReturnType<typeof buildBackingServiceView>;
 export type FugueServiceBinding = ReturnType<typeof buildServiceBindingView>;
 export type FugueApp = ReturnType<typeof buildAppView>;
+export type FugueAppPatchResult = ReturnType<typeof buildAppPatchResultView>;
 export type FugueAppRouteAvailability = ReturnType<
   typeof buildAppRouteAvailabilityView
 >;
@@ -2273,6 +2284,31 @@ export async function getFugueApp(accessToken: string, appId: string) {
   return response.app ? buildAppView(response.app) : null;
 }
 
+export async function patchFugueApp(
+  accessToken: string,
+  appId: string,
+  payload: {
+    imageMirrorLimit: number;
+  },
+) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}`,
+      client.PATCH("/v1/apps/{id}", {
+        body: {
+          image_mirror_limit: payload.imageMirrorLimit,
+        },
+        params: {
+          path: { id: appId },
+        },
+      }),
+    ),
+  );
+
+  return buildAppPatchResultView(response);
+}
+
 export async function getFugueAppImages(accessToken: string, appId: string) {
   const client = getClient(accessToken);
   const response = camelizeData(
@@ -3003,8 +3039,7 @@ export async function deployFugueApp(
     await expectData(
       `/v1/apps/${encodeURIComponent(appId)}/deploy`,
       client.POST("/v1/apps/{id}/deploy", {
-        body:
-          options && Object.keys(options).length > 0 ? options : undefined,
+        body: options && Object.keys(options).length > 0 ? options : undefined,
         params: {
           path: { id: appId },
         },

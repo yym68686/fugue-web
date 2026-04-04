@@ -16,6 +16,7 @@ import {
   readOptionalString,
 } from "@/lib/fugue/product-route";
 import { normalizeImportSourceMode } from "@/lib/fugue/import-source";
+import { DUPLICATE_PROJECT_NAME_MESSAGE } from "@/lib/project-names";
 import { ensureWorkspaceAccess } from "@/lib/workspace/bootstrap";
 import {
   findWorkspaceProjectById,
@@ -82,6 +83,7 @@ export async function POST(request: Request) {
   const name = readOptionalString(body, "name");
   const requestedProjectId = readOptionalString(body, "projectId");
   const requestedProjectName = readOptionalString(body, "projectName");
+  const projectMode = readOptionalString(body, "projectMode");
   const runtimeId = readOptionalString(body, "runtimeId");
   const servicePort = readOptionalPositiveInteger(body, "servicePort");
 
@@ -104,6 +106,7 @@ export async function POST(request: Request) {
   try {
     const { workspace } = await ensureWorkspaceAccess(session);
     const projectName = requestedProjectName || "default";
+    const createProject = !requestedProjectId && projectMode === "create";
     const existingProject = requestedProjectId
       ? await findWorkspaceProjectById(
           workspace.adminKeySecret,
@@ -120,14 +123,20 @@ export async function POST(request: Request) {
       return jsonError(404, "Project not found.");
     }
 
+    if (createProject && existingProject) {
+      return jsonError(409, DUPLICATE_PROJECT_NAME_MESSAGE);
+    }
+
+    const resolvedExistingProject = createProject ? null : existingProject;
+
     const archive = await createLocalUploadArchive(multipartRequest.files, {
       archiveBaseName: name || null,
       label: multipartRequest.label,
     });
-    const projectDescription = `${existingProject?.name ?? projectName} project`;
-    const projectPayload = existingProject
+    const projectDescription = `${resolvedExistingProject?.name ?? projectName} project`;
+    const projectPayload = resolvedExistingProject
       ? {
-          projectId: existingProject.id,
+          projectId: resolvedExistingProject.id,
         }
       : {
           project: {
@@ -147,8 +156,8 @@ export async function POST(request: Request) {
       sourceDir: sourceDir || undefined,
       ...projectPayload,
     });
-    const resolvedProjectId = existingProject?.id ?? result.app?.projectId ?? null;
-    const resolvedProjectName = existingProject?.name ?? projectName;
+    const resolvedProjectId = resolvedExistingProject?.id ?? result.app?.projectId ?? null;
+    const resolvedProjectName = resolvedExistingProject?.name ?? projectName;
 
     if (result.app?.id) {
       await saveWorkspaceAccess({

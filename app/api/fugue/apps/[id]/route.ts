@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 
-import { deleteFugueApp } from "@/lib/fugue/api";
+import { deleteFugueApp, patchFugueApp } from "@/lib/fugue/api";
 import {
+  isObject,
   jsonError,
   readErrorMessage,
   readErrorStatus,
@@ -12,6 +13,67 @@ import {
 } from "@/lib/fugue/product-route";
 
 type RouteContext = RouteContextWithParams<"id">;
+
+function readOptionalInteger(record: Record<string, unknown>, key: string) {
+  const value = record[key];
+
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return null;
+  }
+
+  if (!Number.isInteger(value)) {
+    return null;
+  }
+
+  return value;
+}
+
+export async function PATCH(request: Request, context: RouteContext) {
+  const { response, session } = await requireSession();
+
+  if (response || !session) {
+    return response;
+  }
+
+  const workspaceState = await requireWorkspaceForSession(session);
+
+  if (workspaceState.response || !workspaceState.workspace) {
+    return workspaceState.response;
+  }
+
+  let body: unknown;
+
+  try {
+    body = await request.json();
+  } catch {
+    return jsonError(400, "Invalid JSON body.");
+  }
+
+  if (!isObject(body)) {
+    return jsonError(400, "Request body must be a JSON object.");
+  }
+
+  const imageMirrorLimit = readOptionalInteger(body, "imageMirrorLimit");
+
+  if (imageMirrorLimit === null) {
+    return jsonError(400, "imageMirrorLimit must be a whole number.");
+  }
+
+  try {
+    const appId = await readRouteParam(context, "id");
+    const result = await patchFugueApp(
+      workspaceState.workspace.adminKeySecret,
+      appId,
+      {
+        imageMirrorLimit,
+      },
+    );
+
+    return NextResponse.json(result);
+  } catch (error) {
+    return jsonError(readErrorStatus(error), readErrorMessage(error));
+  }
+}
 
 export async function DELETE(_request: Request, context: RouteContext) {
   const { response, session } = await requireSession();
@@ -28,7 +90,10 @@ export async function DELETE(_request: Request, context: RouteContext) {
 
   try {
     const appId = await readRouteParam(context, "id");
-    const result = await deleteFugueApp(workspaceState.workspace.adminKeySecret, appId);
+    const result = await deleteFugueApp(
+      workspaceState.workspace.adminKeySecret,
+      appId,
+    );
 
     return NextResponse.json(result);
   } catch (error) {

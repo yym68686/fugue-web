@@ -23,6 +23,7 @@ import {
   resolveGitHubRepoAuthTokenForEmail,
 } from "@/lib/github/connection-store";
 import { PRIVATE_GITHUB_AUTH_REQUIRED_MESSAGE } from "@/lib/github/messages";
+import { DUPLICATE_PROJECT_NAME_MESSAGE } from "@/lib/project-names";
 import { ensureWorkspaceAccess } from "@/lib/workspace/bootstrap";
 import {
   findWorkspaceProjectById,
@@ -120,6 +121,7 @@ export async function POST(request: Request) {
   const runtimeId = readOptionalString(body, "runtimeId");
   const projectId = readOptionalString(body, "projectId");
   const projectName = readOptionalString(body, "projectName");
+  const projectMode = readOptionalString(body, "projectMode");
   const templateSlug = readOptionalString(body, "templateSlug");
   const buildStrategy = readOptionalString(body, "buildStrategy");
   const sourceDir = readOptionalString(body, "sourceDir");
@@ -175,8 +177,13 @@ export async function POST(request: Request) {
       return jsonError(409, "This repository no longer exposes template metadata.");
     }
 
-    const requestedProjectId = projectId || workspace.defaultProjectId || "";
-    const requestedProjectName = projectName || workspace.defaultProjectName || "default";
+    const createProject = !projectId && projectMode === "create";
+    const requestedProjectId = createProject
+      ? ""
+      : projectId || workspace.defaultProjectId || "";
+    const requestedProjectName = createProject
+      ? projectName || "default"
+      : projectName || workspace.defaultProjectName || "default";
     const existingProject = requestedProjectId
       ? await findWorkspaceProjectById(
           workspace.adminKeySecret,
@@ -193,10 +200,16 @@ export async function POST(request: Request) {
       return jsonError(404, "Project not found.");
     }
 
-    const resolvedProjectName = existingProject?.name ?? requestedProjectName;
-    const projectPayload = existingProject
+    if (createProject && existingProject) {
+      return jsonError(409, DUPLICATE_PROJECT_NAME_MESSAGE);
+    }
+
+    const resolvedExistingProject = createProject ? null : existingProject;
+    const resolvedProjectName =
+      resolvedExistingProject?.name ?? requestedProjectName;
+    const projectPayload = resolvedExistingProject
       ? {
-          projectId: existingProject.id,
+          projectId: resolvedExistingProject.id,
         }
       : {
           project: {

@@ -779,7 +779,8 @@ export interface paths {
         delete: operations["deleteApp"];
         options?: never;
         head?: never;
-        patch?: never;
+        /** Patch App */
+        patch: operations["patchApp"];
         trace?: never;
     };
     "/v1/apps/{id}/images": {
@@ -1701,6 +1702,21 @@ export interface components {
             storage_class_name?: string;
             reset_token?: string;
         };
+        AppPersistentStorageMount: {
+            kind?: string;
+            path: string;
+            seed_content?: string;
+            secret?: boolean;
+            /** Format: int32 */
+            mode?: number;
+        };
+        AppPersistentStorageSpec: {
+            storage_path?: string;
+            storage_size?: string;
+            storage_class_name?: string;
+            reset_token?: string;
+            mounts?: components["schemas"]["AppPersistentStorageMount"][];
+        };
         AppFailoverSpec: {
             target_runtime_id?: string;
             auto?: boolean;
@@ -1783,8 +1799,11 @@ export interface components {
             runtime_id?: string;
             files?: components["schemas"]["AppFile"][];
             workspace?: components["schemas"]["AppWorkspaceSpec"];
+            persistent_storage?: components["schemas"]["AppPersistentStorageSpec"];
             postgres?: components["schemas"]["AppPostgresSpec"];
             failover?: components["schemas"]["AppFailoverSpec"];
+            /** Format: int32 */
+            image_mirror_limit?: number;
             restart_token?: string;
         };
         App: {
@@ -2219,6 +2238,10 @@ export interface components {
             name?: string;
             description?: string;
         };
+        PatchAppRequest: {
+            /** Format: int32 */
+            image_mirror_limit?: number;
+        };
         BillingResponse: {
             billing: components["schemas"]["TenantBillingSummary"];
         };
@@ -2345,6 +2368,10 @@ export interface components {
         };
         AppResponse: {
             app: components["schemas"]["App"];
+        };
+        AppPatchResponse: {
+            app: components["schemas"]["App"];
+            already_current: boolean;
         };
         InspectGitHubTemplateRequest: {
             repo_url: string;
@@ -2586,7 +2613,7 @@ export interface components {
             path: string;
             /** Format: int32 */
             depth: number;
-            /** @description Root path of the current filesystem scope. This is the persistent workspace mount when browsing workspace storage, or / when browsing the live container filesystem. */
+            /** @description Root path of the current filesystem scope. This is the selected persistent storage mount when browsing persisted storage, or / when browsing the live container filesystem. */
             workspace_root: string;
             entries: components["schemas"]["AppFilesystemEntry"][];
         };
@@ -2594,7 +2621,7 @@ export interface components {
             component: string;
             pod: string;
             path: string;
-            /** @description Root path of the current filesystem scope. This is the persistent workspace mount when browsing workspace storage, or / when browsing the live container filesystem. */
+            /** @description Root path of the current filesystem scope. This is the selected persistent storage mount when browsing persisted storage, or / when browsing the live container filesystem. */
             workspace_root: string;
             content: string;
             encoding: string;
@@ -2618,7 +2645,7 @@ export interface components {
             component: string;
             pod: string;
             path: string;
-            /** @description Root path of the current filesystem scope. This is the persistent workspace mount when browsing workspace storage, or / when browsing the live container filesystem. */
+            /** @description Root path of the current filesystem scope. This is the selected persistent storage mount when browsing persisted storage, or / when browsing the live container filesystem. */
             workspace_root: string;
             kind?: string;
             /** Format: int64 */
@@ -2705,7 +2732,7 @@ export interface components {
         ComponentQueryParam: string;
         PodQueryParam: string;
         DepthQueryParam: number;
-        /** @description Absolute path inside the selected filesystem scope. Tree requests default to the persistent workspace mount when configured, otherwise to /. Read, write, and delete operations require an explicit file or directory path. */
+        /** @description Absolute path inside the selected filesystem scope. Tree requests default to the persistent workspace mount when legacy workspace storage is configured, otherwise to /. Read, write, and delete operations require an explicit file or directory path. */
         PathQueryParam: string;
         FilePathsQueryParam: string[];
         MaxBytesQueryParam: number;
@@ -4132,6 +4159,33 @@ export interface operations {
             default: components["responses"]["ErrorResponse"];
         };
     };
+    patchApp: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatchAppRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppPatchResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
     getAppImages: {
         parameters: {
             query?: never;
@@ -4698,7 +4752,7 @@ export interface operations {
             query?: {
                 component?: components["parameters"]["ComponentQueryParam"];
                 depth?: components["parameters"]["DepthQueryParam"];
-                /** @description Absolute path inside the selected filesystem scope. Tree requests default to the persistent workspace mount when configured, otherwise to /. Read, write, and delete operations require an explicit file or directory path. */
+                /** @description Absolute path inside the selected filesystem scope. Tree requests default to the persistent workspace mount when legacy workspace storage is configured, otherwise to /. Read, write, and delete operations require an explicit file or directory path. */
                 path?: components["parameters"]["PathQueryParam"];
                 pod?: components["parameters"]["PodQueryParam"];
             };
@@ -4727,7 +4781,7 @@ export interface operations {
             query?: {
                 component?: components["parameters"]["ComponentQueryParam"];
                 max_bytes?: components["parameters"]["MaxBytesQueryParam"];
-                /** @description Absolute path inside the selected filesystem scope. Tree requests default to the persistent workspace mount when configured, otherwise to /. Read, write, and delete operations require an explicit file or directory path. */
+                /** @description Absolute path inside the selected filesystem scope. Tree requests default to the persistent workspace mount when legacy workspace storage is configured, otherwise to /. Read, write, and delete operations require an explicit file or directory path. */
                 path?: components["parameters"]["PathQueryParam"];
                 pod?: components["parameters"]["PodQueryParam"];
             };
@@ -4815,7 +4869,7 @@ export interface operations {
         parameters: {
             query?: {
                 component?: components["parameters"]["ComponentQueryParam"];
-                /** @description Absolute path inside the selected filesystem scope. Tree requests default to the persistent workspace mount when configured, otherwise to /. Read, write, and delete operations require an explicit file or directory path. */
+                /** @description Absolute path inside the selected filesystem scope. Tree requests default to the persistent workspace mount when legacy workspace storage is configured, otherwise to /. Read, write, and delete operations require an explicit file or directory path. */
                 path?: components["parameters"]["PathQueryParam"];
                 pod?: components["parameters"]["PodQueryParam"];
                 recursive?: components["parameters"]["RecursiveQueryParam"];

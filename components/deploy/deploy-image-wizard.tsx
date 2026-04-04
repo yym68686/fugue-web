@@ -13,6 +13,10 @@ import { useToast } from "@/components/ui/toast";
 import type { ConsoleImportRuntimeTargetView } from "@/lib/console/gallery-types";
 import { readDefaultImportRuntimeId } from "@/lib/console/runtime-targets";
 import type { FugueProject } from "@/lib/fugue/api";
+import {
+  DUPLICATE_PROJECT_NAME_MESSAGE,
+  findProjectByName,
+} from "@/lib/project-names";
 
 const NEW_PROJECT_VALUE = "__new__";
 
@@ -142,8 +146,16 @@ export function DeployImageWizard({
       return "Image reference is required.";
     }
 
-    if (selectedProjectId === NEW_PROJECT_VALUE && !projectName.trim()) {
-      return "Project name is required when creating a new project.";
+    if (selectedProjectId === NEW_PROJECT_VALUE) {
+      const normalizedProjectName = projectName.trim();
+
+      if (!normalizedProjectName) {
+        return "Project name is required when creating a new project.";
+      }
+
+      if (findProjectByName(projects, normalizedProjectName)) {
+        return DUPLICATE_PROJECT_NAME_MESSAGE;
+      }
     }
 
     const normalizedServicePort = servicePort.trim();
@@ -177,7 +189,10 @@ export function DeployImageWizard({
         ...(normalizedName ? { name: normalizedName } : {}),
         ...(selectedProjectId !== NEW_PROJECT_VALUE
           ? { projectId: selectedProjectId }
-          : { projectName: projectName.trim() }),
+          : {
+              projectMode: "create",
+              projectName: projectName.trim(),
+            }),
         ...(runtimeId ? { runtimeId } : {}),
         ...(normalizedServicePort
           ? { servicePort: Number(normalizedServicePort) }

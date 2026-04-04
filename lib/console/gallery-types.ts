@@ -61,6 +61,7 @@ export type ConsoleGalleryAppView = {
   failoverTargetRuntimeId: string | null;
   hasPostgresService: boolean;
   id: string;
+  imageMirrorLimit: number;
   lastMessage: string | null;
   locationCountryCode: string | null;
   locationLabel: string | null;

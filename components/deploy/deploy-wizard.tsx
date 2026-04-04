@@ -34,6 +34,10 @@ import { useGitHubConnection } from "@/lib/github/connection-client";
 import { PRIVATE_GITHUB_AUTH_REQUIRED_MESSAGE } from "@/lib/github/messages";
 import type { GitHubRepoVisibility } from "@/lib/github/repository";
 import { isGitHubRepoUrl } from "@/lib/github/repository";
+import {
+  DUPLICATE_PROJECT_NAME_MESSAGE,
+  findProjectByName,
+} from "@/lib/project-names";
 
 const NEW_PROJECT_VALUE = "__new__";
 
@@ -230,8 +234,16 @@ export function DeployWizard({
       return PRIVATE_GITHUB_AUTH_REQUIRED_MESSAGE;
     }
 
-    if (selectedProjectId === NEW_PROJECT_VALUE && !projectName.trim()) {
-      return "Project name is required when creating a new project.";
+    if (selectedProjectId === NEW_PROJECT_VALUE) {
+      const normalizedProjectName = projectName.trim();
+
+      if (!normalizedProjectName) {
+        return "Project name is required when creating a new project.";
+      }
+
+      if (findProjectByName(projects, normalizedProjectName)) {
+        return DUPLICATE_PROJECT_NAME_MESSAGE;
+      }
     }
 
     for (const variable of templateVariables) {
@@ -283,6 +295,7 @@ export function DeployWizard({
           selectedProjectId !== NEW_PROJECT_VALUE ? selectedProjectId : "",
         projectName:
           selectedProjectId === NEW_PROJECT_VALUE ? projectName.trim() : "",
+        projectMode: selectedProjectId === NEW_PROJECT_VALUE ? "create" : "",
         repoAuthToken: repoAuthToken.trim(),
         repoUrl: repositoryUrl,
         repoVisibility,

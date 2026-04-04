@@ -76,6 +76,11 @@ import {
   createLocalUploadState,
   type LocalUploadState,
 } from "@/lib/fugue/local-upload";
+import {
+  buildSuggestedProjectName,
+  DUPLICATE_PROJECT_NAME_MESSAGE,
+  findProjectByName,
+} from "@/lib/project-names";
 import { readGitHubCommitHref } from "@/lib/fugue/source-links";
 import { isGitHubSourceType } from "@/lib/github/repository";
 import type { ConsoleTone } from "@/lib/console/types";
@@ -440,10 +445,6 @@ function createClientId(prefix: string) {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function buildSuggestedProjectName(existingProjectsCount: number) {
-  return `Project ${Math.max(existingProjectsCount + 1, 1)}`;
-}
-
 type ProjectLifecycle = {
   label: string;
   live: boolean;
@@ -490,6 +491,19 @@ function isDeletingLifecycleValue(value?: string | null) {
 
 function isPausedAppService(app?: ConsoleGalleryAppView | null) {
   return isPausedLifecycleValue(app?.phase);
+}
+
+function isFailedLifecycleValue(value?: string | null) {
+  const normalized = value?.trim().toLowerCase() ?? "";
+
+  return (
+    normalized.length > 0 &&
+    includesLifecycleKeyword(normalized, ["error", "fail", "stopped"])
+  );
+}
+
+function isFailedAppService(app?: ConsoleGalleryAppView | null) {
+  return isFailedLifecycleValue(app?.phase);
 }
 
 function shouldShowLiveStatusBadge(value?: string | null) {
@@ -2630,7 +2644,7 @@ export function ConsoleProjectGallery({
   const [createTargetProject, setCreateTargetProject] =
     useState<CreateDialogTarget | null>(null);
   const [projectName, setProjectName] = useState(
-    buildSuggestedProjectName(initialData.projects.length),
+    buildSuggestedProjectName(initialData.projects),
   );
   const [importDraft, setImportDraft] = useState<ImportServiceDraft>(() =>
     createImportServiceDraft(
@@ -2729,6 +2743,12 @@ export function ConsoleProjectGallery({
     activeTab === "logs" &&
     effectiveLogsMode === "build";
   const selectedServicePaused = isPausedAppService(selectedServiceApp);
+  const selectedServiceFailed = isFailedAppService(selectedServiceApp);
+  const selectedServiceLifecycleAction = selectedServicePaused
+    ? "start"
+    : "restart";
+  const selectedServiceCanPause =
+    !selectedServicePaused && !selectedServiceFailed;
   const selectedServiceDeleting = isDeletingLifecycleValue(
     selectedServiceApp?.phase,
   );
@@ -2918,9 +2938,9 @@ export function ConsoleProjectGallery({
 
   useEffect(() => {
     if (!createOpen && !isCreating) {
-      setProjectName(buildSuggestedProjectName(data.projects.length));
+      setProjectName(buildSuggestedProjectName(data.projects));
     }
-  }, [createOpen, data.projects.length, isCreating]);
+  }, [createOpen, data.projects, isCreating]);
 
   useEffect(() => {
     if (!selectedProjectId) {
@@ -3311,7 +3331,7 @@ export function ConsoleProjectGallery({
   function openCreate() {
     setFlash(null);
     setCreateTargetProject(null);
-    resetCreateForm(buildSuggestedProjectName(data.projects.length));
+    resetCreateForm(buildSuggestedProjectName(data.projects));
     setCreateOpen(true);
   }
 
@@ -3341,6 +3361,26 @@ export function ConsoleProjectGallery({
 
     if (isCreating) {
       return;
+    }
+
+    const normalizedProjectName = projectName.trim();
+
+    if (!createTargetProject) {
+      if (!normalizedProjectName) {
+        setFlash({
+          message: "Project name is required when creating a new project.",
+          variant: "error",
+        });
+        return;
+      }
+
+      if (findProjectByName(data.projects, normalizedProjectName)) {
+        setFlash({
+          message: DUPLICATE_PROJECT_NAME_MESSAGE,
+          variant: "error",
+        });
+        return;
+      }
     }
 
     const validationError = validateImportServiceDraft(importDraft, {
@@ -3376,7 +3416,8 @@ export function ConsoleProjectGallery({
                         projectId: createTargetProject.id,
                       }
                     : {
-                        projectName,
+                        projectMode: "create",
+                        projectName: normalizedProjectName,
                       }),
                 },
                 localUpload,
@@ -3391,7 +3432,8 @@ export function ConsoleProjectGallery({
                       projectId: createTargetProject.id,
                     }
                   : {
-                      projectName,
+                      projectMode: "create",
+                      projectName: normalizedProjectName,
                     }),
               }),
               headers: {
@@ -3422,7 +3464,16 @@ export function ConsoleProjectGallery({
             : "Project import queued.",
         variant: "success",
       });
-      resetCreateForm(buildSuggestedProjectName(data.projects.length + 1));
+      resetCreateForm(
+        createTargetProject
+          ? buildSuggestedProjectName(data.projects)
+          : buildSuggestedProjectName([
+              ...data.projects,
+              {
+                name: response.project?.name ?? normalizedProjectName,
+              },
+            ]),
+      );
       clearCreateDialogUrl();
       void refreshGallery({ silent: true });
     } catch (error) {
@@ -4268,33 +4319,25 @@ export function ConsoleProjectGallery({
                         <Button
                           disabled={Boolean(
                             busyAction &&
-                            busyAction !==
-                              (selectedServicePaused ? "start" : "restart"),
+                            busyAction !== selectedServiceLifecycleAction,
                           )}
-                          loading={
-                            busyAction ===
-                            (selectedServicePaused ? "start" : "restart")
-                          }
+                          loading={busyAction === selectedServiceLifecycleAction}
                           loadingLabel={
                             selectedServicePaused ? "Starting…" : "Restarting…"
                           }
-                          onClick={() =>
-                            handleAppAction(
-                              selectedServicePaused ? "start" : "restart",
-                            )
-                          }
+                          onClick={() => handleAppAction(selectedServiceLifecycleAction)}
                           size="compact"
                           title={
                             selectedServicePaused
                               ? "Start this paused app at 1 replica without rebuilding the image."
-                              : "Restart the current release without rebuilding the image. Persistent workspace is preserved when configured."
+                              : "Restart the current release without rebuilding the image. Persistent storage is preserved when configured."
                           }
                           type="button"
                           variant="secondary"
                         >
                           {selectedServicePaused ? "Start" : "Restart"}
                         </Button>
-                        {selectedServicePaused ? null : (
+                        {selectedServiceCanPause ? (
                           <Button
                             disabled={Boolean(
                               busyAction && busyAction !== "disable",
@@ -4308,7 +4351,7 @@ export function ConsoleProjectGallery({
                           >
                             Pause
                           </Button>
-                        )}
+                        ) : null}
                         <Button
                           disabled={Boolean(
                             busyAction && busyAction !== "delete",
@@ -4942,6 +4985,12 @@ export function ConsoleProjectWorkbench({
     isGitHubTrackedApp(selectedServiceApp) &&
     !hasPendingCommitView(selectedServiceApp);
   const selectedServicePaused = isPausedAppService(selectedServiceApp);
+  const selectedServiceFailed = isFailedAppService(selectedServiceApp);
+  const selectedServiceLifecycleAction = selectedServicePaused
+    ? "start"
+    : "restart";
+  const selectedServiceCanPause =
+    !selectedServicePaused && !selectedServiceFailed;
   const selectedServiceDeleting = isDeletingLifecycleValue(
     selectedServiceApp?.phase,
   );
@@ -6024,33 +6073,27 @@ export function ConsoleProjectWorkbench({
                       <Button
                         disabled={Boolean(
                           busyAction &&
-                            busyAction !==
-                              (selectedServicePaused ? "start" : "restart"),
+                            busyAction !== selectedServiceLifecycleAction,
                         )}
-                        loading={
-                          busyAction ===
-                          (selectedServicePaused ? "start" : "restart")
-                        }
+                        loading={busyAction === selectedServiceLifecycleAction}
                         loadingLabel={
                           selectedServicePaused ? "Starting…" : "Restarting…"
                         }
                         onClick={() => {
-                          void handleAppAction(
-                            selectedServicePaused ? "start" : "restart",
-                          );
+                          void handleAppAction(selectedServiceLifecycleAction);
                         }}
                         size="compact"
                         title={
                           selectedServicePaused
                             ? "Start this paused app at 1 replica without rebuilding the image."
-                            : "Restart the current release without rebuilding the image. Persistent workspace is preserved when configured."
+                            : "Restart the current release without rebuilding the image. Persistent storage is preserved when configured."
                         }
                         type="button"
                         variant="secondary"
                       >
                         {selectedServicePaused ? "Start" : "Restart"}
                       </Button>
-                      {selectedServicePaused ? null : (
+                      {selectedServiceCanPause ? (
                         <Button
                           disabled={Boolean(busyAction && busyAction !== "disable")}
                           loading={busyAction === "disable"}
@@ -6064,7 +6107,7 @@ export function ConsoleProjectWorkbench({
                         >
                           Pause
                         </Button>
-                      )}
+                      ) : null}
                       <Button
                         disabled={Boolean(busyAction && busyAction !== "delete")}
                         loading={busyAction === "delete"}

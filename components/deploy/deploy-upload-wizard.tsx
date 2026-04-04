@@ -30,6 +30,10 @@ import {
   inspectLocalUploadState,
   type LocalUploadState,
 } from "@/lib/fugue/local-upload";
+import {
+  DUPLICATE_PROJECT_NAME_MESSAGE,
+  findProjectByName,
+} from "@/lib/project-names";
 
 const NEW_PROJECT_VALUE = "__new__";
 
@@ -164,8 +168,16 @@ export function DeployUploadWizard({
     localUploadPreservesDetectedTopology(uploadDraft);
 
   function validate() {
-    if (selectedProjectId === NEW_PROJECT_VALUE && !projectName.trim()) {
-      return "Project name is required when creating a new project.";
+    if (selectedProjectId === NEW_PROJECT_VALUE) {
+      const normalizedProjectName = projectName.trim();
+
+      if (!normalizedProjectName) {
+        return "Project name is required when creating a new project.";
+      }
+
+      if (findProjectByName(projects, normalizedProjectName)) {
+        return DUPLICATE_PROJECT_NAME_MESSAGE;
+      }
     }
 
     return validateImportServiceDraft(uploadDraft, {
@@ -189,7 +201,10 @@ export function DeployUploadWizard({
             ...buildImportServicePayload(uploadDraft),
             ...(selectedProjectId !== NEW_PROJECT_VALUE
               ? { projectId: selectedProjectId }
-              : { projectName: projectName.trim() }),
+              : {
+                  projectMode: "create",
+                  projectName: projectName.trim(),
+                }),
           },
           localUpload,
         ),

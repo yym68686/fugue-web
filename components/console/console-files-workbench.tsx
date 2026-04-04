@@ -24,7 +24,7 @@ type FilesystemRootMode = "filesystem" | "workspace";
 
 const FILESYSTEM_ROOT_MODE_OPTIONS: readonly SegmentedControlOption<FilesystemRootMode>[] = [
   { label: "Live filesystem", value: "filesystem" },
-  { label: "Persistent workspace", value: "workspace" },
+  { label: "Persistent storage", value: "workspace" },
 ];
 
 type FilesystemTreeEntryRecord = {
@@ -636,7 +636,9 @@ export function ConsoleFilesWorkbench({
     }
 
     if (rootMode === "workspace" && !isPathWithin(workspaceRoot, normalizedPath)) {
-      throw new Error("Path must stay inside the persistent workspace. Switch to Live filesystem to work outside it.");
+      throw new Error(
+        "Path must stay inside persistent storage. Switch to Live filesystem to work outside it.",
+      );
     }
 
     return normalizedPath;

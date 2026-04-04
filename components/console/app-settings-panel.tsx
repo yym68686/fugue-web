@@ -45,6 +45,10 @@ type AppOperationResponse = {
   } | null;
 };
 
+type AppPatchResponse = {
+  alreadyCurrent?: boolean;
+};
+
 type ContinuityResponse = {
   alreadyCurrent?: boolean;
 };
@@ -70,6 +74,7 @@ type ProjectNameEntry = {
 };
 
 const DEFAULT_WORKSPACE_MOUNT_PATH = "/workspace";
+const DEFAULT_IMAGE_MIRROR_LIMIT = 5;
 
 function normalizeText(value?: string | null) {
   return value?.trim() ?? "";
@@ -92,6 +97,34 @@ function readWorkspaceMountPathError(value: string) {
 
   if (normalized === "/") {
     return "Mount path cannot be /.";
+  }
+
+  return null;
+}
+
+function readImageMirrorLimit(value?: number | null) {
+  if (typeof value === "number" && Number.isFinite(value) && value >= 1) {
+    return Math.floor(value);
+  }
+
+  return DEFAULT_IMAGE_MIRROR_LIMIT;
+}
+
+function readImageMirrorLimitError(value: string) {
+  const normalized = normalizeText(value);
+
+  if (!normalized) {
+    return "Saved image limit is required.";
+  }
+
+  if (!/^\d+$/.test(normalized)) {
+    return "Use a whole number.";
+  }
+
+  const parsed = Number.parseInt(normalized, 10);
+
+  if (!Number.isSafeInteger(parsed) || parsed < 1) {
+    return "Use 1 or more.";
   }
 
   return null;
@@ -396,10 +429,10 @@ function readWorkspaceRuntimeGuidance(
   }
 
   if (eligibleTargets.length === 1) {
-    return `Move this service onto ${eligibleTargets[0].summaryLabel} to attach a persistent workspace.`;
+    return `Move this service onto ${eligibleTargets[0].summaryLabel} to attach persistent storage.`;
   }
 
-  return "Move this service onto an eligible managed runtime to attach a persistent workspace.";
+  return "Move this service onto an eligible managed runtime to attach persistent storage.";
 }
 
 function readWorkspaceSummaryNote(
@@ -412,18 +445,18 @@ function readWorkspaceSummaryNote(
   }
 
   if (!replicasReadyForWorkspace) {
-    return "Persistent workspace needs 1 replica or fewer.";
+    return "Persistent storage needs 1 replica or fewer.";
   }
 
   if (runtimeReadyForWorkspace === false) {
-    return "This service is not on a runtime that supports persistent workspace yet.";
+    return "This service is not on a runtime that supports persistent storage yet.";
   }
 
   if (runtimeReadyForWorkspace === null) {
-    return "Workspace readiness is temporarily unavailable.";
+    return "Persistent storage readiness is temporarily unavailable.";
   }
 
-  return "Files still live in the running container until a workspace is attached.";
+  return "Files still live in the running container until persistent storage is attached.";
 }
 
 function buildWorkspaceSummaryItems(
@@ -470,6 +503,195 @@ function buildWorkspaceSummaryItems(
   ];
 }
 
+function AppImageMirrorLimitSection({ app }: { app: ConsoleGalleryAppView }) {
+  const router = useRouter();
+  const { showToast } = useToast();
+  const [baselineLimit, setBaselineLimit] = useState(() =>
+    readImageMirrorLimit(app.imageMirrorLimit),
+  );
+  const [draftLimit, setDraftLimit] = useState(
+    () => `${readImageMirrorLimit(app.imageMirrorLimit)}`,
+  );
+  const [saving, setSaving] = useState(false);
+  const [limitError, setLimitError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const nextLimit = readImageMirrorLimit(app.imageMirrorLimit);
+
+    setBaselineLimit(nextLimit);
+    setDraftLimit(`${nextLimit}`);
+    setSaving(false);
+    setLimitError(null);
+  }, [app.id, app.imageMirrorLimit]);
+
+  const normalizedDraftLimit = normalizeText(draftLimit);
+  const draftLimitError = readImageMirrorLimitError(draftLimit);
+  const parsedDraftLimit = draftLimitError
+    ? null
+    : Number.parseInt(normalizedDraftLimit, 10);
+  const limitChanged =
+    parsedDraftLimit !== null
+      ? parsedDraftLimit !== baselineLimit
+      : normalizedDraftLimit !== `${baselineLimit}`;
+  const canSaveLimit =
+    !saving && limitChanged && !draftLimitError && parsedDraftLimit !== null;
+  const statusTone: ConsoleTone =
+    baselineLimit === DEFAULT_IMAGE_MIRROR_LIMIT ? "neutral" : "info";
+  const statusLabel =
+    baselineLimit === DEFAULT_IMAGE_MIRROR_LIMIT
+      ? "Default"
+      : `${baselineLimit} saved`;
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const nextLimitError = readImageMirrorLimitError(draftLimit);
+    if (nextLimitError) {
+      setLimitError(nextLimitError);
+      return;
+    }
+
+    const nextLimit = Number.parseInt(normalizeText(draftLimit), 10);
+    if (!Number.isSafeInteger(nextLimit) || nextLimit < 1) {
+      setLimitError("Use 1 or more.");
+      return;
+    }
+
+    if (nextLimit === baselineLimit) {
+      showToast({
+        message: `Mirrored image limit is already ${baselineLimit}.`,
+        variant: "info",
+      });
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      const result = await requestJson<AppPatchResponse>(
+        `/api/fugue/apps/${app.id}`,
+        {
+          body: JSON.stringify({
+            imageMirrorLimit: nextLimit,
+          }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          method: "PATCH",
+        },
+      );
+
+      setBaselineLimit(nextLimit);
+      setDraftLimit(`${nextLimit}`);
+      setLimitError(null);
+      showToast({
+        message: result?.alreadyCurrent
+          ? `Mirrored image limit is already ${nextLimit}.`
+          : "Mirrored image limit updated.",
+        variant: "success",
+      });
+      startTransition(() => {
+        router.refresh();
+      });
+    } catch (error) {
+      showToast({
+        message: readErrorMessage(error),
+        variant: "error",
+      });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <section
+      aria-label="Mirrored image limit"
+      className="fg-route-subsection fg-settings-section"
+    >
+      <div className="fg-route-subsection__head">
+        <div className="fg-route-subsection__copy fg-settings-section__copy">
+          <p className="fg-label fg-panel__eyebrow">Images</p>
+          <h3 className="fg-route-subsection__title fg-ui-heading">
+            Mirrored image limit
+          </h3>
+          <p className="fg-route-subsection__note">
+            Keep this many saved mirrored images, including the current release.
+            Older saved images are pruned automatically.
+          </p>
+        </div>
+
+        <StatusBadge tone={statusTone}>{statusLabel}</StatusBadge>
+      </div>
+
+      <dl className="fg-settings-meta">
+        <div>
+          <dt>Saved versions</dt>
+          <dd>{baselineLimit}</dd>
+        </div>
+        <div>
+          <dt>Default</dt>
+          <dd>{DEFAULT_IMAGE_MIRROR_LIMIT}</dd>
+        </div>
+      </dl>
+
+      <form className="fg-settings-form" onSubmit={handleSubmit}>
+        <FormField
+          error={
+            limitError ?? (limitChanged ? draftLimitError : null) ?? undefined
+          }
+          hint="Use 1 or more. The current release counts toward this limit."
+          htmlFor={`mirrored-image-limit-${app.id}`}
+          label="Saved image limit"
+        >
+          <input
+            className="fg-input"
+            id={`mirrored-image-limit-${app.id}`}
+            inputMode="numeric"
+            min={1}
+            name="imageMirrorLimit"
+            onChange={(event) => {
+              setDraftLimit(event.target.value);
+              if (limitError) {
+                setLimitError(null);
+              }
+            }}
+            step={1}
+            type="number"
+            value={draftLimit}
+          />
+        </FormField>
+
+        {limitChanged || saving ? (
+          <div className="fg-settings-form__actions">
+            <Button
+              disabled={saving}
+              onClick={() => {
+                setDraftLimit(`${baselineLimit}`);
+                setLimitError(null);
+              }}
+              size="compact"
+              type="button"
+              variant="secondary"
+            >
+              Reset
+            </Button>
+            <Button
+              disabled={!canSaveLimit}
+              loading={saving}
+              loadingLabel="Saving…"
+              size="compact"
+              type="submit"
+              variant="primary"
+            >
+              Save limit
+            </Button>
+          </div>
+        ) : null}
+      </form>
+    </section>
+  );
+}
+
 function AppPersistentWorkspaceSection({
   app,
   onOpenFiles,
@@ -499,18 +721,14 @@ function AppPersistentWorkspaceSection({
     typeof app.replicaCount === "number" && Number.isFinite(app.replicaCount)
       ? app.replicaCount
       : null;
-  const runtimeReadyForWorkspace =
-    currentRuntimeTarget
-      ? runtimeSupportsPersistentWorkspace(currentRuntimeTarget.runtimeType)
-      : runtimeTargetInventoryError
-        ? null
-        : false;
+  const runtimeReadyForWorkspace = currentRuntimeTarget
+    ? runtimeSupportsPersistentWorkspace(currentRuntimeTarget.runtimeType)
+    : runtimeTargetInventoryError
+      ? null
+      : false;
   const runtimeGuidance =
     runtimeReadyForWorkspace === false
-      ? readWorkspaceRuntimeGuidance(
-          currentRuntimeId,
-          runtimeTargets,
-        )
+      ? readWorkspaceRuntimeGuidance(currentRuntimeId, runtimeTargets)
       : null;
   const replicasReadyForWorkspace = replicas === null || replicas <= 1;
   const summaryNote = readWorkspaceSummaryNote(
@@ -540,12 +758,12 @@ function AppPersistentWorkspaceSection({
         ? "Checking"
         : "Not attached";
   const workspaceCallout = hasWorkspace
-    ? "Rebuild from source resets this workspace on the next rollout."
+    ? "Rebuild from source resets this storage on the next rollout."
     : runtimeReadyForWorkspace === false
-      ? runtimeGuidance ??
-        "Persistent workspace currently requires a managed-shared or managed-owned runtime. This service is not on an eligible runtime yet."
+      ? (runtimeGuidance ??
+        "Persistent storage currently requires a managed-shared or managed-owned runtime. This service is not on an eligible runtime yet.")
       : !replicasReadyForWorkspace
-        ? "Persistent workspace can only be attached while the app stays at one replica or fewer."
+        ? "Persistent storage can only be attached while the app stays at one replica or fewer."
         : null;
   const filesActionLabel = hasWorkspace ? "Open Files" : "Browse Live Files";
   const availabilityHint =
@@ -562,9 +780,9 @@ function AppPersistentWorkspaceSection({
     runtimeReadyForWorkspace === false
       ? workspaceCallout
       : runtimeReadyForWorkspace === null
-        ? "Workspace readiness is temporarily unavailable."
+        ? "Persistent storage readiness is temporarily unavailable."
         : !replicasReadyForWorkspace
-          ? "Persistent workspace can only be attached while the app stays at one replica or fewer."
+          ? "Persistent storage can only be attached while the app stays at one replica or fewer."
           : null;
   const [attachFormOpen, setAttachFormOpen] = useState(false);
   const [attachSaving, setAttachSaving] = useState(false);
@@ -585,7 +803,7 @@ function AppPersistentWorkspaceSection({
 
     if (!canAttachWorkspace) {
       showToast({
-        message: attachActionHint ?? "Persistent workspace is unavailable.",
+        message: attachActionHint ?? "Persistent storage is unavailable.",
         variant: "info",
       });
       return;
@@ -601,19 +819,22 @@ function AppPersistentWorkspaceSection({
     setAttachSaving(true);
 
     try {
-      await requestJson<AppOperationResponse>(`/api/fugue/apps/${app.id}/deploy`, {
-        body: JSON.stringify({
-          mountPath: normalizedMountPath,
-        }),
-        headers: {
-          "Content-Type": "application/json",
+      await requestJson<AppOperationResponse>(
+        `/api/fugue/apps/${app.id}/deploy`,
+        {
+          body: JSON.stringify({
+            mountPath: normalizedMountPath,
+          }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          method: "POST",
         },
-        method: "POST",
-      });
+      );
 
       setMountPathError(null);
       showToast({
-        message: `Workspace attach queued at ${normalizedMountPath}.`,
+        message: `Persistent storage attach queued at ${normalizedMountPath}.`,
         variant: "success",
       });
       startTransition(() => {
@@ -641,14 +862,14 @@ function AppPersistentWorkspaceSection({
 
   return (
     <section
-      aria-label="Persistent workspace"
+      aria-label="Persistent storage"
       className="fg-route-subsection fg-settings-section"
     >
       <div className="fg-route-subsection__head">
         <div className="fg-route-subsection__copy fg-settings-section__copy">
           <p className="fg-label fg-panel__eyebrow">Storage</p>
           <h3 className="fg-route-subsection__title fg-ui-heading">
-            Persistent workspace
+            Persistent storage
           </h3>
           <p className="fg-route-subsection__note">{summaryNote}</p>
         </div>
@@ -1339,17 +1560,17 @@ export function AppSettingsPanel({
   const canSaveProject =
     projectManaged && projectChanged && !projectSaving && !projectNameError;
   const workspaceSummaryAction = hasWorkspace
-    ? "inspect the persistent workspace"
-    : "review persistent workspace readiness";
+    ? "inspect persistent storage"
+    : "review persistent storage readiness";
   const settingsSummary = isPrivateGitHubSource
-    ? `Rename the shared project shell, change the tracked branch, rotate saved GitHub access, ${workspaceSummaryAction}, set automatic failover, or move ${app.name} by hand.`
+    ? `Rename the shared project shell, change the tracked branch, rotate saved GitHub access, tune saved image retention, ${workspaceSummaryAction}, set automatic failover, or move ${app.name} by hand.`
     : isGitHubSource
-      ? `Rename the shared project shell, change which branch Fugue rebuilds from, ${workspaceSummaryAction}, set automatic failover, or move ${app.name} by hand.`
+      ? `Rename the shared project shell, change which branch Fugue rebuilds from, tune saved image retention, ${workspaceSummaryAction}, set automatic failover, or move ${app.name} by hand.`
       : isDockerImageSource
-        ? `Rename the shared project shell, review the saved Docker image reference, ${workspaceSummaryAction}, set automatic failover, or move ${app.name} by hand.`
+        ? `Rename the shared project shell, review the saved Docker image reference, tune saved image retention, ${workspaceSummaryAction}, set automatic failover, or move ${app.name} by hand.`
         : isUploadSource
-          ? `Rename the shared project shell, review the saved upload source, ${workspaceSummaryAction}, set automatic failover, or move ${app.name} by hand.`
-          : `Rename the shared project shell, review the saved source definition, ${workspaceSummaryAction}, set automatic failover, or move ${app.name} by hand.`;
+          ? `Rename the shared project shell, review the saved upload source, tune saved image retention, ${workspaceSummaryAction}, set automatic failover, or move ${app.name} by hand.`
+          : `Rename the shared project shell, review the saved source definition, tune saved image retention, ${workspaceSummaryAction}, set automatic failover, or move ${app.name} by hand.`;
   const projectSectionNote = projectManaged
     ? `${serviceCount} service${serviceCount === 1 ? "" : "s"} share this project shell. Renaming it updates the whole group.`
     : "This service still lives in the Unassigned bucket, so the shared shell cannot be renamed yet.";
@@ -1895,7 +2116,11 @@ export function AppSettingsPanel({
                 {githubConnection?.authEnabled && githubConnectHref ? (
                   <>
                     {" "}
-                    <ButtonAnchor href={githubConnectHref} size="compact" variant="secondary">
+                    <ButtonAnchor
+                      href={githubConnectHref}
+                      size="compact"
+                      variant="secondary"
+                    >
                       Reconnect GitHub
                     </ButtonAnchor>
                   </>
@@ -1909,7 +2134,11 @@ export function AppSettingsPanel({
                 {githubConnection?.authEnabled && githubConnectHref ? (
                   <>
                     {" "}
-                    <ButtonAnchor href={githubConnectHref} size="compact" variant="secondary">
+                    <ButtonAnchor
+                      href={githubConnectHref}
+                      size="compact"
+                      variant="secondary"
+                    >
                       Reconnect GitHub
                     </ButtonAnchor>
                   </>
@@ -1917,9 +2146,13 @@ export function AppSettingsPanel({
               </InlineAlert>
             ) : githubConnection?.authEnabled && githubConnectHref ? (
               <InlineAlert>
-                Authorize GitHub in the browser, or paste a replacement token below.
-                {" "}
-                <ButtonAnchor href={githubConnectHref} size="compact" variant="secondary">
+                Authorize GitHub in the browser, or paste a replacement token
+                below.{" "}
+                <ButtonAnchor
+                  href={githubConnectHref}
+                  size="compact"
+                  variant="secondary"
+                >
                   Connect GitHub
                 </ButtonAnchor>
               </InlineAlert>
@@ -1985,6 +2218,8 @@ export function AppSettingsPanel({
           </form>
         </section>
       ) : null}
+
+      <AppImageMirrorLimitSection app={app} />
 
       <AppPersistentWorkspaceSection
         app={app}

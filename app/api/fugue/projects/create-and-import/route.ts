@@ -22,6 +22,7 @@ import {
   resolveGitHubRepoAuthTokenForEmail,
 } from "@/lib/github/connection-store";
 import { PRIVATE_GITHUB_AUTH_REQUIRED_MESSAGE } from "@/lib/github/messages";
+import { DUPLICATE_PROJECT_NAME_MESSAGE } from "@/lib/project-names";
 import { ensureWorkspaceAccess } from "@/lib/workspace/bootstrap";
 import {
   findWorkspaceProjectById,
@@ -89,6 +90,7 @@ export async function POST(request: Request) {
   const sourceMode = normalizeImportSourceMode(sourceModeInput || "github") || "github";
   const requestedProjectId = readOptionalString(body, "projectId");
   const requestedProjectName = readOptionalString(body, "projectName");
+  const projectMode = readOptionalString(body, "projectMode");
   const runtimeId = readOptionalString(body, "runtimeId");
   const servicePort = readOptionalPositiveInteger(body, "servicePort");
   const repoVisibilityInput = readOptionalString(body, "repoVisibility");
@@ -141,6 +143,7 @@ export async function POST(request: Request) {
             repoVisibility: resolvedRepoVisibility,
           })
         : null;
+    const createProject = !requestedProjectId && projectMode === "create";
 
     if (
       sourceMode === "github" &&
@@ -166,10 +169,16 @@ export async function POST(request: Request) {
       return jsonError(404, "Project not found.");
     }
 
-    const projectDescription = `${existingProject?.name ?? projectName} project`;
-    const projectPayload = existingProject
+    if (createProject && existingProject) {
+      return jsonError(409, DUPLICATE_PROJECT_NAME_MESSAGE);
+    }
+
+    const resolvedExistingProject = createProject ? null : existingProject;
+
+    const projectDescription = `${resolvedExistingProject?.name ?? projectName} project`;
+    const projectPayload = resolvedExistingProject
       ? {
-          projectId: existingProject.id,
+          projectId: resolvedExistingProject.id,
         }
       : {
           project: {
@@ -200,8 +209,8 @@ export async function POST(request: Request) {
             servicePort: servicePort ?? undefined,
             ...projectPayload,
           });
-    const resolvedProjectId = existingProject?.id ?? result.app?.projectId ?? null;
-    const resolvedProjectName = existingProject?.name ?? projectName;
+    const resolvedProjectId = resolvedExistingProject?.id ?? result.app?.projectId ?? null;
+    const resolvedProjectName = resolvedExistingProject?.name ?? projectName;
 
     if (result.app?.id) {
       await saveWorkspaceAccess({
