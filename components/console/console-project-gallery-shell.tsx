@@ -45,6 +45,11 @@ import {
   validateImportServiceDraft,
   type ImportServiceDraft,
 } from "@/lib/fugue/import-source";
+import {
+  buildLocalUploadFormData,
+  createLocalUploadState,
+  type LocalUploadState,
+} from "@/lib/fugue/local-upload";
 import { consumeSSEStream, type ParsedSSEEvent } from "@/lib/ui/sse";
 import { cx } from "@/lib/ui/cx";
 import {
@@ -308,6 +313,9 @@ export function ConsoleProjectGallery({
   const [importDraft, setImportDraft] = useState<ImportServiceDraft>(() =>
     createImportServiceDraft(null),
   );
+  const [localUpload, setLocalUpload] = useState<LocalUploadState>(() =>
+    createLocalUploadState(),
+  );
   const [projectImageUsageByProjectId, setProjectImageUsageByProjectId] =
     useState<Record<string, ProjectImageUsageSummary>>(() =>
       buildProjectImageUsageMap(readCachedProjectImageUsage() ?? []),
@@ -335,8 +343,10 @@ export function ConsoleProjectGallery({
   const createDialogCopy = isCreateServiceMode
     ? importDraft.sourceMode === "github"
       ? `Paste a GitHub repository link for ${createTargetProject.name}. Adjust access or placement only if this service needs it.`
+      : importDraft.sourceMode === "local-upload"
+        ? `Drop a local folder or source files for ${createTargetProject.name}. Fugue packages them on the server before import.`
       : `Add a published Docker image to ${createTargetProject.name}. Adjust placement only if this service needs it.`
-    : "Give the project a name, then point Fugue at the first GitHub repository or Docker image.";
+    : "Give the project a name, then point Fugue at the first GitHub repository, local folder, or Docker image.";
   const createDialogSubmitLabel = isCreating
     ? isCreateServiceMode
       ? "Adding…"
@@ -779,6 +789,7 @@ export function ConsoleProjectGallery({
         readDefaultImportRuntimeId(runtimeInventory.runtimeTargets),
       ),
     );
+    setLocalUpload(createLocalUploadState());
   }
 
   function closeCreate() {
@@ -833,7 +844,9 @@ export function ConsoleProjectGallery({
       return;
     }
 
-    const validationError = validateImportServiceDraft(importDraft);
+    const validationError = validateImportServiceDraft(importDraft, {
+      localUpload,
+    });
 
     if (validationError) {
       setFlash({
@@ -847,25 +860,46 @@ export function ConsoleProjectGallery({
     setIsCreating(true);
 
     try {
-      const response = await requestJson<CreateProjectResponse>(
-        "/api/fugue/projects/create-and-import",
-        {
-          body: JSON.stringify({
-            ...buildImportServicePayload(importDraft),
-            ...(createTargetProject
-              ? {
-                  projectId: createTargetProject.id,
-                }
-              : {
-                  projectName,
-                }),
-          }),
-          headers: {
-            "Content-Type": "application/json",
-          },
-          method: "POST",
-        },
-      );
+      const endpoint =
+        importDraft.sourceMode === "local-upload"
+          ? "/api/fugue/projects/create-and-import-upload"
+          : "/api/fugue/projects/create-and-import";
+      const requestInit =
+        importDraft.sourceMode === "local-upload"
+          ? {
+              body: buildLocalUploadFormData(
+                {
+                  ...buildImportServicePayload(importDraft),
+                  ...(createTargetProject
+                    ? {
+                        projectId: createTargetProject.id,
+                      }
+                    : {
+                        projectName,
+                      }),
+                },
+                localUpload,
+              ),
+              method: "POST",
+            }
+          : {
+              body: JSON.stringify({
+                ...buildImportServicePayload(importDraft),
+                ...(createTargetProject
+                  ? {
+                      projectId: createTargetProject.id,
+                    }
+                  : {
+                      projectName,
+                    }),
+              }),
+              headers: {
+                "Content-Type": "application/json",
+              },
+              method: "POST",
+            };
+
+      const response = await requestJson<CreateProjectResponse>(endpoint, requestInit);
 
       if (response.project?.id) {
         setSelectedProjectId(response.project.id);
@@ -1169,7 +1203,9 @@ export function ConsoleProjectGallery({
                       idPrefix="create-service"
                       includeWrapper={false}
                       inventoryError={runtimeInventory.runtimeTargetInventoryError}
+                      localUpload={localUpload}
                       onDraftChange={setImportDraft}
+                      onLocalUploadChange={setLocalUpload}
                       runtimeTargets={runtimeInventory.runtimeTargets}
                     />
                   </div>

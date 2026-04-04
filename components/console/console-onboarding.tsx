@@ -22,6 +22,11 @@ import {
   validateImportServiceDraft,
   type ImportServiceDraft,
 } from "@/lib/fugue/import-source";
+import {
+  buildLocalUploadFormData,
+  createLocalUploadState,
+  type LocalUploadState,
+} from "@/lib/fugue/local-upload";
 
 type OnboardingStage = "needs-workspace" | "needs-import";
 type FlashState = {
@@ -90,6 +95,9 @@ export function ConsoleOnboarding({
   const [isImporting, setIsImporting] = useState(false);
   const [draft, setDraft] = useState<ImportServiceDraft>(() =>
     createImportServiceDraft(readDefaultImportRuntimeId(runtimeTargets)),
+  );
+  const [localUpload, setLocalUpload] = useState<LocalUploadState>(() =>
+    createLocalUploadState(),
   );
   const importBackdropPressStartedRef = useRef(false);
   const importDialogRequested = searchParams.get("dialog") === "import";
@@ -230,6 +238,7 @@ export function ConsoleOnboarding({
 
   function resetImportForm() {
     setDraft(createImportServiceDraft(readDefaultImportRuntimeId(runtimeTargets)));
+    setLocalUpload(createLocalUploadState());
   }
 
   async function handleImport(event: FormEvent<HTMLFormElement>) {
@@ -239,7 +248,9 @@ export function ConsoleOnboarding({
       return;
     }
 
-    const validationError = validateImportServiceDraft(draft);
+    const validationError = validateImportServiceDraft(draft, {
+      localUpload,
+    });
 
     if (validationError) {
       setFlash({
@@ -253,18 +264,27 @@ export function ConsoleOnboarding({
     setIsImporting(true);
 
     try {
-      await requestJson<ImportResponse>(
+      const endpoint =
         draft.sourceMode === "github"
           ? "/api/fugue/apps/import-github"
-          : "/api/fugue/apps/import-image",
-        {
-          body: JSON.stringify(buildImportServicePayload(draft)),
-          headers: {
-            "Content-Type": "application/json",
-          },
-          method: "POST",
-        },
-      );
+          : draft.sourceMode === "local-upload"
+            ? "/api/fugue/apps/import-upload"
+            : "/api/fugue/apps/import-image";
+      const requestInit =
+        draft.sourceMode === "local-upload"
+          ? {
+              body: buildLocalUploadFormData(buildImportServicePayload(draft), localUpload),
+              method: "POST",
+            }
+          : {
+              body: JSON.stringify(buildImportServicePayload(draft)),
+              headers: {
+                "Content-Type": "application/json",
+              },
+              method: "POST",
+            };
+
+      await requestJson<ImportResponse>(endpoint, requestInit);
 
       setImportOpen(false);
       setFlash(null);
@@ -286,7 +306,7 @@ export function ConsoleOnboarding({
     : "Import the first service.";
   const description = isWorkspaceStage
     ? `Set up the workspace and prepare ${projectName}.`
-    : "Import a GitHub repository or Docker image to create the first app.";
+    : "Import a GitHub repository, local folder, or Docker image to create the first app.";
   const primaryLabel = isWorkspaceStage ? "Create project" : "Import service";
   const disclosureTitle = isWorkspaceStage ? "What happens next" : "Import rules";
   const disclosureItems = isWorkspaceStage
@@ -311,7 +331,7 @@ export function ConsoleOnboarding({
         },
         {
           label: "Sources",
-          value: "GitHub repositories or Docker images",
+          value: "GitHub repositories, local uploads, or Docker images",
         },
         {
           label: "GitHub access",
@@ -322,8 +342,12 @@ export function ConsoleOnboarding({
           value: "Public image refs are mirrored into Fugue before rollout",
         },
         {
+          label: "Local uploads",
+          value: "Drag a folder, docker-compose.yml, fugue.yaml, Dockerfile, or source files into the browser",
+        },
+        {
           label: "Optional",
-          value: "Branch, app name, build strategy, service port",
+          value: "Branch, app name, build strategy, and optional source paths",
         },
         {
           label: "Updates",
@@ -334,6 +358,8 @@ export function ConsoleOnboarding({
   const importDialogCopy =
     draft.sourceMode === "github"
       ? "Paste a GitHub repository link and choose how Fugue should access it."
+      : draft.sourceMode === "local-upload"
+        ? "Drop a local folder or source files. Fugue packages them on the server, then imports the result through the upload path."
       : "Point Fugue at a published Docker image. Fugue mirrors it into the internal registry before rollout.";
   const openImport = () => {
     setFlash(null);
@@ -413,7 +439,9 @@ export function ConsoleOnboarding({
                     draft={draft}
                     idPrefix="onboarding-import"
                     inventoryError={runtimeTargetInventoryError}
+                    localUpload={localUpload}
                     onDraftChange={setDraft}
+                    onLocalUploadChange={setLocalUpload}
                     runtimeTargets={runtimeTargets}
                   />
                 </form>

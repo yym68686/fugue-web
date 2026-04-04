@@ -120,6 +120,41 @@ function getClient(accessToken: string) {
   });
 }
 
+async function expectMultipartData<T>(
+  accessToken: string,
+  schemaPath: string,
+  path: string,
+  body: FormData,
+) {
+  const env = getFugueEnv();
+  const response = await fetch(`${env.apiUrl}${path}`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body,
+    cache: "no-store",
+  });
+  const data = (await response.json().catch(() => null)) as
+    | (T & { error?: string })
+    | null;
+
+  if (!response.ok) {
+    const detail = readErrorDetail(data);
+    const suffix = detail ? ` ${detail.slice(0, 220)}` : "";
+    throw new Error(
+      `Fugue request failed for ${schemaPath}: ${response.status} ${response.statusText}.${suffix}`,
+    );
+  }
+
+  if (!data) {
+    throw new Error(`Fugue request failed for ${schemaPath}: empty response.`);
+  }
+
+  return data as T;
+}
+
 function readNullableString(value: string | null | undefined) {
   return typeof value === "string" && value.trim() ? value : null;
 }
@@ -969,22 +1004,29 @@ function buildAuditEventView(event: CamelizedSchema<"AuditEvent">) {
 }
 
 function buildImportResultView(
-  response: CamelizedSchema<"ImportGitHubResponse">,
+  response:
+    | CamelizedSchema<"ImportGitHubResponse">
+    | CamelizedSchema<"ImportUploadResponse">,
   idempotencyKey?: string,
 ) {
+  const responseIdempotency =
+    "idempotency" in response ? response.idempotency : undefined;
+  const requestInProgress =
+    "requestInProgress" in response ? response.requestInProgress : false;
+
   return {
     app: response.app ? buildAppView(response.app) : null,
     apps: (response.apps ?? []).map(buildAppView),
     composeStack: buildComposeStackSummaryView(response.composeStack),
     fugueManifest: buildFugueManifestSummaryView(response.fugueManifest),
     idempotencyKey:
-      readNullableString(response.idempotency?.key) ?? idempotencyKey ?? null,
+      readNullableString(responseIdempotency?.key) ?? idempotencyKey ?? null,
     operation: response.operation
       ? buildOperationView(response.operation)
       : null,
     operations: (response.operations ?? []).map(buildOperationView),
-    replayed: response.idempotency?.replayed ?? false,
-    requestInProgress: response.requestInProgress ?? false,
+    replayed: responseIdempotency?.replayed ?? false,
+    requestInProgress,
   };
 }
 
@@ -1888,6 +1930,81 @@ export async function importFugueGitHubApp(
   );
 
   return buildImportResultView(response, idempotencyKey);
+}
+
+export async function importFugueUploadApp(
+  accessToken: string,
+  payload: {
+    archiveBytes: Uint8Array;
+    archiveName: string;
+    appId?: string;
+    buildContextDir?: string;
+    buildStrategy?: string;
+    dockerfilePath?: string;
+    name?: string;
+    project?: {
+      description?: string;
+      name: string;
+    };
+    projectId?: string;
+    runtimeId?: string;
+    servicePort?: number;
+    sourceDir?: string;
+    tenantId?: string;
+  },
+) {
+  const body = new FormData();
+  const archiveBytes = new Uint8Array(payload.archiveBytes);
+
+  body.set(
+    "request",
+    JSON.stringify({
+      ...(payload.appId ? { app_id: payload.appId } : {}),
+      ...(payload.tenantId ? { tenant_id: payload.tenantId } : {}),
+      ...(payload.projectId ? { project_id: payload.projectId } : {}),
+      ...(payload.project
+        ? {
+            project: {
+              ...(payload.project.description
+                ? { description: payload.project.description }
+                : {}),
+              name: payload.project.name,
+            },
+          }
+        : {}),
+      ...(payload.buildStrategy
+        ? { build_strategy: payload.buildStrategy }
+        : {}),
+      ...(payload.sourceDir ? { source_dir: payload.sourceDir } : {}),
+      ...(payload.dockerfilePath
+        ? { dockerfile_path: payload.dockerfilePath }
+        : {}),
+      ...(payload.buildContextDir
+        ? { build_context_dir: payload.buildContextDir }
+        : {}),
+      ...(payload.name ? { name: payload.name } : {}),
+      ...(payload.runtimeId ? { runtime_id: payload.runtimeId } : {}),
+      ...(typeof payload.servicePort === "number"
+        ? { service_port: payload.servicePort }
+        : {}),
+    }),
+  );
+  body.set(
+    "archive",
+    new Blob([archiveBytes], { type: "application/gzip" }),
+    payload.archiveName,
+  );
+
+  const response = camelizeData(
+    await expectMultipartData<components["schemas"]["ImportUploadResponse"]>(
+      accessToken,
+      "/v1/apps/import-upload",
+      "/v1/apps/import-upload",
+      body,
+    ),
+  );
+
+  return buildImportResultView(response);
 }
 
 export async function inspectGitHubTemplate(

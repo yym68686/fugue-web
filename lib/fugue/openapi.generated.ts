@@ -4,6 +4,23 @@
  */
 
 export interface paths {
+    "/button.svg": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Deploy Button */
+        get: operations["getDeployButton"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/healthz": {
         parameters: {
             query?: never;
@@ -2416,6 +2433,32 @@ export interface components {
             postgres?: components["schemas"]["AppPostgresSpec"];
             idempotency_key?: string;
         };
+        ImportUploadRequest: {
+            app_id?: string;
+            tenant_id?: string;
+            project_id?: string;
+            project?: components["schemas"]["ImportProjectRequest"];
+            source_dir?: string;
+            name?: string;
+            description?: string;
+            build_strategy?: string;
+            runtime_id?: string;
+            /** Format: int32 */
+            replicas?: number;
+            /** Format: int32 */
+            service_port?: number;
+            dockerfile_path?: string;
+            build_context_dir?: string;
+            env?: components["schemas"]["StringMap"];
+            config_content?: string;
+            files?: components["schemas"]["AppFile"][];
+            postgres?: components["schemas"]["AppPostgresSpec"];
+        };
+        ImportUploadMultipartRequest: {
+            request: components["schemas"]["ImportUploadRequest"];
+            /** Format: binary */
+            archive: string;
+        };
         ImportGitHubResponse: {
             app?: components["schemas"]["App"];
             operation?: components["schemas"]["Operation"];
@@ -2425,6 +2468,14 @@ export interface components {
             fugue_manifest?: components["schemas"]["FugueManifestSummary"];
             idempotency?: components["schemas"]["ImportGitHubIdempotency"];
             request_in_progress?: boolean;
+        };
+        ImportUploadResponse: {
+            app?: components["schemas"]["App"];
+            operation?: components["schemas"]["Operation"];
+            apps?: components["schemas"]["App"][];
+            operations?: components["schemas"]["Operation"][];
+            compose_stack?: components["schemas"]["ComposeStackSummary"];
+            fugue_manifest?: components["schemas"]["FugueManifestSummary"];
         };
         ImportImageRequest: {
             tenant_id?: string;
@@ -2664,6 +2715,27 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    getDeployButton: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/svg+xml": string;
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
     healthz: {
         parameters: {
             query?: never;
@@ -3994,9 +4066,7 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "multipart/form-data": {
-                    [key: string]: unknown;
-                };
+                "multipart/form-data": components["schemas"]["ImportUploadMultipartRequest"];
             };
         };
         responses: {
@@ -4006,9 +4076,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ImportUploadResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];

@@ -1,6 +1,7 @@
 import type { GitHubRepoVisibility } from "@/lib/github/repository";
+import type { LocalUploadState } from "@/lib/fugue/local-upload";
 
-export type ImportSourceMode = "github" | "docker-image";
+export type ImportSourceMode = "github" | "docker-image" | "local-upload";
 
 export const BUILD_STRATEGY_OPTIONS = [
   { label: "Auto detect", value: "auto" },
@@ -10,7 +11,8 @@ export const BUILD_STRATEGY_OPTIONS = [
   { label: "Nixpacks", value: "nixpacks" },
 ] as const;
 
-export type BuildStrategyValue = (typeof BUILD_STRATEGY_OPTIONS)[number]["value"];
+export type BuildStrategyValue =
+  (typeof BUILD_STRATEGY_OPTIONS)[number]["value"];
 
 export type ImportServiceDraft = {
   branch: string;
@@ -28,18 +30,24 @@ export type ImportServiceDraft = {
   sourceMode: ImportSourceMode;
 };
 
-export function normalizeImportSourceMode(value?: string | null): ImportSourceMode | "" {
+export function normalizeImportSourceMode(
+  value?: string | null,
+): ImportSourceMode | "" {
   switch (value?.trim().toLowerCase()) {
     case "github":
       return "github";
     case "docker-image":
       return "docker-image";
+    case "local-upload":
+      return "local-upload";
     default:
       return "";
   }
 }
 
-export function createImportServiceDraft(runtimeId: string | null = null): ImportServiceDraft {
+export function createImportServiceDraft(
+  runtimeId: string | null = null,
+): ImportServiceDraft {
   return {
     branch: "",
     buildContextDir: "",
@@ -70,7 +78,21 @@ export function supportsGitHubDockerInputs(buildStrategy: BuildStrategyValue) {
   return buildStrategy === "auto" || buildStrategy === "dockerfile";
 }
 
-export function validateImportServiceDraft(draft: ImportServiceDraft) {
+export function localUploadPreservesDetectedTopology(
+  draft: ImportServiceDraft,
+) {
+  return (
+    draft.buildStrategy === "auto" &&
+    !draft.sourceDir.trim() &&
+    !draft.dockerfilePath.trim() &&
+    !draft.buildContextDir.trim()
+  );
+}
+
+export function validateImportServiceDraft(
+  draft: ImportServiceDraft,
+  options?: { localUpload?: LocalUploadState | null },
+) {
   if (draft.sourceMode === "github") {
     if (!draft.repoUrl.trim()) {
       return "Repository link is required.";
@@ -83,6 +105,13 @@ export function validateImportServiceDraft(draft: ImportServiceDraft) {
 
   if (draft.sourceMode === "docker-image" && !draft.imageRef.trim()) {
     return "Image reference is required.";
+  }
+
+  if (
+    draft.sourceMode === "local-upload" &&
+    !options?.localUpload?.items.length
+  ) {
+    return "Choose a folder, docker-compose.yml, Dockerfile, or source files to upload.";
   }
 
   const normalizedServicePort = draft.servicePort.trim();
@@ -129,6 +158,24 @@ export function buildImportServicePayload(draft: ImportServiceDraft) {
     if (draft.repoVisibility === "private" && draft.repoAuthToken.trim()) {
       payload.repoAuthToken = draft.repoAuthToken.trim();
     }
+
+    if (draft.sourceDir.trim()) {
+      payload.sourceDir = draft.sourceDir.trim();
+    }
+
+    if (draft.dockerfilePath.trim()) {
+      payload.dockerfilePath = draft.dockerfilePath.trim();
+    }
+
+    if (draft.buildContextDir.trim()) {
+      payload.buildContextDir = draft.buildContextDir.trim();
+    }
+
+    return payload;
+  }
+
+  if (draft.sourceMode === "local-upload") {
+    payload.buildStrategy = draft.buildStrategy;
 
     if (draft.sourceDir.trim()) {
       payload.sourceDir = draft.sourceDir.trim();

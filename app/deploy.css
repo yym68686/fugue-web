@@ -64,6 +64,11 @@
   gap: 0.75rem;
 }
 
+.fg-deploy-source-switch {
+  width: fit-content;
+  max-width: 100%;
+}
+
 .fg-deploy-service-list {
   display: grid;
   gap: 0.72rem;

@@ -1,4 +1,5 @@
 import { Brand } from "@/components/brand";
+import { DeployUploadWizard } from "@/components/deploy/deploy-upload-wizard";
 import { DeployWizard } from "@/components/deploy/deploy-wizard";
 import { Button, ButtonAnchor } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
@@ -51,16 +52,37 @@ export function DeployPage({
   sessionPresent,
   workspaceInventory,
 }: DeployPageProps) {
-  const isValidRepositoryUrl = search.repositoryUrl
-    ? isGitHubRepoUrl(search.repositoryUrl)
-    : false;
+  const effectiveSourceMode =
+    routeMode === "repository" ? search.sourceMode : "repository";
+  const isLocalUploadMode = effectiveSourceMode === "local-upload";
+  const isValidRepositoryUrl =
+    effectiveSourceMode === "repository" && search.repositoryUrl
+      ? isGitHubRepoUrl(search.repositoryUrl)
+      : false;
   const template = inspection?.template ?? null;
   const manifest = inspection?.fugueManifest ?? null;
   const manifestSummary = summarizeInspectManifest(manifest);
   const visibleInferences = manifestSummary.inferenceReport.slice(0, 6);
   const templateHref = template
-    ? buildDeployHref(`/new/template/${template.slug}`, search)
+    ? buildDeployHref(`/new/template/${template.slug}`, {
+        ...search,
+        sourceMode: "repository",
+      })
     : null;
+  const repositoryModeHref =
+    routeMode === "repository"
+      ? buildDeployHref("/new/repository", {
+          ...search,
+          sourceMode: "repository",
+        })
+      : null;
+  const localUploadModeHref =
+    routeMode === "repository"
+      ? buildDeployHref("/new/repository", {
+          ...search,
+          sourceMode: "local-upload",
+        })
+      : null;
   const panelAction =
     routeMode === "template" && requestedTemplateSlug
       ? `/new/template/${requestedTemplateSlug}`
@@ -68,40 +90,65 @@ export function DeployPage({
   const title =
     routeMode === "template"
       ? template?.name || "Deploy template."
-      : inspection?.repository.repoName
-        ? `Deploy ${inspection.repository.repoName}.`
-        : "Deploy from GitHub.";
-  const description = template?.description
-    ? template.description
-    : manifest
-      ? "Fugue found fugue.yaml and can import the declared topology without losing the route model."
-      : "Paste a GitHub repository link, inspect the source, and queue the first deployment onto shared or attached infrastructure.";
-  const notes = [
-    {
-      index: "01",
-      meta:
-        search.repoVisibility === "private"
-          ? "Private / Token handoff"
-          : "Public / Anonymous read",
-      title: "Repository access",
-    },
-    {
-      index: "02",
-      meta: template
-        ? `Template / ${template.slug}`
+      : isLocalUploadMode
+        ? "Deploy from a local folder."
+        : inspection?.repository.repoName
+          ? `Deploy ${inspection.repository.repoName}.`
+          : "Deploy from GitHub.";
+  const description =
+    routeMode === "template" && template?.description
+      ? template.description
+      : isLocalUploadMode
+        ? "Drag a local folder, docker-compose.yml, fugue.yaml, Dockerfile, or source files into the browser. Fugue packages the upload on the server, then imports the detected topology without losing the route model."
         : manifest
-          ? `Manifest / ${manifest.manifestPath}`
-          : "Generic repo / Build strategy",
-      title: template ? "Template metadata" : "Deploy shape",
-    },
-    {
-      index: "03",
-      meta: sessionPresent
-        ? "Signed in / Workspace route"
-        : "Auth handoff / ReturnTo preserved",
-      title: sessionPresent ? "Deploy ready" : "Sign in",
-    },
-  ];
+          ? "Fugue found fugue.yaml and can import the declared topology without losing the route model."
+          : "Paste a GitHub repository link, inspect the source, and queue the first deployment onto shared or attached infrastructure.";
+  const notes = isLocalUploadMode
+    ? [
+        {
+          index: "01",
+          meta: "Folder / Compose / Dockerfile",
+          title: "Source intake",
+        },
+        {
+          index: "02",
+          meta: "Browser drop / Server archive",
+          title: "Packaging",
+        },
+        {
+          index: "03",
+          meta: sessionPresent
+            ? "Signed in / Workspace route"
+            : "Auth handoff / ReturnTo preserved",
+          title: sessionPresent ? "Deploy ready" : "Sign in",
+        },
+      ]
+    : [
+        {
+          index: "01",
+          meta:
+            search.repoVisibility === "private"
+              ? "Private / Token handoff"
+              : "Public / Anonymous read",
+          title: "Repository access",
+        },
+        {
+          index: "02",
+          meta: template
+            ? `Template / ${template.slug}`
+            : manifest
+              ? `Manifest / ${manifest.manifestPath}`
+              : "Generic repo / Build strategy",
+          title: template ? "Template metadata" : "Deploy shape",
+        },
+        {
+          index: "03",
+          meta: sessionPresent
+            ? "Signed in / Workspace route"
+            : "Auth handoff / ReturnTo preserved",
+          title: sessionPresent ? "Deploy ready" : "Sign in",
+        },
+      ];
 
   return (
     <main className="fg-auth-page fg-deploy-page">
@@ -112,7 +159,9 @@ export function DeployPage({
               meta={
                 routeMode === "template"
                   ? "Template deploy"
-                  : "Repository deploy"
+                  : isLocalUploadMode
+                    ? "Local upload deploy"
+                    : "Repository deploy"
               }
             />
           </div>
@@ -121,7 +170,9 @@ export function DeployPage({
             <p className="fg-label">
               {routeMode === "template"
                 ? "Deploy / Template"
-                : "Deploy / Repository"}
+                : isLocalUploadMode
+                  ? "Deploy / Local upload"
+                  : "Deploy / Repository"}
             </p>
             <h1 className="fg-display-heading">{title}</h1>
             <p className="fg-copy">{description}</p>
@@ -158,10 +209,93 @@ export function DeployPage({
 
           <ProofShell className="fg-deploy-proof">
             <ProofShellRibbon>
-              {inspection ? "Inspection result" : "Repository intake"}
+              {isLocalUploadMode
+                ? "Local source intake"
+                : inspection
+                  ? "Inspection result"
+                  : "Repository intake"}
             </ProofShellRibbon>
 
-            {inspection ? (
+            {isLocalUploadMode ? (
+              <div className="fg-deploy-proof__content">
+                <div className="fg-deploy-proof__head">
+                  <div className="fg-deploy-proof__stat">
+                    <span className="fg-label">Accepted input</span>
+                    <strong>Folder or source files</strong>
+                    <span>
+                      Drag a directory, docker-compose.yml, fugue.yaml, or a
+                      single Dockerfile.
+                    </span>
+                  </div>
+                  <div className="fg-deploy-proof__stat">
+                    <span className="fg-label">Packaging</span>
+                    <strong>Server-built archive</strong>
+                    <span>
+                      The browser sends relative paths, then Fugue builds the
+                      import archive on the server before queueing deploy.
+                    </span>
+                  </div>
+                  <div className="fg-deploy-proof__stat">
+                    <span className="fg-label">Import mode</span>
+                    <strong>Topology first</strong>
+                    <span>
+                      fugue.yaml and compose files import the whole stack when
+                      build overrides stay blank.
+                    </span>
+                  </div>
+                </div>
+
+                <div className="fg-deploy-topology-grid">
+                  <div className="fg-deploy-topology-card">
+                    <span className="fg-label">Whole-stack cases</span>
+                    <ul className="fg-deploy-note-list">
+                      <li className="fg-deploy-note-item">
+                        <span>
+                          Uploading a folder with fugue.yaml keeps the declared
+                          service graph intact.
+                        </span>
+                      </li>
+                      <li className="fg-deploy-note-item">
+                        <span>
+                          Uploading docker-compose.yml or a folder containing it
+                          imports multi-service topology.
+                        </span>
+                      </li>
+                      <li className="fg-deploy-note-item">
+                        <span>
+                          Uploading a single Dockerfile falls back to a normal
+                          single-app build import.
+                        </span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="fg-deploy-topology-card">
+                    <span className="fg-label">Deploy rules</span>
+                    <ul className="fg-deploy-note-list">
+                      <li className="fg-deploy-note-item">
+                        <span>
+                          Leave build strategy on Auto detect to preserve
+                          compose or manifest imports.
+                        </span>
+                      </li>
+                      <li className="fg-deploy-note-item">
+                        <span>
+                          Runtime and project are still chosen before the deploy
+                          is queued.
+                        </span>
+                      </li>
+                      <li className="fg-deploy-note-item">
+                        <span>
+                          The route stays stable across sign-in and returns to
+                          this exact deploy path.
+                        </span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            ) : inspection ? (
               <div className="fg-deploy-proof__content">
                 <div className="fg-deploy-proof__head">
                   <div className="fg-deploy-proof__stat">
@@ -364,8 +498,8 @@ export function DeployPage({
           </ProofShell>
 
           <div className="fg-object-belt" aria-label="Deploy path">
-            <span>Repository</span>
-            <span>Template</span>
+            <span>{isLocalUploadMode ? "Folder" : "Repository"}</span>
+            <span>{isLocalUploadMode ? "Archive" : "Template"}</span>
             <span>Workspace</span>
             <span>Runtime</span>
             <span>Operation</span>
@@ -374,172 +508,299 @@ export function DeployPage({
 
         <section className="fg-auth-panel-slot fg-deploy-panel-slot">
           <Panel>
-            <PanelSection>
-              <p className="fg-label fg-panel__eyebrow">
-                {routeMode === "template"
-                  ? "Template intake"
-                  : "Repository intake"}
-              </p>
-              <PanelTitle>
-                {search.repositoryUrl
-                  ? "Review the repository and continue."
-                  : "Paste a GitHub repository link."}
-              </PanelTitle>
-              <PanelCopy>
-                Public repositories can be inspected immediately. Private
-                repositories can be authorized after sign-in with a GitHub
-                token.
-              </PanelCopy>
+            {routeMode === "repository" ? (
+              <PanelSection>
+                <p className="fg-label fg-panel__eyebrow">Deploy mode</p>
+                <PanelTitle>Choose the source you want to route.</PanelTitle>
+                <PanelCopy>
+                  GitHub repository keeps preflight inspection and template
+                  discovery. Local upload handles folders and one-off source
+                  files directly from the browser.
+                </PanelCopy>
 
-              <form
-                action={panelAction}
-                className="fg-deploy-entry-form"
-                method="GET"
-              >
-                <div className="fg-deploy-entry-row">
-                  <FormField
-                    hint="Use https://github.com/owner/repo."
-                    htmlFor="deploy-entry-repository"
-                    label="Repository link"
+                <div
+                  aria-label="Deploy source mode"
+                  className="fg-segmented fg-deploy-source-switch"
+                  role="navigation"
+                >
+                  <a
+                    aria-current={!isLocalUploadMode ? "page" : undefined}
+                    className={`fg-segmented__item${!isLocalUploadMode ? " is-active" : ""}`}
+                    data-state={!isLocalUploadMode ? "active" : "inactive"}
+                    href={repositoryModeHref ?? "/new/repository"}
                   >
-                    <input
-                      autoCapitalize="none"
-                      className="fg-input"
-                      defaultValue={search.repositoryUrl}
-                      id="deploy-entry-repository"
-                      name="repository-url"
-                      placeholder="https://github.com/owner/repo"
-                      spellCheck={false}
-                      type="url"
-                    />
-                  </FormField>
-
-                  <FormField
-                    hint="Optional override for the default branch."
-                    htmlFor="deploy-entry-branch"
-                    label="Branch"
-                    optionalLabel="Optional"
+                    <span className="fg-segmented__label">
+                      GitHub repository
+                    </span>
+                  </a>
+                  <a
+                    aria-current={isLocalUploadMode ? "page" : undefined}
+                    className={`fg-segmented__item${isLocalUploadMode ? " is-active" : ""}`}
+                    data-state={isLocalUploadMode ? "active" : "inactive"}
+                    href={
+                      localUploadModeHref ??
+                      "/new/repository?source-mode=local-upload"
+                    }
                   >
-                    <input
-                      autoCapitalize="none"
-                      className="fg-input"
-                      defaultValue={search.branch}
-                      id="deploy-entry-branch"
-                      name="branch"
-                      placeholder={inspection?.repository.branch ?? "main"}
-                      spellCheck={false}
-                    />
-                  </FormField>
+                    <span className="fg-segmented__label">Local upload</span>
+                  </a>
                 </div>
+              </PanelSection>
+            ) : null}
 
-                {search.repoVisibility !== "public" ? (
-                  <input
-                    name="repo-visibility"
-                    type="hidden"
-                    value={search.repoVisibility}
-                  />
+            {isLocalUploadMode ? (
+              <>
+                <PanelSection>
+                  <p className="fg-label fg-panel__eyebrow">
+                    Local upload intake
+                  </p>
+                  <PanelTitle>
+                    {sessionPresent
+                      ? "Choose a folder or source files."
+                      : "Authenticate before choosing files."}
+                  </PanelTitle>
+                  <PanelCopy>
+                    {sessionPresent
+                      ? "Drag a local folder, compose file, fugue manifest, Dockerfile, or multiple source files. Fugue packages them on the server, then queues the deploy into your workspace."
+                      : "Browser uploads stay on this machine until you sign in. After auth, this page reopens in Local upload mode so you can drag the folder directly."}
+                  </PanelCopy>
+
+                  {!sessionPresent ? (
+                    <InlineAlert variant="info">
+                      Local files are selected after sign-in, not before the
+                      auth redirect.
+                    </InlineAlert>
+                  ) : null}
+                </PanelSection>
+
+                {sessionPresent ? (
+                  workspaceInventory.workspaceError ? (
+                    <PanelSection>
+                      <InlineAlert variant="error">
+                        {workspaceInventory.workspaceError}
+                      </InlineAlert>
+                    </PanelSection>
+                  ) : (
+                    <DeployUploadWizard
+                      projectInventoryError={
+                        workspaceInventory.projectInventoryError
+                      }
+                      projects={workspaceInventory.projects}
+                      runtimeTargetInventoryError={
+                        workspaceInventory.runtimeTargetInventoryError
+                      }
+                      runtimeTargets={workspaceInventory.runtimeTargets}
+                      workspaceDefaultProjectId={
+                        workspaceInventory.workspace?.defaultProjectId
+                      }
+                      workspaceDefaultProjectName={
+                        workspaceInventory.workspace?.defaultProjectName
+                      }
+                    />
+                  )
+                ) : (
+                  <PanelSection>
+                    <p className="fg-label fg-panel__eyebrow">Sign in</p>
+                    <PanelTitle>
+                      Authenticate before the upload is queued.
+                    </PanelTitle>
+                    <PanelCopy>
+                      Fugue keeps this local-upload route in{" "}
+                      <code>returnTo</code>, creates a first-party session, and
+                      sends you back here to choose the folder.
+                    </PanelCopy>
+
+                    <div className="fg-deploy-auth-actions">
+                      <ButtonAnchor
+                        href={buildReturnToHref("/auth/sign-in", currentPath)}
+                        variant="route"
+                      >
+                        Sign in to upload
+                      </ButtonAnchor>
+                      <ButtonAnchor
+                        href={buildReturnToHref("/auth/sign-up", currentPath)}
+                        variant="secondary"
+                      >
+                        Create account
+                      </ButtonAnchor>
+                    </div>
+                    <p className="fg-deploy-inline-copy">
+                      After sign-in, this page reopens in Local upload mode so
+                      you can drag the folder directly into the browser.
+                    </p>
+                  </PanelSection>
+                )}
+              </>
+            ) : (
+              <>
+                <PanelSection>
+                  <p className="fg-label fg-panel__eyebrow">
+                    {routeMode === "template"
+                      ? "Template intake"
+                      : "Repository intake"}
+                  </p>
+                  <PanelTitle>
+                    {search.repositoryUrl
+                      ? "Review the repository and continue."
+                      : "Paste a GitHub repository link."}
+                  </PanelTitle>
+                  <PanelCopy>
+                    Public repositories can be inspected immediately. Private
+                    repositories can be authorized after sign-in with a GitHub
+                    token.
+                  </PanelCopy>
+
+                  <form
+                    action={panelAction}
+                    className="fg-deploy-entry-form"
+                    method="GET"
+                  >
+                    <div className="fg-deploy-entry-row">
+                      <FormField
+                        hint="Use https://github.com/owner/repo."
+                        htmlFor="deploy-entry-repository"
+                        label="Repository link"
+                      >
+                        <input
+                          autoCapitalize="none"
+                          className="fg-input"
+                          defaultValue={search.repositoryUrl}
+                          id="deploy-entry-repository"
+                          name="repository-url"
+                          placeholder="https://github.com/owner/repo"
+                          spellCheck={false}
+                          type="url"
+                        />
+                      </FormField>
+
+                      <FormField
+                        hint="Optional override for the default branch."
+                        htmlFor="deploy-entry-branch"
+                        label="Branch"
+                        optionalLabel="Optional"
+                      >
+                        <input
+                          autoCapitalize="none"
+                          className="fg-input"
+                          defaultValue={search.branch}
+                          id="deploy-entry-branch"
+                          name="branch"
+                          placeholder={inspection?.repository.branch ?? "main"}
+                          spellCheck={false}
+                        />
+                      </FormField>
+                    </div>
+
+                    {search.repoVisibility !== "public" ? (
+                      <input
+                        name="repo-visibility"
+                        type="hidden"
+                        value={search.repoVisibility}
+                      />
+                    ) : null}
+
+                    <div className="fg-deploy-inline-actions">
+                      <Button type="submit" variant="route">
+                        Inspect repository
+                      </Button>
+                    </div>
+                    <p className="fg-deploy-inline-copy">
+                      The deploy link is stable. Auth handoff preserves this
+                      exact route and returns here after sign-in.
+                    </p>
+                  </form>
+                </PanelSection>
+
+                {inspectionError ? (
+                  <PanelSection>
+                    <InlineAlert variant="error">{inspectionError}</InlineAlert>
+                  </PanelSection>
                 ) : null}
 
-                <div className="fg-deploy-inline-actions">
-                  <Button type="submit" variant="route">
-                    Inspect repository
-                  </Button>
-                </div>
-                <p className="fg-deploy-inline-copy">
-                  The deploy link is stable. Auth handoff preserves this exact
-                  route and returns here after sign-in.
-                </p>
-              </form>
-            </PanelSection>
+                {routeMode === "template" &&
+                search.repositoryUrl &&
+                !template &&
+                !inspectionError ? (
+                  <PanelSection>
+                    <InlineAlert variant="info">
+                      This repository does not expose template metadata in{" "}
+                      <code>fugue.yaml</code>. Fugue can still deploy it as a
+                      repository import.
+                    </InlineAlert>
+                  </PanelSection>
+                ) : null}
 
-            {inspectionError ? (
-              <PanelSection>
-                <InlineAlert variant="error">{inspectionError}</InlineAlert>
-              </PanelSection>
-            ) : null}
+                {!search.repositoryUrl || !isValidRepositoryUrl ? (
+                  <PanelSection>
+                    <PanelCopy>
+                      Use a GitHub repository URL to unlock inspection, auth
+                      handoff, and the deploy wizard.
+                    </PanelCopy>
+                  </PanelSection>
+                ) : sessionPresent ? (
+                  workspaceInventory.workspaceError ? (
+                    <PanelSection>
+                      <InlineAlert variant="error">
+                        {workspaceInventory.workspaceError}
+                      </InlineAlert>
+                    </PanelSection>
+                  ) : (
+                    <DeployWizard
+                      initialBranch={
+                        search.branch || inspection?.repository.branch || ""
+                      }
+                      initialRepoVisibility={search.repoVisibility}
+                      inspection={inspection}
+                      projectInventoryError={
+                        workspaceInventory.projectInventoryError
+                      }
+                      projects={workspaceInventory.projects}
+                      repositoryUrl={search.repositoryUrl}
+                      runtimeTargetInventoryError={
+                        workspaceInventory.runtimeTargetInventoryError
+                      }
+                      runtimeTargets={workspaceInventory.runtimeTargets}
+                      workspaceDefaultProjectId={
+                        workspaceInventory.workspace?.defaultProjectId
+                      }
+                      workspaceDefaultProjectName={
+                        workspaceInventory.workspace?.defaultProjectName
+                      }
+                    />
+                  )
+                ) : (
+                  <PanelSection>
+                    <p className="fg-label fg-panel__eyebrow">Sign in</p>
+                    <PanelTitle>
+                      Authenticate before the deploy is queued.
+                    </PanelTitle>
+                    <PanelCopy>
+                      Fugue keeps the repository link in <code>returnTo</code>,
+                      creates a first-party session, and sends you back to this
+                      exact deploy route.
+                    </PanelCopy>
 
-            {routeMode === "template" &&
-            search.repositoryUrl &&
-            !template &&
-            !inspectionError ? (
-              <PanelSection>
-                <InlineAlert variant="info">
-                  This repository does not expose template metadata in{" "}
-                  <code>fugue.yaml</code>. Fugue can still deploy it as a
-                  repository import.
-                </InlineAlert>
-              </PanelSection>
-            ) : null}
-
-            {!search.repositoryUrl || !isValidRepositoryUrl ? (
-              <PanelSection>
-                <PanelCopy>
-                  Use a GitHub repository URL to unlock inspection, auth
-                  handoff, and the deploy wizard.
-                </PanelCopy>
-              </PanelSection>
-            ) : sessionPresent ? (
-              workspaceInventory.workspaceError ? (
-                <PanelSection>
-                  <InlineAlert variant="error">
-                    {workspaceInventory.workspaceError}
-                  </InlineAlert>
-                </PanelSection>
-              ) : (
-                <DeployWizard
-                  initialBranch={
-                    search.branch || inspection?.repository.branch || ""
-                  }
-                  initialRepoVisibility={search.repoVisibility}
-                  inspection={inspection}
-                  projectInventoryError={
-                    workspaceInventory.projectInventoryError
-                  }
-                  projects={workspaceInventory.projects}
-                  repositoryUrl={search.repositoryUrl}
-                  runtimeTargetInventoryError={
-                    workspaceInventory.runtimeTargetInventoryError
-                  }
-                  runtimeTargets={workspaceInventory.runtimeTargets}
-                  workspaceDefaultProjectId={
-                    workspaceInventory.workspace?.defaultProjectId
-                  }
-                  workspaceDefaultProjectName={
-                    workspaceInventory.workspace?.defaultProjectName
-                  }
-                />
-              )
-            ) : (
-              <PanelSection>
-                <p className="fg-label fg-panel__eyebrow">Sign in</p>
-                <PanelTitle>
-                  Authenticate before the deploy is queued.
-                </PanelTitle>
-                <PanelCopy>
-                  Fugue keeps the repository link in <code>returnTo</code>,
-                  creates a first-party session, and sends you back to this
-                  exact deploy route.
-                </PanelCopy>
-
-                <div className="fg-deploy-auth-actions">
-                  <ButtonAnchor
-                    href={buildReturnToHref("/auth/sign-in", currentPath)}
-                    variant="route"
-                  >
-                    Sign in to deploy
-                  </ButtonAnchor>
-                  <ButtonAnchor
-                    href={buildReturnToHref("/auth/sign-up", currentPath)}
-                    variant="secondary"
-                  >
-                    Create account
-                  </ButtonAnchor>
-                </div>
-                <p className="fg-deploy-inline-copy">
-                  After sign-in, the wizard reopens with the same repository and
-                  branch already filled in.
-                </p>
-              </PanelSection>
+                    <div className="fg-deploy-auth-actions">
+                      <ButtonAnchor
+                        href={buildReturnToHref("/auth/sign-in", currentPath)}
+                        variant="route"
+                      >
+                        Sign in to deploy
+                      </ButtonAnchor>
+                      <ButtonAnchor
+                        href={buildReturnToHref("/auth/sign-up", currentPath)}
+                        variant="secondary"
+                      >
+                        Create account
+                      </ButtonAnchor>
+                    </div>
+                    <p className="fg-deploy-inline-copy">
+                      After sign-in, the wizard reopens with the same repository
+                      and branch already filled in.
+                    </p>
+                  </PanelSection>
+                )}
+              </>
             )}
           </Panel>
         </section>

@@ -45,6 +45,13 @@ function readErrorMessage(error: unknown) {
 }
 
 async function loadInspection(search: DeploySearchState) {
+  if (search.sourceMode !== "repository") {
+    return {
+      inspection: null,
+      inspectionError: null,
+    };
+  }
+
   if (!search.repositoryUrl) {
     return {
       inspection: null,
@@ -55,7 +62,8 @@ async function loadInspection(search: DeploySearchState) {
   if (!isGitHubRepoUrl(search.repositoryUrl)) {
     return {
       inspection: null,
-      inspectionError: "GitHub repository links must use https://github.com/owner/repo.",
+      inspectionError:
+        "GitHub repository links must use https://github.com/owner/repo.",
     };
   }
 
@@ -93,7 +101,10 @@ async function loadWorkspaceInventory(): Promise<DeployWorkspaceInventory> {
   try {
     const { workspace } = await ensureWorkspaceAccess(session);
     const [projectsResult, runtimesResult] = await Promise.allSettled([
-      getFugueProjects(workspace.adminKeySecret, workspace.tenantId ?? undefined),
+      getFugueProjects(
+        workspace.adminKeySecret,
+        workspace.tenantId ?? undefined,
+      ),
       getFugueRuntimes(workspace.adminKeySecret),
     ]);
 
@@ -102,7 +113,8 @@ async function loadWorkspaceInventory(): Promise<DeployWorkspaceInventory> {
         projectsResult.status === "rejected"
           ? readErrorMessage(projectsResult.reason)
           : null,
-      projects: projectsResult.status === "fulfilled" ? projectsResult.value : [],
+      projects:
+        projectsResult.status === "fulfilled" ? projectsResult.value : [],
       runtimeTargetInventoryError:
         runtimesResult.status === "rejected"
           ? readErrorMessage(runtimesResult.reason)

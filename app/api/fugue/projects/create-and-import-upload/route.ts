@@ -1,6 +1,13 @@
+export const runtime = "nodejs";
+
 import { NextResponse } from "next/server";
 
 import { getCurrentSession } from "@/lib/auth/session";
+import { importFugueUploadApp } from "@/lib/fugue/api";
+import {
+  createLocalUploadArchive,
+  readLocalUploadMultipartRequest,
+} from "@/lib/fugue/local-upload-server";
 import {
   isObject,
   jsonError,
@@ -8,16 +15,7 @@ import {
   readErrorStatus,
   readOptionalString,
 } from "@/lib/fugue/product-route";
-import {
-  importFugueDockerImageApp,
-  importFugueGitHubApp,
-} from "@/lib/fugue/api";
 import { normalizeImportSourceMode } from "@/lib/fugue/import-source";
-import {
-  isGitHubRepoUrl,
-  normalizeGitHubRepoVisibility,
-  resolveGitHubRepoVisibility,
-} from "@/lib/github/repository";
 import { ensureWorkspaceAccess } from "@/lib/workspace/bootstrap";
 import {
   findWorkspaceProjectById,
@@ -61,74 +59,42 @@ export async function POST(request: Request) {
     return jsonError(401, "Sign in first.");
   }
 
-  let body: unknown;
+  let multipartRequest;
 
   try {
-    body = await request.json();
-  } catch {
-    return jsonError(400, "Invalid JSON body.");
+    multipartRequest = await readLocalUploadMultipartRequest(request);
+  } catch (error) {
+    return jsonError(400, readErrorMessage(error));
   }
+
+  const body = multipartRequest.payload;
 
   if (!isObject(body)) {
-    return jsonError(400, "Request body must be a JSON object.");
+    return jsonError(400, "Multipart field payload must be a JSON object.");
   }
 
-  const repoUrl = readOptionalString(body, "repoUrl");
-  const imageRef = readOptionalString(body, "imageRef");
-  const branch = readOptionalString(body, "branch");
+  const sourceModeInput = readOptionalString(body, "sourceMode");
+  const sourceMode = normalizeImportSourceMode(sourceModeInput || "local-upload") || "local-upload";
   const buildStrategy = readOptionalString(body, "buildStrategy");
   const sourceDir = readOptionalString(body, "sourceDir");
   const dockerfilePath = readOptionalString(body, "dockerfilePath");
   const buildContextDir = readOptionalString(body, "buildContextDir");
   const name = readOptionalString(body, "name");
-  const sourceModeInput = readOptionalString(body, "sourceMode");
-  const sourceMode = normalizeImportSourceMode(sourceModeInput || "github") || "github";
   const requestedProjectId = readOptionalString(body, "projectId");
   const requestedProjectName = readOptionalString(body, "projectName");
   const runtimeId = readOptionalString(body, "runtimeId");
   const servicePort = readOptionalPositiveInteger(body, "servicePort");
-  const repoVisibilityInput = readOptionalString(body, "repoVisibility");
-  const repoVisibility = normalizeGitHubRepoVisibility(repoVisibilityInput);
-  const repoAuthToken = readOptionalString(body, "repoAuthToken");
-  const resolvedRepoVisibility = resolveGitHubRepoVisibility(
-    repoVisibilityInput,
-    Boolean(repoAuthToken),
-  );
-  const projectName = requestedProjectName || "default";
 
-  if (sourceModeInput && !normalizeImportSourceMode(sourceModeInput)) {
-    return jsonError(400, "Unsupported import source.");
+  if (sourceModeInput && sourceMode !== "local-upload") {
+    return jsonError(400, "Local upload requests must use sourceMode local-upload.");
   }
 
-  if (sourceMode === "local-upload") {
-    return jsonError(400, "Local uploads must use the multipart upload endpoint.");
+  if (sourceMode !== "local-upload") {
+    return jsonError(400, "Local upload requests must use sourceMode local-upload.");
   }
 
-  if (sourceMode === "github") {
-    if (!repoUrl) {
-      return jsonError(400, "Repository link is required.");
-    }
-
-    if (!isGitHubRepoUrl(repoUrl)) {
-      return jsonError(400, "GitHub repository links must use https://github.com/owner/repo.");
-    }
-
-    if (repoVisibilityInput && !repoVisibility) {
-      return jsonError(400, "Repository access must be public or private.");
-    }
-
-    if (resolvedRepoVisibility === "private" && !repoAuthToken) {
-      return jsonError(
-        400,
-        "Private GitHub repositories require a GitHub token with repository read access.",
-      );
-    }
-
-    if (buildStrategy && !ALLOWED_BUILD_STRATEGIES.has(buildStrategy)) {
-      return jsonError(400, "Unsupported build strategy.");
-    }
-  } else if (!imageRef) {
-    return jsonError(400, "Image reference is required.");
+  if (buildStrategy && !ALLOWED_BUILD_STRATEGIES.has(buildStrategy)) {
+    return jsonError(400, "Unsupported build strategy.");
   }
 
   if (Number.isNaN(servicePort)) {
@@ -137,6 +103,7 @@ export async function POST(request: Request) {
 
   try {
     const { workspace } = await ensureWorkspaceAccess(session);
+    const projectName = requestedProjectName || "default";
     const existingProject = requestedProjectId
       ? await findWorkspaceProjectById(
           workspace.adminKeySecret,
@@ -153,6 +120,10 @@ export async function POST(request: Request) {
       return jsonError(404, "Project not found.");
     }
 
+    const archive = await createLocalUploadArchive(multipartRequest.files, {
+      archiveBaseName: name || null,
+      label: multipartRequest.label,
+    });
     const projectDescription = `${existingProject?.name ?? projectName} project`;
     const projectPayload = existingProject
       ? {
@@ -164,29 +135,18 @@ export async function POST(request: Request) {
             name: projectName,
           },
         };
-    const result =
-      sourceMode === "github"
-        ? await importFugueGitHubApp(workspace.adminKeySecret, {
-            branch: branch || undefined,
-            buildStrategy: buildStrategy || undefined,
-            buildContextDir: buildContextDir || undefined,
-            dockerfilePath: dockerfilePath || undefined,
-            name: name || undefined,
-            repoAuthToken: repoAuthToken || undefined,
-            runtimeId: runtimeId || undefined,
-            repoVisibility: resolvedRepoVisibility,
-            servicePort: servicePort ?? undefined,
-            sourceDir: sourceDir || undefined,
-            ...projectPayload,
-            repoUrl,
-          })
-        : await importFugueDockerImageApp(workspace.adminKeySecret, {
-            imageRef,
-            name: name || undefined,
-            runtimeId: runtimeId || undefined,
-            servicePort: servicePort ?? undefined,
-            ...projectPayload,
-          });
+    const result = await importFugueUploadApp(workspace.adminKeySecret, {
+      archiveBytes: archive.archiveBytes,
+      archiveName: archive.archiveName,
+      buildContextDir: buildContextDir || undefined,
+      buildStrategy: buildStrategy || undefined,
+      dockerfilePath: dockerfilePath || undefined,
+      name: name || undefined,
+      runtimeId: runtimeId || undefined,
+      servicePort: servicePort ?? undefined,
+      sourceDir: sourceDir || undefined,
+      ...projectPayload,
+    });
     const resolvedProjectId = existingProject?.id ?? result.app?.projectId ?? null;
     const resolvedProjectName = existingProject?.name ?? projectName;
 
@@ -202,7 +162,11 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       app: result.app,
+      apps: result.apps,
+      composeStack: result.composeStack,
+      fugueManifest: result.fugueManifest,
       operation: result.operation,
+      operations: result.operations,
       project: resolvedProjectId
         ? {
             id: resolvedProjectId,
