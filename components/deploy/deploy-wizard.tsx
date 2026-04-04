@@ -453,6 +453,47 @@ export function DeployWizard({
           </FormField>
         ) : null}
 
+        {persistentStorageSeedFiles.length > 0 ? (
+          <ConsoleDisclosureSection
+            className="fg-console-dialog__advanced"
+            defaultOpen
+            description={persistentStorageSummaryCopy ?? undefined}
+            summary="Persistent files"
+          >
+            <div className="fg-console-dialog__advanced-grid">
+              {persistentStorageSeedFiles.map((file) => {
+                const fieldId = buildPersistentStorageSeedFieldId(file.key);
+
+                return (
+                  <FormField
+                    hint={`Service ${file.service}. Leave blank to create an empty file on first deploy.`}
+                    htmlFor={fieldId}
+                    key={file.key}
+                    label={file.path}
+                    optionalLabel="Optional"
+                  >
+                    <textarea
+                      autoCapitalize="off"
+                      autoCorrect="off"
+                      className="fg-input fg-deploy-seed-textarea"
+                      id={fieldId}
+                      onChange={(event) =>
+                        updatePersistentStorageSeedValue(
+                          file.key,
+                          event.target.value,
+                        )
+                      }
+                      placeholder="Leave blank to create an empty file."
+                      spellCheck={false}
+                      value={persistentStorageSeedValues[file.key] ?? ""}
+                    />
+                  </FormField>
+                );
+              })}
+            </div>
+          </ConsoleDisclosureSection>
+        ) : null}
+
         <ConsoleDisclosureSection
           className="fg-console-dialog__advanced"
           description={deploymentSummaryCopy}
@@ -593,46 +634,6 @@ export function DeployWizard({
             </InlineAlert>
           ) : null}
         </ConsoleDisclosureSection>
-
-        {persistentStorageSeedFiles.length > 0 ? (
-          <ConsoleDisclosureSection
-            className="fg-console-dialog__advanced"
-            description={persistentStorageSummaryCopy ?? undefined}
-            summary="Persistent files"
-          >
-            <div className="fg-console-dialog__advanced-grid">
-              {persistentStorageSeedFiles.map((file) => {
-                const fieldId = buildPersistentStorageSeedFieldId(file.key);
-
-                return (
-                  <FormField
-                    hint={`Service ${file.service}. Leave blank to create an empty file on first deploy.`}
-                    htmlFor={fieldId}
-                    key={file.key}
-                    label={file.path}
-                    optionalLabel="Optional"
-                  >
-                    <textarea
-                      autoCapitalize="off"
-                      autoCorrect="off"
-                      className="fg-input fg-deploy-seed-textarea"
-                      id={fieldId}
-                      onChange={(event) =>
-                        updatePersistentStorageSeedValue(
-                          file.key,
-                          event.target.value,
-                        )
-                      }
-                      placeholder="Leave blank to create an empty file."
-                      spellCheck={false}
-                      value={persistentStorageSeedValues[file.key] ?? ""}
-                    />
-                  </FormField>
-                );
-              })}
-            </div>
-          </ConsoleDisclosureSection>
-        ) : null}
 
         {templateVariables.length > 0 ? (
           <ConsoleDisclosureSection

@@ -432,6 +432,56 @@ export function ImportServiceFields({
         <InlineAlert variant="warning">{githubInspectionError}</InlineAlert>
       ) : null}
 
+      {draft.sourceMode === "github" &&
+      persistentStorageSeedFields.length > 0 ? (
+        <ConsoleDisclosureSection
+          className="fg-console-dialog__advanced"
+          defaultOpen
+          description={persistentStorageDescription ?? undefined}
+          summary="Persistent files"
+        >
+          <div className="fg-console-dialog__advanced-grid">
+            {persistentStorageSeedFields.map((file) => {
+              const fieldId = buildPersistentStorageSeedFieldId(file.key);
+              const value =
+                draft.persistentStorageSeedFiles.find(
+                  (candidate) =>
+                    buildPersistentStorageSeedFileKey(
+                      candidate.service,
+                      candidate.path,
+                    ) === file.key,
+                )?.seedContent ?? "";
+
+              return (
+                <FormField
+                  hint={`Service ${file.service}. Leave blank to create an empty file on first deploy.`}
+                  htmlFor={fieldId}
+                  key={file.key}
+                  label={file.path}
+                  optionalLabel="Optional"
+                >
+                  <textarea
+                    autoCapitalize="off"
+                    autoCorrect="off"
+                    className="fg-input fg-console-seed-textarea"
+                    id={fieldId}
+                    onChange={(event) =>
+                      updatePersistentStorageSeedValue(
+                        file.key,
+                        event.target.value,
+                      )
+                    }
+                    placeholder="Leave blank to create an empty file."
+                    spellCheck={false}
+                    value={value}
+                  />
+                </FormField>
+              );
+            })}
+          </div>
+        </ConsoleDisclosureSection>
+      ) : null}
+
       <ConsoleDisclosureSection
         className="fg-console-dialog__advanced"
         description={deploymentDescription}
@@ -624,55 +674,6 @@ export function ImportServiceFields({
           ) : null}
         </div>
       </ConsoleDisclosureSection>
-
-      {draft.sourceMode === "github" &&
-      persistentStorageSeedFields.length > 0 ? (
-        <ConsoleDisclosureSection
-          className="fg-console-dialog__advanced"
-          description={persistentStorageDescription ?? undefined}
-          summary="Persistent files"
-        >
-          <div className="fg-console-dialog__advanced-grid">
-            {persistentStorageSeedFields.map((file) => {
-              const fieldId = buildPersistentStorageSeedFieldId(file.key);
-              const value =
-                draft.persistentStorageSeedFiles.find(
-                  (candidate) =>
-                    buildPersistentStorageSeedFileKey(
-                      candidate.service,
-                      candidate.path,
-                    ) === file.key,
-                )?.seedContent ?? "";
-
-              return (
-                <FormField
-                  hint={`Service ${file.service}. Leave blank to create an empty file on first deploy.`}
-                  htmlFor={fieldId}
-                  key={file.key}
-                  label={file.path}
-                  optionalLabel="Optional"
-                >
-                  <textarea
-                    autoCapitalize="off"
-                    autoCorrect="off"
-                    className="fg-input fg-console-seed-textarea"
-                    id={fieldId}
-                    onChange={(event) =>
-                      updatePersistentStorageSeedValue(
-                        file.key,
-                        event.target.value,
-                      )
-                    }
-                    placeholder="Leave blank to create an empty file."
-                    spellCheck={false}
-                    value={value}
-                  />
-                </FormField>
-              );
-            })}
-          </div>
-        </ConsoleDisclosureSection>
-      ) : null}
     </>
   );
 

@@ -1,4 +1,6 @@
-import type { ReactNode } from "react";
+"use client";
+
+import { useEffect, useState, type ReactNode } from "react";
 
 import { cx } from "@/lib/ui/cx";
 
@@ -26,16 +28,34 @@ function DisclosureChevronIcon() {
 export function ConsoleDisclosureSection({
   children,
   className,
+  defaultOpen = false,
   description,
   summary,
 }: {
   children: ReactNode;
   className?: string;
+  defaultOpen?: boolean;
   description?: ReactNode;
   summary: ReactNode;
 }) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  useEffect(() => {
+    if (defaultOpen) {
+      setIsOpen(true);
+    }
+  }, [defaultOpen]);
+
   return (
-    <details className={cx("fg-console-disclosure", "fg-console-disclosure--section", className)}>
+    <details
+      className={cx(
+        "fg-console-disclosure",
+        "fg-console-disclosure--section",
+        className,
+      )}
+      onToggle={(event) => setIsOpen(event.currentTarget.open)}
+      open={isOpen}
+    >
       <summary>
         <span className="fg-console-disclosure__summary-copy">
           <span className="fg-console-disclosure__summary-label">{summary}</span>

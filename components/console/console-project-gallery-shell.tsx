@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import {
   startTransition,
   useEffect,
@@ -34,6 +35,7 @@ import {
 } from "@/lib/console/runtime-target-inventory-client";
 import {
   fetchConsoleProjectDetail,
+  invalidateConsoleProjectDetails,
   readCachedConsoleProjectDetail,
   warmConsoleProjectDetails,
 } from "@/lib/console/project-detail-client";
@@ -320,6 +322,7 @@ export function ConsoleProjectGallery({
   initialData: ConsoleProjectGallerySummaryData;
   defaultCreateOpen?: boolean;
 }) {
+  const router = useRouter();
   const { showToast } = useToast();
   const [flash, setFlash] = useState<FlashState | null>(null);
   const [data, setData] = useState(initialData);
@@ -394,6 +397,12 @@ export function ConsoleProjectGallery({
       : "Create project";
   const createDialogFormId = "fugue-create-project-form";
   const workspaceMissing = !data.workspace.exists;
+
+  function refreshRoute() {
+    startTransition(() => {
+      router.refresh();
+    });
+  }
 
   const refreshGallery = useEffectEvent(
     async (options?: { silent?: boolean; refreshWorkbench?: boolean }) => {
@@ -962,6 +971,12 @@ export function ConsoleProjectGallery({
             };
 
       const response = await requestJson<CreateProjectResponse>(endpoint, requestInit);
+      const affectedProjectId =
+        response.project?.id?.trim() || createTargetProject?.id || null;
+
+      if (affectedProjectId) {
+        invalidateConsoleProjectDetails(affectedProjectId);
+      }
 
       if (response.project?.id) {
         setSelectedProjectId(response.project.id);
@@ -992,6 +1007,7 @@ export function ConsoleProjectGallery({
         refreshWorkbench: Boolean(response.project?.id),
         silent: true,
       });
+      refreshRoute();
     } catch (error) {
       setFlash({
         message: readRequestError(error),
@@ -1003,9 +1019,11 @@ export function ConsoleProjectGallery({
   }
 
   function handleProjectDeleted(projectId: string) {
+    invalidateConsoleProjectDetails(projectId);
     setSelectedProjectId((current) => (current === projectId ? null : current));
     setWorkbenchRefreshToken((value) => value + 1);
     void refreshGallery({ silent: true });
+    refreshRoute();
   }
 
   function handleProjectMutation(
@@ -1016,6 +1034,15 @@ export function ConsoleProjectGallery({
           optimisticDeletingServiceCount?: number;
         },
   ) {
+    const affectedProjectId =
+      options && typeof options === "object"
+        ? options.optimisticDeletingProjectId || selectedProjectIdRef.current
+        : selectedProjectIdRef.current;
+
+    if (affectedProjectId) {
+      invalidateConsoleProjectDetails(affectedProjectId);
+    }
+
     if (
       options &&
       typeof options === "object" &&
@@ -1030,6 +1057,7 @@ export function ConsoleProjectGallery({
 
     setWorkbenchRefreshToken((value) => value + 1);
     void refreshGallery({ silent: true });
+    refreshRoute();
   }
 
   return (

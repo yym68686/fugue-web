@@ -28,6 +28,7 @@ const projectDetailRequestCache = new Map<
 >();
 let projectDetailWarmupAt = 0;
 let projectDetailWarmupRequest: Promise<void> | null = null;
+let projectDetailEpoch = 0;
 
 export function readCachedConsoleProjectDetail(projectId: string) {
   const normalizedProjectId = projectId.trim();
@@ -58,6 +59,27 @@ function writeCachedConsoleProjectDetail(
     cachedAt: Date.now(),
     detail,
   });
+}
+
+export function invalidateConsoleProjectDetails(projectIds: string | string[]) {
+  const normalizedProjectIds = [
+    ...(typeof projectIds === "string" ? [projectIds] : projectIds),
+  ]
+    .map((projectId) => projectId.trim())
+    .filter(Boolean);
+
+  if (!normalizedProjectIds.length) {
+    return;
+  }
+
+  projectDetailEpoch += 1;
+  projectDetailWarmupAt = 0;
+  projectDetailWarmupRequest = null;
+
+  for (const projectId of normalizedProjectIds) {
+    projectDetailCache.delete(projectId);
+    projectDetailRequestCache.delete(projectId);
+  }
 }
 
 function hasFreshProjectDetailWarmup() {
@@ -99,6 +121,8 @@ async function warmAllConsoleProjectDetails(options?: {
     return projectDetailWarmupRequest;
   }
 
+  const requestEpoch = projectDetailEpoch;
+
   const request = requestJson<ConsoleProjectDetailWarmupData>(
     "/api/fugue/console/projects",
     {
@@ -106,6 +130,10 @@ async function warmAllConsoleProjectDetails(options?: {
     },
   )
     .then((data) => {
+      if (projectDetailEpoch !== requestEpoch) {
+        return;
+      }
+
       primeConsoleProjectDetails(data.projects ?? []);
 
       if ((data.projects ?? []).length === 0) {
@@ -153,6 +181,8 @@ export async function fetchConsoleProjectDetail(
     return pendingRequest;
   }
 
+  const requestEpoch = projectDetailEpoch;
+
   const request = requestJson<ConsoleProjectDetailData>(
     `/api/fugue/console/projects/${normalizedProjectId}`,
     {
@@ -160,7 +190,9 @@ export async function fetchConsoleProjectDetail(
     },
   )
     .then((detail) => {
-      writeCachedConsoleProjectDetail(normalizedProjectId, detail);
+      if (projectDetailEpoch === requestEpoch) {
+        writeCachedConsoleProjectDetail(normalizedProjectId, detail);
+      }
 
       return detail;
     })

@@ -204,6 +204,24 @@ body.is-ready .fg-landing-hero-media {
 
 .fg-landing-hero-copy {
   margin-top: clamp(-2.6rem, -4vh, -1.1rem);
+  isolation: isolate;
+}
+
+.fg-landing-hero-copy::before {
+  content: "";
+  position: absolute;
+  inset: -2rem -5rem -1.85rem -4rem;
+  z-index: -1;
+  background:
+    radial-gradient(circle at 22% 32%, rgba(4, 6, 8, 0.92), transparent 56%),
+    linear-gradient(
+      90deg,
+      rgba(4, 6, 8, 0.92) 0%,
+      rgba(4, 6, 8, 0.78) 38%,
+      rgba(4, 6, 8, 0.2) 72%,
+      rgba(4, 6, 8, 0) 100%
+    );
+  pointer-events: none;
 }
 
 .fg-landing-hero-copy [data-stagger],
@@ -253,11 +271,15 @@ body.is-ready .fg-landing-hero-rail[data-stagger] {
   margin-top: 0.9rem;
   max-width: 8ch;
   font-size: clamp(4.4rem, 9.5vw, 9.25rem);
+  text-shadow: 0 16px 42px rgba(2, 4, 6, 0.34);
 }
 
 .fg-landing-hero-lead {
-  max-width: 31rem;
+  max-width: 29rem;
   margin-top: 0.8rem;
+  color: var(--fugue-text-primary);
+  font-size: 1.04rem;
+  line-height: 1.76;
 }
 
 .fg-landing-hero-actions {
@@ -273,8 +295,8 @@ body.is-ready .fg-landing-hero-rail[data-stagger] {
 
 .fg-landing-hero-rail {
   display: grid;
-  gap: 0.9rem;
-  width: min(100%, 21rem);
+  gap: 1rem;
+  width: min(100%, 22rem);
   justify-self: end;
   align-self: center;
   padding-top: clamp(2rem, 12vh, 8rem);
@@ -502,8 +524,9 @@ body.has-scene .fg-landing-scene-container::before {
 .fg-landing-chapter__meta {
   margin: 0;
   padding-top: 0.35rem;
-  color: var(--fugue-text-tertiary);
-  font-size: 0.74rem;
+  color: var(--fugue-text-muted);
+  font-size: var(--fugue-type-meta);
+  line-height: var(--fugue-leading-meta);
   letter-spacing: 0.08em;
   text-transform: none;
 }
@@ -536,8 +559,9 @@ body.has-scene .fg-landing-scene-container::before {
 }
 
 .fg-landing-surface-list li span:last-child {
-  color: var(--fugue-text-tertiary);
-  font-size: 0.74rem;
+  color: var(--fugue-text-muted);
+  font-size: var(--fugue-type-meta);
+  line-height: var(--fugue-leading-meta);
   letter-spacing: 0.08em;
   text-transform: none;
 }
@@ -580,8 +604,9 @@ body.has-scene .fg-landing-scene-container::before {
 
 .fg-landing-compare-links {
   margin: 0;
-  color: var(--fugue-text-tertiary);
-  font-size: 0.72rem;
+  color: var(--fugue-text-muted);
+  font-size: var(--fugue-type-meta-small);
+  line-height: var(--fugue-leading-meta);
   letter-spacing: 0.1em;
   text-transform: none;
 }
@@ -656,6 +681,10 @@ body.has-scene .fg-landing-scene-container::before {
     margin-top: 0;
   }
 
+  .fg-landing-hero-copy::before {
+    inset: -1.4rem -3rem -1.25rem -2rem;
+  }
+
   .fg-landing-hero-rail {
     width: min(100%, 24rem);
     justify-self: end;
@@ -692,6 +721,10 @@ body.has-scene .fg-landing-scene-container::before {
 
   .fg-landing-hero-copy .fg-display-heading {
     font-size: clamp(3.35rem, 16vw, 5.45rem);
+  }
+
+  .fg-landing-hero-copy::before {
+    inset: -1.2rem -1rem -1rem -0.8rem;
   }
 
   .fg-landing-hero-rail {

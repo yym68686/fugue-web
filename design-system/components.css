@@ -73,12 +73,14 @@
   color: var(--fugue-text-secondary);
   font-size: var(--fugue-type-body);
   line-height: var(--fugue-leading-copy);
+  text-wrap: pretty;
 }
 
 .fg-label {
   margin: 0;
   color: var(--fugue-accent-signal);
   font-size: var(--fugue-label-font-size);
+  line-height: var(--fugue-leading-meta);
   letter-spacing: var(--fugue-label-tracking);
   text-transform: none;
 }
@@ -811,7 +813,8 @@
 
 .fg-route-note__meta {
   color: var(--fugue-text-tertiary);
-  font-size: 0.66rem;
+  font-size: var(--fugue-type-meta-small);
+  line-height: var(--fugue-leading-meta);
   letter-spacing: var(--fugue-tracking-meta);
   text-transform: none;
 }
@@ -844,14 +847,16 @@
 .fg-proof-shell__ribbon span {
   color: var(--fugue-text-tertiary);
   font-family: var(--fugue-font-mono);
-  font-size: 0.68rem;
+  font-size: var(--fugue-type-meta-small);
+  line-height: var(--fugue-leading-meta);
   letter-spacing: 0.08em;
   text-transform: none;
 }
 
 .fg-proof-shell__ribbon a {
   font-family: var(--fugue-font-mono);
-  font-size: 0.68rem;
+  font-size: var(--fugue-type-meta-small);
+  line-height: var(--fugue-leading-meta);
   letter-spacing: 0.08em;
   text-transform: none;
 }
@@ -873,8 +878,8 @@
 .fg-proof-shell__empty p {
   margin: 0;
   color: var(--fugue-text-tertiary);
-  font-size: 0.84rem;
-  line-height: 1.58;
+  font-size: var(--fugue-type-body-small);
+  line-height: 1.62;
 }
 
 .fg-proof-shell {
@@ -900,7 +905,7 @@
   width: max-content;
   color: var(--fugue-text-secondary);
   font-family: var(--fugue-font-mono);
-  font-size: 0.86rem;
+  font-size: 0.88rem;
   line-height: 1.75;
   white-space: pre;
 }
@@ -916,7 +921,8 @@
 
 .fg-object-belt span {
   color: var(--fugue-text-muted);
-  font-size: 0.7rem;
+  font-size: var(--fugue-type-meta-small);
+  line-height: var(--fugue-leading-meta);
   letter-spacing: var(--fugue-object-belt-letter-spacing);
   text-transform: none;
 }

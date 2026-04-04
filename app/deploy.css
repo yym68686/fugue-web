@@ -242,6 +242,7 @@
   border-radius: 0;
   background: transparent;
   box-shadow: none;
+  overflow: visible;
 }
 
 .fg-deploy-page--repository .fg-console-disclosure--section > summary {
@@ -253,7 +254,8 @@
 }
 
 .fg-deploy-page--repository .fg-console-disclosure__panel {
-  padding: 0.8rem 0 0;
+  /* Borderless disclosures still need clearance for shared focus outlines. */
+  padding: 0.8rem 0.35rem 0.1rem;
 }
 
 .fg-deploy-page--repository .fg-console-disclosure__summary-icon {
