@@ -730,6 +730,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/templates/inspect-upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Inspect Upload Template */
+        post: operations["inspectUploadTemplate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/apps/import-image": {
         parameters: {
             query?: never;
@@ -2455,6 +2472,20 @@ export interface components {
             compose_stack?: components["schemas"]["InspectGitHubTemplateComposeStack"];
             template?: components["schemas"]["TemplateMetadata"];
         };
+        InspectUploadTemplateUpload: {
+            archive_filename: string;
+            archive_sha256: string;
+            /** Format: int64 */
+            archive_size_bytes: number;
+            default_app_name: string;
+            source_kind?: string;
+            source_path?: string;
+        };
+        InspectUploadTemplateResponse: {
+            upload: components["schemas"]["InspectUploadTemplateUpload"];
+            fugue_manifest?: components["schemas"]["InspectGitHubTemplateManifest"];
+            compose_stack?: components["schemas"]["InspectGitHubTemplateComposeStack"];
+        };
         ImportGitHubRequest: {
             tenant_id?: string;
             project_id?: string;
@@ -4080,6 +4111,31 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InspectGitHubTemplateResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    inspectUploadTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": components["schemas"]["ImportUploadMultipartRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InspectUploadTemplateResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];

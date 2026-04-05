@@ -5524,6 +5524,8 @@
 }
 
 .fg-code-textarea__highlight {
+  position: relative;
+  z-index: 0;
   pointer-events: none;
   overflow: auto;
   scrollbar-width: none;
@@ -5546,8 +5548,13 @@
   border-color: transparent;
   color: transparent;
   caret-color: var(--fugue-text-primary);
+  opacity: 0;
   -webkit-text-fill-color: transparent;
   touch-action: manipulation;
+}
+
+.fg-code-textarea:focus-within .fg-code-textarea__input {
+  opacity: 1;
 }
 
 .fg-code-textarea__input::selection {
