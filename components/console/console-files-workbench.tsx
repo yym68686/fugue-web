@@ -8,6 +8,7 @@ import {
 } from "react";
 
 import { Button } from "@/components/ui/button";
+import { CodeTextarea } from "@/components/ui/code-textarea";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { SegmentedControl, type SegmentedControlOption } from "@/components/ui/segmented-control";
@@ -2197,17 +2198,18 @@ export function ConsoleFilesWorkbench({
                   </div>
                 </details>
 
-                <textarea
-                  aria-label={`Draft editor for ${composer.path}`}
+                <CodeTextarea
+                  ariaLabel={`Draft editor for ${composer.path}`}
                   className="fg-project-textarea fg-filesystem-editor__textarea fg-filesystem-editor__textarea--code"
                   id={`filesystem-file-content-${appId}`}
-                  onChange={(event) =>
+                  onChange={(nextValue) =>
                     setComposer((current) =>
                       current?.kind === "file"
-                        ? { ...current, content: event.target.value }
+                        ? { ...current, content: nextValue }
                         : current,
                     )
                   }
+                  path={composer.path}
                   spellCheck={false}
                   value={composer.content}
                 />
@@ -2262,14 +2264,16 @@ export function ConsoleFilesWorkbench({
                 ) : null}
 
                 {!isSelectedFileLoading ? (
-                  <textarea
-                    aria-label={`File editor for ${selectedNode.path}`}
+                  <CodeTextarea
+                    ariaLabel={`File editor for ${selectedNode.path}`}
                     className="fg-project-textarea fg-filesystem-editor__textarea fg-filesystem-editor__textarea--code"
-                    onChange={(event) =>
+                    language={selectedFile?.encoding === "base64" ? "plain" : undefined}
+                    onChange={(nextValue) =>
                       updateSelectedFile({
-                        content: event.target.value,
+                        content: nextValue,
                       })
                     }
+                    path={selectedNode.path}
                     readOnly={selectedFile?.status !== "ready" || selectedFile?.truncated}
                     spellCheck={false}
                     value={selectedFile?.content ?? ""}

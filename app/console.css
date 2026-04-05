@@ -5176,9 +5176,55 @@
 }
 
 .fg-log-output__viewport {
-  max-height: min(32rem, 56dvh);
+  block-size: min(32rem, 56dvh);
+  max-block-size: min(32rem, 56dvh);
   overscroll-behavior-y: contain;
   scrollbar-gutter: stable;
+}
+
+.fg-log-output__viewport.is-placeholder {
+  display: grid;
+}
+
+.fg-log-output.is-placeholder {
+  display: grid;
+  min-block-size: 100%;
+  width: 100%;
+  align-content: center;
+  justify-items: center;
+  white-space: normal;
+}
+
+.fg-log-output__placeholder {
+  display: grid;
+  justify-items: center;
+  gap: 0.78rem;
+  inline-size: min(100%, 24rem);
+  text-align: center;
+}
+
+.fg-log-output__spinner {
+  width: 1.55rem;
+  height: 1.55rem;
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  border-top-color: var(--fugue-accent-signal);
+  border-right-color: rgba(255, 255, 255, 0.32);
+  border-radius: 999px;
+  animation: fg-filesystem-spin 0.9s linear infinite;
+}
+
+.fg-log-output__placeholder-label {
+  color: var(--fugue-text-tertiary);
+  font-family: var(--fugue-font-mono);
+  font-size: 0.72rem;
+  line-height: 1.65;
+  letter-spacing: 0.04em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fg-log-output__spinner {
+    animation: none;
+  }
 }
 
 .fg-log-output__segment {
@@ -5456,6 +5502,110 @@
 .fg-project-textarea:focus-visible {
   outline: 2px solid var(--fugue-focus-ring);
   outline-offset: 3px;
+}
+
+.fg-code-textarea {
+  position: relative;
+  display: grid;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.fg-code-textarea__highlight,
+.fg-code-textarea__input {
+  grid-area: 1 / 1;
+  width: 100%;
+  min-height: 0;
+  margin: 0;
+  white-space: pre;
+  word-break: normal;
+  overflow-wrap: normal;
+  tab-size: 2;
+}
+
+.fg-code-textarea__highlight {
+  pointer-events: none;
+  overflow: auto;
+  scrollbar-width: none;
+}
+
+.fg-code-textarea__highlight::-webkit-scrollbar {
+  display: none;
+}
+
+.fg-code-textarea__highlight code {
+  display: block;
+  min-height: 100%;
+  color: var(--fugue-code-textarea-token-foreground);
+}
+
+.fg-code-textarea__input {
+  position: relative;
+  z-index: 1;
+  background: transparent;
+  border-color: transparent;
+  color: transparent;
+  caret-color: var(--fugue-text-primary);
+  -webkit-text-fill-color: transparent;
+  touch-action: manipulation;
+}
+
+.fg-code-textarea__input::selection {
+  background: var(--fugue-code-textarea-token-selection);
+}
+
+.fg-code-textarea__input:focus-visible {
+  background: transparent;
+  border-color: transparent;
+}
+
+.fg-code-textarea .token.comment,
+.fg-code-textarea .token.prolog,
+.fg-code-textarea .token.doctype,
+.fg-code-textarea .token.cdata {
+  color: var(--fugue-code-textarea-token-muted);
+}
+
+.fg-code-textarea .token.punctuation,
+.fg-code-textarea .token.operator {
+  color: var(--fugue-code-textarea-token-punctuation);
+}
+
+.fg-code-textarea .token.property,
+.fg-code-textarea .token.tag,
+.fg-code-textarea .token.boolean,
+.fg-code-textarea .token.constant,
+.fg-code-textarea .token.symbol,
+.fg-code-textarea .token.deleted,
+.fg-code-textarea .token.keyword,
+.fg-code-textarea .token.selector,
+.fg-code-textarea .token.atrule,
+.fg-code-textarea .token.attr-name {
+  color: var(--fugue-code-textarea-token-keyword);
+}
+
+.fg-code-textarea .token.string,
+.fg-code-textarea .token.char,
+.fg-code-textarea .token.attr-value,
+.fg-code-textarea .token.inserted {
+  color: var(--fugue-code-textarea-token-string);
+}
+
+.fg-code-textarea .token.number,
+.fg-code-textarea .token.builtin {
+  color: var(--fugue-code-textarea-token-number);
+}
+
+.fg-code-textarea .token.regex,
+.fg-code-textarea .token.important,
+.fg-code-textarea .token.variable,
+.fg-code-textarea .token.entity {
+  color: var(--fugue-code-textarea-token-operator);
+}
+
+.fg-code-textarea .token.function,
+.fg-code-textarea .token.class-name {
+  color: var(--fugue-code-textarea-token-function);
 }
 
 .fg-filesystem-layout {

@@ -21,6 +21,7 @@
     "next": "latest",
     "openapi-fetch": "^0.17.0",
     "pg": "^8.20.0",
+    "prismjs": "^1.30.0",
     "react": "latest",
     "react-dom": "latest"
   },

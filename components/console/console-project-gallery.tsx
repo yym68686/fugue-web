@@ -2196,16 +2196,14 @@ function readRuntimeLogsUnavailableState(
   return null;
 }
 
-function readLogsDisplayBody(
+function readLogsStatusMessage(
   logsStatus: "error" | "idle" | "loading" | "ready",
-  logsBody: string,
   connectionState: LogsConnectionState,
 ) {
-  if (logsBody) {
-    return logsBody;
-  }
-
-  if (logsStatus === "loading") {
+  if (
+    logsStatus === "loading" ||
+    (logsStatus === "idle" && connectionState === "idle")
+  ) {
     return connectionState === "reconnecting"
       ? "Reconnecting to live logs…"
       : "Connecting to live logs…";
@@ -2224,6 +2222,23 @@ function readLogsDisplayBody(
   }
 
   return "No logs available.";
+}
+
+function shouldShowLogsLoadingPlaceholder(
+  logsStatus: "error" | "idle" | "loading" | "ready",
+  connectionState: LogsConnectionState,
+) {
+  if (logsStatus === "error" || connectionState === "ended") {
+    return false;
+  }
+
+  return (
+    logsStatus === "loading" ||
+    connectionState === "connecting" ||
+    connectionState === "reconnecting" ||
+    connectionState === "live" ||
+    connectionState === "idle"
+  );
 }
 
 function renderAnsiLogBody(value: string) {
@@ -2327,7 +2342,12 @@ function ConsoleLogsPanel({
     ? `${selectedApp.id}:${runtimeLogsUnavailable.label}`
     : null;
   const logsBody = joinLogLines(deferredLogLines);
+  const logsStatusMessage = readLogsStatusMessage(logsStatus, logsConnectionState);
   const hasBufferedLogOutput = logLines.length > 0;
+  const showLogsPlaceholder = !logsBody;
+  const showLogsLoadingPlaceholder =
+    showLogsPlaceholder &&
+    shouldShowLogsLoadingPlaceholder(logsStatus, logsConnectionState);
   const canCopyLogs =
     !runtimeLogsUnavailable && logLinesRef.current.length > 0;
   const logsStreamLabel = humanizeUiLabel(effectiveLogsMode).toLowerCase();
@@ -2363,8 +2383,8 @@ function ConsoleLogsPanel({
         : `Connection dropped. Reconnecting to ${logsStreamLabel} output.`
       : logsConnectionState === "ended"
         ? hasBufferedLogOutput
-          ? `${humanizeUiLabel(effectiveLogsMode)} stream closed. Showing the latest received snapshot. Use Refresh now to reopen the latest output.`
-          : `${humanizeUiLabel(effectiveLogsMode)} stream closed. Use Refresh now to reopen the latest snapshot.`
+          ? `${humanizeUiLabel(effectiveLogsMode)} stream closed. Showing latest snapshot. Refresh to reopen the stream.`
+          : `${humanizeUiLabel(effectiveLogsMode)} stream closed. Refresh to reopen the stream.`
         : logsConnectionState === "error"
           ? hasBufferedLogOutput
             ? `${logsErrorMessage ?? `Unable to open the ${logsStreamLabel} stream.`} Showing the latest received output. Refresh to try again.`
@@ -2845,17 +2865,41 @@ function ConsoleLogsPanel({
           />
         ) : (
           <pre
-            aria-busy={logsStatus === "loading" && !hasBufferedLogOutput}
+            aria-busy={showLogsLoadingPlaceholder || undefined}
             aria-label={`${humanizeUiLabel(effectiveLogsMode)} logs for ${selectedService.name}`}
-            aria-relevant="additions text"
-            className="fg-log-output__viewport"
+            aria-relevant={showLogsPlaceholder ? undefined : "additions text"}
+            className={cx(
+              "fg-log-output__viewport",
+              showLogsPlaceholder && "is-placeholder",
+            )}
             onScroll={handleLogsViewportScroll}
             ref={logsViewportRef}
-            role="log"
+            role={showLogsPlaceholder ? undefined : "log"}
           >
-            <code className="fg-log-output">
-              {renderAnsiLogBody(
-                readLogsDisplayBody(logsStatus, logsBody, logsConnectionState),
+            <code
+              className={cx(
+                "fg-log-output",
+                showLogsPlaceholder && "is-placeholder",
+              )}
+            >
+              {showLogsPlaceholder ? (
+                <span
+                  aria-live={logsStatus === "error" ? "assertive" : "polite"}
+                  className="fg-log-output__placeholder"
+                  role={logsStatus === "error" ? "alert" : "status"}
+                >
+                  {showLogsLoadingPlaceholder ? (
+                    <span
+                      aria-hidden="true"
+                      className="fg-log-output__spinner"
+                    />
+                  ) : null}
+                  <span className="fg-log-output__placeholder-label">
+                    {logsStatusMessage}
+                  </span>
+                </span>
+              ) : (
+                renderAnsiLogBody(logsBody)
               )}
             </code>
           </pre>
