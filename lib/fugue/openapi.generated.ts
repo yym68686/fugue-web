@@ -1837,6 +1837,7 @@ export interface components {
             command?: string[];
             args?: string[];
             env?: components["schemas"]["StringMap"];
+            network_mode?: components["schemas"]["AppNetworkMode"];
             ports?: number[];
             /** Format: int32 */
             replicas?: number;
@@ -2521,6 +2522,7 @@ export interface components {
             runtime_id?: string;
             /** Format: int32 */
             replicas?: number;
+            network_mode?: components["schemas"]["AppNetworkMode"];
             /** Format: int32 */
             service_port?: number;
             dockerfile_path?: string;
@@ -2546,6 +2548,7 @@ export interface components {
             runtime_id?: string;
             /** Format: int32 */
             replicas?: number;
+            network_mode?: components["schemas"]["AppNetworkMode"];
             /** Format: int32 */
             service_port?: number;
             dockerfile_path?: string;
@@ -2590,6 +2593,7 @@ export interface components {
             runtime_id?: string;
             /** Format: int32 */
             replicas?: number;
+            network_mode?: components["schemas"]["AppNetworkMode"];
             /** Format: int32 */
             service_port?: number;
             env?: components["schemas"]["StringMap"];
@@ -2630,6 +2634,13 @@ export interface components {
         AppRouteAvailabilityResponse: {
             availability: components["schemas"]["AppRouteAvailability"];
         };
+        /**
+         * @description Omit this field to deploy a public service with a managed route.
+         *     Set `background` to run the app without a public route, Kubernetes Service,
+         *     or readiness port.
+         * @enum {string}
+         */
+        AppNetworkMode: "background";
         PatchAppRouteRequest: {
             hostname: string;
         };

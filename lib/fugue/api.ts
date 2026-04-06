@@ -715,6 +715,7 @@ function buildAppView(app: CamelizedSchema<"App">) {
     source: buildAppSourceView(app.source),
     spec: {
       imageMirrorLimit: readNullableNumber(spec?.imageMirrorLimit) ?? 5,
+      networkMode: readNullableString(spec?.networkMode),
       runtimeId: readNullableString(spec?.runtimeId),
       replicas,
       disabled: (replicas ?? 0) === 0,
@@ -1981,6 +1982,7 @@ export async function importFugueGitHubApp(
     repoUrl: string;
     repoVisibility?: GitHubRepoVisibility;
     runtimeId?: string;
+    networkMode?: components["schemas"]["AppNetworkMode"];
     servicePort?: number;
     startupCommand?: string;
     sourceDir?: string;
@@ -2019,6 +2021,9 @@ export async function importFugueGitHubApp(
             : {}),
           ...(payload.name ? { name: payload.name } : {}),
           ...(payload.runtimeId ? { runtime_id: payload.runtimeId } : {}),
+          ...(payload.networkMode
+            ? { network_mode: payload.networkMode }
+            : {}),
           ...(typeof payload.servicePort === "number"
             ? { service_port: payload.servicePort }
             : {}),
@@ -2091,6 +2096,7 @@ export async function importFugueUploadApp(
     };
     projectId?: string;
     runtimeId?: string;
+    networkMode?: components["schemas"]["AppNetworkMode"];
     servicePort?: number;
     startupCommand?: string;
     sourceDir?: string;
@@ -2128,6 +2134,7 @@ export async function importFugueUploadApp(
         : {}),
       ...(payload.name ? { name: payload.name } : {}),
       ...(payload.runtimeId ? { runtime_id: payload.runtimeId } : {}),
+      ...(payload.networkMode ? { network_mode: payload.networkMode } : {}),
       ...(typeof payload.servicePort === "number"
         ? { service_port: payload.servicePort }
         : {}),
@@ -2589,6 +2596,7 @@ export async function importFugueDockerImageApp(
     projectId?: string;
     persistentStorage?: PersistentStoragePayload;
     runtimeId?: string;
+    networkMode?: components["schemas"]["AppNetworkMode"];
     servicePort?: number;
     startupCommand?: string;
     tenantId?: string;
@@ -2614,6 +2622,9 @@ export async function importFugueDockerImageApp(
             : {}),
           ...(payload.name ? { name: payload.name } : {}),
           ...(payload.runtimeId ? { runtime_id: payload.runtimeId } : {}),
+          ...(payload.networkMode
+            ? { network_mode: payload.networkMode }
+            : {}),
           ...(typeof payload.servicePort === "number"
             ? { service_port: payload.servicePort }
             : {}),

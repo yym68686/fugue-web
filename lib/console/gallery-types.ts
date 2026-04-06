@@ -65,6 +65,7 @@ export type ConsoleGalleryAppView = {
   currentCommitLabel: string | null;
   currentRuntimeId: string | null;
   deployBehavior: string;
+  exposesPublicRoute: boolean;
   failoverAuto: boolean;
   failoverConfigured: boolean;
   failoverTargetRuntimeId: string | null;
@@ -77,6 +78,7 @@ export type ConsoleGalleryAppView = {
   locationCountryCode: string | null;
   locationLabel: string | null;
   name: string;
+  networkMode: string | null;
   phase: string;
   phaseTone: ConsoleTone;
   primaryBadge: ConsoleGalleryBadgeView;

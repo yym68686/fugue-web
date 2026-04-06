@@ -1122,6 +1122,13 @@ function collectDatabaseTransferOperationsByAppId(operations: FugueOperation[]) 
 }
 
 function readRoute(app: FugueApp) {
+  if (app.spec.networkMode === "background") {
+    return {
+      href: null,
+      label: "Background worker",
+    };
+  }
+
   if (app.route.publicUrl) {
     try {
       const url = new URL(app.route.publicUrl);
@@ -1665,6 +1672,7 @@ function buildSharedAppView(
       app.spec.runtimeId ??
       null,
     deployBehavior: readDeployBehavior(app),
+    exposesPublicRoute: app.spec.networkMode !== "background",
     failoverAuto: app.spec.failover?.auto ?? false,
     failoverConfigured: Boolean(app.spec.failover),
     failoverTargetRuntimeId: app.spec.failover?.targetRuntimeId ?? null,
@@ -1682,6 +1690,7 @@ function buildSharedAppView(
     locationCountryCode: options?.location?.locationCountryCode ?? null,
     locationLabel: options?.location?.locationLabel ?? null,
     name: app.name,
+    networkMode: app.spec.networkMode ?? null,
     primaryBadge,
     replicaCount: app.spec.replicas ?? null,
     startupCommand: app.spec.startupCommand ?? null,

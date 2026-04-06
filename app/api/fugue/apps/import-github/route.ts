@@ -3,7 +3,10 @@ import { NextResponse } from "next/server";
 import { getCurrentSession } from "@/lib/auth/session";
 import { ensureAppUser } from "@/lib/workspace/store";
 import { importFugueGitHubApp } from "@/lib/fugue/api";
-import { preservesGitHubTopologyImport } from "@/lib/fugue/import-source";
+import {
+  normalizeImportNetworkMode,
+  preservesGitHubTopologyImport,
+} from "@/lib/fugue/import-source";
 import {
   readPersistentStorageInput,
   type PersistentStoragePayload,
@@ -171,6 +174,8 @@ export async function POST(request: Request) {
   const buildContextDir = readOptionalString(body, "buildContextDir");
   const name = readOptionalString(body, "name");
   const runtimeId = readOptionalString(body, "runtimeId");
+  const networkModeInput = readOptionalString(body, "networkMode");
+  const networkMode = normalizeImportNetworkMode(networkModeInput);
   const servicePort = readOptionalPositiveInteger(body, "servicePort");
   const startupCommand = readOptionalString(body, "startupCommand");
   let persistentStorage: PersistentStoragePayload | undefined;
@@ -206,6 +211,9 @@ export async function POST(request: Request) {
 
   if (buildStrategy && !ALLOWED_BUILD_STRATEGIES.has(buildStrategy)) {
     return jsonError(400, "Unsupported build strategy.");
+  }
+  if (networkModeInput && !networkMode) {
+    return jsonError(400, "Unsupported network mode.");
   }
 
   if (
@@ -262,6 +270,8 @@ export async function POST(request: Request) {
       repoUrl,
       repoVisibility: resolvedRepoVisibility,
       runtimeId: runtimeId || undefined,
+      networkMode:
+        networkMode === "background" ? "background" : undefined,
       servicePort: servicePort ?? undefined,
       startupCommand: startupCommand || undefined,
       sourceDir: sourceDir || undefined,

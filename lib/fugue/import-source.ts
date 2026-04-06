@@ -11,6 +11,7 @@ import { PRIVATE_GITHUB_AUTH_REQUIRED_MESSAGE } from "@/lib/github/messages";
 import { buildRawEnvFeedback } from "@/lib/console/raw-env";
 
 export type ImportSourceMode = "github" | "docker-image" | "local-upload";
+export type ImportNetworkMode = "background" | "public";
 
 export const BUILD_STRATEGY_OPTIONS = [
   { label: "Auto detect", value: "auto" },
@@ -18,6 +19,11 @@ export const BUILD_STRATEGY_OPTIONS = [
   { label: "Dockerfile", value: "dockerfile" },
   { label: "Buildpacks", value: "buildpacks" },
   { label: "Nixpacks", value: "nixpacks" },
+] as const;
+
+export const IMPORT_NETWORK_MODE_OPTIONS = [
+  { label: "Public service", value: "public" },
+  { label: "Background worker", value: "background" },
 ] as const;
 
 export type BuildStrategyValue =
@@ -37,6 +43,7 @@ export type ImportServiceDraft = {
   envRaw: string;
   imageRef: string;
   name: string;
+  networkMode: ImportNetworkMode;
   persistentStorage: PersistentStorageMountDraft[];
   persistentStorageSeedFiles: PersistentStorageSeedFileDraft[];
   repoAuthToken: string;
@@ -64,6 +71,19 @@ export function normalizeImportSourceMode(
   }
 }
 
+export function normalizeImportNetworkMode(
+  value?: string | null,
+): ImportNetworkMode | "" {
+  switch (value?.trim().toLowerCase()) {
+    case "public":
+      return "public";
+    case "background":
+      return "background";
+    default:
+      return "";
+  }
+}
+
 export function createImportServiceDraft(
   runtimeId: string | null = null,
 ): ImportServiceDraft {
@@ -75,6 +95,7 @@ export function createImportServiceDraft(
     envRaw: "",
     imageRef: "",
     name: "",
+    networkMode: "public",
     persistentStorage: createPersistentStorageDraft(),
     persistentStorageSeedFiles: [],
     repoAuthToken: "",
@@ -164,6 +185,7 @@ export function validateImportServiceDraft(
   const normalizedServicePort = draft.servicePort.trim();
 
   if (
+    draft.networkMode !== "background" &&
     normalizedServicePort &&
     (!/^\d+$/.test(normalizedServicePort) || Number(normalizedServicePort) <= 0)
   ) {
@@ -210,7 +232,11 @@ export function buildImportServicePayload(
     payload.name = normalizedName;
   }
 
-  if (normalizedServicePort) {
+  if (draft.networkMode === "background") {
+    payload.networkMode = "background";
+  }
+
+  if (draft.networkMode !== "background" && normalizedServicePort) {
     payload.servicePort = normalizedServicePort;
   }
 

@@ -19,7 +19,10 @@ import {
   readPersistentStorageInput,
   type PersistentStoragePayload,
 } from "@/lib/fugue/persistent-storage";
-import { normalizeImportSourceMode } from "@/lib/fugue/import-source";
+import {
+  normalizeImportNetworkMode,
+  normalizeImportSourceMode,
+} from "@/lib/fugue/import-source";
 import {
   ensureAppUser,
   getWorkspaceAccessByEmail,
@@ -85,6 +88,8 @@ export async function POST(request: Request) {
   const buildContextDir = readOptionalString(body, "buildContextDir");
   const name = readOptionalString(body, "name");
   const runtimeId = readOptionalString(body, "runtimeId");
+  const networkModeInput = readOptionalString(body, "networkMode");
+  const networkMode = normalizeImportNetworkMode(networkModeInput);
   const servicePort = readOptionalPositiveInteger(body, "servicePort");
   const startupCommand = readOptionalString(body, "startupCommand");
   let persistentStorage: PersistentStoragePayload | undefined;
@@ -95,6 +100,9 @@ export async function POST(request: Request) {
 
   if (sourceMode !== "local-upload") {
     return jsonError(400, "Local upload requests must use sourceMode local-upload.");
+  }
+  if (networkModeInput && !networkMode) {
+    return jsonError(400, "Unsupported network mode.");
   }
 
   if (buildStrategy && !ALLOWED_BUILD_STRATEGIES.has(buildStrategy)) {
@@ -134,6 +142,8 @@ export async function POST(request: Request) {
       persistentStorage,
       projectId: workspace.defaultProjectId ?? undefined,
       runtimeId: runtimeId || undefined,
+      networkMode:
+        networkMode === "background" ? "background" : undefined,
       servicePort: servicePort ?? undefined,
       startupCommand: startupCommand || undefined,
       sourceDir: sourceDir || undefined,

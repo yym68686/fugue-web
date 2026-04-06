@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getCurrentSession } from "@/lib/auth/session";
 import { importFugueDockerImageApp } from "@/lib/fugue/api";
+import { normalizeImportNetworkMode } from "@/lib/fugue/import-source";
 import { readStringMap } from "@/lib/fugue/product-route";
 import {
   readPersistentStorageInput,
@@ -92,6 +93,8 @@ export async function POST(request: Request) {
   const imageRef = readOptionalString(body, "imageRef");
   const name = readOptionalString(body, "name");
   const runtimeId = readOptionalString(body, "runtimeId");
+  const networkModeInput = readOptionalString(body, "networkMode");
+  const networkMode = normalizeImportNetworkMode(networkModeInput);
   const servicePort = readOptionalPositiveInteger(body, "servicePort");
   const startupCommand = readOptionalString(body, "startupCommand");
   const env = readStringMap(body.env);
@@ -99,6 +102,9 @@ export async function POST(request: Request) {
 
   if (!imageRef) {
     return jsonError(400, "Image reference is required.");
+  }
+  if (networkModeInput && !networkMode) {
+    return jsonError(400, "Unsupported network mode.");
   }
 
   if (Number.isNaN(servicePort)) {
@@ -127,6 +133,8 @@ export async function POST(request: Request) {
       persistentStorage,
       projectId: workspace.defaultProjectId ?? undefined,
       runtimeId: runtimeId || undefined,
+      networkMode:
+        networkMode === "background" ? "background" : undefined,
       servicePort: servicePort ?? undefined,
       startupCommand: startupCommand || undefined,
     });

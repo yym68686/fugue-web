@@ -18,6 +18,7 @@ import { FormField } from "@/components/ui/form-field";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { PanelCopy } from "@/components/ui/panel";
 import { SelectField } from "@/components/ui/select-field";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { useToast } from "@/components/ui/toast";
 import type { ConsoleImportRuntimeTargetView } from "@/lib/console/gallery-types";
 import {
@@ -32,6 +33,7 @@ import type {
 } from "@/lib/fugue/api";
 import {
   BUILD_STRATEGY_OPTIONS,
+  IMPORT_NETWORK_MODE_OPTIONS,
   preservesGitHubTopologyImport,
   supportsGitHubDockerInputs,
   supportsGitHubSourceDir,
@@ -220,6 +222,9 @@ export function DeployWizard({
   const [dockerfilePath, setDockerfilePath] = useState("");
   const [buildContextDir, setBuildContextDir] = useState("");
   const [startupCommand, setStartupCommand] = useState("");
+  const [networkMode, setNetworkMode] = useState<"background" | "public">(
+    "public",
+  );
   const [persistentStorage, setPersistentStorage] = useState(() =>
     createPersistentStorageDraft(),
   );
@@ -252,6 +257,7 @@ export function DeployWizard({
     Boolean(inspection?.fugueManifest || inspection?.composeStack) &&
     preservesTopologyImport
   );
+  const networkModeSupported = startupCommandSupported;
   const persistentStorageSupported = startupCommandSupported;
   const templateVariables = inspection?.template?.variables ?? [];
   const persistentStorageSeedFiles = useMemo<PersistentStorageSeedField[]>(
@@ -263,7 +269,7 @@ export function DeployWizard({
   );
   const supportsSourceDir = supportsGitHubSourceDir(buildStrategy);
   const supportsDockerInputs = supportsGitHubDockerInputs(buildStrategy);
-  const deploymentSummaryCopy = `${repoVisibility === "private" ? "Private repo" : "Public repo"} · ${hasFugueManifest ? "Manifest import" : "Repository build"}`;
+  const deploymentSummaryCopy = `${repoVisibility === "private" ? "Private repo" : "Public repo"} · ${hasFugueManifest ? "Manifest import" : "Repository build"} · ${networkMode === "background" ? "Background worker" : "Public service"}`;
   const advancedSummaryParts = [
     name.trim() ? `Name ${name.trim()}` : null,
     startupCommandSupported && startupCommand.trim() ? "Startup command" : null,
@@ -317,6 +323,14 @@ export function DeployWizard({
         : resolveInitialRuntimeId(inspection, runtimeTargets),
     );
   }, [inspection, runtimeTargets]);
+
+  useEffect(() => {
+    if (networkModeSupported || networkMode !== "background") {
+      return;
+    }
+
+    setNetworkMode("public");
+  }, [networkMode, networkModeSupported]);
 
   useEffect(() => {
     setVariableValues(readInitialVariableValues(inspection));
@@ -472,6 +486,7 @@ export function DeployWizard({
       repoUrl: repositoryUrl,
       repoVisibility,
       runtimeId,
+      ...(networkMode === "background" ? { networkMode: "background" } : {}),
       ...(startupCommandSupported && startupCommand.trim()
         ? { startupCommand: startupCommand.trim() }
         : {}),
@@ -678,6 +693,31 @@ export function DeployWizard({
             targets={runtimeTargets}
             value={runtimeId}
           />
+
+          <div className="fg-field-stack">
+            <div className="fg-field-label">
+              <span>Network mode</span>
+            </div>
+            <div className="fg-field-control">
+              <SegmentedControl
+                ariaLabel="Template deploy network mode"
+                controlClassName="fg-console-nav"
+                itemClassName="fg-console-nav__link"
+                labelClassName="fg-console-nav__title"
+                onChange={setNetworkMode}
+                options={IMPORT_NETWORK_MODE_OPTIONS}
+                value={networkModeSupported ? networkMode : "public"}
+                variant="pill"
+              />
+            </div>
+            <p className="fg-field-hint">
+              {networkModeSupported
+                ? networkMode === "background"
+                  ? "Background workers skip the managed route, Kubernetes Service, and readiness port."
+                  : "Public services get a managed route and readiness checks."
+                : "Whole-topology imports keep per-service networking from fugue.yaml or docker-compose, so background worker mode is unavailable here."}
+            </p>
+          </div>
         </ConsoleDisclosureSection>
 
         <ConsoleDisclosureSection

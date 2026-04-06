@@ -19,6 +19,7 @@ import {
 } from "@/lib/fugue/product-route";
 import {
   BUILD_STRATEGY_OPTIONS,
+  normalizeImportNetworkMode,
   preservesGitHubTopologyImport,
 } from "@/lib/fugue/import-source";
 import {
@@ -187,6 +188,8 @@ export async function POST(request: Request) {
   const branch = readOptionalString(body, "branch");
   const name = readOptionalString(body, "name");
   const runtimeId = readOptionalString(body, "runtimeId");
+  const networkModeInput = readOptionalString(body, "networkMode");
+  const networkMode = normalizeImportNetworkMode(networkModeInput);
   const projectId = readOptionalString(body, "projectId");
   const projectName = readOptionalString(body, "projectName");
   const projectMode = readOptionalString(body, "projectMode");
@@ -217,6 +220,9 @@ export async function POST(request: Request) {
 
   if (!repoUrl) {
     return jsonError(400, "Repository link is required.");
+  }
+  if (networkModeInput && !networkMode) {
+    return jsonError(400, "Unsupported network mode.");
   }
 
   if (!isGitHubRepoUrl(repoUrl)) {
@@ -387,6 +393,8 @@ export async function POST(request: Request) {
       repoUrl,
       repoVisibility: resolvedRepoVisibility,
       runtimeId: runtimeId || undefined,
+      networkMode:
+        networkMode === "background" ? "background" : undefined,
       startupCommand: startupCommand || undefined,
       ...projectPayload,
     });

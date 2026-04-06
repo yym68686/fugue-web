@@ -1603,15 +1603,16 @@ function readServiceWorkbenchOptions(
     return BACKING_SERVICE_WORKBENCH_OPTIONS;
   }
 
-  if (service.serviceRole === "pending") {
-    return ENV_ROUTE_AND_LOGS_WORKBENCH_OPTIONS;
+  const baseOptions =
+    service.serviceRole === "pending" || isPausedAppService(service)
+      ? ENV_ROUTE_AND_LOGS_WORKBENCH_OPTIONS
+      : WORKBENCH_VIEW_OPTIONS;
+
+  if (!service.exposesPublicRoute) {
+    return baseOptions.filter((option) => option.value !== "route");
   }
 
-  if (isPausedAppService(service)) {
-    return ENV_ROUTE_AND_LOGS_WORKBENCH_OPTIONS;
-  }
-
-  return WORKBENCH_VIEW_OPTIONS;
+  return baseOptions;
 }
 
 function readServiceLogViewOptions(
@@ -1974,6 +1975,9 @@ function renderExternalText(
 
 function readServicePublicUrl(service: ConsoleGalleryServiceView | null) {
   if (!service || service.kind !== "app") {
+    return null;
+  }
+  if (!service.exposesPublicRoute) {
     return null;
   }
 

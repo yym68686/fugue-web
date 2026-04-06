@@ -26,11 +26,13 @@ import {
 import type { FugueGitHubTemplateInspection } from "@/lib/fugue/api";
 import {
   BUILD_STRATEGY_OPTIONS,
+  IMPORT_NETWORK_MODE_OPTIONS,
   localUploadPreservesDetectedTopology,
   preservesGitHubTopologyImport,
   supportsGitHubDockerInputs,
   supportsGitHubSourceDir,
   type BuildStrategyValue,
+  type ImportNetworkMode,
   type ImportServiceDraft,
   type ImportSourceMode,
 } from "@/lib/fugue/import-source";
@@ -184,6 +186,7 @@ export function ImportServiceFields({
             localUploadInspection.hasTopologyDefinition &&
             localUploadKeepsTopologyImport
           );
+  const networkModeSupported = startupCommandSupported;
   const persistentStorageSupported = startupCommandSupported;
   const deploymentSummaryParts = [
     draft.sourceMode === "github"
@@ -199,6 +202,9 @@ export function ImportServiceFields({
     selectedRuntimeTargetOption
       ? readRuntimeTargetOptionLabel(selectedRuntimeTargetOption)
       : null,
+    draft.networkMode === "background"
+      ? "Background worker"
+      : "Public service",
   ].filter(
     (part, index, parts): part is string =>
       Boolean(part) && parts.indexOf(part) === index,
@@ -357,6 +363,17 @@ export function ImportServiceFields({
   }, [draft, onDraftChange, startupCommandSupported]);
 
   useEffect(() => {
+    if (networkModeSupported || draft.networkMode !== "background") {
+      return;
+    }
+
+    onDraftChange({
+      ...draft,
+      networkMode: "public",
+    });
+  }, [draft, networkModeSupported, onDraftChange]);
+
+  useEffect(() => {
     onCapabilitiesChange?.({
       persistentStorageSupported,
       startupCommandSupported,
@@ -411,12 +428,20 @@ export function ImportServiceFields({
     onDraftChange({
       ...draft,
       imageRef: nextMode === "docker-image" ? draft.imageRef : "",
+      networkMode: draft.networkMode,
       persistentStorageSeedFiles:
         nextMode === "github" ? draft.persistentStorageSeedFiles : [],
       repoAuthToken: nextMode === "github" ? draft.repoAuthToken : "",
       repoUrl: nextMode === "github" ? draft.repoUrl : "",
       repoVisibility: nextMode === "github" ? draft.repoVisibility : "public",
       sourceMode: nextMode,
+    });
+  }
+
+  function updateNetworkMode(nextMode: ImportNetworkMode) {
+    onDraftChange({
+      ...draft,
+      networkMode: nextMode,
     });
   }
 
@@ -642,6 +667,33 @@ export function ImportServiceFields({
           targets={runtimeTargets}
           value={draft.runtimeId}
         />
+
+        <div className="fg-field-stack">
+          <div className="fg-field-label">
+            <span>Network mode</span>
+          </div>
+          <div className="fg-field-control">
+            <SegmentedControl
+              ariaLabel="App network mode"
+              controlClassName="fg-console-nav"
+              itemClassName="fg-console-nav__link"
+              labelClassName="fg-console-nav__title"
+              onChange={updateNetworkMode}
+              options={IMPORT_NETWORK_MODE_OPTIONS}
+              value={
+                networkModeSupported ? draft.networkMode : "public"
+              }
+              variant="pill"
+            />
+          </div>
+          <p className="fg-field-hint">
+            {networkModeSupported
+              ? draft.networkMode === "background"
+                ? "Background workers skip the managed route, Kubernetes Service, and readiness port."
+                : "Public services get a managed route and readiness checks."
+              : "Whole-topology imports keep per-service networking from fugue.yaml or docker-compose, so background worker mode is unavailable here."}
+          </p>
+        </div>
       </ConsoleDisclosureSection>
 
       <ConsoleDisclosureSection
@@ -694,7 +746,9 @@ export function ImportServiceFields({
             />
           </FormField>
 
-          {showDockerServicePort && draft.sourceMode === "docker-image" ? (
+          {showDockerServicePort &&
+          draft.sourceMode === "docker-image" &&
+          draft.networkMode !== "background" ? (
             <FormField
               hint="Set this when the container listens on a known port."
               htmlFor={`${idPrefix}-service-port`}

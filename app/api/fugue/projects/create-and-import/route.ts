@@ -18,6 +18,7 @@ import {
   type PersistentStoragePayload,
 } from "@/lib/fugue/persistent-storage";
 import {
+  normalizeImportNetworkMode,
   normalizeImportSourceMode,
   preservesGitHubTopologyImport,
 } from "@/lib/fugue/import-source";
@@ -157,6 +158,8 @@ export async function POST(request: Request) {
   const requestedProjectName = readOptionalString(body, "projectName");
   const projectMode = readOptionalString(body, "projectMode");
   const runtimeId = readOptionalString(body, "runtimeId");
+  const networkModeInput = readOptionalString(body, "networkMode");
+  const networkMode = normalizeImportNetworkMode(networkModeInput);
   const servicePort = readOptionalPositiveInteger(body, "servicePort");
   const startupCommand = readOptionalString(body, "startupCommand");
   const env = readStringMap(body.env);
@@ -182,6 +185,9 @@ export async function POST(request: Request) {
 
   if (sourceModeInput && !normalizeImportSourceMode(sourceModeInput)) {
     return jsonError(400, "Unsupported import source.");
+  }
+  if (networkModeInput && !networkMode) {
+    return jsonError(400, "Unsupported network mode.");
   }
 
   if (sourceMode === "local-upload") {
@@ -295,6 +301,8 @@ export async function POST(request: Request) {
                 : undefined,
             repoAuthToken: repoAccess?.token || undefined,
             runtimeId: runtimeId || undefined,
+            networkMode:
+              networkMode === "background" ? "background" : undefined,
             repoVisibility: resolvedRepoVisibility,
             servicePort: servicePort ?? undefined,
             startupCommand: startupCommand || undefined,
@@ -308,6 +316,8 @@ export async function POST(request: Request) {
             name: name || undefined,
             persistentStorage,
             runtimeId: runtimeId || undefined,
+            networkMode:
+              networkMode === "background" ? "background" : undefined,
             servicePort: servicePort ?? undefined,
             startupCommand: startupCommand || undefined,
             ...projectPayload,

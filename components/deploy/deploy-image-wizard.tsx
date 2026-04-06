@@ -16,6 +16,7 @@ import { FormField } from "@/components/ui/form-field";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
 import { SelectField } from "@/components/ui/select-field";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { useToast } from "@/components/ui/toast";
 import type { ConsoleImportRuntimeTargetView } from "@/lib/console/gallery-types";
 import {
@@ -24,6 +25,7 @@ import {
 } from "@/lib/console/raw-env";
 import { readDefaultImportRuntimeId } from "@/lib/console/runtime-targets";
 import type { FugueProject } from "@/lib/fugue/api";
+import { IMPORT_NETWORK_MODE_OPTIONS } from "@/lib/fugue/import-source";
 import {
   createPersistentStorageDraft,
   serializePersistentStorageDraft,
@@ -129,6 +131,9 @@ export function DeployImageWizard({
   );
   const [name, setName] = useState(initialName);
   const [imageRef, setImageRef] = useState(initialImageRef);
+  const [networkMode, setNetworkMode] = useState<"background" | "public">(
+    "public",
+  );
   const [servicePort, setServicePort] = useState(initialServicePort);
   const [envRawDraft, setEnvRawDraft] = useState(() =>
     serializeEnvRecord(initialEnv),
@@ -204,6 +209,7 @@ export function DeployImageWizard({
     const normalizedServicePort = servicePort.trim();
 
     if (
+      networkMode !== "background" &&
       normalizedServicePort &&
       (!/^\d+$/.test(normalizedServicePort) || Number(normalizedServicePort) <= 0)
     ) {
@@ -267,7 +273,9 @@ export function DeployImageWizard({
             projectName: projectName.trim(),
           }),
       ...(runtimeId ? { runtimeId } : {}),
+      ...(networkMode === "background" ? { networkMode: "background" } : {}),
       ...(normalizedServicePort
+        && networkMode !== "background"
         ? { servicePort: Number(normalizedServicePort) }
         : {}),
       ...(Object.keys(nextEnvFeedback.env).length > 0
@@ -414,20 +422,46 @@ export function DeployImageWizard({
         </FormField>
 
         <FormField
-          hint="Set this when the container listens on a known port."
-          htmlFor="deploy-image-service-port"
-          label="Service port"
-          optionalLabel="Optional"
+          hint="Choose whether Fugue should publish this app with a managed route."
+          htmlFor="deploy-image-network-mode"
+          label="Network mode"
         >
-          <input
-            className="fg-input"
-            id="deploy-image-service-port"
-            inputMode="numeric"
-            onChange={(event) => setServicePort(event.target.value)}
-            placeholder="8080"
-            value={servicePort}
-          />
+          <div id="deploy-image-network-mode">
+            <SegmentedControl
+              ariaLabel="Image deploy network mode"
+              controlClassName="fg-console-nav"
+              itemClassName="fg-console-nav__link"
+              labelClassName="fg-console-nav__title"
+              onChange={setNetworkMode}
+              options={IMPORT_NETWORK_MODE_OPTIONS}
+              value={networkMode}
+              variant="pill"
+            />
+          </div>
         </FormField>
+
+        {networkMode !== "background" ? (
+          <FormField
+            hint="Set this when the container listens on a known port."
+            htmlFor="deploy-image-service-port"
+            label="Service port"
+            optionalLabel="Optional"
+          >
+            <input
+              className="fg-input"
+              id="deploy-image-service-port"
+              inputMode="numeric"
+              onChange={(event) => setServicePort(event.target.value)}
+              placeholder="8080"
+              value={servicePort}
+            />
+          </FormField>
+        ) : (
+          <InlineAlert variant="info">
+            Background workers run without a managed route, Kubernetes Service,
+            or readiness port.
+          </InlineAlert>
+        )}
 
         <InlineAlert variant="info">
           Public image references work best for one-click deploy links because

@@ -17,6 +17,7 @@ import { FormField } from "@/components/ui/form-field";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
 import { SelectField } from "@/components/ui/select-field";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { useToast } from "@/components/ui/toast";
 import type { ConsoleImportRuntimeTargetView } from "@/lib/console/gallery-types";
 import {
@@ -29,6 +30,7 @@ import {
   BUILD_STRATEGY_OPTIONS,
   buildImportServicePayload,
   createImportServiceDraft,
+  IMPORT_NETWORK_MODE_OPTIONS,
   localUploadPreservesDetectedTopology,
   supportsGitHubDockerInputs,
   supportsGitHubSourceDir,
@@ -147,6 +149,9 @@ export function DeployUploadWizard({
   const [dockerfilePath, setDockerfilePath] = useState("");
   const [buildContextDir, setBuildContextDir] = useState("");
   const [startupCommand, setStartupCommand] = useState("");
+  const [networkMode, setNetworkMode] = useState<"background" | "public">(
+    "public",
+  );
   const [persistentStorage, setPersistentStorage] = useState(() =>
     createPersistentStorageDraft(),
   );
@@ -200,6 +205,7 @@ export function DeployUploadWizard({
       dockerfilePath,
       envRaw: envRawDraft,
       name,
+      networkMode,
       persistentStorage,
       runtimeId,
       startupCommand,
@@ -214,6 +220,7 @@ export function DeployUploadWizard({
   const startupCommandSupported = !(
     localUploadInspection.hasTopologyDefinition && localUploadKeepsTopologyImport
   );
+  const networkModeSupported = startupCommandSupported;
   const persistentStorageSupported = startupCommandSupported;
 
   useEffect(() => {
@@ -223,6 +230,14 @@ export function DeployUploadWizard({
 
     setStartupCommand("");
   }, [startupCommand, startupCommandSupported]);
+
+  useEffect(() => {
+    if (networkModeSupported || networkMode !== "background") {
+      return;
+    }
+
+    setNetworkMode("public");
+  }, [networkMode, networkModeSupported]);
 
   function validate() {
     if (selectedProjectId === NEW_PROJECT_VALUE) {
@@ -446,6 +461,40 @@ export function DeployUploadWizard({
           targets={runtimeTargets}
           value={runtimeId}
         />
+
+        <FormField
+          hint="Public services get a managed route. Background workers skip route and readiness setup."
+          htmlFor="deploy-upload-network-mode"
+          label="Network mode"
+        >
+          <div id="deploy-upload-network-mode">
+            <SegmentedControl
+              ariaLabel="Upload deploy network mode"
+              controlClassName="fg-console-nav"
+              itemClassName="fg-console-nav__link"
+              labelClassName="fg-console-nav__title"
+              onChange={setNetworkMode}
+              options={IMPORT_NETWORK_MODE_OPTIONS}
+              value={networkModeSupported ? networkMode : "public"}
+              variant="pill"
+            />
+          </div>
+        </FormField>
+
+        {!networkModeSupported ? (
+          <InlineAlert variant="info">
+            Whole-topology uploads keep per-service networking from
+            <code> fugue.yaml </code>
+            or
+            <code> docker-compose.yml</code>, so background worker mode is only
+            available for single-app uploads.
+          </InlineAlert>
+        ) : networkMode === "background" ? (
+          <InlineAlert variant="info">
+            Background workers run without a managed route, Kubernetes Service,
+            or readiness port.
+          </InlineAlert>
+        ) : null}
 
         <div className="fg-deploy-form-grid">
           <FormField
