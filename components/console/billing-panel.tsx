@@ -13,7 +13,6 @@ import {
 import { ConsoleSummaryGrid } from "@/components/console/console-summary-grid";
 import { StatusBadge } from "@/components/console/status-badge";
 import { Button } from "@/components/ui/button";
-import { FormField } from "@/components/ui/form-field";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { Panel, PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
 import {
@@ -26,11 +25,13 @@ import type {
   FugueBillingPriceBook,
   FugueBillingSummary,
   FugueResourceSpec,
+  FugueResourceUsage,
 } from "@/lib/fugue/api";
 import type { ConsoleTone } from "@/lib/console/types";
 
 type BillingRoutePayload = {
   billing: FugueBillingSummary | null;
+  imageStorageBytes: number | null;
   syncError: string | null;
   workspace: {
     tenantId: string;
@@ -94,6 +95,8 @@ function readBillingSnapshotWorkspace(fallbackWorkspaceName?: string | null) {
 const MICRO_CENTS_PER_DOLLAR = 100_000_000;
 const MILLICORES_PER_VCPU = 1000;
 const MEBIBYTES_PER_GIB = 1024;
+const BYTES_PER_MEBIBYTE = 1024 * 1024;
+const BYTES_PER_GIBIBYTE = BYTES_PER_MEBIBYTE * MEBIBYTES_PER_GIB;
 const CPU_STEP_CORES = 0.5;
 const MEMORY_STEP_GIB = 0.25;
 const STORAGE_STEP_GIB = 1;
@@ -105,11 +108,6 @@ const MEMORY_SLIDER_MAX_MEBIBYTES = MEMORY_SLIDER_MAX_GIB * MEBIBYTES_PER_GIB;
 const BILLING_TOP_UP_PRESET_AMOUNTS = [10, 25, 50, 100];
 const MIN_TOP_UP_UNITS = 5;
 const MAX_TOP_UP_UNITS = 5000;
-const DEFAULT_FREE_TIER_CAP: FugueResourceSpec = {
-  cpuMillicores: 500,
-  memoryMebibytes: 512,
-  storageGibibytes: 5,
-};
 
 function readErrorMessage(error: unknown) {
   if (error instanceof Error && error.message) {
@@ -220,6 +218,61 @@ function formatStorageGibibytes(storageGibibytes: number) {
   return `${formatCompactNumber(storageGibibytes, Number.isInteger(storageGibibytes) ? 0 : 2)} GiB`;
 }
 
+function readNonNegativeMetric(value: number | null | undefined) {
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : 0;
+}
+
+function formatCurrentUsageSpec(
+  usage: FugueResourceUsage | null,
+  imageStorageBytes: number | null,
+) {
+  const imageBytes = readNonNegativeMetric(imageStorageBytes);
+
+  if (!usage) {
+    if (imageBytes <= 0) {
+      return "No live stats";
+    }
+
+    return formatResourceSpec({
+      cpuMillicores: 0,
+      memoryMebibytes: 0,
+      storageGibibytes: imageBytes / BYTES_PER_GIBIBYTE,
+    });
+  }
+
+  return formatResourceSpec({
+    cpuMillicores: readNonNegativeMetric(usage.cpuMillicores),
+    memoryMebibytes: readNonNegativeMetric(usage.memoryBytes) / BYTES_PER_MEBIBYTE,
+    storageGibibytes:
+      (readNonNegativeMetric(usage.ephemeralStorageBytes) + imageBytes) /
+      BYTES_PER_GIBIBYTE,
+  });
+}
+
+function readRetainedImageStorageBytes(
+  nextValue: number | null,
+  currentValue: number | null,
+  syncError: string | null,
+) {
+  if (nextValue === null && syncError) {
+    return currentValue;
+  }
+
+  return nextValue;
+}
+
+function readBillingSyncToast(syncError: string | null) {
+  if (syncError) {
+    return "Billing snapshot refreshed with partial live data.";
+  }
+
+  return "Billing snapshot refreshed.";
+}
+
+function readBillingSyncAlert(syncError: string) {
+  return syncError || "Some billing details could not be refreshed. Visible values may be incomplete.";
+}
+
 function clampEnvelopeCpuMillicores(value: number) {
   return Math.round(
     clampSteppedValue({
@@ -310,6 +363,88 @@ function formatExactTime(value?: string | null) {
   }).format(timestamp);
 }
 
+function formatRunwayDurationHours(value?: number | null) {
+  if (value === null || value === undefined || !Number.isFinite(value) || value < 0) {
+    return null;
+  }
+
+  if (value < 1) {
+    return "<1 hour";
+  }
+
+  if (value < 24) {
+    return `${formatCompactNumber(value, value < 10 ? 1 : 0)} hours`;
+  }
+
+  const days = value / 24;
+
+  if (days < 14) {
+    return `${formatCompactNumber(days, days < 10 ? 1 : 0)} days`;
+  }
+
+  if (days < 60) {
+    return `${formatCompactNumber(days / 7, 1)} weeks`;
+  }
+
+  return `${formatCompactNumber(days / 30, 1)} months`;
+}
+
+function readRunwayLabel(billing: FugueBillingSummary) {
+  if (billing.hourlyRateMicroCents <= 0 || billing.status === "inactive") {
+    return "Paused";
+  }
+
+  if (billing.balanceMicroCents <= 0) {
+    return "Top up now";
+  }
+
+  return formatRunwayDurationHours(billing.runwayHours) ?? "No live estimate";
+}
+
+function readRunwaySupportCopy(billing: FugueBillingSummary) {
+  if (billing.hourlyRateMicroCents <= 0 || billing.status === "inactive") {
+    return "Credits are deducted when managed resources are active.";
+  }
+
+  if (billing.balanceMicroCents <= 0) {
+    return "Add credits before you raise capacity or start new managed resources.";
+  }
+
+  const duration = formatRunwayDurationHours(billing.runwayHours);
+  return duration
+    ? `At the current rate, your balance lasts about ${duration}.`
+    : "Runway updates after the latest live billing sync.";
+}
+
+function readTopUpHint(
+  units: number | null,
+  billing: FugueBillingSummary | null,
+) {
+  const baseMessage = `Whole USD amounts only. Min $${MIN_TOP_UP_UNITS}, max $${MAX_TOP_UP_UNITS}.`;
+
+  if (units === null || !billing) {
+    return baseMessage;
+  }
+
+  if (billing.hourlyRateMicroCents <= 0 || billing.status === "inactive") {
+    return `${baseMessage} Credits are deducted only while managed resources are active.`;
+  }
+
+  const addedRunwayHours =
+    (units * MICRO_CENTS_PER_DOLLAR) / billing.hourlyRateMicroCents;
+  const duration = formatRunwayDurationHours(addedRunwayHours);
+
+  if (!duration) {
+    return baseMessage;
+  }
+
+  return `${baseMessage} At the current rate, $${units} adds about ${duration} of runway.`;
+}
+
+function readTopUpButtonLabel(units: number | null) {
+  return units !== null ? `Add $${units} credits` : "Add credits";
+}
+
 function parseDollarUnits(value: string) {
   const trimmed = value.trim();
 
@@ -385,14 +520,16 @@ function readStatusTone(billing: FugueBillingSummary): ConsoleTone {
 function readCallout(billing: FugueBillingSummary) {
   if (billing.overCap || billing.status === "over-cap") {
     return {
-      message: "Live commitment is above the saved envelope. Save a higher cap to match it.",
+      message:
+        "Current usage is above your saved capacity cap. Save a higher cap to match what is already committed.",
       variant: "warning" as const,
     };
   }
 
   if (billing.balanceRestricted || billing.status === "restricted") {
     return {
-      message: "Balance is empty. Top up to allow new managed capacity.",
+      message:
+        "Balance is empty. Add credits before you expand capacity or start new managed resources.",
       variant: "error" as const,
     };
   }
@@ -433,30 +570,6 @@ function estimateMonthlyMicroCents(
     estimateHourlyRateMicroCents(spec, priceBook, committedStorageGibibytes) *
     priceBook.hoursPerMonth
   );
-}
-
-function sumVisibleFundingMicroCents(events: FugueBillingEvent[]) {
-  return events.reduce((total, event) => {
-    if (
-      event.type !== "top-up" &&
-      event.type !== "balance-adjusted"
-    ) {
-      return total;
-    }
-
-    return total + event.amountMicroCents;
-  }, 0);
-}
-
-function estimateConsumedMicroCents(billing: FugueBillingSummary) {
-  const seededCreditMicroCents = estimateMonthlyMicroCents(
-    DEFAULT_FREE_TIER_CAP,
-    billing.priceBook,
-  );
-  const loadedCreditMicroCents =
-    seededCreditMicroCents + sumVisibleFundingMicroCents(billing.events);
-
-  return Math.max(0, loadedCreditMicroCents - billing.balanceMicroCents);
 }
 
 function readEventTone(event: FugueBillingEvent): ConsoleTone {
@@ -556,16 +669,19 @@ function readEventDetail(event: FugueBillingEvent, currency: string) {
 
 export function BillingPanel({
   initialBilling,
+  initialImageStorageBytes,
   initialSyncError,
   workspaceName,
 }: {
   initialBilling: FugueBillingSummary | null;
+  initialImageStorageBytes: number | null;
   initialSyncError: string | null;
   workspaceName?: string | null;
 }) {
   const searchParams = useSearchParams();
   const { showToast } = useToast();
   const [billing, setBilling] = useState(initialBilling);
+  const [imageStorageBytes, setImageStorageBytes] = useState(initialImageStorageBytes);
   const [syncError, setSyncError] = useState(initialSyncError);
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [envelopeCpu, setEnvelopeCpu] = useState(
@@ -588,6 +704,7 @@ export function BillingPanel({
 
   useEffect(() => {
     setBilling(initialBilling);
+    setImageStorageBytes(initialImageStorageBytes);
     setSyncError(initialSyncError);
     setEnvelopeCpu(clampEnvelopeCpuMillicores(initialBilling?.managedCap.cpuMillicores ?? 0));
     setEnvelopeMemory(
@@ -598,7 +715,7 @@ export function BillingPanel({
     );
     setEnvelopeError(null);
     setTopUpStatusError(null);
-  }, [initialBilling, initialSyncError]);
+  }, [initialBilling, initialImageStorageBytes, initialSyncError]);
 
   const isRefreshing = busyAction === "refresh";
   const isSavingEnvelope = busyAction === "save-envelope";
@@ -608,6 +725,8 @@ export function BillingPanel({
   const envelopeMemoryGib = envelopeMemory / MEBIBYTES_PER_GIB;
   const committedStorageGibibytes = billing?.managedCommitted.storageGibibytes ?? 0;
   const parsedTopUpUnits = parseDollarUnits(topUpAmount);
+  const topUpAmountHintId = "billing-top-up-amount-hint";
+  const topUpAmountErrorId = "billing-top-up-amount-error";
   const topUpRequestIdFromUrl = (() => {
     const rawValue = searchParams.get("request_id") ?? searchParams.get("requestId");
     return rawValue?.trim() ? rawValue.trim() : null;
@@ -647,16 +766,44 @@ export function BillingPanel({
     previewHourlyRateMicroCents,
     currency,
   );
-  const consumedMicroCents = billing !== null ? estimateConsumedMicroCents(billing) : 0;
-  const consumedLabel = formatCurrencyFromMicroCents(consumedMicroCents, currency);
-  const previewHeadroom: FugueResourceSpec = {
-    cpuMillicores: Math.max(envelopeCpu - (billing?.managedCommitted.cpuMillicores ?? 0), 0),
-    memoryMebibytes: Math.max(
-      envelopeMemory - (billing?.managedCommitted.memoryMebibytes ?? 0),
-      0,
-    ),
-    storageGibibytes: Math.max(envelopeStorage - committedStorageGibibytes, 0),
-  };
+  const availableCreditsLabel = formatCurrencyFromMicroCents(
+    billing?.balanceMicroCents ?? 0,
+    currency,
+  );
+  const currentMonthlySpendLabel = formatCurrencyFromMicroCents(
+    billing?.monthlyEstimateMicroCents ?? 0,
+    currency,
+  );
+  const currentHourlySpendLabel = formatHourlyCurrencyFromMicroCents(
+    billing?.hourlyRateMicroCents ?? 0,
+    currency,
+  );
+  const currentUsageLabel = formatCurrentUsageSpec(
+    billing?.currentUsage ?? null,
+    imageStorageBytes,
+  );
+  const runwayLabel = billing ? readRunwayLabel(billing) : "No live estimate";
+  const runwaySupportCopy = billing
+    ? readRunwaySupportCopy(billing)
+    : "Runway updates after live billing data is available.";
+  const topUpHintText = readTopUpHint(parsedTopUpUnits, billing);
+  const topUpButtonLabel = readTopUpButtonLabel(parsedTopUpUnits);
+  const billingUpdatedLabel = billing?.updatedAt
+    ? `Updated ${formatRelativeTime(billing.updatedAt)}`
+    : "Billing snapshot ready";
+  const capacityPreviewLabel = hasEnvelopeChanges ? "New cap" : "Current cap";
+  const capacityPreviewCopy = hasEnvelopeChanges
+    ? "Changes apply after you save."
+    : "Maximum managed resources for this workspace.";
+  const chargedAtCopy =
+    "Charges follow the larger of your saved cap and any resources already committed.";
+  const projectedSpendLabel = hasEnvelopeChanges
+    ? "New monthly spend"
+    : "Projected monthly spend";
+  const projectedSpendCopy =
+    previewHourlyRateMicroCents > 0
+      ? `${previewHourlyRateLabel} / hour`
+      : "Paused until both CPU and memory are above zero.";
   const envelopeExceedsUiCap =
     billing !== null &&
     (billing.managedCap.cpuMillicores > CPU_SLIDER_MAX_MILLICORES ||
@@ -684,6 +831,13 @@ export function BillingPanel({
 
     startTransition(() => {
       setSyncError(data.syncError);
+      setImageStorageBytes((currentValue) =>
+        readRetainedImageStorageBytes(
+          data.imageStorageBytes,
+          currentValue,
+          data.syncError,
+        ),
+      );
 
       if (data.billing) {
         applyBillingSnapshot(data.billing);
@@ -692,9 +846,7 @@ export function BillingPanel({
 
     if (!options?.quiet) {
       showToast({
-        message: data.syncError
-          ? "Live billing sync failed. The last visible billing snapshot remains on screen."
-          : "Billing snapshot refreshed.",
+        message: readBillingSyncToast(data.syncError),
         variant: data.syncError ? "info" : "success",
       });
     }
@@ -925,6 +1077,7 @@ export function BillingPanel({
 
       syncBillingPageSnapshot({
         billing: data.billing,
+        imageStorageBytes,
         syncError: null,
         workspace: readBillingSnapshotWorkspace(workspaceName),
       });
@@ -1056,292 +1209,362 @@ export function BillingPanel({
     <>
       {syncError ? (
         <InlineAlert variant="info">
-          Live billing sync failed. The last visible billing snapshot remains on screen.
+          {readBillingSyncAlert(syncError)}
         </InlineAlert>
       ) : null}
 
-      <ConsoleSummaryGrid
-        ariaLabel="Billing summary"
-        items={[
-          { label: "Envelope", value: formatResourceSpec(billing.managedCap) },
-          { label: "Live commitment", value: formatResourceSpec(billing.managedCommitted) },
-          {
-            label: "Balance",
-            value: formatCurrencyFromMicroCents(billing.balanceMicroCents, currency),
-          },
-          { label: "Consumed", value: consumedLabel },
-        ]}
-      />
+      <Panel className="fg-billing-surface fg-billing-surface--health">
+        <PanelSection>
+          <div className="fg-billing-health__head">
+            <div className="fg-billing-section-copy">
+              <p className="fg-label fg-panel__eyebrow">Billing health</p>
+              <PanelTitle>Keep credits and capacity in sync</PanelTitle>
+              <PanelCopy>
+                Add credits to your balance, then set a capacity cap. Fugue deducts credits
+                from active resources, and stored images count toward disk usage.
+              </PanelCopy>
+            </div>
+
+            <div className="fg-billing-health__meta">
+              <div className="fg-billing-status-row">
+                <StatusBadge tone={readStatusTone(billing)}>{humanizeStatus(billing.status)}</StatusBadge>
+                {billing.overCap ? <StatusBadge tone="warning">Save higher cap</StatusBadge> : null}
+                {billing.balanceRestricted ? (
+                  <StatusBadge tone="warning">Top up required</StatusBadge>
+                ) : null}
+                {billing.byoVpsFree ? <StatusBadge tone="info">BYO VPS free</StatusBadge> : null}
+              </div>
+
+              <p className="fg-billing-health__stamp">{billingUpdatedLabel}</p>
+            </div>
+          </div>
+        </PanelSection>
+
+        <PanelSection>
+          <ConsoleSummaryGrid
+            ariaLabel="Billing health"
+            items={[
+              { label: "Available credits", value: availableCreditsLabel },
+              { label: "Estimated runway", value: runwayLabel },
+              { label: "Projected monthly spend", value: currentMonthlySpendLabel },
+              { label: "Current usage", value: currentUsageLabel },
+            ]}
+          />
+        </PanelSection>
+      </Panel>
 
       <section className="fg-billing-stack">
-        <Panel className="fg-billing-surface fg-billing-surface--envelope">
-          <PanelSection>
-            <div className="fg-billing-hero">
-              <div className="fg-billing-hero__copy">
-                <p className="fg-label fg-panel__eyebrow">Managed envelope</p>
-                <div className="fg-billing-hero__price">
-                  <span className="fg-billing-hero__kicker">Monthly price</span>
-                  <div className="fg-billing-hero__price-line">
-                    <strong>{previewMonthlyEstimateLabel}</strong>
-                    <span>per month</span>
-                  </div>
-                  <div className="fg-billing-hero__meta">
-                    <span>{`Envelope ${formatResourceSpec(previewSpec)}`}</span>
-                    <span>{`Billed as ${formatResourceSpec(previewBilledSpec)}`}</span>
-                    <span>{`Headroom ${formatResourceSpec(previewHeadroom)}`}</span>
-                    <span>
-                      {previewHourlyRateMicroCents > 0
-                        ? `${previewHourlyRateLabel} / hour`
-                        : "Paused"}
-                    </span>
-                  </div>
+        <div className="fg-console-two-up fg-billing-workbench">
+          <Panel className="fg-billing-surface fg-billing-surface--envelope">
+            <PanelSection>
+              <div className="fg-billing-section-head">
+                <div className="fg-billing-section-copy">
+                  <p className="fg-label fg-panel__eyebrow">Capacity</p>
+                  <PanelTitle>Set your capacity cap</PanelTitle>
+                  <PanelCopy>
+                    Save the maximum managed CPU, memory, and disk for this workspace.
+                    Fugue charges against the larger of your saved cap and any resources
+                    already committed.
+                  </PanelCopy>
                 </div>
               </div>
 
-              <div className="fg-billing-status-row">
-                <StatusBadge tone={readStatusTone(billing)}>{humanizeStatus(billing.status)}</StatusBadge>
-                {billing.byoVpsFree ? <StatusBadge tone="info">BYO VPS free</StatusBadge> : null}
+              <div className="fg-billing-signal-grid">
+                <article className="fg-billing-signal-card is-primary">
+                  <span>{capacityPreviewLabel}</span>
+                  <strong>{formatResourceSpec(previewSpec)}</strong>
+                  <p>{capacityPreviewCopy}</p>
+                </article>
+
+                <article className="fg-billing-signal-card">
+                  <span>Charged at</span>
+                  <strong>{formatResourceSpec(previewBilledSpec)}</strong>
+                  <p>{chargedAtCopy}</p>
+                </article>
+
+                <article className="fg-billing-signal-card">
+                  <span>{projectedSpendLabel}</span>
+                  <strong>{previewMonthlyEstimateLabel}</strong>
+                  <p>{projectedSpendCopy}</p>
+                </article>
               </div>
-            </div>
-          </PanelSection>
+            </PanelSection>
 
-          <PanelSection>
-            {callout ? <InlineAlert variant={callout.variant}>{callout.message}</InlineAlert> : null}
-            {envelopeExceedsUiCap ? (
-              <InlineAlert variant="warning">
-                Saved envelope exceeds the temporary 2 cpu / 4 GiB / 30 GiB storage UI cap.
-                Save again to bring it back into range.
-              </InlineAlert>
-            ) : null}
+            <PanelSection>
+              {callout ? <InlineAlert variant={callout.variant}>{callout.message}</InlineAlert> : null}
+              {envelopeExceedsUiCap ? (
+                <InlineAlert variant="warning">
+                  Saved capacity exceeds the temporary 2 cpu / 4 GiB / 30 GiB UI cap.
+                  Save again to bring it back into range.
+                </InlineAlert>
+              ) : null}
 
-            <form className="fg-settings-form fg-billing-form" noValidate onSubmit={handleEnvelopeSubmit}>
-              <div className="fg-billing-form__grid">
-                <SteppedSliderField
-                  disabled={isSavingEnvelope}
-                  id="billing-envelope-cpu"
-                  label="CPU"
-                  max={CPU_SLIDER_MAX_CORES}
-                  maxLabel={formatCPU(Math.round(CPU_SLIDER_MAX_CORES * MILLICORES_PER_VCPU))}
-                  minLabel={formatCPU(0)}
-                  onChange={(nextValue) => {
-                    setEnvelopeCpu(
-                      clampEnvelopeCpuMillicores(nextValue * MILLICORES_PER_VCPU),
-                    );
-                    if (envelopeError) {
-                      setEnvelopeError(null);
-                    }
-                  }}
-                  step={CPU_STEP_CORES}
-                  value={envelopeCpuCores}
-                  valueLabel={formatCPU(envelopeCpu)}
-                />
-
-                <SteppedSliderField
-                  disabled={isSavingEnvelope}
-                  id="billing-envelope-memory"
-                  label="Memory"
-                  max={MEMORY_SLIDER_MAX_GIB}
-                  maxLabel={formatMemoryMebibytes(Math.round(MEMORY_SLIDER_MAX_GIB * MEBIBYTES_PER_GIB))}
-                  minLabel={formatMemoryMebibytes(0)}
-                  onChange={(nextValue) => {
-                    setEnvelopeMemory(
-                      clampEnvelopeMemoryMebibytes(nextValue * MEBIBYTES_PER_GIB),
-                    );
-                    if (envelopeError) {
-                      setEnvelopeError(null);
-                    }
-                  }}
-                  step={MEMORY_STEP_GIB}
-                  value={envelopeMemoryGib}
-                  valueLabel={formatMemoryMebibytes(envelopeMemory)}
-                />
-
-                <SteppedSliderField
-                  disabled={isSavingEnvelope}
-                  id="billing-envelope-storage"
-                  label="Storage"
-                  max={STORAGE_SLIDER_MAX_GIB}
-                  maxLabel={formatStorageGibibytes(STORAGE_SLIDER_MAX_GIB)}
-                  minLabel={formatStorageGibibytes(0)}
-                  onChange={(nextValue) => {
-                    setEnvelopeStorage(clampEnvelopeStorageGibibytes(nextValue));
-                    if (envelopeError) {
-                      setEnvelopeError(null);
-                    }
-                  }}
-                  step={STORAGE_STEP_GIB}
-                  value={envelopeStorage}
-                  valueLabel={formatStorageGibibytes(envelopeStorage)}
-                />
-              </div>
-
-              {envelopeError ? <InlineAlert variant="error">{envelopeError}</InlineAlert> : null}
-
-              <div className="fg-settings-form__actions">
-                <Button
-                  disabled={!hasEnvelopeChanges}
-                  loading={isSavingEnvelope}
-                  loadingLabel="Saving envelope…"
-                  type="submit"
-                  variant="primary"
-                >
-                  Save envelope
-                </Button>
-
-                <Button
-                  disabled={isSavingEnvelope || isToppingUp}
-                  loading={isRefreshing}
-                  loadingLabel="Refreshing…"
-                  onClick={() => {
-                    void handleRefresh();
-                  }}
-                  type="button"
-                  variant="secondary"
-                >
-                  Refresh
-                </Button>
-              </div>
-            </form>
-          </PanelSection>
-        </Panel>
-
-        <Panel className="fg-billing-surface fg-billing-surface--balance">
-          <PanelSection>
-            <div className="fg-billing-balance__head">
-              <div className="fg-billing-balance__copy">
-                <p className="fg-label fg-panel__eyebrow">Balance</p>
-                <PanelTitle>Prepaid credits</PanelTitle>
-              </div>
-
-              <div className="fg-billing-status-row">
-                <StatusBadge tone={readStatusTone(billing)}>{humanizeStatus(billing.status)}</StatusBadge>
-                {billing.balanceRestricted ? (
-                  <StatusBadge tone="warning">Top up required for expansion</StatusBadge>
-                ) : null}
-              </div>
-            </div>
-
-            <div className="fg-billing-balance__figures">
-              <article className="fg-billing-balance__figure is-primary">
-                <span>Available</span>
-                <strong>{formatCurrencyFromMicroCents(billing.balanceMicroCents, currency)}</strong>
-              </article>
-
-              <article className="fg-billing-balance__figure">
-                <span>Consumed</span>
-                <strong>{consumedLabel}</strong>
-              </article>
-            </div>
-          </PanelSection>
-
-          <PanelSection>
-            <form
-              className="fg-settings-form fg-billing-form fg-billing-top-up-form"
-              onSubmit={handleTopUpSubmit}
-            >
-              <div className="fg-billing-top-up-form__field">
-                <FormField
-                  error={topUpError ?? undefined}
-                  hint={`Whole USD amounts only. Min $${MIN_TOP_UP_UNITS}, max $${MAX_TOP_UP_UNITS}.`}
-                  htmlFor="billing-top-up-amount"
-                  label="Top-up amount"
-                >
-                  <input
-                    className="fg-input"
-                    id="billing-top-up-amount"
-                    inputMode="numeric"
-                    min={MIN_TOP_UP_UNITS}
-                    onChange={(event) => {
-                      setTopUpAmount(event.target.value);
-                      if (topUpError) {
-                        setTopUpError(null);
+              <form className="fg-settings-form fg-billing-form" noValidate onSubmit={handleEnvelopeSubmit}>
+                <div className="fg-billing-form__grid">
+                  <SteppedSliderField
+                    disabled={isSavingEnvelope}
+                    id="billing-envelope-cpu"
+                    label="CPU"
+                    max={CPU_SLIDER_MAX_CORES}
+                    maxLabel={formatCPU(Math.round(CPU_SLIDER_MAX_CORES * MILLICORES_PER_VCPU))}
+                    minLabel={formatCPU(0)}
+                    onChange={(nextValue) => {
+                      setEnvelopeCpu(
+                        clampEnvelopeCpuMillicores(nextValue * MILLICORES_PER_VCPU),
+                      );
+                      if (envelopeError) {
+                        setEnvelopeError(null);
                       }
                     }}
-                    placeholder="25"
-                    step="1"
-                    type="number"
-                    value={topUpAmount}
+                    step={CPU_STEP_CORES}
+                    value={envelopeCpuCores}
+                    valueLabel={formatCPU(envelopeCpu)}
                   />
-                </FormField>
 
-                <div
-                  className="fg-billing-top-up-presets"
-                  role="group"
-                  aria-label="Suggested top-up amounts"
-                >
-                  {BILLING_TOP_UP_PRESET_AMOUNTS.map((amount) => (
+                  <SteppedSliderField
+                    disabled={isSavingEnvelope}
+                    id="billing-envelope-memory"
+                    label="Memory"
+                    max={MEMORY_SLIDER_MAX_GIB}
+                    maxLabel={formatMemoryMebibytes(Math.round(MEMORY_SLIDER_MAX_GIB * MEBIBYTES_PER_GIB))}
+                    minLabel={formatMemoryMebibytes(0)}
+                    onChange={(nextValue) => {
+                      setEnvelopeMemory(
+                        clampEnvelopeMemoryMebibytes(nextValue * MEBIBYTES_PER_GIB),
+                      );
+                      if (envelopeError) {
+                        setEnvelopeError(null);
+                      }
+                    }}
+                    step={MEMORY_STEP_GIB}
+                    value={envelopeMemoryGib}
+                    valueLabel={formatMemoryMebibytes(envelopeMemory)}
+                  />
+
+                  <SteppedSliderField
+                    disabled={isSavingEnvelope}
+                    id="billing-envelope-storage"
+                    label="Storage"
+                    max={STORAGE_SLIDER_MAX_GIB}
+                    maxLabel={formatStorageGibibytes(STORAGE_SLIDER_MAX_GIB)}
+                    minLabel={formatStorageGibibytes(0)}
+                    onChange={(nextValue) => {
+                      setEnvelopeStorage(clampEnvelopeStorageGibibytes(nextValue));
+                      if (envelopeError) {
+                        setEnvelopeError(null);
+                      }
+                    }}
+                    step={STORAGE_STEP_GIB}
+                    value={envelopeStorage}
+                    valueLabel={formatStorageGibibytes(envelopeStorage)}
+                  />
+                </div>
+
+                {envelopeError ? <InlineAlert variant="error">{envelopeError}</InlineAlert> : null}
+
+                <div className="fg-settings-form__actions">
+                  <Button
+                    disabled={!hasEnvelopeChanges}
+                    loading={isSavingEnvelope}
+                    loadingLabel="Saving cap…"
+                    type="submit"
+                    variant="primary"
+                  >
+                    Save capacity cap
+                  </Button>
+
+                  <Button
+                    disabled={isSavingEnvelope || isToppingUp}
+                    loading={isRefreshing}
+                    loadingLabel="Refreshing…"
+                    onClick={() => {
+                      void handleRefresh();
+                    }}
+                    type="button"
+                    variant="secondary"
+                  >
+                    Refresh billing
+                  </Button>
+                </div>
+              </form>
+            </PanelSection>
+          </Panel>
+
+          <Panel className="fg-billing-surface fg-billing-surface--balance">
+            <PanelSection>
+              <div className="fg-billing-section-head">
+                <div className="fg-billing-section-copy">
+                  <p className="fg-label fg-panel__eyebrow">Credits</p>
+                  <PanelTitle>Keep your workspace funded</PanelTitle>
+                  <PanelCopy>
+                    Top up credits before you expand capacity. Credits are deducted
+                    while resources run, and stored images count toward disk usage.
+                  </PanelCopy>
+                </div>
+              </div>
+
+              <div className="fg-billing-signal-grid">
+                <article className="fg-billing-signal-card is-primary">
+                  <span>Available credits</span>
+                  <strong>{availableCreditsLabel}</strong>
+                  <p>Credits ready to cover current managed usage.</p>
+                </article>
+
+                <article className="fg-billing-signal-card">
+                  <span>Estimated runway</span>
+                  <strong>{runwayLabel}</strong>
+                  <p>{runwaySupportCopy}</p>
+                </article>
+
+                <article className="fg-billing-signal-card">
+                  <span>Projected monthly spend</span>
+                  <strong>{currentMonthlySpendLabel}</strong>
+                  <p>
+                    {billing.hourlyRateMicroCents > 0
+                      ? `${currentHourlySpendLabel} / hour at the current live rate.`
+                      : "No live burn right now."}
+                  </p>
+                </article>
+              </div>
+            </PanelSection>
+
+            <PanelSection>
+              <p className="fg-billing-top-up-note">
+                Need more room? Add credits here first, then raise the capacity cap.
+              </p>
+
+              <form
+                className="fg-settings-form fg-billing-form fg-billing-top-up-form"
+                onSubmit={handleTopUpSubmit}
+              >
+                <div className="fg-billing-top-up-form__field fg-field-stack">
+                  <label className="fg-field-label" htmlFor="billing-top-up-amount">
+                    <span>Top-up amount</span>
+                  </label>
+
+                  <div
+                    className={`fg-field-control fg-billing-top-up-form__control${
+                      topUpError ? " is-invalid" : ""
+                    }`}
+                  >
+                    <div className="fg-billing-top-up-form__entry">
+                      <div className="fg-billing-top-up-form__input-wrap">
+                        <input
+                          className="fg-input"
+                          autoComplete="off"
+                          aria-describedby={topUpError ? topUpAmountErrorId : topUpAmountHintId}
+                          aria-invalid={topUpError ? true : undefined}
+                          id="billing-top-up-amount"
+                          inputMode="numeric"
+                          min={MIN_TOP_UP_UNITS}
+                          name="amountUsd"
+                          onChange={(event) => {
+                            setTopUpAmount(event.target.value);
+                            if (topUpError) {
+                              setTopUpError(null);
+                            }
+                          }}
+                          placeholder="25"
+                          step="1"
+                          type="number"
+                          value={topUpAmount}
+                        />
+                      </div>
+
+                      <div className="fg-settings-form__actions fg-billing-top-up-form__actions">
+                        <Button
+                          disabled={
+                            parsedTopUpUnits === null ||
+                            parsedTopUpUnits < MIN_TOP_UP_UNITS ||
+                            parsedTopUpUnits > MAX_TOP_UP_UNITS ||
+                            hasUnresolvedTopUp
+                          }
+                          loading={isToppingUp}
+                          loadingLabel="Preparing checkout…"
+                          type="submit"
+                          variant="primary"
+                        >
+                          {topUpButtonLabel}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {topUpError ? (
+                    <span className="fg-field-error" id={topUpAmountErrorId}>
+                      {topUpError}
+                    </span>
+                  ) : (
+                    <span className="fg-field-hint" id={topUpAmountHintId}>
+                      {topUpHintText}
+                    </span>
+                  )}
+                </div>
+
+                <div className="fg-billing-top-up-form__footer">
+                  <div
+                    className="fg-billing-top-up-presets"
+                    role="group"
+                    aria-label="Suggested top-up amounts"
+                  >
+                    {BILLING_TOP_UP_PRESET_AMOUNTS.map((amount) => (
+                      <Button
+                        key={amount}
+                        disabled={isToppingUp || hasUnresolvedTopUp}
+                        onClick={() => {
+                          setTopUpAmount(String(amount));
+                          if (topUpError) {
+                            setTopUpError(null);
+                          }
+                        }}
+                        size="tight"
+                        type="button"
+                        variant="secondary"
+                      >
+                        ${amount}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              </form>
+
+              {topUpBlocking ? (
+                <InlineAlert variant="info">Waiting for checkout confirmation…</InlineAlert>
+              ) : null}
+
+              {trackedTopUpRequestId && (topUpPending || topUpStatusError) ? (
+                <div className="fg-billing-top-up-status">
+                  <InlineAlert variant={topUpStatusError ? "error" : "info"}>
+                    {topUpStatusError ??
+                      "Checkout is still being confirmed. Credits appear here automatically after payment clears."}
+                  </InlineAlert>
+
+                  <div className="fg-billing-top-up-status__row">
+                    <span className="fg-billing-top-up-status__request">{trackedTopUpRequestId}</span>
                     <Button
-                      key={amount}
-                      disabled={isToppingUp || hasUnresolvedTopUp}
+                      loading={checkingTopUpStatus}
+                      loadingLabel="Checking…"
                       onClick={() => {
-                        setTopUpAmount(String(amount));
-                        if (topUpError) {
-                          setTopUpError(null);
-                        }
+                        void recheckTopUp();
                       }}
                       size="tight"
                       type="button"
                       variant="secondary"
                     >
-                      ${amount}
+                      Check payment status
                     </Button>
-                  ))}
+                  </div>
                 </div>
-              </div>
-
-              <div className="fg-settings-form__actions fg-billing-top-up-form__actions">
-                <Button
-                  disabled={
-                    parsedTopUpUnits === null ||
-                    parsedTopUpUnits < MIN_TOP_UP_UNITS ||
-                    parsedTopUpUnits > MAX_TOP_UP_UNITS ||
-                    hasUnresolvedTopUp
-                  }
-                  loading={isToppingUp}
-                  loadingLabel="Creating checkout…"
-                  type="submit"
-                  variant="primary"
-                >
-                  Continue to payment
-                </Button>
-              </div>
-            </form>
-
-            {topUpBlocking ? (
-              <InlineAlert variant="info">Checking payment status…</InlineAlert>
-            ) : null}
-
-            {trackedTopUpRequestId && (topUpPending || topUpStatusError) ? (
-              <div className="fg-billing-top-up-status">
-                <InlineAlert variant={topUpStatusError ? "error" : "info"}>
-                  {topUpStatusError ??
-                    "Payment is still processing. Check again in a few seconds if the balance has not updated yet."}
-                </InlineAlert>
-
-                <div className="fg-billing-top-up-status__row">
-                  <span className="fg-billing-top-up-status__request">{trackedTopUpRequestId}</span>
-                  <Button
-                    loading={checkingTopUpStatus}
-                    loadingLabel="Checking…"
-                    onClick={() => {
-                      void recheckTopUp();
-                    }}
-                    size="tight"
-                    type="button"
-                    variant="secondary"
-                  >
-                    Check again
-                  </Button>
-                </div>
-              </div>
-            ) : null}
-          </PanelSection>
-        </Panel>
+              ) : null}
+            </PanelSection>
+          </Panel>
+        </div>
 
         <Panel>
           <PanelSection>
-            <p className="fg-label fg-panel__eyebrow">Ledger</p>
-            <PanelTitle>Recent billing events</PanelTitle>
+            <p className="fg-label fg-panel__eyebrow">History</p>
+            <PanelTitle>Billing activity</PanelTitle>
+            <PanelCopy>Top-ups, balance adjustments, and capacity changes appear here.</PanelCopy>
           </PanelSection>
 
           <PanelSection>

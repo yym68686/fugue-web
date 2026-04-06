@@ -9,8 +9,6 @@ import {
   useRef,
   useState,
   type FormEvent,
-  type MouseEvent as ReactMouseEvent,
-  type PointerEvent as ReactPointerEvent,
 } from "react";
 import dynamic from "next/dynamic";
 
@@ -3109,7 +3107,6 @@ export function ConsoleProjectGallery({
   const galleryRefreshAbortRef = useRef<AbortController | null>(null);
   const galleryRefreshPendingRef = useRef(false);
   const pendingCommitHintRequestPendingRef = useRef(false);
-  const createBackdropPressStartedRef = useRef(false);
   const { markAppDeleting, optimisticProjects } =
     useOptimisticDeletingProjects(data.projects);
 
@@ -3234,27 +3231,6 @@ export function ConsoleProjectGallery({
     const nextUrl = `${url.pathname}${nextSearch ? `?${nextSearch}` : ""}${url.hash}`;
 
     window.history.replaceState(window.history.state, "", nextUrl);
-  }
-
-  function handleCreateBackdropPointerDown(
-    event: ReactPointerEvent<HTMLDivElement>,
-  ) {
-    createBackdropPressStartedRef.current =
-      event.target === event.currentTarget;
-  }
-
-  function handleCreateBackdropClick(event: ReactMouseEvent<HTMLDivElement>) {
-    const shouldClose =
-      createBackdropPressStartedRef.current &&
-      event.target === event.currentTarget;
-
-    createBackdropPressStartedRef.current = false;
-
-    if (!shouldClose) {
-      return;
-    }
-
-    closeCreate();
   }
 
   const refreshGallery = useEffectEvent(
@@ -5179,11 +5155,7 @@ export function ConsoleProjectGallery({
       </div>
 
       {createOpen ? (
-        <div
-          className="fg-console-dialog-backdrop"
-          onClick={handleCreateBackdropClick}
-          onPointerDown={handleCreateBackdropPointerDown}
-        >
+        <div className="fg-console-dialog-backdrop">
           <div
             aria-labelledby="fugue-create-project-title"
             aria-modal="true"

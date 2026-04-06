@@ -47,6 +47,7 @@ export function ConsoleBillingPageShell() {
       {data.state === "ready" ? (
         <BillingPanel
           initialBilling={data.data.billing}
+          initialImageStorageBytes={data.data.imageStorageBytes}
           initialSyncError={data.data.syncError}
           workspaceName={data.data.workspace.tenantName}
         />

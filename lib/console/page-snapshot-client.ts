@@ -77,21 +77,42 @@ function mergeSnapshotValue(key: string, previous: unknown, next: unknown) {
   ) {
     const previousBillingSnapshot = previous as ConsoleBillingPageSnapshot;
     const nextBillingSnapshot = next as ConsoleBillingPageSnapshot;
-
     if (
       previousBillingSnapshot.state === "ready" &&
-      nextBillingSnapshot.state === "ready" &&
-      previousBillingSnapshot.data.billing &&
-      !nextBillingSnapshot.data.billing &&
-      nextBillingSnapshot.data.syncError
+      nextBillingSnapshot.state === "ready"
     ) {
-      return {
-        ...nextBillingSnapshot,
-        data: {
-          ...nextBillingSnapshot.data,
-          billing: previousBillingSnapshot.data.billing,
-        },
-      } satisfies ConsoleBillingPageSnapshot;
+      let didMerge = false;
+      let mergedBilling = nextBillingSnapshot.data.billing;
+      let mergedImageStorageBytes = nextBillingSnapshot.data.imageStorageBytes;
+
+      if (
+        previousBillingSnapshot.data.billing &&
+        !nextBillingSnapshot.data.billing &&
+        nextBillingSnapshot.data.syncError
+      ) {
+        mergedBilling = previousBillingSnapshot.data.billing;
+        didMerge = true;
+      }
+
+      if (
+        previousBillingSnapshot.data.imageStorageBytes !== null &&
+        nextBillingSnapshot.data.imageStorageBytes === null &&
+        nextBillingSnapshot.data.syncError
+      ) {
+        mergedImageStorageBytes = previousBillingSnapshot.data.imageStorageBytes;
+        didMerge = true;
+      }
+
+      if (didMerge) {
+        return {
+          ...nextBillingSnapshot,
+          data: {
+            ...nextBillingSnapshot.data,
+            billing: mergedBilling,
+            imageStorageBytes: mergedImageStorageBytes,
+          },
+        } satisfies ConsoleBillingPageSnapshot;
+      }
     }
   }
 

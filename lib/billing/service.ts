@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 
 import {
   getFugueBillingSummary,
+  getFugueProjectImageUsage,
   topUpFugueBilling,
   updateFugueBilling,
   type FugueBillingSummary,
@@ -34,6 +35,7 @@ import { normalizeEmail } from "@/lib/auth/validation";
 
 export type BillingPageData = {
   billing: FugueBillingSummary | null;
+  imageStorageBytes: number | null;
   syncError: string | null;
   workspace: {
     tenantId: string;
@@ -174,6 +176,15 @@ async function requireWorkspaceAccess(email: string) {
   return workspace;
 }
 
+function sumProjectImageStorageBytes(
+  imageUsage: Awaited<ReturnType<typeof getFugueProjectImageUsage>>,
+) {
+  return (imageUsage.projects ?? []).reduce(
+    (total, project) => total + Math.max(project.totalSizeBytes, 0),
+    0,
+  );
+}
+
 export async function getBillingPageData(email: string) {
   const workspace = await getWorkspaceAccessByEmail(email);
 
@@ -181,27 +192,38 @@ export async function getBillingPageData(email: string) {
     return null;
   }
 
-  try {
-    const billing = await getFugueBillingSummary(workspace.adminKeySecret);
+  const [billingResult, imageUsageResult] = await Promise.allSettled([
+    getFugueBillingSummary(workspace.adminKeySecret),
+    getFugueProjectImageUsage(workspace.adminKeySecret),
+  ]);
 
-    return {
-      billing,
-      syncError: null,
-      workspace: {
-        tenantId: workspace.tenantId,
-        tenantName: workspace.tenantName,
-      },
-    } satisfies BillingPageData;
-  } catch (error) {
+  if (billingResult.status === "rejected") {
     return {
       billing: null,
-      syncError: readErrorMessage(error),
+      imageStorageBytes: null,
+      syncError: readErrorMessage(billingResult.reason),
       workspace: {
         tenantId: workspace.tenantId,
         tenantName: workspace.tenantName,
       },
     } satisfies BillingPageData;
   }
+
+  return {
+    billing: billingResult.value,
+    imageStorageBytes:
+      imageUsageResult.status === "fulfilled"
+        ? sumProjectImageStorageBytes(imageUsageResult.value)
+        : null,
+    syncError:
+      imageUsageResult.status === "rejected"
+        ? "Image storage usage could not be refreshed right now."
+        : null,
+    workspace: {
+      tenantId: workspace.tenantId,
+      tenantName: workspace.tenantName,
+    },
+  } satisfies BillingPageData;
 }
 
 export async function updateBillingForEmail(

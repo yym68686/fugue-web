@@ -1142,108 +1142,153 @@ export function ConsoleWorkspaceSettingsPageSkeleton() {
 export function ConsoleBillingPageSkeleton() {
   return (
     <ConsoleSkeletonPage>
-      <SummaryGridSkeleton />
+      <Panel className="fg-billing-surface fg-billing-surface--health">
+        <PanelSection>
+          <div className="fg-billing-health__head">
+            <div className="fg-billing-section-copy">
+              <SkeletonBlock className="fg-console-skeleton__eyebrow" width="7rem" />
+              <SkeletonBlock className="fg-console-skeleton__section-title" width="18rem" />
+              <SkeletonBlock className="fg-console-skeleton__copy is-wide" width="28rem" />
+            </div>
+
+            <div className="fg-billing-health__meta">
+              <div className="fg-billing-status-row">
+                <SkeletonBlock className="fg-console-skeleton__badge" width="4.75rem" />
+                <SkeletonBlock className="fg-console-skeleton__badge" width="6rem" />
+                <SkeletonBlock className="fg-console-skeleton__badge" width="5.5rem" />
+              </div>
+              <SkeletonBlock className="fg-console-skeleton__item-meta" width="8rem" />
+            </div>
+          </div>
+        </PanelSection>
+
+        <PanelSection>
+          <SummaryGridSkeleton />
+        </PanelSection>
+      </Panel>
 
       <section className="fg-billing-stack">
-        <Panel className="fg-billing-surface fg-billing-surface--envelope">
-          <PanelSection>
-            <div className="fg-billing-hero">
-              <div className="fg-billing-hero__copy">
-                <SkeletonBlock className="fg-console-skeleton__eyebrow" width="8rem" />
+        <div className="fg-console-two-up fg-billing-workbench">
+          <Panel className="fg-billing-surface fg-billing-surface--envelope">
+            <PanelSection>
+              <div className="fg-billing-section-head">
+                <div className="fg-billing-section-copy">
+                  <SkeletonBlock className="fg-console-skeleton__eyebrow" width="5.25rem" />
+                  <SkeletonBlock className="fg-console-skeleton__section-title" width="13rem" />
+                  <SkeletonBlock className="fg-console-skeleton__copy is-wide" width="22rem" />
+                </div>
+              </div>
 
-                <div className="fg-billing-hero__price">
-                  <SkeletonBlock className="fg-console-skeleton__section-label" width="6.5rem" />
+              <div className="fg-billing-signal-grid">
+                {["15rem", "13rem", "12rem"].map((width, index) => (
+                  <article
+                    className={`fg-billing-signal-card${index === 0 ? " is-primary" : ""}`}
+                    key={`billing-capacity-card-${index}`}
+                  >
+                    <SkeletonBlock className="fg-console-skeleton__section-label" width="6rem" />
+                    <SkeletonBlock height={index === 0 ? "3.4rem" : "2.8rem"} radius="1.15rem" width={width} />
+                    <SkeletonBlock className="fg-console-skeleton__copy" width="14rem" />
+                  </article>
+                ))}
+              </div>
+            </PanelSection>
 
-                  <div className="fg-billing-hero__price-line">
-                    <SkeletonBlock height="4.9rem" radius="1.35rem" width="15rem" />
-                    <SkeletonBlock className="fg-console-skeleton__item-meta" width="5.25rem" />
+            <PanelSection>
+              <div className="fg-billing-form__grid">
+                {[0, 1, 2].map((item) => (
+                  <div className="fg-field-stack" key={`billing-envelope-skeleton-${item}`}>
+                    <SkeletonBlock
+                      className="fg-console-skeleton__section-label"
+                      width={item === 0 ? "3rem" : item === 1 ? "4rem" : "4.5rem"}
+                    />
+                    <SkeletonBlock className="fg-console-skeleton__field" height="4.25rem" radius="1.15rem" />
+                    <SkeletonBlock
+                      className="fg-console-skeleton__copy"
+                      width={item === 0 ? "13rem" : item === 1 ? "14rem" : "15rem"}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <div className="fg-settings-form__actions">
+                <SkeletonBlock className="fg-console-skeleton__pill fg-console-skeleton__pill--primary" width="10rem" />
+                <SkeletonBlock className="fg-console-skeleton__pill" width="8rem" />
+              </div>
+            </PanelSection>
+          </Panel>
+
+          <Panel className="fg-billing-surface fg-billing-surface--balance">
+            <PanelSection>
+              <div className="fg-billing-section-head">
+                <div className="fg-billing-section-copy">
+                  <SkeletonBlock className="fg-console-skeleton__eyebrow" width="4.5rem" />
+                  <SkeletonBlock className="fg-console-skeleton__section-title" width="13rem" />
+                  <SkeletonBlock className="fg-console-skeleton__copy is-wide" width="22rem" />
+                </div>
+              </div>
+
+              <div className="fg-billing-signal-grid">
+                {["12rem", "9rem", "9rem"].map((width, index) => (
+                  <article
+                    className={`fg-billing-signal-card${index === 0 ? " is-primary" : ""}`}
+                    key={`billing-credit-card-${index}`}
+                  >
+                    <SkeletonBlock className="fg-console-skeleton__section-label" width="7rem" />
+                    <SkeletonBlock height={index === 0 ? "3.8rem" : "2.8rem"} radius="1.25rem" width={width} />
+                    <SkeletonBlock className="fg-console-skeleton__copy" width="14rem" />
+                  </article>
+                ))}
+              </div>
+            </PanelSection>
+
+            <PanelSection>
+              <SkeletonBlock className="fg-console-skeleton__copy is-wide" width="18rem" />
+
+              <div className="fg-billing-top-up-form">
+                <div className="fg-billing-top-up-form__field fg-field-stack">
+                  <div className="fg-field-label">
+                    <SkeletonBlock className="fg-console-skeleton__section-label" width="7rem" />
                   </div>
 
-                  <div className="fg-billing-hero__meta">
-                    {["8rem", "8.5rem", "8.25rem", "6rem"].map((width) => (
-                      <SkeletonBlock className="fg-console-skeleton__chip" key={width} width={width} />
+                  <div className="fg-field-control fg-billing-top-up-form__control">
+                    <div className="fg-billing-top-up-form__entry">
+                      <SkeletonBlock className="fg-console-skeleton__field" />
+
+                      <div className="fg-settings-form__actions fg-billing-top-up-form__actions">
+                        <SkeletonBlock
+                          className="fg-console-skeleton__pill fg-console-skeleton__pill--primary"
+                          width="12rem"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <SkeletonBlock className="fg-console-skeleton__section-label" width="16rem" />
+                </div>
+
+                <div className="fg-billing-top-up-form__footer">
+                  <div className="fg-billing-top-up-presets">
+                    {["3.75rem", "3.75rem", "3.75rem", "4.25rem"].map((width, index) => (
+                      <SkeletonBlock
+                        className="fg-console-skeleton__pill"
+                        key={`billing-preset-skeleton-${index}`}
+                        width={width}
+                      />
                     ))}
                   </div>
                 </div>
               </div>
-
-              <div className="fg-billing-status-row">
-                <SkeletonBlock className="fg-console-skeleton__badge" width="4.75rem" />
-                <SkeletonBlock className="fg-console-skeleton__badge" width="5.5rem" />
-              </div>
-            </div>
-          </PanelSection>
-
-          <PanelSection>
-            <div className="fg-billing-form__grid">
-              {[0, 1, 2].map((item) => (
-                <div className="fg-field-stack" key={`billing-envelope-skeleton-${item}`}>
-                  <SkeletonBlock
-                    className="fg-console-skeleton__section-label"
-                    width={item === 0 ? "3rem" : item === 1 ? "4rem" : "4.5rem"}
-                  />
-                  <SkeletonBlock className="fg-console-skeleton__field" height="4.25rem" radius="1.15rem" />
-                  <SkeletonBlock
-                    className="fg-console-skeleton__copy"
-                    width={item === 0 ? "13rem" : item === 1 ? "14rem" : "15rem"}
-                  />
-                </div>
-              ))}
-            </div>
-
-            <div className="fg-settings-form__actions">
-              <SkeletonBlock className="fg-console-skeleton__pill fg-console-skeleton__pill--primary" width="8.5rem" />
-              <SkeletonBlock className="fg-console-skeleton__pill" width="6.25rem" />
-            </div>
-          </PanelSection>
-        </Panel>
-
-        <Panel className="fg-billing-surface fg-billing-surface--balance">
-          <PanelSection>
-            <div className="fg-billing-balance__head">
-              <div className="fg-billing-balance__copy">
-                <SkeletonBlock className="fg-console-skeleton__eyebrow" width="5.25rem" />
-                <SkeletonBlock className="fg-console-skeleton__section-title" width="10rem" />
-              </div>
-
-              <div className="fg-billing-status-row">
-                <SkeletonBlock className="fg-console-skeleton__badge" width="4.75rem" />
-              </div>
-            </div>
-
-            <div className="fg-billing-balance__figures">
-              <article className="fg-billing-balance__figure is-primary">
-                <SkeletonBlock className="fg-console-skeleton__section-label" width="4.5rem" />
-                <SkeletonBlock height="3.8rem" radius="1.25rem" width="12rem" />
-              </article>
-
-              <article className="fg-billing-balance__figure">
-                <SkeletonBlock className="fg-console-skeleton__section-label" width="4.25rem" />
-                <SkeletonBlock height="2.8rem" radius="1rem" width="8.5rem" />
-              </article>
-            </div>
-          </PanelSection>
-
-          <PanelSection>
-            <div className="fg-billing-top-up-form">
-              <div className="fg-field-stack">
-                <SkeletonBlock className="fg-console-skeleton__section-label" width="7rem" />
-                <SkeletonBlock className="fg-console-skeleton__field" />
-              </div>
-
-              <div className="fg-settings-form__actions fg-billing-top-up-form__actions">
-                <SkeletonBlock className="fg-console-skeleton__pill fg-console-skeleton__pill--primary" width="9.5rem" />
-              </div>
-            </div>
-          </PanelSection>
-        </Panel>
+            </PanelSection>
+          </Panel>
+        </div>
 
         <Panel>
           <PanelSection>
-            <SkeletonBlock className="fg-console-skeleton__eyebrow" width="4.5rem" />
+            <SkeletonBlock className="fg-console-skeleton__eyebrow" width="4rem" />
             <PanelTitle>
-              <SkeletonBlock className="fg-console-skeleton__section-title" width="12rem" />
+              <SkeletonBlock className="fg-console-skeleton__section-title" width="11rem" />
             </PanelTitle>
+            <SkeletonBlock className="fg-console-skeleton__copy is-wide" width="20rem" />
           </PanelSection>
 
           <PanelSection>

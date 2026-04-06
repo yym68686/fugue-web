@@ -10,8 +10,13 @@ export function ConsoleSummaryGrid({
   ariaLabel?: string;
   items: ConsoleSummaryItem[];
 }) {
+  const threeUp = items.length === 3;
+
   return (
-    <section className="fg-console-metric-grid" aria-label={ariaLabel}>
+    <section
+      className={`fg-console-metric-grid${threeUp ? " is-three-up" : ""}`}
+      aria-label={ariaLabel}
+    >
       {items.map((item) => {
         const value = String(item.value);
         const compact = value.length > 12;

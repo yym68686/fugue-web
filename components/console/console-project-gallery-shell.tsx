@@ -8,8 +8,6 @@ import {
   useRef,
   useState,
   type FormEvent,
-  type MouseEvent as ReactMouseEvent,
-  type PointerEvent as ReactPointerEvent,
 } from "react";
 
 import { CompactResourceMeter } from "@/components/console/compact-resource-meter";
@@ -714,7 +712,6 @@ export function ConsoleProjectGallery({
       buildProjectImageUsageMap(readCachedProjectImageUsage() ?? []),
     );
   const pendingIntent = usePendingProjectIntent(activePendingIntentId);
-  const createBackdropPressStartedRef = useRef(false);
   const galleryRefreshAbortRef = useRef<AbortController | null>(null);
   const galleryRefreshPendingRef = useRef(false);
   const galleryStreamAbortRef = useRef<AbortController | null>(null);
@@ -1323,27 +1320,6 @@ export function ConsoleProjectGallery({
     clearCreateDialogUrl();
   }
 
-  function handleCreateBackdropPointerDown(
-    event: ReactPointerEvent<HTMLDivElement>,
-  ) {
-    createBackdropPressStartedRef.current =
-      event.target === event.currentTarget;
-  }
-
-  function handleCreateBackdropClick(event: ReactMouseEvent<HTMLDivElement>) {
-    const shouldClose =
-      createBackdropPressStartedRef.current &&
-      event.target === event.currentTarget;
-
-    createBackdropPressStartedRef.current = false;
-
-    if (!shouldClose) {
-      return;
-    }
-
-    closeCreate();
-  }
-
   function focusPendingIntentCard() {
     setPendingIntentFocused(true);
     setRequestedProjectId(null);
@@ -1796,11 +1772,7 @@ export function ConsoleProjectGallery({
       </div>
 
       {createOpen ? (
-        <div
-          className="fg-console-dialog-backdrop"
-          onClick={handleCreateBackdropClick}
-          onPointerDown={handleCreateBackdropPointerDown}
-        >
+        <div className="fg-console-dialog-backdrop">
           <div
             aria-labelledby="fugue-create-project-title"
             aria-modal="true"

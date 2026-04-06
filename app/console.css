@@ -1012,6 +1012,10 @@
   gap: 0.85rem;
 }
 
+.fg-console-metric-grid.is-three-up {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .fg-console-metric-card {
   display: grid;
   gap: 0.9rem;
@@ -1064,6 +1068,8 @@
   font-size: clamp(1.18rem, 1.8vw, 1.5rem);
   line-height: 1.05;
   letter-spacing: -0.04em;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
 }
 
 .fg-console-board,
@@ -3998,6 +4004,115 @@
     rgba(8, 11, 15, 0.9);
 }
 
+.fg-billing-surface--health > .fg-bezel__inner {
+  background:
+    radial-gradient(circle at top left, rgba(165, 191, 220, 0.11), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.032), rgba(255, 255, 255, 0.012)),
+    rgba(7, 10, 14, 0.9);
+}
+
+.fg-billing-health__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.fg-billing-section-head {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.fg-billing-section-copy {
+  min-width: 0;
+  display: grid;
+  gap: 0.28rem;
+}
+
+.fg-billing-health__meta {
+  display: grid;
+  gap: 0.65rem;
+  justify-items: end;
+}
+
+.fg-billing-health__stamp,
+.fg-billing-top-up-note {
+  margin: 0;
+  color: var(--fugue-text-tertiary);
+  font-size: 0.84rem;
+  line-height: 1.58;
+}
+
+.fg-billing-workbench {
+  align-items: stretch;
+}
+
+.fg-billing-workbench > .fg-billing-surface {
+  height: 100%;
+}
+
+.fg-billing-workbench > .fg-billing-surface > .fg-bezel__inner {
+  height: 100%;
+}
+
+.fg-billing-signal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.85rem;
+  margin-top: 1rem;
+}
+
+.fg-billing-signal-card {
+  min-width: 0;
+  display: grid;
+  gap: 0.42rem;
+  padding: 1.02rem 1.08rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1.2rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.028), rgba(255, 255, 255, 0.012)),
+    rgba(8, 11, 15, 0.74);
+}
+
+.fg-billing-signal-card.is-primary {
+  background:
+    radial-gradient(circle at top right, rgba(165, 191, 220, 0.12), transparent 40%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.034), rgba(255, 255, 255, 0.012)),
+    rgba(8, 11, 15, 0.78);
+}
+
+.fg-billing-signal-card span {
+  color: var(--fugue-text-muted);
+  font-family: var(--fugue-font-mono);
+  font-size: var(--fugue-type-meta-small);
+  line-height: var(--fugue-leading-meta);
+  letter-spacing: 0.08em;
+  text-transform: none;
+}
+
+.fg-billing-signal-card strong {
+  color: var(--fugue-text-primary);
+  font-family: var(--fugue-font-ui-heading);
+  font-size: clamp(1.34rem, 2.35vw, 1.95rem);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.02;
+  letter-spacing: -0.05em;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+.fg-billing-signal-card.is-primary strong {
+  font-size: clamp(1.6rem, 2.8vw, 2.4rem);
+}
+
+.fg-billing-signal-card p {
+  margin: 0;
+  color: var(--fugue-text-secondary);
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+
 .fg-billing-hero {
   display: flex;
   justify-content: space-between;
@@ -4165,15 +4280,33 @@
 
 .fg-billing-top-up-form {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 1rem;
-  align-items: end;
+  gap: 0.9rem;
 }
 
 .fg-billing-top-up-form__field {
   display: grid;
   gap: 0.72rem;
   min-width: 0;
+}
+
+.fg-billing-top-up-form__control,
+.fg-billing-top-up-form__input-wrap {
+  min-width: 0;
+}
+
+.fg-billing-top-up-form__entry {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: end;
+}
+
+.fg-billing-top-up-form__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.9rem;
 }
 
 .fg-billing-top-up-presets {
@@ -4183,11 +4316,11 @@
 }
 
 .fg-billing-top-up-form__actions {
-  align-self: end;
+  justify-content: flex-end;
 }
 
 .fg-billing-top-up-form__actions .fg-button {
-  min-width: 9.75rem;
+  min-width: 12rem;
 }
 
 .fg-billing-top-up-status {
@@ -4566,11 +4699,23 @@
 }
 
 @media (max-width: 860px) {
+  .fg-billing-health__head {
+    display: grid;
+  }
+
+  .fg-billing-health__meta {
+    justify-items: start;
+  }
+
   .fg-billing-hero {
     display: grid;
   }
 
   .fg-billing-form__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fg-billing-signal-grid {
     grid-template-columns: 1fr;
   }
 
@@ -4582,6 +4727,15 @@
   .fg-billing-balance__figures,
   .fg-billing-top-up-form {
     grid-template-columns: 1fr;
+  }
+
+  .fg-billing-top-up-form__entry {
+    grid-template-columns: 1fr;
+  }
+
+  .fg-billing-top-up-form__footer {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .fg-billing-balance__figures {
@@ -4602,6 +4756,10 @@
 
   .fg-billing-top-up-form__actions {
     justify-content: flex-start;
+  }
+
+  .fg-billing-top-up-form__actions .fg-button {
+    width: 100%;
   }
 
   .fg-billing-top-up-status__row {
