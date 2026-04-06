@@ -5746,11 +5746,16 @@ export function ConsoleProjectWorkbench({
           return false;
         }
 
-        startTransition(() => {
-          setDetail(nextDetail);
-        });
-        setDetailStatus("ready");
-        return true;
+        setDetail(nextDetail);
+
+        if (nextDetail.project) {
+          setDetailStatus("ready");
+          return true;
+        }
+
+        setDetailError("Project detail is not available yet.");
+        setDetailStatus("error");
+        return false;
       } catch (error) {
         if (controller.signal.aborted || isAbortRequestError(error)) {
           return false;
