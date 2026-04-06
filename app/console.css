@@ -5811,45 +5811,71 @@
 }
 
 .fg-code-textarea .token.punctuation,
-.fg-code-textarea .token.operator {
+.fg-code-textarea .token.interpolation-punctuation {
   color: var(--fugue-code-textarea-token-punctuation);
 }
 
-.fg-code-textarea .token.property,
-.fg-code-textarea .token.tag,
+.fg-code-textarea .token.operator {
+  color: var(--fugue-code-textarea-token-operator);
+}
+
 .fg-code-textarea .token.boolean,
 .fg-code-textarea .token.constant,
-.fg-code-textarea .token.symbol,
-.fg-code-textarea .token.deleted,
 .fg-code-textarea .token.keyword,
 .fg-code-textarea .token.selector,
-.fg-code-textarea .token.atrule,
-.fg-code-textarea .token.attr-name {
+.fg-code-textarea .token.atrule {
   color: var(--fugue-code-textarea-token-keyword);
+}
+
+.fg-code-textarea .token.tag {
+  color: var(--fugue-code-textarea-token-tag);
+}
+
+.fg-code-textarea .token.property,
+.fg-code-textarea .token.variable,
+.fg-code-textarea .token.parameter,
+.fg-code-textarea .token.entity {
+  color: var(--fugue-code-textarea-token-variable);
+}
+
+.fg-code-textarea .token.attr-name {
+  color: var(--fugue-code-textarea-token-attribute);
 }
 
 .fg-code-textarea .token.string,
 .fg-code-textarea .token.char,
 .fg-code-textarea .token.attr-value,
-.fg-code-textarea .token.inserted {
+.fg-code-textarea .token.url {
   color: var(--fugue-code-textarea-token-string);
 }
 
+.fg-code-textarea .token.inserted {
+  color: var(--fugue-code-textarea-token-inserted);
+}
+
+.fg-code-textarea .token.deleted {
+  color: var(--fugue-code-textarea-token-deleted);
+}
+
 .fg-code-textarea .token.number,
-.fg-code-textarea .token.builtin {
+.fg-code-textarea .token.symbol {
   color: var(--fugue-code-textarea-token-number);
 }
 
 .fg-code-textarea .token.regex,
-.fg-code-textarea .token.important,
-.fg-code-textarea .token.variable,
-.fg-code-textarea .token.entity {
-  color: var(--fugue-code-textarea-token-operator);
+.fg-code-textarea .token.important {
+  color: var(--fugue-code-textarea-token-regex);
 }
 
 .fg-code-textarea .token.function,
-.fg-code-textarea .token.class-name {
+.fg-code-textarea .token.function-variable {
   color: var(--fugue-code-textarea-token-function);
+}
+
+.fg-code-textarea .token.class-name,
+.fg-code-textarea .token.namespace,
+.fg-code-textarea .token.builtin {
+  color: var(--fugue-code-textarea-token-type);
 }
 
 .fg-filesystem-layout {

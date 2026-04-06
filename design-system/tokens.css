@@ -222,14 +222,21 @@
   --fugue-button-shadow-hover:
     0 24px 44px -28px rgba(0, 0, 0, 0.66),
     inset 0 1px 0 rgba(255, 255, 255, 0.09);
-  --fugue-code-textarea-token-foreground: var(--fugue-text-primary);
-  --fugue-code-textarea-token-muted: var(--fugue-text-muted);
-  --fugue-code-textarea-token-punctuation: rgba(244, 239, 231, 0.74);
-  --fugue-code-textarea-token-keyword: var(--fugue-status-badge-text-info);
-  --fugue-code-textarea-token-string: var(--fugue-status-badge-text-positive);
-  --fugue-code-textarea-token-number: var(--fugue-status-badge-text-warning);
-  --fugue-code-textarea-token-operator: var(--fugue-status-badge-text-danger);
-  --fugue-code-textarea-token-function: var(--fugue-text-secondary);
+  --fugue-code-textarea-token-foreground: #d4d4d4;
+  --fugue-code-textarea-token-muted: #6a9955;
+  --fugue-code-textarea-token-punctuation: rgba(212, 212, 212, 0.82);
+  --fugue-code-textarea-token-keyword: #569cd6;
+  --fugue-code-textarea-token-tag: #569cd6;
+  --fugue-code-textarea-token-attribute: #9cdcfe;
+  --fugue-code-textarea-token-string: #ce9178;
+  --fugue-code-textarea-token-number: #b5cea8;
+  --fugue-code-textarea-token-operator: rgba(212, 212, 212, 0.88);
+  --fugue-code-textarea-token-function: #dcdcaa;
+  --fugue-code-textarea-token-type: #4ec9b0;
+  --fugue-code-textarea-token-variable: #9cdcfe;
+  --fugue-code-textarea-token-regex: #d7ba7d;
+  --fugue-code-textarea-token-inserted: #73c991;
+  --fugue-code-textarea-token-deleted: #f48771;
   --fugue-code-textarea-token-selection: rgba(165, 191, 220, 0.18);
   --fugue-button-icon-size: 2rem;
   --fugue-button-icon-size-compact: 1.8rem;
