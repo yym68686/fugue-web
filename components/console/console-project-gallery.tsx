@@ -304,6 +304,7 @@ const PROJECT_ACTIVE_REFRESH_INTERVAL_MS = 3_000;
 const PROJECT_PASSIVE_REFRESH_INTERVAL_MS = 6_000;
 const LOG_TAIL_LINES = 200;
 const APP_ENV_PREFETCH_CONCURRENCY = 3;
+const WORKBENCH_LAYER_PREFETCH_CONCURRENCY = 3;
 const PROJECT_IMAGE_USAGE_CACHE_TTL_MS = 60_000;
 
 type CachedEnvState = {
@@ -1253,68 +1254,169 @@ function readServiceWarmupKey(service: ConsoleGalleryServiceView | null) {
   return `${serviceKey(service)}:${service.phase}:${storageSignature}`;
 }
 
+async function warmItemsWithConcurrency<T>(
+  items: readonly T[],
+  warm: (item: T) => Promise<unknown>,
+  options?: {
+    concurrency?: number;
+    signal?: AbortSignal;
+  },
+) {
+  if (!items.length) {
+    return;
+  }
+
+  const concurrency = Math.max(
+    1,
+    Math.min(
+      options?.concurrency ?? WORKBENCH_LAYER_PREFETCH_CONCURRENCY,
+      items.length,
+    ),
+  );
+  let nextIndex = 0;
+
+  await Promise.all(
+    Array.from({ length: concurrency }, async () => {
+      while (!options?.signal?.aborted) {
+        const item = items[nextIndex];
+        nextIndex += 1;
+
+        if (!item) {
+          return;
+        }
+
+        try {
+          await warm(item);
+        } catch (error) {
+          if (options?.signal?.aborted || isAbortRequestError(error)) {
+            return;
+          }
+        }
+      }
+    }),
+  );
+}
+
+function orderServicesForWarmup(
+  services: ConsoleGalleryProjectView["services"],
+  selectedService: ConsoleGalleryServiceView | null,
+) {
+  const orderedServices: ConsoleGalleryProjectView["services"] = [];
+  const seenServiceKeys = new Set<string>();
+
+  if (selectedService) {
+    orderedServices.push(selectedService);
+    seenServiceKeys.add(serviceKey(selectedService));
+  }
+
+  for (const service of services) {
+    const key = serviceKey(service);
+
+    if (seenServiceKeys.has(key)) {
+      continue;
+    }
+
+    seenServiceKeys.add(key);
+    orderedServices.push(service);
+  }
+
+  return orderedServices;
+}
+
 function useWorkbenchAnticipatoryWarmup(
+  services: ConsoleGalleryProjectView["services"],
   selectedService: ConsoleGalleryServiceView | null,
 ) {
   const warmWorkbenchResources = useEffectEvent(async (signal: AbortSignal) => {
-    if (!selectedService) {
+    const orderedServices = orderServicesForWarmup(services, selectedService);
+
+    if (!orderedServices.length) {
       return;
     }
 
+    const appServices = orderedServices.filter(
+      (service): service is { kind: "app" } & ConsoleGalleryAppView =>
+        service.kind === "app",
+    );
+    const runningAppServices = appServices.filter(
+      (service) =>
+        service.serviceRole === "running" && !isPausedAppService(service),
+    );
+    const hasBackingServices = orderedServices.some(
+      (service) => service.kind === "backing-service",
+    );
     const tasks: Promise<unknown>[] = [];
 
-    if (selectedService.kind === "app") {
+    if (orderedServices.length > 0) {
+      tasks.push(
+        warmConsoleRuntimeTargetInventory({
+          signal,
+        }),
+      );
+    }
+
+    if (appServices.length > 0) {
       tasks.push(import("@/components/console/app-route-panel"));
       tasks.push(import("@/components/console/app-settings-panel"));
       tasks.push(
         import("@/components/console/app-images-panel").then((module) =>
-          module.warmAppImageInventory(selectedService.id, {
-            signal,
-          }),
+          warmItemsWithConcurrency(
+            appServices,
+            (service) =>
+              module.warmAppImageInventory(service.id, {
+                signal,
+              }),
+            {
+              concurrency: WORKBENCH_LAYER_PREFETCH_CONCURRENCY,
+              signal,
+            },
+          ),
         ),
       );
       tasks.push(
-        warmConsoleAppEnvStates([selectedService.id], {
-          concurrency: 1,
-          signal,
-        }),
-      );
-      tasks.push(
-        warmConsoleRuntimeTargetInventory({
-          signal,
-        }),
+        warmConsoleAppEnvStates(
+          appServices.map((service) => service.id),
+          {
+            concurrency: WORKBENCH_LAYER_PREFETCH_CONCURRENCY,
+            signal,
+          },
+        ),
       );
 
-      if (
-        selectedService.serviceRole === "running" &&
-        !isPausedAppService(selectedService)
-      ) {
+      if (runningAppServices.length > 0) {
         tasks.push(
           import("@/components/console/console-files-workbench").then(
             (module) =>
-              module.warmConsoleFilesWorkbench({
-                appId: selectedService.id,
-                persistentStorageMounts: selectedService.persistentStorageMounts,
-                signal,
-              }),
+              warmItemsWithConcurrency(
+                runningAppServices,
+                (service) =>
+                  module.warmConsoleFilesWorkbench({
+                    appId: service.id,
+                    persistentStorageMounts: service.persistentStorageMounts,
+                    signal,
+                  }),
+                {
+                  concurrency: WORKBENCH_LAYER_PREFETCH_CONCURRENCY,
+                  signal,
+                },
+              ),
           ),
         );
       }
-    } else {
+    }
+
+    if (hasBackingServices) {
       tasks.push(import("@/components/console/backing-service-settings-panel"));
-      tasks.push(
-        warmConsoleRuntimeTargetInventory({
-          signal,
-        }),
-      );
     }
 
     await Promise.allSettled(tasks);
   });
 
+  const layerWarmupKey = services.map(readServiceWarmupKey).join("||");
+
   useAnticipatoryWarmup(
-    selectedService ? warmWorkbenchResources : null,
-    [readServiceWarmupKey(selectedService)],
+    services.length > 0 ? warmWorkbenchResources : null,
+    [layerWarmupKey, readServiceWarmupKey(selectedService)],
     {
       mode: "idle",
       timeoutMs: 1_000,
@@ -3398,7 +3500,7 @@ export function ConsoleProjectGallery({
     selectedServiceApp,
     effectiveLogsMode,
   );
-  useWorkbenchAnticipatoryWarmup(selectedService);
+  useWorkbenchAnticipatoryWarmup(selectedProjectServices, selectedService);
   const dataErrorMessage = data.errors.length
     ? `Partial Fugue data: ${data.errors.join(" | ")}.`
     : null;
@@ -5620,7 +5722,7 @@ export function ConsoleProjectWorkbench({
     selectedServiceApp,
     effectiveLogsMode,
   );
-  useWorkbenchAnticipatoryWarmup(selectedService);
+  useWorkbenchAnticipatoryWarmup(detailProjectServices, selectedService);
 
   const refreshDetail = useEffectEvent(
     async (options?: { force?: boolean; silent?: boolean }) => {

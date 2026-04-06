@@ -82,6 +82,75 @@ export function invalidateConsoleProjectDetails(projectIds: string | string[]) {
   }
 }
 
+function createTrackedProjectDetailRequest(
+  projectId: string,
+  execute: () => Promise<ConsoleProjectDetailData>,
+) {
+  const request = execute().finally(() => {
+    if (projectDetailRequestCache.get(projectId) === request) {
+      projectDetailRequestCache.delete(projectId);
+    }
+  });
+
+  projectDetailRequestCache.set(projectId, request);
+  return request;
+}
+
+async function requestConsoleProjectDetailFromApi(
+  projectId: string,
+  options?: {
+    signal?: AbortSignal;
+  },
+) {
+  if (options?.signal?.aborted) {
+    throw createAbortRequestError();
+  }
+
+  const requestEpoch = projectDetailEpoch;
+  const detail = await requestJson<ConsoleProjectDetailData>(
+    `/api/fugue/console/projects/${projectId}`,
+    {
+      cache: "no-store",
+    },
+  );
+
+  if (projectDetailEpoch === requestEpoch) {
+    writeCachedConsoleProjectDetail(projectId, detail);
+  }
+
+  return detail;
+}
+
+function createWarmupBackedProjectDetailRequest(
+  projectId: string,
+  warmupRequest: Promise<void>,
+  options?: {
+    signal?: AbortSignal;
+  },
+) {
+  return createTrackedProjectDetailRequest(projectId, async () => {
+    try {
+      await warmupRequest;
+    } catch (error) {
+      if (options?.signal?.aborted || isAbortRequestError(error)) {
+        throw error;
+      }
+    }
+
+    if (options?.signal?.aborted) {
+      throw createAbortRequestError();
+    }
+
+    const cached = readCachedConsoleProjectDetail(projectId);
+
+    if (cached) {
+      return cached;
+    }
+
+    return requestConsoleProjectDetailFromApi(projectId, options);
+  });
+}
+
 function hasFreshProjectDetailWarmup() {
   return Date.now() - projectDetailWarmupAt < PROJECT_DETAIL_CACHE_TTL_MS;
 }
@@ -181,29 +250,9 @@ export async function fetchConsoleProjectDetail(
     return pendingRequest;
   }
 
-  const requestEpoch = projectDetailEpoch;
-
-  const request = requestJson<ConsoleProjectDetailData>(
-    `/api/fugue/console/projects/${normalizedProjectId}`,
-    {
-      cache: "no-store",
-    },
-  )
-    .then((detail) => {
-      if (projectDetailEpoch === requestEpoch) {
-        writeCachedConsoleProjectDetail(normalizedProjectId, detail);
-      }
-
-      return detail;
-    })
-    .finally(() => {
-      if (projectDetailRequestCache.get(normalizedProjectId) === request) {
-        projectDetailRequestCache.delete(normalizedProjectId);
-      }
-    });
-
-  projectDetailRequestCache.set(normalizedProjectId, request);
-  return request;
+  return createTrackedProjectDetailRequest(normalizedProjectId, () =>
+    requestConsoleProjectDetailFromApi(normalizedProjectId, options),
+  );
 }
 
 export async function warmConsoleProjectDetails(
@@ -222,22 +271,22 @@ export async function warmConsoleProjectDetails(
   }
 
   if (queue.length > 1) {
-    try {
-      await warmAllConsoleProjectDetails({
+    const warmupRequest = warmAllConsoleProjectDetails({
+      signal: options?.signal,
+    });
+    const requests = queue.map((projectId) => {
+      const pendingRequest = projectDetailRequestCache.get(projectId);
+
+      if (pendingRequest) {
+        return pendingRequest;
+      }
+
+      return createWarmupBackedProjectDetailRequest(projectId, warmupRequest, {
         signal: options?.signal,
       });
-    } catch (error) {
-      if (options?.signal?.aborted || isAbortRequestError(error)) {
-        return;
-      }
-    }
-  }
+    });
 
-  const remainingQueue = queue.filter(
-    (projectId) => !readCachedConsoleProjectDetail(projectId),
-  );
-
-  if (!remainingQueue.length) {
+    await Promise.allSettled(requests);
     return;
   }
 
@@ -245,7 +294,7 @@ export async function warmConsoleProjectDetails(
     1,
     Math.min(
       options?.concurrency ?? PROJECT_DETAIL_PREFETCH_CONCURRENCY,
-      remainingQueue.length,
+      queue.length,
     ),
   );
   let nextIndex = 0;
@@ -253,7 +302,7 @@ export async function warmConsoleProjectDetails(
   await Promise.all(
     Array.from({ length: concurrency }, async () => {
       while (!options?.signal?.aborted) {
-        const projectId = remainingQueue[nextIndex];
+        const projectId = queue[nextIndex];
         nextIndex += 1;
 
         if (!projectId) {
