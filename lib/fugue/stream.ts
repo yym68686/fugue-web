@@ -50,7 +50,7 @@ function proxyEventStreamBody(
   signal?: AbortSignal,
 ) {
   return new ReadableStream<Uint8Array>({
-    async start(controller) {
+    start(controller) {
       const reader = upstream.getReader();
       const abortUpstream = () => {
         void reader.cancel().catch(() => undefined);
@@ -58,30 +58,34 @@ function proxyEventStreamBody(
 
       signal?.addEventListener("abort", abortUpstream, { once: true });
 
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
+      // Keep start() synchronous so long-lived SSE streams can flush
+      // immediately instead of waiting for the entire pump to finish.
+      void (async () => {
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
 
-          if (done) {
+            if (done) {
+              controller.close();
+              return;
+            }
+
+            if (value && value.byteLength > 0) {
+              controller.enqueue(value);
+            }
+          }
+        } catch (error) {
+          if (signal?.aborted) {
             controller.close();
             return;
           }
 
-          if (value && value.byteLength > 0) {
-            controller.enqueue(value);
-          }
+          controller.error(error);
+        } finally {
+          signal?.removeEventListener("abort", abortUpstream);
+          reader.releaseLock();
         }
-      } catch (error) {
-        if (signal?.aborted) {
-          controller.close();
-          return;
-        }
-
-        controller.error(error);
-      } finally {
-        signal?.removeEventListener("abort", abortUpstream);
-        reader.releaseLock();
-      }
+      })();
     },
     async cancel(reason) {
       await upstream.cancel(reason).catch(() => undefined);
