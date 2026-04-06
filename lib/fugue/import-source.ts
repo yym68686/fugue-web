@@ -34,6 +34,7 @@ export type ImportServiceDraft = {
   repoVisibility: GitHubRepoVisibility;
   runtimeId: string | null;
   servicePort: string;
+  startupCommand: string;
   sourceDir: string;
   sourceMode: ImportSourceMode;
 };
@@ -69,6 +70,7 @@ export function createImportServiceDraft(
     repoVisibility: "public",
     runtimeId,
     servicePort: "",
+    startupCommand: "",
     sourceDir: "",
     sourceMode: "github",
   };
@@ -176,6 +178,10 @@ export function buildImportServicePayload(draft: ImportServiceDraft) {
 
   if (normalizedServicePort) {
     payload.servicePort = normalizedServicePort;
+  }
+
+  if (draft.startupCommand.trim()) {
+    payload.startupCommand = draft.startupCommand.trim();
   }
 
   if (draft.sourceMode === "github") {

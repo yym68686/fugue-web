@@ -306,6 +306,26 @@ function buildRuntimeTargetLocationMap(nodes: FugueClusterNode[]) {
   return locations;
 }
 
+function readRuntimeTargetLocationView(
+  runtimeLocationsById: ReadonlyMap<string, RuntimeTargetLocationView>,
+  runtimeId?: string | null,
+): WorkloadLocationView | null {
+  if (!runtimeId) {
+    return null;
+  }
+
+  const location = runtimeLocationsById.get(runtimeId);
+
+  if (!location) {
+    return null;
+  }
+
+  return {
+    locationCountryCode: location.locationCountryCode,
+    locationLabel: location.locationLabel ?? location.locationCountryLabel,
+  };
+}
+
 function humanize(value?: string | null) {
   if (!value) {
     return "Unknown";
@@ -343,7 +363,9 @@ function readAppPhaseLabel(value?: string | null) {
     normalized.includes("deployed") ||
     normalized.includes("running") ||
     normalized.includes("healthy") ||
-    normalized.includes("active")
+    normalized.includes("active") ||
+    normalized.includes("migrated") ||
+    normalized.includes("failed-over")
   ) {
     return "Running";
   }
@@ -469,7 +491,9 @@ function toneForStatus(status?: string | null): ConsoleTone {
     normalized.includes("running") ||
     normalized.includes("building") ||
     normalized.includes("deploying") ||
-    normalized.includes("importing")
+    normalized.includes("importing") ||
+    normalized.includes("transferring") ||
+    normalized.includes("failing-over")
   ) {
     return "info";
   }
@@ -478,7 +502,9 @@ function toneForStatus(status?: string | null): ConsoleTone {
     normalized.includes("healthy") ||
     normalized.includes("active") ||
     normalized.includes("deployed") ||
-    normalized.includes("completed")
+    normalized.includes("completed") ||
+    normalized.includes("migrated") ||
+    normalized.includes("failed-over")
   ) {
     return "positive";
   }
@@ -523,6 +549,24 @@ function readNormalizedOperationType(operation?: FugueOperation | null) {
 
 function readNormalizedOperationStatus(operation?: FugueOperation | null) {
   return operation?.status?.trim().toLowerCase() ?? "";
+}
+
+function isTransferOperation(operation?: FugueOperation | null) {
+  const normalizedType = readNormalizedOperationType(operation);
+  const normalizedStatus = readNormalizedOperationStatus(operation);
+
+  return (
+    normalizedType === "migrate" ||
+    normalizedType === "failover" ||
+    normalizedStatus.includes("migrat") ||
+    normalizedStatus.includes("failover") ||
+    normalizedStatus.includes("failing-over") ||
+    normalizedStatus.includes("transfer")
+  );
+}
+
+function readActiveAppRuntimeId(app: FugueApp) {
+  return app.status.currentRuntimeId?.trim() || app.spec.runtimeId?.trim() || null;
 }
 
 function isReleaseOperationCandidate(operation?: FugueOperation | null) {
@@ -707,9 +751,16 @@ function hasLiveRelease(app: FugueApp) {
 
   return (
     normalizedPhase.length > 0 &&
-    ["running", "healthy", "active", "deployed", "disabled", "paused"].some(
-      (keyword) => normalizedPhase.includes(keyword),
-    )
+    [
+      "running",
+      "healthy",
+      "active",
+      "deployed",
+      "disabled",
+      "paused",
+      "migrated",
+      "failed-over",
+    ].some((keyword) => normalizedPhase.includes(keyword))
   );
 }
 
@@ -729,6 +780,8 @@ function readActiveReleaseOperation(
   const normalizedStatus = operation.status?.trim().toLowerCase() ?? "";
   const desiredCommit = readOperationCommitSha(operation);
   const runningCommit = app.source.commitSha?.trim() || null;
+  const activeRuntimeId = readActiveAppRuntimeId(app);
+  const targetRuntimeId = operation.targetRuntimeId?.trim() || null;
 
   if (
     normalizedType === "import" ||
@@ -739,9 +792,28 @@ function readActiveReleaseOperation(
   }
 
   if (
+    (normalizedType === "migrate" || normalizedType === "failover") &&
+    targetRuntimeId &&
+    targetRuntimeId !== activeRuntimeId
+  ) {
+    return operation;
+  }
+
+  if (
     normalizedStatus.includes("import") ||
     normalizedStatus.includes("build") ||
     normalizedStatus.includes("deploy")
+  ) {
+    return operation;
+  }
+
+  if (
+    (normalizedStatus.includes("migrat") ||
+      normalizedStatus.includes("failover") ||
+      normalizedStatus.includes("failing-over") ||
+      normalizedStatus.includes("transfer")) &&
+    targetRuntimeId &&
+    targetRuntimeId !== activeRuntimeId
   ) {
     return operation;
   }
@@ -768,6 +840,13 @@ function readRunningServiceMessage(
   activeOperation?: FugueOperation | null,
 ) {
   if (activeOperation) {
+    if (isTransferOperation(activeOperation)) {
+      return readPendingCommitState(activeOperation).stateLabel ===
+        "Transfer queued"
+        ? "Serving the current runtime while the transfer waits to start."
+        : "Serving the current runtime while the transfer prepares the destination.";
+    }
+
     const pendingState = readPendingCommitState(activeOperation).stateLabel;
 
     if (pendingState === "Queued") {
@@ -785,6 +864,12 @@ function readRunningServiceMessage(
 }
 
 function readPendingServiceMessage(app: FugueApp, operation: FugueOperation) {
+  if (isTransferOperation(operation)) {
+    return readPendingCommitState(operation).stateLabel === "Transfer queued"
+      ? "Queued to transfer this service to the selected runtime."
+      : "Preparing the destination runtime before traffic switches over.";
+  }
+
   const operationMessage = normalizeServiceMessage(
     operation.resultMessage?.trim() || operation.errorMessage?.trim(),
   );
@@ -812,9 +897,30 @@ function readPendingCommitState(
     normalizedStatus.includes("queued") ||
     normalizedStatus.includes("pending")
   ) {
+    if (isTransferOperation(operation)) {
+      return {
+        stateLabel: "Transfer queued",
+        tone: "warning",
+      };
+    }
+
     return {
       stateLabel: "Queued",
       tone: "warning",
+    };
+  }
+
+  if (
+    normalizedType === "migrate" ||
+    normalizedType === "failover" ||
+    normalizedStatus.includes("migrat") ||
+    normalizedStatus.includes("failover") ||
+    normalizedStatus.includes("failing-over") ||
+    normalizedStatus.includes("transfer")
+  ) {
+    return {
+      stateLabel: "Transferring",
+      tone: "info",
     };
   }
 
@@ -1469,7 +1575,9 @@ function buildPersistentStorageMountView(
 function buildSharedAppView(
   app: FugueApp,
   options?: {
+    currentRuntimeId?: string | null;
     location?: WorkloadLocationView | null;
+    runtimeId?: string | null;
     source?: FugueAppSource | null;
     techStack?: FugueAppTechnology[];
   },
@@ -1496,11 +1604,22 @@ function buildSharedAppView(
 
   return {
     canRedeploy: redeploy.canRedeploy,
-    currentRuntimeId: app.status.currentRuntimeId ?? app.spec.runtimeId,
+    currentRuntimeId:
+      options?.currentRuntimeId ??
+      app.status.currentRuntimeId ??
+      options?.runtimeId ??
+      app.spec.runtimeId ??
+      null,
     deployBehavior: readDeployBehavior(app),
     failoverAuto: app.spec.failover?.auto ?? false,
     failoverConfigured: Boolean(app.spec.failover),
     failoverTargetRuntimeId: app.spec.failover?.targetRuntimeId ?? null,
+    hasManagedPostgresService: app.backingServices.some(
+      (service) =>
+        service.type === "postgres" &&
+        (!service.provisioner || service.provisioner === "managed"),
+    ),
+    hasPersistentWorkspace: Boolean(app.spec.workspace),
     hasPostgresService: app.backingServices.some(
       (service) => service.type === "postgres",
     ),
@@ -1511,6 +1630,7 @@ function buildSharedAppView(
     name: app.name,
     primaryBadge,
     replicaCount: app.spec.replicas ?? null,
+    startupCommand: app.spec.startupCommand ?? null,
     redeployActionDescription: redeployAction.description,
     redeployActionLabel: redeployAction.label,
     redeployActionLoadingLabel: redeployAction.loadingLabel,
@@ -1521,7 +1641,7 @@ function buildSharedAppView(
     routeHostname,
     routeLabel: route.label,
     routePublicUrl: app.route.publicUrl?.trim() || null,
-    runtimeId: app.spec.runtimeId ?? null,
+    runtimeId: options?.runtimeId ?? app.spec.runtimeId ?? null,
     serviceBadges,
     sourceBranchHref:
       sourceBranchLabel && sourceBranchLabel !== "Default branch"
@@ -1558,6 +1678,7 @@ function buildAppView(
   app: FugueApp,
   commitOperations?: AppCommitOperations,
   location?: WorkloadLocationView | null,
+  runtimeLocationsById: ReadonlyMap<string, RuntimeTargetLocationView> = new Map(),
 ): ConsoleGalleryAppView[] {
   const activeOperation = readActiveReleaseOperation(
     commitOperations?.active ?? null,
@@ -1588,10 +1709,20 @@ function buildAppView(
     fallbackPhase,
     activeOperation,
   );
+  const pendingRuntimeId =
+    activeOperation && isTransferOperation(activeOperation)
+      ? activeOperation.targetRuntimeId?.trim() || null
+      : null;
+  const pendingLocation =
+    pendingRuntimeId !== null
+      ? readRuntimeTargetLocationView(runtimeLocationsById, pendingRuntimeId)
+      : location;
   const sharedView = buildSharedAppView(app, { location });
   const pendingSharedView = activeOperation
     ? buildSharedAppView(app, {
-        location,
+        currentRuntimeId: pendingRuntimeId,
+        location: pendingLocation,
+        runtimeId: pendingRuntimeId,
         source: activeOperation.desiredSource,
         techStack: readDisplayTechStack(app, activeOperation.desiredSource),
       })
@@ -1959,6 +2090,7 @@ function buildConsoleProjectViewFromDetail(
     detail.operations,
   );
   const workloadLocationsById = buildWorkloadLocationMap(detail.clusterNodes);
+  const runtimeLocationsById = buildRuntimeTargetLocationMap(detail.clusterNodes);
   const backingServicesById = new Map<string, FugueBackingService>();
 
   for (const app of sortedApps) {
@@ -1985,6 +2117,7 @@ function buildConsoleProjectViewFromDetail(
       app,
       commitOperationsByAppId.get(app.id),
       workloadLocationsById.get(app.id) ?? null,
+      runtimeLocationsById,
     ).map((service) => ({
       kind: "app" as const,
       ...service,
@@ -2277,6 +2410,8 @@ const getConsoleProjectGalleryDataCached = cache(
     );
     const commitOperationsByAppId = collectCommitOperationsByAppId(operations);
     const workloadLocationsById = buildWorkloadLocationMap(clusterNodes);
+    const runtimeTargetLocationsById =
+      buildRuntimeTargetLocationMap(clusterNodes);
     const appsByProjectId = new Map<string, FugueApp[]>();
 
     for (const app of apps) {
@@ -2339,6 +2474,7 @@ const getConsoleProjectGalleryDataCached = cache(
             app,
             commitOperationsByAppId.get(app.id),
             workloadLocationsById.get(app.id) ?? null,
+            runtimeTargetLocationsById,
           ).map((service) => ({
             kind: "app" as const,
             ...service,

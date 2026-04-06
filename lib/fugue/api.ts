@@ -174,6 +174,21 @@ function readStringArray(value: string[] | undefined | null) {
   );
 }
 
+function readStartupCommand(value: string[] | undefined | null) {
+  const command = readStringArray(value);
+
+  if (
+    command.length === 3 &&
+    command[0] === "sh" &&
+    command[1] === "-lc" &&
+    command[2]
+  ) {
+    return command[2];
+  }
+
+  return null;
+}
+
 function readStringMap(value: Record<string, string> | undefined | null) {
   if (!value) {
     return {} as Record<string, string>;
@@ -609,6 +624,18 @@ function buildAppSourceView(source?: CamelizedSchema<"AppSource"> | null) {
   };
 }
 
+function buildAppWorkspaceView(
+  workspace?: CamelizedSchema<"AppWorkspaceSpec"> | null,
+) {
+  return {
+    mountPath: readNullableString(workspace?.mountPath),
+    resetToken: readNullableString(workspace?.resetToken),
+    storageClassName: readNullableString(workspace?.storageClassName),
+    storagePath: readNullableString(workspace?.storagePath),
+    storageSize: readNullableString(workspace?.storageSize),
+  };
+}
+
 function buildBackingServiceView(service: CamelizedSchema<"BackingService">) {
   const postgres = service.spec?.postgres;
 
@@ -689,7 +716,9 @@ function buildAppView(app: CamelizedSchema<"App">) {
       runtimeId: readNullableString(spec?.runtimeId),
       replicas,
       disabled: (replicas ?? 0) === 0,
+      startupCommand: readStartupCommand(spec?.command),
       failover: spec?.failover ? buildAppFailoverView(spec.failover) : null,
+      workspace: spec?.workspace ? buildAppWorkspaceView(spec.workspace) : null,
       persistentStorage: spec?.persistentStorage
         ? buildAppPersistentStorageView(spec.persistentStorage)
         : null,
@@ -1227,6 +1256,7 @@ function buildAppPatchResultView(
   return {
     alreadyCurrent: response.alreadyCurrent ?? false,
     app: response.app ? buildAppView(response.app) : null,
+    operation: response.operation ? buildOperationView(response.operation) : null,
   };
 }
 
@@ -1420,13 +1450,14 @@ function buildRebuildResultView(
   };
 }
 
-function buildOperationResultView(
-  response: CamelizedSchema<"OperationResponse">,
-) {
+function buildOperationResultView(response: unknown) {
+  const operation =
+    isPlainObject(response) && isPlainObject(response.operation)
+      ? (response.operation as CamelizedSchema<"Operation">)
+      : null;
+
   return {
-    operation: response.operation
-      ? buildOperationView(response.operation)
-      : null,
+    operation: operation ? buildOperationView(operation) : null,
   };
 }
 
@@ -1948,6 +1979,7 @@ export async function importFugueGitHubApp(
     repoVisibility?: GitHubRepoVisibility;
     runtimeId?: string;
     servicePort?: number;
+    startupCommand?: string;
     sourceDir?: string;
     tenantId?: string;
   },
@@ -1986,6 +2018,9 @@ export async function importFugueGitHubApp(
           ...(payload.runtimeId ? { runtime_id: payload.runtimeId } : {}),
           ...(typeof payload.servicePort === "number"
             ? { service_port: payload.servicePort }
+            : {}),
+          ...(payload.startupCommand !== undefined
+            ? { startup_command: payload.startupCommand }
             : {}),
           ...(payload.env ? { env: payload.env } : {}),
           ...(payload.persistentStorageSeedFiles?.length
@@ -2037,6 +2072,7 @@ export async function importFugueUploadApp(
     projectId?: string;
     runtimeId?: string;
     servicePort?: number;
+    startupCommand?: string;
     sourceDir?: string;
     tenantId?: string;
   },
@@ -2074,6 +2110,9 @@ export async function importFugueUploadApp(
       ...(payload.runtimeId ? { runtime_id: payload.runtimeId } : {}),
       ...(typeof payload.servicePort === "number"
         ? { service_port: payload.servicePort }
+        : {}),
+      ...(payload.startupCommand !== undefined
+        ? { startup_command: payload.startupCommand }
         : {}),
     }),
   );
@@ -2363,7 +2402,8 @@ export async function patchFugueApp(
   accessToken: string,
   appId: string,
   payload: {
-    imageMirrorLimit: number;
+    imageMirrorLimit?: number;
+    startupCommand?: string;
   },
 ) {
   const client = getClient(accessToken);
@@ -2372,7 +2412,12 @@ export async function patchFugueApp(
       `/v1/apps/${encodeURIComponent(appId)}`,
       client.PATCH("/v1/apps/{id}", {
         body: {
-          image_mirror_limit: payload.imageMirrorLimit,
+          ...(payload.imageMirrorLimit !== undefined
+            ? { image_mirror_limit: payload.imageMirrorLimit }
+            : {}),
+          ...(payload.startupCommand !== undefined
+            ? { startup_command: payload.startupCommand }
+            : {}),
         },
         params: {
           path: { id: appId },
@@ -2491,6 +2536,7 @@ export async function importFugueDockerImageApp(
     projectId?: string;
     runtimeId?: string;
     servicePort?: number;
+    startupCommand?: string;
     tenantId?: string;
   },
 ) {
@@ -2516,6 +2562,9 @@ export async function importFugueDockerImageApp(
           ...(payload.runtimeId ? { runtime_id: payload.runtimeId } : {}),
           ...(typeof payload.servicePort === "number"
             ? { service_port: payload.servicePort }
+            : {}),
+          ...(payload.startupCommand !== undefined
+            ? { startup_command: payload.startupCommand }
             : {}),
           image_ref: payload.imageRef,
         },
@@ -3137,6 +3186,34 @@ export async function disableFugueApp(accessToken: string, appId: string) {
   );
 
   return buildDisableResultView(response);
+}
+
+export async function migrateFugueApp(
+  accessToken: string,
+  appId: string,
+  options?: {
+    targetRuntimeId?: string;
+  },
+) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}/migrate`,
+      client.POST("/v1/apps/{id}/migrate", {
+        body:
+          options?.targetRuntimeId !== undefined
+            ? {
+                target_runtime_id: options.targetRuntimeId,
+              }
+            : undefined,
+        params: {
+          path: { id: appId },
+        },
+      }),
+    ),
+  );
+
+  return buildOperationResultView(response);
 }
 
 export async function failoverFugueApp(

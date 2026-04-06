@@ -86,6 +86,7 @@ export async function POST(request: Request) {
   const projectMode = readOptionalString(body, "projectMode");
   const runtimeId = readOptionalString(body, "runtimeId");
   const servicePort = readOptionalPositiveInteger(body, "servicePort");
+  const startupCommand = readOptionalString(body, "startupCommand");
 
   if (sourceModeInput && sourceMode !== "local-upload") {
     return jsonError(400, "Local upload requests must use sourceMode local-upload.");
@@ -153,6 +154,7 @@ export async function POST(request: Request) {
       name: name || undefined,
       runtimeId: runtimeId || undefined,
       servicePort: servicePort ?? undefined,
+      startupCommand: startupCommand || undefined,
       sourceDir: sourceDir || undefined,
       ...projectPayload,
     });

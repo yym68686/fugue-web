@@ -134,6 +134,7 @@ export function DeployUploadWizard({
   const [sourceDir, setSourceDir] = useState("");
   const [dockerfilePath, setDockerfilePath] = useState("");
   const [buildContextDir, setBuildContextDir] = useState("");
+  const [startupCommand, setStartupCommand] = useState("");
   const [localUpload, setLocalUpload] = useState<LocalUploadState>(() =>
     createLocalUploadState(),
   );
@@ -167,6 +168,7 @@ export function DeployUploadWizard({
       dockerfilePath,
       name,
       runtimeId,
+      startupCommand,
       sourceDir,
       sourceMode: "local-upload" as const,
     };
@@ -175,6 +177,17 @@ export function DeployUploadWizard({
   const uploadDraft = buildDraft();
   const localUploadKeepsTopologyImport =
     localUploadPreservesDetectedTopology(uploadDraft);
+  const startupCommandSupported = !(
+    localUploadInspection.hasTopologyDefinition && localUploadKeepsTopologyImport
+  );
+
+  useEffect(() => {
+    if (startupCommandSupported || !startupCommand.trim()) {
+      return;
+    }
+
+    setStartupCommand("");
+  }, [startupCommand, startupCommandSupported]);
 
   function validate() {
     if (selectedProjectId === NEW_PROJECT_VALUE) {
@@ -466,6 +479,34 @@ export function DeployUploadWizard({
           ) : null}
         </div>
       </PanelSection>
+
+      {startupCommandSupported ? (
+        <PanelSection>
+          <PanelTitle>Advanced settings</PanelTitle>
+          <PanelCopy>
+            Override the default entrypoint only when this upload should start
+            with a custom shell command.
+          </PanelCopy>
+
+          <FormField
+            hint="Runs as `sh -lc <command>`. Leave blank to use the image default entrypoint."
+            htmlFor="deploy-upload-startup-command"
+            label="Startup command"
+            optionalLabel="Optional"
+          >
+            <input
+              autoCapitalize="none"
+              autoComplete="off"
+              className="fg-input"
+              id="deploy-upload-startup-command"
+              onChange={(event) => setStartupCommand(event.target.value)}
+              placeholder="npm run serve"
+              spellCheck={false}
+              value={startupCommand}
+            />
+          </FormField>
+        </PanelSection>
+      ) : null}
 
       <PanelSection>
         <div className="fg-deploy-inline-actions">

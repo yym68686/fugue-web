@@ -143,6 +143,18 @@ export function ImportServiceFields({
     ) ??
     selectedRuntimeTargetGroup?.options[0] ??
     null;
+  const githubTopologyDetected = Boolean(
+    githubInspection?.composeStack || githubInspection?.fugueManifest,
+  );
+  const startupCommandSupported =
+    draft.sourceMode === "docker-image"
+      ? true
+      : draft.sourceMode === "github"
+        ? !(githubKeepsTopologyImport && githubTopologyDetected)
+        : !(
+            localUploadInspection.hasTopologyDefinition &&
+            localUploadKeepsTopologyImport
+          );
   const deploymentSummaryParts = [
     draft.sourceMode === "github"
       ? draft.repoVisibility === "private"
@@ -170,6 +182,9 @@ export function ImportServiceFields({
       ? `Upload ${localUpload.label}`
       : null,
     draft.name.trim() ? `Name ${draft.name.trim()}` : null,
+    startupCommandSupported && draft.startupCommand.trim()
+      ? "Startup command"
+      : null,
     draft.sourceMode !== "docker-image" && draft.buildStrategy !== "auto"
       ? (BUILD_STRATEGY_OPTIONS.find(
           (option) => option.value === draft.buildStrategy,
@@ -187,10 +202,10 @@ export function ImportServiceFields({
     advancedSummaryParts.length > 0
       ? advancedSummaryParts.slice(0, 3).join(" · ")
       : draft.sourceMode === "docker-image"
-        ? "Service name."
+        ? "Service name and optional startup command."
         : draft.sourceMode === "github"
-          ? "Branch, name, build strategy, and optional paths."
-          : "App name, build strategy, and optional source overrides.";
+          ? "Branch, name, startup command, build strategy, and optional paths."
+          : "App name, startup command, build strategy, and optional source overrides.";
   const deploymentDisclosureSummary =
     draft.sourceMode === "github" ? "Access & deployment" : "Deployment";
   const persistentStorageSeedFields = useMemo<
@@ -275,6 +290,17 @@ export function ImportServiceFields({
     githubConnectionLoading,
     githubKeepsTopologyImport,
   ]);
+
+  useEffect(() => {
+    if (startupCommandSupported || !draft.startupCommand.trim()) {
+      return;
+    }
+
+    onDraftChange({
+      ...draft,
+      startupCommand: "",
+    });
+  }, [draft, onDraftChange, startupCommandSupported]);
 
   useEffect(() => {
     const currentValues = new Map(
@@ -560,6 +586,29 @@ export function ImportServiceFields({
               value={draft.name}
             />
           </FormField>
+
+          {startupCommandSupported ? (
+            <FormField
+              hint="Runs as `sh -lc <command>`. Leave blank to use the image default entrypoint."
+              htmlFor={`${idPrefix}-startup-command`}
+              label="Startup command"
+              optionalLabel="Optional"
+            >
+              <input
+                autoCapitalize="none"
+                autoComplete="off"
+                className="fg-input"
+                id={`${idPrefix}-startup-command`}
+                name="startupCommand"
+                onChange={(event) =>
+                  updateField("startupCommand", event.target.value)
+                }
+                placeholder="npm run serve"
+                spellCheck={false}
+                value={draft.startupCommand}
+              />
+            </FormField>
+          ) : null}
 
           {draft.sourceMode !== "docker-image" ? (
             <FormField

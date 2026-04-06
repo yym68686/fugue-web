@@ -203,6 +203,7 @@ export function DeployWizard({
   const [sourceDir, setSourceDir] = useState("");
   const [dockerfilePath, setDockerfilePath] = useState("");
   const [buildContextDir, setBuildContextDir] = useState("");
+  const [startupCommand, setStartupCommand] = useState("");
   const [variableValues, setVariableValues] = useState<Record<string, string>>(
     readInitialVariableValues(inspection),
   );
@@ -222,6 +223,10 @@ export function DeployWizard({
       dockerfilePath,
       sourceDir,
     });
+  const startupCommandSupported = !(
+    Boolean(inspection?.fugueManifest || inspection?.composeStack) &&
+    preservesTopologyImport
+  );
   const templateVariables = inspection?.template?.variables ?? [];
   const persistentStorageSeedFiles = useMemo<PersistentStorageSeedField[]>(
     () =>
@@ -235,6 +240,7 @@ export function DeployWizard({
   const deploymentSummaryCopy = `${repoVisibility === "private" ? "Private repo" : "Public repo"} · ${hasFugueManifest ? "Manifest import" : "Repository build"}`;
   const advancedSummaryParts = [
     name.trim() ? `Name ${name.trim()}` : null,
+    startupCommandSupported && startupCommand.trim() ? "Startup command" : null,
     !hasFugueManifest && buildStrategy !== "auto"
       ? (BUILD_STRATEGY_OPTIONS.find((option) => option.value === buildStrategy)
           ?.label ?? "Custom build")
@@ -245,7 +251,7 @@ export function DeployWizard({
       ? advancedSummaryParts.join(" · ")
       : hasFugueManifest
         ? `Imports ${pluralize(manifestSummary.serviceCount, "service")} from ${manifest?.manifestPath ?? "fugue.yaml"}`
-        : "App name and optional build overrides.";
+        : "App name, startup command, and optional build overrides.";
   const templateVariablesSummaryCopy =
     templateVariables.length > 0
       ? `${pluralize(templateVariables.length, "variable")} before first deploy`
@@ -281,6 +287,14 @@ export function DeployWizard({
       readInitialPersistentStorageSeedValues(inspection),
     );
   }, [inspection]);
+
+  useEffect(() => {
+    if (startupCommandSupported || !startupCommand.trim()) {
+      return;
+    }
+
+    setStartupCommand("");
+  }, [startupCommand, startupCommandSupported]);
 
   function validate() {
     if (!repositoryUrl.trim()) {
@@ -386,6 +400,9 @@ export function DeployWizard({
       repoUrl: repositoryUrl,
       repoVisibility,
       runtimeId,
+      ...(startupCommandSupported && startupCommand.trim()
+        ? { startupCommand: startupCommand.trim() }
+        : {}),
       sourceDir: sourceDir.trim(),
       templateSlug: inspection?.template?.slug ?? "",
       ...(persistentStorageSeedFiles.length > 0
@@ -583,6 +600,26 @@ export function DeployWizard({
                 value={name}
               />
             </FormField>
+
+            {startupCommandSupported ? (
+              <FormField
+                hint="Runs as `sh -lc <command>`. Leave blank to use the image default entrypoint."
+                htmlFor="deploy-startup-command"
+                label="Startup command"
+                optionalLabel="Optional"
+              >
+                <input
+                  autoCapitalize="none"
+                  autoComplete="off"
+                  className="fg-input"
+                  id="deploy-startup-command"
+                  onChange={(event) => setStartupCommand(event.target.value)}
+                  placeholder="npm run serve"
+                  spellCheck={false}
+                  value={startupCommand}
+                />
+              </FormField>
+            ) : null}
 
             {!hasFugueManifest ? (
               <FormField

@@ -117,6 +117,7 @@ export function DeployImageWizard({
   const [name, setName] = useState(initialName);
   const [imageRef, setImageRef] = useState(initialImageRef);
   const [servicePort, setServicePort] = useState(initialServicePort);
+  const [startupCommand, setStartupCommand] = useState("");
   const [runtimeId, setRuntimeId] = useState<string | null>(
     readDefaultImportRuntimeId(runtimeTargets),
   );
@@ -218,6 +219,9 @@ export function DeployImageWizard({
       ...(runtimeId ? { runtimeId } : {}),
       ...(normalizedServicePort
         ? { servicePort: Number(normalizedServicePort) }
+        : {}),
+      ...(startupCommand.trim()
+        ? { startupCommand: startupCommand.trim() }
         : {}),
       sourceMode: "docker-image",
     };
@@ -388,6 +392,32 @@ export function DeployImageWizard({
           targets={runtimeTargets}
           value={runtimeId}
         />
+      </PanelSection>
+
+      <PanelSection>
+        <PanelTitle>Advanced settings</PanelTitle>
+        <PanelCopy>
+          Override the image default entrypoint only when this service needs a
+          different launch command.
+        </PanelCopy>
+
+        <FormField
+          hint="Runs as `sh -lc <command>`. Leave blank to use the image default entrypoint."
+          htmlFor="deploy-image-startup-command"
+          label="Startup command"
+          optionalLabel="Optional"
+        >
+          <input
+            autoCapitalize="none"
+            autoComplete="off"
+            className="fg-input"
+            id="deploy-image-startup-command"
+            onChange={(event) => setStartupCommand(event.target.value)}
+            placeholder="npm run serve"
+            spellCheck={false}
+            value={startupCommand}
+          />
+        </FormField>
       </PanelSection>
 
       <PanelSection>

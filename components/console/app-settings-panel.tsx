@@ -54,6 +54,9 @@ type AppOperationResponse = {
 
 type AppPatchResponse = {
   alreadyCurrent?: boolean;
+  operation?: {
+    id?: string | null;
+  } | null;
 };
 
 type ContinuityResponse = {
@@ -376,9 +379,10 @@ function readInitialContinuityTargetRuntimeId(
   configuredTargetRuntimeId: string | null,
   runtimeTargets: ConsoleImportRuntimeTargetView[],
 ) {
-  const continuityTargets = primaryRuntimeId
-    ? runtimeTargets.filter((target) => target.id !== primaryRuntimeId)
-    : runtimeTargets;
+  const continuityTargets = readManagedRuntimeTargets(
+    runtimeTargets,
+    primaryRuntimeId,
+  );
 
   if (
     configuredTargetRuntimeId &&
@@ -390,8 +394,57 @@ function readInitialContinuityTargetRuntimeId(
   return readDefaultImportRuntimeId(continuityTargets);
 }
 
+function isManagedRuntimeTarget(target: ConsoleImportRuntimeTargetView) {
+  return (
+    target.runtimeType === "managed-owned" ||
+    target.runtimeType === "managed-shared"
+  );
+}
+
+function readManagedRuntimeTargets(
+  runtimeTargets: ConsoleImportRuntimeTargetView[],
+  excludedRuntimeId?: string | null,
+) {
+  return runtimeTargets.filter(
+    (target) =>
+      target.id !== excludedRuntimeId && isManagedRuntimeTarget(target),
+  );
+}
+
+function hasStatefulMigrationBlockers(app: ConsoleGalleryAppView) {
+  const hasPersistentStorage =
+    app.persistentStorageMounts.length > 0 ||
+    Boolean(
+      app.persistentStorageStorageClassName || app.persistentStorageStorageSize,
+    );
+
+  return (
+    app.hasManagedPostgresService ||
+    app.hasPersistentWorkspace ||
+    hasPersistentStorage
+  );
+}
+
+function readTransferRequestMode(app: ConsoleGalleryAppView) {
+  return hasStatefulMigrationBlockers(app) ? "failover" : "migrate";
+}
+
+function readTransferTargets(
+  app: ConsoleGalleryAppView,
+  runtimeTargets: ConsoleImportRuntimeTargetView[],
+) {
+  const activeRuntimeId = app.currentRuntimeId ?? app.runtimeId;
+  return readTransferRequestMode(app) === "failover"
+    ? readManagedRuntimeTargets(runtimeTargets, activeRuntimeId)
+    : runtimeTargets.filter((target) => target.id !== activeRuntimeId);
+}
+
 function readTransferPreparationNote(app: ConsoleGalleryAppView) {
-  const hasPersistentStorage = app.persistentStorageMounts.length > 0;
+  const hasPersistentStorage =
+    app.persistentStorageMounts.length > 0 ||
+    Boolean(
+      app.persistentStorageStorageClassName || app.persistentStorageStorageSize,
+    );
 
   if (hasPersistentStorage && app.hasPostgresService) {
     return "Persistent storage sync runs before the move completes. Database stays where it is.";
@@ -418,6 +471,24 @@ function readTransferActionHint(app: ConsoleGalleryAppView) {
   }
 
   return null;
+}
+
+function readTransferConfirmationDescription(
+  app: ConsoleGalleryAppView,
+  liveRuntimeLabel: string,
+  selectedTargetLabel: string,
+) {
+  const transferPreparationNote = readTransferPreparationNote(app);
+
+  if (readTransferRequestMode(app) === "migrate") {
+    return transferPreparationNote
+      ? `${app.name} stays live on ${liveRuntimeLabel} while Fugue prepares ${selectedTargetLabel}, then cuts over automatically. ${transferPreparationNote}`
+      : `${app.name} stays live on ${liveRuntimeLabel} while Fugue prepares ${selectedTargetLabel}, then cuts over automatically.`;
+  }
+
+  return transferPreparationNote
+    ? `${app.name} will move from ${liveRuntimeLabel} to ${selectedTargetLabel}. ${transferPreparationNote}`
+    : `${app.name} will move from ${liveRuntimeLabel} to ${selectedTargetLabel}.`;
 }
 
 function readPersistentStorageSummaryNote(hasPersistentStorage: boolean) {
@@ -493,6 +564,172 @@ function buildPersistentStorageMountItems(
       value: mount.path,
     };
   });
+}
+
+function readStartupCommandSummary(value?: string | null) {
+  const normalized = normalizeText(value);
+
+  if (!normalized) {
+    return "Image default";
+  }
+
+  if (normalized.length <= 48) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, 45)}…`;
+}
+
+function AppStartupCommandSection({ app }: { app: ConsoleGalleryAppView }) {
+  const router = useRouter();
+  const { showToast } = useToast();
+  const [draftStartupCommand, setDraftStartupCommand] = useState(
+    app.startupCommand ?? "",
+  );
+  const [baselineStartupCommand, setBaselineStartupCommand] = useState(
+    app.startupCommand ?? "",
+  );
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const nextStartupCommand = app.startupCommand ?? "";
+    setBaselineStartupCommand(nextStartupCommand);
+    setDraftStartupCommand(nextStartupCommand);
+  }, [app.id, app.startupCommand]);
+
+  const normalizedBaselineCommand = normalizeText(baselineStartupCommand);
+  const normalizedDraftCommand = normalizeText(draftStartupCommand);
+  const startupCommandChanged =
+    normalizedDraftCommand !== normalizedBaselineCommand;
+  const canSaveStartupCommand = startupCommandChanged && !saving;
+  const savedStartupCommandLabel =
+    readStartupCommandSummary(baselineStartupCommand);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!startupCommandChanged) {
+      showToast({
+        message: normalizedDraftCommand
+          ? "Startup command already matches the current release."
+          : "Startup command already uses the image default.",
+        variant: "info",
+      });
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      const result = await requestJson<AppPatchResponse>(
+        `/api/fugue/apps/${app.id}`,
+        {
+          body: JSON.stringify({
+            startupCommand: draftStartupCommand,
+          }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          method: "PATCH",
+        },
+      );
+
+      setBaselineStartupCommand(normalizedDraftCommand);
+      setDraftStartupCommand(normalizedDraftCommand);
+      showToast({
+        message: result?.alreadyCurrent
+          ? normalizedDraftCommand
+            ? "Startup command already matches the current release."
+            : "Startup command already uses the image default."
+          : normalizedDraftCommand
+            ? "Startup command saved. Deploy queued."
+            : "Startup command cleared. Deploy queued.",
+        variant: "success",
+      });
+      startTransition(() => {
+        router.refresh();
+      });
+    } catch (error) {
+      showToast({
+        message: readErrorMessage(error),
+        variant: "error",
+      });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <section
+      aria-label="Startup command"
+      className="fg-route-subsection fg-settings-section"
+    >
+      <div className="fg-route-subsection__head">
+        <div className="fg-route-subsection__copy fg-settings-section__copy">
+          <p className="fg-label fg-panel__eyebrow">Runtime</p>
+          <h3 className="fg-route-subsection__title fg-ui-heading">
+            Startup command
+          </h3>
+          <p className="fg-route-subsection__note">
+            Override the image default entrypoint only when this service needs a
+            custom shell command.
+          </p>
+        </div>
+      </div>
+
+      <ConsoleDisclosureSection
+        className="fg-settings-disclosure"
+        defaultOpen={startupCommandChanged || saving}
+        description="Runs as `sh -lc <command>`. Leave blank to use the image default entrypoint."
+        summary={`Startup command · ${savedStartupCommandLabel}`}
+      >
+        <form className="fg-settings-form" onSubmit={handleSubmit}>
+          <FormField
+            hint="Queued changes roll out in the next deploy operation."
+            htmlFor={`startup-command-${app.id}`}
+            label="Startup command"
+            optionalLabel="Optional"
+          >
+            <input
+              autoCapitalize="none"
+              autoComplete="off"
+              className="fg-input"
+              id={`startup-command-${app.id}`}
+              name="startupCommand"
+              onChange={(event) => setDraftStartupCommand(event.target.value)}
+              placeholder="npm run serve"
+              spellCheck={false}
+              value={draftStartupCommand}
+            />
+          </FormField>
+
+          {startupCommandChanged || saving ? (
+            <div className="fg-settings-form__actions">
+              <Button
+                disabled={saving}
+                onClick={() => setDraftStartupCommand(baselineStartupCommand)}
+                size="compact"
+                type="button"
+                variant="secondary"
+              >
+                Reset
+              </Button>
+              <Button
+                disabled={!canSaveStartupCommand}
+                loading={saving}
+                loadingLabel="Queueing…"
+                size="compact"
+                type="submit"
+                variant="primary"
+              >
+                Save command
+              </Button>
+            </div>
+          ) : null}
+        </form>
+      </ConsoleDisclosureSection>
+    </section>
+  );
 }
 
 function AppImageMirrorLimitSection({ app }: { app: ConsoleGalleryAppView }) {
@@ -782,10 +1019,7 @@ function readInitialTransferTargetRuntimeId(
   app: ConsoleGalleryAppView,
   runtimeTargets: ConsoleImportRuntimeTargetView[],
 ) {
-  const activeRuntimeId = app.currentRuntimeId ?? app.runtimeId;
-  const manualRuntimeTargets = activeRuntimeId
-    ? runtimeTargets.filter((target) => target.id !== activeRuntimeId)
-    : runtimeTargets;
+  const manualRuntimeTargets = readTransferTargets(app, runtimeTargets);
 
   if (
     app.failoverTargetRuntimeId &&
@@ -812,9 +1046,10 @@ function AppAutomaticFailoverSection({
   const { showToast } = useToast();
   const primaryRuntimeId = app.runtimeId ?? app.currentRuntimeId;
   const activeRuntimeId = app.currentRuntimeId ?? app.runtimeId;
-  const continuityTargets = primaryRuntimeId
-    ? runtimeTargets.filter((target) => target.id !== primaryRuntimeId)
-    : runtimeTargets;
+  const continuityTargets = readManagedRuntimeTargets(
+    runtimeTargets,
+    primaryRuntimeId,
+  );
   const [targetRuntimeId, setTargetRuntimeId] = useState<string | null>(() =>
     readInitialContinuityTargetRuntimeId(
       primaryRuntimeId,
@@ -869,7 +1104,7 @@ function AppAutomaticFailoverSection({
     : !primaryRuntimeId
       ? "Primary runtime unavailable."
       : continuityTargets.length === 0
-        ? "Add another runtime before turning on automatic failover."
+        ? "Add another managed runtime before turning on automatic failover."
         : null;
   const canSave =
     !saving && !blockerMessage && Boolean(selectedTargetRuntimeId);
@@ -1077,11 +1312,9 @@ function AppTransferSection({
   const router = useRouter();
   const confirm = useConfirmDialog();
   const { showToast } = useToast();
-  const transferPreparationNote = readTransferPreparationNote(app);
+  const transferMode = readTransferRequestMode(app);
   const activeRuntimeId = app.currentRuntimeId ?? app.runtimeId;
-  const transferTargets = activeRuntimeId
-    ? runtimeTargets.filter((target) => target.id !== activeRuntimeId)
-    : runtimeTargets;
+  const transferTargets = readTransferTargets(app, runtimeTargets);
   const [targetRuntimeId, setTargetRuntimeId] = useState<string | null>(() =>
     readInitialTransferTargetRuntimeId(app, runtimeTargets),
   );
@@ -1092,7 +1325,10 @@ function AppTransferSection({
   }, [
     app.currentRuntimeId,
     app.failoverTargetRuntimeId,
+    app.hasManagedPostgresService,
+    app.hasPersistentWorkspace,
     app.id,
+    app.persistentStorageMounts.length,
     app.runtimeId,
     runtimeTargets,
   ]);
@@ -1115,7 +1351,9 @@ function AppTransferSection({
   const targetSelectionHint = runtimeTargetInventoryError
     ? "Runtime list unavailable."
     : transferTargets.length === 0
-      ? "Add another runtime before moving this service."
+      ? transferMode === "failover"
+        ? "Add another managed runtime before moving this service."
+        : "Add another runtime before moving this service."
       : null;
   const blockerMessage = actionHint ?? targetSelectionHint;
   const canTransfer =
@@ -1142,9 +1380,11 @@ function AppTransferSection({
 
     const confirmed = await confirm({
       confirmLabel: "Transfer Now",
-      description: transferPreparationNote
-        ? `${app.name} will move from ${liveRuntimeLabel} to ${selectedTargetLabel}. ${transferPreparationNote}`
-        : `${app.name} will move from ${liveRuntimeLabel} to ${selectedTargetLabel}.`,
+      description: readTransferConfirmationDescription(
+        app,
+        liveRuntimeLabel,
+        selectedTargetLabel,
+      ),
       eyebrow: "Runtime Move",
       title: "Transfer Service?",
       variant: "primary",
@@ -1158,7 +1398,7 @@ function AppTransferSection({
 
     try {
       await requestJson<AppOperationResponse>(
-        `/api/fugue/apps/${app.id}/failover`,
+        `/api/fugue/apps/${app.id}/${transferMode}`,
         {
           body: JSON.stringify({
             targetRuntimeId: selectedTargetRuntimeId,
@@ -1199,8 +1439,9 @@ function AppTransferSection({
             One-Click Transfer
           </h3>
           <p className="fg-route-subsection__note">
-            Current: {liveRuntimeLabel}. Choose a destination and move this
-            service now.
+            {transferMode === "migrate"
+              ? `Current: ${liveRuntimeLabel}. Fugue keeps the current runtime serving until the destination is ready.`
+              : `Current: ${liveRuntimeLabel}. Choose a destination and move this service now.`}
           </p>
         </div>
       </div>
@@ -1357,14 +1598,14 @@ export function AppSettingsPanel({
     ? "inspect persistent storage"
     : "review persistent storage configuration";
   const settingsSummary = isPrivateGitHubSource
-    ? `Rename the shared project, manage repository sync and GitHub access, tune image retention, ${workspaceSummaryAction}, set automatic failover, or move ${app.name} by hand.`
+    ? `Rename the shared project, manage repository sync and GitHub access, set a startup command, tune image retention, ${workspaceSummaryAction}, set automatic failover, or move ${app.name} by hand.`
     : isGitHubSource
-      ? `Rename the shared project, manage repository sync, tune image retention, ${workspaceSummaryAction}, set automatic failover, or move ${app.name} by hand.`
+      ? `Rename the shared project, manage repository sync, set a startup command, tune image retention, ${workspaceSummaryAction}, set automatic failover, or move ${app.name} by hand.`
       : isDockerImageSource
-        ? `Rename the shared project, review the saved Docker image reference, tune image retention, ${workspaceSummaryAction}, set automatic failover, or move ${app.name} by hand.`
+        ? `Rename the shared project, review the saved Docker image reference, set a startup command, tune image retention, ${workspaceSummaryAction}, set automatic failover, or move ${app.name} by hand.`
         : isUploadSource
-          ? `Rename the shared project, review the saved upload source, tune image retention, ${workspaceSummaryAction}, set automatic failover, or move ${app.name} by hand.`
-          : `Rename the shared project, review the saved source definition, tune image retention, ${workspaceSummaryAction}, set automatic failover, or move ${app.name} by hand.`;
+          ? `Rename the shared project, review the saved upload source, set a startup command, tune image retention, ${workspaceSummaryAction}, set automatic failover, or move ${app.name} by hand.`
+          : `Rename the shared project, review the saved source definition, set a startup command, tune image retention, ${workspaceSummaryAction}, set automatic failover, or move ${app.name} by hand.`;
   const projectSectionNote = projectManaged
     ? `${serviceCount} service${serviceCount === 1 ? "" : "s"} share this project shell. Renaming it updates the whole group.`
     : "This service still lives in the Unassigned bucket, so the shared shell cannot be renamed yet.";
@@ -2021,6 +2262,8 @@ export function AppSettingsPanel({
           </form>
         </section>
       ) : null}
+
+      <AppStartupCommandSection app={app} />
 
       <AppImageMirrorLimitSection app={app} />
 

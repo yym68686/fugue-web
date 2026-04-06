@@ -14,7 +14,15 @@ import {
 
 type RouteContext = RouteContextWithParams<"id">;
 
+function hasOwnField(record: Record<string, unknown>, key: string) {
+  return Object.prototype.hasOwnProperty.call(record, key);
+}
+
 function readOptionalInteger(record: Record<string, unknown>, key: string) {
+  if (!hasOwnField(record, key)) {
+    return undefined;
+  }
+
   const value = record[key];
 
   if (typeof value !== "number" || !Number.isFinite(value)) {
@@ -26,6 +34,15 @@ function readOptionalInteger(record: Record<string, unknown>, key: string) {
   }
 
   return value;
+}
+
+function readOptionalStringField(record: Record<string, unknown>, key: string) {
+  if (!hasOwnField(record, key)) {
+    return undefined;
+  }
+
+  const value = record[key];
+  return typeof value === "string" ? value : null;
 }
 
 export async function PATCH(request: Request, context: RouteContext) {
@@ -55,8 +72,18 @@ export async function PATCH(request: Request, context: RouteContext) {
 
   const imageMirrorLimit = readOptionalInteger(body, "imageMirrorLimit");
 
+  const startupCommand = readOptionalStringField(body, "startupCommand");
+
   if (imageMirrorLimit === null) {
     return jsonError(400, "imageMirrorLimit must be a whole number.");
+  }
+
+  if (startupCommand === null) {
+    return jsonError(400, "startupCommand must be a string.");
+  }
+
+  if (imageMirrorLimit === undefined && startupCommand === undefined) {
+    return jsonError(400, "Provide imageMirrorLimit or startupCommand.");
   }
 
   try {
@@ -65,7 +92,8 @@ export async function PATCH(request: Request, context: RouteContext) {
       workspaceState.workspace.adminKeySecret,
       appId,
       {
-        imageMirrorLimit,
+        ...(imageMirrorLimit !== undefined ? { imageMirrorLimit } : {}),
+        ...(startupCommand !== undefined ? { startupCommand } : {}),
       },
     );
 

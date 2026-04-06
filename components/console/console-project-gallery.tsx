@@ -468,6 +468,8 @@ const LIVE_STATUS_BADGE_KEYWORDS = [
   "building",
   "deploying",
   "importing",
+  "transferring",
+  "failing-over",
   "updating",
   "queued",
   "pending",
@@ -671,6 +673,18 @@ function readAppServiceRoleLabel(
     return "Deleting service";
   }
 
+  if (
+    service?.serviceRole === "pending" &&
+    includesLifecycleKeyword(service.phase?.trim().toLowerCase() ?? "", [
+      "transfer",
+      "transferring",
+      "failing-over",
+      "migrating",
+    ])
+  ) {
+    return "Transfer in progress";
+  }
+
   return service?.serviceRole === "pending"
     ? "Next release"
     : "Current release";
@@ -685,6 +699,8 @@ function isPendingForceDeletePhase(phase?: string | null) {
       "importing",
       "building",
       "deploying",
+      "transferring",
+      "failing-over",
       "queued",
       "pending",
       "migrating",
@@ -709,6 +725,17 @@ function readForceDeleteActionLabel(phase?: string | null) {
     return "Abort build & delete";
   }
 
+  if (
+    includesLifecycleKeyword(normalized, [
+      "transfer",
+      "transferring",
+      "failing-over",
+      "migrating",
+    ])
+  ) {
+    return "Cancel transfer & delete";
+  }
+
   if (includesLifecycleKeyword(normalized, ["deploying", "updating"])) {
     return "Abort deploy & delete";
   }
@@ -725,6 +752,17 @@ function readForceDeleteActionDescription(phase?: string | null) {
 
   if (includesLifecycleKeyword(normalized, ["importing", "building"])) {
     return "Abort the in-flight build and force delete this service.";
+  }
+
+  if (
+    includesLifecycleKeyword(normalized, [
+      "transfer",
+      "transferring",
+      "failing-over",
+      "migrating",
+    ])
+  ) {
+    return "Cancel the in-flight transfer and force delete this service.";
   }
 
   if (includesLifecycleKeyword(normalized, ["deploying", "updating"])) {
@@ -2173,7 +2211,23 @@ function readRuntimeLogsUnavailableState(
     };
   }
 
-  if (includesLifecycleKeyword(phase, ["queued", "pending", "migrating"])) {
+  if (
+    includesLifecycleKeyword(phase, [
+      "transfer",
+      "transferring",
+      "failing-over",
+      "migrating",
+    ])
+  ) {
+    return {
+      description:
+        "The destination runtime is still preparing. Runtime logs switch over once the transfer is live.",
+      label: "Transfer in progress",
+      title: "Runtime logs are not ready",
+    };
+  }
+
+  if (includesLifecycleKeyword(phase, ["queued", "pending"])) {
     return {
       description:
         "This rollout has not reached a live runtime yet. Switch to Build to follow progress.",

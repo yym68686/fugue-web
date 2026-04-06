@@ -66,6 +66,8 @@ export type ConsoleGalleryAppView = {
   failoverAuto: boolean;
   failoverConfigured: boolean;
   failoverTargetRuntimeId: string | null;
+  hasManagedPostgresService: boolean;
+  hasPersistentWorkspace: boolean;
   hasPostgresService: boolean;
   id: string;
   imageMirrorLimit: number;
@@ -77,6 +79,7 @@ export type ConsoleGalleryAppView = {
   phaseTone: ConsoleTone;
   primaryBadge: ConsoleGalleryBadgeView;
   replicaCount: number | null;
+  startupCommand: string | null;
   redeployActionDescription: string;
   redeployActionLabel: string;
   redeployActionLoadingLabel: string;

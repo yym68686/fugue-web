@@ -2269,6 +2269,7 @@ export interface components {
         PatchAppRequest: {
             /** Format: int32 */
             image_mirror_limit?: number;
+            startup_command?: string;
         };
         BillingResponse: {
             billing: components["schemas"]["TenantBillingSummary"];
@@ -2400,6 +2401,7 @@ export interface components {
         AppPatchResponse: {
             app: components["schemas"]["App"];
             already_current: boolean;
+            operation?: components["schemas"]["Operation"];
         };
         InspectGitHubTemplateRequest: {
             repo_url: string;
@@ -2508,6 +2510,7 @@ export interface components {
             env?: components["schemas"]["StringMap"];
             config_content?: string;
             files?: components["schemas"]["AppFile"][];
+            startup_command?: string;
             persistent_storage_seed_files?: components["schemas"]["ImportGitHubPersistentStorageSeedFile"][];
             postgres?: components["schemas"]["AppPostgresSpec"];
             idempotency_key?: string;
@@ -2531,6 +2534,7 @@ export interface components {
             env?: components["schemas"]["StringMap"];
             config_content?: string;
             files?: components["schemas"]["AppFile"][];
+            startup_command?: string;
             postgres?: components["schemas"]["AppPostgresSpec"];
         };
         ImportUploadMultipartRequest: {
@@ -2570,6 +2574,7 @@ export interface components {
             service_port?: number;
             env?: components["schemas"]["StringMap"];
             config_content?: string;
+            startup_command?: string;
             files?: components["schemas"]["AppFile"][];
             postgres?: components["schemas"]["AppPostgresSpec"];
         };

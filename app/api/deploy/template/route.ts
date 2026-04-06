@@ -191,6 +191,7 @@ export async function POST(request: Request) {
   const sourceDir = readOptionalString(body, "sourceDir");
   const dockerfilePath = readOptionalString(body, "dockerfilePath");
   const buildContextDir = readOptionalString(body, "buildContextDir");
+  const startupCommand = readOptionalString(body, "startupCommand");
   const repoVisibilityInput = readOptionalString(body, "repoVisibility");
   const repoVisibility = normalizeGitHubRepoVisibility(repoVisibilityInput);
   const repoAuthToken = readOptionalString(body, "repoAuthToken");
@@ -351,6 +352,7 @@ export async function POST(request: Request) {
       repoUrl,
       repoVisibility: resolvedRepoVisibility,
       runtimeId: runtimeId || undefined,
+      startupCommand: startupCommand || undefined,
       ...projectPayload,
     });
 
