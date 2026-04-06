@@ -5786,6 +5786,16 @@
 
 .fg-code-textarea__input::selection {
   background: var(--fugue-code-textarea-token-selection);
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  text-shadow: none;
+}
+
+.fg-code-textarea__input::-moz-selection {
+  background: var(--fugue-code-textarea-token-selection);
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  text-shadow: none;
 }
 
 .fg-code-textarea__input:focus-visible {
