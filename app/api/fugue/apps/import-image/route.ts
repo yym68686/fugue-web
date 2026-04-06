@@ -3,6 +3,10 @@ import { NextResponse } from "next/server";
 import { getCurrentSession } from "@/lib/auth/session";
 import { importFugueDockerImageApp } from "@/lib/fugue/api";
 import {
+  readPersistentStorageInput,
+  type PersistentStoragePayload,
+} from "@/lib/fugue/persistent-storage";
+import {
   getWorkspaceAccessByEmail,
   saveWorkspaceAccess,
   type WorkspaceAccess,
@@ -88,6 +92,8 @@ export async function POST(request: Request) {
   const name = readOptionalString(body, "name");
   const runtimeId = readOptionalString(body, "runtimeId");
   const servicePort = readOptionalPositiveInteger(body, "servicePort");
+  const startupCommand = readOptionalString(body, "startupCommand");
+  let persistentStorage: PersistentStoragePayload | undefined;
 
   if (!imageRef) {
     return jsonError(400, "Image reference is required.");
@@ -95,6 +101,12 @@ export async function POST(request: Request) {
 
   if (Number.isNaN(servicePort)) {
     return jsonError(400, "Service port must be a positive integer.");
+  }
+
+  try {
+    persistentStorage = readPersistentStorageInput(body.persistentStorage);
+  } catch (error) {
+    return jsonError(400, readErrorMessage(error));
   }
 
   try {
@@ -109,9 +121,11 @@ export async function POST(request: Request) {
     const result = await importFugueDockerImageApp(workspace.adminKeySecret, {
       imageRef,
       name: name || undefined,
+      persistentStorage,
       projectId: workspace.defaultProjectId ?? undefined,
       runtimeId: runtimeId || undefined,
       servicePort: servicePort ?? undefined,
+      startupCommand: startupCommand || undefined,
     });
 
     if (result.app?.id) {

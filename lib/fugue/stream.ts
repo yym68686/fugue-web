@@ -2,12 +2,46 @@ import "server-only";
 
 import { getFugueEnv } from "@/lib/fugue/env";
 
+const STREAM_CACHE_CONTROL_DIRECTIVES = [
+  "no-cache",
+  "no-store",
+  "must-revalidate",
+  "no-transform",
+] as const;
+const STREAM_PADDING_BYTES = 8 * 1024;
+const STREAM_PADDING_CHUNK = new TextEncoder().encode(
+  `: ${" ".repeat(STREAM_PADDING_BYTES - 4)}\n\n`,
+);
+
 type ProxyFugueEventStreamOptions = {
   accessToken: string;
   path: string;
   requestHeaders?: Headers;
   signal?: AbortSignal;
 };
+
+function buildCacheControlHeader(value: string | null) {
+  const directives = new Map<string, string>();
+
+  for (const token of (value ?? "").split(",")) {
+    const trimmed = token.trim();
+
+    if (!trimmed) {
+      continue;
+    }
+
+    const [rawKey] = trimmed.split("=", 1);
+    directives.set(rawKey.toLowerCase(), trimmed);
+  }
+
+  for (const directive of STREAM_CACHE_CONTROL_DIRECTIVES) {
+    if (!directives.has(directive)) {
+      directives.set(directive, directive);
+    }
+  }
+
+  return Array.from(directives.values()).join(", ");
+}
 
 function forwardEventStreamHeaders(requestHeaders?: Headers) {
   const headers = new Headers({
@@ -30,11 +64,7 @@ function forwardEventStreamHeaders(requestHeaders?: Headers) {
 function buildProxyHeaders(upstream: Response) {
   const headers = new Headers();
 
-  headers.set(
-    "Cache-Control",
-    upstream.headers.get("Cache-Control") ||
-      "no-cache, no-store, must-revalidate, no-transform",
-  );
+  headers.set("Cache-Control", buildCacheControlHeader(upstream.headers.get("Cache-Control")));
   headers.set("Content-Type", upstream.headers.get("Content-Type") || "text/event-stream");
   headers.set("Connection", "keep-alive");
 
@@ -57,6 +87,7 @@ function proxyEventStreamBody(
       };
 
       signal?.addEventListener("abort", abortUpstream, { once: true });
+      controller.enqueue(STREAM_PADDING_CHUNK);
 
       // Keep start() synchronous so long-lived SSE streams can flush
       // immediately instead of waiting for the entire pump to finish.

@@ -7,6 +7,10 @@ import type { FugueGitHubTemplateInspection } from "@/lib/fugue/api";
 import { importFugueGitHubApp, inspectGitHubTemplate } from "@/lib/fugue/api";
 import { getFugueEnv } from "@/lib/fugue/env";
 import {
+  readPersistentStorageInput,
+  type PersistentStoragePayload,
+} from "@/lib/fugue/persistent-storage";
+import {
   isObject,
   jsonError,
   readErrorMessage,
@@ -192,6 +196,7 @@ export async function POST(request: Request) {
   const dockerfilePath = readOptionalString(body, "dockerfilePath");
   const buildContextDir = readOptionalString(body, "buildContextDir");
   const startupCommand = readOptionalString(body, "startupCommand");
+  let persistentStorage: PersistentStoragePayload | undefined;
   const repoVisibilityInput = readOptionalString(body, "repoVisibility");
   const repoVisibility = normalizeGitHubRepoVisibility(repoVisibilityInput);
   const repoAuthToken = readOptionalString(body, "repoAuthToken");
@@ -202,6 +207,7 @@ export async function POST(request: Request) {
   let persistentStorageSeedFiles: PersistentStorageSeedFileInput[];
 
   try {
+    persistentStorage = readPersistentStorageInput(body.persistentStorage);
     persistentStorageSeedFiles = readPersistentStorageSeedFiles(
       body.persistentStorageSeedFiles,
     );
@@ -264,6 +270,23 @@ export async function POST(request: Request) {
 
     if (templateSlug && !inspection.template) {
       return jsonError(409, "This repository no longer exposes template metadata.");
+    }
+
+    const preservesTopologyImport =
+      Boolean(inspection.fugueManifest) ||
+      (Boolean(inspection.composeStack) &&
+        preservesGitHubTopologyImport({
+          buildContextDir,
+          buildStrategy,
+          dockerfilePath,
+          sourceDir,
+        }));
+
+    if (persistentStorage && preservesTopologyImport) {
+      return jsonError(
+        400,
+        "Manual persistent storage mounts only work for single-app deploys. Clear the mounts or switch away from topology import.",
+      );
     }
 
     if (persistentStorageSeedFiles.length > 0) {
@@ -344,6 +367,7 @@ export async function POST(request: Request) {
           }),
       env,
       name: name || undefined,
+      persistentStorage,
       persistentStorageSeedFiles:
         persistentStorageSeedFiles.length > 0
           ? persistentStorageSeedFiles

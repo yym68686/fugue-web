@@ -48,6 +48,11 @@ type ImportResponse = {
   requestInProgress?: boolean;
 };
 
+const DEFAULT_IMPORT_CAPABILITIES = {
+  persistentStorageSupported: true,
+  startupCommandSupported: true,
+};
+
 function readErrorMessage(error: unknown) {
   if (error instanceof Error && error.message) {
     return error.message;
@@ -99,6 +104,9 @@ export function ConsoleOnboarding({
   );
   const [localUpload, setLocalUpload] = useState<LocalUploadState>(() =>
     createLocalUploadState(),
+  );
+  const [importCapabilities, setImportCapabilities] = useState(
+    DEFAULT_IMPORT_CAPABILITIES,
   );
   const {
     connectHref: githubConnectHref,
@@ -259,6 +267,8 @@ export function ConsoleOnboarding({
 
     const validationError = validateImportServiceDraft(draft, {
       localUpload,
+      persistentStorageSupported:
+        importCapabilities.persistentStorageSupported,
       privateGitHubAuthorized:
         githubConnectionLoading || Boolean(githubConnection?.connected),
     });
@@ -284,11 +294,22 @@ export function ConsoleOnboarding({
       const requestInit =
         draft.sourceMode === "local-upload"
           ? {
-              body: buildLocalUploadFormData(buildImportServicePayload(draft), localUpload),
+              body: buildLocalUploadFormData(
+                buildImportServicePayload(draft, {
+                  includePersistentStorage:
+                    importCapabilities.persistentStorageSupported,
+                }),
+                localUpload,
+              ),
               method: "POST",
             }
           : {
-              body: JSON.stringify(buildImportServicePayload(draft)),
+              body: JSON.stringify(
+                buildImportServicePayload(draft, {
+                  includePersistentStorage:
+                    importCapabilities.persistentStorageSupported,
+                }),
+              ),
               headers: {
                 "Content-Type": "application/json",
               },
@@ -454,10 +475,11 @@ export function ConsoleOnboarding({
                     githubConnectionLoading={githubConnectionLoading}
                     idPrefix="onboarding-import"
                     inventoryError={runtimeTargetInventoryError}
-                    localUpload={localUpload}
-                    onDraftChange={setDraft}
-                    onLocalUploadChange={setLocalUpload}
-                    runtimeTargets={runtimeTargets}
+                  localUpload={localUpload}
+                  onCapabilitiesChange={setImportCapabilities}
+                  onDraftChange={setDraft}
+                  onLocalUploadChange={setLocalUpload}
+                  runtimeTargets={runtimeTargets}
                   />
                 </form>
               </PanelSection>

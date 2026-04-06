@@ -28,6 +28,7 @@ import type {
   ConsoleProjectGallerySummaryData,
   ConsoleProjectSummaryView,
 } from "@/lib/console/gallery-types";
+import type { ConsoleTone } from "@/lib/console/types";
 import {
   clearPendingProjectIntent,
   createPendingProjectIntent,
@@ -92,6 +93,14 @@ type CreateProjectResponse = {
 type CreateDialogTarget = {
   id: string;
   name: string;
+};
+
+type PendingProjectProgressStep = {
+  copy: string;
+  label: string;
+  live?: boolean;
+  status: string;
+  tone: ConsoleTone;
 };
 
 type ProjectImageUsageSummary = {
@@ -347,7 +356,7 @@ function readPendingProjectIntentStatus(intent: PendingProjectIntent) {
   if (intent.status === "error") {
     return {
       eyebrow: "Queue failed",
-      label: "Needs retry",
+      label: "Retry needed",
       live: false,
       tone: "danger" as const,
     };
@@ -355,106 +364,180 @@ function readPendingProjectIntentStatus(intent: PendingProjectIntent) {
 
   if (intent.projectId) {
     return {
-      eyebrow: intent.requestInProgress ? "Build already running" : "Build queued",
-      label: intent.requestInProgress ? "Syncing" : "Ready soon",
-      live: true,
+      eyebrow: intent.requestInProgress ? "Import running" : "Build queued",
+      label: intent.requestInProgress ? "Syncing" : "Queued",
+      live: intent.requestInProgress,
       tone: "info" as const,
     };
   }
 
   return {
-    eyebrow: "Starting build",
-    label: "Creating",
+    eyebrow: "Creating project",
+    label: "Working",
     live: true,
     tone: "info" as const,
   };
 }
 
-function readPendingProjectIntentSourceLabel(intent: PendingProjectIntent) {
+function readPendingProjectIntentSourceSummary(intent: PendingProjectIntent) {
   switch (intent.sourceMode) {
     case "docker-image":
-      return intent.sourceLabel
-        ? `Docker image / ${intent.sourceLabel}`
-        : "Docker image";
+      return "Docker image";
     case "local-upload":
-      return intent.sourceLabel
-        ? `Local upload / ${intent.sourceLabel}`
-        : "Local upload";
+      return "Local upload";
     case "github":
     default:
-      return intent.sourceLabel ? `GitHub / ${intent.sourceLabel}` : "GitHub import";
+      return "GitHub import";
+  }
+}
+
+function readPendingProjectIntentSourceDetail(intent: PendingProjectIntent) {
+  const sourceLabel = intent.sourceLabel?.trim();
+
+  switch (intent.sourceMode) {
+    case "docker-image":
+      return sourceLabel || "Published image reference";
+    case "local-upload":
+      if (
+        !sourceLabel ||
+        /^local source$/i.test(sourceLabel) ||
+        /^local upload$/i.test(sourceLabel)
+      ) {
+        return "Source files uploaded from this browser";
+      }
+
+      return sourceLabel;
+    case "github":
+    default:
+      return sourceLabel || "Repository import";
   }
 }
 
 function readPendingProjectIntentSummary(intent: PendingProjectIntent) {
   if (intent.status === "error") {
-    return "Project shell was not created.";
+    return "The first service did not queue.";
   }
 
   if (intent.projectId) {
-    return "Project shell is ready. Waiting for the console to attach live build state.";
+    return "Project created. The live workbench will replace this shell automatically.";
   }
 
   switch (intent.sourceMode) {
     case "docker-image":
-      return "Mirroring the image and reserving the first route.";
+      return "Mirroring the image and preparing the first rollout.";
     case "local-upload":
-      return "Packaging the local source and creating the first build.";
+      return "Packaging uploaded files for the first build.";
     case "github":
     default:
-      return "Creating the project shell and queuing the first repository build.";
+      return "Preparing the first repository build.";
+  }
+}
+
+function readPendingProjectIntentTitle(intent: PendingProjectIntent) {
+  if (intent.status === "error") {
+    return "Couldn't queue the first service";
+  }
+
+  if (intent.projectId) {
+    return intent.requestInProgress
+      ? "First service is syncing into the console"
+      : "First service is queued";
+  }
+
+  switch (intent.sourceMode) {
+    case "docker-image":
+      return "Preparing the first rollout";
+    case "local-upload":
+      return "Packaging the first build";
+    case "github":
+    default:
+      return "Preparing the first repository build";
   }
 }
 
 function readPendingProjectIntentDetailCopy(intent: PendingProjectIntent) {
   if (intent.status === "error") {
-    return intent.errorMessage ?? "The deployment could not be queued.";
+    return (
+      intent.errorMessage ??
+      "The request stopped before build logs and route controls could attach."
+    );
   }
 
   if (intent.projectId) {
-    return "Fugue accepted the request. This page will switch to the live project workbench as soon as the new service finishes syncing into the console.";
+    return "Keep this page open. Fugue will swap this shell for the live workbench as soon as the app record is visible.";
   }
 
   switch (intent.sourceMode) {
     case "docker-image":
-      return "Fugue is creating the project record and mirroring the image into the internal registry before the first rollout starts.";
+      return "Fugue is creating the project, mirroring the image internally, and staging the first rollout.";
     case "local-upload":
-      return "Fugue is creating the project record and packaging the uploaded source on the server before the first build starts.";
+      return "Fugue is creating the project and packaging the uploaded files on the server before the first build starts.";
     case "github":
     default:
-      return "Fugue is creating the project record and queueing the repository import. Build logs and route controls will appear here automatically.";
+      return "Fugue is creating the project and preparing the repository import before build logs can attach.";
   }
 }
 
-function readPendingProjectIntentSteps(intent: PendingProjectIntent) {
+function readPendingProjectIntentSteps(
+  intent: PendingProjectIntent,
+): PendingProjectProgressStep[] {
   const intakeLabel =
     intent.sourceMode === "docker-image"
-      ? "Image import"
+      ? "Prepare image rollout"
       : intent.sourceMode === "local-upload"
-        ? "Source package"
-        : "Repository intake";
+        ? "Package uploaded source"
+        : "Prepare repository build";
   const intakeCopy =
     intent.sourceMode === "docker-image"
-      ? "Pull the published image, mirror it internally, and prepare the rollout."
+      ? "Mirror the published image internally and stage the first rollout."
       : intent.sourceMode === "local-upload"
-        ? "Archive the uploaded source and stage the first build on the server."
-        : "Inspect the repository, prepare the build plan, and reserve the first route.";
+        ? "Archive the uploaded files and stage the first build on the server."
+        : "Inspect the repository and prepare the build plan for the first service.";
+
+  if (intent.projectId) {
+    return [
+      {
+        copy: "The project exists and the first service slot is reserved.",
+        label: "Project created",
+        status: "Done",
+        tone: "positive",
+      },
+      {
+        copy: intakeCopy,
+        label: intakeLabel,
+        live: intent.requestInProgress,
+        status: intent.requestInProgress ? "Running" : "Queued",
+        tone: "info",
+      },
+      {
+        copy:
+          "Build logs, route controls, and environment panels replace this shell automatically.",
+        label: "Attach live workbench",
+        status: "Waiting",
+        tone: "neutral",
+      },
+    ];
+  }
 
   return [
     {
-      copy: "Create the project shell and reserve the first service slot.",
-      index: "01",
-      label: "Project shell",
+      copy: "Reserve the project and the first service slot.",
+      label: "Create project",
+      live: true,
+      status: "Working",
+      tone: "info",
     },
     {
       copy: intakeCopy,
-      index: "02",
       label: intakeLabel,
+      status: "Waiting",
+      tone: "neutral",
     },
     {
-      copy: "Attach build logs, runtime state, and route controls when the app record is available.",
-      index: "03",
-      label: "Console handoff",
+      copy: "The live workbench appears as soon as the app record becomes visible.",
+      label: "Attach live workbench",
+      status: "Waiting",
+      tone: "neutral",
     },
   ];
 }
@@ -472,21 +555,27 @@ function PendingProjectCard({
   const detailId = `project-detail-pending-${intent.id}`;
   const facts = [
     {
+      label: "Project",
+      value: intent.projectName,
+    },
+    {
       label: "Source",
-      value: readPendingProjectIntentSourceLabel(intent),
+      value: readPendingProjectIntentSourceDetail(intent),
     },
     {
       label: "App name",
-      value: intent.appName ?? "Use detected default",
+      value: intent.appName?.trim() || "Auto-detect after import",
     },
     {
       label: "Handoff",
       value:
         intent.status === "error"
-          ? "Return to the retry flow"
-          : "Stay on this page for live build state",
+          ? "Return to the create flow and retry the import"
+          : "The live workbench replaces this shell when logs and route controls are ready",
     },
   ];
+  const progressSteps =
+    intent.status === "error" ? [] : readPendingProjectIntentSteps(intent);
 
   return (
     <article
@@ -522,14 +611,7 @@ function PendingProjectCard({
 
           <div className="fg-project-card__summary-resources fg-project-card__summary-resources--pending">
             <span className="fg-project-pending-summary">
-              {readPendingProjectIntentSourceLabel(intent)}
-            </span>
-            <span className="fg-project-pending-summary">
-              {intent.status === "error"
-                ? "Waiting for retry"
-                : intent.projectId
-                  ? "Syncing console state"
-                  : "Preparing build state"}
+              {readPendingProjectIntentSourceSummary(intent)}
             </span>
           </div>
 
@@ -552,86 +634,108 @@ function PendingProjectCard({
 
       {expanded ? (
         <div className="fg-project-card__detail" id={detailId}>
-          <section className="fg-bezel fg-panel fg-project-workbench fg-project-workbench--pending">
-            <div className="fg-bezel__inner fg-project-workbench__inner">
-              <aside className="fg-project-services fg-project-services--rail fg-project-workbench__rail">
-                <PanelSection className="fg-project-services__head">
-                  <div className="fg-project-services__title-row">
-                    <p className="fg-label fg-panel__eyebrow">{status.eyebrow}</p>
-                    <StatusBadge live={status.live} tone={status.tone}>
-                      {status.label}
-                    </StatusBadge>
-                  </div>
-                  <p className="fg-console-note">
-                    {intent.status === "error"
-                      ? "Open the retry flow to adjust the source or project name."
-                      : "This shell stays visible while Fugue prepares the first service."}
-                  </p>
-                </PanelSection>
+          <section className="fg-bezel fg-panel fg-project-workbench fg-project-workbench--pending-shell">
+            <div className="fg-bezel__inner fg-project-pending-shell-panel">
+              <PanelSection className="fg-project-pending-shell__hero">
+                <div className="fg-project-pending-shell__status-row">
+                  <p className="fg-label fg-panel__eyebrow">{status.eyebrow}</p>
+                  <StatusBadge live={status.live} tone={status.tone}>
+                    {status.label}
+                  </StatusBadge>
+                </div>
 
-                <PanelSection className="fg-project-pending-steps">
-                  {readPendingProjectIntentSteps(intent).map((step) => (
-                    <div className="fg-project-pending-step" key={step.index}>
-                      <span className="fg-project-pending-step__index">
-                        {step.index}
-                      </span>
-
-                      <div className="fg-project-pending-step__copy">
-                        <strong>{step.label}</strong>
-                        <p className="fg-console-note">{step.copy}</p>
-                      </div>
-                    </div>
-                  ))}
-                </PanelSection>
-              </aside>
-
-              <div className="fg-project-inspector fg-project-workbench__main">
-                <PanelSection className="fg-project-inspector__head">
-                  <div className="fg-project-inspector__header-row fg-project-pending-shell__head">
-                    <div className="fg-project-inspector__hero">
-                      <p className="fg-label fg-panel__eyebrow">
-                        {readPendingProjectIntentSourceLabel(intent)}
-                      </p>
-                      <PanelTitle>{intent.projectName}</PanelTitle>
-                      <PanelCopy className="fg-project-inspector__copy">
-                        {readPendingProjectIntentDetailCopy(intent)}
-                      </PanelCopy>
-                    </div>
-
-                    {intent.status === "error" && intent.retryHref ? (
-                      <div className="fg-project-actions fg-project-pending-shell__actions">
-                        <ButtonAnchor href={intent.retryHref} variant="secondary">
-                          Open retry flow
-                        </ButtonAnchor>
-                      </div>
-                    ) : null}
+                <div className="fg-project-pending-shell__hero-row">
+                  <div className="fg-project-pending-shell__hero-copy">
+                    <p className="fg-label">
+                      {readPendingProjectIntentSourceSummary(intent)}
+                    </p>
+                    <h3 className="fg-project-pending-shell__title fg-ui-heading">
+                      {readPendingProjectIntentTitle(intent)}
+                    </h3>
+                    <p className="fg-project-pending-shell__copy">
+                      {readPendingProjectIntentDetailCopy(intent)}
+                    </p>
                   </div>
 
-                  <dl className="fg-console-inline-meta fg-console-inline-meta--stacked fg-project-pending-shell__facts">
-                    {facts.map((fact) => (
-                      <div key={fact.label}>
-                        <dt>{fact.label}</dt>
-                        <dd>{fact.value}</dd>
-                      </div>
+                  {intent.status === "error" && intent.retryHref ? (
+                    <div className="fg-project-pending-shell__hero-actions">
+                      <ButtonAnchor href={intent.retryHref} variant="secondary">
+                        Open retry flow
+                      </ButtonAnchor>
+                    </div>
+                  ) : null}
+                </div>
+              </PanelSection>
+
+              {progressSteps.length ? (
+                <PanelSection className="fg-project-pending-shell__progress">
+                  <div className="fg-project-pending-shell__progress-copy">
+                    <p className="fg-label fg-panel__eyebrow">Next steps</p>
+                    <p className="fg-console-note">
+                      This shell disappears automatically once the live workbench is ready.
+                    </p>
+                  </div>
+
+                  <ol className="fg-console-checklist fg-project-pending-checklist">
+                    {progressSteps.map((step) => (
+                      <li className="fg-console-checklist__item" key={step.label}>
+                        <span className="fg-console-checklist__state">
+                          <StatusBadge
+                            className="fg-project-pending-checklist__badge"
+                            live={step.live}
+                            tone={step.tone}
+                          >
+                            {step.status}
+                          </StatusBadge>
+                        </span>
+
+                        <div className="fg-project-pending-checklist__copy">
+                          <strong>{step.label}</strong>
+                          <p>{step.copy}</p>
+                        </div>
+                      </li>
                     ))}
-                  </dl>
+                  </ol>
                 </PanelSection>
+              ) : null}
 
-                <PanelSection className="fg-project-pane">
-                  <div className="fg-workbench-section fg-project-pending-shell">
-                    <div className="fg-workbench-section__head">
-                      <div className="fg-workbench-section__copy">
-                        <p className="fg-label fg-panel__eyebrow">What happens next</p>
-                        <p className="fg-console-note">
-                          {intent.status === "error"
-                            ? "The request never reached a live project state, so no build logs or route controls were attached."
-                            : "Build logs, route controls, and environment panels will attach here automatically as soon as the app record is visible."}
-                        </p>
-                      </div>
-                    </div>
+              <PanelSection className="fg-project-pending-shell__details">
+                <details className="fg-console-disclosure fg-console-disclosure--section">
+                  <summary>
+                    <span className="fg-console-disclosure__summary-copy">
+                      <span className="fg-console-disclosure__summary-label">
+                        Build details
+                      </span>
+                      <span className="fg-console-disclosure__summary-description">
+                        Project name, source reference, app naming, and handoff behavior
+                      </span>
+                    </span>
+                    <span className="fg-console-disclosure__summary-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24">
+                        <path
+                          d="m7.2 9.4 4.8 5.2 4.8-5.2"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="1.7"
+                        />
+                      </svg>
+                    </span>
+                  </summary>
+
+                  <div className="fg-console-disclosure__panel">
+                    <dl className="fg-console-disclosure__list">
+                      {facts.map((fact) => (
+                        <div className="fg-console-disclosure__item" key={fact.label}>
+                          <dt>{fact.label}</dt>
+                          <dd>{fact.value}</dd>
+                        </div>
+                      ))}
+                    </dl>
                   </div>
-                </PanelSection>
-              </div>
+                </details>
+              </PanelSection>
             </div>
           </section>
         </div>
@@ -699,6 +803,10 @@ export function ConsoleProjectGallery({
   const [localUpload, setLocalUpload] = useState<LocalUploadState>(() =>
     createLocalUploadState(),
   );
+  const [importCapabilities, setImportCapabilities] = useState({
+    persistentStorageSupported: true,
+    startupCommandSupported: true,
+  });
   const {
     connectHref: githubConnectHref,
     connection: githubConnection,
@@ -1373,6 +1481,8 @@ export function ConsoleProjectGallery({
 
     const validationError = validateImportServiceDraft(importDraft, {
       localUpload,
+      persistentStorageSupported:
+        importCapabilities.persistentStorageSupported,
       privateGitHubAuthorized:
         githubConnectionLoading || Boolean(githubConnection?.connected),
     });
@@ -1395,7 +1505,10 @@ export function ConsoleProjectGallery({
         ? {
             body: buildLocalUploadFormData(
               {
-                ...buildImportServicePayload(importDraft),
+                ...buildImportServicePayload(importDraft, {
+                  includePersistentStorage:
+                    importCapabilities.persistentStorageSupported,
+                }),
                 ...(createTargetProject
                   ? {
                       projectId: createTargetProject.id,
@@ -1411,7 +1524,10 @@ export function ConsoleProjectGallery({
           }
         : {
             body: JSON.stringify({
-              ...buildImportServicePayload(importDraft),
+              ...buildImportServicePayload(importDraft, {
+                includePersistentStorage:
+                  importCapabilities.persistentStorageSupported,
+              }),
               ...(createTargetProject
                 ? {
                     projectId: createTargetProject.id,
@@ -1843,6 +1959,7 @@ export function ConsoleProjectGallery({
                       includeWrapper={false}
                       inventoryError={runtimeInventory.runtimeTargetInventoryError}
                       localUpload={localUpload}
+                      onCapabilitiesChange={setImportCapabilities}
                       onDraftChange={setImportDraft}
                       onLocalUploadChange={setLocalUpload}
                       runtimeTargets={runtimeInventory.runtimeTargets}

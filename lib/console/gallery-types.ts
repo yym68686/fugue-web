@@ -50,6 +50,7 @@ export type ConsoleGalleryPersistentStorageMountView = {
   kind: "directory" | "file" | null;
   mode: number | null;
   path: string;
+  seedContent: string | null;
   secret: boolean;
 };
 

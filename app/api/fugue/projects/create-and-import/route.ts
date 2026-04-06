@@ -13,6 +13,10 @@ import {
   importFugueGitHubApp,
 } from "@/lib/fugue/api";
 import {
+  readPersistentStorageInput,
+  type PersistentStoragePayload,
+} from "@/lib/fugue/persistent-storage";
+import {
   normalizeImportSourceMode,
   preservesGitHubTopologyImport,
 } from "@/lib/fugue/import-source";
@@ -154,6 +158,7 @@ export async function POST(request: Request) {
   const runtimeId = readOptionalString(body, "runtimeId");
   const servicePort = readOptionalPositiveInteger(body, "servicePort");
   const startupCommand = readOptionalString(body, "startupCommand");
+  let persistentStorage: PersistentStoragePayload | undefined;
   const repoVisibilityInput = readOptionalString(body, "repoVisibility");
   const repoVisibility = normalizeGitHubRepoVisibility(repoVisibilityInput);
   const repoAuthToken = readOptionalString(body, "repoAuthToken");
@@ -165,6 +170,7 @@ export async function POST(request: Request) {
   let persistentStorageSeedFiles: PersistentStorageSeedFileInput[];
 
   try {
+    persistentStorage = readPersistentStorageInput(body.persistentStorage);
     persistentStorageSeedFiles = readPersistentStorageSeedFiles(
       body.persistentStorageSeedFiles,
     );
@@ -279,6 +285,7 @@ export async function POST(request: Request) {
             buildContextDir: buildContextDir || undefined,
             dockerfilePath: dockerfilePath || undefined,
             name: name || undefined,
+            persistentStorage,
             persistentStorageSeedFiles:
               persistentStorageSeedFiles.length > 0
                 ? persistentStorageSeedFiles
@@ -295,6 +302,7 @@ export async function POST(request: Request) {
         : await importFugueDockerImageApp(workspace.adminKeySecret, {
             imageRef,
             name: name || undefined,
+            persistentStorage,
             runtimeId: runtimeId || undefined,
             servicePort: servicePort ?? undefined,
             startupCommand: startupCommand || undefined,

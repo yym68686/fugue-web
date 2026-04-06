@@ -3224,17 +3224,24 @@
   border-color: rgba(165, 191, 220, 0.2);
 }
 
+.fg-project-card--pending .fg-project-card__summary-head {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: start;
+}
+
 .fg-project-card__summary-resources--pending {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  align-items: center;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  justify-items: end;
 }
 
 .fg-project-pending-summary {
-  min-height: 2.5rem;
+  min-height: 2.25rem;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  padding: 0.52rem 0.8rem;
+  justify-content: flex-start;
+  max-width: min(18rem, 100%);
+  padding: 0.46rem 0.74rem;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 0.95rem;
   background:
@@ -3243,7 +3250,7 @@
   color: var(--fugue-text-secondary);
   font-size: 0.76rem;
   line-height: 1.45;
-  text-align: center;
+  text-align: left;
 }
 
 .fg-project-card__summary-side {
@@ -3536,7 +3543,7 @@
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
 }
 
-.fg-project-workbench--pending > .fg-bezel__inner {
+.fg-project-workbench--pending-shell > .fg-bezel__inner {
   background:
     radial-gradient(circle at top left, rgba(165, 191, 220, 0.16), transparent 30%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.038), rgba(255, 255, 255, 0.014)),
@@ -3602,58 +3609,82 @@
   gap: 0.95rem;
 }
 
-.fg-project-pending-steps {
+.fg-project-pending-shell-panel {
   display: grid;
-  gap: 0.9rem;
+  gap: 0;
 }
 
-.fg-project-pending-step {
+.fg-project-pending-shell__hero,
+.fg-project-pending-shell__progress,
+.fg-project-pending-shell__details {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.95rem;
+}
+
+.fg-project-pending-shell__status-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
   gap: 0.75rem;
-  align-items: start;
 }
 
-.fg-project-pending-step__index {
-  min-width: 2rem;
-  padding: 0.34rem 0.48rem;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.03);
-  color: var(--fugue-text-tertiary);
-  font-family: var(--fugue-font-mono);
-  font-size: 0.68rem;
-  line-height: 1;
-  text-align: center;
+.fg-project-pending-shell__hero-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
-.fg-project-pending-step__copy {
+.fg-project-pending-shell__hero-copy {
+  min-width: 0;
+  max-width: 44rem;
   display: grid;
-  gap: 0.24rem;
+  gap: 0.4rem;
 }
 
-.fg-project-pending-step__copy strong {
-  color: var(--fugue-text-primary);
-  font-family: var(--fugue-font-ui-heading);
-  font-size: 0.96rem;
-  line-height: 1.08;
-  letter-spacing: var(--fugue-tracking-ui-heading);
+.fg-project-pending-shell__hero-copy .fg-label {
+  margin-bottom: 0;
 }
 
-.fg-project-pending-shell {
-  gap: 0.9rem;
+.fg-project-pending-shell__title {
+  margin: 0;
+  font-size: clamp(1.08rem, 2vw, 1.34rem);
 }
 
-.fg-project-pending-shell__head {
-  align-items: start;
+.fg-project-pending-shell__copy {
+  margin: 0;
+  max-width: 46rem;
+  color: var(--fugue-text-secondary);
+  font-size: 0.92rem;
+  line-height: 1.62;
 }
 
-.fg-project-pending-shell__actions {
+.fg-project-pending-shell__hero-actions {
   align-self: start;
 }
 
-.fg-project-pending-shell__facts {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+.fg-project-pending-shell__progress-copy {
+  display: grid;
+  gap: 0.22rem;
+}
+
+.fg-project-pending-checklist {
+  gap: 0.72rem;
+}
+
+.fg-project-pending-checklist .fg-console-checklist__item:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.fg-project-pending-checklist__badge {
+  min-width: 5.8rem;
+}
+
+.fg-project-pending-checklist__copy {
+  min-width: 0;
 }
 
 .fg-project-inspector__header-row {
@@ -6490,10 +6521,6 @@
     border-right: 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   }
-
-  .fg-project-pending-shell__facts {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 @media (max-width: 1320px) {
@@ -6529,9 +6556,9 @@
 }
 
 @media (max-width: 860px) {
-  .fg-project-card__summary-resources--pending,
-  .fg-project-pending-shell__facts {
+  .fg-project-card__summary-resources--pending {
     grid-template-columns: 1fr;
+    justify-items: start;
   }
 
   .fg-console-shell--stacked {
@@ -6603,6 +6630,15 @@
   .fg-project-toolbar,
   .fg-workbench-section__head {
     gap: 0.8rem;
+  }
+
+  .fg-project-pending-shell__hero-actions,
+  .fg-project-pending-shell__hero-actions .fg-button {
+    width: 100%;
+  }
+
+  .fg-project-pending-checklist__badge {
+    min-width: 0;
   }
 
   .fg-filesystem__topbar {

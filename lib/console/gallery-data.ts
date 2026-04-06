@@ -1568,6 +1568,7 @@ function buildPersistentStorageMountView(
     kind: normalizedKind,
     mode: mount.mode ?? null,
     path,
+    seedContent: mount.seedContent ?? null,
     secret: mount.secret ?? false,
   };
 }

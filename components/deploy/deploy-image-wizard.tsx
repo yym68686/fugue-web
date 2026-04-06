@@ -9,6 +9,7 @@ import {
   resolvePendingProjectIntent,
 } from "@/lib/console/pending-project-intents";
 import { DeploymentTargetField } from "@/components/console/deployment-target-field";
+import { PersistentStorageEditor } from "@/components/console/persistent-storage-editor";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { InlineAlert } from "@/components/ui/inline-alert";
@@ -18,6 +19,11 @@ import { useToast } from "@/components/ui/toast";
 import type { ConsoleImportRuntimeTargetView } from "@/lib/console/gallery-types";
 import { readDefaultImportRuntimeId } from "@/lib/console/runtime-targets";
 import type { FugueProject } from "@/lib/fugue/api";
+import {
+  createPersistentStorageDraft,
+  serializePersistentStorageDraft,
+  validatePersistentStorageDraft,
+} from "@/lib/fugue/persistent-storage";
 import {
   DUPLICATE_PROJECT_NAME_MESSAGE,
   findProjectByName,
@@ -118,6 +124,9 @@ export function DeployImageWizard({
   const [imageRef, setImageRef] = useState(initialImageRef);
   const [servicePort, setServicePort] = useState(initialServicePort);
   const [startupCommand, setStartupCommand] = useState("");
+  const [persistentStorage, setPersistentStorage] = useState(() =>
+    createPersistentStorageDraft(),
+  );
   const [runtimeId, setRuntimeId] = useState<string | null>(
     readDefaultImportRuntimeId(runtimeTargets),
   );
@@ -177,6 +186,13 @@ export function DeployImageWizard({
       return "Service port must be a positive integer.";
     }
 
+    const persistentStorageError =
+      validatePersistentStorageDraft(persistentStorage);
+
+    if (persistentStorageError) {
+      return persistentStorageError;
+    }
+
     return null;
   }
 
@@ -189,6 +205,9 @@ export function DeployImageWizard({
 
     const normalizedName = name.trim();
     const normalizedServicePort = servicePort.trim();
+    const serializedPersistentStorage = serializePersistentStorageDraft(
+      persistentStorage,
+    );
     const normalizedProjectName =
       selectedProjectId === NEW_PROJECT_VALUE
         ? projectName.trim()
@@ -219,6 +238,9 @@ export function DeployImageWizard({
       ...(runtimeId ? { runtimeId } : {}),
       ...(normalizedServicePort
         ? { servicePort: Number(normalizedServicePort) }
+        : {}),
+      ...(serializedPersistentStorage
+        ? { persistentStorage: serializedPersistentStorage }
         : {}),
       ...(startupCommand.trim()
         ? { startupCommand: startupCommand.trim() }
@@ -418,6 +440,22 @@ export function DeployImageWizard({
             value={startupCommand}
           />
         </FormField>
+      </PanelSection>
+
+      <PanelSection>
+        <PanelTitle>Persistent storage</PanelTitle>
+        <PanelCopy>
+          Add directories or files that should stay attached after redeploys,
+          restarts, and runtime moves. File contents are only used the first
+          time Fugue creates that file.
+        </PanelCopy>
+
+        <PersistentStorageEditor
+          idPrefix="deploy-image-persistent-storage"
+          onChange={setPersistentStorage}
+          surface="deploy"
+          value={persistentStorage}
+        />
       </PanelSection>
 
       <PanelSection>

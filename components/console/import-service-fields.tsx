@@ -6,6 +6,7 @@ import { ConsoleDisclosureSection } from "@/components/console/console-disclosur
 import { DeploymentTargetField } from "@/components/console/deployment-target-field";
 import { GitHubRepositoryAccessFields } from "@/components/console/github-repository-access-fields";
 import { LocalUploadSourceField } from "@/components/console/local-upload-source-field";
+import { PersistentStorageEditor } from "@/components/console/persistent-storage-editor";
 import { FormField } from "@/components/ui/form-field";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { SelectField } from "@/components/ui/select-field";
@@ -40,6 +41,10 @@ import {
   readInspectionPersistentStorageSeedFiles,
   type InspectionPersistentStorageSeedField,
 } from "@/lib/fugue/template-inspection";
+import {
+  hasPersistentStorageDraft,
+  summarizePersistentStorageDraft,
+} from "@/lib/fugue/persistent-storage";
 import { isGitHubRepoUrl } from "@/lib/github/repository";
 import type { GitHubConnectionView } from "@/lib/github/types";
 import {
@@ -92,6 +97,10 @@ type ImportServiceFieldProps = {
   includeWrapper?: boolean;
   inventoryError?: string | null;
   localUpload: LocalUploadState;
+  onCapabilitiesChange?: (capabilities: {
+    persistentStorageSupported: boolean;
+    startupCommandSupported: boolean;
+  }) => void;
   onDraftChange: (next: ImportServiceDraft) => void;
   onLocalUploadChange: (next: LocalUploadState) => void;
   runtimeTargets: ConsoleImportRuntimeTargetView[];
@@ -107,6 +116,7 @@ export function ImportServiceFields({
   includeWrapper = true,
   inventoryError = null,
   localUpload,
+  onCapabilitiesChange,
   onDraftChange,
   onLocalUploadChange,
   runtimeTargets,
@@ -155,6 +165,7 @@ export function ImportServiceFields({
             localUploadInspection.hasTopologyDefinition &&
             localUploadKeepsTopologyImport
           );
+  const persistentStorageSupported = startupCommandSupported;
   const deploymentSummaryParts = [
     draft.sourceMode === "github"
       ? draft.repoVisibility === "private"
@@ -184,6 +195,9 @@ export function ImportServiceFields({
     draft.name.trim() ? `Name ${draft.name.trim()}` : null,
     startupCommandSupported && draft.startupCommand.trim()
       ? "Startup command"
+      : null,
+    persistentStorageSupported && hasPersistentStorageDraft(draft.persistentStorage)
+      ? "Persistent storage"
       : null,
     draft.sourceMode !== "docker-image" && draft.buildStrategy !== "auto"
       ? (BUILD_STRATEGY_OPTIONS.find(
@@ -217,10 +231,13 @@ export function ImportServiceFields({
         : [],
     [githubInspection, githubKeepsTopologyImport],
   );
-  const persistentStorageDescription =
+  const persistentStorageSeedDescription =
     persistentStorageSeedFields.length > 0
       ? `${persistentStorageSeedFields.length} missing file${persistentStorageSeedFields.length === 1 ? "" : "s"} before first deploy`
       : null;
+  const persistentStorageDescription =
+    summarizePersistentStorageDraft(draft.persistentStorage) ??
+    "Add directories or files that must survive redeploys.";
 
   useEffect(() => {
     const repoUrl = draft.repoUrl.trim();
@@ -301,6 +318,17 @@ export function ImportServiceFields({
       startupCommand: "",
     });
   }, [draft, onDraftChange, startupCommandSupported]);
+
+  useEffect(() => {
+    onCapabilitiesChange?.({
+      persistentStorageSupported,
+      startupCommandSupported,
+    });
+  }, [
+    onCapabilitiesChange,
+    persistentStorageSupported,
+    startupCommandSupported,
+  ]);
 
   useEffect(() => {
     const currentValues = new Map(
@@ -463,7 +491,7 @@ export function ImportServiceFields({
         <ConsoleDisclosureSection
           className="fg-console-dialog__advanced"
           defaultOpen
-          description={persistentStorageDescription ?? undefined}
+          description={persistentStorageSeedDescription ?? undefined}
           summary="Persistent files"
         >
           <div className="fg-console-dialog__advanced-grid">
@@ -505,6 +533,32 @@ export function ImportServiceFields({
               );
             })}
           </div>
+        </ConsoleDisclosureSection>
+      ) : null}
+
+      {!persistentStorageSupported &&
+      hasPersistentStorageDraft(draft.persistentStorage) ? (
+        <InlineAlert variant="info">
+          Manual persistent storage mounts stay in your draft, but Fugue skips
+          them while this import preserves a whole topology. Switch back to a
+          single-app deploy to reuse them.
+        </InlineAlert>
+      ) : null}
+
+      {persistentStorageSupported ? (
+        <ConsoleDisclosureSection
+          className="fg-console-dialog__advanced"
+          description={persistentStorageDescription}
+          summary="Persistent storage"
+        >
+          <PersistentStorageEditor
+            idPrefix={`${idPrefix}-persistent-storage`}
+            onChange={(next) =>
+              updateField("persistentStorage", next)
+            }
+            surface="console"
+            value={draft.persistentStorage}
+          />
         </ConsoleDisclosureSection>
       ) : null}
 

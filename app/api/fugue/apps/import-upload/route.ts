@@ -15,6 +15,10 @@ import {
   readErrorStatus,
   readOptionalString,
 } from "@/lib/fugue/product-route";
+import {
+  readPersistentStorageInput,
+  type PersistentStoragePayload,
+} from "@/lib/fugue/persistent-storage";
 import { normalizeImportSourceMode } from "@/lib/fugue/import-source";
 import {
   ensureAppUser,
@@ -82,6 +86,8 @@ export async function POST(request: Request) {
   const name = readOptionalString(body, "name");
   const runtimeId = readOptionalString(body, "runtimeId");
   const servicePort = readOptionalPositiveInteger(body, "servicePort");
+  const startupCommand = readOptionalString(body, "startupCommand");
+  let persistentStorage: PersistentStoragePayload | undefined;
 
   if (sourceModeInput && sourceMode !== "local-upload") {
     return jsonError(400, "Local upload requests must use sourceMode local-upload.");
@@ -97,6 +103,12 @@ export async function POST(request: Request) {
 
   if (Number.isNaN(servicePort)) {
     return jsonError(400, "Service port must be a positive integer.");
+  }
+
+  try {
+    persistentStorage = readPersistentStorageInput(body.persistentStorage);
+  } catch (error) {
+    return jsonError(400, readErrorMessage(error));
   }
 
   try {
@@ -119,9 +131,11 @@ export async function POST(request: Request) {
       buildStrategy: buildStrategy || undefined,
       dockerfilePath: dockerfilePath || undefined,
       name: name || undefined,
+      persistentStorage,
       projectId: workspace.defaultProjectId ?? undefined,
       runtimeId: runtimeId || undefined,
       servicePort: servicePort ?? undefined,
+      startupCommand: startupCommand || undefined,
       sourceDir: sourceDir || undefined,
     });
 

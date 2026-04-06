@@ -11,6 +11,7 @@ import {
 } from "@/lib/console/pending-project-intents";
 import { DeploymentTargetField } from "@/components/console/deployment-target-field";
 import { GitHubRepositoryAccessFields } from "@/components/console/github-repository-access-fields";
+import { PersistentStorageEditor } from "@/components/console/persistent-storage-editor";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { InlineAlert } from "@/components/ui/inline-alert";
@@ -33,6 +34,13 @@ import {
 import {
   readInspectionPersistentStorageSeedFiles,
 } from "@/lib/fugue/template-inspection";
+import {
+  createPersistentStorageDraft,
+  hasPersistentStorageDraft,
+  serializePersistentStorageDraft,
+  summarizePersistentStorageDraft,
+  validatePersistentStorageDraft,
+} from "@/lib/fugue/persistent-storage";
 import { useGitHubConnection } from "@/lib/github/connection-client";
 import { PRIVATE_GITHUB_AUTH_REQUIRED_MESSAGE } from "@/lib/github/messages";
 import type { GitHubRepoVisibility } from "@/lib/github/repository";
@@ -204,6 +212,9 @@ export function DeployWizard({
   const [dockerfilePath, setDockerfilePath] = useState("");
   const [buildContextDir, setBuildContextDir] = useState("");
   const [startupCommand, setStartupCommand] = useState("");
+  const [persistentStorage, setPersistentStorage] = useState(() =>
+    createPersistentStorageDraft(),
+  );
   const [variableValues, setVariableValues] = useState<Record<string, string>>(
     readInitialVariableValues(inspection),
   );
@@ -227,6 +238,7 @@ export function DeployWizard({
     Boolean(inspection?.fugueManifest || inspection?.composeStack) &&
     preservesTopologyImport
   );
+  const persistentStorageSupported = startupCommandSupported;
   const templateVariables = inspection?.template?.variables ?? [];
   const persistentStorageSeedFiles = useMemo<PersistentStorageSeedField[]>(
     () =>
@@ -241,6 +253,9 @@ export function DeployWizard({
   const advancedSummaryParts = [
     name.trim() ? `Name ${name.trim()}` : null,
     startupCommandSupported && startupCommand.trim() ? "Startup command" : null,
+    persistentStorageSupported && hasPersistentStorageDraft(persistentStorage)
+      ? "Persistent storage"
+      : null,
     !hasFugueManifest && buildStrategy !== "auto"
       ? (BUILD_STRATEGY_OPTIONS.find((option) => option.value === buildStrategy)
           ?.label ?? "Custom build")
@@ -256,10 +271,13 @@ export function DeployWizard({
     templateVariables.length > 0
       ? `${pluralize(templateVariables.length, "variable")} before first deploy`
       : null;
-  const persistentStorageSummaryCopy =
+  const persistentStorageSeedSummaryCopy =
     persistentStorageSeedFiles.length > 0
       ? `${pluralize(persistentStorageSeedFiles.length, "missing file")} before first deploy`
       : null;
+  const persistentStorageSummaryCopy =
+    summarizePersistentStorageDraft(persistentStorage) ??
+    "Add directories or files that must stay attached after deploys and restarts.";
   const projectOptions = useMemo(
     () =>
       buildProjectOptions(
@@ -339,6 +357,16 @@ export function DeployWizard({
       }
     }
 
+    if (persistentStorageSupported) {
+      const persistentStorageError = validatePersistentStorageDraft(
+        persistentStorage,
+      );
+
+      if (persistentStorageError) {
+        return persistentStorageError;
+      }
+    }
+
     return null;
   }
 
@@ -373,6 +401,10 @@ export function DeployWizard({
         : (projects.find((project) => project.id === selectedProjectId)?.name ??
           workspaceDefaultProjectName ??
           "Project");
+    const serializedPersistentStorage =
+      persistentStorageSupported
+        ? serializePersistentStorageDraft(persistentStorage)
+        : undefined;
     const intent = createPendingProjectIntent({
       appName: name.trim(),
       projectId:
@@ -405,6 +437,9 @@ export function DeployWizard({
         : {}),
       sourceDir: sourceDir.trim(),
       templateSlug: inspection?.template?.slug ?? "",
+      ...(serializedPersistentStorage
+        ? { persistentStorage: serializedPersistentStorage }
+        : {}),
       ...(persistentStorageSeedFiles.length > 0
         ? {
             persistentStorageSeedFiles: persistentStorageSeedFiles.map(
@@ -511,12 +546,12 @@ export function DeployWizard({
         ) : null}
 
         {persistentStorageSeedFiles.length > 0 ? (
-          <ConsoleDisclosureSection
-            className="fg-console-dialog__advanced"
-            defaultOpen
-            description={persistentStorageSummaryCopy ?? undefined}
-            summary="Persistent files"
-          >
+        <ConsoleDisclosureSection
+          className="fg-console-dialog__advanced"
+          defaultOpen
+          description={persistentStorageSeedSummaryCopy ?? undefined}
+          summary="Persistent files"
+        >
             <div className="fg-console-dialog__advanced-grid">
               {persistentStorageSeedFiles.map((file) => {
                 const fieldId = buildPersistentStorageSeedFieldId(file.key);
@@ -548,6 +583,30 @@ export function DeployWizard({
                 );
               })}
             </div>
+        </ConsoleDisclosureSection>
+      ) : null}
+
+        {!persistentStorageSupported &&
+        hasPersistentStorageDraft(persistentStorage) ? (
+          <InlineAlert variant="info">
+            Manual persistent storage mounts stay in this draft, but Fugue
+            skips them while this deploy preserves a whole topology. Switch
+            back to a single-app deploy to reuse them.
+          </InlineAlert>
+        ) : null}
+
+        {persistentStorageSupported ? (
+          <ConsoleDisclosureSection
+            className="fg-console-dialog__advanced"
+            description={persistentStorageSummaryCopy}
+            summary="Persistent storage"
+          >
+            <PersistentStorageEditor
+              idPrefix="deploy-persistent-storage"
+              onChange={setPersistentStorage}
+              surface="deploy"
+              value={persistentStorage}
+            />
           </ConsoleDisclosureSection>
         ) : null}
 

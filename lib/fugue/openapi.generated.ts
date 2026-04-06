@@ -2270,6 +2270,7 @@ export interface components {
             /** Format: int32 */
             image_mirror_limit?: number;
             startup_command?: string;
+            persistent_storage?: components["schemas"]["AppPersistentStorageSpec"];
         };
         BillingResponse: {
             billing: components["schemas"]["TenantBillingSummary"];
@@ -2511,6 +2512,7 @@ export interface components {
             config_content?: string;
             files?: components["schemas"]["AppFile"][];
             startup_command?: string;
+            persistent_storage?: components["schemas"]["AppPersistentStorageSpec"];
             persistent_storage_seed_files?: components["schemas"]["ImportGitHubPersistentStorageSeedFile"][];
             postgres?: components["schemas"]["AppPostgresSpec"];
             idempotency_key?: string;
@@ -2535,6 +2537,7 @@ export interface components {
             config_content?: string;
             files?: components["schemas"]["AppFile"][];
             startup_command?: string;
+            persistent_storage?: components["schemas"]["AppPersistentStorageSpec"];
             postgres?: components["schemas"]["AppPostgresSpec"];
         };
         ImportUploadMultipartRequest: {
@@ -2576,6 +2579,7 @@ export interface components {
             config_content?: string;
             startup_command?: string;
             files?: components["schemas"]["AppFile"][];
+            persistent_storage?: components["schemas"]["AppPersistentStorageSpec"];
             postgres?: components["schemas"]["AppPostgresSpec"];
         };
         ImportImageResponse: {

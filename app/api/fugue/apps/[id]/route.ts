@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 
 import { deleteFugueApp, patchFugueApp } from "@/lib/fugue/api";
 import {
+  readPersistentStorageInput,
+  type PersistentStoragePayload,
+} from "@/lib/fugue/persistent-storage";
+import {
   isObject,
   jsonError,
   readErrorMessage,
@@ -73,6 +77,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   const imageMirrorLimit = readOptionalInteger(body, "imageMirrorLimit");
 
   const startupCommand = readOptionalStringField(body, "startupCommand");
+  let persistentStorage: PersistentStoragePayload | undefined;
 
   if (imageMirrorLimit === null) {
     return jsonError(400, "imageMirrorLimit must be a whole number.");
@@ -82,8 +87,21 @@ export async function PATCH(request: Request, context: RouteContext) {
     return jsonError(400, "startupCommand must be a string.");
   }
 
-  if (imageMirrorLimit === undefined && startupCommand === undefined) {
-    return jsonError(400, "Provide imageMirrorLimit or startupCommand.");
+  try {
+    persistentStorage = readPersistentStorageInput(body.persistentStorage);
+  } catch (error) {
+    return jsonError(400, readErrorMessage(error));
+  }
+
+  if (
+    imageMirrorLimit === undefined &&
+    startupCommand === undefined &&
+    persistentStorage === undefined
+  ) {
+    return jsonError(
+      400,
+      "Provide imageMirrorLimit, startupCommand, or persistentStorage.",
+    );
   }
 
   try {
@@ -93,6 +111,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       appId,
       {
         ...(imageMirrorLimit !== undefined ? { imageMirrorLimit } : {}),
+        ...(persistentStorage !== undefined ? { persistentStorage } : {}),
         ...(startupCommand !== undefined ? { startupCommand } : {}),
       },
     );

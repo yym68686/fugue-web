@@ -10,6 +10,7 @@ import {
 } from "@/lib/console/pending-project-intents";
 import { DeploymentTargetField } from "@/components/console/deployment-target-field";
 import { LocalUploadSourceField } from "@/components/console/local-upload-source-field";
+import { PersistentStorageEditor } from "@/components/console/persistent-storage-editor";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { InlineAlert } from "@/components/ui/inline-alert";
@@ -35,6 +36,10 @@ import {
   inspectLocalUploadState,
   type LocalUploadState,
 } from "@/lib/fugue/local-upload";
+import {
+  createPersistentStorageDraft,
+  hasPersistentStorageDraft,
+} from "@/lib/fugue/persistent-storage";
 import {
   DUPLICATE_PROJECT_NAME_MESSAGE,
   findProjectByName,
@@ -135,6 +140,9 @@ export function DeployUploadWizard({
   const [dockerfilePath, setDockerfilePath] = useState("");
   const [buildContextDir, setBuildContextDir] = useState("");
   const [startupCommand, setStartupCommand] = useState("");
+  const [persistentStorage, setPersistentStorage] = useState(() =>
+    createPersistentStorageDraft(),
+  );
   const [localUpload, setLocalUpload] = useState<LocalUploadState>(() =>
     createLocalUploadState(),
   );
@@ -167,6 +175,7 @@ export function DeployUploadWizard({
       buildStrategy,
       dockerfilePath,
       name,
+      persistentStorage,
       runtimeId,
       startupCommand,
       sourceDir,
@@ -180,6 +189,7 @@ export function DeployUploadWizard({
   const startupCommandSupported = !(
     localUploadInspection.hasTopologyDefinition && localUploadKeepsTopologyImport
   );
+  const persistentStorageSupported = startupCommandSupported;
 
   useEffect(() => {
     if (startupCommandSupported || !startupCommand.trim()) {
@@ -204,6 +214,7 @@ export function DeployUploadWizard({
 
     return validateImportServiceDraft(uploadDraft, {
       localUpload,
+      persistentStorageSupported,
     });
   }
 
@@ -234,7 +245,9 @@ export function DeployUploadWizard({
     });
     const requestBody = buildLocalUploadFormData(
       {
-        ...buildImportServicePayload(uploadDraft),
+        ...buildImportServicePayload(uploadDraft, {
+          includePersistentStorage: persistentStorageSupported,
+        }),
         ...(selectedProjectId !== NEW_PROJECT_VALUE
           ? { projectId: selectedProjectId }
           : {
@@ -381,7 +394,16 @@ export function DeployUploadWizard({
               ? "Whole-topology import is ready. Leave build strategy on Auto detect and keep manual path overrides blank to import every service from fugue.yaml or docker-compose."
               : "Manual build overrides are active. Clear build strategy and path overrides if you want Fugue to import every service from fugue.yaml or docker-compose."}
           </InlineAlert>
-        ) : null}
+      ) : null}
+
+      {!persistentStorageSupported &&
+      hasPersistentStorageDraft(persistentStorage) ? (
+        <InlineAlert variant="info">
+          Manual persistent storage mounts stay in this draft, but Fugue skips
+          them while the upload imports a whole topology. Switch back to a
+          single-app upload to reuse them.
+        </InlineAlert>
+      ) : null}
       </PanelSection>
 
       <PanelSection>
@@ -505,6 +527,24 @@ export function DeployUploadWizard({
               value={startupCommand}
             />
           </FormField>
+        </PanelSection>
+      ) : null}
+
+      {persistentStorageSupported ? (
+        <PanelSection>
+          <PanelTitle>Persistent storage</PanelTitle>
+          <PanelCopy>
+            Add directories or files that should stay attached after redeploys,
+            restarts, and runtime moves. File contents only apply when Fugue
+            creates the file for the first time.
+          </PanelCopy>
+
+          <PersistentStorageEditor
+            idPrefix="deploy-upload-persistent-storage"
+            onChange={setPersistentStorage}
+            surface="deploy"
+            value={persistentStorage}
+          />
         </PanelSection>
       ) : null}
 

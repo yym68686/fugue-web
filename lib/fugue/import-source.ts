@@ -1,5 +1,12 @@
 import type { GitHubRepoVisibility } from "@/lib/github/repository";
 import type { LocalUploadState } from "@/lib/fugue/local-upload";
+import {
+  createPersistentStorageDraft,
+  hasPersistentStorageDraft,
+  serializePersistentStorageDraft,
+  validatePersistentStorageDraft,
+  type PersistentStorageMountDraft,
+} from "@/lib/fugue/persistent-storage";
 import { PRIVATE_GITHUB_AUTH_REQUIRED_MESSAGE } from "@/lib/github/messages";
 
 export type ImportSourceMode = "github" | "docker-image" | "local-upload";
@@ -28,6 +35,7 @@ export type ImportServiceDraft = {
   dockerfilePath: string;
   imageRef: string;
   name: string;
+  persistentStorage: PersistentStorageMountDraft[];
   persistentStorageSeedFiles: PersistentStorageSeedFileDraft[];
   repoAuthToken: string;
   repoUrl: string;
@@ -64,6 +72,7 @@ export function createImportServiceDraft(
     dockerfilePath: "",
     imageRef: "",
     name: "",
+    persistentStorage: createPersistentStorageDraft(),
     persistentStorageSeedFiles: [],
     repoAuthToken: "",
     repoUrl: "",
@@ -120,6 +129,7 @@ export function validateImportServiceDraft(
   draft: ImportServiceDraft,
   options?: {
     localUpload?: LocalUploadState | null;
+    persistentStorageSupported?: boolean;
     privateGitHubAuthorized?: boolean;
   },
 ) {
@@ -157,10 +167,25 @@ export function validateImportServiceDraft(
     return "Service port must be a positive integer.";
   }
 
+  if (options?.persistentStorageSupported !== false) {
+    const persistentStorageError = validatePersistentStorageDraft(
+      draft.persistentStorage,
+    );
+
+    if (persistentStorageError) {
+      return persistentStorageError;
+    }
+  }
+
   return null;
 }
 
-export function buildImportServicePayload(draft: ImportServiceDraft) {
+export function buildImportServicePayload(
+  draft: ImportServiceDraft,
+  options?: {
+    includePersistentStorage?: boolean;
+  },
+) {
   const payload: Record<string, unknown> = {
     sourceMode: draft.sourceMode,
   };
@@ -182,6 +207,16 @@ export function buildImportServicePayload(draft: ImportServiceDraft) {
 
   if (draft.startupCommand.trim()) {
     payload.startupCommand = draft.startupCommand.trim();
+  }
+
+  if (options?.includePersistentStorage !== false) {
+    const persistentStorage = serializePersistentStorageDraft(
+      draft.persistentStorage,
+    );
+
+    if (persistentStorage) {
+      payload.persistentStorage = persistentStorage;
+    }
   }
 
   if (draft.sourceMode === "github") {
@@ -256,4 +291,8 @@ export function buildImportServicePayload(draft: ImportServiceDraft) {
 
   payload.imageRef = draft.imageRef.trim();
   return payload;
+}
+
+export function importDraftHasPersistentStorage(draft: ImportServiceDraft) {
+  return hasPersistentStorageDraft(draft.persistentStorage);
 }

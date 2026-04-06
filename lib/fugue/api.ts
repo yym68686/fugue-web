@@ -3,6 +3,7 @@ import "server-only";
 import createClient from "openapi-fetch";
 
 import { getFugueEnv } from "@/lib/fugue/env";
+import type { PersistentStoragePayload } from "@/lib/fugue/persistent-storage";
 import type { GitHubRepoVisibility } from "@/lib/github/repository";
 
 import type { components, paths } from "@/lib/fugue/openapi.generated";
@@ -451,6 +452,7 @@ function buildAppPersistentStorageMountView(
     kind: readNullableString(mount?.kind),
     mode: readNullableNumber(mount?.mode),
     path: readNullableString(mount?.path),
+    seedContent: mount?.seedContent ?? "",
     secret: mount?.secret ?? false,
   };
 }
@@ -1964,6 +1966,7 @@ export async function importFugueGitHubApp(
     dockerfilePath?: string;
     env?: Record<string, string>;
     name?: string;
+    persistentStorage?: PersistentStoragePayload;
     persistentStorageSeedFiles?: Array<{
       path: string;
       seedContent: string;
@@ -2023,6 +2026,21 @@ export async function importFugueGitHubApp(
             ? { startup_command: payload.startupCommand }
             : {}),
           ...(payload.env ? { env: payload.env } : {}),
+          ...(payload.persistentStorage
+            ? {
+                persistent_storage: {
+                  mounts: payload.persistentStorage.mounts.map((mount) => ({
+                    kind: mount.kind,
+                    ...(mount.mode !== undefined ? { mode: mount.mode } : {}),
+                    path: mount.path,
+                    ...(mount.secret ? { secret: true } : {}),
+                    ...(mount.seedContent !== undefined
+                      ? { seed_content: mount.seedContent }
+                      : {}),
+                  })),
+                },
+              }
+            : {}),
           ...(payload.persistentStorageSeedFiles?.length
             ? {
                 persistent_storage_seed_files:
@@ -2065,6 +2083,7 @@ export async function importFugueUploadApp(
     buildStrategy?: string;
     dockerfilePath?: string;
     name?: string;
+    persistentStorage?: PersistentStoragePayload;
     project?: {
       description?: string;
       name: string;
@@ -2113,6 +2132,21 @@ export async function importFugueUploadApp(
         : {}),
       ...(payload.startupCommand !== undefined
         ? { startup_command: payload.startupCommand }
+        : {}),
+      ...(payload.persistentStorage
+        ? {
+            persistent_storage: {
+              mounts: payload.persistentStorage.mounts.map((mount) => ({
+                kind: mount.kind,
+                ...(mount.mode !== undefined ? { mode: mount.mode } : {}),
+                path: mount.path,
+                ...(mount.secret ? { secret: true } : {}),
+                ...(mount.seedContent !== undefined
+                  ? { seed_content: mount.seedContent }
+                  : {}),
+              })),
+            },
+          }
         : {}),
     }),
   );
@@ -2403,6 +2437,7 @@ export async function patchFugueApp(
   appId: string,
   payload: {
     imageMirrorLimit?: number;
+    persistentStorage?: PersistentStoragePayload;
     startupCommand?: string;
   },
 ) {
@@ -2417,6 +2452,21 @@ export async function patchFugueApp(
             : {}),
           ...(payload.startupCommand !== undefined
             ? { startup_command: payload.startupCommand }
+            : {}),
+          ...(payload.persistentStorage !== undefined
+            ? {
+                persistent_storage: {
+                  mounts: payload.persistentStorage.mounts.map((mount) => ({
+                    kind: mount.kind,
+                    ...(mount.mode !== undefined ? { mode: mount.mode } : {}),
+                    path: mount.path,
+                    ...(mount.secret ? { secret: true } : {}),
+                    ...(mount.seedContent !== undefined
+                      ? { seed_content: mount.seedContent }
+                      : {}),
+                  })),
+                },
+              }
             : {}),
         },
         params: {
@@ -2534,6 +2584,7 @@ export async function importFugueDockerImageApp(
       name: string;
     };
     projectId?: string;
+    persistentStorage?: PersistentStoragePayload;
     runtimeId?: string;
     servicePort?: number;
     startupCommand?: string;
@@ -2565,6 +2616,21 @@ export async function importFugueDockerImageApp(
             : {}),
           ...(payload.startupCommand !== undefined
             ? { startup_command: payload.startupCommand }
+            : {}),
+          ...(payload.persistentStorage
+            ? {
+                persistent_storage: {
+                  mounts: payload.persistentStorage.mounts.map((mount) => ({
+                    kind: mount.kind,
+                    ...(mount.mode !== undefined ? { mode: mount.mode } : {}),
+                    path: mount.path,
+                    ...(mount.secret ? { secret: true } : {}),
+                    ...(mount.seedContent !== undefined
+                      ? { seed_content: mount.seedContent }
+                      : {}),
+                  })),
+                },
+              }
             : {}),
           image_ref: payload.imageRef,
         },

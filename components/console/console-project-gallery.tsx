@@ -160,7 +160,8 @@ type LogsConnectionState =
   | "error"
   | "idle"
   | "live"
-  | "reconnecting";
+  | "reconnecting"
+  | "snapshot";
 
 type LogStreamSource = {
   component: string | null;
@@ -298,6 +299,7 @@ const RUNTIME_ONLY_LOG_VIEW_OPTIONS: readonly SegmentedControlOption<LogsView>[]
   [{ value: "runtime", label: "Runtime" }];
 
 const LOG_AUTO_REFRESH_INTERVAL_MS = 3_000;
+const LOG_STREAM_FIRST_EVENT_TIMEOUT_MS = 3_000;
 const PROJECT_ACTIVE_REFRESH_INTERVAL_MS = 3_000;
 const PROJECT_PASSIVE_REFRESH_INTERVAL_MS = 6_000;
 const LOG_TAIL_LINES = 200;
@@ -1130,6 +1132,30 @@ function appendLogWarning(
 
 function joinLogLines(lines: string[]) {
   return lines.join("\n");
+}
+
+function splitLogTextIntoLines(value: string) {
+  return value.replace(/\r\n?/g, "\n").split("\n");
+}
+
+function buildRuntimeLogSnapshotLines(snapshot: RuntimeLogsResponse) {
+  const lines = splitLogTextIntoLines(snapshot.logs ?? "");
+
+  for (const warning of snapshot.warnings ?? []) {
+    const message = warning.trim();
+
+    if (!message) {
+      continue;
+    }
+
+    if (lines.length > 0 && lines.at(-1) !== "") {
+      lines.push("");
+    }
+
+    lines.push(`[warning] ${message}`);
+  }
+
+  return trimLogLines(lines);
 }
 
 class LogStreamRequestError extends Error {
@@ -2256,6 +2282,10 @@ function readLogsStatusMessage(
     logsStatus === "loading" ||
     (logsStatus === "idle" && connectionState === "idle")
   ) {
+    if (connectionState === "snapshot") {
+      return "Refreshing recent logs…";
+    }
+
     return connectionState === "reconnecting"
       ? "Reconnecting to live logs…"
       : "Connecting to live logs…";
@@ -2267,6 +2297,10 @@ function readLogsStatusMessage(
 
   if (connectionState === "live" || connectionState === "reconnecting") {
     return "Waiting for log output…";
+  }
+
+  if (connectionState === "snapshot") {
+    return "Showing refreshed log snapshots…";
   }
 
   if (connectionState === "ended") {
@@ -2390,6 +2424,10 @@ function ConsoleLogsPanel({
             },
           ).toString()}`
         : `/api/fugue/apps/${selectedApp.id}/runtime-logs/stream?component=app&follow=true&tail_lines=${LOG_TAIL_LINES}`;
+  const runtimeLogsSnapshotInput =
+    selectedService.kind === "backing-service"
+      ? `/api/fugue/apps/${selectedApp.id}/runtime-logs?component=postgres&tail_lines=${LOG_TAIL_LINES}`
+      : `/api/fugue/apps/${selectedApp.id}/runtime-logs?component=app&tail_lines=${LOG_TAIL_LINES}`;
   const runtimeLogsUnavailableKey = runtimeLogsUnavailable
     ? `${selectedApp.id}:${runtimeLogsUnavailable.label}`
     : null;
@@ -2409,6 +2447,8 @@ function ConsoleLogsPanel({
       ? "Connecting"
       : logsConnectionState === "reconnecting"
         ? "Reconnecting"
+        : logsConnectionState === "snapshot"
+          ? "Snapshot"
         : logsConnectionState === "live"
           ? "Live"
           : logsConnectionState === "ended"
@@ -2422,6 +2462,8 @@ function ConsoleLogsPanel({
     ? null
     : logsConnectionState === "reconnecting" && hasBufferedLogOutput
       ? "Showing latest output"
+      : logsConnectionState === "snapshot"
+        ? "Refreshing every 3s"
       : logsConnectionState === "error" && hasBufferedLogOutput
         ? "Last output preserved"
         : logsConnectionState === "ended" && hasBufferedLogOutput
@@ -2433,6 +2475,10 @@ function ConsoleLogsPanel({
       ? hasBufferedLogOutput
         ? `Connection dropped. Reconnecting to ${logsStreamLabel} output. Showing the latest received output.`
         : `Connection dropped. Reconnecting to ${logsStreamLabel} output.`
+      : logsConnectionState === "snapshot"
+        ? hasBufferedLogOutput
+          ? `The live ${logsStreamLabel} stream is delayed at the edge. Refreshing recent snapshots every 3 seconds.`
+          : `The live ${logsStreamLabel} stream is delayed at the edge. Loading recent snapshots instead.`
       : logsConnectionState === "ended"
         ? hasBufferedLogOutput
           ? `${humanizeUiLabel(effectiveLogsMode)} stream closed. Showing latest snapshot. Refresh to reopen the stream.`
@@ -2502,6 +2548,15 @@ function ConsoleLogsPanel({
     logLinesRef.current = [];
     lastRenderedSourceIdRef.current = null;
     setLogLines([]);
+  }
+
+  function replaceLogBuffer(nextLines: string[]) {
+    cancelScheduledLogCommit();
+    logLinesRef.current = [...nextLines];
+    lastRenderedSourceIdRef.current = null;
+    startTransition(() => {
+      setLogLines([...nextLines]);
+    });
   }
 
   function clearLogsCopyResetTimer() {
@@ -2616,9 +2671,13 @@ function ConsoleLogsPanel({
     let cancelled = false;
     let retryDelayMs = LOG_AUTO_REFRESH_INTERVAL_MS;
     let reconnectTimer: number | null = null;
+    let runtimeSnapshotTimer: number | null = null;
     let activeController: AbortController | null = null;
+    let snapshotController: AbortController | null = null;
     let latestCursor = "";
     let streamEnded = false;
+    let firstEventTimeout: number | null = null;
+    let usingRuntimeSnapshotFallback = false;
 
     function clearReconnectTimer() {
       if (reconnectTimer !== null) {
@@ -2627,8 +2686,92 @@ function ConsoleLogsPanel({
       }
     }
 
+    function clearRuntimeSnapshotTimer() {
+      if (runtimeSnapshotTimer !== null) {
+        window.clearTimeout(runtimeSnapshotTimer);
+        runtimeSnapshotTimer = null;
+      }
+    }
+
+    function clearFirstEventTimeout() {
+      if (firstEventTimeout !== null) {
+        window.clearTimeout(firstEventTimeout);
+        firstEventTimeout = null;
+      }
+    }
+
+    function clearSnapshotController() {
+      snapshotController?.abort();
+      snapshotController = null;
+    }
+
+    async function pollRuntimeLogSnapshot() {
+      if (cancelled || effectiveLogsMode !== "runtime") {
+        return;
+      }
+
+      clearRuntimeSnapshotTimer();
+      clearSnapshotController();
+      snapshotController = new AbortController();
+
+      try {
+        const snapshot = await requestJson<RuntimeLogsResponse>(
+          runtimeLogsSnapshotInput,
+          {
+            cache: "no-store",
+            signal: snapshotController.signal,
+          },
+        );
+
+        if (cancelled || snapshotController.signal.aborted) {
+          return;
+        }
+
+        replaceLogBuffer(buildRuntimeLogSnapshotLines(snapshot));
+        setLogsConnectionState("snapshot");
+        setLogsStatus("ready");
+        setLogsErrorMessage(null);
+      } catch (error) {
+        if (
+          cancelled ||
+          snapshotController?.signal.aborted ||
+          isAbortRequestError(error)
+        ) {
+          return;
+        }
+
+        setLogsConnectionState("error");
+        setLogsStatus("error");
+        setLogsErrorMessage(readLogStreamErrorMessage(error, effectiveLogsMode));
+        return;
+      }
+
+      runtimeSnapshotTimer = window.setTimeout(() => {
+        void pollRuntimeLogSnapshot();
+      }, LOG_AUTO_REFRESH_INTERVAL_MS);
+    }
+
+    function startRuntimeSnapshotFallback() {
+      if (
+        cancelled ||
+        usingRuntimeSnapshotFallback ||
+        effectiveLogsMode !== "runtime"
+      ) {
+        return;
+      }
+
+      usingRuntimeSnapshotFallback = true;
+      clearReconnectTimer();
+      clearFirstEventTimeout();
+      activeController?.abort();
+      setLogsConnectionState("snapshot");
+      setLogsStatus((current) => (current === "ready" ? "ready" : "loading"));
+      setLogsErrorMessage(null);
+      void pollRuntimeLogSnapshot();
+    }
+
     function scheduleReconnect() {
-      if (cancelled || streamEnded) {
+      if (cancelled || streamEnded || usingRuntimeSnapshotFallback) {
         return;
       }
 
@@ -2646,9 +2789,13 @@ function ConsoleLogsPanel({
       }
 
       clearReconnectTimer();
+      clearRuntimeSnapshotTimer();
+      clearFirstEventTimeout();
+      clearSnapshotController();
       activeController?.abort();
       activeController = new AbortController();
       streamEnded = false;
+      usingRuntimeSnapshotFallback = false;
 
       if (mode === "initial") {
         latestCursor = "";
@@ -2688,6 +2835,12 @@ function ConsoleLogsPanel({
           throw new Error("Streaming response body is unavailable.");
         }
 
+        if (effectiveLogsMode === "runtime") {
+          firstEventTimeout = window.setTimeout(() => {
+            startRuntimeSnapshotFallback();
+          }, LOG_STREAM_FIRST_EVENT_TIMEOUT_MS);
+        }
+
         await consumeSSEStream(response, {
           onRetry(milliseconds) {
             if (milliseconds > 0) {
@@ -2695,6 +2848,8 @@ function ConsoleLogsPanel({
             }
           },
           onEvent(event) {
+            clearFirstEventTimeout();
+
             if (event.id) {
               latestCursor = event.id;
             }
@@ -2811,12 +2966,21 @@ function ConsoleLogsPanel({
           },
         });
 
-        if (cancelled || activeController.signal.aborted || streamEnded) {
+        clearFirstEventTimeout();
+
+        if (
+          cancelled ||
+          activeController.signal.aborted ||
+          streamEnded ||
+          usingRuntimeSnapshotFallback
+        ) {
           return;
         }
 
         scheduleReconnect();
       } catch (error) {
+        clearFirstEventTimeout();
+
         if (cancelled || activeController?.signal.aborted) {
           return;
         }
@@ -2842,6 +3006,9 @@ function ConsoleLogsPanel({
     return () => {
       cancelled = true;
       clearReconnectTimer();
+      clearRuntimeSnapshotTimer();
+      clearFirstEventTimeout();
+      clearSnapshotController();
       activeController?.abort();
     };
   }, [
@@ -2850,6 +3017,7 @@ function ConsoleLogsPanel({
     logsRequestKey,
     logsStreamInput,
     manualRefreshToken,
+    runtimeLogsSnapshotInput,
     runtimeLogsUnavailableKey,
   ]);
 
@@ -3122,6 +3290,10 @@ export function ConsoleProjectGallery({
   const [localUpload, setLocalUpload] = useState<LocalUploadState>(() =>
     createLocalUploadState(),
   );
+  const [importCapabilities, setImportCapabilities] = useState({
+    persistentStorageSupported: true,
+    startupCommandSupported: true,
+  });
   const {
     connectHref: githubConnectHref,
     connection: githubConnection,
@@ -3835,6 +4007,8 @@ export function ConsoleProjectGallery({
 
     const validationError = validateImportServiceDraft(importDraft, {
       localUpload,
+      persistentStorageSupported:
+        importCapabilities.persistentStorageSupported,
       privateGitHubAuthorized:
         githubConnectionLoading || Boolean(githubConnection?.connected),
     });
@@ -3860,7 +4034,10 @@ export function ConsoleProjectGallery({
           ? {
               body: buildLocalUploadFormData(
                 {
-                  ...buildImportServicePayload(importDraft),
+                  ...buildImportServicePayload(importDraft, {
+                    includePersistentStorage:
+                      importCapabilities.persistentStorageSupported,
+                  }),
                   ...(createTargetProject
                     ? {
                         projectId: createTargetProject.id,
@@ -3876,7 +4053,10 @@ export function ConsoleProjectGallery({
             }
           : {
               body: JSON.stringify({
-                ...buildImportServicePayload(importDraft),
+                ...buildImportServicePayload(importDraft, {
+                  includePersistentStorage:
+                    importCapabilities.persistentStorageSupported,
+                }),
                 ...(createTargetProject
                   ? {
                       projectId: createTargetProject.id,
@@ -5281,6 +5461,7 @@ export function ConsoleProjectGallery({
                       includeWrapper={false}
                       inventoryError={data.runtimeTargetInventoryError}
                       localUpload={localUpload}
+                      onCapabilitiesChange={setImportCapabilities}
                       onDraftChange={setImportDraft}
                       onLocalUploadChange={setLocalUpload}
                       runtimeTargets={data.runtimeTargets}

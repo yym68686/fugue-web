@@ -10,6 +10,7 @@ import {
 import { useRouter } from "next/navigation";
 
 import { ConsoleDisclosureSection } from "@/components/console/console-disclosure-section";
+import { PersistentStorageEditor } from "@/components/console/persistent-storage-editor";
 import { StatusBadge } from "@/components/console/status-badge";
 import { Button, ButtonAnchor } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -27,6 +28,13 @@ import {
 } from "@/lib/console/runtime-targets";
 import type { ConsoleTone } from "@/lib/console/types";
 import { isDockerImageSourceType } from "@/lib/fugue/source-display";
+import {
+  persistentStorageDraftEqual,
+  readPersistentStorageDraft,
+  serializePersistentStorageDraft,
+  summarizePersistentStorageDraft,
+  validatePersistentStorageDraft,
+} from "@/lib/fugue/persistent-storage";
 import {
   isGitHubSourceType,
   isPrivateGitHubSourceType,
@@ -921,6 +929,8 @@ function AppPersistentStorageSection({
   runtimeTargetInventoryError: string | null;
   runtimeTargets: ConsoleImportRuntimeTargetView[];
 }) {
+  const router = useRouter();
+  const { showToast } = useToast();
   const hasPersistentStorage = app.persistentStorageMounts.length > 0;
   const currentRuntimeId = app.currentRuntimeId ?? app.runtimeId;
   const currentRuntimeTarget =
@@ -958,6 +968,117 @@ function AppPersistentStorageSection({
       : isPausedApp(app)
         ? "Start the service before opening Files."
         : null;
+  const [baselinePersistentStorage, setBaselinePersistentStorage] = useState(
+    () =>
+      readPersistentStorageDraft({
+        mounts: app.persistentStorageMounts,
+      }),
+  );
+  const [draftPersistentStorage, setDraftPersistentStorage] = useState(() =>
+    readPersistentStorageDraft({
+      mounts: app.persistentStorageMounts,
+    }),
+  );
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const nextPersistentStorage = readPersistentStorageDraft({
+      mounts: app.persistentStorageMounts,
+    });
+
+    setBaselinePersistentStorage(nextPersistentStorage);
+    setDraftPersistentStorage(nextPersistentStorage);
+    setSaving(false);
+  }, [app.id, app.persistentStorageMounts]);
+
+  const persistentStorageChanged = !persistentStorageDraftEqual(
+    baselinePersistentStorage,
+    draftPersistentStorage,
+  );
+  const persistentStorageError =
+    persistentStorageChanged
+      ? validatePersistentStorageDraft(draftPersistentStorage)
+      : null;
+  const canSavePersistentStorage =
+    !saving && persistentStorageChanged && !persistentStorageError;
+  const savedPersistentStorageLabel =
+    summarizePersistentStorageDraft(baselinePersistentStorage) ??
+    "No mounts attached";
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!persistentStorageChanged) {
+      showToast({
+        message: hasPersistentStorage
+          ? "Persistent storage already matches the current release."
+          : "Persistent storage is not configured yet.",
+        variant: "info",
+      });
+      return;
+    }
+
+    const nextPersistentStorageError = validatePersistentStorageDraft(
+      draftPersistentStorage,
+    );
+
+    if (nextPersistentStorageError) {
+      showToast({
+        message: nextPersistentStorageError,
+        variant: "error",
+      });
+      return;
+    }
+
+    const nextPersistentStorage = serializePersistentStorageDraft(
+      draftPersistentStorage,
+      { preserveEmpty: true },
+    );
+
+    setSaving(true);
+
+    try {
+      const result = await requestJson<AppPatchResponse>(
+        `/api/fugue/apps/${app.id}`,
+        {
+          body: JSON.stringify({
+            persistentStorage: nextPersistentStorage ?? { mounts: [] },
+          }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          method: "PATCH",
+        },
+      );
+
+      const savedPersistentStorage = readPersistentStorageDraft(
+        nextPersistentStorage,
+      );
+
+      setBaselinePersistentStorage(savedPersistentStorage);
+      setDraftPersistentStorage(savedPersistentStorage);
+      showToast({
+        message: result?.alreadyCurrent
+          ? savedPersistentStorage.length > 0
+            ? "Persistent storage already matches the current release."
+            : "Persistent storage is already cleared."
+          : savedPersistentStorage.length > 0
+            ? "Persistent storage saved. Deploy queued."
+            : "Persistent storage cleared. Deploy queued.",
+        variant: "success",
+      });
+      startTransition(() => {
+        router.refresh();
+      });
+    } catch (error) {
+      showToast({
+        message: readErrorMessage(error),
+        variant: "error",
+      });
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <section
@@ -995,6 +1116,53 @@ function AppPersistentStorageSection({
           ))}
         </dl>
       ) : null}
+
+      <ConsoleDisclosureSection
+        className="fg-settings-disclosure"
+        defaultOpen={persistentStorageChanged || saving}
+        description="Changes queue a deploy. File contents are only used when Fugue needs to create that file for the first time."
+        summary={`Persistent storage · ${savedPersistentStorageLabel}`}
+      >
+        <form className="fg-settings-form" onSubmit={handleSubmit}>
+          {persistentStorageError ? (
+            <InlineAlert variant="warning">{persistentStorageError}</InlineAlert>
+          ) : null}
+
+          <PersistentStorageEditor
+            disabled={saving}
+            idPrefix={`persistent-storage-${app.id}`}
+            onChange={setDraftPersistentStorage}
+            surface="console"
+            value={draftPersistentStorage}
+          />
+
+          {persistentStorageChanged || saving ? (
+            <div className="fg-settings-form__actions">
+              <Button
+                disabled={saving}
+                onClick={() =>
+                  setDraftPersistentStorage(baselinePersistentStorage)
+                }
+                size="compact"
+                type="button"
+                variant="secondary"
+              >
+                Reset
+              </Button>
+              <Button
+                disabled={!canSavePersistentStorage}
+                loading={saving}
+                loadingLabel="Queueing…"
+                size="compact"
+                type="submit"
+                variant="primary"
+              >
+                Save storage
+              </Button>
+            </div>
+          ) : null}
+        </form>
+      </ConsoleDisclosureSection>
 
       <div className="fg-settings-form__actions">
         <Button
