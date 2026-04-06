@@ -47,6 +47,7 @@ import {
 } from "@/lib/console/env-editor";
 import type {
   ConsoleGalleryAppView,
+  ConsoleGalleryBackingServiceView,
   ConsoleGalleryBadgeKind,
   ConsoleGalleryCommitView,
   ConsoleGalleryPersistentStorageMountView,
@@ -693,6 +694,25 @@ function readAppServiceRoleLabel(
     : "Current release";
 }
 
+function readBackingServiceRoleLabel(
+  service?:
+    | Pick<
+        ConsoleGalleryBackingServiceView,
+        "databaseTransferTargetRuntimeId" | "serviceRole" | "status"
+      >
+    | null,
+) {
+  if (service?.serviceRole === "pending") {
+    return service.status.toLowerCase().includes("queued")
+      ? "Queued transfer"
+      : "Transfer in progress";
+  }
+
+  return service?.databaseTransferTargetRuntimeId
+    ? "Current primary"
+    : "Primary database";
+}
+
 function isPendingForceDeletePhase(phase?: string | null) {
   const normalized = phase?.trim().toLowerCase() ?? "";
 
@@ -1220,7 +1240,7 @@ function projectApps(project: ConsoleGalleryProjectView) {
 function serviceKey(service: ConsoleGalleryServiceView) {
   return service.kind === "app"
     ? `${service.kind}:${service.id}:${service.serviceRole}`
-    : `${service.kind}:${service.id}`;
+    : `${service.kind}:${service.id}:${service.serviceRole}`;
 }
 
 function readPreferredProjectService(
@@ -4849,6 +4869,7 @@ export function ConsoleProjectGallery({
                             ]),
                           ].filter((value): value is string => Boolean(value))
                         : [
+                            readBackingServiceRoleLabel(service),
                             readDistinctText(service.ownerAppLabel, [
                               service.name,
                             ]),
@@ -4859,10 +4880,9 @@ export function ConsoleProjectGallery({
                               humanizeUiLabel(service.type),
                             ]),
                           ].filter((value): value is string => Boolean(value));
-                    const cardStatusMeta =
-                      service.kind === "app" && service.serviceDurationLabel
-                        ? `${service.serviceDurationLabel} elapsed`
-                        : null;
+                    const cardStatusMeta = service.serviceDurationLabel
+                      ? `${service.serviceDurationLabel} elapsed`
+                      : null;
 
                     return (
                       <li key={serviceKey(service)}>
@@ -4931,6 +4951,10 @@ export function ConsoleProjectGallery({
                     {selectedService.kind === "app" ? (
                       <p className="fg-label">
                         {readAppServiceRoleLabel(selectedService)}
+                      </p>
+                    ) : selectedService.kind === "backing-service" ? (
+                      <p className="fg-label">
+                        {readBackingServiceRoleLabel(selectedService)}
                       </p>
                     ) : null}
                     <PanelTitle>{selectedService.name}</PanelTitle>
@@ -5004,6 +5028,10 @@ export function ConsoleProjectGallery({
                         <dd>{selectedService.type}</dd>
                       </div>
                       <div>
+                        <dt>State</dt>
+                        <dd>{readBackingServiceRoleLabel(selectedService)}</dd>
+                      </div>
+                      <div>
                         <dt>Location</dt>
                         <dd>
                           <CountryFlagLabel
@@ -5012,6 +5040,13 @@ export function ConsoleProjectGallery({
                           />
                         </dd>
                       </div>
+                      {selectedService.serviceRole === "pending" &&
+                      selectedService.serviceDurationLabel ? (
+                        <div>
+                          <dt>Elapsed</dt>
+                          <dd>{`${selectedService.serviceDurationLabel} elapsed`}</dd>
+                        </div>
+                      ) : null}
                       {backingServiceOwnerLabel ? (
                         <div>
                           <dt>Attached to</dt>
@@ -6606,6 +6641,7 @@ export function ConsoleProjectWorkbench({
                           readDistinctText(service.sourceMeta, [service.name]),
                         ].filter((value): value is string => Boolean(value))
                       : [
+                          readBackingServiceRoleLabel(service),
                           readDistinctText(service.ownerAppLabel, [service.name]),
                           readDistinctText(service.description, [
                             service.name,
@@ -6614,10 +6650,9 @@ export function ConsoleProjectWorkbench({
                             humanizeUiLabel(service.type),
                           ]),
                         ].filter((value): value is string => Boolean(value));
-                  const cardStatusMeta =
-                    service.kind === "app" && service.serviceDurationLabel
-                      ? `${service.serviceDurationLabel} elapsed`
-                      : null;
+                  const cardStatusMeta = service.serviceDurationLabel
+                    ? `${service.serviceDurationLabel} elapsed`
+                    : null;
 
                   return (
                     <li key={serviceKey(service)}>
@@ -6684,6 +6719,10 @@ export function ConsoleProjectWorkbench({
                   {selectedService.kind === "app" ? (
                     <p className="fg-label">
                       {readAppServiceRoleLabel(selectedService)}
+                    </p>
+                  ) : selectedService.kind === "backing-service" ? (
+                    <p className="fg-label">
+                      {readBackingServiceRoleLabel(selectedService)}
                     </p>
                   ) : null}
                   <PanelTitle>{selectedService.name}</PanelTitle>
@@ -6757,6 +6796,10 @@ export function ConsoleProjectWorkbench({
                       <dd>{selectedService.type}</dd>
                     </div>
                     <div>
+                      <dt>State</dt>
+                      <dd>{readBackingServiceRoleLabel(selectedService)}</dd>
+                    </div>
+                    <div>
                       <dt>Location</dt>
                       <dd>
                         <CountryFlagLabel
@@ -6765,6 +6808,13 @@ export function ConsoleProjectWorkbench({
                         />
                       </dd>
                     </div>
+                    {selectedService.serviceRole === "pending" &&
+                    selectedService.serviceDurationLabel ? (
+                      <div>
+                        <dt>Elapsed</dt>
+                        <dd>{`${selectedService.serviceDurationLabel} elapsed`}</dd>
+                      </div>
+                    ) : null}
                     {backingServiceOwnerLabel ? (
                       <div>
                         <dt>Attached to</dt>

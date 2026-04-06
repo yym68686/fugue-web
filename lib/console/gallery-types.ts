@@ -45,6 +45,7 @@ export type ConsoleGalleryCommitView = {
 };
 
 export type ConsoleGalleryAppServiceRole = "pending" | "running";
+export type ConsoleGalleryBackingServiceRole = "pending" | "running";
 
 export type ConsoleGalleryPersistentStorageMountView = {
   kind: "directory" | "file" | null;
@@ -113,6 +114,7 @@ export type ConsoleGalleryBackingServiceView = {
   databaseInstances: number | null;
   databaseRuntimeId: string | null;
   databaseSynchronousReplicas: number | null;
+  databaseTransferTargetRuntimeId: string | null;
   description: string;
   id: string;
   locationCountryCode: string | null;
@@ -121,6 +123,8 @@ export type ConsoleGalleryBackingServiceView = {
   ownerAppId: string | null;
   ownerAppLabel: string;
   primaryBadge: ConsoleGalleryBadgeView;
+  serviceDurationLabel: string | null;
+  serviceRole: ConsoleGalleryBackingServiceRole;
   status: string;
   statusTone: ConsoleTone;
   type: string;

@@ -3,6 +3,23 @@
   gap: clamp(1.25rem, 4vw, 3rem);
 }
 
+.fg-deploy-grid--solo {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  align-items: start;
+  align-content: start;
+  gap: clamp(1.2rem, 4vw, 2rem);
+  padding-block: clamp(1.6rem, 7vh, 4rem) 2rem;
+}
+
+.fg-deploy-grid--solo .fg-auth-stage {
+  display: none;
+}
+
+.fg-deploy-grid--solo .fg-deploy-panel-slot {
+  width: min(100%, 48rem);
+}
+
 .fg-deploy-grid--repository {
   grid-template-columns: minmax(0, 1fr);
   justify-items: center;
@@ -203,6 +220,12 @@
   display: grid;
   justify-items: center;
   align-self: start;
+  width: min(100%, 42rem);
+}
+
+.fg-deploy-page--repository .fg-auth-grid {
+  width: min(calc(100% - 2rem), 42rem);
+  min-height: auto;
 }
 
 .fg-deploy-page--repository .fg-console-dialog-panel {
@@ -233,6 +256,11 @@
 
 .fg-deploy-page--repository .fg-console-dialog__body {
   overflow: visible;
+}
+
+.fg-deploy-page--repository .fg-console-dialog__grid {
+  align-content: start;
+  overflow-anchor: none;
 }
 
 .fg-deploy-page--repository .fg-console-disclosure,

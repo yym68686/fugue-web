@@ -51,6 +51,18 @@ export function readOptionalString(record: Record<string, unknown>, key: string)
   return typeof value === "string" && value.trim() ? value.trim() : "";
 }
 
+export function readStringMap(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {} as Record<string, string>;
+  }
+
+  return Object.fromEntries(
+    Object.entries(value).flatMap(([key, entry]) =>
+      typeof entry === "string" ? [[key, entry]] : [],
+    ),
+  );
+}
+
 export async function readRouteParam<T extends string>(
   context: RouteContextWithParams<T>,
   key: T,

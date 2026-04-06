@@ -7,6 +7,7 @@ import {
   readErrorMessage,
   readErrorStatus,
   readOptionalString,
+  readStringMap,
 } from "@/lib/fugue/product-route";
 import {
   importFugueDockerImageApp,
@@ -158,6 +159,7 @@ export async function POST(request: Request) {
   const runtimeId = readOptionalString(body, "runtimeId");
   const servicePort = readOptionalPositiveInteger(body, "servicePort");
   const startupCommand = readOptionalString(body, "startupCommand");
+  const env = readStringMap(body.env);
   let persistentStorage: PersistentStoragePayload | undefined;
   const repoVisibilityInput = readOptionalString(body, "repoVisibility");
   const repoVisibility = normalizeGitHubRepoVisibility(repoVisibilityInput);
@@ -300,6 +302,7 @@ export async function POST(request: Request) {
             repoUrl,
           })
         : await importFugueDockerImageApp(workspace.adminKeySecret, {
+            ...(Object.keys(env).length > 0 ? { env } : {}),
             imageRef,
             name: name || undefined,
             persistentStorage,

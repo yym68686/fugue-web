@@ -95,6 +95,23 @@ export function readRuntimeTargetLabel(
   );
 }
 
+export function isManagedRuntimeTarget(target: ConsoleImportRuntimeTargetView) {
+  return (
+    target.runtimeType === "managed-owned" ||
+    target.runtimeType === "managed-shared"
+  );
+}
+
+export function readManagedRuntimeTargets(
+  targets: ConsoleImportRuntimeTargetView[],
+  excludedRuntimeId?: string | null,
+) {
+  return targets.filter(
+    (target) =>
+      target.id !== excludedRuntimeId && isManagedRuntimeTarget(target),
+  );
+}
+
 export function buildImportRuntimeTargetGroups(
   targets: ConsoleImportRuntimeTargetView[],
 ): ConsoleImportRuntimeTargetGroupView[] {

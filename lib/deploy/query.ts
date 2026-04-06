@@ -9,6 +9,7 @@ export type DeploySourceMode =
 export type DeploySearchState = {
   appName: string;
   branch: string;
+  env: Record<string, string>;
   imageRef: string;
   repoVisibility: GitHubRepoVisibility;
   repositoryUrl: string;
@@ -17,6 +18,7 @@ export type DeploySearchState = {
 };
 
 type SearchParamRecord = Record<string, string | string[] | undefined>;
+const DEPLOY_ENV_PARAM_PATTERN = /^env\[([^\]]+)\]$/;
 
 function readValue(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
@@ -52,12 +54,36 @@ function normalizeDeploySourceMode(value?: string | null): DeploySourceMode {
   }
 }
 
+function readDeployEnv(params: SearchParamRecord) {
+  const env: Record<string, string> = {};
+
+  for (const [key, value] of Object.entries(params)) {
+    const match = key.match(DEPLOY_ENV_PARAM_PATTERN);
+
+    if (!match) {
+      continue;
+    }
+
+    const envKey = match[1]?.trim();
+    const envValue = readValue(value);
+
+    if (!envKey || typeof envValue !== "string") {
+      continue;
+    }
+
+    env[envKey] = envValue;
+  }
+
+  return env;
+}
+
 export function readDeploySearchState(
   params: SearchParamRecord,
 ): DeploySearchState {
   return {
     appName: readFirstNonEmptyParam(params, ["name", "app-name", "appName"]),
     branch: readFirstNonEmptyParam(params, ["branch", "ref"]),
+    env: readDeployEnv(params),
     imageRef: readFirstNonEmptyParam(params, [
       "image-ref",
       "imageRef",
@@ -104,6 +130,20 @@ export function buildDeployHref(
 
   if (search.branch?.trim()) {
     params.set("branch", search.branch.trim());
+  }
+
+  if (search.env) {
+    for (const [key, value] of Object.entries(search.env).sort(([left], [right]) =>
+      left.localeCompare(right),
+    )) {
+      const normalizedKey = key.trim();
+
+      if (!normalizedKey) {
+        continue;
+      }
+
+      params.set(`env[${normalizedKey}]`, value);
+    }
   }
 
   if (search.servicePort?.trim()) {

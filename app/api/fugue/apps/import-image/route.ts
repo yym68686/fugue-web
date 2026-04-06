@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getCurrentSession } from "@/lib/auth/session";
 import { importFugueDockerImageApp } from "@/lib/fugue/api";
+import { readStringMap } from "@/lib/fugue/product-route";
 import {
   readPersistentStorageInput,
   type PersistentStoragePayload,
@@ -93,6 +94,7 @@ export async function POST(request: Request) {
   const runtimeId = readOptionalString(body, "runtimeId");
   const servicePort = readOptionalPositiveInteger(body, "servicePort");
   const startupCommand = readOptionalString(body, "startupCommand");
+  const env = readStringMap(body.env);
   let persistentStorage: PersistentStoragePayload | undefined;
 
   if (!imageRef) {
@@ -119,6 +121,7 @@ export async function POST(request: Request) {
 
     const workspace = existing satisfies WorkspaceAccess;
     const result = await importFugueDockerImageApp(workspace.adminKeySecret, {
+      ...(Object.keys(env).length > 0 ? { env } : {}),
       imageRef,
       name: name || undefined,
       persistentStorage,

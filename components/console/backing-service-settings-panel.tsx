@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { StatusBadge } from "@/components/console/status-badge";
 import { Button } from "@/components/ui/button";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FormField } from "@/components/ui/form-field";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { SelectField } from "@/components/ui/select-field";
@@ -15,8 +16,15 @@ import type {
 } from "@/lib/console/gallery-types";
 import {
   readDefaultImportRuntimeId,
+  readManagedRuntimeTargets,
   readRuntimeTargetLabel,
 } from "@/lib/console/runtime-targets";
+
+type AppOperationResponse = {
+  operation?: {
+    id?: string | null;
+  } | null;
+};
 
 type ContinuityResponse = {
   alreadyCurrent?: boolean;
@@ -66,9 +74,10 @@ function readInitialDatabaseFailoverTargetRuntimeId(
   configuredTargetRuntimeId: string | null,
   runtimeTargets: ConsoleImportRuntimeTargetView[],
 ) {
-  const continuityTargets = primaryRuntimeId
-    ? runtimeTargets.filter((target) => target.id !== primaryRuntimeId)
-    : runtimeTargets;
+  const continuityTargets = readManagedRuntimeTargets(
+    runtimeTargets,
+    primaryRuntimeId,
+  );
 
   if (
     configuredTargetRuntimeId &&
@@ -78,6 +87,23 @@ function readInitialDatabaseFailoverTargetRuntimeId(
   }
 
   return readDefaultImportRuntimeId(continuityTargets);
+}
+
+function readInitialDatabaseTransferTargetRuntimeId(
+  primaryRuntimeId: string | null,
+  configuredTargetRuntimeId: string | null,
+  runtimeTargets: ConsoleImportRuntimeTargetView[],
+) {
+  const transferTargets = readManagedRuntimeTargets(runtimeTargets, primaryRuntimeId);
+
+  if (
+    configuredTargetRuntimeId &&
+    transferTargets.some((target) => target.id === configuredTargetRuntimeId)
+  ) {
+    return configuredTargetRuntimeId;
+  }
+
+  return readDefaultImportRuntimeId(transferTargets);
 }
 
 function readDatabaseTopologyLabel(service: ConsoleGalleryBackingServiceView) {
@@ -110,25 +136,47 @@ export function BackingServiceSettingsPanel({
   service: ConsoleGalleryBackingServiceView;
 }) {
   const router = useRouter();
+  const confirm = useConfirmDialog();
   const { showToast } = useToast();
   const primaryRuntimeId = service.databaseRuntimeId ?? ownerAppRuntimeId;
-  const continuityTargets = primaryRuntimeId
-    ? runtimeTargets.filter((target) => target.id !== primaryRuntimeId)
-    : runtimeTargets;
-  const [targetRuntimeId, setTargetRuntimeId] = useState<string | null>(() =>
+  const continuityTargets = readManagedRuntimeTargets(
+    runtimeTargets,
+    primaryRuntimeId,
+  );
+  const transferTargets = continuityTargets;
+  const [failoverTargetRuntimeId, setFailoverTargetRuntimeId] = useState<
+    string | null
+  >(() =>
     readInitialDatabaseFailoverTargetRuntimeId(
       primaryRuntimeId,
       service.databaseFailoverTargetRuntimeId,
       runtimeTargets,
     ),
   );
+  const [transferTargetRuntimeId, setTransferTargetRuntimeId] = useState<
+    string | null
+  >(() =>
+    readInitialDatabaseTransferTargetRuntimeId(
+      primaryRuntimeId,
+      service.databaseTransferTargetRuntimeId,
+      runtimeTargets,
+    ),
+  );
   const [saving, setSaving] = useState(false);
+  const [transferSaving, setTransferSaving] = useState(false);
 
   useEffect(() => {
-    setTargetRuntimeId(
+    setFailoverTargetRuntimeId(
       readInitialDatabaseFailoverTargetRuntimeId(
         service.databaseRuntimeId ?? ownerAppRuntimeId,
         service.databaseFailoverTargetRuntimeId,
+        runtimeTargets,
+      ),
+    );
+    setTransferTargetRuntimeId(
+      readInitialDatabaseTransferTargetRuntimeId(
+        service.databaseRuntimeId ?? ownerAppRuntimeId,
+        service.databaseTransferTargetRuntimeId,
         runtimeTargets,
       ),
     );
@@ -136,42 +184,82 @@ export function BackingServiceSettingsPanel({
     ownerAppRuntimeId,
     runtimeTargets,
     service.databaseFailoverTargetRuntimeId,
+    service.databaseTransferTargetRuntimeId,
     service.databaseRuntimeId,
     service.id,
   ]);
 
-  const selectedTargetRuntimeId =
-    targetRuntimeId && targetRuntimeId !== primaryRuntimeId
-      ? targetRuntimeId
+  const selectedFailoverTargetRuntimeId =
+    failoverTargetRuntimeId && failoverTargetRuntimeId !== primaryRuntimeId
+      ? failoverTargetRuntimeId
+      : null;
+  const selectedTransferTargetRuntimeId =
+    transferTargetRuntimeId && transferTargetRuntimeId !== primaryRuntimeId
+      ? transferTargetRuntimeId
       : null;
   const primaryRuntimeLabel = readRuntimeTargetLabel(
     runtimeTargets,
     primaryRuntimeId,
     "Primary runtime unavailable",
   );
-  const configuredTargetLabel = readRuntimeTargetLabel(
+  const configuredFailoverTargetLabel = readRuntimeTargetLabel(
     runtimeTargets,
     service.databaseFailoverTargetRuntimeId,
     "Not configured",
   );
-  const selectedTargetLabel = readRuntimeTargetLabel(
+  const selectedFailoverTargetLabel = readRuntimeTargetLabel(
     runtimeTargets,
-    selectedTargetRuntimeId,
+    selectedFailoverTargetRuntimeId,
     "No standby selected",
   );
-  const blockerMessage = !service.ownerAppId
+  const activeTransferTargetLabel = readRuntimeTargetLabel(
+    runtimeTargets,
+    service.databaseTransferTargetRuntimeId,
+    "Destination unavailable",
+  );
+  const selectedTransferTargetLabel = readRuntimeTargetLabel(
+    runtimeTargets,
+    selectedTransferTargetRuntimeId,
+    "No destination selected",
+  );
+  const databaseTransferInProgress = Boolean(
+    service.databaseTransferTargetRuntimeId,
+  );
+  const transferInProgressMessage = databaseTransferInProgress
+    ? `A database transfer to ${activeTransferTargetLabel} is already in progress.`
+    : null;
+  const continuityBlockerMessage = !service.ownerAppId
     ? "This database is not attached to an application."
-    : runtimeTargetInventoryError
-      ? "Runtime list unavailable."
-      : !primaryRuntimeId
-        ? "Primary runtime unavailable."
-        : continuityTargets.length === 0
-          ? "Add another runtime before turning on database failover."
+    : transferInProgressMessage
+      ? transferInProgressMessage
+      : runtimeTargetInventoryError
+        ? "Runtime list unavailable."
+        : !primaryRuntimeId
+          ? "Primary runtime unavailable."
+          : continuityTargets.length === 0
+            ? "Add another managed runtime before turning on database failover."
+            : null;
+  const transferBlockerMessage = !service.ownerAppId
+    ? "This database is not attached to an application."
+    : transferInProgressMessage
+      ? transferInProgressMessage
+      : runtimeTargetInventoryError
+        ? "Runtime list unavailable."
+        : !primaryRuntimeId
+          ? "Primary runtime unavailable."
+          : transferTargets.length === 0
+            ? "Add another managed runtime before moving this database."
           : null;
   const canSave =
-    !saving && !blockerMessage && Boolean(selectedTargetRuntimeId);
+    !saving &&
+    !continuityBlockerMessage &&
+    Boolean(selectedFailoverTargetRuntimeId);
+  const canTransfer =
+    !transferSaving &&
+    !transferBlockerMessage &&
+    Boolean(selectedTransferTargetRuntimeId);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleFailoverSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!service.ownerAppId) {
@@ -182,9 +270,9 @@ export function BackingServiceSettingsPanel({
       return;
     }
 
-    if (!selectedTargetRuntimeId) {
+    if (!selectedFailoverTargetRuntimeId) {
       showToast({
-        message: blockerMessage ?? "Choose a standby runtime.",
+        message: continuityBlockerMessage ?? "Choose a standby runtime.",
         variant: "info",
       });
       return;
@@ -199,7 +287,7 @@ export function BackingServiceSettingsPanel({
           body: JSON.stringify({
             databaseFailover: {
               enabled: true,
-              targetRuntimeId: selectedTargetRuntimeId,
+              targetRuntimeId: selectedFailoverTargetRuntimeId,
             },
           }),
           headers: {
@@ -211,8 +299,8 @@ export function BackingServiceSettingsPanel({
 
       showToast({
         message: result?.alreadyCurrent
-          ? `Database failover already points to ${selectedTargetLabel}.`
-          : `Database failover saved. Standby runtime: ${selectedTargetLabel}.`,
+          ? `Database failover already points to ${selectedFailoverTargetLabel}.`
+          : `Database failover saved. Standby runtime: ${selectedFailoverTargetLabel}.`,
         variant: "success",
       });
       startTransition(() => {
@@ -229,7 +317,12 @@ export function BackingServiceSettingsPanel({
   }
 
   async function handleDisable() {
-    if (!service.ownerAppId || !service.databaseFailoverConfigured || saving) {
+    if (
+      !service.ownerAppId ||
+      !service.databaseFailoverConfigured ||
+      saving ||
+      databaseTransferInProgress
+    ) {
       return;
     }
 
@@ -270,13 +363,77 @@ export function BackingServiceSettingsPanel({
     }
   }
 
+  async function handleTransferSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!service.ownerAppId) {
+      showToast({
+        message: "This database cannot be transferred from the console yet.",
+        variant: "info",
+      });
+      return;
+    }
+
+    if (!selectedTransferTargetRuntimeId) {
+      showToast({
+        message: transferBlockerMessage ?? "Choose a destination.",
+        variant: "info",
+      });
+      return;
+    }
+
+    const confirmed = await confirm({
+      confirmLabel: "Transfer Now",
+      description: `Fugue keeps ${primaryRuntimeLabel} serving writes while it prepares ${selectedTransferTargetLabel}, then promotes the new primary and keeps ${primaryRuntimeLabel} as the standby.`,
+      eyebrow: "Database Move",
+      title: "Transfer Database Primary?",
+      variant: "primary",
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
+    setTransferSaving(true);
+
+    try {
+      await requestJson<AppOperationResponse>(
+        `/api/fugue/apps/${service.ownerAppId}/database/switchover`,
+        {
+          body: JSON.stringify({
+            targetRuntimeId: selectedTransferTargetRuntimeId,
+          }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          method: "POST",
+        },
+      );
+
+      showToast({
+        message: `Database transfer queued to ${selectedTransferTargetLabel}.`,
+        variant: "success",
+      });
+      startTransition(() => {
+        router.refresh();
+      });
+    } catch (error) {
+      showToast({
+        message: readErrorMessage(error),
+        variant: "error",
+      });
+    } finally {
+      setTransferSaving(false);
+    }
+  }
+
   return (
     <div className="fg-workbench-section fg-settings-panel">
       <div className="fg-workbench-section__copy fg-settings-panel__copy">
         <p className="fg-label fg-panel__eyebrow">Settings</p>
         <p className="fg-console-note">
-          Keep this database on its primary runtime and choose a standby runtime
-          for failover.
+          Keep this database on its current primary runtime, choose a standby
+          runtime for failover, or actively move the primary now.
         </p>
       </div>
 
@@ -316,7 +473,7 @@ export function BackingServiceSettingsPanel({
             <dt>Standby runtime</dt>
             <dd>
               {service.databaseFailoverConfigured
-                ? configuredTargetLabel
+                ? configuredFailoverTargetLabel
                 : "Not configured"}
             </dd>
           </div>
@@ -326,9 +483,9 @@ export function BackingServiceSettingsPanel({
           </div>
         </dl>
 
-        <form className="fg-settings-form" onSubmit={handleSubmit}>
-          {blockerMessage ? (
-            <InlineAlert variant="warning">{blockerMessage}</InlineAlert>
+        <form className="fg-settings-form" onSubmit={handleFailoverSubmit}>
+          {continuityBlockerMessage ? (
+            <InlineAlert variant="warning">{continuityBlockerMessage}</InlineAlert>
           ) : null}
 
           {continuityTargets.length > 0 ? (
@@ -337,13 +494,13 @@ export function BackingServiceSettingsPanel({
               label="Standby runtime"
             >
               <SelectField
-                disabled={saving}
+                disabled={saving || databaseTransferInProgress}
                 id={`database-failover-target-${service.id}`}
                 name="databaseFailoverTarget"
                 onChange={(event) =>
-                  setTargetRuntimeId(event.target.value || null)
+                  setFailoverTargetRuntimeId(event.target.value || null)
                 }
-                value={selectedTargetRuntimeId ?? ""}
+                value={selectedFailoverTargetRuntimeId ?? ""}
               >
                 <option disabled value="">
                   Select a standby runtime…
@@ -360,7 +517,7 @@ export function BackingServiceSettingsPanel({
           <div className="fg-settings-form__actions">
             {service.databaseFailoverConfigured ? (
               <Button
-                disabled={saving}
+                disabled={saving || databaseTransferInProgress}
                 onClick={handleDisable}
                 size="compact"
                 type="button"
@@ -380,6 +537,101 @@ export function BackingServiceSettingsPanel({
               {service.databaseFailoverConfigured
                 ? "Save standby"
                 : "Enable failover"}
+            </Button>
+          </div>
+        </form>
+      </section>
+
+      <section
+        aria-label="Database one-click transfer"
+        className="fg-route-subsection fg-settings-section"
+      >
+        <div className="fg-route-subsection__head">
+          <div className="fg-route-subsection__copy fg-settings-section__copy">
+            <p className="fg-label fg-panel__eyebrow">Runtime</p>
+            <h3 className="fg-route-subsection__title fg-ui-heading">
+              Database one-click transfer
+            </h3>
+            <p className="fg-route-subsection__note">
+              {databaseTransferInProgress
+                ? `Current primary: ${primaryRuntimeLabel}. Destination: ${activeTransferTargetLabel}. Fugue promotes the new primary automatically once it is ready.`
+                : `Current primary: ${primaryRuntimeLabel}. Choose a destination and Fugue will prepare the new primary before switching over.`}
+            </p>
+          </div>
+
+          <StatusBadge tone={databaseTransferInProgress ? "info" : "neutral"}>
+            {databaseTransferInProgress
+              ? service.serviceRole === "pending"
+                ? service.status
+                : "In progress"
+              : "Off"}
+          </StatusBadge>
+        </div>
+
+        <dl className="fg-settings-meta">
+          <div>
+            <dt>Attached app</dt>
+            <dd>{service.ownerAppLabel}</dd>
+          </div>
+          <div>
+            <dt>Current primary</dt>
+            <dd>{primaryRuntimeLabel}</dd>
+          </div>
+          <div>
+            <dt>Destination</dt>
+            <dd>
+              {databaseTransferInProgress
+                ? activeTransferTargetLabel
+                : "Not queued"}
+            </dd>
+          </div>
+          <div>
+            <dt>After switchover</dt>
+            <dd>Old primary becomes the standby runtime.</dd>
+          </div>
+        </dl>
+
+        <form className="fg-settings-form" onSubmit={handleTransferSubmit}>
+          {transferBlockerMessage ? (
+            <InlineAlert variant="warning">{transferBlockerMessage}</InlineAlert>
+          ) : null}
+
+          {transferTargets.length > 0 ? (
+            <FormField
+              htmlFor={`database-transfer-target-${service.id}`}
+              label="Destination"
+            >
+              <SelectField
+                disabled={transferSaving || databaseTransferInProgress}
+                id={`database-transfer-target-${service.id}`}
+                name="databaseTransferTarget"
+                onChange={(event) =>
+                  setTransferTargetRuntimeId(event.target.value || null)
+                }
+                value={selectedTransferTargetRuntimeId ?? ""}
+              >
+                <option disabled value="">
+                  Select a destination…
+                </option>
+                {transferTargets.map((target) => (
+                  <option key={target.id} value={target.id}>
+                    {target.summaryLabel}
+                  </option>
+                ))}
+              </SelectField>
+            </FormField>
+          ) : null}
+
+          <div className="fg-settings-form__actions">
+            <Button
+              disabled={!canTransfer}
+              loading={transferSaving}
+              loadingLabel="Queueing…"
+              size="compact"
+              type="submit"
+              variant="primary"
+            >
+              Transfer Now
             </Button>
           </div>
         </form>

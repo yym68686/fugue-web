@@ -565,6 +565,40 @@ function isTransferOperation(operation?: FugueOperation | null) {
   );
 }
 
+function isDatabaseTransferOperation(operation?: FugueOperation | null) {
+  const normalizedType = readNormalizedOperationType(operation);
+  const normalizedStatus = readNormalizedOperationStatus(operation);
+
+  return (
+    normalizedType === "database-switchover" ||
+    normalizedStatus.includes("database-switchover") ||
+    (normalizedStatus.includes("database") &&
+      normalizedStatus.includes("switchover"))
+  );
+}
+
+function readDatabaseTransferState(operation?: FugueOperation | null) {
+  const normalizedStatus = readNormalizedOperationStatus(operation);
+
+  if (
+    normalizedStatus.includes("queued") ||
+    normalizedStatus.includes("pending")
+  ) {
+    return {
+      description: "Queued to move the primary to the selected runtime.",
+      status: "Transfer queued",
+      tone: "warning" as ConsoleTone,
+    };
+  }
+
+  return {
+    description:
+      "Preparing the destination runtime before Fugue promotes the new primary.",
+    status: "Transferring",
+    tone: "info" as ConsoleTone,
+  };
+}
+
 function readActiveAppRuntimeId(app: FugueApp) {
   return app.status.currentRuntimeId?.trim() || app.spec.runtimeId?.trim() || null;
 }
@@ -1066,6 +1100,25 @@ function collectCommitOperationsByAppId(operations: FugueOperation[]) {
   }
 
   return commitOperationsByAppId;
+}
+
+function collectDatabaseTransferOperationsByAppId(operations: FugueOperation[]) {
+  const databaseTransferOperationsByAppId = new Map<string, FugueOperation>();
+
+  for (const operation of sortByTimestampDesc(operations, readOperationTimestamp)) {
+    if (
+      !operation.appId ||
+      databaseTransferOperationsByAppId.has(operation.appId) ||
+      !isActiveOperation(operation.status) ||
+      !isDatabaseTransferOperation(operation)
+    ) {
+      continue;
+    }
+
+    databaseTransferOperationsByAppId.set(operation.appId, operation);
+  }
+
+  return databaseTransferOperationsByAppId;
 }
 
 function readRoute(app: FugueApp) {
@@ -1780,17 +1833,21 @@ function buildAppView(
   return views;
 }
 
-function buildBackingServiceView(
+function buildBackingServiceViews(
   service: FugueBackingService,
   appNames: Map<string, string>,
   appRuntimeIds: Map<string, string | null>,
+  runtimeLocationsById: ReadonlyMap<string, RuntimeTargetLocationView>,
   location?: WorkloadLocationView | null,
-): ConsoleGalleryBackingServiceView {
+  databaseTransferOperation?: FugueOperation | null,
+): ConsoleGalleryBackingServiceView[] {
   const postgres = service.spec.postgres;
   const ownerAppRuntimeId = service.ownerAppId
     ? (appRuntimeIds.get(service.ownerAppId) ?? null)
     : null;
   const databaseRuntimeId = postgres?.runtimeId ?? ownerAppRuntimeId ?? null;
+  const databaseTransferTargetRuntimeId =
+    databaseTransferOperation?.targetRuntimeId?.trim() || null;
   const databaseFailoverTargetRuntimeId =
     postgres?.failoverTargetRuntimeId ?? null;
   const databaseInstances = postgres?.instances ?? null;
@@ -1799,36 +1856,73 @@ function buildBackingServiceView(
     databaseFailoverTargetRuntimeId ||
     ((databaseInstances ?? 0) > 1 && (databaseSynchronousReplicas ?? 0) > 0),
   );
-
-  return {
+  const ownerAppLabel = service.ownerAppId
+    ? (appNames.get(service.ownerAppId) ?? "Attached app")
+    : "Attached app";
+  const primaryBadge = {
+    id: readBadgeKey("postgres", "PostgreSQL"),
+    kind: "postgres",
+    label: "PostgreSQL",
+    meta: "Service",
+  } satisfies ConsoleGalleryBackingServiceView["primaryBadge"];
+  const runningView = {
     databaseFailoverConfigured,
     databaseFailoverTargetRuntimeId,
     databaseInstances,
     databaseRuntimeId,
     databaseSynchronousReplicas,
+    databaseTransferTargetRuntimeId,
     description: postgres
-      ? databaseFailoverConfigured
-        ? "Standby runtime configured."
-        : "Single-runtime database."
+      ? databaseTransferTargetRuntimeId
+        ? "Serving writes from the current primary while Fugue prepares the destination."
+        : databaseFailoverConfigured
+          ? "Standby runtime configured."
+          : "Single-runtime database."
       : (service.description ?? "Attached backing service."),
     id: service.id,
     locationCountryCode: location?.locationCountryCode ?? null,
     locationLabel: location?.locationLabel ?? null,
     name: service.name,
     ownerAppId: service.ownerAppId,
-    ownerAppLabel: service.ownerAppId
-      ? (appNames.get(service.ownerAppId) ?? "Attached app")
-      : "Attached app",
-    primaryBadge: {
-      id: readBadgeKey("postgres", "PostgreSQL"),
-      kind: "postgres",
-      label: "PostgreSQL",
-      meta: "Service",
-    },
+    ownerAppLabel,
+    primaryBadge,
+    serviceDurationLabel: null,
+    serviceRole: "running",
     status: humanize(service.status),
     statusTone: toneForStatus(service.status),
     type: humanize(service.type),
-  };
+  } satisfies ConsoleGalleryBackingServiceView;
+
+  if (
+    !databaseTransferOperation ||
+    !databaseTransferTargetRuntimeId ||
+    databaseTransferTargetRuntimeId === databaseRuntimeId
+  ) {
+    return [runningView];
+  }
+
+  const pendingLocation =
+    readRuntimeTargetLocationView(
+      runtimeLocationsById,
+      databaseTransferTargetRuntimeId,
+    ) ?? location;
+  const transferState = readDatabaseTransferState(databaseTransferOperation);
+
+  return [
+    runningView,
+    {
+      ...runningView,
+      description: transferState.description,
+      locationCountryCode: pendingLocation?.locationCountryCode ?? null,
+      locationLabel: pendingLocation?.locationLabel ?? null,
+      serviceDurationLabel: formatElapsedDuration(
+        readOperationStartedAt(databaseTransferOperation),
+      ),
+      serviceRole: "pending",
+      status: transferState.status,
+      statusTone: transferState.tone,
+    },
+  ];
 }
 
 function buildProjectServiceBadges(
@@ -2090,6 +2184,8 @@ function buildConsoleProjectViewFromDetail(
   const commitOperationsByAppId = collectCommitOperationsByAppId(
     detail.operations,
   );
+  const databaseTransferOperationsByAppId =
+    collectDatabaseTransferOperationsByAppId(detail.operations);
   const workloadLocationsById = buildWorkloadLocationMap(detail.clusterNodes);
   const runtimeLocationsById = buildRuntimeTargetLocationMap(detail.clusterNodes);
   const backingServicesById = new Map<string, FugueBackingService>();
@@ -2124,15 +2220,21 @@ function buildConsoleProjectViewFromDetail(
       ...service,
     })),
   );
-  const backingServiceViews = backingServices.map((service) => ({
-    kind: "backing-service" as const,
-    ...buildBackingServiceView(
+  const backingServiceViews = backingServices.flatMap((service) =>
+    buildBackingServiceViews(
       service,
       appNames,
       appRuntimeIds,
+      runtimeLocationsById,
       workloadLocationsById.get(service.id) ?? null,
-    ),
-  }));
+      service.ownerAppId
+        ? (databaseTransferOperationsByAppId.get(service.ownerAppId) ?? null)
+        : null,
+    ).map((view) => ({
+      kind: "backing-service" as const,
+      ...view,
+    })),
+  );
   const services = [...appViews, ...backingServiceViews];
 
   return {
@@ -2410,6 +2512,8 @@ const getConsoleProjectGalleryDataCached = cache(
       workspace.defaultProjectName,
     );
     const commitOperationsByAppId = collectCommitOperationsByAppId(operations);
+    const databaseTransferOperationsByAppId =
+      collectDatabaseTransferOperationsByAppId(operations);
     const workloadLocationsById = buildWorkloadLocationMap(clusterNodes);
     const runtimeTargetLocationsById =
       buildRuntimeTargetLocationMap(clusterNodes);
@@ -2481,15 +2585,22 @@ const getConsoleProjectGalleryDataCached = cache(
             ...service,
           })),
         );
-        const backingServiceViews = backingServices.map((service) => ({
-          kind: "backing-service" as const,
-          ...buildBackingServiceView(
+        const backingServiceViews = backingServices.flatMap((service) =>
+          buildBackingServiceViews(
             service,
             appNames,
             appRuntimeIds,
+            runtimeTargetLocationsById,
             workloadLocationsById.get(service.id) ?? null,
-          ),
-        }));
+            service.ownerAppId
+              ? (databaseTransferOperationsByAppId.get(service.ownerAppId) ??
+                null)
+              : null,
+          ).map((view) => ({
+            kind: "backing-service" as const,
+            ...view,
+          })),
+        );
         const services = [...appViews, ...backingServiceViews];
         const sortTimestamp =
           project !== null

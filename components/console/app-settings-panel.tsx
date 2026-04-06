@@ -24,6 +24,7 @@ import type {
 } from "@/lib/console/gallery-types";
 import {
   readDefaultImportRuntimeId,
+  readManagedRuntimeTargets,
   readRuntimeTargetLabel,
 } from "@/lib/console/runtime-targets";
 import type { ConsoleTone } from "@/lib/console/types";
@@ -400,23 +401,6 @@ function readInitialContinuityTargetRuntimeId(
   }
 
   return readDefaultImportRuntimeId(continuityTargets);
-}
-
-function isManagedRuntimeTarget(target: ConsoleImportRuntimeTargetView) {
-  return (
-    target.runtimeType === "managed-owned" ||
-    target.runtimeType === "managed-shared"
-  );
-}
-
-function readManagedRuntimeTargets(
-  runtimeTargets: ConsoleImportRuntimeTargetView[],
-  excludedRuntimeId?: string | null,
-) {
-  return runtimeTargets.filter(
-    (target) =>
-      target.id !== excludedRuntimeId && isManagedRuntimeTarget(target),
-  );
 }
 
 function hasStatefulMigrationBlockers(app: ConsoleGalleryAppView) {

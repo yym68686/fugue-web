@@ -60,6 +60,7 @@ export function DeployPage({
   const effectiveSourceMode =
     routeMode === "repository" ? search.sourceMode : "repository";
   const isImageMode = effectiveSourceMode === "docker-image";
+  const imageEnvCount = Object.keys(search.env).length;
   const isLocalUploadMode = effectiveSourceMode === "local-upload";
   const hasImageRef = Boolean(search.imageRef.trim());
   const isValidRepositoryUrl =
@@ -198,8 +199,7 @@ export function DeployPage({
     : manifest
       ? "fugue.yaml"
       : "Generic repository";
-  const useCompactRepositoryLayout =
-    routeMode === "repository" && !isLocalUploadMode && !isImageMode;
+  const useCompactRepositoryLayout = !isLocalUploadMode && !isImageMode;
   const sourceModeSwitch =
     routeMode === "repository" ? (
       <ScrollableControlStrip
@@ -244,6 +244,7 @@ export function DeployPage({
       <div
         className={cx(
           "fg-auth-grid fg-deploy-grid",
+          "fg-deploy-grid--solo",
           useCompactRepositoryLayout && "fg-deploy-grid--repository",
         )}
       >
@@ -467,6 +468,16 @@ export function DeployPage({
                             <span>
                               Service port is optional but useful for known
                               container listeners like <code>8080</code>.
+                            </span>
+                          </li>
+                          <li className="fg-deploy-note-item">
+                            <span>
+                              {imageEnvCount > 0
+                                ? `${pluralize(
+                                    imageEnvCount,
+                                    "environment variable",
+                                  )} prefilled from the deploy link. Review them in the environment editor before queueing.`
+                                : "Non-sensitive environment variables can be pasted in the editor after sign-in or prefilled from the deploy link."}
                             </span>
                           </li>
                           <li className="fg-deploy-note-item">
@@ -944,6 +955,14 @@ export function DeployPage({
                           type="hidden"
                           value="docker-image"
                         />
+                        {Object.entries(search.env).map(([key, value]) => (
+                          <input
+                            key={key}
+                            name={`env[${key}]`}
+                            type="hidden"
+                            value={value}
+                          />
+                        ))}
 
                         <div className="fg-deploy-entry-row">
                           <FormField
@@ -1022,6 +1041,7 @@ export function DeployPage({
                         </PanelSection>
                       ) : (
                         <DeployImageWizard
+                          initialEnv={search.env}
                           initialImageRef={search.imageRef}
                           initialName={search.appName}
                           initialServicePort={search.servicePort}

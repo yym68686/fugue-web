@@ -17,6 +17,11 @@ import { PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
 import { SelectField } from "@/components/ui/select-field";
 import { useToast } from "@/components/ui/toast";
 import type { ConsoleImportRuntimeTargetView } from "@/lib/console/gallery-types";
+import {
+  entriesFromEnvRecord,
+  parseRawEnvInput,
+  serializeEnvEntries,
+} from "@/lib/console/env-editor";
 import { readDefaultImportRuntimeId } from "@/lib/console/runtime-targets";
 import type { FugueProject } from "@/lib/fugue/api";
 import {
@@ -32,6 +37,7 @@ import {
 const NEW_PROJECT_VALUE = "__new__";
 
 type DeployImageWizardProps = {
+  initialEnv?: Record<string, string>;
   initialImageRef: string;
   initialName?: string;
   initialServicePort?: string;
@@ -51,12 +57,87 @@ type SubmitResponse = {
   requestInProgress?: boolean;
 };
 
+type DeployEnvFeedback = {
+  env: Record<string, string>;
+  message: string;
+  valid: boolean;
+  variant: "error" | "info" | "success";
+};
+
 function readErrorMessage(error: unknown) {
   if (error instanceof Error && error.message.trim()) {
     return error.message;
   }
 
   return "Deploy request failed.";
+}
+
+function serializeInitialEnv(env: Record<string, string>) {
+  return serializeEnvEntries(entriesFromEnvRecord(env));
+}
+
+function envRecordFromRawInput(input: string) {
+  const parsed = parseRawEnvInput(input);
+
+  if (!parsed.ok) {
+    return parsed;
+  }
+
+  return {
+    entries: Object.fromEntries(
+      parsed.entries.map((entry) => [entry.key, entry.value]),
+    ) as Record<string, string>,
+    ignoredLineCount: parsed.ignoredLineCount,
+    ok: true as const,
+  };
+}
+
+function buildEnvFeedback(input: string): DeployEnvFeedback {
+  if (!input.trim()) {
+    return {
+      env: {},
+      message:
+        "No environment variables will be set on the first deploy. Keep secrets out of deploy links.",
+      valid: true,
+      variant: "info",
+    };
+  }
+
+  const parsed = envRecordFromRawInput(input);
+
+  if (!parsed.ok) {
+    return {
+      env: {},
+      message: `Line ${parsed.line}: ${parsed.message}`,
+      valid: false,
+      variant: "error",
+    };
+  }
+
+  const envCount = Object.keys(parsed.entries).length;
+  const ignoredSuffix = parsed.ignoredLineCount
+    ? ` ${parsed.ignoredLineCount} comment or blank line${
+        parsed.ignoredLineCount === 1 ? "" : "s"
+      } ignored.`
+    : "";
+
+  if (envCount === 0) {
+    return {
+      env: {},
+      message: `No environment variables will be set on the first deploy.${ignoredSuffix} Keep secrets out of deploy links.`,
+      valid: true,
+      variant: "info",
+    };
+  }
+
+  return {
+    env: parsed.entries,
+    message: `${envCount} environment variable${
+      envCount === 1 ? "" : "s"
+    } ready for the first deploy.${ignoredSuffix} Keep secrets out of deploy links.`,
+    valid: true,
+    variant: "success",
+  };
 }
 
 function buildProjectOptions(
@@ -101,6 +182,7 @@ function readInitialProjectSelection(
 }
 
 export function DeployImageWizard({
+  initialEnv = {},
   initialImageRef,
   initialName = "",
   initialServicePort = "",
@@ -123,6 +205,12 @@ export function DeployImageWizard({
   const [name, setName] = useState(initialName);
   const [imageRef, setImageRef] = useState(initialImageRef);
   const [servicePort, setServicePort] = useState(initialServicePort);
+  const [envRawDraft, setEnvRawDraft] = useState(() =>
+    serializeInitialEnv(initialEnv),
+  );
+  const [envFeedback, setEnvFeedback] = useState(() =>
+    buildEnvFeedback(serializeInitialEnv(initialEnv)),
+  );
   const [startupCommand, setStartupCommand] = useState("");
   const [persistentStorage, setPersistentStorage] = useState(() =>
     createPersistentStorageDraft(),
@@ -160,6 +248,17 @@ export function DeployImageWizard({
     setServicePort(initialServicePort);
   }, [initialServicePort]);
 
+  useEffect(() => {
+    const nextEnvRaw = serializeInitialEnv(initialEnv);
+    setEnvRawDraft(nextEnvRaw);
+    setEnvFeedback(buildEnvFeedback(nextEnvRaw));
+  }, [initialEnv]);
+
+  function updateEnvRaw(nextValue: string) {
+    setEnvRawDraft(nextValue);
+    setEnvFeedback(buildEnvFeedback(nextValue));
+  }
+
   function validate() {
     if (!imageRef.trim()) {
       return "Image reference is required.";
@@ -193,6 +292,12 @@ export function DeployImageWizard({
       return persistentStorageError;
     }
 
+    const nextEnvFeedback = buildEnvFeedback(envRawDraft);
+
+    if (!nextEnvFeedback.valid) {
+      return nextEnvFeedback.message;
+    }
+
     return null;
   }
 
@@ -208,6 +313,7 @@ export function DeployImageWizard({
     const serializedPersistentStorage = serializePersistentStorageDraft(
       persistentStorage,
     );
+    const nextEnvFeedback = buildEnvFeedback(envRawDraft);
     const normalizedProjectName =
       selectedProjectId === NEW_PROJECT_VALUE
         ? projectName.trim()
@@ -238,6 +344,9 @@ export function DeployImageWizard({
       ...(runtimeId ? { runtimeId } : {}),
       ...(normalizedServicePort
         ? { servicePort: Number(normalizedServicePort) }
+        : {}),
+      ...(Object.keys(nextEnvFeedback.env).length > 0
+        ? { env: nextEnvFeedback.env }
         : {}),
       ...(serializedPersistentStorage
         ? { persistentStorage: serializedPersistentStorage }
@@ -414,6 +523,50 @@ export function DeployImageWizard({
           targets={runtimeTargets}
           value={runtimeId}
         />
+      </PanelSection>
+
+      <PanelSection>
+        <PanelTitle>Environment</PanelTitle>
+        <PanelCopy>
+          Paste or edit non-sensitive <code>KEY=value</code> lines. Deploy
+          links can prefill values here, so keep secrets out of query strings.
+        </PanelCopy>
+
+        {envRawDraft.trim() ? (
+          <div className="fg-deploy-inline-actions">
+            <Button
+              onClick={() => updateEnvRaw("")}
+              size="compact"
+              type="button"
+              variant="secondary"
+            >
+              Clear environment
+            </Button>
+          </div>
+        ) : null}
+
+        <FormField
+          hint="Quoted values, blank lines, comments, and export prefixes are supported."
+          htmlFor="deploy-image-env-raw"
+          label="Raw environment"
+          optionalLabel="Non-sensitive only"
+        >
+          <textarea
+            aria-invalid={envFeedback.valid ? undefined : true}
+            autoCapitalize="off"
+            autoCorrect="off"
+            className="fg-project-textarea fg-env-raw__textarea"
+            id="deploy-image-env-raw"
+            onChange={(event) => updateEnvRaw(event.target.value)}
+            placeholder={`DATABASE_URL=postgres://user:pass@host/db\nPUBLIC_API_BASE=https://api.example.com\n# comments are ignored`}
+            spellCheck={false}
+            value={envRawDraft}
+          />
+        </FormField>
+
+        <InlineAlert variant={envFeedback.variant}>
+          {envFeedback.message}
+        </InlineAlert>
       </PanelSection>
 
       <PanelSection>

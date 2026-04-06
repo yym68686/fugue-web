@@ -2577,6 +2577,7 @@ export async function getFugueAppBindings(accessToken: string, appId: string) {
 export async function importFugueDockerImageApp(
   accessToken: string,
   payload: {
+    env?: Record<string, string>;
     imageRef: string;
     name?: string;
     project?: {
@@ -2617,6 +2618,7 @@ export async function importFugueDockerImageApp(
           ...(payload.startupCommand !== undefined
             ? { startup_command: payload.startupCommand }
             : {}),
+          ...(payload.env ? { env: payload.env } : {}),
           ...(payload.persistentStorage
             ? {
                 persistent_storage: {
@@ -3300,6 +3302,31 @@ export async function failoverFugueApp(
                 target_runtime_id: options.targetRuntimeId,
               }
             : undefined,
+        params: {
+          path: { id: appId },
+        },
+      }),
+    ),
+  );
+
+  return buildOperationResultView(response);
+}
+
+export async function switchoverFugueAppDatabase(
+  accessToken: string,
+  appId: string,
+  options: {
+    targetRuntimeId: string;
+  },
+) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}/database/switchover`,
+      client.POST("/v1/apps/{id}/database/switchover", {
+        body: {
+          target_runtime_id: options.targetRuntimeId,
+        },
         params: {
           path: { id: appId },
         },

@@ -1266,6 +1266,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/apps/{id}/database/switchover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Switchover App Database */
+        post: operations["switchoverAppDatabase"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/apps/{id}/continuity": {
         parameters: {
             query?: never;
@@ -5152,6 +5169,33 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: {
+            content: {
+                "application/json": components["schemas"]["FailoverAppRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperationResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    switchoverAppDatabase: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
             content: {
                 "application/json": components["schemas"]["FailoverAppRequest"];
             };
