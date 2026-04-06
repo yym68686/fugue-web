@@ -426,11 +426,7 @@ function hasStatefulMigrationBlockers(app: ConsoleGalleryAppView) {
       app.persistentStorageStorageClassName || app.persistentStorageStorageSize,
     );
 
-  return (
-    app.hasManagedPostgresService ||
-    app.hasPersistentWorkspace ||
-    hasPersistentStorage
-  );
+  return app.hasPersistentWorkspace || hasPersistentStorage;
 }
 
 function readTransferRequestMode(app: ConsoleGalleryAppView) {
@@ -442,7 +438,8 @@ function readTransferTargets(
   runtimeTargets: ConsoleImportRuntimeTargetView[],
 ) {
   const activeRuntimeId = app.currentRuntimeId ?? app.runtimeId;
-  return readTransferRequestMode(app) === "failover"
+  return readTransferRequestMode(app) === "failover" ||
+    app.hasManagedPostgresService
     ? readManagedRuntimeTargets(runtimeTargets, activeRuntimeId)
     : runtimeTargets.filter((target) => target.id !== activeRuntimeId);
 }
@@ -1519,7 +1516,7 @@ function AppTransferSection({
   const targetSelectionHint = runtimeTargetInventoryError
     ? "Runtime list unavailable."
     : transferTargets.length === 0
-      ? transferMode === "failover"
+      ? transferMode === "failover" || app.hasManagedPostgresService
         ? "Add another managed runtime before moving this service."
         : "Add another runtime before moving this service."
       : null;
