@@ -1312,6 +1312,7 @@ function AppAutomaticFailoverSection({
       return;
     }
 
+    const disablesDatabaseReplica = app.hasManagedPostgresService;
     setSaving(true);
 
     try {
@@ -1322,6 +1323,13 @@ function AppAutomaticFailoverSection({
             appFailover: {
               enabled: false,
             },
+            ...(disablesDatabaseReplica
+              ? {
+                  databaseFailover: {
+                    enabled: false,
+                  },
+                }
+              : {}),
           }),
           headers: {
             "Content-Type": "application/json",
@@ -1333,7 +1341,9 @@ function AppAutomaticFailoverSection({
       showToast({
         message: result?.alreadyCurrent
           ? "Automatic failover is already off."
-          : "Automatic failover disabled.",
+          : disablesDatabaseReplica
+            ? "Automatic failover disabled. Standby database replica removed."
+            : "Automatic failover disabled.",
         variant: "success",
       });
       startTransition(() => {
