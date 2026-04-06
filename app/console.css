@@ -4170,12 +4170,45 @@
   align-items: end;
 }
 
+.fg-billing-top-up-form__field {
+  display: grid;
+  gap: 0.72rem;
+  min-width: 0;
+}
+
+.fg-billing-top-up-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
 .fg-billing-top-up-form__actions {
   align-self: end;
 }
 
 .fg-billing-top-up-form__actions .fg-button {
   min-width: 9.75rem;
+}
+
+.fg-billing-top-up-status {
+  display: grid;
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.fg-billing-top-up-status__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.9rem;
+}
+
+.fg-billing-top-up-status__request {
+  color: var(--fugue-text-muted);
+  font-family: var(--fugue-font-mono);
+  font-size: 0.73rem;
+  letter-spacing: 0.04em;
+  overflow-wrap: anywhere;
 }
 
 .fg-billing-estimate {
@@ -4569,6 +4602,11 @@
 
   .fg-billing-top-up-form__actions {
     justify-content: flex-start;
+  }
+
+  .fg-billing-top-up-status__row {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .fg-admin-user-quota-form__actions {

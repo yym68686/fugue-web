@@ -1,6 +1,7 @@
 "use client";
 
 import { startTransition, useEffect, useState, type FormEvent } from "react";
+import { useSearchParams } from "next/navigation";
 
 import { ConsoleEmptyState } from "@/components/console/console-empty-state";
 import {
@@ -35,6 +36,18 @@ type BillingRoutePayload = {
     tenantId: string;
     tenantName: string;
   };
+};
+
+type BillingTopupCheckoutPayload = {
+  checkoutUrl: string;
+  requestId: string;
+};
+
+type BillingTopupStatusPayload = {
+  amountCents: number;
+  requestId: string;
+  status: string;
+  units: number;
 };
 
 function syncBillingPageSnapshot(nextData: BillingRoutePayload) {
@@ -89,6 +102,9 @@ const MEMORY_SLIDER_MAX_GIB = 4;
 const STORAGE_SLIDER_MAX_GIB = 30;
 const CPU_SLIDER_MAX_MILLICORES = CPU_SLIDER_MAX_CORES * MILLICORES_PER_VCPU;
 const MEMORY_SLIDER_MAX_MEBIBYTES = MEMORY_SLIDER_MAX_GIB * MEBIBYTES_PER_GIB;
+const BILLING_TOP_UP_PRESET_AMOUNTS = [10, 25, 50, 100];
+const MIN_TOP_UP_UNITS = 5;
+const MAX_TOP_UP_UNITS = 5000;
 const DEFAULT_FREE_TIER_CAP: FugueResourceSpec = {
   cpuMillicores: 500,
   memoryMebibytes: 512,
@@ -294,21 +310,53 @@ function formatExactTime(value?: string | null) {
   }).format(timestamp);
 }
 
-function parseDollarAmountToCents(value: string) {
+function parseDollarUnits(value: string) {
   const trimmed = value.trim();
 
-  if (!trimmed || !/^\d+(\.\d{1,2})?$/.test(trimmed)) {
+  if (!trimmed || !/^\d+$/.test(trimmed)) {
     return null;
   }
 
-  const [whole, fraction = ""] = trimmed.split(".");
-  const wholeDollars = Number(whole);
+  const wholeDollars = Number(trimmed);
 
   if (!Number.isSafeInteger(wholeDollars)) {
     return null;
   }
 
-  return wholeDollars * 100 + Number(`${fraction}00`.slice(0, 2));
+  return wholeDollars;
+}
+
+function clearTopUpQueryParams() {
+  const url = new URL(window.location.href);
+  url.searchParams.delete("request_id");
+  url.searchParams.delete("requestId");
+
+  if (url.toString() === window.location.href) {
+    return;
+  }
+
+  window.history.replaceState(null, "", url.toString());
+}
+
+function waitMs(ms: number, signal?: AbortSignal) {
+  return new Promise<void>((resolve) => {
+    const timeout = window.setTimeout(() => {
+      resolve();
+    }, ms);
+
+    if (!signal) {
+      return;
+    }
+
+    signal.addEventListener(
+      "abort",
+      () => {
+        window.clearTimeout(timeout);
+        resolve();
+      },
+      { once: true },
+    );
+  });
 }
 
 function humanizeStatus(value: string) {
@@ -515,6 +563,7 @@ export function BillingPanel({
   initialSyncError: string | null;
   workspaceName?: string | null;
 }) {
+  const searchParams = useSearchParams();
   const { showToast } = useToast();
   const [billing, setBilling] = useState(initialBilling);
   const [syncError, setSyncError] = useState(initialSyncError);
@@ -531,6 +580,11 @@ export function BillingPanel({
   const [topUpAmount, setTopUpAmount] = useState("");
   const [envelopeError, setEnvelopeError] = useState<string | null>(null);
   const [topUpError, setTopUpError] = useState<string | null>(null);
+  const [topUpStatusError, setTopUpStatusError] = useState<string | null>(null);
+  const [topUpPending, setTopUpPending] = useState(false);
+  const [topUpBlocking, setTopUpBlocking] = useState(false);
+  const [checkingTopUpStatus, setCheckingTopUpStatus] = useState(false);
+  const [trackedTopUpRequestId, setTrackedTopUpRequestId] = useState<string | null>(null);
 
   useEffect(() => {
     setBilling(initialBilling);
@@ -543,6 +597,7 @@ export function BillingPanel({
       clampEnvelopeStorageGibibytes(initialBilling?.managedCap.storageGibibytes ?? 0),
     );
     setEnvelopeError(null);
+    setTopUpStatusError(null);
   }, [initialBilling, initialSyncError]);
 
   const isRefreshing = busyAction === "refresh";
@@ -552,7 +607,13 @@ export function BillingPanel({
   const envelopeCpuCores = envelopeCpu / MILLICORES_PER_VCPU;
   const envelopeMemoryGib = envelopeMemory / MEBIBYTES_PER_GIB;
   const committedStorageGibibytes = billing?.managedCommitted.storageGibibytes ?? 0;
-  const parsedTopUpCents = parseDollarAmountToCents(topUpAmount);
+  const parsedTopUpUnits = parseDollarUnits(topUpAmount);
+  const topUpRequestIdFromUrl = (() => {
+    const rawValue = searchParams.get("request_id") ?? searchParams.get("requestId");
+    return rawValue?.trim() ? rawValue.trim() : null;
+  })();
+  const hasUnresolvedTopUp =
+    topUpBlocking || topUpPending || Boolean(topUpStatusError?.trim());
   const previewSpec: FugueResourceSpec = {
     cpuMillicores: envelopeCpu,
     memoryMebibytes: envelopeMemory,
@@ -660,6 +721,177 @@ export function BillingPanel({
     }
   }
 
+  async function fetchTopUpStatus(
+    requestId: string,
+    signal?: AbortSignal,
+  ) {
+    const response = await fetch(
+      `/api/fugue/billing/top-ups/status?request_id=${encodeURIComponent(requestId)}`,
+      {
+        cache: "no-store",
+        signal,
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(await readResponseError(response));
+    }
+
+    const data = (await response.json().catch(() => null)) as BillingTopupStatusPayload | null;
+
+    if (
+      !data ||
+      typeof data.requestId !== "string" ||
+      typeof data.status !== "string" ||
+      typeof data.units !== "number" ||
+      typeof data.amountCents !== "number"
+    ) {
+      throw new Error("Billing top-up status response was malformed.");
+    }
+
+    return data;
+  }
+
+  async function handleTopUpCompleted() {
+    clearTopUpQueryParams();
+
+    startTransition(() => {
+      setTopUpBlocking(false);
+      setTopUpPending(false);
+      setTopUpError(null);
+      setTopUpStatusError(null);
+      setTopUpAmount("");
+    });
+
+    try {
+      await refreshBilling({ quiet: true });
+    } catch (error) {
+      startTransition(() => {
+        setSyncError(readErrorMessage(error));
+      });
+    }
+
+    showToast({
+      message: "Payment completed. Billing balance refreshed.",
+      variant: "success",
+    });
+  }
+
+  async function handleTopUpFailed() {
+    clearTopUpQueryParams();
+
+    startTransition(() => {
+      setTopUpBlocking(false);
+      setTopUpPending(false);
+      setTopUpStatusError(null);
+    });
+
+    showToast({
+      message: "Payment failed.",
+      variant: "error",
+    });
+  }
+
+  async function recheckTopUp() {
+    if (!trackedTopUpRequestId || checkingTopUpStatus) {
+      return;
+    }
+
+    const startedAt = Date.now();
+    setCheckingTopUpStatus(true);
+    setTopUpStatusError(null);
+
+    try {
+      const status = await fetchTopUpStatus(trackedTopUpRequestId);
+
+      if (status.status === "completed") {
+        await handleTopUpCompleted();
+      } else if (status.status === "failed") {
+        await handleTopUpFailed();
+      } else {
+        setTopUpPending(true);
+        setTopUpStatusError(null);
+      }
+    } catch (error) {
+      setTopUpStatusError(
+        "We could not confirm payment status yet. Check again in a few seconds.",
+      );
+      showToast({
+        message: readErrorMessage(error),
+        variant: "error",
+      });
+    } finally {
+      const elapsed = Date.now() - startedAt;
+      if (elapsed < 700) {
+        await waitMs(700 - elapsed);
+      }
+      setCheckingTopUpStatus(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!topUpRequestIdFromUrl) {
+      return;
+    }
+
+    setTrackedTopUpRequestId(topUpRequestIdFromUrl);
+    setTopUpPending(false);
+    setTopUpBlocking(true);
+    setTopUpError(null);
+    setTopUpStatusError(null);
+
+    const controller = new AbortController();
+    let cancelled = false;
+    let statusCheckFailed = false;
+
+    void (async () => {
+      const deadline = Date.now() + 10_000;
+
+      while (!cancelled && Date.now() < deadline) {
+        try {
+          const status = await fetchTopUpStatus(topUpRequestIdFromUrl, controller.signal);
+
+          if (cancelled) {
+            return;
+          }
+
+          if (status.status === "completed") {
+            await handleTopUpCompleted();
+            return;
+          }
+
+          if (status.status === "failed") {
+            await handleTopUpFailed();
+            return;
+          }
+        } catch {
+          statusCheckFailed = true;
+          break;
+        }
+
+        await waitMs(1200, controller.signal);
+      }
+
+      if (cancelled) {
+        return;
+      }
+
+      setTopUpBlocking(false);
+      setTopUpPending(true);
+
+      if (statusCheckFailed) {
+        setTopUpStatusError(
+          "We could not confirm payment status automatically. Check again in a few seconds.",
+        );
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [topUpRequestIdFromUrl]);
+
   async function handleEnvelopeSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -724,52 +956,52 @@ export function BillingPanel({
   async function handleTopUpSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (busyAction) {
+    if (busyAction || hasUnresolvedTopUp) {
       return;
     }
 
-    if (parsedTopUpCents === null || parsedTopUpCents <= 0) {
-      setTopUpError("Enter a positive USD amount with up to two decimal places.");
+    if (
+      parsedTopUpUnits === null ||
+      parsedTopUpUnits < MIN_TOP_UP_UNITS ||
+      parsedTopUpUnits > MAX_TOP_UP_UNITS
+    ) {
+      setTopUpError(
+        `Enter a whole USD amount between $${MIN_TOP_UP_UNITS} and $${MAX_TOP_UP_UNITS}.`,
+      );
       return;
     }
 
     setBusyAction("top-up");
     setTopUpError(null);
+    setTopUpStatusError(null);
+    setTopUpPending(false);
 
     try {
-      const data = await requestJson<{
-        billing: FugueBillingSummary;
-      }>("/api/fugue/billing/top-ups", {
-        body: JSON.stringify({
-          amountCents: parsedTopUpCents,
-        }),
-        headers: {
-          "Content-Type": "application/json",
+      const data = await requestJson<BillingTopupCheckoutPayload>(
+        "/api/fugue/billing/top-ups/checkout",
+        {
+          body: JSON.stringify({
+            amountUsd: parsedTopUpUnits,
+          }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          method: "POST",
         },
-        method: "POST",
-      });
+      );
 
-      if (!data?.billing) {
-        throw new Error("Billing top-up response was malformed.");
+      if (
+        !data ||
+        typeof data.checkoutUrl !== "string" ||
+        !data.checkoutUrl.trim() ||
+        typeof data.requestId !== "string" ||
+        !data.requestId.trim()
+      ) {
+        throw new Error("Billing checkout response was malformed.");
       }
 
-      syncBillingPageSnapshot({
-        billing: data.billing,
-        syncError: null,
-        workspace: readBillingSnapshotWorkspace(workspaceName),
-      });
-
-      startTransition(() => {
-        setSyncError(null);
-        applyBillingSnapshot(data.billing);
-        setTopUpAmount("");
-        setTopUpError(null);
-      });
-
-      showToast({
-        message: "Balance added.",
-        variant: "success",
-      });
+      setTrackedTopUpRequestId(data.requestId.trim());
+      window.location.href = data.checkoutUrl.trim();
     } catch (error) {
       const message = readErrorMessage(error);
       setTopUpError(message);
@@ -1007,41 +1239,102 @@ export function BillingPanel({
               className="fg-settings-form fg-billing-form fg-billing-top-up-form"
               onSubmit={handleTopUpSubmit}
             >
-              <FormField
-                error={topUpError ?? undefined}
-                htmlFor="billing-top-up-amount"
-                label="Top-up amount"
-              >
-                <input
-                  className="fg-input"
-                  id="billing-top-up-amount"
-                  inputMode="decimal"
-                  min="0.01"
-                  onChange={(event) => {
-                    setTopUpAmount(event.target.value);
-                    if (topUpError) {
-                      setTopUpError(null);
-                    }
-                  }}
-                  placeholder="25.00"
-                  step="0.01"
-                  type="number"
-                  value={topUpAmount}
-                />
-              </FormField>
+              <div className="fg-billing-top-up-form__field">
+                <FormField
+                  error={topUpError ?? undefined}
+                  hint={`Whole USD amounts only. Min $${MIN_TOP_UP_UNITS}, max $${MAX_TOP_UP_UNITS}.`}
+                  htmlFor="billing-top-up-amount"
+                  label="Top-up amount"
+                >
+                  <input
+                    className="fg-input"
+                    id="billing-top-up-amount"
+                    inputMode="numeric"
+                    min={MIN_TOP_UP_UNITS}
+                    onChange={(event) => {
+                      setTopUpAmount(event.target.value);
+                      if (topUpError) {
+                        setTopUpError(null);
+                      }
+                    }}
+                    placeholder="25"
+                    step="1"
+                    type="number"
+                    value={topUpAmount}
+                  />
+                </FormField>
+
+                <div
+                  className="fg-billing-top-up-presets"
+                  role="group"
+                  aria-label="Suggested top-up amounts"
+                >
+                  {BILLING_TOP_UP_PRESET_AMOUNTS.map((amount) => (
+                    <Button
+                      key={amount}
+                      disabled={isToppingUp || hasUnresolvedTopUp}
+                      onClick={() => {
+                        setTopUpAmount(String(amount));
+                        if (topUpError) {
+                          setTopUpError(null);
+                        }
+                      }}
+                      size="tight"
+                      type="button"
+                      variant="secondary"
+                    >
+                      ${amount}
+                    </Button>
+                  ))}
+                </div>
+              </div>
 
               <div className="fg-settings-form__actions fg-billing-top-up-form__actions">
                 <Button
-                  disabled={parsedTopUpCents === null || parsedTopUpCents <= 0}
+                  disabled={
+                    parsedTopUpUnits === null ||
+                    parsedTopUpUnits < MIN_TOP_UP_UNITS ||
+                    parsedTopUpUnits > MAX_TOP_UP_UNITS ||
+                    hasUnresolvedTopUp
+                  }
                   loading={isToppingUp}
-                  loadingLabel="Adding balance…"
+                  loadingLabel="Creating checkout…"
                   type="submit"
                   variant="primary"
                 >
-                  Add balance
+                  Continue to payment
                 </Button>
               </div>
             </form>
+
+            {topUpBlocking ? (
+              <InlineAlert variant="info">Checking payment status…</InlineAlert>
+            ) : null}
+
+            {trackedTopUpRequestId && (topUpPending || topUpStatusError) ? (
+              <div className="fg-billing-top-up-status">
+                <InlineAlert variant={topUpStatusError ? "error" : "info"}>
+                  {topUpStatusError ??
+                    "Payment is still processing. Check again in a few seconds if the balance has not updated yet."}
+                </InlineAlert>
+
+                <div className="fg-billing-top-up-status__row">
+                  <span className="fg-billing-top-up-status__request">{trackedTopUpRequestId}</span>
+                  <Button
+                    loading={checkingTopUpStatus}
+                    loadingLabel="Checking…"
+                    onClick={() => {
+                      void recheckTopUp();
+                    }}
+                    size="tight"
+                    type="button"
+                    variant="secondary"
+                  >
+                    Check again
+                  </Button>
+                </div>
+              </div>
+            ) : null}
           </PanelSection>
         </Panel>
 

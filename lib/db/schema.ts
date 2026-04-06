@@ -7,7 +7,7 @@ declare global {
   var __fugueDbSchemaVersion: string | undefined;
 }
 
-const SCHEMA_VERSION = "2026-04-04-github-oauth";
+const SCHEMA_VERSION = "2026-04-06-creem-billing-topups";
 
 const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS app_users (
@@ -101,6 +101,41 @@ CREATE TABLE IF NOT EXISTS app_github_connections (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS app_billing_topups (
+  request_id TEXT PRIMARY KEY,
+  provider TEXT NOT NULL DEFAULT 'creem',
+  user_email TEXT NOT NULL REFERENCES app_users(email) ON DELETE CASCADE,
+  tenant_id TEXT NOT NULL,
+  product_id TEXT,
+  units INTEGER NOT NULL DEFAULT 0,
+  amount_cents INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'pending',
+  checkout_id TEXT UNIQUE,
+  order_id TEXT UNIQUE,
+  currency TEXT,
+  payer_email TEXT,
+  completed_at TIMESTAMPTZ,
+  failed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT app_billing_topups_status_check CHECK (
+    status IN ('pending', 'processing', 'completed', 'failed')
+  )
+);
+
+CREATE TABLE IF NOT EXISTS app_creem_events (
+  creem_event_id TEXT PRIMARY KEY,
+  event_type TEXT NOT NULL,
+  status TEXT NOT NULL,
+  request_id TEXT,
+  user_email TEXT REFERENCES app_users(email) ON DELETE SET NULL,
+  tenant_id TEXT,
+  amount_cents INTEGER,
+  currency TEXT,
+  raw_payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 CREATE INDEX IF NOT EXISTS idx_app_workspaces_tenant_id
   ON app_workspaces (tenant_id);
 
@@ -127,6 +162,21 @@ CREATE INDEX IF NOT EXISTS idx_app_node_keys_status
 
 CREATE INDEX IF NOT EXISTS idx_app_github_connections_github_user_id
   ON app_github_connections (github_user_id);
+
+CREATE INDEX IF NOT EXISTS idx_app_billing_topups_user_email
+  ON app_billing_topups (user_email, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_app_billing_topups_tenant_id
+  ON app_billing_topups (tenant_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_app_billing_topups_status
+  ON app_billing_topups (status, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_app_creem_events_request_id
+  ON app_creem_events (request_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_app_creem_events_user_email
+  ON app_creem_events (user_email, created_at DESC);
 
 UPDATE app_users
 SET is_admin = TRUE
