@@ -8,6 +8,7 @@ import {
   failPendingProjectIntent,
   resolvePendingProjectIntent,
 } from "@/lib/console/pending-project-intents";
+import { RawEnvEditor } from "@/components/console/raw-env-editor";
 import { DeploymentTargetField } from "@/components/console/deployment-target-field";
 import { LocalUploadSourceField } from "@/components/console/local-upload-source-field";
 import { PersistentStorageEditor } from "@/components/console/persistent-storage-editor";
@@ -18,6 +19,10 @@ import { PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
 import { SelectField } from "@/components/ui/select-field";
 import { useToast } from "@/components/ui/toast";
 import type { ConsoleImportRuntimeTargetView } from "@/lib/console/gallery-types";
+import {
+  buildRawEnvFeedback,
+  serializeEnvRecord,
+} from "@/lib/console/raw-env";
 import { readDefaultImportRuntimeId } from "@/lib/console/runtime-targets";
 import type { FugueProject } from "@/lib/fugue/api";
 import {
@@ -48,6 +53,7 @@ import {
 const NEW_PROJECT_VALUE = "__new__";
 
 type DeployUploadWizardProps = {
+  initialEnv?: Record<string, string>;
   projectInventoryError?: string | null;
   projects: FugueProject[];
   runtimeTargetInventoryError?: string | null;
@@ -114,6 +120,7 @@ function readInitialProjectSelection(
 }
 
 export function DeployUploadWizard({
+  initialEnv = {},
   projectInventoryError = null,
   projects,
   runtimeTargetInventoryError = null,
@@ -143,6 +150,12 @@ export function DeployUploadWizard({
   const [persistentStorage, setPersistentStorage] = useState(() =>
     createPersistentStorageDraft(),
   );
+  const [envRawDraft, setEnvRawDraft] = useState(() =>
+    serializeEnvRecord(initialEnv),
+  );
+  const [envFeedback, setEnvFeedback] = useState(() =>
+    buildRawEnvFeedback(serializeEnvRecord(initialEnv), "deploy"),
+  );
   const [localUpload, setLocalUpload] = useState<LocalUploadState>(() =>
     createLocalUploadState(),
   );
@@ -168,12 +181,24 @@ export function DeployUploadWizard({
     );
   }, [runtimeTargets]);
 
+  useEffect(() => {
+    const nextEnvRaw = serializeEnvRecord(initialEnv);
+    setEnvRawDraft(nextEnvRaw);
+    setEnvFeedback(buildRawEnvFeedback(nextEnvRaw, "deploy"));
+  }, [initialEnv]);
+
+  function updateEnvRaw(nextValue: string) {
+    setEnvRawDraft(nextValue);
+    setEnvFeedback(buildRawEnvFeedback(nextValue, "deploy"));
+  }
+
   function buildDraft() {
     return {
       ...createImportServiceDraft(runtimeId),
       buildContextDir,
       buildStrategy,
       dockerfilePath,
+      envRaw: envRawDraft,
       name,
       persistentStorage,
       runtimeId,
@@ -500,6 +525,22 @@ export function DeployUploadWizard({
             </FormField>
           ) : null}
         </div>
+      </PanelSection>
+
+      <PanelSection>
+        <PanelTitle>Environment</PanelTitle>
+        <PanelCopy>
+          Paste or edit non-sensitive <code>KEY=value</code> lines. Deploy
+          links can prefill values here, so keep secrets out of query strings.
+        </PanelCopy>
+
+        <RawEnvEditor
+          feedback={envFeedback}
+          fieldId="deploy-upload-env-raw"
+          onChange={updateEnvRaw}
+          optionalLabel="Non-sensitive only"
+          value={envRawDraft}
+        />
       </PanelSection>
 
       {startupCommandSupported ? (

@@ -354,7 +354,18 @@ export async function POST(request: Request) {
             name: resolvedProjectName,
           },
         };
-    const env = resolveTemplateEnv(inspection, readStringMap(body.variables));
+    const templateEnv = resolveTemplateEnv(
+      inspection,
+      readStringMap(body.variables),
+    );
+    const rawEnv = readStringMap(body.env);
+    const env =
+      templateEnv || Object.keys(rawEnv).length > 0
+        ? {
+            ...(templateEnv ?? {}),
+            ...rawEnv,
+          }
+        : undefined;
     const result = await importFugueGitHubApp(workspace.adminKeySecret, {
       branch: branch || undefined,
       ...(inspection.fugueManifest

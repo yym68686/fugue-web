@@ -286,6 +286,7 @@ export async function POST(request: Request) {
             buildStrategy: buildStrategy || undefined,
             buildContextDir: buildContextDir || undefined,
             dockerfilePath: dockerfilePath || undefined,
+            ...(Object.keys(env).length > 0 ? { env } : {}),
             name: name || undefined,
             persistentStorage,
             persistentStorageSeedFiles:

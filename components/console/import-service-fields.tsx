@@ -7,6 +7,7 @@ import { DeploymentTargetField } from "@/components/console/deployment-target-fi
 import { GitHubRepositoryAccessFields } from "@/components/console/github-repository-access-fields";
 import { LocalUploadSourceField } from "@/components/console/local-upload-source-field";
 import { PersistentStorageEditor } from "@/components/console/persistent-storage-editor";
+import { RawEnvEditor } from "@/components/console/raw-env-editor";
 import { FormField } from "@/components/ui/form-field";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { SelectField } from "@/components/ui/select-field";
@@ -15,6 +16,7 @@ import {
   type SegmentedControlOption,
 } from "@/components/ui/segmented-control";
 import type { ConsoleImportRuntimeTargetView } from "@/lib/console/gallery-types";
+import { buildRawEnvFeedback } from "@/lib/console/raw-env";
 import {
   buildImportRuntimeTargetGroups,
   readDefaultImportRuntimeId,
@@ -95,8 +97,14 @@ type ImportServiceFieldProps = {
   githubConnectionLoading?: boolean;
   idPrefix: string;
   includeWrapper?: boolean;
+  initialGitHubInspection?: FugueGitHubTemplateInspection | null;
+  initialGitHubInspectionError?: string | null;
   inventoryError?: string | null;
   localUpload: LocalUploadState;
+  onGitHubInspectionChange?: (
+    inspection: FugueGitHubTemplateInspection | null,
+    error: string | null,
+  ) => void;
   onCapabilitiesChange?: (capabilities: {
     persistentStorageSupported: boolean;
     startupCommandSupported: boolean;
@@ -104,6 +112,10 @@ type ImportServiceFieldProps = {
   onDraftChange: (next: ImportServiceDraft) => void;
   onLocalUploadChange: (next: LocalUploadState) => void;
   runtimeTargets: ConsoleImportRuntimeTargetView[];
+  showBranchField?: boolean;
+  showDockerServicePort?: boolean;
+  showRepositoryHint?: boolean;
+  showSourceModeSwitch?: boolean;
 };
 
 export function ImportServiceFields({
@@ -114,12 +126,19 @@ export function ImportServiceFields({
   githubConnectionLoading = false,
   idPrefix,
   includeWrapper = true,
+  initialGitHubInspection = null,
+  initialGitHubInspectionError = null,
   inventoryError = null,
   localUpload,
+  onGitHubInspectionChange,
   onCapabilitiesChange,
   onDraftChange,
   onLocalUploadChange,
   runtimeTargets,
+  showBranchField = true,
+  showDockerServicePort = false,
+  showRepositoryHint = true,
+  showSourceModeSwitch = true,
 }: ImportServiceFieldProps) {
   const supportsSourceDir = supportsGitHubSourceDir(draft.buildStrategy);
   const supportsDockerInputs = supportsGitHubDockerInputs(draft.buildStrategy);
@@ -129,10 +148,10 @@ export function ImportServiceFields({
   const githubKeepsTopologyImport =
     draft.sourceMode === "github" && preservesGitHubTopologyImport(draft);
   const [githubInspection, setGitHubInspection] =
-    useState<FugueGitHubTemplateInspection | null>(null);
+    useState<FugueGitHubTemplateInspection | null>(initialGitHubInspection);
   const [githubInspectionError, setGitHubInspectionError] = useState<
     string | null
-  >(null);
+  >(initialGitHubInspectionError);
   const runtimeTargetGroups = buildImportRuntimeTargetGroups(runtimeTargets);
   const selectedRuntimeTargetGroupId = readSelectedRuntimeTargetGroupId(
     runtimeTargetGroups,
@@ -186,13 +205,20 @@ export function ImportServiceFields({
   );
   const deploymentDescription = deploymentSummaryParts.join(" · ");
   const advancedSummaryParts = [
-    draft.sourceMode === "github" && draft.branch.trim()
+    showBranchField &&
+    draft.sourceMode === "github" &&
+    draft.branch.trim()
       ? `Branch ${draft.branch.trim()}`
       : null,
     draft.sourceMode === "local-upload" && localUpload.label
       ? `Upload ${localUpload.label}`
       : null,
     draft.name.trim() ? `Name ${draft.name.trim()}` : null,
+    showDockerServicePort &&
+    draft.sourceMode === "docker-image" &&
+    draft.servicePort.trim()
+      ? `Port ${draft.servicePort.trim()}`
+      : null,
     startupCommandSupported && draft.startupCommand.trim()
       ? "Startup command"
       : null,
@@ -238,6 +264,13 @@ export function ImportServiceFields({
   const persistentStorageDescription =
     summarizePersistentStorageDraft(draft.persistentStorage) ??
     "Add directories or files that must survive redeploys.";
+  const envFeedback = buildRawEnvFeedback(draft.envRaw, "console");
+  const envCount = Object.keys(envFeedback.env).length;
+  const environmentDescription = !envFeedback.valid
+    ? envFeedback.message
+    : envCount > 0
+      ? `${envCount} environment variable${envCount === 1 ? "" : "s"} ready for the first deploy.`
+      : "Optional KEY=value pairs for the first deploy.";
 
   useEffect(() => {
     const repoUrl = draft.repoUrl.trim();
@@ -307,6 +340,10 @@ export function ImportServiceFields({
     githubConnectionLoading,
     githubKeepsTopologyImport,
   ]);
+
+  useEffect(() => {
+    onGitHubInspectionChange?.(githubInspection, githubInspectionError);
+  }, [githubInspection, githubInspectionError, onGitHubInspectionChange]);
 
   useEffect(() => {
     if (startupCommandSupported || !draft.startupCommand.trim()) {
@@ -399,27 +436,29 @@ export function ImportServiceFields({
 
   const content = (
     <>
-      <div className="fg-field-stack">
-        <div className="fg-field-label">
-          <span>Source mode</span>
+      {showSourceModeSwitch ? (
+        <div className="fg-field-stack">
+          <div className="fg-field-label">
+            <span>Source mode</span>
+          </div>
+          <div className="fg-field-control">
+            <SegmentedControl
+              ariaLabel="Import source mode"
+              controlClassName="fg-console-nav"
+              itemClassName="fg-console-nav__link"
+              labelClassName="fg-console-nav__title"
+              onChange={updateSourceMode}
+              options={SOURCE_MODE_OPTIONS}
+              value={draft.sourceMode}
+              variant="pill"
+            />
+          </div>
         </div>
-        <div className="fg-field-control">
-          <SegmentedControl
-            ariaLabel="Import source mode"
-            controlClassName="fg-console-nav"
-            itemClassName="fg-console-nav__link"
-            labelClassName="fg-console-nav__title"
-            onChange={updateSourceMode}
-            options={SOURCE_MODE_OPTIONS}
-            value={draft.sourceMode}
-            variant="pill"
-          />
-        </div>
-      </div>
+      ) : null}
 
       {draft.sourceMode === "github" ? (
         <FormField
-          hint="Use https://github.com/owner/repo."
+          hint={showRepositoryHint ? "Use https://github.com/owner/repo." : undefined}
           htmlFor={`${idPrefix}-repo-url`}
           label="Repository link"
         >
@@ -564,6 +603,20 @@ export function ImportServiceFields({
 
       <ConsoleDisclosureSection
         className="fg-console-dialog__advanced"
+        defaultOpen={!envFeedback.valid || Boolean(draft.envRaw.trim())}
+        description={environmentDescription}
+        summary="Environment"
+      >
+        <RawEnvEditor
+          feedback={envFeedback}
+          fieldId={`${idPrefix}-env-raw`}
+          onChange={(value) => updateField("envRaw", value)}
+          value={draft.envRaw}
+        />
+      </ConsoleDisclosureSection>
+
+      <ConsoleDisclosureSection
+        className="fg-console-dialog__advanced"
         description={deploymentDescription}
         summary={deploymentDisclosureSummary}
       >
@@ -597,7 +650,7 @@ export function ImportServiceFields({
         summary="Advanced settings"
       >
         <div className="fg-console-dialog__advanced-grid">
-          {draft.sourceMode === "github" ? (
+          {showBranchField && draft.sourceMode === "github" ? (
             <FormField
               hint="Leave blank to use the default branch."
               htmlFor={`${idPrefix}-repo-branch`}
@@ -640,6 +693,26 @@ export function ImportServiceFields({
               value={draft.name}
             />
           </FormField>
+
+          {showDockerServicePort && draft.sourceMode === "docker-image" ? (
+            <FormField
+              hint="Set this when the container listens on a known port."
+              htmlFor={`${idPrefix}-service-port`}
+              label="Service port"
+              optionalLabel="Optional"
+            >
+              <input
+                autoComplete="off"
+                className="fg-input"
+                id={`${idPrefix}-service-port`}
+                inputMode="numeric"
+                name="servicePort"
+                onChange={(event) => updateField("servicePort", event.target.value)}
+                placeholder="8080"
+                value={draft.servicePort}
+              />
+            </FormField>
+          ) : null}
 
           {startupCommandSupported ? (
             <FormField

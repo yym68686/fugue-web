@@ -2082,6 +2082,7 @@ export async function importFugueUploadApp(
     buildContextDir?: string;
     buildStrategy?: string;
     dockerfilePath?: string;
+    env?: Record<string, string>;
     name?: string;
     persistentStorage?: PersistentStoragePayload;
     project?: {
@@ -2133,6 +2134,7 @@ export async function importFugueUploadApp(
       ...(payload.startupCommand !== undefined
         ? { startup_command: payload.startupCommand }
         : {}),
+      ...(payload.env ? { env: payload.env } : {}),
       ...(payload.persistentStorage
         ? {
             persistent_storage: {

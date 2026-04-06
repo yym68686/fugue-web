@@ -9,15 +9,21 @@ import {
   failPendingProjectIntent,
   resolvePendingProjectIntent,
 } from "@/lib/console/pending-project-intents";
+import { RawEnvEditor } from "@/components/console/raw-env-editor";
 import { DeploymentTargetField } from "@/components/console/deployment-target-field";
 import { GitHubRepositoryAccessFields } from "@/components/console/github-repository-access-fields";
 import { PersistentStorageEditor } from "@/components/console/persistent-storage-editor";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { InlineAlert } from "@/components/ui/inline-alert";
+import { PanelCopy } from "@/components/ui/panel";
 import { SelectField } from "@/components/ui/select-field";
 import { useToast } from "@/components/ui/toast";
 import type { ConsoleImportRuntimeTargetView } from "@/lib/console/gallery-types";
+import {
+  buildRawEnvFeedback,
+  serializeEnvRecord,
+} from "@/lib/console/raw-env";
 import { pluralize, summarizeInspectManifest } from "@/lib/deploy/topology-display";
 import { readDefaultImportRuntimeId } from "@/lib/console/runtime-targets";
 import type {
@@ -54,6 +60,7 @@ const NEW_PROJECT_VALUE = "__new__";
 
 type DeployWizardProps = {
   initialBranch: string;
+  initialEnv?: Record<string, string>;
   initialRepoVisibility: GitHubRepoVisibility;
   inspection: FugueGitHubTemplateInspection | null;
   projectInventoryError?: string | null;
@@ -175,6 +182,7 @@ function readInitialPersistentStorageSeedValues(
 
 export function DeployWizard({
   initialBranch,
+  initialEnv = {},
   initialRepoVisibility,
   inspection,
   projectInventoryError = null,
@@ -214,6 +222,12 @@ export function DeployWizard({
   const [startupCommand, setStartupCommand] = useState("");
   const [persistentStorage, setPersistentStorage] = useState(() =>
     createPersistentStorageDraft(),
+  );
+  const [envRawDraft, setEnvRawDraft] = useState(() =>
+    serializeEnvRecord(initialEnv),
+  );
+  const [envFeedback, setEnvFeedback] = useState(() =>
+    buildRawEnvFeedback(serializeEnvRecord(initialEnv), "deploy"),
   );
   const [variableValues, setVariableValues] = useState<Record<string, string>>(
     readInitialVariableValues(inspection),
@@ -271,6 +285,14 @@ export function DeployWizard({
     templateVariables.length > 0
       ? `${pluralize(templateVariables.length, "variable")} before first deploy`
       : null;
+  const environmentSummaryCopy = !envFeedback.valid
+    ? envFeedback.message
+    : Object.keys(envFeedback.env).length > 0
+      ? `${pluralize(
+          Object.keys(envFeedback.env).length,
+          "environment variable",
+        )} before first deploy`
+      : "Optional KEY=value pairs for the first deploy.";
   const persistentStorageSeedSummaryCopy =
     persistentStorageSeedFiles.length > 0
       ? `${pluralize(persistentStorageSeedFiles.length, "missing file")} before first deploy`
@@ -301,6 +323,12 @@ export function DeployWizard({
   }, [inspection]);
 
   useEffect(() => {
+    const nextEnvRaw = serializeEnvRecord(initialEnv);
+    setEnvRawDraft(nextEnvRaw);
+    setEnvFeedback(buildRawEnvFeedback(nextEnvRaw, "deploy"));
+  }, [initialEnv]);
+
+  useEffect(() => {
     setPersistentStorageSeedValues(
       readInitialPersistentStorageSeedValues(inspection),
     );
@@ -313,6 +341,11 @@ export function DeployWizard({
 
     setStartupCommand("");
   }, [startupCommand, startupCommandSupported]);
+
+  function updateEnvRaw(nextValue: string) {
+    setEnvRawDraft(nextValue);
+    setEnvFeedback(buildRawEnvFeedback(nextValue, "deploy"));
+  }
 
   function validate() {
     if (!repositoryUrl.trim()) {
@@ -367,6 +400,12 @@ export function DeployWizard({
       }
     }
 
+    const nextEnvFeedback = buildRawEnvFeedback(envRawDraft, "deploy");
+
+    if (!nextEnvFeedback.valid) {
+      return nextEnvFeedback.message;
+    }
+
     return null;
   }
 
@@ -405,6 +444,7 @@ export function DeployWizard({
       persistentStorageSupported
         ? serializePersistentStorageDraft(persistentStorage)
         : undefined;
+    const nextEnvFeedback = buildRawEnvFeedback(envRawDraft, "deploy");
     const intent = createPendingProjectIntent({
       appName: name.trim(),
       projectId:
@@ -450,6 +490,9 @@ export function DeployWizard({
               }),
             ),
           }
+        : {}),
+      ...(Object.keys(nextEnvFeedback.env).length > 0
+        ? { env: nextEnvFeedback.env }
         : {}),
       variables: variableValues,
     };
@@ -634,6 +677,27 @@ export function DeployWizard({
             onChange={setRuntimeId}
             targets={runtimeTargets}
             value={runtimeId}
+          />
+        </ConsoleDisclosureSection>
+
+        <ConsoleDisclosureSection
+          className="fg-console-dialog__advanced"
+          defaultOpen={!envFeedback.valid || Boolean(envRawDraft.trim())}
+          description={environmentSummaryCopy}
+          summary="Environment"
+        >
+          <PanelCopy>
+            {templateVariables.length > 0
+              ? "Add additional non-sensitive KEY=value lines. Matching keys here override template variables on deploy."
+              : "Paste or edit non-sensitive KEY=value lines. Deploy links can prefill values here, so keep secrets out of query strings."}
+          </PanelCopy>
+
+          <RawEnvEditor
+            feedback={envFeedback}
+            fieldId="deploy-env-raw"
+            onChange={updateEnvRaw}
+            optionalLabel="Non-sensitive only"
+            value={envRawDraft}
           />
         </ConsoleDisclosureSection>
 

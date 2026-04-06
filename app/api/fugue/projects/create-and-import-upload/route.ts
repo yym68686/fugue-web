@@ -14,6 +14,7 @@ import {
   readErrorMessage,
   readErrorStatus,
   readOptionalString,
+  readStringMap,
 } from "@/lib/fugue/product-route";
 import {
   readPersistentStorageInput,
@@ -91,6 +92,7 @@ export async function POST(request: Request) {
   const runtimeId = readOptionalString(body, "runtimeId");
   const servicePort = readOptionalPositiveInteger(body, "servicePort");
   const startupCommand = readOptionalString(body, "startupCommand");
+  const env = readStringMap(body.env);
   let persistentStorage: PersistentStoragePayload | undefined;
 
   if (sourceModeInput && sourceMode !== "local-upload") {
@@ -162,6 +164,7 @@ export async function POST(request: Request) {
       buildContextDir: buildContextDir || undefined,
       buildStrategy: buildStrategy || undefined,
       dockerfilePath: dockerfilePath || undefined,
+      ...(Object.keys(env).length > 0 ? { env } : {}),
       name: name || undefined,
       persistentStorage,
       runtimeId: runtimeId || undefined,

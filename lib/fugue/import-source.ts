@@ -8,6 +8,7 @@ import {
   type PersistentStorageMountDraft,
 } from "@/lib/fugue/persistent-storage";
 import { PRIVATE_GITHUB_AUTH_REQUIRED_MESSAGE } from "@/lib/github/messages";
+import { buildRawEnvFeedback } from "@/lib/console/raw-env";
 
 export type ImportSourceMode = "github" | "docker-image" | "local-upload";
 
@@ -33,6 +34,7 @@ export type ImportServiceDraft = {
   buildContextDir: string;
   buildStrategy: BuildStrategyValue;
   dockerfilePath: string;
+  envRaw: string;
   imageRef: string;
   name: string;
   persistentStorage: PersistentStorageMountDraft[];
@@ -70,6 +72,7 @@ export function createImportServiceDraft(
     buildContextDir: "",
     buildStrategy: "auto",
     dockerfilePath: "",
+    envRaw: "",
     imageRef: "",
     name: "",
     persistentStorage: createPersistentStorageDraft(),
@@ -177,6 +180,12 @@ export function validateImportServiceDraft(
     }
   }
 
+  const envFeedback = buildRawEnvFeedback(draft.envRaw, "console");
+
+  if (!envFeedback.valid) {
+    return envFeedback.message;
+  }
+
   return null;
 }
 
@@ -207,6 +216,12 @@ export function buildImportServicePayload(
 
   if (draft.startupCommand.trim()) {
     payload.startupCommand = draft.startupCommand.trim();
+  }
+
+  const envFeedback = buildRawEnvFeedback(draft.envRaw, "console");
+
+  if (envFeedback.valid && Object.keys(envFeedback.env).length > 0) {
+    payload.env = envFeedback.env;
   }
 
   if (options?.includePersistentStorage !== false) {
