@@ -9,7 +9,6 @@ import type { AuthMethodRecord } from "@/lib/auth/methods";
 import type { SessionUser } from "@/lib/auth/session";
 import type { BillingPageData } from "@/lib/billing/service";
 import type { ClusterNodesPageData } from "@/lib/cluster-nodes/service";
-import type { ConsoleData } from "@/lib/console/presenters";
 import type { NodeKeyPageData } from "@/lib/node-keys/service";
 
 export type ConsoleBillingPageSnapshot =
@@ -37,20 +36,6 @@ export type ConsoleClusterNodesPageSnapshot =
       data: ClusterNodesPageData;
       isAdmin: boolean;
       state: "ready";
-    }
-  | {
-      state: "workspace-missing";
-    };
-
-export type ConsoleWorkspaceSettingsPageSnapshot =
-  | {
-      consoleData: ConsoleData;
-      session: SessionUser;
-      state: "ready";
-      workspace: {
-        adminKeyId: string;
-        adminKeyLabel: string | null;
-      } | null;
     }
   | {
       state: "workspace-missing";
