@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { ConsoleEmptyState } from "@/components/console/console-empty-state";
 import { ConsolePageIntro } from "@/components/console/console-page-intro";
-import { ConsoleLoadingState } from "@/components/console/console-page-skeleton";
+import {
+  ConsoleLoadingState,
+  ConsoleProfileSettingsPageSkeleton,
+} from "@/components/console/console-page-skeleton";
 import { StatusBadge } from "@/components/console/status-badge";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Button, ButtonAnchor } from "@/components/ui/button";
@@ -32,6 +35,14 @@ type ProfileMethodKey = ConsoleProfileSettingsPageSnapshot["methods"][number]["m
 type ProfileMethodRecord = ConsoleProfileSettingsPageSnapshot["methods"][number];
 
 const PASSWORD_HINT = "Use at least 10 characters. Spaces are allowed.";
+const FOCUSABLE_SELECTOR = [
+  "button:not([disabled])",
+  "[href]",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  "[tabindex]:not([tabindex='-1'])",
+].join(", ");
 const PROFILE_AUTH_FLASH_TOASTS = {
   "github-link-conflict": {
     message: "That GitHub account is already linked to another Fugue account.",
@@ -72,6 +83,20 @@ const PROFILE_AUTH_FLASH_TOASTS = {
     variant: "error" | "info" | "success";
   }
 >;
+
+function readFocusableElements(container: HTMLElement | null) {
+  if (!container) {
+    return [];
+  }
+
+  return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
+    (element) => {
+      const style = window.getComputedStyle(element);
+
+      return style.display !== "none" && style.visibility !== "hidden";
+    },
+  );
+}
 
 function readMethodSlug(method: ProfileMethodKey) {
   switch (method) {
@@ -640,7 +665,19 @@ function EmailMethodItem({
 }) {
   const confirm = useConfirmDialog();
   const { showToast } = useToast();
-  const passwordFormId = useId();
+  const passwordDialogIdBase = useId();
+  const passwordDialogRef = useRef<HTMLDivElement | null>(null);
+  const passwordDialogBackdropPressStartedRef = useRef(false);
+  const passwordDialogReturnFocusRef = useRef<HTMLElement | null>(null);
+  const currentPasswordInputRef = useRef<HTMLInputElement | null>(null);
+  const newPasswordInputRef = useRef<HTMLInputElement | null>(null);
+  const passwordFormId = `profile-password-form-${passwordDialogIdBase}`;
+  const passwordDialogId = `profile-password-dialog-${passwordDialogIdBase}`;
+  const passwordDialogTitleId = `profile-password-dialog-title-${passwordDialogIdBase}`;
+  const passwordDialogDescriptionId = `profile-password-dialog-description-${passwordDialogIdBase}`;
+  const currentPasswordFieldId = `profile-current-password-${passwordDialogIdBase}`;
+  const newPasswordFieldId = `profile-new-password-${passwordDialogIdBase}`;
+  const confirmPasswordFieldId = `profile-confirm-password-${passwordDialogIdBase}`;
   const hasPassword = Boolean(passwordRecord);
   const emailLinkEnabled = Boolean(emailLinkRecord);
   const emailGroupConnected = emailLinkEnabled || hasPassword;
@@ -650,7 +687,7 @@ function EmailMethodItem({
     data.session.authMethod === "email_link" || data.session.authMethod === "password";
   const currentSessionLabel = data.session.authMethod === "password" ? "Password" : "Email link";
   const [busyEmailLink, setBusyEmailLink] = useState(false);
-  const [passwordEditorOpen, setPasswordEditorOpen] = useState(false);
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -662,6 +699,39 @@ function EmailMethodItem({
   }>({});
   const [submitting, setSubmitting] = useState(false);
   const [removing, setRemoving] = useState(false);
+  const passwordDialogBusy = submitting || removing;
+
+  useEffect(() => {
+    if (!passwordDialogOpen) {
+      return;
+    }
+
+    const body = document.body;
+    const previousOverflow = body.style.overflow;
+    const previousPaddingRight = body.style.paddingRight;
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+
+    body.style.overflow = "hidden";
+
+    if (scrollbarWidth > 0) {
+      body.style.paddingRight = `${scrollbarWidth}px`;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      const preferredInput = hasPassword
+        ? currentPasswordInputRef.current
+        : newPasswordInputRef.current;
+
+      preferredInput?.focus({ preventScroll: true });
+    });
+
+    return () => {
+      passwordDialogBackdropPressStartedRef.current = false;
+      window.cancelAnimationFrame(frame);
+      body.style.overflow = previousOverflow;
+      body.style.paddingRight = previousPaddingRight;
+    };
+  }, [hasPassword, passwordDialogOpen]);
 
   function resetPasswordEditor() {
     setCurrentPassword("");
@@ -677,6 +747,33 @@ function EmailMethodItem({
       message: successMessage,
       variant: "success",
     });
+  }
+
+  function dismissPasswordDialog(restoreFocus: boolean) {
+    setPasswordDialogOpen(false);
+    resetPasswordEditor();
+
+    const returnFocusTarget = passwordDialogReturnFocusRef.current;
+    passwordDialogReturnFocusRef.current = null;
+
+    if (!restoreFocus || !returnFocusTarget) {
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      if (returnFocusTarget.isConnected) {
+        returnFocusTarget.focus();
+      }
+    });
+  }
+
+  function openPasswordDialog(target: HTMLElement | null) {
+    if (busyEmailLink || passwordDialogBusy) {
+      return;
+    }
+
+    passwordDialogReturnFocusRef.current = target;
+    setPasswordDialogOpen(true);
   }
 
   async function handleEnableEmailLink() {
@@ -794,8 +891,7 @@ function EmailMethodItem({
         throw new Error(payload.error ?? "Could not save the password.");
       }
 
-      resetPasswordEditor();
-      setPasswordEditorOpen(false);
+      dismissPasswordDialog(false);
       await refreshAfterAction(payload.message ?? (hasPassword ? "Password updated." : "Password added."));
     } catch (error) {
       showToast({
@@ -835,8 +931,7 @@ function EmailMethodItem({
       await requestJson("/api/auth/methods/password", {
         method: "DELETE",
       });
-      resetPasswordEditor();
-      setPasswordEditorOpen(false);
+      dismissPasswordDialog(false);
       await refreshAfterAction("Password removed.");
     } catch (error) {
       showToast({
@@ -851,271 +946,432 @@ function EmailMethodItem({
     }
   }
 
-  return (
-    <section className={cx("fg-profile-auth-provider", "fg-profile-auth-provider--email", emailGroupConnected && "is-connected")}>
-      <div className="fg-profile-auth-provider__header">
-        <div className="fg-profile-auth-provider__identity">
-          <ProviderMark provider="email" />
+  function handlePasswordDialogKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+    if (!passwordDialogOpen) {
+      return;
+    }
 
-          <div className="fg-profile-auth-provider__copy">
-            <div className="fg-profile-auth-provider__headline">
-              <strong>Email</strong>
+    if (event.key === "Escape") {
+      if (passwordDialogBusy) {
+        return;
+      }
+
+      event.preventDefault();
+      dismissPasswordDialog(true);
+      return;
+    }
+
+    if (event.key !== "Tab") {
+      return;
+    }
+
+    const focusableElements = readFocusableElements(passwordDialogRef.current);
+
+    if (!focusableElements.length) {
+      event.preventDefault();
+      return;
+    }
+
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+    const activeElement =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const activeInsideDialog = activeElement
+      ? passwordDialogRef.current?.contains(activeElement)
+      : false;
+
+    if (event.shiftKey) {
+      if (!activeInsideDialog || activeElement === firstElement) {
+        event.preventDefault();
+        lastElement.focus();
+      }
+
+      return;
+    }
+
+    if (!activeInsideDialog || activeElement === lastElement) {
+      event.preventDefault();
+      firstElement.focus();
+    }
+  }
+
+  function handlePasswordDialogBackdropPointerDown(
+    event: React.PointerEvent<HTMLDivElement>,
+  ) {
+    if (passwordDialogBusy) {
+      passwordDialogBackdropPressStartedRef.current = false;
+      return;
+    }
+
+    passwordDialogBackdropPressStartedRef.current =
+      event.target === event.currentTarget;
+  }
+
+  function handlePasswordDialogBackdropClick(
+    event: React.MouseEvent<HTMLDivElement>,
+  ) {
+    const shouldClose =
+      !passwordDialogBusy &&
+      passwordDialogBackdropPressStartedRef.current &&
+      event.target === event.currentTarget;
+
+    passwordDialogBackdropPressStartedRef.current = false;
+
+    if (!shouldClose) {
+      return;
+    }
+
+    dismissPasswordDialog(true);
+  }
+
+  return (
+    <>
+      <section
+        className={cx(
+          "fg-profile-auth-provider",
+          "fg-profile-auth-provider--email",
+          emailGroupConnected && "is-connected",
+        )}
+      >
+        <div className="fg-profile-auth-provider__header">
+          <div className="fg-profile-auth-provider__identity">
+            <ProviderMark provider="email" />
+
+            <div className="fg-profile-auth-provider__copy">
+              <div className="fg-profile-auth-provider__headline">
+                <strong>Email</strong>
+
+                <div className="fg-console-inline-status">
+                  <StatusBadge tone={emailGroupConnected ? "positive" : "neutral"}>
+                    {emailGroupConnected ? "Connected" : "Not enabled"}
+                  </StatusBadge>
+                  {isCurrentSession ? (
+                    <StatusBadge tone="info">{currentSessionLabel} in use</StatusBadge>
+                  ) : null}
+                </div>
+              </div>
+
+              <p className="fg-profile-auth-provider__description">
+                Keep the account email as the recovery anchor. Email link remains the
+                lowest-friction fallback; password is optional for faster return access.
+              </p>
+            </div>
+          </div>
+
+          <div className="fg-profile-auth-provider__aside">
+            <span className="fg-profile-auth-provider__aside-label">Account email</span>
+            <strong>{data.user.email}</strong>
+          </div>
+        </div>
+
+        <div className="fg-profile-auth-capabilities">
+          <section
+            className={cx(
+              "fg-profile-auth-capability",
+              emailLinkEnabled && "is-active",
+            )}
+          >
+            <div className="fg-profile-auth-capability__head">
+              <div>
+                <span className="fg-profile-auth-capability__label">Email link</span>
+                <h3 className="fg-profile-auth-capability__title">
+                  One-time verification path
+                </h3>
+              </div>
 
               <div className="fg-console-inline-status">
-                <StatusBadge tone={emailGroupConnected ? "positive" : "neutral"}>
-                  {emailGroupConnected ? "Connected" : "Not enabled"}
+                <StatusBadge tone={emailLinkEnabled ? "positive" : "neutral"}>
+                  {emailLinkEnabled ? "Connected" : "Off"}
                 </StatusBadge>
-                {isCurrentSession ? <StatusBadge tone="info">{currentSessionLabel} in use</StatusBadge> : null}
+                {data.session.authMethod === "email_link" ? (
+                  <StatusBadge tone="info">In use</StatusBadge>
+                ) : null}
               </div>
             </div>
 
-            <p className="fg-profile-auth-provider__description">
-              Keep the account email as the recovery anchor. Email link remains the lowest-friction
-              fallback; password is optional for faster return access.
+            <p className="fg-profile-auth-capability__copy">
+              Send a secure sign-in link to the account email without storing a password.
             </p>
-          </div>
-        </div>
+            <p className="fg-profile-auth-capability__meta">{data.user.email}</p>
 
-        <div className="fg-profile-auth-provider__aside">
-          <span className="fg-profile-auth-provider__aside-label">Account email</span>
-          <strong>{data.user.email}</strong>
-        </div>
-      </div>
+            <Button
+              className="fg-button--full-width"
+              disabled={(emailLinkEnabled && !canDisableEmailLink) || passwordDialogBusy}
+              loading={busyEmailLink}
+              loadingLabel={emailLinkEnabled ? "Updating" : "Enabling"}
+              onClick={() => {
+                if (emailLinkEnabled) {
+                  void handleDisableEmailLink();
+                  return;
+                }
 
-      <div className="fg-profile-auth-capabilities">
-        <section className={cx("fg-profile-auth-capability", emailLinkEnabled && "is-active")}>
-          <div className="fg-profile-auth-capability__head">
-            <div>
-              <span className="fg-profile-auth-capability__label">Email link</span>
-              <h3 className="fg-profile-auth-capability__title">One-time verification path</h3>
-            </div>
-
-            <div className="fg-console-inline-status">
-              <StatusBadge tone={emailLinkEnabled ? "positive" : "neutral"}>
-                {emailLinkEnabled ? "Connected" : "Off"}
-              </StatusBadge>
-              {data.session.authMethod === "email_link" ? (
-                <StatusBadge tone="info">In use</StatusBadge>
-              ) : null}
-            </div>
-          </div>
-
-          <p className="fg-profile-auth-capability__copy">
-            Send a secure sign-in link to the account email without storing a password.
-          </p>
-          <p className="fg-profile-auth-capability__meta">{data.user.email}</p>
-
-          <Button
-            className="fg-button--full-width"
-            disabled={
-              (emailLinkEnabled && !canDisableEmailLink) ||
-              submitting ||
-              removing
-            }
-            loading={busyEmailLink}
-            loadingLabel={emailLinkEnabled ? "Updating" : "Enabling"}
-            onClick={() => {
-              if (emailLinkEnabled) {
-                void handleDisableEmailLink();
-                return;
-              }
-
-              void handleEnableEmailLink();
-            }}
-            size="compact"
-            type="button"
-            variant="secondary"
-          >
-            {emailLinkEnabled ? "Disable email link" : "Enable email link"}
-          </Button>
-        </section>
-
-        <section className={cx("fg-profile-auth-capability", hasPassword && "is-active")}>
-          <div className="fg-profile-auth-capability__head">
-            <div>
-              <span className="fg-profile-auth-capability__label">Password</span>
-              <h3 className="fg-profile-auth-capability__title">Direct returning access</h3>
-            </div>
-
-            <div className="fg-console-inline-status">
-              <StatusBadge tone={hasPassword ? "positive" : "neutral"}>
-                {hasPassword ? "Added" : "Not added"}
-              </StatusBadge>
-              {data.session.authMethod === "password" ? (
-                <StatusBadge tone="info">In use</StatusBadge>
-              ) : null}
-            </div>
-          </div>
-
-          <p className="fg-profile-auth-capability__copy">
-            Add a stored password only if you want faster sign-in after the account is already created.
-          </p>
-          <p className="fg-profile-auth-capability__meta">
-            Registration still uses an email verification link.
-          </p>
-
-          <Button
-            aria-controls={passwordFormId}
-            aria-expanded={passwordEditorOpen}
-            className="fg-button--full-width"
-            disabled={busyEmailLink || submitting || removing}
-            onClick={() => {
-              if (passwordEditorOpen) {
-                resetPasswordEditor();
-              }
-
-              setPasswordEditorOpen((open) => !open);
-            }}
-            size="compact"
-            type="button"
-            variant="secondary"
-          >
-            {passwordEditorOpen ? "Hide password editor" : hasPassword ? "Change password" : "Add password"}
-          </Button>
-        </section>
-      </div>
-
-      {methodCount <= 1 ? (
-        <p className="fg-profile-auth-provider__hint">
-          Connect another sign-in method before turning off email link or removing the password.
-        </p>
-      ) : null}
-
-      {passwordEditorOpen ? (
-        <div className="fg-profile-auth-editor" id={passwordFormId}>
-          <div className="fg-profile-auth-editor__intro">
-            <strong>{hasPassword ? "Update stored password" : "Add password sign-in"}</strong>
-            <p>
-              Keep the password secondary to the email link. It should speed up return access, not become
-              the only recovery path.
-            </p>
-          </div>
-
-          {data.session.authMethod === "password" ? (
-            <InlineAlert variant="info">
-              This session was opened with a password. Changing or removing it will not close the current browser session.
-            </InlineAlert>
-          ) : null}
-
-          {hasPassword && !canRemovePassword ? (
-            <InlineAlert variant="warning">
-              Add or reconnect another sign-in method before removing the password from this account.
-            </InlineAlert>
-          ) : null}
-
-          <form
-            className="fg-settings-form fg-profile-password-form fg-profile-auth-editor__form"
-            onSubmit={(event) => void handleSubmit(event)}
-          >
-            <div
-              className={cx(
-                "fg-profile-auth-editor__fields",
-                hasPassword && "has-current-password",
-              )}
+                void handleEnableEmailLink();
+              }}
+              size="compact"
+              type="button"
+              variant="secondary"
             >
-              {hasPassword ? (
-                <FormField
-                  error={fieldErrors.currentPassword}
-                  hint="Required before the password can be changed."
-                  htmlFor="profile-current-password"
-                  label="Current password"
-                >
-                  <input
-                    autoComplete="current-password"
-                    autoFocus={passwordEditorOpen}
-                    className="fg-input"
-                    id="profile-current-password"
-                    name="currentPassword"
-                    onChange={(event) => setCurrentPassword(event.currentTarget.value)}
-                    type={showPasswords ? "text" : "password"}
-                    value={currentPassword}
-                  />
-                </FormField>
-              ) : null}
+              {emailLinkEnabled ? "Disable email link" : "Enable email link"}
+            </Button>
+          </section>
 
-              <FormField
-                error={fieldErrors.newPassword}
-                hint={PASSWORD_HINT}
-                htmlFor="profile-new-password"
-                label={hasPassword ? "New password" : "Password"}
-              >
-                <input
-                  autoComplete="new-password"
-                  autoFocus={passwordEditorOpen && !hasPassword}
-                  className="fg-input"
-                  id="profile-new-password"
-                  name="newPassword"
-                  onChange={(event) => setNewPassword(event.currentTarget.value)}
-                  type={showPasswords ? "text" : "password"}
-                  value={newPassword}
-                />
-              </FormField>
+          <section className={cx("fg-profile-auth-capability", hasPassword && "is-active")}>
+            <div className="fg-profile-auth-capability__head">
+              <div>
+                <span className="fg-profile-auth-capability__label">Password</span>
+                <h3 className="fg-profile-auth-capability__title">
+                  Direct returning access
+                </h3>
+              </div>
 
-              <FormField
-                error={fieldErrors.confirmPassword}
-                hint="Repeat the password once to confirm it."
-                htmlFor="profile-confirm-password"
-                label="Confirm password"
-              >
-                <input
-                  autoComplete="new-password"
-                  className="fg-input"
-                  id="profile-confirm-password"
-                  name="confirmPassword"
-                  onChange={(event) => setConfirmPassword(event.currentTarget.value)}
-                  type={showPasswords ? "text" : "password"}
-                  value={confirmPassword}
-                />
-              </FormField>
+              <div className="fg-console-inline-status">
+                <StatusBadge tone={hasPassword ? "positive" : "neutral"}>
+                  {hasPassword ? "Added" : "Not added"}
+                </StatusBadge>
+                {data.session.authMethod === "password" ? (
+                  <StatusBadge tone="info">In use</StatusBadge>
+                ) : null}
+              </div>
             </div>
 
-            <label className="fg-password-toggle">
-              <input
-                checked={showPasswords}
-                onChange={(event) => setShowPasswords(event.currentTarget.checked)}
-                type="checkbox"
-              />
-              <span>Show passwords</span>
-            </label>
+            <p className="fg-profile-auth-capability__copy">
+              Add a stored password only if you want faster sign-in after the account is
+              already created.
+            </p>
+            <p className="fg-profile-auth-capability__meta">
+              Registration still uses an email verification link.
+            </p>
 
-            <div className="fg-settings-form__actions fg-profile-auth-editor__actions">
-              <Button loading={submitting} loadingLabel="Saving" size="compact" type="submit" variant="primary">
-                {hasPassword ? "Update password" : "Add password"}
-              </Button>
+            <Button
+              aria-controls={passwordDialogOpen ? passwordDialogId : undefined}
+              aria-expanded={passwordDialogOpen}
+              aria-haspopup="dialog"
+              className="fg-button--full-width"
+              disabled={busyEmailLink || passwordDialogBusy}
+              onClick={(event) => {
+                openPasswordDialog(event.currentTarget);
+              }}
+              size="compact"
+              type="button"
+              variant="secondary"
+            >
+              {hasPassword ? "Manage password" : "Add password"}
+            </Button>
+          </section>
+        </div>
 
-              {hasPassword ? (
-                <Button
-                  disabled={!canRemovePassword}
-                  loading={removing}
-                  loadingLabel="Removing"
-                  onClick={() => {
-                    void handleRemovePassword();
-                  }}
-                  size="compact"
-                  type="button"
-                  variant="danger"
-                >
-                  Remove password
-                </Button>
-              ) : null}
+        {methodCount <= 1 ? (
+          <p className="fg-profile-auth-provider__hint">
+            Connect another sign-in method before turning off email link or removing the
+            password.
+          </p>
+        ) : null}
+      </section>
 
-              <Button
-                disabled={submitting || removing}
-                onClick={() => {
-                  resetPasswordEditor();
-                  setPasswordEditorOpen(false);
-                }}
-                size="compact"
-                type="button"
-                variant="ghost"
-              >
-                Cancel
-              </Button>
-            </div>
-          </form>
+      {passwordDialogOpen ? (
+        <div
+          className="fg-console-dialog-backdrop"
+          onClick={handlePasswordDialogBackdropClick}
+          onPointerDown={handlePasswordDialogBackdropPointerDown}
+        >
+          <div
+            aria-busy={passwordDialogBusy || undefined}
+            aria-describedby={passwordDialogDescriptionId}
+            aria-labelledby={passwordDialogTitleId}
+            aria-modal="true"
+            className="fg-console-dialog-shell fg-profile-password-dialog-shell"
+            id={passwordDialogId}
+            onClick={(event) => event.stopPropagation()}
+            onKeyDown={handlePasswordDialogKeyDown}
+            ref={passwordDialogRef}
+            role="dialog"
+          >
+            <Panel className="fg-console-dialog-panel">
+              <PanelSection>
+                <div className="fg-profile-password-dialog__head">
+                  <div className="fg-profile-password-dialog__copy">
+                    <p className="fg-label fg-panel__eyebrow">Password access</p>
+                    <PanelTitle
+                      className="fg-console-dialog__title"
+                      id={passwordDialogTitleId}
+                    >
+                      {hasPassword ? "Manage password" : "Add password"}
+                    </PanelTitle>
+                    <PanelCopy id={passwordDialogDescriptionId}>
+                      {hasPassword
+                        ? "Update or remove the stored password. Email link stays the recovery anchor for this account."
+                        : "Add a stored password for faster return access. Registration still uses an email verification link."}
+                    </PanelCopy>
+                  </div>
+
+                  <div className="fg-profile-password-dialog__meta">
+                    <p
+                      className="fg-profile-password-dialog__email"
+                      title={data.user.email}
+                    >
+                      {data.user.email}
+                    </p>
+
+                    <div className="fg-console-inline-status">
+                      <StatusBadge tone={hasPassword ? "positive" : "neutral"}>
+                        {hasPassword ? "Password added" : "No password yet"}
+                      </StatusBadge>
+                      {data.session.authMethod === "password" ? (
+                        <StatusBadge tone="info">In use</StatusBadge>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              </PanelSection>
+
+              <PanelSection className="fg-console-dialog__body">
+                <div className="fg-profile-password-dialog">
+                  {data.session.authMethod === "password" ? (
+                    <InlineAlert variant="info">
+                      This session was opened with a password. Changing or removing it will
+                      not close the current browser session.
+                    </InlineAlert>
+                  ) : null}
+
+                  {hasPassword && !canRemovePassword ? (
+                    <InlineAlert variant="warning">
+                      Add or reconnect another sign-in method before removing the password
+                      from this account.
+                    </InlineAlert>
+                  ) : null}
+
+                  <form
+                    className="fg-settings-form fg-profile-password-form"
+                    id={passwordFormId}
+                    onSubmit={(event) => void handleSubmit(event)}
+                  >
+                    <div
+                      className={cx(
+                        "fg-profile-auth-editor__fields",
+                        hasPassword && "has-current-password",
+                      )}
+                    >
+                      {hasPassword ? (
+                        <FormField
+                          error={fieldErrors.currentPassword}
+                          hint="Required before the password can be changed."
+                          htmlFor={currentPasswordFieldId}
+                          label="Current password"
+                        >
+                          <input
+                            autoComplete="current-password"
+                            className="fg-input"
+                            id={currentPasswordFieldId}
+                            name="currentPassword"
+                            onChange={(event) =>
+                              setCurrentPassword(event.currentTarget.value)
+                            }
+                            ref={currentPasswordInputRef}
+                            type={showPasswords ? "text" : "password"}
+                            value={currentPassword}
+                          />
+                        </FormField>
+                      ) : null}
+
+                      <FormField
+                        error={fieldErrors.newPassword}
+                        hint={PASSWORD_HINT}
+                        htmlFor={newPasswordFieldId}
+                        label={hasPassword ? "New password" : "Password"}
+                      >
+                        <input
+                          autoComplete="new-password"
+                          className="fg-input"
+                          id={newPasswordFieldId}
+                          name="newPassword"
+                          onChange={(event) => setNewPassword(event.currentTarget.value)}
+                          ref={newPasswordInputRef}
+                          type={showPasswords ? "text" : "password"}
+                          value={newPassword}
+                        />
+                      </FormField>
+
+                      <FormField
+                        error={fieldErrors.confirmPassword}
+                        hint="Repeat the password once to confirm it."
+                        htmlFor={confirmPasswordFieldId}
+                        label="Confirm password"
+                      >
+                        <input
+                          autoComplete="new-password"
+                          className="fg-input"
+                          id={confirmPasswordFieldId}
+                          name="confirmPassword"
+                          onChange={(event) =>
+                            setConfirmPassword(event.currentTarget.value)
+                          }
+                          type={showPasswords ? "text" : "password"}
+                          value={confirmPassword}
+                        />
+                      </FormField>
+                    </div>
+
+                    <label className="fg-password-toggle">
+                      <input
+                        checked={showPasswords}
+                        onChange={(event) =>
+                          setShowPasswords(event.currentTarget.checked)
+                        }
+                        type="checkbox"
+                      />
+                      <span>Show passwords</span>
+                    </label>
+                  </form>
+                </div>
+              </PanelSection>
+
+              <PanelSection className="fg-console-dialog__footer">
+                <div className="fg-console-dialog__actions">
+                  <Button
+                    disabled={passwordDialogBusy}
+                    onClick={() => {
+                      dismissPasswordDialog(true);
+                    }}
+                    size="compact"
+                    type="button"
+                    variant="ghost"
+                  >
+                    Cancel
+                  </Button>
+
+                  {hasPassword ? (
+                    <Button
+                      disabled={!canRemovePassword || submitting}
+                      loading={removing}
+                      loadingLabel="Removing"
+                      onClick={() => {
+                        void handleRemovePassword();
+                      }}
+                      size="compact"
+                      type="button"
+                      variant="danger"
+                    >
+                      Remove password
+                    </Button>
+                  ) : null}
+
+                  <Button
+                    form={passwordFormId}
+                    loading={submitting}
+                    loadingLabel="Saving"
+                    size="compact"
+                    type="submit"
+                    variant="primary"
+                  >
+                    {hasPassword ? "Update password" : "Add password"}
+                  </Button>
+                </div>
+              </PanelSection>
+            </Panel>
+          </div>
         </div>
       ) : null}
-    </section>
+    </>
   );
 }
 
@@ -1164,23 +1420,7 @@ export function ConsoleProfileSettingsPageShell() {
   if (loading && !data) {
     return (
       <ConsoleLoadingState label="Loading profile settings">
-        <div className="fg-console-page">
-          <ConsolePageIntro
-            actions={[
-              { href: "/app", label: "Back to projects" },
-            ]}
-            description="Loading your profile and linked sign-in methods."
-            eyebrow="Account"
-            title="Profile and security"
-          />
-
-          <Panel>
-            <PanelSection>
-              <PanelTitle>Loading profile…</PanelTitle>
-              <PanelCopy>Reading the account identity and linked sign-in methods.</PanelCopy>
-            </PanelSection>
-          </Panel>
-        </div>
+        <ConsoleProfileSettingsPageSkeleton />
       </ConsoleLoadingState>
     );
   }

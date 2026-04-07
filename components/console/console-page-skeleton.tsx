@@ -1239,6 +1239,214 @@ export function ConsoleBillingPageSkeleton() {
   );
 }
 
+function ProfileProviderSkeleton({
+  actionWidth = "8rem",
+  detailWidth = "12rem",
+  titleWidth = "6rem",
+}: {
+  actionWidth?: string;
+  detailWidth?: string;
+  titleWidth?: string;
+}) {
+  return (
+    <section className="fg-profile-auth-provider">
+      <div className="fg-profile-auth-provider__header">
+        <div className="fg-profile-auth-provider__identity">
+          <SkeletonBlock className="fg-profile-auth-provider__mark" height="2.75rem" radius="999px" width="2.75rem" />
+
+          <div className="fg-profile-auth-provider__copy">
+            <div className="fg-profile-auth-provider__headline">
+              <SkeletonBlock className="fg-console-skeleton__item-title" width={titleWidth} />
+
+              <div className="fg-console-inline-status">
+                <SkeletonBlock className="fg-console-skeleton__badge" width="5.25rem" />
+              </div>
+            </div>
+
+            <SkeletonBlock className="fg-console-skeleton__copy is-wide" width="15rem" />
+            <SkeletonBlock className="fg-console-skeleton__copy" width="12rem" />
+          </div>
+        </div>
+      </div>
+
+      <div className="fg-profile-auth-provider__footer">
+        <SkeletonBlock className="fg-console-skeleton__item-meta" width={detailWidth} />
+        <SkeletonBlock className="fg-console-skeleton__pill" width={actionWidth} />
+      </div>
+    </section>
+  );
+}
+
+function ProfileEmailProviderSkeleton() {
+  return (
+    <section className="fg-profile-auth-provider fg-profile-auth-provider--email is-connected">
+      <div className="fg-profile-auth-provider__header">
+        <div className="fg-profile-auth-provider__identity">
+          <SkeletonBlock className="fg-profile-auth-provider__mark" height="2.75rem" radius="999px" width="2.75rem" />
+
+          <div className="fg-profile-auth-provider__copy">
+            <div className="fg-profile-auth-provider__headline">
+              <SkeletonBlock className="fg-console-skeleton__item-title" width="5rem" />
+
+              <div className="fg-console-inline-status">
+                <SkeletonBlock className="fg-console-skeleton__badge" width="5.25rem" />
+                <SkeletonBlock className="fg-console-skeleton__badge" width="4.5rem" />
+              </div>
+            </div>
+
+            <SkeletonBlock className="fg-console-skeleton__copy is-wide" width="20rem" />
+            <SkeletonBlock className="fg-console-skeleton__copy" width="16rem" />
+          </div>
+        </div>
+
+        <div className="fg-profile-auth-provider__aside">
+          <SkeletonBlock className="fg-console-skeleton__section-label" width="6rem" />
+          <SkeletonBlock className="fg-console-skeleton__item-title" width="14rem" />
+        </div>
+      </div>
+
+      <div className="fg-profile-auth-capabilities">
+        {[
+          {
+            actionWidth: "10rem",
+            labelWidth: "4.75rem",
+            metaWidth: "12rem",
+            titleWidth: "12rem",
+          },
+          {
+            actionWidth: "8.5rem",
+            labelWidth: "4.25rem",
+            metaWidth: "11rem",
+            titleWidth: "10rem",
+          },
+        ].map((item, index) => (
+          <section className="fg-profile-auth-capability" key={`profile-email-capability-${index}`}>
+            <div className="fg-profile-auth-capability__head">
+              <div>
+                <SkeletonBlock className="fg-console-skeleton__section-label" width={item.labelWidth} />
+                <SkeletonBlock className="fg-console-skeleton__section-title" width={item.titleWidth} />
+              </div>
+
+              <div className="fg-console-inline-status">
+                <SkeletonBlock className="fg-console-skeleton__badge" width="4.75rem" />
+              </div>
+            </div>
+
+            <SkeletonBlock className="fg-console-skeleton__copy is-wide" width="15rem" />
+            <SkeletonBlock className="fg-console-skeleton__item-meta" width={item.metaWidth} />
+            <SkeletonBlock className="fg-console-skeleton__pill" width={item.actionWidth} />
+          </section>
+        ))}
+      </div>
+
+      <SkeletonBlock className="fg-console-skeleton__copy" width="18rem" />
+    </section>
+  );
+}
+
+export function ConsoleProfileSettingsPageSkeleton() {
+  return (
+    <ConsoleSkeletonPage>
+      <PageIntroSkeleton
+        actions={["8.25rem"]}
+        copyWidths={["23rem", "17rem"]}
+        eyebrowWidth="4.5rem"
+        titleWidth="15rem"
+      />
+
+      <Panel className="fg-profile-panel">
+        <PanelSection className="fg-profile-panel__body">
+          <div className="fg-profile-panel__head">
+            <SkeletonBlock className="fg-console-skeleton__eyebrow" width="4.5rem" />
+            <PanelTitle>
+              <SkeletonBlock className="fg-console-skeleton__section-title" width="7rem" />
+            </PanelTitle>
+            <PanelCopy className="fg-profile-panel__copy">
+              <SkeletonBlock className="fg-console-skeleton__copy is-wide" width="24rem" />
+            </PanelCopy>
+          </div>
+
+          <div className="fg-profile-identity">
+            <SkeletonBlock className="fg-profile-identity__avatar" height="3.85rem" radius="1.3rem" width="3.85rem" />
+
+            <div className="fg-profile-identity__copy">
+              <SkeletonBlock className="fg-console-skeleton__item-title" width="9rem" />
+              <SkeletonBlock className="fg-console-skeleton__item-meta" width="14rem" />
+
+              <div className="fg-console-inline-status">
+                <SkeletonBlock className="fg-console-skeleton__badge" width="6.25rem" />
+                <SkeletonBlock className="fg-console-skeleton__badge" width="5rem" />
+              </div>
+            </div>
+
+            <div className="fg-profile-identity__meta">
+              <SkeletonBlock className="fg-console-skeleton__section-label" width="5.5rem" />
+              <SkeletonBlock className="fg-console-skeleton__item-title" width="7.75rem" />
+            </div>
+          </div>
+
+          <div className="fg-settings-form fg-profile-editor">
+            <SkeletonBlock className="fg-console-skeleton__section-label fg-profile-editor__label" width="6rem" />
+
+            <div className="fg-profile-editor__field">
+              <SkeletonBlock className="fg-console-skeleton__field" height="4.25rem" radius="1.15rem" />
+            </div>
+
+            <div className="fg-profile-editor__actions">
+              <SkeletonBlock className="fg-console-skeleton__pill fg-console-skeleton__pill--primary" width="10rem" />
+            </div>
+
+            <SkeletonBlock className="fg-console-skeleton__copy fg-profile-editor__hint" width="17rem" />
+          </div>
+        </PanelSection>
+      </Panel>
+
+      <Panel className="fg-profile-auth-panel">
+        <PanelSection>
+          <SkeletonBlock className="fg-console-skeleton__eyebrow" width="7rem" />
+          <PanelTitle>
+            <SkeletonBlock className="fg-console-skeleton__section-title" width="12rem" />
+          </PanelTitle>
+          <PanelCopy>
+            <SkeletonBlock className="fg-console-skeleton__copy is-wide" width="26rem" />
+          </PanelCopy>
+        </PanelSection>
+
+        <PanelSection className="fg-profile-auth-panel__body">
+          <div className="fg-profile-auth-summary">
+            <div className="fg-profile-auth-summary__metrics">
+              {[
+                ["6rem", "5rem"],
+                ["4.5rem", "4rem"],
+                ["6.25rem", "10rem"],
+              ].map(([labelWidth, valueWidth], index) => (
+                <div className="fg-profile-auth-summary__metric" key={`profile-summary-${index}`}>
+                  <SkeletonBlock className="fg-console-skeleton__section-label" width={labelWidth} />
+                  <SkeletonBlock className="fg-console-skeleton__metric-value" width={valueWidth} />
+                </div>
+              ))}
+            </div>
+
+            <div className="fg-console-inline-status fg-profile-auth-summary__status">
+              <SkeletonBlock className="fg-console-skeleton__badge" width="7rem" />
+              <SkeletonBlock className="fg-console-skeleton__badge" width="8rem" />
+            </div>
+          </div>
+
+          <div className="fg-profile-auth-workbench">
+            <div className="fg-profile-auth-rail">
+              <ProfileProviderSkeleton />
+              <ProfileProviderSkeleton actionWidth="7.5rem" detailWidth="11rem" titleWidth="5.5rem" />
+            </div>
+
+            <ProfileEmailProviderSkeleton />
+          </div>
+        </PanelSection>
+      </Panel>
+    </ConsoleSkeletonPage>
+  );
+}
+
 export function ConsoleProjectGalleryTransitionSkeleton() {
   return (
     <ConsoleSkeletonPage className="fg-console-skeleton--projects">
