@@ -7,7 +7,7 @@ declare global {
   var __fugueDbSchemaVersion: string | undefined;
 }
 
-const SCHEMA_VERSION = "2026-04-06-creem-billing-topups";
+const SCHEMA_VERSION = "2026-04-07-auth-profile-methods";
 
 const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS app_users (
@@ -29,6 +29,20 @@ ALTER TABLE app_users
 
 ALTER TABLE app_users
   ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;
+
+CREATE TABLE IF NOT EXISTS app_auth_methods (
+  user_email TEXT NOT NULL REFERENCES app_users(email) ON DELETE CASCADE,
+  method TEXT NOT NULL,
+  provider_id TEXT,
+  provider_label TEXT,
+  secret_hash TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (user_email, method),
+  CONSTRAINT app_auth_methods_method_check CHECK (
+    method IN ('email_link', 'password', 'google', 'github')
+  )
+);
 
 CREATE TABLE IF NOT EXISTS app_workspaces (
   user_email TEXT PRIMARY KEY REFERENCES app_users(email) ON DELETE CASCADE,
@@ -141,6 +155,13 @@ CREATE INDEX IF NOT EXISTS idx_app_workspaces_tenant_id
 
 CREATE INDEX IF NOT EXISTS idx_app_users_status
   ON app_users (status);
+
+CREATE INDEX IF NOT EXISTS idx_app_auth_methods_user_email
+  ON app_auth_methods (user_email, updated_at DESC);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_app_auth_methods_method_provider_id
+  ON app_auth_methods (method, provider_id)
+  WHERE provider_id IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_app_api_keys_user_email
   ON app_api_keys (user_email);

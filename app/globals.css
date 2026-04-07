@@ -635,8 +635,9 @@ canvas {
 
 .fg-provider-button__mark {
   display: inline-flex;
-  width: 1.35rem;
+  min-width: 1.35rem;
   height: 1.35rem;
+  padding: 0 0.3rem;
   align-items: center;
   justify-content: center;
   border: 1px solid rgba(255, 255, 255, 0.16);
@@ -655,6 +656,25 @@ canvas {
 
 .fg-form-grid > .fg-button {
   width: 100%;
+}
+
+.fg-auth-method-switcher {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.fg-auth-method-switcher__control,
+.fg-auth-method-switcher__body {
+  width: 100%;
+}
+
+.fg-auth-method-switcher__control .fg-segmented {
+  display: flex;
+  width: 100%;
+}
+
+.fg-auth-method-switcher__control .fg-segmented__item {
+  flex: 1 1 0;
 }
 
 .fg-field-stack {
@@ -715,6 +735,29 @@ canvas {
 .fg-input:hover {
   border-color: var(--fugue-field-border-hover);
   background: var(--fugue-field-bg-hover);
+}
+
+.fg-password-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.58rem;
+  color: var(--fugue-text-muted);
+  font-family: var(--fugue-font-mono);
+  font-size: var(--fugue-type-meta);
+  line-height: var(--fugue-leading-meta);
+  letter-spacing: 0.08em;
+  text-transform: none;
+}
+
+.fg-password-toggle input {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  accent-color: var(--fugue-accent-signal);
+}
+
+.fg-password-toggle span {
+  color: inherit;
 }
 
 .fg-stepped-slider {

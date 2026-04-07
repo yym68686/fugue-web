@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { ensureAppUserRecord } from "@/lib/app-users/store";
+import { ensureAppUserRecord, getAppUserByEmail } from "@/lib/app-users/store";
 import {
   AUTH_ERROR_ACCOUNT_BLOCKED,
   AUTH_ERROR_ACCOUNT_DELETED,
@@ -11,9 +11,14 @@ import {
   buildSignInErrorUrl,
 } from "@/lib/auth/errors";
 import { buildSessionHandoffUrl } from "@/lib/auth/finalize";
+import {
+  findUserEmailByAuthMethod,
+  syncAuthMethodOnSignIn,
+} from "@/lib/auth/methods";
 import { fetchGoogleUser, exchangeGoogleCode } from "@/lib/auth/google";
 import { normalizeAuthOrigin, readRequestOrigin } from "@/lib/auth/origin";
 import { verifyToken } from "@/lib/auth/token";
+import { normalizeEmail } from "@/lib/auth/validation";
 import { ensureWorkspaceAccess } from "@/lib/workspace/bootstrap";
 
 type StatePayload = {
@@ -26,7 +31,7 @@ type StatePayload = {
 };
 
 function redirectWithError(origin: string, error: AuthErrorCode) {
-  return NextResponse.redirect(buildSignInErrorUrl(origin, error), { status: 303 });
+  return NextResponse.redirect(buildSignInErrorUrl(origin, error, "google"), { status: 303 });
 }
 
 export async function GET(request: Request) {
@@ -59,18 +64,28 @@ export async function GET(request: Request) {
       return redirectWithError(stateOrigin, AUTH_ERROR_OAUTH_FAILED);
     }
 
+    const linkedEmail = await findUserEmailByAuthMethod("google", user.sub);
+    const resolvedEmail = linkedEmail ?? normalizeEmail(user.email);
+    const existingUser = await getAppUserByEmail(resolvedEmail);
     const sessionUser = {
-      email: user.email,
-      name: user.name,
-      picture: user.picture,
+      email: resolvedEmail,
+      name: user.name ?? existingUser?.name ?? undefined,
+      picture: user.picture ?? existingUser?.pictureUrl ?? undefined,
       provider: "google" as const,
       providerId: user.sub,
       verified: true,
+      authMethod: "google" as const,
     };
 
     try {
       await ensureAppUserRecord(sessionUser, {
         markSignedIn: true,
+      });
+      await syncAuthMethodOnSignIn({
+        email: resolvedEmail,
+        method: "google",
+        providerId: user.sub,
+        providerLabel: user.email,
       });
       await ensureWorkspaceAccess(sessionUser);
     } catch (error) {

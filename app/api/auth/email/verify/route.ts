@@ -10,6 +10,7 @@ import {
   buildSignInErrorUrl,
 } from "@/lib/auth/errors";
 import { buildSessionHandoffUrl } from "@/lib/auth/finalize";
+import { syncAuthMethodOnSignIn } from "@/lib/auth/methods";
 import { normalizeAuthOrigin, readRequestOrigin } from "@/lib/auth/origin";
 import { verifyToken } from "@/lib/auth/token";
 import { ensureWorkspaceAccess } from "@/lib/workspace/bootstrap";
@@ -52,11 +53,16 @@ export async function GET(request: Request) {
     name: payload.name,
     provider: "email" as const,
     verified: true,
+    authMethod: "email_link" as const,
   };
 
   try {
     await ensureAppUserRecord(sessionUser, {
       markSignedIn: true,
+    });
+    await syncAuthMethodOnSignIn({
+      email: payload.email,
+      method: "email_link",
     });
     await ensureWorkspaceAccess(sessionUser);
   } catch (error) {

@@ -45,6 +45,8 @@ import {
 
 export type AdminClusterAppView = {
   canRebuild: boolean;
+  createdExact: string;
+  createdLabel: string;
   id: string;
   name: string;
   ownerLabel: string;
@@ -54,7 +56,7 @@ export type AdminClusterAppView = {
   resourceUsage: ConsoleCompactResourceItemView[];
   routeHref: string | null;
   routeLabel: string;
-  runtimeLabel: string;
+  serverLabel: string;
   sourceHref: string | null;
   sourceLabel: string;
   stack: Array<{
@@ -65,8 +67,6 @@ export type AdminClusterAppView = {
     meta: string;
     title: string;
   }>;
-  updatedExact: string;
-  updatedLabel: string;
 };
 
 export type AdminAppsPageData = {
@@ -628,6 +628,7 @@ function mapAdminApps(
   workspaces: WorkspaceSnapshot[],
   tenants: FugueTenant[],
   appImageUsage: AdminAppImageUsageLookup,
+  nodes: FugueClusterNode[],
 ) {
   const projectNames = new Map(
     projects.map((project) => [project.id, project.name] as const),
@@ -638,6 +639,18 @@ function mapAdminApps(
   const tenantNames = new Map(
     tenants.map((tenant) => [tenant.id, tenant.name] as const),
   );
+  const serverNamesByRuntime = new Map<string, string>();
+
+  for (const node of nodes) {
+    const runtimeId = node.runtimeId?.trim();
+    const serverName = node.name.trim();
+
+    if (!runtimeId || !serverName || serverNamesByRuntime.has(runtimeId)) {
+      continue;
+    }
+
+    serverNamesByRuntime.set(runtimeId, serverName);
+  }
 
   return [...apps]
     .sort(
@@ -646,13 +659,15 @@ function mapAdminApps(
         parseTimestamp(left.status.updatedAt ?? left.updatedAt ?? left.createdAt),
     )
     .map((app) => {
+      const createdAt = app.createdAt;
       const route = readRouteInfo(app);
       const phase = app.status.phase ?? (app.spec.disabled ? "disabled" : "unknown");
       const runtimeId = app.status.currentRuntimeId ?? app.spec.runtimeId;
-      const updatedAt = app.status.updatedAt ?? app.updatedAt ?? app.createdAt;
 
       return {
         canRebuild: canRebuildApp(app),
+        createdExact: formatExactTime(createdAt),
+        createdLabel: formatRelativeTime(createdAt),
         id: app.id,
         name: app.name,
         ownerLabel: app.tenantId
@@ -666,12 +681,12 @@ function mapAdminApps(
         resourceUsage: buildAdminAppResourceUsage(app, appImageUsage),
         routeHref: route.href,
         routeLabel: route.label,
-        runtimeLabel: runtimeId ? shortId(runtimeId) : "Unassigned",
+        serverLabel: runtimeId
+          ? serverNamesByRuntime.get(runtimeId) ?? shortId(runtimeId)
+          : "Unassigned",
         sourceHref: readFugueSourceHref(app.source),
         sourceLabel: readFugueSourceLabel(app.source),
         stack: buildAppStack(app),
-        updatedExact: formatExactTime(updatedAt),
-        updatedLabel: formatRelativeTime(updatedAt),
       } satisfies AdminClusterAppView;
     });
 }
@@ -1637,11 +1652,13 @@ export async function getAdminAppsPageData(): Promise<AdminAppsPageData> {
     appsResult,
     workspacesResult,
     projectImageUsageResult,
+    nodesResult,
   ] = await Promise.allSettled([
     getFugueTenants(bootstrapKey),
     getFugueApps(bootstrapKey),
     listWorkspaceSnapshots(),
     getFugueProjectImageUsage(bootstrapKey),
+    getFugueClusterNodes(bootstrapKey),
   ]);
 
   const errors = [
@@ -1657,11 +1674,15 @@ export async function getAdminAppsPageData(): Promise<AdminAppsPageData> {
     projectImageUsageResult.status === "rejected"
       ? `project image usage: ${readErrorMessage(projectImageUsageResult.reason)}`
       : null,
+    nodesResult.status === "rejected"
+      ? `cluster nodes: ${readErrorMessage(nodesResult.reason)}`
+      : null,
   ].filter((value): value is string => Boolean(value));
 
   const tenants = tenantsResult.status === "fulfilled" ? tenantsResult.value : [];
   const apps = appsResult.status === "fulfilled" ? appsResult.value : [];
   const workspaces = workspacesResult.status === "fulfilled" ? workspacesResult.value : [];
+  const nodes = nodesResult.status === "fulfilled" ? nodesResult.value : [];
   const appImageUsage = createAdminAppImageUsageLookup(
     projectImageUsageResult.status === "fulfilled"
       ? projectImageUsageResult.value
@@ -1673,14 +1694,18 @@ export async function getAdminAppsPageData(): Promise<AdminAppsPageData> {
       : { errors: [], projects: [] };
   const projects = projectData.projects;
   errors.push(...projectData.errors);
-  const views = mapAdminApps(apps, projects, workspaces, tenants, appImageUsage);
+  const views = mapAdminApps(apps, projects, workspaces, tenants, appImageUsage, nodes);
+  const latestUpdateAt = apps.reduce<string | null>((latest, app) => {
+    const candidate = app.status.updatedAt ?? app.updatedAt ?? app.createdAt;
+    return parseTimestamp(candidate) > parseTimestamp(latest) ? candidate : latest;
+  }, null);
 
   return {
     apps: views,
     errors,
     summary: {
       appCount: views.length,
-      latestUpdateLabel: views[0]?.updatedLabel ?? "Not yet",
+      latestUpdateLabel: formatRelativeTime(latestUpdateAt),
       routedCount: views.filter((app) => app.routeLabel !== "Unassigned").length,
       tenantCount: new Set(apps.map((app) => app.tenantId).filter(Boolean)).size,
     },

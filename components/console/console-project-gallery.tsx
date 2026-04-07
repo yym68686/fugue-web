@@ -29,7 +29,6 @@ import {
 import {
   ProofShell,
   ProofShellEmpty,
-  ProofShellRibbon,
 } from "@/components/ui/proof-shell";
 import {
   SegmentedControl,
@@ -58,9 +57,14 @@ import type {
 } from "@/lib/console/gallery-types";
 import { OPEN_CREATE_PROJECT_DIALOG_EVENT } from "@/lib/console/dialog-events";
 import {
+  buildRawEnvFeedback,
+  type RawEnvFeedback as ImportEnvFeedback,
+} from "@/lib/console/raw-env";
+import {
   fetchConsoleProjectDetail,
   readCachedConsoleProjectDetail,
 } from "@/lib/console/project-detail-client";
+import { readConsoleProjectLifecycle } from "@/lib/console/project-lifecycle";
 import { readProjectLifecycleTone } from "@/lib/console/project-lifecycle-tone";
 import { buildProjectResourceUsageView } from "@/lib/console/project-resource-usage";
 import {
@@ -460,13 +464,6 @@ function createClientId(prefix: string) {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-type ProjectLifecycle = {
-  label: string;
-  live: boolean;
-  syncMode: "active" | "idle" | "passive";
-  tone: ConsoleTone;
-};
-
 const LIVE_STATUS_BADGE_KEYWORDS = [
   "running",
   "building",
@@ -533,141 +530,6 @@ function shouldShowLiveStatusBadge(value?: string | null) {
   return LIVE_STATUS_BADGE_KEYWORDS.some((keyword) =>
     normalized.includes(keyword),
   );
-}
-
-function readProjectLifecycle(
-  project: ConsoleGalleryProjectView,
-): ProjectLifecycle {
-  const hasRunningApp = project.services.some(
-    (service) => service.kind === "app" && service.serviceRole === "running",
-  );
-  const hasPendingApp = project.services.some(
-    (service) => service.kind === "app" && service.serviceRole === "pending",
-  );
-  const tracksGitHubBranch = project.services.some(
-    (service) =>
-      service.kind === "app" && isGitHubSourceType(service.sourceType),
-  );
-  const statuses = project.services
-    .map((service) => (service.kind === "app" ? service.phase : service.status))
-    .map((value) => value.trim().toLowerCase())
-    .filter(Boolean);
-
-  if (
-    statuses.some((status) => includesLifecycleKeyword(status, ["deleting"]))
-  ) {
-    return {
-      label: "Deleting",
-      tone: readProjectLifecycleTone("Deleting"),
-      live: true,
-      syncMode: "active",
-    };
-  }
-
-  if (
-    statuses.some((status) =>
-      includesLifecycleKeyword(status, ["error", "fail", "stopped"]),
-    )
-  ) {
-    return {
-      label: "Error",
-      tone: readProjectLifecycleTone("Error"),
-      live: false,
-      syncMode: "passive",
-    };
-  }
-
-  if (hasRunningApp && hasPendingApp) {
-    return {
-      label: "Updating",
-      tone: readProjectLifecycleTone("Updating"),
-      live: true,
-      syncMode: "active",
-    };
-  }
-
-  if (
-    statuses.some((status) => includesLifecycleKeyword(status, ["importing"]))
-  ) {
-    return {
-      label: "Importing",
-      tone: readProjectLifecycleTone("Importing"),
-      live: true,
-      syncMode: "active",
-    };
-  }
-
-  if (
-    statuses.some((status) => includesLifecycleKeyword(status, ["building"]))
-  ) {
-    return {
-      label: "Building",
-      tone: readProjectLifecycleTone("Building"),
-      live: true,
-      syncMode: "active",
-    };
-  }
-
-  if (
-    statuses.some((status) => includesLifecycleKeyword(status, ["deploying"]))
-  ) {
-    return {
-      label: "Deploying",
-      tone: readProjectLifecycleTone("Deploying"),
-      live: true,
-      syncMode: "active",
-    };
-  }
-
-  if (
-    statuses.some((status) =>
-      includesLifecycleKeyword(status, ["queued", "pending", "migrating"]),
-    )
-  ) {
-    return {
-      label: "Queued",
-      tone: readProjectLifecycleTone("Queued"),
-      live: true,
-      syncMode: "active",
-    };
-  }
-
-  if (
-    statuses.length > 0 &&
-    statuses.every((status) => isPausedLifecycleValue(status))
-  ) {
-    return {
-      label: "Paused",
-      tone: readProjectLifecycleTone("Paused"),
-      live: false,
-      syncMode: "idle",
-    };
-  }
-
-  if (project.appCount > 0) {
-    return {
-      label: "Running",
-      tone: readProjectLifecycleTone("Running"),
-      live: false,
-      syncMode: tracksGitHubBranch ? "passive" : "idle",
-    };
-  }
-
-  if (project.serviceCount > 0) {
-    return {
-      label: "Ready",
-      tone: readProjectLifecycleTone("Ready"),
-      live: false,
-      syncMode: "idle",
-    };
-  }
-
-  return {
-    label: "Idle",
-    tone: readProjectLifecycleTone("Idle"),
-    live: false,
-    syncMode: "idle",
-  };
 }
 
 function readAppServiceRoleLabel(
@@ -2524,7 +2386,6 @@ function ConsoleLogsPanel({
   const [buildLogsOperationStatus, setBuildLogsOperationStatus] = useState<
     string | null
   >(null);
-  const [manualRefreshToken, setManualRefreshToken] = useState(0);
   const logsAutoFollowRef = useRef(true);
   const logsCopyResetRef = useRef<number | null>(null);
   const logsViewportRef = useRef<HTMLPreElement | null>(null);
@@ -2567,34 +2428,6 @@ function ConsoleLogsPanel({
   const canCopyLogs =
     !runtimeLogsUnavailable && logLinesRef.current.length > 0;
   const logsStreamLabel = humanizeUiLabel(effectiveLogsMode).toLowerCase();
-  const logsRefreshStateLabel = runtimeLogsUnavailable
-    ? runtimeLogsUnavailable.label
-    : logsConnectionState === "connecting"
-      ? "Connecting"
-      : logsConnectionState === "reconnecting"
-        ? "Reconnecting"
-        : logsConnectionState === "snapshot"
-          ? "Snapshot"
-        : logsConnectionState === "live"
-          ? "Live"
-          : logsConnectionState === "ended"
-            ? effectiveLogsMode === "build" && buildLogsOperationStatus
-              ? humanizeUiLabel(buildLogsOperationStatus)
-              : "Ended"
-            : logsConnectionState === "error"
-              ? "Error"
-              : "Idle";
-  const logsRefreshStateDetail = runtimeLogsUnavailable
-    ? null
-    : logsConnectionState === "reconnecting" && hasBufferedLogOutput
-      ? "Showing latest output"
-      : logsConnectionState === "snapshot"
-        ? "Refreshing every 3s"
-      : logsConnectionState === "error" && hasBufferedLogOutput
-        ? "Last output preserved"
-        : logsConnectionState === "ended" && hasBufferedLogOutput
-          ? "Showing latest snapshot"
-          : null;
   const logsPanelNote = runtimeLogsUnavailable
     ? runtimeLogsUnavailable.description
     : logsConnectionState === "reconnecting"
@@ -2607,12 +2440,12 @@ function ConsoleLogsPanel({
           : `The live ${logsStreamLabel} stream is delayed at the edge. Loading recent snapshots instead.`
       : logsConnectionState === "ended"
         ? hasBufferedLogOutput
-          ? `${humanizeUiLabel(effectiveLogsMode)} stream closed. Showing latest snapshot. Refresh to reopen the stream.`
-          : `${humanizeUiLabel(effectiveLogsMode)} stream closed. Refresh to reopen the stream.`
+          ? `${humanizeUiLabel(effectiveLogsMode)} stream closed. Showing latest snapshot.`
+          : `${humanizeUiLabel(effectiveLogsMode)} stream closed.`
         : logsConnectionState === "error"
           ? hasBufferedLogOutput
-            ? `${logsErrorMessage ?? `Unable to open the ${logsStreamLabel} stream.`} Showing the latest received output. Refresh to try again.`
-            : `${logsErrorMessage ?? `Unable to open the ${logsStreamLabel} stream.`} Refresh to try again.`
+            ? `${logsErrorMessage ?? `Unable to open the ${logsStreamLabel} stream.`} Showing the latest received output.`
+            : `${logsErrorMessage ?? `Unable to open the ${logsStreamLabel} stream.`}`
           : logsConnectionState === "connecting"
             ? `Opening live ${logsStreamLabel} output for ${selectedService.name}.`
             : `Live ${logsStreamLabel} output for ${selectedService.name}.`;
@@ -2723,10 +2556,6 @@ function ConsoleLogsPanel({
     logsAutoFollowRef.current = isLogViewportNearBottom(viewport);
   }
 
-  function refreshLogs() {
-    setManualRefreshToken((value) => value + 1);
-  }
-
   async function handleCopyLogs() {
     if (!canCopyLogs || logsCopyState === "pending") {
       return;
@@ -2770,7 +2599,7 @@ function ConsoleLogsPanel({
 
   useEffect(() => {
     logsAutoFollowRef.current = true;
-  }, [externalRefreshToken, logsRequestKey, manualRefreshToken]);
+  }, [externalRefreshToken, logsRequestKey]);
 
   useLayoutEffect(() => {
     syncLogsViewportOverflowState();
@@ -2785,7 +2614,7 @@ function ConsoleLogsPanel({
   useEffect(() => {
     setLogsCopyState("idle");
     clearLogsCopyResetTimer();
-  }, [externalRefreshToken, logsRequestKey, manualRefreshToken]);
+  }, [externalRefreshToken, logsRequestKey]);
 
   useEffect(() => {
     return () => {
@@ -3179,7 +3008,6 @@ function ConsoleLogsPanel({
     externalRefreshToken,
     logsRequestKey,
     logsStreamInput,
-    manualRefreshToken,
     runtimeLogsSnapshotInput,
     runtimeLogsUnavailableKey,
   ]);
@@ -3225,22 +3053,10 @@ function ConsoleLogsPanel({
           >
             {logsCopyState === "copied" ? "Copied" : "Copy logs"}
           </Button>
-          <Button
-            onClick={refreshLogs}
-            size="compact"
-            type="button"
-            variant="secondary"
-          >
-            Refresh now
-          </Button>
         </div>
       </div>
 
       <ProofShell>
-        <ProofShellRibbon>
-          <span>{logsRefreshStateLabel}</span>
-          {logsRefreshStateDetail ? <span>{logsRefreshStateDetail}</span> : null}
-        </ProofShellRibbon>
         {runtimeLogsUnavailable ? (
           <ProofShellEmpty
             description={runtimeLogsUnavailable.description}
@@ -3457,6 +3273,10 @@ export function ConsoleProjectGallery({
     persistentStorageSupported: true,
     startupCommandSupported: true,
   });
+  const [importEnvFeedback, setImportEnvFeedback] =
+    useState<ImportEnvFeedback>(() =>
+      buildRawEnvFeedback(importDraft.envRaw, "console"),
+    );
   const {
     connectHref: githubConnectHref,
     connection: githubConnection,
@@ -3498,6 +3318,10 @@ export function ConsoleProjectGallery({
   const pendingCommitHintRequestPendingRef = useRef(false);
   const { markAppDeleting, optimisticProjects } =
     useOptimisticDeletingProjects(data.projects);
+
+  useEffect(() => {
+    setImportEnvFeedback(buildRawEnvFeedback(importDraft.envRaw, "console"));
+  }, [importDraft.envRaw]);
 
   const selectedProject =
     optimisticProjects.find((project) => project.id === selectedProjectId) ??
@@ -3567,7 +3391,7 @@ export function ConsoleProjectGallery({
     : null;
   const dataErrorVariant = data.errors.length >= 3 ? "error" : "info";
   const projectLifecycles = optimisticProjects.map((project) =>
-    readProjectLifecycle(project),
+    readConsoleProjectLifecycle(project),
   );
   const hasLiveProjects = projectLifecycles.some(
     (lifecycle) => lifecycle.syncMode === "active",
@@ -4169,6 +3993,7 @@ export function ConsoleProjectGallery({
     }
 
     const validationError = validateImportServiceDraft(importDraft, {
+      environmentFeedback: importEnvFeedback,
       localUpload,
       persistentStorageSupported:
         importCapabilities.persistentStorageSupported,
@@ -5641,6 +5466,7 @@ export function ConsoleProjectGallery({
                       localUpload={localUpload}
                       onCapabilitiesChange={setImportCapabilities}
                       onDraftChange={setImportDraft}
+                      onEnvironmentStatusChange={setImportEnvFeedback}
                       onLocalUploadChange={setLocalUpload}
                       runtimeTargets={data.runtimeTargets}
                     />

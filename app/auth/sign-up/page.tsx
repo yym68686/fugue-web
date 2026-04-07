@@ -32,10 +32,10 @@ export default async function SignUpPage({
 
   return (
     <AuthShell
-      description="Choose Google or a verified email link."
+      description="Choose Google or a verified email link. Password can be added later from the profile page."
       eyebrow="Auth / Sign up"
       footer={
-        <p>Workspace setup comes next.</p>
+        <p>Registration stays on the verification flow. Workspace setup comes next.</p>
       }
       notes={[
         { index: "01", title: "Google route", meta: "OAuth / Verified email" },
@@ -48,7 +48,7 @@ export default async function SignUpPage({
         <PanelSection>
           <p className="fg-label fg-panel__eyebrow">Create account</p>
           <PanelTitle>Choose a sign-up method.</PanelTitle>
-          <PanelCopy>Google is fastest. Email works with a magic link.</PanelCopy>
+          <PanelCopy>Google is fastest. Email still uses a verification link. Password can be added after sign-up.</PanelCopy>
           <p className="fg-auth-footer">
             Already have access? <a href={buildReturnToHref("/auth/sign-in", returnTo)}>Sign in instead</a>.
           </p>

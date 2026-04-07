@@ -8,8 +8,8 @@ import {
   failPendingProjectIntent,
   resolvePendingProjectIntent,
 } from "@/lib/console/pending-project-intents";
-import { RawEnvEditor } from "@/components/console/raw-env-editor";
 import { DeploymentTargetField } from "@/components/console/deployment-target-field";
+import { EnvironmentEditor } from "@/components/console/environment-editor";
 import { PersistentStorageEditor } from "@/components/console/persistent-storage-editor";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
@@ -186,7 +186,6 @@ export function DeployImageWizard({
 
   function updateEnvRaw(nextValue: string) {
     setEnvRawDraft(nextValue);
-    setEnvFeedback(buildRawEnvFeedback(nextValue, "deploy"));
   }
 
   function validate() {
@@ -223,10 +222,8 @@ export function DeployImageWizard({
       return persistentStorageError;
     }
 
-    const nextEnvFeedback = buildRawEnvFeedback(envRawDraft, "deploy");
-
-    if (!nextEnvFeedback.valid) {
-      return nextEnvFeedback.message;
+    if (!envFeedback.valid) {
+      return envFeedback.message;
     }
 
     return null;
@@ -244,7 +241,6 @@ export function DeployImageWizard({
     const serializedPersistentStorage = serializePersistentStorageDraft(
       persistentStorage,
     );
-    const nextEnvFeedback = buildRawEnvFeedback(envRawDraft, "deploy");
     const normalizedProjectName =
       selectedProjectId === NEW_PROJECT_VALUE
         ? projectName.trim()
@@ -278,8 +274,8 @@ export function DeployImageWizard({
         && networkMode !== "background"
         ? { servicePort: Number(normalizedServicePort) }
         : {}),
-      ...(Object.keys(nextEnvFeedback.env).length > 0
-        ? { env: nextEnvFeedback.env }
+      ...(Object.keys(envFeedback.env).length > 0
+        ? { env: envFeedback.env }
         : {}),
       ...(serializedPersistentStorage
         ? { persistentStorage: serializedPersistentStorage }
@@ -486,16 +482,11 @@ export function DeployImageWizard({
 
       <PanelSection>
         <PanelTitle>Environment</PanelTitle>
-        <PanelCopy>
-          Paste or edit non-sensitive <code>KEY=value</code> lines. Deploy
-          links can prefill values here, so keep secrets out of query strings.
-        </PanelCopy>
-
-        <RawEnvEditor
-          feedback={envFeedback}
+        <EnvironmentEditor
           fieldId="deploy-image-env-raw"
           onChange={updateEnvRaw}
-          optionalLabel="Non-sensitive only"
+          onStatusChange={setEnvFeedback}
+          surface="deploy"
           value={envRawDraft}
         />
       </PanelSection>

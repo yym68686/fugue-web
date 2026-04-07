@@ -24,10 +24,15 @@ import { FormField } from "@/components/ui/form-field";
 import { Panel, PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
 import { useToast } from "@/components/ui/toast";
 import { OPEN_CREATE_PROJECT_DIALOG_EVENT } from "@/lib/console/dialog-events";
+import {
+  buildRawEnvFeedback,
+  type RawEnvFeedback,
+} from "@/lib/console/raw-env";
 import type {
   ConsoleProjectGallerySummaryData,
   ConsoleProjectSummaryView,
 } from "@/lib/console/gallery-types";
+import { readConsoleProjectLifecycle } from "@/lib/console/project-lifecycle";
 import type { ConsoleTone } from "@/lib/console/types";
 import {
   clearPendingProjectIntent,
@@ -807,6 +812,9 @@ export function ConsoleProjectGallery({
     persistentStorageSupported: true,
     startupCommandSupported: true,
   });
+  const [importEnvFeedback, setImportEnvFeedback] = useState<RawEnvFeedback>(
+    () => buildRawEnvFeedback(importDraft.envRaw, "console"),
+  );
   const {
     connectHref: githubConnectHref,
     connection: githubConnection,
@@ -819,6 +827,10 @@ export function ConsoleProjectGallery({
     useState<Record<string, ProjectImageUsageSummary>>(() =>
       buildProjectImageUsageMap(readCachedProjectImageUsage() ?? []),
     );
+
+  useEffect(() => {
+    setImportEnvFeedback(buildRawEnvFeedback(importDraft.envRaw, "console"));
+  }, [importDraft.envRaw]);
   const pendingIntent = usePendingProjectIntent(activePendingIntentId);
   const galleryRefreshAbortRef = useRef<AbortController | null>(null);
   const galleryRefreshPendingRef = useRef(false);
@@ -1480,6 +1492,7 @@ export function ConsoleProjectGallery({
     }
 
     const validationError = validateImportServiceDraft(importDraft, {
+      environmentFeedback: importEnvFeedback,
       localUpload,
       persistentStorageSupported:
         importCapabilities.persistentStorageSupported,
@@ -1736,6 +1749,9 @@ export function ConsoleProjectGallery({
                 const cachedProjectDetail = expanded
                   ? readCachedConsoleProjectDetail(project.id)
                   : null;
+                const projectLifecycle = cachedProjectDetail?.project
+                  ? readConsoleProjectLifecycle(cachedProjectDetail.project)
+                  : project.lifecycle;
                 const detailId = `project-detail-${project.id}`;
                 const projectResourceUsage =
                   projectImageUsageByProjectId[project.id]
@@ -1769,10 +1785,10 @@ export function ConsoleProjectGallery({
                           <div className="fg-project-card__summary-meta">
                             <strong>{project.name}</strong>
                             <StatusBadge
-                              live={project.lifecycle.live}
-                              tone={project.lifecycle.tone}
+                              live={projectLifecycle.live}
+                              tone={projectLifecycle.tone}
                             >
-                              {project.lifecycle.label}
+                              {projectLifecycle.label}
                             </StatusBadge>
                           </div>
                           <div className="fg-project-card__summary-meta">
@@ -1961,6 +1977,7 @@ export function ConsoleProjectGallery({
                       localUpload={localUpload}
                       onCapabilitiesChange={setImportCapabilities}
                       onDraftChange={setImportDraft}
+                      onEnvironmentStatusChange={setImportEnvFeedback}
                       onLocalUploadChange={setLocalUpload}
                       runtimeTargets={runtimeInventory.runtimeTargets}
                     />

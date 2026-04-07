@@ -52,6 +52,7 @@ export function verifySessionHandoffToken(token: string) {
       provider: payload.provider,
       providerId: payload.providerId,
       verified: payload.verified,
+      authMethod: payload.authMethod,
     } satisfies SessionUser,
   };
 }

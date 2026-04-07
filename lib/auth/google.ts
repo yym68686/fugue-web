@@ -8,6 +8,19 @@ export type GoogleUser = {
   picture?: string;
 };
 
+function readOptionalEnv(name: string) {
+  const value = process.env[name]?.trim();
+  return value ? value : null;
+}
+
+export function isGoogleAuthConfigured() {
+  return Boolean(
+    readOptionalEnv("GOOGLE_CLIENT_ID") &&
+      readOptionalEnv("GOOGLE_CLIENT_SECRET") &&
+      readOptionalEnv("GOOGLE_REDIRECT_URI"),
+  );
+}
+
 export function createGoogleAuthorizationUrl(state: string) {
   const authEnv = getAuthEnv();
   const url = new URL("https://accounts.google.com/o/oauth2/v2/auth");

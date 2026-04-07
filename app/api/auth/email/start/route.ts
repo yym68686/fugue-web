@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { ensureAppUserRecord } from "@/lib/app-users/store";
 import { getAuthEnv } from "@/lib/auth/env";
 import { sendVerificationEmail } from "@/lib/auth/email";
+import { syncAuthMethodOnSignIn } from "@/lib/auth/methods";
 import { buildOriginUrl, isSecureRequest, readRequestOrigin } from "@/lib/auth/origin";
 import { buildSessionCookie } from "@/lib/auth/session";
 import { signToken } from "@/lib/auth/token";
@@ -53,11 +54,16 @@ export async function POST(request: Request) {
       name: name || undefined,
       provider: "email" as const,
       verified: true,
+      authMethod: "email_link" as const,
     };
 
     try {
       await ensureAppUserRecord(sessionUser, {
         markSignedIn: true,
+      });
+      await syncAuthMethodOnSignIn({
+        email,
+        method: "email_link",
       });
       await ensureWorkspaceAccess(sessionUser);
     } catch (error) {

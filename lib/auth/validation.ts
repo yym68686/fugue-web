@@ -36,6 +36,26 @@ export function buildReturnToHref(pathname: string, returnTo: string | null | un
   return `${pathname}${separator}returnTo=${encodeURIComponent(sanitizedReturnTo)}`;
 }
 
+export function appendReturnToSearchParams(
+  returnTo: string | null | undefined,
+  values: Record<string, string | null | undefined>,
+) {
+  const sanitizedReturnTo = sanitizeReturnTo(returnTo);
+  const url = new URL(sanitizedReturnTo, "https://fugue.local");
+
+  for (const [key, value] of Object.entries(values)) {
+    if (!value) {
+      url.searchParams.delete(key);
+      continue;
+    }
+
+    url.searchParams.set(key, value);
+  }
+
+  const search = url.searchParams.toString();
+  return `${url.pathname}${search ? `?${search}` : ""}`;
+}
+
 export function readBooleanEnv(value: string | undefined, fallback = false) {
   if (value === undefined) {
     return fallback;

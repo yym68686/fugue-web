@@ -5,7 +5,11 @@ import { useRouter } from "next/navigation";
 
 import { ConsoleDisclosureSection } from "@/components/console/console-disclosure-section";
 import { ImportServiceFields } from "@/components/console/import-service-fields";
-import { serializeEnvRecord } from "@/lib/console/raw-env";
+import {
+  buildRawEnvFeedback,
+  serializeEnvRecord,
+  type RawEnvFeedback,
+} from "@/lib/console/raw-env";
 import type { ConsoleImportRuntimeTargetView } from "@/lib/console/gallery-types";
 import { readDefaultImportRuntimeId } from "@/lib/console/runtime-targets";
 import {
@@ -156,12 +160,19 @@ export function DeployCreateProjectForm({
     persistentStorageSupported: true,
     startupCommandSupported: true,
   });
+  const [importEnvFeedback, setImportEnvFeedback] = useState<RawEnvFeedback>(
+    () => buildRawEnvFeedback(importDraft.envRaw, "console"),
+  );
   const [githubInspection, setGitHubInspection] =
     useState<FugueGitHubTemplateInspection | null>(initialInspection);
   const [variableValues, setVariableValues] = useState<Record<string, string>>(
     () => readInitialVariableValues(initialInspection),
   );
   const templateVariables = githubInspection?.template?.variables ?? [];
+
+  useEffect(() => {
+    setImportEnvFeedback(buildRawEnvFeedback(importDraft.envRaw, "console"));
+  }, [importDraft.envRaw]);
 
   useEffect(() => {
     setImportDraft((current) => ({
@@ -216,6 +227,7 @@ export function DeployCreateProjectForm({
     }
 
     const validationError = validateImportServiceDraft(importDraft, {
+      environmentFeedback: importEnvFeedback,
       localUpload,
       persistentStorageSupported:
         importCapabilities.persistentStorageSupported,
@@ -366,6 +378,7 @@ export function DeployCreateProjectForm({
           localUpload={localUpload}
           onCapabilitiesChange={setImportCapabilities}
           onDraftChange={setImportDraft}
+          onEnvironmentStatusChange={setImportEnvFeedback}
           onGitHubInspectionChange={(inspection) => {
             setGitHubInspection(inspection);
           }}

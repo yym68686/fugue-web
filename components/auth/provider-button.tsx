@@ -5,18 +5,21 @@ export function ProviderButton({
   provider,
 }: {
   href: string;
-  provider: "google";
+  provider: "github" | "google";
 }) {
+  const label = provider === "github" ? "GitHub" : "Google";
+  const mark = provider === "github" ? "GH" : "G";
+
   return (
     <ButtonAnchor
       className="fg-provider-button"
       href={href}
-      icon={<span aria-hidden="true" className="fg-provider-button__mark">G</span>}
+      icon={<span aria-hidden="true" className="fg-provider-button__mark">{mark}</span>}
       iconPlacement="leading"
       iconStyle="plain"
       variant="secondary"
     >
-      Continue with {provider === "google" ? "Google" : provider}
+      Continue with {label}
     </ButtonAnchor>
   );
 }

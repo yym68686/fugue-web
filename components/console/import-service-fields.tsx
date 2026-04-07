@@ -4,10 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 
 import { ConsoleDisclosureSection } from "@/components/console/console-disclosure-section";
 import { DeploymentTargetField } from "@/components/console/deployment-target-field";
+import { EnvironmentEditor } from "@/components/console/environment-editor";
 import { GitHubRepositoryAccessFields } from "@/components/console/github-repository-access-fields";
 import { LocalUploadSourceField } from "@/components/console/local-upload-source-field";
 import { PersistentStorageEditor } from "@/components/console/persistent-storage-editor";
-import { RawEnvEditor } from "@/components/console/raw-env-editor";
 import { FormField } from "@/components/ui/form-field";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { SelectField } from "@/components/ui/select-field";
@@ -16,7 +16,10 @@ import {
   type SegmentedControlOption,
 } from "@/components/ui/segmented-control";
 import type { ConsoleImportRuntimeTargetView } from "@/lib/console/gallery-types";
-import { buildRawEnvFeedback } from "@/lib/console/raw-env";
+import {
+  buildRawEnvFeedback,
+  type RawEnvFeedback,
+} from "@/lib/console/raw-env";
 import {
   buildImportRuntimeTargetGroups,
   readDefaultImportRuntimeId,
@@ -112,6 +115,7 @@ type ImportServiceFieldProps = {
     startupCommandSupported: boolean;
   }) => void;
   onDraftChange: (next: ImportServiceDraft) => void;
+  onEnvironmentStatusChange?: (feedback: RawEnvFeedback) => void;
   onLocalUploadChange: (next: LocalUploadState) => void;
   runtimeTargets: ConsoleImportRuntimeTargetView[];
   showBranchField?: boolean;
@@ -135,6 +139,7 @@ export function ImportServiceFields({
   onGitHubInspectionChange,
   onCapabilitiesChange,
   onDraftChange,
+  onEnvironmentStatusChange,
   onLocalUploadChange,
   runtimeTargets,
   showBranchField = true,
@@ -270,13 +275,19 @@ export function ImportServiceFields({
   const persistentStorageDescription =
     summarizePersistentStorageDraft(draft.persistentStorage) ??
     "Add directories or files that must survive redeploys.";
-  const envFeedback = buildRawEnvFeedback(draft.envRaw, "console");
+  const [envFeedback, setEnvFeedback] = useState<RawEnvFeedback>(() =>
+    buildRawEnvFeedback(draft.envRaw, "console"),
+  );
   const envCount = Object.keys(envFeedback.env).length;
   const environmentDescription = !envFeedback.valid
     ? envFeedback.message
     : envCount > 0
-      ? `${envCount} environment variable${envCount === 1 ? "" : "s"} ready for the first deploy.`
-      : "Optional KEY=value pairs for the first deploy.";
+      ? `${envCount} variable${envCount === 1 ? "" : "s"} before first deploy`
+      : "Optional for first deploy";
+
+  useEffect(() => {
+    setEnvFeedback(buildRawEnvFeedback(draft.envRaw, "console"));
+  }, [draft.envRaw]);
 
   useEffect(() => {
     const repoUrl = draft.repoUrl.trim();
@@ -422,6 +433,11 @@ export function ImportServiceFields({
       ...draft,
       [key]: value,
     });
+  }
+
+  function updateEnvironmentFeedback(nextFeedback: RawEnvFeedback) {
+    setEnvFeedback(nextFeedback);
+    onEnvironmentStatusChange?.(nextFeedback);
   }
 
   function updateSourceMode(nextMode: ImportSourceMode) {
@@ -632,10 +648,11 @@ export function ImportServiceFields({
         description={environmentDescription}
         summary="Environment"
       >
-        <RawEnvEditor
-          feedback={envFeedback}
+        <EnvironmentEditor
           fieldId={`${idPrefix}-env-raw`}
           onChange={(value) => updateField("envRaw", value)}
+          onStatusChange={updateEnvironmentFeedback}
+          surface="console"
           value={draft.envRaw}
         />
       </ConsoleDisclosureSection>

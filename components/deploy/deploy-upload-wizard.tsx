@@ -8,8 +8,8 @@ import {
   failPendingProjectIntent,
   resolvePendingProjectIntent,
 } from "@/lib/console/pending-project-intents";
-import { RawEnvEditor } from "@/components/console/raw-env-editor";
 import { DeploymentTargetField } from "@/components/console/deployment-target-field";
+import { EnvironmentEditor } from "@/components/console/environment-editor";
 import { LocalUploadSourceField } from "@/components/console/local-upload-source-field";
 import { PersistentStorageEditor } from "@/components/console/persistent-storage-editor";
 import { Button } from "@/components/ui/button";
@@ -194,7 +194,6 @@ export function DeployUploadWizard({
 
   function updateEnvRaw(nextValue: string) {
     setEnvRawDraft(nextValue);
-    setEnvFeedback(buildRawEnvFeedback(nextValue, "deploy"));
   }
 
   function buildDraft() {
@@ -253,6 +252,7 @@ export function DeployUploadWizard({
     }
 
     return validateImportServiceDraft(uploadDraft, {
+      environmentFeedback: envFeedback,
       localUpload,
       persistentStorageSupported,
     });
@@ -578,16 +578,11 @@ export function DeployUploadWizard({
 
       <PanelSection>
         <PanelTitle>Environment</PanelTitle>
-        <PanelCopy>
-          Paste or edit non-sensitive <code>KEY=value</code> lines. Deploy
-          links can prefill values here, so keep secrets out of query strings.
-        </PanelCopy>
-
-        <RawEnvEditor
-          feedback={envFeedback}
+        <EnvironmentEditor
           fieldId="deploy-upload-env-raw"
           onChange={updateEnvRaw}
-          optionalLabel="Non-sensitive only"
+          onStatusChange={setEnvFeedback}
+          surface="deploy"
           value={envRawDraft}
         />
       </PanelSection>

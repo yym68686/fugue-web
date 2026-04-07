@@ -329,6 +329,8 @@ export async function ensureAppUserRecord(
     } else {
       const current = recordFromRow(currentRow);
       const shouldUpdateLastLogin = markSignedIn && current.status === "active";
+      const nextName = name ?? current.name;
+      const nextPicture = picture ?? current.pictureUrl;
       const updated = await client.query<AppUserRow>(
         `
           UPDATE app_users
@@ -356,8 +358,8 @@ export async function ensureAppUserRecord(
         `,
         [
           normalizedEmail,
-          name,
-          picture,
+          nextName,
+          nextPicture,
           user.provider,
           providerId,
           user.verified,
@@ -548,4 +550,48 @@ export async function setAppUserAdmin(email: string, isAdmin: boolean) {
 
     return recordFromRow(row);
   });
+}
+
+export async function updateAppUserProfile(
+  email: string,
+  input: {
+    name?: string | null;
+  },
+) {
+  await ensureDbSchema();
+
+  const normalizedEmail = normalizeEmail(email);
+  const name = readOptionalString(input.name);
+  const now = new Date().toISOString();
+
+  const updated = await queryDb<AppUserRow>(
+    `
+      UPDATE app_users
+      SET
+        name = $2,
+        updated_at = $3
+      WHERE email = $1
+      RETURNING
+        email,
+        name,
+        picture_url,
+        provider,
+        provider_id,
+        verified,
+        is_admin,
+        status,
+        last_login_at,
+        created_at,
+        updated_at
+    `,
+    [normalizedEmail, name, now],
+  );
+
+  const row = updated.rows[0];
+
+  if (!row) {
+    throw new Error("404 User not found.");
+  }
+
+  return recordFromRow(row);
 }

@@ -8,7 +8,10 @@ import {
   type PersistentStorageMountDraft,
 } from "@/lib/fugue/persistent-storage";
 import { PRIVATE_GITHUB_AUTH_REQUIRED_MESSAGE } from "@/lib/github/messages";
-import { buildRawEnvFeedback } from "@/lib/console/raw-env";
+import {
+  buildRawEnvFeedback,
+  type RawEnvFeedback,
+} from "@/lib/console/raw-env";
 
 export type ImportSourceMode = "github" | "docker-image" | "local-upload";
 export type ImportNetworkMode = "background" | "public";
@@ -152,6 +155,7 @@ export function localUploadPreservesDetectedTopology(
 export function validateImportServiceDraft(
   draft: ImportServiceDraft,
   options?: {
+    environmentFeedback?: Pick<RawEnvFeedback, "message" | "valid"> | null;
     localUpload?: LocalUploadState | null;
     persistentStorageSupported?: boolean;
     privateGitHubAuthorized?: boolean;
@@ -200,6 +204,10 @@ export function validateImportServiceDraft(
     if (persistentStorageError) {
       return persistentStorageError;
     }
+  }
+
+  if (options?.environmentFeedback && !options.environmentFeedback.valid) {
+    return options.environmentFeedback.message;
   }
 
   const envFeedback = buildRawEnvFeedback(draft.envRaw, "console");

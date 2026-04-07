@@ -9,14 +9,13 @@ import {
   failPendingProjectIntent,
   resolvePendingProjectIntent,
 } from "@/lib/console/pending-project-intents";
-import { RawEnvEditor } from "@/components/console/raw-env-editor";
 import { DeploymentTargetField } from "@/components/console/deployment-target-field";
+import { EnvironmentEditor } from "@/components/console/environment-editor";
 import { GitHubRepositoryAccessFields } from "@/components/console/github-repository-access-fields";
 import { PersistentStorageEditor } from "@/components/console/persistent-storage-editor";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { InlineAlert } from "@/components/ui/inline-alert";
-import { PanelCopy } from "@/components/ui/panel";
 import { SelectField } from "@/components/ui/select-field";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { useToast } from "@/components/ui/toast";
@@ -296,9 +295,9 @@ export function DeployWizard({
     : Object.keys(envFeedback.env).length > 0
       ? `${pluralize(
           Object.keys(envFeedback.env).length,
-          "environment variable",
+          "variable",
         )} before first deploy`
-      : "Optional KEY=value pairs for the first deploy.";
+      : "Optional for first deploy";
   const persistentStorageSeedSummaryCopy =
     persistentStorageSeedFiles.length > 0
       ? `${pluralize(persistentStorageSeedFiles.length, "missing file")} before first deploy`
@@ -358,7 +357,6 @@ export function DeployWizard({
 
   function updateEnvRaw(nextValue: string) {
     setEnvRawDraft(nextValue);
-    setEnvFeedback(buildRawEnvFeedback(nextValue, "deploy"));
   }
 
   function validate() {
@@ -414,10 +412,8 @@ export function DeployWizard({
       }
     }
 
-    const nextEnvFeedback = buildRawEnvFeedback(envRawDraft, "deploy");
-
-    if (!nextEnvFeedback.valid) {
-      return nextEnvFeedback.message;
+    if (!envFeedback.valid) {
+      return envFeedback.message;
     }
 
     return null;
@@ -458,7 +454,6 @@ export function DeployWizard({
       persistentStorageSupported
         ? serializePersistentStorageDraft(persistentStorage)
         : undefined;
-    const nextEnvFeedback = buildRawEnvFeedback(envRawDraft, "deploy");
     const intent = createPendingProjectIntent({
       appName: name.trim(),
       projectId:
@@ -506,8 +501,8 @@ export function DeployWizard({
             ),
           }
         : {}),
-      ...(Object.keys(nextEnvFeedback.env).length > 0
-        ? { env: nextEnvFeedback.env }
+      ...(Object.keys(envFeedback.env).length > 0
+        ? { env: envFeedback.env }
         : {}),
       variables: variableValues,
     };
@@ -726,17 +721,11 @@ export function DeployWizard({
           description={environmentSummaryCopy}
           summary="Environment"
         >
-          <PanelCopy>
-            {templateVariables.length > 0
-              ? "Add additional non-sensitive KEY=value lines. Matching keys here override template variables on deploy."
-              : "Paste or edit non-sensitive KEY=value lines. Deploy links can prefill values here, so keep secrets out of query strings."}
-          </PanelCopy>
-
-          <RawEnvEditor
-            feedback={envFeedback}
+          <EnvironmentEditor
             fieldId="deploy-env-raw"
             onChange={updateEnvRaw}
-            optionalLabel="Non-sensitive only"
+            onStatusChange={setEnvFeedback}
+            surface="deploy"
             value={envRawDraft}
           />
         </ConsoleDisclosureSection>

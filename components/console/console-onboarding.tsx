@@ -15,6 +15,10 @@ import { Button } from "@/components/ui/button";
 import { Panel, PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
 import { useToast } from "@/components/ui/toast";
 import type { ConsoleImportRuntimeTargetView } from "@/lib/console/gallery-types";
+import {
+  buildRawEnvFeedback,
+  type RawEnvFeedback,
+} from "@/lib/console/raw-env";
 import { readDefaultImportRuntimeId } from "@/lib/console/runtime-targets";
 import {
   buildImportServicePayload,
@@ -108,6 +112,9 @@ export function ConsoleOnboarding({
   const [importCapabilities, setImportCapabilities] = useState(
     DEFAULT_IMPORT_CAPABILITIES,
   );
+  const [importEnvFeedback, setImportEnvFeedback] = useState<RawEnvFeedback>(
+    () => buildRawEnvFeedback(draft.envRaw, "console"),
+  );
   const {
     connectHref: githubConnectHref,
     connection: githubConnection,
@@ -175,6 +182,10 @@ export function ConsoleOnboarding({
           : readDefaultImportRuntimeId(runtimeTargets),
     }));
   }, [runtimeTargets]);
+
+  useEffect(() => {
+    setImportEnvFeedback(buildRawEnvFeedback(draft.envRaw, "console"));
+  }, [draft.envRaw]);
 
   useEffect(() => {
     if (!flash) {
@@ -266,6 +277,7 @@ export function ConsoleOnboarding({
     }
 
     const validationError = validateImportServiceDraft(draft, {
+      environmentFeedback: importEnvFeedback,
       localUpload,
       persistentStorageSupported:
         importCapabilities.persistentStorageSupported,
@@ -475,11 +487,12 @@ export function ConsoleOnboarding({
                     githubConnectionLoading={githubConnectionLoading}
                     idPrefix="onboarding-import"
                     inventoryError={runtimeTargetInventoryError}
-                  localUpload={localUpload}
-                  onCapabilitiesChange={setImportCapabilities}
-                  onDraftChange={setDraft}
-                  onLocalUploadChange={setLocalUpload}
-                  runtimeTargets={runtimeTargets}
+                    localUpload={localUpload}
+                    onCapabilitiesChange={setImportCapabilities}
+                    onDraftChange={setDraft}
+                    onEnvironmentStatusChange={setImportEnvFeedback}
+                    onLocalUploadChange={setLocalUpload}
+                    runtimeTargets={runtimeTargets}
                   />
                 </form>
               </PanelSection>

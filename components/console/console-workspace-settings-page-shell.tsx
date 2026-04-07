@@ -15,31 +15,18 @@ import { InlineAlert } from "@/components/ui/inline-alert";
 import { Panel, PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
 import { useToast } from "@/components/ui/toast";
 import {
+  readAuthMethodLabel,
+  readProviderLabel,
+  readSessionLabel,
+  readVerificationLabel,
+} from "@/lib/auth/presenters";
+import {
   CONSOLE_WORKSPACE_SETTINGS_PAGE_SNAPSHOT_URL,
   type ConsoleWorkspaceSettingsPageSnapshot,
   useConsolePageSnapshot,
 } from "@/lib/console/page-snapshot-client";
 import { useGitHubConnection } from "@/lib/github/connection-client";
 import { requestJson } from "@/lib/ui/request-json";
-
-function readSessionName(name: string | undefined, email: string) {
-  return name?.trim() || email.split("@")[0] || email;
-}
-
-function readProviderLabel(provider: "email" | "google") {
-  switch (provider) {
-    case "google":
-      return "Google";
-    case "email":
-      return "Email";
-    default:
-      return provider;
-  }
-}
-
-function readVerificationLabel(verified: boolean) {
-  return verified ? "Verified" : "Unverified";
-}
 
 function readConnectionTimeLabel(value: string | null | undefined) {
   if (!value) {
@@ -224,7 +211,7 @@ export function ConsoleWorkspaceSettingsPageShell() {
           <PanelSection>
             <div className="fg-console-inline-status">
               <StatusBadge tone="neutral">
-                {readProviderLabel(data.session.provider)}
+                {readAuthMethodLabel(data.session.authMethod, data.session.provider)}
               </StatusBadge>
               <StatusBadge tone={data.session.verified ? "positive" : "warning"}>
                 {readVerificationLabel(data.session.verified)}
@@ -233,14 +220,18 @@ export function ConsoleWorkspaceSettingsPageShell() {
             <dl className="fg-console-inline-meta fg-console-inline-meta--stacked">
               <div>
                 <dt>Name</dt>
-                <dd>{readSessionName(data.session.name, data.session.email)}</dd>
+                <dd>{readSessionLabel(data.session)}</dd>
               </div>
               <div>
                 <dt>Email</dt>
                 <dd>{data.session.email}</dd>
               </div>
               <div>
-                <dt>Provider</dt>
+                <dt>Sign-in method</dt>
+                <dd>{readAuthMethodLabel(data.session.authMethod, data.session.provider)}</dd>
+              </div>
+              <div>
+                <dt>Current provider</dt>
                 <dd>{readProviderLabel(data.session.provider)}</dd>
               </div>
               <div>

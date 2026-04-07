@@ -19,8 +19,17 @@ export type AuthErrorCode =
   | typeof AUTH_ERROR_ACCOUNT_BLOCKED
   | typeof AUTH_ERROR_ACCOUNT_DELETED;
 
-export function buildSignInErrorUrl(origin: string, error: AuthErrorCode) {
+export function buildSignInErrorUrl(
+  origin: string,
+  error: AuthErrorCode,
+  provider?: "github" | "google",
+) {
   const url = buildOriginUrl(origin, "/auth/sign-in");
   url.searchParams.set("error", error);
+
+  if (provider) {
+    url.searchParams.set("provider", provider);
+  }
+
   return url;
 }

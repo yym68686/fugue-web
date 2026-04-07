@@ -15,6 +15,8 @@ import { useToast } from "@/components/ui/toast";
 
 type AdminClusterAppView = {
   canRebuild: boolean;
+  createdExact: string;
+  createdLabel: string;
   id: string;
   name: string;
   ownerLabel: string;
@@ -24,7 +26,7 @@ type AdminClusterAppView = {
   resourceUsage: ConsoleCompactResourceItemView[];
   routeHref: string | null;
   routeLabel: string;
-  runtimeLabel: string;
+  serverLabel: string;
   sourceHref: string | null;
   sourceLabel: string;
   stack: Array<{
@@ -35,8 +37,6 @@ type AdminClusterAppView = {
     meta: string;
     title: string;
   }>;
-  updatedExact: string;
-  updatedLabel: string;
 };
 
 const ADMIN_APP_USAGE_HEADINGS = [
@@ -195,7 +195,7 @@ export function AdminAppManager({
             <th scope="col">User email</th>
             <th scope="col">Project</th>
             <th scope="col">Route</th>
-            <th scope="col">Runtime</th>
+            <th scope="col">Server</th>
             <th className="fg-console-table__head--usage" scope="col">
               <div className="fg-console-table__resource-head">
                 <span className="fg-console-table__resource-head-label">Usage</span>
@@ -209,7 +209,7 @@ export function AdminAppManager({
             <th scope="col">Phase</th>
             <th scope="col">Source</th>
             <th scope="col">Stack</th>
-            <th scope="col">Updated</th>
+            <th scope="col">Created</th>
             <th scope="col">Actions</th>
           </tr>
         </thead>
@@ -254,8 +254,8 @@ export function AdminAppManager({
                 )}
               </td>
               <td>
-                <span className="fg-console-table__clip" title={app.runtimeLabel}>
-                  {app.runtimeLabel}
+                <span className="fg-console-table__clip" title={app.serverLabel}>
+                  {app.serverLabel}
                 </span>
               </td>
               <td className="fg-console-table__cell--usage">
@@ -313,7 +313,7 @@ export function AdminAppManager({
                 )}
               </td>
               <td>
-                <span title={app.updatedExact}>{app.updatedLabel}</span>
+                <span title={app.createdExact}>{app.createdLabel}</span>
               </td>
               <td>
                 <div className="fg-console-toolbar">
