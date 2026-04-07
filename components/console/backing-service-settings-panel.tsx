@@ -283,6 +283,12 @@ export function BackingServiceSettingsPanel({
     failoverTargetRuntimeId && failoverTargetRuntimeId !== primaryRuntimeId
       ? failoverTargetRuntimeId
       : null;
+  const appliedFailoverTargetRuntimeId =
+    (service.databaseContinuity.pendingTargetRuntimeId ??
+      service.databaseFailoverTargetRuntimeId) !== primaryRuntimeId
+      ? (service.databaseContinuity.pendingTargetRuntimeId ??
+          service.databaseFailoverTargetRuntimeId)
+      : null;
   const selectedTransferTargetRuntimeId =
     transferTargetRuntimeId && transferTargetRuntimeId !== primaryRuntimeId
       ? transferTargetRuntimeId
@@ -367,6 +373,10 @@ export function BackingServiceSettingsPanel({
     !databaseContinuityBusy &&
     !continuityBlockerMessage &&
     Boolean(selectedFailoverTargetRuntimeId);
+  const failoverTargetChanged =
+    selectedFailoverTargetRuntimeId !== appliedFailoverTargetRuntimeId;
+  const showSaveFailoverButton =
+    !service.databaseFailoverConfigured || failoverTargetChanged || saving;
   const canTransfer =
     !transferSaving &&
     !databaseContinuityBusy &&
@@ -659,18 +669,20 @@ export function BackingServiceSettingsPanel({
                 Disable
               </Button>
             ) : null}
-            <Button
-              disabled={!canSave}
-              loading={saving}
-              loadingLabel="Saving…"
-              size="compact"
-              type="submit"
-              variant="primary"
-            >
-              {service.databaseFailoverConfigured
-                ? "Save standby"
-                : "Enable failover"}
-            </Button>
+            {showSaveFailoverButton ? (
+              <Button
+                disabled={!canSave}
+                loading={saving}
+                loadingLabel="Saving…"
+                size="compact"
+                type="submit"
+                variant="primary"
+              >
+                {service.databaseFailoverConfigured
+                  ? "Save standby"
+                  : "Enable failover"}
+              </Button>
+            ) : null}
           </div>
         </form>
       </section>

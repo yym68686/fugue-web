@@ -1228,6 +1228,10 @@ function AppAutomaticFailoverSection({
     targetRuntimeId && targetRuntimeId !== primaryRuntimeId
       ? targetRuntimeId
       : null;
+  const configuredTargetRuntimeId =
+    app.failoverTargetRuntimeId && app.failoverTargetRuntimeId !== primaryRuntimeId
+      ? app.failoverTargetRuntimeId
+      : null;
   const primaryRuntimeLabel = readRuntimeTargetLabel(
     runtimeTargets,
     primaryRuntimeId,
@@ -1257,6 +1261,10 @@ function AppAutomaticFailoverSection({
         : null;
   const canSave =
     !saving && !blockerMessage && Boolean(selectedTargetRuntimeId);
+  const failoverTargetChanged =
+    selectedTargetRuntimeId !== configuredTargetRuntimeId;
+  const showSaveButton =
+    !app.failoverConfigured || failoverTargetChanged || saving;
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -1443,16 +1451,18 @@ function AppAutomaticFailoverSection({
               Disable
             </Button>
           ) : null}
-          <Button
-            disabled={!canSave}
-            loading={saving}
-            loadingLabel="Saving…"
-            size="compact"
-            type="submit"
-            variant="primary"
-          >
-            {app.failoverConfigured ? "Save standby" : "Enable failover"}
-          </Button>
+          {showSaveButton ? (
+            <Button
+              disabled={!canSave}
+              loading={saving}
+              loadingLabel="Saving…"
+              size="compact"
+              type="submit"
+              variant="primary"
+            >
+              {app.failoverConfigured ? "Save standby" : "Enable failover"}
+            </Button>
+          ) : null}
         </div>
       </form>
     </section>
