@@ -92,7 +92,7 @@ type ProjectNameEntry = {
   name: string;
 };
 
-const DEFAULT_IMAGE_MIRROR_LIMIT = 5;
+const DEFAULT_IMAGE_MIRROR_LIMIT = 1;
 
 function normalizeText(value?: string | null) {
   return value?.trim() ?? "";

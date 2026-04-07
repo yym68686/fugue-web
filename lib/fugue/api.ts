@@ -718,7 +718,7 @@ function buildAppView(app: CamelizedSchema<"App">) {
     },
     source: buildAppSourceView(app.source),
     spec: {
-      imageMirrorLimit: readNullableNumber(spec?.imageMirrorLimit) ?? 5,
+      imageMirrorLimit: readNullableNumber(spec?.imageMirrorLimit) ?? 1,
       networkMode: readNullableString(spec?.networkMode),
       runtimeId: readNullableString(spec?.runtimeId),
       replicas,

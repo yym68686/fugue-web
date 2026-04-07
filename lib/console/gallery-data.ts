@@ -1916,7 +1916,7 @@ function buildSharedAppView(
       (service) => service.type === "postgres",
     ),
     id: app.id,
-    imageMirrorLimit: app.spec.imageMirrorLimit ?? 5,
+    imageMirrorLimit: app.spec.imageMirrorLimit ?? 1,
     locationCountryCode: options?.location?.locationCountryCode ?? null,
     locationLabel: options?.location?.locationLabel ?? null,
     name: app.name,
