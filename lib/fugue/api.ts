@@ -488,6 +488,29 @@ function buildAppFailoverView(
   };
 }
 
+function buildAppPostgresView(
+  postgres?: CamelizedSchema<"AppPostgresSpec"> | null,
+) {
+  return {
+    database: readNullableString(postgres?.database),
+    failoverTargetRuntimeId: readNullableString(
+      postgres?.failoverTargetRuntimeId,
+    ),
+    image: readNullableString(postgres?.image),
+    instances: readNullableNumber(postgres?.instances),
+    password: readNullableString(postgres?.password),
+    primaryPlacementPendingRebalance:
+      postgres?.primaryPlacementPendingRebalance ?? false,
+    resources: postgres?.resources
+      ? buildResourceSpecView(postgres.resources)
+      : null,
+    runtimeId: readNullableString(postgres?.runtimeId),
+    serviceName: readNullableString(postgres?.serviceName),
+    synchronousReplicas: readNullableNumber(postgres?.synchronousReplicas),
+    user: readNullableString(postgres?.user),
+  };
+}
+
 function buildFilesystemEntryView(
   entry: CamelizedSchema<"AppFilesystemEntry">,
 ) {
@@ -651,26 +674,7 @@ function buildBackingServiceView(service: CamelizedSchema<"BackingService">) {
     projectId: readNullableString(service.projectId),
     provisioner: readNullableString(service.provisioner),
     spec: {
-      postgres: postgres
-        ? {
-            database: readNullableString(postgres.database),
-            failoverTargetRuntimeId: readNullableString(
-              postgres.failoverTargetRuntimeId,
-            ),
-            image: readNullableString(postgres.image),
-            instances: readNullableNumber(postgres.instances),
-            password: readNullableString(postgres.password),
-            resources: postgres.resources
-              ? buildResourceSpecView(postgres.resources)
-              : null,
-            runtimeId: readNullableString(postgres.runtimeId),
-            serviceName: readNullableString(postgres.serviceName),
-            synchronousReplicas: readNullableNumber(
-              postgres.synchronousReplicas,
-            ),
-            user: readNullableString(postgres.user),
-          }
-        : null,
+      postgres: postgres ? buildAppPostgresView(postgres) : null,
     },
     status: readNullableString(service.status),
     tenantId: readNullableString(service.tenantId),
@@ -1063,6 +1067,16 @@ function buildOperationView(operation: CamelizedSchema<"Operation">) {
     appId: readNullableString(operation.appId),
     sourceRuntimeId: readNullableString(operation.sourceRuntimeId),
     targetRuntimeId: readNullableString(operation.targetRuntimeId),
+    desiredSpec: operation.desiredSpec
+      ? {
+          failover: operation.desiredSpec.failover
+            ? buildAppFailoverView(operation.desiredSpec.failover)
+            : null,
+          postgres: operation.desiredSpec.postgres
+            ? buildAppPostgresView(operation.desiredSpec.postgres)
+            : null,
+        }
+      : null,
     desiredSource: operation.desiredSource
       ? buildAppSourceView(operation.desiredSource)
       : null,
@@ -1472,25 +1486,7 @@ function buildContinuityResultView(
     appFailover: response.appFailover
       ? buildAppFailoverView(response.appFailover)
       : null,
-    database: response.database
-      ? {
-          database: readNullableString(response.database.database),
-          failoverTargetRuntimeId: readNullableString(
-            response.database.failoverTargetRuntimeId,
-          ),
-          image: readNullableString(response.database.image),
-          instances: readNullableNumber(response.database.instances),
-          resources: response.database.resources
-            ? buildResourceSpecView(response.database.resources)
-            : null,
-          runtimeId: readNullableString(response.database.runtimeId),
-          serviceName: readNullableString(response.database.serviceName),
-          synchronousReplicas: readNullableNumber(
-            response.database.synchronousReplicas,
-          ),
-          user: readNullableString(response.database.user),
-        }
-      : null,
+    database: response.database ? buildAppPostgresView(response.database) : null,
     operation: response.operation
       ? buildOperationView(response.operation)
       : null,
@@ -1550,6 +1546,7 @@ export type FugueAppPersistentStorage = ReturnType<
   typeof buildAppPersistentStorageView
 >;
 export type FugueAppFailover = ReturnType<typeof buildAppFailoverView>;
+export type FugueAppPostgres = ReturnType<typeof buildAppPostgresView>;
 export type FugueFilesystemEntry = ReturnType<typeof buildFilesystemEntryView>;
 export type FugueAppTechnology = ReturnType<typeof buildAppTechnologyView>;
 export type FugueResourceSpec = ReturnType<typeof buildResourceSpecView> & {

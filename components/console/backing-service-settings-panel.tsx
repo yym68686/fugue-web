@@ -14,6 +14,7 @@ import type {
   ConsoleGalleryBackingServiceView,
   ConsoleImportRuntimeTargetView,
 } from "@/lib/console/gallery-types";
+import type { ConsoleTone } from "@/lib/console/types";
 import {
   readDefaultImportRuntimeId,
   readManagedRuntimeTargets,
@@ -124,12 +125,98 @@ function readDatabaseTopologyLabel(service: ConsoleGalleryBackingServiceView) {
   return `${instances} instance`;
 }
 
+function readInlineAlertVariantForTone(tone: ConsoleTone) {
+  switch (tone) {
+    case "danger":
+      return "error";
+    case "positive":
+      return "success";
+    case "warning":
+      return "warning";
+    default:
+      return "info";
+  }
+}
+
+function readPrimaryPlacementPendingMessage() {
+  return "Primary placement stays as-is until a later maintenance window, rebuild, node drain, or explicit rebalance.";
+}
+
+function readDatabaseContinuityStandbyLabel(
+  service: ConsoleGalleryBackingServiceView,
+  configuredTargetLabel: string,
+  pendingTargetLabel: string,
+) {
+  switch (service.databaseContinuity.state) {
+    case "disable-queued":
+    case "removing-standby":
+      return service.databaseFailoverTargetRuntimeId
+        ? `${configuredTargetLabel} (removing)`
+        : "Removing standby";
+    case "enable-queued":
+    case "provisioning-standby":
+    case "standby-update-queued":
+    case "updating-standby":
+      return service.databaseContinuity.pendingTargetRuntimeId
+        ? `${pendingTargetLabel} (applying)`
+        : pendingTargetLabel;
+    case "configured":
+      return service.databaseFailoverConfigured
+        ? configuredTargetLabel
+        : "Not configured";
+    case "off":
+    default:
+      return "Not configured";
+  }
+}
+
+function readDatabaseContinuityMessage(
+  service: ConsoleGalleryBackingServiceView,
+  primaryRuntimeLabel: string,
+  configuredTargetLabel: string,
+  pendingTargetLabel: string,
+) {
+  const configuredStandbyLabel = service.databaseFailoverTargetRuntimeId
+    ? configuredTargetLabel
+    : "the current standby";
+  const primaryPlacementPendingMessage =
+    service.databaseContinuity.placementPendingRebalance
+      ? ` ${readPrimaryPlacementPendingMessage()}`
+      : "";
+
+  switch (service.databaseContinuity.state) {
+    case "disable-queued":
+      return `Failover disable is queued. ${primaryRuntimeLabel} keeps serving writes while Fugue removes the standby.${primaryPlacementPendingMessage}`;
+    case "enable-queued":
+      return `Failover enable is queued. Fugue will prepare ${pendingTargetLabel} as the standby while ${primaryRuntimeLabel} keeps serving writes.${primaryPlacementPendingMessage}`;
+    case "provisioning-standby":
+      return `Fugue is provisioning ${pendingTargetLabel} as the standby. ${primaryRuntimeLabel} keeps serving writes throughout the change.${primaryPlacementPendingMessage}`;
+    case "removing-standby":
+      return `Fugue is removing the standby from ${configuredStandbyLabel}. ${primaryRuntimeLabel} keeps serving writes throughout the change.${primaryPlacementPendingMessage}`;
+    case "standby-update-queued":
+      return `Standby update is queued. Fugue will move failover to ${pendingTargetLabel} while ${primaryRuntimeLabel} keeps serving writes.${primaryPlacementPendingMessage}`;
+    case "updating-standby":
+      return `Fugue is moving the standby to ${pendingTargetLabel}. ${primaryRuntimeLabel} keeps serving writes throughout the change.${primaryPlacementPendingMessage}`;
+    case "configured":
+      return service.databaseContinuity.placementPendingRebalance
+        ? `Standby is ready. ${readPrimaryPlacementPendingMessage()}`
+        : null;
+    case "off":
+    default:
+      return service.databaseContinuity.placementPendingRebalance
+        ? `Failover is off and the standby is gone. ${readPrimaryPlacementPendingMessage()}`
+        : null;
+  }
+}
+
 export function BackingServiceSettingsPanel({
+  onRefreshRequested,
   ownerAppRuntimeId,
   runtimeTargetInventoryError,
   runtimeTargets,
   service,
 }: {
+  onRefreshRequested?: () => void;
   ownerAppRuntimeId: string | null;
   runtimeTargetInventoryError: string | null;
   runtimeTargets: ConsoleImportRuntimeTargetView[];
@@ -149,7 +236,8 @@ export function BackingServiceSettingsPanel({
   >(() =>
     readInitialDatabaseFailoverTargetRuntimeId(
       primaryRuntimeId,
-      service.databaseFailoverTargetRuntimeId,
+      service.databaseContinuity.pendingTargetRuntimeId ??
+        service.databaseFailoverTargetRuntimeId,
       runtimeTargets,
     ),
   );
@@ -169,7 +257,8 @@ export function BackingServiceSettingsPanel({
     setFailoverTargetRuntimeId(
       readInitialDatabaseFailoverTargetRuntimeId(
         service.databaseRuntimeId ?? ownerAppRuntimeId,
-        service.databaseFailoverTargetRuntimeId,
+        service.databaseContinuity.pendingTargetRuntimeId ??
+          service.databaseFailoverTargetRuntimeId,
         runtimeTargets,
       ),
     );
@@ -183,6 +272,7 @@ export function BackingServiceSettingsPanel({
   }, [
     ownerAppRuntimeId,
     runtimeTargets,
+    service.databaseContinuity.pendingTargetRuntimeId,
     service.databaseFailoverTargetRuntimeId,
     service.databaseTransferTargetRuntimeId,
     service.databaseRuntimeId,
@@ -207,6 +297,11 @@ export function BackingServiceSettingsPanel({
     service.databaseFailoverTargetRuntimeId,
     "Not configured",
   );
+  const pendingFailoverTargetLabel = readRuntimeTargetLabel(
+    runtimeTargets,
+    service.databaseContinuity.pendingTargetRuntimeId,
+    "Pending standby unavailable",
+  );
   const selectedFailoverTargetLabel = readRuntimeTargetLabel(
     runtimeTargets,
     selectedFailoverTargetRuntimeId,
@@ -222,9 +317,24 @@ export function BackingServiceSettingsPanel({
     selectedTransferTargetRuntimeId,
     "No destination selected",
   );
+  const databaseContinuityBusy = service.databaseContinuity.live;
+  const databaseContinuityMessage = readDatabaseContinuityMessage(
+    service,
+    primaryRuntimeLabel,
+    configuredFailoverTargetLabel,
+    pendingFailoverTargetLabel,
+  );
+  const standbyRuntimeLabel = readDatabaseContinuityStandbyLabel(
+    service,
+    configuredFailoverTargetLabel,
+    pendingFailoverTargetLabel,
+  );
   const databaseTransferInProgress = Boolean(
     service.databaseTransferTargetRuntimeId,
   );
+  const continuityTransitionMessage = databaseContinuityBusy
+    ? "Database failover is already changing."
+    : null;
   const transferInProgressMessage = databaseTransferInProgress
     ? `A database transfer to ${activeTransferTargetLabel} is already in progress.`
     : null;
@@ -241,6 +351,8 @@ export function BackingServiceSettingsPanel({
             : null;
   const transferBlockerMessage = !service.ownerAppId
     ? "This database is not attached to an application."
+    : continuityTransitionMessage
+      ? continuityTransitionMessage
     : transferInProgressMessage
       ? transferInProgressMessage
       : runtimeTargetInventoryError
@@ -252,19 +364,23 @@ export function BackingServiceSettingsPanel({
           : null;
   const canSave =
     !saving &&
+    !databaseContinuityBusy &&
     !continuityBlockerMessage &&
     Boolean(selectedFailoverTargetRuntimeId);
   const canTransfer =
     !transferSaving &&
+    !databaseContinuityBusy &&
     !transferBlockerMessage &&
     Boolean(selectedTransferTargetRuntimeId);
 
   async function handleFailoverSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!service.ownerAppId) {
+    if (!service.ownerAppId || databaseContinuityBusy) {
       showToast({
-        message: "This database cannot be configured from the console yet.",
+        message: !service.ownerAppId
+          ? "This database cannot be configured from the console yet."
+          : "Database failover is already changing. Wait for the current step to finish.",
         variant: "info",
       });
       return;
@@ -303,6 +419,7 @@ export function BackingServiceSettingsPanel({
           : `Database failover saved. Standby runtime: ${selectedFailoverTargetLabel}.`,
         variant: "success",
       });
+      onRefreshRequested?.();
       startTransition(() => {
         router.refresh();
       });
@@ -320,6 +437,7 @@ export function BackingServiceSettingsPanel({
     if (
       !service.ownerAppId ||
       !service.databaseFailoverConfigured ||
+      databaseContinuityBusy ||
       saving ||
       databaseTransferInProgress
     ) {
@@ -350,6 +468,7 @@ export function BackingServiceSettingsPanel({
           : "Database failover disabled.",
         variant: "success",
       });
+      onRefreshRequested?.();
       startTransition(() => {
         router.refresh();
       });
@@ -366,9 +485,11 @@ export function BackingServiceSettingsPanel({
   async function handleTransferSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!service.ownerAppId) {
+    if (!service.ownerAppId || databaseContinuityBusy) {
       showToast({
-        message: "This database cannot be transferred from the console yet.",
+        message: !service.ownerAppId
+          ? "This database cannot be transferred from the console yet."
+          : "Database failover is already changing. Wait for the current step to finish.",
         variant: "info",
       });
       return;
@@ -414,6 +535,7 @@ export function BackingServiceSettingsPanel({
         message: `Database transfer queued to ${selectedTransferTargetLabel}.`,
         variant: "success",
       });
+      onRefreshRequested?.();
       startTransition(() => {
         router.refresh();
       });
@@ -454,9 +576,10 @@ export function BackingServiceSettingsPanel({
           </div>
 
           <StatusBadge
-            tone={service.databaseFailoverConfigured ? "info" : "neutral"}
+            live={service.databaseContinuity.live}
+            tone={service.databaseContinuity.tone}
           >
-            {service.databaseFailoverConfigured ? "Configured" : "Off"}
+            {service.databaseContinuity.label}
           </StatusBadge>
         </div>
 
@@ -471,11 +594,7 @@ export function BackingServiceSettingsPanel({
           </div>
           <div>
             <dt>Standby runtime</dt>
-            <dd>
-              {service.databaseFailoverConfigured
-                ? configuredFailoverTargetLabel
-                : "Not configured"}
-            </dd>
+            <dd>{standbyRuntimeLabel}</dd>
           </div>
           <div>
             <dt>Topology</dt>
@@ -484,6 +603,16 @@ export function BackingServiceSettingsPanel({
         </dl>
 
         <form className="fg-settings-form" onSubmit={handleFailoverSubmit}>
+          {databaseContinuityMessage ? (
+            <InlineAlert
+              variant={readInlineAlertVariantForTone(
+                service.databaseContinuity.tone,
+              )}
+            >
+              {databaseContinuityMessage}
+            </InlineAlert>
+          ) : null}
+
           {continuityBlockerMessage ? (
             <InlineAlert variant="warning">{continuityBlockerMessage}</InlineAlert>
           ) : null}
@@ -494,7 +623,9 @@ export function BackingServiceSettingsPanel({
               label="Standby runtime"
             >
               <SelectField
-                disabled={saving || databaseTransferInProgress}
+                disabled={
+                  saving || databaseContinuityBusy || databaseTransferInProgress
+                }
                 id={`database-failover-target-${service.id}`}
                 name="databaseFailoverTarget"
                 onChange={(event) =>
@@ -517,7 +648,9 @@ export function BackingServiceSettingsPanel({
           <div className="fg-settings-form__actions">
             {service.databaseFailoverConfigured ? (
               <Button
-                disabled={saving || databaseTransferInProgress}
+                disabled={
+                  saving || databaseContinuityBusy || databaseTransferInProgress
+                }
                 onClick={handleDisable}
                 size="compact"
                 type="button"
@@ -602,7 +735,11 @@ export function BackingServiceSettingsPanel({
               label="Destination"
             >
               <SelectField
-                disabled={transferSaving || databaseTransferInProgress}
+                disabled={
+                  transferSaving ||
+                  databaseContinuityBusy ||
+                  databaseTransferInProgress
+                }
                 id={`database-transfer-target-${service.id}`}
                 name="databaseTransferTarget"
                 onChange={(event) =>

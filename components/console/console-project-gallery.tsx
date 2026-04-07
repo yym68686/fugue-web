@@ -575,6 +575,12 @@ function readBackingServiceRoleLabel(
     : "Primary database";
 }
 
+function hasLiveDatabaseContinuity(
+  service?: Pick<ConsoleGalleryBackingServiceView, "databaseContinuity"> | null,
+) {
+  return service?.databaseContinuity.live ?? false;
+}
+
 function isPendingForceDeletePhase(phase?: string | null) {
   const normalized = phase?.trim().toLowerCase() ?? "";
 
@@ -5265,6 +5271,7 @@ export function ConsoleProjectGallery({
                 ) : selectedService.kind === "backing-service" &&
                   activeTab === "settings" ? (
                   <BackingServiceSettingsPanel
+                    onRefreshRequested={armRefreshWindow}
                     ownerAppRuntimeId={selectedApp?.runtimeId ?? null}
                     runtimeTargetInventoryError={
                       data.runtimeTargetInventoryError
@@ -5574,6 +5581,10 @@ export function ConsoleProjectWorkbench({
   const detailProject = optimisticProjects[0] ?? null;
   const detailProjectServices = detailProject?.services ?? [];
   const detailProjectApps = detailProject ? projectApps(detailProject) : [];
+  const hasProjectContinuityTransition = detailProjectServices.some(
+    (service) =>
+      service.kind === "backing-service" && hasLiveDatabaseContinuity(service),
+  );
   const selectedService =
     detailProjectServices.find(
       (service) => serviceKey(service) === selectedServiceKey,
@@ -5625,6 +5636,11 @@ export function ConsoleProjectWorkbench({
     effectiveLogsMode,
   );
   useWorkbenchAnticipatoryWarmup(detailProjectServices, selectedService);
+  const requestWorkbenchRefresh = useEffectEvent(() => {
+    lastRefreshTokenRef.current = refreshToken + 1;
+    onProjectMutation();
+    void refreshDetail({ force: true, silent: true });
+  });
 
   const refreshDetail = useEffectEvent(
     async (options?: { force?: boolean; silent?: boolean }) => {
@@ -5704,6 +5720,20 @@ export function ConsoleProjectWorkbench({
       detailRefreshAbortRef.current?.abort();
     };
   }, []);
+
+  useEffect(() => {
+    if (!hasProjectContinuityTransition) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      void refreshDetail({ force: true, silent: true });
+    }, 3000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [hasProjectContinuityTransition, refreshDetail]);
 
   useEffect(() => {
     if (!selectedServiceApp || !selectedAppNeedsPendingCommitHint) {
@@ -7029,6 +7059,7 @@ export function ConsoleProjectWorkbench({
               ) : selectedService.kind === "backing-service" &&
                 activeTab === "settings" ? (
                 <BackingServiceSettingsPanel
+                  onRefreshRequested={requestWorkbenchRefresh}
                   ownerAppRuntimeId={selectedApp?.runtimeId ?? null}
                   runtimeTargetInventoryError={
                     runtimeInventory.runtimeTargetInventoryError

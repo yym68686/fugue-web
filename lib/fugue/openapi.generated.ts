@@ -3122,7 +3122,10 @@ export interface operations {
     };
     getConsoleGallery: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description When true, attempt the managed app live status overlay; defaults to false. */
+                include_live_status?: boolean;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -3143,7 +3146,10 @@ export interface operations {
     };
     streamConsoleGallery: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description When true, attempt the managed app live status overlay; defaults to false. */
+                include_live_status?: boolean;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -3164,7 +3170,10 @@ export interface operations {
     };
     getConsoleProject: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description When true, attempt the managed app live status overlay; defaults to false. */
+                include_live_status?: boolean;
+            };
             header?: never;
             path: {
                 id: components["parameters"]["IdPathParam"];
@@ -4051,7 +4060,7 @@ export interface operations {
     listApps: {
         parameters: {
             query?: {
-                /** @description When false, skip the managed app live status overlay. */
+                /** @description When true, attempt the managed app live status overlay; defaults to false. */
                 include_live_status?: boolean;
                 /** @description When false, skip the current resource usage overlay. */
                 include_resource_usage?: boolean;

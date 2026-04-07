@@ -47,6 +47,25 @@ export type ConsoleGalleryCommitView = {
 export type ConsoleGalleryAppServiceRole = "pending" | "running";
 export type ConsoleGalleryBackingServiceRole = "pending" | "running";
 
+export type ConsoleGalleryDatabaseContinuityState =
+  | "configured"
+  | "disable-queued"
+  | "enable-queued"
+  | "off"
+  | "provisioning-standby"
+  | "removing-standby"
+  | "standby-update-queued"
+  | "updating-standby";
+
+export type ConsoleGalleryDatabaseContinuityView = {
+  label: string;
+  live: boolean;
+  pendingTargetRuntimeId: string | null;
+  placementPendingRebalance: boolean;
+  state: ConsoleGalleryDatabaseContinuityState;
+  tone: ConsoleTone;
+};
+
 export type ConsoleGalleryPersistentStorageMountView = {
   kind: "directory" | "file" | null;
   mode: number | null;
@@ -111,6 +130,7 @@ export type ConsoleGalleryAppView = {
 };
 
 export type ConsoleGalleryBackingServiceView = {
+  databaseContinuity: ConsoleGalleryDatabaseContinuityView;
   databaseFailoverConfigured: boolean;
   databaseFailoverTargetRuntimeId: string | null;
   databaseInstances: number | null;

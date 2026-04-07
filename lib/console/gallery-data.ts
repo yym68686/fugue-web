@@ -33,6 +33,7 @@ import {
   getFugueRuntimes,
   type FugueApp,
   type FugueAppPersistentStorageMount,
+  type FugueAppPostgres,
   type FugueAppSource,
   type FugueBackingService,
   type FugueClusterNode,
@@ -577,6 +578,164 @@ function isDatabaseTransferOperation(operation?: FugueOperation | null) {
   );
 }
 
+type DatabaseContinuitySnapshot = {
+  failoverTargetRuntimeId: string | null;
+  instances: number;
+  primaryPlacementPendingRebalance: boolean;
+  synchronousReplicas: number;
+};
+
+function readDatabaseContinuitySnapshot(
+  postgres?: Pick<
+    FugueAppPostgres,
+    | "failoverTargetRuntimeId"
+    | "instances"
+    | "primaryPlacementPendingRebalance"
+    | "synchronousReplicas"
+  > | null,
+): DatabaseContinuitySnapshot {
+  return {
+    failoverTargetRuntimeId: postgres?.failoverTargetRuntimeId?.trim() || null,
+    instances: Math.max(postgres?.instances ?? 1, 1),
+    primaryPlacementPendingRebalance:
+      postgres?.primaryPlacementPendingRebalance ?? false,
+    synchronousReplicas: Math.max(postgres?.synchronousReplicas ?? 0, 0),
+  };
+}
+
+function hasDatabaseContinuityConfigured(snapshot: DatabaseContinuitySnapshot) {
+  return Boolean(
+    snapshot.failoverTargetRuntimeId ||
+      (snapshot.instances > 1 && snapshot.synchronousReplicas > 0),
+  );
+}
+
+function databaseContinuitySnapshotsEqual(
+  left: DatabaseContinuitySnapshot,
+  right: DatabaseContinuitySnapshot,
+) {
+  return (
+    left.failoverTargetRuntimeId === right.failoverTargetRuntimeId &&
+    left.instances === right.instances &&
+    left.primaryPlacementPendingRebalance ===
+      right.primaryPlacementPendingRebalance &&
+    left.synchronousReplicas === right.synchronousReplicas
+  );
+}
+
+function isQueuedOperationStatus(operation?: FugueOperation | null) {
+  const normalizedStatus = readNormalizedOperationStatus(operation);
+  return (
+    normalizedStatus.includes("queued") || normalizedStatus.includes("pending")
+  );
+}
+
+function isDatabaseContinuityOperationCandidate(
+  operation?: FugueOperation | null,
+) {
+  return (
+    isActiveOperation(operation?.status) && Boolean(operation?.desiredSpec?.postgres)
+  );
+}
+
+function readDatabaseContinuityView(
+  service: FugueBackingService,
+  continuityOperation?: FugueOperation | null,
+): ConsoleGalleryBackingServiceView["databaseContinuity"] {
+  const current = readDatabaseContinuitySnapshot(service.spec.postgres);
+  const desiredPostgres = continuityOperation?.desiredSpec?.postgres ?? null;
+  const desired = desiredPostgres
+    ? readDatabaseContinuitySnapshot(desiredPostgres)
+    : current;
+  const currentConfigured = hasDatabaseContinuityConfigured(current);
+  const desiredConfigured = hasDatabaseContinuityConfigured(desired);
+  const hasPendingTopologyChange =
+    Boolean(desiredPostgres) && !databaseContinuitySnapshotsEqual(current, desired);
+
+  if (hasPendingTopologyChange) {
+    const queued = isQueuedOperationStatus(continuityOperation);
+
+    if (!desiredConfigured) {
+      return {
+        label: queued ? "Disable queued" : "Removing standby",
+        live: true,
+        pendingTargetRuntimeId: null,
+        placementPendingRebalance: desired.primaryPlacementPendingRebalance,
+        state: queued ? "disable-queued" : "removing-standby",
+        tone: queued ? "warning" : "info",
+      };
+    }
+
+    if (!currentConfigured) {
+      return {
+        label: queued ? "Enable queued" : "Provisioning standby",
+        live: true,
+        pendingTargetRuntimeId: desired.failoverTargetRuntimeId,
+        placementPendingRebalance: desired.primaryPlacementPendingRebalance,
+        state: queued ? "enable-queued" : "provisioning-standby",
+        tone: queued ? "warning" : "info",
+      };
+    }
+
+    return {
+      label: queued ? "Standby change queued" : "Updating standby",
+      live: true,
+      pendingTargetRuntimeId: desired.failoverTargetRuntimeId,
+      placementPendingRebalance: desired.primaryPlacementPendingRebalance,
+      state: queued ? "standby-update-queued" : "updating-standby",
+      tone: queued ? "warning" : "info",
+    };
+  }
+
+  if (currentConfigured) {
+    return {
+      label: "Configured",
+      live: false,
+      pendingTargetRuntimeId: null,
+      placementPendingRebalance: current.primaryPlacementPendingRebalance,
+      state: "configured",
+      tone: "info",
+    };
+  }
+
+  return {
+    label: "Off",
+    live: false,
+    pendingTargetRuntimeId: null,
+    placementPendingRebalance: current.primaryPlacementPendingRebalance,
+    state: "off",
+    tone: "neutral",
+  };
+}
+
+function readDatabaseContinuityDescription(
+  continuity: ConsoleGalleryBackingServiceView["databaseContinuity"],
+) {
+  switch (continuity.state) {
+    case "disable-queued":
+      return "Queued to remove the standby runtime.";
+    case "enable-queued":
+      return "Queued to add a standby runtime.";
+    case "provisioning-standby":
+      return "Preparing the standby while the current primary keeps serving writes.";
+    case "removing-standby":
+      return "Removing the standby while the current primary keeps serving writes.";
+    case "standby-update-queued":
+      return "Queued to update the standby runtime.";
+    case "updating-standby":
+      return "Updating the standby while the current primary keeps serving writes.";
+    case "configured":
+      return continuity.placementPendingRebalance
+        ? "Standby runtime configured. Primary placement relaxes on the next rebalance."
+        : "Standby runtime configured.";
+    case "off":
+    default:
+      return continuity.placementPendingRebalance
+        ? "Single-runtime database. Primary placement relaxes on the next rebalance."
+        : "Single-runtime database.";
+  }
+}
+
 function readDatabaseTransferState(operation?: FugueOperation | null) {
   const normalizedStatus = readNormalizedOperationStatus(operation);
 
@@ -1119,6 +1278,26 @@ function collectDatabaseTransferOperationsByAppId(operations: FugueOperation[]) 
   }
 
   return databaseTransferOperationsByAppId;
+}
+
+function collectDatabaseContinuityOperationsByAppId(
+  operations: FugueOperation[],
+) {
+  const databaseContinuityOperationsByAppId = new Map<string, FugueOperation>();
+
+  for (const operation of sortByTimestampDesc(operations, readOperationTimestamp)) {
+    if (
+      !operation.appId ||
+      databaseContinuityOperationsByAppId.has(operation.appId) ||
+      !isDatabaseContinuityOperationCandidate(operation)
+    ) {
+      continue;
+    }
+
+    databaseContinuityOperationsByAppId.set(operation.appId, operation);
+  }
+
+  return databaseContinuityOperationsByAppId;
 }
 
 function readRoute(app: FugueApp) {
@@ -1849,6 +2028,7 @@ function buildBackingServiceViews(
   runtimeLocationsById: ReadonlyMap<string, RuntimeTargetLocationView>,
   location?: WorkloadLocationView | null,
   databaseTransferOperation?: FugueOperation | null,
+  databaseContinuityOperation?: FugueOperation | null,
 ): ConsoleGalleryBackingServiceView[] {
   const postgres = service.spec.postgres;
   const ownerAppRuntimeId = service.ownerAppId
@@ -1865,6 +2045,10 @@ function buildBackingServiceViews(
     databaseFailoverTargetRuntimeId ||
     ((databaseInstances ?? 0) > 1 && (databaseSynchronousReplicas ?? 0) > 0),
   );
+  const databaseContinuity = readDatabaseContinuityView(
+    service,
+    databaseContinuityOperation,
+  );
   const ownerAppLabel = service.ownerAppId
     ? (appNames.get(service.ownerAppId) ?? "Attached app")
     : "Attached app";
@@ -1875,6 +2059,7 @@ function buildBackingServiceViews(
     meta: "Service",
   } satisfies ConsoleGalleryBackingServiceView["primaryBadge"];
   const runningView = {
+    databaseContinuity,
     databaseFailoverConfigured,
     databaseFailoverTargetRuntimeId,
     databaseInstances,
@@ -1884,9 +2069,7 @@ function buildBackingServiceViews(
     description: postgres
       ? databaseTransferTargetRuntimeId
         ? "Serving writes from the current primary while Fugue prepares the destination."
-        : databaseFailoverConfigured
-          ? "Standby runtime configured."
-          : "Single-runtime database."
+        : readDatabaseContinuityDescription(databaseContinuity)
       : (service.description ?? "Attached backing service."),
     id: service.id,
     locationCountryCode: location?.locationCountryCode ?? null,
@@ -2195,6 +2378,8 @@ function buildConsoleProjectViewFromDetail(
   );
   const databaseTransferOperationsByAppId =
     collectDatabaseTransferOperationsByAppId(detail.operations);
+  const databaseContinuityOperationsByAppId =
+    collectDatabaseContinuityOperationsByAppId(detail.operations);
   const workloadLocationsById = buildWorkloadLocationMap(detail.clusterNodes);
   const runtimeLocationsById = buildRuntimeTargetLocationMap(detail.clusterNodes);
   const backingServicesById = new Map<string, FugueBackingService>();
@@ -2235,13 +2420,17 @@ function buildConsoleProjectViewFromDetail(
       appNames,
       appRuntimeIds,
       runtimeLocationsById,
-      workloadLocationsById.get(service.id) ?? null,
-      service.ownerAppId
-        ? (databaseTransferOperationsByAppId.get(service.ownerAppId) ?? null)
-        : null,
-    ).map((view) => ({
-      kind: "backing-service" as const,
-      ...view,
+        workloadLocationsById.get(service.id) ?? null,
+        service.ownerAppId
+          ? (databaseTransferOperationsByAppId.get(service.ownerAppId) ?? null)
+          : null,
+        service.ownerAppId
+          ? (databaseContinuityOperationsByAppId.get(service.ownerAppId) ??
+            null)
+          : null,
+      ).map((view) => ({
+        kind: "backing-service" as const,
+        ...view,
     })),
   );
   const services = [...appViews, ...backingServiceViews];
@@ -2523,6 +2712,8 @@ const getConsoleProjectGalleryDataCached = cache(
     const commitOperationsByAppId = collectCommitOperationsByAppId(operations);
     const databaseTransferOperationsByAppId =
       collectDatabaseTransferOperationsByAppId(operations);
+    const databaseContinuityOperationsByAppId =
+      collectDatabaseContinuityOperationsByAppId(operations);
     const workloadLocationsById = buildWorkloadLocationMap(clusterNodes);
     const runtimeTargetLocationsById =
       buildRuntimeTargetLocationMap(clusterNodes);
@@ -2603,6 +2794,10 @@ const getConsoleProjectGalleryDataCached = cache(
             workloadLocationsById.get(service.id) ?? null,
             service.ownerAppId
               ? (databaseTransferOperationsByAppId.get(service.ownerAppId) ??
+                null)
+              : null,
+            service.ownerAppId
+              ? (databaseContinuityOperationsByAppId.get(service.ownerAppId) ??
                 null)
               : null,
           ).map((view) => ({
