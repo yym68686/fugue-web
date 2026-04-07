@@ -1774,6 +1774,7 @@ export interface components {
             service_name?: string;
             runtime_id?: string;
             failover_target_runtime_id?: string;
+            primary_placement_pending_rebalance?: boolean;
             storage_size?: string;
             storage_class_name?: string;
             /** Format: int32 */
@@ -2024,6 +2025,7 @@ export interface components {
         AppContinuityDatabaseFailoverRequest: {
             enabled: boolean;
             target_runtime_id?: string;
+            rebalance_now?: boolean;
         };
         PatchAppContinuityRequest: {
             app_failover?: components["schemas"]["AppContinuityAppFailoverRequest"];
