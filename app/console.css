@@ -5409,6 +5409,10 @@
   scrollbar-gutter: stable;
 }
 
+.fg-log-output__viewport[data-has-vertical-overflow="false"] {
+  overscroll-behavior-y: auto;
+}
+
 .fg-log-output__viewport.is-placeholder {
   display: grid;
 }

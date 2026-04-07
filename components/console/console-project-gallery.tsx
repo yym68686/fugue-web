@@ -2648,6 +2648,17 @@ function ConsoleLogsPanel({
   const isRetryableStreamError = useEffectEvent((error: unknown) =>
     isRetryableLogStreamError(error, effectiveLogsMode, selectedServiceApp),
   );
+  const syncLogsViewportOverflowState = useEffectEvent(() => {
+    const viewport = logsViewportRef.current;
+
+    if (!viewport) {
+      return;
+    }
+
+    const hasVerticalOverflow = viewport.scrollHeight - viewport.clientHeight > 1;
+
+    viewport.dataset.hasVerticalOverflow = hasVerticalOverflow ? "true" : "false";
+  });
 
   function cancelScheduledLogCommit() {
     if (logsFlushFrameRef.current !== null) {
@@ -2762,12 +2773,14 @@ function ConsoleLogsPanel({
   }, [externalRefreshToken, logsRequestKey, manualRefreshToken]);
 
   useLayoutEffect(() => {
+    syncLogsViewportOverflowState();
+
     if (!logsAutoFollowRef.current) {
       return;
     }
 
     scrollLogsToBottom();
-  }, [deferredLogLines]);
+  }, [deferredLogLines, showLogsPlaceholder]);
 
   useEffect(() => {
     setLogsCopyState("idle");
@@ -2780,6 +2793,30 @@ function ConsoleLogsPanel({
       cancelScheduledLogCommit();
     };
   }, []);
+
+  useEffect(() => {
+    const viewport = logsViewportRef.current;
+
+    if (!viewport) {
+      return;
+    }
+
+    const content = viewport.firstElementChild;
+    const resizeObserver = new ResizeObserver(() => {
+      syncLogsViewportOverflowState();
+    });
+
+    syncLogsViewportOverflowState();
+    resizeObserver.observe(viewport);
+
+    if (content instanceof HTMLElement) {
+      resizeObserver.observe(content);
+    }
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [logsRequestKey, runtimeLogsUnavailableKey]);
 
   useEffect(() => {
     if (runtimeLogsUnavailable) {
