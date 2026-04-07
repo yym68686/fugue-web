@@ -1203,24 +1203,6 @@ function EmailMethodItem({
                         : "Add a stored password for faster return access. Registration still uses an email verification link."}
                     </PanelCopy>
                   </div>
-
-                  <div className="fg-profile-password-dialog__meta">
-                    <p
-                      className="fg-profile-password-dialog__email"
-                      title={data.user.email}
-                    >
-                      {data.user.email}
-                    </p>
-
-                    <div className="fg-console-inline-status">
-                      <StatusBadge tone={hasPassword ? "positive" : "neutral"}>
-                        {hasPassword ? "Password added" : "No password yet"}
-                      </StatusBadge>
-                      {data.session.authMethod === "password" ? (
-                        <StatusBadge tone="info">In use</StatusBadge>
-                      ) : null}
-                    </div>
-                  </div>
                 </div>
               </PanelSection>
 
@@ -1334,7 +1316,7 @@ function EmailMethodItem({
                     }}
                     size="compact"
                     type="button"
-                    variant="ghost"
+                    variant="secondary"
                   >
                     Cancel
                   </Button>

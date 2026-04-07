@@ -736,6 +736,33 @@ function readDatabaseContinuityDescription(
   }
 }
 
+function collectAppsWithLiveDatabaseContinuityTransition(
+  backingServices: FugueBackingService[],
+  operationsByAppId: ReadonlyMap<string, FugueOperation>,
+) {
+  const appIds = new Set<string>();
+
+  for (const service of backingServices) {
+    const ownerAppId = service.ownerAppId?.trim();
+    const normalizedServiceType = service.type?.trim().toLowerCase() ?? "";
+
+    if (!ownerAppId || normalizedServiceType !== "postgres") {
+      continue;
+    }
+
+    const continuity = readDatabaseContinuityView(
+      service,
+      operationsByAppId.get(ownerAppId) ?? null,
+    );
+
+    if (continuity.live) {
+      appIds.add(ownerAppId);
+    }
+  }
+
+  return appIds;
+}
+
 function readDatabaseTransferState(operation?: FugueOperation | null) {
   const normalizedStatus = readNormalizedOperationStatus(operation);
 
@@ -911,6 +938,30 @@ function readPendingBuildLogsOperation(
       isActiveOperation(operation.status),
     ) ??
     null
+  );
+}
+
+function isDatabaseContinuityOnlyDeployOperation(
+  app: FugueApp,
+  operation: FugueOperation | null | undefined,
+  hasLiveDatabaseContinuityTransition: boolean,
+) {
+  if (!operation || !hasLiveDatabaseContinuityTransition) {
+    return false;
+  }
+
+  const normalizedType = readNormalizedOperationType(operation);
+
+  if (normalizedType !== "deploy" || operation.desiredSource) {
+    return false;
+  }
+
+  const activeRuntimeId = readActiveAppRuntimeId(app);
+  const targetRuntimeId = operation.targetRuntimeId?.trim() || null;
+
+  return (
+    Boolean(operation.desiredSpec?.postgres) &&
+    (!targetRuntimeId || !activeRuntimeId || targetRuntimeId === activeRuntimeId)
   );
 }
 
@@ -1921,11 +1972,23 @@ function buildAppView(
   commitOperations?: AppCommitOperations,
   location?: WorkloadLocationView | null,
   runtimeLocationsById: ReadonlyMap<string, RuntimeTargetLocationView> = new Map(),
+  options?: {
+    hasLiveDatabaseContinuityTransition?: boolean;
+  },
 ): ConsoleGalleryAppView[] {
-  const activeOperation = readActiveReleaseOperation(
+  const rawActiveOperation = readActiveReleaseOperation(
     commitOperations?.active ?? null,
     app,
   );
+  // Database continuity toggles currently flow through app-scoped deploy
+  // operations. Keep that op on the database card, but avoid inventing a
+  // second app release card when the app itself is unchanged.
+  const continuityOnlyDeploy = isDatabaseContinuityOnlyDeployOperation(
+    app,
+    rawActiveOperation,
+    options?.hasLiveDatabaseContinuityTransition ?? false,
+  );
+  const activeOperation = continuityOnlyDeploy ? null : rawActiveOperation;
   const commitViews = buildCommitViews(app, activeOperation);
   const runningBuildLogsOperation = readRunningBuildLogsOperation(
     app,
@@ -1945,7 +2008,9 @@ function buildAppView(
     primaryCommit?.label ??
     (isGitHubSource(app) ? readCurrentCommitLabel(app) : null);
   const fallbackPhase =
-    app.status.phase ?? (app.spec.disabled ? "disabled" : "unknown");
+    continuityOnlyDeploy && hasLiveRelease(app)
+      ? "running"
+      : (app.status.phase ?? (app.spec.disabled ? "disabled" : "unknown"));
   const runningReleaseStatus = readRunningReleaseStatus(
     app,
     fallbackPhase,
@@ -1980,7 +2045,10 @@ function buildAppView(
           currentCommitExact: primaryCommit?.exact ?? null,
           currentCommitHref: primaryCommit?.href ?? null,
           currentCommitLabel,
-          lastMessage: readRunningServiceMessage(app, activeOperation),
+          lastMessage:
+            continuityOnlyDeploy && hasLiveRelease(app)
+              ? "Current release is serving traffic."
+              : readRunningServiceMessage(app, activeOperation),
           phase: runningReleaseStatus.phase,
           phaseTone: runningReleaseStatus.tone,
           serviceDurationLabel: null,
@@ -2394,6 +2462,11 @@ function buildConsoleProjectViewFromDetail(
     [...backingServicesById.values()],
     readServiceTimestamp,
   );
+  const appsWithLiveDatabaseContinuityTransition =
+    collectAppsWithLiveDatabaseContinuityTransition(
+      backingServices,
+      databaseContinuityOperationsByAppId,
+    );
   const resourceUsage = sumCurrentResourceUsage([
     ...sortedApps.map((app) => app.currentResourceUsage),
     ...backingServices.map((service) => service.currentResourceUsage),
@@ -2409,6 +2482,10 @@ function buildConsoleProjectViewFromDetail(
       commitOperationsByAppId.get(app.id),
       workloadLocationsById.get(app.id) ?? null,
       runtimeLocationsById,
+      {
+        hasLiveDatabaseContinuityTransition:
+          appsWithLiveDatabaseContinuityTransition.has(app.id),
+      },
     ).map((service) => ({
       kind: "app" as const,
       ...service,
@@ -2765,6 +2842,11 @@ const getConsoleProjectGalleryDataCached = cache(
           [...backingServicesById.values()],
           readServiceTimestamp,
         );
+        const appsWithLiveDatabaseContinuityTransition =
+          collectAppsWithLiveDatabaseContinuityTransition(
+            backingServices,
+            databaseContinuityOperationsByAppId,
+          );
         const resourceUsage = sumCurrentResourceUsage([
           ...sortedApps.map((app) => app.currentResourceUsage),
           ...backingServices.map((service) => service.currentResourceUsage),
@@ -2780,6 +2862,10 @@ const getConsoleProjectGalleryDataCached = cache(
             commitOperationsByAppId.get(app.id),
             workloadLocationsById.get(app.id) ?? null,
             runtimeTargetLocationsById,
+            {
+              hasLiveDatabaseContinuityTransition:
+                appsWithLiveDatabaseContinuityTransition.has(app.id),
+            },
           ).map((service) => ({
             kind: "app" as const,
             ...service,

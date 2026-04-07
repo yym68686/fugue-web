@@ -585,6 +585,8 @@ canvas {
 }
 
 .fg-confirm-dialog__actions {
+  position: relative;
+  background: var(--fugue-dialog-footer-bg);
   display: flex;
   justify-content: flex-end;
   gap: 0.7rem;

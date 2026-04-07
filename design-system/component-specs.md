@@ -190,6 +190,7 @@ Shared confirmation surface for destructive or high-impact product actions such 
 - Use `alertdialog` for destructive actions and `dialog` for neutral confirmations.
 - Default the initial focus to the least destructive option.
 - Dialog copy must name the object being changed and describe the real effect; do not rely on generic `Are you sure?`.
+- Action rails should stay on the same proof-shell inner surface as the dialog body; use the section divider for structure instead of a darker footer tray.
 - For high-risk product deletes such as removing a service, require exact-text confirmation with a visible label, helper copy, and inline mismatch feedback.
 - Keep confirm labels action-specific: `Delete service`, `Revoke key`, `Make admin`.
 - Backdrop blur is functional context dismissal, not decorative chrome.

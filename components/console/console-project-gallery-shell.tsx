@@ -32,7 +32,6 @@ import type {
   ConsoleProjectGallerySummaryData,
   ConsoleProjectSummaryView,
 } from "@/lib/console/gallery-types";
-import { readConsoleProjectLifecycle } from "@/lib/console/project-lifecycle";
 import type { ConsoleTone } from "@/lib/console/types";
 import {
   clearPendingProjectIntent,
@@ -1749,9 +1748,6 @@ export function ConsoleProjectGallery({
                 const cachedProjectDetail = expanded
                   ? readCachedConsoleProjectDetail(project.id)
                   : null;
-                const projectLifecycle = cachedProjectDetail?.project
-                  ? readConsoleProjectLifecycle(cachedProjectDetail.project)
-                  : project.lifecycle;
                 const detailId = `project-detail-${project.id}`;
                 const projectResourceUsage =
                   projectImageUsageByProjectId[project.id]
@@ -1785,10 +1781,10 @@ export function ConsoleProjectGallery({
                           <div className="fg-project-card__summary-meta">
                             <strong>{project.name}</strong>
                             <StatusBadge
-                              live={projectLifecycle.live}
-                              tone={projectLifecycle.tone}
+                              live={project.lifecycle.live}
+                              tone={project.lifecycle.tone}
                             >
-                              {projectLifecycle.label}
+                              {project.lifecycle.label}
                             </StatusBadge>
                           </div>
                           <div className="fg-project-card__summary-meta">

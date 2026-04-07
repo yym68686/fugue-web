@@ -413,9 +413,7 @@
 
 .fg-console-dialog__footer {
   position: relative;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0.012)),
-    rgba(7, 10, 14, 0.96);
+  background: var(--fugue-dialog-footer-bg);
 }
 
 .fg-console-dialog__grid,
@@ -2907,7 +2905,7 @@
 
 .fg-console-topbar {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   grid-template-areas: "brand nav actions";
   align-items: center;
   gap: 1rem;
@@ -4489,36 +4487,14 @@
 }
 
 .fg-profile-password-dialog__head {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 1rem;
+  display: grid;
+  gap: 0.6rem;
 }
 
 .fg-profile-password-dialog__copy {
   min-width: 0;
   display: grid;
   gap: 0.35rem;
-}
-
-.fg-profile-password-dialog__meta {
-  min-width: 0;
-  display: grid;
-  gap: 0.72rem;
-  justify-items: end;
-  align-content: start;
-}
-
-.fg-profile-password-dialog__email {
-  margin: 0;
-  max-width: min(100%, 18rem);
-  overflow: hidden;
-  color: var(--fugue-text-tertiary);
-  font-family: var(--fugue-font-mono);
-  font-size: 0.72rem;
-  letter-spacing: 0.04em;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .fg-profile-password-form {
@@ -7709,17 +7685,6 @@
     justify-self: start;
   }
 
-  .fg-profile-password-dialog__head {
-    display: grid;
-  }
-
-  .fg-profile-password-dialog__meta {
-    justify-items: start;
-  }
-
-  .fg-profile-password-dialog__email {
-    max-width: none;
-  }
 }
 
 @media (max-width: 520px) {
