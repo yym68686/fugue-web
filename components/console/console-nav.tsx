@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 import { useConsoleRouteTransition } from "@/components/console/console-route-transition";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { PillNav, PillNavLink } from "@/components/ui/pill-nav";
 import { ScrollableControlStrip } from "@/components/ui/scrollable-control-strip";
 import { getConsoleNavGroups, isConsoleNavHrefActive } from "@/lib/console/nav";
@@ -19,12 +20,13 @@ type ConsoleNavigator = Navigator & {
 const ROUTE_PREFETCH_TTL_MS = 45_000;
 
 export function ConsoleNav({ isAdmin = false }: { isAdmin?: boolean }) {
+  const { locale, t } = useI18n();
   const pathname = usePathname();
   const router = useRouter();
   const { beginRouteTransition } = useConsoleRouteTransition();
   const items = useMemo(
-    () => getConsoleNavGroups({ isAdmin }).flatMap((group) => group.items),
-    [isAdmin],
+    () => getConsoleNavGroups({ isAdmin, locale }).flatMap((group) => group.items),
+    [isAdmin, locale],
   );
   const routeHrefs = useMemo(() => items.map((item) => item.href), [items]);
   const prefetchedRoutesRef = useRef(new Map<string, number>());
@@ -183,7 +185,7 @@ export function ConsoleNav({ isAdmin = false }: { isAdmin?: boolean }) {
       viewportClassName="fg-console-nav__viewport"
       watchKey={pathname}
     >
-      <PillNav ariaLabel="Console" className="fg-console-nav">
+      <PillNav ariaLabel={t("Console")} className="fg-console-nav">
         {items.map((item) => {
           const active = isConsoleNavHrefActive(pathname, item.href);
 

@@ -9,8 +9,9 @@ import {
   ConsoleRouteTransitionProvider,
 } from "@/components/console/console-route-transition";
 import type { SessionUser } from "@/lib/auth/session";
+import { getRequestI18n } from "@/lib/i18n/server";
 
-export function ConsoleShell({
+export async function ConsoleShell({
   children,
   hasProjects = false,
   isAdmin = false,
@@ -21,13 +22,15 @@ export function ConsoleShell({
   isAdmin?: boolean;
   session: SessionUser;
 }) {
+  const { t } = await getRequestI18n();
+
   return (
     <main className="fg-console">
       <div className="fg-console-shell fg-console-shell--stacked">
         <ConsoleRouteTransitionProvider>
           <header className="fg-console-topbar">
             <div className="fg-console-topbar__brand">
-              <Brand meta="Console" />
+              <Brand meta={t("Console")} />
             </div>
 
             <ConsoleNav isAdmin={isAdmin} />

@@ -1,3 +1,5 @@
+import { readRegionDisplayName, translate, type Locale } from "@/lib/i18n/core";
+
 const COUNTRY_CODES = [
   "AD",
   "AE",
@@ -259,7 +261,6 @@ export type CountryLocationView = {
 };
 
 const COUNTRY_CODE_SET = new Set<string>(COUNTRY_CODES);
-const REGION_DISPLAY_NAMES = new Intl.DisplayNames(["en"], { type: "region" });
 const COUNTRY_LABEL_OVERRIDES: Partial<Record<CountryCode, string>> = {
   HK: "Hong Kong",
   MO: "Macao",
@@ -300,7 +301,7 @@ function normalizeCountryKey(value: string) {
     .replace(/\s+/g, " ");
 }
 
-function readCountryDisplayLabel(value?: string | null) {
+function readCountryDisplayLabel(value?: string | null, locale: Locale = "en") {
   const trimmed = value?.trim();
 
   if (!trimmed) {
@@ -314,14 +315,14 @@ function readCountryDisplayLabel(value?: string | null) {
   }
 
   const countryCode = upper as CountryCode;
-  return COUNTRY_LABEL_OVERRIDES[countryCode] ?? REGION_DISPLAY_NAMES.of(countryCode) ?? null;
+  return COUNTRY_LABEL_OVERRIDES[countryCode] ?? readRegionDisplayName(locale, countryCode) ?? null;
 }
 
 const COUNTRY_NAME_TO_CODE = (() => {
   const lookup = new Map<string, string>();
 
   for (const code of COUNTRY_CODES) {
-    const displayNames = [REGION_DISPLAY_NAMES.of(code), readCountryDisplayLabel(code)];
+    const displayNames = [readRegionDisplayName("en", code), readCountryDisplayLabel(code, "en")];
 
     for (const label of displayNames) {
       if (!label) {
@@ -355,7 +356,7 @@ export function readCountryCode(value?: string | null): CountryCode | null {
   return (COUNTRY_NAME_TO_CODE.get(normalizeCountryKey(trimmed)) as CountryCode | undefined) ?? null;
 }
 
-export function readCountryLabel(value?: string | null) {
+export function readCountryLabel(value?: string | null, locale: Locale = "en") {
   const trimmed = value?.trim();
 
   if (!trimmed) {
@@ -368,16 +369,17 @@ export function readCountryLabel(value?: string | null) {
     return trimmed;
   }
 
-  return readCountryDisplayLabel(countryCode) ?? trimmed;
+  return readCountryDisplayLabel(countryCode, locale) ?? trimmed;
 }
 
 export function readCountryLocation(
   region?: string | null,
   zone?: string | null,
+  locale: Locale = "en",
 ): CountryLocationView {
   const normalizedRegion = region?.trim() || null;
   const normalizedZone = zone?.trim() || null;
-  const locationCountryLabel = readCountryLabel(normalizedRegion);
+  const locationCountryLabel = readCountryLabel(normalizedRegion, locale);
   const locationLabelParts = [locationCountryLabel ?? normalizedRegion, normalizedZone].filter(
     (value): value is string => Boolean(value),
   );
@@ -385,6 +387,6 @@ export function readCountryLocation(
   return {
     locationCountryCode: readCountryCode(normalizedRegion),
     locationCountryLabel,
-    locationLabel: locationLabelParts.length ? locationLabelParts.join(" / ") : "Unassigned",
+    locationLabel: locationLabelParts.length ? locationLabelParts.join(" / ") : translate(locale, "Unassigned"),
   };
 }

@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import { Brand } from "@/components/brand";
 import { RouteNote } from "@/components/ui/route-note";
+import { getRequestI18n } from "@/lib/i18n/server";
 
 type AuthRouteNote = {
   index: string;
@@ -10,6 +11,7 @@ type AuthRouteNote = {
 };
 
 type AuthShellProps = {
+  brandMeta?: string;
   children: ReactNode;
   description: string;
   eyebrow: string;
@@ -18,7 +20,8 @@ type AuthShellProps = {
   title: string;
 };
 
-export function AuthShell({
+export async function AuthShell({
+  brandMeta,
   children,
   description,
   eyebrow,
@@ -26,14 +29,15 @@ export function AuthShell({
   notes,
   title,
 }: AuthShellProps) {
-  const brandMeta = eyebrow.startsWith("Auth / ") ? eyebrow.slice("Auth / ".length) : eyebrow;
+  const { t } = await getRequestI18n();
+  const resolvedBrandMeta = brandMeta ?? (eyebrow.startsWith("Auth / ") ? eyebrow.slice("Auth / ".length) : eyebrow);
 
   return (
     <main className="fg-auth-page fg-auth-page--account">
       <div className="fg-auth-grid">
         <section className="fg-auth-stage">
           <div className="fg-auth-stage__top">
-            <Brand meta={brandMeta} />
+            <Brand meta={resolvedBrandMeta} />
           </div>
 
           <div className="fg-auth-stage__copy">
@@ -61,12 +65,12 @@ export function AuthShell({
             ))}
           </div>
 
-          <div className="fg-object-belt" aria-label="Core objects">
-            <span>Workspace</span>
-            <span>Project</span>
-            <span>App</span>
-            <span>Runtime</span>
-            <span>Operation</span>
+          <div className="fg-object-belt" aria-label={t("Core objects")}>
+            <span>{t("Workspace")}</span>
+            <span>{t("Project")}</span>
+            <span>{t("App")}</span>
+            <span>{t("Runtime")}</span>
+            <span>{t("Operation")}</span>
           </div>
 
           <div className="fg-auth-stage__footer">{footer}</div>

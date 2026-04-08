@@ -5,6 +5,7 @@ import { useEffect, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { useToast } from "@/components/ui/toast";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 type PasswordSignInFormProps = {
   returnTo: string;
@@ -21,6 +22,7 @@ type ApiPayload = {
 };
 
 export function PasswordSignInForm({ returnTo }: PasswordSignInFormProps) {
+  const { t } = useI18n();
   const { showToast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [showPassword, setShowPassword] = useState(false);
@@ -59,7 +61,7 @@ export function PasswordSignInForm({ returnTo }: PasswordSignInFormProps) {
     const payload = (await response.json().catch(() => ({}))) as ApiPayload;
 
     if (!response.ok) {
-      const message = payload.error ?? "Email or password is incorrect.";
+      const message = t(payload.error ?? "Email or password is incorrect.");
       setFieldErrors({
         password: message,
       });
@@ -89,9 +91,9 @@ export function PasswordSignInForm({ returnTo }: PasswordSignInFormProps) {
     >
       <FormField
         error={fieldErrors.email}
-        hint="Use the same account email shown in Profile."
+        hint={t("Use the same account email shown in Profile.")}
         htmlFor="password-signin-email"
-        label="Email"
+        label={t("Email")}
       >
         <input
           autoComplete="email"
@@ -99,7 +101,7 @@ export function PasswordSignInForm({ returnTo }: PasswordSignInFormProps) {
           id="password-signin-email"
           inputMode="email"
           name="email"
-          placeholder="you@company.com"
+          placeholder={t("you@company.com")}
           required
           type="email"
         />
@@ -107,9 +109,9 @@ export function PasswordSignInForm({ returnTo }: PasswordSignInFormProps) {
 
       <FormField
         error={fieldErrors.password}
-        hint="Use the password saved from the profile page."
+        hint={t("Use the password saved from the profile page.")}
         htmlFor="password-signin-password"
-        label="Password"
+        label={t("Password")}
       >
         <input
           autoComplete="current-password"
@@ -127,11 +129,11 @@ export function PasswordSignInForm({ returnTo }: PasswordSignInFormProps) {
           onChange={(event) => setShowPassword(event.currentTarget.checked)}
           type="checkbox"
         />
-        <span>Show password</span>
+        <span>{t("Show password")}</span>
       </label>
 
-      <Button loading={isPending} loadingLabel="Signing in" type="submit" variant="primary">
-        Sign in with password
+      <Button loading={isPending} loadingLabel={t("Signing in")} type="submit" variant="primary">
+        {t("Sign in with password")}
       </Button>
     </form>
   );

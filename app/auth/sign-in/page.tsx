@@ -16,6 +16,7 @@ import {
 } from "@/lib/auth/errors";
 import { isGitHubAuthConfigured } from "@/lib/auth/github";
 import { readAuthenticatedAppPath } from "@/lib/auth/handoff";
+import { getRequestI18n } from "@/lib/i18n/server";
 import { buildReturnToHref, sanitizeReturnTo } from "@/lib/auth/validation";
 import { ToastOnMount } from "@/components/ui/toast-on-mount";
 import { getEmailVerificationRequired } from "@/lib/auth/env";
@@ -26,29 +27,34 @@ function readValue(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
-function readFlash(params: Record<string, string | string[] | undefined>) {
+function readFlash(
+  params: Record<string, string | string[] | undefined>,
+  t: (key: string) => string,
+) {
   const error = readValue(params.error);
   const state = readValue(params.state);
   const provider = readValue(params.provider);
-  const providerLabel = provider === "github" ? "GitHub" : "Google";
+  const providerLabel = t(provider === "github" ? "GitHub" : "Google");
 
   if (error === AUTH_ERROR_OAUTH_DENIED) {
     return {
-      message: `${providerLabel} sign-in was cancelled before authorization finished.`,
+      message: t("{provider} sign-in was cancelled before authorization finished.").replace("{provider}", providerLabel),
       variant: "error" as const,
     };
   }
 
   if (error === AUTH_ERROR_OAUTH_FAILED) {
     return {
-      message: `${providerLabel} sign-in could not be completed. Check the callback URL and provider credentials, then try again.`,
+      message: t(
+        "{provider} sign-in could not be completed. Check the callback URL and provider credentials, then try again.",
+      ).replace("{provider}", providerLabel),
       variant: "error" as const,
     };
   }
 
   if (error === AUTH_ERROR_INVALID_TOKEN) {
     return {
-      message: "That email link is invalid or expired. Request a fresh one.",
+      message: t("That email link is invalid or expired. Request a fresh one."),
       method: "email_link" as const,
       variant: "error" as const,
     };
@@ -56,32 +62,34 @@ function readFlash(params: Record<string, string | string[] | undefined>) {
 
   if (error === AUTH_ERROR_SESSION_OPEN_FAILED) {
     return {
-      message: "Sign-in was verified, but Fugue could not open your workspace session. Try again in a minute.",
+      message: t("Sign-in was verified, but Fugue could not open your workspace session. Try again in a minute."),
       variant: "error" as const,
     };
   }
 
   if (error === AUTH_ERROR_HANDOFF_FAILED) {
     return {
-      message: "Sign-in was verified, but the browser session handoff expired before the cookie was written. Start again.",
+      message: t(
+        "Sign-in was verified, but the browser session handoff expired before the cookie was written. Start again.",
+      ),
       variant: "error" as const,
     };
   }
 
   if (error === AUTH_ERROR_AUTH_REQUIRED) {
-    return { message: "Sign in first to open the console.", variant: "info" as const };
+    return { message: t("Sign in first to open the console."), variant: "info" as const };
   }
 
   if (error === AUTH_ERROR_ACCOUNT_BLOCKED) {
-    return { message: "This account is blocked. Contact an administrator.", variant: "error" as const };
+    return { message: t("This account is blocked. Contact an administrator."), variant: "error" as const };
   }
 
   if (error === AUTH_ERROR_ACCOUNT_DELETED) {
-    return { message: "This account has been deleted and can no longer sign in.", variant: "error" as const };
+    return { message: t("This account has been deleted and can no longer sign in."), variant: "error" as const };
   }
 
   if (state === "signed-out") {
-    return { message: "You have been signed out.", variant: "info" as const };
+    return { message: t("You have been signed out."), variant: "info" as const };
   }
 
   return null;
@@ -99,7 +107,8 @@ export default async function SignInPage({
   if (authenticatedAppPath) {
     redirect(authenticatedAppPath);
   }
-  const flash = readFlash(resolved);
+  const { t } = await getRequestI18n();
+  const flash = readFlash(resolved, t);
   const emailVerificationRequired = getEmailVerificationRequired();
   const githubAuthEnabled = isGitHubAuthConfigured();
   const initialMethod =
@@ -107,36 +116,38 @@ export default async function SignInPage({
       ? "email_link"
       : "password";
   const providerCopy = githubAuthEnabled
-    ? "Google or GitHub are fastest. Password works if you already added one."
-    : "Google is fastest. Password works if you already added one.";
+    ? t("Google or GitHub are fastest. Password works if you already added one.")
+    : t("Google is fastest. Password works if you already added one.");
 
   return (
     <AuthShell
+      brandMeta={t("Sign in")}
       description={
         githubAuthEnabled
-          ? "Use Google, GitHub, a password, or a verified email link."
-          : "Use Google, a password, or a verified email link."
+          ? t("Use Google, GitHub, a password, or a verified email link.")
+          : t("Use Google, a password, or a verified email link.")
       }
-      eyebrow="Auth / Sign in"
+      eyebrow={t("Auth / Sign in")}
       footer={
-        <p>Password can be added later from Profile and security. Email link access stays available without a stored secret.</p>
+        <p>{t("Password can be added later from Profile and security. Email link access stays available without a stored secret.")}</p>
       }
       notes={[
-        { index: "01", title: "Google provider", meta: "OAuth / Profile / Verified email" },
+        { index: "01", title: t("Google provider"), meta: t("OAuth / Profile / Verified email") },
         githubAuthEnabled
-          ? { index: "02", title: "GitHub provider", meta: "OAuth / Verified email / Linked account" }
-          : { index: "02", title: "Password lane", meta: "Stored secret / Current account email" },
-        { index: "03", title: "Email route", meta: "Magic link / Resend / Callback" },
+          ? { index: "02", title: t("GitHub provider"), meta: t("OAuth / Verified email / Linked account") }
+          : { index: "02", title: t("Password lane"), meta: t("Stored secret / Current account email") },
+        { index: "03", title: t("Email route"), meta: t("Magic link / Resend / Callback") },
       ]}
-      title="Sign in to the console."
+      title={t("Sign in to the console.")}
     >
       <Panel>
         <PanelSection>
-          <p className="fg-label fg-panel__eyebrow">Sign in</p>
-          <PanelTitle>Choose a sign-in method.</PanelTitle>
+          <p className="fg-label fg-panel__eyebrow">{t("Sign in")}</p>
+          <PanelTitle>{t("Choose a sign-in method.")}</PanelTitle>
           <PanelCopy>{providerCopy}</PanelCopy>
           <p className="fg-auth-footer">
-            Need a fresh account boundary? <a href={buildReturnToHref("/auth/sign-up", returnTo)}>Create an account</a>.
+            {t("Need a fresh account boundary?")}{" "}
+            <a href={buildReturnToHref("/auth/sign-up", returnTo)}>{t("Create an account")}</a>.
           </p>
         </PanelSection>
 
@@ -156,7 +167,7 @@ export default async function SignInPage({
         </PanelSection>
 
         <PanelSection>
-          <PanelDivider>Or use your account email</PanelDivider>
+          <PanelDivider>{t("Or use your account email")}</PanelDivider>
         </PanelSection>
 
         <PanelSection>

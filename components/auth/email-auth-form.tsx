@@ -5,6 +5,7 @@ import { useEffect, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { useToast } from "@/components/ui/toast";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 type FormState =
   | { kind: "idle" }
@@ -29,6 +30,7 @@ export function EmailAuthForm({
   mode,
   returnTo,
 }: EmailAuthFormProps) {
+  const { t } = useI18n();
   const { showToast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [state, setState] = useState<FormState>({ kind: "idle" });
@@ -37,11 +39,11 @@ export function EmailAuthForm({
   const buttonLabel =
     mode === "signup"
       ? emailVerificationRequired
-        ? "Create account"
-        : "Create account now"
+        ? t("Create account")
+        : t("Create account now")
       : emailVerificationRequired
-        ? "Send sign-in link"
-        : "Continue with email";
+        ? t("Send sign-in link")
+        : t("Continue with email");
 
   useEffect(() => {
     if (state.kind === "idle") {
@@ -73,7 +75,7 @@ export function EmailAuthForm({
     const payload = (await response.json()) as ApiPayload;
 
     if (!response.ok) {
-      const errorMessage = payload.error ?? "Something went wrong. Try again.";
+      const errorMessage = t(payload.error ?? "Something went wrong. Try again.");
       const nextFieldErrors: { email?: string } = {};
 
       if (errorMessage.toLowerCase().includes("email")) {
@@ -98,8 +100,8 @@ export function EmailAuthForm({
       message:
         payload.message ??
         (emailVerificationRequired
-          ? "Check your inbox for the verification link."
-          : "Signed in."),
+          ? t("Check your inbox for the verification link.")
+          : t("Signed in.")),
     });
   }
 
@@ -119,11 +121,11 @@ export function EmailAuthForm({
         error={fieldErrors.email}
         hint={
           emailVerificationRequired
-            ? "We send one verification link. No password required."
-            : "We verify the email locally and open the session immediately."
+            ? t("We send one verification link. No password required.")
+            : t("We verify the email locally and open the session immediately.")
         }
         htmlFor="auth-email"
-        label="Email"
+        label={t("Email")}
       >
         <input
           autoComplete="email"
@@ -131,12 +133,12 @@ export function EmailAuthForm({
           id="auth-email"
           inputMode="email"
           name="email"
-          placeholder="you@company.com"
+          placeholder={t("you@company.com")}
           required
           type="email"
         />
       </FormField>
-      <Button loading={isPending} loadingLabel="Working" type="submit" variant="primary">
+      <Button loading={isPending} loadingLabel={t("Working")} type="submit" variant="primary">
         {buttonLabel}
       </Button>
     </form>

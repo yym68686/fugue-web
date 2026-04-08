@@ -3,6 +3,7 @@
 import { AdminSummaryGrid } from "@/components/admin/admin-summary-grid";
 import { AdminUserManager } from "@/components/admin/admin-user-manager";
 import { ConsoleEmptyState } from "@/components/console/console-empty-state";
+import { useI18n } from "@/components/providers/i18n-provider";
 import {
   ConsoleAdminUsersPageSkeleton,
   ConsoleLoadingState,
@@ -16,6 +17,7 @@ import {
 } from "@/lib/console/page-snapshot-client";
 
 export function AdminUsersPageShell() {
+  const { t } = useI18n();
   const { data, error, loading, refresh } =
     useConsolePageSnapshot<ConsoleAdminUsersPageSnapshot>(
       CONSOLE_ADMIN_USERS_PAGE_SNAPSHOT_URL,
@@ -23,7 +25,7 @@ export function AdminUsersPageShell() {
 
   if (loading && !data) {
     return (
-      <ConsoleLoadingState>
+      <ConsoleLoadingState label={t("Loading users")}>
         <ConsoleAdminUsersPageSkeleton />
       </ConsoleLoadingState>
     );
@@ -35,8 +37,8 @@ export function AdminUsersPageShell() {
         <Panel>
           <PanelSection>
             <ConsoleEmptyState
-              description={error ?? "Fugue could not load the admin users snapshot right now."}
-              title="Users unavailable"
+              description={t(error ?? "Fugue could not load the admin users snapshot right now.")}
+              title={t("Users unavailable")}
             />
           </PanelSection>
         </Panel>
@@ -45,7 +47,7 @@ export function AdminUsersPageShell() {
   }
 
   const errorMessage = data.errors.length
-    ? `Partial admin data: ${data.errors.join(" | ")}.`
+    ? t("Partial admin data: {details}.", { details: data.errors.join(" | ") })
     : null;
 
   return (
@@ -54,10 +56,10 @@ export function AdminUsersPageShell() {
 
       <AdminSummaryGrid
         items={[
-          { label: "Users", value: data.summary.userCount },
-          { label: "Admins", value: data.summary.adminCount },
-          { label: "Blocked", value: data.summary.blockedCount },
-          { label: "Deleted", value: data.summary.deletedCount },
+          { label: t("Users"), value: data.summary.userCount },
+          { label: t("Admins"), value: data.summary.adminCount },
+          { label: t("Blocked"), value: data.summary.blockedCount },
+          { label: t("Deleted"), value: data.summary.deletedCount },
         ]}
       />
 

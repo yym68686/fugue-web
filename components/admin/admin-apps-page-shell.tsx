@@ -3,6 +3,7 @@
 import { AdminAppManager } from "@/components/admin/admin-app-manager";
 import { AdminSummaryGrid } from "@/components/admin/admin-summary-grid";
 import { ConsoleEmptyState } from "@/components/console/console-empty-state";
+import { useI18n } from "@/components/providers/i18n-provider";
 import {
   ConsoleAdminAppsPageSkeleton,
   ConsoleLoadingState,
@@ -16,6 +17,7 @@ import {
 } from "@/lib/console/page-snapshot-client";
 
 export function AdminAppsPageShell() {
+  const { t } = useI18n();
   const { data, error, loading, refresh } =
     useConsolePageSnapshot<ConsoleAdminAppsPageSnapshot>(
       CONSOLE_ADMIN_APPS_PAGE_SNAPSHOT_URL,
@@ -23,7 +25,7 @@ export function AdminAppsPageShell() {
 
   if (loading && !data) {
     return (
-      <ConsoleLoadingState>
+      <ConsoleLoadingState label={t("Loading apps")}>
         <ConsoleAdminAppsPageSkeleton />
       </ConsoleLoadingState>
     );
@@ -35,8 +37,8 @@ export function AdminAppsPageShell() {
         <Panel>
           <PanelSection>
             <ConsoleEmptyState
-              description={error ?? "Fugue could not load the admin apps snapshot right now."}
-              title="Cluster apps unavailable"
+              description={t(error ?? "Fugue could not load the admin apps snapshot right now.")}
+              title={t("Cluster apps unavailable")}
             />
           </PanelSection>
         </Panel>
@@ -45,7 +47,7 @@ export function AdminAppsPageShell() {
   }
 
   const errorMessage = data.errors.length
-    ? `Partial admin data: ${data.errors.join(" | ")}.`
+    ? t("Partial admin data: {details}.", { details: data.errors.join(" | ") })
     : null;
 
   return (
@@ -54,10 +56,10 @@ export function AdminAppsPageShell() {
 
       <AdminSummaryGrid
         items={[
-          { label: "Apps", value: data.summary.appCount },
-          { label: "Routed", value: data.summary.routedCount },
-          { label: "Tenants", value: data.summary.tenantCount },
-          { label: "Last update", value: data.summary.latestUpdateLabel },
+          { label: t("Apps"), value: data.summary.appCount },
+          { label: t("Routed"), value: data.summary.routedCount },
+          { label: t("Tenants"), value: data.summary.tenantCount },
+          { label: t("Last update"), value: data.summary.latestUpdateLabel },
         ]}
       />
 

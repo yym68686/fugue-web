@@ -2,10 +2,12 @@
 
 import { usePathname } from "next/navigation";
 
+import { useI18n } from "@/components/providers/i18n-provider";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { dispatchOpenCreateProjectDialogEvent } from "@/lib/console/dialog-events";
 
 export function ConsolePrimaryAction({ hasProjects }: { hasProjects: boolean }) {
+  const { t } = useI18n();
   const className = "fg-console-topbar__primary-action";
   const pathname = usePathname();
 
@@ -18,7 +20,7 @@ export function ConsolePrimaryAction({ hasProjects }: { hasProjects: boolean }) 
         type="button"
         variant="primary"
       >
-        Create project
+        {t("Create project")}
       </Button>
     );
   }
@@ -34,7 +36,7 @@ export function ConsolePrimaryAction({ hasProjects }: { hasProjects: boolean }) 
       size="compact"
       variant="primary"
     >
-      Create project
+      {t("Create project")}
     </ButtonLink>
   );
 }

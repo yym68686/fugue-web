@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 
+import { useI18n } from "@/components/providers/i18n-provider";
 import { copyText } from "@/lib/ui/clipboard";
 
 declare global {
@@ -24,6 +25,8 @@ type LandingNavigator = Navigator & {
 };
 
 export function LandingEffects() {
+  const { t } = useI18n();
+
   useEffect(() => {
     const root = document.querySelector<HTMLElement>("[data-landing-root]");
     const hero = root?.querySelector<HTMLElement>("[data-landing-hero]");
@@ -327,7 +330,7 @@ export function LandingEffects() {
         }
 
         const label = button.querySelector<HTMLElement>(".fg-button__label");
-        const originalLabel = label?.textContent ?? button.textContent ?? "Copy command";
+        const originalLabel = label?.textContent ?? button.textContent ?? t("Copy command");
 
         const handleClick = async () => {
           const text = codeTarget.innerText.replace(/\u00a0/g, " ");
@@ -335,9 +338,9 @@ export function LandingEffects() {
 
           if (!didCopy) {
             if (label) {
-              label.textContent = "Copy manually";
+              label.textContent = t("Copy manually");
             } else {
-              button.textContent = "Copy manually";
+              button.textContent = t("Copy manually");
             }
 
             trackTimeout(
@@ -353,9 +356,9 @@ export function LandingEffects() {
           }
 
           if (label) {
-            label.textContent = "Copied";
+            label.textContent = t("Copied");
           } else {
-            button.textContent = "Copied";
+            button.textContent = t("Copied");
           }
 
           button.classList.add("is-copied");
@@ -466,7 +469,7 @@ export function LandingEffects() {
         tiltRoot.style.removeProperty("--tilt-y");
       });
     };
-  }, []);
+  }, [t]);
 
   return null;
 }

@@ -3,6 +3,7 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { PillNav, PillNavAnchor } from "@/components/ui/pill-nav";
 import { ProofShell, ProofShellRibbon } from "@/components/ui/proof-shell";
 import { RouteNote } from "@/components/ui/route-note";
+import { getRequestI18n } from "@/lib/i18n/server";
 
 type LandingPageProps = {
   authenticatedAppPath: string | null;
@@ -158,27 +159,30 @@ function GhostAnchorButton({
   );
 }
 
-export function LandingPage({ authenticatedAppPath }: LandingPageProps) {
+export async function LandingPage({ authenticatedAppPath }: LandingPageProps) {
+  const { t } = await getRequestI18n();
   const primaryHref = authenticatedAppPath ?? "/auth/sign-up";
-  const primaryLabel = authenticatedAppPath ? "Open app" : "Get started";
-  const proofHeading = authenticatedAppPath
-    ? "Verify the public route, then open the app."
-    : "Verify the public route, then continue to sign in.";
+  const primaryLabel = t(authenticatedAppPath ? "Open app" : "Get started");
+  const proofHeading = t(
+    authenticatedAppPath
+      ? "Verify the public route, then open the app."
+      : "Verify the public route, then continue to sign in.",
+  );
 
   return (
     <div className="fg-landing-page" data-landing-root="">
       <a className="fg-landing-skip-link" href="#main">
-        Skip to content
+        {t("Skip to content")}
       </a>
 
       <header className="fg-landing-masthead">
         <div className="fg-shell fg-landing-masthead__shell">
-          <Brand meta="Deploy apps from source" />
+          <Brand meta={t("Deploy apps from source")} />
 
-          <PillNav ariaLabel="Primary" className="fg-landing-nav">
+          <PillNav ariaLabel={t("Primary")} className="fg-landing-nav">
             {landingNav.map((item) => (
               <PillNavAnchor href={item.href} key={item.href}>
-                {item.label}
+                {t(item.label)}
               </PillNavAnchor>
             ))}
           </PillNav>
@@ -190,7 +194,7 @@ export function LandingPage({ authenticatedAppPath }: LandingPageProps) {
           <button
             aria-controls="fg-landing-mobile-menu"
             aria-expanded="false"
-            aria-label="Open menu"
+            aria-label={t("Open menu")}
             className="fg-landing-menu-toggle"
             type="button"
           >
@@ -200,10 +204,10 @@ export function LandingPage({ authenticatedAppPath }: LandingPageProps) {
         </div>
 
         <div className="fg-landing-mobile-sheet" id="fg-landing-mobile-menu" hidden>
-          <nav aria-label="Mobile" className="fg-landing-mobile-nav">
+          <nav aria-label={t("Mobile")} className="fg-landing-mobile-nav">
             {landingNav.map((item) => (
               <a href={item.href} key={item.href}>
-                {item.label}
+                {t(item.label)}
               </a>
             ))}
           </nav>
@@ -232,37 +236,37 @@ export function LandingPage({ authenticatedAppPath }: LandingPageProps) {
 
             <div className="fg-landing-hero-copy">
               <p className="fg-label fg-mono" data-stagger="1">
-                Deploy from source, shared first
+                {t("Deploy from source, shared first")}
               </p>
               <h1 className="fg-display-heading" data-stagger="2">
-                Start shared.
+                {t("Start shared.")}
                 <br />
-                Move cleanly.
+                {t("Move cleanly.")}
               </h1>
               <p className="fg-copy fg-landing-hero-lead" data-stagger="3">
-                Start from a GitHub repository, a published Docker image, or a local upload on
-                managed shared k3s first. The same app can move onto your own machine later without
-                rebuilding the route or changing the workflow.
+                {t(
+                  "Start from a GitHub repository, a published Docker image, or a local upload on managed shared k3s first. The same app can move onto your own machine later without rebuilding the route or changing the workflow.",
+                )}
               </p>
 
               <div className="fg-landing-hero-actions" data-stagger="4">
                 <ButtonLink href={primaryHref} variant="route">
                   {primaryLabel}
                 </ButtonLink>
-                <GhostAnchorButton href="#route">See the route</GhostAnchorButton>
+                <GhostAnchorButton href="#route">{t("See the route")}</GhostAnchorButton>
               </div>
             </div>
 
             <div className="fg-landing-hero-rail" data-stagger="5">
-              <p className="fg-label fg-mono fg-landing-hero-rail__kicker">One route, two runtimes</p>
+              <p className="fg-label fg-mono fg-landing-hero-rail__kicker">{t("One route, two runtimes")}</p>
 
               {heroRouteNotes.map((note) => (
                 <RouteNote
                   className={note.toneClassName}
                   index={note.index}
                   key={note.index}
-                  meta={note.meta}
-                  title={note.title}
+                  meta={t(note.meta)}
+                  title={t(note.title)}
                 />
               ))}
             </div>
@@ -272,9 +276,9 @@ export function LandingPage({ authenticatedAppPath }: LandingPageProps) {
             {runwayStops.map((title, index) => (
               <article className="fg-landing-runway-stop" key={title}>
                 <p className="fg-label fg-mono">
-                  {String(index + 1).padStart(2, "0")} / {index === 0 ? "source" : index === 1 ? "shared" : "attached"}
+                  {String(index + 1).padStart(2, "0")} / {t(index === 0 ? "source" : index === 1 ? "shared" : "attached")}
                 </p>
-                <h2>{title}</h2>
+                <h2>{t(title)}</h2>
               </article>
             ))}
           </div>
@@ -283,12 +287,12 @@ export function LandingPage({ authenticatedAppPath }: LandingPageProps) {
         <section className="fg-landing-section fg-landing-section--route" data-landing-section="" id="route">
           <div className="fg-content-shell fg-landing-section-shell">
             <div className="fg-landing-section-head">
-              <p className="fg-label fg-mono">Route model</p>
-              <h2 className="fg-display-heading">The route is the product.</h2>
+              <p className="fg-label fg-mono">{t("Route model")}</p>
+              <h2 className="fg-display-heading">{t("The route is the product.")}</h2>
               <p className="fg-copy fg-landing-section-copy">
-                The fastest path to a public URL should not trap the app in a throwaway setup. In
-                Fugue, the route stays stable while the runtime changes: import the source, go live
-                on shared infrastructure, then migrate onto your own machine when you are ready.
+                {t(
+                  "The fastest path to a public URL should not trap the app in a throwaway setup. In Fugue, the route stays stable while the runtime changes: import the source, go live on shared infrastructure, then migrate onto your own machine when you are ready.",
+                )}
               </p>
             </div>
 
@@ -300,12 +304,12 @@ export function LandingPage({ authenticatedAppPath }: LandingPageProps) {
                   <p className="fg-landing-chapter__number">{chapter.index}</p>
 
                   <div className="fg-landing-chapter__body">
-                    <p className="fg-label fg-mono">{chapter.label}</p>
-                    <h3>{chapter.title}</h3>
-                    <p className="fg-copy">{chapter.description}</p>
+                    <p className="fg-label fg-mono">{t(chapter.label)}</p>
+                    <h3>{t(chapter.title)}</h3>
+                    <p className="fg-copy">{t(chapter.description)}</p>
                   </div>
 
-                  <p className="fg-landing-chapter__meta fg-mono">{chapter.meta}</p>
+                  <p className="fg-landing-chapter__meta fg-mono">{t(chapter.meta)}</p>
                 </article>
               ))}
             </div>
@@ -315,22 +319,22 @@ export function LandingPage({ authenticatedAppPath }: LandingPageProps) {
         <section className="fg-landing-section" data-landing-section="" id="surface">
           <div className="fg-content-shell fg-landing-section-shell">
             <div className="fg-landing-surface-intro">
-              <p className="fg-label fg-mono">Available now</p>
+              <p className="fg-label fg-mono">{t("Available now")}</p>
               <h2 className="fg-display-heading">
-                Route, sign-in, and the app already share one system.
+                {t("Route, sign-in, and the app already share one system.")}
               </h2>
             </div>
 
             <div className="fg-landing-surface-grid">
               {surfaceColumns.map((column) => (
                 <article className="fg-landing-surface-column" key={column.label}>
-                  <p className="fg-label fg-mono">{column.label}</p>
+                  <p className="fg-label fg-mono">{t(column.label)}</p>
 
                   <ul className="fg-landing-surface-list">
                     {column.items.map((item) => (
                       <li key={item.label}>
-                        <span>{item.label}</span>
-                        <span className="fg-mono">{item.meta}</span>
+                        <span>{t(item.label)}</span>
+                        <span className="fg-mono">{t(item.meta)}</span>
                       </li>
                     ))}
                   </ul>
@@ -338,9 +342,9 @@ export function LandingPage({ authenticatedAppPath }: LandingPageProps) {
               ))}
             </div>
 
-            <div aria-label="Core objects" className="fg-object-belt">
+            <div aria-label={t("Core objects")} className="fg-object-belt">
               {objectBeltItems.map((item) => (
-                <span key={item}>{item}</span>
+                <span key={item}>{t(item)}</span>
               ))}
             </div>
           </div>
@@ -350,7 +354,7 @@ export function LandingPage({ authenticatedAppPath }: LandingPageProps) {
           <div className="fg-content-shell fg-landing-section-shell">
             <div className="fg-landing-proof-head">
               <div>
-                <p className="fg-label fg-mono">Quickstart</p>
+                <p className="fg-label fg-mono">{t("Quickstart")}</p>
                 <h2 className="fg-display-heading">{proofHeading}</h2>
               </div>
 
@@ -361,15 +365,15 @@ export function LandingPage({ authenticatedAppPath }: LandingPageProps) {
                 type="button"
                 variant="ghost"
               >
-                Copy command
+                {t("Copy command")}
               </Button>
             </div>
 
             <ProofShell className="fg-landing-proof-shell">
               <ProofShellRibbon>
-                <span>GitHub import example</span>
-                <span>Docker image import also available</span>
-                <span>Managed shared runtime</span>
+                <span>{t("GitHub import example")}</span>
+                <span>{t("Docker image import also available")}</span>
+                <span>{t("Managed shared runtime")}</span>
                 <span>api.fugue.pro</span>
               </ProofShellRibbon>
 
@@ -384,15 +388,15 @@ export function LandingPage({ authenticatedAppPath }: LandingPageProps) {
           <div className="fg-content-shell fg-landing-section-shell">
             <div className="fg-landing-launch-layout">
               <div className="fg-landing-launch-copy">
-                <p className="fg-label fg-mono">Sign-in handoff</p>
-                <h2 className="fg-display-heading">Sign in without breaking the product flow.</h2>
+                <p className="fg-label fg-mono">{t("Sign-in handoff")}</p>
+                <h2 className="fg-display-heading">{t("Sign in without breaking the product flow.")}</h2>
               </div>
 
               <div className="fg-landing-launch-meta">
                 <p className="fg-copy">
-                  Google sign-in and email sign-up run as full routes with loading, validation,
-                  retry, and failure states. The public page hands off directly into the app
-                  instead of restarting the journey in a different shell.
+                  {t(
+                    "Google sign-in and email sign-up run as full routes with loading, validation, retry, and failure states. The public page hands off directly into the app instead of restarting the journey in a different shell.",
+                  )}
                 </p>
 
                 <div className="fg-landing-hero-actions fg-landing-hero-actions--left">
@@ -400,19 +404,19 @@ export function LandingPage({ authenticatedAppPath }: LandingPageProps) {
                     {primaryLabel}
                   </ButtonLink>
                   {authenticatedAppPath ? (
-                    <GhostAnchorButton href="#top">Back to top</GhostAnchorButton>
+                    <GhostAnchorButton href="#top">{t("Back to top")}</GhostAnchorButton>
                   ) : (
                     <ButtonLink href="/auth/sign-in" variant="secondary">
-                      Sign in
+                      {t("Sign in")}
                     </ButtonLink>
                   )}
                 </div>
 
                 <p className="fg-landing-compare-links fg-mono">
                   Routes /
-                  <a href="/auth/sign-up">Sign up</a> /
-                  <a href="/auth/sign-in">Sign in</a> /
-                  <a href="/app">App</a>
+                  <a href="/auth/sign-up">{t("Sign up")}</a> /
+                  <a href="/auth/sign-in">{t("Sign in")}</a> /
+                  <a href="/app">{t("App")}</a>
                 </p>
               </div>
             </div>
@@ -423,14 +427,15 @@ export function LandingPage({ authenticatedAppPath }: LandingPageProps) {
       <footer className="fg-landing-footer">
         <div className="fg-content-shell fg-landing-footer__shell">
           <p className="fg-copy fg-landing-footer__copy">
-            Fugue keeps the public route, sign-in handoff, and app shell inside one product. The
-            same route and workflow continue from the first deploy to the signed-in workspace.
+            {t(
+              "Fugue keeps the public route, sign-in handoff, and app shell inside one product. The same route and workflow continue from the first deploy to the signed-in workspace.",
+            )}
           </p>
 
-          <nav aria-label="Footer" className="fg-landing-footer__nav">
+          <nav aria-label={t("Footer")} className="fg-landing-footer__nav">
             {landingNav.map((item) => (
               <a href={item.href} key={item.href}>
-                {item.label}
+                {t(item.label)}
               </a>
             ))}
           </nav>

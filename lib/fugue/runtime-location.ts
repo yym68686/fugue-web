@@ -1,4 +1,5 @@
 import { readCountryCode, readCountryLabel } from "@/lib/geo/country";
+import { translate, type Locale } from "@/lib/i18n/core";
 
 export const DEFAULT_INTERNAL_CLUSTER_RUNTIME_ID = "runtime_managed_shared";
 export const INTERNAL_CLUSTER_LOCATION_KEY_LABEL =
@@ -48,7 +49,7 @@ function readFirstRuntimeLabel(
   return null;
 }
 
-function readLocationLabel(value?: string | null) {
+function readLocationLabel(value?: string | null, locale: Locale = "en") {
   const trimmed = value?.trim();
 
   if (!trimmed) {
@@ -56,7 +57,7 @@ function readLocationLabel(value?: string | null) {
   }
 
   const countryCode = readCountryCode(trimmed);
-  return countryCode ? readCountryLabel(countryCode) ?? trimmed : trimmed;
+  return countryCode ? readCountryLabel(countryCode, locale) ?? trimmed : trimmed;
 }
 
 export function hasInternalClusterLocationTarget(labels: RuntimeLabels) {
@@ -65,17 +66,19 @@ export function hasInternalClusterLocationTarget(labels: RuntimeLabels) {
   );
 }
 
-export function readRuntimeLocation(labels: RuntimeLabels): RuntimeLocationView {
+export function readRuntimeLocation(labels: RuntimeLabels, locale: Locale = "en"): RuntimeLocationView {
   const regionLabel = readLocationLabel(
     readFirstRuntimeLabel(labels, RUNTIME_REGION_LABEL_KEYS),
+    locale,
   );
   const zoneLabel = readLocationLabel(
     readFirstRuntimeLabel(labels, RUNTIME_ZONE_LABEL_KEYS),
+    locale,
   );
   const countryCode =
     readCountryCode(readFirstRuntimeLabel(labels, RUNTIME_COUNTRY_CODE_LABEL_KEYS)) ??
     readCountryCode(readFirstRuntimeLabel(labels, RUNTIME_REGION_LABEL_KEYS));
-  const locationCountryLabel = countryCode ? readCountryLabel(countryCode) : null;
+  const locationCountryLabel = countryCode ? readCountryLabel(countryCode, locale) : null;
 
   return {
     hasPlacementConstraint: Boolean(regionLabel || zoneLabel || countryCode),
@@ -87,14 +90,19 @@ export function readRuntimeLocation(labels: RuntimeLabels): RuntimeLocationView 
   };
 }
 
-export function readManagedSharedRuntimeLabel(runtime: {
+export function readManagedSharedRuntimeLabel(
+  runtime: {
   id: string;
   labels?: RuntimeLabels;
-}) {
+  },
+  locale: Locale = "en",
+) {
   if (runtime.id === DEFAULT_INTERNAL_CLUSTER_RUNTIME_ID) {
-    return "Internal cluster";
+    return translate(locale, "Internal cluster");
   }
 
-  const locationLabel = readRuntimeLocation(runtime.labels).locationLabel;
-  return locationLabel ? `Internal cluster / ${locationLabel}` : "Internal cluster";
+  const locationLabel = readRuntimeLocation(runtime.labels, locale).locationLabel;
+  return locationLabel
+    ? `${translate(locale, "Internal cluster")} / ${locationLabel}`
+    : translate(locale, "Internal cluster");
 }

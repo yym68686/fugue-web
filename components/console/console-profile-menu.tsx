@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { StatusBadge } from "@/components/console/status-badge";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { Button, ButtonLink } from "@/components/ui/button";
 import {
   readAuthMethodLabel,
@@ -19,6 +20,7 @@ export function ConsoleProfileMenu({
   isAdmin?: boolean;
   session: SessionUser;
 }) {
+  const { locale, t } = useI18n();
   const detailsRef = useRef<HTMLDetailsElement | null>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
   const [open, setOpen] = useState(false);
@@ -101,22 +103,22 @@ export function ConsoleProfileMenu({
         </div>
 
         <div className="fg-console-inline-status">
-          {isAdmin ? <StatusBadge tone="info">Admin</StatusBadge> : null}
+          {isAdmin ? <StatusBadge tone="info">{t("Admin")}</StatusBadge> : null}
           <StatusBadge tone="neutral">
-            {readAuthMethodLabel(session.authMethod, session.provider)}
+            {readAuthMethodLabel(session.authMethod, session.provider, locale)}
           </StatusBadge>
           <StatusBadge tone={session.verified ? "positive" : "warning"}>
-            {readVerificationLabel(session.verified)}
+            {readVerificationLabel(session.verified, locale)}
           </StatusBadge>
         </div>
 
         <ButtonLink className="fg-button--full-width" href="/app/settings/profile" size="compact" variant="secondary">
-          Profile and security
+          {t("Profile and security")}
         </ButtonLink>
 
         <form action="/api/auth/sign-out" className="fg-signout-form" method="post">
           <Button className="fg-button--full-width" size="compact" type="submit" variant="secondary">
-            Sign out
+            {t("Sign out")}
           </Button>
         </form>
       </div>

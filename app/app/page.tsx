@@ -6,6 +6,7 @@ import {
   ConsoleProjectGalleryTransitionSkeleton,
 } from "@/components/console/console-page-skeleton";
 import { getConsoleProjectGallerySummaryData } from "@/lib/console/gallery-data";
+import { getRequestI18n } from "@/lib/i18n/server";
 
 type SearchParams =
   | Promise<Record<string, string | string[] | undefined>>
@@ -41,11 +42,12 @@ export default async function AppConsolePage({
   const resolved = await Promise.resolve(searchParams);
   const dialog = readValue(resolved.dialog);
   const initialPendingIntentId = readValue(resolved.intent) ?? null;
+  const { t } = await getRequestI18n();
 
   return (
     <Suspense
       fallback={
-        <ConsoleLoadingState label="Loading projects">
+        <ConsoleLoadingState label={t("Loading projects")}>
           <ConsoleProjectGalleryTransitionSkeleton />
         </ConsoleLoadingState>
       }

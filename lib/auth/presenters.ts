@@ -1,5 +1,6 @@
 import type { AuthMethodKind } from "@/lib/auth/methods";
 import type { SessionAuthMethod, SessionUser } from "@/lib/auth/session";
+import { translate, type Locale } from "@/lib/i18n/core";
 
 type NamedSession = {
   email: string;
@@ -22,14 +23,14 @@ export function readSessionMonogram(label: string) {
   return `${first.toUpperCase()}${second.toLowerCase()}`;
 }
 
-export function readProviderLabel(provider: SessionUser["provider"]) {
+export function readProviderLabel(provider: SessionUser["provider"], locale: Locale = "en") {
   switch (provider) {
     case "google":
-      return "Google";
+      return translate(locale, "Google");
     case "github":
-      return "GitHub";
+      return translate(locale, "GitHub");
     case "email":
-      return "Email";
+      return translate(locale, "Email");
     default:
       return provider;
   }
@@ -38,21 +39,22 @@ export function readProviderLabel(provider: SessionUser["provider"]) {
 export function readAuthMethodLabel(
   method: AuthMethodKind | SessionAuthMethod | null | undefined,
   provider?: SessionUser["provider"],
+  locale: Locale = "en",
 ) {
   switch (method) {
     case "email_link":
-      return "Email link";
+      return translate(locale, "Email link");
     case "password":
-      return "Password";
+      return translate(locale, "Password");
     case "google":
-      return "Google";
+      return translate(locale, "Google");
     case "github":
-      return "GitHub";
+      return translate(locale, "GitHub");
     default:
-      return provider ? readProviderLabel(provider) : "Unknown";
+      return provider ? readProviderLabel(provider, locale) : translate(locale, "Unknown");
   }
 }
 
-export function readVerificationLabel(verified: boolean) {
-  return verified ? "Verified" : "Unverified";
+export function readVerificationLabel(verified: boolean, locale: Locale = "en") {
+  return translate(locale, verified ? "Verified" : "Unverified");
 }

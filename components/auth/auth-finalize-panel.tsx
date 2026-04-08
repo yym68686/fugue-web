@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button, ButtonAnchor } from "@/components/ui/button";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { Panel, PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 type AuthFinalizePanelProps = {
   returnTo: string;
@@ -33,6 +34,7 @@ function readHandoffTokenFromHash() {
 }
 
 export function AuthFinalizePanel({ returnTo }: AuthFinalizePanelProps) {
+  const { t } = useI18n();
   const autoStartRef = useRef(false);
   const fallbackTimerRef = useRef<number | null>(null);
   const formRef = useRef<HTMLFormElement | null>(null);
@@ -72,7 +74,7 @@ export function AuthFinalizePanel({ returnTo }: AuthFinalizePanelProps) {
 
     if (!handoffToken) {
       setBusy(false);
-      setError("This sign-in handoff is missing or expired. Start again from the sign-in page.");
+      setError(t("This sign-in handoff is missing or expired. Start again from the sign-in page."));
       return;
     }
 
@@ -107,19 +109,18 @@ export function AuthFinalizePanel({ returnTo }: AuthFinalizePanelProps) {
   return (
     <Panel>
       <PanelSection>
-        <p className="fg-label fg-panel__eyebrow">Session handoff</p>
-        <PanelTitle>Opening the console with a first-party session.</PanelTitle>
+        <p className="fg-label fg-panel__eyebrow">{t("Session handoff")}</p>
+        <PanelTitle>{t("Opening the console with a first-party session.")}</PanelTitle>
         <PanelCopy>
-          The provider identity is already verified. We are now finishing sign-in with a same-origin
-          form POST so Safari can treat the session write like a regular first-party login redirect.
+          {t(
+            "The provider identity is already verified. We are now finishing sign-in with a same-origin form POST so Safari can treat the session write like a regular first-party login redirect.",
+          )}
         </PanelCopy>
       </PanelSection>
 
       <PanelSection>
         <InlineAlert variant={error ? "error" : "info"}>
-          {error
-            ? error
-            : "Completing sign-in. If the browser stays here, continue manually once."}
+          {error ?? t("Completing sign-in. If the browser stays here, continue manually once.")}
         </InlineAlert>
         <div style={{ height: "1rem" }} aria-hidden="true" />
         <form
@@ -138,21 +139,21 @@ export function AuthFinalizePanel({ returnTo }: AuthFinalizePanelProps) {
             <Button
               disabled={!token}
               loading={busy}
-              loadingLabel="Opening the console"
+              loadingLabel={t("Opening the console")}
               type="button"
               onClick={() => {
                 void submitSessionHandoff();
               }}
               variant="secondary"
             >
-              Continue to the console
+              {t("Continue to the console")}
             </Button>
           </div>
         </form>
         <div style={{ height: "0.85rem" }} aria-hidden="true" />
         <div className="fg-provider-stack">
           <ButtonAnchor href="/auth/sign-in" variant="ghost">
-            Back to sign in
+            {t("Back to sign in")}
           </ButtonAnchor>
         </div>
       </PanelSection>

@@ -1,13 +1,15 @@
 import { ButtonAnchor } from "@/components/ui/button";
+import { getRequestI18n } from "@/lib/i18n/server";
 
-export function ProviderButton({
+export async function ProviderButton({
   href,
   provider,
 }: {
   href: string;
   provider: "github" | "google";
 }) {
-  const label = provider === "github" ? "GitHub" : "Google";
+  const { t } = await getRequestI18n();
+  const label = t(provider === "github" ? "GitHub" : "Google");
   const mark = provider === "github" ? "GH" : "G";
 
   return (
@@ -19,7 +21,7 @@ export function ProviderButton({
       iconStyle="plain"
       variant="secondary"
     >
-      Continue with {label}
+      {t("Continue with {label}", { label })}
     </ButtonAnchor>
   );
 }

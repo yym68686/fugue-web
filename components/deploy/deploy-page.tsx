@@ -16,6 +16,7 @@ import type { DeployPageData } from "@/lib/deploy/page-data";
 import type { DeploySearchState } from "@/lib/deploy/query";
 import { buildDeployHref } from "@/lib/deploy/query";
 import { isGitHubRepoUrl } from "@/lib/github/repository";
+import { getRequestI18n } from "@/lib/i18n/server";
 
 type DeployPageProps = DeployPageData & {
   currentPath: string;
@@ -24,7 +25,7 @@ type DeployPageProps = DeployPageData & {
   search: DeploySearchState;
 };
 
-export function DeployPage({
+export async function DeployPage({
   currentPath,
   inspection,
   inspectionError,
@@ -34,6 +35,7 @@ export function DeployPage({
   sessionPresent,
   workspaceInventory,
 }: DeployPageProps) {
+  const { t } = await getRequestI18n();
   const effectiveSourceMode =
     routeMode === "repository" ? search.sourceMode : "repository";
   const isImageMode = effectiveSourceMode === "docker-image";
@@ -46,7 +48,7 @@ export function DeployPage({
     effectiveSourceMode === "repository" &&
     search.repositoryUrl &&
     !isValidRepositoryUrl
-      ? "GitHub repository links must use https://github.com/owner/repo."
+      ? t("GitHub repository links must use https://github.com/owner/repo.")
       : null;
   const template = inspection?.template ?? null;
   const repositoryModeHref =
@@ -88,21 +90,21 @@ export function DeployPage({
             className="fg-console-nav__link"
             href={repositoryModeHref ?? "/new/repository"}
           >
-            <span className="fg-console-nav__title">GitHub repository</span>
+            <span className="fg-console-nav__title">{t("GitHub repository")}</span>
           </PillNavAnchor>
           <PillNavAnchor
             active={isLocalUploadMode}
             className="fg-console-nav__link"
             href={localUploadModeHref ?? "/new/repository?source-mode=local-upload"}
           >
-            <span className="fg-console-nav__title">Local upload</span>
+            <span className="fg-console-nav__title">{t("Local upload")}</span>
           </PillNavAnchor>
           <PillNavAnchor
             active={isImageMode}
             className="fg-console-nav__link"
             href={dockerImageModeHref ?? "/new/repository?source-mode=docker-image"}
           >
-            <span className="fg-console-nav__title">Docker image</span>
+            <span className="fg-console-nav__title">{t("Docker image")}</span>
           </PillNavAnchor>
         </PillNav>
       </ScrollableControlStrip>
@@ -112,15 +114,14 @@ export function DeployPage({
     <main className="fg-auth-page fg-deploy-page fg-deploy-page--repository">
       <div className="fg-auth-grid fg-deploy-grid fg-deploy-grid--solo fg-deploy-grid--repository">
         <section className="fg-auth-panel-slot fg-deploy-panel-slot fg-console-dialog-shell fg-project-dialog-shell fg-deploy-dialog-shell">
-          <Panel className="fg-console-dialog-panel">
-            <PanelSection>
-              <p className="fg-label fg-panel__eyebrow">Create project</p>
+            <Panel className="fg-console-dialog-panel">
+              <PanelSection>
+              <p className="fg-label fg-panel__eyebrow">{t("Create project")}</p>
               <PanelTitle className="fg-console-dialog__title">
-                Create project
+                {t("Create project")}
               </PanelTitle>
               <PanelCopy>
-                Give the project a name, then point Fugue at the first GitHub
-                repository, local folder, or Docker image.
+                {t("Give the project a name, then point Fugue at the first GitHub repository, local folder, or Docker image.")}
               </PanelCopy>
             </PanelSection>
 
@@ -131,7 +132,7 @@ export function DeployPage({
                 {sessionPresent ? (
                   workspaceInventory.workspaceError ? (
                     <InlineAlert variant="error">
-                      {workspaceInventory.workspaceError}
+                      {t(workspaceInventory.workspaceError)}
                     </InlineAlert>
                   ) : (
                     <DeployCreateProjectForm
@@ -151,26 +152,26 @@ export function DeployPage({
                 ) : isLocalUploadMode ? (
                   <>
                     <InlineAlert variant="info">
-                      Local files are selected after sign-in, not before the auth
-                      redirect.
+                      {t("Local files are selected after sign-in, not before the auth redirect.")}
                     </InlineAlert>
                     <div className="fg-console-dialog__actions">
                       <ButtonAnchor
                         href={buildReturnToHref("/auth/sign-in", currentPath)}
                         variant="primary"
                       >
-                        Sign in to upload
+                        {t("Sign in to upload")}
                       </ButtonAnchor>
                       <ButtonAnchor
                         href={buildReturnToHref("/auth/sign-up", currentPath)}
                         variant="secondary"
                       >
-                        Create account
+                        {t("Create account")}
                       </ButtonAnchor>
                     </div>
                     <p className="fg-deploy-inline-copy">
-                      After sign-in, this page reopens in Local upload mode so you
-                      can drag the folder directly into the browser.
+                      {t(
+                        "After sign-in, this page reopens in Local upload mode so you can drag the folder directly into the browser.",
+                      )}
                     </p>
                   </>
                 ) : isImageMode ? (
@@ -197,7 +198,7 @@ export function DeployPage({
                       <div className="fg-console-dialog__grid">
                         <FormField
                           htmlFor="deploy-entry-image-ref"
-                          label="Image reference"
+                          label={t("Image reference")}
                         >
                           <input
                             autoCapitalize="none"
@@ -212,8 +213,8 @@ export function DeployPage({
 
                         <FormField
                           htmlFor="deploy-entry-image-name"
-                          label="App name"
-                          optionalLabel="Optional"
+                          label={t("App name")}
+                          optionalLabel={t("Optional")}
                         >
                           <input
                             className="fg-input"
@@ -226,8 +227,8 @@ export function DeployPage({
 
                         <FormField
                           htmlFor="deploy-entry-service-port"
-                          label="Service port"
-                          optionalLabel="Optional"
+                          label={t("Service port")}
+                          optionalLabel={t("Optional")}
                         >
                           <input
                             className="fg-input"
@@ -242,7 +243,7 @@ export function DeployPage({
 
                       <div className="fg-console-dialog__actions">
                         <Button type="submit" variant="primary">
-                          Review image
+                          {t("Review image")}
                         </Button>
                       </div>
                     </form>
@@ -250,27 +251,26 @@ export function DeployPage({
                     {hasImageRef ? (
                       <>
                         <InlineAlert variant="info">
-                          Sign in to continue with this image.
+                          {t("Sign in to continue with this image.")}
                         </InlineAlert>
                         <div className="fg-console-dialog__actions">
                           <ButtonAnchor
                             href={buildReturnToHref("/auth/sign-in", currentPath)}
                             variant="primary"
                           >
-                            Sign in
+                            {t("Sign in")}
                           </ButtonAnchor>
                           <ButtonAnchor
                             href={buildReturnToHref("/auth/sign-up", currentPath)}
                             variant="secondary"
                           >
-                            Create account
+                            {t("Create account")}
                           </ButtonAnchor>
                         </div>
                       </>
                     ) : (
                       <PanelCopy>
-                        Use a public image reference to unlock the deploy form
-                        after sign-in.
+                        {t("Use a public image reference to unlock the deploy form after sign-in.")}
                       </PanelCopy>
                     )}
                   </>
@@ -315,7 +315,7 @@ export function DeployPage({
                     ) : null}
 
                     {inspectionError ? (
-                      <InlineAlert variant="error">{inspectionError}</InlineAlert>
+                      <InlineAlert variant="error">{t(inspectionError)}</InlineAlert>
                     ) : null}
 
                     {routeMode === "template" &&
@@ -323,29 +323,28 @@ export function DeployPage({
                     !template &&
                     !inspectionError ? (
                       <InlineAlert variant="info">
-                        This repository does not expose template metadata in{" "}
-                        <code>fugue.yaml</code>. Fugue can still deploy it as a
-                        repository import.
+                        {t("This repository does not expose template metadata in")}{" "}
+                        <code>fugue.yaml</code>. {t("Fugue can still deploy it as a repository import.")}
                       </InlineAlert>
                     ) : null}
 
                     {search.repositoryUrl && isValidRepositoryUrl ? (
                       <>
                         <InlineAlert variant="info">
-                          Sign in to continue with this repository.
+                          {t("Sign in to continue with this repository.")}
                         </InlineAlert>
                         <div className="fg-console-dialog__actions">
                           <ButtonAnchor
                             href={buildReturnToHref("/auth/sign-in", currentPath)}
                             variant="primary"
                           >
-                            Sign in
+                            {t("Sign in")}
                           </ButtonAnchor>
                           <ButtonAnchor
                             href={buildReturnToHref("/auth/sign-up", currentPath)}
                             variant="secondary"
                           >
-                            Create account
+                            {t("Create account")}
                           </ButtonAnchor>
                         </div>
                       </>
