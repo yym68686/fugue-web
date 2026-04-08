@@ -1,59 +1,72 @@
 import { ClusterNodeGallery, type ClusterNodeGalleryItem } from "@/components/console/cluster-node-gallery";
 import { ConsoleEmptyState } from "@/components/console/console-empty-state";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { Panel, PanelSection } from "@/components/ui/panel";
 import type { ClusterNodeView } from "@/lib/cluster-nodes/service";
 
-function readModeLabel(value?: string | null) {
+function readModeLabel(
+  value: string | null | undefined,
+  t: (key: string, values?: Record<string, string | number>) => string,
+) {
   if (!value) {
-    return "Unknown";
+    return t("Unknown");
   }
 
-  return value
+  return t(
+    value
     .replace(/[._-]+/g, " ")
     .trim()
-    .replace(/\b\w/g, (match) => match.toUpperCase());
+    .replace(/\b\w/g, (match) => match.toUpperCase()),
+  );
 }
 
-function readInternalClusterAccessLabel(value?: string | null) {
-  return value?.trim().toLowerCase() === "internal-shared" ? "Enabled" : "Dedicated only";
+function readInternalClusterAccessLabel(
+  value: string | null | undefined,
+  t: (key: string, values?: Record<string, string | number>) => string,
+) {
+  return value?.trim().toLowerCase() === "internal-shared"
+    ? t("Enabled")
+    : t("Dedicated only");
 }
 
 function toClusterGalleryItem(
   node: ClusterNodeView,
   options: {
     isAdmin: boolean;
+    t: (key: string, values?: Record<string, string | number>) => string;
   },
 ): ClusterNodeGalleryItem {
+  const { t } = options;
   const facts: ClusterNodeGalleryItem["facts"] = [
     {
       id: "machine",
-      label: "Machine",
+      label: t("Machine"),
       value: node.machineLabel,
     },
     {
       id: "public-address",
-      label: "Public address",
+      label: t("Public address"),
       value: node.publicIpLabel,
     },
     {
       id: "internal-address",
-      label: "Internal address",
+      label: t("Internal address"),
       value: node.internalIpLabel,
     },
     {
       countryCode: node.locationCountryCode,
       id: "location",
-      label: "Location",
+      label: t("Location"),
       value: node.locationLabel,
     },
     {
       id: "runtime",
-      label: "Runtime",
+      label: t("Runtime"),
       value: node.runtimeLabel,
     },
     {
       id: "runtime-state",
-      label: "Runtime state",
+      label: t("Runtime state"),
       value: node.runtimeStatusLabel,
       valueTone: node.runtimeStatusTone,
     },
@@ -62,7 +75,7 @@ function toClusterGalleryItem(
   if (node.ownership === "shared" && (node.ownerEmail || node.ownerLabel)) {
     facts.push({
       id: "owner",
-      label: "Owner",
+      label: t("Owner"),
       value: node.ownerEmail ?? node.ownerLabel,
     });
   }
@@ -70,34 +83,34 @@ function toClusterGalleryItem(
   if (node.accessMode && node.accessMode !== "private") {
     facts.push({
       id: "visibility",
-      label: "Visibility",
-      value: readModeLabel(node.accessMode),
+      label: t("Visibility"),
+      value: readModeLabel(node.accessMode, t),
     });
   }
 
   if (node.poolMode && node.runtimeType?.trim().toLowerCase() === "managed-owned") {
     facts.push({
       id: "internal-cluster",
-      label: "Internal cluster",
-      value: readInternalClusterAccessLabel(node.poolMode),
+      label: t("Internal cluster"),
+      value: readInternalClusterAccessLabel(node.poolMode, t),
     });
   }
 
   facts.push(
     {
       id: "heartbeat",
-      label: "Heartbeat",
+      label: t("Heartbeat"),
       title: node.heartbeatExact,
       value: node.heartbeatLabel,
     },
     {
       id: "zone",
-      label: "Zone",
+      label: t("Zone"),
       value: node.zoneLabel,
     },
     {
       id: "joined",
-      label: "Joined",
+      label: t("Joined"),
       title: node.createdExact,
       value: node.createdLabel,
     },
@@ -114,10 +127,10 @@ function toClusterGalleryItem(
     conditions: node.conditions,
     eyebrow:
       node.ownership === "owned"
-        ? "Attached server"
+        ? t("Attached server")
         : node.ownership === "internal-cluster"
-          ? "Cluster capacity"
-          : "Shared server",
+          ? t("Cluster capacity")
+          : t("Shared server"),
     facts,
     headerMeta: node.headerMeta,
     id: node.name,
@@ -135,9 +148,9 @@ function toClusterGalleryItem(
     statusTone: node.statusTone,
     runtimeType: node.runtimeType,
     workloadCount: node.workloadCount,
-    workloadEmptyDescription: "No apps or services are placed on this server.",
-    workloadEmptyTitle: "No workloads on this server",
-    workloadSectionNote: "Apps and services on this server.",
+    workloadEmptyDescription: t("No apps or services are placed on this server."),
+    workloadEmptyTitle: t("No workloads on this server"),
+    workloadSectionNote: t("Apps and services on this server."),
     workloads: node.workloads,
   };
 }
@@ -151,6 +164,8 @@ export function AttachedServerOverview({
   isAdmin?: boolean;
   nodes: ClusterNodeView[];
 }) {
+  const { t } = useI18n();
+
   if (!nodes.length) {
     return (
       <Panel>
@@ -158,15 +173,21 @@ export function AttachedServerOverview({
           <ConsoleEmptyState
             action={
               inventoryError
-                ? { href: "/app/api-keys", label: "Manage access keys" }
-                : { href: "/app/api-keys#node-keys", label: "Open node keys" }
+                ? { href: "/app/api-keys", label: t("Manage access keys") }
+                : { href: "/app/api-keys#node-keys", label: t("Open node keys") }
             }
             description={
               inventoryError
                 ? inventoryError
-                : "Create a node key, run the join command on your VPS, or wait for another workspace to share a server with you."
+                : t(
+                    "Create a node key, run the join command on your VPS, or wait for another workspace to share a server with you.",
+                  )
             }
-            title={inventoryError ? "Server inventory unavailable" : "No servers visible yet"}
+            title={
+              inventoryError
+                ? t("Server inventory unavailable")
+                : t("No servers visible yet")
+            }
           />
         </PanelSection>
       </Panel>
@@ -175,8 +196,8 @@ export function AttachedServerOverview({
 
   return (
     <ClusterNodeGallery
-      ariaLabel="Servers"
-      items={nodes.map((node) => toClusterGalleryItem(node, { isAdmin }))}
+      ariaLabel={t("Servers")}
+      items={nodes.map((node) => toClusterGalleryItem(node, { isAdmin, t }))}
     />
   );
 }

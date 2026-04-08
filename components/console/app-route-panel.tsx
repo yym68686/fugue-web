@@ -4,6 +4,7 @@ import { startTransition, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { AppCustomDomainsPanel } from "@/components/console/app-custom-domains-panel";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { cx } from "@/lib/ui/cx";
@@ -49,6 +50,8 @@ type RouteFieldState = {
   label: string | null;
   variant: "error" | "info" | "neutral" | "success";
 };
+
+type Translator = (key: string, values?: Record<string, string | number>) => string;
 
 function asRecord(value: unknown) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value)
@@ -143,20 +146,20 @@ function readBaseDomainFromHostname(hostname?: string | null) {
   return segments.slice(1).join(".");
 }
 
-function readErrorMessage(error: unknown) {
+function readErrorMessage(error: unknown, t: Translator = (key) => key) {
   if (error instanceof Error && error.message) {
     return error.message;
   }
 
-  return "Request failed.";
+  return t("Request failed.");
 }
 
-async function readResponseError(response: Response) {
+async function readResponseError(response: Response, t: Translator = (key) => key) {
   const body = await response.text().catch(() => "");
   const trimmed = body.trim();
 
   if (!trimmed) {
-    return `Request failed with status ${response.status}.`;
+    return t("Request failed with status {status}.", { status: response.status });
   }
 
   try {
@@ -172,11 +175,11 @@ async function readResponseError(response: Response) {
   return trimmed;
 }
 
-async function requestJson<T>(input: RequestInfo, init?: RequestInit) {
+async function requestJson<T>(input: RequestInfo, init?: RequestInit, t: Translator = (key) => key) {
   const response = await fetch(input, init);
 
   if (!response.ok) {
-    throw new Error(await readResponseError(response));
+    throw new Error(await readResponseError(response, t));
   }
 
   return (await response.json().catch(() => null)) as T | null;
@@ -257,8 +260,8 @@ function buildCurrentAvailability(
   } satisfies RouteAvailability;
 }
 
-function readRouteFieldHint() {
-  return "Use lowercase letters, numbers, and hyphens.";
+function readRouteFieldHint(t: Translator = (key) => key) {
+  return t("Use lowercase letters, numbers, and hyphens.");
 }
 
 function readRouteFieldState(options: {
@@ -267,8 +270,9 @@ function readRouteFieldState(options: {
   availabilityState: AvailabilityState;
   draft: string;
   isDirty: boolean;
+  t: Translator;
 }) {
-  const { availability, availabilityError, availabilityState, draft, isDirty } = options;
+  const { availability, availabilityError, availabilityState, draft, isDirty, t } = options;
   const normalizedDraft = draft.trim();
 
   if (!normalizedDraft) {
@@ -277,16 +281,16 @@ function readRouteFieldState(options: {
 
   if (availabilityState === "checking") {
     return {
-      label: "Checking",
-      detail: "Checking availability…",
+      label: t("Checking"),
+      detail: t("Checking availability…"),
       variant: "info" as const,
     } satisfies RouteFieldState;
   }
 
   if (availabilityState === "error") {
     return {
-      label: "Check failed",
-      detail: availabilityError ?? "Unable to check availability right now.",
+      label: t("Check failed"),
+      detail: availabilityError ?? t("Unable to check availability right now."),
       variant: "error" as const,
     } satisfies RouteFieldState;
   }
@@ -297,31 +301,31 @@ function readRouteFieldState(options: {
 
   if (!availability.valid) {
     return {
-      label: "Invalid",
-      detail: availability.reason ?? "This route is invalid.",
+      label: t("Invalid"),
+      detail: availability.reason ?? t("This route is invalid."),
       variant: "error" as const,
     } satisfies RouteFieldState;
   }
 
   if (!availability.available) {
     return {
-      label: "Taken",
-      detail: availability.reason ?? "This route is already in use.",
+      label: t("Taken"),
+      detail: availability.reason ?? t("This route is already in use."),
       variant: "error" as const,
     } satisfies RouteFieldState;
   }
 
   if (availability.current || !isDirty) {
     return {
-      label: "Ready",
+      label: t("Ready"),
       detail: null,
       variant: "success" as const,
     } satisfies RouteFieldState;
   }
 
   return {
-    label: "Available",
-    detail: "Save to switch the live route.",
+    label: t("Available"),
+    detail: t("Save to switch the live route."),
     variant: "success" as const,
   } satisfies RouteFieldState;
 }
@@ -334,6 +338,7 @@ export function AppRoutePanel({
   initialPublicUrl,
 }: RoutePanelProps) {
   const router = useRouter();
+  const { t } = useI18n();
   const { showToast } = useToast();
   const [checkToken, setCheckToken] = useState(0);
   const [draft, setDraft] = useState("");
@@ -412,11 +417,12 @@ export function AppRoutePanel({
                 cache: "no-store",
                 signal: controller.signal,
               },
+              t,
             ),
           );
 
           if (!payload.availability) {
-            throw new Error("Route availability response was malformed.");
+            throw new Error(t("Route availability response was malformed."));
           }
 
           setAvailability(payload.availability);
@@ -428,7 +434,7 @@ export function AppRoutePanel({
             return;
           }
 
-          setAvailabilityError(readErrorMessage(error));
+          setAvailabilityError(readErrorMessage(error, t));
           setAvailabilityState("error");
         }
       })();
@@ -457,10 +463,11 @@ export function AppRoutePanel({
         availabilityState,
         draft,
         isDirty,
+        t,
       }),
-    [availability, availabilityError, availabilityState, draft, isDirty],
+    [availability, availabilityError, availabilityState, draft, isDirty, t],
   );
-  const helperText = fieldState?.detail ?? readRouteFieldHint();
+  const helperText = fieldState?.detail ?? readRouteFieldHint(t);
 
   const canSave =
     !saving &&
@@ -505,7 +512,7 @@ export function AppRoutePanel({
             "Content-Type": "application/json",
           },
           method: "PATCH",
-        }),
+        }, t),
       );
       const nextHostname = resolveRouteHostname(
         response.app?.route?.hostname ?? availability?.hostname,
@@ -538,8 +545,8 @@ export function AppRoutePanel({
 
       showToast({
         message: response.alreadyCurrent
-          ? "This route is already current."
-          : "Route updated. The new address is live immediately, and the old address has been released.",
+          ? t("This route is already current.")
+          : t("Route updated. The new address is live immediately, and the old address has been released."),
         variant: response.alreadyCurrent ? "info" : "success",
       });
       startTransition(() => {
@@ -547,7 +554,7 @@ export function AppRoutePanel({
       });
     } catch (error) {
       showToast({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
       setCheckToken((value) => value + 1);
@@ -559,17 +566,19 @@ export function AppRoutePanel({
   return (
     <div className="fg-workbench-section fg-route-panel">
       <div className="fg-workbench-section__copy fg-route-panel__copy">
-        <p className="fg-label fg-panel__eyebrow">Domains</p>
+        <p className="fg-label fg-panel__eyebrow">{t("Domains")}</p>
         <p className="fg-console-note">
-          Keep one Fugue subdomain for {appName}, or attach a hostname you control.
+          {t("Keep one Fugue subdomain for {appName}, or attach a hostname you control.", {
+            appName,
+          })}
         </p>
       </div>
 
-      <section aria-label="Fugue subdomain" className="fg-route-subsection fg-route-block">
+      <section aria-label={t("Fugue subdomain")} className="fg-route-subsection fg-route-block">
         <div className="fg-route-panel__form">
           <label className="fg-field-stack fg-route-field" htmlFor={`route-hostname-${appId}`}>
             <span className="fg-field-label">
-              <span>Subdomain</span>
+              <span>{t("Subdomain")}</span>
               {fieldState?.label ? (
                 <span
                   className={cx(
@@ -598,7 +607,7 @@ export function AppRoutePanel({
                     onChange={(event) => {
                       setDraft(sanitizeRouteLabelInput(event.target.value, baseDomain));
                     }}
-                    placeholder="my-app"
+                    placeholder={t("my-app")}
                     spellCheck={false}
                     value={draft}
                   />
@@ -630,12 +639,12 @@ export function AppRoutePanel({
                 type="button"
                 variant="secondary"
               >
-                Reset
+                {t("Reset")}
               </Button>
               <Button
                 disabled={!canSave}
                 loading={saving}
-                loadingLabel="Saving…"
+                loadingLabel={t("Saving…")}
                 onClick={() => {
                   void saveRoute();
                 }}
@@ -643,7 +652,7 @@ export function AppRoutePanel({
                 type="button"
                 variant="primary"
               >
-                Save route
+                {t("Save route")}
               </Button>
             </div>
           ) : null}

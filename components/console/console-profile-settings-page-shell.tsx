@@ -9,6 +9,7 @@ import {
   ConsoleLoadingState,
   ConsoleProfileSettingsPageSkeleton,
 } from "@/components/console/console-page-skeleton";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { StatusBadge } from "@/components/console/status-badge";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Button, ButtonAnchor } from "@/components/ui/button";
@@ -33,6 +34,7 @@ import { cx } from "@/lib/ui/cx";
 
 type ProfileMethodKey = ConsoleProfileSettingsPageSnapshot["methods"][number]["method"];
 type ProfileMethodRecord = ConsoleProfileSettingsPageSnapshot["methods"][number];
+type Translator = (key: string, values?: Record<string, number | string>) => string;
 
 const PASSWORD_HINT = "Use at least 10 characters. Spaces are allowed.";
 const FOCUSABLE_SELECTOR = [
@@ -43,46 +45,56 @@ const FOCUSABLE_SELECTOR = [
   "textarea:not([disabled])",
   "[tabindex]:not([tabindex='-1'])",
 ].join(", ");
-const PROFILE_AUTH_FLASH_TOASTS = {
-  "github-link-conflict": {
-    message: "That GitHub account is already linked to another Fugue account.",
-    variant: "error" as const,
-  },
-  "github-link-failed": {
-    message: "GitHub could not be linked right now. Try again.",
-    variant: "error" as const,
-  },
-  "github-linked": {
-    message: "GitHub sign-in linked.",
-    variant: "success" as const,
-  },
-  "github-unavailable": {
-    message: "GitHub sign-in is not configured in this environment.",
-    variant: "info" as const,
-  },
-  "google-link-conflict": {
-    message: "That Google account is already linked to another Fugue account.",
-    variant: "error" as const,
-  },
-  "google-link-failed": {
-    message: "Google could not be linked right now. Try again.",
-    variant: "error" as const,
-  },
-  "google-linked": {
-    message: "Google sign-in linked.",
-    variant: "success" as const,
-  },
-  "google-unavailable": {
-    message: "Google sign-in is not configured in this environment.",
-    variant: "info" as const,
-  },
-} satisfies Record<
-  string,
-  {
-    message: string;
-    variant: "error" | "info" | "success";
+
+function readProfileAuthFlashToast(
+  value: string,
+  t: Translator,
+): { message: string; variant: "error" | "info" | "success" } | null {
+  switch (value) {
+    case "github-link-conflict":
+      return {
+        message: t("That GitHub account is already linked to another Fugue account."),
+        variant: "error",
+      };
+    case "github-link-failed":
+      return {
+        message: t("GitHub could not be linked right now. Try again."),
+        variant: "error",
+      };
+    case "github-linked":
+      return {
+        message: t("GitHub sign-in linked."),
+        variant: "success",
+      };
+    case "github-unavailable":
+      return {
+        message: t("GitHub sign-in is not configured in this environment."),
+        variant: "info",
+      };
+    case "google-link-conflict":
+      return {
+        message: t("That Google account is already linked to another Fugue account."),
+        variant: "error",
+      };
+    case "google-link-failed":
+      return {
+        message: t("Google could not be linked right now. Try again."),
+        variant: "error",
+      };
+    case "google-linked":
+      return {
+        message: t("Google sign-in linked."),
+        variant: "success",
+      };
+    case "google-unavailable":
+      return {
+        message: t("Google sign-in is not configured in this environment."),
+        variant: "info",
+      };
+    default:
+      return null;
   }
->;
+}
 
 function readFocusableElements(container: HTMLElement | null) {
   if (!container) {
@@ -113,14 +125,19 @@ function readMethodSlug(method: ProfileMethodKey) {
   }
 }
 
-function readMethodDescription(method: Exclude<ProfileMethodKey, "password">) {
+function readMethodDescription(
+  method: Exclude<ProfileMethodKey, "password">,
+  t: Translator,
+) {
   switch (method) {
     case "google":
-      return "Use a linked Google or Gmail identity to reopen the console.";
+      return t("Use a linked Google or Gmail identity to reopen the console.");
     case "github":
-      return "Use GitHub as another return path into the console.";
+      return t("Use GitHub as another return path into the console.");
     case "email_link":
-      return "Send a one-time verification link to the account email on the sign-in page.";
+      return t(
+        "Send a one-time verification link to the account email on the sign-in page.",
+      );
     default:
       return "";
   }
@@ -130,21 +147,26 @@ function readMethodDetail(
   method: Exclude<ProfileMethodKey, "password">,
   record: ProfileMethodRecord | undefined,
   email: string,
+  t: Translator,
 ) {
   if (method === "email_link") {
-    return record ? email : "Disabled on this account.";
+    return record ? email : t("Disabled on this account.");
   }
 
   if (!record) {
-    return "Not linked yet.";
+    return t("Not linked yet.");
   }
 
-  return record.providerLabel ?? "Linked";
+  return record.providerLabel ?? t("Linked");
 }
 
-function readTimestampLabel(value: string | null | undefined) {
+function readTimestampLabel(
+  value: string | null | undefined,
+  formatDateTime: ReturnType<typeof useI18n>["formatDateTime"],
+  t: Translator,
+) {
   if (!value) {
-    return "Not available";
+    return t("Not available");
   }
 
   const parsed = new Date(value);
@@ -153,10 +175,13 @@ function readTimestampLabel(value: string | null | undefined) {
     return value;
   }
 
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(parsed);
+  return formatDateTime(parsed, {
+    emptyText: t("Not available"),
+    formatOptions: {
+      dateStyle: "medium",
+      timeStyle: "short",
+    },
+  });
 }
 
 function countConnectedProviders(methodMap: Map<ProfileMethodKey, ProfileMethodRecord>) {
@@ -193,18 +218,19 @@ function readProviderMark(provider: "email" | "github" | "google") {
 function readProviderIdleDetail(
   provider: "github" | "google",
   available: boolean,
+  t: Translator,
 ) {
   if (!available) {
-    return "Not configured in this environment.";
+    return t("Not configured in this environment.");
   }
 
   switch (provider) {
     case "google":
-      return "Ready to connect when you want a Google-based return path.";
+      return t("Ready to connect when you want a Google-based return path.");
     case "github":
-      return "Ready to connect when you want GitHub-based sign-in.";
+      return t("Ready to connect when you want GitHub-based sign-in.");
     default:
-      return "Ready to connect.";
+      return t("Ready to connect.");
   }
 }
 
@@ -261,8 +287,13 @@ function ExternalProviderSurface({
   provider: "github" | "google";
   title: string;
 }) {
+  const { t } = useI18n();
   const statusTone = linked ? "positive" : available ? "neutral" : "warning";
-  const statusLabel = linked ? "Connected" : available ? "Available" : "Unavailable";
+  const statusLabel = linked
+    ? t("Connected")
+    : available
+      ? t("Available")
+      : t("Unavailable");
 
   return (
     <section
@@ -282,7 +313,9 @@ function ExternalProviderSurface({
 
               <div className="fg-console-inline-status">
                 <StatusBadge tone={statusTone}>{statusLabel}</StatusBadge>
-                {isCurrentSession ? <StatusBadge tone="info">In use</StatusBadge> : null}
+                {isCurrentSession ? (
+                  <StatusBadge tone="info">{t("In use")}</StatusBadge>
+                ) : null}
               </div>
             </div>
 
@@ -298,13 +331,13 @@ function ExternalProviderSurface({
           <Button
             className="fg-button--full-width"
             loading={busy}
-            loadingLabel="Disconnecting"
+            loadingLabel={t("Disconnecting")}
             onClick={onDisconnect}
             size="compact"
             type="button"
             variant="danger"
           >
-            Disconnect
+            {t("Disconnect")}
           </Button>
         ) : available && actionHref ? (
           <ButtonAnchor
@@ -323,11 +356,11 @@ function ExternalProviderSurface({
             size="compact"
             variant="secondary"
           >
-            Connect {title}
+            {t("Connect {provider}", { provider: title })}
           </ButtonAnchor>
         ) : (
           <div className="fg-profile-auth-provider__availability">
-            Connect is disabled here until the provider is configured.
+            {t("Connect is disabled here until the provider is configured.")}
           </div>
         )}
       </div>
@@ -344,6 +377,7 @@ function ProfileIdentityPanel({
   session: ConsoleProfileSettingsPageSnapshot["session"];
   user: ConsoleProfileSettingsPageSnapshot["user"];
 }) {
+  const { formatDateTime, locale, t } = useI18n();
   const { showToast } = useToast();
   const [displayName, setDisplayName] = useState(user.name ?? "");
   const [saving, setSaving] = useState(false);
@@ -383,13 +417,13 @@ function ProfileIdentityPanel({
       };
 
       if (!response.ok) {
-        throw new Error(payload.error ?? "Could not update your profile.");
+        throw new Error(payload.error ?? t("Could not update your profile."));
       }
 
       setDisplayName(payload.user?.name ?? normalizedDraft);
       await onUpdated();
       showToast({
-        message: "Profile updated.",
+        message: t("Profile updated."),
         variant: "success",
       });
     } catch (error) {
@@ -397,7 +431,7 @@ function ProfileIdentityPanel({
         message:
           error instanceof Error && error.message.trim()
             ? error.message
-            : "Could not update your profile.",
+            : t("Could not update your profile."),
         variant: "error",
       });
     } finally {
@@ -409,10 +443,12 @@ function ProfileIdentityPanel({
     <Panel className="fg-profile-panel">
       <PanelSection className="fg-profile-panel__body">
         <div className="fg-profile-panel__head">
-          <p className="fg-label fg-panel__eyebrow">Identity</p>
-          <PanelTitle>Profile</PanelTitle>
+          <p className="fg-label fg-panel__eyebrow">{t("Identity")}</p>
+          <PanelTitle>{t("Profile")}</PanelTitle>
           <PanelCopy className="fg-profile-panel__copy">
-            Edit the name shown across the console. Email and sign-in methods are managed below.
+            {t(
+              "Edit the name shown across the console. Email and sign-in methods are managed below.",
+            )}
           </PanelCopy>
         </div>
 
@@ -427,23 +463,23 @@ function ProfileIdentityPanel({
 
             <div className="fg-console-inline-status">
               <StatusBadge tone="neutral">
-                {readAuthMethodLabel(session.authMethod, session.provider)}
+                {readAuthMethodLabel(session.authMethod, session.provider, locale)}
               </StatusBadge>
               <StatusBadge tone={session.verified ? "positive" : "warning"}>
-                {readVerificationLabel(session.verified)}
+                {readVerificationLabel(session.verified, locale)}
               </StatusBadge>
             </div>
           </div>
 
           <div className="fg-profile-identity__meta">
-            <span>Last sign-in</span>
-            <strong>{readTimestampLabel(user.lastLoginAt)}</strong>
+            <span>{t("Last sign-in")}</span>
+            <strong>{readTimestampLabel(user.lastLoginAt, formatDateTime, t)}</strong>
           </div>
         </div>
 
         <form className="fg-settings-form fg-profile-editor" onSubmit={(event) => void handleSubmit(event)}>
           <label className="fg-profile-editor__label" htmlFor="profile-display-name">
-            Display name
+            {t("Display name")}
           </label>
 
           <div className="fg-profile-editor__field">
@@ -453,7 +489,7 @@ function ProfileIdentityPanel({
               maxLength={80}
               name="displayName"
               onChange={(event) => setDisplayName(event.currentTarget.value)}
-              placeholder="How Fugue should address you"
+              placeholder={t("How Fugue should address you")}
               type="text"
               value={displayName}
             />
@@ -463,16 +499,16 @@ function ProfileIdentityPanel({
             <Button
               disabled={!isDirty}
               loading={saving}
-              loadingLabel="Saving"
+              loadingLabel={t("Saving")}
               type="submit"
               variant="primary"
             >
-              Save profile
+              {t("Save profile")}
             </Button>
           </div>
 
           <p className="fg-profile-editor__hint">
-            Optional. Shown in the console header and account surfaces.
+            {t("Optional. Shown in the console header and account surfaces.")}
           </p>
         </form>
       </PanelSection>
@@ -487,6 +523,7 @@ function SignInMethodsPanel({
   data: ConsoleProfileSettingsPageSnapshot;
   onUpdated: () => Promise<void>;
 }) {
+  const { locale, t } = useI18n();
   const confirm = useConfirmDialog();
   const { showToast } = useToast();
   const [busyMethod, setBusyMethod] =
@@ -503,7 +540,7 @@ function SignInMethodsPanel({
         : null,
       available: data.availableMethods.google,
       key: "google" as const,
-      title: "Google",
+      title: t("Google"),
     },
     {
       actionHref: data.availableMethods.github
@@ -511,7 +548,7 @@ function SignInMethodsPanel({
         : null,
       available: data.availableMethods.github,
       key: "github" as const,
-      title: "GitHub",
+      title: t("GitHub"),
     },
   ];
 
@@ -529,12 +566,18 @@ function SignInMethodsPanel({
     }
 
     const confirmed = await confirm({
-      confirmLabel: `Disconnect ${readAuthMethodLabel(method)}`,
+      confirmLabel: t("Disconnect {method}", {
+        method: readAuthMethodLabel(method, undefined, locale),
+      }),
       description:
         data.session.authMethod === method
-          ? "The current browser session stays open, but future sign-ins will need another linked method."
-          : "Keep another sign-in method linked before removing this one.",
-      title: `Disconnect ${readAuthMethodLabel(method)} sign-in?`,
+          ? t(
+              "The current browser session stays open, but future sign-ins will need another linked method.",
+            )
+          : t("Keep another sign-in method linked before removing this one."),
+      title: t("Disconnect {method} sign-in?", {
+        method: readAuthMethodLabel(method, undefined, locale),
+      }),
       variant: "danger",
     });
 
@@ -548,13 +591,17 @@ function SignInMethodsPanel({
       await requestJson(`/api/auth/methods/${readMethodSlug(method)}`, {
         method: "DELETE",
       });
-      await refreshAfterAction(`${readAuthMethodLabel(method)} sign-in disconnected.`);
+      await refreshAfterAction(
+        t("{method} sign-in disconnected.", {
+          method: readAuthMethodLabel(method, undefined, locale),
+        }),
+      );
     } catch (error) {
       showToast({
         message:
           error instanceof Error && error.message.trim()
             ? error.message
-            : "Could not update the sign-in method.",
+            : t("Could not update the sign-in method."),
         variant: "error",
       });
     } finally {
@@ -565,11 +612,12 @@ function SignInMethodsPanel({
   return (
     <Panel className="fg-profile-auth-panel">
       <PanelSection>
-        <p className="fg-label fg-panel__eyebrow">Sign-in methods</p>
-        <PanelTitle>Linked providers</PanelTitle>
+        <p className="fg-label fg-panel__eyebrow">{t("Sign-in methods")}</p>
+        <PanelTitle>{t("Linked providers")}</PanelTitle>
         <PanelCopy>
-          Manage how this account gets back into Fugue. Email stays the recovery anchor while GitHub
-          and Google remain optional return paths.
+          {t(
+            "Manage how this account gets back into Fugue. Email stays the recovery anchor while GitHub and Google remain optional return paths.",
+          )}
         </PanelCopy>
       </PanelSection>
 
@@ -577,7 +625,9 @@ function SignInMethodsPanel({
         {methodCount <= 1 ? (
           <>
             <InlineAlert variant="warning">
-              This account currently has one sign-in method left. Connect another method before removing it.
+              {t(
+                "This account currently has one sign-in method left. Connect another method before removing it.",
+              )}
             </InlineAlert>
             <div style={{ height: "0.9rem" }} aria-hidden="true" />
           </>
@@ -586,24 +636,30 @@ function SignInMethodsPanel({
         <div className="fg-profile-auth-summary">
           <div className="fg-profile-auth-summary__metrics">
             <ProviderSummaryMetric
-              label="Connected providers"
+              label={t("Connected providers")}
               value={`${connectedProviderCount}/${availableProviderCount}`}
             />
             <ProviderSummaryMetric
-              label="Active methods"
+              label={t("Active methods")}
               value={String(methodCount)}
             />
             <ProviderSummaryMetric
-              label="Recovery anchor"
+              label={t("Recovery anchor")}
               value={data.user.email}
             />
           </div>
 
           <div className="fg-console-inline-status fg-profile-auth-summary__status">
             <StatusBadge tone="info">
-              {readAuthMethodLabel(data.session.authMethod, data.session.provider)} in use
+              {t("{method} in use", {
+                method: readAuthMethodLabel(
+                  data.session.authMethod,
+                  data.session.provider,
+                  locale,
+                ),
+              })}
             </StatusBadge>
-            <StatusBadge tone="neutral">Keep one method live</StatusBadge>
+            <StatusBadge tone="neutral">{t("Keep one method live")}</StatusBadge>
           </div>
         </div>
 
@@ -618,11 +674,11 @@ function SignInMethodsPanel({
                   actionHref={item.actionHref}
                   available={item.available}
                   busy={busyMethod === item.key}
-                  description={readMethodDescription(item.key)}
+                  description={readMethodDescription(item.key, t)}
                   detail={
                     linked
-                      ? readMethodDetail(item.key, record, data.user.email)
-                      : readProviderIdleDetail(item.key, item.available)
+                      ? readMethodDetail(item.key, record, data.user.email, t)
+                      : readProviderIdleDetail(item.key, item.available, t)
                   }
                   isCurrentSession={data.session.authMethod === item.key}
                   key={item.key}
@@ -663,6 +719,7 @@ function EmailMethodItem({
   onUpdated: () => Promise<void>;
   passwordRecord: ProfileMethodRecord | undefined;
 }) {
+  const { locale, t } = useI18n();
   const confirm = useConfirmDialog();
   const { showToast } = useToast();
   const passwordDialogIdBase = useId();
@@ -685,7 +742,10 @@ function EmailMethodItem({
   const canRemovePassword = hasPassword && methodCount > 1;
   const isCurrentSession =
     data.session.authMethod === "email_link" || data.session.authMethod === "password";
-  const currentSessionLabel = data.session.authMethod === "password" ? "Password" : "Email link";
+  const currentSessionLabel =
+    data.session.authMethod === "password"
+      ? readAuthMethodLabel("password", undefined, locale)
+      : readAuthMethodLabel("email_link", undefined, locale);
   const [busyEmailLink, setBusyEmailLink] = useState(false);
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
@@ -787,13 +847,13 @@ function EmailMethodItem({
       await requestJson(`/api/auth/methods/${readMethodSlug("email_link")}`, {
         method: "POST",
       });
-      await refreshAfterAction("Email link sign-in enabled.");
+      await refreshAfterAction(t("Email link sign-in enabled."));
     } catch (error) {
       showToast({
         message:
           error instanceof Error && error.message.trim()
             ? error.message
-            : "Could not enable email link sign-in.",
+            : t("Could not enable email link sign-in."),
         variant: "error",
       });
     } finally {
@@ -807,12 +867,16 @@ function EmailMethodItem({
     }
 
     const confirmed = await confirm({
-      confirmLabel: "Disable email link",
+      confirmLabel: t("Disable email link"),
       description:
         data.session.authMethod === "email_link"
-          ? "The current browser session stays open, but the next sign-in will need another linked method."
-          : "Keep another sign-in method linked before removing email link access.",
-      title: "Disable email link sign-in?",
+          ? t(
+              "The current browser session stays open, but the next sign-in will need another linked method.",
+            )
+          : t(
+              "Keep another sign-in method linked before removing email link access.",
+            ),
+      title: t("Disable email link sign-in?"),
       variant: "danger",
     });
 
@@ -826,13 +890,13 @@ function EmailMethodItem({
       await requestJson(`/api/auth/methods/${readMethodSlug("email_link")}`, {
         method: "DELETE",
       });
-      await refreshAfterAction("Email link sign-in disabled.");
+      await refreshAfterAction(t("Email link sign-in disabled."));
     } catch (error) {
       showToast({
         message:
           error instanceof Error && error.message.trim()
             ? error.message
-            : "Could not disable email link sign-in.",
+            : t("Could not disable email link sign-in."),
         variant: "error",
       });
     } finally {
@@ -854,7 +918,7 @@ function EmailMethodItem({
     } = {};
 
     if (newPassword !== confirmPassword) {
-      nextErrors.confirmPassword = "Passwords do not match.";
+      nextErrors.confirmPassword = t("Passwords do not match.");
     }
 
     if (Object.keys(nextErrors).length > 0) {
@@ -888,17 +952,20 @@ function EmailMethodItem({
 
       if (!response.ok) {
         setFieldErrors(payload.fieldErrors ?? {});
-        throw new Error(payload.error ?? "Could not save the password.");
+        throw new Error(payload.error ?? t("Could not save the password."));
       }
 
       dismissPasswordDialog(false);
-      await refreshAfterAction(payload.message ?? (hasPassword ? "Password updated." : "Password added."));
+      await refreshAfterAction(
+        payload.message ??
+          (hasPassword ? t("Password updated.") : t("Password added.")),
+      );
     } catch (error) {
       showToast({
         message:
           error instanceof Error && error.message.trim()
             ? error.message
-            : "Could not save the password.",
+            : t("Could not save the password."),
         variant: "error",
       });
     } finally {
@@ -912,12 +979,14 @@ function EmailMethodItem({
     }
 
     const confirmed = await confirm({
-      confirmLabel: "Remove password",
+      confirmLabel: t("Remove password"),
       description:
         data.session.authMethod === "password"
-          ? "The current browser session stays open, but the next sign-in will need another linked method."
-          : "Keep another sign-in method linked before removing the stored password.",
-      title: "Remove password sign-in?",
+          ? t(
+              "The current browser session stays open, but the next sign-in will need another linked method.",
+            )
+          : t("Keep another sign-in method linked before removing the stored password."),
+      title: t("Remove password sign-in?"),
       variant: "danger",
     });
 
@@ -932,13 +1001,13 @@ function EmailMethodItem({
         method: "DELETE",
       });
       dismissPasswordDialog(false);
-      await refreshAfterAction("Password removed.");
+      await refreshAfterAction(t("Password removed."));
     } catch (error) {
       showToast({
         message:
           error instanceof Error && error.message.trim()
             ? error.message
-            : "Could not remove the password.",
+            : t("Could not remove the password."),
         variant: "error",
       });
     } finally {
@@ -1039,27 +1108,32 @@ function EmailMethodItem({
 
             <div className="fg-profile-auth-provider__copy">
               <div className="fg-profile-auth-provider__headline">
-                <strong>Email</strong>
+                <strong>{t("Email")}</strong>
 
                 <div className="fg-console-inline-status">
                   <StatusBadge tone={emailGroupConnected ? "positive" : "neutral"}>
-                    {emailGroupConnected ? "Connected" : "Not enabled"}
+                    {emailGroupConnected ? t("Connected") : t("Not enabled")}
                   </StatusBadge>
                   {isCurrentSession ? (
-                    <StatusBadge tone="info">{currentSessionLabel} in use</StatusBadge>
+                    <StatusBadge tone="info">
+                      {t("{method} in use", { method: currentSessionLabel })}
+                    </StatusBadge>
                   ) : null}
                 </div>
               </div>
 
               <p className="fg-profile-auth-provider__description">
-                Keep the account email as the recovery anchor. Email link remains the
-                lowest-friction fallback; password is optional for faster return access.
+                {t(
+                  "Keep the account email as the recovery anchor. Email link remains the lowest-friction fallback; password is optional for faster return access.",
+                )}
               </p>
             </div>
           </div>
 
           <div className="fg-profile-auth-provider__aside">
-            <span className="fg-profile-auth-provider__aside-label">Account email</span>
+            <span className="fg-profile-auth-provider__aside-label">
+              {t("Account email")}
+            </span>
             <strong>{data.user.email}</strong>
           </div>
         </div>
@@ -1073,24 +1147,28 @@ function EmailMethodItem({
           >
             <div className="fg-profile-auth-capability__head">
               <div>
-                <span className="fg-profile-auth-capability__label">Email link</span>
+                <span className="fg-profile-auth-capability__label">
+                  {t("Email link")}
+                </span>
                 <h3 className="fg-profile-auth-capability__title">
-                  One-time verification path
+                  {t("One-time verification path")}
                 </h3>
               </div>
 
               <div className="fg-console-inline-status">
                 <StatusBadge tone={emailLinkEnabled ? "positive" : "neutral"}>
-                  {emailLinkEnabled ? "Connected" : "Off"}
+                  {emailLinkEnabled ? t("Connected") : t("Off")}
                 </StatusBadge>
                 {data.session.authMethod === "email_link" ? (
-                  <StatusBadge tone="info">In use</StatusBadge>
+                  <StatusBadge tone="info">{t("In use")}</StatusBadge>
                 ) : null}
               </div>
             </div>
 
             <p className="fg-profile-auth-capability__copy">
-              Send a secure sign-in link to the account email without storing a password.
+              {t(
+                "Send a secure sign-in link to the account email without storing a password.",
+              )}
             </p>
             <p className="fg-profile-auth-capability__meta">{data.user.email}</p>
 
@@ -1098,7 +1176,7 @@ function EmailMethodItem({
               className="fg-button--full-width"
               disabled={(emailLinkEnabled && !canDisableEmailLink) || passwordDialogBusy}
               loading={busyEmailLink}
-              loadingLabel={emailLinkEnabled ? "Updating" : "Enabling"}
+              loadingLabel={emailLinkEnabled ? t("Updating") : t("Enabling")}
               onClick={() => {
                 if (emailLinkEnabled) {
                   void handleDisableEmailLink();
@@ -1111,35 +1189,38 @@ function EmailMethodItem({
               type="button"
               variant="secondary"
             >
-              {emailLinkEnabled ? "Disable email link" : "Enable email link"}
+              {emailLinkEnabled ? t("Disable email link") : t("Enable email link")}
             </Button>
           </section>
 
           <section className={cx("fg-profile-auth-capability", hasPassword && "is-active")}>
             <div className="fg-profile-auth-capability__head">
               <div>
-                <span className="fg-profile-auth-capability__label">Password</span>
+                <span className="fg-profile-auth-capability__label">
+                  {t("Password")}
+                </span>
                 <h3 className="fg-profile-auth-capability__title">
-                  Direct returning access
+                  {t("Direct returning access")}
                 </h3>
               </div>
 
               <div className="fg-console-inline-status">
                 <StatusBadge tone={hasPassword ? "positive" : "neutral"}>
-                  {hasPassword ? "Added" : "Not added"}
+                  {hasPassword ? t("Added") : t("Not added")}
                 </StatusBadge>
                 {data.session.authMethod === "password" ? (
-                  <StatusBadge tone="info">In use</StatusBadge>
+                  <StatusBadge tone="info">{t("In use")}</StatusBadge>
                 ) : null}
               </div>
             </div>
 
             <p className="fg-profile-auth-capability__copy">
-              Add a stored password only if you want faster sign-in after the account is
-              already created.
+              {t(
+                "Add a stored password only if you want faster sign-in after the account is already created.",
+              )}
             </p>
             <p className="fg-profile-auth-capability__meta">
-              Registration still uses an email verification link.
+              {t("Registration still uses an email verification link.")}
             </p>
 
             <Button
@@ -1155,15 +1236,16 @@ function EmailMethodItem({
               type="button"
               variant="secondary"
             >
-              {hasPassword ? "Manage password" : "Add password"}
+              {hasPassword ? t("Manage password") : t("Add password")}
             </Button>
           </section>
         </div>
 
         {methodCount <= 1 ? (
           <p className="fg-profile-auth-provider__hint">
-            Connect another sign-in method before turning off email link or removing the
-            password.
+            {t(
+              "Connect another sign-in method before turning off email link or removing the password.",
+            )}
           </p>
         ) : null}
       </section>
@@ -1190,17 +1272,23 @@ function EmailMethodItem({
               <PanelSection>
                 <div className="fg-profile-password-dialog__head">
                   <div className="fg-profile-password-dialog__copy">
-                    <p className="fg-label fg-panel__eyebrow">Password access</p>
+                    <p className="fg-label fg-panel__eyebrow">
+                      {t("Password access")}
+                    </p>
                     <PanelTitle
                       className="fg-console-dialog__title"
                       id={passwordDialogTitleId}
                     >
-                      {hasPassword ? "Manage password" : "Add password"}
+                      {hasPassword ? t("Manage password") : t("Add password")}
                     </PanelTitle>
                     <PanelCopy id={passwordDialogDescriptionId}>
                       {hasPassword
-                        ? "Update or remove the stored password. Email link stays the recovery anchor for this account."
-                        : "Add a stored password for faster return access. Registration still uses an email verification link."}
+                        ? t(
+                            "Update or remove the stored password. Email link stays the recovery anchor for this account.",
+                          )
+                        : t(
+                            "Add a stored password for faster return access. Registration still uses an email verification link.",
+                          )}
                     </PanelCopy>
                   </div>
                 </div>
@@ -1210,15 +1298,17 @@ function EmailMethodItem({
                 <div className="fg-profile-password-dialog">
                   {data.session.authMethod === "password" ? (
                     <InlineAlert variant="info">
-                      This session was opened with a password. Changing or removing it will
-                      not close the current browser session.
+                      {t(
+                        "This session was opened with a password. Changing or removing it will not close the current browser session.",
+                      )}
                     </InlineAlert>
                   ) : null}
 
                   {hasPassword && !canRemovePassword ? (
                     <InlineAlert variant="warning">
-                      Add or reconnect another sign-in method before removing the password
-                      from this account.
+                      {t(
+                        "Add or reconnect another sign-in method before removing the password from this account.",
+                      )}
                     </InlineAlert>
                   ) : null}
 
@@ -1236,9 +1326,9 @@ function EmailMethodItem({
                       {hasPassword ? (
                         <FormField
                           error={fieldErrors.currentPassword}
-                          hint="Required before the password can be changed."
+                          hint={t("Required before the password can be changed.")}
                           htmlFor={currentPasswordFieldId}
-                          label="Current password"
+                          label={t("Current password")}
                         >
                           <input
                             autoComplete="current-password"
@@ -1257,9 +1347,9 @@ function EmailMethodItem({
 
                       <FormField
                         error={fieldErrors.newPassword}
-                        hint={PASSWORD_HINT}
+                        hint={t(PASSWORD_HINT)}
                         htmlFor={newPasswordFieldId}
-                        label={hasPassword ? "New password" : "Password"}
+                        label={hasPassword ? t("New password") : t("Password")}
                       >
                         <input
                           autoComplete="new-password"
@@ -1275,9 +1365,9 @@ function EmailMethodItem({
 
                       <FormField
                         error={fieldErrors.confirmPassword}
-                        hint="Repeat the password once to confirm it."
+                        hint={t("Repeat the password once to confirm it.")}
                         htmlFor={confirmPasswordFieldId}
-                        label="Confirm password"
+                        label={t("Confirm password")}
                       >
                         <input
                           autoComplete="new-password"
@@ -1301,7 +1391,7 @@ function EmailMethodItem({
                         }
                         type="checkbox"
                       />
-                      <span>Show passwords</span>
+                      <span>{t("Show passwords")}</span>
                     </label>
                   </form>
                 </div>
@@ -1318,14 +1408,14 @@ function EmailMethodItem({
                     type="button"
                     variant="secondary"
                   >
-                    Cancel
+                    {t("Cancel")}
                   </Button>
 
                   {hasPassword ? (
                     <Button
                       disabled={!canRemovePassword || submitting}
                       loading={removing}
-                      loadingLabel="Removing"
+                      loadingLabel={t("Removing")}
                       onClick={() => {
                         void handleRemovePassword();
                       }}
@@ -1333,19 +1423,19 @@ function EmailMethodItem({
                       type="button"
                       variant="danger"
                     >
-                      Remove password
+                      {t("Remove password")}
                     </Button>
                   ) : null}
 
                   <Button
                     form={passwordFormId}
                     loading={submitting}
-                    loadingLabel="Saving"
+                    loadingLabel={t("Saving")}
                     size="compact"
                     type="submit"
                     variant="primary"
                   >
-                    {hasPassword ? "Update password" : "Add password"}
+                    {hasPassword ? t("Update password") : t("Add password")}
                   </Button>
                 </div>
               </PanelSection>
@@ -1361,6 +1451,7 @@ export function ConsoleProfileSettingsPageShell() {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useI18n();
   const { showToast } = useToast();
   const { data, error, loading, refresh } =
     useConsolePageSnapshot<ConsoleProfileSettingsPageSnapshot>(
@@ -1374,12 +1465,7 @@ export function ConsoleProfileSettingsPageShell() {
       return;
     }
 
-    const toast =
-      profileAuth in PROFILE_AUTH_FLASH_TOASTS
-        ? PROFILE_AUTH_FLASH_TOASTS[
-            profileAuth as keyof typeof PROFILE_AUTH_FLASH_TOASTS
-          ]
-        : null;
+    const toast = readProfileAuthFlashToast(profileAuth, t);
 
     if (toast) {
       showToast(toast);
@@ -1391,7 +1477,7 @@ export function ConsoleProfileSettingsPageShell() {
     router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, {
       scroll: false,
     });
-  }, [pathname, router, searchParams, showToast]);
+  }, [pathname, router, searchParams, showToast, t]);
 
   async function handleRefresh() {
     await refresh({
@@ -1401,7 +1487,7 @@ export function ConsoleProfileSettingsPageShell() {
 
   if (loading && !data) {
     return (
-      <ConsoleLoadingState label="Loading profile settings">
+      <ConsoleLoadingState label={t("Loading profile settings")}>
         <ConsoleProfileSettingsPageSkeleton />
       </ConsoleLoadingState>
     );
@@ -1412,18 +1498,20 @@ export function ConsoleProfileSettingsPageShell() {
       <div className="fg-console-page">
         <ConsolePageIntro
           actions={[
-            { href: "/app", label: "Back to projects" },
+            { href: "/app", label: t("Back to projects") },
           ]}
-          description="Display name and every sign-in path linked to this account."
-          eyebrow="Account"
-          title="Profile and security"
+          description={t("Display name and every sign-in path linked to this account.")}
+          eyebrow={t("Account")}
+          title={t("Profile and security")}
         />
 
         <Panel>
           <PanelSection>
             <ConsoleEmptyState
-              description={error ?? "Fugue could not load the profile settings right now."}
-              title="Profile settings unavailable"
+              description={
+                error ?? t("Fugue could not load the profile settings right now.")
+              }
+              title={t("Profile settings unavailable")}
             />
           </PanelSection>
         </Panel>
@@ -1435,11 +1523,11 @@ export function ConsoleProfileSettingsPageShell() {
     <div className="fg-console-page">
       <ConsolePageIntro
         actions={[
-          { href: "/app", label: "Back to projects" },
+          { href: "/app", label: t("Back to projects") },
         ]}
-        description="Display name and every sign-in path linked to this account."
-        eyebrow="Account"
-        title="Profile and security"
+        description={t("Display name and every sign-in path linked to this account.")}
+        eyebrow={t("Account")}
+        title={t("Profile and security")}
       />
 
       <ProfileIdentityPanel

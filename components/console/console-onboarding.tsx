@@ -11,6 +11,7 @@ import {
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { ImportServiceFields } from "@/components/console/import-service-fields";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { Button } from "@/components/ui/button";
 import { Panel, PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
 import { useToast } from "@/components/ui/toast";
@@ -32,6 +33,7 @@ import {
   createLocalUploadState,
   type LocalUploadState,
 } from "@/lib/fugue/local-upload";
+import { type TranslationValues } from "@/lib/i18n/core";
 
 type OnboardingStage = "needs-workspace" | "needs-import";
 type FlashState = {
@@ -57,12 +59,15 @@ const DEFAULT_IMPORT_CAPABILITIES = {
   startupCommandSupported: true,
 };
 
-function readErrorMessage(error: unknown) {
+function readErrorMessage(
+  error: unknown,
+  t: (key: string, values?: TranslationValues) => string,
+) {
   if (error instanceof Error && error.message) {
     return error.message;
   }
 
-  return "Request failed.";
+  return t("Request failed.");
 }
 
 async function requestJson<T>(input: RequestInfo, init?: RequestInit) {
@@ -91,6 +96,7 @@ export function ConsoleOnboarding({
   runtimeTargets?: ConsoleImportRuntimeTargetView[];
   runtimeTargetInventoryError?: string | null;
 }) {
+  const { locale, t } = useI18n();
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -113,7 +119,7 @@ export function ConsoleOnboarding({
     DEFAULT_IMPORT_CAPABILITIES,
   );
   const [importEnvFeedback, setImportEnvFeedback] = useState<RawEnvFeedback>(
-    () => buildRawEnvFeedback(draft.envRaw, "console"),
+    () => buildRawEnvFeedback(draft.envRaw, "console", locale),
   );
   const {
     connectHref: githubConnectHref,
@@ -184,8 +190,8 @@ export function ConsoleOnboarding({
   }, [runtimeTargets]);
 
   useEffect(() => {
-    setImportEnvFeedback(buildRawEnvFeedback(draft.envRaw, "console"));
-  }, [draft.envRaw]);
+    setImportEnvFeedback(buildRawEnvFeedback(draft.envRaw, "console", locale));
+  }, [draft.envRaw, locale]);
 
   useEffect(() => {
     if (!flash) {
@@ -246,7 +252,7 @@ export function ConsoleOnboarding({
       router.refresh();
     } catch (error) {
       setFlash({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -283,6 +289,7 @@ export function ConsoleOnboarding({
         importCapabilities.persistentStorageSupported,
       privateGitHubAuthorized:
         githubConnectionLoading || Boolean(githubConnection?.connected),
+      locale,
     });
 
     if (validationError) {
@@ -310,6 +317,7 @@ export function ConsoleOnboarding({
                 buildImportServicePayload(draft, {
                   includePersistentStorage:
                     importCapabilities.persistentStorageSupported,
+                  locale,
                 }),
                 localUpload,
               ),
@@ -320,6 +328,7 @@ export function ConsoleOnboarding({
                 buildImportServicePayload(draft, {
                   includePersistentStorage:
                     importCapabilities.persistentStorageSupported,
+                  locale,
                 }),
               ),
               headers: {
@@ -336,7 +345,7 @@ export function ConsoleOnboarding({
       router.refresh();
     } catch (error) {
       setFlash({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -346,65 +355,81 @@ export function ConsoleOnboarding({
 
   const isWorkspaceStage = stage === "needs-workspace";
   const title = isWorkspaceStage
-    ? "Create the first project."
-    : "Import the first service.";
+    ? t("Create the first project.")
+    : t("Import the first service.");
   const description = isWorkspaceStage
-    ? `Set up the workspace and prepare ${projectName}.`
-    : "Import a GitHub repository, local folder, or Docker image to create the first app.";
-  const primaryLabel = isWorkspaceStage ? "Create project" : "Import service";
-  const disclosureTitle = isWorkspaceStage ? "What happens next" : "Import rules";
+    ? t("Set up the workspace and prepare {projectName}.", { projectName })
+    : t(
+        "Import a GitHub repository, local folder, or Docker image to create the first app.",
+      );
+  const primaryLabel = isWorkspaceStage ? t("Create project") : t("Import service");
+  const disclosureTitle = isWorkspaceStage ? t("What happens next") : t("Import rules");
   const disclosureItems = isWorkspaceStage
     ? [
         {
-          label: "Admin key",
-          value: "Stored for this workspace",
+          label: t("Admin key"),
+          value: t("Stored for this workspace"),
         },
         {
-          label: "Project",
+          label: t("Project"),
           value: projectName,
         },
         {
-          label: "Next",
-          value: "Import one service",
+          label: t("Next"),
+          value: t("Import one service"),
         },
       ]
     : [
         {
-          label: "Project",
+          label: t("Project"),
           value: projectName,
         },
         {
-          label: "Sources",
-          value: "GitHub repositories, local uploads, or Docker images",
+          label: t("Sources"),
+          value: t("GitHub repositories, local uploads, or Docker images"),
         },
         {
-          label: "GitHub access",
-          value: "Public or private with GitHub authorization or a stored token",
+          label: t("GitHub access"),
+          value: t(
+            "Public or private with GitHub authorization or a stored token",
+          ),
         },
         {
-          label: "Docker images",
-          value: "Public image refs are mirrored into Fugue before rollout",
+          label: t("Docker images"),
+          value: t("Public image refs are mirrored into Fugue before rollout"),
         },
         {
-          label: "Local uploads",
-          value: "Drag a folder, docker-compose.yml, fugue.yaml, Dockerfile, or source files into the browser",
+          label: t("Local uploads"),
+          value: t(
+            "Drag a folder, docker-compose.yml, fugue.yaml, Dockerfile, or source files into the browser",
+          ),
         },
         {
-          label: "Optional",
-          value: "Branch, app name, build strategy, and optional source paths",
+          label: t("Optional"),
+          value: t(
+            "Branch, app name, build strategy, and optional source paths",
+          ),
         },
         {
-          label: "Updates",
-          value: "Repository-backed services auto sync; image-backed services can repull the saved image ref",
+          label: t("Updates"),
+          value: t(
+            "Repository-backed services auto sync; image-backed services can repull the saved image ref",
+          ),
         },
       ];
-  const eyebrow = "Console / first run";
+  const eyebrow = t("Console / first run");
   const importDialogCopy =
     draft.sourceMode === "github"
-      ? "Paste a GitHub repository link and choose GitHub authorization or a token for private access."
+      ? t(
+          "Paste a GitHub repository link and choose GitHub authorization or a token for private access.",
+        )
       : draft.sourceMode === "local-upload"
-        ? "Drop a local folder or source files. Fugue packages them on the server, then imports the result through the upload path."
-      : "Point Fugue at a published Docker image. Fugue mirrors it into the internal registry before rollout.";
+        ? t(
+            "Drop a local folder or source files. Fugue packages them on the server, then imports the result through the upload path.",
+          )
+        : t(
+            "Point Fugue at a published Docker image. Fugue mirrors it into the internal registry before rollout.",
+          );
   const openImport = () => {
     setFlash(null);
     resetImportForm();
@@ -426,7 +451,11 @@ export function ConsoleOnboarding({
             <div className="fg-console-onboarding__actions">
               <Button
                 loading={isCreating || isImporting}
-                loadingLabel={isWorkspaceStage ? "Creating workspace…" : "Importing service…"}
+                loadingLabel={
+                  isWorkspaceStage
+                    ? t("Creating workspace…")
+                    : t("Importing service…")
+                }
                 onClick={isWorkspaceStage ? handleCreateWorkspace : openImport}
                 type="button"
                 variant="primary"
@@ -463,12 +492,14 @@ export function ConsoleOnboarding({
             className="fg-console-dialog-shell"
             onClick={(event) => event.stopPropagation()}
             role="dialog"
-          >
-            <Panel className="fg-console-dialog-panel">
+            >
+              <Panel className="fg-console-dialog-panel">
               <PanelSection>
-                <p className="fg-label fg-panel__eyebrow">Import / {projectName}</p>
+                <p className="fg-label fg-panel__eyebrow">
+                  {t("Import / {projectName}", { projectName })}
+                </p>
                 <PanelTitle className="fg-console-dialog__title" id="fugue-import-title">
-                  Import service
+                  {t("Import service")}
                 </PanelTitle>
                 <PanelCopy>{importDialogCopy}</PanelCopy>
               </PanelSection>
@@ -500,16 +531,16 @@ export function ConsoleOnboarding({
               <PanelSection className="fg-console-dialog__footer">
                 <div className="fg-console-dialog__actions">
                   <Button onClick={closeImport} type="button" variant="secondary">
-                    Cancel
+                    {t("Cancel")}
                   </Button>
                   <Button
                     form="fugue-import-service-form"
                     loading={isImporting}
-                    loadingLabel="Importing service…"
+                    loadingLabel={t("Importing service…")}
                     type="submit"
                     variant="primary"
                   >
-                    Import service
+                    {t("Import service")}
                   </Button>
                 </div>
               </PanelSection>

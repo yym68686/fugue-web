@@ -9,11 +9,13 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 
+import { useI18n } from "@/components/providers/i18n-provider";
 import { Button, InlineButton } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FormField } from "@/components/ui/form-field";
 import { Panel, PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
 import { useToast } from "@/components/ui/toast";
+import type { TranslationValues } from "@/lib/i18n/core";
 import {
   CONSOLE_API_KEYS_PAGE_SNAPSHOT_URL,
   type ConsoleApiKeysPageSnapshot,
@@ -48,17 +50,19 @@ const FOCUSABLE_SELECTOR = [
   "[tabindex]:not([tabindex='-1'])",
 ].join(", ");
 
-function readErrorMessage(error: unknown) {
+type Translator = (key: string, values?: TranslationValues) => string;
+
+function readErrorMessage(error: unknown, t: Translator = (key) => key) {
   if (error instanceof Error && error.message) {
     return error.message;
   }
 
-  return "Request failed.";
+  return t("Request failed.");
 }
 
-function validateRenameLabel(label: string) {
+function validateRenameLabel(label: string, t: Translator = (key) => key) {
   if (!label.trim()) {
-    return "Node key name is required.";
+    return t("Node key name is required.");
   }
 
   return null;
@@ -79,44 +83,6 @@ async function requestJson<T>(input: RequestInfo, init?: RequestInit) {
   }
 
   return data;
-}
-
-function formatRelativeTime(value?: string | null) {
-  if (!value) {
-    return "Never";
-  }
-
-  const timestamp = Date.parse(value);
-
-  if (!Number.isFinite(timestamp)) {
-    return "Never";
-  }
-
-  const deltaSeconds = Math.round((timestamp - Date.now()) / 1000);
-  const units = [
-    { amount: 60, unit: "second" as const },
-    { amount: 60, unit: "minute" as const },
-    { amount: 24, unit: "hour" as const },
-    { amount: 7, unit: "day" as const },
-    { amount: 4.34524, unit: "week" as const },
-    { amount: 12, unit: "month" as const },
-    { amount: Number.POSITIVE_INFINITY, unit: "year" as const },
-  ];
-
-  let valueForUnit = deltaSeconds;
-
-  for (const { amount, unit } of units) {
-    if (Math.abs(valueForUnit) < amount) {
-      return new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(
-        Math.trunc(valueForUnit),
-        unit,
-      );
-    }
-
-    valueForUnit /= amount;
-  }
-
-  return "Just now";
 }
 
 function upsertKey(keys: NodeKeyRecord[], nextKey: NodeKeyRecord) {
@@ -189,6 +155,7 @@ export function NodeKeyManager({
   initialKeys: NodeKeyRecord[];
   initialSyncError: string | null;
 }) {
+  const { formatRelativeTime, t } = useI18n();
   const confirm = useConfirmDialog();
   const { showToast } = useToast();
   const createRequestRef = useRef<() => void>(() => {});
@@ -224,10 +191,10 @@ export function NodeKeyManager({
     }
 
     showToast({
-      message: "Showing stored node key metadata while live sync is unavailable.",
+      message: t("Showing stored node key metadata while live sync is unavailable."),
       variant: "info",
     });
-  }, [initialSyncError, showToast]);
+  }, [initialSyncError, showToast, t]);
 
   useEffect(() => {
     setKeys(sortNodeKeys(initialKeys));
@@ -347,13 +314,13 @@ export function NodeKeyManager({
 
       showToast({
         message: data.syncError
-          ? "Live sync is still unavailable. Stored node key metadata remains visible."
-          : "Node key list refreshed.",
+          ? t("Live sync is still unavailable. Stored node key metadata remains visible.")
+          : t("Node key list refreshed."),
         variant: data.syncError ? "info" : "success",
       });
     } catch (error) {
       showToast({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -388,12 +355,12 @@ export function NodeKeyManager({
       });
 
       showToast({
-        message: copied ? "Node key created and secret copied." : "Node key created.",
+        message: copied ? t("Node key created and secret copied.") : t("Node key created."),
         variant: "success",
       });
     } catch (error) {
       showToast({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -448,11 +415,11 @@ export function NodeKeyManager({
         return current;
       }
 
-      return {
-        ...current,
-        error: current.error ? validateRenameLabel(nextLabel) : null,
-        label: nextLabel,
-      };
+        return {
+          ...current,
+          error: current.error ? validateRenameLabel(nextLabel, t) : null,
+          label: nextLabel,
+        };
     });
   }
 
@@ -464,7 +431,7 @@ export function NodeKeyManager({
 
       return {
         ...current,
-        error: validateRenameLabel(current.label),
+        error: validateRenameLabel(current.label, t),
       };
     });
   }
@@ -492,12 +459,12 @@ export function NodeKeyManager({
       const copied = await copyText(secretRequest);
 
       showToast({
-        message: copied ? "Secret copied." : "Secret is ready, but clipboard access failed.",
+        message: copied ? t("Secret copied.") : t("Secret is ready, but clipboard access failed."),
         variant: copied ? "success" : "info",
       });
     } catch (error) {
       showToast({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -510,7 +477,7 @@ export function NodeKeyManager({
       return;
     }
 
-    const error = validateRenameLabel(renameState.label);
+    const error = validateRenameLabel(renameState.label, t);
 
     if (error) {
       setRenameState((current) =>
@@ -529,7 +496,7 @@ export function NodeKeyManager({
 
     if (nextLabel === record.label) {
       showToast({
-        message: "No node key name changes.",
+        message: t("No node key name changes."),
         variant: "info",
       });
       return;
@@ -559,11 +526,11 @@ export function NodeKeyManager({
       dismissRenameDialog(true);
 
       showToast({
-        message: "Node key name updated.",
+        message: t("Node key name updated."),
         variant: "success",
       });
     } catch (error) {
-      const message = readErrorMessage(error);
+      const message = readErrorMessage(error, t);
 
       setRenameState((current) =>
         current && current.keyId === record.id
@@ -672,13 +639,15 @@ export function NodeKeyManager({
 
       showToast({
         message: copied
-          ? `Cluster join command copied with ${record.label}.`
-          : "Cluster join command is ready, but clipboard access failed.",
+          ? t("Cluster join command copied with {label}.", {
+              label: record.label,
+            })
+          : t("Cluster join command is ready, but clipboard access failed."),
         variant: copied ? "success" : "info",
       });
     } catch (error) {
       showToast({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -692,11 +661,11 @@ export function NodeKeyManager({
     }
 
     const confirmed = await confirm({
-      confirmLabel: "Revoke key",
+      confirmLabel: t("Revoke key"),
       description:
-        "Existing runtimes stay attached, but this secret can no longer enroll new nodes.",
-      eyebrow: "Credential revocation",
-      title: "Revoke node key?",
+        t("Existing runtimes stay attached, but this secret can no longer enroll new nodes."),
+      eyebrow: t("Credential revocation"),
+      title: t("Revoke node key?"),
     });
 
     if (!confirmed) {
@@ -721,12 +690,12 @@ export function NodeKeyManager({
       });
 
       showToast({
-        message: "Node key revoked and removed from the list.",
+        message: t("Node key revoked and removed from the list."),
         variant: "success",
       });
     } catch (error) {
       showToast({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -740,8 +709,8 @@ export function NodeKeyManager({
         <PanelSection>
         <div className="fg-credential-section__head">
           <div className="fg-credential-section__copy">
-            <strong>Node keys</strong>
-            <p>Copy a join command for a VPS, or copy the raw secret if you need it.</p>
+            <strong>{t("Node keys")}</strong>
+            <p>{t("Copy a join command for a VPS, or copy the raw secret if you need it.")}</p>
           </div>
 
           <div className="fg-project-actions">
@@ -749,8 +718,8 @@ export function NodeKeyManager({
               <InlineButton
                 blocked={Boolean(busyAction && busyAction !== "refresh")}
                 busy={busyAction === "refresh"}
-                busyLabel="Refreshing…"
-                label="Refresh keys"
+                busyLabel={t("Refreshing…")}
+                label={t("Refresh keys")}
                 onClick={() => {
                   void handleRefresh();
                 }}
@@ -760,8 +729,8 @@ export function NodeKeyManager({
             <InlineButton
               blocked={Boolean(busyAction && busyAction !== "create")}
               busy={busyAction === "create"}
-              busyLabel="Creating…"
-              label="Create node key"
+              busyLabel={t("Creating…")}
+              label={t("Create node key")}
               onClick={() => {
                 void handleCreate();
               }}
@@ -785,13 +754,13 @@ export function NodeKeyManager({
               </colgroup>
               <thead>
                 <tr>
-                  <th>Node key</th>
-                  <th>Prefix</th>
-                  <th>Status</th>
-                  <th>Attached VPS</th>
-                  <th>Last used</th>
-                  <th>Created</th>
-                  <th>Actions</th>
+                  <th>{t("Node key")}</th>
+                  <th>{t("Prefix")}</th>
+                  <th>{t("Status")}</th>
+                  <th>{t("Attached VPS")}</th>
+                  <th>{t("Last used")}</th>
+                  <th>{t("Created")}</th>
+                  <th>{t("Actions")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -820,36 +789,44 @@ export function NodeKeyManager({
                             {record.prefix}
                           </span>
                         ) : (
-                          <span className="fg-console-tech-empty">Unavailable</span>
+                          <span className="fg-console-tech-empty">{t("Unavailable")}</span>
                         )}
                       </td>
                       <td>
                         <div className="fg-console-table__pair fg-node-key-table__pair">
-                          <strong>{status.primary}</strong>
-                          <span>/ {status.secondary}</span>
+                          <strong>{t(status.primary)}</strong>
+                          <span>/ {t(status.secondary)}</span>
                         </div>
                       </td>
                       <td>
                         {attachedVps ? (
                           <div className="fg-console-table__pair fg-node-key-table__pair">
                             <strong>{attachedVps.primary}</strong>
-                            <span>/ {attachedVps.secondary}</span>
+                            <span>/ {t(attachedVps.secondary)}</span>
                           </div>
                         ) : (
-                          <span className="fg-console-tech-empty">Unavailable</span>
+                          <span className="fg-console-tech-empty">{t("Unavailable")}</span>
                         )}
                       </td>
                       <td>
-                        <span title={record.lastUsedAt ?? "Never"}>{formatRelativeTime(record.lastUsedAt)}</span>
+                        <span title={record.lastUsedAt ?? t("Never")}>
+                          {formatRelativeTime(record.lastUsedAt, {
+                            notYetText: t("Never"),
+                          })}
+                        </span>
                       </td>
                       <td>
-                        <span title={record.createdAt}>{formatRelativeTime(record.createdAt)}</span>
+                        <span title={record.createdAt}>
+                          {formatRelativeTime(record.createdAt, {
+                            notYetText: t("Never"),
+                          })}
+                        </span>
                       </td>
                       <td>
                         <div className="fg-console-toolbar fg-node-key-row__actions">
                           <InlineButton
                             blocked={Boolean(busyAction) || Boolean(renameState)}
-                            label="Rename"
+                            label={t("Rename")}
                             onClick={() => {
                               handleStartRename(record);
                             }}
@@ -858,7 +835,7 @@ export function NodeKeyManager({
                           <InlineButton
                             blocked={Boolean(busyAction) || Boolean(renameState)}
                             disabled={!canCopyCommand}
-                            label="Copy command"
+                            label={t("Copy command")}
                             onClick={() => {
                               void handleCopyCommand(record);
                             }}
@@ -867,7 +844,7 @@ export function NodeKeyManager({
                           <InlineButton
                             blocked={Boolean(busyAction) || Boolean(renameState)}
                             disabled={!record.canCopy}
-                            label="Copy secret"
+                            label={t("Copy secret")}
                             onClick={() => {
                               void handleCopy(record.id);
                             }}
@@ -880,9 +857,9 @@ export function NodeKeyManager({
                                   (busyAction && busyAction !== `revoke:${record.id}`),
                               )}
                               busy={busyAction === `revoke:${record.id}`}
-                              busyLabel="Revoking…"
+                              busyLabel={t("Revoking…")}
                               danger
-                              label="Revoke"
+                              label={t("Revoke")}
                               onClick={() => {
                                 void handleRevoke(record);
                               }}
@@ -898,8 +875,8 @@ export function NodeKeyManager({
           </div>
         ) : (
           <div className="fg-api-key-empty">
-            <strong>No node keys yet</strong>
-            <p>Create one, then copy a join command.</p>
+            <strong>{t("No node keys yet")}</strong>
+            <p>{t("Create one, then copy a join command.")}</p>
           </div>
         )}
         </PanelSection>
@@ -923,19 +900,20 @@ export function NodeKeyManager({
           >
             <Panel className="fg-console-dialog-panel">
               <PanelSection>
-                <p className="fg-label fg-panel__eyebrow">Node key</p>
+                <p className="fg-label fg-panel__eyebrow">{t("Node key")}</p>
                 <PanelTitle className="fg-console-dialog__title" id={renameTitleId}>
-                  Rename node key
+                  {t("Rename node key")}
                 </PanelTitle>
                 <PanelCopy id={renameDescriptionId}>
-                  Update the display name used in this workspace. The key ID, secret, prefix,
-                  and attached VPS stay the same.
+                  {t(
+                    "Update the display name used in this workspace. The key ID, secret, prefix, and attached VPS stay the same.",
+                  )}
                 </PanelCopy>
                 <p
                   className="fg-node-key-rename-dialog__meta"
                   title={`${renameRecord.label} / ${renameRecord.id}`}
                 >
-                  Current key / {renameRecord.id}
+                  {t("Current key")} / {renameRecord.id}
                 </p>
               </PanelSection>
 
@@ -950,9 +928,11 @@ export function NodeKeyManager({
                 >
                   <FormField
                     error={renameState?.error ?? undefined}
-                    hint="Shown in this workspace only. Use a short label you can recognize later."
+                    hint={t(
+                      "Shown in this workspace only. Use a short label you can recognize later.",
+                    )}
                     htmlFor={renameFieldId}
-                    label="Node key name"
+                    label={t("Node key name")}
                   >
                     <input
                       autoComplete="off"
@@ -963,7 +943,7 @@ export function NodeKeyManager({
                       onChange={(event) => {
                         handleRenameDraftChange(event.target.value);
                       }}
-                      placeholder="Primary VPS key…"
+                      placeholder={t("Primary VPS key…")}
                       ref={renameInputRef}
                       spellCheck={false}
                       value={renameState?.label ?? renameRecord.label}
@@ -980,17 +960,17 @@ export function NodeKeyManager({
                     type="button"
                     variant="secondary"
                   >
-                    Cancel
+                    {t("Cancel")}
                   </Button>
                   <Button
                     disabled={Boolean(renameState?.error) || !renameChanged}
                     form={renameFormId}
                     loading={renameBusy}
-                    loadingLabel="Saving…"
+                    loadingLabel={t("Saving…")}
                     type="submit"
                     variant="primary"
                   >
-                    Save name
+                    {t("Save name")}
                   </Button>
                 </div>
               </PanelSection>

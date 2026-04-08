@@ -3,6 +3,7 @@ import {
   parseRawEnvInput,
   serializeEnvEntries,
 } from "@/lib/console/env-editor";
+import { translate, type Locale } from "@/lib/i18n/core";
 
 export type RawEnvFeedback = {
   env: Record<string, string>;
@@ -47,41 +48,59 @@ export function parseRawEnvRecord(input: string): RawEnvRecordResult {
   };
 }
 
-function buildIgnoredSuffix(ignoredLineCount: number) {
+function buildIgnoredSuffix(locale: Locale, ignoredLineCount: number) {
   return ignoredLineCount
-    ? ` ${ignoredLineCount} comment or blank line${
-        ignoredLineCount === 1 ? "" : "s"
-      } ignored.`
+    ? ` ${translate(
+        locale,
+        ignoredLineCount === 1
+          ? "{count} comment or blank line ignored."
+          : "{count} comment or blank lines ignored.",
+        {
+          count: ignoredLineCount,
+        },
+      )}`
     : "";
 }
 
 function buildEmptyMessage(
   surface: RawEnvSurface,
   ignoredLineCount: number,
+  locale: Locale,
 ) {
   const base =
     surface === "deploy"
-      ? "No environment variables will be set on the first deploy."
-      : "No environment variables will be applied on the first deploy.";
+      ? translate(locale, "No environment variables will be set on the first deploy.")
+      : translate(
+          locale,
+          "No environment variables will be applied on the first deploy.",
+        );
 
   if (surface === "deploy") {
-    return `${base}${buildIgnoredSuffix(ignoredLineCount)} Keep secrets out of deploy links.`;
+    return `${base}${buildIgnoredSuffix(locale, ignoredLineCount)} ${translate(
+      locale,
+      "Keep secrets out of deploy links.",
+    )}`;
   }
 
-  return `${base}${buildIgnoredSuffix(ignoredLineCount)}`;
+  return `${base}${buildIgnoredSuffix(locale, ignoredLineCount)}`;
 }
 
 function buildSuccessMessage(
   count: number,
   surface: RawEnvSurface,
   ignoredLineCount: number,
+  locale: Locale,
 ) {
-  const base = `${count} environment variable${
-    count === 1 ? "" : "s"
-  } ready for the first deploy.${buildIgnoredSuffix(ignoredLineCount)}`;
+  const base = `${translate(
+    locale,
+    count === 1
+      ? "{count} environment variable ready for the first deploy."
+      : "{count} environment variables ready for the first deploy.",
+    { count },
+  )}${buildIgnoredSuffix(locale, ignoredLineCount)}`;
 
   if (surface === "deploy") {
-    return `${base} Keep secrets out of deploy links.`;
+    return `${base} ${translate(locale, "Keep secrets out of deploy links.")}`;
   }
 
   return base;
@@ -90,11 +109,12 @@ function buildSuccessMessage(
 export function buildRawEnvFeedback(
   input: string,
   surface: RawEnvSurface = "console",
+  locale: Locale = "en",
 ): RawEnvFeedback {
   if (!input.trim()) {
     return {
       env: {},
-      message: buildEmptyMessage(surface, 0),
+      message: buildEmptyMessage(surface, 0, locale),
       valid: true,
       variant: "info",
     };
@@ -105,7 +125,10 @@ export function buildRawEnvFeedback(
   if (!parsed.ok) {
     return {
       env: {},
-      message: `Line ${parsed.line}: ${parsed.message}`,
+      message: translate(locale, "Line {line}: {message}", {
+        line: parsed.line,
+        message: parsed.message,
+      }),
       valid: false,
       variant: "error",
     };
@@ -116,7 +139,7 @@ export function buildRawEnvFeedback(
   if (envCount === 0) {
     return {
       env: {},
-      message: buildEmptyMessage(surface, parsed.ignoredLineCount),
+      message: buildEmptyMessage(surface, parsed.ignoredLineCount, locale),
       valid: true,
       variant: "info",
     };
@@ -124,7 +147,12 @@ export function buildRawEnvFeedback(
 
   return {
     env: parsed.env,
-    message: buildSuccessMessage(envCount, surface, parsed.ignoredLineCount),
+    message: buildSuccessMessage(
+      envCount,
+      surface,
+      parsed.ignoredLineCount,
+      locale,
+    ),
     valid: true,
     variant: "success",
   };

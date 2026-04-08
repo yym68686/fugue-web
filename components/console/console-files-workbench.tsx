@@ -7,6 +7,7 @@ import {
   type CSSProperties,
 } from "react";
 
+import { useI18n } from "@/components/providers/i18n-provider";
 import { Button } from "@/components/ui/button";
 import { CodeTextarea } from "@/components/ui/code-textarea";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -153,22 +154,24 @@ const filesystemTreeRequestCache = new Map<
   Promise<FilesystemTreeResponse>
 >();
 
-function readErrorMessage(error: unknown) {
+type Translator = (key: string, values?: Record<string, string | number>) => string;
+
+function readErrorMessage(error: unknown, t: Translator = (key) => key) {
   if (error instanceof Error && error.message) {
     return error.message;
   }
 
-  return "Request failed.";
+  return t("Request failed.");
 }
 
-async function requestJson<T>(input: RequestInfo, init?: RequestInit) {
+async function requestJson<T>(input: RequestInfo, init?: RequestInit, t: Translator = (key) => key) {
   const response = await fetch(input, init);
   const data = (await response.json().catch(() => null)) as
     | (T & { error?: string })
     | null;
 
   if (!response.ok) {
-    throw new Error(data?.error || "Request failed.");
+    throw new Error(data?.error || t("Request failed."));
   }
 
   return (data ?? {}) as T;
@@ -275,6 +278,7 @@ async function fetchFilesystemTree(
   options?: {
     force?: boolean;
     signal?: AbortSignal;
+    t?: Translator;
   },
 ) {
   if (options?.signal?.aborted) {
@@ -307,6 +311,7 @@ async function fetchFilesystemTree(
       cache: "no-store",
       signal: options?.signal,
     },
+    options?.t,
   )
     .then((response) => {
       writeCachedFilesystemTree(appId, targetPath, response);
@@ -645,7 +650,7 @@ export async function warmConsoleFilesWorkbench(options: {
   );
 }
 
-function parseModeInput(value: string) {
+function parseModeInput(value: string, t: Translator = (key) => key) {
   const trimmed = value.trim();
 
   if (!trimmed) {
@@ -659,7 +664,7 @@ function parseModeInput(value: string) {
 
   if (!Number.isInteger(parsed) || parsed < 0) {
     return {
-      message: "Mode must be a non-negative integer.",
+      message: t("Mode must be a non-negative integer."),
       value: undefined,
     } as const;
   }
@@ -762,6 +767,7 @@ export function ConsoleFilesWorkbench({
   appName,
   persistentStorageMounts,
 }: ConsoleFilesWorkbenchProps) {
+  const { t } = useI18n();
   const cachedWorkbench = filesWorkbenchCache.get(appId) ?? null;
   const confirm = useConfirmDialog();
   const { showToast } = useToast();
@@ -992,12 +998,14 @@ export function ConsoleFilesWorkbench({
     const normalizedPath = normalizeAbsolutePathInput(targetPath);
 
     if (!normalizedPath) {
-      throw new Error("Path must be absolute.");
+      throw new Error(t("Path must be absolute."));
     }
 
     if (isStorageMode && !readStorageMountForPath(normalizedPath)) {
       throw new Error(
-        "Path must stay inside persistent storage. Switch to Live filesystem to work outside it.",
+        t(
+          "Path must stay inside persistent storage. Switch to Live filesystem to work outside it.",
+        ),
       );
     }
 
@@ -1008,12 +1016,12 @@ export function ConsoleFilesWorkbench({
     const normalizedPath = normalizeAbsolutePathInput(targetPath);
 
     if (!normalizedPath) {
-      throw new Error("Path must be absolute.");
+      throw new Error(t("Path must be absolute."));
     }
 
     if (isStorageMode && !readStorageDirectoryMountForPath(normalizedPath)) {
       throw new Error(
-        "Folders can only be created inside mounted persistent directories.",
+        t("Folders can only be created inside mounted persistent directories."),
       );
     }
 
@@ -1095,7 +1103,9 @@ export function ConsoleFilesWorkbench({
   const rootModeOptions = FILESYSTEM_ROOT_MODE_OPTIONS.map((option) => ({
     ...option,
     label: (
-      <span className="fg-filesystem__view-tab-label">{option.label}</span>
+      <span className="fg-filesystem__view-tab-label">
+        {option.value === "filesystem" ? t("Live filesystem") : t("Persistent storage")}
+      </span>
     ),
     disabled:
       Boolean(busyAction) ||
@@ -1179,6 +1189,7 @@ export function ConsoleFilesWorkbench({
         targetPath,
         {
           force: options?.force,
+          t,
         },
       );
       const resolvedPath = response.path?.trim() || targetPath;
@@ -1258,6 +1269,8 @@ export function ConsoleFilesWorkbench({
     try {
       const response = await requestJson<FilesystemFileResponse>(
         `/api/fugue/apps/${appId}/filesystem/file?${searchParams.toString()}`,
+        undefined,
+        t,
       );
       const resolvedPath = response.path?.trim() || targetPath;
       const nextDocument = {
@@ -1427,6 +1440,7 @@ export function ConsoleFilesWorkbench({
 
     fetchFilesystemTree(appId, requestedRootPath, {
       signal: controller.signal,
+      t,
     })
       .then((response) => {
         if (cancelled) {
@@ -1455,7 +1469,7 @@ export function ConsoleFilesWorkbench({
 
         setRootStatus("error");
         showToast({
-          message: readErrorMessage(error),
+          message: readErrorMessage(error, t),
           variant: "error",
         });
       });
@@ -1519,7 +1533,7 @@ export function ConsoleFilesWorkbench({
       if (directories[targetPath]?.status !== "ready") {
         void loadDirectory(targetPath).catch((error) => {
           showToast({
-            message: readErrorMessage(error),
+            message: readErrorMessage(error, t),
             variant: "error",
           });
         });
@@ -1537,7 +1551,7 @@ export function ConsoleFilesWorkbench({
     setExpandedPaths((current) => Array.from(new Set([...current, targetPath])));
     void loadDirectory(targetPath).catch((error) => {
       showToast({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     });
@@ -1548,7 +1562,7 @@ export function ConsoleFilesWorkbench({
     setSelectedNode({ kind: "file", path: targetPath });
     void loadFile(targetPath).catch((error) => {
       showToast({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     });
@@ -1608,12 +1622,12 @@ export function ConsoleFilesWorkbench({
       }
 
       showToast({
-        message: isStorageMode ? "Persistent storage refreshed." : "Filesystem refreshed.",
+        message: isStorageMode ? t("Persistent storage refreshed.") : t("Filesystem refreshed."),
         variant: "success",
       });
     } catch (error) {
       showToast({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -1626,7 +1640,7 @@ export function ConsoleFilesWorkbench({
       return;
     }
 
-    const modeValue = parseModeInput(composer?.mode ?? selectedFile?.mode ?? "");
+    const modeValue = parseModeInput(composer?.mode ?? selectedFile?.mode ?? "", t);
 
     if (modeValue.message) {
       showToast({
@@ -1643,7 +1657,7 @@ export function ConsoleFilesWorkbench({
         const nextPath = composer.path.trim();
 
         if (!nextPath) {
-          throw new Error("Directory path is required.");
+          throw new Error(t("Directory path is required."));
         }
 
         const requestPath = ensureDirectoryPathIsWithinCurrentScope(nextPath);
@@ -1661,6 +1675,7 @@ export function ConsoleFilesWorkbench({
             },
             method: "POST",
           },
+          t,
         );
         const targetPath = response.path?.trim() || requestPath;
         setComposer(null);
@@ -1668,7 +1683,7 @@ export function ConsoleFilesWorkbench({
         pruneCachedFilesystemTree(appId, targetPath);
         await reloadDirectoryChain(targetPath);
         showToast({
-          message: "Folder created.",
+          message: t("Folder created."),
           variant: "success",
         });
         return;
@@ -1678,7 +1693,7 @@ export function ConsoleFilesWorkbench({
         const nextPath = composer.path.trim();
 
         if (!nextPath) {
-          throw new Error("File path is required.");
+          throw new Error(t("File path is required."));
         }
 
         const requestPath = ensurePathIsWithinCurrentScope(nextPath);
@@ -1698,6 +1713,7 @@ export function ConsoleFilesWorkbench({
             },
             method: "PUT",
           },
+          t,
         );
         const targetPath = response.path?.trim() || requestPath;
         setFileDocuments((current) => ({
@@ -1723,18 +1739,18 @@ export function ConsoleFilesWorkbench({
         );
         await reloadDirectoryChain(readParentDirectoryWithinScope(targetPath));
         showToast({
-          message: "File saved.",
+          message: t("File saved."),
           variant: "success",
         });
         return;
       }
 
       if (!selectedNode || selectedNode.kind !== "file" || !selectedFile) {
-        throw new Error("Select a file before saving.");
+        throw new Error(t("Select a file before saving."));
       }
 
       if (selectedFile.truncated) {
-        throw new Error("Large file preview is truncated. Save is disabled for safety.");
+        throw new Error(t("Large file preview is truncated. Save is disabled for safety."));
       }
 
       const response = await requestJson<FilesystemMutationResponse>(
@@ -1751,6 +1767,7 @@ export function ConsoleFilesWorkbench({
           },
           method: "PUT",
         },
+        t,
       );
 
       setFileDocuments((current) => ({
@@ -1771,12 +1788,12 @@ export function ConsoleFilesWorkbench({
       );
       await reloadDirectoryChain(readParentDirectoryWithinScope(selectedFile.path));
       showToast({
-        message: "File saved.",
+        message: t("File saved."),
         variant: "success",
       });
     } catch (error) {
       showToast({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -1794,12 +1811,18 @@ export function ConsoleFilesWorkbench({
     }
 
     const confirmed = await confirm({
-      confirmLabel: selectedNode.kind === "dir" ? "Delete folder" : "Delete file",
+      confirmLabel: selectedNode.kind === "dir" ? t("Delete folder") : t("Delete file"),
       description:
         selectedNode.kind === "dir"
-          ? `${selectedNode.path} and everything inside it will be removed from ${appName}.`
-          : `${selectedNode.path} will be removed from ${appName}.`,
-      title: selectedNode.kind === "dir" ? "Delete folder?" : "Delete file?",
+          ? t("{path} and everything inside it will be removed from {appName}.", {
+              appName,
+              path: selectedNode.path,
+            })
+          : t("{path} will be removed from {appName}.", {
+              appName,
+              path: selectedNode.path,
+            }),
+      title: selectedNode.kind === "dir" ? t("Delete folder?") : t("Delete file?"),
     });
 
     if (!confirmed) {
@@ -1816,9 +1839,13 @@ export function ConsoleFilesWorkbench({
         searchParams.set("recursive", "true");
       }
 
-      await requestJson(`/api/fugue/apps/${appId}/filesystem?${searchParams.toString()}`, {
-        method: "DELETE",
-      });
+      await requestJson(
+        `/api/fugue/apps/${appId}/filesystem?${searchParams.toString()}`,
+        {
+          method: "DELETE",
+        },
+        t,
+      );
 
       const nextSelectedPath = readParentDirectoryWithinScope(selectedNode.path);
       pruneCachedFilesystemTree(appId, selectedNode.path);
@@ -1828,12 +1855,12 @@ export function ConsoleFilesWorkbench({
       setSelectedNode({ kind: "dir", path: nextSelectedPath });
       await reloadDirectoryChain(nextSelectedPath);
       showToast({
-        message: selectedNode.kind === "dir" ? "Folder deleted." : "File deleted.",
+        message: selectedNode.kind === "dir" ? t("Folder deleted.") : t("File deleted."),
         variant: "success",
       });
     } catch (error) {
       showToast({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -1945,11 +1972,11 @@ export function ConsoleFilesWorkbench({
     !isSyntheticStorageRootSelected &&
     (selectedDirectoryStatus === "loading" || directoryEntries.length === 0);
   const directoryPlaceholderTitle =
-    selectedDirectoryStatus === "loading" ? "Loading folder" : "This folder is empty";
+    selectedDirectoryStatus === "loading" ? t("Loading folder") : t("This folder is empty");
   const directoryPlaceholderCopy =
     selectedDirectoryStatus === "loading"
-      ? "Fetching the current directory contents."
-      : "Create a file or folder from the explorer toolbar.";
+      ? t("Fetching the current directory contents.")
+      : t("Create a file or folder from the explorer toolbar.");
   const saveDisabled = Boolean(
     busyAction ||
       (
@@ -1975,7 +2002,7 @@ export function ConsoleFilesWorkbench({
           {hasPersistentStorage ? (
             <div className="fg-filesystem__mode-slot">
               <SegmentedControl
-                ariaLabel="Filesystem scope"
+                ariaLabel={t("Filesystem scope")}
                 className="fg-project-toolbar__panels-switch fg-filesystem__mode-switch"
                 controlClassName="fg-console-nav"
                 itemClassName="fg-console-nav__link"
@@ -1993,7 +2020,7 @@ export function ConsoleFilesWorkbench({
               <div className="fg-route-composer fg-filesystem__path-composer">
                 <div className="fg-route-composer__shell">
                   <input
-                    aria-label={composer.kind === "directory" ? "New folder path" : "New file path"}
+                    aria-label={composer.kind === "directory" ? t("New folder path") : t("New file path")}
                     autoCapitalize="off"
                     autoComplete="off"
                     autoCorrect="off"
@@ -2013,18 +2040,18 @@ export function ConsoleFilesWorkbench({
             <div
               className="fg-filesystem__actions"
               role="toolbar"
-              aria-label="Filesystem actions"
+              aria-label={t("Filesystem actions")}
             >
               <Button
                 disabled={Boolean(busyAction)}
                 loading={busyAction === "refresh"}
-                loadingLabel="Refreshing…"
+                loadingLabel={t("Refreshing…")}
                 onClick={handleRefresh}
                 size="compact"
                 type="button"
                 variant="secondary"
               >
-                Refresh
+                {t("Refresh")}
               </Button>
               <Button
                 disabled={Boolean(busyAction) || Boolean(composer) || !canCreateInsideCurrentScope}
@@ -2033,7 +2060,7 @@ export function ConsoleFilesWorkbench({
                 type="button"
                 variant="secondary"
               >
-                New file
+                {t("New file")}
               </Button>
               <Button
                 disabled={Boolean(busyAction) || Boolean(composer) || !canCreateInsideCurrentScope}
@@ -2042,20 +2069,20 @@ export function ConsoleFilesWorkbench({
                 type="button"
                 variant="secondary"
               >
-                New folder
+                {t("New folder")}
               </Button>
               {!composer && canDeleteSelection ? (
                 <Button
                   disabled={Boolean(busyAction)}
                   icon={<TrashIcon />}
                   loading={busyAction === "delete"}
-                  loadingLabel="Deleting…"
+                  loadingLabel={t("Deleting…")}
                   onClick={handleDelete}
                   size="compact"
                   type="button"
                   variant="danger"
                 >
-                  Delete
+                  {t("Delete")}
                 </Button>
               ) : null}
               {composer ? (
@@ -2067,20 +2094,20 @@ export function ConsoleFilesWorkbench({
                   type="button"
                   variant="ghost"
                 >
-                  Cancel
+                  {t("Cancel")}
                 </Button>
               ) : null}
               {composer || selectedNode?.kind === "file" ? (
                 <Button
                   disabled={saveDisabled}
                   loading={busyAction === "save"}
-                  loadingLabel="Saving…"
+                  loadingLabel={t("Saving…")}
                   onClick={handleSave}
                   size="compact"
                   type="button"
                   variant="primary"
                 >
-                  Save
+                  {t("Save")}
                 </Button>
               ) : null}
             </div>
@@ -2102,8 +2129,8 @@ export function ConsoleFilesWorkbench({
                 {rootStatus === "error" ? (
                   <InlineAlert variant="error">
                     {isStorageMode
-                      ? "Unable to load persistent storage."
-                      : "Unable to load this filesystem root."}
+                      ? t("Unable to load persistent storage.")
+                      : t("Unable to load this filesystem root.")}
                   </InlineAlert>
                 ) : null}
 
@@ -2116,10 +2143,10 @@ export function ConsoleFilesWorkbench({
             {composer?.kind === "directory" ? (
               <div className="fg-filesystem-editor">
                 <details className="fg-filesystem-editor__advanced">
-                  <summary>Options</summary>
+                  <summary>{t("Options")}</summary>
                   <div className="fg-filesystem-editor__advanced-grid">
                     <input
-                      aria-label="Folder mode"
+                      aria-label={t("Folder mode")}
                       className="fg-input"
                       id={`filesystem-dir-mode-${appId}`}
                       onChange={(event) =>
@@ -2129,7 +2156,7 @@ export function ConsoleFilesWorkbench({
                             : current,
                         )
                       }
-                      placeholder="Optional mode (493)"
+                      placeholder={t("Optional mode (493)")}
                       spellCheck={false}
                       value={composer.mode}
                     />
@@ -2146,15 +2173,15 @@ export function ConsoleFilesWorkbench({
                         }
                         type="checkbox"
                       />
-                      <span>Create parent folders when missing</span>
+                      <span>{t("Create parent folders when missing")}</span>
                     </label>
                   </div>
                 </details>
 
                 <div className="fg-filesystem-editor__placeholder">
-                  <p className="fg-filesystem-editor__placeholder-title">New folder</p>
+                  <p className="fg-filesystem-editor__placeholder-title">{t("New folder")}</p>
                   <p className="fg-filesystem-editor__placeholder-copy">
-                    Save to create this folder in the current scope.
+                    {t("Save to create this folder in the current scope.")}
                   </p>
                 </div>
               </div>
@@ -2163,10 +2190,10 @@ export function ConsoleFilesWorkbench({
             {composer?.kind === "file" ? (
               <div className="fg-filesystem-editor fg-filesystem-editor--code">
                 <details className="fg-filesystem-editor__advanced">
-                  <summary>Options</summary>
+                  <summary>{t("Options")}</summary>
                   <div className="fg-filesystem-editor__advanced-grid">
                     <input
-                      aria-label="File mode"
+                      aria-label={t("File mode")}
                       className="fg-input"
                       id={`filesystem-file-mode-${appId}`}
                       onChange={(event) =>
@@ -2176,7 +2203,7 @@ export function ConsoleFilesWorkbench({
                             : current,
                         )
                       }
-                      placeholder="Optional mode (420)"
+                      placeholder={t("Optional mode (420)")}
                       spellCheck={false}
                       value={composer.mode}
                     />
@@ -2193,13 +2220,13 @@ export function ConsoleFilesWorkbench({
                         }
                         type="checkbox"
                       />
-                      <span>Create parent folders when missing</span>
+                      <span>{t("Create parent folders when missing")}</span>
                     </label>
                   </div>
                 </details>
 
                 <CodeTextarea
-                  ariaLabel={`Draft editor for ${composer.path}`}
+                  ariaLabel={t("Draft editor for {path}", { path: composer.path })}
                   className="fg-project-textarea fg-filesystem-editor__textarea fg-filesystem-editor__textarea--code"
                   id={`filesystem-file-content-${appId}`}
                   onChange={(nextValue) =>
@@ -2219,7 +2246,9 @@ export function ConsoleFilesWorkbench({
             {!composer && selectedNode?.kind === "dir" ? (
               <div className="fg-filesystem-editor">
                 {selectedDirectory?.status === "error" ? (
-                  <InlineAlert variant="error">Unable to load this folder. Try refreshing the current scope.</InlineAlert>
+                  <InlineAlert variant="error">
+                    {t("Unable to load this folder. Try refreshing the current scope.")}
+                  </InlineAlert>
                 ) : null}
 
                 {selectedDirectory?.status !== "error" && showDirectoryPlaceholder ? (
@@ -2236,36 +2265,38 @@ export function ConsoleFilesWorkbench({
                 {isSelectedFileLoading ? (
                   <div
                     aria-busy="true"
-                    aria-label={`Loading ${basename(selectedNode.path)}`}
+                    aria-label={t("Loading {name}", { name: basename(selectedNode.path) })}
                     className="fg-console-loading fg-filesystem-loading"
                     role="status"
                   >
                     <div className="fg-filesystem-loading__body">
                       <span aria-hidden="true" className="fg-filesystem-loading__spinner" />
-                      <p className="fg-filesystem-loading__label">Loading…</p>
+                      <p className="fg-filesystem-loading__label">{t("Loading…")}</p>
                     </div>
                   </div>
                 ) : null}
 
                 {!isSelectedFileLoading && selectedFile?.status === "error" ? (
-                  <InlineAlert variant="error">Unable to load this file. Refresh the current scope to try again.</InlineAlert>
+                  <InlineAlert variant="error">
+                    {t("Unable to load this file. Refresh the current scope to try again.")}
+                  </InlineAlert>
                 ) : null}
 
                 {!isSelectedFileLoading && selectedFile?.encoding === "base64" ? (
                   <InlineAlert variant="info">
-                    This file is shown as base64 because it is not valid utf-8 text.
+                    {t("This file is shown as base64 because it is not valid utf-8 text.")}
                   </InlineAlert>
                 ) : null}
 
                 {!isSelectedFileLoading && selectedFile?.truncated ? (
                   <InlineAlert variant="error">
-                    This preview was truncated at 1 MB. Save is disabled to avoid overwriting the file with partial content.
+                    {t("This preview was truncated at 1 MB. Save is disabled to avoid overwriting the file with partial content.")}
                   </InlineAlert>
                 ) : null}
 
                 {!isSelectedFileLoading ? (
                   <CodeTextarea
-                    ariaLabel={`File editor for ${selectedNode.path}`}
+                    ariaLabel={t("File editor for {path}", { path: selectedNode.path })}
                     className="fg-project-textarea fg-filesystem-editor__textarea fg-filesystem-editor__textarea--code"
                     language={selectedFile?.encoding === "base64" ? "plain" : undefined}
                     onChange={(nextValue) =>

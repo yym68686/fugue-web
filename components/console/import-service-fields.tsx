@@ -8,6 +8,7 @@ import { EnvironmentEditor } from "@/components/console/environment-editor";
 import { GitHubRepositoryAccessFields } from "@/components/console/github-repository-access-fields";
 import { LocalUploadSourceField } from "@/components/console/local-upload-source-field";
 import { PersistentStorageEditor } from "@/components/console/persistent-storage-editor";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { FormField } from "@/components/ui/form-field";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { SelectField } from "@/components/ui/select-field";
@@ -59,13 +60,6 @@ import {
   readRequestError,
   requestJson,
 } from "@/lib/ui/request-json";
-
-const SOURCE_MODE_OPTIONS: readonly SegmentedControlOption<ImportSourceMode>[] =
-  [
-    { label: "GitHub repository", value: "github" },
-    { label: "Local upload", value: "local-upload" },
-    { label: "Docker image", value: "docker-image" },
-  ];
 
 type GitHubTemplateInspectionResponse = {
   inspection?: FugueGitHubTemplateInspection | null;
@@ -147,6 +141,13 @@ export function ImportServiceFields({
   showRepositoryHint = true,
   showSourceModeSwitch = true,
 }: ImportServiceFieldProps) {
+  const { locale, t } = useI18n();
+  const sourceModeOptions: readonly SegmentedControlOption<ImportSourceMode>[] =
+    [
+      { label: t("GitHub repository"), value: "github" },
+      { label: t("Local upload"), value: "local-upload" },
+      { label: t("Docker image"), value: "docker-image" },
+    ];
   const supportsSourceDir = supportsGitHubSourceDir(draft.buildStrategy);
   const supportsDockerInputs = supportsGitHubDockerInputs(draft.buildStrategy);
   const localUploadInspection = inspectLocalUploadState(localUpload);
@@ -159,7 +160,10 @@ export function ImportServiceFields({
   const [githubInspectionError, setGitHubInspectionError] = useState<
     string | null
   >(initialGitHubInspectionError);
-  const runtimeTargetGroups = buildImportRuntimeTargetGroups(runtimeTargets);
+  const runtimeTargetGroups = buildImportRuntimeTargetGroups(
+    runtimeTargets,
+    locale,
+  );
   const selectedRuntimeTargetGroupId = readSelectedRuntimeTargetGroupId(
     runtimeTargetGroups,
     draft.runtimeId,
@@ -196,20 +200,27 @@ export function ImportServiceFields({
   const deploymentSummaryParts = [
     draft.sourceMode === "github"
       ? draft.repoVisibility === "private"
-        ? "Private repo"
-        : "Public repo"
+        ? t("Private repo")
+        : t("Public repo")
       : draft.sourceMode === "local-upload"
         ? localUploadInspection.itemCount > 0
-          ? `${localUploadInspection.itemCount} local file${localUploadInspection.itemCount === 1 ? "" : "s"}`
-          : "Local folder or files"
-        : "Published image",
-    selectedRuntimeTargetGroup?.summaryLabel ?? "Internal cluster",
+          ? t(
+              localUploadInspection.itemCount === 1
+                ? "{count} local file"
+                : "{count} local files",
+              {
+                count: localUploadInspection.itemCount,
+              },
+            )
+          : t("Local folder or files")
+        : t("Published image"),
+    selectedRuntimeTargetGroup?.summaryLabel ?? t("Internal cluster"),
     selectedRuntimeTargetOption
-      ? readRuntimeTargetOptionLabel(selectedRuntimeTargetOption)
+      ? readRuntimeTargetOptionLabel(selectedRuntimeTargetOption, locale)
       : null,
     draft.networkMode === "background"
-      ? "Background worker"
-      : "Public service",
+      ? t("Background worker")
+      : t("Public service"),
   ].filter(
     (part, index, parts): part is string =>
       Boolean(part) && parts.indexOf(part) === index,
@@ -219,46 +230,60 @@ export function ImportServiceFields({
     showBranchField &&
     draft.sourceMode === "github" &&
     draft.branch.trim()
-      ? `Branch ${draft.branch.trim()}`
+      ? t("Branch {branch}", { branch: draft.branch.trim() })
       : null,
     draft.sourceMode === "local-upload" && localUpload.label
-      ? `Upload ${localUpload.label}`
+      ? t("Upload {label}", { label: localUpload.label })
       : null,
-    draft.name.trim() ? `Name ${draft.name.trim()}` : null,
+    draft.name.trim() ? t("Name {name}", { name: draft.name.trim() }) : null,
     showDockerServicePort &&
     draft.sourceMode === "docker-image" &&
     draft.servicePort.trim()
-      ? `Port ${draft.servicePort.trim()}`
+      ? t("Port {port}", { port: draft.servicePort.trim() })
       : null,
     startupCommandSupported && draft.startupCommand.trim()
-      ? "Startup command"
+      ? t("Startup command")
       : null,
     persistentStorageSupported && hasPersistentStorageDraft(draft.persistentStorage)
-      ? "Persistent storage"
+      ? t("Persistent storage")
       : null,
     draft.sourceMode !== "docker-image" && draft.buildStrategy !== "auto"
       ? (BUILD_STRATEGY_OPTIONS.find(
           (option) => option.value === draft.buildStrategy,
-        )?.label ?? "Custom build")
+        )?.label
+          ? t(
+              BUILD_STRATEGY_OPTIONS.find(
+                (option) => option.value === draft.buildStrategy,
+              )!.label,
+            )
+          : t("Custom build"))
       : null,
-    draft.sourceDir.trim() ? `Source ${draft.sourceDir.trim()}` : null,
+    draft.sourceDir.trim()
+      ? t("Source {source}", { source: draft.sourceDir.trim() })
+      : null,
     draft.dockerfilePath.trim()
-      ? `Dockerfile ${draft.dockerfilePath.trim()}`
+      ? t("Dockerfile {path}", { path: draft.dockerfilePath.trim() })
       : null,
     draft.buildContextDir.trim()
-      ? `Context ${draft.buildContextDir.trim()}`
+      ? t("Context {path}", { path: draft.buildContextDir.trim() })
       : null,
   ].filter((part): part is string => Boolean(part));
   const advancedDescription =
     advancedSummaryParts.length > 0
       ? advancedSummaryParts.slice(0, 3).join(" · ")
       : draft.sourceMode === "docker-image"
-        ? "Service name and optional startup command."
+        ? t("Service name and optional startup command.")
         : draft.sourceMode === "github"
-          ? "Branch, name, startup command, build strategy, and optional paths."
-          : "App name, startup command, build strategy, and optional source overrides.";
+          ? t(
+              "Branch, name, startup command, build strategy, and optional paths.",
+            )
+          : t(
+              "App name, startup command, build strategy, and optional source overrides.",
+            );
   const deploymentDisclosureSummary =
-    draft.sourceMode === "github" ? "Access & deployment" : "Deployment";
+    draft.sourceMode === "github"
+      ? t("Access & deployment")
+      : t("Deployment");
   const persistentStorageSeedFields = useMemo<
     InspectionPersistentStorageSeedField[]
   >(
@@ -270,24 +295,38 @@ export function ImportServiceFields({
   );
   const persistentStorageSeedDescription =
     persistentStorageSeedFields.length > 0
-      ? `${persistentStorageSeedFields.length} missing file${persistentStorageSeedFields.length === 1 ? "" : "s"} before first deploy`
+      ? t(
+          persistentStorageSeedFields.length === 1
+            ? "{count} missing file before first deploy"
+            : "{count} missing files before first deploy",
+          {
+            count: persistentStorageSeedFields.length,
+          },
+        )
       : null;
   const persistentStorageDescription =
     summarizePersistentStorageDraft(draft.persistentStorage) ??
-    "Add directories or files that must survive redeploys.";
+    t("Add directories or files that must survive redeploys.");
   const [envFeedback, setEnvFeedback] = useState<RawEnvFeedback>(() =>
-    buildRawEnvFeedback(draft.envRaw, "console"),
+    buildRawEnvFeedback(draft.envRaw, "console", locale),
   );
   const envCount = Object.keys(envFeedback.env).length;
   const environmentDescription = !envFeedback.valid
     ? envFeedback.message
     : envCount > 0
-      ? `${envCount} variable${envCount === 1 ? "" : "s"} before first deploy`
-      : "Optional for first deploy";
+      ? t(
+          envCount === 1
+            ? "{count} variable before first deploy"
+            : "{count} variables before first deploy",
+          {
+            count: envCount,
+          },
+        )
+      : t("Optional for first deploy");
 
   useEffect(() => {
-    setEnvFeedback(buildRawEnvFeedback(draft.envRaw, "console"));
-  }, [draft.envRaw]);
+    setEnvFeedback(buildRawEnvFeedback(draft.envRaw, "console", locale));
+  }, [draft.envRaw, locale]);
 
   useEffect(() => {
     const repoUrl = draft.repoUrl.trim();
@@ -480,16 +519,16 @@ export function ImportServiceFields({
       {showSourceModeSwitch ? (
         <div className="fg-field-stack">
           <div className="fg-field-label">
-            <span>Source mode</span>
+            <span>{t("Source mode")}</span>
           </div>
           <div className="fg-field-control">
             <SegmentedControl
-              ariaLabel="Import source mode"
+              ariaLabel={t("Import source mode")}
               controlClassName="fg-console-nav"
               itemClassName="fg-console-nav__link"
               labelClassName="fg-console-nav__title"
               onChange={updateSourceMode}
-              options={SOURCE_MODE_OPTIONS}
+              options={sourceModeOptions}
               value={draft.sourceMode}
               variant="pill"
             />
@@ -499,9 +538,13 @@ export function ImportServiceFields({
 
       {draft.sourceMode === "github" ? (
         <FormField
-          hint={showRepositoryHint ? "Use https://github.com/owner/repo." : undefined}
+          hint={
+            showRepositoryHint
+              ? t("Use https://github.com/owner/repo.")
+              : undefined
+          }
           htmlFor={`${idPrefix}-repo-url`}
-          label="Repository link"
+          label={t("Repository link")}
         >
           <input
             autoCapitalize="none"
@@ -520,9 +563,11 @@ export function ImportServiceFields({
         </FormField>
       ) : draft.sourceMode === "local-upload" ? (
         <FormField
-          hint="Drag a folder, docker-compose.yml, fugue.yaml, Dockerfile, or multiple source files. Fugue creates the archive on the server before import."
+          hint={t(
+            "Drag a folder, docker-compose.yml, fugue.yaml, Dockerfile, or multiple source files. Fugue creates the archive on the server before import.",
+          )}
           htmlFor={`${idPrefix}-upload-folder`}
-          label="Local source"
+          label={t("Local source")}
         >
           <LocalUploadSourceField
             idPrefix={idPrefix}
@@ -532,9 +577,11 @@ export function ImportServiceFields({
         </FormField>
       ) : (
         <FormField
-          hint="Use a public image reference such as ghcr.io/example/api:1.2.3. Fugue mirrors it into the internal registry before rollout."
+          hint={t(
+            "Use a public image reference such as ghcr.io/example/api:1.2.3. Fugue mirrors it into the internal registry before rollout.",
+          )}
           htmlFor={`${idPrefix}-image-ref`}
-          label="Image reference"
+          label={t("Image reference")}
         >
           <input
             autoCapitalize="none"
@@ -557,8 +604,12 @@ export function ImportServiceFields({
           variant={localUploadKeepsTopologyImport ? "info" : "warning"}
         >
           {localUploadKeepsTopologyImport
-            ? "Whole-topology import is ready. Leave build strategy on Auto detect and keep manual path overrides blank to import every service from fugue.yaml or docker-compose."
-            : "Manual build overrides are active. Clear build strategy and path overrides if you want Fugue to import every service from fugue.yaml or docker-compose."}
+            ? t(
+                "Whole-topology import is ready. Leave build strategy on Auto detect and keep manual path overrides blank to import every service from fugue.yaml or docker-compose.",
+              )
+            : t(
+                "Manual build overrides are active. Clear build strategy and path overrides if you want Fugue to import every service from fugue.yaml or docker-compose.",
+              )}
         </InlineAlert>
       ) : null}
 
@@ -572,7 +623,7 @@ export function ImportServiceFields({
           className="fg-console-dialog__advanced"
           defaultOpen
           description={persistentStorageSeedDescription ?? undefined}
-          summary="Persistent files"
+          summary={t("Persistent files")}
         >
           <div className="fg-console-dialog__advanced-grid">
             {persistentStorageSeedFields.map((file) => {
@@ -588,11 +639,16 @@ export function ImportServiceFields({
 
               return (
                 <FormField
-                  hint={`Service ${file.service}. Leave blank to create an empty file on first deploy.`}
+                  hint={t(
+                    "Service {service}. Leave blank to create an empty file on first deploy.",
+                    {
+                      service: file.service,
+                    },
+                  )}
                   htmlFor={fieldId}
                   key={file.key}
                   label={file.path}
-                  optionalLabel="Optional"
+                  optionalLabel={t("Optional")}
                 >
                   <textarea
                     autoCapitalize="off"
@@ -605,7 +661,7 @@ export function ImportServiceFields({
                         event.target.value,
                       )
                     }
-                    placeholder="Leave blank to create an empty file."
+                    placeholder={t("Leave blank to create an empty file.")}
                     spellCheck={false}
                     value={value}
                   />
@@ -619,9 +675,9 @@ export function ImportServiceFields({
       {!persistentStorageSupported &&
       hasPersistentStorageDraft(draft.persistentStorage) ? (
         <InlineAlert variant="info">
-          Manual persistent storage mounts stay in your draft, but Fugue skips
-          them while this import preserves a whole topology. Switch back to a
-          single-app deploy to reuse them.
+          {t(
+            "Manual persistent storage mounts stay in your draft, but Fugue skips them while this import preserves a whole topology. Switch back to a single-app deploy to reuse them.",
+          )}
         </InlineAlert>
       ) : null}
 
@@ -629,7 +685,7 @@ export function ImportServiceFields({
         <ConsoleDisclosureSection
           className="fg-console-dialog__advanced"
           description={persistentStorageDescription}
-          summary="Persistent storage"
+          summary={t("Persistent storage")}
         >
           <PersistentStorageEditor
             idPrefix={`${idPrefix}-persistent-storage`}
@@ -646,7 +702,7 @@ export function ImportServiceFields({
         className="fg-console-dialog__advanced"
         defaultOpen={!envFeedback.valid || Boolean(draft.envRaw.trim())}
         description={environmentDescription}
-        summary="Environment"
+        summary={t("Environment")}
       >
         <EnvironmentEditor
           fieldId={`${idPrefix}-env-raw`}
@@ -687,16 +743,19 @@ export function ImportServiceFields({
 
         <div className="fg-field-stack">
           <div className="fg-field-label">
-            <span>Network mode</span>
+            <span>{t("Network mode")}</span>
           </div>
           <div className="fg-field-control">
             <SegmentedControl
-              ariaLabel="App network mode"
+              ariaLabel={t("App network mode")}
               controlClassName="fg-console-nav"
               itemClassName="fg-console-nav__link"
               labelClassName="fg-console-nav__title"
               onChange={updateNetworkMode}
-              options={IMPORT_NETWORK_MODE_OPTIONS}
+              options={IMPORT_NETWORK_MODE_OPTIONS.map((option) => ({
+                ...option,
+                label: t(option.label),
+              }))}
               value={
                 networkModeSupported ? draft.networkMode : "public"
               }
@@ -706,9 +765,13 @@ export function ImportServiceFields({
           <p className="fg-field-hint">
             {networkModeSupported
               ? draft.networkMode === "background"
-                ? "Background workers skip the managed route, Kubernetes Service, and readiness port."
-                : "Public services get a managed route and readiness checks."
-              : "Whole-topology imports keep per-service networking from fugue.yaml or docker-compose, so background worker mode is unavailable here."}
+                ? t(
+                    "Background workers skip the managed route, Kubernetes Service, and readiness port.",
+                  )
+                : t("Public services get a managed route and readiness checks.")
+              : t(
+                  "Whole-topology imports keep per-service networking from fugue.yaml or docker-compose, so background worker mode is unavailable here.",
+                )}
           </p>
         </div>
       </ConsoleDisclosureSection>
@@ -716,15 +779,15 @@ export function ImportServiceFields({
       <ConsoleDisclosureSection
         className="fg-console-dialog__advanced"
         description={advancedDescription}
-        summary="Advanced settings"
+        summary={t("Advanced settings")}
       >
         <div className="fg-console-dialog__advanced-grid">
           {showBranchField && draft.sourceMode === "github" ? (
             <FormField
-              hint="Leave blank to use the default branch."
+              hint={t("Leave blank to use the default branch.")}
               htmlFor={`${idPrefix}-repo-branch`}
-              label="Branch"
-              optionalLabel="Optional"
+              label={t("Branch")}
+              optionalLabel={t("Optional")}
             >
               <input
                 autoCapitalize="none"
@@ -743,14 +806,18 @@ export function ImportServiceFields({
           <FormField
             hint={
               draft.sourceMode === "github"
-                ? "Leave blank to reuse the repository name."
+                ? t("Leave blank to reuse the repository name.")
                 : draft.sourceMode === "local-upload"
-                  ? "Leave blank to derive the app name from the uploaded folder or file."
-                  : "Leave blank to derive the app name from the image reference."
+                  ? t(
+                      "Leave blank to derive the app name from the uploaded folder or file.",
+                    )
+                  : t(
+                      "Leave blank to derive the app name from the image reference.",
+                    )
             }
             htmlFor={`${idPrefix}-app-name`}
-            label="App name"
-            optionalLabel="Optional"
+            label={t("App name")}
+            optionalLabel={t("Optional")}
           >
             <input
               autoComplete="off"
@@ -758,7 +825,7 @@ export function ImportServiceFields({
               id={`${idPrefix}-app-name`}
               name="name"
               onChange={(event) => updateField("name", event.target.value)}
-              placeholder="Marketing site"
+              placeholder={t("Marketing site")}
               value={draft.name}
             />
           </FormField>
@@ -767,10 +834,10 @@ export function ImportServiceFields({
           draft.sourceMode === "docker-image" &&
           draft.networkMode !== "background" ? (
             <FormField
-              hint="Set this when the container listens on a known port."
+              hint={t("Set this when the container listens on a known port.")}
               htmlFor={`${idPrefix}-service-port`}
-              label="Service port"
-              optionalLabel="Optional"
+              label={t("Service port")}
+              optionalLabel={t("Optional")}
             >
               <input
                 autoComplete="off"
@@ -787,10 +854,12 @@ export function ImportServiceFields({
 
           {startupCommandSupported ? (
             <FormField
-              hint="Runs as `sh -lc <command>`. Leave blank to use the image default entrypoint."
+              hint={t(
+                "Runs as `sh -lc <command>`. Leave blank to use the image default entrypoint.",
+              )}
               htmlFor={`${idPrefix}-startup-command`}
-              label="Startup command"
-              optionalLabel="Optional"
+              label={t("Startup command")}
+              optionalLabel={t("Optional")}
             >
               <input
                 autoCapitalize="none"
@@ -812,11 +881,13 @@ export function ImportServiceFields({
             <FormField
               hint={
                 draft.sourceMode === "github"
-                  ? "This build strategy is reused for later syncs."
-                  : "Leave auto on unless the upload needs a specific source or Dockerfile override."
+                  ? t("This build strategy is reused for later syncs.")
+                  : t(
+                      "Leave auto on unless the upload needs a specific source or Dockerfile override.",
+                    )
               }
               htmlFor={`${idPrefix}-build-strategy`}
-              label="Build strategy"
+              label={t("Build strategy")}
             >
               <SelectField
                 autoComplete="off"
@@ -832,7 +903,7 @@ export function ImportServiceFields({
               >
                 {BUILD_STRATEGY_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
-                    {option.label}
+                    {t(option.label)}
                   </option>
                 ))}
               </SelectField>
@@ -843,12 +914,12 @@ export function ImportServiceFields({
             <FormField
               hint={
                 draft.sourceMode === "github"
-                  ? "Use when the app lives below the repo root."
-                  : "Use when the uploaded app lives below the archive root."
+                  ? t("Use when the app lives below the repo root.")
+                  : t("Use when the uploaded app lives below the archive root.")
               }
               htmlFor={`${idPrefix}-source-dir`}
-              label="Source directory"
-              optionalLabel="Optional"
+              label={t("Source directory")}
+              optionalLabel={t("Optional")}
             >
               <input
                 autoCapitalize="none"
@@ -870,12 +941,16 @@ export function ImportServiceFields({
             <FormField
               hint={
                 draft.sourceMode === "github"
-                  ? "Required when the Dockerfile is outside the repo root."
-                  : "Required when the uploaded Dockerfile is outside the archive root."
+                  ? t(
+                      "Required when the Dockerfile is outside the repo root.",
+                    )
+                  : t(
+                      "Required when the uploaded Dockerfile is outside the archive root.",
+                    )
               }
               htmlFor={`${idPrefix}-dockerfile-path`}
-              label="Dockerfile path"
-              optionalLabel="Optional"
+              label={t("Dockerfile path")}
+              optionalLabel={t("Optional")}
             >
               <input
                 autoCapitalize="none"
@@ -897,12 +972,12 @@ export function ImportServiceFields({
             <FormField
               hint={
                 draft.sourceMode === "github"
-                  ? "Defaults to the repo root when omitted."
-                  : "Defaults to the archive root when omitted."
+                  ? t("Defaults to the repo root when omitted.")
+                  : t("Defaults to the archive root when omitted.")
               }
               htmlFor={`${idPrefix}-build-context-dir`}
-              label="Build context"
-              optionalLabel="Optional"
+              label={t("Build context")}
+              optionalLabel={t("Optional")}
             >
               <input
                 autoCapitalize="none"

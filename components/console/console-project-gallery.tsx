@@ -15,6 +15,7 @@ import dynamic from "next/dynamic";
 import { CompactResourceMeter } from "@/components/console/compact-resource-meter";
 import { ImportServiceFields } from "@/components/console/import-service-fields";
 import { ConsoleProjectWorkbenchSkeleton } from "@/components/console/console-page-skeleton";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { StatusBadge } from "@/components/console/status-badge";
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -101,6 +102,7 @@ import {
   isAbortRequestError,
 } from "@/lib/ui/request-json";
 import { consumeSSEStream, type ParsedSSEEvent } from "@/lib/ui/sse";
+import type { TranslationValues } from "@/lib/i18n/core";
 
 type FlashState = {
   message: string;
@@ -329,9 +331,11 @@ const envStateCache = new Map<string, CachedEnvState>();
 const envStateRequestCache = new Map<string, Promise<CachedEnvState>>();
 let cachedProjectImageUsage: CachedProjectImageUsage | null = null;
 
-function createDefaultEnvRawFeedback(): EnvRawFeedback {
+type Translator = (key: string, values?: TranslationValues) => string;
+
+function createDefaultEnvRawFeedback(t: Translator): EnvRawFeedback {
   return {
-    message: "Paste a .env block to expand it into individual variables.",
+    message: t("Paste a .env block to expand it into individual variables."),
     tone: "info",
     valid: true,
   };
@@ -361,9 +365,11 @@ function writeCachedEnvState(appId: string, state: CachedEnvState) {
 }
 
 function WorkbenchLoadingNote({ label }: { label: string }) {
+  const { t } = useI18n();
+
   return (
     <div className="fg-workbench-section">
-      <p className="fg-console-note">{label}</p>
+      <p className="fg-console-note">{t(label)}</p>
     </div>
   );
 }
@@ -534,9 +540,10 @@ function shouldShowLiveStatusBadge(value?: string | null) {
 
 function readAppServiceRoleLabel(
   service?: Pick<ConsoleGalleryAppView, "phase" | "serviceRole"> | null,
+  t: Translator = (key) => key,
 ) {
   if (isDeletingLifecycleValue(service?.phase)) {
-    return "Deleting service";
+    return t("Deleting service");
   }
 
   if (
@@ -548,12 +555,12 @@ function readAppServiceRoleLabel(
       "migrating",
     ])
   ) {
-    return "Transfer in progress";
+    return t("Transfer in progress");
   }
 
   return service?.serviceRole === "pending"
-    ? "Next release"
-    : "Current release";
+    ? t("Next release")
+    : t("Current release");
 }
 
 function readBackingServiceRoleLabel(
@@ -563,16 +570,17 @@ function readBackingServiceRoleLabel(
         "databaseTransferTargetRuntimeId" | "serviceRole" | "status"
       >
     | null,
+  t: Translator = (key) => key,
 ) {
   if (service?.serviceRole === "pending") {
     return service.status.toLowerCase().includes("queued")
-      ? "Queued transfer"
-      : "Transfer in progress";
+      ? t("Queued transfer")
+      : t("Transfer in progress");
   }
 
   return service?.databaseTransferTargetRuntimeId
-    ? "Current primary"
-    : "Primary database";
+    ? t("Current primary")
+    : t("Primary database");
 }
 
 function hasLiveDatabaseContinuity(
@@ -609,11 +617,14 @@ function canForceDeletePendingService(
   );
 }
 
-function readForceDeleteActionLabel(phase?: string | null) {
+function readForceDeleteActionLabel(
+  phase?: string | null,
+  t: Translator = (key) => key,
+) {
   const normalized = phase?.trim().toLowerCase() ?? "";
 
   if (includesLifecycleKeyword(normalized, ["importing", "building"])) {
-    return "Abort build & delete";
+    return t("Abort build & delete");
   }
 
   if (
@@ -624,25 +635,28 @@ function readForceDeleteActionLabel(phase?: string | null) {
       "migrating",
     ])
   ) {
-    return "Cancel transfer & delete";
+    return t("Cancel transfer & delete");
   }
 
   if (includesLifecycleKeyword(normalized, ["deploying", "updating"])) {
-    return "Abort deploy & delete";
+    return t("Abort deploy & delete");
   }
 
   if (includesLifecycleKeyword(normalized, ["queued", "pending", "migrating"])) {
-    return "Cancel rollout & delete";
+    return t("Cancel rollout & delete");
   }
 
-  return "Force delete";
+  return t("Force delete");
 }
 
-function readForceDeleteActionDescription(phase?: string | null) {
+function readForceDeleteActionDescription(
+  phase?: string | null,
+  t: Translator = (key) => key,
+) {
   const normalized = phase?.trim().toLowerCase() ?? "";
 
   if (includesLifecycleKeyword(normalized, ["importing", "building"])) {
-    return "Abort the in-flight build and force delete this service.";
+    return t("Abort the in-flight build and force delete this service.");
   }
 
   if (
@@ -653,85 +667,97 @@ function readForceDeleteActionDescription(phase?: string | null) {
       "migrating",
     ])
   ) {
-    return "Cancel the in-flight transfer and force delete this service.";
+    return t("Cancel the in-flight transfer and force delete this service.");
   }
 
   if (includesLifecycleKeyword(normalized, ["deploying", "updating"])) {
-    return "Abort the in-flight deploy and force delete this service.";
+    return t("Abort the in-flight deploy and force delete this service.");
   }
 
   if (includesLifecycleKeyword(normalized, ["queued", "pending", "migrating"])) {
-    return "Cancel the queued rollout and force delete this service.";
+    return t("Cancel the queued rollout and force delete this service.");
   }
 
-  return "Force delete this pending service.";
+  return t("Force delete this pending service.");
 }
 
 function readDeleteActionSuccessMessage(
   action: "delete" | "force-delete",
   result: DeleteAppActionResult,
   phase?: string | null,
+  t: Translator = (key) => key,
 ) {
   if (result.deleted) {
-    return "Service deleted.";
+    return t("Service deleted.");
   }
 
   if (action === "delete") {
-    return result.alreadyDeleting ? "Delete is already queued." : "Delete queued.";
+    return result.alreadyDeleting
+      ? t("Delete is already queued.")
+      : t("Delete queued.");
   }
 
   if (result.alreadyDeleting) {
-    return "Force delete is already queued.";
+    return t("Force delete is already queued.");
   }
 
   const normalized = phase?.trim().toLowerCase() ?? "";
 
   if (includesLifecycleKeyword(normalized, ["importing", "building"])) {
-    return "Build aborted. Force delete queued.";
+    return t("Build aborted. Force delete queued.");
   }
 
   if (includesLifecycleKeyword(normalized, ["deploying", "updating"])) {
-    return "Deploy aborted. Force delete queued.";
+    return t("Deploy aborted. Force delete queued.");
   }
 
   if (includesLifecycleKeyword(normalized, ["queued", "pending", "migrating"])) {
-    return "Queued rollout canceled. Force delete queued.";
+    return t("Queued rollout canceled. Force delete queued.");
   }
 
-  return "Force delete queued.";
+  return t("Force delete queued.");
 }
 
-function readErrorMessage(error: unknown) {
+function readErrorMessage(error: unknown, t: Translator = (key) => key) {
   if (isAbortRequestError(error)) {
-    return "Request canceled.";
+    return t("Request canceled.");
   }
 
   if (error instanceof Error && error.message) {
     return error.message;
   }
 
-  return "Request failed.";
+  return t("Request failed.");
 }
 
-async function requestJson<T>(input: RequestInfo, init?: RequestInit) {
+async function requestJson<T>(
+  input: RequestInfo,
+  init?: RequestInit,
+  t: Translator = (key) => key,
+) {
   const response = await fetch(input, init);
   const data = (await response.json().catch(() => null)) as
     | (T & { error?: string })
     | null;
 
   if (!response.ok) {
-    throw new Error(data?.error || "Request failed.");
+    throw new Error(data?.error || t("Request failed."));
   }
 
   return (data ?? {}) as T;
 }
 
-async function readResponseError(response: Response) {
+async function readResponseError(
+  response: Response,
+  t: Translator = (key) => key,
+) {
   const body = await response.text().catch(() => "");
   const trimmed = body.trim();
 
   if (!trimmed) {
-    return `Request failed with status ${response.status}.`;
+    return t("Request failed with status {status}.", {
+      status: response.status,
+    });
   }
 
   try {
@@ -1081,12 +1107,18 @@ function isRetryableLogStreamError(
   return false;
 }
 
-function readLogStreamErrorMessage(error: unknown, logsMode: LogsView) {
+function readLogStreamErrorMessage(
+  error: unknown,
+  logsMode: LogsView,
+  t: Translator = (key) => key,
+) {
   if (error instanceof LogStreamRequestError && error.status === 404) {
-    return `${humanizeUiLabel(logsMode)} logs are not ready yet.`;
+    return t("{label} logs are not ready yet.", {
+      label: humanizeUiLabel(logsMode, t),
+    });
   }
 
-  return readErrorMessage(error);
+  return readErrorMessage(error, t);
 }
 
 function projectApps(project: ConsoleGalleryProjectView) {
@@ -1592,6 +1624,8 @@ function rowsFromEnvDrafts(rows: EnvDraftRow[]) {
 function buildEnvRawFeedback(
   rows: EnvRow[],
   ignoredLineCount = 0,
+  t: Translator = (key, values) =>
+    key.replace(/\{(\w+)\}/g, (_, token) => String(values?.[token] ?? "")),
 ): EnvRawFeedback {
   const activeRows = rows.filter(
     (row) => !row.removed && readEnvRowKey(row).length > 0,
@@ -1607,14 +1641,28 @@ function buildEnvRawFeedback(
   const changeCount = addedCount + updatedCount + removedCount;
   const ignoredLabel =
     ignoredLineCount > 0
-      ? `${ignoredLineCount} comment${ignoredLineCount === 1 ? "" : "s"} or blank line${ignoredLineCount === 1 ? "" : "s"} ignored`
+      ? t(
+          ignoredLineCount === 1
+            ? "{count} comment or blank line ignored"
+            : "{count} comments or blank lines ignored",
+          {
+            count: ignoredLineCount,
+          },
+        )
       : null;
 
   if (!activeRows.length) {
     const message =
       removedCount > 0
-        ? `Raw input is empty. Saving will remove ${removedCount} existing variable${removedCount === 1 ? "" : "s"}.`
-        : "Raw input is empty. Saving will keep the environment empty.";
+        ? t(
+            removedCount === 1
+              ? "Raw input is empty. Saving will remove {count} existing variable."
+              : "Raw input is empty. Saving will remove {count} existing variables.",
+            {
+              count: removedCount,
+            },
+          )
+        : t("Raw input is empty. Saving will keep the environment empty.");
 
     return {
       message,
@@ -1624,23 +1672,42 @@ function buildEnvRawFeedback(
   }
 
   const parts = [
-    `${activeRows.length} variable${activeRows.length === 1 ? "" : "s"} parsed`,
+    t(
+      activeRows.length === 1
+        ? "{count} variable parsed"
+        : "{count} variables parsed",
+      {
+        count: activeRows.length,
+      },
+    ),
   ];
 
   if (addedCount > 0) {
-    parts.push(`${addedCount} new`);
+    parts.push(
+      t(addedCount === 1 ? "{count} new" : "{count} new", {
+        count: addedCount,
+      }),
+    );
   }
 
   if (updatedCount > 0) {
-    parts.push(`${updatedCount} updated`);
+    parts.push(
+      t(updatedCount === 1 ? "{count} updated" : "{count} updated", {
+        count: updatedCount,
+      }),
+    );
   }
 
   if (removedCount > 0) {
-    parts.push(`${removedCount} removed`);
+    parts.push(
+      t(removedCount === 1 ? "{count} removed" : "{count} removed", {
+        count: removedCount,
+      }),
+    );
   }
 
   if (changeCount === 0) {
-    parts.push("matches current environment");
+    parts.push(t("matches current environment"));
   }
 
   if (ignoredLabel) {
@@ -1657,6 +1724,8 @@ function buildEnvRawFeedback(
 function buildCachedEnvState(
   env: Record<string, string>,
   format: EnvironmentFormat = "table",
+  t: Translator = (key, values) =>
+    key.replace(/\{(\w+)\}/g, (_, token) => String(values?.[token] ?? "")),
 ): CachedEnvState {
   const nextRows = rowsFromEnv(env);
 
@@ -1664,7 +1733,7 @@ function buildCachedEnvState(
     baseline: env,
     format,
     rawDraft: serializeEnvEntries(entriesFromEnvRecord(env)),
-    rawFeedback: buildEnvRawFeedback(nextRows),
+    rawFeedback: buildEnvRawFeedback(nextRows, 0, t),
     rows: nextRows,
   };
 }
@@ -1674,11 +1743,12 @@ async function fetchCachedEnvState(
   options?: {
     signal?: AbortSignal;
   },
+  t: Translator = (key) => key,
 ) {
   const normalizedAppId = appId.trim();
 
   if (!normalizedAppId) {
-    throw new Error("App id is required.");
+    throw new Error(t("App id is required."));
   }
 
   if (options?.signal?.aborted) {
@@ -1702,6 +1772,7 @@ async function fetchCachedEnvState(
     {
       cache: "no-store",
     },
+    t,
   )
     .then((response) => {
       const nextState = buildCachedEnvState(response.env ?? {});
@@ -1764,9 +1835,22 @@ export async function warmConsoleAppEnvStates(
   );
 }
 
-function humanizeUiLabel(value?: string | null) {
+function humanizeUiLabel(
+  value?: string | null,
+  t: Translator = (key) => key,
+) {
   if (!value) {
-    return "Unknown";
+    return t("Unknown");
+  }
+
+  const normalized = value.trim().toLowerCase();
+
+  if (normalized === "build") {
+    return t("Build");
+  }
+
+  if (normalized === "runtime") {
+    return t("Runtime");
   }
 
   return value
@@ -1803,6 +1887,7 @@ function readDistinctText(
 
 function readPersistentStorageLabel(
   mounts: ConsoleGalleryPersistentStorageMountView[],
+  t: Translator = (key) => key,
 ) {
   const paths = mounts
     .map((mount) => mount.path.trim())
@@ -1816,7 +1901,10 @@ function readPersistentStorageLabel(
     return paths[0];
   }
 
-  return `${paths.length} mounts`;
+  return t(
+    paths.length === 1 ? "{count} mount" : "{count} mounts",
+    { count: paths.length },
+  );
 }
 
 function renderExternalText(
@@ -1967,6 +2055,7 @@ function parsePendingCommitFromBuildJobName(jobName?: string | null) {
 function readPendingCommitState(
   phase?: string | null,
   operationStatus?: string | null,
+  t: Translator = (key) => key,
 ): Pick<ConsoleGalleryCommitView, "stateLabel" | "tone"> {
   const normalizedStatus = operationStatus?.trim().toLowerCase() ?? "";
   const hasActiveStatus = normalizedStatus
@@ -1982,28 +2071,28 @@ function readPendingCommitState(
       ])
     ) {
       return {
-        stateLabel: "Queued",
+        stateLabel: t("Queued"),
         tone: "warning",
       };
     }
 
     if (includesLifecycleKeyword(normalizedStatus, ["deploy"])) {
       return {
-        stateLabel: "Deploying",
+        stateLabel: t("Deploying"),
         tone: "info",
       };
     }
 
     if (includesLifecycleKeyword(normalizedStatus, ["build", "import"])) {
       return {
-        stateLabel: "Building",
+        stateLabel: t("Building"),
         tone: "info",
       };
     }
 
     if (normalizedStatus.includes("running")) {
       return {
-        stateLabel: "Updating",
+        stateLabel: t("Updating"),
         tone: "info",
       };
     }
@@ -2019,34 +2108,34 @@ function readPendingCommitState(
     ])
   ) {
     return {
-      stateLabel: "Queued",
+      stateLabel: t("Queued"),
       tone: "warning",
     };
   }
 
   if (includesLifecycleKeyword(normalizedPhase, ["deploying"])) {
     return {
-      stateLabel: "Deploying",
+      stateLabel: t("Deploying"),
       tone: "info",
     };
   }
 
   if (includesLifecycleKeyword(normalizedPhase, ["importing", "building"])) {
     return {
-      stateLabel: "Building",
+      stateLabel: t("Building"),
       tone: "info",
     };
   }
 
   if (hasActiveStatus) {
     return {
-      stateLabel: humanizeUiLabel(operationStatus),
+      stateLabel: humanizeUiLabel(operationStatus, t),
       tone: "info",
     };
   }
 
   return {
-    stateLabel: "Building",
+    stateLabel: t("Building"),
     tone: "info",
   };
 }
@@ -2060,6 +2149,7 @@ function buildPendingCommitHint(
     operationId?: string | null;
     operationStatus?: string | null;
   },
+  t: Translator = (key) => key,
 ): ConsoleGalleryCommitView | null {
   if (!isGitHubTrackedApp(app) || hasPendingCommitView(app)) {
     return null;
@@ -2071,7 +2161,8 @@ function buildPendingCommitHint(
 
   if (
     !runningCommit?.exact &&
-    runningCommit?.label === "Pending first import"
+    (runningCommit?.label === "Pending first import" ||
+      runningCommit?.label === t("Pending first import"))
   ) {
     return null;
   }
@@ -2079,8 +2170,8 @@ function buildPendingCommitHint(
   const exact = options?.exact?.trim() || null;
   const label =
     options?.label?.trim() ||
-    (exact ? (exact.length > 8 ? exact.slice(0, 8) : exact) : "Pending sync");
-  const state = readPendingCommitState(app.phase, options?.operationStatus);
+    (exact ? (exact.length > 8 ? exact.slice(0, 8) : exact) : t("Pending sync"));
+  const state = readPendingCommitState(app.phase, options?.operationStatus, t);
 
   return {
     committedAt: options?.committedAt?.trim() || null,
@@ -2097,6 +2188,7 @@ function buildPendingCommitHint(
 function inferPendingCommitHint(
   app: ConsoleGalleryAppView,
   buildLogs?: BuildLogsResponse | null,
+  t: Translator = (key) => key,
 ) {
   const buildActive = hasActiveBuildLogsOperation(buildLogs);
   const phaseActive = hasInFlightCommitPhase(app.phase);
@@ -2113,7 +2205,7 @@ function inferPendingCommitHint(
     label: parsedCommit?.label,
     operationId: buildLogs?.operationId,
     operationStatus: buildLogs?.operationStatus,
-  });
+  }, t);
 }
 
 function readDisplayedCommitView(
@@ -2145,6 +2237,7 @@ function LocalDateTimeNote({
   prefix?: string;
   value?: string | null;
 }) {
+  const { formatDateTime } = useI18n();
   const [formatted, setFormatted] = useState<string | null>(null);
 
   useEffect(() => {
@@ -2160,12 +2253,14 @@ function LocalDateTimeNote({
     }
 
     setFormatted(
-      new Intl.DateTimeFormat(undefined, {
-        dateStyle: "medium",
-        timeStyle: "short",
-      }).format(timestamp),
+      formatDateTime(timestamp, {
+        formatOptions: {
+          dateStyle: "medium",
+          timeStyle: "short",
+        },
+      }),
     );
-  }, [value]);
+  }, [formatDateTime, value]);
 
   if (!formatted || !value) {
     return null;
@@ -2206,6 +2301,7 @@ function renderCommitText(
 function readRuntimeLogsUnavailableState(
   app: ConsoleGalleryAppView | null,
   logsMode: LogsView,
+  t: Translator = (key) => key,
 ): RuntimeLogsUnavailableState | null {
   if (!app || logsMode !== "runtime") {
     return null;
@@ -2215,19 +2311,21 @@ function readRuntimeLogsUnavailableState(
 
   if (includesLifecycleKeyword(phase, ["importing"])) {
     return {
-      description:
+      description: t(
         "Import is still running. Switch to Build to follow progress.",
-      label: "Waiting for import",
-      title: "Runtime logs are not ready",
+      ),
+      label: t("Waiting for import"),
+      title: t("Runtime logs are not ready"),
     };
   }
 
   if (includesLifecycleKeyword(phase, ["building"])) {
     return {
-      description:
+      description: t(
         "Build is still running. Switch to Build to follow progress.",
-      label: "Waiting for first start",
-      title: "Runtime logs are not ready",
+      ),
+      label: t("Waiting for first start"),
+      title: t("Runtime logs are not ready"),
     };
   }
 
@@ -2240,28 +2338,31 @@ function readRuntimeLogsUnavailableState(
     ])
   ) {
     return {
-      description:
+      description: t(
         "The destination runtime is still preparing. Runtime logs switch over once the transfer is live.",
-      label: "Transfer in progress",
-      title: "Runtime logs are not ready",
+      ),
+      label: t("Transfer in progress"),
+      title: t("Runtime logs are not ready"),
     };
   }
 
   if (includesLifecycleKeyword(phase, ["queued", "pending"])) {
     return {
-      description:
+      description: t(
         "This rollout has not reached a live runtime yet. Switch to Build to follow progress.",
-      label: "Waiting in queue",
-      title: "Runtime logs are not ready",
+      ),
+      label: t("Waiting in queue"),
+      title: t("Runtime logs are not ready"),
     };
   }
 
   if (isPausedAppService(app)) {
     return {
-      description:
+      description: t(
         "This app is paused. Start it to reopen runtime logs without rebuilding, or use Redeploy for a fresh build.",
-      label: "Paused",
-      title: "Runtime logs are unavailable",
+      ),
+      label: t("Paused"),
+      title: t("Runtime logs are unavailable"),
     };
   }
 
@@ -2271,37 +2372,38 @@ function readRuntimeLogsUnavailableState(
 function readLogsStatusMessage(
   logsStatus: "error" | "idle" | "loading" | "ready",
   connectionState: LogsConnectionState,
+  t: Translator = (key) => key,
 ) {
   if (
     logsStatus === "loading" ||
     (logsStatus === "idle" && connectionState === "idle")
   ) {
     if (connectionState === "snapshot") {
-      return "Refreshing recent logs…";
+      return t("Refreshing recent logs…");
     }
 
     return connectionState === "reconnecting"
-      ? "Reconnecting to live logs…"
-      : "Connecting to live logs…";
+      ? t("Reconnecting to live logs…")
+      : t("Connecting to live logs…");
   }
 
   if (logsStatus === "error") {
-    return "Unable to open the log stream.";
+    return t("Unable to open the log stream.");
   }
 
   if (connectionState === "live" || connectionState === "reconnecting") {
-    return "Waiting for log output…";
+    return t("Waiting for log output…");
   }
 
   if (connectionState === "snapshot") {
-    return "Showing refreshed log snapshots…";
+    return t("Showing refreshed log snapshots…");
   }
 
   if (connectionState === "ended") {
-    return "No log lines were received before the stream closed.";
+    return t("No log lines were received before the stream closed.");
   }
 
-  return "No logs available.";
+  return t("No logs available.");
 }
 
 function shouldShowLogsLoadingPlaceholder(
@@ -2377,6 +2479,7 @@ function ConsoleLogsPanel({
   selectedServiceApp,
   selectedServiceLogViewOptions,
 }: ConsoleLogsPanelProps) {
+  const { t } = useI18n();
   const { showToast } = useToast();
   const [logsConnectionState, setLogsConnectionState] =
     useState<LogsConnectionState>("idle");
@@ -2425,7 +2528,11 @@ function ConsoleLogsPanel({
     ? `${selectedApp.id}:${runtimeLogsUnavailable.label}`
     : null;
   const logsBody = joinLogLines(deferredLogLines);
-  const logsStatusMessage = readLogsStatusMessage(logsStatus, logsConnectionState);
+  const logsStatusMessage = readLogsStatusMessage(
+    logsStatus,
+    logsConnectionState,
+    t,
+  );
   const hasBufferedLogOutput = logLines.length > 0;
   const showLogsPlaceholder = !logsBody;
   const showLogsLoadingPlaceholder =
@@ -2433,28 +2540,64 @@ function ConsoleLogsPanel({
     shouldShowLogsLoadingPlaceholder(logsStatus, logsConnectionState);
   const canCopyLogs =
     !runtimeLogsUnavailable && logLinesRef.current.length > 0;
-  const logsStreamLabel = humanizeUiLabel(effectiveLogsMode).toLowerCase();
+  const logsStreamLabel = humanizeUiLabel(effectiveLogsMode, t).toLowerCase();
   const logsPanelNote = runtimeLogsUnavailable
     ? runtimeLogsUnavailable.description
     : logsConnectionState === "reconnecting"
       ? hasBufferedLogOutput
-        ? `Connection dropped. Reconnecting to ${logsStreamLabel} output. Showing the latest received output.`
-        : `Connection dropped. Reconnecting to ${logsStreamLabel} output.`
+        ? t(
+            "Connection dropped. Reconnecting to {streamLabel} output. Showing the latest received output.",
+            {
+              streamLabel: logsStreamLabel,
+            },
+          )
+        : t("Connection dropped. Reconnecting to {streamLabel} output.", {
+            streamLabel: logsStreamLabel,
+          })
       : logsConnectionState === "snapshot"
         ? hasBufferedLogOutput
-          ? `The live ${logsStreamLabel} stream is delayed at the edge. Refreshing recent snapshots every 3 seconds.`
-          : `The live ${logsStreamLabel} stream is delayed at the edge. Loading recent snapshots instead.`
+          ? t(
+              "The live {streamLabel} stream is delayed at the edge. Refreshing recent snapshots every 3 seconds.",
+              {
+                streamLabel: logsStreamLabel,
+              },
+            )
+          : t(
+              "The live {streamLabel} stream is delayed at the edge. Loading recent snapshots instead.",
+              {
+                streamLabel: logsStreamLabel,
+              },
+            )
       : logsConnectionState === "ended"
         ? hasBufferedLogOutput
-          ? `${humanizeUiLabel(effectiveLogsMode)} stream closed. Showing latest snapshot.`
-          : `${humanizeUiLabel(effectiveLogsMode)} stream closed.`
+          ? t("{label} stream closed. Showing latest snapshot.", {
+              label: humanizeUiLabel(effectiveLogsMode, t),
+            })
+          : t("{label} stream closed.", {
+              label: humanizeUiLabel(effectiveLogsMode, t),
+            })
         : logsConnectionState === "error"
           ? hasBufferedLogOutput
-            ? `${logsErrorMessage ?? `Unable to open the ${logsStreamLabel} stream.`} Showing the latest received output.`
-            : `${logsErrorMessage ?? `Unable to open the ${logsStreamLabel} stream.`}`
+            ? t("{message} Showing the latest received output.", {
+                message:
+                  logsErrorMessage ??
+                  t("Unable to open the {streamLabel} stream.", {
+                    streamLabel: logsStreamLabel,
+                  }),
+              })
+            : (logsErrorMessage ??
+              t("Unable to open the {streamLabel} stream.", {
+                streamLabel: logsStreamLabel,
+              }))
           : logsConnectionState === "connecting"
-            ? `Opening live ${logsStreamLabel} output for ${selectedService.name}.`
-            : `Live ${logsStreamLabel} output for ${selectedService.name}.`;
+            ? t("Opening live {streamLabel} output for {name}.", {
+                name: selectedService.name,
+                streamLabel: logsStreamLabel,
+              })
+            : t("Live {streamLabel} output for {name}.", {
+                name: selectedService.name,
+                streamLabel: logsStreamLabel,
+              });
   const logsPanelNoteRole: "alert" | "status" | undefined =
     runtimeLogsUnavailable ||
     logsConnectionState === "idle" ||
@@ -2479,6 +2622,7 @@ function ConsoleLogsPanel({
           ? inferPendingCommitHint(
               selectedServiceApp,
               buildStatus ? buildLogsResponseFromStatus(buildStatus) : null,
+              t,
             )
           : null,
       );
@@ -2583,7 +2727,12 @@ function ConsoleLogsPanel({
       if (!copied) {
         setLogsCopyState("idle");
         showToast({
-          message: `${humanizeUiLabel(effectiveLogsMode)} logs are ready, but clipboard access failed.`,
+          message: t(
+            "{label} logs are ready, but clipboard access failed.",
+            {
+              label: humanizeUiLabel(effectiveLogsMode),
+            },
+          ),
           variant: "info",
         });
         return;
@@ -2597,7 +2746,7 @@ function ConsoleLogsPanel({
     } catch (error) {
       setLogsCopyState("idle");
       showToast({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     }
@@ -2740,7 +2889,9 @@ function ConsoleLogsPanel({
 
         setLogsConnectionState("error");
         setLogsStatus("error");
-        setLogsErrorMessage(readLogStreamErrorMessage(error, effectiveLogsMode));
+        setLogsErrorMessage(
+          readLogStreamErrorMessage(error, effectiveLogsMode, t),
+        );
         return;
       }
 
@@ -2825,12 +2976,12 @@ function ConsoleLogsPanel({
         if (!response.ok) {
           throw new LogStreamRequestError(
             response.status,
-            await readResponseError(response),
+            await readResponseError(response, t),
           );
         }
 
         if (!response.body) {
-          throw new Error("Streaming response body is unavailable.");
+          throw new Error(t("Streaming response body is unavailable."));
         }
 
         if (effectiveLogsMode === "runtime") {
@@ -2990,7 +3141,7 @@ function ConsoleLogsPanel({
           setLogsConnectionState("error");
           setLogsStatus("error");
           setLogsErrorMessage(
-            readLogStreamErrorMessage(error, effectiveLogsMode),
+            readLogStreamErrorMessage(error, effectiveLogsMode, t),
           );
           return;
         }
@@ -3022,7 +3173,7 @@ function ConsoleLogsPanel({
     <div className="fg-workbench-section">
       <div className="fg-workbench-section__head">
         <div className="fg-workbench-section__copy">
-          <p className="fg-label fg-panel__eyebrow">Logs</p>
+          <p className="fg-label fg-panel__eyebrow">{t("Logs")}</p>
           <p
             aria-live={logsPanelNoteLive}
             className="fg-console-note"
@@ -3035,12 +3186,18 @@ function ConsoleLogsPanel({
         <div className="fg-workbench-section__actions">
           {selectedService.kind === "app" ? (
             <SegmentedControl
-              ariaLabel="Log views"
+              ariaLabel={t("Log views")}
               controlClassName="fg-console-nav"
               itemClassName="fg-console-nav__link"
               labelClassName="fg-console-nav__title"
               onChange={onLogsModeChange}
-              options={selectedServiceLogViewOptions}
+              options={selectedServiceLogViewOptions.map((option) => ({
+                ...option,
+                label:
+                  typeof option.label === "string"
+                    ? t(option.label)
+                    : option.label,
+              }))}
               value={effectiveLogsMode}
               variant="pill"
             />
@@ -3049,7 +3206,7 @@ function ConsoleLogsPanel({
           <Button
             disabled={!canCopyLogs}
             loading={logsCopyState === "pending"}
-            loadingLabel="Copying…"
+            loadingLabel={t("Copying…")}
             onClick={() => {
               void handleCopyLogs();
             }}
@@ -3057,7 +3214,7 @@ function ConsoleLogsPanel({
             type="button"
             variant="secondary"
           >
-            {logsCopyState === "copied" ? "Copied" : "Copy logs"}
+            {logsCopyState === "copied" ? t("Copied") : t("Copy logs")}
           </Button>
         </div>
       </div>
@@ -3071,7 +3228,10 @@ function ConsoleLogsPanel({
         ) : (
           <pre
             aria-busy={showLogsLoadingPlaceholder || undefined}
-            aria-label={`${humanizeUiLabel(effectiveLogsMode)} logs for ${selectedService.name}`}
+            aria-label={t("{label} logs for {name}", {
+              label: humanizeUiLabel(effectiveLogsMode),
+              name: selectedService.name,
+            })}
             aria-relevant={showLogsPlaceholder ? undefined : "additions text"}
             className={cx(
               "fg-log-output__viewport",
@@ -3139,8 +3299,19 @@ function ProjectBadge({
   );
 }
 
-function projectTitle(project: ConsoleGalleryProjectView) {
-  return `${project.appCount} app${project.appCount === 1 ? "" : "s"} · ${project.serviceCount} service${project.serviceCount === 1 ? "" : "s"}`;
+function projectTitle(
+  project: ConsoleGalleryProjectView,
+  t: Translator = (key, values) =>
+    key.replace(/\{(\w+)\}/g, (_, token) => String(values?.[token] ?? "")),
+) {
+  return [
+    t(project.appCount === 1 ? "{count} app" : "{count} apps", {
+      count: project.appCount,
+    }),
+    t(project.serviceCount === 1 ? "{count} service" : "{count} services", {
+      count: project.serviceCount,
+    }),
+  ].join(" · ");
 }
 
 function EnvironmentVariableTable({
@@ -3156,11 +3327,13 @@ function EnvironmentVariableTable({
     value: string,
   ) => void;
 }) {
+  const { t } = useI18n();
   if (!rows.length) {
     return (
       <p className="fg-console-note">
-        No environment variables yet. Add one manually or switch to Raw to
-        paste a .env block.
+        {t(
+          "No environment variables yet. Add one manually or switch to Raw to paste a .env block.",
+        )}
       </p>
     );
   }
@@ -3168,23 +3341,23 @@ function EnvironmentVariableTable({
   return (
     <>
       <div aria-hidden="true" className="fg-env-table__head">
-        <span>Key</span>
-        <span>Value</span>
-        <span>Action</span>
+        <span>{t("Key")}</span>
+        <span>{t("Value")}</span>
+        <span>{t("Action")}</span>
       </div>
       {rows.map((row, index) => {
-        const rowTitle = row.key || row.originalKey || "New variable";
-        const rowIndexLabel = `Variable ${index + 1}`;
+        const rowTitle = row.key || row.originalKey || t("New variable");
+        const rowIndexLabel = t("Variable {count}", { count: index + 1 });
         const actionLabel = row.existing
           ? row.removed
-            ? "Undo"
-            : "Remove"
-          : "Discard";
+            ? t("Undo")
+            : t("Remove")
+          : t("Discard");
         const actionAriaLabel = row.existing
           ? row.removed
-            ? `${rowTitle} undo removal`
-            : `${rowTitle} remove variable`
-          : `${rowTitle} discard variable`;
+            ? t("{name} undo removal", { name: rowTitle })
+            : t("{name} remove variable", { name: rowTitle })
+          : t("{name} discard variable", { name: rowTitle });
 
         return (
           <div
@@ -3198,9 +3371,13 @@ function EnvironmentVariableTable({
               </div>
             </div>
             <label className="fg-env-row__field fg-env-row__field--key">
-              <span className="fg-env-row__field-label">Variable name</span>
+              <span className="fg-env-row__field-label">
+                {t("Variable name")}
+              </span>
               <input
-                aria-label={`${row.key || row.originalKey || "New variable"} Key`}
+                aria-label={t("{name} key", {
+                  name: row.key || row.originalKey || t("New variable"),
+                })}
                 autoCapitalize="off"
                 autoCorrect="off"
                 className="fg-input"
@@ -3208,15 +3385,17 @@ function EnvironmentVariableTable({
                 onChange={(event) =>
                   onUpdateRow(row.id, "key", event.target.value)
                 }
-                placeholder="Name"
+                placeholder={t("Name")}
                 spellCheck={false}
                 value={row.key}
               />
             </label>
             <label className="fg-env-row__field fg-env-row__field--value">
-              <span className="fg-env-row__field-label">Value</span>
+              <span className="fg-env-row__field-label">{t("Value")}</span>
               <input
-                aria-label={`${row.key || row.originalKey || "New variable"} Value`}
+                aria-label={t("{name} value", {
+                  name: row.key || row.originalKey || t("New variable"),
+                })}
                 autoCapitalize="off"
                 autoCorrect="off"
                 className="fg-input"
@@ -3224,7 +3403,7 @@ function EnvironmentVariableTable({
                 onChange={(event) =>
                   onUpdateRow(row.id, "value", event.target.value)
                 }
-                placeholder="Value"
+                placeholder={t("Value")}
                 spellCheck={false}
                 value={row.value}
               />
@@ -3253,6 +3432,7 @@ export function ConsoleProjectGallery({
   initialData: ConsoleProjectGalleryData;
   defaultCreateOpen?: boolean;
 }) {
+  const { locale, t } = useI18n();
   const confirm = useConfirmDialog();
   const { showToast } = useToast();
   const [flash, setFlash] = useState<FlashState | null>(null);
@@ -3281,7 +3461,7 @@ export function ConsoleProjectGallery({
   });
   const [importEnvFeedback, setImportEnvFeedback] =
     useState<ImportEnvFeedback>(() =>
-      buildRawEnvFeedback(importDraft.envRaw, "console"),
+      buildRawEnvFeedback(importDraft.envRaw, "console", locale),
     );
   const {
     connectHref: githubConnectHref,
@@ -3313,7 +3493,7 @@ export function ConsoleProjectGallery({
   const [envRows, setEnvRows] = useState<EnvRow[]>([]);
   const [envRawDraft, setEnvRawDraft] = useState("");
   const [envRawFeedback, setEnvRawFeedback] = useState<EnvRawFeedback>(
-    createDefaultEnvRawFeedback,
+    () => createDefaultEnvRawFeedback(t),
   );
   const [envSaving, setEnvSaving] = useState(false);
   const [logsMode, setLogsMode] = useState<LogsView>("build");
@@ -3326,8 +3506,8 @@ export function ConsoleProjectGallery({
     useOptimisticDeletingProjects(data.projects);
 
   useEffect(() => {
-    setImportEnvFeedback(buildRawEnvFeedback(importDraft.envRaw, "console"));
-  }, [importDraft.envRaw]);
+    setImportEnvFeedback(buildRawEnvFeedback(importDraft.envRaw, "console", locale));
+  }, [importDraft.envRaw, locale]);
 
   const selectedProject =
     optimisticProjects.find((project) => project.id === selectedProjectId) ??
@@ -3358,6 +3538,12 @@ export function ConsoleProjectGallery({
         null));
   const selectedServiceWorkbenchOptions =
     readServiceWorkbenchOptions(selectedService);
+  const localizedServiceWorkbenchOptions = selectedServiceWorkbenchOptions.map(
+    (option) => ({
+      ...option,
+      label: typeof option.label === "string" ? t(option.label) : option.label,
+    }),
+  );
   const selectedServiceLogViewOptions = readServiceLogViewOptions(
     selectedService,
     selectedProjectServices,
@@ -3390,10 +3576,13 @@ export function ConsoleProjectGallery({
   const runtimeLogsUnavailable = readRuntimeLogsUnavailableState(
     selectedServiceApp,
     effectiveLogsMode,
+    t,
   );
   useWorkbenchAnticipatoryWarmup(selectedProjectServices, selectedService);
   const dataErrorMessage = data.errors.length
-    ? `Partial Fugue data: ${data.errors.join(" | ")}.`
+    ? t("Partial Fugue data: {details}.", {
+        details: data.errors.join(" | "),
+      })
     : null;
   const dataErrorVariant = data.errors.length >= 3 ? "error" : "info";
   const projectLifecycles = optimisticProjects.map((project) =>
@@ -3413,25 +3602,42 @@ export function ConsoleProjectGallery({
         : null;
   const isCreateServiceMode = createTargetProject !== null;
   const createDialogEyebrow = isCreateServiceMode
-    ? "Add service"
-    : "Create project";
+    ? t("Add service")
+    : t("Create project");
   const createDialogTitle = isCreateServiceMode
-    ? "Add service"
-    : "Create project";
+    ? t("Add service")
+    : t("Create project");
   const createDialogCopy = isCreateServiceMode
     ? importDraft.sourceMode === "github"
-      ? `Paste a GitHub repository link for ${createTargetProject.name}. Adjust access or placement only if this service needs it.`
+      ? t(
+          "Paste a GitHub repository link for {projectName}. Adjust access or placement only if this service needs it.",
+          {
+            projectName: createTargetProject.name,
+          },
+        )
       : importDraft.sourceMode === "local-upload"
-        ? `Drop a local folder or source files for ${createTargetProject.name}. Fugue packages them on the server before import.`
-      : `Add a published Docker image to ${createTargetProject.name}. Adjust placement only if this service needs it.`
-    : "Give the project a name, then point Fugue at the first GitHub repository, local folder, or Docker image.";
+        ? t(
+            "Drop a local folder or source files for {projectName}. Fugue packages them on the server before import.",
+            {
+              projectName: createTargetProject.name,
+            },
+          )
+        : t(
+            "Add a published Docker image to {projectName}. Adjust placement only if this service needs it.",
+            {
+              projectName: createTargetProject.name,
+            },
+          )
+    : t(
+        "Give the project a name, then point Fugue at the first GitHub repository, local folder, or Docker image.",
+      );
   const createDialogSubmitLabel = isCreating
     ? isCreateServiceMode
-      ? "Adding…"
-      : "Creating…"
+      ? t("Adding…")
+      : t("Creating…")
     : isCreateServiceMode
-      ? "Add service"
-      : "Create project";
+      ? t("Add service")
+      : t("Create project");
   const createDialogFormId = "fugue-create-project-form";
 
   function clearCreateDialogUrl() {
@@ -3722,7 +3928,7 @@ export function ConsoleProjectGallery({
       setEnvBaseline({});
       setEnvRows([]);
       setEnvRawDraft("");
-      setEnvRawFeedback(createDefaultEnvRawFeedback());
+      setEnvRawFeedback(createDefaultEnvRawFeedback(t));
       return;
     }
 
@@ -3742,8 +3948,8 @@ export function ConsoleProjectGallery({
     setEnvBaseline({});
     setEnvRows([]);
     setEnvRawDraft("");
-    setEnvRawFeedback(createDefaultEnvRawFeedback());
-  }, [selectedServiceApp?.id]);
+    setEnvRawFeedback(createDefaultEnvRawFeedback(t));
+  }, [selectedServiceApp?.id, t]);
 
   useEffect(() => {
     if (!selectedServiceApp || activeTab !== "env") {
@@ -3757,7 +3963,7 @@ export function ConsoleProjectGallery({
     let cancelled = false;
     setEnvStatus("loading");
 
-    fetchCachedEnvState(selectedServiceApp.id)
+    fetchCachedEnvState(selectedServiceApp.id, undefined, t)
       .then((cachedState) => {
         if (cancelled) {
           return;
@@ -3854,13 +4060,13 @@ export function ConsoleProjectGallery({
           return;
         }
 
-        setSelectedAppPendingCommitHint(inferPendingCommitHint(app, buildLogs));
+        setSelectedAppPendingCommitHint(inferPendingCommitHint(app, buildLogs, t));
       } catch {
         if (cancelled || controller.signal.aborted) {
           return;
         }
 
-        setSelectedAppPendingCommitHint(inferPendingCommitHint(app, null));
+        setSelectedAppPendingCommitHint(inferPendingCommitHint(app, null, t));
       } finally {
         if (activeController === controller) {
           activeController = null;
@@ -3940,7 +4146,7 @@ export function ConsoleProjectGallery({
 
   function syncEnvRawEditor(nextRows: EnvRow[]) {
     setEnvRawDraft(serializeEnvEntries(entriesFromEnvRows(nextRows)));
-    setEnvRawFeedback(buildEnvRawFeedback(nextRows));
+    setEnvRawFeedback(buildEnvRawFeedback(nextRows, 0, t));
   }
 
   function openCreate() {
@@ -3983,7 +4189,7 @@ export function ConsoleProjectGallery({
     if (!createTargetProject) {
       if (!normalizedProjectName) {
         setFlash({
-          message: "Project name is required when creating a new project.",
+          message: t("Project name is required when creating a new project."),
           variant: "error",
         });
         return;
@@ -4005,6 +4211,7 @@ export function ConsoleProjectGallery({
         importCapabilities.persistentStorageSupported,
       privateGitHubAuthorized:
         githubConnectionLoading || Boolean(githubConnection?.connected),
+      locale,
     });
 
     if (validationError) {
@@ -4031,6 +4238,7 @@ export function ConsoleProjectGallery({
                   ...buildImportServicePayload(importDraft, {
                     includePersistentStorage:
                       importCapabilities.persistentStorageSupported,
+                    locale,
                   }),
                   ...(createTargetProject
                     ? {
@@ -4050,6 +4258,7 @@ export function ConsoleProjectGallery({
                 ...buildImportServicePayload(importDraft, {
                   includePersistentStorage:
                     importCapabilities.persistentStorageSupported,
+                  locale,
                 }),
                 ...(createTargetProject
                   ? {
@@ -4082,10 +4291,10 @@ export function ConsoleProjectGallery({
       armRefreshWindow();
       setFlash({
         message: response.requestInProgress
-          ? "Import is already running."
+          ? t("Import is already running.")
           : createTargetProject
-            ? "Service import queued."
-            : "Project import queued.",
+            ? t("Service import queued.")
+            : t("Project import queued."),
         variant: "success",
       });
       resetCreateForm(
@@ -4102,7 +4311,7 @@ export function ConsoleProjectGallery({
       void refreshGallery({ silent: true });
     } catch (error) {
       setFlash({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -4154,7 +4363,7 @@ export function ConsoleProjectGallery({
       setFlash({
         message:
           selectedServiceApp.redeployDisabledReason ??
-          "Redeploy is not available for this app.",
+          t("Redeploy is not available for this app."),
         variant: "error",
       });
       return;
@@ -4164,24 +4373,39 @@ export function ConsoleProjectGallery({
       const forceDelete = action === "force-delete";
       const confirmed = await confirm({
         confirmLabel: forceDelete
-          ? readForceDeleteActionLabel(selectedServiceApp.phase)
-          : "Delete service",
+          ? readForceDeleteActionLabel(selectedServiceApp.phase, t)
+          : t("Delete service"),
         description: forceDelete
-          ? `${selectedServiceApp.name} is currently ${selectedServiceApp.phase}. ${readForceDeleteActionDescription(selectedServiceApp.phase)}`
-          : `${selectedServiceApp.name} will be queued for deletion from this project.`,
+          ? t(
+              "{name} is currently {phase}. {description}",
+              {
+                description: readForceDeleteActionDescription(
+                  selectedServiceApp.phase,
+                  t,
+                ),
+                name: selectedServiceApp.name,
+                phase: selectedServiceApp.phase,
+              },
+            )
+          : t(
+              "{name} will be queued for deletion from this project.",
+              {
+                name: selectedServiceApp.name,
+              },
+            ),
         textConfirmation: {
           hint: (
             <>
-              Type{" "}
+              {t("Type")}{" "}
               <span className="fg-confirm-dialog__match-text">{selectedServiceApp.name}</span>{" "}
-              exactly to enable deletion.
+              {t("exactly to enable deletion.")}
             </>
           ),
-          label: "Service name",
+          label: t("Service name"),
           matchText: selectedServiceApp.name,
-          mismatchMessage: "Enter the service name exactly as shown.",
+          mismatchMessage: t("Enter the service name exactly as shown."),
         },
-        title: forceDelete ? "Force delete service?" : "Delete service?",
+        title: forceDelete ? t("Force delete service?") : t("Delete service?"),
       });
 
       if (!confirmed) {
@@ -4200,7 +4424,7 @@ export function ConsoleProjectGallery({
     try {
       let input = `/api/fugue/apps/${selectedServiceApp.id}`;
       let method = "POST";
-      let successMessage = "Request queued.";
+      let successMessage = t("Request queued.");
       let refreshWindowMs = 45_000;
 
       switch (nextAction) {
@@ -4211,24 +4435,24 @@ export function ConsoleProjectGallery({
           break;
         case "start":
           input = `/api/fugue/apps/${selectedServiceApp.id}/start`;
-          successMessage = "Start queued at 1 replica.";
+          successMessage = t("Start queued at 1 replica.");
           break;
         case "restart":
           input = `/api/fugue/apps/${selectedServiceApp.id}/restart`;
-          successMessage = "Restart queued.";
+          successMessage = t("Restart queued.");
           break;
         case "disable":
           input = `/api/fugue/apps/${selectedServiceApp.id}/disable`;
-          successMessage = "Pause queued.";
+          successMessage = t("Pause queued.");
           break;
         case "delete":
           method = "DELETE";
-          successMessage = "Delete queued.";
+          successMessage = t("Delete queued.");
           break;
         case "force-delete":
           input = `/api/fugue/apps/${selectedServiceApp.id}?force=true`;
           method = "DELETE";
-          successMessage = "Force delete queued.";
+          successMessage = t("Force delete queued.");
           refreshWindowMs = 90_000;
           break;
       }
@@ -4243,6 +4467,7 @@ export function ConsoleProjectGallery({
           nextAction,
           result,
           selectedServiceApp.phase,
+          t,
         );
       }
 
@@ -4261,7 +4486,7 @@ export function ConsoleProjectGallery({
       void refreshGallery({ silent: true });
     } catch (error) {
       setFlash({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -4275,9 +4500,14 @@ export function ConsoleProjectGallery({
     }
 
     const confirmed = await confirm({
-      confirmLabel: "Delete project",
-      description: `${project.name} is empty and will be removed from the workspace.`,
-      title: "Delete empty project?",
+      confirmLabel: t("Delete project"),
+      description: t(
+        "{name} is empty and will be removed from the workspace.",
+        {
+          name: project.name,
+        },
+      ),
+      title: t("Delete empty project?"),
     });
 
     if (!confirmed) {
@@ -4297,13 +4527,13 @@ export function ConsoleProjectGallery({
       setSelectedServiceKey(null);
       setSelectedAppId(null);
       setFlash({
-        message: "Project deleted.",
+        message: t("Project deleted."),
         variant: "success",
       });
       void refreshGallery({ silent: true });
     } catch (error) {
       setFlash({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -4373,7 +4603,10 @@ export function ConsoleProjectGallery({
 
     if (!parsed.ok) {
       setEnvRawFeedback({
-        message: `Line ${parsed.line}: ${parsed.message}`,
+        message: t("Line {line}: {message}", {
+          line: parsed.line,
+          message: parsed.message,
+        }),
         tone: "error",
         valid: false,
       });
@@ -4384,7 +4617,9 @@ export function ConsoleProjectGallery({
       buildEnvDraftRowsFromEntries(parsed.entries, envBaseline),
     );
     setEnvRows(nextRows);
-    setEnvRawFeedback(buildEnvRawFeedback(nextRows, parsed.ignoredLineCount));
+    setEnvRawFeedback(
+      buildEnvRawFeedback(nextRows, parsed.ignoredLineCount, t),
+    );
   }
 
   async function saveEnv() {
@@ -4411,7 +4646,7 @@ export function ConsoleProjectGallery({
 
     if (emptyKeyRows.length > 0) {
       setFlash({
-        message: "Environment variable names cannot be empty.",
+        message: t("Environment variable names cannot be empty."),
         variant: "error",
       });
       return;
@@ -4433,7 +4668,9 @@ export function ConsoleProjectGallery({
 
     if (duplicateKeys.size > 0) {
       setFlash({
-        message: `Duplicate env keys: ${[...duplicateKeys].join(", ")}.`,
+        message: t("Duplicate env keys: {keys}.", {
+          keys: [...duplicateKeys].join(", "),
+        }),
         variant: "error",
       });
       return;
@@ -4481,7 +4718,7 @@ export function ConsoleProjectGallery({
 
     if (!Object.keys(setPayload).length && !deletePayload.length) {
       setFlash({
-        message: "No environment changes.",
+        message: t("No environment changes."),
         variant: "info",
       });
       return;
@@ -4511,7 +4748,7 @@ export function ConsoleProjectGallery({
         baseline: nextEnv,
         format: envFormat,
         rawDraft: serializeEnvEntries(entriesFromEnvRecord(nextEnv)),
-        rawFeedback: buildEnvRawFeedback(nextRows),
+        rawFeedback: buildEnvRawFeedback(nextRows, 0, t),
         rows: nextRows,
       } satisfies CachedEnvState;
 
@@ -4522,12 +4759,12 @@ export function ConsoleProjectGallery({
       setEnvRawFeedback(nextState.rawFeedback);
       setEnvStatus("ready");
       setFlash({
-        message: "Environment changes queued.",
+        message: t("Environment changes queued."),
         variant: "success",
       });
     } catch (error) {
       setFlash({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -4551,21 +4788,21 @@ export function ConsoleProjectGallery({
               <aside className="fg-project-services fg-project-services--rail fg-project-workbench__rail">
                 <PanelSection className="fg-project-services__head">
                   <div className="fg-project-services__title-row">
-                    <p className="fg-label fg-panel__eyebrow">Services</p>
+                    <p className="fg-label fg-panel__eyebrow">{t("Services")}</p>
                     <Button
                       onClick={() => openCreateService(project)}
                       size="compact"
                       type="button"
                       variant="primary"
                     >
-                      Add service
+                      {t("Add service")}
                     </Button>
                   </div>
                 </PanelSection>
 
                 <PanelSection>
                   <p className="fg-console-note">
-                    No services are attached to this project yet.
+                    {t("No services are attached to this project yet.")}
                   </p>
                 </PanelSection>
               </aside>
@@ -4576,29 +4813,29 @@ export function ConsoleProjectGallery({
                     <div className="fg-project-inspector__hero">
                       <PanelTitle>{project.name}</PanelTitle>
                       <PanelCopy className="fg-project-inspector__copy">
-                        This project still exists in Fugue, but it does not
-                        currently have any running services or attached backing
-                        services.
+                        {t(
+                          "This project still exists in Fugue, but it does not currently have any running services or attached backing services.",
+                        )}
                       </PanelCopy>
                     </div>
                   </div>
 
                   <div className="fg-project-inspector__meta-grid">
                     <div>
-                      <dt>Apps</dt>
+                      <dt>{t("Apps")}</dt>
                       <dd>{project.appCount}</dd>
                     </div>
                     <div>
-                      <dt>Services</dt>
+                      <dt>{t("Services")}</dt>
                       <dd>{project.serviceCount}</dd>
                     </div>
                     <div>
-                      <dt>Project id</dt>
+                      <dt>{t("Project id")}</dt>
                       <dd>{project.id}</dd>
                     </div>
                     <div>
-                      <dt>State</dt>
-                      <dd>Empty</dd>
+                      <dt>{t("State")}</dt>
+                      <dd>{t("Empty")}</dd>
                     </div>
                   </div>
                 </PanelSection>
@@ -4607,7 +4844,7 @@ export function ConsoleProjectGallery({
                   <div className="fg-project-toolbar">
                     <div className="fg-project-toolbar__group">
                       <p className="fg-label fg-project-toolbar__label">
-                        Actions
+                        {t("Actions")}
                       </p>
                       <div className="fg-project-actions">
                         <Button
@@ -4616,18 +4853,18 @@ export function ConsoleProjectGallery({
                           type="button"
                           variant="primary"
                         >
-                          Add service
+                          {t("Add service")}
                         </Button>
                         <Button
                           disabled={busyProjectAction === "delete"}
                           loading={busyProjectAction === "delete"}
-                          loadingLabel="Deleting…"
+                          loadingLabel={t("Deleting…")}
                           onClick={() => handleProjectDelete(project)}
                           size="compact"
                           type="button"
                           variant="danger"
                         >
-                          Delete project
+                          {t("Delete project")}
                         </Button>
                       </div>
                     </div>
@@ -4637,11 +4874,11 @@ export function ConsoleProjectGallery({
                 <PanelSection className="fg-project-pane">
                   <div className="fg-console-empty-state fg-project-empty-state">
                     <div>
-                      <strong>Empty project</strong>
+                      <strong>{t("Empty project")}</strong>
                       <p>
-                        Empty projects used to be hidden from the gallery. They
-                        now stay visible so you can reuse the shell or delete it
-                        explicitly.
+                        {t(
+                          "Empty projects stay visible so you can reuse the shell or delete it explicitly.",
+                        )}
                       </p>
                     </div>
 
@@ -4652,7 +4889,7 @@ export function ConsoleProjectGallery({
                         type="button"
                         variant="primary"
                       >
-                        Import a new service
+                        {t("Import a new service")}
                       </Button>
                     </div>
                   </div>
@@ -4675,13 +4912,13 @@ export function ConsoleProjectGallery({
             selectedService.name,
             selectedService.ownerAppLabel,
             selectedService.type,
-            humanizeUiLabel(selectedService.type),
+            humanizeUiLabel(selectedService.type, t),
           ]);
     const selectedServiceStorageLabel =
       selectedService.kind === "app" &&
       selectedService.serviceRole === "running" &&
       !selectedServicePaused
-        ? readPersistentStorageLabel(selectedService.persistentStorageMounts)
+        ? readPersistentStorageLabel(selectedService.persistentStorageMounts, t)
         : null;
     const backingServiceOwnerLabel =
       selectedService.kind === "backing-service"
@@ -4695,12 +4932,12 @@ export function ConsoleProjectGallery({
             selectedService.name,
             selectedService.ownerAppLabel,
             selectedService.type,
-            humanizeUiLabel(selectedService.type),
+            humanizeUiLabel(selectedService.type, t),
           ])
         : null;
     const selectedServiceUrl = readServicePublicUrl(selectedService);
     const selectedServiceLocationLabel =
-      selectedService.locationLabel ?? "Unavailable";
+      selectedService.locationLabel ?? t("Unavailable");
 
     return (
       <div className="fg-project-card__detail" id={detailId}>
@@ -4709,14 +4946,14 @@ export function ConsoleProjectGallery({
             <aside className="fg-project-services fg-project-services--rail fg-project-workbench__rail">
               <PanelSection className="fg-project-services__head">
                 <div className="fg-project-services__title-row">
-                  <p className="fg-label fg-panel__eyebrow">Services</p>
+                  <p className="fg-label fg-panel__eyebrow">{t("Services")}</p>
                   <Button
                     onClick={() => openCreateService(project)}
                     size="compact"
                     type="button"
                     variant="primary"
                   >
-                    Add service
+                    {t("Add service")}
                   </Button>
                 </div>
               </PanelSection>
@@ -4735,13 +4972,13 @@ export function ConsoleProjectGallery({
                     const cardSecondaryLines =
                       service.kind === "app"
                         ? [
-                            readAppServiceRoleLabel(service),
+                            readAppServiceRoleLabel(service, t),
                             readDistinctText(service.sourceMeta, [
                               service.name,
                             ]),
                           ].filter((value): value is string => Boolean(value))
                         : [
-                            readBackingServiceRoleLabel(service),
+                            readBackingServiceRoleLabel(service, t),
                             readDistinctText(service.ownerAppLabel, [
                               service.name,
                             ]),
@@ -4749,17 +4986,25 @@ export function ConsoleProjectGallery({
                               service.name,
                               service.ownerAppLabel,
                               service.type,
-                              humanizeUiLabel(service.type),
+                              humanizeUiLabel(service.type, t),
                             ]),
                           ].filter((value): value is string => Boolean(value));
                     const cardStatusMeta = service.serviceDurationLabel
-                      ? `${service.serviceDurationLabel} elapsed`
+                      ? t("{duration} elapsed", {
+                          duration: service.serviceDurationLabel,
+                        })
                       : null;
 
                     return (
                       <li key={serviceKey(service)}>
                         <button
-                          aria-label={`Inspect ${service.name}${service.kind === "app" ? ` (${service.phase})` : ` (${service.type})`}`}
+                          aria-label={t("Inspect {name} ({status})", {
+                            name: service.name,
+                            status:
+                              service.kind === "app"
+                                ? t(service.phase)
+                                : humanizeUiLabel(service.type, t),
+                          })}
                           aria-pressed={active}
                           className={cx(
                             "fg-project-service-card",
@@ -4790,7 +5035,7 @@ export function ConsoleProjectGallery({
                                   )}
                                   tone={serviceStatusTone}
                                 >
-                                  {serviceStatus}
+                                  {t(serviceStatus)}
                                 </StatusBadge>
                                 {cardStatusMeta ? (
                                   <span className="fg-project-service-card__status-meta">
@@ -4822,11 +5067,11 @@ export function ConsoleProjectGallery({
                   <div className="fg-project-inspector__hero">
                     {selectedService.kind === "app" ? (
                       <p className="fg-label">
-                        {readAppServiceRoleLabel(selectedService)}
+                        {readAppServiceRoleLabel(selectedService, t)}
                       </p>
                     ) : selectedService.kind === "backing-service" ? (
                       <p className="fg-label">
-                        {readBackingServiceRoleLabel(selectedService)}
+                        {readBackingServiceRoleLabel(selectedService, t)}
                       </p>
                     ) : null}
                     <PanelTitle>{selectedService.name}</PanelTitle>
@@ -4842,11 +5087,11 @@ export function ConsoleProjectGallery({
                   {selectedService.kind === "app" ? (
                     <>
                       <div>
-                        <dt>Release</dt>
-                        <dd>{readAppServiceRoleLabel(selectedService)}</dd>
+                        <dt>{t("Release")}</dt>
+                        <dd>{readAppServiceRoleLabel(selectedService, t)}</dd>
                       </div>
                       <div>
-                        <dt>Commit</dt>
+                        <dt>{t("Commit")}</dt>
                         <dd>
                           {renderCommitText(
                             selectedService,
@@ -4855,12 +5100,12 @@ export function ConsoleProjectGallery({
                         </dd>
                       </div>
                       <div>
-                        <dt>Build</dt>
+                        <dt>{t("Build")}</dt>
                         <dd>{selectedService.sourceMeta}</dd>
                       </div>
                       {selectedServiceUrl ? (
                         <div>
-                          <dt>URL</dt>
+                          <dt>{t("URL")}</dt>
                           <dd>
                             {renderExternalText(
                               selectedServiceUrl.label,
@@ -4870,7 +5115,7 @@ export function ConsoleProjectGallery({
                         </div>
                       ) : null}
                       <div>
-                        <dt>Location</dt>
+                        <dt>{t("Location")}</dt>
                         <dd>
                           <CountryFlagLabel
                             countryCode={selectedService.locationCountryCode}
@@ -4881,30 +5126,34 @@ export function ConsoleProjectGallery({
                       {selectedService.serviceRole === "running" &&
                       selectedServiceStorageLabel ? (
                         <div>
-                          <dt>Persistent storage</dt>
+                          <dt>{t("Persistent storage")}</dt>
                           <dd>{selectedServiceStorageLabel}</dd>
                         </div>
                       ) : null}
                       {selectedService.serviceRole === "pending" &&
                       selectedService.serviceDurationLabel ? (
                         <div>
-                          <dt>Elapsed</dt>
-                          <dd>{`${selectedService.serviceDurationLabel} elapsed`}</dd>
+                          <dt>{t("Elapsed")}</dt>
+                          <dd>
+                            {t("{duration} elapsed", {
+                              duration: selectedService.serviceDurationLabel,
+                            })}
+                          </dd>
                         </div>
                       ) : null}
                     </>
                   ) : (
                     <>
                       <div>
-                        <dt>Service</dt>
+                        <dt>{t("Service")}</dt>
                         <dd>{selectedService.type}</dd>
                       </div>
                       <div>
-                        <dt>State</dt>
-                        <dd>{readBackingServiceRoleLabel(selectedService)}</dd>
+                        <dt>{t("State")}</dt>
+                        <dd>{readBackingServiceRoleLabel(selectedService, t)}</dd>
                       </div>
                       <div>
-                        <dt>Location</dt>
+                        <dt>{t("Location")}</dt>
                         <dd>
                           <CountryFlagLabel
                             countryCode={selectedService.locationCountryCode}
@@ -4915,19 +5164,23 @@ export function ConsoleProjectGallery({
                       {selectedService.serviceRole === "pending" &&
                       selectedService.serviceDurationLabel ? (
                         <div>
-                          <dt>Elapsed</dt>
-                          <dd>{`${selectedService.serviceDurationLabel} elapsed`}</dd>
+                          <dt>{t("Elapsed")}</dt>
+                          <dd>
+                            {t("{duration} elapsed", {
+                              duration: selectedService.serviceDurationLabel,
+                            })}
+                          </dd>
                         </div>
                       ) : null}
                       {backingServiceOwnerLabel ? (
                         <div>
-                          <dt>Attached to</dt>
+                          <dt>{t("Attached to")}</dt>
                           <dd>{backingServiceOwnerLabel}</dd>
                         </div>
                       ) : null}
                       {backingServiceDescription ? (
                         <div>
-                          <dt>Description</dt>
+                          <dt>{t("Description")}</dt>
                           <dd>{backingServiceDescription}</dd>
                         </div>
                       ) : null}
@@ -4944,7 +5197,7 @@ export function ConsoleProjectGallery({
                     selectedServiceCanForceDelete) ? (
                     <div className="fg-project-toolbar__group">
                       <p className="fg-label fg-project-toolbar__label">
-                        Actions
+                        {t("Actions")}
                       </p>
                       <div className="fg-project-actions">
                         {selectedService.serviceRole === "running" ? (
@@ -4958,20 +5211,21 @@ export function ConsoleProjectGallery({
                               }
                               loading={busyAction === "redeploy"}
                               loadingLabel={
-                                selectedService.redeployActionLoadingLabel
+                                t(selectedService.redeployActionLoadingLabel)
                               }
                               onClick={() => handleAppAction("redeploy")}
                               size="compact"
                               title={
                                 selectedService.canRedeploy
-                                  ? selectedService.redeployActionDescription
-                                  : (selectedService.redeployDisabledReason ??
-                                    undefined)
+                                  ? t(selectedService.redeployActionDescription)
+                                  : (selectedService.redeployDisabledReason
+                                      ? t(selectedService.redeployDisabledReason)
+                                      : undefined)
                               }
                               type="button"
                               variant="primary"
                             >
-                              {selectedService.redeployActionLabel}
+                              {t(selectedService.redeployActionLabel)}
                             </Button>
                             <Button
                               disabled={Boolean(
@@ -4983,8 +5237,8 @@ export function ConsoleProjectGallery({
                               }
                               loadingLabel={
                                 selectedServicePaused
-                                  ? "Starting…"
-                                  : "Restarting…"
+                                  ? t("Starting…")
+                                  : t("Restarting…")
                               }
                               onClick={() =>
                                 handleAppAction(selectedServiceLifecycleAction)
@@ -4992,13 +5246,19 @@ export function ConsoleProjectGallery({
                               size="compact"
                               title={
                                 selectedServicePaused
-                                  ? "Start this paused app at 1 replica without rebuilding the image."
-                                  : "Restart the current release without rebuilding the image. Persistent storage is preserved when configured."
+                                  ? t(
+                                      "Start this paused app at 1 replica without rebuilding the image.",
+                                    )
+                                  : t(
+                                      "Restart the current release without rebuilding the image. Persistent storage is preserved when configured.",
+                                    )
                               }
                               type="button"
                               variant="secondary"
                             >
-                              {selectedServicePaused ? "Start" : "Restart"}
+                              {selectedServicePaused
+                                ? t("Start")
+                                : t("Restart")}
                             </Button>
                             {selectedServiceCanPause ? (
                               <Button
@@ -5006,13 +5266,13 @@ export function ConsoleProjectGallery({
                                   busyAction && busyAction !== "disable",
                                 )}
                                 loading={busyAction === "disable"}
-                                loadingLabel="Pausing…"
+                                loadingLabel={t("Pausing…")}
                                 onClick={() => handleAppAction("disable")}
                                 size="compact"
                                 type="button"
                                 variant="secondary"
                               >
-                                Pause
+                                {t("Pause")}
                               </Button>
                             ) : null}
                             <Button
@@ -5020,13 +5280,13 @@ export function ConsoleProjectGallery({
                                 busyAction && busyAction !== "delete",
                               )}
                               loading={busyAction === "delete"}
-                              loadingLabel="Deleting…"
+                              loadingLabel={t("Deleting…")}
                               onClick={() => handleAppAction("delete")}
                               size="compact"
                               type="button"
                               variant="danger"
                             >
-                              Delete
+                              {t("Delete")}
                             </Button>
                           </>
                         ) : null}
@@ -5036,42 +5296,45 @@ export function ConsoleProjectGallery({
                               busyAction && busyAction !== "force-delete",
                             )}
                             loading={busyAction === "force-delete"}
-                            loadingLabel="Aborting…"
+                            loadingLabel={t("Aborting…")}
                             onClick={() => handleAppAction("force-delete")}
                             size="compact"
                             title={readForceDeleteActionDescription(
                               selectedService.phase,
+                              t,
                             )}
                             type="button"
                             variant="danger"
                           >
-                            {readForceDeleteActionLabel(selectedService.phase)}
+                            {readForceDeleteActionLabel(selectedService.phase, t)}
                           </Button>
                         ) : null}
-                      </div>
                     </div>
-                  ) : null}
-
-                  <div className="fg-project-toolbar__group fg-project-toolbar__group--tabs">
-                    <p className="fg-label fg-project-toolbar__label">Panels</p>
-                    <SegmentedControl
-                      ariaLabel="Service panels"
-                      className="fg-project-toolbar__panels-switch"
-                      controlClassName="fg-console-nav"
-                      itemClassName="fg-console-nav__link"
-                      labelClassName="fg-console-nav__title"
-                      onChange={setActiveTab}
-                      options={selectedServiceWorkbenchOptions}
-                      value={
-                        selectedServiceWorkbenchOptions.some(
-                          (option) => option.value === activeTab,
-                        )
-                          ? activeTab
-                          : "logs"
-                      }
-                      variant="pill"
-                    />
                   </div>
+                ) : null}
+
+                <div className="fg-project-toolbar__group fg-project-toolbar__group--tabs">
+                  <p className="fg-label fg-project-toolbar__label">
+                    {t("Panels")}
+                  </p>
+                  <SegmentedControl
+                    ariaLabel={t("Service panels")}
+                    className="fg-project-toolbar__panels-switch"
+                    controlClassName="fg-console-nav"
+                    itemClassName="fg-console-nav__link"
+                    labelClassName="fg-console-nav__title"
+                    onChange={setActiveTab}
+                    options={localizedServiceWorkbenchOptions}
+                    value={
+                      selectedServiceWorkbenchOptions.some(
+                        (option) => option.value === activeTab,
+                      )
+                        ? activeTab
+                        : "logs"
+                    }
+                    variant="pill"
+                  />
+                </div>
                 </div>
               </PanelSection>
 
@@ -5092,23 +5355,35 @@ export function ConsoleProjectGallery({
                     <div className="fg-workbench-section__head">
                       <div className="fg-workbench-section__copy fg-env-section__copy">
                         <p className="fg-label fg-panel__eyebrow">
-                          Environment
+                          {t("Environment")}
                         </p>
                         <p className="fg-console-note">
                           {envFormat === "raw"
-                            ? `Paste a .env block for ${selectedService.name}. Comments, blank lines, and export prefixes are ignored.`
-                            : `Review variables for ${selectedService.name}, or switch to Raw to paste a .env block. Saving queues a deploy.`}
+                            ? t(
+                                "Paste a .env block for {name}. Comments, blank lines, and export prefixes are ignored.",
+                                { name: selectedService.name },
+                              )
+                            : t(
+                                "Review variables for {name}, or switch to Raw to paste a .env block. Saving queues a deploy.",
+                                { name: selectedService.name },
+                              )}
                         </p>
                       </div>
 
                       <div className="fg-workbench-section__actions fg-env-section__actions">
                         <SegmentedControl
-                          ariaLabel="Environment formats"
+                          ariaLabel={t("Environment formats")}
                           controlClassName="fg-console-nav"
                           itemClassName="fg-console-nav__link"
                           labelClassName="fg-console-nav__title"
                           onChange={changeEnvFormat}
-                          options={ENVIRONMENT_FORMAT_OPTIONS}
+                          options={ENVIRONMENT_FORMAT_OPTIONS.map((option) => ({
+                            ...option,
+                            label:
+                              typeof option.label === "string"
+                                ? t(option.label)
+                                : option.label,
+                          }))}
                           value={envFormat}
                           variant="pill"
                         />
@@ -5119,7 +5394,7 @@ export function ConsoleProjectGallery({
                             type="button"
                             variant="secondary"
                           >
-                            Add variable
+                            {t("Add variable")}
                           </Button>
                         ) : (
                           <Button
@@ -5128,7 +5403,7 @@ export function ConsoleProjectGallery({
                             type="button"
                             variant="secondary"
                           >
-                            Reset raw
+                            {t("Reset raw")}
                           </Button>
                         )}
                         <Button
@@ -5137,19 +5412,21 @@ export function ConsoleProjectGallery({
                             (envFormat === "raw" && !envRawFeedback.valid)
                           }
                           loading={envSaving}
-                          loadingLabel="Saving…"
+                          loadingLabel={t("Saving…")}
                           onClick={saveEnv}
                           size="compact"
                           type="button"
                           variant="primary"
                         >
-                          Save
+                          {t("Save")}
                         </Button>
                       </div>
                     </div>
 
                     {envStatus === "loading" ? (
-                      <p className="fg-console-note">Loading environment…</p>
+                      <p className="fg-console-note">
+                        {t("Loading environment…")}
+                      </p>
                     ) : envFormat === "table" ? (
                       <div className="fg-env-table">
                         <EnvironmentVariableTable
@@ -5161,10 +5438,12 @@ export function ConsoleProjectGallery({
                     ) : (
                       <div className="fg-env-raw">
                         <FormField
-                          hint="Paste KEY=value lines directly from a .env file. Quoted values, blank lines, comments, and export prefixes are supported."
+                          hint={t(
+                            "Paste KEY=value lines directly from a .env file. Quoted values, blank lines, comments, and export prefixes are supported.",
+                          )}
                           htmlFor={`env-raw-${selectedService.id}`}
-                          label="Raw environment"
-                          optionalLabel="Paste .env"
+                          label={t("Raw environment")}
+                          optionalLabel={t("Paste .env")}
                         >
                           <textarea
                             aria-invalid={
@@ -5177,7 +5456,9 @@ export function ConsoleProjectGallery({
                             onChange={(event) =>
                               updateEnvRaw(event.target.value)
                             }
-                            placeholder={`DATABASE_URL=postgres://user:pass@host/db\nPUBLIC_API_BASE=https://api.example.com\n# comments are ignored`}
+                            placeholder={t(
+                              "DATABASE_URL=postgres://user:pass@host/db\nPUBLIC_API_BASE=https://api.example.com\n# comments are ignored",
+                            )}
                             spellCheck={false}
                             value={envRawDraft}
                           />
@@ -5391,7 +5672,7 @@ export function ConsoleProjectGallery({
           ) : (
             <div className="fg-project-gallery__empty-state">
               <Button onClick={openCreate} type="button" variant="primary">
-                Create project
+                {t("Create project")}
               </Button>
             </div>
           )}
@@ -5431,7 +5712,7 @@ export function ConsoleProjectGallery({
                     {createTargetProject ? (
                       <FormField
                         htmlFor="create-project-current"
-                        label="Project"
+                        label={t("Project")}
                       >
                         <input
                           className="fg-input"
@@ -5443,9 +5724,9 @@ export function ConsoleProjectGallery({
                       </FormField>
                     ) : (
                       <FormField
-                        hint="Shown in the project list."
+                        hint={t("Shown in the project list.")}
                         htmlFor="create-project-name"
-                        label="Project name"
+                        label={t("Project name")}
                       >
                         <input
                           className="fg-input"
@@ -5454,7 +5735,7 @@ export function ConsoleProjectGallery({
                           onChange={(event) =>
                             setProjectName(event.target.value)
                           }
-                          placeholder="Project 1"
+                          placeholder={t("Project 1")}
                           required
                           value={projectName}
                         />
@@ -5488,7 +5769,7 @@ export function ConsoleProjectGallery({
                     type="button"
                     variant="secondary"
                   >
-                    Cancel
+                    {t("Cancel")}
                   </Button>
                   <Button
                     form={createDialogFormId}
@@ -5537,6 +5818,7 @@ export function ConsoleProjectWorkbench({
   refreshToken: number;
 }) {
   const initialDetail = readCachedConsoleProjectDetail(project.id);
+  const { t } = useI18n();
   const confirm = useConfirmDialog();
   const { showToast } = useToast();
   const [flash, setFlash] = useState<FlashState | null>(null);
@@ -5565,7 +5847,7 @@ export function ConsoleProjectWorkbench({
   const [envRows, setEnvRows] = useState<EnvRow[]>([]);
   const [envRawDraft, setEnvRawDraft] = useState("");
   const [envRawFeedback, setEnvRawFeedback] = useState<EnvRawFeedback>(
-    createDefaultEnvRawFeedback,
+    () => createDefaultEnvRawFeedback(t),
   );
   const [envSaving, setEnvSaving] = useState(false);
   const [logsMode, setLogsMode] = useState<LogsView>("build");
@@ -5606,6 +5888,12 @@ export function ConsoleProjectWorkbench({
         null));
   const selectedServiceWorkbenchOptions =
     readServiceWorkbenchOptions(selectedService);
+  const localizedServiceWorkbenchOptions = selectedServiceWorkbenchOptions.map(
+    (option) => ({
+      ...option,
+      label: typeof option.label === "string" ? t(option.label) : option.label,
+    }),
+  );
   const selectedServiceLogViewOptions = readServiceLogViewOptions(
     selectedService,
     detailProjectServices,
@@ -5634,6 +5922,7 @@ export function ConsoleProjectWorkbench({
   const runtimeLogsUnavailable = readRuntimeLogsUnavailableState(
     selectedServiceApp,
     effectiveLogsMode,
+    t,
   );
   useWorkbenchAnticipatoryWarmup(detailProjectServices, selectedService);
   const requestWorkbenchRefresh = useEffectEvent(() => {
@@ -5671,7 +5960,7 @@ export function ConsoleProjectWorkbench({
           return true;
         }
 
-        setDetailError("Project detail is not available yet.");
+        setDetailError(t("Project detail is not available yet."));
         setDetailStatus("error");
         return false;
       } catch (error) {
@@ -5680,11 +5969,11 @@ export function ConsoleProjectWorkbench({
         }
 
         setDetailStatus("error");
-        setDetailError(readErrorMessage(error));
+        setDetailError(readErrorMessage(error, t));
 
         if (!options?.silent) {
           setFlash({
-            message: readErrorMessage(error),
+            message: readErrorMessage(error, t),
             variant: "error",
           });
         }
@@ -5741,8 +6030,8 @@ export function ConsoleProjectWorkbench({
       return;
     }
 
-    setSelectedAppPendingCommitHint(buildPendingCommitHint(selectedServiceApp));
-  }, [selectedAppNeedsPendingCommitHint, selectedServiceApp]);
+    setSelectedAppPendingCommitHint(buildPendingCommitHint(selectedServiceApp, undefined, t));
+  }, [selectedAppNeedsPendingCommitHint, selectedServiceApp, t]);
 
   useEffect(() => {
     if (!detailProject) {
@@ -5818,7 +6107,7 @@ export function ConsoleProjectWorkbench({
       setEnvBaseline({});
       setEnvRows([]);
       setEnvRawDraft("");
-      setEnvRawFeedback(createDefaultEnvRawFeedback());
+      setEnvRawFeedback(createDefaultEnvRawFeedback((key) => key));
       return;
     }
 
@@ -5838,7 +6127,7 @@ export function ConsoleProjectWorkbench({
     setEnvBaseline({});
     setEnvRows([]);
     setEnvRawDraft("");
-    setEnvRawFeedback(createDefaultEnvRawFeedback());
+    setEnvRawFeedback(createDefaultEnvRawFeedback((key) => key));
   }, [selectedServiceAppId]);
 
   useEffect(() => {
@@ -5853,7 +6142,7 @@ export function ConsoleProjectWorkbench({
     let cancelled = false;
     setEnvStatus("loading");
 
-    fetchCachedEnvState(selectedServiceAppId)
+    fetchCachedEnvState(selectedServiceAppId, undefined, t)
       .then((cachedState) => {
         if (cancelled) {
           return;
@@ -5873,7 +6162,7 @@ export function ConsoleProjectWorkbench({
 
         setEnvStatus("error");
         setFlash({
-          message: readErrorMessage(error),
+          message: readErrorMessage(error, t),
           variant: "error",
         });
       });
@@ -5881,7 +6170,7 @@ export function ConsoleProjectWorkbench({
     return () => {
       cancelled = true;
     };
-  }, [activeTab, selectedServiceAppId]);
+  }, [activeTab, selectedServiceAppId, t]);
 
   useEffect(() => {
     if (!selectedServiceAppId || envStatus !== "ready") {
@@ -5925,7 +6214,7 @@ export function ConsoleProjectWorkbench({
       setFlash({
         message:
           selectedServiceApp.redeployDisabledReason ??
-          "Redeploy is not available for this app.",
+          t("Redeploy is not available for this app."),
         variant: "error",
       });
       return;
@@ -5935,26 +6224,38 @@ export function ConsoleProjectWorkbench({
       const forceDelete = action === "force-delete";
       const confirmed = await confirm({
         confirmLabel: forceDelete
-          ? readForceDeleteActionLabel(selectedServiceApp.phase)
-          : "Delete service",
+          ? readForceDeleteActionLabel(selectedServiceApp.phase, t)
+          : t("Delete service"),
         description: forceDelete
-          ? `${selectedServiceApp.name} is currently ${selectedServiceApp.phase}. ${readForceDeleteActionDescription(selectedServiceApp.phase)}`
-          : `${selectedServiceApp.name} will be queued for deletion from this project.`,
+          ? t(
+              "{name} is currently {phase}. {description}",
+              {
+                description: readForceDeleteActionDescription(
+                  selectedServiceApp.phase,
+                  t,
+                ),
+                name: selectedServiceApp.name,
+                phase: t(selectedServiceApp.phase),
+              },
+            )
+          : t("{name} will be queued for deletion from this project.", {
+              name: selectedServiceApp.name,
+            }),
         textConfirmation: {
           hint: (
             <>
-              Type{" "}
+              {t("Type")}{" "}
               <span className="fg-confirm-dialog__match-text">
                 {selectedServiceApp.name}
               </span>{" "}
-              exactly to enable deletion.
+              {t("exactly to enable deletion.")}
             </>
           ),
-          label: "Service name",
+          label: t("Service name"),
           matchText: selectedServiceApp.name,
-          mismatchMessage: "Enter the service name exactly as shown.",
+          mismatchMessage: t("Enter the service name exactly as shown."),
         },
-        title: forceDelete ? "Force delete service?" : "Delete service?",
+        title: forceDelete ? t("Force delete service?") : t("Delete service?"),
       });
 
       if (!confirmed) {
@@ -5973,39 +6274,39 @@ export function ConsoleProjectWorkbench({
     try {
       let input = `/api/fugue/apps/${selectedServiceApp.id}`;
       let method = "POST";
-      let successMessage = "Request queued.";
+      let successMessage = t("Request queued.");
 
       switch (nextAction) {
         case "redeploy":
           input = `/api/fugue/apps/${selectedServiceApp.id}/rebuild`;
-          successMessage = selectedServiceApp.redeployQueuedMessage;
+          successMessage = t(selectedServiceApp.redeployQueuedMessage);
           break;
         case "start":
           input = `/api/fugue/apps/${selectedServiceApp.id}/start`;
-          successMessage = "Start queued at 1 replica.";
+          successMessage = t("Start queued at 1 replica.");
           break;
         case "restart":
           input = `/api/fugue/apps/${selectedServiceApp.id}/restart`;
-          successMessage = "Restart queued.";
+          successMessage = t("Restart queued.");
           break;
         case "disable":
           input = `/api/fugue/apps/${selectedServiceApp.id}/disable`;
-          successMessage = "Pause queued.";
+          successMessage = t("Pause queued.");
           break;
         case "delete":
           method = "DELETE";
-          successMessage = "Delete queued.";
+          successMessage = t("Delete queued.");
           break;
         case "force-delete":
           input = `/api/fugue/apps/${selectedServiceApp.id}?force=true`;
           method = "DELETE";
-          successMessage = "Force delete queued.";
+          successMessage = t("Force delete queued.");
           break;
       }
 
       const result = await requestJson<DeleteAppActionResult>(input, {
         method,
-      });
+      }, t);
 
       if (nextAction === "delete" || nextAction === "force-delete") {
         markAppDeleting(selectedServiceApp.id);
@@ -6013,6 +6314,7 @@ export function ConsoleProjectWorkbench({
           nextAction,
           result,
           selectedServiceApp.phase,
+          t,
         );
       }
 
@@ -6039,7 +6341,7 @@ export function ConsoleProjectWorkbench({
       void refreshDetail({ force: true, silent: true });
     } catch (error) {
       setFlash({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -6053,9 +6355,14 @@ export function ConsoleProjectWorkbench({
     }
 
     const confirmed = await confirm({
-      confirmLabel: "Delete project",
-      description: `${detailProject.name} is empty and will be removed from the workspace.`,
-      title: "Delete empty project?",
+      confirmLabel: t("Delete project"),
+      description: t(
+        "{name} is empty and will be removed from the workspace.",
+        {
+          name: detailProject.name,
+        },
+      ),
+      title: t("Delete empty project?"),
     });
 
     if (!confirmed) {
@@ -6067,15 +6374,15 @@ export function ConsoleProjectWorkbench({
     try {
       await requestJson(`/api/fugue/projects/${detailProject.id}`, {
         method: "DELETE",
-      });
+      }, t);
       showToast({
-        message: "Project deleted.",
+        message: t("Project deleted."),
         variant: "success",
       });
       onProjectDeleted(detailProject.id);
     } catch (error) {
       setFlash({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -6102,7 +6409,7 @@ export function ConsoleProjectWorkbench({
     if (nextFormat === "raw" && envFormat !== "raw") {
       const nextRows = envRows;
       setEnvRawDraft(serializeEnvEntries(entriesFromEnvRows(nextRows)));
-      setEnvRawFeedback(buildEnvRawFeedback(nextRows));
+      setEnvRawFeedback(buildEnvRawFeedback(nextRows, undefined, t));
     }
 
     setEnvFormat(nextFormat);
@@ -6110,7 +6417,7 @@ export function ConsoleProjectWorkbench({
 
   function resetEnvRawDraft() {
     setEnvRawDraft(serializeEnvEntries(entriesFromEnvRows(envRows)));
-    setEnvRawFeedback(buildEnvRawFeedback(envRows));
+    setEnvRawFeedback(buildEnvRawFeedback(envRows, undefined, t));
   }
 
   function updateEnvRow(
@@ -6148,7 +6455,10 @@ export function ConsoleProjectWorkbench({
 
     if (!parsed.ok) {
       setEnvRawFeedback({
-        message: `Line ${parsed.line}: ${parsed.message}`,
+        message: t("Line {line}: {message}", {
+          line: parsed.line,
+          message: parsed.message,
+        }),
         tone: "error",
         valid: false,
       });
@@ -6159,7 +6469,7 @@ export function ConsoleProjectWorkbench({
       buildEnvDraftRowsFromEntries(parsed.entries, envBaseline),
     );
     setEnvRows(nextRows);
-    setEnvRawFeedback(buildEnvRawFeedback(nextRows, parsed.ignoredLineCount));
+    setEnvRawFeedback(buildEnvRawFeedback(nextRows, parsed.ignoredLineCount, t));
   }
 
   async function saveEnv() {
@@ -6186,7 +6496,7 @@ export function ConsoleProjectWorkbench({
 
     if (emptyKeyRows.length > 0) {
       setFlash({
-        message: "Environment variable names cannot be empty.",
+        message: t("Environment variable names cannot be empty."),
         variant: "error",
       });
       return;
@@ -6208,7 +6518,9 @@ export function ConsoleProjectWorkbench({
 
     if (duplicateKeys.size > 0) {
       setFlash({
-        message: `Duplicate env keys: ${[...duplicateKeys].join(", ")}.`,
+        message: t("Duplicate env keys: {keys}.", {
+          keys: [...duplicateKeys].join(", "),
+        }),
         variant: "error",
       });
       return;
@@ -6256,7 +6568,7 @@ export function ConsoleProjectWorkbench({
 
     if (!Object.keys(setPayload).length && !deletePayload.length) {
       setFlash({
-        message: "No environment changes.",
+        message: t("No environment changes."),
         variant: "info",
       });
       return;
@@ -6277,6 +6589,7 @@ export function ConsoleProjectWorkbench({
           },
           method: "PATCH",
         },
+        t,
       );
 
       const nextEnv = response.env ?? {};
@@ -6285,7 +6598,7 @@ export function ConsoleProjectWorkbench({
         baseline: nextEnv,
         format: envFormat,
         rawDraft: serializeEnvEntries(entriesFromEnvRecord(nextEnv)),
-        rawFeedback: buildEnvRawFeedback(nextRows),
+        rawFeedback: buildEnvRawFeedback(nextRows, undefined, t),
         rows: nextRows,
       } satisfies CachedEnvState;
 
@@ -6296,7 +6609,7 @@ export function ConsoleProjectWorkbench({
       setEnvRawFeedback(nextState.rawFeedback);
       setEnvStatus("ready");
       setFlash({
-        message: "Environment changes queued.",
+        message: t("Environment changes queued."),
         variant: "success",
       });
       lastRefreshTokenRef.current = refreshToken + 1;
@@ -6304,7 +6617,7 @@ export function ConsoleProjectWorkbench({
       void refreshDetail({ force: true, silent: true });
     } catch (error) {
       setFlash({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -6323,7 +6636,7 @@ export function ConsoleProjectWorkbench({
           <div className="fg-bezel__inner fg-project-workbench__inner">
             <div className="fg-workbench-section">
               <p className="fg-console-note">
-                {detailError ?? "Unable to load this project right now."}
+                {detailError ?? t("Unable to load this project right now.")}
               </p>
               <div className="fg-project-actions">
                 <Button
@@ -6334,7 +6647,7 @@ export function ConsoleProjectWorkbench({
                   type="button"
                   variant="secondary"
                 >
-                  Retry
+                  {t("Retry")}
                 </Button>
               </div>
             </div>
@@ -6352,21 +6665,21 @@ export function ConsoleProjectWorkbench({
             <aside className="fg-project-services fg-project-services--rail fg-project-workbench__rail">
               <PanelSection className="fg-project-services__head">
                 <div className="fg-project-services__title-row">
-                  <p className="fg-label fg-panel__eyebrow">Services</p>
+                  <p className="fg-label fg-panel__eyebrow">{t("Services")}</p>
                   <Button
                     onClick={() => onRequestCreateService(project)}
                     size="compact"
                     type="button"
                     variant="primary"
                   >
-                    Add service
+                    {t("Add service")}
                   </Button>
                 </div>
               </PanelSection>
 
               <PanelSection>
                 <p className="fg-console-note">
-                  No services are attached to this project yet.
+                  {t("No services are attached to this project yet.")}
                 </p>
               </PanelSection>
             </aside>
@@ -6377,29 +6690,29 @@ export function ConsoleProjectWorkbench({
                   <div className="fg-project-inspector__hero">
                     <PanelTitle>{detailProject.name}</PanelTitle>
                     <PanelCopy className="fg-project-inspector__copy">
-                      This project still exists in Fugue, but it does not
-                      currently have any running services or attached backing
-                      services.
+                      {t(
+                        "This project still exists in Fugue, but it does not currently have any running services or attached backing services.",
+                      )}
                     </PanelCopy>
                   </div>
                 </div>
 
                 <div className="fg-project-inspector__meta-grid">
                   <div>
-                    <dt>Apps</dt>
+                    <dt>{t("Apps")}</dt>
                     <dd>{detailProject.appCount}</dd>
                   </div>
                   <div>
-                    <dt>Services</dt>
+                    <dt>{t("Services")}</dt>
                     <dd>{detailProject.serviceCount}</dd>
                   </div>
                   <div>
-                    <dt>Project id</dt>
+                    <dt>{t("Project id")}</dt>
                     <dd>{detailProject.id}</dd>
                   </div>
                   <div>
-                    <dt>State</dt>
-                    <dd>Empty</dd>
+                    <dt>{t("State")}</dt>
+                    <dd>{t("Empty")}</dd>
                   </div>
                 </div>
               </PanelSection>
@@ -6408,21 +6721,21 @@ export function ConsoleProjectWorkbench({
                 <div className="fg-project-toolbar">
                   <div className="fg-project-toolbar__group">
                     <p className="fg-label fg-project-toolbar__label">
-                      Actions
+                      {t("Actions")}
                     </p>
                     <div className="fg-project-actions">
                       <Button
-                        onClick={() => onRequestCreateService(project)}
-                        size="compact"
-                        type="button"
-                        variant="primary"
-                      >
-                        Add service
-                      </Button>
+                      onClick={() => onRequestCreateService(project)}
+                      size="compact"
+                      type="button"
+                      variant="primary"
+                    >
+                      {t("Add service")}
+                    </Button>
                       <Button
                         disabled={busyProjectAction === "delete"}
                         loading={busyProjectAction === "delete"}
-                        loadingLabel="Deleting…"
+                        loadingLabel={t("Deleting…")}
                         onClick={() => {
                           void handleProjectDelete();
                         }}
@@ -6430,7 +6743,7 @@ export function ConsoleProjectWorkbench({
                         type="button"
                         variant="danger"
                       >
-                        Delete project
+                        {t("Delete project")}
                       </Button>
                     </div>
                   </div>
@@ -6440,10 +6753,11 @@ export function ConsoleProjectWorkbench({
               <PanelSection className="fg-project-pane">
                 <div className="fg-console-empty-state fg-project-empty-state">
                   <div>
-                    <strong>Empty project</strong>
+                    <strong>{t("Empty project")}</strong>
                     <p>
-                      Empty projects stay visible so you can reuse the shell or
-                      delete it explicitly.
+                      {t(
+                        "Empty projects stay visible so you can reuse the shell or delete it explicitly.",
+                      )}
                     </p>
                   </div>
 
@@ -6454,7 +6768,7 @@ export function ConsoleProjectWorkbench({
                       type="button"
                       variant="primary"
                     >
-                      Import a new service
+                      {t("Import a new service")}
                     </Button>
                   </div>
                 </div>
@@ -6477,13 +6791,13 @@ export function ConsoleProjectWorkbench({
           selectedService.name,
           selectedService.ownerAppLabel,
           selectedService.type,
-          humanizeUiLabel(selectedService.type),
+          humanizeUiLabel(selectedService.type, t),
         ]);
   const selectedServiceStorageLabel =
     selectedService.kind === "app" &&
     selectedService.serviceRole === "running" &&
     !selectedServicePaused
-      ? readPersistentStorageLabel(selectedService.persistentStorageMounts)
+      ? readPersistentStorageLabel(selectedService.persistentStorageMounts, t)
       : null;
   const backingServiceOwnerLabel =
     selectedService.kind === "backing-service"
@@ -6495,11 +6809,12 @@ export function ConsoleProjectWorkbench({
           selectedService.name,
           selectedService.ownerAppLabel,
           selectedService.type,
-          humanizeUiLabel(selectedService.type),
+          humanizeUiLabel(selectedService.type, t),
         ])
       : null;
   const selectedServiceUrl = readServicePublicUrl(selectedService);
-  const selectedServiceLocationLabel = selectedService.locationLabel ?? "Unavailable";
+  const selectedServiceLocationLabel =
+    selectedService.locationLabel ?? t("Unavailable");
 
   return (
     <div className="fg-project-card__detail" id={detailId}>
@@ -6508,14 +6823,14 @@ export function ConsoleProjectWorkbench({
           <aside className="fg-project-services fg-project-services--rail fg-project-workbench__rail">
             <PanelSection className="fg-project-services__head">
               <div className="fg-project-services__title-row">
-                <p className="fg-label fg-panel__eyebrow">Services</p>
+                <p className="fg-label fg-panel__eyebrow">{t("Services")}</p>
                 <Button
                   onClick={() => onRequestCreateService(project)}
                   size="compact"
                   type="button"
                   variant="primary"
                 >
-                  Add service
+                  {t("Add service")}
                 </Button>
               </div>
             </PanelSection>
@@ -6544,17 +6859,25 @@ export function ConsoleProjectWorkbench({
                             service.name,
                             service.ownerAppLabel,
                             service.type,
-                            humanizeUiLabel(service.type),
+                            humanizeUiLabel(service.type, t),
                           ]),
                         ].filter((value): value is string => Boolean(value));
                   const cardStatusMeta = service.serviceDurationLabel
-                    ? `${service.serviceDurationLabel} elapsed`
+                    ? t("{duration} elapsed", {
+                        duration: service.serviceDurationLabel,
+                      })
                     : null;
 
                   return (
                     <li key={serviceKey(service)}>
                       <button
-                        aria-label={`Inspect ${service.name}${service.kind === "app" ? ` (${service.phase})` : ` (${service.type})`}`}
+                        aria-label={t("Inspect {name} ({status})", {
+                          name: service.name,
+                          status:
+                            service.kind === "app"
+                              ? t(service.phase)
+                              : humanizeUiLabel(service.type, t),
+                        })}
                         aria-pressed={active}
                         className={cx(
                           "fg-project-service-card",
@@ -6583,7 +6906,7 @@ export function ConsoleProjectWorkbench({
                                 live={shouldShowLiveStatusBadge(serviceStatus)}
                                 tone={serviceStatusTone}
                               >
-                                {serviceStatus}
+                                {t(serviceStatus)}
                               </StatusBadge>
                               {cardStatusMeta ? (
                                 <span className="fg-project-service-card__status-meta">
@@ -6615,11 +6938,11 @@ export function ConsoleProjectWorkbench({
                 <div className="fg-project-inspector__hero">
                   {selectedService.kind === "app" ? (
                     <p className="fg-label">
-                      {readAppServiceRoleLabel(selectedService)}
+                      {readAppServiceRoleLabel(selectedService, t)}
                     </p>
                   ) : selectedService.kind === "backing-service" ? (
                     <p className="fg-label">
-                      {readBackingServiceRoleLabel(selectedService)}
+                      {readBackingServiceRoleLabel(selectedService, t)}
                     </p>
                   ) : null}
                   <PanelTitle>{selectedService.name}</PanelTitle>
@@ -6635,11 +6958,11 @@ export function ConsoleProjectWorkbench({
                 {selectedService.kind === "app" ? (
                   <>
                     <div>
-                      <dt>Release</dt>
-                      <dd>{readAppServiceRoleLabel(selectedService)}</dd>
+                      <dt>{t("Release")}</dt>
+                      <dd>{readAppServiceRoleLabel(selectedService, t)}</dd>
                     </div>
                     <div>
-                      <dt>Commit</dt>
+                      <dt>{t("Commit")}</dt>
                       <dd>
                         {renderCommitText(
                           selectedService,
@@ -6648,12 +6971,12 @@ export function ConsoleProjectWorkbench({
                       </dd>
                     </div>
                     <div>
-                      <dt>Build</dt>
+                      <dt>{t("Build")}</dt>
                       <dd>{selectedService.sourceMeta}</dd>
                     </div>
                     {selectedServiceUrl ? (
                       <div>
-                        <dt>URL</dt>
+                        <dt>{t("URL")}</dt>
                         <dd>
                           {renderExternalText(
                             selectedServiceUrl.label,
@@ -6663,7 +6986,7 @@ export function ConsoleProjectWorkbench({
                       </div>
                     ) : null}
                     <div>
-                      <dt>Location</dt>
+                      <dt>{t("Location")}</dt>
                       <dd>
                         <CountryFlagLabel
                           countryCode={selectedService.locationCountryCode}
@@ -6674,30 +6997,34 @@ export function ConsoleProjectWorkbench({
                     {selectedService.serviceRole === "running" &&
                     selectedServiceStorageLabel ? (
                       <div>
-                        <dt>Persistent storage</dt>
+                        <dt>{t("Persistent storage")}</dt>
                         <dd>{selectedServiceStorageLabel}</dd>
                       </div>
                     ) : null}
                     {selectedService.serviceRole === "pending" &&
                     selectedService.serviceDurationLabel ? (
                       <div>
-                        <dt>Elapsed</dt>
-                        <dd>{`${selectedService.serviceDurationLabel} elapsed`}</dd>
+                        <dt>{t("Elapsed")}</dt>
+                        <dd>
+                          {t("{duration} elapsed", {
+                            duration: selectedService.serviceDurationLabel,
+                          })}
+                        </dd>
                       </div>
                     ) : null}
                   </>
                 ) : (
                   <>
                     <div>
-                      <dt>Service</dt>
+                      <dt>{t("Service")}</dt>
                       <dd>{selectedService.type}</dd>
                     </div>
                     <div>
-                      <dt>State</dt>
-                      <dd>{readBackingServiceRoleLabel(selectedService)}</dd>
+                      <dt>{t("State")}</dt>
+                      <dd>{readBackingServiceRoleLabel(selectedService, t)}</dd>
                     </div>
                     <div>
-                      <dt>Location</dt>
+                      <dt>{t("Location")}</dt>
                       <dd>
                         <CountryFlagLabel
                           countryCode={selectedService.locationCountryCode}
@@ -6708,19 +7035,23 @@ export function ConsoleProjectWorkbench({
                     {selectedService.serviceRole === "pending" &&
                     selectedService.serviceDurationLabel ? (
                       <div>
-                        <dt>Elapsed</dt>
-                        <dd>{`${selectedService.serviceDurationLabel} elapsed`}</dd>
+                        <dt>{t("Elapsed")}</dt>
+                        <dd>
+                          {t("{duration} elapsed", {
+                            duration: selectedService.serviceDurationLabel,
+                          })}
+                        </dd>
                       </div>
                     ) : null}
                     {backingServiceOwnerLabel ? (
                       <div>
-                        <dt>Attached to</dt>
+                        <dt>{t("Attached to")}</dt>
                         <dd>{backingServiceOwnerLabel}</dd>
                       </div>
                     ) : null}
                     {backingServiceDescription ? (
                       <div>
-                        <dt>Description</dt>
+                        <dt>{t("Description")}</dt>
                         <dd>{backingServiceDescription}</dd>
                       </div>
                     ) : null}
@@ -6749,7 +7080,7 @@ export function ConsoleProjectWorkbench({
                             }
                             loading={busyAction === "redeploy"}
                             loadingLabel={
-                              selectedService.redeployActionLoadingLabel
+                              t(selectedService.redeployActionLoadingLabel)
                             }
                             onClick={() => {
                               void handleAppAction("redeploy");
@@ -6757,14 +7088,15 @@ export function ConsoleProjectWorkbench({
                             size="compact"
                             title={
                               selectedService.canRedeploy
-                                ? selectedService.redeployActionDescription
-                                : (selectedService.redeployDisabledReason ??
-                                  undefined)
+                                ? t(selectedService.redeployActionDescription)
+                                : (selectedService.redeployDisabledReason
+                                    ? t(selectedService.redeployDisabledReason)
+                                    : undefined)
                             }
                             type="button"
                             variant="primary"
                           >
-                            {selectedService.redeployActionLabel}
+                            {t(selectedService.redeployActionLabel)}
                           </Button>
                           <Button
                             disabled={Boolean(
@@ -6776,8 +7108,8 @@ export function ConsoleProjectWorkbench({
                             }
                             loadingLabel={
                               selectedServicePaused
-                                ? "Starting…"
-                                : "Restarting…"
+                                ? t("Starting…")
+                                : t("Restarting…")
                             }
                             onClick={() => {
                               void handleAppAction(selectedServiceLifecycleAction);
@@ -6785,13 +7117,17 @@ export function ConsoleProjectWorkbench({
                             size="compact"
                             title={
                               selectedServicePaused
-                                ? "Start this paused app at 1 replica without rebuilding the image."
-                                : "Restart the current release without rebuilding the image. Persistent storage is preserved when configured."
+                                ? t(
+                                    "Start this paused app at 1 replica without rebuilding the image.",
+                                  )
+                                : t(
+                                    "Restart the current release without rebuilding the image. Persistent storage is preserved when configured.",
+                                  )
                             }
                             type="button"
                             variant="secondary"
                           >
-                            {selectedServicePaused ? "Start" : "Restart"}
+                            {selectedServicePaused ? t("Start") : t("Restart")}
                           </Button>
                           {selectedServiceCanPause ? (
                             <Button
@@ -6799,7 +7135,7 @@ export function ConsoleProjectWorkbench({
                                 busyAction && busyAction !== "disable",
                               )}
                               loading={busyAction === "disable"}
-                              loadingLabel="Pausing…"
+                              loadingLabel={t("Pausing…")}
                               onClick={() => {
                                 void handleAppAction("disable");
                               }}
@@ -6807,7 +7143,7 @@ export function ConsoleProjectWorkbench({
                               type="button"
                               variant="secondary"
                             >
-                              Pause
+                              {t("Pause")}
                             </Button>
                           ) : null}
                           <Button
@@ -6815,7 +7151,7 @@ export function ConsoleProjectWorkbench({
                               busyAction && busyAction !== "delete",
                             )}
                             loading={busyAction === "delete"}
-                            loadingLabel="Deleting…"
+                            loadingLabel={t("Deleting…")}
                             onClick={() => {
                               void handleAppAction("delete");
                             }}
@@ -6823,7 +7159,7 @@ export function ConsoleProjectWorkbench({
                             type="button"
                             variant="danger"
                           >
-                            Delete
+                            {t("Delete")}
                           </Button>
                         </>
                       ) : null}
@@ -6833,18 +7169,19 @@ export function ConsoleProjectWorkbench({
                             busyAction && busyAction !== "force-delete",
                           )}
                           loading={busyAction === "force-delete"}
-                          loadingLabel="Aborting…"
+                          loadingLabel={t("Aborting…")}
                           onClick={() => {
                             void handleAppAction("force-delete");
                           }}
                           size="compact"
                           title={readForceDeleteActionDescription(
                             selectedService.phase,
+                            t,
                           )}
                           type="button"
                           variant="danger"
                         >
-                          {readForceDeleteActionLabel(selectedService.phase)}
+                          {readForceDeleteActionLabel(selectedService.phase, t)}
                         </Button>
                       ) : null}
                     </div>
@@ -6852,15 +7189,17 @@ export function ConsoleProjectWorkbench({
                 ) : null}
 
                 <div className="fg-project-toolbar__group fg-project-toolbar__group--tabs">
-                  <p className="fg-label fg-project-toolbar__label">Panels</p>
+                  <p className="fg-label fg-project-toolbar__label">
+                    {t("Panels")}
+                  </p>
                   <SegmentedControl
-                    ariaLabel="Service panels"
+                    ariaLabel={t("Service panels")}
                     className="fg-project-toolbar__panels-switch"
                     controlClassName="fg-console-nav"
                     itemClassName="fg-console-nav__link"
                     labelClassName="fg-console-nav__title"
                     onChange={setActiveTab}
-                    options={selectedServiceWorkbenchOptions}
+                    options={localizedServiceWorkbenchOptions}
                     value={
                       selectedServiceWorkbenchOptions.some(
                         (option) => option.value === activeTab,
@@ -6890,22 +7229,34 @@ export function ConsoleProjectWorkbench({
                 <div className="fg-workbench-section">
                   <div className="fg-workbench-section__head">
                     <div className="fg-workbench-section__copy fg-env-section__copy">
-                      <p className="fg-label fg-panel__eyebrow">Environment</p>
+                      <p className="fg-label fg-panel__eyebrow">{t("Environment")}</p>
                       <p className="fg-console-note">
                         {envFormat === "raw"
-                          ? `Paste a .env block for ${selectedService.name}. Comments, blank lines, and export prefixes are ignored.`
-                          : `Review variables for ${selectedService.name}, or switch to Raw to paste a .env block. Saving queues a deploy.`}
+                          ? t(
+                              "Paste a .env block for {name}. Comments, blank lines, and export prefixes are ignored.",
+                              { name: selectedService.name },
+                            )
+                          : t(
+                              "Review variables for {name}, or switch to Raw to paste a .env block. Saving queues a deploy.",
+                              { name: selectedService.name },
+                            )}
                       </p>
                     </div>
 
                     <div className="fg-workbench-section__actions fg-env-section__actions">
                       <SegmentedControl
-                        ariaLabel="Environment formats"
+                        ariaLabel={t("Environment formats")}
                         controlClassName="fg-console-nav"
                         itemClassName="fg-console-nav__link"
                         labelClassName="fg-console-nav__title"
                         onChange={changeEnvFormat}
-                        options={ENVIRONMENT_FORMAT_OPTIONS}
+                        options={ENVIRONMENT_FORMAT_OPTIONS.map((option) => ({
+                          ...option,
+                          label:
+                            typeof option.label === "string"
+                              ? t(option.label)
+                              : option.label,
+                        }))}
                         value={envFormat}
                         variant="pill"
                       />
@@ -6916,7 +7267,7 @@ export function ConsoleProjectWorkbench({
                           type="button"
                           variant="secondary"
                         >
-                          Add variable
+                          {t("Add variable")}
                         </Button>
                       ) : (
                         <Button
@@ -6925,7 +7276,7 @@ export function ConsoleProjectWorkbench({
                           type="button"
                           variant="secondary"
                         >
-                          Reset raw
+                          {t("Reset raw")}
                         </Button>
                       )}
                       <Button
@@ -6934,7 +7285,7 @@ export function ConsoleProjectWorkbench({
                           (envFormat === "raw" && !envRawFeedback.valid)
                         }
                         loading={envSaving}
-                        loadingLabel="Saving…"
+                        loadingLabel={t("Saving…")}
                         onClick={() => {
                           void saveEnv();
                         }}
@@ -6942,13 +7293,13 @@ export function ConsoleProjectWorkbench({
                         type="button"
                         variant="primary"
                       >
-                        Save
+                        {t("Save")}
                       </Button>
                     </div>
                   </div>
 
                   {envStatus === "loading" ? (
-                    <p className="fg-console-note">Loading environment…</p>
+                    <p className="fg-console-note">{t("Loading environment…")}</p>
                   ) : envFormat === "table" ? (
                     <div className="fg-env-table">
                       <EnvironmentVariableTable
@@ -6960,10 +7311,12 @@ export function ConsoleProjectWorkbench({
                   ) : (
                     <div className="fg-env-raw">
                       <FormField
-                        hint="Paste KEY=value lines directly from a .env file. Quoted values, blank lines, comments, and export prefixes are supported."
+                        hint={t(
+                          "Paste KEY=value lines directly from a .env file. Quoted values, blank lines, comments, and export prefixes are supported.",
+                        )}
                         htmlFor={`env-raw-${selectedService.id}`}
-                        label="Raw environment"
-                        optionalLabel="Paste .env"
+                        label={t("Raw environment")}
+                        optionalLabel={t("Paste .env")}
                       >
                         <textarea
                           aria-invalid={envRawFeedback.valid ? undefined : true}

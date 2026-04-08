@@ -1,4 +1,5 @@
 import { StatusBadge } from "@/components/console/status-badge";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { FormField } from "@/components/ui/form-field";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { SelectField } from "@/components/ui/select-field";
@@ -100,11 +101,11 @@ function RuntimeTargetCard({
 export function DeploymentTargetField({
   fallbackToDefaultTarget = true,
   inventoryError,
-  inventoryMessage = "Deployment targets are unavailable. This import will use the default internal cluster.",
-  legendLabel = "Deployment target",
+  inventoryMessage,
+  legendLabel,
   name,
   onChange,
-  regionLabel = "Deployment region",
+  regionLabel,
   targets,
   value,
 }: {
@@ -118,13 +119,21 @@ export function DeploymentTargetField({
   targets: ConsoleImportRuntimeTargetView[];
   value: string | null;
 }) {
+  const { locale, t } = useI18n();
+  const resolvedInventoryMessage =
+    inventoryMessage ??
+    t(
+      "Deployment targets are unavailable. This import will use the default internal cluster.",
+    );
+  const resolvedLegendLabel = legendLabel ?? t("Deployment target");
+  const resolvedRegionLabel = regionLabel ?? t("Deployment region");
   const availableTargets =
     targets.length > 0
       ? targets
       : fallbackToDefaultTarget
         ? [DEFAULT_INTERNAL_CLUSTER_TARGET]
         : [];
-  const groups = buildImportRuntimeTargetGroups(availableTargets);
+  const groups = buildImportRuntimeTargetGroups(availableTargets, locale);
   const selectedGroupId = readSelectedRuntimeTargetGroupId(groups, value);
   const selectedGroup =
     groups.find((group) => group.id === selectedGroupId) ??
@@ -148,24 +157,29 @@ export function DeploymentTargetField({
 
   const regionHint =
     selectedGroup?.options.length === 1
-      ? "This target uses one fixed region."
+      ? t("This target uses one fixed region.")
       : selectedGroup?.category === "internal-cluster"
-        ? "Leave this on Any available region to let Fugue place the deployment."
-        : "Choose the machine region.";
+        ? t(
+            "Leave this on Any available region to let Fugue place the deployment.",
+          )
+        : t("Choose the machine region.");
   const fixedRegionLabel =
     selectedGroup?.options.length === 1
-      ? readRuntimeTargetOptionLabel(selectedGroup.options[0] ?? DEFAULT_INTERNAL_CLUSTER_TARGET)
+      ? readRuntimeTargetOptionLabel(
+          selectedGroup.options[0] ?? DEFAULT_INTERNAL_CLUSTER_TARGET,
+          locale,
+        )
       : null;
 
   return (
     <fieldset className="fg-field-stack fg-runtime-target-field">
       <legend className="fg-field-label fg-runtime-target-field__legend">
-        <span>{legendLabel}</span>
+        <span>{resolvedLegendLabel}</span>
       </legend>
 
       {inventoryError ? (
         <InlineAlert variant="info">
-          {inventoryMessage}
+          {resolvedInventoryMessage}
         </InlineAlert>
       ) : null}
 
@@ -199,9 +213,9 @@ export function DeploymentTargetField({
           <FormField
             hint={regionHint}
             htmlFor={regionSelectId}
-            label={regionLabel}
+            label={resolvedRegionLabel}
             optionalLabel={
-              selectedGroup.options.length === 1 ? "Fixed" : undefined
+              selectedGroup.options.length === 1 ? t("Fixed") : undefined
             }
           >
             {selectedGroup.options.length > 1 ? (
@@ -212,7 +226,7 @@ export function DeploymentTargetField({
               >
                 {selectedGroup.options.map((option) => (
                   <option key={option.id} value={option.id}>
-                    {readRuntimeTargetOptionLabel(option)}
+                    {readRuntimeTargetOptionLabel(option, locale)}
                   </option>
                 ))}
               </SelectField>
@@ -224,7 +238,9 @@ export function DeploymentTargetField({
                 <span className="fg-static-choice__label">
                   {fixedRegionLabel}
                 </span>
-                <span className="fg-static-choice__meta">Only region available</span>
+                <span className="fg-static-choice__meta">
+                  {t("Only region available")}
+                </span>
               </output>
             )}
           </FormField>

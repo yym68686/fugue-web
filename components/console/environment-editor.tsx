@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { useI18n } from "@/components/providers/i18n-provider";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { InlineAlert } from "@/components/ui/inline-alert";
@@ -18,6 +19,7 @@ import {
   buildRawEnvFeedback,
   type RawEnvFeedback,
 } from "@/lib/console/raw-env";
+import type { Locale, TranslationValues } from "@/lib/i18n/core";
 
 type EnvironmentEditorMode = "variables" | "raw";
 type EnvironmentEditorSurface = "console" | "deploy";
@@ -36,15 +38,11 @@ type EnvironmentEditorProps = {
   value: string;
 };
 
-const ENVIRONMENT_EDITOR_MODE_OPTIONS: readonly SegmentedControlOption<EnvironmentEditorMode>[] =
-  [
-    { label: "Variables", value: "variables" },
-    { label: "Raw", value: "raw" },
-  ];
-
 const DEFAULT_PLACEHOLDER = `DATABASE_URL=postgres://user:pass@host/db
 PUBLIC_API_BASE=https://api.example.com
 # comments are ignored`;
+
+type Translator = (key: string, values?: TranslationValues) => string;
 
 function createEnvironmentRowId() {
   return `env-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -70,18 +68,25 @@ function buildRowError(message: string): RawEnvFeedback {
 function readRawState(
   raw: string,
   surface: EnvironmentEditorSurface,
+  locale: Locale,
+  t: Translator,
 ) {
   const parsed = parseRawEnvInput(raw);
 
   if (!parsed.ok) {
     return {
-      feedback: buildRowError(`Line ${parsed.line}: ${parsed.message}`),
+      feedback: buildRowError(
+        t("Line {line}: {message}", {
+          line: parsed.line,
+          message: parsed.message,
+        }),
+      ),
       rows: null,
     };
   }
 
   return {
-    feedback: buildRawEnvFeedback(raw, surface),
+    feedback: buildRawEnvFeedback(raw, surface, locale),
     rows: rowsFromEntries(parsed.entries),
   };
 }
@@ -89,6 +94,8 @@ function readRawState(
 function buildRowState(
   rows: EnvironmentEditorRow[],
   surface: EnvironmentEditorSurface,
+  locale: Locale,
+  t: Translator,
 ) {
   const activeRows = rows.filter(
     (row) => row.key.trim().length > 0 || row.value.length > 0,
@@ -97,7 +104,9 @@ function buildRowState(
 
   if (emptyKeyRow) {
     return {
-      feedback: buildRowError("Environment variable names cannot be empty."),
+      feedback: buildRowError(
+        t("Environment variable names cannot be empty."),
+      ),
       raw: null,
     };
   }
@@ -127,7 +136,9 @@ function buildRowState(
   if (duplicateKeys.size > 0) {
     return {
       feedback: buildRowError(
-        `Duplicate env keys: ${[...duplicateKeys].sort().join(", ")}.`,
+        t("Duplicate env keys: {keys}.", {
+          keys: [...duplicateKeys].sort().join(", "),
+        }),
       ),
       raw: null,
     };
@@ -136,7 +147,7 @@ function buildRowState(
   const raw = serializeEnvEntries(entries);
 
   return {
-    feedback: buildRawEnvFeedback(raw, surface),
+    feedback: buildRawEnvFeedback(raw, surface, locale),
     raw,
   };
 }
@@ -148,7 +159,8 @@ export function EnvironmentEditor({
   surface = "console",
   value,
 }: EnvironmentEditorProps) {
-  const initialState = readRawState(value, surface);
+  const { locale, t } = useI18n();
+  const initialState = readRawState(value, surface, locale, t);
   const [mode, setMode] = useState<EnvironmentEditorMode>("variables");
   const [rows, setRows] = useState<EnvironmentEditorRow[]>(
     initialState.rows ?? [],
@@ -163,7 +175,7 @@ export function EnvironmentEditor({
   }
 
   useEffect(() => {
-    const nextState = readRawState(value, surface);
+    const nextState = readRawState(value, surface, locale, t);
 
     publishFeedback(nextState.feedback);
 
@@ -173,10 +185,10 @@ export function EnvironmentEditor({
     }
 
     setMode("raw");
-  }, [onStatusChange, surface, value]);
+  }, [locale, onStatusChange, surface, t, value]);
 
   function applyRows(nextRows: EnvironmentEditorRow[]) {
-    const nextState = buildRowState(nextRows, surface);
+    const nextState = buildRowState(nextRows, surface, locale, t);
 
     setRows(nextRows);
     publishFeedback(nextState.feedback);
@@ -214,7 +226,7 @@ export function EnvironmentEditor({
   }
 
   function updateRaw(nextValue: string) {
-    const nextState = readRawState(nextValue, surface);
+    const nextState = readRawState(nextValue, surface, locale, t);
 
     publishFeedback(nextState.feedback);
 
@@ -227,16 +239,20 @@ export function EnvironmentEditor({
     }
   }
 
-  const modeOptions = ENVIRONMENT_EDITOR_MODE_OPTIONS.map((option) => ({
-    ...option,
-    disabled: !feedback.valid && option.value !== mode,
-  }));
+  const modeOptions: readonly SegmentedControlOption<EnvironmentEditorMode>[] =
+    [
+      { label: t("Variables"), value: "variables" as const },
+      { label: t("Raw"), value: "raw" as const },
+    ].map((option) => ({
+      ...option,
+      disabled: !feedback.valid && option.value !== mode,
+    }));
 
   return (
     <div className="fg-env-editor">
       <div className="fg-env-editor__toolbar">
         <SegmentedControl
-          ariaLabel="Environment edit modes"
+          ariaLabel={t("Environment edit modes")}
           controlClassName="fg-console-nav"
           itemClassName="fg-console-nav__link"
           labelClassName="fg-console-nav__title"
@@ -248,7 +264,7 @@ export function EnvironmentEditor({
 
         {mode === "variables" ? (
           <Button onClick={addRow} size="compact" type="button" variant="secondary">
-            Add variable
+            {t("Add variable")}
           </Button>
         ) : value.trim() ? (
           <Button
@@ -257,7 +273,7 @@ export function EnvironmentEditor({
             type="button"
             variant="secondary"
           >
-            Clear raw
+            {t("Clear raw")}
           </Button>
         ) : null}
       </div>
@@ -267,25 +283,29 @@ export function EnvironmentEditor({
           {rows.length > 0 ? (
             <>
               <div aria-hidden="true" className="fg-env-table__head">
-                <span>Key</span>
-                <span>Value</span>
-                <span>Action</span>
+                <span>{t("Key")}</span>
+                <span>{t("Value")}</span>
+                <span>{t("Action")}</span>
               </div>
 
               {rows.map((row, index) => {
-                const rowTitle = row.key || `Variable ${index + 1}`;
+                const rowTitle = row.key || t("Variable {count}", { count: index + 1 });
 
                 return (
                   <div className="fg-env-row" key={row.id}>
                     <div aria-hidden="true" className="fg-env-row__header">
                       <div className="fg-env-row__identity">
-                        <p className="fg-env-row__eyebrow">{`Variable ${index + 1}`}</p>
+                        <p className="fg-env-row__eyebrow">
+                          {t("Variable {count}", { count: index + 1 })}
+                        </p>
                         <p className="fg-env-row__title">{rowTitle}</p>
                       </div>
                     </div>
 
                     <label className="fg-env-row__field fg-env-row__field--key">
-                      <span className="fg-env-row__field-label">Variable name</span>
+                      <span className="fg-env-row__field-label">
+                        {t("Variable name")}
+                      </span>
                       <input
                         aria-invalid={feedback.valid ? undefined : true}
                         autoCapitalize="off"
@@ -304,7 +324,7 @@ export function EnvironmentEditor({
                     </label>
 
                     <label className="fg-env-row__field fg-env-row__field--value">
-                      <span className="fg-env-row__field-label">Value</span>
+                      <span className="fg-env-row__field-label">{t("Value")}</span>
                       <input
                         aria-invalid={feedback.valid ? undefined : true}
                         autoCapitalize="off"
@@ -315,7 +335,7 @@ export function EnvironmentEditor({
                         onChange={(event) =>
                           updateRow(row.id, "value", event.target.value)
                         }
-                        placeholder="Value"
+                        placeholder={t("Value")}
                         spellCheck={false}
                         translate="no"
                         value={row.value}
@@ -324,13 +344,13 @@ export function EnvironmentEditor({
 
                     <div className="fg-env-row__action">
                       <Button
-                        aria-label={`Remove ${rowTitle}`}
+                        aria-label={t("Remove {name}", { name: rowTitle })}
                         onClick={() => removeRow(row.id)}
                         size="tight"
                         type="button"
                         variant="ghost"
                       >
-                        Remove
+                        {t("Remove")}
                       </Button>
                     </div>
                   </div>
@@ -338,12 +358,12 @@ export function EnvironmentEditor({
               })}
             </>
           ) : (
-            <p className="fg-env-editor__empty">No variables yet.</p>
+            <p className="fg-env-editor__empty">{t("No variables yet.")}</p>
           )}
         </div>
       ) : (
         <div className="fg-env-raw">
-          <FormField htmlFor={fieldId} label="Paste .env">
+          <FormField htmlFor={fieldId} label={t("Paste .env")}>
             <textarea
               aria-invalid={feedback.valid ? undefined : true}
               autoCapitalize="off"

@@ -1,6 +1,7 @@
 import type { ConsoleImportRuntimeTargetView } from "@/lib/console/gallery-types";
 import type { ConsoleTone } from "@/lib/console/types";
 import { DEFAULT_INTERNAL_CLUSTER_RUNTIME_ID } from "@/lib/fugue/runtime-location";
+import { translate, type Locale } from "@/lib/i18n/core";
 
 export type ConsoleImportRuntimeTargetGroupView = {
   category: "internal-cluster" | "machine";
@@ -15,16 +16,17 @@ export type ConsoleImportRuntimeTargetGroupView = {
 };
 
 const INTERNAL_CLUSTER_GROUP_ID = "internal-cluster";
+const SUPPORTED_LOCALE_SET = new Set<Locale>(["en", "zh-CN", "zh-TW"]);
 
 function normalizeText(value?: string | null) {
   return value?.trim() ?? "";
 }
 
-function shortId(value?: string | null) {
+function shortId(locale: Locale, value?: string | null) {
   const normalized = normalizeText(value);
 
   if (!normalized) {
-    return "Unknown";
+    return translate(locale, "Unknown");
   }
 
   return normalized.slice(0, 8);
@@ -32,6 +34,7 @@ function shortId(value?: string | null) {
 
 function readSharedGroupStatus(
   targets: ConsoleImportRuntimeTargetView[],
+  locale: Locale,
 ): Pick<ConsoleImportRuntimeTargetGroupView, "statusLabel" | "statusTone"> {
   const statusLabel = targets[0]?.statusLabel ?? null;
   const statusTone = targets[0]?.statusTone ?? null;
@@ -48,13 +51,20 @@ function readSharedGroupStatus(
   }
 
   return {
-    statusLabel: `${targets.length} regions`,
+    statusLabel: translate(
+      locale,
+      targets.length === 1 ? "{count} region" : "{count} regions",
+      {
+        count: targets.length,
+      },
+    ),
     statusTone: "neutral",
   };
 }
 
 export function readRuntimeTargetOptionLabel(
   target: ConsoleImportRuntimeTargetView,
+  locale: Locale = "en",
 ) {
   const countryLabel = target.locationCountryLabel?.trim() ?? "";
   const locationLabel = target.locationLabel?.trim() ?? "";
@@ -71,27 +81,36 @@ export function readRuntimeTargetOptionLabel(
 
   if (target.category === "internal-cluster") {
     return target.id === DEFAULT_INTERNAL_CLUSTER_RUNTIME_ID
-      ? "Any available region"
-      : "Region unavailable";
+      ? translate(locale, "Any available region")
+      : translate(locale, "Region unavailable");
   }
 
-  return "Country unavailable";
+  return translate(locale, "Country unavailable");
 }
 
 export function readRuntimeTargetLabel(
   targets: ConsoleImportRuntimeTargetView[],
   runtimeId?: string | null,
-  fallback = "Not assigned",
+  localeOrFallback: Locale | string = "en",
+  fallback?: string,
 ) {
+  const locale = SUPPORTED_LOCALE_SET.has(localeOrFallback as Locale)
+    ? (localeOrFallback as Locale)
+    : "en";
+  const resolvedFallback =
+    fallback ??
+    (SUPPORTED_LOCALE_SET.has(localeOrFallback as Locale)
+      ? translate(locale, "Not assigned")
+      : localeOrFallback);
   const normalized = normalizeText(runtimeId);
 
   if (!normalized) {
-    return fallback;
+    return resolvedFallback;
   }
 
   return (
     targets.find((target) => target.id === normalized)?.summaryLabel ??
-    shortId(normalized)
+    shortId(locale, normalized)
   );
 }
 
@@ -114,6 +133,7 @@ export function readManagedRuntimeTargets(
 
 export function buildImportRuntimeTargetGroups(
   targets: ConsoleImportRuntimeTargetView[],
+  locale: Locale = "en",
 ): ConsoleImportRuntimeTargetGroupView[] {
   const groups: ConsoleImportRuntimeTargetGroupView[] = [];
   const internalClusterTargets = targets.filter(
@@ -121,18 +141,18 @@ export function buildImportRuntimeTargetGroups(
   );
 
   if (internalClusterTargets.length > 0) {
-    const groupStatus = readSharedGroupStatus(internalClusterTargets);
+    const groupStatus = readSharedGroupStatus(internalClusterTargets, locale);
 
     groups.push({
       category: "internal-cluster",
-      description: "Deploy onto the internal cluster.",
+      description: translate(locale, "Deploy onto the internal cluster."),
       id: INTERNAL_CLUSTER_GROUP_ID,
-      kindLabel: "Shared",
+      kindLabel: translate(locale, "Shared"),
       options: internalClusterTargets,
-      primaryLabel: "Internal cluster",
+      primaryLabel: translate(locale, "Internal cluster"),
       statusLabel: groupStatus.statusLabel,
       statusTone: groupStatus.statusTone,
-      summaryLabel: "Internal cluster",
+      summaryLabel: translate(locale, "Internal cluster"),
     });
   }
 
@@ -143,9 +163,9 @@ export function buildImportRuntimeTargetGroups(
 
     groups.push({
       category: "machine",
-      description: "Deploy onto this machine.",
+      description: translate(locale, "Deploy onto this machine."),
       id: target.id,
-      kindLabel: "Machine",
+      kindLabel: translate(locale, "Machine"),
       options: [target],
       primaryLabel: target.primaryLabel,
       statusLabel: target.statusLabel,

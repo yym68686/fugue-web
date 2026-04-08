@@ -4,6 +4,7 @@ import { startTransition, useEffect, useState, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { ConsoleEmptyState } from "@/components/console/console-empty-state";
+import { useI18n } from "@/components/providers/i18n-provider";
 import {
   CONSOLE_BILLING_PAGE_SNAPSHOT_URL,
   type ConsoleBillingPageSnapshot,
@@ -50,6 +51,11 @@ type BillingTopupStatusPayload = {
   status: string;
   units: number;
 };
+
+type Translator = ReturnType<typeof useI18n>["t"];
+type NumberFormatter = ReturnType<typeof useI18n>["formatNumber"];
+type RelativeTimeFormatter = ReturnType<typeof useI18n>["formatRelativeTime"];
+type DateTimeFormatter = ReturnType<typeof useI18n>["formatDateTime"];
 
 function syncBillingPageSnapshot(nextData: BillingRoutePayload) {
   const currentSnapshot = readConsolePageSnapshot<ConsoleBillingPageSnapshot>(
@@ -109,20 +115,22 @@ const BILLING_TOP_UP_PRESET_AMOUNTS = [10, 25, 50, 100];
 const MIN_TOP_UP_UNITS = 5;
 const MAX_TOP_UP_UNITS = 5000;
 
-function readErrorMessage(error: unknown) {
+function readErrorMessage(error: unknown, t: Translator) {
   if (error instanceof Error && error.message) {
     return error.message;
   }
 
-  return "Request failed.";
+  return t("Request failed.");
 }
 
-async function readResponseError(response: Response) {
+async function readResponseError(response: Response, t: Translator) {
   const body = await response.text().catch(() => "");
   const trimmed = body.trim();
 
   if (!trimmed) {
-    return `Request failed with status ${response.status}.`;
+    return t("Request failed with status {status}.", {
+      status: response.status,
+    });
   }
 
   try {
@@ -138,11 +146,15 @@ async function readResponseError(response: Response) {
   return trimmed;
 }
 
-async function requestJson<T>(input: RequestInfo, init?: RequestInit) {
+async function requestJson<T>(
+  input: RequestInfo,
+  init: RequestInit | undefined,
+  t: Translator,
+) {
   const response = await fetch(input, init);
 
   if (!response.ok) {
-    throw new Error(await readResponseError(response));
+    throw new Error(await readResponseError(response, t));
   }
 
   return (await response.json().catch(() => null)) as T | null;
@@ -157,15 +169,23 @@ function parseTimestamp(value?: string | null) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function formatCompactNumber(value: number, digits = 1) {
-  return new Intl.NumberFormat("en-US", {
+function formatCompactNumber(
+  value: number,
+  formatNumber: NumberFormatter,
+  digits = 1,
+) {
+  return formatNumber(value, {
     maximumFractionDigits: digits,
     minimumFractionDigits: Number.isInteger(value) ? 0 : Math.min(1, digits),
-  }).format(value);
+  });
 }
 
-function formatCurrencyFromMicroCents(value: number, currency: string) {
-  return new Intl.NumberFormat("en-US", {
+function formatCurrencyFromMicroCents(
+  value: number,
+  currency: string,
+  locale: string,
+) {
+  return new Intl.NumberFormat(locale, {
     currency,
     maximumFractionDigits: 2,
     minimumFractionDigits: 2,
@@ -173,14 +193,18 @@ function formatCurrencyFromMicroCents(value: number, currency: string) {
   }).format(value / MICRO_CENTS_PER_DOLLAR);
 }
 
-function formatHourlyCurrencyFromMicroCents(value: number, currency: string) {
+function formatHourlyCurrencyFromMicroCents(
+  value: number,
+  currency: string,
+  locale: string,
+) {
   const amount = value / MICRO_CENTS_PER_DOLLAR;
 
   if (amount === 0 || Math.abs(amount) >= 0.01) {
-    return formatCurrencyFromMicroCents(value, currency);
+    return formatCurrencyFromMicroCents(value, currency, locale);
   }
 
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat(locale, {
     currency,
     maximumSignificantDigits: 3,
     minimumSignificantDigits: 1,
@@ -188,8 +212,12 @@ function formatHourlyCurrencyFromMicroCents(value: number, currency: string) {
   }).format(amount);
 }
 
-function formatSignedCurrencyFromMicroCents(value: number, currency: string) {
-  return new Intl.NumberFormat("en-US", {
+function formatSignedCurrencyFromMicroCents(
+  value: number,
+  currency: string,
+  locale: string,
+) {
+  return new Intl.NumberFormat(locale, {
     currency,
     maximumFractionDigits: 2,
     minimumFractionDigits: 2,
@@ -198,24 +226,34 @@ function formatSignedCurrencyFromMicroCents(value: number, currency: string) {
   }).format(value / MICRO_CENTS_PER_DOLLAR);
 }
 
-function formatCPU(cpuMillicores: number) {
+function formatCPU(cpuMillicores: number, formatNumber: NumberFormatter) {
   const cores = cpuMillicores / MILLICORES_PER_VCPU;
 
   if (cpuMillicores === 0) {
-    return "0 cpu";
+    return "0 CPU";
   }
 
   const digits = Number.isInteger(cores) ? 0 : cores >= 10 ? 1 : 2;
-  return `${formatCompactNumber(cores, digits)} cpu`;
+  return `${formatCompactNumber(cores, formatNumber, digits)} CPU`;
 }
 
-function formatMemoryMebibytes(memoryMebibytes: number) {
+function formatMemoryMebibytes(
+  memoryMebibytes: number,
+  formatNumber: NumberFormatter,
+) {
   const gib = memoryMebibytes / MEBIBYTES_PER_GIB;
-  return `${formatCompactNumber(gib, Number.isInteger(gib) ? 0 : 2)} GiB`;
+  return `${formatCompactNumber(gib, formatNumber, Number.isInteger(gib) ? 0 : 2)} GiB`;
 }
 
-function formatStorageGibibytes(storageGibibytes: number) {
-  return `${formatCompactNumber(storageGibibytes, Number.isInteger(storageGibibytes) ? 0 : 2)} GiB`;
+function formatStorageGibibytes(
+  storageGibibytes: number,
+  formatNumber: NumberFormatter,
+) {
+  return `${formatCompactNumber(
+    storageGibibytes,
+    formatNumber,
+    Number.isInteger(storageGibibytes) ? 0 : 2,
+  )} GiB`;
 }
 
 function readNonNegativeMetric(value: number | null | undefined) {
@@ -225,19 +263,21 @@ function readNonNegativeMetric(value: number | null | undefined) {
 function formatCurrentUsageSpec(
   usage: FugueResourceUsage | null,
   imageStorageBytes: number | null,
+  formatNumber: NumberFormatter,
+  t: Translator,
 ) {
   const imageBytes = readNonNegativeMetric(imageStorageBytes);
 
   if (!usage) {
     if (imageBytes <= 0) {
-      return "No live stats";
+      return t("No live stats");
     }
 
     return formatResourceSpec({
       cpuMillicores: 0,
       memoryMebibytes: 0,
       storageGibibytes: imageBytes / BYTES_PER_GIBIBYTE,
-    });
+    }, formatNumber);
   }
 
   return formatResourceSpec({
@@ -246,7 +286,7 @@ function formatCurrentUsageSpec(
     storageGibibytes:
       (readNonNegativeMetric(usage.ephemeralStorageBytes) + imageBytes) /
       BYTES_PER_GIBIBYTE,
-  });
+  }, formatNumber);
 }
 
 function readRetainedImageStorageBytes(
@@ -261,16 +301,21 @@ function readRetainedImageStorageBytes(
   return nextValue;
 }
 
-function readBillingSyncToast(syncError: string | null) {
+function readBillingSyncToast(syncError: string | null, t: Translator) {
   if (syncError) {
-    return "Billing snapshot refreshed with partial live data.";
+    return t("Billing snapshot refreshed with partial live data.");
   }
 
-  return "Billing snapshot refreshed.";
+  return t("Billing snapshot refreshed.");
 }
 
-function readBillingSyncAlert(syncError: string) {
-  return syncError || "Some billing details could not be refreshed. Visible values may be incomplete.";
+function readBillingSyncAlert(syncError: string, t: Translator) {
+  return (
+    syncError ||
+    t(
+      "Some billing details could not be refreshed. Visible values may be incomplete.",
+    )
+  );
 }
 
 function clampEnvelopeCpuMillicores(value: number) {
@@ -303,146 +348,176 @@ function clampEnvelopeStorageGibibytes(value: number) {
   );
 }
 
-function formatResourceSpec(spec: FugueResourceSpec) {
+function formatResourceSpec(
+  spec: FugueResourceSpec,
+  formatNumber: NumberFormatter,
+) {
   const parts = [
-    formatCPU(spec.cpuMillicores),
-    formatMemoryMebibytes(spec.memoryMebibytes),
+    formatCPU(spec.cpuMillicores, formatNumber),
+    formatMemoryMebibytes(spec.memoryMebibytes, formatNumber),
   ];
 
   if (spec.storageGibibytes !== undefined) {
-    parts.push(formatStorageGibibytes(spec.storageGibibytes));
+    parts.push(formatStorageGibibytes(spec.storageGibibytes, formatNumber));
   }
 
   return parts.join(" / ");
 }
 
-function formatRelativeTime(value?: string | null) {
+function formatRelativeTime(
+  value: string | null | undefined,
+  formatRelativeTimeValue: RelativeTimeFormatter,
+  t: Translator,
+) {
+  return formatRelativeTimeValue(value, {
+    justNowText: t("Just now"),
+    notYetText: t("Not yet"),
+  });
+}
+
+function formatExactTime(
+  value: string | null | undefined,
+  formatDateTime: DateTimeFormatter,
+  t: Translator,
+) {
   const timestamp = parseTimestamp(value);
 
   if (!timestamp) {
-    return "Not yet";
+    return t("Not yet");
   }
 
-  const deltaSeconds = Math.round((timestamp - Date.now()) / 1000);
-  const units = [
-    { amount: 60, unit: "second" as const },
-    { amount: 60, unit: "minute" as const },
-    { amount: 24, unit: "hour" as const },
-    { amount: 7, unit: "day" as const },
-    { amount: 4.34524, unit: "week" as const },
-    { amount: 12, unit: "month" as const },
-    { amount: Number.POSITIVE_INFINITY, unit: "year" as const },
-  ];
-
-  let valueForUnit = deltaSeconds;
-
-  for (const { amount, unit } of units) {
-    if (Math.abs(valueForUnit) < amount) {
-      return new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(
-        Math.trunc(valueForUnit),
-        unit,
-      );
-    }
-
-    valueForUnit /= amount;
-  }
-
-  return "Just now";
+  return formatDateTime(timestamp, {
+    emptyText: t("Not yet"),
+    formatOptions: {
+      dateStyle: "medium",
+      timeStyle: "short",
+    },
+  });
 }
 
-function formatExactTime(value?: string | null) {
-  const timestamp = parseTimestamp(value);
-
-  if (!timestamp) {
-    return "Not yet";
-  }
-
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(timestamp);
-}
-
-function formatRunwayDurationHours(value?: number | null) {
+function formatRunwayDurationHours(
+  value: number | null | undefined,
+  formatNumber: NumberFormatter,
+  t: Translator,
+) {
   if (value === null || value === undefined || !Number.isFinite(value) || value < 0) {
     return null;
   }
 
   if (value < 1) {
-    return "<1 hour";
+    return t("<1 hour");
   }
 
   if (value < 24) {
-    return `${formatCompactNumber(value, value < 10 ? 1 : 0)} hours`;
+    return t(value === 1 ? "{count} hour" : "{count} hours", {
+      count: formatCompactNumber(value, formatNumber, value < 10 ? 1 : 0),
+    });
   }
 
   const days = value / 24;
 
   if (days < 14) {
-    return `${formatCompactNumber(days, days < 10 ? 1 : 0)} days`;
+    return t(days === 1 ? "{count} day" : "{count} days", {
+      count: formatCompactNumber(days, formatNumber, days < 10 ? 1 : 0),
+    });
   }
 
   if (days < 60) {
-    return `${formatCompactNumber(days / 7, 1)} weeks`;
+    return t("{count} weeks", {
+      count: formatCompactNumber(days / 7, formatNumber, 1),
+    });
   }
 
-  return `${formatCompactNumber(days / 30, 1)} months`;
+  return t("{count} months", {
+    count: formatCompactNumber(days / 30, formatNumber, 1),
+  });
 }
 
-function readRunwayLabel(billing: FugueBillingSummary) {
+function readRunwayLabel(
+  billing: FugueBillingSummary,
+  formatNumber: NumberFormatter,
+  t: Translator,
+) {
   if (billing.hourlyRateMicroCents <= 0 || billing.status === "inactive") {
-    return "Paused";
+    return t("Paused");
   }
 
   if (billing.balanceMicroCents <= 0) {
-    return "Top up now";
+    return t("Top up now");
   }
 
-  return formatRunwayDurationHours(billing.runwayHours) ?? "No live estimate";
+  return (
+    formatRunwayDurationHours(billing.runwayHours, formatNumber, t) ??
+    t("No live estimate")
+  );
 }
 
-function readRunwaySupportCopy(billing: FugueBillingSummary) {
+function readRunwaySupportCopy(
+  billing: FugueBillingSummary,
+  formatNumber: NumberFormatter,
+  t: Translator,
+) {
   if (billing.hourlyRateMicroCents <= 0 || billing.status === "inactive") {
-    return "Credits are deducted when managed resources are active.";
+    return t("Credits are deducted when managed resources are active.");
   }
 
   if (billing.balanceMicroCents <= 0) {
-    return "Add credits before you raise capacity or start new managed resources.";
+    return t(
+      "Add credits before you raise capacity or start new managed resources.",
+    );
   }
 
-  const duration = formatRunwayDurationHours(billing.runwayHours);
+  const duration = formatRunwayDurationHours(billing.runwayHours, formatNumber, t);
   return duration
-    ? `At the current rate, your balance lasts about ${duration}.`
-    : "Runway updates after the latest live billing sync.";
+    ? t("At the current rate, your balance lasts about {duration}.", { duration })
+    : t("Runway updates after the latest live billing sync.");
 }
 
 function readTopUpHint(
   units: number | null,
   billing: FugueBillingSummary | null,
+  formatNumber: NumberFormatter,
+  t: Translator,
 ) {
-  const baseMessage = `Whole USD amounts only. Min $${MIN_TOP_UP_UNITS}, max $${MAX_TOP_UP_UNITS}.`;
+  const baseMessage = t(
+    "Whole USD amounts only. Min {min}, max {max}.",
+    {
+      max: `$${MAX_TOP_UP_UNITS}`,
+      min: `$${MIN_TOP_UP_UNITS}`,
+    },
+  );
 
   if (units === null || !billing) {
     return baseMessage;
   }
 
   if (billing.hourlyRateMicroCents <= 0 || billing.status === "inactive") {
-    return `${baseMessage} Credits are deducted only while managed resources are active.`;
+    return `${baseMessage} ${t(
+      "Credits are deducted only while managed resources are active.",
+    )}`;
   }
 
   const addedRunwayHours =
     (units * MICRO_CENTS_PER_DOLLAR) / billing.hourlyRateMicroCents;
-  const duration = formatRunwayDurationHours(addedRunwayHours);
+  const duration = formatRunwayDurationHours(addedRunwayHours, formatNumber, t);
 
   if (!duration) {
     return baseMessage;
   }
 
-  return `${baseMessage} At the current rate, $${units} adds about ${duration} of runway.`;
+  return `${baseMessage} ${t(
+    "At the current rate, {amount} adds about {duration} of runway.",
+    {
+      amount: `$${units}`,
+      duration,
+    },
+  )}`;
 }
 
-function readTopUpButtonLabel(units: number | null) {
-  return units !== null ? `Add $${units} credits` : "Add credits";
+function readTopUpButtonLabel(units: number | null, t: Translator) {
+  return units !== null
+    ? t("Add {amount} credits", { amount: `$${units}` })
+    : t("Add credits");
 }
 
 function parseDollarUnits(value: string) {
@@ -494,11 +569,24 @@ function waitMs(ms: number, signal?: AbortSignal) {
   });
 }
 
-function humanizeStatus(value: string) {
-  return value
-    .replace(/[_-]+/g, " ")
-    .trim()
-    .replace(/\b\w/g, (match) => match.toUpperCase());
+function humanizeStatus(value: string, t: Translator) {
+  const normalized = value.trim().toLowerCase();
+
+  switch (normalized) {
+    case "active":
+      return t("Active");
+    case "inactive":
+      return t("Inactive");
+    case "restricted":
+      return t("Restricted");
+    case "over-cap":
+      return t("Over cap");
+    default:
+      return value
+        .replace(/[_-]+/g, " ")
+        .trim()
+        .replace(/\b\w/g, (match) => match.toUpperCase());
+  }
 }
 
 function readStatusTone(billing: FugueBillingSummary): ConsoleTone {
@@ -517,11 +605,13 @@ function readStatusTone(billing: FugueBillingSummary): ConsoleTone {
   return "neutral";
 }
 
-function readCallout(billing: FugueBillingSummary) {
+function readCallout(billing: FugueBillingSummary, t: Translator) {
   if (billing.overCap || billing.status === "over-cap") {
     return {
       message:
-        "Current usage is above your saved capacity cap. Save a higher cap to match what is already committed.",
+        t(
+          "Current usage is above your saved capacity cap. Save a higher cap to match what is already committed.",
+        ),
       variant: "warning" as const,
     };
   }
@@ -529,14 +619,18 @@ function readCallout(billing: FugueBillingSummary) {
   if (billing.balanceRestricted || billing.status === "restricted") {
     return {
       message:
-        "Balance is empty. Add credits before you expand capacity or start new managed resources.",
+        t(
+          "Balance is empty. Add credits before you expand capacity or start new managed resources.",
+        ),
       variant: "error" as const,
     };
   }
 
   if (billing.status === "inactive") {
     return {
-      message: "Managed billing is paused. Set both CPU and memory above zero to resume.",
+      message: t(
+        "Managed billing is paused. Set both CPU and memory above zero to resume.",
+      ),
       variant: "info" as const,
     };
   }
@@ -591,22 +685,25 @@ function readEventTone(event: FugueBillingEvent): ConsoleTone {
   }
 }
 
-function readEventTitle(event: FugueBillingEvent) {
+function readEventTitle(event: FugueBillingEvent, t: Translator) {
   switch (event.type) {
     case "top-up":
-      return "Balance top-up";
+      return t("Balance top-up");
     case "balance-adjusted":
       return event.metadata.source === "platform-admin"
-        ? "Admin balance adjustment"
-        : "Balance adjustment";
+        ? t("Admin balance adjustment")
+        : t("Balance adjustment");
     case "config-updated":
-      return "Envelope updated";
+      return t("Envelope updated");
     default:
-      return humanizeStatus(event.type);
+      return humanizeStatus(event.type, t);
   }
 }
 
-function readEventResourceSpec(event: FugueBillingEvent) {
+function readEventResourceSpec(
+  event: FugueBillingEvent,
+  formatNumber: NumberFormatter,
+) {
   const cpuMillicores = Number(event.metadata.cpu_millicores);
   const memoryMebibytes = Number(event.metadata.memory_mebibytes);
   const storageGibibytes = Number(event.metadata.storage_gibibytes);
@@ -619,51 +716,80 @@ function readEventResourceSpec(event: FugueBillingEvent) {
     cpuMillicores,
     memoryMebibytes,
     ...(Number.isFinite(storageGibibytes) ? { storageGibibytes } : {}),
-  });
+  }, formatNumber);
 }
 
-function readEventDetail(event: FugueBillingEvent, currency: string) {
+function readEventDetail(
+  event: FugueBillingEvent,
+  currency: string,
+  locale: string,
+  formatNumber: NumberFormatter,
+  t: Translator,
+) {
   switch (event.type) {
     case "top-up": {
       const note = event.metadata.note?.trim();
+      const amountLabel = formatCurrencyFromMicroCents(
+        event.amountMicroCents,
+        currency,
+        locale,
+      );
 
       if (note) {
-        return `Added ${formatCurrencyFromMicroCents(event.amountMicroCents, currency)}. ${note}`;
+        return t("Added {amount}. {note}", {
+          amount: amountLabel,
+          note,
+        });
       }
 
-      return `Added ${formatCurrencyFromMicroCents(event.amountMicroCents, currency)} to the prepaid balance.`;
+      return t("Added {amount} to the prepaid balance.", {
+        amount: amountLabel,
+      });
     }
     case "config-updated": {
-      const envelope = readEventResourceSpec(event);
+      const envelope = readEventResourceSpec(event, formatNumber);
       const autoExpand = event.metadata.source?.trim() === "auto-expand";
 
       if (!envelope) {
-        return autoExpand ? "Managed envelope was raised automatically." : "Managed envelope changed.";
+        return autoExpand
+          ? t("Managed envelope was raised automatically.")
+          : t("Managed envelope changed.");
       }
 
       return autoExpand
-        ? `Managed envelope automatically raised to ${envelope}.`
-        : `Managed envelope set to ${envelope}.`;
+        ? t("Managed envelope automatically raised to {envelope}.", { envelope })
+        : t("Managed envelope set to {envelope}.", { envelope });
     }
     case "balance-adjusted": {
       const note = event.metadata.note?.trim();
       const amountLabel =
         event.amountMicroCents === 0
-          ? "no change"
-          : formatSignedCurrencyFromMicroCents(event.amountMicroCents, currency);
+          ? t("No change")
+          : formatSignedCurrencyFromMicroCents(
+              event.amountMicroCents,
+              currency,
+              locale,
+            );
       const actorLabel =
         event.metadata.source?.trim() === "platform-admin"
-          ? "Platform admin adjusted the prepaid balance"
-          : "Balance adjusted";
+          ? t("Platform admin adjusted the prepaid balance")
+          : t("Balance adjusted");
 
       if (note) {
-        return `${actorLabel} by ${amountLabel}. ${note}`;
+        return t("{actor} by {amount}. {note}", {
+          actor: actorLabel,
+          amount: amountLabel,
+          note,
+        });
       }
 
-      return `${actorLabel} by ${amountLabel}.`;
+      return t("{actor} by {amount}.", {
+        actor: actorLabel,
+        amount: amountLabel,
+      });
     }
     default:
-      return "Billing event recorded.";
+      return t("Billing event recorded.");
   }
 }
 
@@ -679,6 +805,8 @@ export function BillingPanel({
   workspaceName?: string | null;
 }) {
   const searchParams = useSearchParams();
+  const { formatDateTime, formatNumber, formatRelativeTime: formatRelativeTimeValue, locale, t } =
+    useI18n();
   const { showToast } = useToast();
   const [billing, setBilling] = useState(initialBilling);
   const [imageStorageBytes, setImageStorageBytes] = useState(initialImageStorageBytes);
@@ -761,49 +889,62 @@ export function BillingPanel({
   const previewMonthlyEstimateLabel = formatCurrencyFromMicroCents(
     previewMonthlyEstimateMicroCents,
     currency,
+    locale,
   );
   const previewHourlyRateLabel = formatHourlyCurrencyFromMicroCents(
     previewHourlyRateMicroCents,
     currency,
+    locale,
   );
   const availableCreditsLabel = formatCurrencyFromMicroCents(
     billing?.balanceMicroCents ?? 0,
     currency,
+    locale,
   );
   const currentMonthlySpendLabel = formatCurrencyFromMicroCents(
     billing?.monthlyEstimateMicroCents ?? 0,
     currency,
+    locale,
   );
   const currentHourlySpendLabel = formatHourlyCurrencyFromMicroCents(
     billing?.hourlyRateMicroCents ?? 0,
     currency,
+    locale,
   );
   const currentUsageLabel = formatCurrentUsageSpec(
     billing?.currentUsage ?? null,
     imageStorageBytes,
+    formatNumber,
+    t,
   );
-  const runwayLabel = billing ? readRunwayLabel(billing) : "No live estimate";
+  const runwayLabel = billing
+    ? readRunwayLabel(billing, formatNumber, t)
+    : t("No live estimate");
   const runwaySupportCopy = billing
-    ? readRunwaySupportCopy(billing)
-    : "Runway updates after live billing data is available.";
-  const topUpHintText = readTopUpHint(parsedTopUpUnits, billing);
-  const topUpButtonLabel = readTopUpButtonLabel(parsedTopUpUnits);
+    ? readRunwaySupportCopy(billing, formatNumber, t)
+    : t("Runway updates after live billing data is available.");
+  const topUpHintText = readTopUpHint(parsedTopUpUnits, billing, formatNumber, t);
+  const topUpButtonLabel = readTopUpButtonLabel(parsedTopUpUnits, t);
   const billingUpdatedLabel = billing?.updatedAt
-    ? `Updated ${formatRelativeTime(billing.updatedAt)}`
-    : "Billing snapshot ready";
-  const capacityPreviewLabel = hasEnvelopeChanges ? "New cap" : "Current cap";
+    ? t("Updated {time}", {
+        time: formatRelativeTime(billing.updatedAt, formatRelativeTimeValue, t),
+      })
+    : t("Billing snapshot ready");
+  const capacityPreviewLabel = hasEnvelopeChanges ? t("New cap") : t("Current cap");
   const capacityPreviewCopy = hasEnvelopeChanges
-    ? "Changes apply after you save."
-    : "Maximum managed resources for this workspace.";
+    ? t("Changes apply after you save.")
+    : t("Maximum managed resources for this workspace.");
   const chargedAtCopy =
-    "Charges follow the larger of your saved cap and any resources already committed.";
+    t("Charges follow the larger of your saved cap and any resources already committed.");
   const projectedSpendLabel = hasEnvelopeChanges
-    ? "New monthly spend"
-    : "Projected monthly spend";
+    ? t("New monthly spend")
+    : t("Projected monthly spend");
   const projectedSpendCopy =
     previewHourlyRateMicroCents > 0
-      ? `${previewHourlyRateLabel} / hour`
-      : "Paused until both CPU and memory are above zero.";
+      ? t("{amount} / hour", {
+          amount: previewHourlyRateLabel,
+        })
+      : t("Paused until both CPU and memory are above zero.");
   const envelopeExceedsUiCap =
     billing !== null &&
     (billing.managedCap.cpuMillicores > CPU_SLIDER_MAX_MILLICORES ||
@@ -819,12 +960,16 @@ export function BillingPanel({
   }
 
   async function refreshBilling(options?: { quiet?: boolean }) {
-    const data = await requestJson<BillingRoutePayload>("/api/fugue/billing", {
-      cache: "no-store",
-    });
+    const data = await requestJson<BillingRoutePayload>(
+      "/api/fugue/billing",
+      {
+        cache: "no-store",
+      },
+      t,
+    );
 
     if (!data) {
-      throw new Error("Empty response.");
+      throw new Error(t("Empty response."));
     }
 
     syncBillingPageSnapshot(data);
@@ -846,7 +991,7 @@ export function BillingPanel({
 
     if (!options?.quiet) {
       showToast({
-        message: readBillingSyncToast(data.syncError),
+        message: readBillingSyncToast(data.syncError, t),
         variant: data.syncError ? "info" : "success",
       });
     }
@@ -865,7 +1010,7 @@ export function BillingPanel({
       await refreshBilling();
     } catch (error) {
       showToast({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -886,7 +1031,7 @@ export function BillingPanel({
     );
 
     if (!response.ok) {
-      throw new Error(await readResponseError(response));
+      throw new Error(await readResponseError(response, t));
     }
 
     const data = (await response.json().catch(() => null)) as BillingTopupStatusPayload | null;
@@ -898,7 +1043,7 @@ export function BillingPanel({
       typeof data.units !== "number" ||
       typeof data.amountCents !== "number"
     ) {
-      throw new Error("Billing top-up status response was malformed.");
+      throw new Error(t("Billing top-up status response was malformed."));
     }
 
     return data;
@@ -919,12 +1064,12 @@ export function BillingPanel({
       await refreshBilling({ quiet: true });
     } catch (error) {
       startTransition(() => {
-        setSyncError(readErrorMessage(error));
+        setSyncError(readErrorMessage(error, t));
       });
     }
 
     showToast({
-      message: "Payment completed. Billing balance refreshed.",
+      message: t("Payment completed. Billing balance refreshed."),
       variant: "success",
     });
   }
@@ -939,7 +1084,7 @@ export function BillingPanel({
     });
 
     showToast({
-      message: "Payment failed.",
+      message: t("Payment failed."),
       variant: "error",
     });
   }
@@ -966,10 +1111,10 @@ export function BillingPanel({
       }
     } catch (error) {
       setTopUpStatusError(
-        "We could not confirm payment status yet. Check again in a few seconds.",
+        t("We could not confirm payment status yet. Check again in a few seconds."),
       );
       showToast({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -1033,7 +1178,9 @@ export function BillingPanel({
 
       if (statusCheckFailed) {
         setTopUpStatusError(
-          "We could not confirm payment status automatically. Check again in a few seconds.",
+          t(
+            "We could not confirm payment status automatically. Check again in a few seconds.",
+          ),
         );
       }
     })();
@@ -1057,22 +1204,26 @@ export function BillingPanel({
     try {
       const data = await requestJson<{
         billing: FugueBillingSummary;
-      }>("/api/fugue/billing", {
-        body: JSON.stringify({
-          managedCap: {
-            cpuMillicores: envelopeCpu,
-            memoryMebibytes: envelopeMemory,
-            storageGibibytes: envelopeStorage,
+      }>(
+        "/api/fugue/billing",
+        {
+          body: JSON.stringify({
+            managedCap: {
+              cpuMillicores: envelopeCpu,
+              memoryMebibytes: envelopeMemory,
+              storageGibibytes: envelopeStorage,
+            },
+          }),
+          headers: {
+            "Content-Type": "application/json",
           },
-        }),
-        headers: {
-          "Content-Type": "application/json",
+          method: "PATCH",
         },
-        method: "PATCH",
-      });
+        t,
+      );
 
       if (!data?.billing) {
-        throw new Error("Billing update response was malformed.");
+        throw new Error(t("Billing update response was malformed."));
       }
 
       syncBillingPageSnapshot({
@@ -1090,12 +1241,12 @@ export function BillingPanel({
       showToast({
         message:
           envelopeCpu === 0 || envelopeMemory === 0
-            ? "Managed billing paused."
-            : "Managed envelope updated.",
+            ? t("Managed billing paused.")
+            : t("Managed envelope updated."),
         variant: "success",
       });
     } catch (error) {
-      const message = readErrorMessage(error);
+      const message = readErrorMessage(error, t);
       setEnvelopeError(message);
       showToast({
         message,
@@ -1119,7 +1270,10 @@ export function BillingPanel({
       parsedTopUpUnits > MAX_TOP_UP_UNITS
     ) {
       setTopUpError(
-        `Enter a whole USD amount between $${MIN_TOP_UP_UNITS} and $${MAX_TOP_UP_UNITS}.`,
+        t("Enter a whole USD amount between {min} and {max}.", {
+          max: `$${MAX_TOP_UP_UNITS}`,
+          min: `$${MIN_TOP_UP_UNITS}`,
+        }),
       );
       return;
     }
@@ -1141,6 +1295,7 @@ export function BillingPanel({
           },
           method: "POST",
         },
+        t,
       );
 
       if (
@@ -1150,13 +1305,13 @@ export function BillingPanel({
         typeof data.requestId !== "string" ||
         !data.requestId.trim()
       ) {
-        throw new Error("Billing checkout response was malformed.");
+        throw new Error(t("Billing checkout response was malformed."));
       }
 
       setTrackedTopUpRequestId(data.requestId.trim());
       window.location.href = data.checkoutUrl.trim();
     } catch (error) {
-      const message = readErrorMessage(error);
+      const message = readErrorMessage(error, t);
       setTopUpError(message);
       showToast({
         message,
@@ -1171,31 +1326,33 @@ export function BillingPanel({
     return (
       <Panel>
         <PanelSection>
-          <p className="fg-label fg-panel__eyebrow">Billing</p>
-          <PanelTitle>Unable to load tenant billing</PanelTitle>
+          <p className="fg-label fg-panel__eyebrow">{t("Billing")}</p>
+          <PanelTitle>{t("Unable to load tenant billing")}</PanelTitle>
           <PanelCopy>
             {workspaceName?.trim()
-              ? `Fugue could not read the billing state for ${workspaceName}.`
-              : "Fugue could not read the current tenant billing state."}
+              ? t("Fugue could not read the billing state for {workspaceName}.", {
+                  workspaceName,
+                })
+              : t("Fugue could not read the current tenant billing state.")}
           </PanelCopy>
         </PanelSection>
 
         <PanelSection className="fg-billing-retry">
           <InlineAlert variant="error">
-            {syncError ?? "Billing data is unavailable right now. Retry the request."}
+            {syncError ?? t("Billing data is unavailable right now. Retry the request.")}
           </InlineAlert>
 
           <div className="fg-settings-form__actions">
             <Button
               loading={isRefreshing}
-              loadingLabel="Refreshing…"
+              loadingLabel={t("Refreshing…")}
               onClick={() => {
                 void handleRefresh();
               }}
               type="button"
               variant="primary"
             >
-              Retry billing sync
+              {t("Retry billing sync")}
             </Button>
           </div>
         </PanelSection>
@@ -1203,13 +1360,13 @@ export function BillingPanel({
     );
   }
 
-  const callout = readCallout(billing);
+  const callout = readCallout(billing, t);
 
   return (
     <>
       {syncError ? (
         <InlineAlert variant="info">
-          {readBillingSyncAlert(syncError)}
+          {readBillingSyncAlert(syncError, t)}
         </InlineAlert>
       ) : null}
 
@@ -1217,22 +1374,29 @@ export function BillingPanel({
         <PanelSection>
           <div className="fg-billing-health__head">
             <div className="fg-billing-section-copy">
-              <p className="fg-label fg-panel__eyebrow">Billing health</p>
-              <PanelTitle>Keep credits and capacity in sync</PanelTitle>
+              <p className="fg-label fg-panel__eyebrow">{t("Billing health")}</p>
+              <PanelTitle>{t("Keep credits and capacity in sync")}</PanelTitle>
               <PanelCopy>
-                Add credits to your balance, then set a capacity cap. Fugue deducts credits
-                from active resources, and stored images count toward disk usage.
+                {t(
+                  "Add credits to your balance, then set a capacity cap. Fugue deducts credits from active resources, and stored images count toward disk usage.",
+                )}
               </PanelCopy>
             </div>
 
             <div className="fg-billing-health__meta">
               <div className="fg-billing-status-row">
-                <StatusBadge tone={readStatusTone(billing)}>{humanizeStatus(billing.status)}</StatusBadge>
-                {billing.overCap ? <StatusBadge tone="warning">Save higher cap</StatusBadge> : null}
-                {billing.balanceRestricted ? (
-                  <StatusBadge tone="warning">Top up required</StatusBadge>
+                <StatusBadge tone={readStatusTone(billing)}>
+                  {humanizeStatus(billing.status, t)}
+                </StatusBadge>
+                {billing.overCap ? (
+                  <StatusBadge tone="warning">{t("Save higher cap")}</StatusBadge>
                 ) : null}
-                {billing.byoVpsFree ? <StatusBadge tone="info">BYO VPS free</StatusBadge> : null}
+                {billing.balanceRestricted ? (
+                  <StatusBadge tone="warning">{t("Top up required")}</StatusBadge>
+                ) : null}
+                {billing.byoVpsFree ? (
+                  <StatusBadge tone="info">{t("BYO VPS free")}</StatusBadge>
+                ) : null}
               </div>
 
               <p className="fg-billing-health__stamp">{billingUpdatedLabel}</p>
@@ -1242,12 +1406,12 @@ export function BillingPanel({
 
         <PanelSection>
           <ConsoleSummaryGrid
-            ariaLabel="Billing health"
+            ariaLabel={t("Billing health")}
             items={[
-              { label: "Available credits", value: availableCreditsLabel },
-              { label: "Estimated runway", value: runwayLabel },
-              { label: "Projected monthly spend", value: currentMonthlySpendLabel },
-              { label: "Current usage", value: currentUsageLabel },
+              { label: t("Available credits"), value: availableCreditsLabel },
+              { label: t("Estimated runway"), value: runwayLabel },
+              { label: t("Projected monthly spend"), value: currentMonthlySpendLabel },
+              { label: t("Current usage"), value: currentUsageLabel },
             ]}
           />
         </PanelSection>
@@ -1259,12 +1423,12 @@ export function BillingPanel({
             <PanelSection>
               <div className="fg-billing-section-head">
                 <div className="fg-billing-section-copy">
-                  <p className="fg-label fg-panel__eyebrow">Capacity</p>
-                  <PanelTitle>Set your capacity cap</PanelTitle>
+                  <p className="fg-label fg-panel__eyebrow">{t("Capacity")}</p>
+                  <PanelTitle>{t("Set your capacity cap")}</PanelTitle>
                   <PanelCopy>
-                    Save the maximum managed CPU, memory, and disk for this workspace.
-                    Fugue charges against the larger of your saved cap and any resources
-                    already committed.
+                    {t(
+                      "Save the maximum managed CPU, memory, and disk for this workspace. Fugue charges against the larger of your saved cap and any resources already committed.",
+                    )}
                   </PanelCopy>
                 </div>
               </div>
@@ -1272,13 +1436,13 @@ export function BillingPanel({
               <div className="fg-billing-signal-grid">
                 <article className="fg-billing-signal-card is-primary">
                   <span>{capacityPreviewLabel}</span>
-                  <strong>{formatResourceSpec(previewSpec)}</strong>
+                  <strong>{formatResourceSpec(previewSpec, formatNumber)}</strong>
                   <p>{capacityPreviewCopy}</p>
                 </article>
 
                 <article className="fg-billing-signal-card">
-                  <span>Charged at</span>
-                  <strong>{formatResourceSpec(previewBilledSpec)}</strong>
+                  <span>{t("Charged at")}</span>
+                  <strong>{formatResourceSpec(previewBilledSpec, formatNumber)}</strong>
                   <p>{chargedAtCopy}</p>
                 </article>
 
@@ -1294,8 +1458,9 @@ export function BillingPanel({
               {callout ? <InlineAlert variant={callout.variant}>{callout.message}</InlineAlert> : null}
               {envelopeExceedsUiCap ? (
                 <InlineAlert variant="warning">
-                  Saved capacity exceeds the temporary 2 cpu / 4 GiB / 30 GiB UI cap.
-                  Save again to bring it back into range.
+                  {t(
+                    "Saved capacity exceeds the temporary 2 CPU / 4 GiB / 30 GiB UI cap. Save again to bring it back into range.",
+                  )}
                 </InlineAlert>
               ) : null}
 
@@ -1304,10 +1469,10 @@ export function BillingPanel({
                   <SteppedSliderField
                     disabled={isSavingEnvelope}
                     id="billing-envelope-cpu"
-                    label="CPU"
+                    label={t("CPU")}
                     max={CPU_SLIDER_MAX_CORES}
-                    maxLabel={formatCPU(Math.round(CPU_SLIDER_MAX_CORES * MILLICORES_PER_VCPU))}
-                    minLabel={formatCPU(0)}
+                    maxLabel={formatCPU(Math.round(CPU_SLIDER_MAX_CORES * MILLICORES_PER_VCPU), formatNumber)}
+                    minLabel={formatCPU(0, formatNumber)}
                     onChange={(nextValue) => {
                       setEnvelopeCpu(
                         clampEnvelopeCpuMillicores(nextValue * MILLICORES_PER_VCPU),
@@ -1318,16 +1483,16 @@ export function BillingPanel({
                     }}
                     step={CPU_STEP_CORES}
                     value={envelopeCpuCores}
-                    valueLabel={formatCPU(envelopeCpu)}
+                    valueLabel={formatCPU(envelopeCpu, formatNumber)}
                   />
 
                   <SteppedSliderField
                     disabled={isSavingEnvelope}
                     id="billing-envelope-memory"
-                    label="Memory"
+                    label={t("Memory")}
                     max={MEMORY_SLIDER_MAX_GIB}
-                    maxLabel={formatMemoryMebibytes(Math.round(MEMORY_SLIDER_MAX_GIB * MEBIBYTES_PER_GIB))}
-                    minLabel={formatMemoryMebibytes(0)}
+                    maxLabel={formatMemoryMebibytes(Math.round(MEMORY_SLIDER_MAX_GIB * MEBIBYTES_PER_GIB), formatNumber)}
+                    minLabel={formatMemoryMebibytes(0, formatNumber)}
                     onChange={(nextValue) => {
                       setEnvelopeMemory(
                         clampEnvelopeMemoryMebibytes(nextValue * MEBIBYTES_PER_GIB),
@@ -1338,16 +1503,16 @@ export function BillingPanel({
                     }}
                     step={MEMORY_STEP_GIB}
                     value={envelopeMemoryGib}
-                    valueLabel={formatMemoryMebibytes(envelopeMemory)}
+                    valueLabel={formatMemoryMebibytes(envelopeMemory, formatNumber)}
                   />
 
                   <SteppedSliderField
                     disabled={isSavingEnvelope}
                     id="billing-envelope-storage"
-                    label="Storage"
+                    label={t("Storage")}
                     max={STORAGE_SLIDER_MAX_GIB}
-                    maxLabel={formatStorageGibibytes(STORAGE_SLIDER_MAX_GIB)}
-                    minLabel={formatStorageGibibytes(0)}
+                    maxLabel={formatStorageGibibytes(STORAGE_SLIDER_MAX_GIB, formatNumber)}
+                    minLabel={formatStorageGibibytes(0, formatNumber)}
                     onChange={(nextValue) => {
                       setEnvelopeStorage(clampEnvelopeStorageGibibytes(nextValue));
                       if (envelopeError) {
@@ -1356,7 +1521,7 @@ export function BillingPanel({
                     }}
                     step={STORAGE_STEP_GIB}
                     value={envelopeStorage}
-                    valueLabel={formatStorageGibibytes(envelopeStorage)}
+                    valueLabel={formatStorageGibibytes(envelopeStorage, formatNumber)}
                   />
                 </div>
 
@@ -1366,24 +1531,24 @@ export function BillingPanel({
                   <Button
                     disabled={!hasEnvelopeChanges}
                     loading={isSavingEnvelope}
-                    loadingLabel="Saving cap…"
+                    loadingLabel={t("Saving cap…")}
                     type="submit"
                     variant="primary"
                   >
-                    Save capacity cap
+                    {t("Save capacity cap")}
                   </Button>
 
                   <Button
                     disabled={isSavingEnvelope || isToppingUp}
                     loading={isRefreshing}
-                    loadingLabel="Refreshing…"
+                    loadingLabel={t("Refreshing…")}
                     onClick={() => {
                       void handleRefresh();
                     }}
                     type="button"
                     variant="secondary"
                   >
-                    Refresh billing
+                    {t("Refresh billing")}
                   </Button>
                 </div>
               </form>
@@ -1394,35 +1559,38 @@ export function BillingPanel({
             <PanelSection>
               <div className="fg-billing-section-head">
                 <div className="fg-billing-section-copy">
-                  <p className="fg-label fg-panel__eyebrow">Credits</p>
-                  <PanelTitle>Keep your workspace funded</PanelTitle>
+                  <p className="fg-label fg-panel__eyebrow">{t("Credits")}</p>
+                  <PanelTitle>{t("Keep your workspace funded")}</PanelTitle>
                   <PanelCopy>
-                    Top up credits before you expand capacity. Credits are deducted
-                    while resources run, and stored images count toward disk usage.
+                    {t(
+                      "Top up credits before you expand capacity. Credits are deducted while resources run, and stored images count toward disk usage.",
+                    )}
                   </PanelCopy>
                 </div>
               </div>
 
               <div className="fg-billing-signal-grid">
                 <article className="fg-billing-signal-card is-primary">
-                  <span>Available credits</span>
+                  <span>{t("Available credits")}</span>
                   <strong>{availableCreditsLabel}</strong>
-                  <p>Credits ready to cover current managed usage.</p>
+                  <p>{t("Credits ready to cover current managed usage.")}</p>
                 </article>
 
                 <article className="fg-billing-signal-card">
-                  <span>Estimated runway</span>
+                  <span>{t("Estimated runway")}</span>
                   <strong>{runwayLabel}</strong>
                   <p>{runwaySupportCopy}</p>
                 </article>
 
                 <article className="fg-billing-signal-card">
-                  <span>Projected monthly spend</span>
+                  <span>{t("Projected monthly spend")}</span>
                   <strong>{currentMonthlySpendLabel}</strong>
                   <p>
                     {billing.hourlyRateMicroCents > 0
-                      ? `${currentHourlySpendLabel} / hour at the current live rate.`
-                      : "No live burn right now."}
+                      ? t("{amount} / hour at the current live rate.", {
+                          amount: currentHourlySpendLabel,
+                        })
+                      : t("No live burn right now.")}
                   </p>
                 </article>
               </div>
@@ -1430,7 +1598,7 @@ export function BillingPanel({
 
             <PanelSection>
               <p className="fg-billing-top-up-note">
-                Need more room? Add credits here first, then raise the capacity cap.
+                {t("Need more room? Add credits here first, then raise the capacity cap.")}
               </p>
 
               <form
@@ -1439,7 +1607,7 @@ export function BillingPanel({
               >
                 <div className="fg-billing-top-up-form__field fg-field-stack">
                   <label className="fg-field-label" htmlFor="billing-top-up-amount">
-                    <span>Top-up amount</span>
+                    <span>{t("Top-up amount")}</span>
                   </label>
 
                   <div
@@ -1464,7 +1632,7 @@ export function BillingPanel({
                               setTopUpError(null);
                             }
                           }}
-                          placeholder="25"
+                          placeholder={t("25")}
                           step="1"
                           type="number"
                           value={topUpAmount}
@@ -1480,7 +1648,7 @@ export function BillingPanel({
                             hasUnresolvedTopUp
                           }
                           loading={isToppingUp}
-                          loadingLabel="Preparing checkout…"
+                          loadingLabel={t("Preparing checkout…")}
                           type="submit"
                           variant="primary"
                         >
@@ -1505,7 +1673,7 @@ export function BillingPanel({
                   <div
                     className="fg-billing-top-up-presets"
                     role="group"
-                    aria-label="Suggested top-up amounts"
+                    aria-label={t("Suggested top-up amounts")}
                   >
                     {BILLING_TOP_UP_PRESET_AMOUNTS.map((amount) => (
                       <Button
@@ -1529,21 +1697,25 @@ export function BillingPanel({
               </form>
 
               {topUpBlocking ? (
-                <InlineAlert variant="info">Waiting for checkout confirmation…</InlineAlert>
+                <InlineAlert variant="info">
+                  {t("Waiting for checkout confirmation…")}
+                </InlineAlert>
               ) : null}
 
               {trackedTopUpRequestId && (topUpPending || topUpStatusError) ? (
                 <div className="fg-billing-top-up-status">
                   <InlineAlert variant={topUpStatusError ? "error" : "info"}>
                     {topUpStatusError ??
-                      "Checkout is still being confirmed. Credits appear here automatically after payment clears."}
+                      t(
+                        "Checkout is still being confirmed. Credits appear here automatically after payment clears.",
+                      )}
                   </InlineAlert>
 
                   <div className="fg-billing-top-up-status__row">
                     <span className="fg-billing-top-up-status__request">{trackedTopUpRequestId}</span>
                     <Button
                       loading={checkingTopUpStatus}
-                      loadingLabel="Checking…"
+                      loadingLabel={t("Checking…")}
                       onClick={() => {
                         void recheckTopUp();
                       }}
@@ -1551,7 +1723,7 @@ export function BillingPanel({
                       type="button"
                       variant="secondary"
                     >
-                      Check payment status
+                      {t("Check payment status")}
                     </Button>
                   </div>
                 </div>
@@ -1562,52 +1734,92 @@ export function BillingPanel({
 
         <Panel>
           <PanelSection>
-            <p className="fg-label fg-panel__eyebrow">History</p>
-            <PanelTitle>Billing activity</PanelTitle>
-            <PanelCopy>Top-ups, balance adjustments, and capacity changes appear here.</PanelCopy>
+            <p className="fg-label fg-panel__eyebrow">{t("History")}</p>
+            <PanelTitle>{t("Billing activity")}</PanelTitle>
+            <PanelCopy>
+              {t("Top-ups, balance adjustments, and capacity changes appear here.")}
+            </PanelCopy>
           </PanelSection>
 
           <PanelSection>
             {billing.events.length ? (
-              <div className="fg-billing-ledger-table" role="table" aria-label="Recent billing events">
+              <div
+                className="fg-billing-ledger-table"
+                role="table"
+                aria-label={t("Recent billing events")}
+              >
                 <div className="fg-billing-ledger-table__head" role="row">
-                  <span>Event</span>
-                  <span>Amount</span>
-                  <span>Balance after</span>
-                  <span>Created</span>
+                  <span>{t("Event")}</span>
+                  <span>{t("Amount")}</span>
+                  <span>{t("Balance after")}</span>
+                  <span>{t("Created")}</span>
                 </div>
 
                 <ul className="fg-billing-ledger-table__body">
                   {billing.events.map((event) => (
                     <li className="fg-billing-ledger-row" key={event.id} role="row">
-                      <div className="fg-billing-ledger-row__event" data-label="Event" role="cell">
+                      <div
+                        className="fg-billing-ledger-row__event"
+                        data-label={t("Event")}
+                        role="cell"
+                      >
                         <div className="fg-billing-ledger-row__event-head">
-                          <strong>{readEventTitle(event)}</strong>
-                          <StatusBadge tone={readEventTone(event)}>{formatRelativeTime(event.createdAt)}</StatusBadge>
+                          <strong>{readEventTitle(event, t)}</strong>
+                          <StatusBadge tone={readEventTone(event)}>
+                            {formatRelativeTime(
+                              event.createdAt,
+                              formatRelativeTimeValue,
+                              t,
+                            )}
+                          </StatusBadge>
                         </div>
-                        <p>{readEventDetail(event, currency)}</p>
+                        <p>{readEventDetail(event, currency, locale, formatNumber, t)}</p>
                       </div>
 
                       <div
                         className="fg-billing-ledger-row__cell fg-billing-ledger-row__cell--amount"
-                        data-label="Amount"
+                        data-label={t("Amount")}
                         data-tone={readEventTone(event)}
                         role="cell"
                       >
                         <strong>
                           {event.amountMicroCents
-                            ? formatSignedCurrencyFromMicroCents(event.amountMicroCents, currency)
-                            : "No charge"}
+                            ? formatSignedCurrencyFromMicroCents(
+                                event.amountMicroCents,
+                                currency,
+                                locale,
+                              )
+                            : t("No charge")}
                         </strong>
                       </div>
 
-                      <div className="fg-billing-ledger-row__cell" data-label="Balance after" role="cell">
-                        <strong>{formatCurrencyFromMicroCents(event.balanceAfterMicroCents, currency)}</strong>
+                      <div
+                        className="fg-billing-ledger-row__cell"
+                        data-label={t("Balance after")}
+                        role="cell"
+                      >
+                        <strong>
+                          {formatCurrencyFromMicroCents(
+                            event.balanceAfterMicroCents,
+                            currency,
+                            locale,
+                          )}
+                        </strong>
                       </div>
 
-                      <div className="fg-billing-ledger-row__cell" data-label="Created" role="cell">
-                        <strong>{formatExactTime(event.createdAt)}</strong>
-                        <span>{formatRelativeTime(event.createdAt)}</span>
+                      <div
+                        className="fg-billing-ledger-row__cell"
+                        data-label={t("Created")}
+                        role="cell"
+                      >
+                        <strong>{formatExactTime(event.createdAt, formatDateTime, t)}</strong>
+                        <span>
+                          {formatRelativeTime(
+                            event.createdAt,
+                            formatRelativeTimeValue,
+                            t,
+                          )}
+                        </span>
                       </div>
                     </li>
                   ))}
@@ -1615,8 +1827,10 @@ export function BillingPanel({
               </div>
             ) : (
               <ConsoleEmptyState
-                description="Top-ups, admin balance adjustments, and envelope changes will appear here."
-                title="No billing events yet"
+                description={t(
+                  "Top-ups, admin balance adjustments, and envelope changes will appear here.",
+                )}
+                title={t("No billing events yet")}
               />
             )}
           </PanelSection>

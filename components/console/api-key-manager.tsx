@@ -2,10 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { useI18n } from "@/components/providers/i18n-provider";
 import { InlineButton } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Panel, PanelSection } from "@/components/ui/panel";
 import { useToast } from "@/components/ui/toast";
+import type { TranslationValues } from "@/lib/i18n/core";
 import type { ApiKeyRecord } from "@/lib/api-keys/types";
 import {
   CONSOLE_API_KEYS_PAGE_SNAPSHOT_URL,
@@ -30,12 +32,14 @@ type ApiKeyPagePayload = {
   };
 };
 
-function readErrorMessage(error: unknown) {
+type Translator = (key: string, values?: TranslationValues) => string;
+
+function readErrorMessage(error: unknown, t: Translator = (key) => key) {
   if (error instanceof Error && error.message) {
     return error.message;
   }
 
-  return "Request failed.";
+  return t("Request failed.");
 }
 
 async function requestJson<T>(input: RequestInfo, init?: RequestInit) {
@@ -53,44 +57,6 @@ async function requestJson<T>(input: RequestInfo, init?: RequestInit) {
   }
 
   return data;
-}
-
-function formatRelativeTime(value?: string | null) {
-  if (!value) {
-    return "Never";
-  }
-
-  const timestamp = Date.parse(value);
-
-  if (!Number.isFinite(timestamp)) {
-    return "Never";
-  }
-
-  const deltaSeconds = Math.round((timestamp - Date.now()) / 1000);
-  const units = [
-    { amount: 60, unit: "second" as const },
-    { amount: 60, unit: "minute" as const },
-    { amount: 24, unit: "hour" as const },
-    { amount: 7, unit: "day" as const },
-    { amount: 4.34524, unit: "week" as const },
-    { amount: 12, unit: "month" as const },
-    { amount: Number.POSITIVE_INFINITY, unit: "year" as const },
-  ];
-
-  let valueForUnit = deltaSeconds;
-
-  for (const { amount, unit } of units) {
-    if (Math.abs(valueForUnit) < amount) {
-      return new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(
-        Math.trunc(valueForUnit),
-        unit,
-      );
-    }
-
-    valueForUnit /= amount;
-  }
-
-  return "Just now";
 }
 
 function buildPermissionCatalog(record: Pick<ApiKeyRecord, "isWorkspaceAdmin" | "scopes">, scopeCatalog: string[]) {
@@ -149,6 +115,7 @@ export function ApiKeyManager({
   initialSyncError: string | null;
   initialWorkspaceAdminKeyId: string;
 }) {
+  const { formatRelativeTime, t } = useI18n();
   const confirm = useConfirmDialog();
   const { showToast } = useToast();
   const copyInFlightRef = useRef<string | null>(null);
@@ -167,10 +134,10 @@ export function ApiKeyManager({
     }
 
     showToast({
-      message: "Showing stored metadata while live key sync is unavailable.",
+      message: t("Showing stored metadata while live key sync is unavailable."),
       variant: "info",
     });
-  }, [initialSyncError, showToast]);
+  }, [initialSyncError, showToast, t]);
 
   useEffect(() => {
     setKeys(sortKeys(initialKeys));
@@ -258,13 +225,13 @@ export function ApiKeyManager({
 
       showToast({
         message: data.syncError
-          ? "Live sync is still unavailable. Stored metadata remains visible."
-          : "Access key list refreshed.",
+          ? t("Live sync is still unavailable. Stored metadata remains visible.")
+          : t("Access key list refreshed."),
         variant: data.syncError ? "info" : "success",
       });
     } catch (error) {
       showToast({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -287,12 +254,14 @@ export function ApiKeyManager({
       const copied = await copyText(secretRequest);
 
       showToast({
-        message: copied ? "Secret copied." : "Secret is ready, but clipboard access failed.",
+        message: copied
+          ? t("Secret copied.")
+          : t("Secret is ready, but clipboard access failed."),
         variant: copied ? "success" : "info",
       });
     } catch (error) {
       showToast({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -306,12 +275,20 @@ export function ApiKeyManager({
     }
 
     const confirmed = await confirm({
-      confirmLabel: record.isWorkspaceAdmin ? "Replace admin key" : "Replace key",
+      confirmLabel: record.isWorkspaceAdmin
+        ? t("Replace admin key")
+        : t("Replace key"),
       description: record.isWorkspaceAdmin
-        ? "A fresh secret will be copied for this website copy without revoking other environments."
-        : "The current secret stops working immediately and the new secret will be copied.",
-      eyebrow: "Credential rotation",
-      title: record.isWorkspaceAdmin ? "Replace admin key?" : "Replace access key?",
+        ? t(
+            "A fresh secret will be copied for this website copy without revoking other environments.",
+          )
+        : t(
+            "The current secret stops working immediately and the new secret will be copied.",
+          ),
+      eyebrow: t("Credential rotation"),
+      title: record.isWorkspaceAdmin
+        ? t("Replace admin key?")
+        : t("Replace access key?"),
     });
 
     if (!confirmed) {
@@ -363,16 +340,18 @@ export function ApiKeyManager({
       showToast({
         message: copied
           ? record.isWorkspaceAdmin
-            ? "Admin key replaced for this website copy and secret copied."
-            : "Access key replaced and secret copied. The previous secret no longer works."
+            ? t("Admin key replaced for this website copy and secret copied.")
+            : t(
+                "Access key replaced and secret copied. The previous secret no longer works.",
+              )
           : record.isWorkspaceAdmin
-            ? "Admin key replaced for this website copy. Copy the new secret now."
-            : "Access key replaced. Copy the new secret now.",
+            ? t("Admin key replaced for this website copy. Copy the new secret now.")
+            : t("Access key replaced. Copy the new secret now."),
         variant: "success",
       });
     } catch (error) {
       showToast({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -386,9 +365,9 @@ export function ApiKeyManager({
     }
 
     const confirmed = await confirm({
-      confirmLabel: "Delete key",
-      description: "This revokes the secret in Fugue immediately.",
-      title: "Delete access key?",
+      confirmLabel: t("Delete key"),
+      description: t("This revokes the secret in Fugue immediately."),
+      title: t("Delete access key?"),
     });
 
     if (!confirmed) {
@@ -415,12 +394,12 @@ export function ApiKeyManager({
       });
 
       showToast({
-        message: "Key deleted.",
+        message: t("Key deleted."),
         variant: "success",
       });
     } catch (error) {
       showToast({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -454,12 +433,12 @@ export function ApiKeyManager({
       });
 
       showToast({
-        message: nextAction === "enable" ? "Key restored." : "Key disabled.",
+        message: nextAction === "enable" ? t("Key restored.") : t("Key disabled."),
         variant: "success",
       });
     } catch (error) {
       showToast({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -480,7 +459,7 @@ export function ApiKeyManager({
 
     if (!nextScopes.length) {
       showToast({
-        message: "Keep at least one permission enabled.",
+        message: t("Keep at least one permission enabled."),
         variant: "error",
       });
       return;
@@ -528,7 +507,7 @@ export function ApiKeyManager({
       });
 
       showToast({
-        message: "Permissions updated.",
+        message: t("Permissions updated."),
         variant: "success",
       });
     } catch (error) {
@@ -543,7 +522,7 @@ export function ApiKeyManager({
         ),
       );
       showToast({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -559,8 +538,8 @@ export function ApiKeyManager({
             <InlineButton
               blocked={Boolean(busyAction && busyAction !== "refresh")}
               busy={busyAction === "refresh"}
-              busyLabel="Refreshing…"
-              label="Refresh keys"
+              busyLabel={t("Refreshing…")}
+              label={t("Refresh keys")}
               onClick={() => {
                 void handleRefresh();
               }}
@@ -600,17 +579,22 @@ export function ApiKeyManager({
                       <div className="fg-api-key-item__title">
                         <strong>
                           {record.isWorkspaceAdmin
-                            ? "Admin key"
+                            ? t("Admin key")
                             : record.label}
                         </strong>
                       </div>
 
                       <p className="fg-api-key-item__meta">
-                        {record.scopes.length} permission
-                        {record.scopes.length === 1 ? "" : "s"} ·{" "}
-                        {record.status === "disabled" ? "disabled · " : ""}
-                        last used{" "}
-                        {formatRelativeTime(record.lastUsedAt)}
+                        {t(
+                          record.scopes.length === 1
+                            ? "{count} permission"
+                            : "{count} permissions",
+                          {
+                            count: record.scopes.length,
+                          },
+                        )}{" "}
+                        · {record.status === "disabled" ? `${t("disabled")} · ` : ""}
+                        {t("last used")} {formatRelativeTime(record.lastUsedAt, { notYetText: t("Never") })}
                       </p>
                     </div>
 
@@ -620,9 +604,11 @@ export function ApiKeyManager({
                           busyAction && busyAction !== `rotate:${record.id}`,
                         )}
                         busy={busyAction === `rotate:${record.id}`}
-                        busyLabel={record.isWorkspaceAdmin ? "Replacing…" : "Rotating…"}
+                        busyLabel={
+                          record.isWorkspaceAdmin ? t("Replacing…") : t("Rotating…")
+                        }
                         className="fg-api-key-item__action"
-                        label={record.isWorkspaceAdmin ? "Replace" : "Rotate"}
+                        label={record.isWorkspaceAdmin ? t("Replace") : t("Rotate")}
                         onClick={() => {
                           void handleReplace(record);
                         }}
@@ -632,7 +618,7 @@ export function ApiKeyManager({
                         blocked={Boolean(busyAction)}
                         className="fg-api-key-item__action"
                         disabled={!record.canCopy}
-                        label="Copy"
+                        label={t("Copy")}
                         onClick={() => {
                           void handleCopy(record.id);
                         }}
@@ -649,9 +635,17 @@ export function ApiKeyManager({
                             busyAction === `disable:${record.id}` ||
                             busyAction === `enable:${record.id}`
                           }
-                          busyLabel={record.status === "disabled" ? "Restoring…" : "Disabling…"}
+                          busyLabel={
+                            record.status === "disabled"
+                              ? t("Restoring…")
+                              : t("Disabling…")
+                          }
                           className="fg-api-key-item__action"
-                          label={record.status === "disabled" ? "Restore" : "Disable"}
+                          label={
+                            record.status === "disabled"
+                              ? t("Restore")
+                              : t("Disable")
+                          }
                           onClick={() => {
                             void handleStatusToggle(record);
                           }}
@@ -664,10 +658,10 @@ export function ApiKeyManager({
                             busyAction && busyAction !== `delete:${record.id}`,
                           )}
                           busy={busyAction === `delete:${record.id}`}
-                          busyLabel="Deleting…"
+                          busyLabel={t("Deleting…")}
                           className="fg-api-key-item__action"
                           danger
-                          label="Delete"
+                          label={t("Delete")}
                           onClick={() => {
                             void handleDelete(record);
                           }}
@@ -681,16 +675,20 @@ export function ApiKeyManager({
                       <div className="fg-api-key-item__details">
                         <dl className="fg-api-key-facts">
                           <div>
-                            <dt>Identifier</dt>
+                            <dt>{t("Identifier")}</dt>
                             <dd>{record.id}</dd>
                           </div>
                           <div>
-                            <dt>Prefix</dt>
-                            <dd>{record.prefix ?? "Unavailable"}</dd>
+                            <dt>{t("Prefix")}</dt>
+                            <dd>{record.prefix ?? t("Unavailable")}</dd>
                           </div>
                           <div>
-                            <dt>Created</dt>
-                            <dd>{formatRelativeTime(record.createdAt)}</dd>
+                            <dt>{t("Created")}</dt>
+                            <dd>
+                              {formatRelativeTime(record.createdAt, {
+                                notYetText: t("Never"),
+                              })}
+                            </dd>
                           </div>
                         </dl>
                       </div>
@@ -698,8 +696,8 @@ export function ApiKeyManager({
                       <div className="fg-api-key-permissions">
                         <div className="fg-api-key-permissions__head">
                           <div>
-                            <strong>Permissions</strong>
-                            <p>Changes apply immediately.</p>
+                            <strong>{t("Permissions")}</strong>
+                            <p>{t("Changes apply immediately.")}</p>
                           </div>
 
                           <span className="fg-api-key-permissions__count">
@@ -732,7 +730,7 @@ export function ApiKeyManager({
 
                                   <span className="fg-api-key-permission__row">
                                     <strong>{scope}</strong>
-                                    <span>{selected ? "On" : "Off"}</span>
+                                    <span>{selected ? t("On") : t("Off")}</span>
                                   </span>
 
                                   <span className="fg-api-key-permission__copy">
@@ -744,7 +742,9 @@ export function ApiKeyManager({
                           </div>
                         ) : (
                           <p className="fg-api-key-permissions__empty">
-                            No permissions are currently available from the workspace key.
+                            {t(
+                              "No permissions are currently available from the workspace key.",
+                            )}
                           </p>
                         )}
                       </div>
@@ -756,8 +756,8 @@ export function ApiKeyManager({
           </div>
         ) : (
           <div className="fg-api-key-empty">
-            <strong>Admin key unavailable</strong>
-            <p>Restore the workspace to continue.</p>
+            <strong>{t("Admin key unavailable")}</strong>
+            <p>{t("Restore the workspace to continue.")}</p>
           </div>
         )}
       </PanelSection>

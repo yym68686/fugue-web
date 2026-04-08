@@ -2,6 +2,7 @@
 
 import { startTransition, useEffect, useState, type FormEvent, type ReactNode } from "react";
 
+import { useI18n } from "@/components/providers/i18n-provider";
 import { StatusBadge } from "@/components/console/status-badge";
 import { Button, InlineButton } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -11,6 +12,7 @@ import {
   type SegmentedControlOption,
 } from "@/components/ui/segmented-control";
 import { useToast } from "@/components/ui/toast";
+import type { TranslationValues } from "@/lib/i18n/core";
 import type { RuntimeOwnership, RuntimeSharingView } from "@/lib/runtimes/types";
 
 type RuntimeSharingPayload = {
@@ -19,12 +21,14 @@ type RuntimeSharingPayload = {
 
 type RuntimePoolMode = "dedicated" | "internal-shared";
 
-function readErrorMessage(error: unknown) {
+type Translator = (key: string, values?: TranslationValues) => string;
+
+function readErrorMessage(error: unknown, t: Translator = (key) => key) {
   if (error instanceof Error && error.message) {
     return error.message;
   }
 
-  return "Request failed.";
+  return t("Request failed.");
 }
 
 async function requestJson<T>(input: RequestInfo, init?: RequestInit) {
@@ -44,50 +48,36 @@ async function requestJson<T>(input: RequestInfo, init?: RequestInit) {
   return data;
 }
 
-function formatRelativeTime(value?: string | null) {
+function formatRelativeTime(
+  value: string | null | undefined,
+  formatter: (
+    value?: string | number | Date | null,
+    options?: {
+      justNowText?: string;
+      notYetText?: string;
+    },
+  ) => string,
+) {
   if (!value) {
-    return "Just now";
+    return formatter(null, { notYetText: "Just now" });
   }
-
-  const timestamp = Date.parse(value);
-
-  if (!Number.isFinite(timestamp)) {
-    return "Just now";
-  }
-
-  const deltaSeconds = Math.round((timestamp - Date.now()) / 1000);
-  const units = [
-    { amount: 60, unit: "second" as const },
-    { amount: 60, unit: "minute" as const },
-    { amount: 24, unit: "hour" as const },
-    { amount: 7, unit: "day" as const },
-    { amount: 4.34524, unit: "week" as const },
-    { amount: 12, unit: "month" as const },
-    { amount: Number.POSITIVE_INFINITY, unit: "year" as const },
-  ];
-
-  let valueForUnit = deltaSeconds;
-
-  for (const { amount, unit } of units) {
-    if (Math.abs(valueForUnit) < amount) {
-      return new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(
-        Math.trunc(valueForUnit),
-        unit,
-      );
-    }
-
-    valueForUnit /= amount;
-  }
-
-  return "Just now";
+  return formatter(value, {
+    justNowText: "Just now",
+    notYetText: "Just now",
+  });
 }
 
 function normalizePoolMode(value?: string | null): RuntimePoolMode {
   return value === "internal-shared" ? "internal-shared" : "dedicated";
 }
 
-function readPoolModeLabel(value?: string | null) {
-  return normalizePoolMode(value) === "internal-shared" ? "Enabled" : "Dedicated only";
+function readPoolModeLabel(
+  value: string | null | undefined,
+  t: Translator = (key) => key,
+) {
+  return normalizePoolMode(value) === "internal-shared"
+    ? t("Enabled")
+    : t("Dedicated only");
 }
 
 function readAccessSummaryLabel({
@@ -95,77 +85,97 @@ function readAccessSummaryLabel({
   grantCount,
   ownership,
   poolMode,
+  t,
 }: {
   accessMode: string | null;
   grantCount: number;
   ownership: RuntimeOwnership;
   poolMode: RuntimePoolMode;
+  t: Translator;
 }) {
   if (ownership === "internal-cluster") {
-    return "Cluster";
+    return t("Cluster");
   }
 
   if (ownership === "shared") {
-    return "Granted";
+    return t("Granted");
   }
 
   if (accessMode === "platform-shared") {
-    return "Platform shared";
+    return t("Platform shared");
   }
 
   if (grantCount > 0 && poolMode === "internal-shared") {
-    return grantCount === 1 ? "1 workspace + cluster" : `${grantCount} workspaces + cluster`;
+    return t(
+      grantCount === 1
+        ? "{count} workspace + cluster"
+        : "{count} workspaces + cluster",
+      {
+        count: grantCount,
+      },
+    );
   }
 
   if (grantCount > 0) {
-    return grantCount === 1 ? "1 workspace" : `${grantCount} workspaces`;
+    return t(
+      grantCount === 1 ? "{count} workspace" : "{count} workspaces",
+      {
+        count: grantCount,
+      },
+    );
   }
 
   if (poolMode === "internal-shared") {
-    return "Cluster enabled";
+    return t("Cluster enabled");
   }
 
-  return "Private";
+  return t("Private");
 }
 
 function readAccessMeta({
   ownerEmail,
   ownerLabel,
   ownership,
+  t,
 }: {
   ownerEmail: string | null;
   ownerLabel: string;
   ownership: RuntimeOwnership;
+  t: Translator;
 }) {
   if (ownership !== "shared") {
     return null;
   }
 
-  return ownerEmail ? `Shared by ${ownerEmail}` : `Shared by ${ownerLabel}`;
+  return ownerEmail
+    ? t("Shared by {label}", { label: ownerEmail })
+    : t("Shared by {label}", { label: ownerLabel });
 }
 
 function readClusterMeta({
   canManagePool,
   ownership,
   poolMode,
+  t,
 }: {
   canManagePool: boolean;
   ownership: RuntimeOwnership;
   poolMode: RuntimePoolMode;
+  t: Translator;
 }) {
   if (poolMode === "internal-shared") {
-    return "System access · internal cluster can deploy here";
+    return t("System access · internal cluster can deploy here");
   }
 
   if (ownership !== "owned") {
-    return "System access is not enabled";
+    return t("System access is not enabled");
   }
 
   if (canManagePool) {
-    return "Allow the internal cluster to deploy here";
+    return t("Allow the internal cluster to deploy here");
   }
 
-  return "Only admins can allow the internal cluster to deploy here";
+  return t("Only admins can allow the internal cluster to deploy here");
 }
 
 function readClusterTone(value: RuntimePoolMode) {
@@ -201,17 +211,6 @@ function AccessRow({
   );
 }
 
-const POOL_MODE_OPTIONS = [
-  {
-    label: "Dedicated",
-    value: "dedicated",
-  },
-  {
-    label: "Internal",
-    value: "internal-shared",
-  },
-] satisfies readonly SegmentedControlOption<RuntimePoolMode>[];
-
 export function RuntimeAccessPanel({
   accessMode,
   canManagePool = false,
@@ -233,8 +232,19 @@ export function RuntimeAccessPanel({
   runtimeId: string | null;
   runtimeType: string | null;
 }) {
+  const { formatRelativeTime: formatRelativeTimeValue, t } = useI18n();
   const confirm = useConfirmDialog();
   const { showToast } = useToast();
+  const poolModeOptions = [
+    {
+      label: t("Dedicated"),
+      value: "dedicated",
+    },
+    {
+      label: t("Internal"),
+      value: "internal-shared",
+    },
+  ] satisfies readonly SegmentedControlOption<RuntimePoolMode>[];
   const [sharing, setSharing] = useState<RuntimeSharingView | null>(null);
   const [sharingError, setSharingError] = useState<string | null>(null);
   const [loadingSharing, setLoadingSharing] = useState(() => canManageSharing);
@@ -252,11 +262,13 @@ export function RuntimeAccessPanel({
     grantCount,
     ownership,
     poolMode: currentPoolMode,
+    t,
   });
   const accessMeta = readAccessMeta({
     ownerEmail,
     ownerLabel,
     ownership,
+    t,
   });
   const showShareForm = ownership === "owned" && canManageSharing;
   const showClusterRow =
@@ -297,7 +309,7 @@ export function RuntimeAccessPanel({
           return;
         }
 
-        setSharingError(readErrorMessage(error));
+        setSharingError(readErrorMessage(error, t));
       })
       .finally(() => {
         if (!cancelled) {
@@ -308,7 +320,7 @@ export function RuntimeAccessPanel({
     return () => {
       cancelled = true;
     };
-  }, [canManageSharing, runtimeId]);
+  }, [canManageSharing, runtimeId, t]);
 
   async function handleGrant(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -320,7 +332,7 @@ export function RuntimeAccessPanel({
     const nextEmail = shareEmail.trim();
 
     if (!nextEmail) {
-      setShareEmailError("Enter an email address.");
+      setShareEmailError(t("Enter an email address."));
       return;
     }
 
@@ -346,11 +358,13 @@ export function RuntimeAccessPanel({
       });
       setSharingError(null);
       showToast({
-        message: `${nextEmail} can now deploy to this server.`,
+        message: t("{email} can now deploy to this server.", {
+          email: nextEmail,
+        }),
         variant: "success",
       });
     } catch (error) {
-      setShareEmailError(readErrorMessage(error));
+      setShareEmailError(readErrorMessage(error, t));
     } finally {
       setBusyAction(null);
     }
@@ -362,9 +376,14 @@ export function RuntimeAccessPanel({
     }
 
     const confirmed = await confirm({
-      confirmLabel: "Remove access",
-      description: `${label} will no longer be able to deploy to this server.`,
-      title: "Remove workspace access?",
+      confirmLabel: t("Remove access"),
+      description: t(
+        "{label} will no longer be able to deploy to this server.",
+        {
+          label,
+        },
+      ),
+      title: t("Remove workspace access?"),
     });
 
     if (!confirmed) {
@@ -387,12 +406,14 @@ export function RuntimeAccessPanel({
       });
       setSharingError(null);
       showToast({
-        message: `${label} no longer has deploy access.`,
+        message: t("{label} no longer has deploy access.", {
+          label,
+        }),
         variant: "success",
       });
     } catch (error) {
       showToast({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -440,17 +461,21 @@ export function RuntimeAccessPanel({
         message:
           reconciledMode === "internal-shared"
             ? data.nodeReconciled
-              ? "Internal cluster can now deploy to this server."
-              : "Internal cluster access is enabled. Node reconciliation will follow when the server is reachable."
+              ? t("Internal cluster can now deploy to this server.")
+              : t(
+                  "Internal cluster access is enabled. Node reconciliation will follow when the server is reachable.",
+                )
             : data.nodeReconciled
-              ? "Internal cluster access removed."
-              : "Internal cluster access removed. Node reconciliation will follow when the server is reachable.",
+              ? t("Internal cluster access removed.")
+              : t(
+                  "Internal cluster access removed. Node reconciliation will follow when the server is reachable.",
+                ),
         variant: "success",
       });
     } catch (error) {
       setCurrentPoolMode(previousValue);
       showToast({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -461,7 +486,7 @@ export function RuntimeAccessPanel({
   if (!runtimeId) {
     return (
       <InlineAlert variant="info">
-        Access controls become available after the runtime finishes reporting.
+        {t("Access controls become available after the runtime finishes reporting.")}
       </InlineAlert>
     );
   }
@@ -470,16 +495,16 @@ export function RuntimeAccessPanel({
     <div className="fg-runtime-access">
       <div className="fg-cluster-node-card__section-head fg-runtime-access__head">
         <div className="fg-runtime-access__copy">
-          <p className="fg-label fg-panel__eyebrow">Access</p>
+          <p className="fg-label fg-panel__eyebrow">{t("Access")}</p>
         </div>
 
         <div className="fg-runtime-access__meta">
           {accessMeta ? <span className="fg-runtime-access__meta-note">{accessMeta}</span> : null}
           <StatusBadge
             tone={
-              summaryLabel === "Private"
+              summaryLabel === t("Private")
                 ? "neutral"
-                : summaryLabel === "Cluster"
+                : summaryLabel === t("Cluster")
                   ? "info"
                   : "info"
             }
@@ -493,7 +518,7 @@ export function RuntimeAccessPanel({
         <form className="fg-runtime-access-form" onSubmit={handleGrant}>
           <div className="fg-runtime-access-form__field">
             <label className="fg-field-label fg-runtime-access-form__label" htmlFor={emailFieldId}>
-              <span>Workspace email</span>
+              <span>{t("Workspace email")}</span>
             </label>
 
             <div className="fg-runtime-access-form__controls">
@@ -523,11 +548,11 @@ export function RuntimeAccessPanel({
                 <Button
                   disabled={busyAction !== null}
                   loading={busyAction === "grant"}
-                  loadingLabel="Adding..."
+                  loadingLabel={t("Adding...")}
                   type="submit"
                   variant="primary"
                 >
-                  Add workspace
+                  {t("Add workspace")}
                 </Button>
               </div>
             </div>
@@ -543,7 +568,9 @@ export function RuntimeAccessPanel({
               role={shareEmailError ? "alert" : undefined}
             >
               {shareEmailError ??
-                "The recipient needs to sign in to Fugue and finish workspace setup first."}
+                t(
+                  "The recipient needs to sign in to Fugue and finish workspace setup first.",
+                )}
             </span>
           </div>
         </form>
@@ -554,7 +581,7 @@ export function RuntimeAccessPanel({
       ) : null}
 
       {loadingSharing ? (
-        <InlineAlert variant="info">Loading access roster…</InlineAlert>
+        <InlineAlert variant="info">{t("Loading access roster…")}</InlineAlert>
       ) : null}
 
       <div className="fg-runtime-share-list">
@@ -563,13 +590,13 @@ export function RuntimeAccessPanel({
             action={
               canManagePool && ownership === "owned" ? (
                 <SegmentedControl
-                  ariaLabel="Internal cluster access"
+                  ariaLabel={t("Internal cluster access")}
                   className="fg-runtime-share-row__segmented"
                   controlClassName="fg-console-nav"
                   itemClassName="fg-console-nav__link"
                   labelClassName="fg-console-nav__title"
                   onChange={handlePoolModeChange}
-                  options={POOL_MODE_OPTIONS.map((option) => ({
+                  options={poolModeOptions.map((option) => ({
                     ...option,
                     disabled: busyAction !== null,
                   }))}
@@ -581,7 +608,7 @@ export function RuntimeAccessPanel({
             badge={
               !canManagePool || ownership !== "owned"
                 ? {
-                    label: readPoolModeLabel(currentPoolMode),
+                    label: readPoolModeLabel(currentPoolMode, t),
                     tone: readClusterTone(currentPoolMode),
                   }
                 : undefined
@@ -590,16 +617,17 @@ export function RuntimeAccessPanel({
               canManagePool,
               ownership,
               poolMode: currentPoolMode,
+              t,
             })}
-            title="Internal cluster"
+            title={t("Internal cluster")}
           />
         ) : null}
 
         {ownership === "internal-cluster" ? (
           <AccessRow
-            badge={{ label: "System", tone: "info" }}
-            meta="Shared capacity · managed centrally"
-            title="Internal cluster"
+            badge={{ label: t("System"), tone: "info" }}
+            meta={t("Shared capacity · managed centrally")}
+            title={t("Internal cluster")}
           />
         ) : null}
 
@@ -609,21 +637,31 @@ export function RuntimeAccessPanel({
                 action={
                   <InlineButton
                     busy={busyAction === `revoke:${grant.tenantId}`}
-                    busyLabel="Removing..."
+                    busyLabel={t("Removing...")}
                     danger
                     disabled={busyAction !== null && busyAction !== `revoke:${grant.tenantId}`}
-                    label="Remove"
+                    label={t("Remove")}
                     onClick={() => handleRevoke(grant.tenantId, grant.label)}
                   />
                 }
-                badge={{ label: "Workspace" }}
+                badge={{ label: t("Workspace") }}
                 key={grant.tenantId}
                 meta={
                   grant.updatedAt
-                    ? `Workspace access · updated ${formatRelativeTime(grant.updatedAt)}`
+                    ? t("Workspace access · updated {time}", {
+                        time: formatRelativeTime(
+                          grant.updatedAt,
+                          formatRelativeTimeValue,
+                        ),
+                      })
                     : grant.createdAt
-                      ? `Workspace access · granted ${formatRelativeTime(grant.createdAt)}`
-                      : "Workspace access"
+                      ? t("Workspace access · granted {time}", {
+                          time: formatRelativeTime(
+                            grant.createdAt,
+                            formatRelativeTimeValue,
+                          ),
+                        })
+                      : t("Workspace access")
                 }
                 title={grant.label}
               />
@@ -632,7 +670,9 @@ export function RuntimeAccessPanel({
       </div>
 
       {showShareForm && !loadingSharing && !sharingError && sharing && sharing.grants.length === 0 ? (
-        <p className="fg-runtime-access-empty">No additional workspace access yet.</p>
+        <p className="fg-runtime-access-empty">
+          {t("No additional workspace access yet.")}
+        </p>
       ) : null}
     </div>
   );

@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 
+import { useI18n } from "@/components/providers/i18n-provider";
 import { StatusBadge } from "@/components/console/status-badge";
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { useToast } from "@/components/ui/toast";
+import type { TranslationValues } from "@/lib/i18n/core";
 import { readGitHubCommitHref } from "@/lib/fugue/source-links";
 import {
   readFugueSourceLabel,
@@ -103,23 +105,46 @@ const appImageInventoryRequestCache = new Map<
   Promise<AppImageInventoryResponse | null>
 >();
 
-function formatCompactNumber(value: number, digits = 1) {
-  const formatter = new Intl.NumberFormat("en-US", {
+type Translator = (key: string, values?: TranslationValues) => string;
+type NumberFormatter = (value: number, options?: Intl.NumberFormatOptions) => string;
+type DateTimeFormatter = (
+  value?: string | number | Date | null,
+  options?: {
+    emptyText?: string;
+    formatOptions?: Intl.DateTimeFormatOptions;
+  },
+) => string;
+type RelativeTimeFormatter = (
+  value?: string | number | Date | null,
+  options?: {
+    justNowText?: string;
+    notYetText?: string;
+  },
+) => string;
+
+function formatCompactNumber(
+  value: number,
+  digits = 1,
+  formatNumber: NumberFormatter,
+) {
+  return formatNumber(value, {
     maximumFractionDigits: digits,
     minimumFractionDigits: Number.isInteger(value) ? 0 : Math.min(1, digits),
   });
-
-  return formatter.format(value);
 }
 
-function formatBytesLabel(value?: number | null) {
+function formatBytesLabel(
+  value: number | null | undefined,
+  formatNumber: NumberFormatter,
+  t: Translator,
+) {
   if (
     value === null ||
     value === undefined ||
     !Number.isFinite(value) ||
     value < 0
   ) {
-    return "No stats";
+    return t("No stats");
   }
 
   const units = ["bytes", "KB", "MB", "GB", "TB", "PB"];
@@ -135,10 +160,15 @@ function formatBytesLabel(value?: number | null) {
 
   if (unitIndex === 0) {
     const rounded = Math.round(amount);
-    return `${rounded} ${rounded === 1 ? "byte" : "bytes"}`;
+    return t(rounded === 1 ? "{count} byte" : "{count} bytes", {
+      count: rounded,
+    });
   }
 
-  return `${formatCompactNumber(amount, digits)} ${units[unitIndex]}`;
+  return t("{value} {unit}", {
+    unit: units[unitIndex],
+    value: formatCompactNumber(amount, digits, formatNumber),
+  });
 }
 
 function parseTimestamp(value?: string | null) {
@@ -150,67 +180,37 @@ function parseTimestamp(value?: string | null) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function formatExactTime(value?: string | null) {
-  if (!value) {
-    return "Unknown";
-  }
-
-  const timestamp = parseTimestamp(value);
-
-  if (!timestamp) {
-    return "Unknown";
-  }
-
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(timestamp);
+function formatExactTime(
+  value: string | null | undefined,
+  formatDateTime: DateTimeFormatter,
+  t: Translator,
+) {
+  return formatDateTime(value, {
+    emptyText: t("Unknown"),
+    formatOptions: {
+      dateStyle: "medium",
+      timeStyle: "short",
+    },
+  });
 }
 
-function formatRelativeTime(value?: string | null) {
-  if (!value) {
-    return "Unknown";
-  }
-
-  const timestamp = parseTimestamp(value);
-
-  if (!timestamp) {
-    return "Unknown";
-  }
-
-  const deltaSeconds = Math.round((timestamp - Date.now()) / 1000);
-  const units = [
-    { amount: 60, unit: "second" as const },
-    { amount: 60, unit: "minute" as const },
-    { amount: 24, unit: "hour" as const },
-    { amount: 7, unit: "day" as const },
-    { amount: 4.34524, unit: "week" as const },
-    { amount: 12, unit: "month" as const },
-    { amount: Number.POSITIVE_INFINITY, unit: "year" as const },
-  ];
-
-  let valueForUnit = deltaSeconds;
-
-  for (const { amount, unit } of units) {
-    if (Math.abs(valueForUnit) < amount) {
-      return new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(
-        Math.trunc(valueForUnit),
-        unit,
-      );
-    }
-
-    valueForUnit /= amount;
-  }
-
-  return "Just now";
+function formatRelativeTime(
+  value: string | null | undefined,
+  formatRelativeTimeValue: RelativeTimeFormatter,
+  t: Translator,
+) {
+  return formatRelativeTimeValue(value, {
+    justNowText: t("Just now"),
+    notYetText: t("Unknown"),
+  });
 }
 
-function readErrorMessage(error: unknown) {
+function readErrorMessage(error: unknown, t: Translator = (key) => key) {
   if (error instanceof Error && error.message) {
     return error.message;
   }
 
-  return "Request failed.";
+  return t("Request failed.");
 }
 
 async function readResponseError(response: Response) {
@@ -249,25 +249,35 @@ function shortHash(value?: string | null, length = 12) {
   return normalized ? normalized.slice(0, length) : null;
 }
 
-function readVersionTitle(version: AppImageVersion) {
+function readVersionTitle(version: AppImageVersion, t: Translator) {
   const sourceLabel = readFugueSourceLabel(version.source);
 
   if (sourceLabel && sourceLabel !== "Unspecified source") {
     return sourceLabel;
   }
 
-  return version.current ? "Current managed image" : "Saved managed image";
+  return version.current
+    ? t("Current managed image")
+    : t("Saved managed image");
 }
 
-function readVersionSubtitle(version: AppImageVersion) {
+function readVersionSubtitle(
+  version: AppImageVersion,
+  formatRelativeTimeValue: RelativeTimeFormatter,
+  t: Translator,
+) {
   const details = [readFugueSourceMeta(version.source)];
 
   if (version.lastDeployedAt) {
-    details.push(`Last deployed ${formatRelativeTime(version.lastDeployedAt)}`);
+    details.push(
+      t("Last deployed {time}", {
+        time: formatRelativeTime(version.lastDeployedAt, formatRelativeTimeValue, t),
+      }),
+    );
   }
 
   return details
-    .filter((value): value is string => Boolean(value) && value !== "Unknown")
+    .filter((value): value is string => Boolean(value) && value !== t("Unknown"))
     .join(" / ");
 }
 
@@ -283,26 +293,33 @@ function readVersionTone(version: AppImageVersion) {
   return "warning" as const;
 }
 
-function readVersionStatusLabel(version: AppImageVersion) {
+function readVersionStatusLabel(version: AppImageVersion, t: Translator) {
   if (version.current) {
-    return "Current";
+    return t("Current");
   }
 
   if (version.status === "available") {
-    return "Saved";
+    return t("Saved");
   }
 
-  return "Missing";
+  return t("Missing");
 }
 
-function readDeleteDescription(version: AppImageVersion, appName: string) {
+function readDeleteDescription(
+  version: AppImageVersion,
+  appName: string,
+  t: Translator,
+) {
   const details = [
-    `${readVersionTitle(version)} will be removed from ${appName}'s saved image history.`,
+    t("{title} will be removed from {appName}'s saved image history.", {
+      appName,
+      title: readVersionTitle(version, t),
+    }),
   ];
 
   if (version.reclaimableSizeBytes <= 0) {
     details.push(
-      "Most image data for this version is still shared with other saved images.",
+      t("Most image data for this version is still shared with other saved images."),
     );
   }
 
@@ -313,14 +330,23 @@ function readClearHistoryDescription(
   versions: AppImageVersion[],
   appName: string,
   reclaimableSizeBytes: number,
+  t: Translator,
 ) {
   const parts = [
-    `${versions.length} saved image version${versions.length === 1 ? "" : "s"} will be removed from ${appName}.`,
+    t(
+      versions.length === 1
+        ? "{count} saved image version will be removed from {appName}."
+        : "{count} saved image versions will be removed from {appName}.",
+      {
+        appName,
+        count: versions.length,
+      },
+    ),
   ];
 
   if (reclaimableSizeBytes <= 0) {
     parts.push(
-      "Most image data in this history is still shared with other saved images.",
+      t("Most image data in this history is still shared with other saved images."),
     );
   }
 
@@ -331,29 +357,51 @@ function buildClearHistoryToast(
   deletedCount: number,
   alreadyMissingCount: number,
   failedCount: number,
+  t: Translator,
 ) {
-  const parts = [];
+  const parts: string[] = [];
 
   if (deletedCount > 0) {
     parts.push(
-      `Deleted ${deletedCount} saved image version${deletedCount === 1 ? "" : "s"}.`,
+      t(
+        deletedCount === 1
+          ? "Deleted {count} saved image version."
+          : "Deleted {count} saved image versions.",
+        {
+          count: deletedCount,
+        },
+      ),
     );
   }
 
   if (alreadyMissingCount > 0) {
     parts.push(
-      `${alreadyMissingCount} version${alreadyMissingCount === 1 ? "" : "s"} were already missing.`,
+      t(
+        alreadyMissingCount === 1
+          ? "{count} version was already missing."
+          : "{count} versions were already missing.",
+        {
+          count: alreadyMissingCount,
+        },
+      ),
     );
   }
 
   if (failedCount > 0) {
     parts.push(
-      `Failed to remove ${failedCount} version${failedCount === 1 ? "" : "s"}.`,
+      t(
+        failedCount === 1
+          ? "Failed to remove {count} version."
+          : "Failed to remove {count} versions.",
+        {
+          count: failedCount,
+        },
+      ),
     );
   }
 
   return {
-    message: parts.join(" ") || "Saved image history updated.",
+    message: parts.join(" ") || t("Saved image history updated."),
     variant: failedCount > 0 ? ("error" as const) : ("success" as const),
   };
 }
@@ -531,6 +579,7 @@ export function AppImagesPanel({
   appName,
   onRequestRefreshWindow,
 }: AppImagesPanelProps) {
+  const { formatDateTime, formatNumber, formatRelativeTime: formatRelativeTimeValue, t } = useI18n();
   const confirm = useConfirmDialog();
   const { showToast } = useToast();
   const [inventory, setInventory] = useState<AppImageInventoryResponse | null>(
@@ -586,7 +635,7 @@ export function AppImagesPanel({
         }
         setRefreshing(false);
         showToast({
-          message: readErrorMessage(error),
+          message: readErrorMessage(error, t),
           variant: "error",
         });
       });
@@ -594,7 +643,7 @@ export function AppImagesPanel({
     return () => {
       cancelled = true;
     };
-  }, [appId, refreshToken, showToast]);
+  }, [appId, refreshToken, showToast, t]);
 
   const currentVersions =
     inventory?.versions.filter((version) => version.current) ?? [];
@@ -604,6 +653,12 @@ export function AppImagesPanel({
     (version) => version.deleteSupported,
   );
   const clearHistoryKey = "clear-history";
+  const formatBytes = (value?: number | null) =>
+    formatBytesLabel(value, formatNumber, t);
+  const formatExact = (value?: string | null) =>
+    formatExactTime(value, formatDateTime, t);
+  const formatRelative = (value?: string | null) =>
+    formatRelativeTime(value, formatRelativeTimeValue, t);
 
   function applyInventory(
     nextInventory:
@@ -651,12 +706,14 @@ export function AppImagesPanel({
     try {
       await copyText(value);
       showToast({
-        message: `${label} copied.`,
+        message: t("{label} copied.", { label }),
         variant: "success",
       });
     } catch {
       showToast({
-        message: `Unable to copy ${label.toLowerCase()}.`,
+        message: t("Unable to copy {label}.", {
+          label: label.toLowerCase(),
+        }),
         variant: "error",
       });
     }
@@ -698,14 +755,14 @@ export function AppImagesPanel({
 
       showToast({
         message: response?.operation?.id
-          ? "Historical image queued for deploy."
-          : "Historical image selected for deploy.",
+          ? t("Historical image queued for deploy.")
+          : t("Historical image selected for deploy."),
         variant: "success",
       });
       onRequestRefreshWindow?.(90_000);
     } catch (error) {
       showToast({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -721,9 +778,9 @@ export function AppImagesPanel({
     }
 
     const confirmed = await confirm({
-      confirmLabel: "Delete image",
-      description: readDeleteDescription(version, appName),
-      title: "Delete saved image?",
+      confirmLabel: t("Delete image"),
+      description: readDeleteDescription(version, appName, t),
+      title: t("Delete saved image?"),
     });
 
     if (!confirmed) {
@@ -741,13 +798,13 @@ export function AppImagesPanel({
 
       showToast({
         message: response?.alreadyMissing
-          ? "Saved image was already missing."
-          : "Saved image deleted.",
+          ? t("Saved image was already missing.")
+          : t("Saved image deleted."),
         variant: "success",
       });
     } catch (error) {
       showToast({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -761,13 +818,14 @@ export function AppImagesPanel({
     }
 
     const confirmed = await confirm({
-      confirmLabel: "Clear history",
+      confirmLabel: t("Clear history"),
       description: readClearHistoryDescription(
         clearableVersions,
         appName,
         inventory?.summary.reclaimableSizeBytes ?? 0,
+        t,
       ),
-      title: "Delete all saved images?",
+      title: t("Delete all saved images?"),
     });
 
     if (!confirmed) {
@@ -809,6 +867,7 @@ export function AppImagesPanel({
         deletedCount,
         alreadyMissingCount,
         failedCount,
+        t,
       ),
     );
     setBusyKey(null);
@@ -837,11 +896,13 @@ export function AppImagesPanel({
                 live={version.current}
                 tone={readVersionTone(version)}
               >
-                {readVersionStatusLabel(version)}
+                {readVersionStatusLabel(version, t)}
               </StatusBadge>
               {version.source?.commitSha ? (
                 <span className="fg-app-images__chip">
-                  Commit {shortHash(version.source.commitSha)}
+                  {t("Commit {hash}", {
+                    hash: shortHash(version.source.commitSha) ?? "",
+                  })}
                 </span>
               ) : null}
               {version.source?.uploadFilename ? (
@@ -851,29 +912,29 @@ export function AppImagesPanel({
               ) : null}
             </div>
             <strong className="fg-app-images__card-title">
-              {readVersionTitle(version)}
+              {readVersionTitle(version, t)}
             </strong>
             <p className="fg-app-images__card-meta">
-              {readVersionSubtitle(version)}
+              {readVersionSubtitle(version, formatRelativeTimeValue, t)}
             </p>
           </div>
 
           <div className="fg-app-images__card-actions">
             <Button
               onClick={() => {
-                void handleCopy(version.imageRef, "Image reference");
+                void handleCopy(version.imageRef, t("Image reference"));
               }}
               size="compact"
               type="button"
               variant="ghost"
             >
-              Copy ref
+              {t("Copy ref")}
             </Button>
             {!version.current && version.redeploySupported ? (
               <Button
                 disabled={actionDisabled && busyKey !== redeployKey}
                 loading={busyKey === redeployKey}
-                loadingLabel="Queueing…"
+                loadingLabel={t("Queueing…")}
                 onClick={() => {
                   void handleRedeploy(version);
                 }}
@@ -881,14 +942,14 @@ export function AppImagesPanel({
                 type="button"
                 variant="secondary"
               >
-                Redeploy
+                {t("Redeploy")}
               </Button>
             ) : null}
             {!version.current && version.deleteSupported ? (
               <Button
                 disabled={actionDisabled && busyKey !== deleteKey}
                 loading={busyKey === deleteKey}
-                loadingLabel="Deleting…"
+                loadingLabel={t("Deleting…")}
                 onClick={() => {
                   void handleDelete(version);
                 }}
@@ -896,7 +957,7 @@ export function AppImagesPanel({
                 type="button"
                 variant="danger"
               >
-                Delete
+                {t("Delete")}
               </Button>
             ) : null}
           </div>
@@ -904,14 +965,14 @@ export function AppImagesPanel({
 
         <dl className="fg-app-images__details">
           <div>
-            <dt>Image ref</dt>
+            <dt>{t("Image ref")}</dt>
             <dd className="fg-app-images__mono" title={version.imageRef}>
               {version.imageRef}
             </dd>
           </div>
           {runtimeImageRef ? (
             <div>
-              <dt>Runtime ref</dt>
+              <dt>{t("Runtime ref")}</dt>
               <dd className="fg-app-images__mono" title={runtimeImageRef}>
                 {runtimeImageRef}
               </dd>
@@ -919,27 +980,27 @@ export function AppImagesPanel({
           ) : null}
           {version.digest ? (
             <div>
-              <dt>Digest</dt>
+              <dt>{t("Digest")}</dt>
               <dd className="fg-app-images__mono" title={version.digest}>
                 {version.digest}
               </dd>
             </div>
           ) : null}
           <div>
-            <dt>Stored size</dt>
-            <dd>{formatBytesLabel(version.sizeBytes)}</dd>
+            <dt>{t("Stored size")}</dt>
+            <dd>{formatBytes(version.sizeBytes)}</dd>
           </div>
           {version.lastDeployedAt ? (
             <div>
-              <dt>Last deployed</dt>
-              <dd title={formatExactTime(version.lastDeployedAt)}>
-                {formatRelativeTime(version.lastDeployedAt)}
+              <dt>{t("Last deployed")}</dt>
+              <dd title={formatExact(version.lastDeployedAt)}>
+                {formatRelative(version.lastDeployedAt)}
               </dd>
             </div>
           ) : null}
           {commitHref ? (
             <div>
-              <dt>Commit</dt>
+              <dt>{t("Commit")}</dt>
               <dd>
                 <a
                   className="fg-app-images__link"
@@ -947,7 +1008,7 @@ export function AppImagesPanel({
                   rel="noreferrer"
                   target="_blank"
                 >
-                  {shortHash(version.source?.commitSha) ?? "Open commit"}
+                  {shortHash(version.source?.commitSha) ?? t("Open commit")}
                 </a>
               </dd>
             </div>
@@ -961,11 +1022,14 @@ export function AppImagesPanel({
     <div className="fg-workbench-section fg-app-images">
       <div className="fg-workbench-section__head">
         <div className="fg-workbench-section__copy fg-app-images__copy">
-          <p className="fg-label fg-panel__eyebrow">Images</p>
+          <p className="fg-label fg-panel__eyebrow">{t("Images")}</p>
           <p className="fg-console-note">
-            Review the current managed image and older saved versions for{" "}
-            {appName}. Image storage is tracked separately from live service
-            disk usage here, and stale versions can be redeployed or removed.
+            {t(
+              "Review the current managed image and older saved versions for {appName}. Image storage is tracked separately from live service disk usage here, and stale versions can be redeployed or removed.",
+              {
+                appName,
+              },
+            )}
           </p>
         </div>
 
@@ -973,7 +1037,7 @@ export function AppImagesPanel({
           <Button
             disabled={status === "loading" || refreshing || Boolean(busyKey)}
             loading={refreshing}
-            loadingLabel="Refreshing…"
+            loadingLabel={t("Refreshing…")}
             onClick={() => {
               setRefreshToken((value) => value + 1);
             }}
@@ -981,13 +1045,13 @@ export function AppImagesPanel({
             type="button"
             variant="secondary"
           >
-            Refresh now
+            {t("Refresh now")}
           </Button>
           {inventory?.registryConfigured && clearableVersions.length > 0 ? (
             <Button
               disabled={Boolean(busyKey && busyKey !== clearHistoryKey)}
               loading={busyKey === clearHistoryKey}
-              loadingLabel="Clearing…"
+              loadingLabel={t("Clearing…")}
               onClick={() => {
                 void handleClearHistory();
               }}
@@ -995,19 +1059,19 @@ export function AppImagesPanel({
               type="button"
               variant="danger"
             >
-              Clear history
+              {t("Clear history")}
             </Button>
           ) : null}
         </div>
       </div>
 
       {status === "loading" && !inventory ? (
-        <p className="fg-console-note">Loading saved images…</p>
+        <p className="fg-console-note">{t("Loading saved images…")}</p>
       ) : null}
 
       {status === "error" ? (
         <InlineAlert variant="error">
-          Unable to load saved images right now. Try refreshing this panel.
+          {t("Unable to load saved images right now. Try refreshing this panel.")}
         </InlineAlert>
       ) : null}
 
@@ -1015,41 +1079,58 @@ export function AppImagesPanel({
         <>
           {!inventory.registryConfigured ? (
             <InlineAlert variant="info">
-              Internal registry inventory is not configured for this workspace
-              yet.
+              {t("Internal registry inventory is not configured for this workspace yet.")}
             </InlineAlert>
           ) : null}
 
           {inventory.registryConfigured ? (
             <div className="fg-app-images__summary-grid">
               <article className="fg-app-images__summary-card">
-                <span>Total image storage</span>
+                <span>{t("Total image storage")}</span>
                 <strong>
-                  {formatBytesLabel(inventory.summary.totalSizeBytes)}
+                  {formatBytes(inventory.summary.totalSizeBytes)}
                 </strong>
                 <p>
-                  {inventory.summary.versionCount} version
-                  {inventory.summary.versionCount === 1 ? "" : "s"}
+                  {t(
+                    inventory.summary.versionCount === 1
+                      ? "{count} version"
+                      : "{count} versions",
+                    {
+                      count: inventory.summary.versionCount,
+                    },
+                  )}
                 </p>
               </article>
               <article className="fg-app-images__summary-card">
-                <span>Current release</span>
+                <span>{t("Current release")}</span>
                 <strong>
-                  {formatBytesLabel(inventory.summary.currentSizeBytes)}
+                  {formatBytes(inventory.summary.currentSizeBytes)}
                 </strong>
                 <p>
-                  {inventory.summary.currentVersionCount} active version
-                  {inventory.summary.currentVersionCount === 1 ? "" : "s"}
+                  {t(
+                    inventory.summary.currentVersionCount === 1
+                      ? "{count} active version"
+                      : "{count} active versions",
+                    {
+                      count: inventory.summary.currentVersionCount,
+                    },
+                  )}
                 </p>
               </article>
               <article className="fg-app-images__summary-card">
-                <span>Saved history</span>
+                <span>{t("Saved history")}</span>
                 <strong>
-                  {formatBytesLabel(inventory.summary.staleSizeBytes)}
+                  {formatBytes(inventory.summary.staleSizeBytes)}
                 </strong>
                 <p>
-                  {inventory.summary.staleVersionCount} old version
-                  {inventory.summary.staleVersionCount === 1 ? "" : "s"}
+                  {t(
+                    inventory.summary.staleVersionCount === 1
+                      ? "{count} old version"
+                      : "{count} old versions",
+                    {
+                      count: inventory.summary.staleVersionCount,
+                    },
+                  )}
                 </p>
               </article>
             </div>
@@ -1058,10 +1139,11 @@ export function AppImagesPanel({
           {inventory.registryConfigured ? (
             inventory.summary.versionCount === 0 ? (
               <div className="fg-app-images__empty">
-                <strong>No managed image history yet.</strong>
+                <strong>{t("No managed image history yet.")}</strong>
                 <p>
-                  Historical versions appear here after the app has been
-                  imported or redeployed through Fugue.
+                  {t(
+                    "Historical versions appear here after the app has been imported or redeployed through Fugue.",
+                  )}
                 </p>
               </div>
             ) : (
@@ -1071,10 +1153,10 @@ export function AppImagesPanel({
                     <div className="fg-app-images__section-head">
                       <div>
                         <p className="fg-label fg-panel__eyebrow">
-                          Current release
+                          {t("Current release")}
                         </p>
                         <p className="fg-console-note">
-                          The image version that currently represents this app.
+                          {t("The image version that currently represents this app.")}
                         </p>
                       </div>
                     </div>
@@ -1088,11 +1170,12 @@ export function AppImagesPanel({
                   <div className="fg-app-images__section-head">
                     <div>
                       <p className="fg-label fg-panel__eyebrow">
-                        Saved history
+                        {t("Saved history")}
                       </p>
                       <p className="fg-console-note">
-                        Redeploy a known-good version, or delete stale images
-                        you no longer need.
+                        {t(
+                          "Redeploy a known-good version, or delete stale images you no longer need.",
+                        )}
                       </p>
                     </div>
                   </div>
@@ -1105,8 +1188,8 @@ export function AppImagesPanel({
                     </div>
                   ) : (
                     <div className="fg-app-images__empty fg-app-images__empty--compact">
-                      <strong>No stale images to clean up.</strong>
-                      <p>Only the current managed image is stored right now.</p>
+                      <strong>{t("No stale images to clean up.")}</strong>
+                      <p>{t("Only the current managed image is stored right now.")}</p>
                     </div>
                   )}
                 </section>

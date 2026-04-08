@@ -3,6 +3,7 @@
 import { startTransition, useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
+import { useI18n } from "@/components/providers/i18n-provider";
 import { StatusBadge } from "@/components/console/status-badge";
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -31,20 +32,22 @@ type ContinuityResponse = {
   alreadyCurrent?: boolean;
 };
 
-function readErrorMessage(error: unknown) {
+type Translator = (key: string, values?: Record<string, string | number>) => string;
+
+function readErrorMessage(error: unknown, t: Translator = (key) => key) {
   if (error instanceof Error && error.message) {
     return error.message;
   }
 
-  return "Request failed.";
+  return t("Request failed.");
 }
 
-async function readResponseError(response: Response) {
+async function readResponseError(response: Response, t: Translator = (key) => key) {
   const body = await response.text().catch(() => "");
   const trimmed = body.trim();
 
   if (!trimmed) {
-    return `Request failed with status ${response.status}.`;
+    return t("Request failed with status {status}.", { status: response.status });
   }
 
   try {
@@ -60,11 +63,11 @@ async function readResponseError(response: Response) {
   return trimmed;
 }
 
-async function requestJson<T>(input: RequestInfo, init?: RequestInit) {
+async function requestJson<T>(input: RequestInfo, init?: RequestInit, t: Translator = (key) => key) {
   const response = await fetch(input, init);
 
   if (!response.ok) {
-    throw new Error(await readResponseError(response));
+    throw new Error(await readResponseError(response, t));
   }
 
   return (await response.json().catch(() => null)) as T | null;
@@ -107,7 +110,10 @@ function readInitialDatabaseTransferTargetRuntimeId(
   return readDefaultImportRuntimeId(transferTargets);
 }
 
-function readDatabaseTopologyLabel(service: ConsoleGalleryBackingServiceView) {
+function readDatabaseTopologyLabel(
+  service: ConsoleGalleryBackingServiceView,
+  t: Translator = (key) => key,
+) {
   const instances = Math.max(service.databaseInstances ?? 1, 1);
   const synchronousReplicas = Math.max(
     service.databaseSynchronousReplicas ?? 0,
@@ -119,10 +125,20 @@ function readDatabaseTopologyLabel(service: ConsoleGalleryBackingServiceView) {
     instances > 1 ||
     synchronousReplicas > 0
   ) {
-    return `${instances} instances / ${synchronousReplicas} sync replica${synchronousReplicas === 1 ? "" : "s"}`;
+    return t(
+      synchronousReplicas === 1
+        ? "{instances} instances / {replicas} sync replica"
+        : "{instances} instances / {replicas} sync replicas",
+      {
+        instances,
+        replicas: synchronousReplicas,
+      },
+    );
   }
 
-  return `${instances} instance`;
+  return t(instances === 1 ? "{count} instance" : "{count} instances", {
+    count: instances,
+  });
 }
 
 function readInlineAlertVariantForTone(tone: ConsoleTone) {
@@ -138,35 +154,38 @@ function readInlineAlertVariantForTone(tone: ConsoleTone) {
   }
 }
 
-function readPrimaryPlacementPendingMessage() {
-  return "Primary placement stays as-is until a later maintenance window, rebuild, node drain, or explicit rebalance.";
+function readPrimaryPlacementPendingMessage(t: Translator = (key) => key) {
+  return t(
+    "Primary placement stays as-is until a later maintenance window, rebuild, node drain, or explicit rebalance.",
+  );
 }
 
 function readDatabaseContinuityStandbyLabel(
   service: ConsoleGalleryBackingServiceView,
   configuredTargetLabel: string,
   pendingTargetLabel: string,
+  t: Translator = (key) => key,
 ) {
   switch (service.databaseContinuity.state) {
     case "disable-queued":
     case "removing-standby":
       return service.databaseFailoverTargetRuntimeId
-        ? `${configuredTargetLabel} (removing)`
-        : "Removing standby";
+        ? t("{target} (removing)", { target: configuredTargetLabel })
+        : t("Removing standby");
     case "enable-queued":
     case "provisioning-standby":
     case "standby-update-queued":
     case "updating-standby":
       return service.databaseContinuity.pendingTargetRuntimeId
-        ? `${pendingTargetLabel} (applying)`
+        ? t("{target} (applying)", { target: pendingTargetLabel })
         : pendingTargetLabel;
     case "configured":
       return service.databaseFailoverConfigured
         ? configuredTargetLabel
-        : "Not configured";
+        : t("Not configured");
     case "off":
     default:
-      return "Not configured";
+      return t("Not configured");
   }
 }
 
@@ -175,36 +194,82 @@ function readDatabaseContinuityMessage(
   primaryRuntimeLabel: string,
   configuredTargetLabel: string,
   pendingTargetLabel: string,
+  t: Translator = (key) => key,
 ) {
   const configuredStandbyLabel = service.databaseFailoverTargetRuntimeId
     ? configuredTargetLabel
-    : "the current standby";
+    : t("the current standby");
   const primaryPlacementPendingMessage =
     service.databaseContinuity.placementPendingRebalance
-      ? ` ${readPrimaryPlacementPendingMessage()}`
+      ? ` ${readPrimaryPlacementPendingMessage(t)}`
       : "";
 
   switch (service.databaseContinuity.state) {
     case "disable-queued":
-      return `Failover disable is queued. ${primaryRuntimeLabel} keeps serving writes while Fugue removes the standby.${primaryPlacementPendingMessage}`;
+      return t(
+        "Failover disable is queued. {primaryRuntimeLabel} keeps serving writes while Fugue removes the standby.{suffix}",
+        {
+          primaryRuntimeLabel,
+          suffix: primaryPlacementPendingMessage,
+        },
+      );
     case "enable-queued":
-      return `Failover enable is queued. Fugue will prepare ${pendingTargetLabel} as the standby while ${primaryRuntimeLabel} keeps serving writes.${primaryPlacementPendingMessage}`;
+      return t(
+        "Failover enable is queued. Fugue will prepare {pendingTargetLabel} as the standby while {primaryRuntimeLabel} keeps serving writes.{suffix}",
+        {
+          pendingTargetLabel,
+          primaryRuntimeLabel,
+          suffix: primaryPlacementPendingMessage,
+        },
+      );
     case "provisioning-standby":
-      return `Fugue is provisioning ${pendingTargetLabel} as the standby. ${primaryRuntimeLabel} keeps serving writes throughout the change.${primaryPlacementPendingMessage}`;
+      return t(
+        "Fugue is provisioning {pendingTargetLabel} as the standby. {primaryRuntimeLabel} keeps serving writes throughout the change.{suffix}",
+        {
+          pendingTargetLabel,
+          primaryRuntimeLabel,
+          suffix: primaryPlacementPendingMessage,
+        },
+      );
     case "removing-standby":
-      return `Fugue is removing the standby from ${configuredStandbyLabel}. ${primaryRuntimeLabel} keeps serving writes throughout the change.${primaryPlacementPendingMessage}`;
+      return t(
+        "Fugue is removing the standby from {configuredStandbyLabel}. {primaryRuntimeLabel} keeps serving writes throughout the change.{suffix}",
+        {
+          configuredStandbyLabel,
+          primaryRuntimeLabel,
+          suffix: primaryPlacementPendingMessage,
+        },
+      );
     case "standby-update-queued":
-      return `Standby update is queued. Fugue will move failover to ${pendingTargetLabel} while ${primaryRuntimeLabel} keeps serving writes.${primaryPlacementPendingMessage}`;
+      return t(
+        "Standby update is queued. Fugue will move failover to {pendingTargetLabel} while {primaryRuntimeLabel} keeps serving writes.{suffix}",
+        {
+          pendingTargetLabel,
+          primaryRuntimeLabel,
+          suffix: primaryPlacementPendingMessage,
+        },
+      );
     case "updating-standby":
-      return `Fugue is moving the standby to ${pendingTargetLabel}. ${primaryRuntimeLabel} keeps serving writes throughout the change.${primaryPlacementPendingMessage}`;
+      return t(
+        "Fugue is moving the standby to {pendingTargetLabel}. {primaryRuntimeLabel} keeps serving writes throughout the change.{suffix}",
+        {
+          pendingTargetLabel,
+          primaryRuntimeLabel,
+          suffix: primaryPlacementPendingMessage,
+        },
+      );
     case "configured":
       return service.databaseContinuity.placementPendingRebalance
-        ? `Standby is ready. ${readPrimaryPlacementPendingMessage()}`
+        ? t("Standby is ready. {message}", {
+            message: readPrimaryPlacementPendingMessage(t),
+          })
         : null;
     case "off":
     default:
       return service.databaseContinuity.placementPendingRebalance
-        ? `Failover is off and the standby is gone. ${readPrimaryPlacementPendingMessage()}`
+        ? t("Failover is off and the standby is gone. {message}", {
+            message: readPrimaryPlacementPendingMessage(t),
+          })
         : null;
   }
 }
@@ -224,6 +289,7 @@ export function BackingServiceSettingsPanel({
 }) {
   const router = useRouter();
   const confirm = useConfirmDialog();
+  const { locale, t } = useI18n();
   const { showToast } = useToast();
   const primaryRuntimeId = service.databaseRuntimeId ?? ownerAppRuntimeId;
   const continuityTargets = readManagedRuntimeTargets(
@@ -296,32 +362,38 @@ export function BackingServiceSettingsPanel({
   const primaryRuntimeLabel = readRuntimeTargetLabel(
     runtimeTargets,
     primaryRuntimeId,
-    "Primary runtime unavailable",
+    locale,
+    t("Primary runtime unavailable"),
   );
   const configuredFailoverTargetLabel = readRuntimeTargetLabel(
     runtimeTargets,
     service.databaseFailoverTargetRuntimeId,
-    "Not configured",
+    locale,
+    t("Not configured"),
   );
   const pendingFailoverTargetLabel = readRuntimeTargetLabel(
     runtimeTargets,
     service.databaseContinuity.pendingTargetRuntimeId,
-    "Pending standby unavailable",
+    locale,
+    t("Pending standby unavailable"),
   );
   const selectedFailoverTargetLabel = readRuntimeTargetLabel(
     runtimeTargets,
     selectedFailoverTargetRuntimeId,
-    "No standby selected",
+    locale,
+    t("No standby selected"),
   );
   const activeTransferTargetLabel = readRuntimeTargetLabel(
     runtimeTargets,
     service.databaseTransferTargetRuntimeId,
-    "Destination unavailable",
+    locale,
+    t("Destination unavailable"),
   );
   const selectedTransferTargetLabel = readRuntimeTargetLabel(
     runtimeTargets,
     selectedTransferTargetRuntimeId,
-    "No destination selected",
+    locale,
+    t("No destination selected"),
   );
   const databaseContinuityBusy = service.databaseContinuity.live;
   const databaseContinuityMessage = readDatabaseContinuityMessage(
@@ -329,44 +401,48 @@ export function BackingServiceSettingsPanel({
     primaryRuntimeLabel,
     configuredFailoverTargetLabel,
     pendingFailoverTargetLabel,
+    t,
   );
   const standbyRuntimeLabel = readDatabaseContinuityStandbyLabel(
     service,
     configuredFailoverTargetLabel,
     pendingFailoverTargetLabel,
+    t,
   );
   const databaseTransferInProgress = Boolean(
     service.databaseTransferTargetRuntimeId,
   );
   const continuityTransitionMessage = databaseContinuityBusy
-    ? "Database failover is already changing."
+    ? t("Database failover is already changing.")
     : null;
   const transferInProgressMessage = databaseTransferInProgress
-    ? `A database transfer to ${activeTransferTargetLabel} is already in progress.`
+    ? t("A database transfer to {target} is already in progress.", {
+        target: activeTransferTargetLabel,
+      })
     : null;
   const continuityBlockerMessage = !service.ownerAppId
-    ? "This database is not attached to an application."
+    ? t("This database is not attached to an application.")
     : transferInProgressMessage
       ? transferInProgressMessage
       : runtimeTargetInventoryError
-        ? "Runtime list unavailable."
+        ? t("Runtime list unavailable.")
         : !primaryRuntimeId
-          ? "Primary runtime unavailable."
+          ? t("Primary runtime unavailable.")
           : continuityTargets.length === 0
-            ? "Add another managed runtime before turning on database failover."
+            ? t("Add another managed runtime before turning on database failover.")
             : null;
   const transferBlockerMessage = !service.ownerAppId
-    ? "This database is not attached to an application."
+    ? t("This database is not attached to an application.")
     : continuityTransitionMessage
       ? continuityTransitionMessage
     : transferInProgressMessage
       ? transferInProgressMessage
       : runtimeTargetInventoryError
-        ? "Runtime list unavailable."
+        ? t("Runtime list unavailable.")
         : !primaryRuntimeId
-          ? "Primary runtime unavailable."
+          ? t("Primary runtime unavailable.")
           : transferTargets.length === 0
-            ? "Add another managed runtime before moving this database."
+            ? t("Add another managed runtime before moving this database.")
           : null;
   const canSave =
     !saving &&
@@ -389,8 +465,8 @@ export function BackingServiceSettingsPanel({
     if (!service.ownerAppId || databaseContinuityBusy) {
       showToast({
         message: !service.ownerAppId
-          ? "This database cannot be configured from the console yet."
-          : "Database failover is already changing. Wait for the current step to finish.",
+          ? t("This database cannot be configured from the console yet.")
+          : t("Database failover is already changing. Wait for the current step to finish."),
         variant: "info",
       });
       return;
@@ -398,7 +474,7 @@ export function BackingServiceSettingsPanel({
 
     if (!selectedFailoverTargetRuntimeId) {
       showToast({
-        message: continuityBlockerMessage ?? "Choose a standby runtime.",
+        message: continuityBlockerMessage ?? t("Choose a standby runtime."),
         variant: "info",
       });
       return;
@@ -421,12 +497,17 @@ export function BackingServiceSettingsPanel({
           },
           method: "PATCH",
         },
+        t,
       );
 
       showToast({
         message: result?.alreadyCurrent
-          ? `Database failover already points to ${selectedFailoverTargetLabel}.`
-          : `Database failover saved. Standby runtime: ${selectedFailoverTargetLabel}.`,
+          ? t("Database failover already points to {target}.", {
+              target: selectedFailoverTargetLabel,
+            })
+          : t("Database failover saved. Standby runtime: {target}.", {
+              target: selectedFailoverTargetLabel,
+            }),
         variant: "success",
       });
       onRefreshRequested?.();
@@ -435,7 +516,7 @@ export function BackingServiceSettingsPanel({
       });
     } catch (error) {
       showToast({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -470,12 +551,13 @@ export function BackingServiceSettingsPanel({
           },
           method: "PATCH",
         },
+        t,
       );
 
       showToast({
         message: result?.alreadyCurrent
-          ? "Database failover is already off."
-          : "Database failover disabled.",
+          ? t("Database failover is already off.")
+          : t("Database failover disabled."),
         variant: "success",
       });
       onRefreshRequested?.();
@@ -484,7 +566,7 @@ export function BackingServiceSettingsPanel({
       });
     } catch (error) {
       showToast({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -498,8 +580,8 @@ export function BackingServiceSettingsPanel({
     if (!service.ownerAppId || databaseContinuityBusy) {
       showToast({
         message: !service.ownerAppId
-          ? "This database cannot be transferred from the console yet."
-          : "Database failover is already changing. Wait for the current step to finish.",
+          ? t("This database cannot be transferred from the console yet.")
+          : t("Database failover is already changing. Wait for the current step to finish."),
         variant: "info",
       });
       return;
@@ -507,17 +589,23 @@ export function BackingServiceSettingsPanel({
 
     if (!selectedTransferTargetRuntimeId) {
       showToast({
-        message: transferBlockerMessage ?? "Choose a destination.",
+        message: transferBlockerMessage ?? t("Choose a destination."),
         variant: "info",
       });
       return;
     }
 
     const confirmed = await confirm({
-      confirmLabel: "Transfer Now",
-      description: `Fugue keeps ${primaryRuntimeLabel} serving writes while it prepares ${selectedTransferTargetLabel}, then promotes the new primary and keeps ${primaryRuntimeLabel} as the standby.`,
-      eyebrow: "Database Move",
-      title: "Transfer Database Primary?",
+      confirmLabel: t("Transfer Now"),
+      description: t(
+        "Fugue keeps {primaryRuntimeLabel} serving writes while it prepares {selectedTransferTargetLabel}, then promotes the new primary and keeps {primaryRuntimeLabel} as the standby.",
+        {
+          primaryRuntimeLabel,
+          selectedTransferTargetLabel,
+        },
+      ),
+      eyebrow: t("Database Move"),
+      title: t("Transfer Database Primary?"),
       variant: "primary",
     });
 
@@ -539,10 +627,13 @@ export function BackingServiceSettingsPanel({
           },
           method: "POST",
         },
+        t,
       );
 
       showToast({
-        message: `Database transfer queued to ${selectedTransferTargetLabel}.`,
+        message: t("Database transfer queued to {target}.", {
+          target: selectedTransferTargetLabel,
+        }),
         variant: "success",
       });
       onRefreshRequested?.();
@@ -551,7 +642,7 @@ export function BackingServiceSettingsPanel({
       });
     } catch (error) {
       showToast({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -562,26 +653,28 @@ export function BackingServiceSettingsPanel({
   return (
     <div className="fg-workbench-section fg-settings-panel">
       <div className="fg-workbench-section__copy fg-settings-panel__copy">
-        <p className="fg-label fg-panel__eyebrow">Settings</p>
+        <p className="fg-label fg-panel__eyebrow">{t("Settings")}</p>
         <p className="fg-console-note">
-          Keep this database on its current primary runtime, choose a standby
-          runtime for failover, or actively move the primary now.
+          {t(
+            "Keep this database on its current primary runtime, choose a standby runtime for failover, or actively move the primary now.",
+          )}
         </p>
       </div>
 
       <section
-        aria-label="Database failover"
+        aria-label={t("Database failover")}
         className="fg-route-subsection fg-settings-section"
       >
         <div className="fg-route-subsection__head">
           <div className="fg-route-subsection__copy fg-settings-section__copy">
-            <p className="fg-label fg-panel__eyebrow">Continuity</p>
+            <p className="fg-label fg-panel__eyebrow">{t("Continuity")}</p>
             <h3 className="fg-route-subsection__title fg-ui-heading">
-              Database failover
+              {t("Database failover")}
             </h3>
             <p className="fg-route-subsection__note">
-              The database stays on its primary runtime. The standby runtime
-              only takes over if the primary disappears.
+              {t(
+                "The database stays on its primary runtime. The standby runtime only takes over if the primary disappears.",
+              )}
             </p>
           </div>
 
@@ -589,26 +682,26 @@ export function BackingServiceSettingsPanel({
             live={service.databaseContinuity.live}
             tone={service.databaseContinuity.tone}
           >
-            {service.databaseContinuity.label}
+            {t(service.databaseContinuity.label)}
           </StatusBadge>
         </div>
 
         <dl className="fg-settings-meta">
           <div>
-            <dt>Attached app</dt>
+            <dt>{t("Attached app")}</dt>
             <dd>{service.ownerAppLabel}</dd>
           </div>
           <div>
-            <dt>Primary runtime</dt>
+            <dt>{t("Primary runtime")}</dt>
             <dd>{primaryRuntimeLabel}</dd>
           </div>
           <div>
-            <dt>Standby runtime</dt>
+            <dt>{t("Standby runtime")}</dt>
             <dd>{standbyRuntimeLabel}</dd>
           </div>
           <div>
-            <dt>Topology</dt>
-            <dd>{readDatabaseTopologyLabel(service)}</dd>
+            <dt>{t("Topology")}</dt>
+            <dd>{readDatabaseTopologyLabel(service, t)}</dd>
           </div>
         </dl>
 
@@ -630,7 +723,7 @@ export function BackingServiceSettingsPanel({
           {continuityTargets.length > 0 ? (
             <FormField
               htmlFor={`database-failover-target-${service.id}`}
-              label="Standby runtime"
+              label={t("Standby runtime")}
             >
               <SelectField
                 disabled={
@@ -644,7 +737,7 @@ export function BackingServiceSettingsPanel({
                 value={selectedFailoverTargetRuntimeId ?? ""}
               >
                 <option disabled value="">
-                  Select a standby runtime…
+                  {t("Select a standby runtime…")}
                 </option>
                 {continuityTargets.map((target) => (
                   <option key={target.id} value={target.id}>
@@ -666,21 +759,21 @@ export function BackingServiceSettingsPanel({
                 type="button"
                 variant="secondary"
               >
-                Disable
+                {t("Disable")}
               </Button>
             ) : null}
             {showSaveFailoverButton ? (
               <Button
                 disabled={!canSave}
                 loading={saving}
-                loadingLabel="Saving…"
+                loadingLabel={t("Saving…")}
                 size="compact"
                 type="submit"
                 variant="primary"
               >
                 {service.databaseFailoverConfigured
-                  ? "Save standby"
-                  : "Enable failover"}
+                  ? t("Save standby")
+                  : t("Enable failover")}
               </Button>
             ) : null}
           </div>
@@ -688,51 +781,62 @@ export function BackingServiceSettingsPanel({
       </section>
 
       <section
-        aria-label="Database one-click transfer"
+        aria-label={t("Database one-click transfer")}
         className="fg-route-subsection fg-settings-section"
       >
         <div className="fg-route-subsection__head">
           <div className="fg-route-subsection__copy fg-settings-section__copy">
-            <p className="fg-label fg-panel__eyebrow">Runtime</p>
+            <p className="fg-label fg-panel__eyebrow">{t("Runtime")}</p>
             <h3 className="fg-route-subsection__title fg-ui-heading">
-              Database one-click transfer
+              {t("Database one-click transfer")}
             </h3>
             <p className="fg-route-subsection__note">
               {databaseTransferInProgress
-                ? `Current primary: ${primaryRuntimeLabel}. Destination: ${activeTransferTargetLabel}. Fugue promotes the new primary automatically once it is ready.`
-                : `Current primary: ${primaryRuntimeLabel}. Choose a destination and Fugue will prepare the new primary before switching over.`}
+                ? t(
+                    "Current primary: {primaryRuntimeLabel}. Destination: {activeTransferTargetLabel}. Fugue promotes the new primary automatically once it is ready.",
+                    {
+                      activeTransferTargetLabel,
+                      primaryRuntimeLabel,
+                    },
+                  )
+                : t(
+                    "Current primary: {primaryRuntimeLabel}. Choose a destination and Fugue will prepare the new primary before switching over.",
+                    {
+                      primaryRuntimeLabel,
+                    },
+                  )}
             </p>
           </div>
 
           <StatusBadge tone={databaseTransferInProgress ? "info" : "neutral"}>
             {databaseTransferInProgress
               ? service.serviceRole === "pending"
-                ? service.status
-                : "In progress"
-              : "Off"}
+                ? t(service.status)
+                : t("In progress")
+              : t("Off")}
           </StatusBadge>
         </div>
 
         <dl className="fg-settings-meta">
           <div>
-            <dt>Attached app</dt>
+            <dt>{t("Attached app")}</dt>
             <dd>{service.ownerAppLabel}</dd>
           </div>
           <div>
-            <dt>Current primary</dt>
+            <dt>{t("Current primary")}</dt>
             <dd>{primaryRuntimeLabel}</dd>
           </div>
           <div>
-            <dt>Destination</dt>
+            <dt>{t("Destination")}</dt>
             <dd>
               {databaseTransferInProgress
                 ? activeTransferTargetLabel
-                : "Not queued"}
+                : t("Not queued")}
             </dd>
           </div>
           <div>
-            <dt>After switchover</dt>
-            <dd>Old primary becomes the standby runtime.</dd>
+            <dt>{t("After switchover")}</dt>
+            <dd>{t("Old primary becomes the standby runtime.")}</dd>
           </div>
         </dl>
 
@@ -744,7 +848,7 @@ export function BackingServiceSettingsPanel({
           {transferTargets.length > 0 ? (
             <FormField
               htmlFor={`database-transfer-target-${service.id}`}
-              label="Destination"
+              label={t("Destination")}
             >
               <SelectField
                 disabled={
@@ -760,7 +864,7 @@ export function BackingServiceSettingsPanel({
                 value={selectedTransferTargetRuntimeId ?? ""}
               >
                 <option disabled value="">
-                  Select a destination…
+                  {t("Select a destination…")}
                 </option>
                 {transferTargets.map((target) => (
                   <option key={target.id} value={target.id}>
@@ -775,12 +879,12 @@ export function BackingServiceSettingsPanel({
             <Button
               disabled={!canTransfer}
               loading={transferSaving}
-              loadingLabel="Queueing…"
+              loadingLabel={t("Queueing…")}
               size="compact"
               type="submit"
               variant="primary"
             >
-              Transfer Now
+              {t("Transfer Now")}
             </Button>
           </div>
         </form>

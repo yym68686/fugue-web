@@ -1,14 +1,10 @@
 import { ButtonAnchor } from "@/components/ui/button";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { FormField } from "@/components/ui/form-field";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { SegmentedControl, type SegmentedControlOption } from "@/components/ui/segmented-control";
 import type { GitHubRepoVisibility } from "@/lib/github/repository";
 import type { GitHubConnectionView } from "@/lib/github/types";
-
-const REPOSITORY_ACCESS_OPTIONS: readonly SegmentedControlOption<GitHubRepoVisibility>[] = [
-  { label: "Public", value: "public" },
-  { label: "Private", value: "private" },
-];
 
 export function GitHubRepositoryAccessFields({
   githubConnectHref = null,
@@ -17,12 +13,12 @@ export function GitHubRepositoryAccessFields({
   githubConnectionLoading = false,
   token,
   tokenFieldId,
-  tokenHint = "Paste a GitHub token with repository read access. If GitHub web authorization is available, Fugue can use that instead and store the resolved secret server-side for later rebuilds and syncs.",
-  tokenLabel = "GitHub token",
+  tokenHint,
+  tokenLabel,
   tokenRequired = false,
   visibility,
-  visibilityHint = "Choose whether Fugue reads this repository anonymously or through saved private access.",
-  visibilityLabel = "Repository access",
+  visibilityHint,
+  visibilityLabel,
   onTokenChange,
   onVisibilityChange,
 }: {
@@ -41,9 +37,27 @@ export function GitHubRepositoryAccessFields({
   onTokenChange: (value: string) => void;
   onVisibilityChange: (value: GitHubRepoVisibility) => void;
 }) {
+  const { t } = useI18n();
+  const repositoryAccessOptions: readonly SegmentedControlOption<GitHubRepoVisibility>[] =
+    [
+      { label: t("Public"), value: "public" },
+      { label: t("Private"), value: "private" },
+    ];
   const hasSavedGitHubAccess = Boolean(githubConnection?.connected);
   const canReconnectGitHub =
     Boolean(githubConnectHref) && Boolean(githubConnection?.authEnabled);
+  const resolvedTokenLabel = tokenLabel ?? t("GitHub token");
+  const resolvedVisibilityLabel = visibilityLabel ?? t("Repository access");
+  const resolvedVisibilityHint =
+    visibilityHint ??
+    t(
+      "Choose whether Fugue reads this repository anonymously or through saved private access.",
+    );
+  const defaultTokenHint =
+    tokenHint ??
+    t(
+      "Paste a GitHub token with repository read access. If GitHub web authorization is available, Fugue can use that instead and store the resolved secret server-side for later rebuilds and syncs.",
+    );
   const resolvedTokenRequired =
     tokenRequired &&
     visibility === "private" &&
@@ -52,39 +66,46 @@ export function GitHubRepositoryAccessFields({
   const resolvedTokenHint =
     visibility === "private" && hasSavedGitHubAccess
       ? githubConnection?.login
-        ? `Saved GitHub access is ready as @${githubConnection.login}. Paste a token only to override it for this import.`
-        : "Saved GitHub access is ready. Paste a token only to override it for this import."
+        ? t(
+            "Saved GitHub access is ready as @{login}. Paste a token only to override it for this import.",
+            { login: githubConnection.login },
+          )
+        : t(
+            "Saved GitHub access is ready. Paste a token only to override it for this import.",
+          )
       : visibility === "private" &&
           githubConnection?.authEnabled &&
           !githubConnectionError
-        ? "Authorize GitHub in the browser, or paste a GitHub token. Fugue stores the resolved secret server-side for later rebuilds and syncs."
-        : tokenHint;
+        ? t(
+            "Authorize GitHub in the browser, or paste a GitHub token. Fugue stores the resolved secret server-side for later rebuilds and syncs.",
+          )
+        : defaultTokenHint;
 
   return (
     <>
       <div className="fg-field-stack">
         <div className="fg-field-label">
-          <span>{visibilityLabel}</span>
+          <span>{resolvedVisibilityLabel}</span>
         </div>
         <div className="fg-field-control">
           <SegmentedControl
-            ariaLabel={visibilityLabel}
+            ariaLabel={resolvedVisibilityLabel}
             controlClassName="fg-console-nav"
             itemClassName="fg-console-nav__link"
             labelClassName="fg-console-nav__title"
             onChange={onVisibilityChange}
-            options={REPOSITORY_ACCESS_OPTIONS}
+            options={repositoryAccessOptions}
             value={visibility}
             variant="pill"
           />
         </div>
-        <span className="fg-field-hint">{visibilityHint}</span>
+        <span className="fg-field-hint">{resolvedVisibilityHint}</span>
       </div>
 
       {visibility === "private" ? (
         <>
           {githubConnectionLoading ? (
-            <InlineAlert>Checking saved GitHub access…</InlineAlert>
+            <InlineAlert>{t("Checking saved GitHub access…")}</InlineAlert>
           ) : githubConnectionError ? (
             <InlineAlert variant="warning">
               {githubConnectionError}
@@ -92,7 +113,7 @@ export function GitHubRepositoryAccessFields({
                 <>
                   {" "}
                   <ButtonAnchor href={githubConnectHref!} size="compact" variant="secondary">
-                    Reconnect GitHub
+                    {t("Reconnect GitHub")}
                   </ButtonAnchor>
                 </>
               ) : null}
@@ -100,23 +121,25 @@ export function GitHubRepositoryAccessFields({
           ) : hasSavedGitHubAccess ? (
             <InlineAlert variant="success">
               {githubConnection?.login
-                ? `Authorized as @${githubConnection.login}.`
-                : "Saved GitHub access is available."}
+                ? t("Authorized as @{login}.", {
+                    login: githubConnection.login,
+                  })
+                : t("Saved GitHub access is available.")}
               {canReconnectGitHub ? (
                 <>
                   {" "}
                   <ButtonAnchor href={githubConnectHref!} size="compact" variant="secondary">
-                    Reconnect GitHub
+                    {t("Reconnect GitHub")}
                   </ButtonAnchor>
                 </>
               ) : null}
             </InlineAlert>
           ) : githubConnection?.authEnabled && githubConnectHref ? (
             <InlineAlert>
-              Authorize GitHub in the browser, or paste a token below.
+              {t("Authorize GitHub in the browser, or paste a token below.")}
               {" "}
               <ButtonAnchor href={githubConnectHref} size="compact" variant="secondary">
-                Connect GitHub
+                {t("Connect GitHub")}
               </ButtonAnchor>
             </InlineAlert>
           ) : null}
@@ -124,8 +147,8 @@ export function GitHubRepositoryAccessFields({
           <FormField
             hint={resolvedTokenHint}
             htmlFor={tokenFieldId}
-            label={tokenLabel}
-            optionalLabel={resolvedTokenRequired ? undefined : "Optional"}
+            label={resolvedTokenLabel}
+            optionalLabel={resolvedTokenRequired ? undefined : t("Optional")}
           >
             <input
               autoCapitalize="none"
@@ -136,7 +159,7 @@ export function GitHubRepositoryAccessFields({
               onChange={(event) => onTokenChange(event.target.value)}
               placeholder={
                 hasSavedGitHubAccess
-                  ? "Paste a token to override saved GitHub access"
+                  ? t("Paste a token to override saved GitHub access")
                   : "github_pat_..."
               }
               required={resolvedTokenRequired}

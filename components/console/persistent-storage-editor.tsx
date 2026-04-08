@@ -1,6 +1,7 @@
 "use client";
 
 import { ConsoleDisclosureSection } from "@/components/console/console-disclosure-section";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { InlineAlert } from "@/components/ui/inline-alert";
@@ -18,18 +19,25 @@ type PersistentStorageEditorProps = {
   onChange: (next: PersistentStorageMountDraft[]) => void;
 };
 
-function readMountLabel(mount: PersistentStorageMountDraft) {
-  return mount.kind === "file" ? "File" : "Directory";
+function readMountLabel(
+  mount: PersistentStorageMountDraft,
+  t: (key: string, values?: Record<string, string | number>) => string,
+) {
+  return mount.kind === "file" ? t("File") : t("Directory");
 }
 
-function readMountDescription(mount: PersistentStorageMountDraft, index: number) {
+function readMountDescription(
+  mount: PersistentStorageMountDraft,
+  index: number,
+  t: (key: string, values?: Record<string, string | number>) => string,
+) {
   const normalizedPath = mount.path.trim();
 
   if (normalizedPath) {
     return normalizedPath;
   }
 
-  return `Mount ${index + 1}`;
+  return t("Mount {count}", { count: index + 1 });
 }
 
 export function PersistentStorageEditor({
@@ -39,6 +47,7 @@ export function PersistentStorageEditor({
   value,
   onChange,
 }: PersistentStorageEditorProps) {
+  const { t } = useI18n();
   const actionClassName =
     surface === "deploy" ? "fg-deploy-inline-actions" : "fg-settings-form__actions";
   const gridClassName =
@@ -76,8 +85,9 @@ export function PersistentStorageEditor({
     <div className="fg-field-stack">
       {value.length === 0 ? (
         <InlineAlert variant="info">
-          Add a directory or file mount to keep it across redeploys, restarts,
-          runtime moves, and failover.
+          {t(
+            "Add a directory or file mount to keep it across redeploys, restarts, runtime moves, and failover.",
+          )}
         </InlineAlert>
       ) : null}
 
@@ -89,7 +99,7 @@ export function PersistentStorageEditor({
           type="button"
           variant="secondary"
         >
-          Add directory
+          {t("Add directory")}
         </Button>
         <Button
           disabled={disabled}
@@ -98,15 +108,15 @@ export function PersistentStorageEditor({
           type="button"
           variant="secondary"
         >
-          Add file
+          {t("Add file")}
         </Button>
       </div>
 
       {value.length > 0 ? (
         <div className="fg-console-dialog__advanced-grid">
           {value.map((mount, index) => {
-            const mountLabel = readMountLabel(mount);
-            const mountDescription = readMountDescription(mount, index);
+            const mountLabel = readMountLabel(mount, t);
+            const mountDescription = readMountDescription(mount, index, t);
             const mountIdPrefix = `${idPrefix}-${mount.id}`;
 
             return (
@@ -120,9 +130,11 @@ export function PersistentStorageEditor({
                 <div className="fg-console-dialog__advanced-grid">
                   <div className={gridClassName}>
                     <FormField
-                      hint="Directories keep whole trees. Files mount one exact path."
+                      hint={t(
+                        "Directories keep whole trees. Files mount one exact path.",
+                      )}
                       htmlFor={`${mountIdPrefix}-kind`}
-                      label="Kind"
+                      label={t("Kind")}
                     >
                       <SelectField
                         disabled={disabled}
@@ -137,19 +149,19 @@ export function PersistentStorageEditor({
                         }
                         value={mount.kind}
                       >
-                        <option value="directory">Directory</option>
-                        <option value="file">File</option>
+                        <option value="directory">{t("Directory")}</option>
+                        <option value="file">{t("File")}</option>
                       </SelectField>
                     </FormField>
 
                     <FormField
                       hint={
                         mount.kind === "file"
-                          ? "Use the exact file path inside the service."
-                          : "Use the directory path inside the service."
+                          ? t("Use the exact file path inside the service.")
+                          : t("Use the directory path inside the service.")
                       }
                       htmlFor={`${mountIdPrefix}-path`}
-                      label="Mount path"
+                      label={t("Mount path")}
                     >
                       <input
                         autoCapitalize="none"
@@ -175,10 +187,12 @@ export function PersistentStorageEditor({
 
                   {mount.kind === "file" ? (
                     <FormField
-                      hint="Used only when Fugue needs to create the file for the first time. Existing file contents stay in place on later deploys."
+                      hint={t(
+                        "Used only when Fugue needs to create the file for the first time. Existing file contents stay in place on later deploys.",
+                      )}
                       htmlFor={`${mountIdPrefix}-seed-content`}
-                      label="Initial contents"
-                      optionalLabel="Optional"
+                      label={t("Initial contents")}
+                      optionalLabel={t("Optional")}
                     >
                       <textarea
                         autoCapitalize="off"
@@ -191,7 +205,7 @@ export function PersistentStorageEditor({
                             seedContent: event.target.value,
                           })
                         }
-                        placeholder="Leave blank to create an empty file."
+                        placeholder={t("Leave blank to create an empty file.")}
                         spellCheck={false}
                         value={mount.seedContent}
                       />
@@ -206,7 +220,7 @@ export function PersistentStorageEditor({
                       type="button"
                       variant="danger"
                     >
-                      Remove mount
+                      {t("Remove mount")}
                     </Button>
                   </div>
                 </div>

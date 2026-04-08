@@ -10,6 +10,7 @@ import {
 import { useRouter } from "next/navigation";
 
 import { ConsoleDisclosureSection } from "@/components/console/console-disclosure-section";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { PersistentStorageEditor } from "@/components/console/persistent-storage-editor";
 import { StatusBadge } from "@/components/console/status-badge";
 import { Button, ButtonAnchor } from "@/components/ui/button";
@@ -92,6 +93,8 @@ type ProjectNameEntry = {
   name: string;
 };
 
+type Translator = (key: string, values?: Record<string, string | number>) => string;
+
 const DEFAULT_IMAGE_MIRROR_LIMIT = 1;
 
 function normalizeText(value?: string | null) {
@@ -106,21 +109,24 @@ function readImageMirrorLimit(value?: number | null) {
   return DEFAULT_IMAGE_MIRROR_LIMIT;
 }
 
-function readImageMirrorLimitError(value: string) {
+function readImageMirrorLimitError(
+  value: string,
+  t: Translator = (key) => key,
+) {
   const normalized = normalizeText(value);
 
   if (!normalized) {
-    return "Saved image limit is required.";
+    return t("Saved image limit is required.");
   }
 
   if (!/^\d+$/.test(normalized)) {
-    return "Use a whole number.";
+    return t("Use a whole number.");
   }
 
   const parsed = Number.parseInt(normalized, 10);
 
   if (!Number.isSafeInteger(parsed) || parsed < 1) {
-    return "Use 1 or more.";
+    return t("Use 1 or more.");
   }
 
   return null;
@@ -160,20 +166,20 @@ function isPausedApp(app: Pick<ConsoleGalleryAppView, "phase">) {
   return phase.includes("disabled") || phase.includes("paused");
 }
 
-function readErrorMessage(error: unknown) {
+function readErrorMessage(error: unknown, t: Translator = (key) => key) {
   if (error instanceof Error && error.message) {
     return error.message;
   }
 
-  return "Request failed.";
+  return t("Request failed.");
 }
 
-async function readResponseError(response: Response) {
+async function readResponseError(response: Response, t: Translator = (key) => key) {
   const body = await response.text().catch(() => "");
   const trimmed = body.trim();
 
   if (!trimmed) {
-    return `Request failed with status ${response.status}.`;
+    return t("Request failed with status {status}.", { status: response.status });
   }
 
   try {
@@ -189,23 +195,26 @@ async function readResponseError(response: Response) {
   return trimmed;
 }
 
-async function requestJson<T>(input: RequestInfo, init?: RequestInit) {
+async function requestJson<T>(input: RequestInfo, init?: RequestInit, t: Translator = (key) => key) {
   const response = await fetch(input, init);
 
   if (!response.ok) {
-    throw new Error(await readResponseError(response));
+    throw new Error(await readResponseError(response, t));
   }
 
   return (await response.json().catch(() => null)) as T | null;
 }
 
-function readGitHubSyncState(app: ConsoleGalleryAppView): GitHubSyncState {
+function readGitHubSyncState(
+  app: ConsoleGalleryAppView,
+  t: Translator = (key) => key,
+): GitHubSyncState {
   if (!isGitHubSourceType(app.sourceType)) {
     return {
       action: null,
       actionLabel: null,
       description: null,
-      label: "Manual",
+      label: t("Manual"),
       tone: "neutral",
     };
   }
@@ -214,8 +223,8 @@ function readGitHubSyncState(app: ConsoleGalleryAppView): GitHubSyncState {
     return {
       action: null,
       actionLabel: null,
-      description: "Starts after first deploy.",
-      label: "Pending",
+      description: t("Starts after first deploy."),
+      label: t("Pending"),
       tone: "info",
     };
   }
@@ -223,108 +232,124 @@ function readGitHubSyncState(app: ConsoleGalleryAppView): GitHubSyncState {
   if (isPausedApp(app)) {
     return {
       action: "start",
-      actionLabel: "Resume",
-      description: "Resume to poll new commits.",
-      label: "Off",
+      actionLabel: t("Resume"),
+      description: t("Resume to poll new commits."),
+      label: t("Off"),
       tone: "warning",
     };
   }
 
   return {
     action: "disable",
-    actionLabel: "Pause",
+    actionLabel: t("Pause"),
     description: null,
-    label: "On",
+    label: t("On"),
     tone: "positive",
   };
 }
 
-function readBranchFieldHint(app: ConsoleGalleryAppView) {
+function readBranchFieldHint(
+  app: ConsoleGalleryAppView,
+  t: Translator = (key) => key,
+) {
   if (!isGitHubSourceType(app.sourceType)) {
     return null;
   }
 
   if (app.serviceRole === "pending") {
-    return "Available after first deploy.";
+    return t("Available after first deploy.");
   }
 
   if (isPausedApp(app)) {
-    return "Resume first.";
+    return t("Resume first.");
   }
 
-  return "Blank = default branch.";
+  return t("Blank = default branch.");
 }
 
-function readRepositoryAccessHint(app: ConsoleGalleryAppView) {
+function readRepositoryAccessHint(
+  app: ConsoleGalleryAppView,
+  t: Translator = (key) => key,
+) {
   if (!isPrivateGitHubSourceType(app.sourceType)) {
     return null;
   }
 
   if (app.serviceRole === "pending") {
-    return "Available after first deploy.";
+    return t("Available after first deploy.");
   }
 
   if (isPausedApp(app)) {
-    return "Resume first.";
+    return t("Resume first.");
   }
 
-  return "Blank = keep current access.";
+  return t("Blank = keep current access.");
 }
 
-function readSourceKindLabel(app: ConsoleGalleryAppView) {
+function readSourceKindLabel(
+  app: ConsoleGalleryAppView,
+  t: Translator = (key) => key,
+) {
   if (isGitHubSourceType(app.sourceType)) {
-    return "GitHub";
+    return t("GitHub");
   }
 
   if (isDockerImageSourceType(app.sourceType)) {
-    return "Docker image";
+    return t("Docker image");
   }
 
   if (isUploadSourceType(app.sourceType)) {
-    return "Local upload";
+    return t("Local upload");
   }
 
-  return "Fixed source";
+  return t("Fixed source");
 }
 
-function readSourceSectionTitle(app: ConsoleGalleryAppView) {
+function readSourceSectionTitle(
+  app: ConsoleGalleryAppView,
+  t: Translator = (key) => key,
+) {
   if (isGitHubSourceType(app.sourceType)) {
-    return "Repository";
+    return t("Repository");
   }
 
   if (isDockerImageSourceType(app.sourceType)) {
-    return "Image";
+    return t("Image");
   }
 
   if (isUploadSourceType(app.sourceType)) {
-    return "Upload";
+    return t("Upload");
   }
 
-  return "Source";
+  return t("Source");
 }
 
 function readSourceSectionHint(app: ConsoleGalleryAppView) {
   return null;
 }
 
-function readSourceFieldLabel(app: ConsoleGalleryAppView) {
+function readSourceFieldLabel(
+  app: ConsoleGalleryAppView,
+  t: Translator = (key) => key,
+) {
   if (isGitHubSourceType(app.sourceType)) {
-    return "Tracked branch";
+    return t("Tracked branch");
   }
 
   if (isDockerImageSourceType(app.sourceType)) {
-    return "Image reference";
+    return t("Image reference");
   }
 
   if (isUploadSourceType(app.sourceType)) {
-    return "Source package";
+    return t("Source package");
   }
 
-  return "Source";
+  return t("Source");
 }
 
 function readManualRefreshState(
   app: ConsoleGalleryAppView,
+  t: Translator = (key) => key,
 ): ManualRefreshState | null {
   if (isGitHubSourceType(app.sourceType)) {
     return null;
@@ -333,8 +358,8 @@ function readManualRefreshState(
   if (isDockerImageSourceType(app.sourceType)) {
     return {
       description: null,
-      label: "Manual",
-      title: "Refresh",
+      label: t("Manual"),
+      title: t("Refresh"),
       tone: "neutral",
     };
   }
@@ -342,16 +367,16 @@ function readManualRefreshState(
   if (isUploadSourceType(app.sourceType)) {
     return {
       description: null,
-      label: "Manual",
-      title: "Refresh",
+      label: t("Manual"),
+      title: t("Refresh"),
       tone: "neutral",
     };
   }
 
   return {
     description: null,
-    label: "Manual",
-    title: "Refresh",
+    label: t("Manual"),
+    title: t("Refresh"),
     tone: "neutral",
   };
 }
@@ -428,7 +453,10 @@ function readTransferTargets(
     : runtimeTargets.filter((target) => target.id !== activeRuntimeId);
 }
 
-function readTransferPreparationNote(app: ConsoleGalleryAppView) {
+function readTransferPreparationNote(
+  app: ConsoleGalleryAppView,
+  t: Translator = (key) => key,
+) {
   const hasPersistentStorage =
     app.persistentStorageMounts.length > 0 ||
     Boolean(
@@ -436,27 +464,30 @@ function readTransferPreparationNote(app: ConsoleGalleryAppView) {
     );
 
   if (hasPersistentStorage && app.hasPostgresService) {
-    return "Persistent storage sync runs before the move completes. Database stays where it is.";
+    return t("Persistent storage sync runs before the move completes. Database stays where it is.");
   }
 
   if (hasPersistentStorage) {
-    return "Persistent storage sync runs before the move completes.";
+    return t("Persistent storage sync runs before the move completes.");
   }
 
   if (app.hasPostgresService) {
-    return "Database stays where it is.";
+    return t("Database stays where it is.");
   }
 
   return null;
 }
 
-function readTransferActionHint(app: ConsoleGalleryAppView) {
+function readTransferActionHint(
+  app: ConsoleGalleryAppView,
+  t: Translator = (key) => key,
+) {
   if (app.serviceRole === "pending") {
-    return "Wait for the current release to finish.";
+    return t("Wait for the current release to finish.");
   }
 
   if (isPausedApp(app)) {
-    return "Start the service before moving it.";
+    return t("Start the service before moving it.");
   }
 
   return null;
@@ -466,26 +497,57 @@ function readTransferConfirmationDescription(
   app: ConsoleGalleryAppView,
   liveRuntimeLabel: string,
   selectedTargetLabel: string,
+  t: Translator = (key) => key,
 ) {
-  const transferPreparationNote = readTransferPreparationNote(app);
+  const transferPreparationNote = readTransferPreparationNote(app, t);
 
   if (readTransferRequestMode(app) === "migrate") {
     return transferPreparationNote
-      ? `${app.name} stays live on ${liveRuntimeLabel} while Fugue prepares ${selectedTargetLabel}, then cuts over automatically. ${transferPreparationNote}`
-      : `${app.name} stays live on ${liveRuntimeLabel} while Fugue prepares ${selectedTargetLabel}, then cuts over automatically.`;
+      ? t(
+          "{appName} stays live on {liveRuntimeLabel} while Fugue prepares {selectedTargetLabel}, then cuts over automatically. {transferPreparationNote}",
+          {
+            appName: app.name,
+            liveRuntimeLabel,
+            selectedTargetLabel,
+            transferPreparationNote,
+          },
+        )
+      : t(
+          "{appName} stays live on {liveRuntimeLabel} while Fugue prepares {selectedTargetLabel}, then cuts over automatically.",
+          {
+            appName: app.name,
+            liveRuntimeLabel,
+            selectedTargetLabel,
+          },
+        );
   }
 
   return transferPreparationNote
-    ? `${app.name} will move from ${liveRuntimeLabel} to ${selectedTargetLabel}. ${transferPreparationNote}`
-    : `${app.name} will move from ${liveRuntimeLabel} to ${selectedTargetLabel}.`;
+    ? t(
+        "{appName} will move from {liveRuntimeLabel} to {selectedTargetLabel}. {transferPreparationNote}",
+        {
+          appName: app.name,
+          liveRuntimeLabel,
+          selectedTargetLabel,
+          transferPreparationNote,
+        },
+      )
+    : t("{appName} will move from {liveRuntimeLabel} to {selectedTargetLabel}.", {
+        appName: app.name,
+        liveRuntimeLabel,
+        selectedTargetLabel,
+      });
 }
 
-function readPersistentStorageSummaryNote(hasPersistentStorage: boolean) {
+function readPersistentStorageSummaryNote(
+  hasPersistentStorage: boolean,
+  t: Translator = (key) => key,
+) {
   if (hasPersistentStorage) {
-    return "Mounted storage survives restarts, rebuilds, managed transfers, and failover.";
+    return t("Mounted storage survives restarts, rebuilds, managed transfers, and failover.");
   }
 
-  return "Files still live in the running container until persistent storage is configured.";
+  return t("Files still live in the running container until persistent storage is configured.");
 }
 
 function buildPersistentStorageSummaryItems(
@@ -493,27 +555,28 @@ function buildPersistentStorageSummaryItems(
   hasPersistentStorage: boolean,
   currentRuntimeLabel: string,
   replicas: number | null,
+  t: Translator = (key) => key,
 ) {
   if (hasPersistentStorage) {
     const items = [
       {
-        label: "Mounted items",
+        label: t("Mounted items"),
         value: `${app.persistentStorageMounts.length}`,
       },
       {
-        label: "Storage",
-        value: app.persistentStorageStorageSize || "Platform default",
+        label: t("Storage"),
+        value: app.persistentStorageStorageSize || t("Platform default"),
       },
       {
-        label: "Current runtime",
+        label: t("Current runtime"),
         value: currentRuntimeLabel,
       },
     ];
 
     if (normalizeText(app.persistentStorageStorageClassName)) {
       items.push({
-        label: "Storage class",
-        value: app.persistentStorageStorageClassName || "Platform default",
+        label: t("Storage class"),
+        value: app.persistentStorageStorageClassName || t("Platform default"),
       });
     }
 
@@ -522,31 +585,32 @@ function buildPersistentStorageSummaryItems(
 
   return [
     {
-      label: "File storage",
-      value: "Live container filesystem",
+      label: t("File storage"),
+      value: t("Live container filesystem"),
     },
     {
-      label: "Current runtime",
+      label: t("Current runtime"),
       value: currentRuntimeLabel,
     },
     {
-      label: "Replica plan",
-      value: replicas === null ? "Unknown" : `${replicas}`,
+      label: t("Replica plan"),
+      value: replicas === null ? t("Unknown") : `${replicas}`,
     },
   ];
 }
 
 function buildPersistentStorageMountItems(
   mounts: ConsoleGalleryAppView["persistentStorageMounts"],
+  t: Translator = (key) => key,
 ) {
   return mounts.map((mount, index) => {
     const kindLabel =
       mount.kind === "file"
-        ? "File"
+        ? t("File")
         : mount.kind === "directory"
-          ? "Directory"
-          : "Mount";
-    const suffix = mounts.length > 1 ? ` ${index + 1}` : " mount";
+          ? t("Directory")
+          : t("Mount");
+    const suffix = mounts.length > 1 ? ` ${index + 1}` : ` ${t("mount")}`;
 
     return {
       label: `${kindLabel}${suffix}`,
@@ -555,11 +619,14 @@ function buildPersistentStorageMountItems(
   });
 }
 
-function readStartupCommandSummary(value?: string | null) {
+function readStartupCommandSummary(
+  value?: string | null,
+  t: Translator = (key) => key,
+) {
   const normalized = normalizeText(value);
 
   if (!normalized) {
-    return "Image default";
+    return t("Image default");
   }
 
   if (normalized.length <= 48) {
@@ -571,6 +638,7 @@ function readStartupCommandSummary(value?: string | null) {
 
 function AppStartupCommandSection({ app }: { app: ConsoleGalleryAppView }) {
   const router = useRouter();
+  const { t } = useI18n();
   const { showToast } = useToast();
   const [draftStartupCommand, setDraftStartupCommand] = useState(
     app.startupCommand ?? "",
@@ -592,7 +660,7 @@ function AppStartupCommandSection({ app }: { app: ConsoleGalleryAppView }) {
     normalizedDraftCommand !== normalizedBaselineCommand;
   const canSaveStartupCommand = startupCommandChanged && !saving;
   const savedStartupCommandLabel =
-    readStartupCommandSummary(baselineStartupCommand);
+    readStartupCommandSummary(baselineStartupCommand, t);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -600,8 +668,8 @@ function AppStartupCommandSection({ app }: { app: ConsoleGalleryAppView }) {
     if (!startupCommandChanged) {
       showToast({
         message: normalizedDraftCommand
-          ? "Startup command already matches the current release."
-          : "Startup command already uses the image default.",
+          ? t("Startup command already matches the current release.")
+          : t("Startup command already uses the image default."),
         variant: "info",
       });
       return;
@@ -621,6 +689,7 @@ function AppStartupCommandSection({ app }: { app: ConsoleGalleryAppView }) {
           },
           method: "PATCH",
         },
+        t,
       );
 
       setBaselineStartupCommand(normalizedDraftCommand);
@@ -628,11 +697,11 @@ function AppStartupCommandSection({ app }: { app: ConsoleGalleryAppView }) {
       showToast({
         message: result?.alreadyCurrent
           ? normalizedDraftCommand
-            ? "Startup command already matches the current release."
-            : "Startup command already uses the image default."
+            ? t("Startup command already matches the current release.")
+            : t("Startup command already uses the image default.")
           : normalizedDraftCommand
-            ? "Startup command saved. Deploy queued."
-            : "Startup command cleared. Deploy queued.",
+            ? t("Startup command saved. Deploy queued.")
+            : t("Startup command cleared. Deploy queued."),
         variant: "success",
       });
       startTransition(() => {
@@ -640,7 +709,7 @@ function AppStartupCommandSection({ app }: { app: ConsoleGalleryAppView }) {
       });
     } catch (error) {
       showToast({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -650,18 +719,19 @@ function AppStartupCommandSection({ app }: { app: ConsoleGalleryAppView }) {
 
   return (
     <section
-      aria-label="Startup command"
+      aria-label={t("Startup command")}
       className="fg-route-subsection fg-settings-section"
     >
       <div className="fg-route-subsection__head">
         <div className="fg-route-subsection__copy fg-settings-section__copy">
-          <p className="fg-label fg-panel__eyebrow">Runtime</p>
+          <p className="fg-label fg-panel__eyebrow">{t("Runtime")}</p>
           <h3 className="fg-route-subsection__title fg-ui-heading">
-            Startup command
+            {t("Startup command")}
           </h3>
           <p className="fg-route-subsection__note">
-            Override the image default entrypoint only when this service needs a
-            custom shell command.
+            {t(
+              "Override the image default entrypoint only when this service needs a custom shell command.",
+            )}
           </p>
         </div>
       </div>
@@ -669,15 +739,17 @@ function AppStartupCommandSection({ app }: { app: ConsoleGalleryAppView }) {
       <ConsoleDisclosureSection
         className="fg-settings-disclosure"
         defaultOpen={startupCommandChanged || saving}
-        description="Runs as `sh -lc <command>`. Leave blank to use the image default entrypoint."
-        summary={`Startup command · ${savedStartupCommandLabel}`}
+        description={t("Runs as `sh -lc <command>`. Leave blank to use the image default entrypoint.")}
+        summary={t("Startup command · {value}", {
+          value: savedStartupCommandLabel,
+        })}
       >
         <form className="fg-settings-form" onSubmit={handleSubmit}>
           <FormField
-            hint="Queued changes roll out in the next deploy operation."
+            hint={t("Queued changes roll out in the next deploy operation.")}
             htmlFor={`startup-command-${app.id}`}
-            label="Startup command"
-            optionalLabel="Optional"
+            label={t("Startup command")}
+            optionalLabel={t("Optional")}
           >
             <input
               autoCapitalize="none"
@@ -686,7 +758,7 @@ function AppStartupCommandSection({ app }: { app: ConsoleGalleryAppView }) {
               id={`startup-command-${app.id}`}
               name="startupCommand"
               onChange={(event) => setDraftStartupCommand(event.target.value)}
-              placeholder="npm run serve"
+              placeholder={t("npm run serve")}
               spellCheck={false}
               value={draftStartupCommand}
             />
@@ -701,17 +773,17 @@ function AppStartupCommandSection({ app }: { app: ConsoleGalleryAppView }) {
                 type="button"
                 variant="secondary"
               >
-                Reset
+                {t("Reset")}
               </Button>
               <Button
                 disabled={!canSaveStartupCommand}
                 loading={saving}
-                loadingLabel="Queueing…"
+                loadingLabel={t("Queueing…")}
                 size="compact"
                 type="submit"
                 variant="primary"
               >
-                Save command
+                {t("Save command")}
               </Button>
             </div>
           ) : null}
@@ -723,6 +795,7 @@ function AppStartupCommandSection({ app }: { app: ConsoleGalleryAppView }) {
 
 function AppImageMirrorLimitSection({ app }: { app: ConsoleGalleryAppView }) {
   const router = useRouter();
+  const { t } = useI18n();
   const { showToast } = useToast();
   const [baselineLimit, setBaselineLimit] = useState(() =>
     readImageMirrorLimit(app.imageMirrorLimit),
@@ -743,7 +816,7 @@ function AppImageMirrorLimitSection({ app }: { app: ConsoleGalleryAppView }) {
   }, [app.id, app.imageMirrorLimit]);
 
   const normalizedDraftLimit = normalizeText(draftLimit);
-  const draftLimitError = readImageMirrorLimitError(draftLimit);
+  const draftLimitError = readImageMirrorLimitError(draftLimit, t);
   const parsedDraftLimit = draftLimitError
     ? null
     : Number.parseInt(normalizedDraftLimit, 10);
@@ -754,12 +827,14 @@ function AppImageMirrorLimitSection({ app }: { app: ConsoleGalleryAppView }) {
   const canSaveLimit =
     !saving && limitChanged && !draftLimitError && parsedDraftLimit !== null;
   const savedImageLimitLabel =
-    baselineLimit === 1 ? "1 saved image" : `${baselineLimit} saved images`;
+    baselineLimit === 1
+      ? t("{count} saved image", { count: baselineLimit })
+      : t("{count} saved images", { count: baselineLimit });
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const nextLimitError = readImageMirrorLimitError(draftLimit);
+    const nextLimitError = readImageMirrorLimitError(draftLimit, t);
     if (nextLimitError) {
       setLimitError(nextLimitError);
       return;
@@ -767,13 +842,15 @@ function AppImageMirrorLimitSection({ app }: { app: ConsoleGalleryAppView }) {
 
     const nextLimit = Number.parseInt(normalizeText(draftLimit), 10);
     if (!Number.isSafeInteger(nextLimit) || nextLimit < 1) {
-      setLimitError("Use 1 or more.");
+      setLimitError(t("Use 1 or more."));
       return;
     }
 
     if (nextLimit === baselineLimit) {
       showToast({
-        message: `Mirrored image limit is already ${baselineLimit}.`,
+        message: t("Mirrored image limit is already {count}.", {
+          count: baselineLimit,
+        }),
         variant: "info",
       });
       return;
@@ -793,6 +870,7 @@ function AppImageMirrorLimitSection({ app }: { app: ConsoleGalleryAppView }) {
           },
           method: "PATCH",
         },
+        t,
       );
 
       setBaselineLimit(nextLimit);
@@ -800,8 +878,10 @@ function AppImageMirrorLimitSection({ app }: { app: ConsoleGalleryAppView }) {
       setLimitError(null);
       showToast({
         message: result?.alreadyCurrent
-          ? `Mirrored image limit is already ${nextLimit}.`
-          : "Mirrored image limit updated.",
+          ? t("Mirrored image limit is already {count}.", {
+              count: nextLimit,
+            })
+          : t("Mirrored image limit updated."),
         variant: "success",
       });
       startTransition(() => {
@@ -809,7 +889,7 @@ function AppImageMirrorLimitSection({ app }: { app: ConsoleGalleryAppView }) {
       });
     } catch (error) {
       showToast({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -819,17 +899,17 @@ function AppImageMirrorLimitSection({ app }: { app: ConsoleGalleryAppView }) {
 
   return (
     <section
-      aria-label="Mirrored image limit"
+      aria-label={t("Mirrored image limit")}
       className="fg-route-subsection fg-settings-section"
     >
       <div className="fg-route-subsection__head">
         <div className="fg-route-subsection__copy fg-settings-section__copy">
-          <p className="fg-label fg-panel__eyebrow">Images</p>
+          <p className="fg-label fg-panel__eyebrow">{t("Images")}</p>
           <h3 className="fg-route-subsection__title fg-ui-heading">
-            Image retention
+            {t("Image retention")}
           </h3>
           <p className="fg-route-subsection__note">
-            Older mirrored images are pruned automatically.
+            {t("Older mirrored images are pruned automatically.")}
           </p>
         </div>
       </div>
@@ -837,17 +917,24 @@ function AppImageMirrorLimitSection({ app }: { app: ConsoleGalleryAppView }) {
       <ConsoleDisclosureSection
         className="fg-settings-disclosure"
         defaultOpen={limitChanged || saving}
-        description={`Default is ${DEFAULT_IMAGE_MIRROR_LIMIT} saved images. The current release counts toward this limit.`}
-        summary={`Saved image limit · ${savedImageLimitLabel}`}
+        description={t(
+          "Default is {count} saved images. The current release counts toward this limit.",
+          {
+            count: DEFAULT_IMAGE_MIRROR_LIMIT,
+          },
+        )}
+        summary={t("Saved image limit · {value}", {
+          value: savedImageLimitLabel,
+        })}
       >
         <form className="fg-settings-form" onSubmit={handleSubmit}>
           <FormField
             error={
               limitError ?? (limitChanged ? draftLimitError : null) ?? undefined
             }
-            hint="Use 1 or more."
+            hint={t("Use 1 or more.")}
             htmlFor={`mirrored-image-limit-${app.id}`}
-            label="Saved image limit"
+            label={t("Saved image limit")}
           >
             <input
               className="fg-input"
@@ -879,17 +966,17 @@ function AppImageMirrorLimitSection({ app }: { app: ConsoleGalleryAppView }) {
                 type="button"
                 variant="secondary"
               >
-                Reset
+                {t("Reset")}
               </Button>
               <Button
                 disabled={!canSaveLimit}
                 loading={saving}
-                loadingLabel="Saving…"
+                loadingLabel={t("Saving…")}
                 size="compact"
                 type="submit"
                 variant="primary"
               >
-                Save limit
+                {t("Save limit")}
               </Button>
             </div>
           ) : null}
@@ -911,6 +998,7 @@ function AppPersistentStorageSection({
   runtimeTargets: ConsoleImportRuntimeTargetView[];
 }) {
   const router = useRouter();
+  const { locale, t } = useI18n();
   const { showToast } = useToast();
   const hasPersistentStorage = app.persistentStorageMounts.length > 0;
   const currentRuntimeId = app.currentRuntimeId ?? app.runtimeId;
@@ -921,33 +1009,36 @@ function AppPersistentStorageSection({
       ? readRuntimeTargetLabel(
           runtimeTargets,
           currentRuntimeId,
-          "Runtime unavailable",
+          locale,
+          t("Runtime unavailable"),
         )
-      : "Inventory unavailable";
+      : t("Inventory unavailable");
   const replicas =
     typeof app.replicaCount === "number" && Number.isFinite(app.replicaCount)
       ? app.replicaCount
       : null;
-  const summaryNote = readPersistentStorageSummaryNote(hasPersistentStorage);
+  const summaryNote = readPersistentStorageSummaryNote(hasPersistentStorage, t);
   const summaryItems = buildPersistentStorageSummaryItems(
     app,
     hasPersistentStorage,
     currentRuntimeLabel,
     replicas,
+    t,
   );
   const mountItems = buildPersistentStorageMountItems(
     app.persistentStorageMounts,
+    t,
   );
   const statusTone: ConsoleTone = hasPersistentStorage ? "info" : "neutral";
-  const statusLabel = hasPersistentStorage ? "Attached" : "Not configured";
+  const statusLabel = hasPersistentStorage ? t("Attached") : t("Not configured");
   const filesActionLabel = hasPersistentStorage
-    ? "Open Files"
-    : "Browse Live Files";
+    ? t("Open Files")
+    : t("Browse Live Files");
   const availabilityHint =
     app.serviceRole === "pending"
-      ? "Wait for the current release to finish before browsing files."
+      ? t("Wait for the current release to finish before browsing files.")
       : isPausedApp(app)
-        ? "Start the service before opening Files."
+        ? t("Start the service before opening Files.")
         : null;
   const [baselinePersistentStorage, setBaselinePersistentStorage] = useState(
     () =>
@@ -984,7 +1075,7 @@ function AppPersistentStorageSection({
     !saving && persistentStorageChanged && !persistentStorageError;
   const savedPersistentStorageLabel =
     summarizePersistentStorageDraft(baselinePersistentStorage) ??
-    "No mounts attached";
+    t("No mounts attached");
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -992,8 +1083,8 @@ function AppPersistentStorageSection({
     if (!persistentStorageChanged) {
       showToast({
         message: hasPersistentStorage
-          ? "Persistent storage already matches the current release."
-          : "Persistent storage is not configured yet.",
+          ? t("Persistent storage already matches the current release.")
+          : t("Persistent storage is not configured yet."),
         variant: "info",
       });
       return;
@@ -1030,6 +1121,7 @@ function AppPersistentStorageSection({
           },
           method: "PATCH",
         },
+        t,
       );
 
       const savedPersistentStorage = readPersistentStorageDraft(
@@ -1041,11 +1133,11 @@ function AppPersistentStorageSection({
       showToast({
         message: result?.alreadyCurrent
           ? savedPersistentStorage.length > 0
-            ? "Persistent storage already matches the current release."
-            : "Persistent storage is already cleared."
+            ? t("Persistent storage already matches the current release.")
+            : t("Persistent storage is already cleared.")
           : savedPersistentStorage.length > 0
-            ? "Persistent storage saved. Deploy queued."
-            : "Persistent storage cleared. Deploy queued.",
+            ? t("Persistent storage saved. Deploy queued.")
+            : t("Persistent storage cleared. Deploy queued."),
         variant: "success",
       });
       startTransition(() => {
@@ -1053,7 +1145,7 @@ function AppPersistentStorageSection({
       });
     } catch (error) {
       showToast({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -1063,14 +1155,14 @@ function AppPersistentStorageSection({
 
   return (
     <section
-      aria-label="Persistent storage"
+      aria-label={t("Persistent storage")}
       className="fg-route-subsection fg-settings-section"
     >
       <div className="fg-route-subsection__head">
         <div className="fg-route-subsection__copy fg-settings-section__copy">
-          <p className="fg-label fg-panel__eyebrow">Storage</p>
+          <p className="fg-label fg-panel__eyebrow">{t("Storage")}</p>
           <h3 className="fg-route-subsection__title fg-ui-heading">
-            Persistent storage
+            {t("Persistent storage")}
           </h3>
           <p className="fg-route-subsection__note">{summaryNote}</p>
         </div>
@@ -1101,8 +1193,10 @@ function AppPersistentStorageSection({
       <ConsoleDisclosureSection
         className="fg-settings-disclosure"
         defaultOpen={persistentStorageChanged || saving}
-        description="Changes queue a deploy. File contents are only used when Fugue needs to create that file for the first time."
-        summary={`Persistent storage · ${savedPersistentStorageLabel}`}
+        description={t("Changes queue a deploy. File contents are only used when Fugue needs to create that file for the first time.")}
+        summary={t("Persistent storage · {value}", {
+          value: savedPersistentStorageLabel,
+        })}
       >
         <form className="fg-settings-form" onSubmit={handleSubmit}>
           {persistentStorageError ? (
@@ -1128,17 +1222,17 @@ function AppPersistentStorageSection({
                 type="button"
                 variant="secondary"
               >
-                Reset
+                {t("Reset")}
               </Button>
               <Button
                 disabled={!canSavePersistentStorage}
                 loading={saving}
-                loadingLabel="Queueing…"
+                loadingLabel={t("Queueing…")}
                 size="compact"
                 type="submit"
                 variant="primary"
               >
-                Save storage
+                {t("Save storage")}
               </Button>
             </div>
           ) : null}
@@ -1192,6 +1286,7 @@ function AppAutomaticFailoverSection({
   runtimeTargets: ConsoleImportRuntimeTargetView[];
 }) {
   const router = useRouter();
+  const { locale, t } = useI18n();
   const { showToast } = useToast();
   const primaryRuntimeId = app.runtimeId ?? app.currentRuntimeId;
   const activeRuntimeId = app.currentRuntimeId ?? app.runtimeId;
@@ -1235,29 +1330,33 @@ function AppAutomaticFailoverSection({
   const primaryRuntimeLabel = readRuntimeTargetLabel(
     runtimeTargets,
     primaryRuntimeId,
-    "Primary runtime unavailable",
+    locale,
+    t("Primary runtime unavailable"),
   );
   const activeRuntimeLabel = readRuntimeTargetLabel(
     runtimeTargets,
     activeRuntimeId,
-    "Runtime unavailable",
+    locale,
+    t("Runtime unavailable"),
   );
   const configuredTargetLabel = readRuntimeTargetLabel(
     runtimeTargets,
     app.failoverTargetRuntimeId,
-    "Not configured",
+    locale,
+    t("Not configured"),
   );
   const selectedTargetLabel = readRuntimeTargetLabel(
     runtimeTargets,
     selectedTargetRuntimeId,
-    "No standby selected",
+    locale,
+    t("No standby selected"),
   );
   const blockerMessage = runtimeTargetInventoryError
-    ? "Runtime list unavailable."
+    ? t("Runtime list unavailable.")
     : !primaryRuntimeId
-      ? "Primary runtime unavailable."
+      ? t("Primary runtime unavailable.")
       : continuityTargets.length === 0
-        ? "Add another managed runtime before turning on automatic failover."
+        ? t("Add another managed runtime before turning on automatic failover.")
         : null;
   const canSave =
     !saving && !blockerMessage && Boolean(selectedTargetRuntimeId);
@@ -1271,7 +1370,7 @@ function AppAutomaticFailoverSection({
 
     if (!selectedTargetRuntimeId) {
       showToast({
-        message: blockerMessage ?? "Choose a standby runtime.",
+        message: blockerMessage ?? t("Choose a standby runtime."),
         variant: "info",
       });
       return;
@@ -1294,12 +1393,17 @@ function AppAutomaticFailoverSection({
           },
           method: "PATCH",
         },
+        t,
       );
 
       showToast({
         message: result?.alreadyCurrent
-          ? `Automatic failover already points to ${selectedTargetLabel}.`
-          : `Automatic failover saved. Standby runtime: ${selectedTargetLabel}.`,
+          ? t("Automatic failover already points to {target}.", {
+              target: selectedTargetLabel,
+            })
+          : t("Automatic failover saved. Standby runtime: {target}.", {
+              target: selectedTargetLabel,
+            }),
         variant: "success",
       });
       startTransition(() => {
@@ -1307,7 +1411,7 @@ function AppAutomaticFailoverSection({
       });
     } catch (error) {
       showToast({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -1344,14 +1448,15 @@ function AppAutomaticFailoverSection({
           },
           method: "PATCH",
         },
+        t,
       );
 
       showToast({
         message: result?.alreadyCurrent
-          ? "Automatic failover is already off."
+          ? t("Automatic failover is already off.")
           : disablesDatabaseReplica
-            ? "Automatic failover disabled. Standby database replica removed."
-            : "Automatic failover disabled.",
+            ? t("Automatic failover disabled. Standby database replica removed.")
+            : t("Automatic failover disabled."),
         variant: "success",
       });
       startTransition(() => {
@@ -1359,7 +1464,7 @@ function AppAutomaticFailoverSection({
       });
     } catch (error) {
       showToast({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -1369,41 +1474,42 @@ function AppAutomaticFailoverSection({
 
   return (
     <section
-      aria-label="Automatic failover"
+      aria-label={t("Automatic failover")}
       className="fg-route-subsection fg-settings-section"
     >
       <div className="fg-route-subsection__head">
         <div className="fg-route-subsection__copy fg-settings-section__copy">
-          <p className="fg-label fg-panel__eyebrow">Continuity</p>
+          <p className="fg-label fg-panel__eyebrow">{t("Continuity")}</p>
           <h3 className="fg-route-subsection__title fg-ui-heading">
-            Automatic failover
+            {t("Automatic failover")}
           </h3>
           <p className="fg-route-subsection__note">
-            Keep a standby runtime ready. Traffic only moves there if the
-            primary runtime disappears.
+            {t(
+              "Keep a standby runtime ready. Traffic only moves there if the primary runtime disappears.",
+            )}
           </p>
         </div>
 
         <StatusBadge tone={app.failoverConfigured ? "info" : "neutral"}>
-          {app.failoverConfigured ? "Configured" : "Off"}
+          {app.failoverConfigured ? t("Configured") : t("Off")}
         </StatusBadge>
       </div>
 
       <dl className="fg-settings-meta">
         <div>
-          <dt>Primary runtime</dt>
+          <dt>{t("Primary runtime")}</dt>
           <dd>{primaryRuntimeLabel}</dd>
         </div>
         {activeRuntimeId && activeRuntimeId !== primaryRuntimeId ? (
           <div>
-            <dt>Serving now</dt>
+            <dt>{t("Serving now")}</dt>
             <dd>{activeRuntimeLabel}</dd>
           </div>
         ) : null}
         <div>
-          <dt>Standby runtime</dt>
+          <dt>{t("Standby runtime")}</dt>
           <dd>
-            {app.failoverConfigured ? configuredTargetLabel : "Not configured"}
+            {app.failoverConfigured ? configuredTargetLabel : t("Not configured")}
           </dd>
         </div>
       </dl>
@@ -1416,7 +1522,7 @@ function AppAutomaticFailoverSection({
         {continuityTargets.length > 0 ? (
           <FormField
             htmlFor={`automatic-failover-target-${app.id}`}
-            label="Standby runtime"
+            label={t("Standby runtime")}
           >
             <SelectField
               disabled={saving}
@@ -1428,7 +1534,7 @@ function AppAutomaticFailoverSection({
               value={selectedTargetRuntimeId ?? ""}
             >
               <option disabled value="">
-                Select a standby runtime…
+                {t("Select a standby runtime…")}
               </option>
               {continuityTargets.map((target) => (
                 <option key={target.id} value={target.id}>
@@ -1448,19 +1554,19 @@ function AppAutomaticFailoverSection({
               type="button"
               variant="secondary"
             >
-              Disable
+              {t("Disable")}
             </Button>
           ) : null}
           {showSaveButton ? (
             <Button
               disabled={!canSave}
               loading={saving}
-              loadingLabel="Saving…"
+              loadingLabel={t("Saving…")}
               size="compact"
               type="submit"
               variant="primary"
             >
-              {app.failoverConfigured ? "Save standby" : "Enable failover"}
+              {app.failoverConfigured ? t("Save standby") : t("Enable failover")}
             </Button>
           ) : null}
         </div>
@@ -1480,6 +1586,7 @@ function AppTransferSection({
 }) {
   const router = useRouter();
   const confirm = useConfirmDialog();
+  const { locale, t } = useI18n();
   const { showToast } = useToast();
   const transferMode = readTransferRequestMode(app);
   const activeRuntimeId = app.currentRuntimeId ?? app.runtimeId;
@@ -1509,20 +1616,22 @@ function AppTransferSection({
   const selectedTargetLabel = readRuntimeTargetLabel(
     runtimeTargets,
     selectedTargetRuntimeId,
-    "No target selected",
+    locale,
+    t("No target selected"),
   );
   const liveRuntimeLabel = readRuntimeTargetLabel(
     runtimeTargets,
     activeRuntimeId,
-    "Current runtime unavailable",
+    locale,
+    t("Current runtime unavailable"),
   );
-  const actionHint = readTransferActionHint(app);
+  const actionHint = readTransferActionHint(app, t);
   const targetSelectionHint = runtimeTargetInventoryError
-    ? "Runtime list unavailable."
+    ? t("Runtime list unavailable.")
     : transferTargets.length === 0
       ? transferMode === "failover" || app.hasManagedPostgresService
-        ? "Add another managed runtime before moving this service."
-        : "Add another runtime before moving this service."
+        ? t("Add another managed runtime before moving this service.")
+        : t("Add another runtime before moving this service.")
       : null;
   const blockerMessage = actionHint ?? targetSelectionHint;
   const canTransfer =
@@ -1541,21 +1650,22 @@ function AppTransferSection({
 
     if (!selectedTargetRuntimeId) {
       showToast({
-        message: targetSelectionHint ?? "Choose a destination.",
+        message: targetSelectionHint ?? t("Choose a destination."),
         variant: "info",
       });
       return;
     }
 
     const confirmed = await confirm({
-      confirmLabel: "Transfer Now",
+      confirmLabel: t("Transfer Now"),
       description: readTransferConfirmationDescription(
         app,
         liveRuntimeLabel,
         selectedTargetLabel,
+        t,
       ),
-      eyebrow: "Runtime Move",
-      title: "Transfer Service?",
+      eyebrow: t("Runtime Move"),
+      title: t("Transfer Service?"),
       variant: "primary",
     });
 
@@ -1577,10 +1687,13 @@ function AppTransferSection({
           },
           method: "POST",
         },
+        t,
       );
 
       showToast({
-        message: `Transfer queued to ${selectedTargetLabel}.`,
+        message: t("Transfer queued to {target}.", {
+          target: selectedTargetLabel,
+        }),
         variant: "success",
       });
       startTransition(() => {
@@ -1588,7 +1701,7 @@ function AppTransferSection({
       });
     } catch (error) {
       showToast({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -1598,19 +1711,29 @@ function AppTransferSection({
 
   return (
     <section
-      aria-label="One-Click Transfer"
+      aria-label={t("One-Click Transfer")}
       className="fg-route-subsection fg-settings-section"
     >
       <div className="fg-route-subsection__head">
         <div className="fg-route-subsection__copy fg-settings-section__copy">
-          <p className="fg-label fg-panel__eyebrow">Runtime</p>
+          <p className="fg-label fg-panel__eyebrow">{t("Runtime")}</p>
           <h3 className="fg-route-subsection__title fg-ui-heading">
-            One-Click Transfer
+            {t("One-Click Transfer")}
           </h3>
           <p className="fg-route-subsection__note">
             {transferMode === "migrate"
-              ? `Current: ${liveRuntimeLabel}. Fugue keeps the current runtime serving until the destination is ready.`
-              : `Current: ${liveRuntimeLabel}. Choose a destination and move this service now.`}
+              ? t(
+                  "Current: {liveRuntimeLabel}. Fugue keeps the current runtime serving until the destination is ready.",
+                  {
+                    liveRuntimeLabel,
+                  },
+                )
+              : t(
+                  "Current: {liveRuntimeLabel}. Choose a destination and move this service now.",
+                  {
+                    liveRuntimeLabel,
+                  },
+                )}
           </p>
         </div>
       </div>
@@ -1621,7 +1744,7 @@ function AppTransferSection({
         ) : null}
 
         {transferTargets.length > 0 ? (
-          <FormField htmlFor={`transfer-target-${app.id}`} label="Destination">
+          <FormField htmlFor={`transfer-target-${app.id}`} label={t("Destination")}>
             <SelectField
               disabled={transferSaving}
               id={`transfer-target-${app.id}`}
@@ -1632,7 +1755,7 @@ function AppTransferSection({
               value={selectedTargetRuntimeId ?? ""}
             >
               <option disabled value="">
-                Select a destination…
+                {t("Select a destination…")}
               </option>
               {transferTargets.map((target) => (
                 <option key={target.id} value={target.id}>
@@ -1647,12 +1770,12 @@ function AppTransferSection({
           <Button
             disabled={!canTransfer}
             loading={transferSaving}
-            loadingLabel="Queueing…"
+            loadingLabel={t("Queueing…")}
             size="compact"
             type="submit"
             variant="primary"
           >
-            Transfer Now
+            {t("Transfer Now")}
           </Button>
         </div>
       </form>
@@ -1682,6 +1805,7 @@ export function AppSettingsPanel({
   serviceCount: number;
 }) {
   const router = useRouter();
+  const { t } = useI18n();
   const { showToast } = useToast();
   const [projectNameDraft, setProjectNameDraft] = useState(projectName);
   const [projectBaseline, setProjectBaseline] = useState(projectName);
@@ -1731,15 +1855,15 @@ export function AppSettingsPanel({
     isGitHubSource && app.serviceRole === "running" && !isPausedApp(app);
   const canUpdateRepoAccess =
     isPrivateGitHubSource && app.serviceRole === "running" && !isPausedApp(app);
-  const syncState = readGitHubSyncState(app);
-  const sourceLabel = normalizeText(app.sourceLabel) || "Unlinked source";
-  const sourceKindLabel = readSourceKindLabel(app);
-  const sourceSectionTitle = readSourceSectionTitle(app);
+  const syncState = readGitHubSyncState(app, t);
+  const sourceLabel = normalizeText(app.sourceLabel) || t("Unlinked source");
+  const sourceKindLabel = readSourceKindLabel(app, t);
+  const sourceSectionTitle = readSourceSectionTitle(app, t);
   const sourceSectionHint = readSourceSectionHint(app);
-  const sourceFieldLabel = readSourceFieldLabel(app);
-  const manualRefreshState = readManualRefreshState(app);
-  const branchFieldHint = readBranchFieldHint(app);
-  const repositoryAccessHint = readRepositoryAccessHint(app);
+  const sourceFieldLabel = readSourceFieldLabel(app, t);
+  const manualRefreshState = readManualRefreshState(app, t);
+  const branchFieldHint = readBranchFieldHint(app, t);
+  const repositoryAccessHint = readRepositoryAccessHint(app, t);
   const hasPersistentStorage = app.persistentStorageMounts.length > 0;
   const branchChanged = normalizedBranch !== normalizeText(currentBranch);
   const repoAuthTokenChanged = normalizedRepoAuthToken.length > 0;
@@ -1747,8 +1871,8 @@ export function AppSettingsPanel({
   const repoAccessActionsVisible =
     repoAuthTokenChanged || repoAuthTokenSaving || hasSavedGitHubAccess;
   const repoAccessSubmitLabel = normalizedRepoAuthToken
-    ? "Update token and rebuild"
-    : "Use saved access and rebuild";
+    ? t("Update token and rebuild")
+    : t("Use saved access and rebuild");
   const projectChanged = normalizedProjectName !== currentProjectName;
   const projectSlug = slugifyLikeFugue(normalizedProjectName);
   const conflictingProject = projectCatalog.find(
@@ -1757,50 +1881,89 @@ export function AppSettingsPanel({
   );
   const projectNameError =
     projectManaged && projectChanged && !normalizedProjectName
-      ? "Project name is required."
+      ? t("Project name is required.")
       : projectManaged && projectChanged && conflictingProject
-        ? `Another project already uses “${conflictingProject.name}”.`
+        ? t("Another project already uses “{name}”.", {
+            name: conflictingProject.name,
+          })
         : undefined;
   const canSaveProject =
     projectManaged && projectChanged && !projectSaving && !projectNameError;
   const workspaceSummaryAction = hasPersistentStorage
-    ? "inspect persistent storage"
-    : "review persistent storage configuration";
+    ? t("inspect persistent storage")
+    : t("review persistent storage configuration");
   const settingsSummary = isPrivateGitHubSource
-    ? `Rename the shared project, manage repository sync and GitHub access, set a startup command, tune image retention, ${workspaceSummaryAction}, set automatic failover, or move ${app.name} by hand.`
+    ? t(
+        "Rename the shared project, manage repository sync and GitHub access, set a startup command, tune image retention, {workspaceSummaryAction}, set automatic failover, or move {appName} by hand.",
+        {
+          appName: app.name,
+          workspaceSummaryAction,
+        },
+      )
     : isGitHubSource
-      ? `Rename the shared project, manage repository sync, set a startup command, tune image retention, ${workspaceSummaryAction}, set automatic failover, or move ${app.name} by hand.`
+      ? t(
+          "Rename the shared project, manage repository sync, set a startup command, tune image retention, {workspaceSummaryAction}, set automatic failover, or move {appName} by hand.",
+          {
+            appName: app.name,
+            workspaceSummaryAction,
+          },
+        )
       : isDockerImageSource
-        ? `Rename the shared project, review the saved Docker image reference, set a startup command, tune image retention, ${workspaceSummaryAction}, set automatic failover, or move ${app.name} by hand.`
+        ? t(
+            "Rename the shared project, review the saved Docker image reference, set a startup command, tune image retention, {workspaceSummaryAction}, set automatic failover, or move {appName} by hand.",
+            {
+              appName: app.name,
+              workspaceSummaryAction,
+            },
+          )
         : isUploadSource
-          ? `Rename the shared project, review the saved upload source, set a startup command, tune image retention, ${workspaceSummaryAction}, set automatic failover, or move ${app.name} by hand.`
-          : `Rename the shared project, review the saved source definition, set a startup command, tune image retention, ${workspaceSummaryAction}, set automatic failover, or move ${app.name} by hand.`;
+          ? t(
+              "Rename the shared project, review the saved upload source, set a startup command, tune image retention, {workspaceSummaryAction}, set automatic failover, or move {appName} by hand.",
+              {
+                appName: app.name,
+                workspaceSummaryAction,
+              },
+            )
+          : t(
+              "Rename the shared project, review the saved source definition, set a startup command, tune image retention, {workspaceSummaryAction}, set automatic failover, or move {appName} by hand.",
+              {
+                appName: app.name,
+                workspaceSummaryAction,
+              },
+            );
   const projectSectionNote = projectManaged
-    ? `${serviceCount} service${serviceCount === 1 ? "" : "s"} share this project shell. Renaming it updates the whole group.`
-    : "This service still lives in the Unassigned bucket, so the shared shell cannot be renamed yet.";
+    ? t(
+        serviceCount === 1
+          ? "{count} service shares this project shell. Renaming it updates the whole group."
+          : "{count} services share this project shell. Renaming it updates the whole group.",
+        {
+          count: serviceCount,
+        },
+      )
+    : t("This service still lives in the Unassigned bucket, so the shared shell cannot be renamed yet.");
   const syncSummaryValue =
     syncState.action === "disable"
-      ? "Polling for new commits"
+      ? t("Polling for new commits")
       : syncState.action === "start"
-        ? "Updates paused"
-        : "Starts after first deploy";
-  const branchSummaryValue = currentBranch || "Default branch";
+        ? t("Updates paused")
+        : t("Starts after first deploy");
+  const branchSummaryValue = currentBranch || t("Default branch");
   const branchDisclosureDescription = !canEditBranch
-    ? branchFieldHint ?? "Branch changes are unavailable."
+    ? branchFieldHint ?? t("Branch changes are unavailable.")
     : currentBranch
-      ? "Change the branch used for rebuilds."
-      : "Leave it blank to follow the repository default branch.";
+      ? t("Change the branch used for rebuilds.")
+      : t("Leave it blank to follow the repository default branch.");
   const manualRefreshValue =
-    manualRefreshState?.label === "Manual"
-      ? "Refresh on demand"
-      : manualRefreshState?.label ?? "Manual refresh";
+    manualRefreshState?.label === t("Manual")
+      ? t("Refresh on demand")
+      : manualRefreshState?.label ?? t("Manual refresh");
 
   async function handleProjectSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!projectManaged) {
       showToast({
-        message: "Unassigned groups cannot be renamed yet.",
+        message: t("Unassigned groups cannot be renamed yet."),
         variant: "info",
       });
       return;
@@ -1808,7 +1971,7 @@ export function AppSettingsPanel({
 
     if (!normalizedProjectName) {
       showToast({
-        message: "Project name is required.",
+        message: t("Project name is required."),
         variant: "error",
       });
       return;
@@ -1816,7 +1979,7 @@ export function AppSettingsPanel({
 
     if (!projectChanged) {
       showToast({
-        message: "No project name changes.",
+        message: t("No project name changes."),
         variant: "info",
       });
       return;
@@ -1824,7 +1987,12 @@ export function AppSettingsPanel({
 
     if (conflictingProject) {
       showToast({
-        message: `Another project already uses “${conflictingProject.name}”. Project names must be unique within the workspace.`,
+        message: t(
+          "Another project already uses “{name}”. Project names must be unique within the workspace.",
+          {
+            name: conflictingProject.name,
+          },
+        ),
         variant: "error",
       });
       return;
@@ -1844,24 +2012,25 @@ export function AppSettingsPanel({
           },
           method: "PATCH",
         },
+        t,
       );
 
       setProjectBaseline(normalizedProjectName);
       setProjectNameDraft(normalizedProjectName);
       showToast({
-        message: "Project name updated.",
+        message: t("Project name updated."),
         variant: "success",
       });
       startTransition(() => {
         router.refresh();
       });
     } catch (error) {
-      const message = readErrorMessage(error);
+      const message = readErrorMessage(error, t);
       showToast({
         message:
           message.includes("resource conflict") ||
           message.includes("409 Conflict")
-            ? "Another project already uses this name. Project names must be unique within the workspace."
+            ? t("Another project already uses this name. Project names must be unique within the workspace.")
             : message,
         variant: "error",
       });
@@ -1875,7 +2044,7 @@ export function AppSettingsPanel({
 
     if (!isGitHubSource) {
       showToast({
-        message: "Only GitHub-backed services can change the tracked branch.",
+        message: t("Only GitHub-backed services can change the tracked branch."),
         variant: "info",
       });
       return;
@@ -1883,7 +2052,7 @@ export function AppSettingsPanel({
 
     if (!canEditBranch) {
       showToast({
-        message: branchFieldHint ?? "Branch changes are unavailable.",
+        message: branchFieldHint ?? t("Branch changes are unavailable."),
         variant: "info",
       });
       return;
@@ -1891,7 +2060,7 @@ export function AppSettingsPanel({
 
     if (!branchChanged) {
       showToast({
-        message: "No source branch changes.",
+        message: t("No source branch changes."),
         variant: "info",
       });
       return;
@@ -1908,14 +2077,16 @@ export function AppSettingsPanel({
           "Content-Type": "application/json",
         },
         method: "POST",
-      });
+      }, t);
 
       setBranchBaseline(normalizedBranch);
       setBranchDraft(normalizedBranch);
       showToast({
         message: normalizedBranch
-          ? `Rebuild queued from ${normalizedBranch}.`
-          : "Rebuild queued from default branch.",
+          ? t("Rebuild queued from {branch}.", {
+              branch: normalizedBranch,
+            })
+          : t("Rebuild queued from default branch."),
         variant: "success",
       });
       startTransition(() => {
@@ -1923,7 +2094,7 @@ export function AppSettingsPanel({
       });
     } catch (error) {
       showToast({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -1946,11 +2117,12 @@ export function AppSettingsPanel({
         {
           method: "POST",
         },
+        t,
       );
 
       showToast({
         message:
-          syncState.action === "disable" ? "Pause queued." : "Resume queued.",
+          syncState.action === "disable" ? t("Pause queued.") : t("Resume queued."),
         variant: "success",
       });
       startTransition(() => {
@@ -1958,7 +2130,7 @@ export function AppSettingsPanel({
       });
     } catch (error) {
       showToast({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -1974,7 +2146,7 @@ export function AppSettingsPanel({
     if (!isPrivateGitHubSource) {
       showToast({
         message:
-          "Only private GitHub-backed services store a repository token.",
+          t("Only private GitHub-backed services store a repository token."),
         variant: "info",
       });
       return;
@@ -1982,7 +2154,7 @@ export function AppSettingsPanel({
 
     if (!canUpdateRepoAccess) {
       showToast({
-        message: repositoryAccessHint ?? "Token updates are unavailable.",
+        message: repositoryAccessHint ?? t("Token updates are unavailable."),
         variant: "info",
       });
       return;
@@ -1991,8 +2163,8 @@ export function AppSettingsPanel({
     if (!normalizedRepoAuthToken && !hasSavedGitHubAccess) {
       showToast({
         message: githubConnectionLoading
-          ? "Still checking saved GitHub access. Try again in a moment or paste a token."
-          : "Authorize GitHub or paste a new token first.",
+          ? t("Still checking saved GitHub access. Try again in a moment or paste a token.")
+          : t("Authorize GitHub or paste a new token first."),
         variant: "info",
       });
       return;
@@ -2013,13 +2185,13 @@ export function AppSettingsPanel({
           "Content-Type": "application/json",
         },
         method: "POST",
-      });
+      }, t);
 
       setRepoAuthTokenDraft("");
       showToast({
         message: normalizedRepoAuthToken
-          ? "Repository token updated. Rebuild queued."
-          : "Saved GitHub access applied. Rebuild queued.",
+          ? t("Repository token updated. Rebuild queued.")
+          : t("Saved GitHub access applied. Rebuild queued."),
         variant: "success",
       });
       startTransition(() => {
@@ -2027,7 +2199,7 @@ export function AppSettingsPanel({
       });
     } catch (error) {
       showToast({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -2038,25 +2210,32 @@ export function AppSettingsPanel({
   return (
     <div className="fg-workbench-section fg-settings-panel">
       <div className="fg-workbench-section__copy fg-settings-panel__copy">
-        <p className="fg-label fg-panel__eyebrow">Settings</p>
+        <p className="fg-label fg-panel__eyebrow">{t("Settings")}</p>
         <p className="fg-console-note">{settingsSummary}</p>
       </div>
 
       <section
-        aria-label="Project shell"
+        aria-label={t("Project shell")}
         className="fg-route-subsection fg-settings-section"
       >
         <div className="fg-route-subsection__head">
           <div className="fg-route-subsection__copy fg-settings-section__copy">
-            <p className="fg-label fg-panel__eyebrow">Project</p>
+            <p className="fg-label fg-panel__eyebrow">{t("Project")}</p>
             <h3 className="fg-route-subsection__title fg-ui-heading">
-              Project shell
+              {t("Project shell")}
             </h3>
             <p className="fg-route-subsection__note">{projectSectionNote}</p>
           </div>
 
           <StatusBadge tone="neutral">
-            {projectManaged ? `${serviceCount} services` : "Unassigned"}
+            {projectManaged
+              ? t(
+                  serviceCount === 1 ? "{count} service" : "{count} services",
+                  {
+                    count: serviceCount,
+                  },
+                )
+              : t("Unassigned")}
           </StatusBadge>
         </div>
 
@@ -2064,9 +2243,9 @@ export function AppSettingsPanel({
           <form className="fg-settings-form" onSubmit={handleProjectSubmit}>
             <FormField
               error={projectNameError}
-              hint="Must stay unique within this workspace."
+              hint={t("Must stay unique within this workspace.")}
               htmlFor={`project-name-${projectId}`}
-              label="Project name"
+              label={t("Project name")}
             >
               <input
                 autoComplete="off"
@@ -2074,7 +2253,7 @@ export function AppSettingsPanel({
                 id={`project-name-${projectId}`}
                 name="projectName"
                 onChange={(event) => setProjectNameDraft(event.target.value)}
-                placeholder="Project name"
+                placeholder={t("Project name")}
                 value={projectNameDraft}
               />
             </FormField>
@@ -2088,17 +2267,17 @@ export function AppSettingsPanel({
                   type="button"
                   variant="secondary"
                 >
-                  Reset
+                  {t("Reset")}
                 </Button>
                 <Button
                   disabled={!canSaveProject}
                   loading={projectSaving}
-                  loadingLabel="Saving…"
+                  loadingLabel={t("Saving…")}
                   size="compact"
                   type="submit"
                   variant="primary"
                 >
-                  Save name
+                  {t("Save name")}
                 </Button>
               </div>
             ) : null}
@@ -2106,12 +2285,12 @@ export function AppSettingsPanel({
         ) : (
           <dl className="fg-settings-meta">
             <div>
-              <dt>Current group</dt>
+              <dt>{t("Current group")}</dt>
               <dd>{projectName}</dd>
             </div>
             <div>
-              <dt>Save mode</dt>
-              <dd>Unavailable</dd>
+              <dt>{t("Save mode")}</dt>
+              <dd>{t("Unavailable")}</dd>
             </div>
           </dl>
         )}
@@ -2123,7 +2302,7 @@ export function AppSettingsPanel({
       >
         <div className="fg-route-subsection__head">
           <div className="fg-route-subsection__copy fg-settings-section__copy">
-            <p className="fg-label fg-panel__eyebrow">Source</p>
+            <p className="fg-label fg-panel__eyebrow">{t("Source")}</p>
             <h3 className="fg-route-subsection__title fg-ui-heading">
               {sourceSectionTitle}
             </h3>
@@ -2141,7 +2320,7 @@ export function AppSettingsPanel({
           <>
             <SettingsSummaryList>
               <SettingsSummaryRow
-                label="Repository"
+                label={t("Repository")}
                 value={
                   app.sourceHref ? (
                     <a
@@ -2158,7 +2337,7 @@ export function AppSettingsPanel({
                 }
               />
               <SettingsSummaryRow
-                label="Auto sync"
+                label={t("Auto sync")}
                 side={
                   <div className="fg-settings-summary-row__actions">
                     <StatusBadge
@@ -2172,8 +2351,8 @@ export function AppSettingsPanel({
                         loading={syncSaving}
                         loadingLabel={
                           syncState.action === "disable"
-                            ? "Pausing…"
-                            : "Starting…"
+                            ? t("Pausing…")
+                            : t("Starting…")
                         }
                         onClick={handleGitHubSyncToggle}
                         size="compact"
@@ -2198,13 +2377,15 @@ export function AppSettingsPanel({
                 className="fg-settings-disclosure"
                 defaultOpen={branchChanged || branchSaving}
                 description={branchDisclosureDescription}
-                summary={`Tracked branch · ${branchSummaryValue}`}
+                summary={t("Tracked branch · {value}", {
+                  value: branchSummaryValue,
+                })}
               >
                 <form className="fg-settings-form" onSubmit={handleBranchSubmit}>
                   <FormField
                     hint={branchFieldHint ?? undefined}
                     htmlFor={`service-branch-${app.id}`}
-                    label="Tracked branch"
+                    label={t("Tracked branch")}
                   >
                     <input
                       autoCapitalize="off"
@@ -2215,7 +2396,7 @@ export function AppSettingsPanel({
                       id={`service-branch-${app.id}`}
                       name="trackedBranch"
                       onChange={(event) => setBranchDraft(event.target.value)}
-                      placeholder="main"
+                      placeholder={t("main")}
                       spellCheck={false}
                       value={branchDraft}
                     />
@@ -2230,17 +2411,17 @@ export function AppSettingsPanel({
                         type="button"
                         variant="secondary"
                       >
-                        Reset
+                        {t("Reset")}
                       </Button>
                       <Button
                         disabled={!canEditBranch || !branchChanged || branchSaving}
                         loading={branchSaving}
-                        loadingLabel="Queueing…"
+                        loadingLabel={t("Queueing…")}
                         size="compact"
                         type="submit"
                         variant="primary"
                       >
-                        Save and rebuild
+                        {t("Save and rebuild")}
                       </Button>
                     </div>
                   ) : null}
@@ -2249,7 +2430,7 @@ export function AppSettingsPanel({
             ) : (
               <SettingsSummaryList>
                 <SettingsSummaryRow
-                  label="Tracked branch"
+                  label={t("Tracked branch")}
                   note={branchFieldHint ?? undefined}
                   value={branchSummaryValue}
                 />
@@ -2278,14 +2459,14 @@ export function AppSettingsPanel({
 
       {isPrivateGitHubSource ? (
         <section
-          aria-label="Repository access"
+          aria-label={t("Repository access")}
           className="fg-route-subsection fg-settings-section"
         >
           <div className="fg-route-subsection__head">
             <div className="fg-route-subsection__copy fg-settings-section__copy">
-              <p className="fg-label fg-panel__eyebrow">Source</p>
+              <p className="fg-label fg-panel__eyebrow">{t("Source")}</p>
               <h3 className="fg-route-subsection__title fg-ui-heading">
-                GitHub access
+                {t("GitHub access")}
               </h3>
               {repositoryAccessHint ? (
                 <p className="fg-route-subsection__note">
@@ -2295,7 +2476,7 @@ export function AppSettingsPanel({
             </div>
 
             <StatusBadge tone="info">
-              {hasSavedGitHubAccess ? "Saved access" : "Stored token"}
+              {hasSavedGitHubAccess ? t("Saved access") : t("Stored token")}
             </StatusBadge>
           </div>
 
@@ -2304,7 +2485,7 @@ export function AppSettingsPanel({
             onSubmit={handleRepositoryAccessSubmit}
           >
             <div className="fg-settings-source-meta">
-              <span className="fg-settings-source-meta__label">Repository</span>
+              <span className="fg-settings-source-meta__label">{t("Repository")}</span>
               <span className="fg-settings-source-meta__value">
                 {app.sourceHref ? (
                   <a
@@ -2322,7 +2503,7 @@ export function AppSettingsPanel({
             </div>
 
             {githubConnectionLoading ? (
-              <InlineAlert>Checking saved GitHub access…</InlineAlert>
+              <InlineAlert>{t("Checking saved GitHub access…")}</InlineAlert>
             ) : githubConnectionError ? (
               <InlineAlert variant="warning">
                 {githubConnectionError}
@@ -2334,7 +2515,7 @@ export function AppSettingsPanel({
                       size="compact"
                       variant="secondary"
                     >
-                      Reconnect GitHub
+                      {t("Reconnect GitHub")}
                     </ButtonAnchor>
                   </>
                 ) : null}
@@ -2342,8 +2523,10 @@ export function AppSettingsPanel({
             ) : hasSavedGitHubAccess ? (
               <InlineAlert variant="success">
                 {githubConnection?.login
-                  ? `Saved GitHub access is ready as @${githubConnection.login}.`
-                  : "Saved GitHub access is ready."}
+                  ? t("Saved GitHub access is ready as @{login}.", {
+                      login: githubConnection.login,
+                    })
+                  : t("Saved GitHub access is ready.")}
                 {githubConnection?.authEnabled && githubConnectHref ? (
                   <>
                     {" "}
@@ -2352,21 +2535,20 @@ export function AppSettingsPanel({
                       size="compact"
                       variant="secondary"
                     >
-                      Reconnect GitHub
+                      {t("Reconnect GitHub")}
                     </ButtonAnchor>
                   </>
                 ) : null}
               </InlineAlert>
             ) : githubConnection?.authEnabled && githubConnectHref ? (
               <InlineAlert>
-                Authorize GitHub in the browser, or paste a replacement token
-                below.{" "}
+                {t("Authorize GitHub in the browser, or paste a replacement token below.")}{" "}
                 <ButtonAnchor
                   href={githubConnectHref}
                   size="compact"
                   variant="secondary"
                 >
-                  Connect GitHub
+                  {t("Connect GitHub")}
                 </ButtonAnchor>
               </InlineAlert>
             ) : null}
@@ -2374,11 +2556,11 @@ export function AppSettingsPanel({
             <FormField
               hint={
                 hasSavedGitHubAccess
-                  ? "Leave blank to use saved GitHub access. Paste a token only to override it."
-                  : "Needs GitHub repo read access."
+                  ? t("Leave blank to use saved GitHub access. Paste a token only to override it.")
+                  : t("Needs GitHub repo read access.")
               }
               htmlFor={`repo-auth-token-${app.id}`}
-              label="Replace token"
+              label={t("Replace token")}
             >
               <input
                 autoCapitalize="none"
@@ -2390,8 +2572,8 @@ export function AppSettingsPanel({
                 onChange={(event) => setRepoAuthTokenDraft(event.target.value)}
                 placeholder={
                   hasSavedGitHubAccess
-                    ? "Paste a token to override saved GitHub access"
-                    : "github_pat_..."
+                    ? t("Paste a token to override saved GitHub access")
+                    : t("github_pat_...")
                 }
                 spellCheck={false}
                 type="password"
@@ -2409,7 +2591,7 @@ export function AppSettingsPanel({
                     type="button"
                     variant="secondary"
                   >
-                    Reset
+                    {t("Reset")}
                   </Button>
                 ) : null}
                 <Button
@@ -2419,7 +2601,7 @@ export function AppSettingsPanel({
                     repoAuthTokenSaving
                   }
                   loading={repoAuthTokenSaving}
-                  loadingLabel="Queueing…"
+                  loadingLabel={t("Queueing…")}
                   size="compact"
                   type="submit"
                   variant="primary"

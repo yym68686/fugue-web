@@ -18,6 +18,7 @@ import {
 } from "@/components/console/console-project-gallery";
 import { ConsoleProjectWorkbenchSkeleton } from "@/components/console/console-page-skeleton";
 import { ImportServiceFields } from "@/components/console/import-service-fields";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { StatusBadge } from "@/components/console/status-badge";
 import { Button, ButtonAnchor } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
@@ -66,15 +67,12 @@ import {
 } from "@/lib/fugue/local-upload";
 import {
   buildSuggestedProjectName,
-  DUPLICATE_PROJECT_NAME_MESSAGE,
   findProjectByName,
 } from "@/lib/project-names";
 import { consumeSSEStream, type ParsedSSEEvent } from "@/lib/ui/sse";
 import { cx } from "@/lib/ui/cx";
 import {
   isAbortRequestError,
-  readRequestError,
-  requestJson,
 } from "@/lib/ui/request-json";
 
 type FlashState = {
@@ -124,6 +122,11 @@ type GalleryStreamPayload = {
 
 const PROJECT_IMAGE_USAGE_CACHE_TTL_MS = 60_000;
 
+type Translator = (
+  key: string,
+  values?: Record<string, number | string>,
+) => string;
+
 type CachedProjectImageUsage = {
   cachedAt: number;
   projects: ProjectImageUsageSummary[];
@@ -172,8 +175,20 @@ function buildProjectImageUsageMap(projects: ProjectImageUsageSummary[]) {
   );
 }
 
-function projectTitle(project: ConsoleProjectSummaryView) {
-  return `${project.appCount} app${project.appCount === 1 ? "" : "s"} · ${project.serviceCount} service${project.serviceCount === 1 ? "" : "s"}`;
+function projectTitle(project: ConsoleProjectSummaryView, t: Translator) {
+  const appLabel = t(
+    project.appCount === 1 ? "{count} app" : "{count} apps",
+    {
+      count: project.appCount,
+    },
+  );
+  const serviceLabel = t(
+    project.serviceCount === 1 ? "{count} service" : "{count} services",
+    {
+      count: project.serviceCount,
+    },
+  );
+  return `${appLabel} · ${serviceLabel}`;
 }
 
 function isDeletingProjectLifecycleLabel(value?: string | null) {
@@ -356,11 +371,61 @@ function resolveCreateProjectId(
   );
 }
 
-function readPendingProjectIntentStatus(intent: PendingProjectIntent) {
+function readErrorMessage(error: unknown, t: Translator) {
+  if (isAbortRequestError(error)) {
+    return t("Request canceled.");
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return t("Request failed.");
+}
+
+async function readResponseError(response: Response, t: Translator) {
+  const body = await response.text().catch(() => "");
+  const trimmed = body.trim();
+
+  if (!trimmed) {
+    return t("Request failed with status {status}.", { status: response.status });
+  }
+
+  try {
+    const payload = JSON.parse(trimmed) as { error?: unknown };
+
+    if (typeof payload?.error === "string" && payload.error.trim()) {
+      return payload.error.trim();
+    }
+  } catch {
+    // Fall back to the raw response body when the payload is not JSON.
+  }
+
+  return trimmed;
+}
+
+async function requestJsonLocalized<T>(
+  input: RequestInfo | URL,
+  init: RequestInit | undefined,
+  t: Translator,
+) {
+  const response = await fetch(input, init);
+
+  if (!response.ok) {
+    throw new Error(await readResponseError(response, t));
+  }
+
+  return (await response.json().catch(() => ({}))) as T;
+}
+
+function readPendingProjectIntentStatus(
+  intent: PendingProjectIntent,
+  t: Translator,
+) {
   if (intent.status === "error") {
     return {
-      eyebrow: "Queue failed",
-      label: "Retry needed",
+      eyebrow: t("Queue failed"),
+      label: t("Retry needed"),
       live: false,
       tone: "danger" as const,
     };
@@ -368,156 +433,186 @@ function readPendingProjectIntentStatus(intent: PendingProjectIntent) {
 
   if (intent.projectId) {
     return {
-      eyebrow: intent.requestInProgress ? "Import running" : "Build queued",
-      label: intent.requestInProgress ? "Syncing" : "Queued",
+      eyebrow: intent.requestInProgress
+        ? t("Import running")
+        : t("Build queued"),
+      label: intent.requestInProgress ? t("Syncing") : t("Queued"),
       live: intent.requestInProgress,
       tone: "info" as const,
     };
   }
 
   return {
-    eyebrow: "Creating project",
-    label: "Working",
+    eyebrow: t("Creating project"),
+    label: t("Working"),
     live: true,
     tone: "info" as const,
   };
 }
 
-function readPendingProjectIntentSourceSummary(intent: PendingProjectIntent) {
+function readPendingProjectIntentSourceSummary(
+  intent: PendingProjectIntent,
+  t: Translator,
+) {
   switch (intent.sourceMode) {
     case "docker-image":
-      return "Docker image";
+      return t("Docker image");
     case "local-upload":
-      return "Local upload";
+      return t("Local upload");
     case "github":
     default:
-      return "GitHub import";
+      return t("GitHub import");
   }
 }
 
-function readPendingProjectIntentSourceDetail(intent: PendingProjectIntent) {
+function readPendingProjectIntentSourceDetail(
+  intent: PendingProjectIntent,
+  t: Translator,
+) {
   const sourceLabel = intent.sourceLabel?.trim();
 
   switch (intent.sourceMode) {
     case "docker-image":
-      return sourceLabel || "Published image reference";
+      return sourceLabel || t("Published image reference");
     case "local-upload":
       if (
         !sourceLabel ||
         /^local source$/i.test(sourceLabel) ||
         /^local upload$/i.test(sourceLabel)
       ) {
-        return "Source files uploaded from this browser";
+        return t("Source files uploaded from this browser");
       }
 
       return sourceLabel;
     case "github":
     default:
-      return sourceLabel || "Repository import";
+      return sourceLabel || t("Repository import");
   }
 }
 
-function readPendingProjectIntentSummary(intent: PendingProjectIntent) {
+function readPendingProjectIntentSummary(
+  intent: PendingProjectIntent,
+  t: Translator,
+) {
   if (intent.status === "error") {
-    return "The first service did not queue.";
+    return t("The first service did not queue.");
   }
 
   if (intent.projectId) {
-    return "Project created. The live workbench will replace this shell automatically.";
+    return t(
+      "Project created. The live workbench will replace this shell automatically.",
+    );
   }
 
   switch (intent.sourceMode) {
     case "docker-image":
-      return "Mirroring the image and preparing the first rollout.";
+      return t("Mirroring the image and preparing the first rollout.");
     case "local-upload":
-      return "Packaging uploaded files for the first build.";
+      return t("Packaging uploaded files for the first build.");
     case "github":
     default:
-      return "Preparing the first repository build.";
+      return t("Preparing the first repository build.");
   }
 }
 
-function readPendingProjectIntentTitle(intent: PendingProjectIntent) {
+function readPendingProjectIntentTitle(
+  intent: PendingProjectIntent,
+  t: Translator,
+) {
   if (intent.status === "error") {
-    return "Couldn't queue the first service";
+    return t("Couldn't queue the first service");
   }
 
   if (intent.projectId) {
     return intent.requestInProgress
-      ? "First service is syncing into the console"
-      : "First service is queued";
+      ? t("First service is syncing into the console")
+      : t("First service is queued");
   }
 
   switch (intent.sourceMode) {
     case "docker-image":
-      return "Preparing the first rollout";
+      return t("Preparing the first rollout");
     case "local-upload":
-      return "Packaging the first build";
+      return t("Packaging the first build");
     case "github":
     default:
-      return "Preparing the first repository build";
+      return t("Preparing the first repository build");
   }
 }
 
-function readPendingProjectIntentDetailCopy(intent: PendingProjectIntent) {
+function readPendingProjectIntentDetailCopy(
+  intent: PendingProjectIntent,
+  t: Translator,
+) {
   if (intent.status === "error") {
     return (
       intent.errorMessage ??
-      "The request stopped before build logs and route controls could attach."
+      t("The request stopped before build logs and route controls could attach.")
     );
   }
 
   if (intent.projectId) {
-    return "Keep this page open. Fugue will swap this shell for the live workbench as soon as the app record is visible.";
+    return t(
+      "Keep this page open. Fugue will swap this shell for the live workbench as soon as the app record is visible.",
+    );
   }
 
   switch (intent.sourceMode) {
     case "docker-image":
-      return "Fugue is creating the project, mirroring the image internally, and staging the first rollout.";
+      return t(
+        "Fugue is creating the project, mirroring the image internally, and staging the first rollout.",
+      );
     case "local-upload":
-      return "Fugue is creating the project and packaging the uploaded files on the server before the first build starts.";
+      return t(
+        "Fugue is creating the project and packaging the uploaded files on the server before the first build starts.",
+      );
     case "github":
     default:
-      return "Fugue is creating the project and preparing the repository import before build logs can attach.";
+      return t(
+        "Fugue is creating the project and preparing the repository import before build logs can attach.",
+      );
   }
 }
 
 function readPendingProjectIntentSteps(
   intent: PendingProjectIntent,
+  t: Translator,
 ): PendingProjectProgressStep[] {
   const intakeLabel =
     intent.sourceMode === "docker-image"
-      ? "Prepare image rollout"
+      ? t("Prepare image rollout")
       : intent.sourceMode === "local-upload"
-        ? "Package uploaded source"
-        : "Prepare repository build";
+        ? t("Package uploaded source")
+        : t("Prepare repository build");
   const intakeCopy =
     intent.sourceMode === "docker-image"
-      ? "Mirror the published image internally and stage the first rollout."
+      ? t("Mirror the published image internally and stage the first rollout.")
       : intent.sourceMode === "local-upload"
-        ? "Archive the uploaded files and stage the first build on the server."
-        : "Inspect the repository and prepare the build plan for the first service.";
+        ? t("Archive the uploaded files and stage the first build on the server.")
+        : t("Inspect the repository and prepare the build plan for the first service.");
 
   if (intent.projectId) {
     return [
       {
-        copy: "The project exists and the first service slot is reserved.",
-        label: "Project created",
-        status: "Done",
+        copy: t("The project exists and the first service slot is reserved."),
+        label: t("Project created"),
+        status: t("Done"),
         tone: "positive",
       },
       {
         copy: intakeCopy,
         label: intakeLabel,
         live: intent.requestInProgress,
-        status: intent.requestInProgress ? "Running" : "Queued",
+        status: intent.requestInProgress ? t("Running") : t("Queued"),
         tone: "info",
       },
       {
         copy:
-          "Build logs, route controls, and environment panels replace this shell automatically.",
-        label: "Attach live workbench",
-        status: "Waiting",
+          t(
+            "Build logs, route controls, and environment panels replace this shell automatically.",
+          ),
+        label: t("Attach live workbench"),
+        status: t("Waiting"),
         tone: "neutral",
       },
     ];
@@ -525,22 +620,22 @@ function readPendingProjectIntentSteps(
 
   return [
     {
-      copy: "Reserve the project and the first service slot.",
-      label: "Create project",
+      copy: t("Reserve the project and the first service slot."),
+      label: t("Create project"),
       live: true,
-      status: "Working",
+      status: t("Working"),
       tone: "info",
     },
     {
       copy: intakeCopy,
       label: intakeLabel,
-      status: "Waiting",
+      status: t("Waiting"),
       tone: "neutral",
     },
     {
-      copy: "The live workbench appears as soon as the app record becomes visible.",
-      label: "Attach live workbench",
-      status: "Waiting",
+      copy: t("The live workbench appears as soon as the app record becomes visible."),
+      label: t("Attach live workbench"),
+      status: t("Waiting"),
       tone: "neutral",
     },
   ];
@@ -555,31 +650,34 @@ function PendingProjectCard({
   intent: PendingProjectIntent;
   onOpen: () => void;
 }) {
-  const status = readPendingProjectIntentStatus(intent);
+  const { t } = useI18n();
+  const status = readPendingProjectIntentStatus(intent, t);
   const detailId = `project-detail-pending-${intent.id}`;
   const facts = [
     {
-      label: "Project",
+      label: t("Project"),
       value: intent.projectName,
     },
     {
-      label: "Source",
-      value: readPendingProjectIntentSourceDetail(intent),
+      label: t("Source"),
+      value: readPendingProjectIntentSourceDetail(intent, t),
     },
     {
-      label: "App name",
-      value: intent.appName?.trim() || "Auto-detect after import",
+      label: t("App name"),
+      value: intent.appName?.trim() || t("Auto-detect after import"),
     },
     {
-      label: "Handoff",
+      label: t("Handoff"),
       value:
         intent.status === "error"
-          ? "Return to the create flow and retry the import"
-          : "The live workbench replaces this shell when logs and route controls are ready",
+          ? t("Return to the create flow and retry the import")
+          : t(
+              "The live workbench replaces this shell when logs and route controls are ready",
+            ),
     },
   ];
   const progressSteps =
-    intent.status === "error" ? [] : readPendingProjectIntentSteps(intent);
+    intent.status === "error" ? [] : readPendingProjectIntentSteps(intent, t);
 
   return (
     <article
@@ -608,14 +706,14 @@ function PendingProjectCard({
 
             <div className="fg-project-card__summary-meta">
               <span className="fg-project-card__summary-kicker">
-                {readPendingProjectIntentSummary(intent)}
+                {readPendingProjectIntentSummary(intent, t)}
               </span>
             </div>
           </div>
 
           <div className="fg-project-card__summary-resources fg-project-card__summary-resources--pending">
-            <span className="fg-project-pending-summary">
-              {readPendingProjectIntentSourceSummary(intent)}
+              <span className="fg-project-pending-summary">
+              {readPendingProjectIntentSourceSummary(intent, t)}
             </span>
           </div>
 
@@ -651,20 +749,20 @@ function PendingProjectCard({
                 <div className="fg-project-pending-shell__hero-row">
                   <div className="fg-project-pending-shell__hero-copy">
                     <p className="fg-label">
-                      {readPendingProjectIntentSourceSummary(intent)}
+                      {readPendingProjectIntentSourceSummary(intent, t)}
                     </p>
                     <h3 className="fg-project-pending-shell__title fg-ui-heading">
-                      {readPendingProjectIntentTitle(intent)}
+                      {readPendingProjectIntentTitle(intent, t)}
                     </h3>
                     <p className="fg-project-pending-shell__copy">
-                      {readPendingProjectIntentDetailCopy(intent)}
+                      {readPendingProjectIntentDetailCopy(intent, t)}
                     </p>
                   </div>
 
                   {intent.status === "error" && intent.retryHref ? (
                     <div className="fg-project-pending-shell__hero-actions">
                       <ButtonAnchor href={intent.retryHref} variant="secondary">
-                        Open retry flow
+                        {t("Open retry flow")}
                       </ButtonAnchor>
                     </div>
                   ) : null}
@@ -674,9 +772,11 @@ function PendingProjectCard({
               {progressSteps.length ? (
                 <PanelSection className="fg-project-pending-shell__progress">
                   <div className="fg-project-pending-shell__progress-copy">
-                    <p className="fg-label fg-panel__eyebrow">Next steps</p>
+                    <p className="fg-label fg-panel__eyebrow">{t("Next steps")}</p>
                     <p className="fg-console-note">
-                      This shell disappears automatically once the live workbench is ready.
+                      {t(
+                        "This shell disappears automatically once the live workbench is ready.",
+                      )}
                     </p>
                   </div>
 
@@ -708,10 +808,12 @@ function PendingProjectCard({
                   <summary>
                     <span className="fg-console-disclosure__summary-copy">
                       <span className="fg-console-disclosure__summary-label">
-                        Build details
+                        {t("Build details")}
                       </span>
                       <span className="fg-console-disclosure__summary-description">
-                        Project name, source reference, app naming, and handoff behavior
+                        {t(
+                          "Project name, source reference, app naming, and handoff behavior",
+                        )}
                       </span>
                     </span>
                     <span className="fg-console-disclosure__summary-icon" aria-hidden="true">
@@ -772,6 +874,7 @@ export function ConsoleProjectGallery({
   initialPendingIntentId?: string | null;
 }) {
   const router = useRouter();
+  const { t } = useI18n();
   const { showToast } = useToast();
   const [flash, setFlash] = useState<FlashState | null>(null);
   const [data, setData] = useState(initialData);
@@ -853,23 +956,42 @@ export function ConsoleProjectGallery({
     null;
   const isCreateServiceMode = createTargetProject !== null;
   const createDialogEyebrow = isCreateServiceMode
-    ? "Add service"
-    : "Create project";
-  const createDialogTitle = isCreateServiceMode ? "Add service" : "Create project";
+    ? t("Add service")
+    : t("Create project");
+  const createDialogTitle = isCreateServiceMode
+    ? t("Add service")
+    : t("Create project");
   const createDialogCopy = isCreateServiceMode
     ? importDraft.sourceMode === "github"
-      ? `Paste a GitHub repository link for ${createTargetProject.name}. Adjust access or placement only if this service needs it.`
+      ? t(
+          "Paste a GitHub repository link for {projectName}. Adjust access or placement only if this service needs it.",
+          {
+            projectName: createTargetProject.name,
+          },
+        )
       : importDraft.sourceMode === "local-upload"
-        ? `Drop a local folder or source files for ${createTargetProject.name}. Fugue packages them on the server before import.`
-      : `Add a published Docker image to ${createTargetProject.name}. Adjust placement only if this service needs it.`
-    : "Give the project a name, then point Fugue at the first GitHub repository, local folder, or Docker image.";
+        ? t(
+            "Drop a local folder or source files for {projectName}. Fugue packages them on the server before import.",
+            {
+              projectName: createTargetProject.name,
+            },
+          )
+        : t(
+            "Add a published Docker image to {projectName}. Adjust placement only if this service needs it.",
+            {
+              projectName: createTargetProject.name,
+            },
+          )
+    : t(
+        "Give the project a name, then point Fugue at the first GitHub repository, local folder, or Docker image.",
+      );
   const createDialogSubmitLabel = isCreating
     ? isCreateServiceMode
-      ? "Adding…"
-      : "Creating…"
+      ? t("Adding…")
+      : t("Creating…")
     : isCreateServiceMode
-      ? "Add service"
-      : "Create project";
+      ? t("Add service")
+      : t("Create project");
   const createDialogFormId = "fugue-create-project-form";
   const workspaceMissing = !data.workspace.exists;
 
@@ -890,12 +1012,13 @@ export function ConsoleProjectGallery({
       galleryRefreshAbortRef.current = controller;
 
       try {
-        const nextData = await requestJson<ConsoleProjectGallerySummaryData>(
+        const nextData = await requestJsonLocalized<ConsoleProjectGallerySummaryData>(
           "/api/fugue/console/gallery",
           {
             cache: "no-store",
             signal: controller.signal,
           },
+          t,
         );
 
         if (controller.signal.aborted) {
@@ -918,7 +1041,7 @@ export function ConsoleProjectGallery({
           !options?.silent
         ) {
           setFlash({
-            message: readRequestError(error),
+            message: readErrorMessage(error, t),
             variant: "error",
           });
         }
@@ -979,10 +1102,12 @@ export function ConsoleProjectGallery({
     }
 
     showToast({
-      message: `Partial Fugue data: ${data.errors.join(" | ")}.`,
+      message: t("Partial Fugue data: {details}.", {
+        details: data.errors.join(" | "),
+      }),
       variant: data.errors.length >= 3 ? "error" : "info",
     });
-  }, [data.errors, showToast]);
+  }, [data.errors, showToast, t]);
 
   useEffect(() => {
     startTransition(() => {
@@ -1143,7 +1268,7 @@ export function ConsoleProjectGallery({
         return;
       }
 
-      setSelectedProjectDetailError("Project detail is not available yet.");
+      setSelectedProjectDetailError(t("Project detail is not available yet."));
       setSelectedProjectDetailStatus("error");
     } catch (error) {
       if (
@@ -1153,7 +1278,7 @@ export function ConsoleProjectGallery({
         return;
       }
 
-      setSelectedProjectDetailError(readRequestError(error));
+      setSelectedProjectDetailError(readErrorMessage(error, t));
       setSelectedProjectDetailStatus("error");
     }
   });
@@ -1319,9 +1444,9 @@ export function ConsoleProjectGallery({
 
     let cancelled = false;
 
-    requestJson<ProjectImageUsageResponse>("/api/fugue/projects/image-usage", {
+    requestJsonLocalized<ProjectImageUsageResponse>("/api/fugue/projects/image-usage", {
       cache: "no-store",
-    })
+    }, t)
       .then((response) => {
         if (cancelled) {
           return;
@@ -1370,7 +1495,9 @@ export function ConsoleProjectGallery({
         });
 
         if (!response.ok || !response.body) {
-          throw new Error(await response.text().catch(() => "Stream unavailable."));
+          throw new Error(
+            await response.text().catch(() => t("Stream unavailable.")),
+          );
         }
 
         await consumeSSEStream(response, {
@@ -1475,7 +1602,7 @@ export function ConsoleProjectGallery({
     if (!createTargetProject) {
       if (!normalizedProjectName) {
         setFlash({
-          message: "Project name is required when creating a new project.",
+          message: t("Project name is required when creating a new project."),
           variant: "error",
         });
         return;
@@ -1483,7 +1610,9 @@ export function ConsoleProjectGallery({
 
       if (findProjectByName(data.projects, normalizedProjectName)) {
         setFlash({
-          message: DUPLICATE_PROJECT_NAME_MESSAGE,
+          message: t(
+            "Project name already exists. Choose a different name or select the existing project.",
+          ),
           variant: "error",
         });
         return;
@@ -1565,7 +1694,7 @@ export function ConsoleProjectGallery({
             ? importDraft.repoUrl
             : importDraft.sourceMode === "docker-image"
               ? importDraft.imageRef
-              : "Local source",
+              : t("Local source"),
         sourceMode: importDraft.sourceMode,
       });
 
@@ -1574,7 +1703,7 @@ export function ConsoleProjectGallery({
       setCreateTargetProject(null);
       setCreateOpen(false);
       setFlash({
-        message: "Creating project and queueing the first deployment.",
+        message: t("Creating project and queueing the first deployment."),
         variant: "info",
       });
       resetCreateForm(
@@ -1589,9 +1718,10 @@ export function ConsoleProjectGallery({
 
       void (async () => {
         try {
-          const response = await requestJson<CreateProjectResponse>(
+          const response = await requestJsonLocalized<CreateProjectResponse>(
             endpoint,
             requestInit,
+            t,
           );
           const affectedProjectId = resolveCreateProjectId(response);
 
@@ -1606,8 +1736,8 @@ export function ConsoleProjectGallery({
           });
           setFlash({
             message: response.requestInProgress
-              ? "Import is already running."
-              : "Project import queued.",
+              ? t("Import is already running.")
+              : t("Project import queued."),
             variant: "success",
           });
           void refreshGallery({
@@ -1616,7 +1746,7 @@ export function ConsoleProjectGallery({
           });
           refreshRoute();
         } catch (error) {
-          const message = readRequestError(error);
+          const message = readErrorMessage(error, t);
 
           failPendingProjectIntent(intent.id, message);
         }
@@ -1628,7 +1758,11 @@ export function ConsoleProjectGallery({
     setIsCreating(true);
 
     try {
-      const response = await requestJson<CreateProjectResponse>(endpoint, requestInit);
+      const response = await requestJsonLocalized<CreateProjectResponse>(
+        endpoint,
+        requestInit,
+        t,
+      );
       const affectedProjectId = resolveCreateProjectId(
         response,
         createTargetProject?.id,
@@ -1646,8 +1780,8 @@ export function ConsoleProjectGallery({
       setCreateTargetProject(null);
       setFlash({
         message: response.requestInProgress
-          ? "Import is already running."
-          : "Service import queued.",
+          ? t("Import is already running.")
+          : t("Service import queued."),
         variant: "success",
       });
       resetCreateForm(buildSuggestedProjectName(data.projects));
@@ -1659,7 +1793,7 @@ export function ConsoleProjectGallery({
       refreshRoute();
     } catch (error) {
       setFlash({
-        message: readRequestError(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -1724,11 +1858,12 @@ export function ConsoleProjectGallery({
             <div className="fg-project-gallery__empty-state">
               <Panel className="fg-console-dialog-panel">
                 <PanelSection>
-                  <p className="fg-label fg-panel__eyebrow">Workspace</p>
-                  <PanelTitle>No workspace yet</PanelTitle>
+                  <p className="fg-label fg-panel__eyebrow">{t("Workspace")}</p>
+                  <PanelTitle>{t("No workspace yet")}</PanelTitle>
                   <PanelCopy>
-                    Create a workspace first, then return to the console to import
-                    your first service.
+                    {t(
+                      "Create a workspace first, then return to the console to import your first service.",
+                    )}
                   </PanelCopy>
                 </PanelSection>
               </Panel>
@@ -1784,12 +1919,12 @@ export function ConsoleProjectGallery({
                               live={project.lifecycle.live}
                               tone={project.lifecycle.tone}
                             >
-                              {project.lifecycle.label}
+                              {t(project.lifecycle.label)}
                             </StatusBadge>
                           </div>
                           <div className="fg-project-card__summary-meta">
                             <span className="fg-project-card__summary-kicker">
-                              {projectTitle(project)}
+                              {projectTitle(project, t)}
                             </span>
 
                             {project.serviceBadges.length ? (
@@ -1857,7 +1992,7 @@ export function ConsoleProjectGallery({
                               <div className="fg-workbench-section">
                                 <p className="fg-console-note">
                                   {selectedProjectDetailError ??
-                                    "Unable to load this project right now."}
+                                    t("Unable to load this project right now.")}
                                 </p>
                                 <div className="fg-project-actions">
                                   <Button
@@ -1870,7 +2005,7 @@ export function ConsoleProjectGallery({
                                     type="button"
                                     variant="secondary"
                                   >
-                                    Retry
+                                    {t("Retry")}
                                   </Button>
                                 </div>
                               </div>
@@ -1892,7 +2027,7 @@ export function ConsoleProjectGallery({
                 type="button"
                 variant="primary"
               >
-                Create project
+                {t("Create project")}
               </Button>
             </div>
           )}
@@ -1928,7 +2063,10 @@ export function ConsoleProjectGallery({
                 >
                   <div className="fg-console-dialog__grid fg-project-create-dialog__grid">
                     {createTargetProject ? (
-                      <FormField htmlFor="create-project-current" label="Project">
+                      <FormField
+                        htmlFor="create-project-current"
+                        label={t("Project")}
+                      >
                         <input
                           className="fg-input"
                           id="create-project-current"
@@ -1939,16 +2077,16 @@ export function ConsoleProjectGallery({
                       </FormField>
                     ) : (
                       <FormField
-                        hint="Shown in the project list."
+                        hint={t("Shown in the project list.")}
                         htmlFor="create-project-name"
-                        label="Project name"
+                        label={t("Project name")}
                       >
                         <input
                           className="fg-input"
                           id="create-project-name"
                           name="projectName"
                           onChange={(event) => setProjectName(event.target.value)}
-                          placeholder="Project 1"
+                          placeholder={t("Project 1")}
                           required
                           value={projectName}
                         />
@@ -1957,7 +2095,7 @@ export function ConsoleProjectGallery({
 
                     {runtimeInventory.loading ? (
                       <p className="fg-console-note">
-                        Loading deployment targets…
+                        {t("Loading deployment targets…")}
                       </p>
                     ) : null}
 
@@ -1984,7 +2122,7 @@ export function ConsoleProjectGallery({
               <PanelSection className="fg-console-dialog__footer">
                 <div className="fg-console-dialog__actions">
                   <Button onClick={closeCreate} type="button" variant="secondary">
-                    Cancel
+                    {t("Cancel")}
                   </Button>
                   <Button
                     form={createDialogFormId}

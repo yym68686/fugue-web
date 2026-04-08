@@ -12,6 +12,7 @@ import {
   buildRawEnvFeedback,
   type RawEnvFeedback,
 } from "@/lib/console/raw-env";
+import { translate, type Locale } from "@/lib/i18n/core";
 
 export type ImportSourceMode = "github" | "docker-image" | "local-upload";
 export type ImportNetworkMode = "background" | "public";
@@ -157,13 +158,16 @@ export function validateImportServiceDraft(
   options?: {
     environmentFeedback?: Pick<RawEnvFeedback, "message" | "valid"> | null;
     localUpload?: LocalUploadState | null;
+    locale?: Locale;
     persistentStorageSupported?: boolean;
     privateGitHubAuthorized?: boolean;
   },
 ) {
+  const locale = options?.locale ?? "en";
+
   if (draft.sourceMode === "github") {
     if (!draft.repoUrl.trim()) {
-      return "Repository link is required.";
+      return translate(locale, "Repository link is required.");
     }
 
     if (
@@ -176,14 +180,17 @@ export function validateImportServiceDraft(
   }
 
   if (draft.sourceMode === "docker-image" && !draft.imageRef.trim()) {
-    return "Image reference is required.";
+    return translate(locale, "Image reference is required.");
   }
 
   if (
     draft.sourceMode === "local-upload" &&
     !options?.localUpload?.items.length
   ) {
-    return "Choose a folder, docker-compose.yml, Dockerfile, or source files to upload.";
+    return translate(
+      locale,
+      "Choose a folder, docker-compose.yml, Dockerfile, or source files to upload.",
+    );
   }
 
   const normalizedServicePort = draft.servicePort.trim();
@@ -193,7 +200,7 @@ export function validateImportServiceDraft(
     normalizedServicePort &&
     (!/^\d+$/.test(normalizedServicePort) || Number(normalizedServicePort) <= 0)
   ) {
-    return "Service port must be a positive integer.";
+    return translate(locale, "Service port must be a positive integer.");
   }
 
   if (options?.persistentStorageSupported !== false) {
@@ -210,7 +217,7 @@ export function validateImportServiceDraft(
     return options.environmentFeedback.message;
   }
 
-  const envFeedback = buildRawEnvFeedback(draft.envRaw, "console");
+  const envFeedback = buildRawEnvFeedback(draft.envRaw, "console", locale);
 
   if (!envFeedback.valid) {
     return envFeedback.message;
@@ -223,6 +230,7 @@ export function buildImportServicePayload(
   draft: ImportServiceDraft,
   options?: {
     includePersistentStorage?: boolean;
+    locale?: Locale;
   },
 ) {
   const payload: Record<string, unknown> = {
@@ -252,7 +260,11 @@ export function buildImportServicePayload(
     payload.startupCommand = draft.startupCommand.trim();
   }
 
-  const envFeedback = buildRawEnvFeedback(draft.envRaw, "console");
+  const envFeedback = buildRawEnvFeedback(
+    draft.envRaw,
+    "console",
+    options?.locale ?? "en",
+  );
 
   if (envFeedback.valid && Object.keys(envFeedback.env).length > 0) {
     payload.env = envFeedback.env;
