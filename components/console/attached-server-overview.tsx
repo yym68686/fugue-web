@@ -1,8 +1,12 @@
-import { ClusterNodeGallery, type ClusterNodeGalleryItem } from "@/components/console/cluster-node-gallery";
+import {
+  ClusterNodeGallery,
+  type ClusterNodeGalleryItem,
+} from "@/components/console/cluster-node-gallery";
 import { ConsoleEmptyState } from "@/components/console/console-empty-state";
 import { useI18n } from "@/components/providers/i18n-provider";
 import { Panel, PanelSection } from "@/components/ui/panel";
 import type { ClusterNodeView } from "@/lib/cluster-nodes/service";
+import { readRuntimePublicOfferSummary } from "@/lib/runtimes/public-offer";
 
 function readModeLabel(
   value: string | null | undefined,
@@ -14,9 +18,9 @@ function readModeLabel(
 
   return t(
     value
-    .replace(/[._-]+/g, " ")
-    .trim()
-    .replace(/\b\w/g, (match) => match.toUpperCase()),
+      .replace(/[._-]+/g, " ")
+      .trim()
+      .replace(/\b\w/g, (match) => match.toUpperCase()),
   );
 }
 
@@ -88,7 +92,18 @@ function toClusterGalleryItem(
     });
   }
 
-  if (node.poolMode && node.runtimeType?.trim().toLowerCase() === "managed-owned") {
+  if (node.accessMode === "public") {
+    facts.push({
+      id: "public-pricing",
+      label: t("Public pricing"),
+      value: readRuntimePublicOfferSummary(node.publicOffer),
+    });
+  }
+
+  if (
+    node.poolMode &&
+    node.runtimeType?.trim().toLowerCase() === "managed-owned"
+  ) {
     facts.push({
       id: "internal-cluster",
       label: t("Internal cluster"),
@@ -130,7 +145,9 @@ function toClusterGalleryItem(
         ? t("Attached server")
         : node.ownership === "internal-cluster"
           ? t("Cluster capacity")
-          : t("Shared server"),
+          : node.accessMode === "public"
+            ? t("Public server")
+            : t("Shared server"),
     facts,
     headerMeta: node.headerMeta,
     id: node.name,
@@ -139,6 +156,7 @@ function toClusterGalleryItem(
     ownerLabel: node.ownerLabel,
     ownership: node.ownership,
     poolMode: node.poolMode,
+    publicOffer: node.publicOffer,
     resources: node.resources,
     roleLabels: node.roleLabels,
     runtimeId: node.runtimeId,
@@ -148,7 +166,9 @@ function toClusterGalleryItem(
     statusTone: node.statusTone,
     runtimeType: node.runtimeType,
     workloadCount: node.workloadCount,
-    workloadEmptyDescription: t("No apps or services are placed on this server."),
+    workloadEmptyDescription: t(
+      "No apps or services are placed on this server.",
+    ),
     workloadEmptyTitle: t("No workloads on this server"),
     workloadSectionNote: t("Apps and services on this server."),
     workloads: node.workloads,
@@ -174,7 +194,10 @@ export function AttachedServerOverview({
             action={
               inventoryError
                 ? { href: "/app/api-keys", label: t("Manage access keys") }
-                : { href: "/app/api-keys#node-keys", label: t("Open node keys") }
+                : {
+                    href: "/app/api-keys#node-keys",
+                    label: t("Open node keys"),
+                  }
             }
             description={
               inventoryError

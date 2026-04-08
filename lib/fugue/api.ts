@@ -587,6 +587,34 @@ function buildBillingPriceBookView(
   };
 }
 
+function buildRuntimePublicOfferView(
+  offer?: CamelizedSchema<"RuntimePublicOffer"> | null,
+) {
+  if (!offer) {
+    return null;
+  }
+
+  return {
+    free: offer.free ?? false,
+    freeCpu: offer.freeCpu ?? false,
+    freeMemory: offer.freeMemory ?? false,
+    freeStorage: offer.freeStorage ?? false,
+    priceBook: offer.priceBook
+      ? buildBillingPriceBookView(offer.priceBook)
+      : buildBillingPriceBookView({
+          cpuMicrocentsPerMillicoreHour: 0,
+          currency: "USD",
+          hoursPerMonth: 730,
+          memoryMicrocentsPerMibHour: 0,
+          storageMicrocentsPerGibHour: 0,
+        }),
+    referenceBundle: buildBillingResourceSpecView(offer.referenceBundle),
+    referenceMonthlyPriceMicroCents:
+      readNullableNumber(offer.referenceMonthlyPriceMicrocents) ?? 0,
+    updatedAt: readNullableString(offer.updatedAt),
+  };
+}
+
 function buildBillingEventView(event: CamelizedSchema<"TenantBillingEvent">) {
   return {
     amountMicroCents: event.amountMicrocents,
@@ -804,6 +832,7 @@ function buildRuntimeView(runtime: CamelizedSchema<"Runtime">) {
     labels: readStringMap(runtime.labels),
     type: readNullableString(runtime.type),
     accessMode: readNullableString(runtime.accessMode),
+    publicOffer: buildRuntimePublicOfferView(runtime.publicOffer),
     poolMode: readNullableString(runtime.poolMode),
     connectionMode: readNullableString(runtime.connectionMode),
     status: readNullableString(runtime.status),
@@ -1433,6 +1462,22 @@ function buildRuntimeAccessRevokeResultView(
 ) {
   return {
     removed: response.removed ?? false,
+  };
+}
+
+function buildRuntimeAccessModeResultView(
+  response: CamelizedSchema<"RuntimeAccessModeResponse">,
+) {
+  return {
+    runtime: response.runtime ? buildRuntimeView(response.runtime) : null,
+  };
+}
+
+function buildRuntimePublicOfferResultView(
+  response: CamelizedSchema<"RuntimePublicOfferResponse">,
+) {
+  return {
+    runtime: response.runtime ? buildRuntimeView(response.runtime) : null,
   };
 }
 
@@ -3504,6 +3549,87 @@ export async function revokeFugueRuntimeAccess(
   );
 
   return buildRuntimeAccessRevokeResultView(response);
+}
+
+export async function setFugueRuntimeAccessMode(
+  accessToken: string,
+  runtimeId: string,
+  payload: {
+    accessMode: string;
+  },
+) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/runtimes/${encodeURIComponent(runtimeId)}/sharing/mode`,
+      client.POST("/v1/runtimes/{id}/sharing/mode", {
+        body: {
+          access_mode: payload.accessMode,
+        },
+        params: {
+          path: { id: runtimeId },
+        },
+      }),
+    ),
+  );
+
+  return buildRuntimeAccessModeResultView(response);
+}
+
+export async function setFugueRuntimePublicOffer(
+  accessToken: string,
+  runtimeId: string,
+  payload: {
+    free?: boolean;
+    freeCpu?: boolean;
+    freeMemory?: boolean;
+    freeStorage?: boolean;
+    referenceBundle?: {
+      cpuMillicores?: number;
+      memoryMebibytes?: number;
+      storageGibibytes?: number;
+    };
+    referenceMonthlyPriceMicroCents?: number;
+  },
+) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/runtimes/${encodeURIComponent(runtimeId)}/public-offer`,
+      client.POST("/v1/runtimes/{id}/public-offer", {
+        body: {
+          ...(payload.referenceBundle
+            ? {
+                reference_bundle: {
+                  cpu_millicores: payload.referenceBundle.cpuMillicores,
+                  memory_mebibytes: payload.referenceBundle.memoryMebibytes,
+                  storage_gibibytes: payload.referenceBundle.storageGibibytes,
+                },
+              }
+            : {}),
+          ...(payload.referenceMonthlyPriceMicroCents !== undefined
+            ? {
+                reference_monthly_price_microcents:
+                  payload.referenceMonthlyPriceMicroCents,
+              }
+            : {}),
+          ...(payload.free !== undefined ? { free: payload.free } : {}),
+          ...(payload.freeCpu !== undefined ? { free_cpu: payload.freeCpu } : {}),
+          ...(payload.freeMemory !== undefined
+            ? { free_memory: payload.freeMemory }
+            : {}),
+          ...(payload.freeStorage !== undefined
+            ? { free_storage: payload.freeStorage }
+            : {}),
+        },
+        params: {
+          path: { id: runtimeId },
+        },
+      }),
+    ),
+  );
+
+  return buildRuntimePublicOfferResultView(response);
 }
 
 export async function setFugueRuntimePoolMode(

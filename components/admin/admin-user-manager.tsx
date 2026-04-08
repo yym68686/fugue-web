@@ -11,6 +11,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 
+import { CompactResourceMeter } from "@/components/console/compact-resource-meter";
 import { ConsoleEmptyState } from "@/components/console/console-empty-state";
 import { StatusBadge } from "@/components/console/status-badge";
 import { Button, InlineButton } from "@/components/ui/button";
@@ -24,6 +25,7 @@ import {
 } from "@/components/ui/stepped-slider-field";
 import { useI18n } from "@/components/providers/i18n-provider";
 import { useToast } from "@/components/ui/toast";
+import type { ConsoleCompactResourceItemView } from "@/lib/console/gallery-types";
 import type { ConsoleTone } from "@/lib/console/types";
 
 type AdminUserBillingView = {
@@ -418,6 +420,19 @@ export function AdminUserManager({
     editingQuotaUser && busyAction && busyAction !== `balance:${editingQuotaUser.email}`,
   );
   const isBillingDialogBusy = quotaBusy || balanceBusy;
+  const managedLimitHeadings = [
+    { id: "cpu", label: t("CPU") },
+    { id: "memory", label: t("Memory") },
+    { id: "storage", label: t("Storage") },
+    { id: "monthly", label: t("Monthly") },
+  ] as const;
+  const serviceUsageHeadings = [
+    { id: "services", label: t("Services") },
+    { id: "cpu", label: t("CPU") },
+    { id: "memory", label: t("Memory") },
+    { id: "disk", label: t("Disk") },
+    { id: "images", label: t("Images") },
+  ] as const;
 
   function refreshPage() {
     if (onRefresh) {
@@ -840,21 +855,29 @@ export function AdminUserManager({
                   </span>
                 </span>
               </th>
-              <th>
-                <span className="fg-admin-user-column-head">
-                  <span className="fg-admin-user-column-head__label">{t("Managed limit")}</span>
-                  <span className="fg-admin-user-column-head__meta">
-                    {t("CPU / Memory / Storage / Monthly")}
+              <th className="fg-console-table__head--usage">
+                <div className="fg-console-table__resource-head">
+                  <span className="fg-console-table__resource-head-label">
+                    {t("Managed limit")}
                   </span>
-                </span>
+                  <div className="fg-console-table__resource-head-grid">
+                    {managedLimitHeadings.map((resource) => (
+                      <span key={resource.id}>{resource.label}</span>
+                    ))}
+                  </div>
+                </div>
               </th>
-              <th>
-                <span className="fg-admin-user-column-head">
-                  <span className="fg-admin-user-column-head__label">{t("Service usage")}</span>
-                  <span className="fg-admin-user-column-head__meta">
-                    {t("Services / CPU / Memory / Disk / Images")}
+              <th className="fg-console-table__head--usage">
+                <div className="fg-console-table__resource-head">
+                  <span className="fg-console-table__resource-head-label">
+                    {t("Service usage")}
                   </span>
-                </span>
+                  <div className="fg-console-table__resource-head-grid fg-console-table__resource-head-grid--5">
+                    {serviceUsageHeadings.map((resource) => (
+                      <span key={resource.id}>{resource.label}</span>
+                    ))}
+                  </div>
+                </div>
               </th>
               <th>{t("Last login")}</th>
               <th>{t("Actions")}</th>
@@ -957,6 +980,91 @@ export function AdminUserManager({
                 t("Disk {value}", { value: localizedUsageDisk }),
                 t("Images {value}", { value: localizedUsageImage }),
               ].join(" / ");
+              const managedLimitItems = [
+                {
+                  id: "cpu",
+                  label: "CPU",
+                  meterValue: null,
+                  primaryLabel: billingCpuLabel,
+                  secondaryLabel: null,
+                  title: t("CPU {value}", { value: billingCpuLabel }),
+                  tone: "neutral",
+                },
+                {
+                  id: "memory",
+                  label: "Memory",
+                  meterValue: null,
+                  primaryLabel: billingMemoryLabel,
+                  secondaryLabel: null,
+                  title: t("Memory {value}", { value: billingMemoryLabel }),
+                  tone: "neutral",
+                },
+                {
+                  id: "storage",
+                  label: "Storage",
+                  meterValue: null,
+                  primaryLabel: billingStorageLabel,
+                  secondaryLabel: null,
+                  title: t("Storage {value}", { value: billingStorageLabel }),
+                  tone: "neutral",
+                },
+                {
+                  id: "monthly",
+                  label: "Monthly",
+                  meterValue: null,
+                  primaryLabel: billingMonthlyLabel,
+                  secondaryLabel: null,
+                  title: t("Monthly {value}", { value: billingMonthlyLabel }),
+                  tone: "neutral",
+                },
+              ] satisfies ConsoleCompactResourceItemView[];
+              const serviceUsageItems = [
+                {
+                  id: "services",
+                  label: "Services",
+                  meterValue: null,
+                  primaryLabel: localizedUsageServiceCount,
+                  secondaryLabel: null,
+                  title: t("Services {value}", { value: localizedUsageServiceCount }),
+                  tone: "neutral",
+                },
+                {
+                  id: "cpu",
+                  label: "CPU",
+                  meterValue: null,
+                  primaryLabel: localizedUsageCpu,
+                  secondaryLabel: null,
+                  title: t("CPU {value}", { value: localizedUsageCpu }),
+                  tone: "neutral",
+                },
+                {
+                  id: "memory",
+                  label: "Memory",
+                  meterValue: null,
+                  primaryLabel: localizedUsageMemory,
+                  secondaryLabel: null,
+                  title: t("Memory {value}", { value: localizedUsageMemory }),
+                  tone: "neutral",
+                },
+                {
+                  id: "disk",
+                  label: "Disk",
+                  meterValue: null,
+                  primaryLabel: localizedUsageDisk,
+                  secondaryLabel: null,
+                  title: t("Disk {value}", { value: localizedUsageDisk }),
+                  tone: "neutral",
+                },
+                {
+                  id: "images",
+                  label: "Images",
+                  meterValue: null,
+                  primaryLabel: localizedUsageImage,
+                  secondaryLabel: null,
+                  title: t("Images {value}", { value: localizedUsageImage }),
+                  tone: "neutral",
+                },
+              ] satisfies ConsoleCompactResourceItemView[];
 
               return (
                 <tr key={user.email}>
@@ -987,61 +1095,26 @@ export function AdminUserManager({
                       <div className="fg-admin-user-balance__meta">{balanceStatusContent}</div>
                     </div>
                   </td>
-                  <td>
+                  <td className="fg-console-table__cell--usage">
                     <div
-                      className="fg-admin-user-billing"
+                      aria-label={managedLimitSummaryLabel}
+                      className="fg-console-table__resource-grid"
                       title={managedLimitTitle || undefined}
                     >
-                      <dl
-                        aria-label={managedLimitSummaryLabel}
-                        className="fg-admin-user-signal-strip fg-admin-user-signal-strip--values-only"
-                      >
-                        <div className="fg-admin-user-signal">
-                          <dt>CPU</dt>
-                          <dd>{billingCpuLabel}</dd>
-                        </div>
-                        <div className="fg-admin-user-signal">
-                          <dt>{t("Memory")}</dt>
-                          <dd>{billingMemoryLabel}</dd>
-                        </div>
-                        <div className="fg-admin-user-signal">
-                          <dt>{t("Storage")}</dt>
-                          <dd>{billingStorageLabel}</dd>
-                        </div>
-                        <div className="fg-admin-user-signal">
-                          <dt>{t("Monthly")}</dt>
-                          <dd>{billingMonthlyLabel}</dd>
-                        </div>
-                      </dl>
+                      {managedLimitItems.map((resource) => (
+                        <CompactResourceMeter item={resource} key={resource.id} showLabel={false} />
+                      ))}
                     </div>
                   </td>
-                  <td>
-                    <div className="fg-admin-user-usage" title={usageSummaryLabel}>
-                      <dl
-                        aria-label={usageSummaryLabel}
-                        className="fg-admin-user-signal-strip fg-admin-user-signal-strip--values-only"
-                      >
-                        <div className="fg-admin-user-signal">
-                          <dt>{t("Services")}</dt>
-                          <dd>{localizedUsageServiceCount}</dd>
-                        </div>
-                        <div className="fg-admin-user-signal">
-                          <dt>CPU</dt>
-                          <dd>{localizedUsageCpu}</dd>
-                        </div>
-                        <div className="fg-admin-user-signal">
-                          <dt>{t("Memory")}</dt>
-                          <dd>{localizedUsageMemory}</dd>
-                        </div>
-                        <div className="fg-admin-user-signal">
-                          <dt>{t("Disk")}</dt>
-                          <dd>{localizedUsageDisk}</dd>
-                        </div>
-                        <div className="fg-admin-user-signal">
-                          <dt>{t("Images")}</dt>
-                          <dd>{localizedUsageImage}</dd>
-                        </div>
-                      </dl>
+                  <td className="fg-console-table__cell--usage">
+                    <div
+                      aria-label={usageSummaryLabel}
+                      className="fg-console-table__resource-grid fg-console-table__resource-grid--5"
+                      title={usageSummaryLabel}
+                    >
+                      {serviceUsageItems.map((resource) => (
+                        <CompactResourceMeter item={resource} key={resource.id} showLabel={false} />
+                      ))}
                     </div>
                   </td>
                   <td>

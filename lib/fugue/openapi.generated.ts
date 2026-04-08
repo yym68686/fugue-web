@@ -607,6 +607,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/runtimes/{id}/public-offer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Set Runtime Public Offer */
+        post: operations["setRuntimePublicOffer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/runtimes/{id}/pool-mode": {
         parameters: {
             query?: never;
@@ -1879,6 +1896,7 @@ export interface components {
             machine_name?: string;
             type: string;
             access_mode?: string;
+            public_offer?: components["schemas"]["RuntimePublicOffer"];
             pool_mode?: string;
             connection_mode?: string;
             status: string;
@@ -1904,6 +1922,18 @@ export interface components {
             tenant_id: string;
             /** Format: date-time */
             created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        RuntimePublicOffer: {
+            reference_bundle: components["schemas"]["BillingResourceSpec"];
+            /** Format: int64 */
+            reference_monthly_price_microcents?: number;
+            free?: boolean;
+            free_cpu?: boolean;
+            free_memory?: boolean;
+            free_storage?: boolean;
+            price_book: components["schemas"]["BillingPriceBook"];
             /** Format: date-time */
             updated_at: string;
         };
@@ -2402,6 +2432,24 @@ export interface components {
         };
         RuntimeAccessRevokeResponse: {
             removed: boolean;
+        };
+        SetRuntimeAccessModeRequest: {
+            access_mode: string;
+        };
+        RuntimeAccessModeResponse: {
+            runtime: components["schemas"]["Runtime"];
+        };
+        SetRuntimePublicOfferRequest: {
+            reference_bundle?: components["schemas"]["BillingResourceSpec"];
+            /** Format: int64 */
+            reference_monthly_price_microcents?: number;
+            free?: boolean;
+            free_cpu?: boolean;
+            free_memory?: boolean;
+            free_storage?: boolean;
+        };
+        RuntimePublicOfferResponse: {
+            runtime: components["schemas"]["Runtime"];
         };
         SetRuntimePoolModeRequest: {
             pool_mode: string;
@@ -3858,9 +3906,7 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": {
-                    [key: string]: unknown;
-                };
+                "application/json": components["schemas"]["SetRuntimeAccessModeRequest"];
             };
         };
         responses: {
@@ -3870,9 +3916,34 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["RuntimeAccessModeResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    setRuntimePublicOffer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["SetRuntimePublicOfferRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RuntimePublicOfferResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];

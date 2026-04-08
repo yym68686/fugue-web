@@ -6,6 +6,7 @@ import {
   hasInternalClusterLocationTarget,
   readRuntimeLocation,
 } from "@/lib/fugue/runtime-location";
+import { readRuntimePublicOfferDescription } from "@/lib/runtimes/public-offer";
 
 function humanize(value: string) {
   return value
@@ -71,7 +72,9 @@ function buildDeployRuntimeTarget(
       !hasInternalClusterLocationTarget(runtime.labels);
     const primaryLabel = isGenericInternalCluster
       ? "Any available region"
-      : location.locationCountryLabel ?? location.locationLabel ?? "Region unavailable";
+      : (location.locationCountryLabel ??
+        location.locationLabel ??
+        "Region unavailable");
 
     return {
       category: "internal-cluster",
@@ -93,27 +96,36 @@ function buildDeployRuntimeTarget(
   }
 
   const primaryLabel =
-    runtime.name?.trim() ||
-    runtime.machineName?.trim() ||
-    runtime.id;
+    runtime.name?.trim() || runtime.machineName?.trim() || runtime.id;
   const isSharedMachine =
     runtime.type !== "managed-shared" &&
     Boolean(runtime.tenantId) &&
     runtime.tenantId !== workspaceTenantId;
+  const isPublicMachine =
+    isSharedMachine && runtime.accessMode?.trim().toLowerCase() === "public";
   const isContributedMachine =
     runtime.type === "managed-owned" &&
     runtime.poolMode === "internal-shared" &&
     !isSharedMachine;
+  const machineSummaryLabel = location.locationLabel
+    ? `${primaryLabel} / ${location.locationLabel}`
+    : primaryLabel;
 
   return {
     category: "machine",
-    description: isSharedMachine
-      ? "Deploy onto a machine shared with this workspace."
-      : isContributedMachine
-        ? "Deploy onto this machine. It also contributes to the internal cluster."
-        : "Deploy onto this machine.",
+    description: isPublicMachine
+      ? `Any workspace can deploy here. ${readRuntimePublicOfferDescription(runtime.publicOffer)}`
+      : isSharedMachine
+        ? "Deploy onto a machine shared with this workspace."
+        : isContributedMachine
+          ? "Deploy onto this machine. It also contributes to the internal cluster."
+          : "Deploy onto this machine.",
     id: runtime.id,
-    kindLabel: isSharedMachine ? "Shared machine" : "Machine",
+    kindLabel: isPublicMachine
+      ? "Public machine"
+      : isSharedMachine
+        ? "Shared machine"
+        : "Machine",
     locationCountryCode: location.locationCountryCode,
     locationCountryLabel: location.locationCountryLabel,
     locationLabel: location.locationLabel,
@@ -121,9 +133,9 @@ function buildDeployRuntimeTarget(
     runtimeType: runtime.type ?? null,
     statusLabel,
     statusTone,
-    summaryLabel: location.locationLabel
-      ? `${primaryLabel} / ${location.locationLabel}`
-      : primaryLabel,
+    summaryLabel: isPublicMachine
+      ? `${primaryLabel} / Public machine`
+      : machineSummaryLabel,
   };
 }
 
@@ -142,17 +154,25 @@ function compareDeployRuntimeTargets(
     return leftIsDefaultShared ? -1 : 1;
   }
 
-  const primaryComparison = left.primaryLabel.localeCompare(right.primaryLabel, "en", {
-    sensitivity: "base",
-  });
+  const primaryComparison = left.primaryLabel.localeCompare(
+    right.primaryLabel,
+    "en",
+    {
+      sensitivity: "base",
+    },
+  );
 
   if (primaryComparison !== 0) {
     return primaryComparison;
   }
 
-  return (left.locationLabel ?? "").localeCompare(right.locationLabel ?? "", "en", {
-    sensitivity: "base",
-  });
+  return (left.locationLabel ?? "").localeCompare(
+    right.locationLabel ?? "",
+    "en",
+    {
+      sensitivity: "base",
+    },
+  );
 }
 
 export function buildDeployRuntimeTargets(

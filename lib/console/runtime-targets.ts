@@ -163,9 +163,9 @@ export function buildImportRuntimeTargetGroups(
 
     groups.push({
       category: "machine",
-      description: translate(locale, "Deploy onto this machine."),
+      description: target.description,
       id: target.id,
-      kindLabel: translate(locale, "Machine"),
+      kindLabel: target.kindLabel,
       options: [target],
       primaryLabel: target.primaryLabel,
       statusLabel: target.statusLabel,
