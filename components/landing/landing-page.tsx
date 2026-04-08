@@ -160,7 +160,8 @@ function GhostAnchorButton({
 }
 
 export async function LandingPage({ authenticatedAppPath }: LandingPageProps) {
-  const { t } = await getRequestI18n();
+  const { locale, t } = await getRequestI18n();
+  const isCjkLocale = locale.startsWith("zh");
   const primaryHref = authenticatedAppPath ?? "/auth/sign-up";
   const primaryLabel = t(authenticatedAppPath ? "Open app" : "Get started");
   const proofHeading = t(
@@ -168,6 +169,7 @@ export async function LandingPage({ authenticatedAppPath }: LandingPageProps) {
       ? "Verify the public route, then open the app."
       : "Verify the public route, then continue to sign in.",
   );
+  const heroHeadingLines = [t("Start shared."), t("Move cleanly.")];
 
   return (
     <div className="fg-landing-page" data-landing-root="">
@@ -234,14 +236,16 @@ export async function LandingPage({ authenticatedAppPath }: LandingPageProps) {
               Fugue
             </p>
 
-            <div className="fg-landing-hero-copy">
+            <div className={`fg-landing-hero-copy${isCjkLocale ? " is-cjk" : ""}`}>
               <p className="fg-label fg-mono" data-stagger="1">
                 {t("Deploy from source, shared first")}
               </p>
               <h1 className="fg-display-heading" data-stagger="2">
-                {t("Start shared.")}
-                <br />
-                {t("Move cleanly.")}
+                {heroHeadingLines.map((line) => (
+                  <span className="fg-landing-hero-title-line" key={line}>
+                    {line}
+                  </span>
+                ))}
               </h1>
               <p className="fg-copy fg-landing-hero-lead" data-stagger="3">
                 {t(

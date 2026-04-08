@@ -116,7 +116,7 @@ const zhCNMessages = {
     "只有新的 Kubernetes 发布就绪后，部署才会完成。",
   "Deploy completes only after the new Kubernetes rollout is ready and old replicas have drained.":
     "只有新的 Kubernetes 发布就绪且旧副本全部退出后，部署才会完成。",
-  "Deploy from source, shared first": "源码部署，从共享运行时开始",
+  "Deploy from source, shared first": "源码部署，先在托管环境上线",
   "Deploy onto a machine shared with this workspace.": "部署到此工作区共享的机器上。",
   "Deploy onto a machine.": "部署到机器上。",
   "Deploy onto the internal cluster.": "部署到内部集群。",
@@ -152,7 +152,7 @@ const zhCNMessages = {
   "Fugue could not load the admin users snapshot right now.":
     "Fugue 当前无法加载管理员用户快照。",
   "Fugue deploys GitHub repositories, Docker images, and local uploads on shared infrastructure first, then lets teams move the same app onto their own machine without losing the route.":
-    "Fugue 先在共享运行时部署 GitHub 仓库、Docker 镜像或本地上传内容，再把同一个应用迁到自有机器，同时保持路由不变。",
+    "Fugue 先把 GitHub 仓库、Docker 镜像和本地上传内容部署到托管共享 k3s 集群，再迁到自有机器，整个过程中路由保持不变。",
   "Fugue request failed.": "Fugue 请求失败。",
   "Get started": "开始使用",
   "GitHub": "GitHub",
@@ -288,11 +288,11 @@ const zhCNMessages = {
   "Source intake": "源码接入",
   "Source import": "源码导入",
   "Start from a GitHub repository, a published Docker image, or a local upload on managed shared k3s first. The same app can move onto your own machine later without rebuilding the route or changing the workflow.":
-    "从 GitHub 仓库、Docker 镜像或本地上传开始，先在托管共享 k3s 上部署。后续可将同一个应用迁到自有机器，无需重建路由，也不必改现有流程。",
+    "从 GitHub 仓库、Docker 镜像或本地上传开始。应用会先部署到 Fugue 托管的共享 k3s 集群；准备好后，再迁到你的机器，路由和部署流程保持不变。",
   "Start from a repository, Docker image, or uploaded bundle.":
     "从仓库、Docker 镜像或上传的包开始。",
   "Start queued at 1 replica.": "已加入启动队列，副本数为 1。",
-  "Start shared.": "先上共享运行时。",
+  "Start shared.": "先让应用上线。",
   "Start this paused app at 1 replica without rebuilding the image.":
     "在不重建镜像的情况下，以 1 个副本启动这个已暂停应用。",
   "Starting…": "正在启动…",
@@ -378,7 +378,7 @@ const zhTWMessages = {
   "Delete service?": "刪除服務？",
   "Deleting…": "刪除中…",
   "Disk": "磁碟",
-  "Deploy from source, shared first": "原始碼部署，從共享執行時開始",
+  "Deploy from source, shared first": "原始碼部署，先在託管環境上線",
   "Deploy apps from source": "從原始碼部署應用",
   "Email": "電子郵件",
   "Email link": "電子郵件連結",
@@ -391,7 +391,7 @@ const zhTWMessages = {
   "Force delete": "強制刪除",
   "Force delete queued.": "強制刪除已加入佇列。",
   "Fugue deploys GitHub repositories, Docker images, and local uploads on shared infrastructure first, then lets teams move the same app onto their own machine without losing the route.":
-    "Fugue 先在共享執行時部署 GitHub 儲存庫、Docker 映像或本地上傳內容，再把同一個應用遷到自有機器，同時保持路由不變。",
+    "Fugue 先把 GitHub 儲存庫、Docker 映像和本地上傳內容部署到託管共享 k3s 叢集，再遷到自有機器，整個過程中路由保持不變。",
   "Get started": "開始使用",
   "Loading projects": "正在載入專案",
   "Loading console page": "正在載入控制台頁面",
@@ -432,8 +432,8 @@ const zhTWMessages = {
   "Signed in.": "已登入。",
   "Something went wrong. Try again.": "發生問題，請再試一次。",
   "Start from a GitHub repository, a published Docker image, or a local upload on managed shared k3s first. The same app can move onto your own machine later without rebuilding the route or changing the workflow.":
-    "從 GitHub 儲存庫、Docker 映像或本地上傳開始，先在託管共享 k3s 上部署。後續可將同一個應用遷到自有機器，無需重建路由，也不必改現有流程。",
-  "Start shared.": "先上共享執行時。",
+    "從 GitHub 儲存庫、Docker 映像或本地上傳開始。應用會先部署到 Fugue 託管的共享 k3s 叢集；準備好後，再遷到你的機器，路由和部署流程保持不變。",
+  "Start shared.": "先讓應用上線。",
   "Waiting in queue": "排隊中",
   "Working": "處理中",
   "You have been signed out.": "你已登出。",

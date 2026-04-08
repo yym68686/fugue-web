@@ -274,6 +274,29 @@ body.is-ready .fg-landing-hero-rail[data-stagger] {
   text-shadow: 0 16px 42px rgba(2, 4, 6, 0.34);
 }
 
+.fg-landing-hero-title-line {
+  display: block;
+}
+
+.fg-landing-hero-title-line + .fg-landing-hero-title-line {
+  margin-top: 0.04em;
+}
+
+.fg-landing-hero-copy.is-cjk .fg-display-heading {
+  max-width: 5.8em;
+  font-size: clamp(3.95rem, 8.6vw, 7.7rem);
+  line-height: 0.92;
+  letter-spacing: -0.065em;
+}
+
+.fg-landing-hero-copy.is-cjk .fg-landing-hero-title-line + .fg-landing-hero-title-line {
+  margin-top: 0.16em;
+}
+
+.fg-landing-hero-copy.is-cjk .fg-landing-hero-lead {
+  max-width: 25rem;
+}
+
 .fg-landing-hero-lead {
   max-width: 29rem;
   margin-top: 0.8rem;
@@ -723,6 +746,19 @@ body.has-scene .fg-landing-scene-container::before {
     font-size: clamp(3.35rem, 16vw, 5.45rem);
   }
 
+  .fg-landing-hero-copy.is-cjk .fg-display-heading {
+    max-width: 5.35em;
+    font-size: clamp(2.9rem, 14vw, 4.7rem);
+    line-height: 0.97;
+    letter-spacing: -0.055em;
+  }
+
+  .fg-landing-hero-copy.is-cjk .fg-landing-hero-lead {
+    max-width: 21rem;
+    font-size: 1rem;
+    line-height: 1.68;
+  }
+
   .fg-landing-hero-copy::before {
     inset: -1.2rem -1rem -1rem -0.8rem;
   }
@@ -767,6 +803,11 @@ body.has-scene .fg-landing-scene-container::before {
   .fg-landing-proof-head .fg-display-heading,
   .fg-landing-launch-copy .fg-display-heading {
     line-height: 0.94;
+  }
+
+  .fg-landing-hero-copy.is-cjk .fg-display-heading {
+    max-width: 5.15em;
+    line-height: 0.99;
   }
 
   .fg-landing-proof-shell pre {

@@ -24,7 +24,7 @@ export function StatusBadge({
       )}
     >
       {live ? <span aria-hidden="true" className="fg-status-badge__dot" /> : null}
-      {children}
+      <span className="fg-status-badge__label">{children}</span>
     </span>
   );
 }
