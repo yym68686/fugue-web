@@ -1,5 +1,13 @@
 import type { ConsoleNavGroup } from "@/lib/console/types";
 
+export function isConsoleNavHrefActive(pathname: string, href: string) {
+  if (href === "/app") {
+    return pathname === href;
+  }
+
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
 export function getConsoleNavGroups(options?: { isAdmin?: boolean }) {
   const groups = [
     {

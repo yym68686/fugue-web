@@ -3,9 +3,10 @@
 import { useEffect, useMemo, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
+import { useConsoleRouteTransition } from "@/components/console/console-route-transition";
 import { PillNav, PillNavLink } from "@/components/ui/pill-nav";
 import { ScrollableControlStrip } from "@/components/ui/scrollable-control-strip";
-import { getConsoleNavGroups } from "@/lib/console/nav";
+import { getConsoleNavGroups, isConsoleNavHrefActive } from "@/lib/console/nav";
 import { warmConsoleRouteData } from "@/lib/console/page-snapshot-client";
 
 type ConsoleNavigator = Navigator & {
@@ -15,36 +16,36 @@ type ConsoleNavigator = Navigator & {
   };
 };
 
-function isActivePath(pathname: string, href: string) {
-  if (href === "/app") {
-    return pathname === href;
-  }
-
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
+const ROUTE_PREFETCH_TTL_MS = 45_000;
 
 export function ConsoleNav({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { beginRouteTransition } = useConsoleRouteTransition();
   const items = useMemo(
     () => getConsoleNavGroups({ isAdmin }).flatMap((group) => group.items),
     [isAdmin],
   );
   const routeHrefs = useMemo(() => items.map((item) => item.href), [items]);
-  const prefetchedRoutesRef = useRef(new Set<string>());
+  const prefetchedRoutesRef = useRef(new Map<string, number>());
   const itemHrefKey = routeHrefs.join("|");
 
-  function prefetchRoute(href: string) {
-    if (prefetchedRoutesRef.current.has(href)) {
+  function prefetchRoute(href: string, options?: { force?: boolean }) {
+    const lastPrefetchedAt = prefetchedRoutesRef.current.get(href) ?? 0;
+
+    if (
+      !options?.force &&
+      Date.now() - lastPrefetchedAt < ROUTE_PREFETCH_TTL_MS
+    ) {
       return;
     }
 
-    prefetchedRoutesRef.current.add(href);
+    prefetchedRoutesRef.current.set(href, Date.now());
     router.prefetch(href);
   }
 
-  function prepareRoute(href: string) {
-    prefetchRoute(href);
+  function prepareRoute(href: string, options?: { force?: boolean }) {
+    prefetchRoute(href, options);
     void warmConsoleRouteData(href);
   }
 
@@ -56,38 +57,76 @@ export function ConsoleNav({ isAdmin = false }: { isAdmin?: boolean }) {
       return;
     }
 
-    const queue = routeHrefs.filter((href) => !isActivePath(pathname, href));
-
-    if (!queue.length) {
-      return;
-    }
-
     let cancelled = false;
     let idleHandle: number | null = null;
     let pauseHandle: number | null = null;
+    let pauseResolve: (() => void) | null = null;
     let timeoutHandle: number | null = null;
+    let warmRunId = 0;
 
     const pauseBetweenRoutes = () =>
       new Promise<void>((resolve) => {
+        pauseResolve = resolve;
         pauseHandle = window.setTimeout(() => {
           pauseHandle = null;
+          pauseResolve = null;
           resolve();
         }, 140);
       });
 
-    const warmRoutes = async () => {
+    const clearWarmupHandles = () => {
+      if (
+        idleHandle !== null &&
+        typeof window.cancelIdleCallback === "function"
+      ) {
+        window.cancelIdleCallback(idleHandle);
+        idleHandle = null;
+      }
+
+      if (pauseHandle !== null) {
+        window.clearTimeout(pauseHandle);
+        pauseHandle = null;
+      }
+
+      if (pauseResolve) {
+        pauseResolve();
+        pauseResolve = null;
+      }
+
+      if (timeoutHandle !== null) {
+        window.clearTimeout(timeoutHandle);
+        timeoutHandle = null;
+      }
+    };
+
+    const warmRoutes = async (
+      runId: number,
+      options?: {
+        force?: boolean;
+      },
+    ) => {
       idleHandle = null;
       timeoutHandle = null;
+      const queue = routeHrefs.filter(
+        (href) => !isConsoleNavHrefActive(pathname, href),
+      );
+
+      if (!queue.length) {
+        return;
+      }
 
       for (const href of queue) {
-        if (cancelled) {
+        prefetchRoute(href, options);
+      }
+
+      for (const href of queue) {
+        if (cancelled || runId !== warmRunId) {
           return;
         }
 
-        prefetchRoute(href);
         await warmConsoleRouteData(href);
 
-        if (cancelled) {
+        if (cancelled || runId !== warmRunId) {
           return;
         }
 
@@ -95,36 +134,44 @@ export function ConsoleNav({ isAdmin = false }: { isAdmin?: boolean }) {
       }
     };
 
-    if (typeof window.requestIdleCallback === "function") {
-      idleHandle = window.requestIdleCallback(
-        () => {
-          void warmRoutes();
-        },
-        { timeout: 1400 },
-      );
-    } else {
+    const scheduleWarmRoutes = (options?: { force?: boolean }) => {
+      warmRunId += 1;
+      const runId = warmRunId;
+      clearWarmupHandles();
+
+      if (typeof window.requestIdleCallback === "function") {
+        idleHandle = window.requestIdleCallback(
+          () => {
+            void warmRoutes(runId, options);
+          },
+          { timeout: options?.force ? 400 : 1400 },
+        );
+        return;
+      }
+
       timeoutHandle = window.setTimeout(() => {
-        void warmRoutes();
-      }, 180);
-    }
+        void warmRoutes(runId, options);
+      }, options?.force ? 0 : 180);
+    };
+
+    const handleReturnToTab = () => {
+      if (document.visibilityState === "hidden") {
+        return;
+      }
+
+      scheduleWarmRoutes({ force: true });
+    };
+
+    scheduleWarmRoutes();
+    window.addEventListener("focus", handleReturnToTab);
+    document.addEventListener("visibilitychange", handleReturnToTab);
 
     return () => {
       cancelled = true;
-
-      if (
-        idleHandle !== null &&
-        typeof window.cancelIdleCallback === "function"
-      ) {
-        window.cancelIdleCallback(idleHandle);
-      }
-
-      if (pauseHandle !== null) {
-        window.clearTimeout(pauseHandle);
-      }
-
-      if (timeoutHandle !== null) {
-        window.clearTimeout(timeoutHandle);
-      }
+      warmRunId += 1;
+      clearWarmupHandles();
+      window.removeEventListener("focus", handleReturnToTab);
+      document.removeEventListener("visibilitychange", handleReturnToTab);
     };
   }, [itemHrefKey, pathname, routeHrefs, router]);
 
@@ -138,7 +185,7 @@ export function ConsoleNav({ isAdmin = false }: { isAdmin?: boolean }) {
     >
       <PillNav ariaLabel="Console" className="fg-console-nav">
         {items.map((item) => {
-          const active = isActivePath(pathname, item.href);
+          const active = isConsoleNavHrefActive(pathname, item.href);
 
           return (
             <PillNavLink
@@ -148,6 +195,10 @@ export function ConsoleNav({ isAdmin = false }: { isAdmin?: boolean }) {
               key={item.href}
               onFocus={() => prepareRoute(item.href)}
               onMouseEnter={() => prepareRoute(item.href)}
+              onNavigate={() => {
+                prepareRoute(item.href);
+                beginRouteTransition(item.href, item.label);
+              }}
               onPointerDown={() => prepareRoute(item.href)}
               prefetch
             >
