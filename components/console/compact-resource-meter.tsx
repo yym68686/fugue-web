@@ -1,3 +1,6 @@
+"use client";
+
+import { useI18n } from "@/components/providers/i18n-provider";
 import type { ConsoleCompactResourceItemView } from "@/lib/console/gallery-types";
 import { cx } from "@/lib/ui/cx";
 
@@ -9,6 +12,44 @@ function readMeterWidth(value?: number | null) {
   return Math.max(0, Math.min(100, value));
 }
 
+function readLocalizedResourceLabel(
+  item: ConsoleCompactResourceItemView,
+  t: ReturnType<typeof useI18n>["t"],
+) {
+  if (item.id === "cpu") {
+    return t("CPU");
+  }
+
+  return t(item.label);
+}
+
+function readLocalizedResourceValue(
+  value: string | null,
+  t: ReturnType<typeof useI18n>["t"],
+) {
+  if (!value) {
+    return value;
+  }
+
+  if (value === "No stats") {
+    return t("No stats");
+  }
+
+  const versionMatch = value.match(/^(\d+) version(s)?$/);
+
+  if (versionMatch) {
+    const count = Number.parseInt(versionMatch[1] ?? "", 10);
+
+    if (Number.isFinite(count)) {
+      return t(count === 1 ? "{count} version" : "{count} versions", {
+        count,
+      });
+    }
+  }
+
+  return value;
+}
+
 export function CompactResourceMeter({
   item,
   showLabel = true,
@@ -16,7 +57,11 @@ export function CompactResourceMeter({
   item: ConsoleCompactResourceItemView;
   showLabel?: boolean;
 }) {
+  const { t } = useI18n();
   const showMeter = item.meterValue !== null && item.meterValue !== undefined;
+  const label = readLocalizedResourceLabel(item, t);
+  const primaryLabel = readLocalizedResourceValue(item.primaryLabel, t) ?? item.primaryLabel;
+  const secondaryLabel = readLocalizedResourceValue(item.secondaryLabel, t);
 
   return (
     <article
@@ -33,11 +78,11 @@ export function CompactResourceMeter({
           !showLabel && "fg-cluster-resource__label--sr-only",
         )}
       >
-        {item.label}
+        {label}
       </span>
       <div className="fg-cluster-resource__compact-values">
-        <strong>{item.primaryLabel}</strong>
-        {item.secondaryLabel ? <span>{item.secondaryLabel}</span> : null}
+        <strong>{primaryLabel}</strong>
+        {secondaryLabel ? <span>{secondaryLabel}</span> : null}
       </div>
 
       {showMeter ? (
