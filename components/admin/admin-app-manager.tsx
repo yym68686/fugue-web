@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { CompactResourceMeter } from "@/components/console/compact-resource-meter";
 import { ConsoleEmptyState } from "@/components/console/console-empty-state";
 import { StatusBadge } from "@/components/console/status-badge";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { InlineButton } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { TechStackLogo } from "@/components/ui/tech-stack-logo";
@@ -39,33 +40,33 @@ type AdminClusterAppView = {
   }>;
 };
 
-const ADMIN_APP_USAGE_HEADINGS = [
-  { id: "cpu", label: "CPU" },
-  { id: "memory", label: "Memory" },
-  { id: "storage", label: "Disk" },
-  { id: "images", label: "Images" },
-] as const;
-
-function readErrorMessage(error: unknown) {
+function readErrorMessage(
+  error: unknown,
+  t: ReturnType<typeof useI18n>["t"],
+) {
   if (error instanceof Error && error.message) {
     return error.message;
   }
 
-  return "Request failed.";
+  return t("Request failed.");
 }
 
-async function requestJson<T>(input: RequestInfo, init?: RequestInit) {
+async function requestJson<T>(
+  input: RequestInfo,
+  init: RequestInit | undefined,
+  t: ReturnType<typeof useI18n>["t"],
+) {
   const response = await fetch(input, init);
   const data = (await response.json().catch(() => null)) as
     | (T & { error?: string })
     | null;
 
   if (!data) {
-    throw new Error("Empty response.");
+    throw new Error(t("Empty response."));
   }
 
   if (!response.ok) {
-    throw new Error(data.error || "Request failed.");
+    throw new Error(data.error || t("Request failed."));
   }
 
   return data;
@@ -78,10 +79,17 @@ export function AdminAppManager({
   apps: AdminClusterAppView[];
   onRefresh?: () => void;
 }) {
+  const { t } = useI18n();
   const router = useRouter();
   const confirm = useConfirmDialog();
   const { showToast } = useToast();
   const [busyAction, setBusyAction] = useState<string | null>(null);
+  const adminAppUsageHeadings = [
+    { id: "cpu", label: t("CPU") },
+    { id: "memory", label: t("Memory") },
+    { id: "storage", label: t("Disk") },
+    { id: "images", label: t("Images") },
+  ] as const;
 
   function refreshPage() {
     if (onRefresh) {
@@ -106,16 +114,16 @@ export function AdminAppManager({
         } | null;
       }>(`/api/admin/apps/${encodeURIComponent(app.id)}/rebuild`, {
         method: "POST",
-      });
+      }, t);
 
       showToast({
-        message: result.operation?.id ? "Rebuild queued." : "Rebuild requested.",
+        message: result.operation?.id ? t("Rebuild queued.") : t("Rebuild requested."),
         variant: "success",
       });
       refreshPage();
     } catch (error) {
       showToast({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -129,9 +137,11 @@ export function AdminAppManager({
     }
 
     const confirmed = await confirm({
-      confirmLabel: "Delete app",
-      description: `${app.name} will be queued for deletion from the admin surface.`,
-      title: "Delete app?",
+      confirmLabel: t("Delete app"),
+      description: t("{name} will be queued for deletion from the admin surface.", {
+        name: app.name,
+      }),
+      title: t("Delete app?"),
     });
 
     if (!confirmed) {
@@ -145,16 +155,18 @@ export function AdminAppManager({
         alreadyDeleting?: boolean;
       }>(`/api/admin/apps/${encodeURIComponent(app.id)}`, {
         method: "DELETE",
-      });
+      }, t);
 
       showToast({
-        message: result.alreadyDeleting ? "Delete is already queued." : "Delete queued.",
+        message: result.alreadyDeleting
+          ? t("Delete is already queued.")
+          : t("Delete queued."),
         variant: "success",
       });
       refreshPage();
     } catch (error) {
       showToast({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -165,8 +177,8 @@ export function AdminAppManager({
   if (!apps.length) {
     return (
       <ConsoleEmptyState
-        description="No apps are currently visible from the bootstrap scope."
-        title="No apps visible"
+        description={t("No apps are currently visible from the bootstrap scope.")}
+        title={t("No apps visible")}
       />
     );
   }
@@ -190,27 +202,27 @@ export function AdminAppManager({
         </colgroup>
         <thead>
           <tr>
-            <th scope="col">Name</th>
-            <th scope="col">App identifier</th>
-            <th scope="col">User email</th>
-            <th scope="col">Project</th>
-            <th scope="col">Route</th>
-            <th scope="col">Server</th>
+            <th scope="col">{t("Name")}</th>
+            <th scope="col">{t("App identifier")}</th>
+            <th scope="col">{t("User email")}</th>
+            <th scope="col">{t("Project")}</th>
+            <th scope="col">{t("Route")}</th>
+            <th scope="col">{t("Server")}</th>
             <th className="fg-console-table__head--usage" scope="col">
               <div className="fg-console-table__resource-head">
-                <span className="fg-console-table__resource-head-label">Usage</span>
+                <span className="fg-console-table__resource-head-label">{t("Usage")}</span>
                 <div className="fg-console-table__resource-head-grid">
-                  {ADMIN_APP_USAGE_HEADINGS.map((resource) => (
+                  {adminAppUsageHeadings.map((resource) => (
                     <span key={resource.id}>{resource.label}</span>
                   ))}
                 </div>
               </div>
             </th>
-            <th scope="col">Phase</th>
-            <th scope="col">Source</th>
-            <th scope="col">Stack</th>
-            <th scope="col">Created</th>
-            <th scope="col">Actions</th>
+            <th scope="col">{t("Phase")}</th>
+            <th scope="col">{t("Source")}</th>
+            <th scope="col">{t("Stack")}</th>
+            <th scope="col">{t("Created")}</th>
+            <th scope="col">{t("Actions")}</th>
           </tr>
         </thead>
         <tbody>
@@ -228,12 +240,12 @@ export function AdminAppManager({
               </td>
               <td>
                 <span className="fg-console-table__clip" title={app.ownerLabel}>
-                  {app.ownerLabel}
+                  {t(app.ownerLabel)}
                 </span>
               </td>
               <td>
                 <span className="fg-console-table__clip" title={app.projectLabel}>
-                  {app.projectLabel}
+                  {t(app.projectLabel)}
                 </span>
               </td>
               <td>
@@ -245,22 +257,22 @@ export function AdminAppManager({
                     target="_blank"
                     title={app.routeLabel}
                   >
-                    {app.routeLabel}
+                    {t(app.routeLabel)}
                   </a>
                 ) : (
                   <span className="fg-console-table__clip" title={app.routeLabel}>
-                    {app.routeLabel}
+                    {t(app.routeLabel)}
                   </span>
                 )}
               </td>
               <td>
                 <span className="fg-console-table__clip" title={app.serverLabel}>
-                  {app.serverLabel}
+                  {t(app.serverLabel)}
                 </span>
               </td>
               <td className="fg-console-table__cell--usage">
                 <div
-                  aria-label={`${app.name} resource usage`}
+                  aria-label={t("{name} resource usage", { name: app.name })}
                   className="fg-console-table__resource-grid"
                 >
                   {app.resourceUsage.map((resource) => (
@@ -269,7 +281,7 @@ export function AdminAppManager({
                 </div>
               </td>
               <td>
-                <StatusBadge tone={app.phaseTone}>{app.phase}</StatusBadge>
+                <StatusBadge tone={app.phaseTone}>{t(app.phase)}</StatusBadge>
               </td>
               <td>
                 {app.sourceHref ? (
@@ -280,11 +292,11 @@ export function AdminAppManager({
                     target="_blank"
                     title={app.sourceHref}
                   >
-                    {app.sourceLabel}
+                    {t(app.sourceLabel)}
                   </a>
                 ) : (
                   <span className="fg-console-table__clip" title={app.sourceLabel}>
-                    {app.sourceLabel}
+                    {t(app.sourceLabel)}
                   </span>
                 )}
               </td>
@@ -304,12 +316,12 @@ export function AdminAppManager({
                           </span>
                         ) : null}
                         <span className="fg-console-tech-pill__label">{item.label}</span>
-                        <span className="fg-console-tech-pill__meta">{item.meta}</span>
+                        <span className="fg-console-tech-pill__meta">{t(item.meta)}</span>
                       </span>
                     ))}
                   </div>
                 ) : (
-                  <span className="fg-console-tech-empty">Not detected</span>
+                  <span className="fg-console-tech-empty">{t("Not detected")}</span>
                 )}
               </td>
               <td>
@@ -323,8 +335,8 @@ export function AdminAppManager({
                         busyAction && busyAction !== `rebuild:${app.id}`,
                       )}
                       busy={busyAction === `rebuild:${app.id}`}
-                      busyLabel="Rebuilding…"
-                      label="Rebuild"
+                      busyLabel={t("Rebuilding…")}
+                      label={t("Rebuild")}
                       onClick={() => {
                         void handleRebuild(app);
                       }}
@@ -335,9 +347,9 @@ export function AdminAppManager({
                       busyAction && busyAction !== `delete:${app.id}`,
                     )}
                     busy={busyAction === `delete:${app.id}`}
-                    busyLabel="Deleting…"
+                    busyLabel={t("Deleting…")}
                     danger
-                    label="Delete"
+                    label={t("Delete")}
                     onClick={() => {
                       void handleDelete(app);
                     }}

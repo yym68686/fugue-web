@@ -6,6 +6,7 @@ import { CompactResourceMeter } from "@/components/console/compact-resource-mete
 import { RuntimeAccessPanel } from "@/components/console/runtime-access-panel";
 import { ConsoleEmptyState } from "@/components/console/console-empty-state";
 import { StatusBadge } from "@/components/console/status-badge";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { CountryFlagLabel } from "@/components/ui/country-flag-label";
 import { PanelSection } from "@/components/ui/panel";
 import type { ConsoleCompactResourceItemView } from "@/lib/console/gallery-types";
@@ -106,14 +107,21 @@ function ClusterResourceMeter({
   compact?: boolean;
   resource: ClusterNodeGalleryResource;
 }) {
+  const { t } = useI18n();
+  const label = resource.id === "cpu" ? t("CPU") : t(resource.label);
+
   return (
     <article
       className={cx("fg-cluster-resource", compact && "fg-cluster-resource--compact")}
-      title={`${resource.label} / ${resource.usageLabel} / ${resource.totalLabel}`}
+      title={t("{label} / {usage} / {total}", {
+        label,
+        total: resource.totalLabel,
+        usage: resource.usageLabel,
+      })}
     >
       {compact ? (
         <>
-          <span className="fg-cluster-resource__label">{resource.label}</span>
+          <span className="fg-cluster-resource__label">{label}</span>
           <div className="fg-cluster-resource__compact-values">
             <strong>{resource.percentLabel}</strong>
             <span>{resource.usageLabel}</span>
@@ -122,16 +130,20 @@ function ClusterResourceMeter({
       ) : (
         <div className="fg-cluster-resource__head">
           <div className="fg-cluster-resource__copy">
-            <span className="fg-cluster-resource__label">{resource.label}</span>
+            <span className="fg-cluster-resource__label">{label}</span>
             <strong>{resource.percentLabel}</strong>
           </div>
 
-          <StatusBadge tone={resource.statusTone}>{resource.statusLabel}</StatusBadge>
+          <StatusBadge tone={resource.statusTone}>{t(resource.statusLabel)}</StatusBadge>
         </div>
       )}
 
       <div
-        aria-label={`${resource.label} usage ${resource.percentLabel} (${resource.usageLabel})`}
+        aria-label={t("{label} usage {percent} ({usage})", {
+          label,
+          percent: resource.percentLabel,
+          usage: resource.usageLabel,
+        })}
         className="fg-cluster-resource__meter"
         role="img"
       >
@@ -163,7 +175,7 @@ function ClusterFactValue({ fact }: { fact: ClusterNodeGalleryFact }) {
     return <StatusBadge tone={fact.valueTone}>{fact.value}</StatusBadge>;
   }
 
-  if (fact.countryCode || fact.label === "Location") {
+  if (fact.countryCode || fact.id === "location") {
     return <CountryFlagLabel countryCode={fact.countryCode} label={fact.value} />;
   }
 
@@ -172,39 +184,49 @@ function ClusterFactValue({ fact }: { fact: ClusterNodeGalleryFact }) {
 
 function buildCompactResourceItem(
   resource: ClusterNodeGalleryResource,
+  t: ReturnType<typeof useI18n>["t"],
 ): ConsoleCompactResourceItemView {
+  const label = resource.id === "cpu" ? t("CPU") : t(resource.label);
+
   return {
     id: resource.id,
     label: resource.label,
     meterValue: resource.percentValue,
     primaryLabel: resource.percentLabel,
     secondaryLabel: resource.usageLabel,
-    title: `${resource.label} / ${resource.usageLabel} / ${resource.totalLabel}`,
+    title: t("{label} / {usage} / {total}", {
+      label,
+      total: resource.totalLabel,
+      usage: resource.usageLabel,
+    }),
     tone: resource.statusTone,
   };
 }
 
-function readOwnershipBadge(item: ClusterNodeGalleryItem) {
+function readOwnershipBadge(
+  item: ClusterNodeGalleryItem,
+  t: ReturnType<typeof useI18n>["t"],
+) {
   if (!item.ownership) {
     return null;
   }
 
   if (item.ownership === "owned") {
     return {
-      label: "Owned",
+      label: t("Owned"),
       tone: "neutral",
     } satisfies { label: string; tone: ConsoleTone };
   }
 
   if (item.ownership === "internal-cluster") {
     return {
-      label: "Cluster",
+      label: t("Cluster"),
       tone: "info",
     } satisfies { label: string; tone: ConsoleTone };
   }
 
   return {
-    label: "Shared",
+    label: t("Shared"),
     tone: "info",
   } satisfies { label: string; tone: ConsoleTone };
 }
@@ -216,6 +238,7 @@ export function ClusterNodeGallery({
   ariaLabel: string;
   items: ClusterNodeGalleryItem[];
 }) {
+  const { t } = useI18n();
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -235,7 +258,7 @@ export function ClusterNodeGallery({
           {items.map((item) => {
             const expanded = expandedId === item.id;
             const detailId = `cluster-node-detail-${sanitizeDomId(item.id)}`;
-            const ownershipBadge = readOwnershipBadge(item);
+            const ownershipBadge = readOwnershipBadge(item, t);
 
             return (
               <article
@@ -256,7 +279,7 @@ export function ClusterNodeGallery({
                 >
                   <div className="fg-cluster-node-card__summary-head">
                     <div className="fg-project-card__summary-copy fg-cluster-node-card__summary-copy">
-                      <span className="fg-label fg-panel__eyebrow">{item.eyebrow}</span>
+                      <span className="fg-label fg-panel__eyebrow">{t(item.eyebrow)}</span>
                       <strong>{item.name}</strong>
                       {item.statusDetail ? (
                         <span className="fg-cluster-node-card__summary-detail">
@@ -269,7 +292,7 @@ export function ClusterNodeGallery({
                     <div className="fg-cluster-node-card__summary-resources">
                       {item.resources.map((resource) => (
                         <CompactResourceMeter
-                          item={buildCompactResourceItem(resource)}
+                          item={buildCompactResourceItem(resource, t)}
                           key={resource.id}
                         />
                       ))}
@@ -279,7 +302,7 @@ export function ClusterNodeGallery({
                       {ownershipBadge ? (
                         <StatusBadge tone={ownershipBadge.tone}>{ownershipBadge.label}</StatusBadge>
                       ) : null}
-                      <StatusBadge tone={item.statusTone}>{item.statusLabel}</StatusBadge>
+                      <StatusBadge tone={item.statusTone}>{t(item.statusLabel)}</StatusBadge>
                       <span
                         className="fg-project-card__summary-expand fg-cluster-node-card__summary-expand"
                         aria-hidden="true"
@@ -303,7 +326,7 @@ export function ClusterNodeGallery({
                       {item.roleLabels.map((role) => (
                         <span className="fg-console-tech-pill" key={role}>
                           <span className="fg-console-tech-pill__label">{role}</span>
-                          <span className="fg-console-tech-pill__meta">Role</span>
+                          <span className="fg-console-tech-pill__meta">{t("Role")}</span>
                         </span>
                       ))}
                     </div>
@@ -316,7 +339,7 @@ export function ClusterNodeGallery({
                       <dl className="fg-cluster-node-facts">
                         {item.facts.map((fact) => (
                           <div key={fact.id}>
-                            <dt>{fact.label}</dt>
+                            <dt>{t(fact.label)}</dt>
                             <dd title={fact.title}>
                               <ClusterFactValue fact={fact} />
                             </dd>
@@ -332,7 +355,7 @@ export function ClusterNodeGallery({
                           canManagePool={item.canManagePool}
                           canManageSharing={item.canManageSharing}
                           ownerEmail={item.ownerEmail ?? null}
-                          ownerLabel={item.ownerLabel ?? "Unknown owner"}
+                          ownerLabel={item.ownerLabel ?? t("Unknown owner")}
                           ownership={item.ownership ?? "owned"}
                           poolMode={item.poolMode ?? null}
                           runtimeId={item.runtimeId ?? null}
@@ -344,8 +367,8 @@ export function ClusterNodeGallery({
                     <PanelSection>
                       <div className="fg-cluster-node-card__section-head">
                         <div>
-                          <p className="fg-label fg-panel__eyebrow">Signals</p>
-                          <p className="fg-console-note">Ready and pressure signals.</p>
+                          <p className="fg-label fg-panel__eyebrow">{t("Signals")}</p>
+                          <p className="fg-console-note">{t("Ready and pressure signals.")}</p>
                         </div>
                       </div>
 
@@ -353,9 +376,11 @@ export function ClusterNodeGallery({
                         {item.conditions.map((condition) => (
                           <article className="fg-cluster-condition" key={condition.id}>
                             <div className="fg-cluster-condition__head">
-                              <span className="fg-cluster-condition__label">{condition.label}</span>
+                              <span className="fg-cluster-condition__label">
+                                {t(condition.label)}
+                              </span>
                               <StatusBadge tone={condition.tone}>
-                                {condition.statusLabel}
+                                {t(condition.statusLabel)}
                               </StatusBadge>
                             </div>
                             <p
@@ -372,8 +397,8 @@ export function ClusterNodeGallery({
                     <PanelSection>
                       <div className="fg-cluster-node-card__section-head">
                         <div>
-                          <p className="fg-label fg-panel__eyebrow">Capacity</p>
-                          <p className="fg-console-note">Live CPU, memory, and disk usage.</p>
+                          <p className="fg-label fg-panel__eyebrow">{t("Capacity")}</p>
+                          <p className="fg-console-note">{t("Live CPU, memory, and disk usage.")}</p>
                         </div>
                       </div>
 
@@ -387,17 +412,35 @@ export function ClusterNodeGallery({
                     <PanelSection>
                       <div className="fg-cluster-node-card__section-head">
                         <div>
-                          <p className="fg-label fg-panel__eyebrow">Workloads</p>
-                          <p className="fg-console-note">{item.workloadSectionNote}</p>
+                          <p className="fg-label fg-panel__eyebrow">{t("Workloads")}</p>
+                          <p className="fg-console-note">{t(item.workloadSectionNote)}</p>
                         </div>
 
                         <div className="fg-project-actions">
-                          <StatusBadge tone="neutral">{item.workloadCount} workloads</StatusBadge>
+                          <StatusBadge tone="neutral">
+                            {t(
+                              item.workloadCount === 1
+                                ? "{count} workload"
+                                : "{count} workloads",
+                              { count: item.workloadCount },
+                            )}
+                          </StatusBadge>
                           {item.appCount ? (
-                            <StatusBadge tone="info">{item.appCount} apps</StatusBadge>
+                            <StatusBadge tone="info">
+                              {t(item.appCount === 1 ? "{count} app" : "{count} apps", {
+                                count: item.appCount,
+                              })}
+                            </StatusBadge>
                           ) : null}
                           {item.serviceCount ? (
-                            <StatusBadge tone="neutral">{item.serviceCount} services</StatusBadge>
+                            <StatusBadge tone="neutral">
+                              {t(
+                                item.serviceCount === 1
+                                  ? "{count} service"
+                                  : "{count} services",
+                                { count: item.serviceCount },
+                              )}
+                            </StatusBadge>
                           ) : null}
                         </div>
                       </div>
@@ -410,7 +453,7 @@ export function ClusterNodeGallery({
                                 <div className="fg-cluster-workload__head">
                                   <strong>{workload.name}</strong>
                                   <StatusBadge tone={workload.kindTone}>
-                                    {workload.kindLabel}
+                                    {t(workload.kindLabel)}
                                   </StatusBadge>
                                 </div>
                                 <p>{workload.metaLabel}</p>
@@ -420,8 +463,8 @@ export function ClusterNodeGallery({
                         </ul>
                       ) : (
                         <ConsoleEmptyState
-                          description={item.workloadEmptyDescription}
-                          title={item.workloadEmptyTitle}
+                          description={t(item.workloadEmptyDescription)}
+                          title={t(item.workloadEmptyTitle)}
                         />
                       )}
                     </PanelSection>

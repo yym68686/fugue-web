@@ -1,8 +1,11 @@
+"use client";
+
 import {
   ClusterNodeGallery,
   type ClusterNodeGalleryItem,
 } from "@/components/console/cluster-node-gallery";
 import { ConsoleEmptyState } from "@/components/console/console-empty-state";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { Panel, PanelSection } from "@/components/ui/panel";
 import type { AdminClusterNodeView } from "@/lib/admin/service";
 
@@ -73,13 +76,15 @@ export function AdminClusterOverview({
 }: {
   nodes: AdminClusterNodeView[];
 }) {
+  const { t } = useI18n();
+
   if (!nodes.length) {
     return (
       <Panel>
         <PanelSection>
           <ConsoleEmptyState
-            description="No cluster nodes are visible from the current bootstrap scope."
-            title="No cluster nodes visible"
+            description={t("No cluster nodes are visible from the current bootstrap scope.")}
+            title={t("No cluster nodes visible")}
           />
         </PanelSection>
       </Panel>
@@ -88,7 +93,7 @@ export function AdminClusterOverview({
 
   return (
     <ClusterNodeGallery
-      ariaLabel="Cluster nodes"
+      ariaLabel={t("Cluster nodes")}
       items={nodes.map(toClusterGalleryItem)}
     />
   );

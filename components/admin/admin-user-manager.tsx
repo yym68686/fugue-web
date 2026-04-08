@@ -22,6 +22,7 @@ import {
   clampSteppedValue,
   SteppedSliderField,
 } from "@/components/ui/stepped-slider-field";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { useToast } from "@/components/ui/toast";
 import type { ConsoleTone } from "@/lib/console/types";
 
@@ -89,6 +90,7 @@ const MEMORY_SLIDER_MAX_GIB = 4;
 const STORAGE_SLIDER_MAX_GIB = 30;
 const CPU_SLIDER_MAX_MILLICORES = CPU_SLIDER_MAX_CORES * MILLICORES_PER_VCPU;
 const MEMORY_SLIDER_MAX_MEBIBYTES = MEMORY_SLIDER_MAX_GIB * MEBIBYTES_PER_GIB;
+type Translator = ReturnType<typeof useI18n>["t"];
 const FOCUSABLE_SELECTOR = [
   "button:not([disabled])",
   "[href]",
@@ -98,26 +100,30 @@ const FOCUSABLE_SELECTOR = [
   "[tabindex]:not([tabindex='-1'])",
 ].join(", ");
 
-function readErrorMessage(error: unknown) {
+function readErrorMessage(error: unknown, t: Translator) {
   if (error instanceof Error && error.message) {
     return error.message;
   }
 
-  return "Request failed.";
+  return t("Request failed.");
 }
 
-async function requestJson<T>(input: RequestInfo, init?: RequestInit) {
+async function requestJson<T>(
+  input: RequestInfo,
+  init: RequestInit | undefined,
+  t: Translator,
+) {
   const response = await fetch(input, init);
   const data = (await response.json().catch(() => null)) as
     | (T & { error?: string })
     | null;
 
   if (!data) {
-    throw new Error("Empty response.");
+    throw new Error(t("Empty response."));
   }
 
   if (!response.ok) {
-    throw new Error(data.error || "Request failed.");
+    throw new Error(data.error || t("Request failed."));
   }
 
   return data;
@@ -247,6 +253,56 @@ function formatResourceSpec(spec: {
   return parts.join(" / ");
 }
 
+function readLocalizedUsageValue(value: string, t: Translator) {
+  if (!value) {
+    return value;
+  }
+
+  if (value === "No stats") {
+    return t("No stats");
+  }
+
+  if (value === "No images") {
+    return t("No images");
+  }
+
+  if (
+    value === "No balance" ||
+    value === "No billing" ||
+    value === "Billing unavailable" ||
+    value === "No workspace" ||
+    value === "No estimate" ||
+    value === "Unavailable"
+  ) {
+    return t(value);
+  }
+
+  const monthlyMatch = value.match(/^(.+)\/mo$/);
+
+  if (monthlyMatch) {
+    return t("{value}/mo", { value: monthlyMatch[1] ?? value });
+  }
+
+  const countMatch = value.match(/^(\d+)\s+(service|services|version|versions)$/);
+
+  if (countMatch) {
+    const count = Number.parseInt(countMatch[1] ?? "", 10);
+    const unit = countMatch[2];
+
+    if (Number.isFinite(count)) {
+      if (unit === "service" || unit === "services") {
+        return t(count === 1 ? "{count} service" : "{count} services", { count });
+      }
+
+      if (unit === "version" || unit === "versions") {
+        return t(count === 1 ? "{count} version" : "{count} versions", { count });
+      }
+    }
+  }
+
+  return value;
+}
+
 function estimateMonthlyMicroCents(
   spec: {
     cpuMillicores: number;
@@ -286,6 +342,7 @@ export function AdminUserManager({
   users: AdminUserView[];
   onRefresh?: () => void;
 }) {
+  const { t } = useI18n();
   const router = useRouter();
   const confirm = useConfirmDialog();
   const { showToast } = useToast();
@@ -540,9 +597,11 @@ export function AdminUserManager({
 
     if (action === "delete") {
       const confirmed = await confirm({
-        confirmLabel: "Delete user",
-        description: `${user.email} will be removed from Fugue.`,
-        title: "Delete user?",
+        confirmLabel: t("Delete user"),
+        description: t("{email} will be removed from Fugue.", {
+          email: user.email,
+        }),
+        title: t("Delete user?"),
       });
 
       if (!confirmed) {
@@ -552,13 +611,17 @@ export function AdminUserManager({
 
     if (action === "promote") {
       const confirmed = await confirm({
-        confirmLabel: "Make admin",
+        confirmLabel: t("Make admin"),
         description:
           user.status.toLowerCase() === "blocked"
-            ? `${user.email} will become an admin and their access will be restored.`
-            : `${user.email} will gain workspace admin access.`,
-        eyebrow: "Privilege change",
-        title: "Promote user to admin?",
+            ? t("{email} will become an admin and their access will be restored.", {
+                email: user.email,
+              })
+            : t("{email} will gain workspace admin access.", {
+                email: user.email,
+              }),
+        eyebrow: t("Privilege change"),
+        title: t("Promote user to admin?"),
         variant: "primary",
       });
 
@@ -569,11 +632,16 @@ export function AdminUserManager({
 
     if (action === "demote") {
       const confirmed = await confirm({
-        cancelLabel: "Keep admin",
-        confirmLabel: "Remove admin",
-        description: `${user.email} will lose admin access and stay in the workspace as a regular user.`,
-        eyebrow: "Privilege change",
-        title: "Remove admin access?",
+        cancelLabel: t("Keep admin"),
+        confirmLabel: t("Remove admin"),
+        description: t(
+          "{email} will lose admin access and stay in the workspace as a regular user.",
+          {
+            email: user.email,
+          },
+        ),
+        eyebrow: t("Privilege change"),
+        title: t("Remove admin access?"),
         variant: "danger",
       });
 
@@ -596,27 +664,27 @@ export function AdminUserManager({
 
       await requestJson(endpoint, {
         method,
-      });
+      }, t);
 
       showToast({
         message:
           action === "block"
-            ? "User blocked."
+            ? t("User blocked.")
             : action === "unblock"
-              ? "User unblocked."
+              ? t("User unblocked.")
             : action === "promote"
               ? user.status.toLowerCase() === "blocked"
-                ? "User promoted to admin and restored."
-                : "User promoted to admin."
+                ? t("User promoted to admin and restored.")
+                : t("User promoted to admin.")
               : action === "demote"
-                ? "Admin access removed."
-              : "User deleted.",
+                ? t("Admin access removed.")
+              : t("User deleted."),
         variant: "success",
       });
       refreshPage();
     } catch (error) {
       showToast({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -650,16 +718,17 @@ export function AdminUserManager({
           },
           method: "PATCH",
         },
+        t,
       );
 
       closeQuotaEditor();
       showToast({
-        message: "Managed limit updated.",
+        message: t("Managed limit updated."),
         variant: "success",
       });
       refreshPage();
     } catch (error) {
-      const message = readErrorMessage(error);
+      const message = readErrorMessage(error, t);
       setQuotaError(message);
       showToast({
         message,
@@ -680,7 +749,7 @@ export function AdminUserManager({
     const parsedBalanceCents = parseDollarAmountToCents(balanceAmount);
 
     if (parsedBalanceCents === null) {
-      const message = "Enter a non-negative USD amount with up to two decimal places.";
+      const message = t("Enter a non-negative USD amount with up to two decimal places.");
       setBalanceError(message);
       showToast({
         message,
@@ -704,16 +773,17 @@ export function AdminUserManager({
           },
           method: "PATCH",
         },
+        t,
       );
 
       closeQuotaEditor();
       showToast({
-        message: "Balance updated.",
+        message: t("Balance updated."),
         variant: "success",
       });
       refreshPage();
     } catch (error) {
-      const message = readErrorMessage(error);
+      const message = readErrorMessage(error, t);
       setBalanceError(message);
       showToast({
         message,
@@ -727,8 +797,8 @@ export function AdminUserManager({
   if (!users.length) {
     return (
       <ConsoleEmptyState
-        description="No product users have signed in yet."
-        title="No users yet"
+        description={t("No product users have signed in yet.")}
+        title={t("No users yet")}
       />
     );
   }
@@ -759,33 +829,35 @@ export function AdminUserManager({
           </colgroup>
           <thead>
             <tr>
-              <th>User</th>
-              <th>Status</th>
-              <th>Provider</th>
+              <th>{t("User")}</th>
+              <th>{t("Status")}</th>
+              <th>{t("Provider")}</th>
               <th>
                 <span className="fg-admin-user-column-head">
-                  <span className="fg-admin-user-column-head__label">Balance</span>
-                  <span className="fg-admin-user-column-head__meta">Prepaid / status</span>
-                </span>
-              </th>
-              <th>
-                <span className="fg-admin-user-column-head">
-                  <span className="fg-admin-user-column-head__label">Managed limit</span>
+                  <span className="fg-admin-user-column-head__label">{t("Balance")}</span>
                   <span className="fg-admin-user-column-head__meta">
-                    CPU / Memory / Storage / Monthly
+                    {t("Prepaid / status")}
                   </span>
                 </span>
               </th>
               <th>
                 <span className="fg-admin-user-column-head">
-                  <span className="fg-admin-user-column-head__label">Service usage</span>
+                  <span className="fg-admin-user-column-head__label">{t("Managed limit")}</span>
                   <span className="fg-admin-user-column-head__meta">
-                    Services / CPU / Memory / Disk / Images
+                    {t("CPU / Memory / Storage / Monthly")}
                   </span>
                 </span>
               </th>
-              <th>Last login</th>
-              <th>Actions</th>
+              <th>
+                <span className="fg-admin-user-column-head">
+                  <span className="fg-admin-user-column-head__label">{t("Service usage")}</span>
+                  <span className="fg-admin-user-column-head__meta">
+                    {t("Services / CPU / Memory / Disk / Images")}
+                  </span>
+                </span>
+              </th>
+              <th>{t("Last login")}</th>
+              <th>{t("Actions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -801,65 +873,77 @@ export function AdminUserManager({
               const billingCpuLabel =
                 user.billing.cpuMillicores !== null
                   ? formatCPU(user.billing.cpuMillicores)
-                  : "No stats";
+                  : t("No stats");
               const billingMemoryLabel =
                 user.billing.memoryMebibytes !== null
                   ? formatMemory(user.billing.memoryMebibytes)
-                  : "No stats";
+                  : t("No stats");
               const billingStorageLabel =
                 user.billing.storageGibibytes !== null
                   ? formatStorage(user.billing.storageGibibytes)
-                  : "No stats";
+                  : t("No stats");
               const billingMonthlyLabel = user.billing.monthlyEstimateLabel
-                ? `${user.billing.monthlyEstimateLabel}/mo`
+                ? t("{value}/mo", { value: user.billing.monthlyEstimateLabel })
                 : user.billing.loadError
-                  ? "Unavailable"
-                  : "No estimate";
+                  ? t("Unavailable")
+                  : t("No estimate");
               const billingStatusLabel = user.billing.statusLabel
-                ? user.billing.statusLabel
+                ? t(user.billing.statusLabel)
                 : user.billing.loadError
-                  ? "Unavailable"
-                  : "No billing";
+                  ? t("Unavailable")
+                  : t("No billing");
               const balanceValueLabel =
                 user.billing.balanceLabel ??
                 (user.billing.loadError
-                  ? "Unavailable"
+                  ? t("Unavailable")
                   : user.billing.tenantId
-                    ? "No balance"
-                    : "No workspace");
+                    ? t("No balance")
+                    : t("No workspace"));
               const balanceMetaLabel = user.billing.statusLabel
-                ? user.billing.statusLabel
+                ? t(user.billing.statusLabel)
                 : user.billing.loadError
-                  ? "Billing unavailable"
+                  ? t("Billing unavailable")
                   : user.billing.tenantId
-                    ? "No billing"
-                    : "No workspace";
+                    ? t("No billing")
+                    : t("No workspace");
+              const localizedLimitLabel = readLocalizedUsageValue(user.billing.limitLabel, t);
+              const localizedLoadError = user.billing.loadError ? t(user.billing.loadError) : null;
+              const localizedUsageServiceCount = readLocalizedUsageValue(
+                user.usage.serviceCountLabel,
+                t,
+              );
+              const localizedUsageCpu = readLocalizedUsageValue(user.usage.cpuLabel, t);
+              const localizedUsageMemory = readLocalizedUsageValue(user.usage.memoryLabel, t);
+              const localizedUsageDisk = readLocalizedUsageValue(user.usage.diskLabel, t);
+              const localizedUsageImage = readLocalizedUsageValue(user.usage.imageLabel, t);
               const managedLimitSummaryLabel = [
-                `CPU ${billingCpuLabel}`,
-                `Memory ${billingMemoryLabel}`,
-                `Storage ${billingStorageLabel}`,
-                `Monthly ${billingMonthlyLabel}`,
+                t("CPU {value}", { value: billingCpuLabel }),
+                t("Memory {value}", { value: billingMemoryLabel }),
+                t("Storage {value}", { value: billingStorageLabel }),
+                t("Monthly {value}", { value: billingMonthlyLabel }),
               ].join(" / ");
               const balanceTitle = [
-                `Balance ${balanceValueLabel}`,
+                t("Balance {value}", { value: balanceValueLabel }),
                 balanceMetaLabel,
                 user.billing.statusReason,
-                user.billing.loadError,
+                localizedLoadError,
               ]
                 .filter(Boolean)
                 .join(" / ");
               const managedLimitTitle = [
                 managedLimitSummaryLabel,
-                `Limit ${user.billing.limitLabel}`,
-                user.billing.statusLabel ? `Status ${billingStatusLabel}` : null,
+                t("Limit {value}", { value: localizedLimitLabel }),
+                user.billing.statusLabel
+                  ? t("Status {value}", { value: billingStatusLabel })
+                  : null,
                 user.billing.statusReason,
-                user.billing.loadError,
+                localizedLoadError,
               ]
                 .filter(Boolean)
                 .join(" / ");
               const balanceStatusContent = user.billing.statusLabel ? (
                 <StatusBadge className="fg-admin-user-signal-badge" tone={user.billing.statusTone}>
-                  {user.billing.statusLabel}
+                  {t(user.billing.statusLabel)}
                 </StatusBadge>
               ) : (
                 <span className="fg-admin-user-signal__fallback">
@@ -867,11 +951,11 @@ export function AdminUserManager({
                 </span>
               );
               const usageSummaryLabel = [
-                `Services ${user.usage.serviceCountLabel}`,
-                `CPU ${user.usage.cpuLabel}`,
-                `Memory ${user.usage.memoryLabel}`,
-                `Disk ${user.usage.diskLabel}`,
-                `Images ${user.usage.imageLabel}`,
+                t("Services {value}", { value: localizedUsageServiceCount }),
+                t("CPU {value}", { value: localizedUsageCpu }),
+                t("Memory {value}", { value: localizedUsageMemory }),
+                t("Disk {value}", { value: localizedUsageDisk }),
+                t("Images {value}", { value: localizedUsageImage }),
               ].join(" / ");
 
               return (
@@ -887,14 +971,14 @@ export function AdminUserManager({
                   </td>
                   <td>
                     <div className="fg-console-toolbar">
-                      <StatusBadge tone={user.statusTone}>{user.status}</StatusBadge>
-                      {user.isAdmin ? <StatusBadge tone="info">Admin</StatusBadge> : null}
+                      <StatusBadge tone={user.statusTone}>{t(user.status)}</StatusBadge>
+                      {user.isAdmin ? <StatusBadge tone="info">{t("Admin")}</StatusBadge> : null}
                     </div>
                   </td>
                   <td>
                     <div className="fg-console-table__pair">
-                      <strong>{user.provider}</strong>
-                      <span>/ {user.verified ? "Verified" : "Unverified"}</span>
+                      <strong>{t(user.provider)}</strong>
+                      <span>/ {user.verified ? t("Verified") : t("Unverified")}</span>
                     </div>
                   </td>
                   <td>
@@ -917,15 +1001,15 @@ export function AdminUserManager({
                           <dd>{billingCpuLabel}</dd>
                         </div>
                         <div className="fg-admin-user-signal">
-                          <dt>Memory</dt>
+                          <dt>{t("Memory")}</dt>
                           <dd>{billingMemoryLabel}</dd>
                         </div>
                         <div className="fg-admin-user-signal">
-                          <dt>Storage</dt>
+                          <dt>{t("Storage")}</dt>
                           <dd>{billingStorageLabel}</dd>
                         </div>
                         <div className="fg-admin-user-signal">
-                          <dt>Monthly</dt>
+                          <dt>{t("Monthly")}</dt>
                           <dd>{billingMonthlyLabel}</dd>
                         </div>
                       </dl>
@@ -938,24 +1022,24 @@ export function AdminUserManager({
                         className="fg-admin-user-signal-strip fg-admin-user-signal-strip--values-only"
                       >
                         <div className="fg-admin-user-signal">
-                          <dt>Services</dt>
-                          <dd>{user.usage.serviceCountLabel}</dd>
+                          <dt>{t("Services")}</dt>
+                          <dd>{localizedUsageServiceCount}</dd>
                         </div>
                         <div className="fg-admin-user-signal">
                           <dt>CPU</dt>
-                          <dd>{user.usage.cpuLabel}</dd>
+                          <dd>{localizedUsageCpu}</dd>
                         </div>
                         <div className="fg-admin-user-signal">
-                          <dt>Memory</dt>
-                          <dd>{user.usage.memoryLabel}</dd>
+                          <dt>{t("Memory")}</dt>
+                          <dd>{localizedUsageMemory}</dd>
                         </div>
                         <div className="fg-admin-user-signal">
-                          <dt>Disk</dt>
-                          <dd>{user.usage.diskLabel}</dd>
+                          <dt>{t("Disk")}</dt>
+                          <dd>{localizedUsageDisk}</dd>
                         </div>
                         <div className="fg-admin-user-signal">
-                          <dt>Images</dt>
-                          <dd>{user.usage.imageLabel}</dd>
+                          <dt>{t("Images")}</dt>
+                          <dd>{localizedUsageImage}</dd>
                         </div>
                       </dl>
                     </div>
@@ -969,8 +1053,8 @@ export function AdminUserManager({
                         <InlineButton
                           blocked={billingActionBlocked}
                           busy={billingActionBusy}
-                          busyLabel="Saving…"
-                          label="Edit billing"
+                          busyLabel={t("Saving…")}
+                          label={t("Edit billing")}
                           onClick={() => {
                             openQuotaEditor(user);
                           }}
@@ -982,8 +1066,8 @@ export function AdminUserManager({
                             busyAction && busyAction !== `promote:${user.email}`,
                           )}
                           busy={busyAction === `promote:${user.email}`}
-                          busyLabel="Promoting…"
-                          label="Make admin"
+                          busyLabel={t("Promoting…")}
+                          label={t("Make admin")}
                           onClick={() => {
                             void handleModeration(user, "promote");
                           }}
@@ -995,8 +1079,8 @@ export function AdminUserManager({
                             busyAction && busyAction !== `demote:${user.email}`,
                           )}
                           busy={busyAction === `demote:${user.email}`}
-                          busyLabel="Updating…"
-                          label="Remove admin"
+                          busyLabel={t("Updating…")}
+                          label={t("Remove admin")}
                           onClick={() => {
                             void handleModeration(user, "demote");
                           }}
@@ -1008,8 +1092,8 @@ export function AdminUserManager({
                             busyAction && busyAction !== `block:${user.email}`,
                           )}
                           busy={busyAction === `block:${user.email}`}
-                          busyLabel="Blocking…"
-                          label="Block"
+                          busyLabel={t("Blocking…")}
+                          label={t("Block")}
                           onClick={() => {
                             void handleModeration(user, "block");
                           }}
@@ -1021,8 +1105,8 @@ export function AdminUserManager({
                             busyAction && busyAction !== `unblock:${user.email}`,
                           )}
                           busy={busyAction === `unblock:${user.email}`}
-                          busyLabel="Unblocking…"
-                          label="Unblock"
+                          busyLabel={t("Unblocking…")}
+                          label={t("Unblock")}
                           onClick={() => {
                             void handleModeration(user, "unblock");
                           }}
@@ -1034,9 +1118,9 @@ export function AdminUserManager({
                             busyAction && busyAction !== `delete:${user.email}`,
                           )}
                           busy={busyAction === `delete:${user.email}`}
-                          busyLabel="Deleting…"
+                          busyLabel={t("Deleting…")}
                           danger
-                          label="Delete"
+                          label={t("Delete")}
                           onClick={() => {
                             void handleModeration(user, "delete");
                           }}
@@ -1072,9 +1156,9 @@ export function AdminUserManager({
               <PanelSection>
                 <div className="fg-admin-user-billing-dialog__head">
                   <div className="fg-admin-user-billing-dialog__copy">
-                    <p className="fg-label fg-panel__eyebrow">User billing</p>
+                    <p className="fg-label fg-panel__eyebrow">{t("User billing")}</p>
                     <PanelTitle className="fg-console-dialog__title" id={quotaDialogTitleId}>
-                      Edit billing
+                      {t("Edit billing")}
                     </PanelTitle>
                     <p
                       className="fg-admin-user-billing-dialog__meta"
@@ -1089,12 +1173,14 @@ export function AdminUserManager({
                     <div className="fg-billing-status-row">
                       {editingQuotaUser.billing.statusLabel ? (
                         <StatusBadge tone={editingQuotaUser.billing.statusTone}>
-                          {editingQuotaUser.billing.statusLabel}
+                          {t(editingQuotaUser.billing.statusLabel)}
                         </StatusBadge>
                       ) : null}
                       {editingQuotaUser.billing.balanceLabel ? (
                         <StatusBadge tone="neutral">
-                          {editingQuotaUser.billing.balanceLabel} balance
+                          {t("Balance {value}", {
+                            value: editingQuotaUser.billing.balanceLabel,
+                          })}
                         </StatusBadge>
                       ) : null}
                     </div>
@@ -1109,17 +1195,17 @@ export function AdminUserManager({
                   ) : null}
                   {quotaExceedsUiCap ? (
                     <InlineAlert variant="warning">
-                      The saved limit is above the temporary control cap of 2 cpu / 4 GiB /
-                      30 GiB storage. Save a new limit here to bring the user back inside the
-                      current range.
+                      {t(
+                        "The saved limit is above the temporary control cap of 2 cpu / 4 GiB / 30 GiB storage. Save a new limit here to bring the user back inside the current range.",
+                      )}
                     </InlineAlert>
                   ) : null}
 
                   <div className="fg-admin-user-billing-dialog__sections">
                     <section className="fg-admin-user-billing-dialog__section">
                       <div className="fg-admin-user-billing-dialog__section-head">
-                        <strong>Managed limit</strong>
-                        <span>{editingQuotaUser.billing.limitLabel}</span>
+                        <strong>{t("Managed limit")}</strong>
+                        <span>{readLocalizedUsageValue(editingQuotaUser.billing.limitLabel, t)}</span>
                       </div>
 
                       {quotaError ? <InlineAlert variant="error">{quotaError}</InlineAlert> : null}
@@ -1134,9 +1220,15 @@ export function AdminUserManager({
                         <div className="fg-billing-form__grid">
                           <SteppedSliderField
                             disabled={quotaBusy || quotaBlocked}
-                            hint={`Adjust from 0 to ${CPU_SLIDER_MAX_CORES} cpu in ${CPU_STEP_CORES} cpu steps.`}
+                            hint={t(
+                              "Adjust from 0 to {max} cpu in {step} cpu steps.",
+                              {
+                                max: CPU_SLIDER_MAX_CORES,
+                                step: CPU_STEP_CORES,
+                              },
+                            )}
                             id={`quota-cpu-${editingQuotaUser.email}`}
-                            label="CPU limit"
+                            label={t("CPU limit")}
                             max={CPU_SLIDER_MAX_CORES}
                             maxLabel={formatCPU(Math.round(CPU_SLIDER_MAX_CORES * MILLICORES_PER_VCPU))}
                             minLabel={formatCPU(0)}
@@ -1156,9 +1248,15 @@ export function AdminUserManager({
 
                           <SteppedSliderField
                             disabled={quotaBusy || quotaBlocked}
-                            hint={`Adjust from 0 to ${MEMORY_SLIDER_MAX_GIB} GiB in ${MEMORY_STEP_GIB} GiB steps.`}
+                            hint={t(
+                              "Adjust from 0 to {max} GiB in {step} GiB steps.",
+                              {
+                                max: MEMORY_SLIDER_MAX_GIB,
+                                step: MEMORY_STEP_GIB,
+                              },
+                            )}
                             id={`quota-memory-${editingQuotaUser.email}`}
-                            label="Memory limit"
+                            label={t("Memory limit")}
                             max={MEMORY_SLIDER_MAX_GIB}
                             maxLabel={formatMemory(
                               Math.round(MEMORY_SLIDER_MAX_GIB * MEBIBYTES_PER_GIB),
@@ -1181,7 +1279,7 @@ export function AdminUserManager({
                           <SteppedSliderField
                             disabled={quotaBusy || quotaBlocked}
                             id={`quota-storage-${editingQuotaUser.email}`}
-                            label="Storage limit"
+                            label={t("Storage limit")}
                             max={STORAGE_SLIDER_MAX_GIB}
                             maxLabel={formatStorage(STORAGE_SLIDER_MAX_GIB)}
                             minLabel={formatStorage(0)}
@@ -1202,17 +1300,25 @@ export function AdminUserManager({
                           <div className="fg-billing-estimate">
                             <strong>
                               {previewMonthly !== null && previewPriceBook
-                                ? `${formatCurrencyFromMicroCents(
-                                    previewMonthly,
-                                    previewPriceBook.currency,
-                                  )} / month`
-                                : "Monthly preview unavailable"}
+                                ? t("{value} / month", {
+                                    value: formatCurrencyFromMicroCents(
+                                      previewMonthly,
+                                      previewPriceBook.currency,
+                                    ),
+                                  })
+                                : t("Monthly preview unavailable")}
                             </strong>
                             <p>
                               {quotaCpu === 0 || quotaMemory === 0
-                                ? "Set CPU or memory to 0 to pause managed billing."
+                                ? t("Set CPU or memory to 0 to pause managed billing.")
                                 : previewBilledSpec.storageGibibytes !== quotaStorage
-                                  ? `${formatResourceSpec(previewSpec)} limit. Billed as ${formatResourceSpec(previewBilledSpec)} until live storage shrinks.`
+                                  ? t(
+                                      "{limit} limit. Billed as {billed} until live storage shrinks.",
+                                      {
+                                        billed: formatResourceSpec(previewBilledSpec),
+                                        limit: formatResourceSpec(previewSpec),
+                                      },
+                                    )
                                   : formatResourceSpec(previewSpec)}
                             </p>
                           </div>
@@ -1221,11 +1327,11 @@ export function AdminUserManager({
                             <Button
                               disabled={quotaBlocked || !quotaDirty}
                               loading={quotaBusy}
-                              loadingLabel="Saving…"
+                              loadingLabel={t("Saving…")}
                               type="submit"
                               variant="primary"
                             >
-                              Save limit
+                              {t("Save limit")}
                             </Button>
                           </div>
                         </div>
@@ -1234,8 +1340,8 @@ export function AdminUserManager({
 
                     <section className="fg-admin-user-billing-dialog__section">
                       <div className="fg-admin-user-billing-dialog__section-head">
-                        <strong>Balance</strong>
-                        <span>{editingQuotaUser.billing.balanceLabel ?? "No balance"}</span>
+                        <strong>{t("Balance")}</strong>
+                        <span>{editingQuotaUser.billing.balanceLabel ?? t("No balance")}</span>
                       </div>
 
                       <form
@@ -1249,7 +1355,7 @@ export function AdminUserManager({
                           <FormField
                             error={balanceError ?? undefined}
                             htmlFor={`balance-${editingQuotaUser.email}`}
-                            label="Set balance"
+                            label={t("Set balance")}
                             optionalLabel="USD"
                           >
                             <input
@@ -1274,11 +1380,11 @@ export function AdminUserManager({
                                 balanceBlocked || !balanceDirty || parsedBalanceCents === null
                               }
                               loading={balanceBusy}
-                              loadingLabel="Saving…"
+                              loadingLabel={t("Saving…")}
                               type="submit"
                               variant="primary"
                             >
-                              Save balance
+                              {t("Save balance")}
                             </Button>
                           </div>
                         </div>
@@ -1296,7 +1402,7 @@ export function AdminUserManager({
                     type="button"
                     variant="secondary"
                   >
-                    Close
+                    {t("Close")}
                   </Button>
                 </div>
               </PanelSection>

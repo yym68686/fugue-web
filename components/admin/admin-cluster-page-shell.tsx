@@ -4,6 +4,7 @@ import { AdminControlPlanePanel } from "@/components/admin/admin-control-plane-p
 import { AdminClusterOverview } from "@/components/admin/admin-cluster-overview";
 import { AdminSummaryGrid } from "@/components/admin/admin-summary-grid";
 import { ConsoleEmptyState } from "@/components/console/console-empty-state";
+import { useI18n } from "@/components/providers/i18n-provider";
 import {
   ConsoleAdminClusterPageSkeleton,
   ConsoleLoadingState,
@@ -17,6 +18,7 @@ import {
 } from "@/lib/console/page-snapshot-client";
 
 export function AdminClusterPageShell() {
+  const { t } = useI18n();
   const { data, error, loading } =
     useConsolePageSnapshot<ConsoleAdminClusterPageSnapshot>(
       CONSOLE_ADMIN_CLUSTER_PAGE_SNAPSHOT_URL,
@@ -36,8 +38,8 @@ export function AdminClusterPageShell() {
         <Panel>
           <PanelSection>
             <ConsoleEmptyState
-              description={error ?? "Fugue could not load the cluster snapshot right now."}
-              title="Cluster snapshot unavailable"
+              description={t(error ?? "Fugue could not load the cluster snapshot right now.")}
+              title={t("Cluster snapshot unavailable")}
             />
           </PanelSection>
         </Panel>
@@ -46,7 +48,7 @@ export function AdminClusterPageShell() {
   }
 
   const errorMessage = data.errors.length
-    ? `Partial admin data: ${data.errors.join(" | ")}.`
+    ? t("Partial admin data: {details}.", { details: data.errors.join(" | ") })
     : null;
 
   return (
@@ -57,10 +59,10 @@ export function AdminClusterPageShell() {
 
       <AdminSummaryGrid
         items={[
-          { label: "Nodes", value: data.summary.nodeCount },
-          { label: "Clear", value: data.summary.readyCount },
-          { label: "Attention", value: data.summary.pressuredCount },
-          { label: "Workloads", value: data.summary.workloadCount },
+          { label: t("Nodes"), value: data.summary.nodeCount },
+          { label: t("Clear"), value: data.summary.readyCount },
+          { label: t("Attention"), value: data.summary.pressuredCount },
+          { label: t("Workloads"), value: data.summary.workloadCount },
         ]}
       />
 
