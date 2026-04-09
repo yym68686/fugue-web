@@ -16,7 +16,7 @@ import { useI18n } from "@/components/providers/i18n-provider";
 import { Button, InlineButton } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FormField } from "@/components/ui/form-field";
-import { HintTooltip } from "@/components/ui/hint-tooltip";
+import { HintInline, HintTooltip } from "@/components/ui/hint-tooltip";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { Panel, PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
 import {
@@ -578,18 +578,28 @@ function AccessSection({
   note?: string;
   title: string;
 }) {
+  const helperCopy =
+    note && hint ? (
+      <span className="fg-hint-tooltip__stack">
+        <span>{note}</span>
+        <span>{hint}</span>
+      </span>
+    ) : (note ?? hint ?? null);
+
   return (
     <section className="fg-runtime-access-section">
       <div className="fg-runtime-access-section__head">
         <div className="fg-runtime-access-section__copy">
           <p className="fg-label fg-panel__eyebrow">{eyebrow}</p>
-          <div className="fg-runtime-access-section__title-row">
+          <HintInline
+            ariaLabel={title}
+            className="fg-runtime-access-section__title-row"
+            hint={helperCopy}
+          >
             <h3 className="fg-runtime-access-section__title fg-ui-heading">
               {title}
             </h3>
-            {hint ? <HintTooltip ariaLabel={title}>{hint}</HintTooltip> : null}
-          </div>
-          {note ? <p className="fg-runtime-access-section__note">{note}</p> : null}
+          </HintInline>
         </div>
 
         {action ? (
@@ -1658,23 +1668,25 @@ export function RuntimeAccessPanel({
                           }}
                           type="checkbox"
                         />
-                        <span className="fg-runtime-public-offer__primary-toggle-copy">
+                        <HintInline
+                          ariaLabel={t("Free for everyone")}
+                          as="span"
+                          className="fg-runtime-public-offer__primary-toggle-copy"
+                          hint={
+                            publicOfferDraft.free
+                              ? t(
+                                  "Anyone can deploy here without paying you while this stays on.",
+                                )
+                              : t(
+                                  "Skip pricing and let anyone deploy here at no cost.",
+                                )
+                          }
+                        >
                           <strong>{t("Free for everyone")}</strong>
-                          <span>
-                            {t(
-                              "Skip pricing and let anyone deploy here at no cost.",
-                            )}
-                          </span>
-                        </span>
+                        </HintInline>
                       </label>
 
-                      {publicOfferDraft.free ? (
-                        <p className="fg-runtime-public-offer__note">
-                          {t(
-                            "Anyone can deploy here without paying you while this stays on.",
-                          )}
-                        </p>
-                      ) : (
+                      {publicOfferDraft.free ? null : (
                         <>
                           <div className="fg-runtime-public-offer__grid">
                             <FormField
@@ -1796,12 +1808,15 @@ export function RuntimeAccessPanel({
 
                           <div className="fg-runtime-public-offer__subsection">
                             <div className="fg-runtime-public-offer__subhead">
-                              <strong>{t("Optional free resources")}</strong>
-                              <span>
-                                {t(
+                              <HintInline
+                                ariaLabel={t("Optional free resources")}
+                                as="span"
+                                hint={t(
                                   "Keep one resource free while charging for the rest.",
                                 )}
-                              </span>
+                              >
+                                <strong>{t("Optional free resources")}</strong>
+                              </HintInline>
                             </div>
 
                             <div className="fg-runtime-public-offer__toggles">

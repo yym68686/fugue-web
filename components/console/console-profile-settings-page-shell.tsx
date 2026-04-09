@@ -227,11 +227,11 @@ function readProviderIdleDetail(
 
   switch (provider) {
     case "google":
-      return t("Ready to connect when you want a Google-based return path.");
+      return t("Not linked yet.");
     case "github":
-      return t("Ready to connect when you want GitHub-based sign-in.");
+      return t("Not linked yet.");
     default:
-      return t("Ready to connect.");
+      return t("Not linked yet.");
   }
 }
 
@@ -310,7 +310,16 @@ function ExternalProviderSurface({
 
           <div className="fg-profile-auth-provider__copy">
             <div className="fg-profile-auth-provider__headline">
-              <strong>{title}</strong>
+              <div className="fg-profile-auth-provider__title-row">
+                <strong>{title}</strong>
+                <HintTooltip
+                  ariaLabel={t("{provider} sign-in details", {
+                    provider: title,
+                  })}
+                >
+                  {description}
+                </HintTooltip>
+              </div>
 
               <div className="fg-console-inline-status">
                 <StatusBadge tone={statusTone}>{statusLabel}</StatusBadge>
@@ -319,8 +328,6 @@ function ExternalProviderSurface({
                 ) : null}
               </div>
             </div>
-
-            <p className="fg-profile-auth-provider__description">{description}</p>
           </div>
         </div>
       </div>
@@ -1112,7 +1119,14 @@ function EmailMethodItem({
 
             <div className="fg-profile-auth-provider__copy">
               <div className="fg-profile-auth-provider__headline">
-                <strong>{t("Email")}</strong>
+                <div className="fg-profile-auth-provider__title-row">
+                  <strong>{t("Email")}</strong>
+                  <HintTooltip ariaLabel={t("Email sign-in details")}>
+                    {t(
+                      "Keep the account email as the recovery anchor. Email link remains the lowest-friction fallback; password is optional for faster return access.",
+                    )}
+                  </HintTooltip>
+                </div>
 
                 <div className="fg-console-inline-status">
                   <StatusBadge tone={emailGroupConnected ? "positive" : "neutral"}>
@@ -1125,12 +1139,6 @@ function EmailMethodItem({
                   ) : null}
                 </div>
               </div>
-
-              <p className="fg-profile-auth-provider__description">
-                {t(
-                  "Keep the account email as the recovery anchor. Email link remains the lowest-friction fallback; password is optional for faster return access.",
-                )}
-              </p>
             </div>
           </div>
 
@@ -1154,9 +1162,16 @@ function EmailMethodItem({
                 <span className="fg-profile-auth-capability__label">
                   {t("Email link")}
                 </span>
-                <h3 className="fg-profile-auth-capability__title">
-                  {t("One-time verification path")}
-                </h3>
+                <div className="fg-profile-auth-capability__title-row">
+                  <h3 className="fg-profile-auth-capability__title">
+                    {t("One-time verification path")}
+                  </h3>
+                  <HintTooltip ariaLabel={t("Email link details")}>
+                    {t(
+                      "Send a secure sign-in link to the account email without storing a password.",
+                    )}
+                  </HintTooltip>
+                </div>
               </div>
 
               <div className="fg-console-inline-status">
@@ -1168,12 +1183,6 @@ function EmailMethodItem({
                 ) : null}
               </div>
             </div>
-
-            <p className="fg-profile-auth-capability__copy">
-              {t(
-                "Send a secure sign-in link to the account email without storing a password.",
-              )}
-            </p>
             <p className="fg-profile-auth-capability__meta">{data.user.email}</p>
 
             <Button
@@ -1203,9 +1212,25 @@ function EmailMethodItem({
                 <span className="fg-profile-auth-capability__label">
                   {t("Password")}
                 </span>
-                <h3 className="fg-profile-auth-capability__title">
-                  {t("Direct returning access")}
-                </h3>
+                <div className="fg-profile-auth-capability__title-row">
+                  <h3 className="fg-profile-auth-capability__title">
+                    {t("Direct returning access")}
+                  </h3>
+                  <HintTooltip ariaLabel={t("Password details")}>
+                    <span className="fg-hint-tooltip__stack">
+                      <span>
+                        {t(
+                          "Add a stored password only if you want faster sign-in after the account is already created.",
+                        )}
+                      </span>
+                      <span>
+                        {t(
+                          "Registration still uses an email verification link.",
+                        )}
+                      </span>
+                    </span>
+                  </HintTooltip>
+                </div>
               </div>
 
               <div className="fg-console-inline-status">
@@ -1217,15 +1242,6 @@ function EmailMethodItem({
                 ) : null}
               </div>
             </div>
-
-            <p className="fg-profile-auth-capability__copy">
-              {t(
-                "Add a stored password only if you want faster sign-in after the account is already created.",
-              )}
-            </p>
-            <p className="fg-profile-auth-capability__meta">
-              {t("Registration still uses an email verification link.")}
-            </p>
 
             <Button
               aria-controls={passwordDialogOpen ? passwordDialogId : undefined}

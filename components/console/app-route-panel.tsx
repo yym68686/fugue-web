@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { AppCustomDomainsPanel } from "@/components/console/app-custom-domains-panel";
 import { useI18n } from "@/components/providers/i18n-provider";
 import { Button } from "@/components/ui/button";
-import { HintTooltip } from "@/components/ui/hint-tooltip";
+import { HintInline, HintTooltip } from "@/components/ui/hint-tooltip";
 import { useToast } from "@/components/ui/toast";
 import { cx } from "@/lib/ui/cx";
 
@@ -567,12 +567,14 @@ export function AppRoutePanel({
   return (
     <div className="fg-workbench-section fg-route-panel">
       <div className="fg-workbench-section__copy fg-route-panel__copy">
-        <p className="fg-label fg-panel__eyebrow">{t("Domains")}</p>
-        <p className="fg-console-note">
-          {t("Keep one Fugue subdomain for {appName}, or attach a hostname you control.", {
+        <HintInline
+          ariaLabel={t("Domains")}
+          hint={t("Keep one Fugue subdomain for {appName}, or attach a hostname you control.", {
             appName,
           })}
-        </p>
+        >
+          <p className="fg-label fg-panel__eyebrow">{t("Domains")}</p>
+        </HintInline>
       </div>
 
       <section aria-label={t("Fugue subdomain")} className="fg-route-subsection fg-route-block">

@@ -6,6 +6,7 @@ import { useI18n } from "@/components/providers/i18n-provider";
 import { StatusBadge } from "@/components/console/status-badge";
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
+import { HintInline } from "@/components/ui/hint-tooltip";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { useToast } from "@/components/ui/toast";
 import type { TranslationValues } from "@/lib/i18n/core";
@@ -1022,15 +1023,17 @@ export function AppImagesPanel({
     <div className="fg-workbench-section fg-app-images">
       <div className="fg-workbench-section__head">
         <div className="fg-workbench-section__copy fg-app-images__copy">
-          <p className="fg-label fg-panel__eyebrow">{t("Images")}</p>
-          <p className="fg-console-note">
-            {t(
+          <HintInline
+            ariaLabel={t("Images")}
+            hint={t(
               "Review the current managed image and older saved versions for {appName}. Image storage is tracked separately from live service disk usage here, and stale versions can be redeployed or removed.",
               {
                 appName,
               },
             )}
-          </p>
+          >
+            <p className="fg-label fg-panel__eyebrow">{t("Images")}</p>
+          </HintInline>
         </div>
 
         <div className="fg-workbench-section__actions">
@@ -1152,12 +1155,14 @@ export function AppImagesPanel({
                   <section className="fg-app-images__section">
                     <div className="fg-app-images__section-head">
                       <div>
-                        <p className="fg-label fg-panel__eyebrow">
-                          {t("Current release")}
-                        </p>
-                        <p className="fg-console-note">
-                          {t("The image version that currently represents this app.")}
-                        </p>
+                        <HintInline
+                          ariaLabel={t("Current release")}
+                          hint={t("The image version that currently represents this app.")}
+                        >
+                          <p className="fg-label fg-panel__eyebrow">
+                            {t("Current release")}
+                          </p>
+                        </HintInline>
                       </div>
                     </div>
                     <div className="fg-app-images__list">
@@ -1169,14 +1174,16 @@ export function AppImagesPanel({
                 <section className="fg-app-images__section">
                   <div className="fg-app-images__section-head">
                     <div>
-                      <p className="fg-label fg-panel__eyebrow">
-                        {t("Saved history")}
-                      </p>
-                      <p className="fg-console-note">
-                        {t(
+                      <HintInline
+                        ariaLabel={t("Saved history")}
+                        hint={t(
                           "Redeploy a known-good version, or delete stale images you no longer need.",
                         )}
-                      </p>
+                      >
+                        <p className="fg-label fg-panel__eyebrow">
+                          {t("Saved history")}
+                        </p>
+                      </HintInline>
                     </div>
                   </div>
 

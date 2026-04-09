@@ -298,18 +298,16 @@
   min-width: 0;
 }
 
+.fg-console-disclosure__summary-label-row {
+  flex: 0 1 auto;
+}
+
 .fg-console-disclosure__summary-label {
   color: var(--fugue-text-primary);
   font-size: 0.92rem;
   font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1.2;
-}
-
-.fg-console-disclosure__summary-description {
-  color: var(--fugue-text-tertiary);
-  font-size: 0.78rem;
-  line-height: 1.45;
 }
 
 .fg-console-disclosure__summary-icon {
@@ -2093,14 +2091,6 @@
   gap: 0.4rem;
 }
 
-.fg-cluster-node-card__copy .fg-console-note {
-  color: var(--fugue-text-muted);
-  font-family: var(--fugue-font-mono);
-  font-size: 0.68rem;
-  letter-spacing: 0.08em;
-  text-transform: none;
-}
-
 .fg-cluster-node-facts {
   margin: 0;
   display: grid;
@@ -2522,14 +2512,6 @@
   min-width: 0;
 }
 
-.fg-runtime-access-section__note {
-  margin: 0;
-  color: var(--fugue-text-secondary);
-  font-size: 0.8rem;
-  line-height: 1.58;
-  overflow-wrap: anywhere;
-}
-
 .fg-runtime-access-section__action {
   display: flex;
   align-items: flex-start;
@@ -2602,12 +2584,6 @@
   letter-spacing: -0.02em;
 }
 
-.fg-runtime-public-offer__primary-toggle-copy span {
-  color: var(--fugue-text-tertiary);
-  font-size: 0.76rem;
-  line-height: 1.5;
-}
-
 .fg-runtime-public-offer__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2627,12 +2603,6 @@
 .fg-runtime-public-offer__subhead strong {
   font-size: 0.84rem;
   letter-spacing: -0.02em;
-}
-
-.fg-runtime-public-offer__subhead span {
-  color: var(--fugue-text-tertiary);
-  font-size: 0.76rem;
-  line-height: 1.5;
 }
 
 .fg-runtime-public-offer__toggles {
@@ -2656,13 +2626,6 @@
 
 .fg-runtime-public-offer__footer .fg-button {
   min-width: 10.5rem;
-}
-
-.fg-runtime-public-offer__note {
-  margin: 0;
-  color: var(--fugue-text-tertiary);
-  font-size: 0.78rem;
-  line-height: 1.55;
 }
 
 .fg-runtime-pricing-dialog-shell {
@@ -4330,13 +4293,6 @@
   overflow-wrap: anywhere;
 }
 
-.fg-settings-summary-row__note {
-  color: var(--fugue-text-tertiary);
-  font-size: 0.78rem;
-  line-height: 1.5;
-  overflow-wrap: anywhere;
-}
-
 .fg-settings-summary-row__side {
   margin: 0;
 }
@@ -4768,6 +4724,14 @@
   align-items: center;
 }
 
+.fg-profile-auth-provider__title-row,
+.fg-profile-auth-capability__title-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
 .fg-profile-auth-provider__headline strong {
   color: var(--fugue-text-primary);
   font-family: var(--fugue-font-ui-heading);
@@ -4776,19 +4740,10 @@
   letter-spacing: -0.04em;
 }
 
-.fg-profile-auth-provider__description,
 .fg-profile-auth-provider__detail,
 .fg-profile-auth-provider__hint,
-.fg-profile-auth-capability__copy,
 .fg-profile-auth-capability__meta {
   margin: 0;
-}
-
-.fg-profile-auth-provider__description {
-  max-width: 46ch;
-  color: var(--fugue-text-secondary);
-  font-size: 0.9rem;
-  line-height: 1.62;
 }
 
 .fg-profile-auth-provider__footer {
@@ -4888,7 +4843,7 @@
 }
 
 .fg-profile-auth-capability__title {
-  margin: 0.22rem 0 0;
+  margin: 0;
   color: var(--fugue-text-primary);
   font-family: var(--fugue-font-ui-heading);
   font-size: 0.97rem;
@@ -4896,10 +4851,8 @@
   letter-spacing: -0.03em;
 }
 
-.fg-profile-auth-capability__copy {
-  color: var(--fugue-text-secondary);
-  font-size: 0.86rem;
-  line-height: 1.6;
+.fg-profile-auth-capability__title-row {
+  margin-top: 0.22rem;
 }
 
 .fg-profile-password-dialog-shell {
@@ -5027,8 +4980,7 @@
   justify-items: end;
 }
 
-.fg-billing-health__stamp,
-.fg-billing-top-up-note {
+.fg-billing-health__stamp {
   margin: 0;
   color: var(--fugue-text-tertiary);
   font-size: 0.84rem;
@@ -5833,8 +5785,10 @@
   max-width: 44rem;
 }
 
-.fg-env-section__copy .fg-console-note {
-  overflow-wrap: anywhere;
+.fg-env-section__heading {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
 }
 
 .fg-env-section__actions {
@@ -5851,10 +5805,8 @@
   max-width: 44rem;
 }
 
-.fg-route-panel__copy .fg-console-note,
 .fg-route-composer__suffix,
-.fg-route-field__note,
-.fg-route-subsection__note {
+.fg-route-field__note {
   overflow-wrap: anywhere;
 }
 
@@ -6081,13 +6033,6 @@
 
 .fg-route-subsection__title {
   font-size: 1rem;
-}
-
-.fg-route-subsection__note {
-  margin: 0;
-  color: var(--fugue-text-secondary);
-  font-size: 0.8rem;
-  line-height: 1.58;
 }
 
 .fg-route-panel__form {

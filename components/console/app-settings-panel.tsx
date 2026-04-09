@@ -16,6 +16,7 @@ import { StatusBadge } from "@/components/console/status-badge";
 import { Button, ButtonAnchor } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FormField } from "@/components/ui/form-field";
+import { HintInline } from "@/components/ui/hint-tooltip";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { SelectField } from "@/components/ui/select-field";
 import { useToast } from "@/components/ui/toast";
@@ -399,9 +400,15 @@ function SettingsSummaryRow({
   return (
     <div className="fg-settings-summary-row">
       <dt className="fg-settings-summary-row__copy">
-        <span className="fg-settings-summary-row__label">{label}</span>
+        <HintInline
+          ariaLabel={label}
+          as="span"
+          className="fg-settings-summary-row__label-row"
+          hint={note}
+        >
+          <span className="fg-settings-summary-row__label">{label}</span>
+        </HintInline>
         <span className="fg-settings-summary-row__value">{value}</span>
-        {note ? <span className="fg-settings-summary-row__note">{note}</span> : null}
       </dt>
       {side ? <dd className="fg-settings-summary-row__side">{side}</dd> : null}
     </div>
@@ -725,14 +732,16 @@ function AppStartupCommandSection({ app }: { app: ConsoleGalleryAppView }) {
       <div className="fg-route-subsection__head">
         <div className="fg-route-subsection__copy fg-settings-section__copy">
           <p className="fg-label fg-panel__eyebrow">{t("Runtime")}</p>
-          <h3 className="fg-route-subsection__title fg-ui-heading">
-            {t("Startup command")}
-          </h3>
-          <p className="fg-route-subsection__note">
-            {t(
+          <HintInline
+            ariaLabel={t("Startup command")}
+            hint={t(
               "Override the image default entrypoint only when this service needs a custom shell command.",
             )}
-          </p>
+          >
+            <h3 className="fg-route-subsection__title fg-ui-heading">
+              {t("Startup command")}
+            </h3>
+          </HintInline>
         </div>
       </div>
 
@@ -905,12 +914,14 @@ function AppImageMirrorLimitSection({ app }: { app: ConsoleGalleryAppView }) {
       <div className="fg-route-subsection__head">
         <div className="fg-route-subsection__copy fg-settings-section__copy">
           <p className="fg-label fg-panel__eyebrow">{t("Images")}</p>
-          <h3 className="fg-route-subsection__title fg-ui-heading">
-            {t("Image retention")}
-          </h3>
-          <p className="fg-route-subsection__note">
-            {t("Older mirrored images are pruned automatically.")}
-          </p>
+          <HintInline
+            ariaLabel={t("Image retention")}
+            hint={t("Older mirrored images are pruned automatically.")}
+          >
+            <h3 className="fg-route-subsection__title fg-ui-heading">
+              {t("Image retention")}
+            </h3>
+          </HintInline>
         </div>
       </div>
 
@@ -1161,10 +1172,11 @@ function AppPersistentStorageSection({
       <div className="fg-route-subsection__head">
         <div className="fg-route-subsection__copy fg-settings-section__copy">
           <p className="fg-label fg-panel__eyebrow">{t("Storage")}</p>
-          <h3 className="fg-route-subsection__title fg-ui-heading">
-            {t("Persistent storage")}
-          </h3>
-          <p className="fg-route-subsection__note">{summaryNote}</p>
+          <HintInline ariaLabel={t("Persistent storage")} hint={summaryNote}>
+            <h3 className="fg-route-subsection__title fg-ui-heading">
+              {t("Persistent storage")}
+            </h3>
+          </HintInline>
         </div>
 
         <StatusBadge tone={statusTone}>{statusLabel}</StatusBadge>
@@ -1240,20 +1252,18 @@ function AppPersistentStorageSection({
       </ConsoleDisclosureSection>
 
       <div className="fg-settings-form__actions">
-        <Button
-          disabled={!onOpenFiles}
-          onClick={onOpenFiles ?? undefined}
-          size="compact"
-          type="button"
-          variant={hasPersistentStorage ? "primary" : "secondary"}
-        >
-          {filesActionLabel}
-        </Button>
+        <HintInline ariaLabel={filesActionLabel} hint={availabilityHint ?? undefined}>
+          <Button
+            disabled={!onOpenFiles}
+            onClick={onOpenFiles ?? undefined}
+            size="compact"
+            type="button"
+            variant={hasPersistentStorage ? "primary" : "secondary"}
+          >
+            {filesActionLabel}
+          </Button>
+        </HintInline>
       </div>
-
-      {availabilityHint ? (
-        <p className="fg-console-note">{availabilityHint}</p>
-      ) : null}
     </section>
   );
 }
@@ -1480,14 +1490,16 @@ function AppAutomaticFailoverSection({
       <div className="fg-route-subsection__head">
         <div className="fg-route-subsection__copy fg-settings-section__copy">
           <p className="fg-label fg-panel__eyebrow">{t("Continuity")}</p>
-          <h3 className="fg-route-subsection__title fg-ui-heading">
-            {t("Automatic failover")}
-          </h3>
-          <p className="fg-route-subsection__note">
-            {t(
+          <HintInline
+            ariaLabel={t("Automatic failover")}
+            hint={t(
               "Keep a standby runtime ready. Traffic only moves there if the primary runtime disappears.",
             )}
-          </p>
+          >
+            <h3 className="fg-route-subsection__title fg-ui-heading">
+              {t("Automatic failover")}
+            </h3>
+          </HintInline>
         </div>
 
         <StatusBadge tone={app.failoverConfigured ? "info" : "neutral"}>
@@ -1717,24 +1729,28 @@ function AppTransferSection({
       <div className="fg-route-subsection__head">
         <div className="fg-route-subsection__copy fg-settings-section__copy">
           <p className="fg-label fg-panel__eyebrow">{t("Runtime")}</p>
-          <h3 className="fg-route-subsection__title fg-ui-heading">
-            {t("One-Click Transfer")}
-          </h3>
-          <p className="fg-route-subsection__note">
-            {transferMode === "migrate"
-              ? t(
-                  "Current: {liveRuntimeLabel}. Fugue keeps the current runtime serving until the destination is ready.",
-                  {
-                    liveRuntimeLabel,
-                  },
-                )
-              : t(
-                  "Current: {liveRuntimeLabel}. Choose a destination and move this service now.",
-                  {
-                    liveRuntimeLabel,
-                  },
-                )}
-          </p>
+          <HintInline
+            ariaLabel={t("One-Click Transfer")}
+            hint={
+              transferMode === "migrate"
+                ? t(
+                    "Current: {liveRuntimeLabel}. Fugue keeps the current runtime serving until the destination is ready.",
+                    {
+                      liveRuntimeLabel,
+                    },
+                  )
+                : t(
+                    "Current: {liveRuntimeLabel}. Choose a destination and move this service now.",
+                    {
+                      liveRuntimeLabel,
+                    },
+                  )
+            }
+          >
+            <h3 className="fg-route-subsection__title fg-ui-heading">
+              {t("One-Click Transfer")}
+            </h3>
+          </HintInline>
         </div>
       </div>
 
@@ -2210,8 +2226,9 @@ export function AppSettingsPanel({
   return (
     <div className="fg-workbench-section fg-settings-panel">
       <div className="fg-workbench-section__copy fg-settings-panel__copy">
-        <p className="fg-label fg-panel__eyebrow">{t("Settings")}</p>
-        <p className="fg-console-note">{settingsSummary}</p>
+        <HintInline ariaLabel={t("Settings")} hint={settingsSummary}>
+          <p className="fg-label fg-panel__eyebrow">{t("Settings")}</p>
+        </HintInline>
       </div>
 
       <section
@@ -2221,10 +2238,11 @@ export function AppSettingsPanel({
         <div className="fg-route-subsection__head">
           <div className="fg-route-subsection__copy fg-settings-section__copy">
             <p className="fg-label fg-panel__eyebrow">{t("Project")}</p>
-            <h3 className="fg-route-subsection__title fg-ui-heading">
-              {t("Project shell")}
-            </h3>
-            <p className="fg-route-subsection__note">{projectSectionNote}</p>
+            <HintInline ariaLabel={t("Project shell")} hint={projectSectionNote}>
+              <h3 className="fg-route-subsection__title fg-ui-heading">
+                {t("Project shell")}
+              </h3>
+            </HintInline>
           </div>
 
           <StatusBadge tone="neutral">
@@ -2303,12 +2321,11 @@ export function AppSettingsPanel({
         <div className="fg-route-subsection__head">
           <div className="fg-route-subsection__copy fg-settings-section__copy">
             <p className="fg-label fg-panel__eyebrow">{t("Source")}</p>
-            <h3 className="fg-route-subsection__title fg-ui-heading">
-              {sourceSectionTitle}
-            </h3>
-            {sourceSectionHint ? (
-              <p className="fg-route-subsection__note">{sourceSectionHint}</p>
-            ) : null}
+            <HintInline ariaLabel={sourceSectionTitle} hint={sourceSectionHint ?? undefined}>
+              <h3 className="fg-route-subsection__title fg-ui-heading">
+                {sourceSectionTitle}
+              </h3>
+            </HintInline>
           </div>
 
           <StatusBadge tone={isGitHubSource ? "info" : "neutral"}>
@@ -2465,14 +2482,14 @@ export function AppSettingsPanel({
           <div className="fg-route-subsection__head">
             <div className="fg-route-subsection__copy fg-settings-section__copy">
               <p className="fg-label fg-panel__eyebrow">{t("Source")}</p>
-              <h3 className="fg-route-subsection__title fg-ui-heading">
-                {t("GitHub access")}
-              </h3>
-              {repositoryAccessHint ? (
-                <p className="fg-route-subsection__note">
-                  {repositoryAccessHint}
-                </p>
-              ) : null}
+              <HintInline
+                ariaLabel={t("GitHub access")}
+                hint={repositoryAccessHint ?? undefined}
+              >
+                <h3 className="fg-route-subsection__title fg-ui-heading">
+                  {t("GitHub access")}
+                </h3>
+              </HintInline>
             </div>
 
             <StatusBadge tone="info">

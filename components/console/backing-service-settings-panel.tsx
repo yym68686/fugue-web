@@ -8,6 +8,7 @@ import { StatusBadge } from "@/components/console/status-badge";
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FormField } from "@/components/ui/form-field";
+import { HintInline } from "@/components/ui/hint-tooltip";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { SelectField } from "@/components/ui/select-field";
 import { useToast } from "@/components/ui/toast";
@@ -653,12 +654,14 @@ export function BackingServiceSettingsPanel({
   return (
     <div className="fg-workbench-section fg-settings-panel">
       <div className="fg-workbench-section__copy fg-settings-panel__copy">
-        <p className="fg-label fg-panel__eyebrow">{t("Settings")}</p>
-        <p className="fg-console-note">
-          {t(
+        <HintInline
+          ariaLabel={t("Settings")}
+          hint={t(
             "Keep this database on its current primary runtime, choose a standby runtime for failover, or actively move the primary now.",
           )}
-        </p>
+        >
+          <p className="fg-label fg-panel__eyebrow">{t("Settings")}</p>
+        </HintInline>
       </div>
 
       <section
@@ -666,17 +669,19 @@ export function BackingServiceSettingsPanel({
         className="fg-route-subsection fg-settings-section"
       >
         <div className="fg-route-subsection__head">
-          <div className="fg-route-subsection__copy fg-settings-section__copy">
-            <p className="fg-label fg-panel__eyebrow">{t("Continuity")}</p>
+        <div className="fg-route-subsection__copy fg-settings-section__copy">
+          <p className="fg-label fg-panel__eyebrow">{t("Continuity")}</p>
+          <HintInline
+            ariaLabel={t("Database failover")}
+            hint={t(
+              "The database stays on its primary runtime. The standby runtime only takes over if the primary disappears.",
+            )}
+          >
             <h3 className="fg-route-subsection__title fg-ui-heading">
               {t("Database failover")}
             </h3>
-            <p className="fg-route-subsection__note">
-              {t(
-                "The database stays on its primary runtime. The standby runtime only takes over if the primary disappears.",
-              )}
-            </p>
-          </div>
+          </HintInline>
+        </div>
 
           <StatusBadge
             live={service.databaseContinuity.live}
@@ -785,13 +790,12 @@ export function BackingServiceSettingsPanel({
         className="fg-route-subsection fg-settings-section"
       >
         <div className="fg-route-subsection__head">
-          <div className="fg-route-subsection__copy fg-settings-section__copy">
-            <p className="fg-label fg-panel__eyebrow">{t("Runtime")}</p>
-            <h3 className="fg-route-subsection__title fg-ui-heading">
-              {t("Database one-click transfer")}
-            </h3>
-            <p className="fg-route-subsection__note">
-              {databaseTransferInProgress
+        <div className="fg-route-subsection__copy fg-settings-section__copy">
+          <p className="fg-label fg-panel__eyebrow">{t("Runtime")}</p>
+          <HintInline
+            ariaLabel={t("Database one-click transfer")}
+            hint={
+              databaseTransferInProgress
                 ? t(
                     "Current primary: {primaryRuntimeLabel}. Destination: {activeTransferTargetLabel}. Fugue promotes the new primary automatically once it is ready.",
                     {
@@ -804,9 +808,14 @@ export function BackingServiceSettingsPanel({
                     {
                       primaryRuntimeLabel,
                     },
-                  )}
-            </p>
-          </div>
+                  )
+            }
+          >
+            <h3 className="fg-route-subsection__title fg-ui-heading">
+              {t("Database one-click transfer")}
+            </h3>
+          </HintInline>
+        </div>
 
           <StatusBadge tone={databaseTransferInProgress ? "info" : "neutral"}>
             {databaseTransferInProgress

@@ -9,6 +9,14 @@ type HintTooltipProps = {
   tooltipClassName?: string;
 };
 
+type HintInlineProps = {
+  as?: "div" | "span";
+  ariaLabel?: string;
+  children: ReactNode;
+  className?: string;
+  hint?: ReactNode;
+};
+
 function HintTooltipIcon() {
   return (
     <svg
@@ -56,5 +64,20 @@ export function HintTooltip({
         {children}
       </span>
     </span>
+  );
+}
+
+export function HintInline({
+  as: Component = "div",
+  ariaLabel,
+  children,
+  className,
+  hint,
+}: HintInlineProps) {
+  return (
+    <Component className={cx("fg-hint-inline", className)}>
+      {children}
+      {hint ? <HintTooltip ariaLabel={ariaLabel}>{hint}</HintTooltip> : null}
+    </Component>
   );
 }

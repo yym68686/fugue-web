@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 
+import { HintInline } from "@/components/ui/hint-tooltip";
 import { cx } from "@/lib/ui/cx";
 
 function DisclosureChevronIcon() {
@@ -39,6 +40,8 @@ export function ConsoleDisclosureSection({
   summary: ReactNode;
 }) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
+  const tooltipAriaLabel =
+    typeof summary === "string" && summary.trim() ? summary.trim() : "Section details";
 
   useEffect(() => {
     if (defaultOpen) {
@@ -58,10 +61,14 @@ export function ConsoleDisclosureSection({
     >
       <summary>
         <span className="fg-console-disclosure__summary-copy">
-          <span className="fg-console-disclosure__summary-label">{summary}</span>
-          {description ? (
-            <span className="fg-console-disclosure__summary-description">{description}</span>
-          ) : null}
+          <HintInline
+            ariaLabel={tooltipAriaLabel}
+            as="span"
+            className="fg-console-disclosure__summary-label-row"
+            hint={description}
+          >
+            <span className="fg-console-disclosure__summary-label">{summary}</span>
+          </HintInline>
         </span>
         <span aria-hidden="true" className="fg-console-disclosure__summary-icon">
           <DisclosureChevronIcon />

@@ -11,6 +11,7 @@ import {
 } from "@/lib/ui/request-json";
 
 const RUNTIME_TARGET_CACHE_TTL_MS = 60_000;
+const RUNTIME_TARGET_RETRY_DELAYS_MS = [1_000, 3_000] as const;
 
 type RuntimeTargetInventoryState = ConsoleRuntimeTargetInventoryData & {
   loading: boolean;
@@ -94,16 +95,26 @@ export function useConsoleRuntimeTargetInventory(enabled: boolean) {
     }
 
     let cancelled = false;
+    let retryTimer: number | null = null;
 
-    if (!hasFreshRuntimeTargetInventory()) {
-      setState((current) => ({
-        ...current,
-        loading: true,
-      }));
+    function clearRetryTimer() {
+      if (retryTimer !== null) {
+        window.clearTimeout(retryTimer);
+        retryTimer = null;
+      }
     }
 
-    loadRuntimeTargetInventory()
-      .then((data) => {
+    async function syncInventory(attempt = 0) {
+      if (!hasFreshRuntimeTargetInventory()) {
+        setState((current) => ({
+          ...current,
+          loading: true,
+        }));
+      }
+
+      try {
+        const data = await loadRuntimeTargetInventory(attempt > 0);
+
         if (cancelled) {
           return;
         }
@@ -112,9 +123,29 @@ export function useConsoleRuntimeTargetInventory(enabled: boolean) {
           ...data,
           loading: false,
         });
-      })
-      .catch((error) => {
+      } catch (error) {
         if (cancelled) {
+          return;
+        }
+
+        const shouldRetry = attempt < RUNTIME_TARGET_RETRY_DELAYS_MS.length;
+
+        if (shouldRetry) {
+          clearRetryTimer();
+          retryTimer = window.setTimeout(() => {
+            void syncInventory(attempt + 1);
+          }, RUNTIME_TARGET_RETRY_DELAYS_MS[attempt]);
+        }
+
+        if (cachedRuntimeTargetInventory) {
+          setState({
+            ...cachedRuntimeTargetInventory,
+            loading: shouldRetry,
+          });
+          return;
+        }
+
+        if (shouldRetry) {
           return;
         }
 
@@ -123,10 +154,14 @@ export function useConsoleRuntimeTargetInventory(enabled: boolean) {
           runtimeTargetInventoryError: readRequestError(error),
           runtimeTargets: [],
         });
-      });
+      }
+    }
+
+    void syncInventory();
 
     return () => {
       cancelled = true;
+      clearRetryTimer();
     };
   }, [enabled]);
 

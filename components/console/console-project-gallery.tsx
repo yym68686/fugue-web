@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { CountryFlagLabel } from "@/components/ui/country-flag-label";
 import { FormField } from "@/components/ui/form-field";
+import { HintInline } from "@/components/ui/hint-tooltip";
 import {
   Panel,
   PanelCopy,
@@ -339,6 +340,22 @@ function createDefaultEnvRawFeedback(t: Translator): EnvRawFeedback {
     tone: "info",
     valid: true,
   };
+}
+
+function readEnvironmentSectionHint(
+  envFormat: EnvironmentFormat,
+  name: string,
+  t: Translator,
+) {
+  return envFormat === "raw"
+    ? t(
+        "Paste a .env block for {name}. Comments, blank lines, and export prefixes are ignored.",
+        { name },
+      )
+    : t(
+        "Review variables for {name}, or switch to Raw to paste a .env block. Saving queues a deploy.",
+        { name },
+      );
 }
 
 function cloneEnvRows(rows: EnvRow[]) {
@@ -4938,6 +4955,11 @@ export function ConsoleProjectGallery({
     const selectedServiceUrl = readServicePublicUrl(selectedService);
     const selectedServiceLocationLabel =
       selectedService.locationLabel ?? t("Unavailable");
+    const envSectionHint = readEnvironmentSectionHint(
+      envFormat,
+      selectedService.name,
+      t,
+    );
 
     return (
       <div className="fg-project-card__detail" id={detailId}>
@@ -5354,20 +5376,15 @@ export function ConsoleProjectGallery({
                   <div className="fg-workbench-section">
                     <div className="fg-workbench-section__head">
                       <div className="fg-workbench-section__copy fg-env-section__copy">
-                        <p className="fg-label fg-panel__eyebrow">
-                          {t("Environment")}
-                        </p>
-                        <p className="fg-console-note">
-                          {envFormat === "raw"
-                            ? t(
-                                "Paste a .env block for {name}. Comments, blank lines, and export prefixes are ignored.",
-                                { name: selectedService.name },
-                              )
-                            : t(
-                                "Review variables for {name}, or switch to Raw to paste a .env block. Saving queues a deploy.",
-                                { name: selectedService.name },
-                              )}
-                        </p>
+                        <HintInline
+                          ariaLabel={t("Environment")}
+                          className="fg-env-section__heading"
+                          hint={envSectionHint}
+                        >
+                          <p className="fg-label fg-panel__eyebrow">
+                            {t("Environment")}
+                          </p>
+                        </HintInline>
                       </div>
 
                       <div className="fg-workbench-section__actions fg-env-section__actions">
@@ -6815,6 +6832,11 @@ export function ConsoleProjectWorkbench({
   const selectedServiceUrl = readServicePublicUrl(selectedService);
   const selectedServiceLocationLabel =
     selectedService.locationLabel ?? t("Unavailable");
+  const envSectionHint = readEnvironmentSectionHint(
+    envFormat,
+    selectedService.name,
+    t,
+  );
 
   return (
     <div className="fg-project-card__detail" id={detailId}>
@@ -7229,18 +7251,15 @@ export function ConsoleProjectWorkbench({
                 <div className="fg-workbench-section">
                   <div className="fg-workbench-section__head">
                     <div className="fg-workbench-section__copy fg-env-section__copy">
-                      <p className="fg-label fg-panel__eyebrow">{t("Environment")}</p>
-                      <p className="fg-console-note">
-                        {envFormat === "raw"
-                          ? t(
-                              "Paste a .env block for {name}. Comments, blank lines, and export prefixes are ignored.",
-                              { name: selectedService.name },
-                            )
-                          : t(
-                              "Review variables for {name}, or switch to Raw to paste a .env block. Saving queues a deploy.",
-                              { name: selectedService.name },
-                            )}
-                      </p>
+                      <HintInline
+                        ariaLabel={t("Environment")}
+                        className="fg-env-section__heading"
+                        hint={envSectionHint}
+                      >
+                        <p className="fg-label fg-panel__eyebrow">
+                          {t("Environment")}
+                        </p>
+                      </HintInline>
                     </div>
 
                     <div className="fg-workbench-section__actions fg-env-section__actions">

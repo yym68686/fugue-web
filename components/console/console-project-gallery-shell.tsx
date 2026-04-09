@@ -22,6 +22,7 @@ import { useI18n } from "@/components/providers/i18n-provider";
 import { StatusBadge } from "@/components/console/status-badge";
 import { Button, ButtonAnchor } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
+import { HintInline } from "@/components/ui/hint-tooltip";
 import { Panel, PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
 import { useToast } from "@/components/ui/toast";
 import { OPEN_CREATE_PROJECT_DIALOG_EVENT } from "@/lib/console/dialog-events";
@@ -772,12 +773,14 @@ function PendingProjectCard({
               {progressSteps.length ? (
                 <PanelSection className="fg-project-pending-shell__progress">
                   <div className="fg-project-pending-shell__progress-copy">
-                    <p className="fg-label fg-panel__eyebrow">{t("Next steps")}</p>
-                    <p className="fg-console-note">
-                      {t(
+                    <HintInline
+                      ariaLabel={t("Next steps")}
+                      hint={t(
                         "This shell disappears automatically once the live workbench is ready.",
                       )}
-                    </p>
+                    >
+                      <p className="fg-label fg-panel__eyebrow">{t("Next steps")}</p>
+                    </HintInline>
                   </div>
 
                   <ol className="fg-console-checklist fg-project-pending-checklist">
@@ -807,14 +810,18 @@ function PendingProjectCard({
                 <details className="fg-console-disclosure fg-console-disclosure--section">
                   <summary>
                     <span className="fg-console-disclosure__summary-copy">
-                      <span className="fg-console-disclosure__summary-label">
-                        {t("Build details")}
-                      </span>
-                      <span className="fg-console-disclosure__summary-description">
-                        {t(
+                      <HintInline
+                        ariaLabel={t("Build details")}
+                        as="span"
+                        className="fg-console-disclosure__summary-label-row"
+                        hint={t(
                           "Project name, source reference, app naming, and handoff behavior",
                         )}
-                      </span>
+                      >
+                        <span className="fg-console-disclosure__summary-label">
+                          {t("Build details")}
+                        </span>
+                      </HintInline>
                     </span>
                     <span className="fg-console-disclosure__summary-icon" aria-hidden="true">
                       <svg viewBox="0 0 24 24">

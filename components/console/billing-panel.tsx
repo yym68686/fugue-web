@@ -1597,10 +1597,6 @@ export function BillingPanel({
             </PanelSection>
 
             <PanelSection>
-              <p className="fg-billing-top-up-note">
-                {t("Need more room? Add credits here first, then raise the capacity cap.")}
-              </p>
-
               <form
                 className="fg-settings-form fg-billing-form fg-billing-top-up-form"
                 onSubmit={handleTopUpSubmit}
@@ -1612,7 +1608,16 @@ export function BillingPanel({
                         {t("Top-up amount")}
                       </label>
                       {!topUpError ? (
-                        <HintTooltip ariaLabel={t("Top-up amount")}>{topUpHintText}</HintTooltip>
+                        <HintTooltip ariaLabel={t("Top-up amount")}>
+                          <span className="fg-hint-tooltip__stack">
+                            <span>
+                              {t(
+                                "Need more room? Add credits here first, then raise the capacity cap.",
+                              )}
+                            </span>
+                            <span>{topUpHintText}</span>
+                          </span>
+                        </HintTooltip>
                       ) : null}
                     </span>
                   </div>

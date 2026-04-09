@@ -693,12 +693,17 @@ canvas {
   letter-spacing: -0.02em;
 }
 
-.fg-field-label__main {
+.fg-field-label__main,
+.fg-hint-inline {
   min-width: 0;
   flex: 1 1 auto;
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;
+}
+
+.fg-hint-inline > :first-child {
+  min-width: 0;
 }
 
 .fg-field-label__text {
@@ -825,6 +830,11 @@ canvas {
   color: var(--fugue-text-primary);
   font-family: var(--fugue-font-mono);
   font-size: 0.74rem;
+}
+
+.fg-hint-tooltip__stack {
+  display: grid;
+  gap: 0.45rem;
 }
 
 .fg-input {

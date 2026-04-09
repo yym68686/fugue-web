@@ -8,6 +8,7 @@ import { ConsoleEmptyState } from "@/components/console/console-empty-state";
 import { StatusBadge } from "@/components/console/status-badge";
 import { useI18n } from "@/components/providers/i18n-provider";
 import { CountryFlagLabel } from "@/components/ui/country-flag-label";
+import { HintInline } from "@/components/ui/hint-tooltip";
 import { PanelSection } from "@/components/ui/panel";
 import type { ConsoleCompactResourceItemView } from "@/lib/console/gallery-types";
 import type { ConsoleTone } from "@/lib/console/types";
@@ -394,12 +395,14 @@ export function ClusterNodeGallery({
                     <PanelSection>
                       <div className="fg-cluster-node-card__section-head">
                         <div>
-                          <p className="fg-label fg-panel__eyebrow">
-                            {t("Signals")}
-                          </p>
-                          <p className="fg-console-note">
-                            {t("Ready and pressure signals.")}
-                          </p>
+                          <HintInline
+                            ariaLabel={t("Signals")}
+                            hint={t("Ready and pressure signals.")}
+                          >
+                            <p className="fg-label fg-panel__eyebrow">
+                              {t("Signals")}
+                            </p>
+                          </HintInline>
                         </div>
                       </div>
 
@@ -431,12 +434,14 @@ export function ClusterNodeGallery({
                     <PanelSection>
                       <div className="fg-cluster-node-card__section-head">
                         <div>
-                          <p className="fg-label fg-panel__eyebrow">
-                            {t("Capacity")}
-                          </p>
-                          <p className="fg-console-note">
-                            {t("Live CPU, memory, and disk usage.")}
-                          </p>
+                          <HintInline
+                            ariaLabel={t("Capacity")}
+                            hint={t("Live CPU, memory, and disk usage.")}
+                          >
+                            <p className="fg-label fg-panel__eyebrow">
+                              {t("Capacity")}
+                            </p>
+                          </HintInline>
                         </div>
                       </div>
 
@@ -453,12 +458,14 @@ export function ClusterNodeGallery({
                     <PanelSection>
                       <div className="fg-cluster-node-card__section-head">
                         <div>
-                          <p className="fg-label fg-panel__eyebrow">
-                            {t("Workloads")}
-                          </p>
-                          <p className="fg-console-note">
-                            {t(item.workloadSectionNote)}
-                          </p>
+                          <HintInline
+                            ariaLabel={t("Workloads")}
+                            hint={t(item.workloadSectionNote)}
+                          >
+                            <p className="fg-label fg-panel__eyebrow">
+                              {t("Workloads")}
+                            </p>
+                          </HintInline>
                         </div>
 
                         <div className="fg-project-actions">
