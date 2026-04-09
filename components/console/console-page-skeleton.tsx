@@ -1395,8 +1395,6 @@ export function ConsoleProfileSettingsPageSkeleton() {
             <div className="fg-profile-editor__actions">
               <SkeletonBlock className="fg-console-skeleton__pill fg-console-skeleton__pill--primary" width="10rem" />
             </div>
-
-            <SkeletonBlock className="fg-console-skeleton__copy fg-profile-editor__hint" width="17rem" />
           </div>
         </PanelSection>
       </Panel>

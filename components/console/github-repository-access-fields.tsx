@@ -1,6 +1,7 @@
 import { ButtonAnchor } from "@/components/ui/button";
 import { useI18n } from "@/components/providers/i18n-provider";
 import { FormField } from "@/components/ui/form-field";
+import { HintTooltip } from "@/components/ui/hint-tooltip";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { SegmentedControl, type SegmentedControlOption } from "@/components/ui/segmented-control";
 import type { GitHubRepoVisibility } from "@/lib/github/repository";
@@ -85,7 +86,12 @@ export function GitHubRepositoryAccessFields({
     <>
       <div className="fg-field-stack">
         <div className="fg-field-label">
-          <span>{resolvedVisibilityLabel}</span>
+          <span className="fg-field-label__main">
+            <span className="fg-field-label__text">{resolvedVisibilityLabel}</span>
+            {resolvedVisibilityHint ? (
+              <HintTooltip ariaLabel={resolvedVisibilityLabel}>{resolvedVisibilityHint}</HintTooltip>
+            ) : null}
+          </span>
         </div>
         <div className="fg-field-control">
           <SegmentedControl
@@ -99,7 +105,6 @@ export function GitHubRepositoryAccessFields({
             variant="pill"
           />
         </div>
-        <span className="fg-field-hint">{resolvedVisibilityHint}</span>
       </div>
 
       {visibility === "private" ? (

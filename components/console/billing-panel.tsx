@@ -14,6 +14,7 @@ import {
 import { ConsoleSummaryGrid } from "@/components/console/console-summary-grid";
 import { StatusBadge } from "@/components/console/status-badge";
 import { Button } from "@/components/ui/button";
+import { HintTooltip } from "@/components/ui/hint-tooltip";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { Panel, PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
 import {
@@ -853,7 +854,6 @@ export function BillingPanel({
   const envelopeMemoryGib = envelopeMemory / MEBIBYTES_PER_GIB;
   const committedStorageGibibytes = billing?.managedCommitted.storageGibibytes ?? 0;
   const parsedTopUpUnits = parseDollarUnits(topUpAmount);
-  const topUpAmountHintId = "billing-top-up-amount-hint";
   const topUpAmountErrorId = "billing-top-up-amount-error";
   const topUpRequestIdFromUrl = (() => {
     const rawValue = searchParams.get("request_id") ?? searchParams.get("requestId");
@@ -1606,9 +1606,16 @@ export function BillingPanel({
                 onSubmit={handleTopUpSubmit}
               >
                 <div className="fg-billing-top-up-form__field fg-field-stack">
-                  <label className="fg-field-label" htmlFor="billing-top-up-amount">
-                    <span>{t("Top-up amount")}</span>
-                  </label>
+                  <div className="fg-field-label">
+                    <span className="fg-field-label__main">
+                      <label className="fg-field-label__text" htmlFor="billing-top-up-amount">
+                        {t("Top-up amount")}
+                      </label>
+                      {!topUpError ? (
+                        <HintTooltip ariaLabel={t("Top-up amount")}>{topUpHintText}</HintTooltip>
+                      ) : null}
+                    </span>
+                  </div>
 
                   <div
                     className={`fg-field-control fg-billing-top-up-form__control${
@@ -1620,7 +1627,7 @@ export function BillingPanel({
                         <input
                           className="fg-input"
                           autoComplete="off"
-                          aria-describedby={topUpError ? topUpAmountErrorId : topUpAmountHintId}
+                          aria-describedby={topUpError ? topUpAmountErrorId : undefined}
                           aria-invalid={topUpError ? true : undefined}
                           id="billing-top-up-amount"
                           inputMode="numeric"
@@ -1662,11 +1669,7 @@ export function BillingPanel({
                     <span className="fg-field-error" id={topUpAmountErrorId}>
                       {topUpError}
                     </span>
-                  ) : (
-                    <span className="fg-field-hint" id={topUpAmountHintId}>
-                      {topUpHintText}
-                    </span>
-                  )}
+                  ) : null}
                 </div>
 
                 <div className="fg-billing-top-up-form__footer">

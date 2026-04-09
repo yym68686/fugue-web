@@ -14,6 +14,7 @@ import { StatusBadge } from "@/components/console/status-badge";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Button, ButtonAnchor } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
+import { HintTooltip } from "@/components/ui/hint-tooltip";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { Panel, PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
 import { useToast } from "@/components/ui/toast";
@@ -478,9 +479,16 @@ function ProfileIdentityPanel({
         </div>
 
         <form className="fg-settings-form fg-profile-editor" onSubmit={(event) => void handleSubmit(event)}>
-          <label className="fg-profile-editor__label" htmlFor="profile-display-name">
-            {t("Display name")}
-          </label>
+          <div className="fg-profile-editor__label">
+            <span className="fg-field-label__main">
+              <label className="fg-field-label__text" htmlFor="profile-display-name">
+                {t("Display name")}
+              </label>
+              <HintTooltip ariaLabel={t("Display name")}>
+                {t("Optional. Shown in the console header and account surfaces.")}
+              </HintTooltip>
+            </span>
+          </div>
 
           <div className="fg-profile-editor__field">
             <input
@@ -506,10 +514,6 @@ function ProfileIdentityPanel({
               {t("Save profile")}
             </Button>
           </div>
-
-          <p className="fg-profile-editor__hint">
-            {t("Optional. Shown in the console header and account surfaces.")}
-          </p>
         </form>
       </PanelSection>
     </Panel>
@@ -1242,11 +1246,13 @@ function EmailMethodItem({
         </div>
 
         {methodCount <= 1 ? (
-          <p className="fg-profile-auth-provider__hint">
-            {t(
-              "Connect another sign-in method before turning off email link or removing the password.",
-            )}
-          </p>
+          <div className="fg-profile-auth-provider__hint">
+            <HintTooltip ariaLabel={t("Profile and security")}>
+              {t(
+                "Connect another sign-in method before turning off email link or removing the password.",
+              )}
+            </HintTooltip>
+          </div>
         ) : null}
       </section>
 

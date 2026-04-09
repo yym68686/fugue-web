@@ -156,15 +156,29 @@ Shared confirmation surface for destructive or high-impact product actions such 
         <p class="fg-panel__copy fg-confirm-dialog__copy">
           This queues removal and the route will stop serving once the operation completes.
         </p>
-        <label class="fg-field-stack fg-confirm-dialog__field" for="service-name-confirm">
+        <div class="fg-field-stack fg-confirm-dialog__field">
           <span class="fg-field-label">
-            <span>Service name</span>
+            <span class="fg-field-label__main">
+              <label class="fg-field-label__text" for="service-name-confirm">Service name</label>
+              <span class="fg-hint-tooltip">
+                <button
+                  aria-describedby="confirm-service-hint"
+                  aria-label="Service name"
+                  class="fg-hint-tooltip__trigger"
+                  type="button"
+                >
+                  !
+                </button>
+                <span class="fg-hint-tooltip__bubble" id="confirm-service-hint" role="tooltip">
+                  Type the service name exactly as shown to enable deletion.
+                </span>
+              </span>
+            </span>
           </span>
           <span class="fg-field-control">
             <input class="fg-input" id="service-name-confirm" name="confirmation" type="text" />
           </span>
-          <span class="fg-field-hint">Type the service name exactly as shown to enable deletion.</span>
-        </label>
+        </div>
       </div>
       <div class="fg-panel__section fg-confirm-dialog__actions">
         <button class="fg-button fg-button--secondary" type="button">Cancel</button>
@@ -191,7 +205,7 @@ Shared confirmation surface for destructive or high-impact product actions such 
 - Default the initial focus to the least destructive option.
 - Dialog copy must name the object being changed and describe the real effect; do not rely on generic `Are you sure?`.
 - Action rails should stay on the same proof-shell inner surface as the dialog body; use the section divider for structure instead of a darker footer tray.
-- For high-risk product deletes such as removing a service, require exact-text confirmation with a visible label, helper copy, and inline mismatch feedback.
+- For high-risk product deletes such as removing a service, require exact-text confirmation with a visible label, helper copy in the shared tooltip trigger, and inline mismatch feedback.
 - Keep confirm labels action-specific: `Delete service`, `Revoke key`, `Make admin`.
 - Backdrop blur is functional context dismissal, not decorative chrome.
 

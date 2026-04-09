@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { AppCustomDomainsPanel } from "@/components/console/app-custom-domains-panel";
 import { useI18n } from "@/components/providers/i18n-provider";
 import { Button } from "@/components/ui/button";
+import { HintTooltip } from "@/components/ui/hint-tooltip";
 import { useToast } from "@/components/ui/toast";
 import { cx } from "@/lib/ui/cx";
 
@@ -576,9 +577,16 @@ export function AppRoutePanel({
 
       <section aria-label={t("Fugue subdomain")} className="fg-route-subsection fg-route-block">
         <div className="fg-route-panel__form">
-          <label className="fg-field-stack fg-route-field" htmlFor={`route-hostname-${appId}`}>
+          <div className="fg-field-stack fg-route-field">
             <span className="fg-field-label">
-              <span>{t("Subdomain")}</span>
+              <span className="fg-field-label__main">
+                <label className="fg-field-label__text" htmlFor={`route-hostname-${appId}`}>
+                  {t("Subdomain")}
+                </label>
+                {!fieldInvalid ? (
+                  <HintTooltip ariaLabel={t("Subdomain")}>{helperText}</HintTooltip>
+                ) : null}
+              </span>
               {fieldState?.label ? (
                 <span
                   className={cx(
@@ -595,7 +603,7 @@ export function AppRoutePanel({
               <div className="fg-route-composer" data-invalid={fieldInvalid ? "true" : undefined}>
                 <div className="fg-route-composer__shell">
                   <input
-                    aria-describedby={noteId}
+                    aria-describedby={fieldInvalid ? noteId : undefined}
                     aria-invalid={fieldInvalid ? true : undefined}
                     autoCapitalize="off"
                     autoComplete="off"
@@ -617,18 +625,17 @@ export function AppRoutePanel({
                 </div>
               </div>
             </span>
-            <span
-              aria-live={fieldInvalid ? "assertive" : "polite"}
-              className={cx(
-                fieldInvalid ? "fg-field-error" : "fg-field-hint",
-                "fg-route-field__note",
-              )}
-              id={noteId}
-              role={fieldInvalid ? "alert" : "status"}
-            >
-              {helperText}
-            </span>
-          </label>
+            {fieldInvalid ? (
+              <span
+                aria-live="assertive"
+                className="fg-field-error fg-route-field__note"
+                id={noteId}
+                role="alert"
+              >
+                {helperText}
+              </span>
+            ) : null}
+          </div>
 
           {isDirty || saving ? (
             <div className="fg-route-panel__form-action">

@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 import { cx } from "@/lib/ui/cx";
 
@@ -7,7 +7,7 @@ import { FormField } from "@/components/ui/form-field";
 type SteppedSliderFieldProps = {
   disabled?: boolean;
   error?: string;
-  hint?: string;
+  hint?: ReactNode;
   id: string;
   label: string;
   max: number;

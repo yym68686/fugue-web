@@ -16,6 +16,7 @@ import {
 import { createPortal } from "react-dom";
 
 import { Button } from "@/components/ui/button";
+import { HintTooltip } from "@/components/ui/hint-tooltip";
 import { Panel, PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
 import { cx } from "@/lib/ui/cx";
 
@@ -126,10 +127,6 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
     activeRecord && activeTextConfirmation
       ? `fg-confirm-dialog-text-confirmation-${activeRecord.id}`
       : undefined;
-  const textConfirmationHintId =
-    activeRecord && activeTextConfirmation
-      ? `fg-confirm-dialog-text-confirmation-hint-${activeRecord.id}`
-      : undefined;
   const textConfirmationErrorId =
     activeRecord && activeTextConfirmation
       ? `fg-confirm-dialog-text-confirmation-error-${activeRecord.id}`
@@ -151,9 +148,7 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
     (activeTextConfirmation
       ? `Type ${activeTextConfirmation.matchText} exactly to enable ${activeRecord?.confirmLabel.toLowerCase() ?? "continue"}.`
       : null);
-  const textConfirmationDescriptionId = textConfirmationError
-    ? textConfirmationErrorId
-    : textConfirmationHintId;
+  const textConfirmationDescriptionId = textConfirmationError ? textConfirmationErrorId : undefined;
 
   useEffect(() => {
     setIsMounted(true);
@@ -377,12 +372,27 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
                       </PanelCopy>
                     ) : null}
                     {activeTextConfirmation && textConfirmationFieldId ? (
-                      <label
-                        className="fg-field-stack fg-confirm-dialog__field"
-                        htmlFor={textConfirmationFieldId}
-                      >
+                      <div className="fg-field-stack fg-confirm-dialog__field">
                         <span className="fg-field-label">
-                          <span>{activeTextConfirmation.label ?? "Type the name to confirm"}</span>
+                          <span className="fg-field-label__main">
+                            <label
+                              className="fg-field-label__text"
+                              htmlFor={textConfirmationFieldId}
+                            >
+                              {activeTextConfirmation.label ?? "Type the name to confirm"}
+                            </label>
+                            {!textConfirmationError && textConfirmationHint ? (
+                              <HintTooltip
+                                ariaLabel={
+                                  typeof activeTextConfirmation.label === "string"
+                                    ? activeTextConfirmation.label
+                                    : "Confirmation input"
+                                }
+                              >
+                                {textConfirmationHint}
+                              </HintTooltip>
+                            ) : null}
+                          </span>
                         </span>
                         <span
                           className={cx(
@@ -428,12 +438,8 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
                           >
                             {textConfirmationError}
                           </span>
-                        ) : textConfirmationHint ? (
-                          <span className="fg-field-hint" id={textConfirmationHintId}>
-                            {textConfirmationHint}
-                          </span>
                         ) : null}
-                      </label>
+                      </div>
                     ) : null}
                   </PanelSection>
 

@@ -10,6 +10,7 @@ import { LocalUploadSourceField } from "@/components/console/local-upload-source
 import { PersistentStorageEditor } from "@/components/console/persistent-storage-editor";
 import { useI18n } from "@/components/providers/i18n-provider";
 import { FormField } from "@/components/ui/form-field";
+import { HintTooltip } from "@/components/ui/hint-tooltip";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { SelectField } from "@/components/ui/select-field";
 import {
@@ -743,7 +744,20 @@ export function ImportServiceFields({
 
         <div className="fg-field-stack">
           <div className="fg-field-label">
-            <span>{t("Network mode")}</span>
+            <span className="fg-field-label__main">
+              <span className="fg-field-label__text">{t("Network mode")}</span>
+              <HintTooltip ariaLabel={t("Network mode")}>
+                {networkModeSupported
+                  ? draft.networkMode === "background"
+                    ? t(
+                        "Background workers skip the managed route, Kubernetes Service, and readiness port.",
+                      )
+                    : t("Public services get a managed route and readiness checks.")
+                  : t(
+                      "Whole-topology imports keep per-service networking from fugue.yaml or docker-compose, so background worker mode is unavailable here.",
+                    )}
+              </HintTooltip>
+            </span>
           </div>
           <div className="fg-field-control">
             <SegmentedControl
@@ -762,17 +776,6 @@ export function ImportServiceFields({
               variant="pill"
             />
           </div>
-          <p className="fg-field-hint">
-            {networkModeSupported
-              ? draft.networkMode === "background"
-                ? t(
-                    "Background workers skip the managed route, Kubernetes Service, and readiness port.",
-                  )
-                : t("Public services get a managed route and readiness checks.")
-              : t(
-                  "Whole-topology imports keep per-service networking from fugue.yaml or docker-compose, so background worker mode is unavailable here.",
-                )}
-          </p>
         </div>
       </ConsoleDisclosureSection>
 

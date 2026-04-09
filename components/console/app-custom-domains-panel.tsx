@@ -11,6 +11,7 @@ import {
 
 import { useI18n } from "@/components/providers/i18n-provider";
 import { Button } from "@/components/ui/button";
+import { HintTooltip } from "@/components/ui/hint-tooltip";
 import { useToast } from "@/components/ui/toast";
 import type { TranslationValues } from "@/lib/i18n/core";
 import { cx } from "@/lib/ui/cx";
@@ -666,6 +667,8 @@ export function AppCustomDomainsPanel({
         availability && (!availability.valid || (!availability.available && !availability.current)),
       ));
   const helperText = fieldState?.detail ?? loadErrorMessage ?? readDefaultHint(t);
+  const defaultHintText = fieldState?.detail ?? readDefaultHint(t);
+  const showInlineMessage = fieldInvalid || Boolean(loadErrorMessage);
   const canSave =
     domainsState === "ready" &&
     Boolean(normalizedDraft) &&
@@ -944,9 +947,16 @@ export function AppCustomDomainsPanel({
   return (
     <section aria-label={t("Custom domains")} className="fg-route-subsection fg-domain-panel">
       <form className="fg-domain-panel__form" onSubmit={handleSubmit}>
-        <label className="fg-field-stack fg-domain-field" htmlFor={`custom-domain-${appId}`}>
+        <div className="fg-field-stack fg-domain-field">
           <span className="fg-field-label">
-            <span>{t("Custom domain")}</span>
+            <span className="fg-field-label__main">
+              <label className="fg-field-label__text" htmlFor={`custom-domain-${appId}`}>
+                {t("Custom domain")}
+              </label>
+              {!showInlineMessage ? (
+                <HintTooltip ariaLabel={t("Custom domain")}>{defaultHintText}</HintTooltip>
+              ) : null}
+            </span>
             {domainsState === "loading" && !normalizedDraft ? (
               <span className="fg-route-field__status is-neutral">{t("Loading")}</span>
             ) : loadErrorMessage ? (
@@ -966,7 +976,7 @@ export function AppCustomDomainsPanel({
 
           <span className={cx("fg-field-control", fieldInvalid && "is-invalid")}>
             <input
-              aria-describedby={noteId}
+              aria-describedby={showInlineMessage ? noteId : undefined}
               aria-invalid={fieldInvalid ? true : undefined}
               autoCapitalize="off"
               autoComplete="off"
@@ -986,18 +996,17 @@ export function AppCustomDomainsPanel({
             />
           </span>
 
-          <span
-            aria-live={fieldInvalid || loadErrorMessage ? "assertive" : "polite"}
-            className={cx(
-              fieldInvalid || loadErrorMessage ? "fg-field-error" : "fg-field-hint",
-              "fg-domain-field__note",
-            )}
-            id={noteId}
-            role={fieldInvalid || loadErrorMessage ? "alert" : "status"}
-          >
-            {helperText}
-          </span>
-        </label>
+          {showInlineMessage ? (
+            <span
+              aria-live="assertive"
+              className="fg-field-error fg-domain-field__note"
+              id={noteId}
+              role="alert"
+            >
+              {helperText}
+            </span>
+          ) : null}
+        </div>
 
         {isDirty || submitting ? (
           <div className="fg-route-panel__form-action">

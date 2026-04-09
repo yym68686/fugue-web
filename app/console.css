@@ -2515,17 +2515,19 @@
   font-size: 1rem;
 }
 
-.fg-runtime-access-section__note,
-.fg-runtime-access-section__hint {
+.fg-runtime-access-section__title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.fg-runtime-access-section__note {
   margin: 0;
   color: var(--fugue-text-secondary);
   font-size: 0.8rem;
   line-height: 1.58;
   overflow-wrap: anywhere;
-}
-
-.fg-runtime-access-section__hint {
-  color: var(--fugue-text-tertiary);
 }
 
 .fg-runtime-access-section__action {
@@ -4476,8 +4478,7 @@
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-areas:
     "label ."
-    "field action"
-    "hint .";
+    "field action";
   gap: 0.45rem 1rem;
   align-items: start;
   padding-top: 1rem;
@@ -4496,14 +4497,6 @@
   grid-area: field;
   min-width: 0;
   max-width: 38rem;
-}
-
-.fg-profile-editor__hint {
-  grid-area: hint;
-  margin: 0;
-  color: var(--fugue-text-tertiary);
-  font-size: 0.84rem;
-  line-height: 1.56;
 }
 
 .fg-profile-editor__actions {
@@ -4816,6 +4809,11 @@
   line-height: 1.58;
   letter-spacing: 0.08em;
   text-transform: none;
+}
+
+.fg-profile-auth-provider__hint {
+  display: flex;
+  align-items: center;
 }
 
 .fg-profile-auth-provider__availability {

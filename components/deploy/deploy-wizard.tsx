@@ -15,6 +15,7 @@ import { GitHubRepositoryAccessFields } from "@/components/console/github-reposi
 import { PersistentStorageEditor } from "@/components/console/persistent-storage-editor";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
+import { HintTooltip } from "@/components/ui/hint-tooltip";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { SelectField } from "@/components/ui/select-field";
 import { SegmentedControl } from "@/components/ui/segmented-control";
@@ -691,7 +692,16 @@ export function DeployWizard({
 
           <div className="fg-field-stack">
             <div className="fg-field-label">
-              <span>Network mode</span>
+              <span className="fg-field-label__main">
+                <span className="fg-field-label__text">Network mode</span>
+                <HintTooltip ariaLabel="Network mode">
+                  {networkModeSupported
+                    ? networkMode === "background"
+                      ? "Background workers skip the managed route, Kubernetes Service, and readiness port."
+                      : "Public services get a managed route and readiness checks."
+                    : "Whole-topology imports keep per-service networking from fugue.yaml or docker-compose, so background worker mode is unavailable here."}
+                </HintTooltip>
+              </span>
             </div>
             <div className="fg-field-control">
               <SegmentedControl
@@ -705,13 +715,6 @@ export function DeployWizard({
                 variant="pill"
               />
             </div>
-            <p className="fg-field-hint">
-              {networkModeSupported
-                ? networkMode === "background"
-                  ? "Background workers skip the managed route, Kubernetes Service, and readiness port."
-                  : "Public services get a managed route and readiness checks."
-                : "Whole-topology imports keep per-service networking from fugue.yaml or docker-compose, so background worker mode is unavailable here."}
-            </p>
           </div>
         </ConsoleDisclosureSection>
 

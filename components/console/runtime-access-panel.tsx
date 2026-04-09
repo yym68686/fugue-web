@@ -16,6 +16,7 @@ import { useI18n } from "@/components/providers/i18n-provider";
 import { Button, InlineButton } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FormField } from "@/components/ui/form-field";
+import { HintTooltip } from "@/components/ui/hint-tooltip";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { Panel, PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
 import {
@@ -566,12 +567,14 @@ function AccessSection({
   action,
   children,
   eyebrow,
+  hint,
   note,
   title,
 }: {
   action?: ReactNode;
   children?: ReactNode;
   eyebrow: string;
+  hint?: string;
   note?: string;
   title: string;
 }) {
@@ -580,9 +583,12 @@ function AccessSection({
       <div className="fg-runtime-access-section__head">
         <div className="fg-runtime-access-section__copy">
           <p className="fg-label fg-panel__eyebrow">{eyebrow}</p>
-          <h3 className="fg-runtime-access-section__title fg-ui-heading">
-            {title}
-          </h3>
+          <div className="fg-runtime-access-section__title-row">
+            <h3 className="fg-runtime-access-section__title fg-ui-heading">
+              {title}
+            </h3>
+            {hint ? <HintTooltip ariaLabel={title}>{hint}</HintTooltip> : null}
+          </div>
           {note ? <p className="fg-runtime-access-section__note">{note}</p> : null}
         </div>
 
@@ -1331,6 +1337,7 @@ export function RuntimeAccessPanel({
               ) : null
             }
             eyebrow={t("Visibility")}
+            hint={visibilityHint ?? undefined}
             note={visibilityNote}
             title={t("Choose who can deploy here")}
           >
@@ -1365,10 +1372,6 @@ export function RuntimeAccessPanel({
                 />
               </div>
             ) : null}
-
-            {visibilityHint ? (
-              <p className="fg-runtime-access-section__hint">{visibilityHint}</p>
-            ) : null}
           </AccessSection>
         ) : null}
 
@@ -1384,19 +1387,31 @@ export function RuntimeAccessPanel({
           >
             <form className="fg-runtime-access-form" onSubmit={handleGrant}>
               <div className="fg-runtime-access-form__field">
-                <label
-                  className="fg-field-label fg-runtime-access-form__label"
-                  htmlFor={emailFieldId}
-                >
-                  <span>{t("Workspace email")}</span>
-                </label>
+                <div className="fg-field-label fg-runtime-access-form__label">
+                  <span className="fg-field-label__main">
+                    <label className="fg-field-label__text" htmlFor={emailFieldId}>
+                      {t("Workspace email")}
+                    </label>
+                    {!shareEmailError ? (
+                      <HintTooltip ariaLabel={t("Workspace email")}>
+                        {isPublicAccess
+                          ? t(
+                              "Public access is already open to every workspace. Direct grants stay useful if you later switch back to private.",
+                            )
+                          : t(
+                              "The recipient needs to sign in to Fugue and finish workspace setup first.",
+                            )}
+                      </HintTooltip>
+                    ) : null}
+                  </span>
+                </div>
 
                 <div className="fg-runtime-access-form__controls">
                   <span
                     className={`fg-field-control${shareEmailError ? " is-invalid" : ""}`}
                   >
                     <input
-                      aria-describedby={emailNoteId}
+                      aria-describedby={shareEmailError ? emailNoteId : undefined}
                       aria-invalid={shareEmailError ? true : undefined}
                       autoCapitalize="none"
                       autoComplete="email"
@@ -1429,25 +1444,16 @@ export function RuntimeAccessPanel({
                   </div>
                 </div>
 
-                <span
-                  aria-live={shareEmailError ? "assertive" : "polite"}
-                  className={
-                    shareEmailError
-                      ? "fg-field-error fg-runtime-access-form__message"
-                      : "fg-field-hint fg-runtime-access-form__message"
-                  }
-                  id={emailNoteId}
-                  role={shareEmailError ? "alert" : undefined}
-                >
-                  {shareEmailError ??
-                    (isPublicAccess
-                      ? t(
-                          "Public access is already open to every workspace. Direct grants stay useful if you later switch back to private.",
-                        )
-                      : t(
-                          "The recipient needs to sign in to Fugue and finish workspace setup first.",
-                        ))}
-                </span>
+                {shareEmailError ? (
+                  <span
+                    aria-live="assertive"
+                    className="fg-field-error fg-runtime-access-form__message"
+                    id={emailNoteId}
+                    role="alert"
+                  >
+                    {shareEmailError}
+                  </span>
+                ) : null}
               </div>
             </form>
 
