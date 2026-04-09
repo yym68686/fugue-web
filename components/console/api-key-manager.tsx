@@ -734,7 +734,7 @@ export function ApiKeyManager({
                                   </span>
 
                                   <span className="fg-api-key-permission__copy">
-                                    {getFugueScopeDescription(scope)}
+                                    {t(getFugueScopeDescription(scope))}
                                   </span>
                                 </label>
                               );

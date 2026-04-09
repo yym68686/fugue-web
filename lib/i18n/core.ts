@@ -440,6 +440,259 @@ const zhTWMessages = {
 } satisfies MessageCatalog;
 
 const zhCNExtraMessages = {
+  "{count} permission": "{count} 项权限",
+  "{count} permissions": "{count} 项权限",
+  "Access key list refreshed.": "访问密钥列表已刷新。",
+  "Access key replaced and secret copied. The previous secret no longer works.":
+    "访问密钥已替换，并已复制新密钥。旧密钥已失效。",
+  "Access key replaced. Copy the new secret now.":
+    "访问密钥已替换。请立即复制新的密钥。",
+  "Admin key": "管理员密钥",
+  "Admin key replaced for this website copy and secret copied.":
+    "此网站副本的管理员密钥已替换，并已复制新密钥。",
+  "Admin key replaced for this website copy. Copy the new secret now.":
+    "此网站副本的管理员密钥已替换。请立即复制新的密钥。",
+  "Admin key unavailable": "管理员密钥不可用",
+  "A fresh secret will be copied for this website copy without revoking other environments.":
+    "会为此网站副本复制一份新的密钥，不会吊销其他环境中的密钥。",
+  "Attached VPS": "已挂接 VPS",
+  "Cannot join": "不可加入",
+  "Changes apply immediately.": "更改会立即生效。",
+  "Change the managed billing envelope and top up tenant balance.":
+    "调整托管计费额度并为租户余额充值。",
+  "Cluster join command copied with {label}.":
+    "已使用 {label} 复制集群加入命令。",
+  "Cluster join command is ready, but clipboard access failed.":
+    "集群加入命令已生成，但剪贴板访问失败。",
+  "Copy": "复制",
+  "Copy secret": "复制密钥",
+  "Copyable": "可复制",
+  "Copy a join command for a VPS, or copy the raw secret if you need it.":
+    "可复制用于 VPS 的加入命令；如果需要，也可以复制原始密钥。",
+  "Create app metadata and desired specs.":
+    "创建应用元数据和期望规格。",
+  "Create node key": "创建节点密钥",
+  "Create node keys and enroll external runtimes.":
+    "创建节点密钥并注册外部运行时。",
+  "Create one, then copy a join command.":
+    "先创建一个，再复制加入命令。",
+  "Create or edit runtime records.": "创建或编辑运行时记录。",
+  "Create projects inside the current tenant.":
+    "在当前租户内创建项目。",
+  "Create the first node key when you are ready.":
+    "准备好后再创建第一个节点密钥。",
+  "Creating node key…": "正在创建节点密钥…",
+  "Credential revocation": "凭证吊销",
+  "Credential rotation": "凭证轮换",
+  "Current key": "当前密钥",
+  "Custom scope.": "自定义权限。",
+  "Delete access key?": "删除访问密钥？",
+  "Delete apps without broad write access.":
+    "在不授予广泛写权限的情况下删除应用。",
+  "Delete key": "删除密钥",
+  "Disabling…": "正在禁用…",
+  "disabled": "已禁用",
+  "Deploy, rebuild, and restart apps.": "部署、重建并重启应用。",
+  "Existing runtimes stay attached, but this secret can no longer enroll new nodes.":
+    "现有运行时会继续保持挂接，但这个密钥不能再接入新的节点。",
+  "Identifier": "标识符",
+  "Keep at least one permission enabled.":
+    "请至少保留一个已启用权限。",
+  "Key disabled.": "密钥已禁用。",
+  "Key deleted.": "密钥已删除。",
+  "Key restored.": "密钥已恢复。",
+  "Last used": "最近使用",
+  "last used": "最近使用",
+  "Live sync is still unavailable. Stored metadata remains visible.":
+    "实时同步仍不可用，已保存的元数据仍会显示。",
+  "Live sync is still unavailable. Stored node key metadata remains visible.":
+    "实时同步仍不可用，已保存的节点密钥元数据仍会显示。",
+  "Mint additional tenant access keys.":
+    "生成额外的租户访问密钥。",
+  "Move apps between runtimes.": "在运行时之间迁移应用。",
+  "Never": "从未",
+  "No keys yet": "尚无密钥",
+  "No node key name changes.": "节点密钥名称没有变化。",
+  "No node keys yet": "还没有节点密钥",
+  "No permissions are currently available from the workspace key.":
+    "当前工作区密钥没有可用权限。",
+  "Node key": "节点密钥",
+  "Node key created and secret copied.":
+    "节点密钥已创建，并已复制密钥。",
+  "Node key created.": "节点密钥已创建。",
+  "Node key list refreshed.": "节点密钥列表已刷新。",
+  "Node key name": "节点密钥名称",
+  "Node key name is required.": "必须提供节点密钥名称。",
+  "Node key name updated.": "节点密钥名称已更新。",
+  "Node key revoked and removed from the list.":
+    "节点密钥已吊销并已从列表中移除。",
+  "Node keys": "节点密钥",
+  "Permissions": "权限",
+  "Permissions updated.": "权限已更新。",
+  "Prefix": "前缀",
+  "Primary VPS key…": "主 VPS 密钥…",
+  "Refresh keys": "刷新密钥",
+  "Rename": "重命名",
+  "Rename node key": "重命名节点密钥",
+  "Replace": "替换",
+  "Replace admin key": "替换管理员密钥",
+  "Replace admin key?": "替换管理员密钥？",
+  "Replace access key?": "替换访问密钥？",
+  "Replace key": "替换密钥",
+  "Replacing…": "正在替换…",
+  "Restore": "恢复",
+  "Restore the workspace to continue.":
+    "请先恢复工作区再继续。",
+  "Restoring…": "正在恢复…",
+  "Revoked": "已吊销",
+  "Revoke": "吊销",
+  "Revoke key": "吊销密钥",
+  "Revoke node key?": "吊销节点密钥？",
+  "Revoking…": "正在吊销…",
+  "Rotate": "轮换",
+  "Rotating…": "正在轮换…",
+  "Scale or disable apps.": "调整应用规模或禁用应用。",
+  "Secret copied.": "密钥已复制。",
+  "Secret hidden": "密钥已隐藏",
+  "Secret is ready, but clipboard access failed.":
+    "密钥已生成，但剪贴板访问失败。",
+  "Showing stored metadata while live key sync is unavailable.":
+    "实时密钥同步不可用，当前显示的是已保存的元数据。",
+  "Showing stored node key metadata while live sync is unavailable.":
+    "实时同步不可用，当前显示的是已保存的节点密钥元数据。",
+  "Shown in this workspace only. Use a short label you can recognize later.":
+    "仅在此工作区内显示。使用一个日后容易识别的短标签。",
+  "The current secret stops working immediately and the new secret will be copied.":
+    "当前密钥会立即失效，并复制新的密钥。",
+  "This revokes the secret in Fugue immediately.":
+    "这会立即在 Fugue 中吊销该密钥。",
+  "Trigger failover onto a secondary runtime.":
+    "触发切换到备用运行时的故障转移。",
+  "Update the display name used in this workspace. The key ID, secret, prefix, and attached VPS stay the same.":
+    "更新此工作区中显示的名称。密钥 ID、密钥内容、前缀和已挂接的 VPS 都不会变化。",
+  "VPS": "VPS",
+  "Access & deployment": "访问与部署",
+  "Add directories or files that must survive redeploys.":
+    "添加在重新部署后仍需保留的目录或文件。",
+  "Advanced settings": "高级设置",
+  "App name, startup command, build strategy, and optional source overrides.":
+    "应用名称、启动命令、构建策略，以及可选的源码覆盖设置。",
+  "App network mode": "应用网络模式",
+  "Authorize GitHub in the browser, or paste a GitHub token. Fugue stores the resolved secret server-side for later rebuilds and syncs.":
+    "可先在浏览器中授权 GitHub，或粘贴一个 GitHub Token。Fugue 会把解析后的密钥保存在服务端，供后续重建和同步使用。",
+  "Authorize GitHub in the browser, or paste a token below.":
+    "可先在浏览器中授权 GitHub，或在下方粘贴 Token。",
+  "Authorized as @{login}.": "已授权为 @{login}。",
+  "Auto detect": "自动检测",
+  "Background workers skip the managed route, Kubernetes Service, and readiness port.":
+    "后台工作进程不会创建托管路由、Kubernetes Service 和就绪探测端口。",
+  "Branch": "分支",
+  "Branch {branch}": "分支 {branch}",
+  "Branch, name, startup command, build strategy, and optional paths.":
+    "分支、名称、启动命令、构建策略和可选路径。",
+  "Build context": "构建上下文",
+  "Build strategy": "构建策略",
+  "Buildpacks": "Buildpacks",
+  "Choose a folder, docker-compose.yml, Dockerfile, or source files to upload.":
+    "请选择要上传的文件夹、docker-compose.yml、Dockerfile 或源码文件。",
+  "Choose the machine region.": "选择机器所在区域。",
+  "Choose whether Fugue reads this repository anonymously or through saved private access.":
+    "选择让 Fugue 以匿名方式读取此仓库，还是通过已保存的私有访问凭据读取。",
+  "Context {path}": "上下文 {path}",
+  "Country unavailable": "国家不可用",
+  "Custom build": "自定义构建",
+  "Defaults to the archive root when omitted.": "留空时默认使用归档根目录。",
+  "Defaults to the repo root when omitted.": "留空时默认使用仓库根目录。",
+  "Deployment": "部署",
+  "Deployment region": "部署区域",
+  "Deployment target": "部署目标",
+  "Deployment targets are unavailable. This import will use the default internal cluster.":
+    "当前无法获取部署目标。此次导入将使用默认内部集群。",
+  "Dockerfile": "Dockerfile",
+  "Dockerfile {path}": "Dockerfile {path}",
+  "Dockerfile path": "Dockerfile 路径",
+  "Drag a folder, docker-compose.yml, fugue.yaml, Dockerfile, or multiple source files. Fugue creates the archive on the server before import.":
+    "拖入文件夹、docker-compose.yml、fugue.yaml、Dockerfile 或多个源码文件。Fugue 会在导入前先在服务端生成归档。",
+  "Fixed": "固定",
+  "GitHub token": "GitHub Token",
+  "Image reference is required.": "必须提供镜像引用。",
+  "Import source mode": "导入来源模式",
+  "Leave auto on unless the upload needs a specific source or Dockerfile override.":
+    "除非上传内容需要指定源码目录或 Dockerfile 覆盖，否则保持“自动检测”。",
+  "Leave blank to create an empty file.": "留空则创建空文件。",
+  "Leave blank to derive the app name from the image reference.":
+    "留空则从镜像引用推导应用名称。",
+  "Leave blank to derive the app name from the uploaded folder or file.":
+    "留空则从上传的文件夹或文件推导应用名称。",
+  "Leave blank to reuse the repository name.": "留空则复用仓库名称。",
+  "Leave blank to use the default branch.": "留空则使用默认分支。",
+  "Leave this on Any available region to let Fugue place the deployment.":
+    "保持为“任意可用区域”，让 Fugue 自动选择部署位置。",
+  "Local folder or files": "本地文件夹或文件",
+  "Manual build overrides are active. Clear build strategy and path overrides if you want Fugue to import every service from fugue.yaml or docker-compose.":
+    "当前启用了手动构建覆盖。如果你希望 Fugue 从 fugue.yaml 或 docker-compose 导入全部服务，请清空构建策略和路径覆盖。",
+  "Manual persistent storage mounts stay in your draft, but Fugue skips them while this import preserves a whole topology. Switch back to a single-app deploy to reuse them.":
+    "手动配置的持久化存储挂载会保留在草稿中，但当前导入会保留整套拓扑，因此 Fugue 会暂时跳过它们。切回单应用部署后即可复用。",
+  "Marketing site": "营销站点",
+  "Name {name}": "名称 {name}",
+  "Network mode": "网络模式",
+  "Nixpacks": "Nixpacks",
+  "Not assigned": "未分配",
+  "Only region available": "唯一可用区域",
+  "Optional for first deploy": "首次部署可选",
+  "Paste a GitHub token with repository read access. If GitHub web authorization is available, Fugue can use that instead and store the resolved secret server-side for later rebuilds and syncs.":
+    "粘贴一个具备仓库读取权限的 GitHub Token。如果可用，也可以改用 GitHub 网页授权；Fugue 会把解析后的密钥保存在服务端，供后续重建和同步使用。",
+  "Persistent files": "持久化文件",
+  "Port {port}": "端口 {port}",
+  "Private": "私有",
+  "Private repo": "私有仓库",
+  "Public": "公开",
+  "Public repo": "公开仓库",
+  "Public service": "公开服务",
+  "Public services get a managed route and readiness checks.":
+    "公开服务会获得托管路由和就绪检查。",
+  "Published image": "已发布镜像",
+  "Repository link": "仓库链接",
+  "Repository link is required.": "必须提供仓库链接。",
+  "Required when the Dockerfile is outside the repo root.":
+    "当 Dockerfile 不在仓库根目录下时必须填写。",
+  "Required when the uploaded Dockerfile is outside the archive root.":
+    "当上传的 Dockerfile 不在归档根目录下时必须填写。",
+  "Saved GitHub access is available.": "已保存的 GitHub 访问可用。",
+  "Saved GitHub access is ready as @{login}. Paste a token only to override it for this import.":
+    "已保存的 GitHub 访问已就绪，当前账号为 @{login}。仅在需要覆盖此次导入时再粘贴 Token。",
+  "Saved GitHub access is ready. Paste a token only to override it for this import.":
+    "已保存的 GitHub 访问已就绪。仅在需要覆盖此次导入时再粘贴 Token。",
+  "Service {service}. Leave blank to create an empty file on first deploy.":
+    "服务 {service}。留空则在首次部署时创建空文件。",
+  "Service name and optional startup command.":
+    "服务名称和可选启动命令。",
+  "Service port must be a positive integer.": "服务端口必须是正整数。",
+  "Set this when the container listens on a known port.":
+    "当容器监听固定端口时设置此项。",
+  "Source {source}": "源码 {source}",
+  "Source directory": "源码目录",
+  "Source mode": "来源模式",
+  "Startup command": "启动命令",
+  "Static site": "静态站点",
+  "This build strategy is reused for later syncs.":
+    "后续同步会复用这个构建策略。",
+  "This target uses one fixed region.": "此目标只使用一个固定区域。",
+  "Upload {label}": "上传 {label}",
+  "Use a public image reference such as ghcr.io/example/api:1.2.3. Fugue mirrors it into the internal registry before rollout.":
+    "使用公开镜像引用，例如 ghcr.io/example/api:1.2.3。Fugue 会在发布前先将其同步到内部镜像仓库。",
+  "Use https://github.com/owner/repo.":
+    "使用 https://github.com/owner/repo。",
+  "Use when the app lives below the repo root.":
+    "当应用位于仓库根目录下的子目录时使用。",
+  "Use when the uploaded app lives below the archive root.":
+    "当上传的应用位于归档根目录下的子目录时使用。",
+  "Whole-topology import is ready. Leave build strategy on Auto detect and keep manual path overrides blank to import every service from fugue.yaml or docker-compose.":
+    "整套拓扑导入已就绪。请将构建策略保持为“自动检测”，并保持手动路径覆盖为空，以便从 fugue.yaml 或 docker-compose 导入全部服务。",
+  "Whole-topology imports keep per-service networking from fugue.yaml or docker-compose, so background worker mode is unavailable here.":
+    "整套拓扑导入会保留 fugue.yaml 或 docker-compose 中各服务的网络配置，因此这里无法使用后台工作进程模式。",
+  "{count} region": "{count} 个区域",
+  "{count} regions": "{count} 个区域",
   "After sign-in, this page reopens in Local upload mode so you can drag the folder directly into the browser.":
     "登录后，此页面会以“本地上传”模式重新打开，你可以直接把文件夹拖进浏览器。",
   "Already have access?": "已有访问权限？",
@@ -1497,6 +1750,259 @@ const zhCNExtraMessages = {
 } satisfies MessageCatalog;
 
 const zhTWExtraMessages = {
+  "{count} permission": "{count} 項權限",
+  "{count} permissions": "{count} 項權限",
+  "Access key list refreshed.": "存取金鑰清單已重新整理。",
+  "Access key replaced and secret copied. The previous secret no longer works.":
+    "存取金鑰已替換，並已複製新密鑰。舊密鑰已失效。",
+  "Access key replaced. Copy the new secret now.":
+    "存取金鑰已替換。請立即複製新的密鑰。",
+  "Admin key": "管理員金鑰",
+  "Admin key replaced for this website copy and secret copied.":
+    "此網站副本的管理員金鑰已替換，並已複製新密鑰。",
+  "Admin key replaced for this website copy. Copy the new secret now.":
+    "此網站副本的管理員金鑰已替換。請立即複製新的密鑰。",
+  "Admin key unavailable": "管理員金鑰不可用",
+  "A fresh secret will be copied for this website copy without revoking other environments.":
+    "會為此網站副本複製一份新的密鑰，不會吊銷其他環境中的密鑰。",
+  "Attached VPS": "已掛接 VPS",
+  "Cannot join": "不可加入",
+  "Changes apply immediately.": "變更會立即生效。",
+  "Change the managed billing envelope and top up tenant balance.":
+    "調整託管計費額度並為租戶餘額儲值。",
+  "Cluster join command copied with {label}.":
+    "已使用 {label} 複製叢集加入命令。",
+  "Cluster join command is ready, but clipboard access failed.":
+    "叢集加入命令已產生，但剪貼簿存取失敗。",
+  "Copy": "複製",
+  "Copy secret": "複製密鑰",
+  "Copyable": "可複製",
+  "Copy a join command for a VPS, or copy the raw secret if you need it.":
+    "可複製用於 VPS 的加入命令；如果需要，也可以複製原始密鑰。",
+  "Create app metadata and desired specs.":
+    "建立應用中繼資料與目標規格。",
+  "Create node key": "建立節點金鑰",
+  "Create node keys and enroll external runtimes.":
+    "建立節點金鑰並註冊外部執行環境。",
+  "Create one, then copy a join command.":
+    "先建立一個，再複製加入命令。",
+  "Create or edit runtime records.": "建立或編輯執行環境記錄。",
+  "Create projects inside the current tenant.":
+    "在目前租戶內建立專案。",
+  "Create the first node key when you are ready.":
+    "準備好後再建立第一個節點金鑰。",
+  "Creating node key…": "正在建立節點金鑰…",
+  "Credential revocation": "憑證吊銷",
+  "Credential rotation": "憑證輪換",
+  "Current key": "目前金鑰",
+  "Custom scope.": "自訂權限。",
+  "Delete access key?": "刪除存取金鑰？",
+  "Delete apps without broad write access.":
+    "在不授予廣泛寫入權限的情況下刪除應用。",
+  "Delete key": "刪除金鑰",
+  "Disabling…": "停用中…",
+  "disabled": "已停用",
+  "Deploy, rebuild, and restart apps.": "部署、重建並重新啟動應用。",
+  "Existing runtimes stay attached, but this secret can no longer enroll new nodes.":
+    "現有執行環境會繼續保持掛接，但這個密鑰不能再接入新的節點。",
+  "Identifier": "識別碼",
+  "Keep at least one permission enabled.":
+    "請至少保留一個已啟用的權限。",
+  "Key disabled.": "金鑰已停用。",
+  "Key deleted.": "金鑰已刪除。",
+  "Key restored.": "金鑰已恢復。",
+  "Last used": "最近使用",
+  "last used": "最近使用",
+  "Live sync is still unavailable. Stored metadata remains visible.":
+    "即時同步仍不可用，已儲存的中繼資料仍會顯示。",
+  "Live sync is still unavailable. Stored node key metadata remains visible.":
+    "即時同步仍不可用，已儲存的節點金鑰中繼資料仍會顯示。",
+  "Mint additional tenant access keys.":
+    "產生額外的租戶存取金鑰。",
+  "Move apps between runtimes.": "在執行環境之間遷移應用。",
+  "Never": "從未",
+  "No keys yet": "尚無金鑰",
+  "No node key name changes.": "節點金鑰名稱沒有變化。",
+  "No node keys yet": "還沒有節點金鑰",
+  "No permissions are currently available from the workspace key.":
+    "目前工作區金鑰沒有可用權限。",
+  "Node key": "節點金鑰",
+  "Node key created and secret copied.":
+    "節點金鑰已建立，並已複製密鑰。",
+  "Node key created.": "節點金鑰已建立。",
+  "Node key list refreshed.": "節點金鑰清單已重新整理。",
+  "Node key name": "節點金鑰名稱",
+  "Node key name is required.": "必須提供節點金鑰名稱。",
+  "Node key name updated.": "節點金鑰名稱已更新。",
+  "Node key revoked and removed from the list.":
+    "節點金鑰已吊銷並已從清單中移除。",
+  "Node keys": "節點金鑰",
+  "Permissions": "權限",
+  "Permissions updated.": "權限已更新。",
+  "Prefix": "前綴",
+  "Primary VPS key…": "主 VPS 金鑰…",
+  "Refresh keys": "重新整理金鑰",
+  "Rename": "重新命名",
+  "Rename node key": "重新命名節點金鑰",
+  "Replace": "替換",
+  "Replace admin key": "替換管理員金鑰",
+  "Replace admin key?": "替換管理員金鑰？",
+  "Replace access key?": "替換存取金鑰？",
+  "Replace key": "替換金鑰",
+  "Replacing…": "替換中…",
+  "Restore": "恢復",
+  "Restore the workspace to continue.":
+    "請先恢復工作區再繼續。",
+  "Restoring…": "恢復中…",
+  "Revoked": "已吊銷",
+  "Revoke": "吊銷",
+  "Revoke key": "吊銷金鑰",
+  "Revoke node key?": "吊銷節點金鑰？",
+  "Revoking…": "吊銷中…",
+  "Rotate": "輪換",
+  "Rotating…": "輪換中…",
+  "Scale or disable apps.": "調整應用規模或停用應用。",
+  "Secret copied.": "密鑰已複製。",
+  "Secret hidden": "密鑰已隱藏",
+  "Secret is ready, but clipboard access failed.":
+    "密鑰已產生，但剪貼簿存取失敗。",
+  "Showing stored metadata while live key sync is unavailable.":
+    "即時金鑰同步不可用，目前顯示的是已儲存的中繼資料。",
+  "Showing stored node key metadata while live sync is unavailable.":
+    "即時同步不可用，目前顯示的是已儲存的節點金鑰中繼資料。",
+  "Shown in this workspace only. Use a short label you can recognize later.":
+    "僅在此工作區內顯示。請使用一個之後容易辨識的短標籤。",
+  "The current secret stops working immediately and the new secret will be copied.":
+    "目前密鑰會立即失效，並複製新的密鑰。",
+  "This revokes the secret in Fugue immediately.":
+    "這會立即在 Fugue 中吊銷該密鑰。",
+  "Trigger failover onto a secondary runtime.":
+    "觸發切換到備援執行環境的故障轉移。",
+  "Update the display name used in this workspace. The key ID, secret, prefix, and attached VPS stay the same.":
+    "更新此工作區中顯示的名稱。金鑰 ID、密鑰內容、前綴與已掛接的 VPS 都不會變化。",
+  "VPS": "VPS",
+  "Access & deployment": "存取與部署",
+  "Add directories or files that must survive redeploys.":
+    "新增在重新部署後仍需保留的目錄或檔案。",
+  "Advanced settings": "進階設定",
+  "App name, startup command, build strategy, and optional source overrides.":
+    "應用名稱、啟動命令、建置策略，以及可選的原始碼覆寫設定。",
+  "App network mode": "應用網路模式",
+  "Authorize GitHub in the browser, or paste a GitHub token. Fugue stores the resolved secret server-side for later rebuilds and syncs.":
+    "可先在瀏覽器中授權 GitHub，或貼上一個 GitHub Token。Fugue 會將解析後的密鑰儲存在伺服器端，供後續重建與同步使用。",
+  "Authorize GitHub in the browser, or paste a token below.":
+    "可先在瀏覽器中授權 GitHub，或在下方貼上 Token。",
+  "Authorized as @{login}.": "已授權為 @{login}。",
+  "Auto detect": "自動偵測",
+  "Background workers skip the managed route, Kubernetes Service, and readiness port.":
+    "背景工作進程不會建立託管路由、Kubernetes Service 和就緒檢查埠。",
+  "Branch": "分支",
+  "Branch {branch}": "分支 {branch}",
+  "Branch, name, startup command, build strategy, and optional paths.":
+    "分支、名稱、啟動命令、建置策略和可選路徑。",
+  "Build context": "建置上下文",
+  "Build strategy": "建置策略",
+  "Buildpacks": "Buildpacks",
+  "Choose a folder, docker-compose.yml, Dockerfile, or source files to upload.":
+    "請選擇要上傳的資料夾、docker-compose.yml、Dockerfile 或原始碼檔案。",
+  "Choose the machine region.": "選擇機器所在區域。",
+  "Choose whether Fugue reads this repository anonymously or through saved private access.":
+    "選擇讓 Fugue 以匿名方式讀取此儲存庫，還是透過已儲存的私有存取憑證讀取。",
+  "Context {path}": "上下文 {path}",
+  "Country unavailable": "國家不可用",
+  "Custom build": "自訂建置",
+  "Defaults to the archive root when omitted.": "留空時預設使用封存根目錄。",
+  "Defaults to the repo root when omitted.": "留空時預設使用儲存庫根目錄。",
+  "Deployment": "部署",
+  "Deployment region": "部署區域",
+  "Deployment target": "部署目標",
+  "Deployment targets are unavailable. This import will use the default internal cluster.":
+    "目前無法取得部署目標。此次匯入將使用預設內部叢集。",
+  "Dockerfile": "Dockerfile",
+  "Dockerfile {path}": "Dockerfile {path}",
+  "Dockerfile path": "Dockerfile 路徑",
+  "Drag a folder, docker-compose.yml, fugue.yaml, Dockerfile, or multiple source files. Fugue creates the archive on the server before import.":
+    "拖入資料夾、docker-compose.yml、fugue.yaml、Dockerfile 或多個原始碼檔案。Fugue 會在匯入前先於伺服器端建立封存。",
+  "Fixed": "固定",
+  "GitHub token": "GitHub Token",
+  "Image reference is required.": "必須提供映像引用。",
+  "Import source mode": "匯入來源模式",
+  "Leave auto on unless the upload needs a specific source or Dockerfile override.":
+    "除非上傳內容需要指定原始碼目錄或 Dockerfile 覆寫，否則請保持「自動偵測」。",
+  "Leave blank to create an empty file.": "留空則建立空檔案。",
+  "Leave blank to derive the app name from the image reference.":
+    "留空則從映像引用推導應用名稱。",
+  "Leave blank to derive the app name from the uploaded folder or file.":
+    "留空則從上傳的資料夾或檔案推導應用名稱。",
+  "Leave blank to reuse the repository name.": "留空則重用儲存庫名稱。",
+  "Leave blank to use the default branch.": "留空則使用預設分支。",
+  "Leave this on Any available region to let Fugue place the deployment.":
+    "保持為「任意可用區域」，讓 Fugue 自動選擇部署位置。",
+  "Local folder or files": "本機資料夾或檔案",
+  "Manual build overrides are active. Clear build strategy and path overrides if you want Fugue to import every service from fugue.yaml or docker-compose.":
+    "目前已啟用手動建置覆寫。如果你希望 Fugue 從 fugue.yaml 或 docker-compose 匯入全部服務，請清空建置策略與路徑覆寫。",
+  "Manual persistent storage mounts stay in your draft, but Fugue skips them while this import preserves a whole topology. Switch back to a single-app deploy to reuse them.":
+    "手動設定的持久化儲存掛載會保留在草稿中，但目前匯入會保留整套拓撲，因此 Fugue 會暫時略過它們。切回單應用部署後即可重複使用。",
+  "Marketing site": "行銷網站",
+  "Name {name}": "名稱 {name}",
+  "Network mode": "網路模式",
+  "Nixpacks": "Nixpacks",
+  "Not assigned": "未指派",
+  "Only region available": "唯一可用區域",
+  "Optional for first deploy": "首次部署可選",
+  "Paste a GitHub token with repository read access. If GitHub web authorization is available, Fugue can use that instead and store the resolved secret server-side for later rebuilds and syncs.":
+    "貼上一個具備儲存庫讀取權限的 GitHub Token。如果可用，也可以改用 GitHub 網頁授權；Fugue 會將解析後的密鑰儲存在伺服器端，供後續重建與同步使用。",
+  "Persistent files": "持久化檔案",
+  "Port {port}": "埠 {port}",
+  "Private": "私有",
+  "Private repo": "私有儲存庫",
+  "Public": "公開",
+  "Public repo": "公開儲存庫",
+  "Public service": "公開服務",
+  "Public services get a managed route and readiness checks.":
+    "公開服務會取得託管路由與就緒檢查。",
+  "Published image": "已發佈映像",
+  "Repository link": "儲存庫連結",
+  "Repository link is required.": "必須提供儲存庫連結。",
+  "Required when the Dockerfile is outside the repo root.":
+    "當 Dockerfile 不在儲存庫根目錄下時必須填寫。",
+  "Required when the uploaded Dockerfile is outside the archive root.":
+    "當上傳的 Dockerfile 不在封存根目錄下時必須填寫。",
+  "Saved GitHub access is available.": "已儲存的 GitHub 存取可用。",
+  "Saved GitHub access is ready as @{login}. Paste a token only to override it for this import.":
+    "已儲存的 GitHub 存取已就緒，目前帳號為 @{login}。僅在需要覆蓋此次匯入時再貼上 Token。",
+  "Saved GitHub access is ready. Paste a token only to override it for this import.":
+    "已儲存的 GitHub 存取已就緒。僅在需要覆蓋此次匯入時再貼上 Token。",
+  "Service {service}. Leave blank to create an empty file on first deploy.":
+    "服務 {service}。留空則在首次部署時建立空檔案。",
+  "Service name and optional startup command.":
+    "服務名稱與可選的啟動命令。",
+  "Service port must be a positive integer.": "服務埠必須是正整數。",
+  "Set this when the container listens on a known port.":
+    "當容器監聽固定埠時設定此項。",
+  "Source {source}": "原始碼 {source}",
+  "Source directory": "原始碼目錄",
+  "Source mode": "來源模式",
+  "Startup command": "啟動命令",
+  "Static site": "靜態網站",
+  "This build strategy is reused for later syncs.":
+    "後續同步會重用這個建置策略。",
+  "This target uses one fixed region.": "此目標只使用一個固定區域。",
+  "Upload {label}": "上傳 {label}",
+  "Use a public image reference such as ghcr.io/example/api:1.2.3. Fugue mirrors it into the internal registry before rollout.":
+    "使用公開映像引用，例如 ghcr.io/example/api:1.2.3。Fugue 會在發佈前先將其同步到內部映像倉庫。",
+  "Use https://github.com/owner/repo.":
+    "使用 https://github.com/owner/repo。",
+  "Use when the app lives below the repo root.":
+    "當應用位於儲存庫根目錄下的子目錄時使用。",
+  "Use when the uploaded app lives below the archive root.":
+    "當上傳的應用位於封存根目錄下的子目錄時使用。",
+  "Whole-topology import is ready. Leave build strategy on Auto detect and keep manual path overrides blank to import every service from fugue.yaml or docker-compose.":
+    "整套拓撲匯入已就緒。請將建置策略保持為「自動偵測」，並保持手動路徑覆寫為空，以便從 fugue.yaml 或 docker-compose 匯入全部服務。",
+  "Whole-topology imports keep per-service networking from fugue.yaml or docker-compose, so background worker mode is unavailable here.":
+    "整套拓撲匯入會保留 fugue.yaml 或 docker-compose 中各服務的網路設定，因此這裡無法使用背景工作進程模式。",
+  "{count} region": "{count} 個區域",
+  "{count} regions": "{count} 個區域",
   "After sign-in, this page reopens in Local upload mode so you can drag the folder directly into the browser.":
     "登入後，此頁面會以「本機上傳」模式重新開啟，你可以直接把資料夾拖進瀏覽器。",
   "Already have access?": "已經有存取權限？",

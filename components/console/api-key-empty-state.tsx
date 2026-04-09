@@ -3,17 +3,21 @@
 import { startTransition, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { useI18n } from "@/components/providers/i18n-provider";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { NODE_KEY_CREATE_REQUEST_EVENT } from "@/lib/console/events";
 import { copyText } from "@/lib/ui/clipboard";
 
-function readErrorMessage(error: unknown) {
+function readErrorMessage(
+  error: unknown,
+  t: (key: string) => string = (key) => key,
+) {
   if (error instanceof Error && error.message) {
     return error.message;
   }
 
-  return "Request failed.";
+  return t("Request failed.");
 }
 
 async function requestJson<T>(input: RequestInfo, init?: RequestInit) {
@@ -35,6 +39,7 @@ async function requestJson<T>(input: RequestInfo, init?: RequestInit) {
 
 export function ApiKeyEmptyState() {
   const router = useRouter();
+  const { t } = useI18n();
   const { showToast } = useToast();
   const createRequestRef = useRef<() => void>(() => {});
   const [isCreating, setIsCreating] = useState(false);
@@ -67,8 +72,8 @@ export function ApiKeyEmptyState() {
 
       showToast({
         message: copied
-          ? "Node key created and secret copied."
-          : "Node key created.",
+          ? t("Node key created and secret copied.")
+          : t("Node key created."),
         variant: "success",
       });
       startTransition(() => {
@@ -76,7 +81,7 @@ export function ApiKeyEmptyState() {
       });
     } catch (error) {
       showToast({
-        message: readErrorMessage(error),
+        message: readErrorMessage(error, t),
         variant: "error",
       });
     } finally {
@@ -103,21 +108,21 @@ export function ApiKeyEmptyState() {
   return (
     <div className="fg-console-empty-state">
       <div>
-        <strong>No keys yet</strong>
-        <p>Create the first node key when you are ready.</p>
+        <strong>{t("No keys yet")}</strong>
+        <p>{t("Create the first node key when you are ready.")}</p>
       </div>
 
       <div className="fg-console-empty-state__actions">
         <Button
           aria-busy={isCreating || undefined}
           loading={isCreating}
-          loadingLabel="Creating node key…"
+          loadingLabel={t("Creating node key…")}
           onClick={() => {
             void handleCreate();
           }}
           variant="primary"
         >
-          Create node key
+          {t("Create node key")}
         </Button>
       </div>
     </div>

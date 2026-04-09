@@ -95,6 +95,88 @@ function inactiveStatusError(status: AppUserStatus) {
   return new Error("403 User account is deleted.");
 }
 
+type AppUserSyncPlan = {
+  nextName: string | null;
+  nextPicture: string | null;
+  nextProvider: string;
+  nextProviderId: string | null;
+  nextVerified: boolean;
+  shouldUpdateLastLogin: boolean;
+  requiresWrite: boolean;
+};
+
+function buildAppUserSyncPlan(
+  current:
+    | Pick<
+        AppUserRecord,
+        "name" | "pictureUrl" | "provider" | "providerId" | "status" | "verified"
+      >
+    | Pick<
+        AppUserRow,
+        "name" | "picture_url" | "provider" | "provider_id" | "status" | "verified"
+      >,
+  input: {
+    markSignedIn: boolean;
+    name: string | null;
+    picture: string | null;
+    provider: string;
+    providerId: string | null;
+    verified: boolean;
+  },
+): AppUserSyncPlan {
+  const currentName = "pictureUrl" in current ? current.name : readOptionalString(current.name);
+  const currentPicture =
+    "pictureUrl" in current
+      ? current.pictureUrl
+      : readOptionalString(current.picture_url);
+  const currentProvider = current.provider;
+  const currentProviderId =
+    "providerId" in current
+      ? current.providerId
+      : readOptionalString(current.provider_id);
+  const currentStatus = normalizeStatus(current.status);
+  const currentVerified = Boolean(current.verified);
+  const nextName = input.name ?? currentName;
+  const nextPicture = input.picture ?? currentPicture;
+  const shouldUpdateLastLogin =
+    input.markSignedIn && currentStatus === "active";
+  const requiresWrite =
+    nextName !== currentName ||
+    nextPicture !== currentPicture ||
+    input.provider !== currentProvider ||
+    input.providerId !== currentProviderId ||
+    input.verified !== currentVerified ||
+    shouldUpdateLastLogin;
+
+  return {
+    nextName,
+    nextPicture,
+    nextProvider: input.provider,
+    nextProviderId: input.providerId,
+    nextVerified: input.verified,
+    shouldUpdateLastLogin,
+    requiresWrite,
+  };
+}
+
+function ensureUserStatusAllowed(
+  record: Pick<AppUserRecord, "status">,
+  allowInactive?: boolean,
+) {
+  if (!allowInactive && record.status !== "active") {
+    throw inactiveStatusError(record.status);
+  }
+}
+
+function isUniqueViolationError(error: unknown) {
+  return (
+    error !== null &&
+    typeof error === "object" &&
+    "code" in error &&
+    (error as { code?: string }).code === "23505"
+  );
+}
+
 async function ensureActiveAdmin(client: PoolClient, now: string) {
   const activeAdmin = await client.query<{ email: string }>(
     `
@@ -262,15 +344,33 @@ export async function ensureAppUserRecord(
   const picture = readOptionalString(user.picture);
   const providerId = readOptionalString(user.providerId);
   const markSignedIn = options?.markSignedIn ?? false;
+  const existing = await getAppUserByEmail(normalizedEmail);
+
+  if (existing) {
+    const syncPlan = buildAppUserSyncPlan(existing, {
+      markSignedIn,
+      name,
+      picture,
+      provider: user.provider,
+      providerId,
+      verified: user.verified,
+    });
+
+    if (!syncPlan.requiresWrite) {
+      // Keep routine authenticated reads on a pure read path instead of
+      // forcing every request through a synchronous-commit write transaction.
+      ensureUserStatusAllowed(existing, options?.allowInactive);
+      return existing;
+    }
+  }
 
   return withDbTransaction(async (client) => {
-    await client.query("LOCK TABLE app_users IN SHARE ROW EXCLUSIVE MODE");
-
     const currentRow = await getUserRow(client, normalizedEmail, {
       forUpdate: true,
     });
 
     let row: AppUserRow | null = null;
+    let shouldEnsureActiveAdmin = false;
 
     if (!currentRow) {
       const countResult = await client.query<{ count: string }>(
@@ -282,55 +382,134 @@ export async function ensureAppUserRecord(
       );
       const visibleUserCount = Number.parseInt(countResult.rows[0]?.count ?? "0", 10);
       const isAdmin = visibleUserCount === 0;
+      shouldEnsureActiveAdmin = true;
 
-      const inserted = await client.query<AppUserRow>(
-        `
-          INSERT INTO app_users (
-            email,
+      try {
+        const inserted = await client.query<AppUserRow>(
+          `
+            INSERT INTO app_users (
+              email,
+              name,
+              picture_url,
+              provider,
+              provider_id,
+              verified,
+              is_admin,
+              status,
+              last_login_at,
+              created_at,
+              updated_at
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, 'active', $8, $9, $9)
+            RETURNING
+              email,
+              name,
+              picture_url,
+              provider,
+              provider_id,
+              verified,
+              is_admin,
+              status,
+              last_login_at,
+              created_at,
+              updated_at
+          `,
+          [
+            normalizedEmail,
             name,
-            picture_url,
-            provider,
-            provider_id,
-            verified,
-            is_admin,
-            status,
-            last_login_at,
-            created_at,
-            updated_at
-          )
-          VALUES ($1, $2, $3, $4, $5, $6, $7, 'active', $8, $9, $9)
-          RETURNING
-            email,
-            name,
-            picture_url,
-            provider,
-            provider_id,
-            verified,
-            is_admin,
-            status,
-            last_login_at,
-            created_at,
-            updated_at
-        `,
-        [
-          normalizedEmail,
+            picture,
+            user.provider,
+            providerId,
+            user.verified,
+            isAdmin,
+            markSignedIn ? now : null,
+            now,
+          ],
+        );
+
+        row = inserted.rows[0] ?? null;
+      } catch (error) {
+        if (!isUniqueViolationError(error)) {
+          throw error;
+        }
+
+        shouldEnsureActiveAdmin = false;
+        const conflictingRow = await getUserRow(client, normalizedEmail, {
+          forUpdate: true,
+        });
+
+        if (!conflictingRow) {
+          throw error;
+        }
+
+        const syncPlan = buildAppUserSyncPlan(conflictingRow, {
+          markSignedIn,
           name,
           picture,
-          user.provider,
+          provider: user.provider,
           providerId,
-          user.verified,
-          isAdmin,
-          markSignedIn ? now : null,
-          now,
-        ],
-      );
+          verified: user.verified,
+        });
 
-      row = inserted.rows[0] ?? null;
+        if (!syncPlan.requiresWrite) {
+          row = conflictingRow;
+        } else {
+          const updated = await client.query<AppUserRow>(
+            `
+              UPDATE app_users
+              SET
+                name = $2,
+                picture_url = $3,
+                provider = $4,
+                provider_id = $5,
+                verified = $6,
+                last_login_at = CASE WHEN $7::boolean THEN $8 ELSE last_login_at END,
+                updated_at = $8
+              WHERE email = $1
+              RETURNING
+                email,
+                name,
+                picture_url,
+                provider,
+                provider_id,
+                verified,
+                is_admin,
+                status,
+                last_login_at,
+                created_at,
+                updated_at
+            `,
+            [
+              normalizedEmail,
+              syncPlan.nextName,
+              syncPlan.nextPicture,
+              syncPlan.nextProvider,
+              syncPlan.nextProviderId,
+              syncPlan.nextVerified,
+              syncPlan.shouldUpdateLastLogin,
+              now,
+            ],
+          );
+
+          row = updated.rows[0] ?? null;
+        }
+      }
     } else {
       const current = recordFromRow(currentRow);
-      const shouldUpdateLastLogin = markSignedIn && current.status === "active";
-      const nextName = name ?? current.name;
-      const nextPicture = picture ?? current.pictureUrl;
+      const syncPlan = buildAppUserSyncPlan(current, {
+        markSignedIn,
+        name,
+        picture,
+        provider: user.provider,
+        providerId,
+        verified: user.verified,
+      });
+
+      if (!syncPlan.requiresWrite) {
+        ensureUserStatusAllowed(current, options?.allowInactive);
+        return current;
+      }
+
       const updated = await client.query<AppUserRow>(
         `
           UPDATE app_users
@@ -358,12 +537,12 @@ export async function ensureAppUserRecord(
         `,
         [
           normalizedEmail,
-          nextName,
-          nextPicture,
-          user.provider,
-          providerId,
-          user.verified,
-          shouldUpdateLastLogin,
+          syncPlan.nextName,
+          syncPlan.nextPicture,
+          syncPlan.nextProvider,
+          syncPlan.nextProviderId,
+          syncPlan.nextVerified,
+          syncPlan.shouldUpdateLastLogin,
           now,
         ],
       );
@@ -376,7 +555,9 @@ export async function ensureAppUserRecord(
     }
 
     const promotedAdminEmail =
-      normalizeStatus(row.status) === "deleted" ? null : await ensureActiveAdmin(client, now);
+      shouldEnsureActiveAdmin && normalizeStatus(row.status) !== "deleted"
+        ? await ensureActiveAdmin(client, now)
+        : null;
     const record = recordFromRow(row);
 
     if (promotedAdminEmail === normalizedEmail && !record.isAdmin) {
@@ -388,10 +569,7 @@ export async function ensureAppUserRecord(
     }
 
     const resolvedRecord = recordFromRow(row);
-
-    if (!options?.allowInactive && resolvedRecord.status !== "active") {
-      throw inactiveStatusError(resolvedRecord.status);
-    }
+    ensureUserStatusAllowed(resolvedRecord, options?.allowInactive);
 
     return resolvedRecord;
   });
