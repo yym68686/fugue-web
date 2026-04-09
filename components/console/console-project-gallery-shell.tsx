@@ -1550,7 +1550,9 @@ export function ConsoleProjectGallery({
       galleryStreamAbortRef.current?.abort();
       galleryStreamAbortRef.current = null;
     };
-  }, [refreshGallery]);
+    // refreshGallery is an Effect Event and always reads the latest state.
+    // Keeping it out of the dependency list avoids tearing down SSE on every render.
+  }, []);
 
   function resetCreateForm(nextProjectName: string) {
     setProjectName(nextProjectName);

@@ -4,6 +4,14 @@
 
 `fugue` 的底层仓库 / 核心实现目录位于 `/Users/yanyuming/Downloads/GitHub/fugue`。凡是需要核对底层能力边界、共享对象模型、上游实现来源或 Web 包装层与产品核心之间的衔接关系时，优先参考该目录中的正式实现。
 
+## 控制平面发布路径
+
+- 凡是改动落到 `/Users/yanyuming/Downloads/GitHub/fugue` 仓库，且影响 control plane、edge proxy、Caddy、Ingress、cluster bootstrap、registry、runtime 路由或平台级流量规则时，标准发布路径不是手改线上机器，而是回到 `fugue` 仓库走正式控制平面发布链路。
+- 正常控制平面升级路径是：提交 `fugue` 仓库变更，`git push` 到 `main`，再由 `.github/workflows/deploy-control-plane.yml` 和其 self-hosted runner 更新远端控制平面。
+- 不要把 `./scripts/install_fugue_ha.sh`、手工 `ssh` 改文件、手工重启服务、手工 patch Deployment、手工同步镜像，视为正常发布方式。
+- 只有在用户明确要求紧急止血、线上恢复或现场调试例外时，才可以做手工线上热修；一旦这样做，必须在同一任务里把改动回写到 `fugue` 仓库，并明确说明正式发布仍应走 GitHub Actions 控制平面链路。
+- 如果 `fugue` 仓库自己的 `AGENTS.md` 与本仓库规则不一致，以 `/Users/yanyuming/Downloads/GitHub/fugue/AGENTS.md` 的控制平面发布要求为准。
+
 ## 强制规则
 
 以下任务都属于“前端相关”，开始前必须先调查 `/Users/yanyuming/Downloads/GitHub/web-design/AGENTS.md`，并继续打开对应 `SKILL.md` 学习后再动手：
