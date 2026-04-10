@@ -1,44 +1,55 @@
+import { formatNumber, translate, type Locale } from "@/lib/i18n/core";
 import type { RuntimePublicOfferView } from "@/lib/runtimes/types";
 
 export const MICRO_CENTS_PER_DOLLAR = 100_000_000;
 export const MILLICORES_PER_CORE = 1000;
 export const MEBIBYTES_PER_GIB = 1024;
 
-function formatTrimmedNumber(value: number, maximumFractionDigits = 2) {
-  return new Intl.NumberFormat("en-US", {
+function formatTrimmedNumber(
+  value: number,
+  locale: Locale | string = "en",
+  maximumFractionDigits = 2,
+) {
+  return new Intl.NumberFormat(locale, {
     maximumFractionDigits,
     minimumFractionDigits: 0,
   }).format(value);
 }
 
-function formatCpuLabel(cpuMillicores: number) {
+function formatCpuLabel(cpuMillicores: number, locale: Locale = "en") {
   if (cpuMillicores <= 0) {
     return null;
   }
 
-  return `${formatTrimmedNumber(cpuMillicores / MILLICORES_PER_CORE, 3)} CPU`;
+  return translate(locale, "{value} CPU", {
+    value: formatTrimmedNumber(cpuMillicores / MILLICORES_PER_CORE, locale, 3),
+  });
 }
 
-function formatMemoryLabel(memoryMebibytes: number) {
+function formatMemoryLabel(memoryMebibytes: number, locale: Locale = "en") {
   if (memoryMebibytes <= 0) {
     return null;
   }
 
-  return `${formatTrimmedNumber(memoryMebibytes / MEBIBYTES_PER_GIB, 2)} GiB`;
+  return translate(locale, "{value} GiB", {
+    value: formatTrimmedNumber(memoryMebibytes / MEBIBYTES_PER_GIB, locale, 2),
+  });
 }
 
-function formatStorageLabel(storageGibibytes: number) {
+function formatStorageLabel(storageGibibytes: number, locale: Locale = "en") {
   if (storageGibibytes <= 0) {
     return null;
   }
 
-  return `${formatTrimmedNumber(storageGibibytes, 0)} GiB`;
+  return translate(locale, "{value} GiB", {
+    value: formatTrimmedNumber(storageGibibytes, locale, 0),
+  });
 }
 
 export function formatCurrencyFromMicroCents(
   value: number,
   currency = "USD",
-  locale = "en-US",
+  locale: Locale | string = "en",
 ) {
   const dollars = value / MICRO_CENTS_PER_DOLLAR;
 
@@ -50,7 +61,10 @@ export function formatCurrencyFromMicroCents(
       style: "currency",
     }).format(dollars);
   } catch {
-    return `$${formatTrimmedNumber(dollars, 2)}`;
+    return `$${formatNumber("en", dollars, {
+      maximumFractionDigits: 2,
+      minimumFractionDigits: 0,
+    })}`;
   }
 }
 
@@ -74,15 +88,16 @@ export function isRuntimePublicOfferEffectivelyFree(
 
 export function readRuntimePublicOfferBundleLabel(
   offer?: RuntimePublicOfferView | null,
+  locale: Locale = "en",
 ) {
   if (!offer) {
     return null;
   }
 
   return [
-    formatCpuLabel(offer.referenceBundle.cpuMillicores),
-    formatMemoryLabel(offer.referenceBundle.memoryMebibytes),
-    formatStorageLabel(offer.referenceBundle.storageGibibytes),
+    formatCpuLabel(offer.referenceBundle.cpuMillicores, locale),
+    formatMemoryLabel(offer.referenceBundle.memoryMebibytes, locale),
+    formatStorageLabel(offer.referenceBundle.storageGibibytes, locale),
   ]
     .filter((part): part is string => Boolean(part))
     .join(" / ");
@@ -90,37 +105,40 @@ export function readRuntimePublicOfferBundleLabel(
 
 export function readRuntimePublicOfferFreeResourceLabels(
   offer?: RuntimePublicOfferView | null,
+  locale: Locale = "en",
 ) {
   if (!offer || offer.free) {
     return [];
   }
 
   return [
-    offer.freeCpu ? "CPU free" : null,
-    offer.freeMemory ? "Memory free" : null,
-    offer.freeStorage ? "Disk free" : null,
+    offer.freeCpu ? translate(locale, "CPU free") : null,
+    offer.freeMemory ? translate(locale, "Memory free") : null,
+    offer.freeStorage ? translate(locale, "Disk free") : null,
   ].filter((part): part is string => Boolean(part));
 }
 
 export function readRuntimePublicOfferSummary(
   offer?: RuntimePublicOfferView | null,
-  locale = "en-US",
+  locale: Locale = "en",
 ) {
   if (isRuntimePublicOfferEffectivelyFree(offer)) {
-    return "Free";
+    return translate(locale, "Free");
   }
 
   if (!offer) {
-    return "Free";
+    return translate(locale, "Free");
   }
 
-  const priceLabel = `${formatCurrencyFromMicroCents(
+  const priceLabel = translate(locale, "{price}/mo reference", {
+    price: formatCurrencyFromMicroCents(
     offer.referenceMonthlyPriceMicroCents,
     offer.priceBook.currency,
     locale,
-  )}/mo reference`;
-  const bundleLabel = readRuntimePublicOfferBundleLabel(offer);
-  const freeLabels = readRuntimePublicOfferFreeResourceLabels(offer);
+    ),
+  });
+  const bundleLabel = readRuntimePublicOfferBundleLabel(offer, locale);
+  const freeLabels = readRuntimePublicOfferFreeResourceLabels(offer, locale);
 
   return [priceLabel, bundleLabel, ...freeLabels]
     .filter((part): part is string => Boolean(part))
@@ -129,27 +147,34 @@ export function readRuntimePublicOfferSummary(
 
 export function readRuntimePublicOfferDescription(
   offer?: RuntimePublicOfferView | null,
-  locale = "en-US",
+  locale: Locale = "en",
 ) {
   if (isRuntimePublicOfferEffectivelyFree(offer)) {
-    return "Free for all deployers.";
+    return translate(locale, "Free for all deployers.");
   }
 
   if (!offer) {
-    return "Free for all deployers.";
+    return translate(locale, "Free for all deployers.");
   }
 
-  const bundleLabel = readRuntimePublicOfferBundleLabel(offer);
-  const priceLabel = `${formatCurrencyFromMicroCents(
+  const bundleLabel = readRuntimePublicOfferBundleLabel(offer, locale);
+  const priceLabel = translate(locale, "{price}/mo", {
+    price: formatCurrencyFromMicroCents(
     offer.referenceMonthlyPriceMicroCents,
     offer.priceBook.currency,
     locale,
-  )}/mo`;
-  const freeLabels = readRuntimePublicOfferFreeResourceLabels(offer);
+    ),
+  });
+  const freeLabels = readRuntimePublicOfferFreeResourceLabels(offer, locale);
   const sentences = [
     bundleLabel
-      ? `Reference ${bundleLabel} at ${priceLabel}.`
-      : `Reference pricing starts at ${priceLabel}.`,
+      ? translate(locale, "Reference {bundle} at {price}.", {
+          bundle: bundleLabel,
+          price: priceLabel,
+        })
+      : translate(locale, "Reference pricing starts at {price}.", {
+          price: priceLabel,
+        }),
     freeLabels.length > 0 ? `${freeLabels.join(", ")}.` : null,
   ];
 

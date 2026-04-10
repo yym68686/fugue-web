@@ -73,6 +73,7 @@ import {
   type WorkspaceAccess,
 } from "@/lib/workspace/current";
 import { getRequestSession } from "@/lib/server/request-context";
+import { translate, type Locale } from "@/lib/i18n/core";
 
 type RuntimeTargetLocationView = {
   locationCountryCode: string | null;
@@ -220,14 +221,19 @@ function buildWorkloadLocationMap(nodes: FugueClusterNode[]) {
   return locations;
 }
 
-function normalizeRuntimeTargetLocation(location: {
+function normalizeRuntimeTargetLocation(
+  location: {
   locationCountryCode: string | null;
   locationCountryLabel: string | null;
   locationLabel: string;
-}): RuntimeTargetLocationView | null {
+  },
+  locale: Locale,
+): RuntimeTargetLocationView | null {
   const locationLabel =
     location.locationCountryLabel ??
-    (location.locationLabel !== "Unassigned" ? location.locationLabel : null);
+    (location.locationLabel !== translate(locale, "Unassigned")
+      ? location.locationLabel
+      : null);
 
   if (!locationLabel && !location.locationCountryCode) {
     return null;
@@ -240,7 +246,10 @@ function normalizeRuntimeTargetLocation(location: {
   };
 }
 
-function buildRuntimeTargetLocationMap(nodes: FugueClusterNode[]) {
+function buildRuntimeTargetLocationMap(
+  nodes: FugueClusterNode[],
+  locale: Locale = "en",
+) {
   const locations = new Map<string, RuntimeTargetLocationView>();
   const ambiguousLocation = {
     locationCountryCode: null,
@@ -260,7 +269,8 @@ function buildRuntimeTargetLocationMap(nodes: FugueClusterNode[]) {
 
   for (const node of nodes) {
     const nextLocation = normalizeRuntimeTargetLocation(
-      readCountryLocation(node.region, node.zone),
+      readCountryLocation(node.region, node.zone, locale),
+      locale,
     );
 
     if (!nextLocation) {
@@ -2233,8 +2243,9 @@ function buildImportRuntimeTargetView(
   runtime: FugueRuntime,
   workspaceTenantId: string,
   fallbackLocation?: RuntimeTargetLocationView | null,
+  locale: Locale = "en",
 ): ConsoleImportRuntimeTargetView {
-  const runtimeLocation = readRuntimeLocation(runtime.labels);
+  const runtimeLocation = readRuntimeLocation(runtime.labels, locale);
   const shouldUseFallbackLocation =
     runtime.type !== "managed-shared" ||
     runtime.id !== DEFAULT_INTERNAL_CLUSTER_RUNTIME_ID ||
@@ -2258,7 +2269,7 @@ function buildImportRuntimeTargetView(
       (shouldUseFallbackLocation ? fallbackLocation?.locationLabel : null) ??
       null,
   };
-  const statusLabel = runtime.status ? humanize(runtime.status) : null;
+  const statusLabel = runtime.status ? translate(locale, humanize(runtime.status)) : null;
   const statusTone = runtime.status ? toneForStatus(runtime.status) : null;
 
   if (runtime.type === "managed-shared") {
@@ -2266,19 +2277,19 @@ function buildImportRuntimeTargetView(
       runtime.id === DEFAULT_INTERNAL_CLUSTER_RUNTIME_ID &&
       !hasInternalClusterLocationTarget(runtime.labels);
     const primaryLabel = isGenericInternalCluster
-      ? "Any available region"
+      ? translate(locale, "Any available region")
       : (location.locationCountryLabel ??
         location.locationLabel ??
-        "Region unavailable");
+        translate(locale, "Region unavailable"));
 
     return {
       category: "internal-cluster",
       description:
         !isGenericInternalCluster && location.hasPlacementConstraint
-          ? "Use shared capacity in this region."
-          : "Deploy onto the internal cluster.",
+          ? translate(locale, "Use shared capacity in this region.")
+          : translate(locale, "Deploy onto the internal cluster."),
       id: runtime.id,
-      kindLabel: "Internal cluster",
+      kindLabel: translate(locale, "Internal cluster"),
       locationCountryCode: location.locationCountryCode,
       locationCountryLabel: location.locationCountryLabel,
       locationLabel: isGenericInternalCluster ? null : location.locationLabel,
@@ -2286,7 +2297,7 @@ function buildImportRuntimeTargetView(
       runtimeType: runtime.type ?? null,
       statusLabel,
       statusTone,
-      summaryLabel: `Internal cluster / ${primaryLabel}`,
+      summaryLabel: `${translate(locale, "Internal cluster")} / ${primaryLabel}`,
     };
   }
 
@@ -2304,12 +2315,17 @@ function buildImportRuntimeTargetView(
   return {
     category: "machine",
     description: isSharedMachine
-      ? "Deploy onto a machine shared with this workspace."
+      ? translate(locale, "Deploy onto a machine shared with this workspace.")
       : isContributedMachine
-        ? "Deploy onto this machine. It also contributes to the internal cluster."
-        : "Deploy onto this machine.",
+        ? translate(
+            locale,
+            "Deploy onto this machine. It also contributes to the internal cluster.",
+          )
+        : translate(locale, "Deploy onto this machine."),
     id: runtime.id,
-    kindLabel: isSharedMachine ? "Shared machine" : "Machine",
+    kindLabel: isSharedMachine
+      ? translate(locale, "Shared machine")
+      : translate(locale, "Machine"),
     locationCountryCode: location.locationCountryCode,
     locationCountryLabel: location.locationCountryLabel,
     locationLabel: location.locationLabel,
@@ -2587,6 +2603,7 @@ const getConsoleProjectGallerySummaryDataCached = cache(async () => {
 
 async function loadRuntimeInventoryData(
   workspace: WorkspaceAccess,
+  locale: Locale = "en",
 ): Promise<ConsoleRuntimeTargetInventoryData> {
   const loadInventory = (active: WorkspaceAccess) =>
     Promise.allSettled([
@@ -2617,7 +2634,7 @@ async function loadRuntimeInventoryData(
   const clusterNodes =
     clusterNodesResult.status === "fulfilled" ? clusterNodesResult.value : [];
   const runtimeTargetLocationsByRuntimeId =
-    buildRuntimeTargetLocationMap(clusterNodes);
+    buildRuntimeTargetLocationMap(clusterNodes, locale);
   const runtimeTargetInventoryError =
     runtimesResult.status === "rejected"
       ? readErrorMessage(runtimesResult.reason)
@@ -2630,6 +2647,7 @@ async function loadRuntimeInventoryData(
               runtime,
               workspace.tenantId,
               runtimeTargetLocationsByRuntimeId.get(runtime.id) ?? null,
+              locale,
             ),
           )
           .sort(compareImportRuntimeTargets)
@@ -2974,7 +2992,9 @@ export async function getConsoleProjectDetailData(
   };
 }
 
-export async function getConsoleRuntimeTargetInventoryData() {
+export async function getConsoleRuntimeTargetInventoryData(
+  locale: Locale = "en",
+) {
   const workspace = await getCurrentWorkspaceAccess();
 
   if (!workspace) {
@@ -2984,5 +3004,5 @@ export async function getConsoleRuntimeTargetInventoryData() {
     } satisfies ConsoleRuntimeTargetInventoryData;
   }
 
-  return loadRuntimeInventoryData(workspace);
+  return loadRuntimeInventoryData(workspace, locale);
 }

@@ -114,6 +114,12 @@ function ClusterResourceMeter({
 }) {
   const { t } = useI18n();
   const label = resource.id === "cpu" ? t("CPU") : t(resource.label);
+  const percentLabel =
+    resource.percentLabel === "No stats"
+      ? t("No stats")
+      : resource.percentLabel;
+  const usageLabel =
+    resource.usageLabel === "No stats" ? t("No stats") : resource.usageLabel;
 
   return (
     <article
@@ -131,15 +137,15 @@ function ClusterResourceMeter({
         <>
           <span className="fg-cluster-resource__label">{label}</span>
           <div className="fg-cluster-resource__compact-values">
-            <strong>{resource.percentLabel}</strong>
-            <span>{resource.usageLabel}</span>
+            <strong>{percentLabel}</strong>
+            <span>{usageLabel}</span>
           </div>
         </>
       ) : (
         <div className="fg-cluster-resource__head">
           <div className="fg-cluster-resource__copy">
             <span className="fg-cluster-resource__label">{label}</span>
-            <strong>{resource.percentLabel}</strong>
+            <strong>{percentLabel}</strong>
           </div>
 
           <StatusBadge tone={resource.statusTone}>
@@ -169,7 +175,7 @@ function ClusterResourceMeter({
       {compact ? null : (
         <>
           <div className="fg-cluster-resource__meta">
-            <span>{resource.usageLabel}</span>
+            <span>{usageLabel}</span>
             <span>{resource.totalLabel}</span>
           </div>
 

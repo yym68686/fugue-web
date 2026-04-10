@@ -8,6 +8,7 @@ import {
   requireSession,
   requireWorkspaceForSession,
 } from "@/lib/fugue/product-route";
+import { getRequestLocale } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,8 @@ export async function GET() {
   }
 
   try {
-    const data = await getConsoleRuntimeTargetInventoryData();
+    const locale = await getRequestLocale();
+    const data = await getConsoleRuntimeTargetInventoryData(locale);
 
     return NextResponse.json(data, {
       headers: {

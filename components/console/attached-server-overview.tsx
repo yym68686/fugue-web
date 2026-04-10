@@ -6,12 +6,30 @@ import { ConsoleEmptyState } from "@/components/console/console-empty-state";
 import { useI18n } from "@/components/providers/i18n-provider";
 import { Panel, PanelSection } from "@/components/ui/panel";
 import type { ClusterNodeView } from "@/lib/cluster-nodes/service";
+import type { Locale } from "@/lib/i18n/core";
 import { readRuntimePublicOfferSummary } from "@/lib/runtimes/public-offer";
 
 function readModeLabel(
   value: string | null | undefined,
   t: (key: string, values?: Record<string, string | number>) => string,
 ) {
+  const normalized = value?.trim().toLowerCase();
+
+  switch (normalized) {
+    case "public":
+      return t("Public");
+    case "platform-shared":
+      return t("Platform shared");
+    case "private":
+      return t("Private");
+    case "internal-shared":
+      return t("Internal cluster");
+    case "dedicated":
+      return t("Dedicated");
+    default:
+      break;
+  }
+
   if (!value) {
     return t("Unknown");
   }
@@ -37,10 +55,11 @@ function toClusterGalleryItem(
   node: ClusterNodeView,
   options: {
     isAdmin: boolean;
+    locale: Locale;
     t: (key: string, values?: Record<string, string | number>) => string;
   },
 ): ClusterNodeGalleryItem {
-  const { t } = options;
+  const { locale, t } = options;
   const facts: ClusterNodeGalleryItem["facts"] = [
     {
       id: "machine",
@@ -96,7 +115,7 @@ function toClusterGalleryItem(
     facts.push({
       id: "public-pricing",
       label: t("Public pricing"),
-      value: readRuntimePublicOfferSummary(node.publicOffer),
+      value: readRuntimePublicOfferSummary(node.publicOffer, locale),
     });
   }
 
@@ -184,7 +203,7 @@ export function AttachedServerOverview({
   isAdmin?: boolean;
   nodes: ClusterNodeView[];
 }) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
 
   if (!nodes.length) {
     return (
@@ -220,7 +239,9 @@ export function AttachedServerOverview({
   return (
     <ClusterNodeGallery
       ariaLabel={t("Servers")}
-      items={nodes.map((node) => toClusterGalleryItem(node, { isAdmin, t }))}
+      items={nodes.map((node) =>
+        toClusterGalleryItem(node, { isAdmin, locale, t }),
+      )}
     />
   );
 }

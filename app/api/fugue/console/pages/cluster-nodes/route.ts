@@ -9,6 +9,7 @@ import {
   requireSession,
 } from "@/lib/fugue/product-route";
 import { ensureAppUser } from "@/lib/workspace/store";
+import { getRequestLocale } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,8 @@ export async function GET() {
 
   try {
     const user = await ensureAppUser(session);
-    const data = await getClusterNodesPageData(session.email);
+    const locale = await getRequestLocale();
+    const data = await getClusterNodesPageData(session.email, locale);
 
     if (!data) {
       return jsonSnapshot({

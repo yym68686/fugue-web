@@ -24,7 +24,7 @@ import {
   type SegmentedControlOption,
 } from "@/components/ui/segmented-control";
 import { useToast } from "@/components/ui/toast";
-import type { TranslationValues } from "@/lib/i18n/core";
+import type { Locale, TranslationValues } from "@/lib/i18n/core";
 import {
   formatCurrencyFromMicroCents,
   isRuntimePublicOfferEffectivelyFree,
@@ -92,24 +92,28 @@ function readFocusableElements(container: HTMLElement | null) {
   );
 }
 
-async function requestJson<T>(input: RequestInfo, init?: RequestInit) {
+async function requestJson<T>(
+  input: RequestInfo,
+  init?: RequestInit,
+  t: Translator = (key) => key,
+) {
   const response = await fetch(input, init);
   const data = (await response.json().catch(() => null)) as
     | (T & { error?: string })
     | null;
 
   if (!data) {
-    throw new Error("Empty response.");
+    throw new Error(t("Empty response."));
   }
 
   if (!response.ok) {
-    throw new Error(data.error || "Request failed.");
+    throw new Error(data.error || t("Request failed."));
   }
 
   return data;
 }
 
-function formatRelativeTime(
+function formatRecentTime(
   value: string | null | undefined,
   formatter: (
     value?: string | number | Date | null,
@@ -118,13 +122,14 @@ function formatRelativeTime(
       notYetText?: string;
     },
   ) => string,
+  t: Translator = (key) => key,
 ) {
   if (!value) {
-    return formatter(null, { notYetText: "Just now" });
+    return formatter(null, { notYetText: t("Just now") });
   }
   return formatter(value, {
-    justNowText: "Just now",
-    notYetText: "Just now",
+    justNowText: t("Just now"),
+    notYetText: t("Just now"),
   });
 }
 
@@ -140,6 +145,17 @@ function normalizePoolMode(value?: string | null): RuntimePoolMode {
 
 function formatDraftNumber(value: number, maximumFractionDigits = 2) {
   return new Intl.NumberFormat("en-US", {
+    maximumFractionDigits,
+    minimumFractionDigits: 0,
+  }).format(value);
+}
+
+function formatPreviewNumber(
+  locale: Locale,
+  value: number,
+  maximumFractionDigits = 2,
+) {
+  return new Intl.NumberFormat(locale, {
     maximumFractionDigits,
     minimumFractionDigits: 0,
   }).format(value);
@@ -348,10 +364,11 @@ function hasPublicOfferFieldErrors(errors: PublicOfferFieldErrors) {
 
 function readDraftPublicOfferSummary(
   draft: PublicOfferDraft,
-  locale = "en-US",
+  locale: Locale = "en",
+  t: Translator = (key) => key,
 ) {
   if (draft.free) {
-    return "Free for all deployers.";
+    return t("Free for all deployers.");
   }
 
   const cpu = parseNonNegativeDecimal(draft.referenceCpuCores, 3);
@@ -360,26 +377,34 @@ function readDraftPublicOfferSummary(
   const price = parseUsdValue(draft.referenceMonthlyPriceUsd);
   const bundle = [
     cpu.value && cpu.value > 0
-      ? `${formatDraftNumber(cpu.value, 3)} CPU`
+      ? t("{value} CPU", {
+          value: formatPreviewNumber(locale, cpu.value, 3),
+        })
       : null,
     memory.value && memory.value > 0
-      ? `${formatDraftNumber(memory.value, 2)} GiB`
+      ? t("{value} GiB", {
+          value: formatPreviewNumber(locale, memory.value, 2),
+        })
       : null,
     storage.value && storage.value > 0
-      ? `${formatDraftNumber(storage.value, 0)} GiB`
+      ? t("{value} GiB", {
+          value: formatPreviewNumber(locale, storage.value, 0),
+        })
       : null,
   ]
     .filter((part): part is string => Boolean(part))
     .join(" / ");
   const freeParts = [
-    draft.freeCpu ? "CPU free" : null,
-    draft.freeMemory ? "Memory free" : null,
-    draft.freeStorage ? "Disk free" : null,
+    draft.freeCpu ? t("CPU free") : null,
+    draft.freeMemory ? t("Memory free") : null,
+    draft.freeStorage ? t("Disk free") : null,
   ].filter((part): part is string => Boolean(part));
   const priceLabel =
     price.valid && price.value && price.value > 0
-      ? `${formatCurrencyFromMicroCents(price.value, "USD", locale)}/mo reference`
-      : "Reference price not set";
+      ? t("{price}/mo reference", {
+          price: formatCurrencyFromMicroCents(price.value, "USD", locale),
+        })
+      : t("Reference price not set");
 
   return [priceLabel, bundle, ...freeParts]
     .filter((part): part is string => Boolean(part))
@@ -731,12 +756,14 @@ export function RuntimeAccessPanel({
   const publicOfferPreview = readDraftPublicOfferSummary(
     publicOfferDraft,
     locale,
+    t,
   );
   const publicPricingSaveNote = currentPublicOffer?.updatedAt
     ? t("Last saved {time}.", {
-        time: formatRelativeTime(
+        time: formatRecentTime(
           currentPublicOffer.updatedAt,
           formatRelativeTimeValue,
+          t,
         ),
       })
     : t("No public pricing saved yet.");
@@ -762,9 +789,10 @@ export function RuntimeAccessPanel({
     publicPricingDetail ?? t("No public pricing saved yet.");
   const publicPricingMeta = currentPublicOffer?.updatedAt
     ? t("Saved {time}", {
-        time: formatRelativeTime(
+        time: formatRecentTime(
           currentPublicOffer.updatedAt,
           formatRelativeTimeValue,
+          t,
         ),
       })
     : t("Not configured yet");
@@ -827,6 +855,7 @@ export function RuntimeAccessPanel({
       {
         cache: "no-store",
       },
+      t,
     )
       .then((data) => {
         if (cancelled) {
@@ -1032,6 +1061,7 @@ export function RuntimeAccessPanel({
           },
           method: "POST",
         },
+        t,
       );
 
       startTransition(() => {
@@ -1083,6 +1113,7 @@ export function RuntimeAccessPanel({
         {
           method: "DELETE",
         },
+        t,
       );
 
       startTransition(() => {
@@ -1131,6 +1162,7 @@ export function RuntimeAccessPanel({
           },
           method: "POST",
         },
+        t,
       );
 
       startTransition(() => {
@@ -1196,6 +1228,7 @@ export function RuntimeAccessPanel({
           },
           method: "POST",
         },
+        t,
       );
 
       startTransition(() => {
@@ -1239,7 +1272,7 @@ export function RuntimeAccessPanel({
           "Content-Type": "application/json",
         },
         method: "POST",
-      });
+      }, t);
 
       const reconciledMode = normalizePoolMode(data.runtime?.poolMode);
 
@@ -1445,7 +1478,7 @@ export function RuntimeAccessPanel({
                     <Button
                       disabled={busyAction !== null}
                       loading={busyAction === "grant"}
-                      loadingLabel={t("Adding...")}
+                      loadingLabel={t("Adding…")}
                       type="submit"
                       variant="primary"
                     >
@@ -1478,7 +1511,7 @@ export function RuntimeAccessPanel({
                     action={
                       <InlineButton
                         busy={busyAction === `revoke:${grant.tenantId}`}
-                        busyLabel={t("Removing...")}
+                        busyLabel={t("Removing…")}
                         danger
                         disabled={
                           busyAction !== null &&
@@ -1493,16 +1526,18 @@ export function RuntimeAccessPanel({
                     meta={
                       grant.updatedAt
                         ? t("Workspace access · updated {time}", {
-                            time: formatRelativeTime(
+                            time: formatRecentTime(
                               grant.updatedAt,
                               formatRelativeTimeValue,
+                              t,
                             ),
                           })
                         : grant.createdAt
                           ? t("Workspace access · granted {time}", {
-                              time: formatRelativeTime(
+                              time: formatRecentTime(
                                 grant.createdAt,
                                 formatRelativeTimeValue,
+                                t,
                               ),
                             })
                           : t("Workspace access")
@@ -1908,7 +1943,7 @@ export function RuntimeAccessPanel({
                         disabled={busyAction !== null}
                         form={pricingDialogFormId}
                         loading={busyAction === "public-offer"}
-                        loadingLabel={t("Saving...")}
+                        loadingLabel={t("Saving…")}
                         type="submit"
                         variant="primary"
                       >

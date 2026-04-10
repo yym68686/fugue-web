@@ -1068,7 +1068,12 @@ export function ConsoleBillingPageSkeleton() {
         </PanelSection>
 
         <PanelSection>
-          <SummaryGridSkeleton />
+          <section aria-hidden="true" className="fg-console-metric-grid">
+            <article className="fg-console-metric-card fg-admin-summary-card">
+              <SkeletonBlock className="fg-console-skeleton__metric-label" width="5rem" />
+              <SkeletonBlock className="fg-console-skeleton__metric-value" width="9rem" />
+            </article>
+          </section>
         </PanelSection>
       </Panel>
 
@@ -1084,13 +1089,13 @@ export function ConsoleBillingPageSkeleton() {
               </div>
 
               <div className="fg-billing-signal-grid">
-                {["15rem", "13rem", "12rem"].map((width, index) => (
+                {["13rem", "12rem"].map((width, index) => (
                   <article
-                    className={`fg-billing-signal-card${index === 0 ? " is-primary" : ""}`}
+                    className="fg-billing-signal-card"
                     key={`billing-capacity-card-${index}`}
                   >
                     <SkeletonBlock className="fg-console-skeleton__section-label" width="6rem" />
-                    <SkeletonBlock height={index === 0 ? "3.4rem" : "2.8rem"} radius="1.15rem" width={width} />
+                    <SkeletonBlock height="2.8rem" radius="1.15rem" width={width} />
                   </article>
                 ))}
               </div>
@@ -1130,7 +1135,7 @@ export function ConsoleBillingPageSkeleton() {
               </div>
 
               <div className="fg-billing-signal-grid">
-                {["12rem", "9rem", "9rem"].map((width, index) => (
+                {["12rem", "9rem"].map((width, index) => (
                   <article
                     className={`fg-billing-signal-card${index === 0 ? " is-primary" : ""}`}
                     key={`billing-credit-card-${index}`}

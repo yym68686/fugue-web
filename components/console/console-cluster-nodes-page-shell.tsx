@@ -15,8 +15,10 @@ import {
   type ConsoleClusterNodesPageSnapshot,
   useConsolePageSnapshot,
 } from "@/lib/console/page-snapshot-client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 export function ConsoleClusterNodesPageShell() {
+  const { t } = useI18n();
   const { data, error, loading } =
     useConsolePageSnapshot<ConsoleClusterNodesPageSnapshot>(
       CONSOLE_CLUSTER_NODES_PAGE_SNAPSHOT_URL,
@@ -36,8 +38,10 @@ export function ConsoleClusterNodesPageShell() {
         <Panel>
           <PanelSection>
             <ConsoleEmptyState
-              description={error ?? "Fugue could not load the server inventory right now."}
-              title="Server inventory unavailable"
+              description={
+                error ?? t("Fugue could not load the server inventory right now.")
+              }
+              title={t("Server inventory unavailable")}
             />
           </PanelSection>
         </Panel>
@@ -58,7 +62,9 @@ export function ConsoleClusterNodesPageShell() {
   }
 
   const errorMessage = data.data.errors.length
-    ? `Partial server data: ${data.data.errors.join(" | ")}.`
+    ? t("Partial server data: {details}.", {
+        details: data.data.errors.join(" | "),
+      })
     : null;
 
   return (
@@ -66,19 +72,22 @@ export function ConsoleClusterNodesPageShell() {
       <ToastOnMount message={errorMessage} variant="error" />
 
       <ConsoleSummaryGrid
-        ariaLabel="Server summary"
+        ariaLabel={t("Server summary")}
         items={[
-          { label: "Servers", value: data.data.summary.nodeCount },
-          { label: "Ready", value: data.data.summary.readyCount },
-          { label: "Workloads", value: data.data.summary.workloadCount },
-          { label: "Latest heartbeat", value: data.data.summary.latestHeartbeatLabel },
+          { label: t("Servers"), value: data.data.summary.nodeCount },
+          { label: t("Ready"), value: data.data.summary.readyCount },
+          { label: t("Workloads"), value: data.data.summary.workloadCount },
+          {
+            label: t("Latest heartbeat"),
+            value: data.data.summary.latestHeartbeatLabel,
+          },
         ]}
       />
 
       <div className="fg-credential-section__head">
         <div className="fg-credential-section__copy">
-          <strong>Server inventory</strong>
-          <p>Expand a server for access, capacity, and placement.</p>
+          <strong>{t("Server inventory")}</strong>
+          <p>{t("Expand a server for access, capacity, and placement.")}</p>
         </div>
       </div>
 

@@ -941,16 +941,6 @@ export function BillingPanel({
     currency,
     locale,
   );
-  const currentMonthlySpendLabel = formatCurrencyFromMicroCents(
-    billing?.monthlyEstimateMicroCents ?? 0,
-    currency,
-    locale,
-  );
-  const currentHourlySpendLabel = formatHourlyCurrencyFromMicroCents(
-    billing?.hourlyRateMicroCents ?? 0,
-    currency,
-    locale,
-  );
   const currentUsageLabel = formatCurrentUsageSpec(
     billing?.currentUsage ?? null,
     imageStorageBytes,
@@ -982,10 +972,6 @@ export function BillingPanel({
   const billingHistoryHint = t(
     "Top-ups, balance adjustments, and capacity changes appear here.",
   );
-  const capacityPreviewLabel = hasEnvelopeChanges ? t("New cap") : t("Current cap");
-  const capacityPreviewCopy = hasEnvelopeChanges
-    ? t("Changes apply after you save.")
-    : t("Maximum managed resources for this workspace.");
   const chargedAtCopy =
     t("Charges follow the larger of your saved cap and any resources already committed.");
   const projectedSpendLabel = hasEnvelopeChanges
@@ -1459,9 +1445,6 @@ export function BillingPanel({
           <ConsoleSummaryGrid
             ariaLabel={t("Billing health")}
             items={[
-              { label: t("Available credits"), value: availableCreditsLabel },
-              { label: t("Estimated runway"), value: runwayLabel },
-              { label: t("Projected monthly spend"), value: currentMonthlySpendLabel },
               { label: t("Current usage"), value: currentUsageLabel },
             ]}
           />
@@ -1484,17 +1467,6 @@ export function BillingPanel({
               </div>
 
               <div className="fg-billing-signal-grid">
-                <article className="fg-billing-signal-card is-primary">
-                  <BillingSignalLabel
-                    ariaLabel={t("{label} details", {
-                      label: capacityPreviewLabel,
-                    })}
-                    hint={capacityPreviewCopy}
-                    label={capacityPreviewLabel}
-                  />
-                  <strong>{formatResourceSpec(previewSpec, formatNumber)}</strong>
-                </article>
-
                 <article className="fg-billing-signal-card">
                   <BillingSignalLabel
                     ariaLabel={t("Charged at details")}
@@ -1648,21 +1620,6 @@ export function BillingPanel({
                     label={t("Estimated runway")}
                   />
                   <strong>{runwayLabel}</strong>
-                </article>
-
-                <article className="fg-billing-signal-card">
-                  <BillingSignalLabel
-                    ariaLabel={t("Projected monthly spend details")}
-                    hint={
-                      billing.hourlyRateMicroCents > 0
-                        ? t("{amount} / hour at the current live rate.", {
-                            amount: currentHourlySpendLabel,
-                          })
-                        : t("No live burn right now.")
-                    }
-                    label={t("Projected monthly spend")}
-                  />
-                  <strong>{currentMonthlySpendLabel}</strong>
                 </article>
               </div>
             </PanelSection>

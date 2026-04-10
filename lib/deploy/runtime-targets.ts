@@ -6,6 +6,7 @@ import {
   hasInternalClusterLocationTarget,
   readRuntimeLocation,
 } from "@/lib/fugue/runtime-location";
+import { translate, type Locale } from "@/lib/i18n/core";
 import { readRuntimePublicOfferDescription } from "@/lib/runtimes/public-offer";
 
 function humanize(value: string) {
@@ -61,9 +62,10 @@ function toneForRuntimeStatus(status?: string | null): ConsoleTone | null {
 function buildDeployRuntimeTarget(
   runtime: FugueRuntime,
   workspaceTenantId: string,
+  locale: Locale = "en",
 ): ConsoleImportRuntimeTargetView {
-  const location = readRuntimeLocation(runtime.labels);
-  const statusLabel = runtime.status ? humanize(runtime.status) : null;
+  const location = readRuntimeLocation(runtime.labels, locale);
+  const statusLabel = runtime.status ? translate(locale, humanize(runtime.status)) : null;
   const statusTone = toneForRuntimeStatus(runtime.status);
 
   if (runtime.type === "managed-shared") {
@@ -71,19 +73,19 @@ function buildDeployRuntimeTarget(
       runtime.id === DEFAULT_INTERNAL_CLUSTER_RUNTIME_ID &&
       !hasInternalClusterLocationTarget(runtime.labels);
     const primaryLabel = isGenericInternalCluster
-      ? "Any available region"
+      ? translate(locale, "Any available region")
       : (location.locationCountryLabel ??
         location.locationLabel ??
-        "Region unavailable");
+        translate(locale, "Region unavailable"));
 
     return {
       category: "internal-cluster",
       description:
         !isGenericInternalCluster && location.hasPlacementConstraint
-          ? "Use shared capacity in this region."
-          : "Deploy onto the internal cluster.",
+          ? translate(locale, "Use shared capacity in this region.")
+          : translate(locale, "Deploy onto the internal cluster."),
       id: runtime.id,
-      kindLabel: "Internal cluster",
+      kindLabel: translate(locale, "Internal cluster"),
       locationCountryCode: location.locationCountryCode,
       locationCountryLabel: location.locationCountryLabel,
       locationLabel: isGenericInternalCluster ? null : location.locationLabel,
@@ -91,7 +93,7 @@ function buildDeployRuntimeTarget(
       runtimeType: runtime.type ?? null,
       statusLabel,
       statusTone,
-      summaryLabel: `Internal cluster / ${primaryLabel}`,
+      summaryLabel: `${translate(locale, "Internal cluster")} / ${primaryLabel}`,
     };
   }
 
@@ -114,18 +116,23 @@ function buildDeployRuntimeTarget(
   return {
     category: "machine",
     description: isPublicMachine
-      ? `Any workspace can deploy here. ${readRuntimePublicOfferDescription(runtime.publicOffer)}`
+      ? translate(locale, "Any workspace can deploy here. {details}", {
+          details: readRuntimePublicOfferDescription(runtime.publicOffer, locale),
+        })
       : isSharedMachine
-        ? "Deploy onto a machine shared with this workspace."
+        ? translate(locale, "Deploy onto a machine shared with this workspace.")
         : isContributedMachine
-          ? "Deploy onto this machine. It also contributes to the internal cluster."
-          : "Deploy onto this machine.",
+          ? translate(
+              locale,
+              "Deploy onto this machine. It also contributes to the internal cluster.",
+            )
+          : translate(locale, "Deploy onto this machine."),
     id: runtime.id,
     kindLabel: isPublicMachine
-      ? "Public machine"
+      ? translate(locale, "Public machine")
       : isSharedMachine
-        ? "Shared machine"
-        : "Machine",
+        ? translate(locale, "Shared machine")
+        : translate(locale, "Machine"),
     locationCountryCode: location.locationCountryCode,
     locationCountryLabel: location.locationCountryLabel,
     locationLabel: location.locationLabel,
@@ -134,7 +141,7 @@ function buildDeployRuntimeTarget(
     statusLabel,
     statusTone,
     summaryLabel: isPublicMachine
-      ? `${primaryLabel} / Public machine`
+      ? `${primaryLabel} / ${translate(locale, "Public machine")}`
       : machineSummaryLabel,
   };
 }
@@ -178,8 +185,11 @@ function compareDeployRuntimeTargets(
 export function buildDeployRuntimeTargets(
   runtimes: FugueRuntime[],
   workspaceTenantId: string,
+  locale: Locale = "en",
 ) {
   return [...runtimes]
-    .map((runtime) => buildDeployRuntimeTarget(runtime, workspaceTenantId))
+    .map((runtime) =>
+      buildDeployRuntimeTarget(runtime, workspaceTenantId, locale),
+    )
     .sort(compareDeployRuntimeTargets);
 }

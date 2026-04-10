@@ -22,6 +22,13 @@ import {
   getWorkspaceAccessByEmail,
   getWorkspaceSnapshotByTenantId,
 } from "@/lib/workspace/store";
+import {
+  createTranslator,
+  formatDateTime as formatLocaleDateTime,
+  formatNumber as formatLocaleNumber,
+  formatRelativeTime as formatLocaleRelativeTime,
+  type Locale,
+} from "@/lib/i18n/core";
 
 export type ClusterNodeConditionView = {
   detailLabel: string;
@@ -107,6 +114,8 @@ const CLUSTER_MEMORY_PRESSURE_CONDITION = "MemoryPressure";
 const CLUSTER_DISK_PRESSURE_CONDITION = "DiskPressure";
 const CLUSTER_PID_PRESSURE_CONDITION = "PIDPressure";
 
+type Translator = ReturnType<typeof createTranslator>;
+
 function readErrorMessage(error: unknown) {
   if (error instanceof Error && error.message) {
     return error.message;
@@ -124,59 +133,25 @@ function parseTimestamp(value?: string | null) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function formatRelativeTime(value?: string | null) {
-  if (!value) {
-    return "Not yet";
-  }
-
-  const timestamp = parseTimestamp(value);
-
-  if (!timestamp) {
-    return "Not yet";
-  }
-
-  const deltaSeconds = Math.round((timestamp - Date.now()) / 1000);
-  const units = [
-    { amount: 60, unit: "second" as const },
-    { amount: 60, unit: "minute" as const },
-    { amount: 24, unit: "hour" as const },
-    { amount: 7, unit: "day" as const },
-    { amount: 4.34524, unit: "week" as const },
-    { amount: 12, unit: "month" as const },
-    { amount: Number.POSITIVE_INFINITY, unit: "year" as const },
-  ];
-
-  let valueForUnit = deltaSeconds;
-
-  for (const { amount, unit } of units) {
-    if (Math.abs(valueForUnit) < amount) {
-      return new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(
-        Math.trunc(valueForUnit),
-        unit,
-      );
-    }
-
-    valueForUnit /= amount;
-  }
-
-  return "Just now";
+function formatRelativeTime(
+  locale: Locale,
+  t: Translator,
+  value?: string | null,
+) {
+  return formatLocaleRelativeTime(locale, value, {
+    justNowText: t("Just now"),
+    notYetText: t("Not yet"),
+  });
 }
 
-function formatExactTime(value?: string | null) {
-  if (!value) {
-    return "Not yet";
-  }
-
-  const timestamp = parseTimestamp(value);
-
-  if (!timestamp) {
-    return "Not yet";
-  }
-
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(timestamp);
+function formatExactTime(
+  locale: Locale,
+  t: Translator,
+  value?: string | null,
+) {
+  return formatLocaleDateTime(locale, value, {
+    emptyText: t("Not yet"),
+  });
 }
 
 function humanize(value?: string | null) {
@@ -188,6 +163,13 @@ function humanize(value?: string | null) {
     .replace(/[._-]+/g, " ")
     .trim()
     .replace(/\b\w/g, (match) => match.toUpperCase());
+}
+
+function humanizeLabel(
+  value: string | null | undefined,
+  t: Translator,
+) {
+  return t(humanize(value));
 }
 
 function shortId(value?: string | null) {
@@ -204,15 +186,23 @@ function shortId(value?: string | null) {
 }
 
 function formatCountLabel(
+  locale: Locale,
   count: number,
   singular: string,
-  plural = `${singular}s`,
+  plural: string,
+  t: Translator,
 ) {
-  return `${count} ${count === 1 ? singular : plural}`;
+  return t(count === 1 ? singular : plural, {
+    count: formatLocaleNumber(locale, count),
+  });
 }
 
-function formatCompactNumber(value: number, digits = 1) {
-  const formatter = new Intl.NumberFormat("en-US", {
+function formatCompactNumber(
+  locale: Locale,
+  value: number,
+  digits = 1,
+) {
+  const formatter = new Intl.NumberFormat(locale, {
     maximumFractionDigits: digits,
     minimumFractionDigits: Number.isInteger(value) ? 0 : Math.min(1, digits),
   });
@@ -220,22 +210,30 @@ function formatCompactNumber(value: number, digits = 1) {
   return formatter.format(value);
 }
 
-function formatPercentLabel(value?: number | null) {
+function formatPercentLabel(
+  locale: Locale,
+  t: Translator,
+  value?: number | null,
+) {
   if (value === null || value === undefined || !Number.isFinite(value)) {
-    return "No stats";
+    return t("No stats");
   }
 
-  return `${formatCompactNumber(value, 1)}%`;
+  return `${formatCompactNumber(locale, value, 1)}%`;
 }
 
-function formatBytesLabel(value?: number | null) {
+function formatBytesLabel(
+  locale: Locale,
+  t: Translator,
+  value?: number | null,
+) {
   if (
     value === null ||
     value === undefined ||
     !Number.isFinite(value) ||
     value < 0
   ) {
-    return "No stats";
+    return t("No stats");
   }
 
   const units = ["bytes", "KB", "MB", "GB", "TB", "PB"];
@@ -251,28 +249,40 @@ function formatBytesLabel(value?: number | null) {
 
   if (unitIndex === 0) {
     const rounded = Math.round(amount);
-    return `${rounded} ${rounded === 1 ? "byte" : "bytes"}`;
+    return t(rounded === 1 ? "{count} byte" : "{count} bytes", {
+      count: formatLocaleNumber(locale, rounded),
+    });
   }
 
-  return `${formatCompactNumber(amount, digits)} ${units[unitIndex]}`;
+  return t(`{value} ${units[unitIndex]}`, {
+    value: formatCompactNumber(locale, amount, digits),
+  });
 }
 
-function formatCPUCapacityLabel(value?: number | null) {
+function formatCPUCapacityLabel(
+  locale: Locale,
+  t: Translator,
+  value?: number | null,
+) {
   if (
     value === null ||
     value === undefined ||
     !Number.isFinite(value) ||
     value < 0
   ) {
-    return "No stats";
+    return t("No stats");
   }
 
   if (Math.abs(value) >= 1000) {
     const cores = value / 1000;
-    return `${formatCompactNumber(cores, 1)} ${cores === 1 ? "core" : "cores"}`;
+    return t(cores === 1 ? "{count} core" : "{count} cores", {
+      count: formatCompactNumber(locale, cores, 1),
+    });
   }
 
-  return `${Math.round(value)} millicores`;
+  return t("{count} millicores", {
+    count: formatLocaleNumber(locale, Math.round(value)),
+  });
 }
 
 function toneWeight(tone: ConsoleTone) {
@@ -318,9 +328,10 @@ function readRuntimeOwnership(
 function readOwnerLabel(
   ownerTenantId: string | null,
   ownerEmailByTenantId: Map<string, string>,
+  t: Translator,
 ) {
   if (!ownerTenantId) {
-    return "Unknown owner";
+    return t("Unknown owner");
   }
 
   return ownerEmailByTenantId.get(ownerTenantId) ?? shortId(ownerTenantId);
@@ -387,7 +398,7 @@ function readResourceTone(
   return "positive";
 }
 
-function readResourceStatusLabel(
+function readResourceStatusKey(
   percent?: number | null,
   dangerSignal = false,
 ) {
@@ -443,7 +454,7 @@ function readConditionTone(
   return "neutral";
 }
 
-function readConditionStatusLabel(conditionID: string, status?: string | null) {
+function readConditionStatusKey(conditionID: string, status?: string | null) {
   const normalized = status?.trim().toLowerCase() ?? "";
 
   if (conditionID === CLUSTER_READY_CONDITION) {
@@ -482,15 +493,17 @@ function readRuntimeTimestamp(runtime: FugueRuntime) {
   );
 }
 
-function readRuntimeLabel(runtime: FugueRuntime) {
+function readRuntimeLabel(runtime: FugueRuntime, locale: Locale) {
   if (runtime.type === "managed-shared") {
-    return readManagedSharedRuntimeLabel(runtime);
+    return readManagedSharedRuntimeLabel(runtime, locale);
   }
 
   return runtime.name ?? runtime.machineName ?? shortId(runtime.id);
 }
 
 function buildCPUResourceView(
+  locale: Locale,
+  t: Translator,
   stats: FugueClusterNodeCPUStats | null,
 ): ClusterNodeResourceView {
   const percent = stats?.usagePercent ?? null;
@@ -501,23 +514,33 @@ function buildCPUResourceView(
     detailLabel:
       stats?.capacityMilliCores !== null &&
       stats?.capacityMilliCores !== undefined
-        ? `${formatCPUCapacityLabel(stats.capacityMilliCores)} capacity`
-        : "Capacity unknown",
+        ? t("{amount} capacity", {
+            amount: formatCPUCapacityLabel(
+              locale,
+              t,
+              stats.capacityMilliCores,
+            ),
+          })
+        : t("Capacity unknown"),
     id: "cpu",
-    label: "Compute",
-    percentLabel: formatPercentLabel(percent),
+    label: t("Compute"),
+    percentLabel: formatPercentLabel(locale, t, percent),
     percentValue: percent,
-    statusLabel: readResourceStatusLabel(percent),
+    statusLabel: t(readResourceStatusKey(percent)),
     statusTone: readResourceTone(percent),
     totalLabel:
       total !== null && total !== undefined
-        ? `${formatCPUCapacityLabel(total)} allocatable`
-        : "Allocatable unknown",
-    usageLabel: formatCPUCapacityLabel(stats?.usedMilliCores),
+        ? t("{amount} allocatable", {
+            amount: formatCPUCapacityLabel(locale, t, total),
+          })
+        : t("Allocatable unknown"),
+    usageLabel: formatCPUCapacityLabel(locale, t, stats?.usedMilliCores),
   };
 }
 
 function buildMemoryResourceView(
+  locale: Locale,
+  t: Translator,
   stats: FugueClusterNodeMemoryStats | null,
   hasPressure: boolean,
 ): ClusterNodeResourceView {
@@ -527,23 +550,29 @@ function buildMemoryResourceView(
   return {
     detailLabel:
       stats?.capacityBytes !== null && stats?.capacityBytes !== undefined
-        ? `${formatBytesLabel(stats.capacityBytes)} capacity`
-        : "Capacity unknown",
+        ? t("{amount} capacity", {
+            amount: formatBytesLabel(locale, t, stats.capacityBytes),
+          })
+        : t("Capacity unknown"),
     id: "memory",
-    label: "Memory",
-    percentLabel: formatPercentLabel(percent),
+    label: t("Memory"),
+    percentLabel: formatPercentLabel(locale, t, percent),
     percentValue: percent,
-    statusLabel: readResourceStatusLabel(percent, hasPressure),
+    statusLabel: t(readResourceStatusKey(percent, hasPressure)),
     statusTone: readResourceTone(percent, hasPressure),
     totalLabel:
       total !== null && total !== undefined
-        ? `${formatBytesLabel(total)} allocatable`
-        : "Allocatable unknown",
-    usageLabel: formatBytesLabel(stats?.usedBytes),
+        ? t("{amount} allocatable", {
+            amount: formatBytesLabel(locale, t, total),
+          })
+        : t("Allocatable unknown"),
+    usageLabel: formatBytesLabel(locale, t, stats?.usedBytes),
   };
 }
 
 function buildStorageResourceView(
+  locale: Locale,
+  t: Translator,
   stats: FugueClusterNodeStorageStats | null,
   hasPressure: boolean,
 ): ClusterNodeResourceView {
@@ -553,23 +582,29 @@ function buildStorageResourceView(
   return {
     detailLabel:
       stats?.capacityBytes !== null && stats?.capacityBytes !== undefined
-        ? `${formatBytesLabel(stats.capacityBytes)} capacity`
-        : "Capacity unknown",
+        ? t("{amount} capacity", {
+            amount: formatBytesLabel(locale, t, stats.capacityBytes),
+          })
+        : t("Capacity unknown"),
     id: "storage",
-    label: "Disk",
-    percentLabel: formatPercentLabel(percent),
+    label: t("Disk"),
+    percentLabel: formatPercentLabel(locale, t, percent),
     percentValue: percent,
-    statusLabel: readResourceStatusLabel(percent, hasPressure),
+    statusLabel: t(readResourceStatusKey(percent, hasPressure)),
     statusTone: readResourceTone(percent, hasPressure),
     totalLabel:
       total !== null && total !== undefined
-        ? `${formatBytesLabel(total)} allocatable`
-        : "Allocatable unknown",
-    usageLabel: formatBytesLabel(stats?.usedBytes),
+        ? t("{amount} allocatable", {
+            amount: formatBytesLabel(locale, t, total),
+          })
+        : t("Allocatable unknown"),
+    usageLabel: formatBytesLabel(locale, t, stats?.usedBytes),
   };
 }
 
 function buildClusterConditionViews(
+  locale: Locale,
+  t: Translator,
   node: FugueClusterNode,
 ): ClusterNodeConditionView[] {
   const definitions = [
@@ -588,58 +623,72 @@ function buildClusterConditionViews(
       detailLabel:
         detail ||
         (transitionedAt
-          ? `Updated ${formatRelativeTime(transitionedAt)}`
-          : "No signal reported"),
+          ? t("Updated {time}", {
+              time: formatRelativeTime(locale, t, transitionedAt),
+            })
+          : t("No signal reported")),
       id: definition.id,
-      label: definition.label,
-      lastTransitionExact: formatExactTime(transitionedAt),
-      lastTransitionLabel: formatRelativeTime(transitionedAt),
-      statusLabel: readConditionStatusLabel(definition.id, condition?.status),
+      label: t(definition.label),
+      lastTransitionExact: formatExactTime(locale, t, transitionedAt),
+      lastTransitionLabel: formatRelativeTime(locale, t, transitionedAt),
+      statusLabel: t(
+        readConditionStatusKey(definition.id, condition?.status),
+      ),
       tone: readConditionTone(definition.id, condition?.status),
     } satisfies ClusterNodeConditionView;
   });
 }
 
-function joinConditionLabels(labels: string[]) {
+function joinConditionLabels(locale: Locale, labels: string[]) {
   if (labels.length <= 1) {
     return labels[0] ?? "";
   }
 
-  if (labels.length === 2) {
-    return `${labels[0]} and ${labels[1]}`;
+  try {
+    return new Intl.ListFormat(locale, {
+      style: "long",
+      type: "conjunction",
+    }).format(labels);
+  } catch {
+    return labels.join(", ");
   }
-
-  return `${labels.slice(0, -1).join(", ")}, and ${labels[labels.length - 1]}`;
 }
 
-function buildClusterWorkloadViews(workloads: FugueClusterNodeWorkload[]) {
+function buildClusterWorkloadViews(
+  locale: Locale,
+  t: Translator,
+  workloads: FugueClusterNodeWorkload[],
+) {
   return workloads.map((workload) => {
     const podCount = workload.podCount || workload.pods.length;
     const kindLabel =
       workload.kind === "backing_service"
         ? workload.serviceType
-          ? humanize(workload.serviceType)
-          : "Service"
-        : "App";
+          ? humanizeLabel(workload.serviceType, t)
+          : t("Service")
+        : t("App");
     const metaParts = [
-      formatCountLabel(podCount, "pod"),
+      formatCountLabel(locale, podCount, "{count} pod", "{count} pods", t),
       workload.namespace?.trim() || null,
     ].filter((value): value is string => Boolean(value));
     const podLabel = workload.pods.length
       ? workload.pods
           .map((pod) =>
             pod.phase?.trim()
-              ? `${pod.name} (${humanize(pod.phase)})`
+              ? t("{name} ({phase})", {
+                  name: pod.name,
+                  phase: humanizeLabel(pod.phase, t),
+                })
               : pod.name,
           )
           .join(" / ")
-      : "No active pods reported";
+      : t("No active pods reported");
 
     return {
       id: workload.id,
       kindLabel,
       kindTone: workload.kind === "backing_service" ? "neutral" : "info",
-      metaLabel: metaParts.join(" / ") || "Waiting for workload details",
+      metaLabel: metaParts.join(" / ") || t("Waiting for workload details"),
       name: workload.name,
       title: `${workload.name} / ${kindLabel} / ${metaParts.join(" / ")} / ${podLabel}`,
     } satisfies ClusterNodeWorkloadView;
@@ -659,11 +708,13 @@ function resolveRuntimeForNode(
 }
 
 function buildClusterNodeViews(
+  locale: Locale,
   nodes: FugueClusterNode[],
   runtimes: FugueRuntime[],
   workspaceTenantId: string,
   ownerEmailByTenantId: Map<string, string>,
 ) {
+  const t = createTranslator(locale);
   const runtimeById = new Map(
     runtimes.map((runtime) => [runtime.id, runtime] as const),
   );
@@ -678,11 +729,11 @@ function buildClusterNodeViews(
     const runtime = resolveRuntimeForNode(node, runtimeById, runtimeByNodeName);
     const ownership = readRuntimeOwnership(node, runtime, workspaceTenantId);
     const ownerTenantId = readOwnerTenantId(node, runtime);
-    const ownerLabel = readOwnerLabel(ownerTenantId, ownerEmailByTenantId);
+    const ownerLabel = readOwnerLabel(ownerTenantId, ownerEmailByTenantId, t);
     const ownerEmail = ownerTenantId
       ? (ownerEmailByTenantId.get(ownerTenantId) ?? null)
       : null;
-    const conditionViews = buildClusterConditionViews(node);
+    const conditionViews = buildClusterConditionViews(locale, t, node);
     const memoryPressure = isConditionActive(
       node.conditions[CLUSTER_MEMORY_PRESSURE_CONDITION]?.status,
     );
@@ -691,8 +742,7 @@ function buildClusterNodeViews(
     );
     const pressureSignals = conditionViews.filter(
       (condition) =>
-        condition.id !== CLUSTER_READY_CONDITION &&
-        condition.statusLabel === "Pressure",
+        condition.id !== CLUSTER_READY_CONDITION && condition.tone === "danger",
     );
     const workloadCount = node.workloads.length;
     const appCount = node.workloads.filter(
@@ -703,12 +753,12 @@ function buildClusterNodeViews(
     ).length;
     const statusLabel =
       node.status?.trim().toLowerCase() === "not-ready"
-        ? "Not ready"
+        ? t("Not ready")
         : pressureSignals.length
-          ? "Pressure"
+          ? t("Pressure")
           : node.status?.trim().toLowerCase() === "ready"
-            ? "Ready"
-            : humanize(node.status);
+            ? t("Ready")
+            : humanizeLabel(node.status, t);
     const statusTone =
       node.status?.trim().toLowerCase() === "not-ready"
         ? "danger"
@@ -717,53 +767,66 @@ function buildClusterNodeViews(
           : node.status?.trim().toLowerCase() === "ready"
             ? "positive"
             : toneForStatus(node.status);
-    const location = readCountryLocation(node.region, node.zone);
+    const location = readCountryLocation(node.region, node.zone, locale);
     const locationLabel = location.locationLabel;
     const heartbeatAt = runtime?.lastHeartbeatAt ?? runtime?.lastSeenAt ?? null;
     const isPublicRuntime =
       runtime?.accessMode?.trim().toLowerCase() === "public";
     const publicOfferDescription = isPublicRuntime
-      ? readRuntimePublicOfferDescription(runtime?.publicOffer)
+      ? readRuntimePublicOfferDescription(runtime?.publicOffer, locale)
       : null;
     const ownershipLabel =
       ownership === "shared"
         ? isPublicRuntime
           ? ownerEmail
-            ? `Public by ${ownerEmail}`
-            : "Public server"
+            ? t("Public by {label}", { label: ownerEmail })
+            : t("Public server")
           : ownerEmail
-            ? `Shared by ${ownerEmail}`
-            : "Shared with this workspace"
+            ? t("Shared by {label}", { label: ownerEmail })
+            : t("Shared with this workspace")
         : ownership === "internal-cluster"
-          ? "Internal cluster capacity"
+          ? t("Internal cluster capacity")
           : isPublicRuntime
-            ? "Public access enabled"
+            ? t("Public access enabled")
             : runtime?.poolMode?.trim().toLowerCase() === "internal-shared"
-              ? "Internal cluster enabled"
+              ? t("Internal cluster enabled")
               : null;
     const statusFragments = [
-      locationLabel !== "Unassigned" ? locationLabel : null,
+      locationLabel !== t("Unassigned") ? locationLabel : null,
       heartbeatAt
-        ? `heartbeat ${formatRelativeTime(heartbeatAt)}`
-        : "Waiting for first heartbeat",
+        ? t("Heartbeat {time}", {
+            time: formatRelativeTime(locale, t, heartbeatAt),
+          })
+        : t("Waiting for first heartbeat"),
       ownershipLabel,
-      formatCountLabel(workloadCount, "workload"),
+      formatCountLabel(
+        locale,
+        workloadCount,
+        "{count} workload",
+        "{count} workloads",
+        t,
+      ),
     ].filter((value): value is string => Boolean(value));
     const ownershipDetail =
       ownership === "shared"
         ? isPublicRuntime
           ? ownerEmail
-            ? `Public by ${ownerEmail}. ${publicOfferDescription}`
+            ? t("Public by {label}. {details}", {
+                details: publicOfferDescription ?? "",
+                label: ownerEmail,
+              })
             : publicOfferDescription
           : ownerEmail
-            ? `Shared by ${ownerEmail}.`
-            : "Shared with your workspace."
+            ? t("Shared by {label}.", { label: ownerEmail })
+            : t("Shared with your workspace.")
         : ownership === "internal-cluster"
-          ? "Part of Fugue shared capacity."
+          ? t("Part of Fugue shared capacity.")
           : isPublicRuntime
-            ? `Any workspace can deploy here. ${publicOfferDescription}`
+            ? t("Any workspace can deploy here. {details}", {
+                details: publicOfferDescription ?? "",
+              })
             : runtime?.poolMode?.trim().toLowerCase() === "internal-shared"
-              ? "Internal cluster can also deploy here."
+              ? t("Internal cluster can also deploy here.")
               : null;
 
     return {
@@ -771,12 +834,12 @@ function buildClusterNodeViews(
       appCount,
       canManageSharing: ownership === "owned" && Boolean(runtime?.id),
       conditions: conditionViews,
-      createdExact: formatExactTime(node.createdAt),
-      createdLabel: formatRelativeTime(node.createdAt),
+      createdExact: formatExactTime(locale, t, node.createdAt),
+      createdLabel: formatRelativeTime(locale, t, node.createdAt),
       headerMeta: statusFragments.join(" · "),
-      heartbeatExact: formatExactTime(heartbeatAt),
-      heartbeatLabel: formatRelativeTime(heartbeatAt),
-      internalIpLabel: node.internalIp?.trim() || "Unavailable",
+      heartbeatExact: formatExactTime(locale, t, heartbeatAt),
+      heartbeatLabel: formatRelativeTime(locale, t, heartbeatAt),
+      internalIpLabel: node.internalIp?.trim() || t("Unavailable"),
       locationCountryCode: location.locationCountryCode,
       locationLabel,
       machineLabel:
@@ -787,38 +850,41 @@ function buildClusterNodeViews(
       ownership,
       poolMode: runtime?.poolMode ?? null,
       publicOffer: runtime?.publicOffer ?? null,
-      publicIpLabel: node.publicIp?.trim() || "Unavailable",
+      publicIpLabel: node.publicIp?.trim() || t("Unavailable"),
       roleLabels: node.roles.length ? node.roles : [],
       resources: [
-        buildCPUResourceView(node.cpu),
-        buildMemoryResourceView(node.memory, memoryPressure),
-        buildStorageResourceView(node.ephemeralStorage, diskPressure),
+        buildCPUResourceView(locale, t, node.cpu),
+        buildMemoryResourceView(locale, t, node.memory, memoryPressure),
+        buildStorageResourceView(locale, t, node.ephemeralStorage, diskPressure),
       ],
       runtimeId: runtime?.id ?? node.runtimeId ?? null,
       runtimeLabel: runtime
-        ? readRuntimeLabel(runtime)
+        ? readRuntimeLabel(runtime, locale)
         : node.runtimeId
           ? shortId(node.runtimeId)
-          : "Awaiting runtime",
+          : t("Awaiting runtime"),
       runtimeStatusLabel: runtime
-        ? humanize(runtime.status)
-        : "Awaiting runtime",
+        ? humanizeLabel(runtime.status, t)
+        : t("Awaiting runtime"),
       runtimeStatusTone: runtime ? toneForStatus(runtime.status) : "neutral",
       runtimeType: runtime?.type ?? null,
       serviceCount,
       statusDetail:
         pressureSignals.length > 0
-          ? `${joinConditionLabels(
-              pressureSignals.map((condition) => condition.label.toLowerCase()),
-            )} pressure reported.`
+          ? t("{signals} pressure reported.", {
+              signals: joinConditionLabels(
+                locale,
+                pressureSignals.map((condition) => condition.label),
+              ),
+            })
           : node.status?.trim().toLowerCase() === "ready"
             ? ownershipDetail
-            : "Waiting for complete node health telemetry.",
+            : t("Waiting for complete node health telemetry."),
       statusLabel,
       statusTone,
       workloadCount,
-      workloads: buildClusterWorkloadViews(node.workloads),
-      zoneLabel: node.zone?.trim() || "Unassigned",
+      workloads: buildClusterWorkloadViews(locale, t, node.workloads),
+      zoneLabel: node.zone?.trim() || t("Unassigned"),
     } satisfies ClusterNodeView;
   });
 
@@ -859,7 +925,9 @@ function buildClusterNodeViews(
 
 export async function getClusterNodesPageData(
   email: string,
+  locale: Locale = "en",
 ): Promise<ClusterNodesPageData | null> {
+  const t = createTranslator(locale);
   const workspace = await getWorkspaceAccessByEmail(email);
 
   if (!workspace) {
@@ -879,11 +947,19 @@ export async function getClusterNodesPageData(
     runtimesResult.status === "fulfilled" ? runtimesResult.value : [];
 
   if (nodesResult.status === "rejected") {
-    errors.push(`cluster nodes: ${readErrorMessage(nodesResult.reason)}`);
+    errors.push(
+      t("Cluster nodes: {message}", {
+        message: readErrorMessage(nodesResult.reason),
+      }),
+    );
   }
 
   if (runtimesResult.status === "rejected") {
-    errors.push(`runtimes: ${readErrorMessage(runtimesResult.reason)}`);
+    errors.push(
+      t("Runtimes: {message}", {
+        message: readErrorMessage(runtimesResult.reason),
+      }),
+    );
   }
 
   const ownerTenantIds = new Set<string>();
@@ -919,10 +995,15 @@ export async function getClusterNodesPageData(
       continue;
     }
 
-    errors.push(`workspace owners: ${readErrorMessage(result.reason)}`);
+    errors.push(
+      t("Workspace owners: {message}", {
+        message: readErrorMessage(result.reason),
+      }),
+    );
   }
 
   const built = buildClusterNodeViews(
+    locale,
     nodes,
     runtimes,
     workspace.tenantId,
@@ -940,7 +1021,11 @@ export async function getClusterNodesPageData(
     errors,
     nodes: built.views,
     summary: {
-      latestHeartbeatLabel: formatRelativeTime(built.latestHeartbeatAt),
+      latestHeartbeatLabel: formatRelativeTime(
+        locale,
+        t,
+        built.latestHeartbeatAt,
+      ),
       nodeCount: built.views.length,
       readyCount,
       workloadCount,

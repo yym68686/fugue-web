@@ -20,6 +20,7 @@ import type { DeploySearchState } from "@/lib/deploy/query";
 import { buildDeployRuntimeTargets } from "@/lib/deploy/runtime-targets";
 import type { SessionUser } from "@/lib/auth/session";
 import { getCurrentSession } from "@/lib/auth/session";
+import { getRequestLocale } from "@/lib/i18n/server";
 import { ensureWorkspaceAccess } from "@/lib/workspace/bootstrap";
 import type { WorkspaceAccess } from "@/lib/workspace/store";
 
@@ -111,6 +112,7 @@ async function loadInspection(
 
 async function loadWorkspaceInventory(
   session: SessionUser | null,
+  locale: Awaited<ReturnType<typeof getRequestLocale>>,
 ): Promise<DeployWorkspaceInventory> {
   if (!session) {
     return {
@@ -146,7 +148,11 @@ async function loadWorkspaceInventory(
           : null,
       runtimeTargets:
         runtimesResult.status === "fulfilled"
-          ? buildDeployRuntimeTargets(runtimesResult.value, workspace.tenantId)
+          ? buildDeployRuntimeTargets(
+              runtimesResult.value,
+              workspace.tenantId,
+              locale,
+            )
           : [],
       workspace,
       workspaceError: null,
@@ -167,9 +173,10 @@ export async function getDeployPageData(
   search: DeploySearchState,
 ): Promise<DeployPageData> {
   const session = await getCurrentSession();
+  const locale = await getRequestLocale();
   const [inspectionState, workspaceInventory] = await Promise.all([
     loadInspection(search, session),
-    loadWorkspaceInventory(session),
+    loadWorkspaceInventory(session, locale),
   ]);
 
   return {
