@@ -1,6 +1,12 @@
 "use client";
 
-import { startTransition, useEffect, useState, type FormEvent } from "react";
+import {
+  startTransition,
+  useEffect,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import { useSearchParams } from "next/navigation";
 
 import { ConsoleEmptyState } from "@/components/console/console-empty-state";
@@ -794,6 +800,40 @@ function readEventDetail(
   }
 }
 
+function BillingSectionTitle({
+  ariaLabel,
+  hint,
+  title,
+}: {
+  ariaLabel: string;
+  hint: ReactNode;
+  title: string;
+}) {
+  return (
+    <div className="fg-billing-section-title-row">
+      <PanelTitle>{title}</PanelTitle>
+      <HintTooltip ariaLabel={ariaLabel}>{hint}</HintTooltip>
+    </div>
+  );
+}
+
+function BillingSignalLabel({
+  ariaLabel,
+  hint,
+  label,
+}: {
+  ariaLabel: string;
+  hint: ReactNode;
+  label: string;
+}) {
+  return (
+    <div className="fg-billing-signal-card__label-row">
+      <span className="fg-billing-signal-card__label">{label}</span>
+      <HintTooltip ariaLabel={ariaLabel}>{hint}</HintTooltip>
+    </div>
+  );
+}
+
 export function BillingPanel({
   initialBilling,
   initialImageStorageBytes,
@@ -930,6 +970,18 @@ export function BillingPanel({
         time: formatRelativeTime(billing.updatedAt, formatRelativeTimeValue, t),
       })
     : t("Billing snapshot ready");
+  const billingHealthHint = t(
+    "Add credits to your balance, then set a capacity cap. Fugue deducts credits from active resources, and stored images count toward disk usage.",
+  );
+  const capacitySectionHint = t(
+    "Save the maximum managed CPU, memory, and disk for this workspace. Fugue charges against the larger of your saved cap and any resources already committed.",
+  );
+  const creditsSectionHint = t(
+    "Top up credits before you expand capacity. Credits are deducted while resources run, and stored images count toward disk usage.",
+  );
+  const billingHistoryHint = t(
+    "Top-ups, balance adjustments, and capacity changes appear here.",
+  );
   const capacityPreviewLabel = hasEnvelopeChanges ? t("New cap") : t("Current cap");
   const capacityPreviewCopy = hasEnvelopeChanges
     ? t("Changes apply after you save.")
@@ -1375,12 +1427,11 @@ export function BillingPanel({
           <div className="fg-billing-health__head">
             <div className="fg-billing-section-copy">
               <p className="fg-label fg-panel__eyebrow">{t("Billing health")}</p>
-              <PanelTitle>{t("Keep credits and capacity in sync")}</PanelTitle>
-              <PanelCopy>
-                {t(
-                  "Add credits to your balance, then set a capacity cap. Fugue deducts credits from active resources, and stored images count toward disk usage.",
-                )}
-              </PanelCopy>
+              <BillingSectionTitle
+                ariaLabel={t("Billing health details")}
+                hint={billingHealthHint}
+                title={t("Keep credits and capacity in sync")}
+              />
             </div>
 
             <div className="fg-billing-health__meta">
@@ -1424,32 +1475,44 @@ export function BillingPanel({
               <div className="fg-billing-section-head">
                 <div className="fg-billing-section-copy">
                   <p className="fg-label fg-panel__eyebrow">{t("Capacity")}</p>
-                  <PanelTitle>{t("Set your capacity cap")}</PanelTitle>
-                  <PanelCopy>
-                    {t(
-                      "Save the maximum managed CPU, memory, and disk for this workspace. Fugue charges against the larger of your saved cap and any resources already committed.",
-                    )}
-                  </PanelCopy>
+                  <BillingSectionTitle
+                    ariaLabel={t("Capacity cap details")}
+                    hint={capacitySectionHint}
+                    title={t("Set your capacity cap")}
+                  />
                 </div>
               </div>
 
               <div className="fg-billing-signal-grid">
                 <article className="fg-billing-signal-card is-primary">
-                  <span>{capacityPreviewLabel}</span>
+                  <BillingSignalLabel
+                    ariaLabel={t("{label} details", {
+                      label: capacityPreviewLabel,
+                    })}
+                    hint={capacityPreviewCopy}
+                    label={capacityPreviewLabel}
+                  />
                   <strong>{formatResourceSpec(previewSpec, formatNumber)}</strong>
-                  <p>{capacityPreviewCopy}</p>
                 </article>
 
                 <article className="fg-billing-signal-card">
-                  <span>{t("Charged at")}</span>
+                  <BillingSignalLabel
+                    ariaLabel={t("Charged at details")}
+                    hint={chargedAtCopy}
+                    label={t("Charged at")}
+                  />
                   <strong>{formatResourceSpec(previewBilledSpec, formatNumber)}</strong>
-                  <p>{chargedAtCopy}</p>
                 </article>
 
                 <article className="fg-billing-signal-card">
-                  <span>{projectedSpendLabel}</span>
+                  <BillingSignalLabel
+                    ariaLabel={t("{label} details", {
+                      label: projectedSpendLabel,
+                    })}
+                    hint={projectedSpendCopy}
+                    label={projectedSpendLabel}
+                  />
                   <strong>{previewMonthlyEstimateLabel}</strong>
-                  <p>{projectedSpendCopy}</p>
                 </article>
               </div>
             </PanelSection>
@@ -1560,38 +1623,46 @@ export function BillingPanel({
               <div className="fg-billing-section-head">
                 <div className="fg-billing-section-copy">
                   <p className="fg-label fg-panel__eyebrow">{t("Credits")}</p>
-                  <PanelTitle>{t("Keep your workspace funded")}</PanelTitle>
-                  <PanelCopy>
-                    {t(
-                      "Top up credits before you expand capacity. Credits are deducted while resources run, and stored images count toward disk usage.",
-                    )}
-                  </PanelCopy>
+                  <BillingSectionTitle
+                    ariaLabel={t("Credits details")}
+                    hint={creditsSectionHint}
+                    title={t("Keep your workspace funded")}
+                  />
                 </div>
               </div>
 
               <div className="fg-billing-signal-grid">
                 <article className="fg-billing-signal-card is-primary">
-                  <span>{t("Available credits")}</span>
+                  <BillingSignalLabel
+                    ariaLabel={t("Available credits details")}
+                    hint={t("Credits ready to cover current managed usage.")}
+                    label={t("Available credits")}
+                  />
                   <strong>{availableCreditsLabel}</strong>
-                  <p>{t("Credits ready to cover current managed usage.")}</p>
                 </article>
 
                 <article className="fg-billing-signal-card">
-                  <span>{t("Estimated runway")}</span>
+                  <BillingSignalLabel
+                    ariaLabel={t("Estimated runway details")}
+                    hint={runwaySupportCopy}
+                    label={t("Estimated runway")}
+                  />
                   <strong>{runwayLabel}</strong>
-                  <p>{runwaySupportCopy}</p>
                 </article>
 
                 <article className="fg-billing-signal-card">
-                  <span>{t("Projected monthly spend")}</span>
+                  <BillingSignalLabel
+                    ariaLabel={t("Projected monthly spend details")}
+                    hint={
+                      billing.hourlyRateMicroCents > 0
+                        ? t("{amount} / hour at the current live rate.", {
+                            amount: currentHourlySpendLabel,
+                          })
+                        : t("No live burn right now.")
+                    }
+                    label={t("Projected monthly spend")}
+                  />
                   <strong>{currentMonthlySpendLabel}</strong>
-                  <p>
-                    {billing.hourlyRateMicroCents > 0
-                      ? t("{amount} / hour at the current live rate.", {
-                          amount: currentHourlySpendLabel,
-                        })
-                      : t("No live burn right now.")}
-                  </p>
                 </article>
               </div>
             </PanelSection>
@@ -1743,10 +1814,11 @@ export function BillingPanel({
         <Panel>
           <PanelSection>
             <p className="fg-label fg-panel__eyebrow">{t("History")}</p>
-            <PanelTitle>{t("Billing activity")}</PanelTitle>
-            <PanelCopy>
-              {t("Top-ups, balance adjustments, and capacity changes appear here.")}
-            </PanelCopy>
+            <BillingSectionTitle
+              ariaLabel={t("Billing activity details")}
+              hint={billingHistoryHint}
+              title={t("Billing activity")}
+            />
           </PanelSection>
 
           <PanelSection>

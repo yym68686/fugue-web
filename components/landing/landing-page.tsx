@@ -65,7 +65,7 @@ const routeChapters: RouteChapter[] = [
   {
     index: "02",
     label: "Shared runtime",
-    title: "Use managed shared k3s for the first deployment.",
+    title: "Go live on shared infrastructure first.",
     description:
       "Shared runtime gets the app public quickly while preserving deploy history, route state, and logs from the first run.",
     meta: "Managed shared runtime / Logs / Route / Deploy ops",

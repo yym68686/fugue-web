@@ -4974,6 +4974,19 @@
   gap: 0.28rem;
 }
 
+.fg-billing-section-title-row,
+.fg-billing-signal-card__label-row {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.fg-billing-section-title-row > :first-child {
+  min-width: 0;
+}
+
 .fg-billing-health__meta {
   display: grid;
   gap: 0.65rem;
@@ -5037,7 +5050,7 @@
     rgba(8, 11, 15, 0.78);
 }
 
-.fg-billing-signal-card span {
+.fg-billing-signal-card__label {
   color: var(--fugue-text-muted);
   font-family: var(--fugue-font-mono);
   font-size: var(--fugue-type-meta-small);
@@ -5060,13 +5073,6 @@
 
 .fg-billing-signal-card.is-primary strong {
   font-size: clamp(1.6rem, 2.8vw, 2.4rem);
-}
-
-.fg-billing-signal-card p {
-  margin: 0;
-  color: var(--fugue-text-secondary);
-  font-size: 0.8rem;
-  line-height: 1.55;
 }
 
 .fg-billing-hero {

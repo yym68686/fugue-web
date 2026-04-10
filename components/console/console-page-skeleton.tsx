@@ -1054,7 +1054,6 @@ export function ConsoleBillingPageSkeleton() {
             <div className="fg-billing-section-copy">
               <SkeletonBlock className="fg-console-skeleton__eyebrow" width="7rem" />
               <SkeletonBlock className="fg-console-skeleton__section-title" width="18rem" />
-              <SkeletonBlock className="fg-console-skeleton__copy is-wide" width="28rem" />
             </div>
 
             <div className="fg-billing-health__meta">
@@ -1081,7 +1080,6 @@ export function ConsoleBillingPageSkeleton() {
                 <div className="fg-billing-section-copy">
                   <SkeletonBlock className="fg-console-skeleton__eyebrow" width="5.25rem" />
                   <SkeletonBlock className="fg-console-skeleton__section-title" width="13rem" />
-                  <SkeletonBlock className="fg-console-skeleton__copy is-wide" width="22rem" />
                 </div>
               </div>
 
@@ -1093,7 +1091,6 @@ export function ConsoleBillingPageSkeleton() {
                   >
                     <SkeletonBlock className="fg-console-skeleton__section-label" width="6rem" />
                     <SkeletonBlock height={index === 0 ? "3.4rem" : "2.8rem"} radius="1.15rem" width={width} />
-                    <SkeletonBlock className="fg-console-skeleton__copy" width="14rem" />
                   </article>
                 ))}
               </div>
@@ -1129,7 +1126,6 @@ export function ConsoleBillingPageSkeleton() {
                 <div className="fg-billing-section-copy">
                   <SkeletonBlock className="fg-console-skeleton__eyebrow" width="4.5rem" />
                   <SkeletonBlock className="fg-console-skeleton__section-title" width="13rem" />
-                  <SkeletonBlock className="fg-console-skeleton__copy is-wide" width="22rem" />
                 </div>
               </div>
 
@@ -1141,15 +1137,12 @@ export function ConsoleBillingPageSkeleton() {
                   >
                     <SkeletonBlock className="fg-console-skeleton__section-label" width="7rem" />
                     <SkeletonBlock height={index === 0 ? "3.8rem" : "2.8rem"} radius="1.25rem" width={width} />
-                    <SkeletonBlock className="fg-console-skeleton__copy" width="14rem" />
                   </article>
                 ))}
               </div>
             </PanelSection>
 
             <PanelSection>
-              <SkeletonBlock className="fg-console-skeleton__copy is-wide" width="18rem" />
-
               <div className="fg-billing-top-up-form">
                 <div className="fg-billing-top-up-form__field fg-field-stack">
                   <div className="fg-field-label">
@@ -1169,7 +1162,6 @@ export function ConsoleBillingPageSkeleton() {
                     </div>
                   </div>
 
-                  <SkeletonBlock className="fg-console-skeleton__section-label" width="16rem" />
                 </div>
 
                 <div className="fg-billing-top-up-form__footer">
@@ -1194,7 +1186,6 @@ export function ConsoleBillingPageSkeleton() {
             <PanelTitle>
               <SkeletonBlock className="fg-console-skeleton__section-title" width="11rem" />
             </PanelTitle>
-            <SkeletonBlock className="fg-console-skeleton__copy is-wide" width="20rem" />
           </PanelSection>
 
           <PanelSection>
