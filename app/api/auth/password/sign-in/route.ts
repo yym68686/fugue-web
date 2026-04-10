@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 
 import { ensureAppUserRecord, getAppUserByEmail } from "@/lib/app-users/store";
 import { touchAuthMethod, getPasswordHashByEmail } from "@/lib/auth/methods";
@@ -50,6 +50,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: INVALID_CREDENTIALS_MESSAGE }, { status: 401 });
   }
 
+  if (user.status === "blocked") {
+    return NextResponse.json({ error: "This account is blocked." }, { status: 403 });
+  }
+
+  if (user.status === "deleted") {
+    return NextResponse.json(
+      { error: "This account has been deleted." },
+      { status: 403 },
+    );
+  }
+
   const sessionUser = {
     email,
     name: user.name ?? undefined,
@@ -60,10 +71,6 @@ export async function POST(request: Request) {
   };
 
   try {
-    await ensureAppUserRecord(sessionUser, {
-      markSignedIn: true,
-    });
-    await touchAuthMethod(email, "password");
     await ensureWorkspaceAccessForSignIn(sessionUser);
   } catch (error) {
     if (error instanceof Error && error.message.includes("blocked")) {
@@ -92,6 +99,17 @@ export async function POST(request: Request) {
   response.cookies.set({
     ...buildSessionCookie(sessionUser),
     secure,
+  });
+
+  after(async () => {
+    try {
+      await ensureAppUserRecord(sessionUser, {
+        markSignedIn: true,
+      });
+      await touchAuthMethod(email, "password");
+    } catch (error) {
+      console.error("Password sign-in bookkeeping failed.", error);
+    }
   });
 
   return response;
