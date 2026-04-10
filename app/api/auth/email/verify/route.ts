@@ -13,7 +13,7 @@ import { buildSessionHandoffUrl } from "@/lib/auth/finalize";
 import { syncAuthMethodOnSignIn } from "@/lib/auth/methods";
 import { normalizeAuthOrigin, readRequestOrigin } from "@/lib/auth/origin";
 import { verifyToken } from "@/lib/auth/token";
-import { ensureWorkspaceAccess } from "@/lib/workspace/bootstrap";
+import { ensureWorkspaceAccessForSignIn } from "@/lib/workspace/bootstrap";
 
 type EmailVerifyPayload = {
   email: string;
@@ -64,7 +64,7 @@ export async function GET(request: Request) {
       email: payload.email,
       method: "email_link",
     });
-    await ensureWorkspaceAccess(sessionUser);
+    await ensureWorkspaceAccessForSignIn(sessionUser);
   } catch (error) {
     if (error instanceof Error && error.message.includes("blocked")) {
       return redirectWithError(payloadOrigin, AUTH_ERROR_ACCOUNT_BLOCKED);

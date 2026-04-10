@@ -14,7 +14,7 @@ import {
   sanitizeReturnTo,
   sanitizeDisplayName,
 } from "@/lib/auth/validation";
-import { ensureWorkspaceAccess } from "@/lib/workspace/bootstrap";
+import { ensureWorkspaceAccessForSignIn } from "@/lib/workspace/bootstrap";
 
 type RequestPayload = {
   email?: string;
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
         email,
         method: "email_link",
       });
-      await ensureWorkspaceAccess(sessionUser);
+      await ensureWorkspaceAccessForSignIn(sessionUser);
     } catch (error) {
       if (error instanceof Error && error.message.includes("blocked")) {
         return NextResponse.json({ error: "This account is blocked." }, { status: 403 });

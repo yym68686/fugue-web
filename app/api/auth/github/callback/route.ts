@@ -22,7 +22,7 @@ import {
 import { normalizeAuthOrigin, readRequestOrigin } from "@/lib/auth/origin";
 import { verifyToken } from "@/lib/auth/token";
 import { normalizeEmail } from "@/lib/auth/validation";
-import { ensureWorkspaceAccess } from "@/lib/workspace/bootstrap";
+import { ensureWorkspaceAccessForSignIn } from "@/lib/workspace/bootstrap";
 
 type StatePayload = {
   exp: number;
@@ -87,7 +87,7 @@ export async function GET(request: Request) {
         providerId: user.id,
         providerLabel: `@${user.login}`,
       });
-      await ensureWorkspaceAccess(sessionUser);
+      await ensureWorkspaceAccessForSignIn(sessionUser);
     } catch (error) {
       if (error instanceof Error && error.message.includes("blocked")) {
         return redirectWithError(stateOrigin, AUTH_ERROR_ACCOUNT_BLOCKED);

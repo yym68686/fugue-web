@@ -38,6 +38,10 @@ const workspaceAccessRequests = new Map<
   }>
 >();
 
+type EnsureWorkspaceAccessOptions = {
+  preferExisting?: boolean;
+};
+
 function slugSeed(value: string) {
   const seed = value
     .toLowerCase()
@@ -412,7 +416,28 @@ async function ensureWorkspaceAccessInternal(session: SessionUser) {
 }
 
 export async function ensureWorkspaceAccess(session: SessionUser) {
+  return ensureWorkspaceAccessWithOptions(session);
+}
+
+async function ensureWorkspaceAccessWithOptions(
+  session: SessionUser,
+  options?: EnsureWorkspaceAccessOptions,
+) {
   const normalizedEmail = normalizeEmail(session.email);
+
+  if (options?.preferExisting) {
+    await ensureAppUser(session);
+
+    const existingAccess = await getWorkspaceAccessByEmail(normalizedEmail);
+
+    if (existingAccess?.adminKeySecret) {
+      return {
+        created: false,
+        workspace: existingAccess,
+      };
+    }
+  }
+
   const pendingRequest = workspaceAccessRequests.get(normalizedEmail);
 
   if (pendingRequest) {
@@ -427,4 +452,10 @@ export async function ensureWorkspaceAccess(session: SessionUser) {
 
   workspaceAccessRequests.set(normalizedEmail, request);
   return request;
+}
+
+export async function ensureWorkspaceAccessForSignIn(session: SessionUser) {
+  return ensureWorkspaceAccessWithOptions(session, {
+    preferExisting: true,
+  });
 }
