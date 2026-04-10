@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
@@ -12,13 +12,39 @@ type PasswordSignInFormProps = {
 
 export function PasswordSignInForm({ returnTo }: PasswordSignInFormProps) {
   const { t } = useI18n();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    const handlePageShow = () => {
+      setIsSubmitting(false);
+    };
+
+    window.addEventListener("pageshow", handlePageShow);
+    return () => {
+      window.removeEventListener("pageshow", handlePageShow);
+    };
+  }, []);
 
   return (
     <form
       className="fg-form-grid"
       action="/api/auth/password/sign-in"
       method="post"
+      onSubmit={(event) => {
+        if (isSubmitting) {
+          event.preventDefault();
+          return;
+        }
+
+        event.preventDefault();
+        setIsSubmitting(true);
+        const form = event.currentTarget;
+
+        requestAnimationFrame(() => {
+          HTMLFormElement.prototype.submit.call(form);
+        });
+      }}
     >
       <input name="returnTo" type="hidden" value={returnTo} />
       <FormField
@@ -62,7 +88,7 @@ export function PasswordSignInForm({ returnTo }: PasswordSignInFormProps) {
         <span>{t("Show password")}</span>
       </label>
 
-      <Button type="submit" variant="primary">
+      <Button loading={isSubmitting} loadingLabel={t("Signing in")} type="submit" variant="primary">
         {t("Sign in with password")}
       </Button>
     </form>
