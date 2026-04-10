@@ -1,96 +1,27 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
-import { useToast } from "@/components/ui/toast";
 import { useI18n } from "@/components/providers/i18n-provider";
 
 type PasswordSignInFormProps = {
   returnTo: string;
 };
 
-type FormState =
-  | { kind: "idle" }
-  | { kind: "error"; message: string };
-
-type ApiPayload = {
-  error?: string;
-  ok?: boolean;
-  redirectTo?: string;
-};
-
 export function PasswordSignInForm({ returnTo }: PasswordSignInFormProps) {
   const { t } = useI18n();
-  const { showToast } = useToast();
-  const [isPending, startTransition] = useTransition();
   const [showPassword, setShowPassword] = useState(false);
-  const [state, setState] = useState<FormState>({ kind: "idle" });
-  const [fieldErrors, setFieldErrors] = useState<{
-    email?: string;
-    password?: string;
-  }>({});
-
-  useEffect(() => {
-    if (state.kind !== "error") {
-      return;
-    }
-
-    showToast({
-      message: state.message,
-      variant: "error",
-    });
-  }, [showToast, state]);
-
-  async function handleSubmit(formData: FormData) {
-    setFieldErrors({});
-    setState({ kind: "idle" });
-
-    const response = await fetch("/api/auth/password/sign-in", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email: formData.get("email"),
-        password: formData.get("password"),
-        returnTo,
-      }),
-    });
-    const payload = (await response.json().catch(() => ({}))) as ApiPayload;
-
-    if (!response.ok) {
-      const message = t(payload.error ?? "Email or password is incorrect.");
-      setFieldErrors({
-        password: message,
-      });
-      setState({
-        kind: "error",
-        message,
-      });
-      return;
-    }
-
-    if (payload.redirectTo) {
-      window.location.assign(payload.redirectTo);
-    }
-  }
 
   return (
     <form
       className="fg-form-grid"
-      onSubmit={(event) => {
-        event.preventDefault();
-        const formData = new FormData(event.currentTarget);
-
-        startTransition(() => {
-          void handleSubmit(formData);
-        });
-      }}
+      action="/api/auth/password/sign-in"
+      method="post"
     >
+      <input name="returnTo" type="hidden" value={returnTo} />
       <FormField
-        error={fieldErrors.email}
         hint={t("Use the same account email shown in Profile.")}
         htmlFor="password-signin-email"
         label={t("Email")}
@@ -108,7 +39,6 @@ export function PasswordSignInForm({ returnTo }: PasswordSignInFormProps) {
       </FormField>
 
       <FormField
-        error={fieldErrors.password}
         hint={t("Use the password saved from the profile page.")}
         htmlFor="password-signin-password"
         label={t("Password")}
@@ -132,7 +62,7 @@ export function PasswordSignInForm({ returnTo }: PasswordSignInFormProps) {
         <span>{t("Show password")}</span>
       </label>
 
-      <Button loading={isPending} loadingLabel={t("Signing in")} type="submit" variant="primary">
+      <Button type="submit" variant="primary">
         {t("Sign in with password")}
       </Button>
     </form>

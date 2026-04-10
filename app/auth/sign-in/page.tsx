@@ -9,6 +9,7 @@ import {
   AUTH_ERROR_ACCOUNT_DELETED,
   AUTH_ERROR_AUTH_REQUIRED,
   AUTH_ERROR_HANDOFF_FAILED,
+  AUTH_ERROR_INVALID_CREDENTIALS,
   AUTH_ERROR_INVALID_TOKEN,
   AUTH_ERROR_OAUTH_DENIED,
   AUTH_ERROR_OAUTH_FAILED,
@@ -56,6 +57,13 @@ function readFlash(
     return {
       message: t("That email link is invalid or expired. Request a fresh one."),
       method: "email_link" as const,
+      variant: "error" as const,
+    };
+  }
+
+  if (error === AUTH_ERROR_INVALID_CREDENTIALS) {
+    return {
+      message: t("Email or password is incorrect."),
       variant: "error" as const,
     };
   }
