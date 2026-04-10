@@ -22,7 +22,10 @@ import type { SessionUser } from "@/lib/auth/session";
 import { getCurrentSession } from "@/lib/auth/session";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { ensureWorkspaceAccess } from "@/lib/workspace/bootstrap";
-import type { WorkspaceAccess } from "@/lib/workspace/store";
+import {
+  getWorkspaceAccessByEmail,
+  type WorkspaceAccess,
+} from "@/lib/workspace/store";
 
 export type DeployWorkspaceInventory = {
   projectInventoryError: string | null;
@@ -48,6 +51,10 @@ function readErrorMessage(error: unknown) {
   return error.message
     .replace(/^Fugue request failed for [^:]+:\s*\d+\s+[A-Za-z ]+\.\s*/i, "")
     .trim();
+}
+
+function isUnauthorizedFugueError(error: unknown) {
+  return error instanceof Error && error.message.includes("401");
 }
 
 async function loadInspection(
@@ -126,14 +133,36 @@ async function loadWorkspaceInventory(
   }
 
   try {
-    const { workspace } = await ensureWorkspaceAccess(session);
-    const [projectsResult, runtimesResult] = await Promise.allSettled([
+    let workspace = await getWorkspaceAccessByEmail(session.email);
+
+    if (!workspace?.adminKeySecret) {
+      const ensured = await ensureWorkspaceAccess(session);
+      workspace = ensured.workspace;
+    }
+
+    const loadInventory = (activeWorkspace: WorkspaceAccess) =>
+      Promise.allSettled([
       getFugueProjects(
-        workspace.adminKeySecret,
-        workspace.tenantId ?? undefined,
+          activeWorkspace.adminKeySecret,
+          activeWorkspace.tenantId ?? undefined,
       ),
-      getFugueRuntimes(workspace.adminKeySecret),
-    ]);
+        getFugueRuntimes(activeWorkspace.adminKeySecret, {
+          syncLocations: false,
+        }),
+      ]);
+
+    let [projectsResult, runtimesResult] = await loadInventory(workspace);
+
+    if (
+      projectsResult.status === "rejected" &&
+      runtimesResult.status === "rejected" &&
+      isUnauthorizedFugueError(projectsResult.reason) &&
+      isUnauthorizedFugueError(runtimesResult.reason)
+    ) {
+      const refreshed = await ensureWorkspaceAccess(session);
+      workspace = refreshed.workspace;
+      [projectsResult, runtimesResult] = await loadInventory(workspace);
+    }
 
     return {
       projectInventoryError:
