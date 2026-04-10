@@ -6,7 +6,7 @@ import {
   readErrorStatus,
 } from "@/lib/fugue/product-route";
 import { getCurrentSession } from "@/lib/auth/session";
-import { ensureWorkspaceAccess } from "@/lib/workspace/bootstrap";
+import { ensureWorkspaceAccessForSignIn } from "@/lib/workspace/bootstrap";
 
 export async function POST() {
   const session = await getCurrentSession();
@@ -16,7 +16,7 @@ export async function POST() {
   }
 
   try {
-    const result = await ensureWorkspaceAccess(session);
+    const result = await ensureWorkspaceAccessForSignIn(session);
     const { adminKeySecret: _adminKeySecret, ...workspace } = result.workspace;
 
     return NextResponse.json({
