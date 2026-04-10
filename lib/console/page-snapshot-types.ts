@@ -54,4 +54,5 @@ export type ConsoleProfileSettingsPageSnapshot = {
 
 export type ConsoleAdminAppsPageSnapshot = AdminAppsPageData;
 export type ConsoleAdminUsersPageSnapshot = AdminUsersPageData;
+export type ConsoleAdminUsersPageEnrichmentSnapshot = AdminUsersPageData;
 export type ConsoleAdminClusterPageSnapshot = AdminClusterPageData;

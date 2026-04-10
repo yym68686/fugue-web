@@ -5,6 +5,7 @@ import { startTransition, useEffect, useState } from "react";
 import type {
   ConsoleAdminAppsPageSnapshot,
   ConsoleAdminClusterPageSnapshot,
+  ConsoleAdminUsersPageEnrichmentSnapshot,
   ConsoleAdminUsersPageSnapshot,
   ConsoleApiKeysPageSnapshot,
   ConsoleBillingPageSnapshot,
@@ -52,6 +53,8 @@ export const CONSOLE_ADMIN_APPS_PAGE_SNAPSHOT_URL =
   "/api/fugue/admin/pages/apps";
 export const CONSOLE_ADMIN_USERS_PAGE_SNAPSHOT_URL =
   "/api/fugue/admin/pages/users";
+export const CONSOLE_ADMIN_USERS_PAGE_ENRICHMENT_SNAPSHOT_URL =
+  "/api/fugue/admin/pages/users/enrich";
 export const CONSOLE_ADMIN_CLUSTER_PAGE_SNAPSHOT_URL =
   "/api/fugue/admin/pages/cluster";
 
@@ -63,7 +66,10 @@ const CONSOLE_ROUTE_SNAPSHOT_URLS: Record<string, string[]> = {
   "/app/cluster-nodes": [CONSOLE_CLUSTER_NODES_PAGE_SNAPSHOT_URL],
   "/app/settings": [CONSOLE_PROFILE_SETTINGS_PAGE_SNAPSHOT_URL],
   "/app/settings/profile": [CONSOLE_PROFILE_SETTINGS_PAGE_SNAPSHOT_URL],
-  "/app/users": [CONSOLE_ADMIN_USERS_PAGE_SNAPSHOT_URL],
+  "/app/users": [
+    CONSOLE_ADMIN_USERS_PAGE_SNAPSHOT_URL,
+    CONSOLE_ADMIN_USERS_PAGE_ENRICHMENT_SNAPSHOT_URL,
+  ],
 };
 
 function mergeSnapshotValue(key: string, previous: unknown, next: unknown) {
@@ -395,6 +401,7 @@ export function useConsolePageSnapshot<T>(
 export type {
   ConsoleAdminAppsPageSnapshot,
   ConsoleAdminClusterPageSnapshot,
+  ConsoleAdminUsersPageEnrichmentSnapshot,
   ConsoleAdminUsersPageSnapshot,
   ConsoleApiKeysPageSnapshot,
   ConsoleBillingPageSnapshot,

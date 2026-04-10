@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { requireAdminApiSession } from "@/lib/admin/auth";
 import {
+  invalidateAdminUsersPageEnrichmentData,
   setAdminUserBillingBalanceForEmail,
   updateAdminUserBillingForEmail,
 } from "@/lib/admin/service";
@@ -95,6 +96,7 @@ export async function PATCH(request: Request, context: RouteContext) {
           note: readOptionalString(body, "note") || undefined,
         });
 
+    invalidateAdminUsersPageEnrichmentData();
     return NextResponse.json({ billing });
   } catch (error) {
     return jsonError(readErrorStatus(error), readErrorMessage(error));

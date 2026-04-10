@@ -35,6 +35,7 @@ type AdminUserBillingView = {
   cpuMillicores: number | null;
   limitLabel: string;
   loadError: string | null;
+  loading: boolean;
   memoryMebibytes: number | null;
   monthlyEstimateLabel: string | null;
   priceBook: {
@@ -75,6 +76,7 @@ type AdminUserServiceUsageView = {
   cpuLabel: string;
   diskLabel: string;
   imageLabel: string;
+  loading: boolean;
   memoryLabel: string;
   serviceCount: number;
   serviceCountLabel: string;
@@ -333,6 +335,7 @@ function canEditQuota(user: AdminUserView) {
       user.billing.cpuMillicores !== null &&
       user.billing.memoryMebibytes !== null &&
       user.billing.storageGibibytes !== null &&
+      !user.billing.loading &&
       !user.billing.loadError,
   );
 }
@@ -893,36 +896,51 @@ export function AdminUserManager({
                   busyAction !== `quota:${user.email}` &&
                   busyAction !== `balance:${user.email}`,
               );
+              const billingPending = user.billing.loading;
+              const usagePending = user.usage.loading;
               const billingCpuLabel =
-                user.billing.cpuMillicores !== null
+                billingPending
+                  ? t("Loading…")
+                  : user.billing.cpuMillicores !== null
                   ? formatCPU(user.billing.cpuMillicores)
                   : t("No stats");
               const billingMemoryLabel =
-                user.billing.memoryMebibytes !== null
+                billingPending
+                  ? t("Loading…")
+                  : user.billing.memoryMebibytes !== null
                   ? formatMemory(user.billing.memoryMebibytes)
                   : t("No stats");
               const billingStorageLabel =
-                user.billing.storageGibibytes !== null
+                billingPending
+                  ? t("Loading…")
+                  : user.billing.storageGibibytes !== null
                   ? formatStorage(user.billing.storageGibibytes)
                   : t("No stats");
-              const billingMonthlyLabel = user.billing.monthlyEstimateLabel
-                ? t("{value}/mo", { value: user.billing.monthlyEstimateLabel })
-                : user.billing.loadError
+              const billingMonthlyLabel = billingPending
+                ? t("Loading…")
+                : user.billing.monthlyEstimateLabel
+                  ? t("{value}/mo", { value: user.billing.monthlyEstimateLabel })
+                  : user.billing.loadError
                   ? t("Unavailable")
                   : t("No estimate");
-              const billingStatusLabel = user.billing.statusLabel
+              const billingStatusLabel = billingPending
+                ? t("Loading billing")
+                : user.billing.statusLabel
                 ? t(user.billing.statusLabel)
                 : user.billing.loadError
                   ? t("Unavailable")
                   : t("No billing");
-              const balanceValueLabel =
-                user.billing.balanceLabel ??
+              const balanceValueLabel = billingPending
+                ? t("Loading…")
+                : user.billing.balanceLabel ??
                 (user.billing.loadError
                   ? t("Unavailable")
                   : user.billing.tenantId
                     ? t("No balance")
                     : t("No workspace"));
-              const balanceMetaLabel = user.billing.statusLabel
+              const balanceMetaLabel = billingPending
+                ? t("Fetching billing")
+                : user.billing.statusLabel
                 ? t(user.billing.statusLabel)
                 : user.billing.loadError
                   ? t("Billing unavailable")
@@ -932,13 +950,25 @@ export function AdminUserManager({
               const localizedLimitLabel = readLocalizedUsageValue(user.billing.limitLabel, t);
               const localizedLoadError = user.billing.loadError ? t(user.billing.loadError) : null;
               const localizedUsageServiceCount = readLocalizedUsageValue(
-                user.usage.serviceCountLabel,
+                usagePending ? t("Loading…") : user.usage.serviceCountLabel,
                 t,
               );
-              const localizedUsageCpu = readLocalizedUsageValue(user.usage.cpuLabel, t);
-              const localizedUsageMemory = readLocalizedUsageValue(user.usage.memoryLabel, t);
-              const localizedUsageDisk = readLocalizedUsageValue(user.usage.diskLabel, t);
-              const localizedUsageImage = readLocalizedUsageValue(user.usage.imageLabel, t);
+              const localizedUsageCpu = readLocalizedUsageValue(
+                usagePending ? t("Loading…") : user.usage.cpuLabel,
+                t,
+              );
+              const localizedUsageMemory = readLocalizedUsageValue(
+                usagePending ? t("Loading…") : user.usage.memoryLabel,
+                t,
+              );
+              const localizedUsageDisk = readLocalizedUsageValue(
+                usagePending ? t("Loading…") : user.usage.diskLabel,
+                t,
+              );
+              const localizedUsageImage = readLocalizedUsageValue(
+                usagePending ? t("Loading…") : user.usage.imageLabel,
+                t,
+              );
               const managedLimitSummaryLabel = [
                 t("CPU {value}", { value: billingCpuLabel }),
                 t("Memory {value}", { value: billingMemoryLabel }),
@@ -964,7 +994,11 @@ export function AdminUserManager({
               ]
                 .filter(Boolean)
                 .join(" / ");
-              const balanceStatusContent = user.billing.statusLabel ? (
+              const balanceStatusContent = billingPending ? (
+                <span className="fg-admin-user-signal__fallback">
+                  {t("Fetching billing")}
+                </span>
+              ) : user.billing.statusLabel ? (
                 <StatusBadge className="fg-admin-user-signal-badge" tone={user.billing.statusTone}>
                   {t(user.billing.statusLabel)}
                 </StatusBadge>

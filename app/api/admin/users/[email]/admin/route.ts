@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { requireAdminApiSession } from "@/lib/admin/auth";
+import { invalidateAdminUsersPageEnrichmentData } from "@/lib/admin/service";
 import { setAppUserAdmin } from "@/lib/app-users/store";
 import {
   jsonError,
@@ -23,6 +24,7 @@ export async function POST(_request: Request, context: RouteContext) {
     const email = await readRouteParam(context, "email");
     const user = await setAppUserAdmin(email, true);
 
+    invalidateAdminUsersPageEnrichmentData();
     return NextResponse.json({
       user,
     });
@@ -42,6 +44,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
     const email = await readRouteParam(context, "email");
     const user = await setAppUserAdmin(email, false);
 
+    invalidateAdminUsersPageEnrichmentData();
     return NextResponse.json({
       user,
     });

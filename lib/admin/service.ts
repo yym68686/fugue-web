@@ -107,6 +107,7 @@ export type AdminUserBillingView = {
   cpuMillicores: number | null;
   limitLabel: string;
   loadError: string | null;
+  loading: boolean;
   memoryMebibytes: number | null;
   monthlyEstimateLabel: string | null;
   priceBook: FugueBillingPriceBook | null;
@@ -121,12 +122,14 @@ export type AdminUserServiceUsageView = {
   cpuLabel: string;
   diskLabel: string;
   imageLabel: string;
+  loading: boolean;
   memoryLabel: string;
   serviceCount: number;
   serviceCountLabel: string;
 };
 
 export type AdminUsersPageData = {
+  enrichmentState: "pending" | "ready";
   errors: string[];
   summary: {
     adminCount: number;
@@ -136,6 +139,25 @@ export type AdminUsersPageData = {
   };
   users: AdminUserView[];
 };
+
+type AdminUsersBaseData = {
+  errors: string[];
+  users: AppUserRecord[];
+  workspaces: WorkspaceSnapshot[];
+};
+
+type AdminUsersEnrichmentLookup = {
+  appImageUsage: AdminAppImageUsageLookup;
+  apps: FugueApp[];
+  billingByTenant: Map<string, AdminTenantBillingLookup>;
+  loaded: boolean;
+};
+
+const ADMIN_USERS_ENRICHMENT_CACHE_TTL_MS = 15_000;
+
+let cachedAdminUsersEnrichmentData: AdminUsersPageData | null = null;
+let cachedAdminUsersEnrichmentAt = 0;
+let adminUsersEnrichmentRequest: Promise<AdminUsersPageData> | null = null;
 
 export type AdminClusterConditionView = {
   detailLabel: string;
@@ -733,9 +755,7 @@ async function getClusterProjects(
 function buildUserViews(
   users: AppUserRecord[],
   workspaces: WorkspaceSnapshot[],
-  apps: FugueApp[],
-  billingByTenant: Map<string, AdminTenantBillingLookup>,
-  appImageUsage: AdminAppImageUsageLookup,
+  enrichment: AdminUsersEnrichmentLookup,
 ) {
   let bootstrapAdminEmail: string | null = null;
   let bootstrapAdminCreatedAt = Number.POSITIVE_INFINITY;
@@ -760,21 +780,28 @@ function buildUserViews(
   const workspaceByEmail = new Map(
     workspaces.map((workspace) => [workspace.email, workspace] as const),
   );
-  const tenantServiceUsageByTenant = buildAdminTenantServiceUsageLookup(
-    apps,
-    appImageUsage,
-  );
+  const tenantServiceUsageByTenant = enrichment.loaded
+    ? buildAdminTenantServiceUsageLookup(
+        enrichment.apps,
+        enrichment.appImageUsage,
+      )
+    : new Map<string, AdminTenantServiceUsageSummary>();
 
   return users.map((user) => {
     const workspace = workspaceByEmail.get(user.email);
-    const billing = workspace?.tenantId ? billingByTenant.get(workspace.tenantId) : undefined;
+    const billing =
+      enrichment.loaded && workspace?.tenantId
+        ? enrichment.billingByTenant.get(workspace.tenantId)
+        : undefined;
     const tenantServiceUsage = workspace?.tenantId
       ? tenantServiceUsageByTenant.get(workspace.tenantId)
       : undefined;
-    const serviceCount = tenantServiceUsage?.serviceCount ?? 0;
+    const serviceCount =
+      enrichment.loaded && tenantServiceUsage ? tenantServiceUsage.serviceCount : 0;
+    const hasWorkspace = Boolean(workspace?.tenantId);
 
     return {
-      billing: buildAdminUserBillingView(workspace, billing),
+      billing: buildAdminUserBillingView(workspace, billing, enrichment.loaded),
       canBlock: !user.isAdmin && user.status === "active",
       canDemoteAdmin:
         user.isAdmin &&
@@ -794,7 +821,8 @@ function buildUserViews(
       statusTone: toneForStatus(user.status),
       usage: buildAdminUserServiceUsageView(
         tenantServiceUsage,
-        appImageUsage.loaded,
+        enrichment.appImageUsage.loaded,
+        hasWorkspace && !enrichment.loaded,
       ),
       verified: user.verified,
     } satisfies AdminUserView;
@@ -803,6 +831,75 @@ function buildUserViews(
 
 function formatCountLabel(count: number, singular: string, plural = `${singular}s`) {
   return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function hasFreshAdminUsersEnrichmentData() {
+  return (
+    cachedAdminUsersEnrichmentData !== null &&
+    Date.now() - cachedAdminUsersEnrichmentAt < ADMIN_USERS_ENRICHMENT_CACHE_TTL_MS
+  );
+}
+
+function createPendingAdminUsersEnrichmentLookup(): AdminUsersEnrichmentLookup {
+  return {
+    appImageUsage: createAdminAppImageUsageLookup(null),
+    apps: [],
+    billingByTenant: new Map<string, AdminTenantBillingLookup>(),
+    loaded: false,
+  };
+}
+
+function buildAdminUsersSummary(
+  users: AdminUserView[],
+): AdminUsersPageData["summary"] {
+  return {
+    adminCount: users.filter((user) => user.isAdmin).length,
+    blockedCount: users.filter((user) => user.status.trim().toLowerCase() === "blocked").length,
+    deletedCount: users.filter((user) => user.status.trim().toLowerCase() === "deleted").length,
+    userCount: users.length,
+  };
+}
+
+function buildAdminUsersPageData(
+  base: AdminUsersBaseData,
+  enrichment: AdminUsersEnrichmentLookup,
+  errors: string[],
+  enrichmentState: AdminUsersPageData["enrichmentState"],
+): AdminUsersPageData {
+  const users = buildUserViews(
+    base.users,
+    base.workspaces,
+    enrichment,
+  );
+
+  return {
+    enrichmentState,
+    errors,
+    summary: buildAdminUsersSummary(users),
+    users,
+  };
+}
+
+async function loadAdminUsersBaseData(): Promise<AdminUsersBaseData> {
+  const [usersResult, workspacesResult] = await Promise.allSettled([
+    listAppUsers(),
+    listWorkspaceSnapshots(),
+  ]);
+
+  const users = usersResult.status === "fulfilled" ? usersResult.value : [];
+  const workspaces = workspacesResult.status === "fulfilled" ? workspacesResult.value : [];
+  const errors = [
+    usersResult.status === "rejected" ? `users: ${readErrorMessage(usersResult.reason)}` : null,
+    workspacesResult.status === "rejected"
+      ? `workspaces: ${readErrorMessage(workspacesResult.reason)}`
+      : null,
+  ].filter((value): value is string => Boolean(value));
+
+  return {
+    errors,
+    users,
+    workspaces,
+  };
 }
 
 type AdminTenantBillingLookup = {
@@ -880,6 +977,7 @@ function readBillingStatusTone(billing: FugueBillingSummary): ConsoleTone {
 function buildAdminUserBillingView(
   workspace: WorkspaceSnapshot | undefined,
   billingLookup: AdminTenantBillingLookup | undefined,
+  loaded: boolean,
 ): AdminUserBillingView {
   if (!workspace?.tenantId) {
     return {
@@ -889,6 +987,7 @@ function buildAdminUserBillingView(
       cpuMillicores: null,
       limitLabel: "No workspace",
       loadError: null,
+      loading: false,
       memoryMebibytes: null,
       monthlyEstimateLabel: null,
       priceBook: null,
@@ -900,6 +999,26 @@ function buildAdminUserBillingView(
     };
   }
 
+  if (!loaded) {
+    return {
+      balanceLabel: null,
+      balanceMicroCents: null,
+      committedStorageGibibytes: null,
+      cpuMillicores: null,
+      limitLabel: "Loading billing…",
+      loadError: null,
+      loading: true,
+      memoryMebibytes: null,
+      monthlyEstimateLabel: null,
+      priceBook: null,
+      storageGibibytes: null,
+      statusLabel: null,
+      statusReason: null,
+      statusTone: "neutral",
+      tenantId: workspace.tenantId,
+    };
+  }
+
   if (!billingLookup?.billing) {
     return {
       balanceLabel: null,
@@ -908,6 +1027,7 @@ function buildAdminUserBillingView(
       cpuMillicores: null,
       limitLabel: "Billing unavailable",
       loadError: billingLookup?.error ?? "Fugue billing is unavailable for this workspace.",
+      loading: false,
       memoryMebibytes: null,
       monthlyEstimateLabel: null,
       priceBook: null,
@@ -931,6 +1051,7 @@ function buildAdminUserBillingView(
     cpuMillicores: billing.managedCap.cpuMillicores,
     limitLabel: formatBillingResourceSpec(billing.managedCap),
     loadError: null,
+    loading: false,
     memoryMebibytes: billing.managedCap.memoryMebibytes,
     monthlyEstimateLabel: formatCurrencyFromMicroCents(
       billing.monthlyEstimateMicroCents,
@@ -1144,7 +1265,20 @@ function buildAdminTenantServiceUsageLookup(
 function buildAdminUserServiceUsageView(
   summary: AdminTenantServiceUsageSummary | undefined,
   imageUsageLoaded: boolean,
+  loading: boolean,
 ): AdminUserServiceUsageView {
+  if (loading) {
+    return {
+      cpuLabel: "Loading…",
+      diskLabel: "Loading…",
+      imageLabel: "Loading…",
+      loading: true,
+      memoryLabel: "Loading…",
+      serviceCount: 0,
+      serviceCountLabel: "Loading…",
+    };
+  }
+
   const serviceCount = summary?.serviceCount ?? 0;
 
   return {
@@ -1155,6 +1289,7 @@ function buildAdminUserServiceUsageView(
         ? formatBytesLabel(summary.imageBytes)
         : "No images"
       : "No stats",
+    loading: false,
     memoryLabel: formatBytesLabel(summary?.memoryBytes),
     serviceCount,
     serviceCountLabel: formatCountLabel(serviceCount, "service"),
@@ -1768,74 +1903,120 @@ async function getAdminUserBillingLookup(
 }
 
 export async function getAdminUsersPageData(): Promise<AdminUsersPageData> {
-  const [usersResult, workspacesResult] = await Promise.allSettled([
-    listAppUsers(),
-    listWorkspaceSnapshots(),
-  ]);
+  const base = await loadAdminUsersBaseData();
 
-  const users = usersResult.status === "fulfilled" ? usersResult.value : [];
-  const workspaces = workspacesResult.status === "fulfilled" ? workspacesResult.value : [];
-  const errors = [
-    usersResult.status === "rejected" ? `users: ${readErrorMessage(usersResult.reason)}` : null,
-    workspacesResult.status === "rejected"
-      ? `workspaces: ${readErrorMessage(workspacesResult.reason)}`
-      : null,
-  ].filter((value): value is string => Boolean(value));
+  return buildAdminUsersPageData(
+    base,
+    createPendingAdminUsersEnrichmentLookup(),
+    base.errors,
+    "pending",
+  );
+}
+
+async function loadAdminUsersEnrichmentLookup(
+  users: AppUserRecord[],
+  workspaces: WorkspaceSnapshot[],
+): Promise<{
+  errors: string[];
+  lookup: AdminUsersEnrichmentLookup;
+}> {
+  const errors: string[] = [];
+
+  let bootstrapKey: string;
+  try {
+    bootstrapKey = getFugueEnv().bootstrapKey;
+  } catch (error) {
+    errors.push(readErrorMessage(error));
+    return {
+      errors,
+      lookup: {
+        appImageUsage: createAdminAppImageUsageLookup(null),
+        apps: [],
+        billingByTenant: new Map<string, AdminTenantBillingLookup>(),
+        loaded: true,
+      },
+    };
+  }
+
+  const userEmails = new Set(users.map((user) => user.email));
+  const billingWorkspaces = workspaces.filter((workspace) => userEmails.has(workspace.email));
+  const [appsResult, billingResult, projectImageUsageResult] = await Promise.allSettled([
+    getFugueApps(bootstrapKey),
+    getAdminUserBillingLookup(bootstrapKey, billingWorkspaces),
+    getFugueProjectImageUsage(bootstrapKey),
+  ]);
 
   let apps: FugueApp[] = [];
   let billingByTenant = new Map<string, AdminTenantBillingLookup>();
   let appImageUsage = createAdminAppImageUsageLookup(null);
 
-  try {
-    const bootstrapKey = getFugueEnv().bootstrapKey;
-    const userEmails = new Set(users.map((user) => user.email));
-    const billingWorkspaces = workspaces.filter((workspace) => userEmails.has(workspace.email));
-    const [appsResult, billingResult, projectImageUsageResult] = await Promise.allSettled([
-      getFugueApps(bootstrapKey),
-      getAdminUserBillingLookup(bootstrapKey, billingWorkspaces),
-      getFugueProjectImageUsage(bootstrapKey),
-    ]);
-
-    if (appsResult.status === "fulfilled") {
-      apps = appsResult.value;
-    } else {
-      errors.push(`apps: ${readErrorMessage(appsResult.reason)}`);
-    }
-
-    if (billingResult.status === "fulfilled") {
-      billingByTenant = billingResult.value.byTenant;
-      errors.push(...billingResult.value.errors);
-    } else {
-      errors.push(`billing: ${readErrorMessage(billingResult.reason)}`);
-    }
-
-    if (projectImageUsageResult.status === "fulfilled") {
-      appImageUsage = createAdminAppImageUsageLookup(projectImageUsageResult.value);
-    } else {
-      errors.push(`project image usage: ${readErrorMessage(projectImageUsageResult.reason)}`);
-    }
-  } catch (error) {
-    errors.push(readErrorMessage(error));
+  if (appsResult.status === "fulfilled") {
+    apps = appsResult.value;
+  } else {
+    errors.push(`apps: ${readErrorMessage(appsResult.reason)}`);
   }
 
-  const views = buildUserViews(
-    users,
-    workspaces,
-    apps,
-    billingByTenant,
-    appImageUsage,
-  );
+  if (billingResult.status === "fulfilled") {
+    billingByTenant = billingResult.value.byTenant;
+    errors.push(...billingResult.value.errors);
+  } else {
+    errors.push(`billing: ${readErrorMessage(billingResult.reason)}`);
+  }
+
+  if (projectImageUsageResult.status === "fulfilled") {
+    appImageUsage = createAdminAppImageUsageLookup(projectImageUsageResult.value);
+  } else {
+    errors.push(`project image usage: ${readErrorMessage(projectImageUsageResult.reason)}`);
+  }
 
   return {
     errors,
-    summary: {
-      adminCount: views.filter((user) => user.isAdmin).length,
-      blockedCount: views.filter((user) => user.status === "blocked").length,
-      deletedCount: views.filter((user) => user.status === "deleted").length,
-      userCount: views.length,
+    lookup: {
+      appImageUsage,
+      apps,
+      billingByTenant,
+      loaded: true,
     },
-    users: views,
   };
+}
+
+export async function getAdminUsersPageEnrichmentData(): Promise<AdminUsersPageData> {
+  if (hasFreshAdminUsersEnrichmentData() && cachedAdminUsersEnrichmentData) {
+    return cachedAdminUsersEnrichmentData;
+  }
+
+  if (adminUsersEnrichmentRequest) {
+    return adminUsersEnrichmentRequest;
+  }
+
+  let request: Promise<AdminUsersPageData>;
+  request = (async () => {
+    const base = await loadAdminUsersBaseData();
+    const enrichment = await loadAdminUsersEnrichmentLookup(base.users, base.workspaces);
+    const data = buildAdminUsersPageData(
+      base,
+      enrichment.lookup,
+      [...base.errors, ...enrichment.errors],
+      "ready",
+    );
+
+    cachedAdminUsersEnrichmentData = data;
+    cachedAdminUsersEnrichmentAt = Date.now();
+    return data;
+  })().finally(() => {
+    if (adminUsersEnrichmentRequest === request) {
+      adminUsersEnrichmentRequest = null;
+    }
+  });
+
+  adminUsersEnrichmentRequest = request;
+  return request;
+}
+
+export function invalidateAdminUsersPageEnrichmentData() {
+  cachedAdminUsersEnrichmentData = null;
+  cachedAdminUsersEnrichmentAt = 0;
+  adminUsersEnrichmentRequest = null;
 }
 
 export async function updateAdminUserBillingForEmail(
@@ -1855,13 +2036,16 @@ export async function updateAdminUserBillingForEmail(
     payload.managedCap.storageGibibytes ??
     (await getFugueBillingSummary(accessToken, workspace.tenantId)).managedCap.storageGibibytes;
 
-  return updateFugueBilling(accessToken, {
+  const billing = await updateFugueBilling(accessToken, {
     managedCap: {
       ...payload.managedCap,
       storageGibibytes,
     },
     tenantId: workspace.tenantId,
   });
+
+  invalidateAdminUsersPageEnrichmentData();
+  return billing;
 }
 
 export async function setAdminUserBillingBalanceForEmail(
@@ -1877,11 +2061,14 @@ export async function setAdminUserBillingBalanceForEmail(
     throw new Error("404 User has no workspace.");
   }
 
-  return setFugueBillingBalance(getFugueEnv().bootstrapKey, {
+  const billing = await setFugueBillingBalance(getFugueEnv().bootstrapKey, {
     balanceCents: payload.balanceCents,
     note: payload.note,
     tenantId: workspace.tenantId,
   });
+
+  invalidateAdminUsersPageEnrichmentData();
+  return billing;
 }
 
 function buildControlPlaneComponentView(
