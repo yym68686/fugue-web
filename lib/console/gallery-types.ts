@@ -100,6 +100,7 @@ export type ConsoleGalleryAppView = {
   networkMode: string | null;
   phase: string;
   phaseTone: ConsoleTone;
+  preferredLogsMode: "build" | "runtime";
   primaryBadge: ConsoleGalleryBadgeView;
   replicaCount: number | null;
   startupCommand: string | null;

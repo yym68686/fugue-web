@@ -1569,7 +1569,9 @@ function readServiceDefaultTab(
     return "settings";
   }
 
-  return service.serviceRole === "pending" ? "logs" : "env";
+  return service.serviceRole === "pending" || isFailedAppService(service)
+    ? "logs"
+    : "env";
 }
 
 function readServiceDefaultLogsMode(
@@ -1577,18 +1579,49 @@ function readServiceDefaultLogsMode(
   services: ConsoleGalleryProjectView["services"],
 ): LogsView {
   const preferredMode =
-    service?.kind === "app" &&
-    includesLifecycleKeyword(service.phase, ["error", "fail", "stopped"])
-      ? "runtime"
-      : service?.kind === "app"
-        ? "build"
-        : "runtime";
+    service?.kind === "app" ? service.preferredLogsMode : "runtime";
 
   return normalizeLogsModeForService(
     service,
     services,
     preferredMode,
   );
+}
+
+function usePreferredLogsModeSync(
+  service: ConsoleGalleryServiceView | null,
+  preferredLogsMode: LogsView,
+  logsMode: LogsView,
+  setLogsMode: (nextMode: LogsView) => void,
+) {
+  const previousSelectionRef = useRef<{
+    preferredLogsMode: LogsView | null;
+    serviceKey: string | null;
+  }>({
+    preferredLogsMode: null,
+    serviceKey: null,
+  });
+
+  useEffect(() => {
+    const nextServiceKey = service ? serviceKey(service) : null;
+    const previous = previousSelectionRef.current;
+    const serviceChanged = previous.serviceKey !== nextServiceKey;
+    const preferredModeChanged =
+      previous.preferredLogsMode !== preferredLogsMode;
+
+    previousSelectionRef.current = {
+      preferredLogsMode,
+      serviceKey: nextServiceKey,
+    };
+
+    if (
+      logsMode !== preferredLogsMode &&
+      (serviceChanged ||
+        (preferredModeChanged && logsMode === previous.preferredLogsMode))
+    ) {
+      setLogsMode(preferredLogsMode);
+    }
+  }, [logsMode, preferredLogsMode, service, setLogsMode]);
 }
 
 function rowsFromEnv(env: Record<string, string>) {
@@ -3564,6 +3597,16 @@ export function ConsoleProjectGallery({
   const selectedServiceLogViewOptions = readServiceLogViewOptions(
     selectedService,
     selectedProjectServices,
+  );
+  const preferredLogsMode = readServiceDefaultLogsMode(
+    selectedService,
+    selectedProjectServices,
+  );
+  usePreferredLogsModeSync(
+    selectedService,
+    preferredLogsMode,
+    logsMode,
+    setLogsMode,
   );
   const effectiveLogsMode = normalizeLogsModeForService(
     selectedService,
@@ -5914,6 +5957,16 @@ export function ConsoleProjectWorkbench({
   const selectedServiceLogViewOptions = readServiceLogViewOptions(
     selectedService,
     detailProjectServices,
+  );
+  const preferredLogsMode = readServiceDefaultLogsMode(
+    selectedService,
+    detailProjectServices,
+  );
+  usePreferredLogsModeSync(
+    selectedService,
+    preferredLogsMode,
+    logsMode,
+    setLogsMode,
   );
   const effectiveLogsMode = normalizeLogsModeForService(
     selectedService,

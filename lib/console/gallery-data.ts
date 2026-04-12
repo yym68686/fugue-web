@@ -850,17 +850,13 @@ function findBuildLogsOperationForCommit(
     return (
       readActiveMatch(buildMatches) ??
       buildMatches[0] ??
-      readActiveMatch(releaseMatches) ??
-      releaseMatches[0] ??
       null
     );
   }
 
   return (
     readTerminalMatch(buildMatches) ??
-    readTerminalMatch(releaseMatches) ??
     buildMatches[0] ??
-    releaseMatches[0] ??
     null
   );
 }
@@ -892,6 +888,7 @@ function readRunningBuildLogsOperation(
     const matchingLastOperation = releaseOperations.find(
       (operation) =>
         operation.id === lastOperationId &&
+        isBuildLogsOperationCandidate(operation) &&
         !isActiveOperation(operation.status),
     );
 
@@ -905,9 +902,6 @@ function readRunningBuildLogsOperation(
       (operation) =>
         isBuildLogsOperationCandidate(operation) &&
         !isActiveOperation(operation.status),
-    ) ??
-    releaseOperations.find(
-      (operation) => !isActiveOperation(operation.status),
     ) ??
     null
   );
@@ -944,11 +938,119 @@ function readPendingBuildLogsOperation(
         isBuildLogsOperationCandidate(operation) &&
         isActiveOperation(operation.status),
     ) ??
-    releaseOperations.find((operation) =>
-      isActiveOperation(operation.status),
+    releaseOperations.find(
+      (operation) =>
+        isBuildLogsOperationCandidate(operation) &&
+        !isActiveOperation(operation.status),
     ) ??
     null
   );
+}
+
+type ReleaseFailureSummary = {
+  logsMode: "build" | "runtime" | null;
+  message: string | null;
+  operation: FugueOperation;
+};
+
+const runtimeReleaseFailurePattern =
+  /\b(pod|container|crashloopbackoff|oomkilled|exit_code|runcontainer|createcontainer|errimagepull|imagepullbackoff|readiness probe|liveness probe|startup probe)\b/i;
+
+const releaseFailurePrefixPatterns = [
+  /^wait for managed app rollout [^:]+:\s*/i,
+  /^managed app [^:]+ rollout failed:\s*/i,
+  /^wait for deployment rollout [^:]+:\s*/i,
+  /^deployment [^:]+ rollout failed:\s*/i,
+  /^wait for builder job [^:]+:\s*/i,
+  /^build job [^:]+ failed:\s*/i,
+];
+
+function readLatestFailedReleaseOperation(
+  commitOperations?: AppCommitOperations,
+) {
+  return (
+    commitOperations?.releases.find((operation) => {
+      const normalizedStatus = readNormalizedOperationStatus(operation);
+      return (
+        !isActiveOperation(operation.status) &&
+        (normalizedStatus.includes("failed") ||
+          Boolean(operation.errorMessage?.trim()))
+      );
+    }) ?? null
+  );
+}
+
+function classifyReleaseFailureLogsMode(
+  operation?: FugueOperation | null,
+): "build" | "runtime" | null {
+  const normalizedType = readNormalizedOperationType(operation);
+  const normalizedStatus = readNormalizedOperationStatus(operation);
+
+  if (
+    normalizedType === "import" ||
+    normalizedType === "build" ||
+    normalizedStatus.includes("import") ||
+    normalizedStatus.includes("build")
+  ) {
+    return "build";
+  }
+
+  if (
+    (normalizedType === "deploy" ||
+      normalizedType === "migrate" ||
+      normalizedType === "failover" ||
+      normalizedStatus.includes("deploy") ||
+      normalizedStatus.includes("migrat") ||
+      normalizedStatus.includes("failover") ||
+      normalizedStatus.includes("failing-over")) &&
+    runtimeReleaseFailurePattern.test(
+      `${operation?.errorMessage ?? ""} ${operation?.resultMessage ?? ""}`,
+    )
+  ) {
+    return "runtime";
+  }
+
+  return null;
+}
+
+function stripReleaseFailurePrefixes(value?: string | null) {
+  let message = normalizeServiceMessage(value);
+
+  if (!message) {
+    return null;
+  }
+
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const pattern of releaseFailurePrefixPatterns) {
+      const next = message.replace(pattern, "").trim();
+      if (next !== message) {
+        message = next;
+        changed = true;
+      }
+    }
+  }
+
+  return normalizeServiceMessage(message);
+}
+
+function readReleaseFailureSummary(
+  commitOperations?: AppCommitOperations,
+): ReleaseFailureSummary | null {
+  const operation = readLatestFailedReleaseOperation(commitOperations);
+
+  if (!operation) {
+    return null;
+  }
+
+  return {
+    logsMode: classifyReleaseFailureLogsMode(operation),
+    message: stripReleaseFailurePrefixes(
+      operation.errorMessage?.trim() || operation.resultMessage?.trim(),
+    ),
+    operation,
+  };
 }
 
 function isDatabaseContinuityOnlyDeployOperation(
@@ -1091,6 +1193,7 @@ function readActiveReleaseOperation(
 
 function readRunningServiceMessage(
   app: FugueApp,
+  commitOperations?: AppCommitOperations,
   activeOperation?: FugueOperation | null,
 ) {
   if (activeOperation) {
@@ -1112,6 +1215,14 @@ function readRunningServiceMessage(
     }
 
     return "Serving the current release while the next release builds.";
+  }
+
+  const failureSummary = isTerminalAppFailurePhase(app.status.phase)
+    ? readReleaseFailureSummary(commitOperations)
+    : null;
+
+  if (failureSummary?.message) {
+    return failureSummary.message;
   }
 
   return normalizeServiceMessage(app.status.lastMessage);
@@ -1972,6 +2083,7 @@ function buildSharedAppView(
     | "lastMessage"
     | "phase"
     | "phaseTone"
+    | "preferredLogsMode"
     | "serviceDurationLabel"
     | "serviceRole"
   >;
@@ -2026,6 +2138,9 @@ function buildAppView(
     fallbackPhase,
     activeOperation,
   );
+  const runningFailureSummary = isTerminalAppFailurePhase(app.status.phase)
+    ? readReleaseFailureSummary(commitOperations)
+    : null;
   const pendingRuntimeId =
     activeOperation && isTransferOperation(activeOperation)
       ? activeOperation.targetRuntimeId?.trim() || null
@@ -2058,9 +2173,10 @@ function buildAppView(
           lastMessage:
             continuityOnlyDeploy && hasLiveRelease(app)
               ? "Current release is serving traffic."
-              : readRunningServiceMessage(app, activeOperation),
+              : readRunningServiceMessage(app, commitOperations, activeOperation),
           phase: runningReleaseStatus.phase,
           phaseTone: runningReleaseStatus.tone,
+          preferredLogsMode: runningFailureSummary?.logsMode ?? "build",
           serviceDurationLabel: null,
           serviceRole: "running",
         } satisfies ConsoleGalleryAppView)
@@ -2079,6 +2195,7 @@ function buildAppView(
           lastMessage: readPendingServiceMessage(app, activeOperation),
           phase: activePhase.stateLabel,
           phaseTone: activePhase.tone,
+          preferredLogsMode: "build",
           serviceDurationLabel: formatElapsedDuration(
             readOperationStartedAt(activeOperation),
           ),
