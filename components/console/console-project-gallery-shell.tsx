@@ -5,6 +5,7 @@ import {
   startTransition,
   useEffect,
   useEffectEvent,
+  useMemo,
   useRef,
   useState,
   type FormEvent,
@@ -947,6 +948,14 @@ export function ConsoleProjectGallery({
   const selectedProjectIdRef = useRef<string | null>(selectedProjectId);
   const announcedPendingIntentErrorRef = useRef<string | null>(null);
   const runtimeInventory = useConsoleRuntimeTargetInventory(createOpen);
+  const projectCatalog = useMemo(
+    () =>
+      data.projects.map((item) => ({
+        id: item.id,
+        name: item.name,
+      })),
+    [data.projects],
+  );
   const projectPrefetchKey = data.projects
     .map((project) => project.id)
     .join("|");
@@ -1810,22 +1819,22 @@ export function ConsoleProjectGallery({
     }
   }
 
-  function handleProjectDeleted(projectId: string) {
+  const handleProjectDeleted = useEffectEvent((projectId: string) => {
     invalidateConsoleProjectDetails(projectId);
     setSelectedProjectId((current) => (current === projectId ? null : current));
     setWorkbenchRefreshToken((value) => value + 1);
     void refreshGallery({ silent: true });
     refreshRoute();
-  }
+  });
 
-  function handleProjectMutation(
+  const handleProjectMutation = useEffectEvent((
     options?:
       | number
       | {
           optimisticDeletingProjectId?: string;
           optimisticDeletingServiceCount?: number;
         },
-  ) {
+  ) => {
     const affectedProjectId =
       options && typeof options === "object"
         ? options.optimisticDeletingProjectId || selectedProjectIdRef.current
@@ -1850,7 +1859,7 @@ export function ConsoleProjectGallery({
     setWorkbenchRefreshToken((value) => value + 1);
     void refreshGallery({ silent: true });
     refreshRoute();
-  }
+  });
 
   return (
     <>
@@ -1987,10 +1996,7 @@ export function ConsoleProjectGallery({
                           onProjectDeleted={handleProjectDeleted}
                           onProjectMutation={handleProjectMutation}
                           onRequestCreateService={openCreateDialog}
-                          projectCatalog={data.projects.map((item) => ({
-                            id: item.id,
-                            name: item.name,
-                          }))}
+                          projectCatalog={projectCatalog}
                           project={project}
                           refreshToken={workbenchRefreshToken}
                         />

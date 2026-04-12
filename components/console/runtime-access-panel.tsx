@@ -3,6 +3,7 @@
 import {
   startTransition,
   useEffect,
+  useEffectEvent,
   useId,
   useRef,
   useState,
@@ -637,6 +638,688 @@ function AccessSection({
   );
 }
 
+type RuntimePublicPricingDialogControlProps = {
+  autoOpenSignal: number;
+  busyAction: string | null;
+  currentPublicOffer: RuntimePublicOfferView | null;
+  onSharingUpdated: (sharing: RuntimeSharingView) => void;
+  runtimeId: string | null;
+  showPublicPricingEditor: boolean;
+};
+
+function RuntimePublicPricingDialogControl({
+  autoOpenSignal,
+  busyAction,
+  currentPublicOffer,
+  onSharingUpdated,
+  runtimeId,
+  showPublicPricingEditor,
+}: RuntimePublicPricingDialogControlProps) {
+  const { formatRelativeTime, locale, t } = useI18n();
+  const confirm = useConfirmDialog();
+  const { showToast } = useToast();
+  const dialogIdBase = useId();
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const dialogBackdropPressStartedRef = useRef(false);
+  const dialogReturnFocusRef = useRef<HTMLElement | null>(null);
+  const lastAutoOpenSignalRef = useRef(0);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [publicOfferDraft, setPublicOfferDraft] = useState<PublicOfferDraft>(() =>
+    buildPublicOfferDraft(currentPublicOffer),
+  );
+  const [publicOfferErrors, setPublicOfferErrors] =
+    useState<PublicOfferFieldErrors>({});
+  const [publicOfferError, setPublicOfferError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const dialogPortalTarget =
+    typeof document === "undefined" ? null : document.body;
+  const publicOfferBaseId = runtimeId
+    ? `${runtimeId}-public-offer`
+    : "runtime-public-offer";
+  const pricingDialogId = `runtime-public-pricing-dialog-${dialogIdBase}`;
+  const pricingDialogTitleId = `${pricingDialogId}-title`;
+  const pricingDialogDescriptionId = `${pricingDialogId}-description`;
+  const pricingDialogFormId = `${pricingDialogId}-form`;
+  const baselinePublicOfferDraft = buildPublicOfferDraft(currentPublicOffer);
+  const publicOfferPreview = readDraftPublicOfferSummary(
+    publicOfferDraft,
+    locale,
+    t,
+  );
+  const publicPricingSaveNote = currentPublicOffer?.updatedAt
+    ? t("Last saved {time}.", {
+        time: formatRecentTime(currentPublicOffer.updatedAt, formatRelativeTime, t),
+      })
+    : t("No public pricing saved yet.");
+  const publicPricingHasUnsavedChanges = !arePublicOfferDraftsEqual(
+    publicOfferDraft,
+    baselinePublicOfferDraft,
+  );
+
+  const syncDraftFromCurrentOffer = useEffectEvent(() => {
+    const nextDraft = buildPublicOfferDraft(currentPublicOffer);
+
+    setPublicOfferDraft((current) =>
+      arePublicOfferDraftsEqual(current, nextDraft) ? current : nextDraft,
+    );
+    setPublicOfferErrors((current) =>
+      hasPublicOfferFieldErrors(current) ? {} : current,
+    );
+    setPublicOfferError((current) => (current === null ? current : null));
+  });
+
+  const closeDialog = useEffectEvent(
+    (restoreFocus: boolean, resetDraft = true) => {
+      setDialogOpen(false);
+      dialogBackdropPressStartedRef.current = false;
+
+      if (resetDraft) {
+        syncDraftFromCurrentOffer();
+      }
+
+      const returnFocusTarget = dialogReturnFocusRef.current;
+      dialogReturnFocusRef.current = null;
+
+      if (!restoreFocus || !returnFocusTarget) {
+        return;
+      }
+
+      window.requestAnimationFrame(() => {
+        if (returnFocusTarget.isConnected) {
+          returnFocusTarget.focus();
+        }
+      });
+    },
+  );
+
+  const openDialog = useEffectEvent((target: HTMLElement | null) => {
+    if (!showPublicPricingEditor || busyAction !== null || saving) {
+      return;
+    }
+
+    dialogReturnFocusRef.current = target;
+    syncDraftFromCurrentOffer();
+    setDialogOpen(true);
+  });
+
+  const requestDialogDismiss = useEffectEvent(async (restoreFocus: boolean) => {
+    if (saving) {
+      return;
+    }
+
+    if (publicPricingHasUnsavedChanges) {
+      const confirmed = await confirm({
+        confirmLabel: t("Discard changes"),
+        description: t(
+          "Your public pricing draft will be lost if you close this dialog now.",
+        ),
+        title: t("Discard pricing changes?"),
+        variant: "danger",
+      });
+
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    closeDialog(restoreFocus);
+  });
+
+  const handleDialogKeyDown = useEffectEvent(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (!dialogOpen) {
+        return;
+      }
+
+      if (event.key === "Escape") {
+        if (saving) {
+          return;
+        }
+
+        event.preventDefault();
+        void requestDialogDismiss(true);
+        return;
+      }
+
+      if (event.key !== "Tab") {
+        return;
+      }
+
+      const focusableElements = readFocusableElements(dialogRef.current);
+
+      if (!focusableElements.length) {
+        event.preventDefault();
+        return;
+      }
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+      const activeElement =
+        document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      const activeInsideDialog = activeElement
+        ? dialogRef.current?.contains(activeElement)
+        : false;
+
+      if (event.shiftKey) {
+        if (!activeInsideDialog || activeElement === firstElement) {
+          event.preventDefault();
+          lastElement.focus();
+        }
+
+        return;
+      }
+
+      if (!activeInsideDialog || activeElement === lastElement) {
+        event.preventDefault();
+        firstElement.focus();
+      }
+    },
+  );
+
+  const handleDialogBackdropPointerDown = useEffectEvent(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      if (saving) {
+        dialogBackdropPressStartedRef.current = false;
+        return;
+      }
+
+      dialogBackdropPressStartedRef.current = event.target === event.currentTarget;
+    },
+  );
+
+  const handleDialogBackdropClick = useEffectEvent(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      const shouldClose =
+        !saving &&
+        dialogBackdropPressStartedRef.current &&
+        event.target === event.currentTarget;
+
+      dialogBackdropPressStartedRef.current = false;
+
+      if (!shouldClose) {
+        return;
+      }
+
+      void requestDialogDismiss(true);
+    },
+  );
+
+  const handlePublicOfferSave = useEffectEvent(
+    async (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+
+      if (!runtimeId || busyAction !== null || saving) {
+        return;
+      }
+
+      const errors = buildPublicOfferFieldErrors(publicOfferDraft, t);
+      setPublicOfferErrors(errors);
+
+      if (hasPublicOfferFieldErrors(errors)) {
+        return;
+      }
+
+      setSaving(true);
+      setPublicOfferError(null);
+
+      try {
+        const data = await requestJson<RuntimeSharingPayload>(
+          `/api/fugue/runtimes/${encodeURIComponent(runtimeId)}/public-offer`,
+          {
+            body: JSON.stringify(buildPublicOfferPayload(publicOfferDraft)),
+            headers: {
+              "Content-Type": "application/json",
+            },
+            method: "POST",
+          },
+          t,
+        );
+
+        onSharingUpdated(data.sharing);
+        setPublicOfferDraft(buildPublicOfferDraft(data.sharing.publicOffer));
+        setPublicOfferErrors({});
+        setPublicOfferError(null);
+        closeDialog(false, false);
+        showToast({
+          message: t("Public pricing saved."),
+          variant: "success",
+        });
+      } catch (error) {
+        setPublicOfferError(readErrorMessage(error, t));
+      } finally {
+        setSaving(false);
+      }
+    },
+  );
+
+  useEffect(() => {
+    if (dialogOpen) {
+      return;
+    }
+
+    syncDraftFromCurrentOffer();
+  }, [currentPublicOffer, dialogOpen, runtimeId, syncDraftFromCurrentOffer]);
+
+  useEffect(() => {
+    if (!dialogOpen) {
+      return;
+    }
+
+    const body = document.body;
+    const previousOverflow = body.style.overflow;
+    const previousPaddingRight = body.style.paddingRight;
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+
+    body.style.overflow = "hidden";
+
+    if (scrollbarWidth > 0) {
+      body.style.paddingRight = `${scrollbarWidth}px`;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      const focusableElements = readFocusableElements(dialogRef.current);
+      focusableElements[0]?.focus({ preventScroll: true });
+    });
+
+    return () => {
+      dialogBackdropPressStartedRef.current = false;
+      window.cancelAnimationFrame(frame);
+      body.style.overflow = previousOverflow;
+      body.style.paddingRight = previousPaddingRight;
+    };
+  }, [dialogOpen]);
+
+  useEffect(() => {
+    if (showPublicPricingEditor) {
+      return;
+    }
+
+    setDialogOpen(false);
+    dialogReturnFocusRef.current = null;
+    dialogBackdropPressStartedRef.current = false;
+    syncDraftFromCurrentOffer();
+  }, [runtimeId, showPublicPricingEditor, syncDraftFromCurrentOffer]);
+
+  useEffect(() => {
+    if (
+      autoOpenSignal === 0 ||
+      autoOpenSignal === lastAutoOpenSignalRef.current ||
+      !showPublicPricingEditor ||
+      busyAction !== null ||
+      saving
+    ) {
+      return;
+    }
+
+    lastAutoOpenSignalRef.current = autoOpenSignal;
+    const activeTarget =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    openDialog(activeTarget);
+  }, [
+    autoOpenSignal,
+    busyAction,
+    openDialog,
+    saving,
+    showPublicPricingEditor,
+  ]);
+
+  if (!showPublicPricingEditor) {
+    return null;
+  }
+
+  return (
+    <>
+      <Button
+        aria-controls={dialogOpen ? pricingDialogId : undefined}
+        aria-expanded={dialogOpen}
+        aria-haspopup="dialog"
+        disabled={busyAction !== null || saving}
+        onClick={(event) => {
+          openDialog(event.currentTarget);
+        }}
+        size="compact"
+        type="button"
+        variant={currentPublicOffer ? "secondary" : "primary"}
+      >
+        {currentPublicOffer ? t("Edit pricing") : t("Set pricing")}
+      </Button>
+
+      {dialogOpen && dialogPortalTarget
+        ? createPortal(
+            <div
+              className="fg-console-dialog-backdrop"
+              onClick={handleDialogBackdropClick}
+              onPointerDown={handleDialogBackdropPointerDown}
+            >
+              <div
+                aria-busy={saving || undefined}
+                aria-describedby={pricingDialogDescriptionId}
+                aria-labelledby={pricingDialogTitleId}
+                aria-modal="true"
+                className="fg-console-dialog-shell fg-runtime-pricing-dialog-shell"
+                id={pricingDialogId}
+                onClick={(event) => event.stopPropagation()}
+                onKeyDown={handleDialogKeyDown}
+                ref={dialogRef}
+                role="dialog"
+              >
+                <Panel className="fg-console-dialog-panel">
+                  <PanelSection>
+                    <div className="fg-console-dialog__head fg-runtime-pricing-dialog__head">
+                      <div className="fg-console-dialog__copy fg-runtime-pricing-dialog__copy">
+                        <p className="fg-label fg-panel__eyebrow">
+                          {t("Public pricing")}
+                        </p>
+                        <PanelTitle
+                          className="fg-console-dialog__title"
+                          id={pricingDialogTitleId}
+                        >
+                          {t("Set one reference bundle")}
+                        </PanelTitle>
+                        <PanelCopy id={pricingDialogDescriptionId}>
+                          {t(
+                            "Use one representative bundle and monthly price. Fugue derives unit CPU, memory, and disk pricing from it.",
+                          )}
+                        </PanelCopy>
+                      </div>
+
+                      <div className="fg-console-dialog__meta fg-runtime-pricing-dialog__meta">
+                        <StatusBadge
+                          className="fg-status-badge--truncate"
+                          tone={
+                            publicOfferDraft.free ||
+                            isRuntimePublicOfferEffectivelyFree(currentPublicOffer)
+                              ? "positive"
+                              : "info"
+                          }
+                        >
+                          {publicOfferPreview}
+                        </StatusBadge>
+                        <span className="fg-console-dialog__meta-note">
+                          {publicPricingSaveNote}
+                        </span>
+                      </div>
+                    </div>
+                  </PanelSection>
+
+                  <PanelSection className="fg-console-dialog__body">
+                    <form
+                      className="fg-runtime-public-offer"
+                      id={pricingDialogFormId}
+                      onSubmit={handlePublicOfferSave}
+                    >
+                      <label className="fg-project-toggle fg-runtime-public-offer__primary-toggle">
+                        <input
+                          checked={publicOfferDraft.free}
+                          disabled={busyAction !== null || saving}
+                          onChange={(event) => {
+                            setPublicOfferDraft((current) => ({
+                              ...current,
+                              free: event.target.checked,
+                            }));
+                            setPublicOfferErrors({});
+                            setPublicOfferError(null);
+                          }}
+                          type="checkbox"
+                        />
+                        <HintInline
+                          ariaLabel={t("Free for everyone")}
+                          as="span"
+                          className="fg-runtime-public-offer__primary-toggle-copy"
+                          hint={
+                            publicOfferDraft.free
+                              ? t(
+                                  "Anyone can deploy here without paying you while this stays on.",
+                                )
+                              : t(
+                                  "Skip pricing and let anyone deploy here at no cost.",
+                                )
+                          }
+                        >
+                          <strong>{t("Free for everyone")}</strong>
+                        </HintInline>
+                      </label>
+
+                      {publicOfferDraft.free ? null : (
+                        <>
+                          <div className="fg-runtime-public-offer__grid">
+                            <FormField
+                              error={publicOfferErrors.cpu}
+                              hint={t("Reference CPU cores")}
+                              htmlFor={`${publicOfferBaseId}-cpu`}
+                              label={t("CPU")}
+                              optionalLabel="cores"
+                            >
+                              <input
+                                className="fg-input"
+                                disabled={busyAction !== null || saving}
+                                id={`${publicOfferBaseId}-cpu`}
+                                inputMode="decimal"
+                                onChange={(event) => {
+                                  setPublicOfferDraft((current) => ({
+                                    ...current,
+                                    referenceCpuCores: event.target.value,
+                                  }));
+                                  setPublicOfferErrors((current) => ({
+                                    ...current,
+                                    cpu: undefined,
+                                  }));
+                                  setPublicOfferError(null);
+                                }}
+                                placeholder="2"
+                                type="text"
+                                value={publicOfferDraft.referenceCpuCores}
+                              />
+                            </FormField>
+
+                            <FormField
+                              error={publicOfferErrors.memory}
+                              hint={t("Reference memory in GiB")}
+                              htmlFor={`${publicOfferBaseId}-memory`}
+                              label={t("Memory")}
+                              optionalLabel="GiB"
+                            >
+                              <input
+                                className="fg-input"
+                                disabled={busyAction !== null || saving}
+                                id={`${publicOfferBaseId}-memory`}
+                                inputMode="decimal"
+                                onChange={(event) => {
+                                  setPublicOfferDraft((current) => ({
+                                    ...current,
+                                    referenceMemoryGib: event.target.value,
+                                  }));
+                                  setPublicOfferErrors((current) => ({
+                                    ...current,
+                                    memory: undefined,
+                                  }));
+                                  setPublicOfferError(null);
+                                }}
+                                placeholder="4"
+                                type="text"
+                                value={publicOfferDraft.referenceMemoryGib}
+                              />
+                            </FormField>
+
+                            <FormField
+                              error={publicOfferErrors.storage}
+                              hint={t("Reference persistent disk in GiB")}
+                              htmlFor={`${publicOfferBaseId}-storage`}
+                              label={t("Disk")}
+                              optionalLabel="GiB"
+                            >
+                              <input
+                                className="fg-input"
+                                disabled={busyAction !== null || saving}
+                                id={`${publicOfferBaseId}-storage`}
+                                inputMode="numeric"
+                                onChange={(event) => {
+                                  setPublicOfferDraft((current) => ({
+                                    ...current,
+                                    referenceStorageGib: event.target.value,
+                                  }));
+                                  setPublicOfferErrors((current) => ({
+                                    ...current,
+                                    storage: undefined,
+                                  }));
+                                  setPublicOfferError(null);
+                                }}
+                                placeholder="30"
+                                type="text"
+                                value={publicOfferDraft.referenceStorageGib}
+                              />
+                            </FormField>
+
+                            <FormField
+                              error={publicOfferErrors.price}
+                              hint={t("Reference monthly price for that bundle")}
+                              htmlFor={`${publicOfferBaseId}-price`}
+                              label={t("Monthly price")}
+                              optionalLabel="USD"
+                            >
+                              <input
+                                className="fg-input"
+                                disabled={busyAction !== null || saving}
+                                id={`${publicOfferBaseId}-price`}
+                                inputMode="decimal"
+                                onChange={(event) => {
+                                  setPublicOfferDraft((current) => ({
+                                    ...current,
+                                    referenceMonthlyPriceUsd: event.target.value,
+                                  }));
+                                  setPublicOfferErrors((current) => ({
+                                    ...current,
+                                    price: undefined,
+                                  }));
+                                  setPublicOfferError(null);
+                                }}
+                                placeholder="2.00"
+                                type="text"
+                                value={publicOfferDraft.referenceMonthlyPriceUsd}
+                              />
+                            </FormField>
+                          </div>
+
+                          <div className="fg-runtime-public-offer__subsection">
+                            <div className="fg-runtime-public-offer__subhead">
+                              <HintInline
+                                ariaLabel={t("Optional free resources")}
+                                as="span"
+                                hint={t(
+                                  "Keep one resource free while charging for the rest.",
+                                )}
+                              >
+                                <strong>{t("Optional free resources")}</strong>
+                              </HintInline>
+                            </div>
+
+                            <div className="fg-runtime-public-offer__toggles">
+                              <label className="fg-project-toggle fg-runtime-public-offer__toggle">
+                                <input
+                                  checked={publicOfferDraft.freeCpu}
+                                  disabled={busyAction !== null || saving}
+                                  onChange={(event) => {
+                                    setPublicOfferDraft((current) => ({
+                                      ...current,
+                                      freeCpu: event.target.checked,
+                                    }));
+                                    setPublicOfferErrors((current) => ({
+                                      ...current,
+                                      cpu: undefined,
+                                    }));
+                                    setPublicOfferError(null);
+                                  }}
+                                  type="checkbox"
+                                />
+                                <span>{t("CPU free")}</span>
+                              </label>
+
+                              <label className="fg-project-toggle fg-runtime-public-offer__toggle">
+                                <input
+                                  checked={publicOfferDraft.freeMemory}
+                                  disabled={busyAction !== null || saving}
+                                  onChange={(event) => {
+                                    setPublicOfferDraft((current) => ({
+                                      ...current,
+                                      freeMemory: event.target.checked,
+                                    }));
+                                    setPublicOfferErrors((current) => ({
+                                      ...current,
+                                      memory: undefined,
+                                    }));
+                                    setPublicOfferError(null);
+                                  }}
+                                  type="checkbox"
+                                />
+                                <span>{t("Memory free")}</span>
+                              </label>
+
+                              <label className="fg-project-toggle fg-runtime-public-offer__toggle">
+                                <input
+                                  checked={publicOfferDraft.freeStorage}
+                                  disabled={busyAction !== null || saving}
+                                  onChange={(event) => {
+                                    setPublicOfferDraft((current) => ({
+                                      ...current,
+                                      freeStorage: event.target.checked,
+                                    }));
+                                    setPublicOfferErrors((current) => ({
+                                      ...current,
+                                      storage: undefined,
+                                    }));
+                                    setPublicOfferError(null);
+                                  }}
+                                  type="checkbox"
+                                />
+                                <span>{t("Disk free")}</span>
+                              </label>
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      {publicOfferError ? (
+                        <InlineAlert variant="error">{publicOfferError}</InlineAlert>
+                      ) : null}
+                    </form>
+                  </PanelSection>
+
+                  <PanelSection className="fg-console-dialog__footer">
+                    <div className="fg-console-dialog__actions">
+                      <Button
+                        disabled={busyAction !== null || saving}
+                        onClick={() => {
+                          void requestDialogDismiss(true);
+                        }}
+                        size="compact"
+                        type="button"
+                        variant="secondary"
+                      >
+                        {t("Cancel")}
+                      </Button>
+
+                      <Button
+                        disabled={busyAction !== null || saving}
+                        form={pricingDialogFormId}
+                        loading={saving}
+                        loadingLabel={t("Saving…")}
+                        type="submit"
+                        variant="primary"
+                      >
+                        {t("Save pricing")}
+                      </Button>
+                    </div>
+                  </PanelSection>
+                </Panel>
+              </div>
+            </div>,
+            dialogPortalTarget,
+          )
+        : null}
+    </>
+  );
+}
+
 export function RuntimeAccessPanel({
   accessMode,
   canManagePool = false,
@@ -663,10 +1346,6 @@ export function RuntimeAccessPanel({
   const { formatRelativeTime: formatRelativeTimeValue, locale, t } = useI18n();
   const confirm = useConfirmDialog();
   const { showToast } = useToast();
-  const pricingDialogIdBase = useId();
-  const pricingDialogRef = useRef<HTMLDivElement | null>(null);
-  const pricingDialogBackdropPressStartedRef = useRef(false);
-  const pricingDialogReturnFocusRef = useRef<HTMLElement | null>(null);
   const accessModeOptions = [
     {
       label: t("Private"),
@@ -699,26 +1378,12 @@ export function RuntimeAccessPanel({
   const [currentPoolMode, setCurrentPoolMode] = useState<RuntimePoolMode>(() =>
     normalizePoolMode(poolMode),
   );
-  const [publicOfferDraft, setPublicOfferDraft] = useState<PublicOfferDraft>(
-    () => buildPublicOfferDraft(publicOffer),
-  );
-  const [publicOfferErrors, setPublicOfferErrors] =
-    useState<PublicOfferFieldErrors>({});
-  const [publicOfferError, setPublicOfferError] = useState<string | null>(null);
-  const [pricingDialogOpen, setPricingDialogOpen] = useState(false);
+  const [pricingDialogAutoOpenSignal, setPricingDialogAutoOpenSignal] =
+    useState(0);
   const emailFieldId = runtimeId
     ? `${runtimeId}-share-email`
     : "runtime-share-email";
   const emailNoteId = `${emailFieldId}-note`;
-  const publicOfferBaseId = runtimeId
-    ? `${runtimeId}-public-offer`
-    : "runtime-public-offer";
-  const pricingDialogId = `runtime-public-pricing-dialog-${pricingDialogIdBase}`;
-  const pricingDialogTitleId = `${pricingDialogId}-title`;
-  const pricingDialogDescriptionId = `${pricingDialogId}-description`;
-  const pricingDialogFormId = `${pricingDialogId}-form`;
-  const dialogPortalTarget =
-    typeof document === "undefined" ? null : document.body;
   const currentPublicOffer = sharing?.publicOffer ?? publicOffer;
   const editableAccessMode = normalizeAccessMode(currentAccessMode);
   const isPublicAccess = currentAccessMode === "public";
@@ -753,20 +1418,6 @@ export function RuntimeAccessPanel({
   const publicPricingDetail = isPublicAccess
     ? readRuntimePublicOfferDescription(currentPublicOffer, locale)
     : null;
-  const publicOfferPreview = readDraftPublicOfferSummary(
-    publicOfferDraft,
-    locale,
-    t,
-  );
-  const publicPricingSaveNote = currentPublicOffer?.updatedAt
-    ? t("Last saved {time}.", {
-        time: formatRecentTime(
-          currentPublicOffer.updatedAt,
-          formatRelativeTimeValue,
-          t,
-        ),
-      })
-    : t("No public pricing saved yet.");
   const visibilityNote =
     currentAccessMode === "public"
       ? t(
@@ -784,7 +1435,6 @@ export function RuntimeAccessPanel({
     ownership === "internal-cluster"
       ? t("Managed centrally as shared system capacity.")
       : t("Separate from public deploy access.");
-  const defaultPublicOfferDraft = buildPublicOfferDraft(currentPublicOffer);
   const publicPricingDescription =
     publicPricingDetail ?? t("No public pricing saved yet.");
   const publicPricingMeta = currentPublicOffer?.updatedAt
@@ -796,50 +1446,11 @@ export function RuntimeAccessPanel({
         ),
       })
     : t("Not configured yet");
-  const publicPricingHasUnsavedChanges = !arePublicOfferDraftsEqual(
-    publicOfferDraft,
-    defaultPublicOfferDraft,
-  );
 
   useEffect(() => {
     setCurrentAccessMode(accessMode);
     setCurrentPoolMode(normalizePoolMode(poolMode));
   }, [accessMode, poolMode, runtimeId]);
-
-  useEffect(() => {
-    setPublicOfferDraft(buildPublicOfferDraft(publicOffer));
-    setPublicOfferErrors({});
-    setPublicOfferError(null);
-  }, [publicOffer, runtimeId]);
-
-  useEffect(() => {
-    if (!pricingDialogOpen) {
-      return;
-    }
-
-    const body = document.body;
-    const previousOverflow = body.style.overflow;
-    const previousPaddingRight = body.style.paddingRight;
-    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
-
-    body.style.overflow = "hidden";
-
-    if (scrollbarWidth > 0) {
-      body.style.paddingRight = `${scrollbarWidth}px`;
-    }
-
-    const frame = window.requestAnimationFrame(() => {
-      const focusableElements = readFocusableElements(pricingDialogRef.current);
-      focusableElements[0]?.focus({ preventScroll: true });
-    });
-
-    return () => {
-      pricingDialogBackdropPressStartedRef.current = false;
-      window.cancelAnimationFrame(frame);
-      body.style.overflow = previousOverflow;
-      body.style.paddingRight = previousPaddingRight;
-    };
-  }, [pricingDialogOpen]);
 
   useEffect(() => {
     if (!runtimeId || !canManageSharing) {
@@ -866,9 +1477,6 @@ export function RuntimeAccessPanel({
           setSharing(data.sharing);
           setCurrentAccessMode(data.sharing.accessMode);
           setCurrentPoolMode(normalizePoolMode(data.sharing.poolMode));
-          setPublicOfferDraft(buildPublicOfferDraft(data.sharing.publicOffer));
-          setPublicOfferErrors({});
-          setPublicOfferError(null);
         });
       })
       .catch((error) => {
@@ -889,150 +1497,13 @@ export function RuntimeAccessPanel({
     };
   }, [canManageSharing, runtimeId, t]);
 
-  useEffect(() => {
-    if (isPublicAccess) {
-      return;
-    }
-
-    setPricingDialogOpen(false);
-    pricingDialogReturnFocusRef.current = null;
-    pricingDialogBackdropPressStartedRef.current = false;
-  }, [isPublicAccess, runtimeId]);
-
-  function openPricingDialog(target: HTMLElement | null) {
-    if (!showPublicPricingEditor || busyAction) {
-      return;
-    }
-
-    pricingDialogReturnFocusRef.current = target;
-    setPublicOfferDraft(buildPublicOfferDraft(currentPublicOffer));
-    setPublicOfferErrors({});
-    setPublicOfferError(null);
-    setPricingDialogOpen(true);
-  }
-
-  function dismissPricingDialog(restoreFocus: boolean) {
-    setPricingDialogOpen(false);
-    setPublicOfferDraft(buildPublicOfferDraft(currentPublicOffer));
-    setPublicOfferErrors({});
-    setPublicOfferError(null);
-
-    const returnFocusTarget = pricingDialogReturnFocusRef.current;
-    pricingDialogReturnFocusRef.current = null;
-
-    if (!restoreFocus || !returnFocusTarget) {
-      return;
-    }
-
-    window.requestAnimationFrame(() => {
-      if (returnFocusTarget.isConnected) {
-        returnFocusTarget.focus();
-      }
+  const applySharingUpdate = useEffectEvent((nextSharing: RuntimeSharingView) => {
+    startTransition(() => {
+      setSharing(nextSharing);
+      setCurrentAccessMode(nextSharing.accessMode);
+      setCurrentPoolMode(normalizePoolMode(nextSharing.poolMode));
     });
-  }
-
-  async function requestPricingDialogDismiss(restoreFocus: boolean) {
-    if (busyAction === "public-offer") {
-      return;
-    }
-
-    if (publicPricingHasUnsavedChanges) {
-      const confirmed = await confirm({
-        confirmLabel: t("Discard changes"),
-        description: t(
-          "Your public pricing draft will be lost if you close this dialog now.",
-        ),
-        title: t("Discard pricing changes?"),
-        variant: "danger",
-      });
-
-      if (!confirmed) {
-        return;
-      }
-    }
-
-    dismissPricingDialog(restoreFocus);
-  }
-
-  function handlePricingDialogKeyDown(
-    event: React.KeyboardEvent<HTMLDivElement>,
-  ) {
-    if (!pricingDialogOpen) {
-      return;
-    }
-
-    if (event.key === "Escape") {
-      if (busyAction === "public-offer") {
-        return;
-      }
-
-      event.preventDefault();
-      void requestPricingDialogDismiss(true);
-      return;
-    }
-
-    if (event.key !== "Tab") {
-      return;
-    }
-
-    const focusableElements = readFocusableElements(pricingDialogRef.current);
-
-    if (!focusableElements.length) {
-      event.preventDefault();
-      return;
-    }
-
-    const firstElement = focusableElements[0];
-    const lastElement = focusableElements[focusableElements.length - 1];
-    const activeElement =
-      document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const activeInsideDialog = activeElement
-      ? pricingDialogRef.current?.contains(activeElement)
-      : false;
-
-    if (event.shiftKey) {
-      if (!activeInsideDialog || activeElement === firstElement) {
-        event.preventDefault();
-        lastElement.focus();
-      }
-
-      return;
-    }
-
-    if (!activeInsideDialog || activeElement === lastElement) {
-      event.preventDefault();
-      firstElement.focus();
-    }
-  }
-
-  function handlePricingDialogBackdropPointerDown(
-    event: React.PointerEvent<HTMLDivElement>,
-  ) {
-    if (busyAction === "public-offer") {
-      pricingDialogBackdropPressStartedRef.current = false;
-      return;
-    }
-
-    pricingDialogBackdropPressStartedRef.current =
-      event.target === event.currentTarget;
-  }
-
-  function handlePricingDialogBackdropClick(
-    event: React.MouseEvent<HTMLDivElement>,
-  ) {
-    const shouldClose =
-      busyAction !== "public-offer" &&
-      pricingDialogBackdropPressStartedRef.current &&
-      event.target === event.currentTarget;
-
-    pricingDialogBackdropPressStartedRef.current = false;
-
-    if (!shouldClose) {
-      return;
-    }
-
-    void requestPricingDialogDismiss(true);
-  }
+  });
 
   async function handleGrant(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -1064,13 +1535,8 @@ export function RuntimeAccessPanel({
         t,
       );
 
-      startTransition(() => {
-        setSharing(data.sharing);
-        setCurrentAccessMode(data.sharing.accessMode);
-        setCurrentPoolMode(normalizePoolMode(data.sharing.poolMode));
-        setPublicOfferDraft(buildPublicOfferDraft(data.sharing.publicOffer));
-        setShareEmail("");
-      });
+      applySharingUpdate(data.sharing);
+      setShareEmail("");
       setSharingError(null);
       showToast({
         message: t("{email} can now deploy to this server.", {
@@ -1116,12 +1582,7 @@ export function RuntimeAccessPanel({
         t,
       );
 
-      startTransition(() => {
-        setSharing(data.sharing);
-        setCurrentAccessMode(data.sharing.accessMode);
-        setCurrentPoolMode(normalizePoolMode(data.sharing.poolMode));
-        setPublicOfferDraft(buildPublicOfferDraft(data.sharing.publicOffer));
-      });
+      applySharingUpdate(data.sharing);
       setSharingError(null);
       showToast({
         message: t("{label} no longer has deploy access.", {
@@ -1165,14 +1626,7 @@ export function RuntimeAccessPanel({
         t,
       );
 
-      startTransition(() => {
-        setSharing(data.sharing);
-        setCurrentAccessMode(data.sharing.accessMode);
-        setCurrentPoolMode(normalizePoolMode(data.sharing.poolMode));
-        setPublicOfferDraft(buildPublicOfferDraft(data.sharing.publicOffer));
-        setPublicOfferErrors({});
-        setPublicOfferError(null);
-      });
+      applySharingUpdate(data.sharing);
       setSharingError(null);
       showToast({
         message:
@@ -1183,12 +1637,7 @@ export function RuntimeAccessPanel({
       });
 
       if (nextValue === "public" && canManageSharing) {
-        const activeTarget =
-          document.activeElement instanceof HTMLElement ? document.activeElement : null;
-        pricingDialogReturnFocusRef.current = activeTarget;
-        setPricingDialogOpen(true);
-      } else if (nextValue === "private") {
-        dismissPricingDialog(false);
+        setPricingDialogAutoOpenSignal((current) => current + 1);
       }
     } catch (error) {
       setCurrentAccessMode(previousValue);
@@ -1196,56 +1645,6 @@ export function RuntimeAccessPanel({
         message: readErrorMessage(error, t),
         variant: "error",
       });
-    } finally {
-      setBusyAction(null);
-    }
-  }
-
-  async function handlePublicOfferSave(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (!runtimeId || busyAction) {
-      return;
-    }
-
-    const errors = buildPublicOfferFieldErrors(publicOfferDraft, t);
-    setPublicOfferErrors(errors);
-
-    if (hasPublicOfferFieldErrors(errors)) {
-      return;
-    }
-
-    setBusyAction("public-offer");
-    setPublicOfferError(null);
-
-    try {
-      const data = await requestJson<RuntimeSharingPayload>(
-        `/api/fugue/runtimes/${encodeURIComponent(runtimeId)}/public-offer`,
-        {
-          body: JSON.stringify(buildPublicOfferPayload(publicOfferDraft)),
-          headers: {
-            "Content-Type": "application/json",
-          },
-          method: "POST",
-        },
-        t,
-      );
-
-      startTransition(() => {
-        setSharing(data.sharing);
-        setCurrentAccessMode(data.sharing.accessMode);
-        setCurrentPoolMode(normalizePoolMode(data.sharing.poolMode));
-        setPublicOfferDraft(buildPublicOfferDraft(data.sharing.publicOffer));
-        setPublicOfferErrors({});
-      });
-      dismissPricingDialog(false);
-      setSharingError(null);
-      showToast({
-        message: t("Public pricing saved."),
-        variant: "success",
-      });
-    } catch (error) {
-      setPublicOfferError(readErrorMessage(error, t));
     } finally {
       setBusyAction(null);
     }
@@ -1388,22 +1787,14 @@ export function RuntimeAccessPanel({
               <div className="fg-runtime-share-list">
                 <AccessRow
                   action={
-                    showPublicPricingEditor ? (
-                      <Button
-                        aria-controls={pricingDialogOpen ? pricingDialogId : undefined}
-                        aria-expanded={pricingDialogOpen}
-                        aria-haspopup="dialog"
-                        disabled={busyAction !== null}
-                        onClick={(event) => {
-                          openPricingDialog(event.currentTarget);
-                        }}
-                        size="compact"
-                        type="button"
-                        variant={currentPublicOffer ? "secondary" : "primary"}
-                      >
-                        {currentPublicOffer ? t("Edit pricing") : t("Set pricing")}
-                      </Button>
-                    ) : null
+                    <RuntimePublicPricingDialogControl
+                      autoOpenSignal={pricingDialogAutoOpenSignal}
+                      busyAction={busyAction}
+                      currentPublicOffer={currentPublicOffer}
+                      onSharingUpdated={applySharingUpdate}
+                      runtimeId={runtimeId}
+                      showPublicPricingEditor={showPublicPricingEditor}
+                    />
                   }
                   badge={
                     isRuntimePublicOfferEffectivelyFree(currentPublicOffer)
@@ -1624,339 +2015,6 @@ export function RuntimeAccessPanel({
           </AccessSection>
         ) : null}
       </div>
-
-      {pricingDialogOpen && showPublicPricingEditor && dialogPortalTarget
-        ? createPortal(
-            <div
-              className="fg-console-dialog-backdrop"
-              onClick={handlePricingDialogBackdropClick}
-              onPointerDown={handlePricingDialogBackdropPointerDown}
-            >
-              <div
-                aria-busy={busyAction === "public-offer" || undefined}
-                aria-describedby={pricingDialogDescriptionId}
-                aria-labelledby={pricingDialogTitleId}
-                aria-modal="true"
-                className="fg-console-dialog-shell fg-runtime-pricing-dialog-shell"
-                id={pricingDialogId}
-                onClick={(event) => event.stopPropagation()}
-                onKeyDown={handlePricingDialogKeyDown}
-                ref={pricingDialogRef}
-                role="dialog"
-              >
-                <Panel className="fg-console-dialog-panel">
-                  <PanelSection>
-                    <div className="fg-console-dialog__head fg-runtime-pricing-dialog__head">
-                      <div className="fg-console-dialog__copy fg-runtime-pricing-dialog__copy">
-                        <p className="fg-label fg-panel__eyebrow">
-                          {t("Public pricing")}
-                        </p>
-                        <PanelTitle
-                          className="fg-console-dialog__title"
-                          id={pricingDialogTitleId}
-                        >
-                          {t("Set one reference bundle")}
-                        </PanelTitle>
-                        <PanelCopy id={pricingDialogDescriptionId}>
-                          {t(
-                            "Use one representative bundle and monthly price. Fugue derives unit CPU, memory, and disk pricing from it.",
-                          )}
-                        </PanelCopy>
-                      </div>
-
-                      <div className="fg-console-dialog__meta fg-runtime-pricing-dialog__meta">
-                        <StatusBadge
-                          className="fg-status-badge--truncate"
-                          tone={
-                            publicOfferDraft.free ||
-                            isRuntimePublicOfferEffectivelyFree(currentPublicOffer)
-                              ? "positive"
-                              : "info"
-                          }
-                        >
-                          {publicOfferPreview}
-                        </StatusBadge>
-                        <span className="fg-console-dialog__meta-note">
-                          {publicPricingSaveNote}
-                        </span>
-                      </div>
-                    </div>
-                  </PanelSection>
-
-                  <PanelSection className="fg-console-dialog__body">
-                    <form
-                      className="fg-runtime-public-offer"
-                      id={pricingDialogFormId}
-                      onSubmit={handlePublicOfferSave}
-                    >
-                      <label className="fg-project-toggle fg-runtime-public-offer__primary-toggle">
-                        <input
-                          checked={publicOfferDraft.free}
-                          disabled={busyAction !== null}
-                          onChange={(event) => {
-                            setPublicOfferDraft((current) => ({
-                              ...current,
-                              free: event.target.checked,
-                            }));
-                            setPublicOfferErrors({});
-                            setPublicOfferError(null);
-                          }}
-                          type="checkbox"
-                        />
-                        <HintInline
-                          ariaLabel={t("Free for everyone")}
-                          as="span"
-                          className="fg-runtime-public-offer__primary-toggle-copy"
-                          hint={
-                            publicOfferDraft.free
-                              ? t(
-                                  "Anyone can deploy here without paying you while this stays on.",
-                                )
-                              : t(
-                                  "Skip pricing and let anyone deploy here at no cost.",
-                                )
-                          }
-                        >
-                          <strong>{t("Free for everyone")}</strong>
-                        </HintInline>
-                      </label>
-
-                      {publicOfferDraft.free ? null : (
-                        <>
-                          <div className="fg-runtime-public-offer__grid">
-                            <FormField
-                              error={publicOfferErrors.cpu}
-                              hint={t("Reference CPU cores")}
-                              htmlFor={`${publicOfferBaseId}-cpu`}
-                              label={t("CPU")}
-                              optionalLabel="cores"
-                            >
-                              <input
-                                className="fg-input"
-                                disabled={busyAction !== null}
-                                id={`${publicOfferBaseId}-cpu`}
-                                inputMode="decimal"
-                                onChange={(event) => {
-                                  setPublicOfferDraft((current) => ({
-                                    ...current,
-                                    referenceCpuCores: event.target.value,
-                                  }));
-                                  setPublicOfferErrors((current) => ({
-                                    ...current,
-                                    cpu: undefined,
-                                  }));
-                                  setPublicOfferError(null);
-                                }}
-                                placeholder="2"
-                                type="text"
-                                value={publicOfferDraft.referenceCpuCores}
-                              />
-                            </FormField>
-
-                            <FormField
-                              error={publicOfferErrors.memory}
-                              hint={t("Reference memory in GiB")}
-                              htmlFor={`${publicOfferBaseId}-memory`}
-                              label={t("Memory")}
-                              optionalLabel="GiB"
-                            >
-                              <input
-                                className="fg-input"
-                                disabled={busyAction !== null}
-                                id={`${publicOfferBaseId}-memory`}
-                                inputMode="decimal"
-                                onChange={(event) => {
-                                  setPublicOfferDraft((current) => ({
-                                    ...current,
-                                    referenceMemoryGib: event.target.value,
-                                  }));
-                                  setPublicOfferErrors((current) => ({
-                                    ...current,
-                                    memory: undefined,
-                                  }));
-                                  setPublicOfferError(null);
-                                }}
-                                placeholder="4"
-                                type="text"
-                                value={publicOfferDraft.referenceMemoryGib}
-                              />
-                            </FormField>
-
-                            <FormField
-                              error={publicOfferErrors.storage}
-                              hint={t("Reference persistent disk in GiB")}
-                              htmlFor={`${publicOfferBaseId}-storage`}
-                              label={t("Disk")}
-                              optionalLabel="GiB"
-                            >
-                              <input
-                                className="fg-input"
-                                disabled={busyAction !== null}
-                                id={`${publicOfferBaseId}-storage`}
-                                inputMode="numeric"
-                                onChange={(event) => {
-                                  setPublicOfferDraft((current) => ({
-                                    ...current,
-                                    referenceStorageGib: event.target.value,
-                                  }));
-                                  setPublicOfferErrors((current) => ({
-                                    ...current,
-                                    storage: undefined,
-                                  }));
-                                  setPublicOfferError(null);
-                                }}
-                                placeholder="30"
-                                type="text"
-                                value={publicOfferDraft.referenceStorageGib}
-                              />
-                            </FormField>
-
-                            <FormField
-                              error={publicOfferErrors.price}
-                              hint={t("Reference monthly price for that bundle")}
-                              htmlFor={`${publicOfferBaseId}-price`}
-                              label={t("Monthly price")}
-                              optionalLabel="USD"
-                            >
-                              <input
-                                className="fg-input"
-                                disabled={busyAction !== null}
-                                id={`${publicOfferBaseId}-price`}
-                                inputMode="decimal"
-                                onChange={(event) => {
-                                  setPublicOfferDraft((current) => ({
-                                    ...current,
-                                    referenceMonthlyPriceUsd: event.target.value,
-                                  }));
-                                  setPublicOfferErrors((current) => ({
-                                    ...current,
-                                    price: undefined,
-                                  }));
-                                  setPublicOfferError(null);
-                                }}
-                                placeholder="2.00"
-                                type="text"
-                                value={publicOfferDraft.referenceMonthlyPriceUsd}
-                              />
-                            </FormField>
-                          </div>
-
-                          <div className="fg-runtime-public-offer__subsection">
-                            <div className="fg-runtime-public-offer__subhead">
-                              <HintInline
-                                ariaLabel={t("Optional free resources")}
-                                as="span"
-                                hint={t(
-                                  "Keep one resource free while charging for the rest.",
-                                )}
-                              >
-                                <strong>{t("Optional free resources")}</strong>
-                              </HintInline>
-                            </div>
-
-                            <div className="fg-runtime-public-offer__toggles">
-                              <label className="fg-project-toggle fg-runtime-public-offer__toggle">
-                                <input
-                                  checked={publicOfferDraft.freeCpu}
-                                  disabled={busyAction !== null}
-                                  onChange={(event) => {
-                                    setPublicOfferDraft((current) => ({
-                                      ...current,
-                                      freeCpu: event.target.checked,
-                                    }));
-                                    setPublicOfferErrors((current) => ({
-                                      ...current,
-                                      cpu: undefined,
-                                    }));
-                                    setPublicOfferError(null);
-                                  }}
-                                  type="checkbox"
-                                />
-                                <span>{t("CPU free")}</span>
-                              </label>
-
-                              <label className="fg-project-toggle fg-runtime-public-offer__toggle">
-                                <input
-                                  checked={publicOfferDraft.freeMemory}
-                                  disabled={busyAction !== null}
-                                  onChange={(event) => {
-                                    setPublicOfferDraft((current) => ({
-                                      ...current,
-                                      freeMemory: event.target.checked,
-                                    }));
-                                    setPublicOfferErrors((current) => ({
-                                      ...current,
-                                      memory: undefined,
-                                    }));
-                                    setPublicOfferError(null);
-                                  }}
-                                  type="checkbox"
-                                />
-                                <span>{t("Memory free")}</span>
-                              </label>
-
-                              <label className="fg-project-toggle fg-runtime-public-offer__toggle">
-                                <input
-                                  checked={publicOfferDraft.freeStorage}
-                                  disabled={busyAction !== null}
-                                  onChange={(event) => {
-                                    setPublicOfferDraft((current) => ({
-                                      ...current,
-                                      freeStorage: event.target.checked,
-                                    }));
-                                    setPublicOfferErrors((current) => ({
-                                      ...current,
-                                      storage: undefined,
-                                    }));
-                                    setPublicOfferError(null);
-                                  }}
-                                  type="checkbox"
-                                />
-                                <span>{t("Disk free")}</span>
-                              </label>
-                            </div>
-                          </div>
-                        </>
-                      )}
-
-                      {publicOfferError ? (
-                        <InlineAlert variant="error">{publicOfferError}</InlineAlert>
-                      ) : null}
-                    </form>
-                  </PanelSection>
-
-                  <PanelSection className="fg-console-dialog__footer">
-                    <div className="fg-console-dialog__actions">
-                      <Button
-                        disabled={busyAction !== null}
-                        onClick={() => {
-                          void requestPricingDialogDismiss(true);
-                        }}
-                        size="compact"
-                        type="button"
-                        variant="secondary"
-                      >
-                        {t("Cancel")}
-                      </Button>
-
-                      <Button
-                        disabled={busyAction !== null}
-                        form={pricingDialogFormId}
-                        loading={busyAction === "public-offer"}
-                        loadingLabel={t("Saving…")}
-                        type="submit"
-                        variant="primary"
-                      >
-                        {t("Save pricing")}
-                      </Button>
-                    </div>
-                  </PanelSection>
-                </Panel>
-              </div>
-            </div>,
-            dialogPortalTarget,
-          )
-        : null}
     </div>
   );
 }

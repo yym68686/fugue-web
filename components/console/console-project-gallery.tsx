@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  memo,
   startTransition,
   useDeferredValue,
   useEffect,
@@ -124,6 +125,26 @@ type CreateProjectResponse = {
 type CreateDialogTarget = {
   id: string;
   name: string;
+};
+
+type ConsoleProjectWorkbenchProps = {
+  detailId: string;
+  onProjectDeleted: (projectId: string) => void;
+  onProjectMutation: (
+    options?:
+      | number
+      | {
+          optimisticDeletingProjectId?: string;
+          optimisticDeletingServiceCount?: number;
+        },
+  ) => void;
+  onRequestCreateService: (project: ConsoleProjectSummaryView) => void;
+  projectCatalog: Array<{
+    id: string;
+    name: string;
+  }>;
+  project: ConsoleProjectSummaryView;
+  refreshToken: number;
 };
 
 type EnvResponse = {
@@ -5850,7 +5871,7 @@ export function ConsoleProjectGallery({
   );
 }
 
-export function ConsoleProjectWorkbench({
+function ConsoleProjectWorkbenchImpl({
   detailId,
   onProjectDeleted,
   onProjectMutation,
@@ -5858,25 +5879,7 @@ export function ConsoleProjectWorkbench({
   projectCatalog,
   project,
   refreshToken,
-}: {
-  detailId: string;
-  onProjectDeleted: (projectId: string) => void;
-  onProjectMutation: (
-    options?:
-      | number
-      | {
-          optimisticDeletingProjectId?: string;
-          optimisticDeletingServiceCount?: number;
-        },
-  ) => void;
-  onRequestCreateService: (project: ConsoleProjectSummaryView) => void;
-  projectCatalog: Array<{
-    id: string;
-    name: string;
-  }>;
-  project: ConsoleProjectSummaryView;
-  refreshToken: number;
-}) {
+}: ConsoleProjectWorkbenchProps) {
   const initialDetail = readCachedConsoleProjectDetail(project.id);
   const { t } = useI18n();
   const confirm = useConfirmDialog();
@@ -7500,3 +7503,25 @@ export function ConsoleProjectWorkbench({
     </div>
   );
 }
+
+function areConsoleProjectWorkbenchPropsEqual(
+  previous: ConsoleProjectWorkbenchProps,
+  next: ConsoleProjectWorkbenchProps,
+) {
+  return (
+    previous.detailId === next.detailId &&
+    previous.onProjectDeleted === next.onProjectDeleted &&
+    previous.onProjectMutation === next.onProjectMutation &&
+    previous.onRequestCreateService === next.onRequestCreateService &&
+    previous.projectCatalog === next.projectCatalog &&
+    previous.project === next.project &&
+    previous.refreshToken === next.refreshToken
+  );
+}
+
+export const ConsoleProjectWorkbench = memo(
+  ConsoleProjectWorkbenchImpl,
+  areConsoleProjectWorkbenchPropsEqual,
+);
+
+ConsoleProjectWorkbench.displayName = "ConsoleProjectWorkbench";
