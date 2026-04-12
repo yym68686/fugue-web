@@ -4,10 +4,24 @@ export type LocalUploadItem = {
   size: number;
 };
 
-export type LocalUploadState = {
-  items: LocalUploadItem[];
-  label: string | null;
+export type LocalUploadArchive = {
+  contentType: string;
+  file: File;
+  name: string;
+  size: number;
 };
+
+export type LocalUploadState =
+  | {
+      kind: "archive";
+      archive: LocalUploadArchive;
+      label: string | null;
+    }
+  | {
+      kind: "files";
+      items: LocalUploadItem[];
+      label: string | null;
+    };
 
 const COMPOSE_FILE_NAMES = new Set([
   "compose.yaml",
@@ -17,6 +31,44 @@ const COMPOSE_FILE_NAMES = new Set([
 ]);
 
 const FUGUE_MANIFEST_FILE_NAMES = new Set(["fugue.yaml", "fugue.yml"]);
+
+function isSupportedLocalUploadArchivePath(path: string) {
+  const normalized = readBasename(path).trim().toLowerCase();
+
+  return (
+    normalized.endsWith(".zip") ||
+    normalized.endsWith(".tgz") ||
+    normalized.endsWith(".tar.gz")
+  );
+}
+
+function stripArchiveExtension(value: string) {
+  return value
+    .replace(/\.tar\.gz$/i, "")
+    .replace(/\.tgz$/i, "")
+    .replace(/\.zip$/i, "")
+    .replace(/\.[^.]+$/u, "");
+}
+
+function inferLocalUploadArchiveContentType(file: File, path: string) {
+  const contentType = file.type.trim();
+
+  if (contentType) {
+    return contentType;
+  }
+
+  const normalized = path.trim().toLowerCase();
+
+  if (normalized.endsWith(".zip")) {
+    return "application/zip";
+  }
+
+  if (normalized.endsWith(".tgz") || normalized.endsWith(".tar.gz")) {
+    return "application/gzip";
+  }
+
+  return "application/octet-stream";
+}
 
 function normalizeLocalUploadPath(value: string) {
   const sanitized = value.replace(/\\/g, "/").trim();
@@ -66,6 +118,7 @@ function readBasename(path: string) {
 
 export function createLocalUploadState(): LocalUploadState {
   return {
+    kind: "files",
     items: [],
     label: null,
   };
@@ -95,7 +148,29 @@ export function normalizeLocalUploadItems(
     left.path.localeCompare(right.path),
   );
 
+  if (items.length === 1 && isSupportedLocalUploadArchivePath(items[0].path)) {
+    const [archiveItem] = items;
+
+    return {
+      kind: "archive",
+      archive: {
+        contentType: inferLocalUploadArchiveContentType(
+          archiveItem.file,
+          archiveItem.path,
+        ),
+        file: archiveItem.file,
+        name: readBasename(archiveItem.path),
+        size: archiveItem.size,
+      },
+      label:
+        label?.trim() ||
+        stripArchiveExtension(readBasename(archiveItem.path)) ||
+        null,
+    };
+  }
+
   return {
+    kind: "files",
     items,
     label:
       label?.trim() ||
@@ -115,6 +190,11 @@ export function buildLocalUploadFormData(
     formData.set("label", localUpload.label.trim());
   }
 
+  if (localUpload.kind === "archive") {
+    formData.set("archive", localUpload.archive.file, localUpload.archive.name);
+    return formData;
+  }
+
   for (const item of localUpload.items) {
     formData.append("files", item.file, item.file.name);
     formData.append("paths", item.path);
@@ -124,6 +204,26 @@ export function buildLocalUploadFormData(
 }
 
 export function inspectLocalUploadState(localUpload: LocalUploadState) {
+  if (localUpload.kind === "archive") {
+    const archiveName = localUpload.archive.name.trim();
+    const normalized = archiveName.toLowerCase();
+
+    return {
+      archiveFormat:
+        normalized.endsWith(".zip") ? "zip" : "tarball",
+      archiveName,
+      hasArchive: true,
+      hasCompose: false,
+      hasDockerfile: false,
+      hasFugueManifest: false,
+      hasTopologyDefinition: false,
+      itemCount: 1,
+      mode: "archive" as const,
+      previewPaths: archiveName ? [archiveName] : [],
+      totalBytes: localUpload.archive.size,
+    };
+  }
+
   const basenames = localUpload.items.map((item) =>
     readBasename(item.path).trim().toLowerCase(),
   );
@@ -133,12 +233,24 @@ export function inspectLocalUploadState(localUpload: LocalUploadState) {
   );
 
   return {
+    archiveFormat: null,
+    archiveName: null,
+    hasArchive: false,
     hasCompose,
     hasDockerfile: basenames.some((name) => name === "dockerfile"),
     hasFugueManifest,
     hasTopologyDefinition: hasCompose || hasFugueManifest,
     itemCount: localUpload.items.length,
+    mode: "files" as const,
     previewPaths: localUpload.items.slice(0, 4).map((item) => item.path),
     totalBytes: localUpload.items.reduce((total, item) => total + item.size, 0),
   };
+}
+
+export function hasLocalUploadSelection(localUpload: LocalUploadState | null | undefined) {
+  if (!localUpload) {
+    return false;
+  }
+
+  return localUpload.kind === "archive" || localUpload.items.length > 0;
 }

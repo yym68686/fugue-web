@@ -204,7 +204,9 @@ export function ImportServiceFields({
         ? t("Private repo")
         : t("Public repo")
       : draft.sourceMode === "local-upload"
-        ? localUploadInspection.itemCount > 0
+        ? localUploadInspection.hasArchive
+          ? t("Local archive")
+          : localUploadInspection.itemCount > 0
           ? t(
               localUploadInspection.itemCount === 1
                 ? "{count} local file"
@@ -213,7 +215,7 @@ export function ImportServiceFields({
                 count: localUploadInspection.itemCount,
               },
             )
-          : t("Local folder or files")
+          : t("Local folder, files, or archive")
         : t("Published image"),
     selectedRuntimeTargetGroup?.summaryLabel ?? t("Internal cluster"),
     selectedRuntimeTargetOption
@@ -565,7 +567,7 @@ export function ImportServiceFields({
       ) : draft.sourceMode === "local-upload" ? (
         <FormField
           hint={t(
-            "Drag a folder, docker-compose.yml, fugue.yaml, Dockerfile, or multiple source files. Fugue creates the archive on the server before import.",
+            "Drag a folder, a .zip or .tgz archive, docker-compose.yml, fugue.yaml, Dockerfile, or multiple source files. Fugue creates the archive on the server before import unless you upload an archive directly.",
           )}
           htmlFor={`${idPrefix}-upload-folder`}
           label={t("Local source")}
@@ -812,7 +814,7 @@ export function ImportServiceFields({
                 ? t("Leave blank to reuse the repository name.")
                 : draft.sourceMode === "local-upload"
                   ? t(
-                      "Leave blank to derive the app name from the uploaded folder or file.",
+                      "Leave blank to derive the app name from the uploaded folder, file, or archive.",
                     )
                   : t(
                       "Leave blank to derive the app name from the image reference.",

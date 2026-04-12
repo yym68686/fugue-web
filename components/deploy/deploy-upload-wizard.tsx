@@ -350,10 +350,11 @@ export function DeployUploadWizard({
         <p className="fg-label fg-panel__eyebrow">Deploy</p>
         <PanelTitle>Deploy from a local source.</PanelTitle>
         <PanelCopy>
-          Drag a local folder, <code>docker-compose.yml</code>,{" "}
-          <code>fugue.yaml</code>, <code>Dockerfile</code>, or multiple source
-          files. Fugue packages the upload on the server, then imports the
-          detected topology when present.
+          Drag a local folder, <code>.zip</code>, <code>.tgz</code>,{" "}
+          <code>docker-compose.yml</code>, <code>fugue.yaml</code>,{" "}
+          <code>Dockerfile</code>, or multiple source files. Fugue packages
+          file uploads on the server, then imports the detected topology when
+          present.
         </PanelCopy>
 
         {projectInventoryError ? (

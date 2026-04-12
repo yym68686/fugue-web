@@ -130,10 +130,18 @@ export function LocalUploadSourceField({
   onChange,
   value,
 }: LocalUploadSourceFieldProps) {
+  const archiveInputRef = useRef<HTMLInputElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const folderInputRef = useRef<HTMLInputElement | null>(null);
   const [isDragActive, setIsDragActive] = useState(false);
   const inspection = inspectLocalUploadState(value);
+  const archiveReady = inspection.mode === "archive";
+
+  const meterLabel = archiveReady
+    ? `${inspection.archiveFormat === "zip" ? "ZIP" : "TGZ"} archive · ${formatBytes(inspection.totalBytes)}`
+    : inspection.itemCount > 0
+      ? `${inspection.itemCount} file${inspection.itemCount === 1 ? "" : "s"} · ${formatBytes(inspection.totalBytes)}`
+      : "Folder / ZIP / compose";
 
   async function applyEntries(entries: Array<{ file: File; path: string }>) {
     onChange(normalizeLocalUploadItems(entries));
@@ -160,6 +168,14 @@ export function LocalUploadSourceField({
 
   return (
     <div className="fg-upload-source">
+      <input
+        accept=".zip,.tgz,.tar.gz,application/zip,application/gzip"
+        className="fg-upload-source__input"
+        id={`${idPrefix}-upload-archive`}
+        onChange={handleFilesChange}
+        ref={archiveInputRef}
+        type="file"
+      />
       <input
         className="fg-upload-source__input"
         id={`${idPrefix}-upload-files`}
@@ -211,25 +227,34 @@ export function LocalUploadSourceField({
           <div>
             <p className="fg-upload-source__eyebrow">Local upload</p>
             <strong className="fg-upload-source__title">
-              {inspection.itemCount > 0
-                ? value.label || "Upload ready"
-                : "Drop a folder or source files"}
+              {archiveReady
+                ? value.label || "Archive ready"
+                : inspection.itemCount > 0
+                  ? value.label || "Upload ready"
+                  : "Drop a folder, archive, or source files"}
             </strong>
           </div>
-          <span className="fg-upload-source__meter">
-            {inspection.itemCount > 0
-              ? `${inspection.itemCount} file${inspection.itemCount === 1 ? "" : "s"} · ${formatBytes(inspection.totalBytes)}`
-              : "Folder / compose / Dockerfile"}
-          </span>
+          <span className="fg-upload-source__meter">{meterLabel}</span>
         </div>
 
         <p className="fg-upload-source__copy">
-          {inspection.itemCount > 0
-            ? "Fugue will package these files on the server, then import them through the same upload route used by local deploys."
-            : "Drag a local folder, docker-compose.yml, fugue.yaml, Dockerfile, or multiple source files. Folder drop works when the browser exposes directory entries."}
+          {archiveReady
+            ? "Fugue will import this archive directly. GitHub download ZIP files work as-is, without repackaging them in the browser."
+            : inspection.itemCount > 0
+              ? "Fugue will package these files on the server, then import them through the same upload route used by local deploys."
+              : "Drag a local folder, a .zip or .tgz archive, docker-compose.yml, fugue.yaml, Dockerfile, or multiple source files. Folder drop works when the browser exposes directory entries."}
         </p>
 
         <div className="fg-upload-source__chips">
+          {archiveReady ? (
+            <>
+              <span className="fg-upload-source__chip">
+                {inspection.archiveFormat === "zip" ? "ZIP archive" : "TGZ archive"}
+              </span>
+              <span className="fg-upload-source__chip">Direct import</span>
+              <span className="fg-upload-source__chip">GitHub download ready</span>
+            </>
+          ) : null}
           {inspection.hasCompose ? (
             <span className="fg-upload-source__chip">Compose detected</span>
           ) : null}
@@ -242,6 +267,7 @@ export function LocalUploadSourceField({
           {inspection.itemCount === 0 ? (
             <>
               <span className="fg-upload-source__chip">Folder drag</span>
+              <span className="fg-upload-source__chip">ZIP or TGZ</span>
               <span className="fg-upload-source__chip">Single file import</span>
               <span className="fg-upload-source__chip">
                 Multi-service ready
@@ -281,6 +307,13 @@ export function LocalUploadSourceField({
             variant="ghost"
           >
             Choose files
+          </Button>
+          <Button
+            onClick={() => archiveInputRef.current?.click()}
+            size="compact"
+            variant="ghost"
+          >
+            Choose archive
           </Button>
           {inspection.itemCount > 0 ? (
             <Button

@@ -2612,7 +2612,10 @@ export interface components {
         };
         ImportUploadMultipartRequest: {
             request: components["schemas"]["ImportUploadRequest"];
-            /** Format: binary */
+            /**
+             * Format: binary
+             * @description Source archive upload. Fugue accepts .zip, .tgz, and .tar.gz archives.
+             */
             archive: string;
         };
         ImportGitHubResponse: {

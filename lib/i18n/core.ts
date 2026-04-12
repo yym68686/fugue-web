@@ -788,6 +788,8 @@ const zhCNExtraMessages = {
   "Buildpacks": "Buildpacks",
   "Choose a folder, docker-compose.yml, Dockerfile, or source files to upload.":
     "请选择要上传的文件夹、docker-compose.yml、Dockerfile 或源码文件。",
+  "Choose a folder, a .zip or .tgz archive, docker-compose.yml, Dockerfile, or source files to upload.":
+    "请选择要上传的文件夹、.zip 或 .tgz 归档、docker-compose.yml、Dockerfile 或源码文件。",
   "Choose the machine region.": "选择机器所在区域。",
   "Choose whether Fugue reads this repository anonymously or through saved private access.":
     "选择让 Fugue 以匿名方式读取此仓库，还是通过已保存的私有访问凭据读取。",
@@ -806,6 +808,8 @@ const zhCNExtraMessages = {
   "Dockerfile path": "Dockerfile 路径",
   "Drag a folder, docker-compose.yml, fugue.yaml, Dockerfile, or multiple source files. Fugue creates the archive on the server before import.":
     "拖入文件夹、docker-compose.yml、fugue.yaml、Dockerfile 或多个源码文件。Fugue 会在导入前先在服务端生成归档。",
+  "Drag a folder, a .zip or .tgz archive, docker-compose.yml, fugue.yaml, Dockerfile, or multiple source files. Fugue creates the archive on the server before import unless you upload an archive directly.":
+    "拖入文件夹、.zip 或 .tgz 归档、docker-compose.yml、fugue.yaml、Dockerfile 或多个源码文件。除非直接上传归档，否则 Fugue 会在导入前先在服务端生成归档。",
   "Fixed": "固定",
   "GitHub token": "GitHub Token",
   "Image reference is required.": "必须提供镜像引用。",
@@ -817,11 +821,15 @@ const zhCNExtraMessages = {
     "留空则从镜像引用推导应用名称。",
   "Leave blank to derive the app name from the uploaded folder or file.":
     "留空则从上传的文件夹或文件推导应用名称。",
+  "Leave blank to derive the app name from the uploaded folder, file, or archive.":
+    "留空则从上传的文件夹、文件或归档推导应用名称。",
   "Leave blank to reuse the repository name.": "留空则复用仓库名称。",
   "Leave blank to use the default branch.": "留空则使用默认分支。",
   "Leave this on Any available region to let Fugue place the deployment.":
     "保持为“任意可用区域”，让 Fugue 自动选择部署位置。",
   "Local folder or files": "本地文件夹或文件",
+  "Local folder, files, or archive": "本地文件夹、文件或归档",
+  "Local archive": "本地归档",
   "Manual build overrides are active. Clear build strategy and path overrides if you want Fugue to import every service from fugue.yaml or docker-compose.":
     "当前启用了手动构建覆盖。如果你希望 Fugue 从 fugue.yaml 或 docker-compose 导入全部服务，请清空构建策略和路径覆盖。",
   "Manual persistent storage mounts stay in your draft, but Fugue skips them while this import preserves a whole topology. Switch back to a single-app deploy to reuse them.":
@@ -1585,6 +1593,8 @@ const zhCNExtraMessages = {
   "Disconnecting": "解除关联中",
   "Drop a local folder or source files for {projectName}. Fugue packages them on the server before import.":
     "将本地文件夹或源码文件拖到 {projectName}。Fugue 会先在服务器端打包，再开始导入。",
+  "Drop a local folder, archive, or source files for {projectName}. Fugue packages file uploads on the server before import.":
+    "将本地文件夹、归档或源码文件拖到 {projectName}。Fugue 会先在服务器端打包文件上传内容，再开始导入。",
   "Duplicate env keys: {keys}.": "环境变量键重复：{keys}。",
   "Empty": "空",
   "Empty response.": "空响应。",
@@ -1593,6 +1603,10 @@ const zhCNExtraMessages = {
   "Event": "事件",
   "Fugue is creating the project and packaging the uploaded files on the server before the first build starts.":
     "Fugue 正在创建项目，并在首次构建开始前于服务器端打包已上传的文件。",
+  "Drag a folder, a .zip or .tgz archive, docker-compose.yml, fugue.yaml, Dockerfile, or source files into the browser":
+    "将文件夹、.zip 或 .tgz 归档、docker-compose.yml、fugue.yaml、Dockerfile 或源码文件拖入浏览器",
+  "Drop a local folder, archive, or source files. Fugue packages file uploads on the server, then imports the result through the upload path.":
+    "拖入本地文件夹、归档或源码文件。Fugue 会先在服务器端打包文件上传内容，再通过上传链路导入结果。",
   "Fugue is creating the project and preparing the repository import before build logs can attach.":
     "Fugue 正在创建项目，并在构建日志接入前准备仓库导入。",
   "Fugue is creating the project, mirroring the image internally, and staging the first rollout.":
@@ -2108,6 +2122,8 @@ const zhTWExtraMessages = {
   "Buildpacks": "Buildpacks",
   "Choose a folder, docker-compose.yml, Dockerfile, or source files to upload.":
     "請選擇要上傳的資料夾、docker-compose.yml、Dockerfile 或原始碼檔案。",
+  "Choose a folder, a .zip or .tgz archive, docker-compose.yml, Dockerfile, or source files to upload.":
+    "請選擇要上傳的資料夾、.zip 或 .tgz 封存、docker-compose.yml、Dockerfile 或原始碼檔案。",
   "Choose the machine region.": "選擇機器所在區域。",
   "Choose whether Fugue reads this repository anonymously or through saved private access.":
     "選擇讓 Fugue 以匿名方式讀取此儲存庫，還是透過已儲存的私有存取憑證讀取。",
@@ -2126,6 +2142,8 @@ const zhTWExtraMessages = {
   "Dockerfile path": "Dockerfile 路徑",
   "Drag a folder, docker-compose.yml, fugue.yaml, Dockerfile, or multiple source files. Fugue creates the archive on the server before import.":
     "拖入資料夾、docker-compose.yml、fugue.yaml、Dockerfile 或多個原始碼檔案。Fugue 會在匯入前先於伺服器端建立封存。",
+  "Drag a folder, a .zip or .tgz archive, docker-compose.yml, fugue.yaml, Dockerfile, or multiple source files. Fugue creates the archive on the server before import unless you upload an archive directly.":
+    "拖入資料夾、.zip 或 .tgz 封存、docker-compose.yml、fugue.yaml、Dockerfile 或多個原始碼檔案。除非直接上傳封存，否則 Fugue 會在匯入前先於伺服器端建立封存。",
   "Fixed": "固定",
   "GitHub token": "GitHub Token",
   "Image reference is required.": "必須提供映像引用。",
@@ -2137,11 +2155,15 @@ const zhTWExtraMessages = {
     "留空則從映像引用推導應用名稱。",
   "Leave blank to derive the app name from the uploaded folder or file.":
     "留空則從上傳的資料夾或檔案推導應用名稱。",
+  "Leave blank to derive the app name from the uploaded folder, file, or archive.":
+    "留空則從上傳的資料夾、檔案或封存推導應用名稱。",
   "Leave blank to reuse the repository name.": "留空則重用儲存庫名稱。",
   "Leave blank to use the default branch.": "留空則使用預設分支。",
   "Leave this on Any available region to let Fugue place the deployment.":
     "保持為「任意可用區域」，讓 Fugue 自動選擇部署位置。",
   "Local folder or files": "本機資料夾或檔案",
+  "Local folder, files, or archive": "本機資料夾、檔案或封存",
+  "Local archive": "本機封存",
   "Manual build overrides are active. Clear build strategy and path overrides if you want Fugue to import every service from fugue.yaml or docker-compose.":
     "目前已啟用手動建置覆寫。如果你希望 Fugue 從 fugue.yaml 或 docker-compose 匯入全部服務，請清空建置策略與路徑覆寫。",
   "Manual persistent storage mounts stay in your draft, but Fugue skips them while this import preserves a whole topology. Switch back to a single-app deploy to reuse them.":
@@ -2904,6 +2926,8 @@ const zhTWExtraMessages = {
   "Disconnecting": "解除連結中",
   "Drop a local folder or source files for {projectName}. Fugue packages them on the server before import.":
     "將本機資料夾或原始碼檔案拖到 {projectName}。Fugue 會先在伺服器端打包，再開始匯入。",
+  "Drop a local folder, archive, or source files for {projectName}. Fugue packages file uploads on the server before import.":
+    "將本機資料夾、封存或原始碼檔案拖到 {projectName}。Fugue 會先在伺服器端打包檔案上傳內容，再開始匯入。",
   "Duplicate env keys: {keys}.": "環境變數鍵重複：{keys}。",
   "Empty": "空",
   "Empty response.": "空回應。",
@@ -2912,6 +2936,10 @@ const zhTWExtraMessages = {
   "Event": "事件",
   "Fugue is creating the project and packaging the uploaded files on the server before the first build starts.":
     "Fugue 正在建立專案，並在第一次構建開始前於伺服器端打包已上傳的檔案。",
+  "Drag a folder, a .zip or .tgz archive, docker-compose.yml, fugue.yaml, Dockerfile, or source files into the browser":
+    "將資料夾、.zip 或 .tgz 封存、docker-compose.yml、fugue.yaml、Dockerfile 或原始碼檔案拖入瀏覽器",
+  "Drop a local folder, archive, or source files. Fugue packages file uploads on the server, then imports the result through the upload path.":
+    "拖入本機資料夾、封存或原始碼檔案。Fugue 會先在伺服器端打包檔案上傳內容，再透過上傳路徑匯入結果。",
   "Fugue is creating the project and preparing the repository import before build logs can attach.":
     "Fugue 正在建立專案，並在構建日誌接入前準備儲存庫匯入。",
   "Fugue is creating the project, mirroring the image internally, and staging the first rollout.":

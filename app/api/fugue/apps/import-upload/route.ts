@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 import { getCurrentSession } from "@/lib/auth/session";
 import { importFugueUploadApp } from "@/lib/fugue/api";
 import {
-  createLocalUploadArchive,
+  prepareLocalUploadArchive,
   readLocalUploadMultipartRequest,
 } from "@/lib/fugue/local-upload-server";
 import {
@@ -128,12 +128,13 @@ export async function POST(request: Request) {
     }
 
     const workspace = existing satisfies WorkspaceAccess;
-    const archive = await createLocalUploadArchive(multipartRequest.files, {
+    const archive = await prepareLocalUploadArchive(multipartRequest, {
       archiveBaseName: name || null,
       label: multipartRequest.label,
     });
     const result = await importFugueUploadApp(workspace.adminKeySecret, {
       archiveBytes: archive.archiveBytes,
+      archiveContentType: archive.archiveContentType,
       archiveName: archive.archiveName,
       buildContextDir: buildContextDir || undefined,
       buildStrategy: buildStrategy || undefined,

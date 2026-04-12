@@ -978,7 +978,7 @@ export function ConsoleProjectGallery({
         )
       : importDraft.sourceMode === "local-upload"
         ? t(
-            "Drop a local folder or source files for {projectName}. Fugue packages them on the server before import.",
+            "Drop a local folder, archive, or source files for {projectName}. Fugue packages file uploads on the server before import.",
             {
               projectName: createTargetProject.name,
             },

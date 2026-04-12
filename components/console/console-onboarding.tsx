@@ -401,7 +401,7 @@ export function ConsoleOnboarding({
         {
           label: t("Local uploads"),
           value: t(
-            "Drag a folder, docker-compose.yml, fugue.yaml, Dockerfile, or source files into the browser",
+            "Drag a folder, a .zip or .tgz archive, docker-compose.yml, fugue.yaml, Dockerfile, or source files into the browser",
           ),
         },
         {
@@ -425,7 +425,7 @@ export function ConsoleOnboarding({
         )
       : draft.sourceMode === "local-upload"
         ? t(
-            "Drop a local folder or source files. Fugue packages them on the server, then imports the result through the upload path.",
+            "Drop a local folder, archive, or source files. Fugue packages file uploads on the server, then imports the result through the upload path.",
           )
         : t(
             "Point Fugue at a published Docker image. Fugue mirrors it into the internal registry before rollout.",

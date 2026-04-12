@@ -15,11 +15,29 @@ export type LocalUploadRouteFile = {
   path: string;
 };
 
-export type LocalUploadMultipartRequest = {
-  files: LocalUploadRouteFile[];
-  label: string | null;
-  payload: Record<string, unknown>;
+export type LocalUploadRouteArchive = {
+  contentType: string;
+  file: File;
+  name: string;
+  size: number;
 };
+
+export type LocalUploadMultipartRequest =
+  | {
+      kind: "archive";
+      archive: LocalUploadRouteArchive;
+      label: string | null;
+      payload: Record<string, unknown>;
+    }
+  | {
+      kind: "files";
+      files: LocalUploadRouteFile[];
+      label: string | null;
+      payload: Record<string, unknown>;
+    };
+
+const DIRECT_UPLOAD_ARCHIVE_ERROR =
+  "Choose a folder, a .zip or .tgz archive, docker-compose.yml, Dockerfile, or source files to upload.";
 
 function isFormFile(value: FormDataEntryValue): value is File {
   return typeof File !== "undefined" && value instanceof File;
@@ -88,7 +106,38 @@ function stripArchiveExtension(value: string) {
   return value
     .replace(/\.tar\.gz$/i, "")
     .replace(/\.tgz$/i, "")
+    .replace(/\.zip$/i, "")
     .replace(/\.[^.]+$/u, "");
+}
+
+function isSupportedUploadArchiveName(name: string) {
+  const normalized = name.trim().toLowerCase();
+
+  return (
+    normalized.endsWith(".zip") ||
+    normalized.endsWith(".tgz") ||
+    normalized.endsWith(".tar.gz")
+  );
+}
+
+function inferUploadArchiveContentType(file: File) {
+  const contentType = file.type.trim();
+
+  if (contentType) {
+    return contentType;
+  }
+
+  const normalized = file.name.trim().toLowerCase();
+
+  if (normalized.endsWith(".zip")) {
+    return "application/zip";
+  }
+
+  if (normalized.endsWith(".tgz") || normalized.endsWith(".tar.gz")) {
+    return "application/gzip";
+  }
+
+  return "application/octet-stream";
 }
 
 function resolveArchiveBaseName(
@@ -181,11 +230,55 @@ export async function readLocalUploadMultipartRequest(request: Request) {
     throw new Error("Multipart field payload must be a JSON object.");
   }
 
+  const labelValue = formData.get("label");
+  const normalizedLabel =
+    typeof labelValue === "string" && labelValue.trim()
+      ? labelValue.trim()
+      : null;
+  const archiveValue = formData.get("archive");
   const fileValues = formData.getAll("files");
   const pathValues = formData.getAll("paths");
 
+  if (archiveValue !== null) {
+    if (!isFormFile(archiveValue)) {
+      throw new Error("The uploaded archive must be sent as multipart file data.");
+    }
+
+    if (fileValues.length > 0 || pathValues.length > 0) {
+      throw new Error("Upload either a source archive or source files, not both.");
+    }
+
+    if (!archiveValue.name.trim()) {
+      throw new Error("The uploaded archive must include a filename.");
+    }
+
+    if (!isSupportedUploadArchiveName(archiveValue.name)) {
+      throw new Error("The uploaded archive must end with .zip, .tgz, or .tar.gz.");
+    }
+
+    if (archiveValue.size === 0) {
+      throw new Error("The uploaded archive is empty.");
+    }
+
+    if (archiveValue.size > MAX_UPLOAD_ARCHIVE_BYTES) {
+      throw new Error(`Archive exceeds ${MAX_UPLOAD_ARCHIVE_BYTES} bytes.`);
+    }
+
+    return {
+      kind: "archive",
+      archive: {
+        contentType: inferUploadArchiveContentType(archiveValue),
+        file: archiveValue,
+        name: archiveValue.name,
+        size: archiveValue.size,
+      },
+      label: normalizedLabel || stripArchiveExtension(archiveValue.name) || null,
+      payload,
+    } satisfies LocalUploadMultipartRequest;
+  }
+
   if (!fileValues.length) {
-    throw new Error("Choose a folder, docker-compose.yml, Dockerfile, or source files to upload.");
+    throw new Error(DIRECT_UPLOAD_ARCHIVE_ERROR);
   }
 
   if (fileValues.length !== pathValues.length) {
@@ -215,11 +308,10 @@ export async function readLocalUploadMultipartRequest(request: Request) {
     };
   });
 
-  const labelValue = formData.get("label");
-
   return {
+    kind: "files",
     files,
-    label: typeof labelValue === "string" && labelValue.trim() ? labelValue.trim() : null,
+    label: normalizedLabel,
     payload,
   } satisfies LocalUploadMultipartRequest;
 }
@@ -269,7 +361,32 @@ export async function createLocalUploadArchive(
 
   return {
     archiveBytes: new Uint8Array(gzipBuffer),
+    archiveContentType: "application/gzip",
     archiveName: `${resolveArchiveBaseName(options?.archiveBaseName, options?.label, normalizedFiles)}.tgz`,
     files: normalizedFiles,
   };
+}
+
+export async function prepareLocalUploadArchive(
+  upload: LocalUploadMultipartRequest,
+  options?: {
+    archiveBaseName?: string | null;
+    label?: string | null;
+  },
+) {
+  if (upload.kind === "archive") {
+    const archiveBytes = new Uint8Array(await upload.archive.file.arrayBuffer());
+
+    if (archiveBytes.byteLength > MAX_UPLOAD_ARCHIVE_BYTES) {
+      throw new Error(`Archive exceeds ${MAX_UPLOAD_ARCHIVE_BYTES} bytes.`);
+    }
+
+    return {
+      archiveBytes,
+      archiveContentType: upload.archive.contentType,
+      archiveName: upload.archive.name,
+    };
+  }
+
+  return createLocalUploadArchive(upload.files, options);
 }

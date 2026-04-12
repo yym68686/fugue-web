@@ -1,5 +1,6 @@
 import type { GitHubRepoVisibility } from "@/lib/github/repository";
 import type { LocalUploadState } from "@/lib/fugue/local-upload";
+import { hasLocalUploadSelection } from "@/lib/fugue/local-upload";
 import {
   createPersistentStorageDraft,
   hasPersistentStorageDraft,
@@ -185,11 +186,11 @@ export function validateImportServiceDraft(
 
   if (
     draft.sourceMode === "local-upload" &&
-    !options?.localUpload?.items.length
+    !hasLocalUploadSelection(options?.localUpload)
   ) {
     return translate(
       locale,
-      "Choose a folder, docker-compose.yml, Dockerfile, or source files to upload.",
+      "Choose a folder, a .zip or .tgz archive, docker-compose.yml, Dockerfile, or source files to upload.",
     );
   }
 

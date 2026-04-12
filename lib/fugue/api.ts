@@ -2124,6 +2124,7 @@ export async function importFugueUploadApp(
   accessToken: string,
   payload: {
     archiveBytes: Uint8Array;
+    archiveContentType?: string;
     archiveName: string;
     appId?: string;
     buildContextDir?: string;
@@ -2203,7 +2204,9 @@ export async function importFugueUploadApp(
   );
   body.set(
     "archive",
-    new Blob([archiveBytes], { type: "application/gzip" }),
+    new Blob([archiveBytes], {
+      type: payload.archiveContentType?.trim() || "application/gzip",
+    }),
     payload.archiveName,
   );
 
