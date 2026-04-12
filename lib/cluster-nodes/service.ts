@@ -523,6 +523,21 @@ function readRuntimeTimestamp(runtime: FugueRuntime) {
   );
 }
 
+function isRuntimeOffline(runtime: FugueRuntime | null) {
+  return runtime?.status?.trim().toLowerCase() === "offline";
+}
+
+function isWorkspaceOwnedOfflineRuntime(
+  runtime: FugueRuntime | null,
+  workspaceTenantId: string,
+) {
+  return (
+    Boolean(runtime?.tenantId?.trim()) &&
+    runtime?.tenantId?.trim() === workspaceTenantId &&
+    isRuntimeOffline(runtime)
+  );
+}
+
 function readRuntimeLabel(runtime: FugueRuntime, locale: Locale) {
   if (runtime.type === "managed-shared") {
     return readManagedSharedRuntimeLabel(runtime, locale);
@@ -753,7 +768,11 @@ function buildClusterNodeViews(
       .filter((runtime) => runtime.clusterNodeName)
       .map((runtime) => [runtime.clusterNodeName as string, runtime] as const),
   );
-  const visibleNodes = nodes;
+  const visibleNodes = nodes.filter((node) => {
+    const runtime = resolveRuntimeForNode(node, runtimeById, runtimeByNodeName);
+
+    return !isWorkspaceOwnedOfflineRuntime(runtime, workspaceTenantId);
+  });
 
   const views = visibleNodes.map((node) => {
     const runtime = resolveRuntimeForNode(node, runtimeById, runtimeByNodeName);
@@ -968,13 +987,16 @@ function buildOfflineServerViews(
       .filter((runtime) => runtime.clusterNodeName)
       .map((runtime) => [runtime.clusterNodeName as string, runtime] as const),
   );
-  const liveRuntimeIDs = new Set<string>();
+  const attachedRuntimeIDs = new Set<string>();
 
   for (const node of nodes) {
     const runtime = resolveRuntimeForNode(node, runtimeById, runtimeByNodeName);
 
-    if (runtime?.id) {
-      liveRuntimeIDs.add(runtime.id);
+    if (
+      runtime?.id &&
+      !isWorkspaceOwnedOfflineRuntime(runtime, workspaceTenantId)
+    ) {
+      attachedRuntimeIDs.add(runtime.id);
     }
   }
 
@@ -984,7 +1006,7 @@ function buildOfflineServerViews(
       (runtime) => runtime.type?.trim().toLowerCase() !== "managed-shared",
     )
     .filter((runtime) => runtime.status?.trim().toLowerCase() === "offline")
-    .filter((runtime) => !liveRuntimeIDs.has(runtime.id))
+    .filter((runtime) => !attachedRuntimeIDs.has(runtime.id))
     .sort((left, right) => {
       const leftTimestamp = readRuntimeTimestamp(left);
       const rightTimestamp = readRuntimeTimestamp(right);

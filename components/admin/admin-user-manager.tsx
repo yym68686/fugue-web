@@ -14,6 +14,13 @@ import { useRouter } from "next/navigation";
 import { CompactResourceMeter } from "@/components/console/compact-resource-meter";
 import { ConsoleEmptyState } from "@/components/console/console-empty-state";
 import { StatusBadge } from "@/components/console/status-badge";
+import {
+  CONSOLE_ADMIN_USERS_PAGE_ENRICHMENT_SNAPSHOT_URL,
+  CONSOLE_ADMIN_USERS_PAGE_SNAPSHOT_URL,
+  type ConsoleAdminUsersPageSnapshot,
+  readConsolePageSnapshot,
+  writeConsolePageSnapshot,
+} from "@/lib/console/page-snapshot-client";
 import { Button, InlineButton } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FormField } from "@/components/ui/form-field";
@@ -27,6 +34,7 @@ import { useI18n } from "@/components/providers/i18n-provider";
 import { useToast } from "@/components/ui/toast";
 import type { ConsoleCompactResourceItemView } from "@/lib/console/gallery-types";
 import type { ConsoleTone } from "@/lib/console/types";
+import type { FugueBillingSummary } from "@/lib/fugue/api";
 
 type AdminUserBillingView = {
   balanceLabel: string | null;
@@ -213,6 +221,109 @@ function formatStorage(storageGibibytes: number) {
   return `${formatCompactNumber(storageGibibytes, Number.isInteger(storageGibibytes) ? 0 : 2)} GiB`;
 }
 
+function formatBillingResourceSpec(spec: {
+  cpuMillicores: number;
+  memoryMebibytes: number;
+  storageGibibytes: number;
+}) {
+  return [
+    formatCPU(spec.cpuMillicores),
+    formatMemory(spec.memoryMebibytes),
+    formatStorage(spec.storageGibibytes),
+  ].join(" / ");
+}
+
+function humanizeLabel(value?: string | null) {
+  if (!value) {
+    return "Unknown";
+  }
+
+  return value
+    .replace(/[._-]+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (match) => match.toUpperCase());
+}
+
+function readBillingStatusTone(billing: FugueBillingSummary): ConsoleTone {
+  if (billing.overCap || billing.status === "over-cap") {
+    return "warning";
+  }
+
+  if (billing.balanceRestricted || billing.status === "restricted") {
+    return "warning";
+  }
+
+  if (billing.status === "active") {
+    return "positive";
+  }
+
+  return "neutral";
+}
+
+function applyBillingSummaryToUser(
+  user: AdminUserView,
+  billing: FugueBillingSummary,
+): AdminUserView {
+  return {
+    ...user,
+    billing: {
+      ...user.billing,
+      balanceLabel: formatCurrencyFromMicroCents(
+        billing.balanceMicroCents,
+        billing.priceBook.currency,
+      ),
+      balanceMicroCents: billing.balanceMicroCents,
+      committedStorageGibibytes: billing.managedCommitted.storageGibibytes,
+      cpuMillicores: billing.managedCap.cpuMillicores,
+      limitLabel: formatBillingResourceSpec(billing.managedCap),
+      loadError: null,
+      loading: false,
+      memoryMebibytes: billing.managedCap.memoryMebibytes,
+      monthlyEstimateLabel: formatCurrencyFromMicroCents(
+        billing.monthlyEstimateMicroCents,
+        billing.priceBook.currency,
+      ),
+      priceBook: billing.priceBook,
+      storageGibibytes: billing.managedCap.storageGibibytes,
+      statusLabel: humanizeLabel(billing.status),
+      statusReason: billing.statusReason,
+      statusTone: readBillingStatusTone(billing),
+      tenantId: billing.tenantId,
+    },
+  };
+}
+
+function updateUsersBilling(
+  users: AdminUserView[],
+  email: string,
+  billing: FugueBillingSummary,
+) {
+  return users.map((candidate) =>
+    candidate.email === email ? applyBillingSummaryToUser(candidate, billing) : candidate,
+  );
+}
+
+function syncAdminUsersSnapshot(
+  key:
+    | typeof CONSOLE_ADMIN_USERS_PAGE_SNAPSHOT_URL
+    | typeof CONSOLE_ADMIN_USERS_PAGE_ENRICHMENT_SNAPSHOT_URL,
+  email: string,
+  billing: FugueBillingSummary,
+) {
+  const currentSnapshot = readConsolePageSnapshot<ConsoleAdminUsersPageSnapshot>(key, {
+    allowStale: true,
+  });
+
+  if (!currentSnapshot) {
+    return;
+  }
+
+  writeConsolePageSnapshot<ConsoleAdminUsersPageSnapshot>(key, {
+    ...currentSnapshot,
+    users: updateUsersBilling(currentSnapshot.users, email, billing),
+  });
+}
+
 function clampQuotaCpuMillicores(value: number) {
   return Math.round(
     clampSteppedValue({
@@ -339,6 +450,7 @@ export function AdminUserManager({
   const router = useRouter();
   const confirm = useConfirmDialog();
   const { showToast } = useToast();
+  const [userRows, setUserRows] = useState(users);
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [editingQuotaEmail, setEditingQuotaEmail] = useState<string | null>(null);
   const [quotaCpu, setQuotaCpu] = useState(0);
@@ -351,7 +463,7 @@ export function AdminUserManager({
   const quotaDialogBackdropPressStartedRef = useRef(false);
   const quotaDialogReturnFocusRef = useRef<HTMLElement | null>(null);
   const editingQuotaUser = editingQuotaEmail
-    ? users.find((candidate) => candidate.email === editingQuotaEmail) ?? null
+    ? userRows.find((candidate) => candidate.email === editingQuotaEmail) ?? null
     : null;
   const quotaCpuCores = quotaCpu / MILLICORES_PER_VCPU;
   const quotaMemoryGib = quotaMemory / MEBIBYTES_PER_GIB;
@@ -425,6 +537,16 @@ export function AdminUserManager({
 
     router.refresh();
   }
+
+  function applyBillingUpdate(email: string, billing: FugueBillingSummary) {
+    setUserRows((current) => updateUsersBilling(current, email, billing));
+    syncAdminUsersSnapshot(CONSOLE_ADMIN_USERS_PAGE_SNAPSHOT_URL, email, billing);
+    syncAdminUsersSnapshot(CONSOLE_ADMIN_USERS_PAGE_ENRICHMENT_SNAPSHOT_URL, email, billing);
+  }
+
+  useEffect(() => {
+    setUserRows(users);
+  }, [users]);
 
   useEffect(() => {
     if (!editingQuotaEmail || editingQuotaUser) {
@@ -701,7 +823,7 @@ export function AdminUserManager({
     setQuotaError(null);
 
     try {
-      await requestJson<{ billing: unknown }>(
+      const { billing } = await requestJson<{ billing: FugueBillingSummary }>(
         `/api/admin/users/${encodeURIComponent(user.email)}/billing`,
         {
           body: JSON.stringify({
@@ -719,6 +841,7 @@ export function AdminUserManager({
         t,
       );
 
+      applyBillingUpdate(user.email, billing);
       closeQuotaEditor();
       showToast({
         message: t("Managed limit updated."),
@@ -760,7 +883,7 @@ export function AdminUserManager({
     setBalanceError(null);
 
     try {
-      await requestJson<{ billing: unknown }>(
+      const { billing } = await requestJson<{ billing: FugueBillingSummary }>(
         `/api/admin/users/${encodeURIComponent(user.email)}/billing`,
         {
           body: JSON.stringify({
@@ -774,6 +897,7 @@ export function AdminUserManager({
         t,
       );
 
+      applyBillingUpdate(user.email, billing);
       closeQuotaEditor();
       showToast({
         message: t("Balance updated."),
@@ -792,7 +916,7 @@ export function AdminUserManager({
     }
   }
 
-  if (!users.length) {
+  if (!userRows.length) {
     return (
       <ConsoleEmptyState
         description={t("No product users have signed in yet.")}
@@ -867,7 +991,7 @@ export function AdminUserManager({
             </tr>
           </thead>
           <tbody>
-            {users.map((user) => {
+            {userRows.map((user) => {
               const isQuotaEditable = canEditQuota(user);
               const billingActionBusy =
                 busyAction === `quota:${user.email}` || busyAction === `balance:${user.email}`;

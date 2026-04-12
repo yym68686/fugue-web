@@ -3230,6 +3230,10 @@
   min-width: 0;
 }
 
+.fg-console-topbar__locale-switcher {
+  flex: 0 0 auto;
+}
+
 .fg-console-topbar__primary-action {
   width: auto;
   max-width: 100%;

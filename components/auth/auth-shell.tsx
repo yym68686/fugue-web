@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { Brand } from "@/components/brand";
+import { LocaleSwitcher } from "@/components/ui/locale-switcher";
 import { RouteNote } from "@/components/ui/route-note";
 import { getRequestI18n } from "@/lib/i18n/server";
 
@@ -36,8 +37,9 @@ export async function AuthShell({
     <main className="fg-auth-page fg-auth-page--account">
       <div className="fg-auth-grid">
         <section className="fg-auth-stage">
-          <div className="fg-auth-stage__top">
+          <div className="fg-auth-stage__top fg-auth-stage__topbar">
             <Brand meta={resolvedBrandMeta} />
+            <LocaleSwitcher className="fg-auth-stage__locale-switcher" />
           </div>
 
           <div className="fg-auth-stage__copy">

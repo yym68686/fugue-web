@@ -63,6 +63,14 @@ body.is-ready .fg-landing-masthead {
   justify-self: center;
 }
 
+.fg-landing-masthead__actions {
+  display: inline-flex;
+  align-items: center;
+  justify-self: end;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
 .fg-landing-topbar-action {
   justify-self: end;
 }
@@ -731,6 +739,14 @@ body.has-scene .fg-landing-scene-container::before {
 }
 
 @media (max-width: 760px) {
+  .fg-landing-masthead__actions {
+    gap: 0.5rem;
+  }
+
+  .fg-landing-masthead .fg-brand__meta {
+    display: none;
+  }
+
   .fg-landing-hero {
     padding-top: calc(var(--fg-landing-header-offset) - 0.2rem);
   }

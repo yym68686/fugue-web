@@ -1,6 +1,9 @@
 export const SUPPORTED_LOCALES = ["en", "zh-CN", "zh-TW"] as const;
 
 export type Locale = (typeof SUPPORTED_LOCALES)[number];
+export const SUPPORTED_LOCALE_SET = new Set<Locale>(SUPPORTED_LOCALES);
+export const LOCALE_COOKIE_NAME = "fg_locale";
+export const LOCALE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 
 export type TranslationValues = Record<string, string | number>;
 
@@ -10,6 +13,7 @@ const TRADITIONAL_REGIONS = new Set(["HK", "MO", "TW"]);
 const TRADITIONAL_SCRIPTS = new Set(["HANT"]);
 
 const enMessages = {
+  "Interface language": "Interface language",
   "No stats": "-",
 } satisfies MessageCatalog;
 
@@ -180,6 +184,7 @@ const zhCNMessages = {
   "Headroom": "余量充足",
   "How it works": "工作方式",
   "Image reference": "镜像引用",
+  "Interface language": "界面语言",
   "Import is already running.": "导入已在进行中。",
   "Import is still running. Switch to Build to follow progress.":
     "导入仍在进行中。切换到“构建”查看进度。",
@@ -592,6 +597,7 @@ const zhTWMessages = {
   "New variable": "新變數",
   "Not yet": "尚未",
   "Open menu": "開啟選單",
+  "Interface language": "介面語言",
   "Opening the console": "正在開啟控制台",
   "Or continue with email": "或使用電子郵件繼續",
   "Or use your account email": "或使用你的帳號電子郵件",
@@ -2238,18 +2244,29 @@ const zhTWExtraMessages = {
   "Custom domains": "自訂網域",
   "Back to top": "返回頂部",
   "Copied": "已複製",
+  "Continue with {label}": "使用 {label} 繼續",
   "Copy command": "複製命令",
   "Copy manually": "請手動複製",
+  "Core objects": "核心物件",
   "Create an account": "建立帳號",
   "Deleted": "已刪除",
   "Docker image import also available": "也支援匯入 Docker 映像",
+  "Email route": "電子郵件路徑",
   "Envelope / Balance / Metering": "儲值 / 餘額 / 計量",
   "Finalize": "完成",
   "First party / HttpOnly cookie": "第一方 / HttpOnly Cookie",
   "Footer": "頁腳",
   "Gallery / Services / Controls": "畫廊 / 服務 / 控制",
+  "GitHub provider": "GitHub 提供方",
+  "Google is fastest. Email still uses a verification link. Password can be added after sign-up.":
+    "Google 最快。電子郵件仍透過驗證連結完成。密碼可在註冊後再設定。",
+  "Google is fastest. Password works if you already added one.":
+    "Google 最快。如果你已經設定密碼，也可以直接使用密碼。",
   "GitHub import example": "GitHub 匯入範例",
   "Google / Email / Verified identity": "Google / 電子郵件 / 已驗證身分",
+  "Google or GitHub are fastest. Password works if you already added one.":
+    "Google 或 GitHub 最快。如果你已經設定密碼，也可以直接使用密碼。",
+  "Google provider": "Google 提供方",
   "Health / Heartbeat / Workloads": "健康 / 心跳 / 工作負載",
   "Loading": "正在載入",
   "Loading apps": "正在載入應用",
@@ -2258,18 +2275,24 @@ const zhTWExtraMessages = {
   "Magic link / Resend / Callback": "魔法連結 / 重送 / 回呼",
   "Managed shared runtime": "託管共享執行環境",
   "Mobile": "行動端",
+  "Need a fresh account boundary?": "需要新的帳號邊界？",
   "Nodes / Pressure / Workloads": "節點 / 壓力 / 工作負載",
   "OAuth / Profile / Verified email": "OAuth / 個人資料 / 已驗證電子郵件",
   "OAuth / Verified email": "OAuth / 已驗證電子郵件",
   "OAuth / Verified email / Linked account": "OAuth / 已驗證電子郵件 / 已連結帳號",
   "Operation": "操作",
   "Optional": "可選",
+  "Password can be added later from Profile and security. Email link access stays available without a stored secret.":
+    "密碼稍後可在「個人資料與安全」中新增。即使沒有儲存的密碼，仍可透過電子郵件連結存取。",
+  "Password lane": "密碼路徑",
   "Post-auth": "驗證後",
   "Primary": "主導覽",
   "Private GitHub repositories require GitHub authorization or a GitHub token with repository read access.":
     "私有 GitHub 儲存庫需要 GitHub 授權，或提供具備儲存庫讀取權限的 GitHub Token。",
   "Provider callback": "提供者回呼",
   "Quickstart": "快速開始",
+  "Registration stays on the verification flow. Workspace setup comes next.":
+    "註冊會停留在驗證流程中，接下來才是工作區設定。",
   "Repository / Image / Upload": "儲存庫 / 映像 / 上傳",
   "Repository import": "儲存庫匯入",
   "Reset": "重設",
@@ -2287,6 +2310,10 @@ const zhTWExtraMessages = {
   "Signing in": "登入中",
   "source": "原始碼",
   "Stored secret / Current account email": "已儲存密鑰 / 目前帳號電子郵件",
+  "Use the password saved from the profile page.":
+    "使用你在個人資料頁儲存的密碼。",
+  "Use the same account email shown in Profile.":
+    "使用「個人資料」中顯示的同一個帳號電子郵件。",
   "The fastest path to a public URL should not trap the app in a throwaway setup. In Fugue, the route stays stable while the runtime changes: import the source, go live on shared infrastructure, then migrate onto your own machine when you are ready.":
     "通往公開 URL 的最快路徑，不該把應用困在一次性環境中。在 Fugue 裡，路由保持穩定，執行環境可以改變：先匯入原始碼、在共享基礎設施上線，準備好後再遷移到你的機器。",
   "The provider identity is already verified. We are now finishing sign-in with a same-origin form POST so Safari can treat the session write like a regular first-party login redirect.":
@@ -2297,10 +2324,20 @@ const zhTWExtraMessages = {
   "Unavailable": "不可用",
   "Use a public image reference to unlock the deploy form after sign-in.":
     "使用公開映像引用，即可在登入後解鎖部署表單。",
+  "We send one verification link. No password required.":
+    "我們會寄出一封驗證連結，不需要密碼。",
+  "We verify the email locally and open the session immediately.":
+    "我們會在本地驗證電子郵件，並立即開啟工作階段。",
+  "Use Google, a password, or a verified email link.":
+    "使用 Google、密碼或已驗證的電子郵件連結。",
+  "Use Google, GitHub, a password, or a verified email link.":
+    "使用 Google、GitHub、密碼或已驗證的電子郵件連結。",
   "Use a hostname you control, like app.example.com or example.com.":
     "使用你可控制的主機名稱，例如 app.example.com 或 example.com。",
   "Validation / Failure / Retry": "驗證 / 失敗 / 重試",
+  "Workspace": "工作區",
   "Workspace / Project / App": "工作區 / 專案 / 應用",
+  "App": "應用",
   "A database transfer to {target} is already in progress.":
     "目前已有一筆遷移到 {target} 的資料庫轉移正在進行。",
   "Add another managed runtime before moving this database.":

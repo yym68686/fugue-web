@@ -184,6 +184,7 @@ function readDatabaseContinuityStandbyLabel(
       return service.databaseFailoverConfigured
         ? configuredTargetLabel
         : t("Not configured");
+    case "unprotected":
     case "off":
     default:
       return t("Not configured");
@@ -265,6 +266,13 @@ function readDatabaseContinuityMessage(
             message: readPrimaryPlacementPendingMessage(t),
           })
         : null;
+    case "unprotected":
+      return t(
+        "Failover already moved the primary to {primaryRuntimeLabel}. No standby runtime is protecting this database now. Choose a new standby to restore protection.",
+        {
+          primaryRuntimeLabel,
+        },
+      );
     case "off":
     default:
       return service.databaseContinuity.placementPendingRebalance
@@ -454,6 +462,11 @@ export function BackingServiceSettingsPanel({
     selectedFailoverTargetRuntimeId !== appliedFailoverTargetRuntimeId;
   const showSaveFailoverButton =
     !service.databaseFailoverConfigured || failoverTargetChanged || saving;
+  const saveFailoverButtonLabel = service.databaseFailoverConfigured
+    ? t("Save standby")
+    : service.databaseContinuity.state === "unprotected"
+      ? t("Restore protection")
+      : t("Enable failover");
   const canTransfer =
     !transferSaving &&
     !databaseContinuityBusy &&
@@ -506,9 +519,13 @@ export function BackingServiceSettingsPanel({
           ? t("Database failover already points to {target}.", {
               target: selectedFailoverTargetLabel,
             })
-          : t("Database failover saved. Standby runtime: {target}.", {
-              target: selectedFailoverTargetLabel,
-            }),
+          : service.databaseContinuity.state === "unprotected"
+            ? t("Database protection restored. New standby runtime: {target}.", {
+                target: selectedFailoverTargetLabel,
+              })
+            : t("Database failover saved. Standby runtime: {target}.", {
+                target: selectedFailoverTargetLabel,
+              }),
         variant: "success",
       });
       onRefreshRequested?.();
@@ -674,7 +691,7 @@ export function BackingServiceSettingsPanel({
           <HintInline
             ariaLabel={t("Database failover")}
             hint={t(
-              "The database stays on its primary runtime. The standby runtime only takes over if the primary disappears.",
+              "The database stays on its primary runtime. The standby runtime only takes over if the primary disappears. After a failover, choose a new standby to restore protection.",
             )}
           >
             <h3 className="fg-route-subsection__title fg-ui-heading">
@@ -776,9 +793,7 @@ export function BackingServiceSettingsPanel({
                 type="submit"
                 variant="primary"
               >
-                {service.databaseFailoverConfigured
-                  ? t("Save standby")
-                  : t("Enable failover")}
+                {saveFailoverButtonLabel}
               </Button>
             ) : null}
           </div>

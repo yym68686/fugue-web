@@ -46,6 +46,10 @@ export type ConsoleGalleryCommitView = {
 
 export type ConsoleGalleryAppServiceRole = "pending" | "running";
 export type ConsoleGalleryBackingServiceRole = "pending" | "running";
+export type ConsoleGalleryAppFailoverState =
+  | "configured"
+  | "off"
+  | "unprotected";
 
 export type ConsoleGalleryDatabaseContinuityState =
   | "configured"
@@ -55,6 +59,7 @@ export type ConsoleGalleryDatabaseContinuityState =
   | "provisioning-standby"
   | "removing-standby"
   | "standby-update-queued"
+  | "unprotected"
   | "updating-standby";
 
 export type ConsoleGalleryDatabaseContinuityView = {
@@ -87,6 +92,8 @@ export type ConsoleGalleryAppView = {
   exposesPublicRoute: boolean;
   failoverAuto: boolean;
   failoverConfigured: boolean;
+  failoverState: ConsoleGalleryAppFailoverState;
+  failoverStateTone: ConsoleTone;
   failoverTargetRuntimeId: string | null;
   hasManagedPostgresService: boolean;
   hasPersistentWorkspace: boolean;

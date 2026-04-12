@@ -1368,6 +1368,26 @@ function AppAutomaticFailoverSection({
       : continuityTargets.length === 0
         ? t("Add another managed runtime before turning on automatic failover.")
         : null;
+  const failoverStateLabel =
+    app.failoverState === "configured"
+      ? t("Configured")
+      : app.failoverState === "unprotected"
+        ? t("Protection missing")
+        : t("Off");
+  const failoverMessage =
+    app.failoverState === "unprotected"
+      ? t(
+          "Failover already moved this app to {primaryRuntimeLabel}. No standby runtime is protecting it now. Choose a new standby to restore protection.",
+          {
+            primaryRuntimeLabel,
+          },
+        )
+      : null;
+  const saveButtonLabel = app.failoverConfigured
+    ? t("Save standby")
+    : app.failoverState === "unprotected"
+      ? t("Restore protection")
+      : t("Enable failover");
   const canSave =
     !saving && !blockerMessage && Boolean(selectedTargetRuntimeId);
   const failoverTargetChanged =
@@ -1411,9 +1431,13 @@ function AppAutomaticFailoverSection({
           ? t("Automatic failover already points to {target}.", {
               target: selectedTargetLabel,
             })
-          : t("Automatic failover saved. Standby runtime: {target}.", {
-              target: selectedTargetLabel,
-            }),
+          : app.failoverState === "unprotected"
+            ? t("Protection restored. New standby runtime: {target}.", {
+                target: selectedTargetLabel,
+              })
+            : t("Automatic failover saved. Standby runtime: {target}.", {
+                target: selectedTargetLabel,
+              }),
         variant: "success",
       });
       startTransition(() => {
@@ -1493,7 +1517,7 @@ function AppAutomaticFailoverSection({
           <HintInline
             ariaLabel={t("Automatic failover")}
             hint={t(
-              "Keep a standby runtime ready. Traffic only moves there if the primary runtime disappears.",
+              "Keep a standby runtime ready. Traffic only moves there if the primary runtime disappears. After a failover, choose a new standby to restore protection.",
             )}
           >
             <h3 className="fg-route-subsection__title fg-ui-heading">
@@ -1502,8 +1526,8 @@ function AppAutomaticFailoverSection({
           </HintInline>
         </div>
 
-        <StatusBadge tone={app.failoverConfigured ? "info" : "neutral"}>
-          {app.failoverConfigured ? t("Configured") : t("Off")}
+        <StatusBadge tone={app.failoverStateTone}>
+          {failoverStateLabel}
         </StatusBadge>
       </div>
 
@@ -1527,6 +1551,9 @@ function AppAutomaticFailoverSection({
       </dl>
 
       <form className="fg-settings-form" onSubmit={handleSubmit}>
+        {failoverMessage ? (
+          <InlineAlert variant="warning">{failoverMessage}</InlineAlert>
+        ) : null}
         {blockerMessage ? (
           <InlineAlert variant="warning">{blockerMessage}</InlineAlert>
         ) : null}
@@ -1578,7 +1605,7 @@ function AppAutomaticFailoverSection({
               type="submit"
               variant="primary"
             >
-              {app.failoverConfigured ? t("Save standby") : t("Enable failover")}
+              {saveButtonLabel}
             </Button>
           ) : null}
         </div>

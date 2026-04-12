@@ -384,6 +384,31 @@ function readAppPhaseLabel(value?: string | null) {
   return humanize(value);
 }
 
+function readAppFailoverState(
+  app: Pick<FugueApp, "spec" | "status">,
+): ConsoleGalleryAppView["failoverState"] {
+  if (app.spec.failover) {
+    return "configured";
+  }
+
+  const phase = app.status.phase?.trim().toLowerCase() ?? "";
+  return phase.includes("failed-over") ? "unprotected" : "off";
+}
+
+function toneForAppFailoverState(
+  state: ConsoleGalleryAppView["failoverState"],
+): ConsoleTone {
+  switch (state) {
+    case "configured":
+      return "info";
+    case "unprotected":
+      return "warning";
+    case "off":
+    default:
+      return "neutral";
+  }
+}
+
 function readRunningReleaseStatus(
   app: FugueApp,
   fallbackPhase: string,
@@ -523,6 +548,19 @@ function toneForStatus(status?: string | null): ConsoleTone {
   return "neutral";
 }
 
+function isManagedPostgresService(
+  service: Pick<FugueBackingService, "type" | "provisioner">,
+) {
+  const normalizedType = service.type?.trim().toLowerCase() ?? "";
+  const normalizedProvisioner =
+    service.provisioner?.trim().toLowerCase() ?? "";
+
+  return (
+    normalizedType === "postgres" &&
+    (normalizedProvisioner === "" || normalizedProvisioner === "managed")
+  );
+}
+
 function isTerminalAppFailurePhase(phase?: string | null) {
   const normalized = phase?.trim().toLowerCase() ?? "";
 
@@ -651,6 +689,7 @@ function isDatabaseContinuityOperationCandidate(
 function readDatabaseContinuityView(
   service: FugueBackingService,
   continuityOperation?: FugueOperation | null,
+  ownerAppFailoverState: ConsoleGalleryAppView["failoverState"] = "off",
 ): ConsoleGalleryBackingServiceView["databaseContinuity"] {
   const current = readDatabaseContinuitySnapshot(service.spec.postgres);
   const desiredPostgres = continuityOperation?.desiredSpec?.postgres ?? null;
@@ -697,6 +736,21 @@ function readDatabaseContinuityView(
     };
   }
 
+  if (
+    !currentConfigured &&
+    ownerAppFailoverState === "unprotected" &&
+    isManagedPostgresService(service)
+  ) {
+    return {
+      label: "Protection missing",
+      live: false,
+      pendingTargetRuntimeId: null,
+      placementPendingRebalance: false,
+      state: "unprotected",
+      tone: "warning",
+    };
+  }
+
   if (currentConfigured) {
     return {
       label: "Configured",
@@ -738,6 +792,8 @@ function readDatabaseContinuityDescription(
       return continuity.placementPendingRebalance
         ? "Standby runtime configured. Primary placement relaxes on the next rebalance."
         : "Standby runtime configured.";
+    case "unprotected":
+      return "Failover already promoted the standby. Choose a new standby to restore protection.";
     case "off":
     default:
       return continuity.placementPendingRebalance
@@ -2000,6 +2056,7 @@ function buildSharedAppView(
   const routeHostname = readRouteHostname(app);
   const redeploy = readRedeployState(app);
   const redeployAction = readRedeployAction(app);
+  const failoverState = readAppFailoverState(app);
   const sourceBranchLabel = readSourceBranchLabelFromSource(source);
   const serviceBadges = buildAppBadges(app, { source, techStack });
   const persistentStorageMounts =
@@ -2026,11 +2083,11 @@ function buildSharedAppView(
     exposesPublicRoute: app.spec.networkMode !== "background",
     failoverAuto: app.spec.failover?.auto ?? false,
     failoverConfigured: Boolean(app.spec.failover),
+    failoverState,
+    failoverStateTone: toneForAppFailoverState(failoverState),
     failoverTargetRuntimeId: app.spec.failover?.targetRuntimeId ?? null,
     hasManagedPostgresService: app.backingServices.some(
-      (service) =>
-        service.type === "postgres" &&
-        (!service.provisioner || service.provisioner === "managed"),
+      (service) => isManagedPostgresService(service),
     ),
     hasPersistentWorkspace: Boolean(app.spec.workspace),
     hasPostgresService: app.backingServices.some(
@@ -2220,6 +2277,7 @@ function buildBackingServiceViews(
   service: FugueBackingService,
   appNames: Map<string, string>,
   appRuntimeIds: Map<string, string | null>,
+  appFailoverStates: Map<string, ConsoleGalleryAppView["failoverState"]>,
   runtimeLocationsById: ReadonlyMap<string, RuntimeTargetLocationView>,
   location?: WorkloadLocationView | null,
   databaseTransferOperation?: FugueOperation | null,
@@ -2229,6 +2287,9 @@ function buildBackingServiceViews(
   const ownerAppRuntimeId = service.ownerAppId
     ? (appRuntimeIds.get(service.ownerAppId) ?? null)
     : null;
+  const ownerAppFailoverState = service.ownerAppId
+    ? (appFailoverStates.get(service.ownerAppId) ?? "off")
+    : "off";
   const databaseRuntimeId = postgres?.runtimeId ?? ownerAppRuntimeId ?? null;
   const databaseTransferTargetRuntimeId =
     databaseTransferOperation?.targetRuntimeId?.trim() || null;
@@ -2243,6 +2304,7 @@ function buildBackingServiceViews(
   const databaseContinuity = readDatabaseContinuityView(
     service,
     databaseContinuityOperation,
+    ownerAppFailoverState,
   );
   const ownerAppLabel = service.ownerAppId
     ? (appNames.get(service.ownerAppId) ?? "Attached app")
@@ -2574,6 +2636,11 @@ function buildConsoleProjectViewFromDetail(
         ] as const,
     ),
   );
+  const appFailoverStates = new Map(
+    sortedApps.map(
+      (app) => [app.id, readAppFailoverState(app)] as const,
+    ),
+  );
   const commitOperationsByAppId = collectCommitOperationsByAppId(
     detail.operations,
   );
@@ -2629,6 +2696,7 @@ function buildConsoleProjectViewFromDetail(
       service,
       appNames,
       appRuntimeIds,
+      appFailoverStates,
       runtimeLocationsById,
         workloadLocationsById.get(service.id) ?? null,
         service.ownerAppId
@@ -2965,6 +3033,11 @@ const getConsoleProjectGalleryDataCached = cache(
               ] as const,
           ),
         );
+        const appFailoverStates = new Map(
+          sortedApps.map(
+            (app) => [app.id, readAppFailoverState(app)] as const,
+          ),
+        );
         const backingServicesById = new Map<string, FugueBackingService>();
 
         for (const app of sortedApps) {
@@ -3011,6 +3084,7 @@ const getConsoleProjectGalleryDataCached = cache(
             service,
             appNames,
             appRuntimeIds,
+            appFailoverStates,
             runtimeTargetLocationsById,
             workloadLocationsById.get(service.id) ?? null,
             service.ownerAppId

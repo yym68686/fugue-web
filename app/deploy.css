@@ -97,6 +97,13 @@
   width: min(100%, 42rem);
 }
 
+.fg-deploy-page__topbar {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  margin-bottom: 0.95rem;
+}
+
 .fg-deploy-page--repository .fg-auth-grid {
   width: min(calc(100% - 2rem), 42rem);
   min-height: auto;
