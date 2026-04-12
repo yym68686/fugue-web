@@ -4,7 +4,6 @@ import { Brand } from "@/components/brand";
 import { ConsoleNav } from "@/components/console/console-nav";
 import { ConsoleProfileMenu } from "@/components/console/console-profile-menu";
 import { ConsolePrimaryAction } from "@/components/console/console-primary-action";
-import { LocaleSwitcher } from "@/components/ui/locale-switcher";
 import {
   ConsoleRouteTransitionContent,
   ConsoleRouteTransitionProvider,
@@ -37,7 +36,6 @@ export async function ConsoleShell({
             <ConsoleNav isAdmin={isAdmin} />
 
             <div className="fg-console-topbar__actions">
-              <LocaleSwitcher className="fg-console-topbar__locale-switcher" />
               <ConsolePrimaryAction hasProjects={hasProjects} />
               <ConsoleProfileMenu isAdmin={isAdmin} session={session} />
             </div>

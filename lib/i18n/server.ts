@@ -8,10 +8,11 @@ import {
   LOCALE_COOKIE_NAME,
   negotiateLocale,
   SUPPORTED_LOCALE_SET,
+  type LocalePreference,
   type Locale,
 } from "@/lib/i18n/core";
 
-export const getRequestLocale = cache(async (): Promise<Locale> => {
+export const getRequestLocalePreference = cache(async (): Promise<LocalePreference> => {
   const cookieStore = await cookies();
   const storedLocale = cookieStore.get(LOCALE_COOKIE_NAME)?.value;
 
@@ -19,15 +20,29 @@ export const getRequestLocale = cache(async (): Promise<Locale> => {
     return storedLocale as Locale;
   }
 
+  return "auto";
+});
+
+export const getRequestLocale = cache(async (): Promise<Locale> => {
+  const localePreference = await getRequestLocalePreference();
+
+  if (localePreference !== "auto") {
+    return localePreference;
+  }
+
   const headerStore = await headers();
   return negotiateLocale(headerStore.get("accept-language"));
 });
 
 export const getRequestI18n = cache(async () => {
-  const locale = await getRequestLocale();
+  const [locale, localePreference] = await Promise.all([
+    getRequestLocale(),
+    getRequestLocalePreference(),
+  ]);
 
   return {
     locale,
+    localePreference,
     t: createTranslator(locale),
   };
 });

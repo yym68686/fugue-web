@@ -7,6 +7,7 @@ import {
   formatDateTime,
   formatNumber,
   formatRelativeTime,
+  type LocalePreference,
   type Locale,
   type TranslationValues,
 } from "@/lib/i18n/core";
@@ -16,6 +17,7 @@ type I18nContextValue = {
   formatNumber: (value: number, options?: Intl.NumberFormatOptions) => string;
   formatRelativeTime: (value?: string | number | Date | null, options?: Parameters<typeof formatRelativeTime>[2]) => string;
   locale: Locale;
+  localePreference: LocalePreference;
   t: (key: string, values?: TranslationValues) => string;
 };
 
@@ -24,9 +26,11 @@ const I18nContext = createContext<I18nContextValue | null>(null);
 export function I18nProvider({
   children,
   locale,
+  localePreference,
 }: {
   children: ReactNode;
   locale: Locale;
+  localePreference: LocalePreference;
 }) {
   const value = useMemo<I18nContextValue>(() => {
     const t = createTranslator(locale);
@@ -36,9 +40,10 @@ export function I18nProvider({
       formatNumber: (input, options) => formatNumber(locale, input, options),
       formatRelativeTime: (input, options) => formatRelativeTime(locale, input, options),
       locale,
+      localePreference,
       t,
     };
-  }, [locale]);
+  }, [locale, localePreference]);
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }

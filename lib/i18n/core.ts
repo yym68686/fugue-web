@@ -1,6 +1,7 @@
 export const SUPPORTED_LOCALES = ["en", "zh-CN", "zh-TW"] as const;
 
 export type Locale = (typeof SUPPORTED_LOCALES)[number];
+export type LocalePreference = Locale | "auto";
 export const SUPPORTED_LOCALE_SET = new Set<Locale>(SUPPORTED_LOCALES);
 export const LOCALE_COOKIE_NAME = "fg_locale";
 export const LOCALE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
@@ -13,6 +14,7 @@ const TRADITIONAL_REGIONS = new Set(["HK", "MO", "TW"]);
 const TRADITIONAL_SCRIPTS = new Set(["HANT"]);
 
 const enMessages = {
+  "Auto": "Auto",
   "Interface language": "Interface language",
   "No stats": "-",
 } satisfies MessageCatalog;
@@ -184,6 +186,7 @@ const zhCNMessages = {
   "Headroom": "余量充足",
   "How it works": "工作方式",
   "Image reference": "镜像引用",
+  "Auto": "自动",
   "Interface language": "界面语言",
   "Import is already running.": "导入已在进行中。",
   "Import is still running. Switch to Build to follow progress.":
@@ -597,6 +600,7 @@ const zhTWMessages = {
   "New variable": "新變數",
   "Not yet": "尚未",
   "Open menu": "開啟選單",
+  "Auto": "自動",
   "Interface language": "介面語言",
   "Opening the console": "正在開啟控制台",
   "Or continue with email": "或使用電子郵件繼續",

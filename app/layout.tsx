@@ -22,12 +22,14 @@ export default async function RootLayout({
 }: Readonly<{
   children: ReactNode;
 }>) {
-  const { locale } = await getRequestI18n();
+  const { locale, localePreference } = await getRequestI18n();
 
   return (
     <html lang={locale}>
       <body className={`${fugueFontVariables} fg-theme-dark`}>
-        <I18nProvider locale={locale}>{children}</I18nProvider>
+        <I18nProvider locale={locale} localePreference={localePreference}>
+          {children}
+        </I18nProvider>
       </body>
     </html>
   );

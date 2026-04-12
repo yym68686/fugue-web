@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { StatusBadge } from "@/components/console/status-badge";
 import { useI18n } from "@/components/providers/i18n-provider";
 import { Button, ButtonLink } from "@/components/ui/button";
+import { LocaleSwitcher } from "@/components/ui/locale-switcher";
 import {
   readAuthMethodLabel,
   readSessionLabel,
@@ -110,6 +111,14 @@ export function ConsoleProfileMenu({
           <StatusBadge tone={session.verified ? "positive" : "warning"}>
             {readVerificationLabel(session.verified, locale)}
           </StatusBadge>
+        </div>
+
+        <div className="fg-console-profile__section">
+          <p className="fg-console-profile__section-label fg-mono">{t("Interface language")}</p>
+          <LocaleSwitcher
+            className="fg-console-profile__locale-switcher"
+            onChangeComplete={() => setOpen(false)}
+          />
         </div>
 
         <ButtonLink className="fg-button--full-width" href="/app/settings/profile" size="compact" variant="secondary">

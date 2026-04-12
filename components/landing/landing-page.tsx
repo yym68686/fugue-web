@@ -1,6 +1,6 @@
 import { Brand } from "@/components/brand";
 import { Button, ButtonLink } from "@/components/ui/button";
-import { LocaleSwitcher } from "@/components/ui/locale-switcher";
+import { LocaleMenuButton } from "@/components/ui/locale-switcher";
 import { PillNav, PillNavAnchor } from "@/components/ui/pill-nav";
 import { ProofShell, ProofShellRibbon } from "@/components/ui/proof-shell";
 import { RouteNote } from "@/components/ui/route-note";
@@ -191,7 +191,7 @@ export async function LandingPage({ authenticatedAppPath }: LandingPageProps) {
           </PillNav>
 
           <div className="fg-landing-masthead__actions">
-            <LocaleSwitcher className="fg-landing-locale-switcher" />
+            <LocaleMenuButton />
             <ButtonLink className="fg-landing-topbar-action" href={primaryHref} size="compact" variant="route">
               {primaryLabel}
             </ButtonLink>

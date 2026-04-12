@@ -3230,10 +3230,6 @@
   min-width: 0;
 }
 
-.fg-console-topbar__locale-switcher {
-  flex: 0 0 auto;
-}
-
 .fg-console-topbar__primary-action {
   width: auto;
   max-width: 100%;
@@ -3383,6 +3379,31 @@
     ),
     rgba(8, 11, 15, 0.96);
   box-shadow: 0 22px 60px rgba(1, 4, 8, 0.38);
+}
+
+.fg-console-profile__section {
+  display: grid;
+  gap: 0.72rem;
+  padding-top: 0.88rem;
+  border-top: 1px solid var(--fugue-border-subtle);
+}
+
+.fg-console-profile__section-label {
+  margin: 0;
+  color: var(--fugue-text-muted);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+}
+
+.fg-console-profile__locale-switcher,
+.fg-console-profile__locale-switcher .fg-scrollable-control-strip,
+.fg-console-profile__locale-switcher .fg-segmented {
+  width: 100%;
+}
+
+.fg-console-profile__locale-switcher .fg-segmented__item {
+  flex: 1 1 0;
+  justify-content: center;
 }
 
 .fg-project-gallery,
