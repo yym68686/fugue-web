@@ -648,29 +648,27 @@ function readCallout(billing: FugueBillingSummary, t: Translator) {
 function estimateHourlyRateMicroCents(
   spec: FugueResourceSpec,
   priceBook: FugueBillingPriceBook,
-  committedStorageGibibytes = 0,
 ) {
-  if (spec.cpuMillicores <= 0 || spec.memoryMebibytes <= 0) {
+  if (
+    spec.cpuMillicores <= 0 &&
+    spec.memoryMebibytes <= 0 &&
+    (spec.storageGibibytes ?? 0) <= 0
+  ) {
     return 0;
   }
 
   return (
     spec.cpuMillicores * priceBook.cpuMicroCentsPerMillicoreHour +
     spec.memoryMebibytes * priceBook.memoryMicroCentsPerMibHour +
-    Math.max(spec.storageGibibytes ?? 0, committedStorageGibibytes) *
-      priceBook.storageMicroCentsPerGibHour
+    (spec.storageGibibytes ?? 0) * priceBook.storageMicroCentsPerGibHour
   );
 }
 
 function estimateMonthlyMicroCents(
   spec: FugueResourceSpec,
   priceBook: FugueBillingPriceBook,
-  committedStorageGibibytes = 0,
 ) {
-  return (
-    estimateHourlyRateMicroCents(spec, priceBook, committedStorageGibibytes) *
-    priceBook.hoursPerMonth
-  );
+  return estimateHourlyRateMicroCents(spec, priceBook) * priceBook.hoursPerMonth;
 }
 
 function readEventTone(event: FugueBillingEvent): ConsoleTone {
@@ -892,7 +890,6 @@ export function BillingPanel({
   const currency = billing?.priceBook.currency ?? "USD";
   const envelopeCpuCores = envelopeCpu / MILLICORES_PER_VCPU;
   const envelopeMemoryGib = envelopeMemory / MEBIBYTES_PER_GIB;
-  const committedStorageGibibytes = billing?.managedCommitted.storageGibibytes ?? 0;
   const parsedTopUpUnits = parseDollarUnits(topUpAmount);
   const topUpAmountErrorId = "billing-top-up-amount-error";
   const topUpRequestIdFromUrl = (() => {
@@ -906,26 +903,15 @@ export function BillingPanel({
     memoryMebibytes: envelopeMemory,
     storageGibibytes: envelopeStorage,
   };
-  const previewBilledSpec: FugueResourceSpec = {
-    ...previewSpec,
-    storageGibibytes:
-      envelopeCpu > 0 && envelopeMemory > 0
-        ? Math.max(envelopeStorage, committedStorageGibibytes)
-        : 0,
-  };
   const hasEnvelopeChanges =
     billing !== null &&
     (envelopeCpu !== billing.managedCap.cpuMillicores ||
       envelopeMemory !== billing.managedCap.memoryMebibytes ||
       envelopeStorage !== billing.managedCap.storageGibibytes);
   const previewHourlyRateMicroCents =
-    billing !== null
-      ? estimateHourlyRateMicroCents(previewSpec, billing.priceBook, committedStorageGibibytes)
-      : 0;
+    billing !== null ? estimateHourlyRateMicroCents(previewSpec, billing.priceBook) : 0;
   const previewMonthlyEstimateMicroCents =
-    billing !== null
-      ? estimateMonthlyMicroCents(previewSpec, billing.priceBook, committedStorageGibibytes)
-      : 0;
+    billing !== null ? estimateMonthlyMicroCents(previewSpec, billing.priceBook) : 0;
   const previewMonthlyEstimateLabel = formatCurrencyFromMicroCents(
     previewMonthlyEstimateMicroCents,
     currency,
@@ -964,7 +950,7 @@ export function BillingPanel({
     "Add credits to your balance, then set a capacity cap. Fugue deducts credits from active resources, and stored images count toward disk usage.",
   );
   const capacitySectionHint = t(
-    "Save the maximum managed CPU, memory, and disk for this workspace. Fugue charges against the larger of your saved cap and any resources already committed.",
+    "Save the maximum managed CPU, memory, and disk for this workspace. Once any billable resource is active, Fugue charges against this saved envelope.",
   );
   const creditsSectionHint = t(
     "Top up credits before you expand capacity. Credits are deducted while resources run, and stored images count toward disk usage.",
@@ -973,7 +959,7 @@ export function BillingPanel({
     "Top-ups, balance adjustments, and capacity changes appear here.",
   );
   const chargedAtCopy =
-    t("Charges follow the larger of your saved cap and any resources already committed.");
+    t("Once any billable resource is active, charges follow your saved cap.");
   const projectedSpendLabel = hasEnvelopeChanges
     ? t("New monthly spend")
     : t("Projected monthly spend");
@@ -982,7 +968,7 @@ export function BillingPanel({
       ? t("{amount} / hour", {
           amount: previewHourlyRateLabel,
         })
-      : t("Paused until both CPU and memory are above zero.");
+      : t("No saved envelope.");
   const envelopeExceedsUiCap =
     billing !== null &&
     (billing.managedCap.cpuMillicores > CPU_SLIDER_MAX_MILLICORES ||
@@ -1278,8 +1264,8 @@ export function BillingPanel({
 
       showToast({
         message:
-          envelopeCpu === 0 || envelopeMemory === 0
-            ? t("Managed billing paused.")
+          data.billing.status === "inactive" || data.billing.hourlyRateMicroCents <= 0
+            ? t("Billing is inactive.")
             : t("Managed envelope updated."),
         variant: "success",
       });
@@ -1473,7 +1459,7 @@ export function BillingPanel({
                     hint={chargedAtCopy}
                     label={t("Charged at")}
                   />
-                  <strong>{formatResourceSpec(previewBilledSpec, formatNumber)}</strong>
+                  <strong>{formatResourceSpec(previewSpec, formatNumber)}</strong>
                 </article>
 
                 <article className="fg-billing-signal-card">

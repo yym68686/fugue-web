@@ -1382,6 +1382,11 @@ const zhCNExtraMessages = {
   "Credits": "额度",
   "Credits are deducted only while managed resources are active.":
     "只有在托管资源处于活动状态时才会扣减额度。",
+  "Any active billable resource is billed against this saved envelope.":
+    "只要有任何可计费资源处于活动状态，就会按这个已保存的容量包络计费。",
+  "Once any billable resource is active, charges follow your saved cap.":
+    "只要有任何可计费资源处于活动状态，就会按你保存的上限计费。",
+  "Billing is inactive.": "当前未在计费。",
   "Credits ready to cover current managed usage.":
     "当前可用额度足以覆盖现有托管资源用量。",
   "Current cap": "当前上限",
@@ -1448,6 +1453,9 @@ const zhCNExtraMessages = {
   "Next steps": "后续步骤",
   "No billing events yet": "还没有计费事件",
   "No charge": "无费用",
+  "No saved envelope.": "未设置容量包络。",
+  "Save the maximum managed CPU, memory, and disk for this workspace. Once any billable resource is active, Fugue charges against this saved envelope.":
+    "为这个工作区保存托管 CPU、内存和磁盘上限。只要有任何可计费资源处于活动状态，Fugue 就会按这个已保存的容量包络计费。",
   "No live burn right now.": "当前没有实时消耗。",
   "No live stats": "暂无实时统计",
   "No services are attached to this project yet.":
@@ -2693,6 +2701,11 @@ const zhTWExtraMessages = {
   "Credits": "額度",
   "Credits are deducted only while managed resources are active.":
     "只有在託管資源處於活動狀態時才會扣減額度。",
+  "Any active billable resource is billed against this saved envelope.":
+    "只要有任何可計費資源處於活動狀態，就會按這個已保存的容量包絡計費。",
+  "Once any billable resource is active, charges follow your saved cap.":
+    "只要有任何可計費資源處於活動狀態，就會按你保存的上限計費。",
+  "Billing is inactive.": "目前未在計費。",
   "Credits ready to cover current managed usage.":
     "目前可用額度足以覆蓋現有託管資源用量。",
   "Current cap": "目前上限",
@@ -2759,6 +2772,9 @@ const zhTWExtraMessages = {
   "Next steps": "下一步",
   "No billing events yet": "尚無帳務事件",
   "No charge": "無費用",
+  "No saved envelope.": "尚未設定容量包絡。",
+  "Save the maximum managed CPU, memory, and disk for this workspace. Once any billable resource is active, Fugue charges against this saved envelope.":
+    "為這個工作區保存託管 CPU、記憶體和磁碟上限。只要有任何可計費資源處於活動狀態，Fugue 就會按這個已保存的容量包絡計費。",
   "No live burn right now.": "目前沒有即時消耗。",
   "No live stats": "尚無即時統計",
   "No services are attached to this project yet.":

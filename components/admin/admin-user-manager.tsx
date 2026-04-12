@@ -243,20 +243,6 @@ function clampQuotaStorageGibibytes(value: number) {
   );
 }
 
-function formatResourceSpec(spec: {
-  cpuMillicores: number;
-  memoryMebibytes: number;
-  storageGibibytes?: number;
-}) {
-  const parts = [formatCPU(spec.cpuMillicores), formatMemory(spec.memoryMebibytes)];
-
-  if (spec.storageGibibytes !== undefined) {
-    parts.push(formatStorage(spec.storageGibibytes));
-  }
-
-  return parts.join(" / ");
-}
-
 function readLocalizedUsageValue(value: string, t: Translator) {
   if (!value) {
     return value;
@@ -314,17 +300,19 @@ function estimateMonthlyMicroCents(
     storageGibibytes?: number;
   },
   priceBook: NonNullable<AdminUserBillingView["priceBook"]>,
-  committedStorageGibibytes = 0,
 ) {
-  if (spec.cpuMillicores <= 0 || spec.memoryMebibytes <= 0) {
+  if (
+    spec.cpuMillicores <= 0 &&
+    spec.memoryMebibytes <= 0 &&
+    (spec.storageGibibytes ?? 0) <= 0
+  ) {
     return 0;
   }
 
   return (
     spec.cpuMillicores * priceBook.cpuMicroCentsPerMillicoreHour +
     spec.memoryMebibytes * priceBook.memoryMicroCentsPerMibHour +
-    Math.max(spec.storageGibibytes ?? 0, committedStorageGibibytes) *
-      priceBook.storageMicroCentsPerGibHour
+    (spec.storageGibibytes ?? 0) * priceBook.storageMicroCentsPerGibHour
   ) * priceBook.hoursPerMonth;
 }
 
@@ -367,27 +355,19 @@ export function AdminUserManager({
     : null;
   const quotaCpuCores = quotaCpu / MILLICORES_PER_VCPU;
   const quotaMemoryGib = quotaMemory / MEBIBYTES_PER_GIB;
-  const committedStorageGibibytes = editingQuotaUser?.billing.committedStorageGibibytes ?? 0;
   const previewPriceBook = editingQuotaUser?.billing.priceBook ?? null;
   const previewSpec = {
     cpuMillicores: quotaCpu,
     memoryMebibytes: quotaMemory,
     storageGibibytes: quotaStorage,
   };
-  const previewBilledSpec = {
-    ...previewSpec,
-    storageGibibytes:
-      quotaCpu > 0 && quotaMemory > 0
-        ? Math.max(quotaStorage, committedStorageGibibytes)
-        : 0,
-  };
+  const hasPreviewEnvelope =
+    previewSpec.cpuMillicores > 0 ||
+    previewSpec.memoryMebibytes > 0 ||
+    previewSpec.storageGibibytes > 0;
   const previewMonthly =
     previewPriceBook && editingQuotaUser
-      ? estimateMonthlyMicroCents(
-          previewSpec,
-          previewPriceBook,
-          committedStorageGibibytes,
-        )
+      ? estimateMonthlyMicroCents(previewSpec, previewPriceBook)
       : null;
   const currentBalanceMicroCents = editingQuotaUser?.billing.balanceMicroCents ?? null;
   const currentBalanceRoundedCents =
@@ -1416,17 +1396,9 @@ export function AdminUserManager({
                                 : t("Monthly preview unavailable")}
                             </strong>
                             <p>
-                              {quotaCpu === 0 || quotaMemory === 0
-                                ? t("Set CPU or memory to 0 to pause managed billing.")
-                                : previewBilledSpec.storageGibibytes !== quotaStorage
-                                  ? t(
-                                      "{limit} limit. Billed as {billed} until live storage shrinks.",
-                                      {
-                                        billed: formatResourceSpec(previewBilledSpec),
-                                        limit: formatResourceSpec(previewSpec),
-                                      },
-                                    )
-                                  : formatResourceSpec(previewSpec)}
+                              {hasPreviewEnvelope
+                                ? t("Any active billable resource is billed against this saved envelope.")
+                                : t("No saved envelope.")}
                             </p>
                           </div>
 
