@@ -12,7 +12,10 @@ import {
   type FugueRuntime,
 } from "@/lib/fugue/api";
 import { readCountryLocation } from "@/lib/geo/country";
-import { readManagedSharedRuntimeLabel } from "@/lib/fugue/runtime-location";
+import {
+  readManagedSharedRuntimeLabel,
+  readRuntimeLocation,
+} from "@/lib/fugue/runtime-location";
 import { readRuntimePublicOfferDescription } from "@/lib/runtimes/public-offer";
 import type {
   RuntimeOwnership,
@@ -98,12 +101,39 @@ export type ClusterNodeView = {
   zoneLabel: string;
 };
 
+export type OfflineServerView = {
+  accessMode: string | null;
+  clusterNodeNameLabel: string;
+  connectionLabel: string;
+  createdExact: string;
+  createdLabel: string;
+  endpointLabel: string;
+  headerMeta: string;
+  lastContactExact: string;
+  lastContactLabel: string;
+  locationCountryCode: string | null;
+  locationLabel: string;
+  machineLabel: string;
+  name: string;
+  poolMode: string | null;
+  runtimeId: string;
+  runtimeLabel: string;
+  runtimeStatusLabel: string;
+  runtimeStatusTone: ConsoleTone;
+  runtimeType: string | null;
+  statusDetail: string;
+  statusLabel: string;
+  statusTone: ConsoleTone;
+};
+
 export type ClusterNodesPageData = {
   errors: string[];
   nodes: ClusterNodeView[];
+  offlineServers: OfflineServerView[];
   summary: {
     latestHeartbeatLabel: string;
     nodeCount: number;
+    offlineCount: number;
     readyCount: number;
     workloadCount: number;
   };
@@ -923,6 +953,135 @@ function buildClusterNodeViews(
   };
 }
 
+function buildOfflineServerViews(
+  locale: Locale,
+  nodes: FugueClusterNode[],
+  runtimes: FugueRuntime[],
+  workspaceTenantId: string,
+) {
+  const t = createTranslator(locale);
+  const runtimeById = new Map(
+    runtimes.map((runtime) => [runtime.id, runtime] as const),
+  );
+  const runtimeByNodeName = new Map(
+    runtimes
+      .filter((runtime) => runtime.clusterNodeName)
+      .map((runtime) => [runtime.clusterNodeName as string, runtime] as const),
+  );
+  const liveRuntimeIDs = new Set<string>();
+
+  for (const node of nodes) {
+    const runtime = resolveRuntimeForNode(node, runtimeById, runtimeByNodeName);
+
+    if (runtime?.id) {
+      liveRuntimeIDs.add(runtime.id);
+    }
+  }
+
+  const offlineOwnedRuntimes = runtimes
+    .filter((runtime) => runtime.tenantId?.trim() === workspaceTenantId)
+    .filter(
+      (runtime) => runtime.type?.trim().toLowerCase() !== "managed-shared",
+    )
+    .filter((runtime) => runtime.status?.trim().toLowerCase() === "offline")
+    .filter((runtime) => !liveRuntimeIDs.has(runtime.id))
+    .sort((left, right) => {
+      const leftTimestamp = readRuntimeTimestamp(left);
+      const rightTimestamp = readRuntimeTimestamp(right);
+
+      if (leftTimestamp !== rightTimestamp) {
+        return leftTimestamp - rightTimestamp;
+      }
+
+      return readRuntimeLabel(left, locale).localeCompare(
+        readRuntimeLabel(right, locale),
+      );
+    });
+
+  const latestHeartbeatTimestamp = offlineOwnedRuntimes.reduce(
+    (latest, runtime) => Math.max(latest, readRuntimeTimestamp(runtime)),
+    0,
+  );
+
+  return {
+    latestHeartbeatAt: latestHeartbeatTimestamp
+      ? new Date(latestHeartbeatTimestamp).toISOString()
+      : null,
+    views: offlineOwnedRuntimes.map((runtime) => {
+      const location = readRuntimeLocation(runtime.labels, locale);
+      const lastContactAt =
+        runtime.lastHeartbeatAt ??
+        runtime.lastSeenAt ??
+        runtime.updatedAt ??
+        runtime.createdAt ??
+        null;
+      const publicAccessEnabled =
+        runtime.accessMode?.trim().toLowerCase() === "public";
+      const publicOfferDescription = publicAccessEnabled
+        ? readRuntimePublicOfferDescription(runtime.publicOffer, locale)
+        : null;
+      const statusFragments = [
+        location.locationLabel ?? null,
+        lastContactAt
+          ? t("Last contact {time}", {
+              time: formatRelativeTime(locale, t, lastContactAt),
+            })
+          : t("No contact recorded"),
+        publicAccessEnabled
+          ? t("Public access")
+          : runtime.poolMode?.trim().toLowerCase() === "internal-shared"
+            ? t("Internal cluster enabled")
+            : null,
+      ].filter((value): value is string => Boolean(value));
+      const clusterNodeName = runtime.clusterNodeName?.trim();
+
+      return {
+        accessMode: runtime.accessMode ?? null,
+        clusterNodeNameLabel: clusterNodeName || t("Not assigned"),
+        connectionLabel: humanizeLabel(runtime.connectionMode, t),
+        createdExact: formatExactTime(locale, t, runtime.createdAt),
+        createdLabel: formatRelativeTime(locale, t, runtime.createdAt),
+        endpointLabel: runtime.endpoint?.trim() || t("Unavailable"),
+        headerMeta: statusFragments.join(" · "),
+        lastContactExact: formatExactTime(locale, t, lastContactAt),
+        lastContactLabel: formatRelativeTime(locale, t, lastContactAt),
+        locationCountryCode: location.locationCountryCode,
+        locationLabel: location.locationLabel ?? t("Unassigned"),
+        machineLabel:
+          runtime.machineName?.trim() ||
+          clusterNodeName ||
+          runtime.name?.trim() ||
+          shortId(runtime.id),
+        name:
+          runtime.name?.trim() ||
+          runtime.machineName?.trim() ||
+          clusterNodeName ||
+          shortId(runtime.id),
+        poolMode: runtime.poolMode ?? null,
+        runtimeId: runtime.id,
+        runtimeLabel: readRuntimeLabel(runtime, locale),
+        runtimeStatusLabel: humanizeLabel(runtime.status, t),
+        runtimeStatusTone:
+          runtime.status?.trim().toLowerCase() === "offline"
+            ? "warning"
+            : toneForStatus(runtime.status),
+        runtimeType: runtime.type ?? null,
+        statusDetail: clusterNodeName
+          ? t("{name} is no longer reporting heartbeats.", {
+              name: clusterNodeName,
+            })
+          : publicOfferDescription
+            ? t("This server is offline. {details}", {
+                details: publicOfferDescription,
+              })
+            : t("This server is offline and no longer reporting heartbeats."),
+        statusLabel: t("Offline"),
+        statusTone: "warning",
+      } satisfies OfflineServerView;
+    }),
+  };
+}
+
 export async function getClusterNodesPageData(
   email: string,
   locale: Locale = "en",
@@ -1009,6 +1168,12 @@ export async function getClusterNodesPageData(
     workspace.tenantId,
     ownerEmailByTenantId,
   );
+  const offlineBuilt = buildOfflineServerViews(
+    locale,
+    nodes,
+    runtimes,
+    workspace.tenantId,
+  );
   const readyCount = built.views.filter(
     (node) => node.statusTone === "positive",
   ).length;
@@ -1016,17 +1181,22 @@ export async function getClusterNodesPageData(
     (total, node) => total + node.workloadCount,
     0,
   );
+  const latestHeartbeatTimestamp = Math.max(
+    parseTimestamp(built.latestHeartbeatAt),
+    parseTimestamp(offlineBuilt.latestHeartbeatAt),
+  );
+  const latestHeartbeatAt = latestHeartbeatTimestamp
+    ? new Date(latestHeartbeatTimestamp).toISOString()
+    : null;
 
   return {
     errors,
     nodes: built.views,
+    offlineServers: offlineBuilt.views,
     summary: {
-      latestHeartbeatLabel: formatRelativeTime(
-        locale,
-        t,
-        built.latestHeartbeatAt,
-      ),
-      nodeCount: built.views.length,
+      latestHeartbeatLabel: formatRelativeTime(locale, t, latestHeartbeatAt),
+      nodeCount: built.views.length + offlineBuilt.views.length,
+      offlineCount: offlineBuilt.views.length,
       readyCount,
       workloadCount,
     },

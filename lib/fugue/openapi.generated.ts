@@ -533,7 +533,8 @@ export interface paths {
         get: operations["getRuntime"];
         put?: never;
         post?: never;
-        delete?: never;
+        /** Delete Runtime */
+        delete: operations["deleteRuntime"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2420,6 +2421,10 @@ export interface components {
         RuntimeListResponse: {
             runtimes: components["schemas"]["Runtime"][];
         };
+        DeleteRuntimeResponse: {
+            deleted: boolean;
+            runtime: components["schemas"]["Runtime"];
+        };
         RuntimeSharingResponse: {
             runtime: components["schemas"]["Runtime"];
             grants: components["schemas"]["RuntimeAccessGrant"][];
@@ -3819,6 +3824,29 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    deleteRuntime: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteRuntimeResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];

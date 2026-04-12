@@ -1953,6 +1953,11 @@
   min-width: 0;
 }
 
+.fg-cluster-node-card__summary-head.is-resource-less {
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "main side";
+}
+
 .fg-cluster-node-card__summary-copy {
   grid-area: main;
   min-width: 0;

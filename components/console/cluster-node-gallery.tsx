@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { CompactResourceMeter } from "@/components/console/compact-resource-meter";
 import { RuntimeAccessPanel } from "@/components/console/runtime-access-panel";
@@ -79,6 +79,10 @@ export type ClusterNodeGalleryItem = {
   runtimeId?: string | null;
   runtimeType?: string | null;
   serviceCount: number;
+  showConditionsSection?: boolean;
+  showResourcesSection?: boolean;
+  showRuntimeAccessPanel?: boolean;
+  showWorkloadsSection?: boolean;
   statusDetail?: string | null;
   statusLabel: string;
   statusTone: ConsoleTone;
@@ -252,9 +256,11 @@ function readOwnershipBadge(
 export function ClusterNodeGallery({
   ariaLabel,
   items,
+  renderDetailFooter,
 }: {
   ariaLabel: string;
   items: ClusterNodeGalleryItem[];
+  renderDetailFooter?: (item: ClusterNodeGalleryItem) => ReactNode;
 }) {
   const { t } = useI18n();
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -277,6 +283,14 @@ export function ClusterNodeGallery({
             const expanded = expandedId === item.id;
             const detailId = `cluster-node-detail-${sanitizeDomId(item.id)}`;
             const ownershipBadge = readOwnershipBadge(item, t);
+            const hasSummaryResources = item.resources.length > 0;
+            const showRuntimeAccessPanel =
+              item.showRuntimeAccessPanel ?? Boolean(item.runtimeId);
+            const showConditionsSection =
+              item.showConditionsSection ?? item.conditions.length > 0;
+            const showResourcesSection =
+              item.showResourcesSection ?? item.resources.length > 0;
+            const showWorkloadsSection = item.showWorkloadsSection ?? true;
 
             return (
               <article
@@ -295,7 +309,12 @@ export function ClusterNodeGallery({
                   onClick={() => setExpandedId(expanded ? null : item.id)}
                   type="button"
                 >
-                  <div className="fg-cluster-node-card__summary-head">
+                  <div
+                    className={cx(
+                      "fg-cluster-node-card__summary-head",
+                      !hasSummaryResources && "is-resource-less",
+                    )}
+                  >
                     <div className="fg-project-card__summary-copy fg-cluster-node-card__summary-copy">
                       <span className="fg-label fg-panel__eyebrow">
                         {t(item.eyebrow)}
@@ -311,14 +330,16 @@ export function ClusterNodeGallery({
                       </span>
                     </div>
 
-                    <div className="fg-cluster-node-card__summary-resources">
-                      {item.resources.map((resource) => (
-                        <CompactResourceMeter
-                          item={buildCompactResourceItem(resource, t)}
-                          key={resource.id}
-                        />
-                      ))}
-                    </div>
+                    {hasSummaryResources ? (
+                      <div className="fg-cluster-node-card__summary-resources">
+                        {item.resources.map((resource) => (
+                          <CompactResourceMeter
+                            item={buildCompactResourceItem(resource, t)}
+                            key={resource.id}
+                          />
+                        ))}
+                      </div>
+                    ) : null}
 
                     <div className="fg-project-card__summary-side fg-cluster-node-card__summary-side">
                       {ownershipBadge ? (
@@ -381,7 +402,7 @@ export function ClusterNodeGallery({
                       </dl>
                     </PanelSection>
 
-                    {item.runtimeId ? (
+                    {showRuntimeAccessPanel && item.runtimeId ? (
                       <PanelSection>
                         <RuntimeAccessPanel
                           accessMode={item.accessMode ?? null}
@@ -398,142 +419,150 @@ export function ClusterNodeGallery({
                       </PanelSection>
                     ) : null}
 
-                    <PanelSection>
-                      <div className="fg-cluster-node-card__section-head">
-                        <div>
-                          <HintInline
-                            ariaLabel={t("Signals")}
-                            hint={t("Ready and pressure signals.")}
-                          >
-                            <p className="fg-label fg-panel__eyebrow">
-                              {t("Signals")}
-                            </p>
-                          </HintInline>
-                        </div>
-                      </div>
-
-                      <div className="fg-cluster-condition-grid">
-                        {item.conditions.map((condition) => (
-                          <article
-                            className="fg-cluster-condition"
-                            key={condition.id}
-                          >
-                            <div className="fg-cluster-condition__head">
-                              <span className="fg-cluster-condition__label">
-                                {t(condition.label)}
-                              </span>
-                              <StatusBadge tone={condition.tone}>
-                                {t(condition.statusLabel)}
-                              </StatusBadge>
-                            </div>
-                            <p
-                              className="fg-cluster-condition__detail"
-                              title={`${condition.detailLabel} / ${condition.lastTransitionExact}`}
+                    {showConditionsSection ? (
+                      <PanelSection>
+                        <div className="fg-cluster-node-card__section-head">
+                          <div>
+                            <HintInline
+                              ariaLabel={t("Signals")}
+                              hint={t("Ready and pressure signals.")}
                             >
-                              {condition.detailLabel}
-                            </p>
-                          </article>
-                        ))}
-                      </div>
-                    </PanelSection>
-
-                    <PanelSection>
-                      <div className="fg-cluster-node-card__section-head">
-                        <div>
-                          <HintInline
-                            ariaLabel={t("Capacity")}
-                            hint={t("Live CPU, memory, and disk usage.")}
-                          >
-                            <p className="fg-label fg-panel__eyebrow">
-                              {t("Capacity")}
-                            </p>
-                          </HintInline>
-                        </div>
-                      </div>
-
-                      <div className="fg-cluster-resource-grid">
-                        {item.resources.map((resource) => (
-                          <ClusterResourceMeter
-                            key={resource.id}
-                            resource={resource}
-                          />
-                        ))}
-                      </div>
-                    </PanelSection>
-
-                    <PanelSection>
-                      <div className="fg-cluster-node-card__section-head">
-                        <div>
-                          <HintInline
-                            ariaLabel={t("Workloads")}
-                            hint={t(item.workloadSectionNote)}
-                          >
-                            <p className="fg-label fg-panel__eyebrow">
-                              {t("Workloads")}
-                            </p>
-                          </HintInline>
+                              <p className="fg-label fg-panel__eyebrow">
+                                {t("Signals")}
+                              </p>
+                            </HintInline>
+                          </div>
                         </div>
 
-                        <div className="fg-project-actions">
-                          <StatusBadge tone="neutral">
-                            {t(
-                              item.workloadCount === 1
-                                ? "{count} workload"
-                                : "{count} workloads",
-                              { count: item.workloadCount },
-                            )}
-                          </StatusBadge>
-                          {item.appCount ? (
-                            <StatusBadge tone="info">
-                              {t(
-                                item.appCount === 1
-                                  ? "{count} app"
-                                  : "{count} apps",
-                                {
-                                  count: item.appCount,
-                                },
-                              )}
-                            </StatusBadge>
-                          ) : null}
-                          {item.serviceCount ? (
+                        <div className="fg-cluster-condition-grid">
+                          {item.conditions.map((condition) => (
+                            <article
+                              className="fg-cluster-condition"
+                              key={condition.id}
+                            >
+                              <div className="fg-cluster-condition__head">
+                                <span className="fg-cluster-condition__label">
+                                  {t(condition.label)}
+                                </span>
+                                <StatusBadge tone={condition.tone}>
+                                  {t(condition.statusLabel)}
+                                </StatusBadge>
+                              </div>
+                              <p
+                                className="fg-cluster-condition__detail"
+                                title={`${condition.detailLabel} / ${condition.lastTransitionExact}`}
+                              >
+                                {condition.detailLabel}
+                              </p>
+                            </article>
+                          ))}
+                        </div>
+                      </PanelSection>
+                    ) : null}
+
+                    {showResourcesSection ? (
+                      <PanelSection>
+                        <div className="fg-cluster-node-card__section-head">
+                          <div>
+                            <HintInline
+                              ariaLabel={t("Capacity")}
+                              hint={t("Live CPU, memory, and disk usage.")}
+                            >
+                              <p className="fg-label fg-panel__eyebrow">
+                                {t("Capacity")}
+                              </p>
+                            </HintInline>
+                          </div>
+                        </div>
+
+                        <div className="fg-cluster-resource-grid">
+                          {item.resources.map((resource) => (
+                            <ClusterResourceMeter
+                              key={resource.id}
+                              resource={resource}
+                            />
+                          ))}
+                        </div>
+                      </PanelSection>
+                    ) : null}
+
+                    {showWorkloadsSection ? (
+                      <PanelSection>
+                        <div className="fg-cluster-node-card__section-head">
+                          <div>
+                            <HintInline
+                              ariaLabel={t("Workloads")}
+                              hint={t(item.workloadSectionNote)}
+                            >
+                              <p className="fg-label fg-panel__eyebrow">
+                                {t("Workloads")}
+                              </p>
+                            </HintInline>
+                          </div>
+
+                          <div className="fg-project-actions">
                             <StatusBadge tone="neutral">
                               {t(
-                                item.serviceCount === 1
-                                  ? "{count} service"
-                                  : "{count} services",
-                                { count: item.serviceCount },
+                                item.workloadCount === 1
+                                  ? "{count} workload"
+                                  : "{count} workloads",
+                                { count: item.workloadCount },
                               )}
                             </StatusBadge>
-                          ) : null}
+                            {item.appCount ? (
+                              <StatusBadge tone="info">
+                                {t(
+                                  item.appCount === 1
+                                    ? "{count} app"
+                                    : "{count} apps",
+                                  {
+                                    count: item.appCount,
+                                  },
+                                )}
+                              </StatusBadge>
+                            ) : null}
+                            {item.serviceCount ? (
+                              <StatusBadge tone="neutral">
+                                {t(
+                                  item.serviceCount === 1
+                                    ? "{count} service"
+                                    : "{count} services",
+                                  { count: item.serviceCount },
+                                )}
+                              </StatusBadge>
+                            ) : null}
+                          </div>
                         </div>
-                      </div>
 
-                      {item.workloads.length ? (
-                        <ul className="fg-cluster-workload-list">
-                          {item.workloads.map((workload) => (
-                            <li key={workload.id}>
-                              <article
-                                className="fg-cluster-workload"
-                                title={workload.title}
-                              >
-                                <div className="fg-cluster-workload__head">
-                                  <strong>{workload.name}</strong>
-                                  <StatusBadge tone={workload.kindTone}>
-                                    {t(workload.kindLabel)}
-                                  </StatusBadge>
-                                </div>
-                                <p>{workload.metaLabel}</p>
-                              </article>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <ConsoleEmptyState
-                          description={t(item.workloadEmptyDescription)}
-                          title={t(item.workloadEmptyTitle)}
-                        />
-                      )}
-                    </PanelSection>
+                        {item.workloads.length ? (
+                          <ul className="fg-cluster-workload-list">
+                            {item.workloads.map((workload) => (
+                              <li key={workload.id}>
+                                <article
+                                  className="fg-cluster-workload"
+                                  title={workload.title}
+                                >
+                                  <div className="fg-cluster-workload__head">
+                                    <strong>{workload.name}</strong>
+                                    <StatusBadge tone={workload.kindTone}>
+                                      {t(workload.kindLabel)}
+                                    </StatusBadge>
+                                  </div>
+                                  <p>{workload.metaLabel}</p>
+                                </article>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <ConsoleEmptyState
+                            description={t(item.workloadEmptyDescription)}
+                            title={t(item.workloadEmptyTitle)}
+                          />
+                        )}
+                      </PanelSection>
+                    ) : null}
+
+                    {renderDetailFooter ? renderDetailFooter(item) : null}
                   </div>
                 ) : null}
               </article>

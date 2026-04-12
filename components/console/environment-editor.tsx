@@ -16,6 +16,7 @@ import {
   serializeEnvEntries,
 } from "@/lib/console/env-editor";
 import {
+  areRawEnvFeedbackEqual,
   buildRawEnvFeedback,
   type RawEnvFeedback,
 } from "@/lib/console/raw-env";
@@ -170,6 +171,10 @@ export function EnvironmentEditor({
   );
 
   function publishFeedback(nextFeedback: RawEnvFeedback) {
+    if (areRawEnvFeedbackEqual(feedback, nextFeedback)) {
+      return;
+    }
+
     setFeedback(nextFeedback);
     onStatusChange?.(nextFeedback);
   }

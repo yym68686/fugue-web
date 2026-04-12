@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import {
+  memo,
   startTransition,
   useEffect,
   useEffectEvent,
@@ -98,6 +99,18 @@ type CreateDialogTarget = {
   id: string;
   name: string;
 };
+
+type ProjectCatalogEntry = {
+  id: string;
+  name: string;
+};
+
+type ProjectMutationOptions =
+  | number
+  | {
+      optimisticDeletingProjectId?: string;
+      optimisticDeletingServiceCount?: number;
+    };
 
 type PendingProjectProgressStep = {
   copy: string;
@@ -872,6 +885,230 @@ function parseGalleryStreamPayload(event: ParsedSSEEvent) {
   }
 }
 
+const ProjectGalleryShelf = memo(function ProjectGalleryShelf({
+  onFocusPendingIntentCard,
+  onProjectDeleted,
+  onProjectMutation,
+  onRequestCreateService,
+  onRetrySelectedProjectDetail,
+  onSelectProject,
+  optimisticProjects,
+  pendingIntent,
+  pendingIntentFocused,
+  pendingProjectVisible,
+  projectCatalog,
+  projectImageUsageByProjectId,
+  refreshToken,
+  selectedProjectDetailError,
+  selectedProjectDetailStatus,
+  selectedProjectId,
+  workspaceMissing,
+}: {
+  onFocusPendingIntentCard: () => void;
+  onProjectDeleted: (projectId: string) => void;
+  onProjectMutation: (options?: ProjectMutationOptions) => void;
+  onRequestCreateService: (target?: ConsoleProjectSummaryView | null) => void;
+  onRetrySelectedProjectDetail: () => void;
+  onSelectProject: (project: ConsoleProjectSummaryView) => void;
+  optimisticProjects: readonly ConsoleProjectSummaryView[];
+  pendingIntent: PendingProjectIntent | null;
+  pendingIntentFocused: boolean;
+  pendingProjectVisible: boolean;
+  projectCatalog: ProjectCatalogEntry[];
+  projectImageUsageByProjectId: Readonly<Record<string, ProjectImageUsageSummary>>;
+  refreshToken: number;
+  selectedProjectDetailError: string | null;
+  selectedProjectDetailStatus: "error" | "idle" | "loading" | "ready";
+  selectedProjectId: string | null;
+  workspaceMissing: boolean;
+}) {
+  const { t } = useI18n();
+
+  return (
+    <div className="fg-project-gallery">
+      <section
+        className={cx(
+          "fg-project-gallery__shelf",
+          !optimisticProjects.length &&
+            !pendingProjectVisible &&
+            "fg-project-gallery__shelf--empty",
+        )}
+      >
+        {workspaceMissing ? (
+          <div className="fg-project-gallery__empty-state">
+            <Panel className="fg-console-dialog-panel">
+              <PanelSection>
+                <p className="fg-label fg-panel__eyebrow">{t("Workspace")}</p>
+                <PanelTitle>{t("No workspace yet")}</PanelTitle>
+                <PanelCopy>
+                  {t(
+                    "Create a workspace first, then return to the console to import your first service.",
+                  )}
+                </PanelCopy>
+              </PanelSection>
+            </Panel>
+          </div>
+        ) : optimisticProjects.length || pendingProjectVisible ? (
+          <div className="fg-project-gallery__stack">
+            {pendingProjectVisible && pendingIntent ? (
+              <PendingProjectCard
+                expanded={pendingIntentFocused}
+                intent={pendingIntent}
+                onOpen={onFocusPendingIntentCard}
+              />
+            ) : null}
+
+            {optimisticProjects.map((project) => {
+              const expanded = selectedProjectId === project.id;
+              const cachedProjectDetail = expanded
+                ? readCachedConsoleProjectDetail(project.id)
+                : null;
+              const detailId = `project-detail-${project.id}`;
+              const projectResourceUsage =
+                projectImageUsageByProjectId[project.id]
+                  ? buildProjectResourceUsageView(
+                      project.resourceUsageSnapshot,
+                      projectImageUsageByProjectId[project.id],
+                    )
+                  : project.resourceUsage;
+
+              return (
+                <article
+                  className={cx(
+                    "fg-project-card",
+                    expanded && "is-active",
+                    expanded && "is-expanded",
+                  )}
+                  key={project.id}
+                >
+                  <button
+                    aria-controls={detailId}
+                    aria-expanded={expanded}
+                    className="fg-project-card__summary"
+                    onClick={() => onSelectProject(project)}
+                    onFocus={() => prepareProjectWorkbench(project.id)}
+                    onPointerDown={() => prepareProjectWorkbench(project.id)}
+                    onPointerEnter={() => prepareProjectWorkbench(project.id)}
+                    type="button"
+                  >
+                    <div className="fg-project-card__summary-head">
+                      <div className="fg-project-card__summary-copy">
+                        <div className="fg-project-card__summary-meta">
+                          <strong>{project.name}</strong>
+                          <StatusBadge
+                            live={project.lifecycle.live}
+                            tone={project.lifecycle.tone}
+                          >
+                            {t(project.lifecycle.label)}
+                          </StatusBadge>
+                        </div>
+                        <div className="fg-project-card__summary-meta">
+                          <span className="fg-project-card__summary-kicker">
+                            {projectTitle(project, t)}
+                          </span>
+
+                          {project.serviceBadges.length ? (
+                            <div
+                              aria-hidden="true"
+                              className="fg-project-card__badges fg-project-card__badges--inline"
+                            >
+                              {project.serviceBadges.map((badge) => (
+                                <ConsoleProjectBadge
+                                  key={badge.id}
+                                  kind={badge.kind}
+                                  label={badge.label}
+                                  meta={badge.meta}
+                                />
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      <div className="fg-project-card__summary-resources">
+                        {projectResourceUsage.map((resource) => (
+                          <CompactResourceMeter item={resource} key={resource.id} />
+                        ))}
+                      </div>
+
+                      <div className="fg-project-card__summary-side">
+                        <span
+                          className="fg-project-card__summary-expand"
+                          aria-hidden="true"
+                        >
+                          <svg viewBox="0 0 24 24">
+                            <path
+                              d="m7.2 9.4 4.8 5.2 4.8-5.2"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="1.7"
+                            />
+                          </svg>
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+
+                  {expanded ? (
+                    cachedProjectDetail?.project ? (
+                      <ConsoleProjectWorkbench
+                        detailId={detailId}
+                        onProjectDeleted={onProjectDeleted}
+                        onProjectMutation={onProjectMutation}
+                        onRequestCreateService={onRequestCreateService}
+                        projectCatalog={projectCatalog}
+                        project={project}
+                        refreshToken={refreshToken}
+                      />
+                    ) : selectedProjectDetailStatus === "error" ? (
+                      <div className="fg-project-card__detail" id={detailId}>
+                        <section className="fg-bezel fg-panel fg-project-workbench">
+                          <div className="fg-bezel__inner fg-project-workbench__inner">
+                            <div className="fg-workbench-section">
+                              <p className="fg-console-note">
+                                {selectedProjectDetailError ??
+                                  t("Unable to load this project right now.")}
+                              </p>
+                              <div className="fg-project-actions">
+                                <Button
+                                  onClick={onRetrySelectedProjectDetail}
+                                  size="compact"
+                                  type="button"
+                                  variant="secondary"
+                                >
+                                  {t("Retry")}
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </section>
+                      </div>
+                    ) : (
+                      <ConsoleProjectWorkbenchSkeleton detailId={detailId} />
+                    )
+                  ) : null}
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="fg-project-gallery__empty-state">
+            <Button
+              onClick={() => onRequestCreateService(null)}
+              type="button"
+              variant="primary"
+            >
+              {t("Create project")}
+            </Button>
+          </div>
+        )}
+      </section>
+    </div>
+  );
+});
+
 export function ConsoleProjectGallery({
   initialData,
   defaultCreateOpen = false,
@@ -948,7 +1185,7 @@ export function ConsoleProjectGallery({
   const selectedProjectIdRef = useRef<string | null>(selectedProjectId);
   const announcedPendingIntentErrorRef = useRef<string | null>(null);
   const runtimeInventory = useConsoleRuntimeTargetInventory(createOpen);
-  const projectCatalog = useMemo(
+  const projectCatalog = useMemo<ProjectCatalogEntry[]>(
     () =>
       data.projects.map((item) => ({
         id: item.id,
@@ -1584,15 +1821,15 @@ export function ConsoleProjectGallery({
     clearCreateDialogUrl();
   }
 
-  function focusPendingIntentCard() {
+  const focusPendingIntentCard = useEffectEvent(() => {
     setPendingIntentFocused(true);
     setRequestedProjectId(null);
     setSelectedProjectDetailError(null);
     setSelectedProjectDetailStatus("idle");
     setSelectedProjectId(null);
-  }
+  });
 
-  function chooseProject(project: ConsoleProjectSummaryView) {
+  const chooseProject = useEffectEvent((project: ConsoleProjectSummaryView) => {
     setPendingIntentFocused(false);
     setRequestedProjectId(null);
 
@@ -1606,7 +1843,11 @@ export function ConsoleProjectGallery({
     setSelectedProjectDetailError(null);
     setSelectedProjectDetailStatus("idle");
     setSelectedProjectId(project.id);
-  }
+  });
+
+  const retrySelectedProjectDetail = useEffectEvent(() => {
+    setSelectedProjectDetailRequestToken((value) => value + 1);
+  });
 
   async function handleCreateProject(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -1863,191 +2104,25 @@ export function ConsoleProjectGallery({
 
   return (
     <>
-      <div className="fg-project-gallery">
-        <section
-          className={cx(
-            "fg-project-gallery__shelf",
-            !optimisticProjects.length &&
-              !pendingProjectVisible &&
-              "fg-project-gallery__shelf--empty",
-          )}
-        >
-          {workspaceMissing ? (
-            <div className="fg-project-gallery__empty-state">
-              <Panel className="fg-console-dialog-panel">
-                <PanelSection>
-                  <p className="fg-label fg-panel__eyebrow">{t("Workspace")}</p>
-                  <PanelTitle>{t("No workspace yet")}</PanelTitle>
-                  <PanelCopy>
-                    {t(
-                      "Create a workspace first, then return to the console to import your first service.",
-                    )}
-                  </PanelCopy>
-                </PanelSection>
-              </Panel>
-            </div>
-          ) : optimisticProjects.length || pendingProjectVisible ? (
-            <div className="fg-project-gallery__stack">
-              {pendingProjectVisible && pendingIntent ? (
-                <PendingProjectCard
-                  expanded={pendingIntentFocused}
-                  intent={pendingIntent}
-                  onOpen={focusPendingIntentCard}
-                />
-              ) : null}
-
-              {optimisticProjects.map((project) => {
-                const expanded = selectedProjectId === project.id;
-                const cachedProjectDetail = expanded
-                  ? readCachedConsoleProjectDetail(project.id)
-                  : null;
-                const detailId = `project-detail-${project.id}`;
-                const projectResourceUsage =
-                  projectImageUsageByProjectId[project.id]
-                    ? buildProjectResourceUsageView(
-                        project.resourceUsageSnapshot,
-                        projectImageUsageByProjectId[project.id],
-                      )
-                    : project.resourceUsage;
-
-                return (
-                  <article
-                    className={cx(
-                      "fg-project-card",
-                      expanded && "is-active",
-                      expanded && "is-expanded",
-                    )}
-                    key={project.id}
-                  >
-                    <button
-                      aria-controls={detailId}
-                      aria-expanded={expanded}
-                      className="fg-project-card__summary"
-                      onClick={() => chooseProject(project)}
-                      onFocus={() => prepareProjectWorkbench(project.id)}
-                      onPointerDown={() => prepareProjectWorkbench(project.id)}
-                      onPointerEnter={() => prepareProjectWorkbench(project.id)}
-                      type="button"
-                    >
-                      <div className="fg-project-card__summary-head">
-                        <div className="fg-project-card__summary-copy">
-                          <div className="fg-project-card__summary-meta">
-                            <strong>{project.name}</strong>
-                            <StatusBadge
-                              live={project.lifecycle.live}
-                              tone={project.lifecycle.tone}
-                            >
-                              {t(project.lifecycle.label)}
-                            </StatusBadge>
-                          </div>
-                          <div className="fg-project-card__summary-meta">
-                            <span className="fg-project-card__summary-kicker">
-                              {projectTitle(project, t)}
-                            </span>
-
-                            {project.serviceBadges.length ? (
-                              <div
-                                aria-hidden="true"
-                                className="fg-project-card__badges fg-project-card__badges--inline"
-                              >
-                                {project.serviceBadges.map((badge) => (
-                                  <ConsoleProjectBadge
-                                    key={badge.id}
-                                    kind={badge.kind}
-                                    label={badge.label}
-                                    meta={badge.meta}
-                                  />
-                                ))}
-                              </div>
-                            ) : null}
-                          </div>
-                        </div>
-
-                        <div className="fg-project-card__summary-resources">
-                          {projectResourceUsage.map((resource) => (
-                            <CompactResourceMeter item={resource} key={resource.id} />
-                          ))}
-                        </div>
-
-                        <div className="fg-project-card__summary-side">
-                          <span
-                            className="fg-project-card__summary-expand"
-                            aria-hidden="true"
-                          >
-                            <svg viewBox="0 0 24 24">
-                              <path
-                                d="m7.2 9.4 4.8 5.2 4.8-5.2"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="1.7"
-                              />
-                            </svg>
-                          </span>
-                        </div>
-                      </div>
-                    </button>
-
-                    {expanded ? (
-                      cachedProjectDetail?.project ? (
-                        <ConsoleProjectWorkbench
-                          detailId={detailId}
-                          onProjectDeleted={handleProjectDeleted}
-                          onProjectMutation={handleProjectMutation}
-                          onRequestCreateService={openCreateDialog}
-                          projectCatalog={projectCatalog}
-                          project={project}
-                          refreshToken={workbenchRefreshToken}
-                        />
-                      ) : selectedProjectDetailStatus === "error" ? (
-                        <div className="fg-project-card__detail" id={detailId}>
-                          <section className="fg-bezel fg-panel fg-project-workbench">
-                            <div className="fg-bezel__inner fg-project-workbench__inner">
-                              <div className="fg-workbench-section">
-                                <p className="fg-console-note">
-                                  {selectedProjectDetailError ??
-                                    t("Unable to load this project right now.")}
-                                </p>
-                                <div className="fg-project-actions">
-                                  <Button
-                                    onClick={() => {
-                                      setSelectedProjectDetailRequestToken(
-                                        (value) => value + 1,
-                                      );
-                                    }}
-                                    size="compact"
-                                    type="button"
-                                    variant="secondary"
-                                  >
-                                    {t("Retry")}
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          </section>
-                        </div>
-                      ) : (
-                        <ConsoleProjectWorkbenchSkeleton detailId={detailId} />
-                      )
-                    ) : null}
-                  </article>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="fg-project-gallery__empty-state">
-              <Button
-                onClick={() => openCreateDialog(null)}
-                type="button"
-                variant="primary"
-              >
-                {t("Create project")}
-              </Button>
-            </div>
-          )}
-        </section>
-      </div>
+      <ProjectGalleryShelf
+        onFocusPendingIntentCard={focusPendingIntentCard}
+        onProjectDeleted={handleProjectDeleted}
+        onProjectMutation={handleProjectMutation}
+        onRequestCreateService={openCreateDialog}
+        onRetrySelectedProjectDetail={retrySelectedProjectDetail}
+        onSelectProject={chooseProject}
+        optimisticProjects={optimisticProjects}
+        pendingIntent={pendingIntent}
+        pendingIntentFocused={pendingIntentFocused}
+        pendingProjectVisible={pendingProjectVisible}
+        projectCatalog={projectCatalog}
+        projectImageUsageByProjectId={projectImageUsageByProjectId}
+        refreshToken={workbenchRefreshToken}
+        selectedProjectDetailError={selectedProjectDetailError}
+        selectedProjectDetailStatus={selectedProjectDetailStatus}
+        selectedProjectId={selectedProjectId}
+        workspaceMissing={workspaceMissing}
+      />
 
       {createOpen ? (
         <div className="fg-console-dialog-backdrop">

@@ -1562,6 +1562,15 @@ function buildDeleteAppResultView(
   };
 }
 
+function buildDeleteRuntimeResultView(
+  response: CamelizedSchema<"DeleteRuntimeResponse">,
+) {
+  return {
+    deleted: response.deleted ?? false,
+    runtime: response.runtime ? buildRuntimeView(response.runtime) : null,
+  };
+}
+
 function buildNodeKeyUsageCountView(response: Record<string, unknown>) {
   const usageCount =
     typeof response.usageCount === "number" &&
@@ -1616,6 +1625,9 @@ export type FugueAppDomainAvailability = ReturnType<
   typeof buildAppDomainAvailabilityView
 >;
 export type FugueRuntime = ReturnType<typeof buildRuntimeView>;
+export type FugueRuntimeDeleteResult = ReturnType<
+  typeof buildDeleteRuntimeResultView
+>;
 export type FugueRuntimeAccessGrant = ReturnType<
   typeof buildRuntimeAccessGrantView
 >;
@@ -3485,6 +3497,25 @@ export async function getFugueRuntimes(
   );
 
   return (response.runtimes ?? []).map(buildRuntimeView);
+}
+
+export async function deleteFugueRuntime(
+  accessToken: string,
+  runtimeId: string,
+) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/runtimes/${encodeURIComponent(runtimeId)}`,
+      client.DELETE("/v1/runtimes/{id}", {
+        params: {
+          path: { id: runtimeId },
+        },
+      }),
+    ),
+  );
+
+  return buildDeleteRuntimeResultView(response);
 }
 
 export async function getFugueRuntimeSharing(

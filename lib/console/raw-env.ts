@@ -12,6 +12,38 @@ export type RawEnvFeedback = {
   variant: "error" | "info" | "success";
 };
 
+function sameEnvRecord(
+  previous: Record<string, string>,
+  next: Record<string, string>,
+) {
+  const previousKeys = Object.keys(previous);
+  const nextKeys = Object.keys(next);
+
+  if (previousKeys.length !== nextKeys.length) {
+    return false;
+  }
+
+  for (const key of previousKeys) {
+    if (previous[key] !== next[key]) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+export function areRawEnvFeedbackEqual(
+  previous: RawEnvFeedback,
+  next: RawEnvFeedback,
+) {
+  return (
+    previous.valid === next.valid &&
+    previous.variant === next.variant &&
+    previous.message === next.message &&
+    sameEnvRecord(previous.env, next.env)
+  );
+}
+
 type RawEnvRecordSuccess = {
   env: Record<string, string>;
   ignoredLineCount: number;

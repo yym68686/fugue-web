@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/segmented-control";
 import type { ConsoleImportRuntimeTargetView } from "@/lib/console/gallery-types";
 import {
+  areRawEnvFeedbackEqual,
   buildRawEnvFeedback,
   type RawEnvFeedback,
 } from "@/lib/console/raw-env";
@@ -478,6 +479,10 @@ export function ImportServiceFields({
   }
 
   function updateEnvironmentFeedback(nextFeedback: RawEnvFeedback) {
+    if (areRawEnvFeedbackEqual(envFeedback, nextFeedback)) {
+      return;
+    }
+
     setEnvFeedback(nextFeedback);
     onEnvironmentStatusChange?.(nextFeedback);
   }

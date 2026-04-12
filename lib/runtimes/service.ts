@@ -3,6 +3,7 @@ import "server-only";
 import { getAppUserByEmail } from "@/lib/app-users/store";
 import { normalizeEmail, isValidEmail } from "@/lib/auth/validation";
 import {
+  deleteFugueRuntime,
   getFugueRuntimeSharing,
   grantFugueRuntimeAccess,
   revokeFugueRuntimeAccess,
@@ -175,6 +176,11 @@ export async function readRuntimeSharingForEmail(
 ) {
   const workspace = await requireWorkspaceAccess(email);
   return buildRuntimeSharingView(workspace, runtimeId);
+}
+
+export async function deleteRuntimeForEmail(email: string, runtimeId: string) {
+  const workspace = await requireWorkspaceAccess(email);
+  return deleteFugueRuntime(workspace.adminKeySecret, runtimeId);
 }
 
 export async function grantRuntimeShareForEmail(
