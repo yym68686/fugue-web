@@ -4904,6 +4904,7 @@
 }
 
 .fg-billing-surface > .fg-bezel__inner {
+  overflow: visible;
   border-radius: 1.5rem;
   border-color: rgba(165, 191, 220, 0.12);
   box-shadow:
@@ -4976,7 +4977,6 @@
 
 .fg-billing-section-title-row,
 .fg-billing-signal-card__label-row {
-  position: relative;
   min-width: 0;
   display: flex;
   flex-wrap: wrap;
@@ -4986,27 +4986,6 @@
 
 .fg-billing-section-title-row > :first-child {
   min-width: 0;
-}
-
-.fg-billing-section-title-row .fg-hint-tooltip,
-.fg-billing-signal-card__label-row .fg-hint-tooltip {
-  position: static;
-}
-
-.fg-billing-section-title-row .fg-hint-tooltip__bubble,
-.fg-billing-signal-card__label-row .fg-hint-tooltip__bubble {
-  left: auto;
-  right: 0;
-  inset-inline-start: auto;
-  inset-inline-end: 0;
-}
-
-.fg-billing-section-title-row .fg-hint-tooltip__bubble::before,
-.fg-billing-signal-card__label-row .fg-hint-tooltip__bubble::before {
-  left: auto;
-  right: 0.75rem;
-  inset-inline-start: auto;
-  inset-inline-end: 0.75rem;
 }
 
 .fg-billing-health__meta {
