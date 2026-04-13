@@ -183,7 +183,9 @@ export async function getBillingPageData(email: string) {
   }
 
   const billingResult = await Promise.allSettled([
-    getFugueBillingSummary(workspace.adminKeySecret),
+    getFugueBillingSummary(workspace.adminKeySecret, undefined, {
+      includeCurrentUsage: false,
+    }),
   ]).then(([result]) => result);
 
   if (billingResult.status === "rejected") {
@@ -218,7 +220,11 @@ export async function updateBillingForEmail(
   const workspace = await requireWorkspaceAccess(email);
   const storageGibibytes =
     payload.managedCap.storageGibibytes ??
-    (await getFugueBillingSummary(workspace.adminKeySecret)).managedCap.storageGibibytes;
+    (
+      await getFugueBillingSummary(workspace.adminKeySecret, undefined, {
+        includeCurrentUsage: false,
+      })
+    ).managedCap.storageGibibytes;
 
   return updateFugueBilling(workspace.adminKeySecret, {
     managedCap: {

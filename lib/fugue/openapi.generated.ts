@@ -3304,6 +3304,8 @@ export interface operations {
         parameters: {
             query?: {
                 tenant_id?: components["parameters"]["TenantIdQueryParam"];
+                /** @description When false, skip live managed usage aggregation and return committed billing data only. */
+                include_current_usage?: boolean;
             };
             header?: never;
             path?: never;
@@ -3663,7 +3665,10 @@ export interface operations {
     };
     listClusterNodes: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description When false, skip sync-on-read for managed shared runtime locations. */
+                sync_locations?: boolean;
+            };
             header?: never;
             path?: never;
             cookie?: never;

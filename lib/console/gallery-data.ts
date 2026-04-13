@@ -2795,7 +2795,9 @@ async function loadRuntimeInventoryData(
       getFugueRuntimes(active.adminKeySecret, {
         syncLocations: false,
       }),
-      getFugueClusterNodes(active.adminKeySecret),
+      getFugueClusterNodes(active.adminKeySecret, {
+        syncLocations: false,
+      }),
     ]);
 
   let [runtimesResult, clusterNodesResult] = await loadInventory(workspace);
@@ -2869,9 +2871,12 @@ const getConsoleProjectGalleryDataCached = cache(
         ),
         getFugueApps(workspace.adminKeySecret, {
           includeLiveStatus: false,
+          includeResourceUsage: false,
         }),
         getFugueOperations(workspace.adminKeySecret),
-        getFugueClusterNodes(workspace.adminKeySecret),
+        getFugueClusterNodes(workspace.adminKeySecret, {
+          syncLocations: false,
+        }),
         includeRuntimeTargets
           ? getFugueRuntimes(workspace.adminKeySecret, {
               syncLocations: false,

@@ -7,7 +7,7 @@ import { createExpiringAsyncCache } from "@/lib/server/expiring-async-cache";
 import type { WorkspaceAccess, WorkspaceSnapshot } from "@/lib/workspace/store";
 import { getWorkspaceAccessByEmail } from "@/lib/workspace/store";
 
-const SESSION_STATE_CACHE_TTL_MS = 3_000;
+const SESSION_STATE_CACHE_TTL_MS = 60_000;
 
 const appUserCache =
   createExpiringAsyncCache<AppUserRecord | null>(SESSION_STATE_CACHE_TTL_MS);

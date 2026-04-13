@@ -2346,19 +2346,32 @@ export async function getFugueNodeKeyUsageCount(
 export async function getFugueBillingSummary(
   accessToken: string,
   tenantId?: string,
+  options?: {
+    includeCurrentUsage?: boolean;
+  },
 ) {
   const client = getClient(accessToken);
   const response = camelizeData(
     await expectData(
       "/v1/billing",
       client.GET("/v1/billing", {
-        params: tenantId
-          ? {
-              query: {
-                tenant_id: tenantId,
-              },
-            }
-          : undefined,
+        params:
+          tenantId !== undefined || options?.includeCurrentUsage !== undefined
+            ? {
+                query: {
+                  ...(tenantId !== undefined
+                    ? {
+                        tenant_id: tenantId,
+                      }
+                    : {}),
+                  ...(options?.includeCurrentUsage !== undefined
+                    ? {
+                        include_current_usage: options.includeCurrentUsage,
+                      }
+                    : {}),
+                },
+              }
+            : undefined,
       }),
     ),
   );
@@ -3691,10 +3704,27 @@ export async function setFugueRuntimePoolMode(
   return buildRuntimePoolModeResultView(response);
 }
 
-export async function getFugueClusterNodes(accessToken: string) {
+export async function getFugueClusterNodes(
+  accessToken: string,
+  options?: {
+    syncLocations?: boolean;
+  },
+) {
   const client = getClient(accessToken);
   const response = camelizeData(
-    await expectData("/v1/cluster/nodes", client.GET("/v1/cluster/nodes")),
+    await expectData(
+      "/v1/cluster/nodes",
+      client.GET("/v1/cluster/nodes", {
+        params:
+          options?.syncLocations !== undefined
+            ? {
+                query: {
+                  sync_locations: options.syncLocations,
+                },
+              }
+            : undefined,
+      }),
+    ),
   );
 
   return (response.clusterNodes ?? []).map(buildClusterNodeView);

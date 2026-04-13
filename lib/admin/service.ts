@@ -9,6 +9,7 @@ import {
   getFugueClusterNodes,
   getFugueControlPlaneStatus,
   getFugueProjects,
+  getFugueRuntimes,
   getFugueTenants,
   setFugueBillingBalance,
   updateFugueBilling,
@@ -26,6 +27,7 @@ import {
   type FugueProjectImageUsageAppSummary,
   type FugueProjectImageUsageResult,
   type FugueResourceSpec,
+  type FugueRuntime,
   type FugueTenant,
 } from "@/lib/fugue/api";
 import { getFugueEnv } from "@/lib/fugue/env";
@@ -705,7 +707,7 @@ function mapAdminApps(
   workspaces: WorkspaceSnapshot[],
   tenants: FugueTenant[],
   appImageUsage: AdminAppImageUsageLookup,
-  nodes: FugueClusterNode[],
+  runtimes: FugueRuntime[],
 ) {
   const projectNames = new Map(
     projects.map((project) => [project.id, project.name] as const),
@@ -718,9 +720,9 @@ function mapAdminApps(
   );
   const serverNamesByRuntime = new Map<string, string>();
 
-  for (const node of nodes) {
-    const runtimeId = node.runtimeId?.trim();
-    const serverName = node.name.trim();
+  for (const runtime of runtimes) {
+    const runtimeId = runtime.id?.trim();
+    const serverName = runtime.clusterNodeName?.trim() || runtime.machineName?.trim();
 
     if (!runtimeId || !serverName || serverNamesByRuntime.has(runtimeId)) {
       continue;
@@ -1853,7 +1855,7 @@ export async function getAdminAppsPageData(): Promise<AdminAppsPageData> {
     };
   }
 
-  const [appsResult, workspacesResult, tenantsResult, nodesResult] =
+  const [appsResult, workspacesResult, tenantsResult, runtimesResult] =
     await Promise.all([
       settleResult(
         getFugueApps(bootstrapKey, {
@@ -1861,13 +1863,18 @@ export async function getAdminAppsPageData(): Promise<AdminAppsPageData> {
           includeResourceUsage: false,
         }),
       ),
-      settleResult(listWorkspaceSnapshots()),
+      settleWithSoftTimeout(
+        listWorkspaceSnapshots(),
+        ADMIN_OPTIONAL_FETCH_TIMEOUT_MS,
+      ),
       settleWithSoftTimeout(
         getFugueTenants(bootstrapKey),
         ADMIN_OPTIONAL_FETCH_TIMEOUT_MS,
       ),
       settleWithSoftTimeout(
-        getFugueClusterNodes(bootstrapKey),
+        getFugueRuntimes(bootstrapKey, {
+          syncLocations: false,
+        }),
         ADMIN_OPTIONAL_FETCH_TIMEOUT_MS,
       ),
     ]);
@@ -1882,15 +1889,15 @@ export async function getAdminAppsPageData(): Promise<AdminAppsPageData> {
     workspacesResult.status === "rejected"
       ? `workspaces: ${readErrorMessage(workspacesResult.reason)}`
       : null,
-    nodesResult.status === "rejected"
-      ? `cluster nodes: ${readErrorMessage(nodesResult.reason)}`
+    runtimesResult.status === "rejected"
+      ? `runtimes: ${readErrorMessage(runtimesResult.reason)}`
       : null,
   ].filter((value): value is string => Boolean(value));
 
   const tenants = tenantsResult.status === "fulfilled" ? tenantsResult.value : [];
   const apps = appsResult.status === "fulfilled" ? appsResult.value : [];
   const workspaces = workspacesResult.status === "fulfilled" ? workspacesResult.value : [];
-  const nodes = nodesResult.status === "fulfilled" ? nodesResult.value : [];
+  const runtimes = runtimesResult.status === "fulfilled" ? runtimesResult.value : [];
   const appImageUsage = createAdminAppImageUsageLookup(null);
   const projectDataResult =
     tenantsResult.status === "fulfilled"
@@ -1911,7 +1918,7 @@ export async function getAdminAppsPageData(): Promise<AdminAppsPageData> {
       : { errors: [], projects: [] };
   const projects = projectData.projects;
   errors.push(...projectData.errors);
-  const views = mapAdminApps(apps, projects, workspaces, tenants, appImageUsage, nodes);
+  const views = mapAdminApps(apps, projects, workspaces, tenants, appImageUsage, runtimes);
   const latestUpdateAt = apps.reduce<string | null>((latest, app) => {
     const candidate = app.status.updatedAt ?? app.updatedAt ?? app.createdAt;
     return parseTimestamp(candidate) > parseTimestamp(latest) ? candidate : latest;
@@ -1948,7 +1955,9 @@ async function getAdminUserBillingLookup(
 
   const billingResults = await Promise.allSettled(
     uniqueWorkspaces.map((workspace) =>
-      getFugueBillingSummary(bootstrapKey, workspace.tenantId),
+      getFugueBillingSummary(bootstrapKey, workspace.tenantId, {
+        includeCurrentUsage: false,
+      }),
     ),
   );
 
@@ -2025,7 +2034,9 @@ async function loadAdminUsersEnrichmentLookup(
   const userEmails = new Set(users.map((user) => user.email));
   const billingWorkspaces = workspaces.filter((workspace) => userEmails.has(workspace.email));
   const [appsResult, billingResult] = await Promise.allSettled([
-    getFugueApps(bootstrapKey),
+    getFugueApps(bootstrapKey, {
+      includeResourceUsage: false,
+    }),
     getAdminUserBillingLookup(bootstrapKey, billingWorkspaces),
   ]);
 
@@ -2113,7 +2124,11 @@ export async function updateAdminUserBillingForEmail(
   const accessToken = getFugueEnv().bootstrapKey;
   const storageGibibytes =
     payload.managedCap.storageGibibytes ??
-    (await getFugueBillingSummary(accessToken, workspace.tenantId)).managedCap.storageGibibytes;
+    (
+      await getFugueBillingSummary(accessToken, workspace.tenantId, {
+        includeCurrentUsage: false,
+      })
+    ).managedCap.storageGibibytes;
 
   const billing = await updateFugueBilling(accessToken, {
     managedCap: {
@@ -2227,7 +2242,11 @@ export async function getAdminClusterPageData(): Promise<AdminClusterPageData> {
   }
 
   const [nodesResult, tenantsResult, controlPlaneResult] = await Promise.all([
-    settleResult(getFugueClusterNodes(bootstrapKey)),
+    settleResult(
+      getFugueClusterNodes(bootstrapKey, {
+        syncLocations: false,
+      }),
+    ),
     settleWithSoftTimeout(
       getFugueTenants(bootstrapKey),
       ADMIN_OPTIONAL_FETCH_TIMEOUT_MS,

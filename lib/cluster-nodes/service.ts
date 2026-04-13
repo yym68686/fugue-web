@@ -1116,7 +1116,9 @@ export async function getClusterNodesPageData(
   }
 
   const [nodesResult, runtimesResult] = await Promise.allSettled([
-    getFugueClusterNodes(workspace.adminKeySecret),
+    getFugueClusterNodes(workspace.adminKeySecret, {
+      syncLocations: false,
+    }),
     getFugueRuntimes(workspace.adminKeySecret, {
       syncLocations: false,
     }),
