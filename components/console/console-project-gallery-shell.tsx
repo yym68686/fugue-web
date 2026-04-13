@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import {
+  Suspense,
+  lazy,
   memo,
   startTransition,
   useEffect,
@@ -14,10 +16,6 @@ import {
 
 import { CompactResourceMeter } from "@/components/console/compact-resource-meter";
 import { ConsoleProjectBadge } from "@/components/console/console-project-badge";
-import {
-  ConsoleProjectWorkbench,
-  warmConsoleAppEnvStates,
-} from "@/components/console/console-project-gallery";
 import { ConsoleProjectWorkbenchSkeleton } from "@/components/console/console-page-skeleton";
 import { ImportServiceFields } from "@/components/console/import-service-fields";
 import { useI18n } from "@/components/providers/i18n-provider";
@@ -77,6 +75,11 @@ import { cx } from "@/lib/ui/cx";
 import {
   isAbortRequestError,
 } from "@/lib/ui/request-json";
+
+const ConsoleProjectWorkbench = lazy(async () => {
+  const module = await import("@/components/console/console-project-gallery");
+  return { default: module.ConsoleProjectWorkbench };
+});
 
 type FlashState = {
   message: string;
@@ -1053,15 +1056,21 @@ const ProjectGalleryShelf = memo(function ProjectGalleryShelf({
 
                   {expanded ? (
                     cachedProjectDetail?.project ? (
-                      <ConsoleProjectWorkbench
-                        detailId={detailId}
-                        onProjectDeleted={onProjectDeleted}
-                        onProjectMutation={onProjectMutation}
-                        onRequestCreateService={onRequestCreateService}
-                        projectCatalog={projectCatalog}
-                        project={project}
-                        refreshToken={refreshToken}
-                      />
+                      <Suspense
+                        fallback={
+                          <ConsoleProjectWorkbenchSkeleton detailId={detailId} />
+                        }
+                      >
+                        <ConsoleProjectWorkbench
+                          detailId={detailId}
+                          onProjectDeleted={onProjectDeleted}
+                          onProjectMutation={onProjectMutation}
+                          onRequestCreateService={onRequestCreateService}
+                          projectCatalog={projectCatalog}
+                          project={project}
+                          refreshToken={refreshToken}
+                        />
+                      </Suspense>
                     ) : selectedProjectDetailStatus === "error" ? (
                       <div className="fg-project-card__detail" id={detailId}>
                         <section className="fg-bezel fg-panel fg-project-workbench">
@@ -1574,28 +1583,6 @@ export function ConsoleProjectGallery({
         if (controller.signal.aborted) {
           return;
         }
-
-        const appIds = data.projects.flatMap((project) => {
-          const cachedProjectDetail = readCachedConsoleProjectDetail(project.id);
-          const detailProject = cachedProjectDetail?.project;
-
-          if (!detailProject) {
-            return [];
-          }
-
-          return detailProject.services.flatMap((service) =>
-            service.kind === "app" ? [service.id] : [],
-          );
-        });
-
-        if (!appIds.length) {
-          return;
-        }
-
-        await warmConsoleAppEnvStates(appIds, {
-          concurrency: 3,
-          signal: controller.signal,
-        });
       })();
     };
 

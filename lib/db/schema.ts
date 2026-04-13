@@ -220,6 +220,16 @@ async function initSchema() {
   await queryDb(SCHEMA_SQL);
 }
 
+function isRetryableSchemaReadError(error: unknown) {
+  if (!error || typeof error !== "object" || !("code" in error)) {
+    return false;
+  }
+
+  const code = (error as { code?: string }).code;
+
+  return code === "42P01" || code === "42703";
+}
+
 export async function ensureDbSchema() {
   if (
     !globalThis.__fugueDbSchemaPromise ||
@@ -235,5 +245,18 @@ export async function ensureDbSchema() {
     globalThis.__fugueDbSchemaPromise = undefined;
     globalThis.__fugueDbSchemaVersion = undefined;
     throw error;
+  }
+}
+
+export async function withDbSchemaRetry<T>(run: () => Promise<T>) {
+  try {
+    return await run();
+  } catch (error) {
+    if (!isRetryableSchemaReadError(error)) {
+      throw error;
+    }
+
+    await ensureDbSchema();
+    return run();
   }
 }

@@ -5,7 +5,7 @@ import type { PoolClient } from "pg";
 import { ensureAppUserRecord } from "@/lib/app-users/store";
 import type { SessionUser } from "@/lib/auth/session";
 import { normalizeEmail } from "@/lib/auth/validation";
-import { ensureDbSchema } from "@/lib/db/schema";
+import { ensureDbSchema, withDbSchemaRetry } from "@/lib/db/schema";
 import { queryDb, withDbTransaction } from "@/lib/db/pool";
 import { sealText, unsealText } from "@/lib/security/seal";
 
@@ -126,59 +126,59 @@ function bootstrapStateFromRow(row: WorkspaceRow): WorkspaceBootstrapState {
 }
 
 async function getWorkspaceRowByEmail(email: string) {
-  await ensureDbSchema();
-
   const normalizedEmail = normalizeEmail(email);
-  const result = await queryDb<WorkspaceRow>(
-    `
-      SELECT
-        user_email,
-        tenant_id,
-        tenant_name,
-        default_project_id,
-        default_project_name,
-        first_app_id,
-        admin_key_id,
-        admin_key_label,
-        admin_key_prefix,
-        admin_key_scopes,
-        admin_key_secret_sealed,
-        created_at,
-        updated_at
-      FROM app_workspaces
-      WHERE user_email = $1
-      LIMIT 1
-    `,
-    [normalizedEmail],
+  const result = await withDbSchemaRetry(() =>
+    queryDb<WorkspaceRow>(
+      `
+        SELECT
+          user_email,
+          tenant_id,
+          tenant_name,
+          default_project_id,
+          default_project_name,
+          first_app_id,
+          admin_key_id,
+          admin_key_label,
+          admin_key_prefix,
+          admin_key_scopes,
+          admin_key_secret_sealed,
+          created_at,
+          updated_at
+        FROM app_workspaces
+        WHERE user_email = $1
+        LIMIT 1
+      `,
+      [normalizedEmail],
+    ),
   );
 
   return result.rows[0] ?? null;
 }
 
 async function getWorkspaceRowByTenantId(tenantId: string) {
-  await ensureDbSchema();
-
-  const result = await queryDb<WorkspaceRow>(
-    `
-      SELECT
-        user_email,
-        tenant_id,
-        tenant_name,
-        default_project_id,
-        default_project_name,
-        first_app_id,
-        admin_key_id,
-        admin_key_label,
-        admin_key_prefix,
-        admin_key_scopes,
-        admin_key_secret_sealed,
-        created_at,
-        updated_at
-      FROM app_workspaces
-      WHERE tenant_id = $1
-      LIMIT 1
-    `,
-    [tenantId.trim()],
+  const result = await withDbSchemaRetry(() =>
+    queryDb<WorkspaceRow>(
+      `
+        SELECT
+          user_email,
+          tenant_id,
+          tenant_name,
+          default_project_id,
+          default_project_name,
+          first_app_id,
+          admin_key_id,
+          admin_key_label,
+          admin_key_prefix,
+          admin_key_scopes,
+          admin_key_secret_sealed,
+          created_at,
+          updated_at
+        FROM app_workspaces
+        WHERE tenant_id = $1
+        LIMIT 1
+      `,
+      [tenantId.trim()],
+    ),
   );
 
   return result.rows[0] ?? null;

@@ -4,7 +4,7 @@ import type { PoolClient } from "pg";
 
 import type { SessionUser } from "@/lib/auth/session";
 import { normalizeEmail } from "@/lib/auth/validation";
-import { ensureDbSchema } from "@/lib/db/schema";
+import { ensureDbSchema, withDbSchemaRetry } from "@/lib/db/schema";
 import { queryDb, withDbTransaction } from "@/lib/db/pool";
 
 export type AppUserStatus = "active" | "blocked" | "deleted";
@@ -269,27 +269,27 @@ async function getUserRow(
 }
 
 export async function getAppUserByEmail(email: string) {
-  await ensureDbSchema();
-
-  const result = await queryDb<AppUserRow>(
-    `
-      SELECT
-        email,
-        name,
-        picture_url,
-        provider,
-        provider_id,
-        verified,
-        is_admin,
-        status,
-        last_login_at,
-        created_at,
-        updated_at
-      FROM app_users
-      WHERE email = $1
-      LIMIT 1
-    `,
-    [normalizeEmail(email)],
+  const result = await withDbSchemaRetry(() =>
+    queryDb<AppUserRow>(
+      `
+        SELECT
+          email,
+          name,
+          picture_url,
+          provider,
+          provider_id,
+          verified,
+          is_admin,
+          status,
+          last_login_at,
+          created_at,
+          updated_at
+        FROM app_users
+        WHERE email = $1
+        LIMIT 1
+      `,
+      [normalizeEmail(email)],
+    ),
   );
 
   const row = result.rows[0];
@@ -336,8 +336,6 @@ export async function ensureAppUserRecord(
     markSignedIn?: boolean;
   },
 ) {
-  await ensureDbSchema();
-
   const now = new Date().toISOString();
   const normalizedEmail = normalizeEmail(user.email);
   const name = readOptionalString(user.name);
@@ -363,6 +361,8 @@ export async function ensureAppUserRecord(
       return existing;
     }
   }
+
+  await ensureDbSchema();
 
   return withDbTransaction(async (client) => {
     const currentRow = await getUserRow(client, normalizedEmail, {
