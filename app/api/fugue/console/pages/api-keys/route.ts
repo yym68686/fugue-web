@@ -1,15 +1,16 @@
 import { NextResponse } from "next/server";
 
 import type { ConsoleApiKeysPageSnapshot } from "@/lib/console/page-snapshot-types";
-import { getApiKeyPageData } from "@/lib/api-keys/service";
+import { getApiKeyPageDataForWorkspace } from "@/lib/api-keys/service";
 import { getFugueEnv } from "@/lib/fugue/env";
 import {
   jsonError,
   readErrorMessage,
   readErrorStatus,
   requireSession,
+  requireWorkspaceForSession,
 } from "@/lib/fugue/product-route";
-import { getNodeKeyPageData } from "@/lib/node-keys/service";
+import { getNodeKeyPageDataForWorkspace } from "@/lib/node-keys/service";
 
 export const dynamic = "force-dynamic";
 
@@ -29,18 +30,22 @@ export async function GET() {
   }
 
   try {
-    const [apiKeys, nodeKeys] = await Promise.all([
-      getApiKeyPageData(session.email),
-      getNodeKeyPageData(session.email, {
-        ensureCopyableDefault: true,
-      }),
-    ]);
+    const workspaceState = await requireWorkspaceForSession(session);
 
-    if (!apiKeys || !nodeKeys) {
+    if (workspaceState.response || !workspaceState.workspace) {
       return jsonSnapshot({
         state: "workspace-missing",
       });
     }
+
+    const workspace = workspaceState.workspace;
+    const [apiKeys, nodeKeys] = await Promise.all([
+      getApiKeyPageDataForWorkspace(session.email, workspace),
+      getNodeKeyPageDataForWorkspace(session.email, workspace, {
+        ensureCopyableDefault: true,
+        includeUsageCounts: false,
+      }),
+    ]);
 
     return jsonSnapshot({
       apiBaseUrl: getFugueEnv().apiUrl,

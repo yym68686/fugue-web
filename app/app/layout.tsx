@@ -1,9 +1,10 @@
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import { redirect } from "next/navigation";
 
 import { ConfirmDialogProvider } from "@/components/ui/confirm-dialog";
 import { ConsoleShell } from "@/components/console/console-shell";
 import { ToastProvider } from "@/components/ui/toast";
+import type { SessionUser } from "@/lib/auth/session";
 import {
   ensureRequestAppUserRecord,
   getRequestSession,
@@ -12,17 +13,13 @@ import {
 
 import "../console.css";
 
-export default async function AppLayout({
+async function ResolvedConsoleShell({
   children,
+  session,
 }: {
   children: ReactNode;
+  session: SessionUser;
 }) {
-  const session = await getRequestSession();
-
-  if (!session) {
-    redirect("/auth/sign-in?error=auth-required");
-  }
-
   try {
     const [user, workspace] = await Promise.all([
       ensureRequestAppUserRecord(),
@@ -38,17 +35,13 @@ export default async function AppLayout({
     );
 
     return (
-      <ToastProvider>
-        <ConfirmDialogProvider>
-          <ConsoleShell
-            hasProjects={hasProjects}
-            isAdmin={user.isAdmin}
-            session={session}
-          >
-            {children}
-          </ConsoleShell>
-        </ConfirmDialogProvider>
-      </ToastProvider>
+      <ConsoleShell
+        hasProjects={hasProjects}
+        isAdmin={user.isAdmin}
+        session={session}
+      >
+        {children}
+      </ConsoleShell>
     );
   } catch (error) {
     if (error instanceof Error && error.message.includes("blocked")) {
@@ -61,4 +54,38 @@ export default async function AppLayout({
 
     throw error;
   }
+}
+
+export default async function AppLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  const session = await getRequestSession();
+
+  if (!session) {
+    redirect("/auth/sign-in?error=auth-required");
+  }
+
+  return (
+    <ToastProvider>
+      <ConfirmDialogProvider>
+        <Suspense
+          fallback={
+            <ConsoleShell
+              hasProjects={false}
+              isAdmin={false}
+              session={session}
+            >
+              {children}
+            </ConsoleShell>
+          }
+        >
+          <ResolvedConsoleShell session={session}>
+            {children}
+          </ResolvedConsoleShell>
+        </Suspense>
+      </ConfirmDialogProvider>
+    </ToastProvider>
+  );
 }

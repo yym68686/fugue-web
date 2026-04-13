@@ -716,6 +716,19 @@ async function getClusterProjects(
   bootstrapKey: string,
   tenants: FugueTenant[],
 ) {
+  try {
+    return {
+      errors: [],
+      projects: await getFugueProjects(bootstrapKey),
+    } satisfies {
+      errors: string[];
+      projects: FugueProject[];
+    };
+  } catch {
+    // Fall back to tenant-scoped listing when the backend does not yet expose
+    // the platform-wide fast path.
+  }
+
   if (!tenants.length) {
     return {
       errors: [],
@@ -879,10 +892,13 @@ function buildAdminUsersPageData(
   };
 }
 
-async function loadAdminUsersBaseData(): Promise<AdminUsersBaseData> {
+async function loadAdminUsersBaseData(options?: {
+  includeWorkspaces?: boolean;
+}): Promise<AdminUsersBaseData> {
+  const includeWorkspaces = options?.includeWorkspaces ?? false;
   const [usersResult, workspacesResult] = await Promise.allSettled([
     listAppUsers(),
-    listWorkspaceSnapshots(),
+    includeWorkspaces ? listWorkspaceSnapshots() : Promise.resolve([]),
   ]);
 
   const users = usersResult.status === "fulfilled" ? usersResult.value : [];
@@ -1893,7 +1909,9 @@ async function getAdminUserBillingLookup(
 }
 
 export async function getAdminUsersPageData(): Promise<AdminUsersPageData> {
-  const base = await loadAdminUsersBaseData();
+  const base = await loadAdminUsersBaseData({
+    includeWorkspaces: false,
+  });
 
   return buildAdminUsersPageData(
     base,
@@ -1974,7 +1992,9 @@ export async function getAdminUsersPageEnrichmentData(): Promise<AdminUsersPageD
 
   let request: Promise<AdminUsersPageData>;
   request = (async () => {
-    const base = await loadAdminUsersBaseData();
+    const base = await loadAdminUsersBaseData({
+      includeWorkspaces: true,
+    });
     const enrichment = await loadAdminUsersEnrichmentLookup(base.users, base.workspaces);
     const data = buildAdminUsersPageData(
       base,

@@ -16,6 +16,10 @@ import {
 } from "@/lib/fugue/api";
 import { getWorkspaceAccessByEmail } from "@/lib/workspace/store";
 
+type WorkspaceAccessRecord = NonNullable<
+  Awaited<ReturnType<typeof getWorkspaceAccessByEmail>>
+>;
+
 export type NodeKeyPageData = {
   keys: NodeKeyRecord[];
   syncError: string | null;
@@ -97,6 +101,7 @@ export async function getNodeKeyPageData(
   email: string,
   options?: {
     ensureCopyableDefault?: boolean;
+    includeUsageCounts?: boolean;
   },
 ) {
   const workspace = await getWorkspaceAccessByEmail(email);
@@ -104,6 +109,18 @@ export async function getNodeKeyPageData(
   if (!workspace) {
     return null;
   }
+
+  return getNodeKeyPageDataForWorkspace(email, workspace, options);
+}
+
+export async function getNodeKeyPageDataForWorkspace(
+  email: string,
+  workspace: WorkspaceAccessRecord,
+  options?: {
+    ensureCopyableDefault?: boolean;
+    includeUsageCounts?: boolean;
+  },
+) {
 
   let keys: NodeKeyRecord[] = [];
   let syncError: string | null = null;
@@ -136,7 +153,7 @@ export async function getNodeKeyPageData(
     }
   }
 
-  if (didLiveSync) {
+  if (didLiveSync && options?.includeUsageCounts !== false) {
     visibleKeys = await attachNodeKeyUsageCounts(
       workspace.adminKeySecret,
       visibleKeys,

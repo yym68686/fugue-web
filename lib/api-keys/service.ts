@@ -24,6 +24,10 @@ import {
   saveWorkspaceAccess,
 } from "@/lib/workspace/store";
 
+type WorkspaceAccessRecord = NonNullable<
+  Awaited<ReturnType<typeof getWorkspaceAccessByEmail>>
+>;
+
 export type ApiKeyPageData = {
   availableScopes: string[];
   keys: ApiKeyRecord[];
@@ -199,6 +203,14 @@ export async function getApiKeyPageData(email: string) {
   if (!workspace) {
     return null;
   }
+
+  return getApiKeyPageDataForWorkspace(email, workspace);
+}
+
+export async function getApiKeyPageDataForWorkspace(
+  email: string,
+  workspace: WorkspaceAccessRecord,
+) {
 
   let keys: ApiKeyRecord[] = [];
   let syncError: string | null = null;

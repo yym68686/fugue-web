@@ -50,7 +50,6 @@ import {
   fetchConsoleProjectDetail,
   invalidateConsoleProjectDetails,
   readCachedConsoleProjectDetail,
-  warmConsoleProjectDetails,
 } from "@/lib/console/project-detail-client";
 import { buildProjectResourceUsageView } from "@/lib/console/project-resource-usage";
 import { readDefaultImportRuntimeId } from "@/lib/console/runtime-targets";
@@ -157,7 +156,7 @@ function prepareProjectWorkbench(projectId?: string | null) {
     return;
   }
 
-  void warmConsoleProjectDetails([projectId]);
+  void fetchConsoleProjectDetail(projectId).catch(() => undefined);
 }
 
 function readCachedProjectImageUsage() {
@@ -1208,9 +1207,6 @@ export function ConsoleProjectGallery({
       })),
     [data.projects],
   );
-  const projectPrefetchKey = data.projects
-    .map((project) => project.id)
-    .join("|");
   const { markProjectDeleting, optimisticProjects } =
     useOptimisticDeletingProjectSummaries(data.projects);
   const pendingProjectVisible = Boolean(
@@ -1564,55 +1560,6 @@ export function ConsoleProjectGallery({
     selectedProjectDetailRequestToken,
     selectedProjectId,
   ]);
-
-  useEffect(() => {
-    if (workspaceMissing || !data.projects.length) {
-      return;
-    }
-
-    const controller = new AbortController();
-    let animationFrameHandle: number | null = null;
-    let timeoutHandle: number | null = null;
-
-    const warmProjectWorkbench = () => {
-      animationFrameHandle = null;
-      timeoutHandle = null;
-      void (async () => {
-        await warmConsoleProjectDetails(
-          data.projects.map((project) => project.id),
-          {
-            concurrency: Math.min(3, data.projects.length),
-            signal: controller.signal,
-          },
-        );
-
-        if (controller.signal.aborted) {
-          return;
-        }
-      })();
-    };
-
-    if (typeof window.requestAnimationFrame === "function") {
-      animationFrameHandle = window.requestAnimationFrame(warmProjectWorkbench);
-    } else {
-      timeoutHandle = window.setTimeout(warmProjectWorkbench, 0);
-    }
-
-    return () => {
-      controller.abort();
-
-      if (
-        animationFrameHandle !== null &&
-        typeof window.cancelAnimationFrame === "function"
-      ) {
-        window.cancelAnimationFrame(animationFrameHandle);
-      }
-
-      if (timeoutHandle !== null) {
-        window.clearTimeout(timeoutHandle);
-      }
-    };
-  }, [projectPrefetchKey, workspaceMissing]);
 
   useEffect(() => {
     if (!createOpen && !isCreating) {
