@@ -22,7 +22,6 @@ import type {
   RuntimePublicOfferView,
 } from "@/lib/runtimes/types";
 import {
-  getWorkspaceAccessByEmail,
   getWorkspaceSnapshotsByTenantIds,
 } from "@/lib/workspace/store";
 import {
@@ -32,6 +31,7 @@ import {
   formatRelativeTime as formatLocaleRelativeTime,
   type Locale,
 } from "@/lib/i18n/core";
+import { getCachedWorkspaceAccessByEmail } from "@/lib/server/session-state-cache";
 
 export type ClusterNodeConditionView = {
   detailLabel: string;
@@ -1109,7 +1109,7 @@ export async function getClusterNodesPageData(
   locale: Locale = "en",
 ): Promise<ClusterNodesPageData | null> {
   const t = createTranslator(locale);
-  const workspace = await getWorkspaceAccessByEmail(email);
+  const workspace = await getCachedWorkspaceAccessByEmail(email);
 
   if (!workspace) {
     return null;

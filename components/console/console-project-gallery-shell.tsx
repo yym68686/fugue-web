@@ -1694,6 +1694,7 @@ export function ConsoleProjectGallery({
 
   useEffect(() => {
     let cancelled = false;
+    const initialDelayMs = 3000;
     let retryDelayMs = 5000;
     let reconnectTimer: number | null = null;
 
@@ -1702,6 +1703,24 @@ export function ConsoleProjectGallery({
         window.clearTimeout(reconnectTimer);
         reconnectTimer = null;
       }
+    }
+
+    function scheduleOpenStream(delayMs: number) {
+      clearReconnectTimer();
+      reconnectTimer = window.setTimeout(() => {
+        reconnectTimer = null;
+
+        if (cancelled) {
+          return;
+        }
+
+        if (document.visibilityState !== "visible") {
+          scheduleOpenStream(1000);
+          return;
+        }
+
+        void openStream();
+      }, delayMs);
     }
 
     async function openStream() {
@@ -1759,14 +1778,11 @@ export function ConsoleProjectGallery({
           return;
         }
 
-        clearReconnectTimer();
-        reconnectTimer = window.setTimeout(() => {
-          void openStream();
-        }, retryDelayMs);
+        scheduleOpenStream(retryDelayMs);
       }
     }
 
-    void openStream();
+    scheduleOpenStream(initialDelayMs);
 
     return () => {
       cancelled = true;

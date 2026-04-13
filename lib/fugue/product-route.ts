@@ -5,10 +5,10 @@ import { NextResponse } from "next/server";
 import { getCurrentSession } from "@/lib/auth/session";
 import type { SessionUser } from "@/lib/auth/session";
 import {
-  ensureAppUser,
-  getWorkspaceAccessByEmail,
-  type WorkspaceAccess,
-} from "@/lib/workspace/store";
+  getCachedActiveAppUserByEmail,
+  getCachedWorkspaceAccessByEmail,
+} from "@/lib/server/session-state-cache";
+import type { WorkspaceAccess } from "@/lib/workspace/store";
 
 export type RouteContextWithParams<T extends string> = {
   params:
@@ -82,7 +82,25 @@ export async function requireSession() {
     } as const;
   }
 
-  const user = await ensureAppUser(session);
+  return {
+    response: null,
+    session,
+    user: null,
+  } as const;
+}
+
+export async function requireSessionUser() {
+  const { response, session } = await requireSession();
+
+  if (response || !session) {
+    return {
+      response,
+      session: null,
+      user: null,
+    } as const;
+  }
+
+  const user = await getCachedActiveAppUserByEmail(session.email);
 
   return {
     response: null,
@@ -92,7 +110,7 @@ export async function requireSession() {
 }
 
 export async function requireWorkspaceForSession(session: SessionUser) {
-  const workspace = await getWorkspaceAccessByEmail(session.email);
+  const workspace = await getCachedWorkspaceAccessByEmail(session.email);
 
   if (!workspace) {
     return {

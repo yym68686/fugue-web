@@ -5,8 +5,13 @@ import { cache } from "react";
 import { ensureAppUserRecord } from "@/lib/app-users/store";
 import { getCurrentSession } from "@/lib/auth/session";
 import {
-  getWorkspaceAccessByEmail,
-  getWorkspaceSnapshotByEmail,
+  getCachedActiveAppUserByEmail,
+  getCachedWorkspaceAccessByEmail,
+  getCachedWorkspaceSnapshotByEmail,
+} from "@/lib/server/session-state-cache";
+import type {
+  WorkspaceAccess,
+  WorkspaceSnapshot,
 } from "@/lib/workspace/store";
 
 export const getRequestSession = cache(async () => getCurrentSession());
@@ -18,31 +23,49 @@ const getRequestAppUserRecordCached = cache(async () => {
     return null;
   }
 
-  return ensureAppUserRecord(session);
+  return getCachedActiveAppUserByEmail(session.email);
 });
 
-export async function ensureRequestAppUserRecord() {
+export async function getRequestAppUserRecord() {
   return getRequestAppUserRecordCached();
 }
 
-export const getRequestWorkspaceSnapshot = cache(async () => {
+export async function ensureRequestAppUserRecord() {
   const session = await getRequestSession();
 
   if (!session) {
     return null;
   }
 
-  await getRequestAppUserRecordCached();
-  return getWorkspaceSnapshotByEmail(session.email);
-});
+  const existing = await getRequestAppUserRecordCached();
 
-export const getRequestWorkspaceAccess = cache(async () => {
-  const session = await getRequestSession();
-
-  if (!session) {
-    return null;
+  if (existing) {
+    return existing;
   }
 
-  await getRequestAppUserRecordCached();
-  return getWorkspaceAccessByEmail(session.email);
-});
+  return ensureAppUserRecord(session);
+}
+
+export const getRequestWorkspaceSnapshot = cache(
+  async (): Promise<WorkspaceSnapshot | null> => {
+    const session = await getRequestSession();
+
+    if (!session) {
+      return null;
+    }
+
+    return getCachedWorkspaceSnapshotByEmail(session.email);
+  },
+);
+
+export const getRequestWorkspaceAccess = cache(
+  async (): Promise<WorkspaceAccess | null> => {
+    const session = await getRequestSession();
+
+    if (!session) {
+      return null;
+    }
+
+    return getCachedWorkspaceAccessByEmail(session.email);
+  },
+);

@@ -10,7 +10,7 @@ import {
   type FugueResourceSpec,
 } from "@/lib/fugue/api";
 import { getFugueEnv } from "@/lib/fugue/env";
-import { getWorkspaceAccessByEmail } from "@/lib/workspace/store";
+import { getCachedWorkspaceAccessByEmail } from "@/lib/server/session-state-cache";
 import {
   extractCreemAmountTotalCents,
   extractCreemCurrency,
@@ -166,7 +166,7 @@ async function createCreemCheckout(payload: {
 }
 
 async function requireWorkspaceAccess(email: string) {
-  const workspace = await getWorkspaceAccessByEmail(email);
+  const workspace = await getCachedWorkspaceAccessByEmail(email);
 
   if (!workspace) {
     throw new Error("409 Create a workspace first.");
@@ -176,7 +176,7 @@ async function requireWorkspaceAccess(email: string) {
 }
 
 export async function getBillingPageData(email: string) {
-  const workspace = await getWorkspaceAccessByEmail(email);
+  const workspace = await getCachedWorkspaceAccessByEmail(email);
 
   if (!workspace) {
     return null;

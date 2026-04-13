@@ -3,12 +3,12 @@ import "server-only";
 import { redirect } from "next/navigation";
 
 import { getCurrentSession } from "@/lib/auth/session";
-import { ensureAppUserRecord } from "@/lib/app-users/store";
 import {
   jsonError,
   readErrorMessage,
   readErrorStatus,
 } from "@/lib/fugue/product-route";
+import { getCachedActiveAppUserByEmail } from "@/lib/server/session-state-cache";
 
 function readInactiveRedirect(error: unknown) {
   if (!(error instanceof Error)) {
@@ -34,9 +34,9 @@ export async function requireAdminPageAccess() {
   }
 
   try {
-    const user = await ensureAppUserRecord(session);
+    const user = await getCachedActiveAppUserByEmail(session.email);
 
-    if (!user.isAdmin) {
+    if (!user?.isAdmin) {
       redirect("/app");
     }
 
@@ -67,9 +67,9 @@ export async function requireAdminApiSession() {
   }
 
   try {
-    const user = await ensureAppUserRecord(session);
+    const user = await getCachedActiveAppUserByEmail(session.email);
 
-    if (!user.isAdmin) {
+    if (!user?.isAdmin) {
       return {
         response: jsonError(403, "Admin access required."),
         session,

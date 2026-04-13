@@ -6,7 +6,7 @@ import {
   jsonError,
   readErrorMessage,
   readErrorStatus,
-  requireSession,
+  requireSessionUser,
 } from "@/lib/fugue/product-route";
 import { getRequestLocale } from "@/lib/i18n/server";
 
@@ -21,9 +21,9 @@ function jsonSnapshot(snapshot: ConsoleClusterNodesPageSnapshot) {
 }
 
 export async function GET() {
-  const { response, session, user } = await requireSession();
+  const { response, session, user } = await requireSessionUser();
 
-  if (response || !session || !user) {
+  if (response || !session) {
     return response;
   }
 
@@ -39,7 +39,7 @@ export async function GET() {
 
     return jsonSnapshot({
       data,
-      isAdmin: user.isAdmin,
+      isAdmin: user?.isAdmin ?? false,
       state: "ready",
     });
   } catch (error) {

@@ -6,9 +6,8 @@ import { ConsoleShell } from "@/components/console/console-shell";
 import { ToastProvider } from "@/components/ui/toast";
 import type { SessionUser } from "@/lib/auth/session";
 import {
-  ensureRequestAppUserRecord,
+  getRequestAppUserRecord,
   getRequestSession,
-  getRequestWorkspaceAccess,
 } from "@/lib/server/request-context";
 
 import "../console.css";
@@ -21,23 +20,12 @@ async function ResolvedConsoleShell({
   session: SessionUser;
 }) {
   try {
-    const [user, workspace] = await Promise.all([
-      ensureRequestAppUserRecord(),
-      getRequestWorkspaceAccess(),
-    ]);
-
-    if (!user) {
-      redirect("/auth/sign-in?error=auth-required");
-    }
-
-    const hasProjects = Boolean(
-      workspace?.firstAppId ?? workspace?.defaultProjectId,
-    );
+    const user = await getRequestAppUserRecord();
 
     return (
       <ConsoleShell
-        hasProjects={hasProjects}
-        isAdmin={user.isAdmin}
+        hasProjects={Boolean(user)}
+        isAdmin={user?.isAdmin ?? false}
         session={session}
       >
         {children}
