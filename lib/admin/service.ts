@@ -8,7 +8,6 @@ import {
   getFugueApps,
   getFugueClusterNodes,
   getFugueControlPlaneStatus,
-  getFugueProjectImageUsage,
   getFugueProjects,
   getFugueTenants,
   setFugueBillingBalance,
@@ -1786,13 +1785,11 @@ export async function getAdminAppsPageData(): Promise<AdminAppsPageData> {
     tenantsResult,
     appsResult,
     workspacesResult,
-    projectImageUsageResult,
     nodesResult,
   ] = await Promise.allSettled([
     getFugueTenants(bootstrapKey),
     getFugueApps(bootstrapKey),
     listWorkspaceSnapshots(),
-    getFugueProjectImageUsage(bootstrapKey),
     getFugueClusterNodes(bootstrapKey),
   ]);
 
@@ -1806,9 +1803,6 @@ export async function getAdminAppsPageData(): Promise<AdminAppsPageData> {
     workspacesResult.status === "rejected"
       ? `workspaces: ${readErrorMessage(workspacesResult.reason)}`
       : null,
-    projectImageUsageResult.status === "rejected"
-      ? `project image usage: ${readErrorMessage(projectImageUsageResult.reason)}`
-      : null,
     nodesResult.status === "rejected"
       ? `cluster nodes: ${readErrorMessage(nodesResult.reason)}`
       : null,
@@ -1818,11 +1812,7 @@ export async function getAdminAppsPageData(): Promise<AdminAppsPageData> {
   const apps = appsResult.status === "fulfilled" ? appsResult.value : [];
   const workspaces = workspacesResult.status === "fulfilled" ? workspacesResult.value : [];
   const nodes = nodesResult.status === "fulfilled" ? nodesResult.value : [];
-  const appImageUsage = createAdminAppImageUsageLookup(
-    projectImageUsageResult.status === "fulfilled"
-      ? projectImageUsageResult.value
-      : null,
-  );
+  const appImageUsage = createAdminAppImageUsageLookup(null);
   const projectData =
     tenantsResult.status === "fulfilled"
       ? await getClusterProjects(bootstrapKey, tenants)
@@ -1940,10 +1930,9 @@ async function loadAdminUsersEnrichmentLookup(
 
   const userEmails = new Set(users.map((user) => user.email));
   const billingWorkspaces = workspaces.filter((workspace) => userEmails.has(workspace.email));
-  const [appsResult, billingResult, projectImageUsageResult] = await Promise.allSettled([
+  const [appsResult, billingResult] = await Promise.allSettled([
     getFugueApps(bootstrapKey),
     getAdminUserBillingLookup(bootstrapKey, billingWorkspaces),
-    getFugueProjectImageUsage(bootstrapKey),
   ]);
 
   let apps: FugueApp[] = [];
@@ -1961,12 +1950,6 @@ async function loadAdminUsersEnrichmentLookup(
     errors.push(...billingResult.value.errors);
   } else {
     errors.push(`billing: ${readErrorMessage(billingResult.reason)}`);
-  }
-
-  if (projectImageUsageResult.status === "fulfilled") {
-    appImageUsage = createAdminAppImageUsageLookup(projectImageUsageResult.value);
-  } else {
-    errors.push(`project image usage: ${readErrorMessage(projectImageUsageResult.reason)}`);
   }
 
   return {

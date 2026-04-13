@@ -4,7 +4,6 @@ import { NextResponse } from "next/server";
 
 import {
   getFugueBillingSummary,
-  getFugueProjectImageUsage,
   topUpFugueBilling,
   updateFugueBilling,
   type FugueBillingSummary,
@@ -176,15 +175,6 @@ async function requireWorkspaceAccess(email: string) {
   return workspace;
 }
 
-function sumProjectImageStorageBytes(
-  imageUsage: Awaited<ReturnType<typeof getFugueProjectImageUsage>>,
-) {
-  return (imageUsage.projects ?? []).reduce(
-    (total, project) => total + Math.max(project.totalSizeBytes, 0),
-    0,
-  );
-}
-
 export async function getBillingPageData(email: string) {
   const workspace = await getWorkspaceAccessByEmail(email);
 
@@ -192,10 +182,9 @@ export async function getBillingPageData(email: string) {
     return null;
   }
 
-  const [billingResult, imageUsageResult] = await Promise.allSettled([
+  const billingResult = await Promise.allSettled([
     getFugueBillingSummary(workspace.adminKeySecret),
-    getFugueProjectImageUsage(workspace.adminKeySecret),
-  ]);
+  ]).then(([result]) => result);
 
   if (billingResult.status === "rejected") {
     return {
@@ -211,14 +200,8 @@ export async function getBillingPageData(email: string) {
 
   return {
     billing: billingResult.value,
-    imageStorageBytes:
-      imageUsageResult.status === "fulfilled"
-        ? sumProjectImageStorageBytes(imageUsageResult.value)
-        : null,
-    syncError:
-      imageUsageResult.status === "rejected"
-        ? "Image storage usage could not be refreshed right now."
-        : null,
+    imageStorageBytes: null,
+    syncError: null,
     workspace: {
       tenantId: workspace.tenantId,
       tenantName: workspace.tenantName,

@@ -1179,10 +1179,14 @@ export function ConsoleProjectGallery({
   } = useGitHubConnection({
     enabled: createOpen,
   });
+  const initialProjectImageUsage = readCachedProjectImageUsage();
   const [projectImageUsageByProjectId, setProjectImageUsageByProjectId] =
     useState<Record<string, ProjectImageUsageSummary>>(() =>
-      buildProjectImageUsageMap(readCachedProjectImageUsage() ?? []),
+      buildProjectImageUsageMap(initialProjectImageUsage ?? []),
     );
+  const [projectImageUsageLoaded, setProjectImageUsageLoaded] = useState(
+    () => Boolean(initialProjectImageUsage),
+  );
 
   useEffect(() => {
     setImportEnvFeedback(buildRawEnvFeedback(importDraft.envRaw, "console"));
@@ -1191,6 +1195,8 @@ export function ConsoleProjectGallery({
   const galleryRefreshAbortRef = useRef<AbortController | null>(null);
   const galleryRefreshPendingRef = useRef(false);
   const galleryStreamAbortRef = useRef<AbortController | null>(null);
+  const projectImageUsageRequestRef = useRef<AbortController | null>(null);
+  const galleryStreamHashRef = useRef<string | null>(null);
   const selectedProjectIdRef = useRef<string | null>(selectedProjectId);
   const announcedPendingIntentErrorRef = useRef<string | null>(null);
   const runtimeInventory = useConsoleRuntimeTargetInventory(createOpen);
@@ -1666,12 +1672,15 @@ export function ConsoleProjectGallery({
     return () => {
       galleryRefreshAbortRef.current?.abort();
       galleryStreamAbortRef.current?.abort();
+      projectImageUsageRequestRef.current?.abort();
     };
   }, []);
 
   useEffect(() => {
     if (!data.projects.length) {
+      projectImageUsageRequestRef.current?.abort();
       setProjectImageUsageByProjectId({});
+      setProjectImageUsageLoaded(false);
       return undefined;
     }
 
@@ -1679,33 +1688,62 @@ export function ConsoleProjectGallery({
 
     if (cachedProjects) {
       setProjectImageUsageByProjectId(buildProjectImageUsageMap(cachedProjects));
+      setProjectImageUsageLoaded(true);
       return undefined;
     }
 
-    let cancelled = false;
+    if (projectImageUsageLoaded) {
+      setProjectImageUsageLoaded(false);
+      return undefined;
+    }
 
-    requestJsonLocalized<ProjectImageUsageResponse>("/api/fugue/projects/image-usage", {
-      cache: "no-store",
-    }, t)
+    if (!selectedProjectId || projectImageUsageLoaded) {
+      return undefined;
+    }
+
+    if (projectImageUsageRequestRef.current) {
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    projectImageUsageRequestRef.current = controller;
+
+    requestJsonLocalized<ProjectImageUsageResponse>(
+      "/api/fugue/projects/image-usage",
+      {
+        cache: "no-store",
+        signal: controller.signal,
+      },
+      t,
+    )
       .then((response) => {
-        if (cancelled) {
+        if (controller.signal.aborted) {
           return;
         }
 
         const nextProjects = response.projects ?? [];
         writeCachedProjectImageUsage(nextProjects);
         setProjectImageUsageByProjectId(buildProjectImageUsageMap(nextProjects));
+        setProjectImageUsageLoaded(true);
       })
       .catch(() => {
-        if (cancelled) {
+        if (controller.signal.aborted) {
           return;
+        }
+      })
+      .finally(() => {
+        if (projectImageUsageRequestRef.current === controller) {
+          projectImageUsageRequestRef.current = null;
         }
       });
 
     return () => {
-      cancelled = true;
+      controller.abort();
+      if (projectImageUsageRequestRef.current === controller) {
+        projectImageUsageRequestRef.current = null;
+      }
     };
-  }, [data.projects]);
+  }, [data.projects, projectImageUsageLoaded, selectedProjectId, t]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1756,6 +1794,12 @@ export function ConsoleProjectGallery({
             if (!payload?.hash) {
               return;
             }
+
+            if (galleryStreamHashRef.current === payload.hash) {
+              return;
+            }
+
+            galleryStreamHashRef.current = payload.hash;
 
             void refreshGallery({
               refreshWorkbench: Boolean(selectedProjectIdRef.current),
