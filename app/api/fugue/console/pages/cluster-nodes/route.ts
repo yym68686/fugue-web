@@ -8,7 +8,6 @@ import {
   readErrorStatus,
   requireSession,
 } from "@/lib/fugue/product-route";
-import { ensureAppUser } from "@/lib/workspace/store";
 import { getRequestLocale } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
@@ -22,14 +21,13 @@ function jsonSnapshot(snapshot: ConsoleClusterNodesPageSnapshot) {
 }
 
 export async function GET() {
-  const { response, session } = await requireSession();
+  const { response, session, user } = await requireSession();
 
-  if (response || !session) {
+  if (response || !session || !user) {
     return response;
   }
 
   try {
-    const user = await ensureAppUser(session);
     const locale = await getRequestLocale();
     const data = await getClusterNodesPageData(session.email, locale);
 

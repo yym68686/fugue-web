@@ -1,7 +1,10 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 
 import type { ConsoleApiKeysPageSnapshot } from "@/lib/console/page-snapshot-types";
-import { getApiKeyPageDataForWorkspace } from "@/lib/api-keys/service";
+import {
+  getApiKeyPageDataForWorkspace,
+  getStoredApiKeyPageDataForWorkspace,
+} from "@/lib/api-keys/service";
 import { getFugueEnv } from "@/lib/fugue/env";
 import {
   jsonError,
@@ -10,7 +13,10 @@ import {
   requireSession,
   requireWorkspaceForSession,
 } from "@/lib/fugue/product-route";
-import { getNodeKeyPageDataForWorkspace } from "@/lib/node-keys/service";
+import {
+  getNodeKeyPageDataForWorkspace,
+  getStoredNodeKeyPageDataForWorkspace,
+} from "@/lib/node-keys/service";
 
 export const dynamic = "force-dynamic";
 
@@ -40,12 +46,23 @@ export async function GET() {
 
     const workspace = workspaceState.workspace;
     const [apiKeys, nodeKeys] = await Promise.all([
-      getApiKeyPageDataForWorkspace(session.email, workspace),
-      getNodeKeyPageDataForWorkspace(session.email, workspace, {
-        ensureCopyableDefault: true,
-        includeUsageCounts: false,
-      }),
+      getStoredApiKeyPageDataForWorkspace(session.email, workspace),
+      getStoredNodeKeyPageDataForWorkspace(session.email, workspace),
     ]);
+
+    after(async () => {
+      try {
+        await Promise.all([
+          getApiKeyPageDataForWorkspace(session.email, workspace),
+          getNodeKeyPageDataForWorkspace(session.email, workspace, {
+            ensureCopyableDefault: true,
+            includeUsageCounts: false,
+          }),
+        ]);
+      } catch (error) {
+        console.error("Console api key snapshot background sync failed.", error);
+      }
+    });
 
     return jsonSnapshot({
       apiBaseUrl: getFugueEnv().apiUrl,

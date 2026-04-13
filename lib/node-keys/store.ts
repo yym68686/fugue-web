@@ -8,7 +8,7 @@ import type {
   NodeKeySource,
   NodeKeyStatus,
 } from "@/lib/node-keys/types";
-import { ensureDbSchema } from "@/lib/db/schema";
+import { ensureDbSchema, withDbSchemaRetry } from "@/lib/db/schema";
 import { queryDb, withDbTransaction } from "@/lib/db/pool";
 import { sealText, unsealText } from "@/lib/security/seal";
 import { normalizeEmail } from "@/lib/auth/validation";
@@ -383,8 +383,6 @@ export async function listNodeKeysByEmail(
     tenantId?: string | null;
   },
 ) {
-  await ensureDbSchema();
-
   const normalizedEmail = normalizeEmail(email);
   const tenantId = readOptionalString(options?.tenantId ?? null);
   const values: unknown[] = [normalizedEmail];
@@ -395,35 +393,37 @@ export async function listNodeKeysByEmail(
     filters.push(`tenant_id = $${values.length}`);
   }
 
-  const result = await queryDb<NodeKeyRow>(
-    `
-      SELECT
-        fugue_node_key_id,
-        user_email,
-        tenant_id,
-        label,
-        label_override,
-        prefix,
-        hash,
-        secret_sealed,
-        status,
-        source,
-        last_used_at,
-        revoked_at,
-        last_synced_at,
-        created_at,
-        updated_at
-      FROM app_node_keys
-      WHERE ${filters.join(" AND ")}
-      ORDER BY
-        CASE status
-          WHEN 'active' THEN 0
-          ELSE 1
-        END,
-        created_at DESC,
-        COALESCE(NULLIF(BTRIM(label_override), ''), label) ASC
-    `,
-    values,
+  const result = await withDbSchemaRetry(() =>
+    queryDb<NodeKeyRow>(
+      `
+        SELECT
+          fugue_node_key_id,
+          user_email,
+          tenant_id,
+          label,
+          label_override,
+          prefix,
+          hash,
+          secret_sealed,
+          status,
+          source,
+          last_used_at,
+          revoked_at,
+          last_synced_at,
+          created_at,
+          updated_at
+        FROM app_node_keys
+        WHERE ${filters.join(" AND ")}
+        ORDER BY
+          CASE status
+            WHEN 'active' THEN 0
+            ELSE 1
+          END,
+          created_at DESC,
+          COALESCE(NULLIF(BTRIM(label_override), ''), label) ASC
+      `,
+      values,
+    ),
   );
 
   return result.rows.map(recordFromRow);
@@ -433,32 +433,32 @@ export async function getNodeKeyRecordById(
   email: string,
   fugueNodeKeyId: string,
 ) {
-  await ensureDbSchema();
-
-  const result = await queryDb<NodeKeyRow>(
-    `
-      SELECT
-        fugue_node_key_id,
-        user_email,
-        tenant_id,
-        label,
-        label_override,
-        prefix,
-        hash,
-        secret_sealed,
-        status,
-        source,
-        last_used_at,
-        revoked_at,
-        last_synced_at,
-        created_at,
-        updated_at
-      FROM app_node_keys
-      WHERE user_email = $1
-        AND fugue_node_key_id = $2
-      LIMIT 1
-    `,
-    [normalizeEmail(email), fugueNodeKeyId],
+  const result = await withDbSchemaRetry(() =>
+    queryDb<NodeKeyRow>(
+      `
+        SELECT
+          fugue_node_key_id,
+          user_email,
+          tenant_id,
+          label,
+          label_override,
+          prefix,
+          hash,
+          secret_sealed,
+          status,
+          source,
+          last_used_at,
+          revoked_at,
+          last_synced_at,
+          created_at,
+          updated_at
+        FROM app_node_keys
+        WHERE user_email = $1
+          AND fugue_node_key_id = $2
+        LIMIT 1
+      `,
+      [normalizeEmail(email), fugueNodeKeyId],
+    ),
   );
 
   const row = result.rows[0];
@@ -466,18 +466,18 @@ export async function getNodeKeyRecordById(
 }
 
 export async function getNodeKeySecret(email: string, fugueNodeKeyId: string) {
-  await ensureDbSchema();
-
-  const result = await queryDb<Pick<NodeKeyRow, "secret_sealed">>(
-    `
-      SELECT secret_sealed
-      FROM app_node_keys
-      WHERE user_email = $1
-        AND fugue_node_key_id = $2
-        AND status = 'active'
-      LIMIT 1
-    `,
-    [normalizeEmail(email), fugueNodeKeyId],
+  const result = await withDbSchemaRetry(() =>
+    queryDb<Pick<NodeKeyRow, "secret_sealed">>(
+      `
+        SELECT secret_sealed
+        FROM app_node_keys
+        WHERE user_email = $1
+          AND fugue_node_key_id = $2
+          AND status = 'active'
+        LIMIT 1
+      `,
+      [normalizeEmail(email), fugueNodeKeyId],
+    ),
   );
 
   const secretSealed = result.rows[0]?.secret_sealed;

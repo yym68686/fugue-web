@@ -9,7 +9,7 @@ import type {
   ApiKeyStatus,
 } from "@/lib/api-keys/types";
 import { sortFugueScopes } from "@/lib/fugue/scopes";
-import { ensureDbSchema } from "@/lib/db/schema";
+import { ensureDbSchema, withDbSchemaRetry } from "@/lib/db/schema";
 import { queryDb, withDbTransaction } from "@/lib/db/pool";
 import { sealText, unsealText } from "@/lib/security/seal";
 import { normalizeEmail } from "@/lib/auth/validation";
@@ -361,8 +361,6 @@ export async function listApiKeysByEmail(
     tenantId?: string | null;
   },
 ) {
-  await ensureDbSchema();
-
   const normalizedEmail = normalizeEmail(email);
   const includeDeleted = options?.includeDeleted ?? false;
   const tenantId = readOptionalString(options?.tenantId ?? null);
@@ -378,38 +376,40 @@ export async function listApiKeysByEmail(
     filters.push(`tenant_id = $${values.length}`);
   }
 
-  const result = await queryDb<ApiKeyRow>(
-    `
-      SELECT
-        fugue_key_id,
-        user_email,
-        tenant_id,
-        label,
-        prefix,
-        scopes,
-        secret_sealed,
-        status,
-        source,
-        is_workspace_admin,
-        last_used_at,
-        disabled_at,
-        deleted_at,
-        last_synced_at,
-        created_at,
-        updated_at
-      FROM app_api_keys
-      WHERE ${filters.join(" AND ")}
-      ORDER BY
-        is_workspace_admin DESC,
-        CASE status
-          WHEN 'active' THEN 0
-          WHEN 'disabled' THEN 1
-          ELSE 2
-        END,
-        created_at DESC,
-        label ASC
-    `,
-    values,
+  const result = await withDbSchemaRetry(() =>
+    queryDb<ApiKeyRow>(
+      `
+        SELECT
+          fugue_key_id,
+          user_email,
+          tenant_id,
+          label,
+          prefix,
+          scopes,
+          secret_sealed,
+          status,
+          source,
+          is_workspace_admin,
+          last_used_at,
+          disabled_at,
+          deleted_at,
+          last_synced_at,
+          created_at,
+          updated_at
+        FROM app_api_keys
+        WHERE ${filters.join(" AND ")}
+        ORDER BY
+          is_workspace_admin DESC,
+          CASE status
+            WHEN 'active' THEN 0
+            WHEN 'disabled' THEN 1
+            ELSE 2
+          END,
+          created_at DESC,
+          label ASC
+      `,
+      values,
+    ),
   );
 
   return result.rows.map(recordFromRow);
@@ -422,36 +422,36 @@ export async function getApiKeyRecordById(
     includeDeleted?: boolean;
   },
 ) {
-  await ensureDbSchema();
-
   const normalizedEmail = normalizeEmail(email);
   const includeDeleted = options?.includeDeleted ?? false;
-  const result = await queryDb<ApiKeyRow>(
-    `
-      SELECT
-        fugue_key_id,
-        user_email,
-        tenant_id,
-        label,
-        prefix,
-        scopes,
-        secret_sealed,
-        status,
-        source,
-        is_workspace_admin,
-        last_used_at,
-        disabled_at,
-        deleted_at,
-        last_synced_at,
-        created_at,
-        updated_at
-      FROM app_api_keys
-      WHERE user_email = $1
-        AND fugue_key_id = $2
-        AND ($3::boolean OR status <> 'deleted')
-      LIMIT 1
-    `,
-    [normalizedEmail, fugueKeyId, includeDeleted],
+  const result = await withDbSchemaRetry(() =>
+    queryDb<ApiKeyRow>(
+      `
+        SELECT
+          fugue_key_id,
+          user_email,
+          tenant_id,
+          label,
+          prefix,
+          scopes,
+          secret_sealed,
+          status,
+          source,
+          is_workspace_admin,
+          last_used_at,
+          disabled_at,
+          deleted_at,
+          last_synced_at,
+          created_at,
+          updated_at
+        FROM app_api_keys
+        WHERE user_email = $1
+          AND fugue_key_id = $2
+          AND ($3::boolean OR status <> 'deleted')
+        LIMIT 1
+      `,
+      [normalizedEmail, fugueKeyId, includeDeleted],
+    ),
   );
 
   const row = result.rows[0];
@@ -504,18 +504,18 @@ export async function setApiKeyStatus(
 }
 
 export async function getApiKeySecret(email: string, fugueKeyId: string) {
-  await ensureDbSchema();
-
-  const result = await queryDb<Pick<ApiKeyRow, "secret_sealed">>(
-    `
-      SELECT secret_sealed
-      FROM app_api_keys
-      WHERE user_email = $1
-        AND fugue_key_id = $2
-        AND status <> 'deleted'
-      LIMIT 1
-    `,
-    [normalizeEmail(email), fugueKeyId],
+  const result = await withDbSchemaRetry(() =>
+    queryDb<Pick<ApiKeyRow, "secret_sealed">>(
+      `
+        SELECT secret_sealed
+        FROM app_api_keys
+        WHERE user_email = $1
+          AND fugue_key_id = $2
+          AND status <> 'deleted'
+        LIMIT 1
+      `,
+      [normalizeEmail(email), fugueKeyId],
+    ),
   );
 
   const secretSealed = result.rows[0]?.secret_sealed;

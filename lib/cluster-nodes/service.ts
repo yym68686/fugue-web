@@ -23,7 +23,7 @@ import type {
 } from "@/lib/runtimes/types";
 import {
   getWorkspaceAccessByEmail,
-  getWorkspaceSnapshotByTenantId,
+  getWorkspaceSnapshotsByTenantIds,
 } from "@/lib/workspace/store";
 import {
   createTranslator,
@@ -1158,29 +1158,27 @@ export async function getClusterNodesPageData(
   }
 
   const ownerEmailByTenantId = new Map<string, string>();
-  const ownerSnapshots = await Promise.allSettled(
-    [...ownerTenantIds].map(async (tenantId) => ({
-      snapshot: await getWorkspaceSnapshotByTenantId(tenantId),
-      tenantId,
-    })),
-  );
 
-  for (const result of ownerSnapshots) {
-    if (result.status === "fulfilled") {
-      if (result.value.snapshot?.email) {
-        ownerEmailByTenantId.set(
-          result.value.tenantId,
-          result.value.snapshot.email,
-        );
+  if (ownerTenantIds.size) {
+    try {
+      const ownerSnapshots = await getWorkspaceSnapshotsByTenantIds([
+        ...ownerTenantIds,
+      ]);
+
+      for (const snapshot of ownerSnapshots) {
+        if (!snapshot.email) {
+          continue;
+        }
+
+        ownerEmailByTenantId.set(snapshot.tenantId, snapshot.email);
       }
-      continue;
+    } catch (error) {
+      errors.push(
+        t("Workspace owners: {message}", {
+          message: readErrorMessage(error),
+        }),
+      );
     }
-
-    errors.push(
-      t("Workspace owners: {message}", {
-        message: readErrorMessage(result.reason),
-      }),
-    );
   }
 
   const built = buildClusterNodeViews(

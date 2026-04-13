@@ -22,6 +22,7 @@ type WorkspaceAccessRecord = NonNullable<
 
 export type NodeKeyPageData = {
   keys: NodeKeyRecord[];
+  stale: boolean;
   syncError: string | null;
 };
 
@@ -113,6 +114,21 @@ export async function getNodeKeyPageData(
   return getNodeKeyPageDataForWorkspace(email, workspace, options);
 }
 
+export async function getStoredNodeKeyPageDataForWorkspace(
+  email: string,
+  workspace: WorkspaceAccessRecord,
+) {
+  const keys = await listNodeKeysByEmail(email, {
+    tenantId: workspace.tenantId,
+  });
+
+  return {
+    keys: filterVisibleNodeKeys(keys),
+    stale: true,
+    syncError: null,
+  } satisfies NodeKeyPageData;
+}
+
 export async function getNodeKeyPageDataForWorkspace(
   email: string,
   workspace: WorkspaceAccessRecord,
@@ -162,6 +178,7 @@ export async function getNodeKeyPageDataForWorkspace(
 
   return {
     keys: visibleKeys,
+    stale: false,
     syncError,
   } satisfies NodeKeyPageData;
 }

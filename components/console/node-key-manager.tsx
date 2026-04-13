@@ -32,6 +32,7 @@ import { copyText } from "@/lib/ui/clipboard";
 
 type NodeKeyPagePayload = {
   keys: NodeKeyRecord[];
+  stale: boolean;
   syncError: string | null;
 };
 
@@ -287,6 +288,7 @@ export function NodeKeyManager({
   function syncNodeKeysPageSnapshot(overrides: Partial<NodeKeyPagePayload>) {
     writeNodeKeysPageSnapshot({
       keys: overrides.keys === undefined ? keys : sortNodeKeys(overrides.keys),
+      stale: overrides.stale ?? false,
       syncError:
         overrides.syncError === undefined ? syncError : overrides.syncError,
     });

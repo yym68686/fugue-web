@@ -31,6 +31,7 @@ type WorkspaceAccessRecord = NonNullable<
 export type ApiKeyPageData = {
   availableScopes: string[];
   keys: ApiKeyRecord[];
+  stale: boolean;
   syncError: string | null;
   workspace: {
     adminKeyId: string;
@@ -207,6 +208,25 @@ export async function getApiKeyPageData(email: string) {
   return getApiKeyPageDataForWorkspace(email, workspace);
 }
 
+export async function getStoredApiKeyPageDataForWorkspace(
+  email: string,
+  workspace: WorkspaceAccessRecord,
+) {
+  const keys = await listApiKeysByEmail(email, {
+    tenantId: workspace.tenantId,
+  });
+
+  return {
+    availableScopes: normalizeScopes(workspace.adminKeyScopes),
+    keys: filterVisibleApiKeysForWorkspace(keys, workspace),
+    stale: true,
+    syncError: null,
+    workspace: {
+      adminKeyId: workspace.adminKeyId,
+    },
+  } satisfies ApiKeyPageData;
+}
+
 export async function getApiKeyPageDataForWorkspace(
   email: string,
   workspace: WorkspaceAccessRecord,
@@ -232,6 +252,7 @@ export async function getApiKeyPageDataForWorkspace(
   return {
     availableScopes: normalizeScopes(workspace.adminKeyScopes),
     keys: filterVisibleApiKeysForWorkspace(keys, workspace),
+    stale: false,
     syncError,
     workspace: {
       adminKeyId: workspace.adminKeyId,

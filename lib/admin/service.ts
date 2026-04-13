@@ -267,6 +267,7 @@ const CONTROL_PLANE_COMPONENT_ORDER = new Map([
   ["controller", 1],
 ]);
 const MICRO_CENTS_PER_DOLLAR = 100_000_000;
+const ADMIN_OPTIONAL_FETCH_TIMEOUT_MS = 400;
 
 function readErrorMessage(error: unknown) {
   if (error instanceof Error && error.message) {
@@ -274,6 +275,61 @@ function readErrorMessage(error: unknown) {
   }
 
   return "Unknown error.";
+}
+
+type SettledResult<T> =
+  | {
+      status: "fulfilled";
+      value: T;
+    }
+  | {
+      reason: unknown;
+      status: "rejected";
+    };
+
+type TimedSettledResult<T> =
+  | SettledResult<T>
+  | {
+      status: "timed-out";
+    };
+
+function settleResult<T>(promise: Promise<T>): Promise<SettledResult<T>> {
+  return promise.then(
+    (value) =>
+      ({
+        status: "fulfilled",
+        value,
+      }) satisfies SettledResult<T>,
+    (reason: unknown) =>
+      ({
+        reason,
+        status: "rejected",
+      }) satisfies SettledResult<T>,
+  );
+}
+
+async function settleWithSoftTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+): Promise<TimedSettledResult<T>> {
+  let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+
+  try {
+    return await Promise.race([
+      settleResult(promise),
+      new Promise<TimedSettledResult<T>>((resolve) => {
+        timeoutHandle = setTimeout(() => {
+          resolve({
+            status: "timed-out",
+          });
+        }, timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutHandle !== null) {
+      clearTimeout(timeoutHandle);
+    }
+  }
 }
 
 function parseTimestamp(value?: string | null) {
@@ -1797,17 +1853,24 @@ export async function getAdminAppsPageData(): Promise<AdminAppsPageData> {
     };
   }
 
-  const [
-    tenantsResult,
-    appsResult,
-    workspacesResult,
-    nodesResult,
-  ] = await Promise.allSettled([
-    getFugueTenants(bootstrapKey),
-    getFugueApps(bootstrapKey),
-    listWorkspaceSnapshots(),
-    getFugueClusterNodes(bootstrapKey),
-  ]);
+  const [appsResult, workspacesResult, tenantsResult, nodesResult] =
+    await Promise.all([
+      settleResult(
+        getFugueApps(bootstrapKey, {
+          includeLiveStatus: false,
+          includeResourceUsage: false,
+        }),
+      ),
+      settleResult(listWorkspaceSnapshots()),
+      settleWithSoftTimeout(
+        getFugueTenants(bootstrapKey),
+        ADMIN_OPTIONAL_FETCH_TIMEOUT_MS,
+      ),
+      settleWithSoftTimeout(
+        getFugueClusterNodes(bootstrapKey),
+        ADMIN_OPTIONAL_FETCH_TIMEOUT_MS,
+      ),
+    ]);
 
   const errors = [
     tenantsResult.status === "rejected"
@@ -1829,9 +1892,22 @@ export async function getAdminAppsPageData(): Promise<AdminAppsPageData> {
   const workspaces = workspacesResult.status === "fulfilled" ? workspacesResult.value : [];
   const nodes = nodesResult.status === "fulfilled" ? nodesResult.value : [];
   const appImageUsage = createAdminAppImageUsageLookup(null);
-  const projectData =
+  const projectDataResult =
     tenantsResult.status === "fulfilled"
-      ? await getClusterProjects(bootstrapKey, tenants)
+      ? await settleWithSoftTimeout(
+          getClusterProjects(bootstrapKey, tenants),
+          ADMIN_OPTIONAL_FETCH_TIMEOUT_MS,
+        )
+      : {
+          status: "fulfilled",
+          value: {
+            errors: [],
+            projects: [],
+          },
+        };
+  const projectData =
+    projectDataResult.status === "fulfilled"
+      ? projectDataResult.value
       : { errors: [], projects: [] };
   const projects = projectData.projects;
   errors.push(...projectData.errors);
@@ -2150,10 +2226,16 @@ export async function getAdminClusterPageData(): Promise<AdminClusterPageData> {
     };
   }
 
-  const [tenantsResult, nodesResult, controlPlaneResult] = await Promise.allSettled([
-    getFugueTenants(bootstrapKey),
-    getFugueClusterNodes(bootstrapKey),
-    getFugueControlPlaneStatus(bootstrapKey),
+  const [nodesResult, tenantsResult, controlPlaneResult] = await Promise.all([
+    settleResult(getFugueClusterNodes(bootstrapKey)),
+    settleWithSoftTimeout(
+      getFugueTenants(bootstrapKey),
+      ADMIN_OPTIONAL_FETCH_TIMEOUT_MS,
+    ),
+    settleWithSoftTimeout(
+      getFugueControlPlaneStatus(bootstrapKey),
+      ADMIN_OPTIONAL_FETCH_TIMEOUT_MS,
+    ),
   ]);
 
   const errors = [

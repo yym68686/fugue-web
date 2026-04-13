@@ -297,33 +297,33 @@ export async function getAppUserByEmail(email: string) {
 }
 
 export async function listAppUsers() {
-  await ensureDbSchema();
-
-  const result = await queryDb<AppUserRow>(
-    `
-      SELECT
-        email,
-        name,
-        picture_url,
-        provider,
-        provider_id,
-        verified,
-        is_admin,
-        status,
-        last_login_at,
-        created_at,
-        updated_at
-      FROM app_users
-      ORDER BY
-        is_admin DESC,
-        CASE status
-          WHEN 'active' THEN 0
-          WHEN 'blocked' THEN 1
-          ELSE 2
-        END,
-        COALESCE(last_login_at, created_at) DESC,
-        email ASC
-    `,
+  const result = await withDbSchemaRetry(() =>
+    queryDb<AppUserRow>(
+      `
+        SELECT
+          email,
+          name,
+          picture_url,
+          provider,
+          provider_id,
+          verified,
+          is_admin,
+          status,
+          last_login_at,
+          created_at,
+          updated_at
+        FROM app_users
+        ORDER BY
+          is_admin DESC,
+          CASE status
+            WHEN 'active' THEN 0
+            WHEN 'blocked' THEN 1
+            ELSE 2
+          END,
+          COALESCE(last_login_at, created_at) DESC,
+          email ASC
+      `,
+    ),
   );
 
   return result.rows.map(recordFromRow);

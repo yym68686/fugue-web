@@ -78,14 +78,16 @@ export async function requireSession() {
     return {
       response: jsonError(401, "Sign in first."),
       session: null,
+      user: null,
     } as const;
   }
 
-  await ensureAppUser(session);
+  const user = await ensureAppUser(session);
 
   return {
     response: null,
     session,
+    user,
   } as const;
 }
 

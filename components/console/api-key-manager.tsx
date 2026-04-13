@@ -26,6 +26,7 @@ import { cx } from "@/lib/ui/cx";
 type ApiKeyPagePayload = {
   availableScopes: string[];
   keys: ApiKeyRecord[];
+  stale: boolean;
   syncError: string | null;
   workspace: {
     adminKeyId: string;
@@ -192,6 +193,7 @@ export function ApiKeyManager({
           ? scopeCatalog
           : sortFugueScopes(overrides.availableScopes),
       keys: overrides.keys === undefined ? keys : sortKeys(overrides.keys),
+      stale: overrides.stale ?? false,
       syncError:
         overrides.syncError === undefined ? syncError : overrides.syncError,
       workspace: {

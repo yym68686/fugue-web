@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useRef } from "react";
+
 import { ApiKeyManager } from "@/components/console/api-key-manager";
 import { ApiKeyEmptyState } from "@/components/console/api-key-empty-state";
 import { ConsoleEmptyState } from "@/components/console/console-empty-state";
@@ -16,10 +18,31 @@ import {
 } from "@/lib/console/page-snapshot-client";
 
 export function ConsoleApiKeysPageShell() {
-  const { data, error, loading } =
+  const { data, error, loading, refresh } =
     useConsolePageSnapshot<ConsoleApiKeysPageSnapshot>(
       CONSOLE_API_KEYS_PAGE_SNAPSHOT_URL,
     );
+  const didRefreshStaleRef = useRef(false);
+
+  useEffect(() => {
+    if (
+      didRefreshStaleRef.current ||
+      !data ||
+      data.state !== "ready" ||
+      (!data.apiKeys.stale && !data.nodeKeys.stale)
+    ) {
+      return;
+    }
+
+    didRefreshStaleRef.current = true;
+    const timer = window.setTimeout(() => {
+      void refresh({ force: true }).catch(() => {});
+    }, 1500);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [data, refresh]);
 
   if (loading && !data) {
     return (

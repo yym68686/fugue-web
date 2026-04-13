@@ -318,27 +318,66 @@ export async function getWorkspaceSnapshotByTenantId(tenantId: string) {
 }
 
 export async function listWorkspaceSnapshots() {
-  await ensureDbSchema();
+  const result = await withDbSchemaRetry(() =>
+    queryDb<WorkspaceRow>(
+      `
+        SELECT
+          user_email,
+          tenant_id,
+          tenant_name,
+          default_project_id,
+          default_project_name,
+          first_app_id,
+          admin_key_id,
+          admin_key_label,
+          admin_key_prefix,
+          admin_key_scopes,
+          admin_key_secret_sealed,
+          created_at,
+          updated_at
+        FROM app_workspaces
+        ORDER BY created_at ASC, user_email ASC
+      `,
+    ),
+  );
 
-  const result = await queryDb<WorkspaceRow>(
-    `
-      SELECT
-        user_email,
-        tenant_id,
-        tenant_name,
-        default_project_id,
-        default_project_name,
-        first_app_id,
-        admin_key_id,
-        admin_key_label,
-        admin_key_prefix,
-        admin_key_scopes,
-        admin_key_secret_sealed,
-        created_at,
-        updated_at
-      FROM app_workspaces
-      ORDER BY created_at ASC, user_email ASC
-    `,
+  return result.rows.map(snapshotFromRow);
+}
+
+export async function getWorkspaceSnapshotsByTenantIds(tenantIds: string[]) {
+  const normalizedTenantIds = [...new Set(
+    tenantIds
+      .map((tenantId) => tenantId.trim())
+      .filter((tenantId) => tenantId.length > 0),
+  )];
+
+  if (!normalizedTenantIds.length) {
+    return [] satisfies WorkspaceSnapshot[];
+  }
+
+  const result = await withDbSchemaRetry(() =>
+    queryDb<WorkspaceRow>(
+      `
+        SELECT
+          user_email,
+          tenant_id,
+          tenant_name,
+          default_project_id,
+          default_project_name,
+          first_app_id,
+          admin_key_id,
+          admin_key_label,
+          admin_key_prefix,
+          admin_key_scopes,
+          admin_key_secret_sealed,
+          created_at,
+          updated_at
+        FROM app_workspaces
+        WHERE tenant_id = ANY($1::text[])
+        ORDER BY created_at ASC, user_email ASC
+      `,
+      [normalizedTenantIds],
+    ),
   );
 
   return result.rows.map(snapshotFromRow);
