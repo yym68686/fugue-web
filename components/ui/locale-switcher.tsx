@@ -35,6 +35,8 @@ const EXPLICIT_LOCALE_LABELS: Record<
   },
 };
 
+const EXPLICIT_LOCALE_VALUES = ["en", "zh-CN", "zh-TW"] as const;
+
 function buildOptionLabel(label: string, shortLabel: string): ReactNode {
   return (
     <>
@@ -90,6 +92,7 @@ function useLocalePreferenceControl() {
   ];
 
   return {
+    effectiveLocale,
     isPending,
     preference: optimisticPreference,
     setPreference(nextPreference: LocalePreference) {
@@ -169,8 +172,7 @@ export function LocaleSwitcher({
   );
 }
 
-export function LocaleMenuButton({ className }: { className?: string }) {
-  const control = useLocalePreferenceControl();
+function useLocaleMenuDisclosure() {
   const detailsRef = useRef<HTMLDetailsElement | null>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
   const panelId = useId();
@@ -229,26 +231,99 @@ export function LocaleMenuButton({ className }: { className?: string }) {
     };
   }, [open]);
 
+  return {
+    detailsRef,
+    open,
+    panelId,
+    setOpen,
+    triggerRef,
+  };
+}
+
+export function LocaleUtilityMenu({ className }: { className?: string }) {
+  const control = useLocalePreferenceControl();
+  const disclosure = useLocaleMenuDisclosure();
+
+  return (
+    <details
+      className={cx("fg-locale-utility", className)}
+      onToggle={(event) => disclosure.setOpen(event.currentTarget.open)}
+      open={disclosure.open}
+      ref={disclosure.detailsRef}
+    >
+      <summary
+        aria-controls={disclosure.panelId}
+        aria-expanded={disclosure.open}
+        aria-label={control.triggerAriaLabel}
+        className="fg-locale-utility__trigger"
+        ref={disclosure.triggerRef}
+      >
+        <span
+          className="fg-locale-utility__value"
+          lang={control.effectiveLocale}
+          title={control.triggerTitle}
+        >
+          {control.triggerLabel}
+        </span>
+      </summary>
+
+      <div className="fg-locale-utility__panel" id={disclosure.panelId}>
+        <ul aria-label={control.t("Interface language")} className="fg-locale-utility__list">
+          {EXPLICIT_LOCALE_VALUES.map((value) => {
+            const isActive = value === control.effectiveLocale;
+
+            return (
+              <li className="fg-locale-utility__list-item" key={value}>
+                <button
+                  aria-pressed={isActive}
+                  className={cx("fg-locale-utility__option", isActive && "is-active")}
+                  onClick={() => {
+                    if (!isActive) {
+                      control.setPreference(value);
+                    }
+
+                    disclosure.setOpen(false);
+                  }}
+                  type="button"
+                >
+                  <span className="fg-locale-utility__option-label" lang={value}>
+                    {EXPLICIT_LOCALE_LABELS[value].label}
+                  </span>
+                  <span aria-hidden="true" className="fg-locale-utility__option-mark" />
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </details>
+  );
+}
+
+export function LocaleMenuButton({ className }: { className?: string }) {
+  const control = useLocalePreferenceControl();
+  const disclosure = useLocaleMenuDisclosure();
+
   return (
     <details
       className={cx("fg-locale-menu", className)}
-      onToggle={(event) => setOpen(event.currentTarget.open)}
-      open={open}
-      ref={detailsRef}
+      onToggle={(event) => disclosure.setOpen(event.currentTarget.open)}
+      open={disclosure.open}
+      ref={disclosure.detailsRef}
     >
       <summary
-        aria-controls={panelId}
-        aria-expanded={open}
+        aria-controls={disclosure.panelId}
+        aria-expanded={disclosure.open}
         aria-label={control.triggerAriaLabel}
         className="fg-button fg-button--secondary fg-button--compact fg-locale-menu__trigger"
-        ref={triggerRef}
+        ref={disclosure.triggerRef}
       >
         <span className="fg-button__label" title={control.triggerTitle}>
           {control.triggerLabel}
         </span>
       </summary>
 
-      <div className="fg-locale-menu__panel" id={panelId}>
+      <div className="fg-locale-menu__panel" id={disclosure.panelId}>
         <p className="fg-locale-menu__title fg-mono">{control.t("Interface language")}</p>
         <LocaleSwitcherControl
           className="fg-locale-menu__switcher"
@@ -256,7 +331,7 @@ export function LocaleMenuButton({ className }: { className?: string }) {
             const changed = control.setPreference(nextPreference);
 
             if (changed) {
-              setOpen(false);
+              disclosure.setOpen(false);
             }
           }}
           options={control.options}
