@@ -18,31 +18,52 @@ const EXPLICIT_LOCALE_LABELS: Record<
   Locale,
   {
     label: string;
+    pillLabel: string;
     shortLabel: string;
   }
 > = {
   en: {
     label: "English",
+    pillLabel: "English",
     shortLabel: "EN",
   },
   "zh-CN": {
     label: "简体中文",
+    pillLabel: "简体",
     shortLabel: "简",
   },
   "zh-TW": {
     label: "繁體中文",
+    pillLabel: "繁體",
     shortLabel: "繁",
   },
 };
 
 const EXPLICIT_LOCALE_VALUES = ["en", "zh-CN", "zh-TW"] as const;
 
-function buildOptionLabel(label: string, shortLabel: string): ReactNode {
+type LocaleSwitcherVariant = "segmented" | "pill";
+
+function buildOptionLabel({
+  label,
+  lang,
+  visibleLabel,
+  visibleClassName,
+}: {
+  label: string;
+  lang?: Locale;
+  visibleClassName?: string;
+  visibleLabel: string;
+}): ReactNode {
   return (
     <>
       <span className="fg-visually-hidden">{label}</span>
-      <span aria-hidden="true" className="fg-locale-switcher__code" title={label}>
-        {shortLabel}
+      <span
+        aria-hidden="true"
+        className={visibleClassName}
+        lang={lang}
+        title={label}
+      >
+        {visibleLabel}
       </span>
     </>
   );
@@ -63,7 +84,7 @@ function writeLocalePreference(preference: LocalePreference) {
   document.cookie = `${LOCALE_COOKIE_NAME}=${encodeURIComponent(preference)}; Max-Age=${LOCALE_COOKIE_MAX_AGE}; Path=/; SameSite=Lax${secure}`;
 }
 
-function useLocalePreferenceControl() {
+function useLocalePreferenceControl(variant: LocaleSwitcherVariant = "segmented") {
   const { locale, localePreference, t } = useI18n();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -78,15 +99,27 @@ function useLocalePreferenceControl() {
   const triggerLabel = readLocaleLabel(effectiveLocale);
   const triggerTitle =
     optimisticPreference === "auto" ? `${triggerLabel} (${autoLabel})` : triggerLabel;
+  const usePillLabels = variant === "pill";
   const options: readonly SegmentedControlOption<LocalePreference>[] = [
     {
       disabled: isPending,
-      label: buildOptionLabel(autoLabel, autoLabel),
+      label: buildOptionLabel({
+        label: autoLabel,
+        visibleClassName: usePillLabels ? undefined : "fg-locale-switcher__code",
+        visibleLabel: autoLabel,
+      }),
       value: "auto",
     },
     ...(["en", "zh-CN", "zh-TW"] as const).map((value) => ({
       disabled: isPending,
-      label: buildOptionLabel(EXPLICIT_LOCALE_LABELS[value].label, EXPLICIT_LOCALE_LABELS[value].shortLabel),
+      label: buildOptionLabel({
+        label: EXPLICIT_LOCALE_LABELS[value].label,
+        lang: usePillLabels ? value : undefined,
+        visibleClassName: usePillLabels ? undefined : "fg-locale-switcher__code",
+        visibleLabel: usePillLabels
+          ? EXPLICIT_LOCALE_LABELS[value].pillLabel
+          : EXPLICIT_LOCALE_LABELS[value].shortLabel,
+      }),
       value,
     })),
   ];
@@ -123,6 +156,7 @@ function LocaleSwitcherControl({
   preference,
   pending,
   t,
+  variant = "segmented",
 }: {
   className?: string;
   onChange: (preference: LocalePreference) => void;
@@ -130,17 +164,24 @@ function LocaleSwitcherControl({
   pending: boolean;
   preference: LocalePreference;
   t: (key: string) => string;
+  variant?: LocaleSwitcherVariant;
 }) {
   return (
     <SegmentedControl
       ariaLabel={t("Interface language")}
-      className={cx("fg-locale-switcher", pending && "is-pending", className)}
+      className={cx(
+        "fg-locale-switcher",
+        pending && "is-pending",
+        variant === "pill" && "fg-locale-switcher--pill",
+        className,
+      )}
       controlClassName="fg-locale-switcher__control"
-      itemClassName="fg-locale-switcher__item"
-      labelClassName="fg-locale-switcher__label"
+      itemClassName={cx("fg-locale-switcher__item", variant === "pill" && "fg-locale-switcher__item--pill")}
+      labelClassName={cx("fg-locale-switcher__label", variant === "pill" && "fg-locale-switcher__label--pill")}
       onChange={onChange}
       options={options}
       value={preference}
+      variant={variant}
     />
   );
 }
@@ -148,11 +189,13 @@ function LocaleSwitcherControl({
 export function LocaleSwitcher({
   className,
   onChangeComplete,
+  variant = "segmented",
 }: {
   className?: string;
   onChangeComplete?: (preference: LocalePreference) => void;
+  variant?: LocaleSwitcherVariant;
 }) {
-  const control = useLocalePreferenceControl();
+  const control = useLocalePreferenceControl(variant);
 
   return (
     <LocaleSwitcherControl
@@ -168,6 +211,7 @@ export function LocaleSwitcher({
       pending={control.isPending}
       preference={control.preference}
       t={control.t}
+      variant={variant}
     />
   );
 }

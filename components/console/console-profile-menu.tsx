@@ -118,6 +118,7 @@ export function ConsoleProfileMenu({
           <LocaleSwitcher
             className="fg-console-profile__locale-switcher"
             onChangeComplete={() => setOpen(false)}
+            variant="pill"
           />
         </div>
 

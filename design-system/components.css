@@ -625,6 +625,16 @@
   text-transform: none;
 }
 
+.fg-locale-switcher__label--pill {
+  font-family: inherit;
+  font-size: inherit;
+  letter-spacing: inherit;
+}
+
+.fg-locale-switcher__item--pill {
+  min-width: 0;
+}
+
 .fg-locale-switcher__code {
   display: inline-flex;
   align-items: center;

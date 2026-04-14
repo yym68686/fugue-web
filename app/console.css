@@ -3427,13 +3427,23 @@
 }
 
 .fg-console-profile__locale-switcher,
-.fg-console-profile__locale-switcher .fg-scrollable-control-strip,
-.fg-console-profile__locale-switcher .fg-segmented {
-  width: 100%;
+.fg-console-profile__locale-switcher .fg-control-strip__viewport,
+.fg-console-profile__locale-switcher .fg-pill-nav {
+  max-width: 100%;
 }
 
-.fg-console-profile__locale-switcher .fg-segmented__item {
-  flex: 1 1 0;
+.fg-console-profile__locale-switcher {
+  justify-self: start;
+}
+
+.fg-console-profile__locale-switcher .fg-pill-nav {
+  --fugue-nav-pill-gap: 0.16rem;
+  --fugue-nav-pill-item-font-size: 0.82rem;
+  --fugue-nav-pill-item-padding-inline: 0.76rem;
+  width: max-content;
+}
+
+.fg-console-profile__locale-switcher .fg-pill-nav__button {
   justify-content: center;
 }
 
