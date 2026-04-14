@@ -269,7 +269,9 @@ const CONTROL_PLANE_COMPONENT_ORDER = new Map([
   ["controller", 1],
 ]);
 const MICRO_CENTS_PER_DOLLAR = 100_000_000;
-const ADMIN_OPTIONAL_FETCH_TIMEOUT_MS = 400;
+// Keep optional admin-side enrichments from dragging first-paint snapshots past
+// the 1s budget when control-plane reads are cold.
+const ADMIN_OPTIONAL_FETCH_TIMEOUT_MS = 200;
 
 function readErrorMessage(error: unknown) {
   if (error instanceof Error && error.message) {

@@ -265,6 +265,18 @@ export function LocaleUtilityMenu({ className }: { className?: string }) {
         >
           {control.triggerLabel}
         </span>
+        <span aria-hidden="true" className="fg-locale-utility__chevron">
+          <svg viewBox="0 0 12 12">
+            <path
+              d="M3 4.5 6 7.5 9 4.5"
+              fill="none"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="1.2"
+            />
+          </svg>
+        </span>
       </summary>
 
       <div className="fg-locale-utility__panel" id={disclosure.panelId}>

@@ -83,6 +83,7 @@ body.is-ready .fg-landing-masthead {
 .fg-landing-locale-switcher .fg-locale-utility__trigger {
   display: inline-flex;
   align-items: center;
+  gap: 0.24rem;
   padding: 0.3rem 0 0.34rem;
   border-bottom: 1px solid transparent;
   color: var(--fugue-text-secondary);
@@ -125,6 +126,34 @@ body.is-ready .fg-landing-masthead {
   font-weight: 600;
   letter-spacing: -0.012em;
   line-height: 1.05;
+}
+
+.fg-landing-locale-switcher .fg-locale-utility__chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 0.7rem;
+  height: 0.7rem;
+  color: color-mix(in srgb, var(--fugue-text-secondary) 76%, transparent);
+  transform: translateY(0.02rem);
+  transition:
+    color var(--fugue-duration-fast) var(--fugue-ease-out-expo),
+    transform var(--fugue-duration-fast) var(--fugue-ease-out-expo);
+}
+
+.fg-landing-locale-switcher .fg-locale-utility__chevron svg {
+  width: 100%;
+  height: 100%;
+}
+
+.fg-landing-locale-switcher .fg-locale-utility__trigger:hover .fg-locale-utility__chevron,
+.fg-landing-locale-switcher .fg-locale-utility__trigger:focus-visible .fg-locale-utility__chevron,
+.fg-landing-locale-switcher[open] .fg-locale-utility__chevron {
+  color: var(--fugue-text-primary);
+}
+
+.fg-landing-locale-switcher[open] .fg-locale-utility__chevron {
+  transform: translateY(0.02rem) rotate(180deg);
 }
 
 .fg-landing-locale-switcher .fg-locale-utility__panel {

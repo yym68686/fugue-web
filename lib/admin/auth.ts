@@ -2,13 +2,15 @@ import "server-only";
 
 import { redirect } from "next/navigation";
 
-import { getCurrentSession } from "@/lib/auth/session";
 import {
   jsonError,
   readErrorMessage,
   readErrorStatus,
 } from "@/lib/fugue/product-route";
-import { getCachedActiveAppUserByEmail } from "@/lib/server/session-state-cache";
+import {
+  getRequestAppUserRecord,
+  getRequestSession,
+} from "@/lib/server/request-context";
 
 function readInactiveRedirect(error: unknown) {
   if (!(error instanceof Error)) {
@@ -27,14 +29,14 @@ function readInactiveRedirect(error: unknown) {
 }
 
 export async function requireAdminPageAccess() {
-  const session = await getCurrentSession();
+  const session = await getRequestSession();
 
   if (!session) {
     redirect("/auth/sign-in?error=auth-required");
   }
 
   try {
-    const user = await getCachedActiveAppUserByEmail(session.email);
+    const user = await getRequestAppUserRecord();
 
     if (!user?.isAdmin) {
       redirect("/app");
@@ -56,7 +58,7 @@ export async function requireAdminPageAccess() {
 }
 
 export async function requireAdminApiSession() {
-  const session = await getCurrentSession();
+  const session = await getRequestSession();
 
   if (!session) {
     return {
@@ -67,7 +69,7 @@ export async function requireAdminApiSession() {
   }
 
   try {
-    const user = await getCachedActiveAppUserByEmail(session.email);
+    const user = await getRequestAppUserRecord();
 
     if (!user?.isAdmin) {
       return {
