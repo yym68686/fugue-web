@@ -246,18 +246,6 @@ export function LocaleMenuButton({ className }: { className?: string }) {
         <span className="fg-button__label" title={control.triggerTitle}>
           {control.triggerLabel}
         </span>
-        <span aria-hidden="true" className="fg-button__icon is-island fg-locale-menu__caret">
-          <svg className="fg-locale-menu__caret-icon" viewBox="0 0 12 12">
-            <path
-              d="M3 4.5L6 7.5L9 4.5"
-              fill="none"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="1.35"
-            />
-          </svg>
-        </span>
       </summary>
 
       <div className="fg-locale-menu__panel" id={panelId}>

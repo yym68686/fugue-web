@@ -640,11 +640,11 @@
 
 .fg-locale-menu__trigger {
   --fg-button-padding-inline-start: 0.94rem;
-  --fg-button-padding-inline-end: 0.42rem;
+  --fg-button-padding-inline-end: 0.94rem;
   display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.62rem;
+  justify-content: center;
+  gap: 0;
   min-width: 6.6rem;
   max-width: min(100%, 9.4rem);
   list-style: none;
@@ -657,35 +657,17 @@
 
 .fg-locale-menu__trigger .fg-button__label {
   min-width: 0;
+  justify-content: center;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.fg-locale-menu__trigger .fg-button__icon.is-island {
-  background:
-    linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.092),
-      rgba(165, 191, 220, 0.04)
-    ),
-    rgba(5, 7, 10, 0.28);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 10px 24px -18px rgba(0, 0, 0, 0.82);
-}
-
-.fg-locale-menu__caret {
-  transition: transform var(--fugue-duration-fast) var(--fugue-ease-out-expo);
-}
-
-.fg-locale-menu__caret-icon {
-  width: 0.78rem;
-  height: 0.78rem;
-}
-
-.fg-locale-menu[open] .fg-locale-menu__caret {
-  transform: rotate(180deg);
+.fg-locale-menu[open] .fg-locale-menu__trigger {
+  background: var(--fugue-selection-lens-bg-active);
+  border-color: var(--fugue-selection-lens-border-active);
+  box-shadow: var(--fugue-selection-lens-shadow-active);
+  color: var(--fugue-selection-lens-text-active);
 }
 
 .fg-locale-menu__panel {
