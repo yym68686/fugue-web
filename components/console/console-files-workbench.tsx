@@ -538,10 +538,13 @@ function isPersistentStorageCollectionRoot(targetPath: string) {
 
 function readFilesystemWarmupSeedPaths(
   mounts: ReturnType<typeof normalizePersistentStorageMounts>,
+  options?: {
+    includeLiveFilesystemRoot?: boolean;
+  },
 ) {
   return Array.from(
     new Set([
-      "/",
+      ...(options?.includeLiveFilesystemRoot === false ? [] : ["/"]),
       ...mounts.flatMap((mount) =>
         mount.kind === "directory" ? [mount.path] : [],
       ),
@@ -559,6 +562,7 @@ function readFilesystemWarmupConcurrency(maxDirectories: number) {
 export async function warmConsoleFilesWorkbench(options: {
   appId: string;
   concurrency?: number;
+  includeLiveFilesystemRoot?: boolean;
   maxDirectories?: number;
   persistentStorageMounts: ConsoleGalleryPersistentStorageMountView[];
   signal?: AbortSignal;
@@ -582,7 +586,9 @@ export async function warmConsoleFilesWorkbench(options: {
       maxDirectories,
     ),
   );
-  const queue = readFilesystemWarmupSeedPaths(normalizedMounts);
+  const queue = readFilesystemWarmupSeedPaths(normalizedMounts, {
+    includeLiveFilesystemRoot: options.includeLiveFilesystemRoot,
+  });
   const queued = new Set(queue.map((path) => trimTrailingSlash(path)));
   const visited = new Set<string>();
   let warmedCount = 0;
@@ -1483,6 +1489,7 @@ export function ConsoleFilesWorkbench({
   const warmFilesystemTree = useEffectEvent(async (signal: AbortSignal) => {
     await warmConsoleFilesWorkbench({
       appId,
+      includeLiveFilesystemRoot: false,
       persistentStorageMounts,
       signal,
     });
@@ -1492,7 +1499,7 @@ export function ConsoleFilesWorkbench({
     warmFilesystemTree,
     [appId, storageMountSignature],
     {
-      enabled: rootStatus !== "error",
+      enabled: rootStatus === "ready" && rootMode === "storage" && hasPersistentStorage,
       mode: "idle",
       timeoutMs: 1_200,
     },

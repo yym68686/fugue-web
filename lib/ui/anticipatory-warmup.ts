@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, type DependencyList } from "react";
+import { useEffect, useRef, type DependencyList } from "react";
 
 type IdleCallbackHandle = number;
 type IdleCallbackOptions = {
@@ -35,9 +35,12 @@ export function useAnticipatoryWarmup(
   const mode = options?.mode ?? "idle";
   const skipWhenHidden = options?.skipWhenHidden ?? true;
   const timeoutMs = options?.timeoutMs ?? 1_500;
+  const warmupRef = useRef(warmup);
+
+  warmupRef.current = warmup;
 
   useEffect(() => {
-    if (!enabled || !warmup) {
+    if (!enabled || !warmupRef.current) {
       return;
     }
 
@@ -58,7 +61,7 @@ export function useAnticipatoryWarmup(
         return;
       }
 
-      void warmup(controller.signal);
+      void warmupRef.current?.(controller.signal);
     };
 
     if (mode === "idle") {
@@ -94,5 +97,5 @@ export function useAnticipatoryWarmup(
         window.clearTimeout(timerHandle);
       }
     };
-  }, [enabled, mode, skipWhenHidden, timeoutMs, warmup, ...deps]);
+  }, [enabled, mode, skipWhenHidden, timeoutMs, ...deps]);
 }
