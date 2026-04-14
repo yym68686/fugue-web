@@ -51,12 +51,18 @@ export const CONSOLE_PROFILE_SETTINGS_PAGE_SNAPSHOT_URL =
   "/api/fugue/console/pages/settings/profile";
 export const CONSOLE_ADMIN_APPS_PAGE_SNAPSHOT_URL =
   "/api/fugue/admin/pages/apps";
+export const CONSOLE_ADMIN_APPS_PAGE_USAGE_SNAPSHOT_URL =
+  "/api/fugue/admin/pages/apps?include_usage=1";
 export const CONSOLE_ADMIN_USERS_PAGE_SNAPSHOT_URL =
   "/api/fugue/admin/pages/users";
+export const CONSOLE_ADMIN_USERS_PAGE_USAGE_SNAPSHOT_URL =
+  "/api/fugue/admin/pages/users?include_usage=1";
 export const CONSOLE_ADMIN_USERS_PAGE_ENRICHMENT_SNAPSHOT_URL =
   "/api/fugue/admin/pages/users/enrich";
 export const CONSOLE_ADMIN_CLUSTER_PAGE_SNAPSHOT_URL =
   "/api/fugue/admin/pages/cluster";
+export const CONSOLE_PROJECT_GALLERY_USAGE_SNAPSHOT_URL =
+  "/api/fugue/console/gallery?include_usage=1";
 
 const CONSOLE_ROUTE_SNAPSHOT_URLS: Record<string, string[]> = {
   "/app/api-keys": [CONSOLE_API_KEYS_PAGE_SNAPSHOT_URL],

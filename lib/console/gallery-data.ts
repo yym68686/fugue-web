@@ -72,6 +72,7 @@ import {
   getCurrentWorkspaceAccess,
   type WorkspaceAccess,
 } from "@/lib/workspace/current";
+import { createExpiringAsyncCache } from "@/lib/server/expiring-async-cache";
 import { getRequestSession } from "@/lib/server/request-context";
 import { translate, type Locale } from "@/lib/i18n/core";
 
@@ -80,6 +81,19 @@ type RuntimeTargetLocationView = {
   locationCountryLabel: string | null;
   locationLabel: string | null;
 };
+
+type ConsoleProjectGalleryUsageData = {
+  projects: Array<{
+    id: string;
+    resourceUsageSnapshot: ConsoleProjectResourceUsageSnapshot;
+  }>;
+};
+
+const CONSOLE_PROJECT_USAGE_CACHE_TTL_MS = 30_000;
+const consoleProjectGalleryUsageCache =
+  createExpiringAsyncCache<ConsoleProjectGalleryUsageData>(
+    CONSOLE_PROJECT_USAGE_CACHE_TTL_MS,
+  );
 
 function readErrorMessage(reason: unknown) {
   if (reason instanceof Error && reason.message) {
@@ -3166,6 +3180,67 @@ export async function getConsoleProjectGalleryData(options?: {
 
 export async function getConsoleProjectGallerySummaryData() {
   return getConsoleProjectGallerySummaryDataCached();
+}
+
+function buildConsoleProjectGalleryUsageData(
+  apps: FugueApp[],
+): ConsoleProjectGalleryUsageData {
+  const usageByProjectId = new Map<
+    string,
+    Array<FugueResourceUsage | null | undefined>
+  >();
+
+  for (const app of apps) {
+    const projectID = app.projectId?.trim() || "unassigned";
+    const items = usageByProjectId.get(projectID) ?? [];
+    items.push(app.currentResourceUsage);
+
+    for (const service of app.backingServices) {
+      items.push(service.currentResourceUsage);
+    }
+
+    usageByProjectId.set(projectID, items);
+  }
+
+  return {
+    projects: [...usageByProjectId.entries()].map(([id, items]) => {
+      const usage = sumCurrentResourceUsage(items);
+
+      return {
+        id,
+        resourceUsageSnapshot: {
+          cpuMillicores: usage.cpuMillicores ?? null,
+          ephemeralStorageBytes: usage.ephemeralStorageBytes ?? null,
+          memoryBytes: usage.memoryBytes ?? null,
+        },
+      };
+    }),
+  };
+}
+
+export async function getConsoleProjectGalleryUsageDataForWorkspace(
+  workspace: WorkspaceAccess,
+) {
+  return consoleProjectGalleryUsageCache.getOrLoad(workspace.tenantId, () =>
+    requestWithWorkspaceRefresh(workspace, (active) =>
+      getFugueApps(active.adminKeySecret, {
+        includeLiveStatus: false,
+        includeResourceUsage: true,
+      }),
+    ).then(buildConsoleProjectGalleryUsageData),
+  );
+}
+
+export async function getConsoleProjectGalleryUsageData() {
+  const workspace = await getCurrentWorkspaceAccess();
+
+  if (!workspace) {
+    return {
+      projects: [],
+    } satisfies ConsoleProjectGalleryUsageData;
+  }
+
+  return getConsoleProjectGalleryUsageDataForWorkspace(workspace);
 }
 
 export async function getConsoleProjectDetailData(

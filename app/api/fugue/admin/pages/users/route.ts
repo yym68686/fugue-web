@@ -1,8 +1,7 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 
 import { requireAdminApiSession } from "@/lib/admin/auth";
-import { getAdminUsersPageData } from "@/lib/admin/service";
-import type { ConsoleAdminUsersPageSnapshot } from "@/lib/console/page-snapshot-types";
+import { getAdminUsersPageData, getAdminUsersUsageData } from "@/lib/admin/service";
 import {
   jsonError,
   readErrorMessage,
@@ -11,7 +10,7 @@ import {
 
 export const dynamic = "force-dynamic";
 
-function jsonSnapshot(snapshot: ConsoleAdminUsersPageSnapshot) {
+function jsonSnapshot(snapshot: unknown) {
   return NextResponse.json(snapshot, {
     headers: {
       "Cache-Control": "no-store",
@@ -19,7 +18,11 @@ function jsonSnapshot(snapshot: ConsoleAdminUsersPageSnapshot) {
   });
 }
 
-export async function GET() {
+function readIncludeUsage(request: Request) {
+  return new URL(request.url).searchParams.get("include_usage") === "1";
+}
+
+export async function GET(request: Request) {
   const access = await requireAdminApiSession();
 
   if (access.response) {
@@ -27,6 +30,18 @@ export async function GET() {
   }
 
   try {
+    if (readIncludeUsage(request)) {
+      return jsonSnapshot(await getAdminUsersUsageData());
+    }
+
+    after(async () => {
+      try {
+        await getAdminUsersUsageData();
+      } catch (error) {
+        console.error("Admin users usage background sync failed.", error);
+      }
+    });
+
     return jsonSnapshot(await getAdminUsersPageData());
   } catch (error) {
     return jsonError(readErrorStatus(error), readErrorMessage(error));

@@ -38,6 +38,7 @@ import {
   type TechStackBadgeKind,
 } from "@/lib/tech-stack";
 import { readCountryLocation } from "@/lib/geo/country";
+import { createExpiringAsyncCache } from "@/lib/server/expiring-async-cache";
 import {
   getWorkspaceSnapshotByEmail,
   listWorkspaceSnapshots,
@@ -155,10 +156,13 @@ type AdminUsersEnrichmentLookup = {
 };
 
 const ADMIN_USERS_ENRICHMENT_CACHE_TTL_MS = 15_000;
+const ADMIN_USAGE_CACHE_TTL_MS = 30_000;
 
 let cachedAdminUsersEnrichmentData: AdminUsersPageData | null = null;
 let cachedAdminUsersEnrichmentAt = 0;
 let adminUsersEnrichmentRequest: Promise<AdminUsersPageData> | null = null;
+const adminAppsUsageCache =
+  createExpiringAsyncCache<FugueApp[]>(ADMIN_USAGE_CACHE_TTL_MS);
 
 export type AdminClusterConditionView = {
   detailLabel: string;
@@ -1938,6 +1942,77 @@ export async function getAdminAppsPageData(): Promise<AdminAppsPageData> {
   };
 }
 
+async function getCachedAdminAppsWithResourceUsage(bootstrapKey: string) {
+  return adminAppsUsageCache.getOrLoad("apps-with-resource-usage", () =>
+    getFugueApps(bootstrapKey, {
+      includeLiveStatus: false,
+      includeResourceUsage: true,
+    }),
+  );
+}
+
+export async function getAdminAppsUsageData(): Promise<{
+  apps: Array<{
+    id: string;
+    resourceUsage: ConsoleCompactResourceItemView[];
+  }>;
+}> {
+  const bootstrapKey = getFugueEnv().bootstrapKey;
+  const apps = await getCachedAdminAppsWithResourceUsage(bootstrapKey);
+  const appImageUsage = createAdminAppImageUsageLookup(null);
+
+  return {
+    apps: apps.map((app) => ({
+      id: app.id,
+      resourceUsage: buildAdminAppResourceUsage(app, appImageUsage),
+    })),
+  };
+}
+
+export async function getAdminUsersUsageData(): Promise<{
+  users: Array<{
+    email: string;
+    serviceCount: number;
+    usage: AdminUserServiceUsageView;
+  }>;
+}> {
+  const bootstrapKey = getFugueEnv().bootstrapKey;
+  const [base, apps] = await Promise.all([
+    loadAdminUsersBaseData({
+      includeWorkspaces: true,
+    }),
+    getCachedAdminAppsWithResourceUsage(bootstrapKey),
+  ]);
+
+  const workspaceByEmail = new Map(
+    base.workspaces.map((workspace) => [workspace.email, workspace] as const),
+  );
+  const tenantServiceUsageByTenant = buildAdminTenantServiceUsageLookup(
+    apps,
+    createAdminAppImageUsageLookup(null),
+  );
+
+  return {
+    users: base.users.map((user) => {
+      const workspace = workspaceByEmail.get(user.email);
+      const tenantServiceUsage = workspace?.tenantId
+        ? tenantServiceUsageByTenant.get(workspace.tenantId)
+        : undefined;
+      const serviceCount = tenantServiceUsage?.serviceCount ?? 0;
+
+      return {
+        email: user.email,
+        serviceCount,
+        usage: buildAdminUserServiceUsageView(
+          tenantServiceUsage,
+          false,
+          false,
+        ),
+      };
+    }),
+  };
+}
+
 async function getAdminUserBillingLookup(
   bootstrapKey: string,
   workspaces: WorkspaceSnapshot[],
@@ -2036,9 +2111,7 @@ async function loadAdminUsersEnrichmentLookup(
   const userEmails = new Set(users.map((user) => user.email));
   const billingWorkspaces = workspaces.filter((workspace) => userEmails.has(workspace.email));
   const [appsResult, billingResult] = await Promise.allSettled([
-    getFugueApps(bootstrapKey, {
-      includeResourceUsage: false,
-    }),
+    getCachedAdminAppsWithResourceUsage(bootstrapKey),
     getAdminUserBillingLookup(bootstrapKey, billingWorkspaces),
   ]);
 

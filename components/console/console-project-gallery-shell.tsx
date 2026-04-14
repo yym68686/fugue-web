@@ -32,9 +32,15 @@ import {
 } from "@/lib/console/raw-env";
 import type {
   ConsoleProjectGallerySummaryData,
+  ConsoleProjectResourceUsageSnapshot,
   ConsoleProjectSummaryView,
 } from "@/lib/console/gallery-types";
 import type { ConsoleTone } from "@/lib/console/types";
+import {
+  CONSOLE_PROJECT_GALLERY_USAGE_SNAPSHOT_URL,
+  fetchConsolePageSnapshot,
+  readConsolePageSnapshot,
+} from "@/lib/console/page-snapshot-client";
 import {
   clearPendingProjectIntent,
   createPendingProjectIntent,
@@ -138,6 +144,14 @@ type GalleryStreamPayload = {
 };
 
 const PROJECT_IMAGE_USAGE_CACHE_TTL_MS = 60_000;
+const PROJECT_USAGE_SNAPSHOT_TTL_MS = 30_000;
+
+type ProjectUsageSnapshotResponse = {
+  projects: Array<{
+    id: string;
+    resourceUsageSnapshot: ConsoleProjectResourceUsageSnapshot;
+  }>;
+};
 
 type Translator = (
   key: string,
@@ -190,6 +204,54 @@ function buildProjectImageUsageMap(projects: ProjectImageUsageSummary[]) {
     },
     {},
   );
+}
+
+function buildProjectUsageSnapshotMap(
+  projects: ProjectUsageSnapshotResponse["projects"],
+) {
+  return projects.reduce<Record<string, ConsoleProjectResourceUsageSnapshot>>(
+    (accumulator, project) => {
+      if (project.id.trim()) {
+        accumulator[project.id] = project.resourceUsageSnapshot;
+      }
+
+      return accumulator;
+    },
+    {},
+  );
+}
+
+function hasProjectUsageSnapshot(
+  usage: ConsoleProjectResourceUsageSnapshot,
+) {
+  return (
+    usage.cpuMillicores !== null ||
+    usage.memoryBytes !== null ||
+    usage.ephemeralStorageBytes !== null
+  );
+}
+
+function applyProjectUsageToProjectSummaries(
+  projects: ConsoleProjectSummaryView[],
+  usageByProjectId: Record<string, ConsoleProjectResourceUsageSnapshot>,
+) {
+  if (!Object.keys(usageByProjectId).length) {
+    return projects;
+  }
+
+  return projects.map((project) => {
+    const resourceUsageSnapshot = usageByProjectId[project.id];
+
+    if (!resourceUsageSnapshot) {
+      return project;
+    }
+
+    return {
+      ...project,
+      resourceUsage: buildProjectResourceUsageView(resourceUsageSnapshot),
+      resourceUsageSnapshot,
+    } satisfies ConsoleProjectSummaryView;
+  });
 }
 
 function projectTitle(project: ConsoleProjectSummaryView, t: Translator) {
@@ -1179,6 +1241,19 @@ export function ConsoleProjectGallery({
     enabled: createOpen,
   });
   const initialProjectImageUsage = readCachedProjectImageUsage();
+  const [projectUsageByProjectId, setProjectUsageByProjectId] = useState<
+    Record<string, ConsoleProjectResourceUsageSnapshot>
+  >(() =>
+    buildProjectUsageSnapshotMap(
+      readConsolePageSnapshot<ProjectUsageSnapshotResponse>(
+        CONSOLE_PROJECT_GALLERY_USAGE_SNAPSHOT_URL,
+        {
+          allowStale: true,
+          ttlMs: PROJECT_USAGE_SNAPSHOT_TTL_MS,
+        },
+      )?.projects ?? [],
+    ),
+  );
   const [projectImageUsageByProjectId, setProjectImageUsageByProjectId] =
     useState<Record<string, ProjectImageUsageSummary>>(() =>
       buildProjectImageUsageMap(initialProjectImageUsage ?? []),
@@ -1194,21 +1269,27 @@ export function ConsoleProjectGallery({
   const galleryRefreshAbortRef = useRef<AbortController | null>(null);
   const galleryRefreshPendingRef = useRef(false);
   const galleryStreamAbortRef = useRef<AbortController | null>(null);
+  const projectUsageRequestRef = useRef<AbortController | null>(null);
   const projectImageUsageRequestRef = useRef<AbortController | null>(null);
   const galleryStreamHashRef = useRef<string | null>(null);
   const selectedProjectIdRef = useRef<string | null>(selectedProjectId);
   const announcedPendingIntentErrorRef = useRef<string | null>(null);
   const runtimeInventory = useConsoleRuntimeTargetInventory(createOpen);
+  const projects = useMemo(
+    () =>
+      applyProjectUsageToProjectSummaries(data.projects, projectUsageByProjectId),
+    [data.projects, projectUsageByProjectId],
+  );
   const projectCatalog = useMemo<ProjectCatalogEntry[]>(
     () =>
-      data.projects.map((item) => ({
+      projects.map((item) => ({
         id: item.id,
         name: item.name,
       })),
-    [data.projects],
+    [projects],
   );
   const { markProjectDeleting, optimisticProjects } =
-    useOptimisticDeletingProjectSummaries(data.projects);
+    useOptimisticDeletingProjectSummaries(projects);
   const pendingProjectVisible = Boolean(
     pendingIntent &&
       (!pendingIntent.projectId ||
@@ -1619,12 +1700,87 @@ export function ConsoleProjectGallery({
     return () => {
       galleryRefreshAbortRef.current?.abort();
       galleryStreamAbortRef.current?.abort();
+      projectUsageRequestRef.current?.abort();
       projectImageUsageRequestRef.current?.abort();
     };
   }, []);
 
   useEffect(() => {
     if (!data.projects.length) {
+      projectUsageRequestRef.current?.abort();
+      setProjectUsageByProjectId({});
+      return undefined;
+    }
+
+    const cachedUsageSnapshot = readConsolePageSnapshot<ProjectUsageSnapshotResponse>(
+      CONSOLE_PROJECT_GALLERY_USAGE_SNAPSHOT_URL,
+      {
+        allowStale: true,
+        ttlMs: PROJECT_USAGE_SNAPSHOT_TTL_MS,
+      },
+    );
+    const cachedUsage = buildProjectUsageSnapshotMap(
+      cachedUsageSnapshot?.projects ?? [],
+    );
+    const needsUsageFetch = data.projects.some(
+      (project) =>
+        !cachedUsage[project.id] &&
+        !hasProjectUsageSnapshot(project.resourceUsageSnapshot),
+    );
+
+    if (Object.keys(cachedUsage).length) {
+      startTransition(() => {
+        setProjectUsageByProjectId(cachedUsage);
+      });
+    }
+
+    if (cachedUsageSnapshot && !needsUsageFetch) {
+      return undefined;
+    }
+
+    if (projectUsageRequestRef.current) {
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    projectUsageRequestRef.current = controller;
+
+    fetchConsolePageSnapshot<ProjectUsageSnapshotResponse>(
+      CONSOLE_PROJECT_GALLERY_USAGE_SNAPSHOT_URL,
+      {
+        force: needsUsageFetch,
+        signal: controller.signal,
+        ttlMs: PROJECT_USAGE_SNAPSHOT_TTL_MS,
+      },
+    )
+      .then((response) => {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        startTransition(() => {
+          setProjectUsageByProjectId(
+            buildProjectUsageSnapshotMap(response.projects),
+          );
+        });
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (projectUsageRequestRef.current === controller) {
+          projectUsageRequestRef.current = null;
+        }
+      });
+
+    return () => {
+      controller.abort();
+      if (projectUsageRequestRef.current === controller) {
+        projectUsageRequestRef.current = null;
+      }
+    };
+  }, [data.projects]);
+
+  useEffect(() => {
+    if (!projects.length) {
       projectImageUsageRequestRef.current?.abort();
       setProjectImageUsageByProjectId({});
       setProjectImageUsageLoaded(false);
@@ -1690,7 +1846,7 @@ export function ConsoleProjectGallery({
         projectImageUsageRequestRef.current = null;
       }
     };
-  }, [data.projects, projectImageUsageLoaded, selectedProjectId, t]);
+  }, [projectImageUsageLoaded, projects, selectedProjectId, t]);
 
   useEffect(() => {
     let cancelled = false;

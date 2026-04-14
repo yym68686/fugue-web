@@ -1,6 +1,9 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 
-import { getConsoleProjectGallerySummaryData } from "@/lib/console/gallery-data";
+import {
+  getConsoleProjectGallerySummaryData,
+  getConsoleProjectGalleryUsageData,
+} from "@/lib/console/gallery-data";
 import {
   jsonError,
   readErrorMessage,
@@ -10,7 +13,11 @@ import {
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+function readIncludeUsage(request: Request) {
+  return new URL(request.url).searchParams.get("include_usage") === "1";
+}
+
+export async function GET(request: Request) {
   const { response } = await requireSession();
 
   if (response) {
@@ -18,6 +25,22 @@ export async function GET() {
   }
 
   try {
+    if (readIncludeUsage(request)) {
+      return NextResponse.json(await getConsoleProjectGalleryUsageData(), {
+        headers: {
+          "Cache-Control": "no-store",
+        },
+      });
+    }
+
+    after(async () => {
+      try {
+        await getConsoleProjectGalleryUsageData();
+      } catch (error) {
+        console.error("Console gallery usage background sync failed.", error);
+      }
+    });
+
     const data = await getConsoleProjectGallerySummaryData();
 
     return NextResponse.json(data, {
