@@ -224,7 +224,9 @@ export function ImportServiceFields({
       : null,
     draft.networkMode === "background"
       ? t("Background worker")
-      : t("Public service"),
+      : draft.networkMode === "internal"
+        ? t("Internal service")
+        : t("Public service"),
   ].filter(
     (part, index, parts): part is string =>
       Boolean(part) && parts.indexOf(part) === index,
@@ -417,7 +419,7 @@ export function ImportServiceFields({
   }, [draft, onDraftChange, startupCommandSupported]);
 
   useEffect(() => {
-    if (networkModeSupported || draft.networkMode !== "background") {
+    if (networkModeSupported || draft.networkMode === "public") {
       return;
     }
 
@@ -759,9 +761,15 @@ export function ImportServiceFields({
                     ? t(
                         "Background workers skip the managed route, Kubernetes Service, and readiness port.",
                       )
-                    : t("Public services get a managed route and readiness checks.")
+                    : draft.networkMode === "internal"
+                      ? t(
+                          "Internal services get a cluster-only Service and readiness checks, without a public route.",
+                        )
+                      : t(
+                          "Public services get a managed route and readiness checks.",
+                        )
                   : t(
-                      "Whole-topology imports keep per-service networking from fugue.yaml or docker-compose, so background worker mode is unavailable here.",
+                      "Whole-topology imports keep per-service networking from fugue.yaml or docker-compose, so manual network mode is unavailable here.",
                     )}
               </HintTooltip>
             </span>

@@ -38,6 +38,7 @@ import {
   supportsGitHubDockerInputs,
   supportsGitHubSourceDir,
   type BuildStrategyValue,
+  type ImportNetworkMode,
 } from "@/lib/fugue/import-source";
 import {
   readInspectionPersistentStorageSeedFiles,
@@ -222,9 +223,8 @@ export function DeployWizard({
   const [dockerfilePath, setDockerfilePath] = useState("");
   const [buildContextDir, setBuildContextDir] = useState("");
   const [startupCommand, setStartupCommand] = useState("");
-  const [networkMode, setNetworkMode] = useState<"background" | "public">(
-    "public",
-  );
+  const [networkMode, setNetworkMode] =
+    useState<ImportNetworkMode>("public");
   const [persistentStorage, setPersistentStorage] = useState(() =>
     createPersistentStorageDraft(),
   );
@@ -269,7 +269,7 @@ export function DeployWizard({
   );
   const supportsSourceDir = supportsGitHubSourceDir(buildStrategy);
   const supportsDockerInputs = supportsGitHubDockerInputs(buildStrategy);
-  const deploymentSummaryCopy = `${repoVisibility === "private" ? "Private repo" : "Public repo"} · ${hasFugueManifest ? "Manifest import" : "Repository build"} · ${networkMode === "background" ? "Background worker" : "Public service"}`;
+  const deploymentSummaryCopy = `${repoVisibility === "private" ? "Private repo" : "Public repo"} · ${hasFugueManifest ? "Manifest import" : "Repository build"} · ${networkMode === "background" ? "Background worker" : networkMode === "internal" ? "Internal service" : "Public service"}`;
   const advancedSummaryParts = [
     name.trim() ? `Name ${name.trim()}` : null,
     startupCommandSupported && startupCommand.trim() ? "Startup command" : null,
@@ -325,7 +325,7 @@ export function DeployWizard({
   }, [inspection, runtimeTargets]);
 
   useEffect(() => {
-    if (networkModeSupported || networkMode !== "background") {
+    if (networkModeSupported || networkMode === "public") {
       return;
     }
 
@@ -482,7 +482,7 @@ export function DeployWizard({
       repoUrl: repositoryUrl,
       repoVisibility,
       runtimeId,
-      ...(networkMode === "background" ? { networkMode: "background" } : {}),
+      ...(networkMode !== "public" ? { networkMode } : {}),
       ...(startupCommandSupported && startupCommand.trim()
         ? { startupCommand: startupCommand.trim() }
         : {}),
@@ -698,8 +698,10 @@ export function DeployWizard({
                   {networkModeSupported
                     ? networkMode === "background"
                       ? "Background workers skip the managed route, Kubernetes Service, and readiness port."
-                      : "Public services get a managed route and readiness checks."
-                    : "Whole-topology imports keep per-service networking from fugue.yaml or docker-compose, so background worker mode is unavailable here."}
+                      : networkMode === "internal"
+                        ? "Internal services get a cluster-only Service and readiness checks, without a public route."
+                        : "Public services get a managed route and readiness checks."
+                    : "Whole-topology imports keep per-service networking from fugue.yaml or docker-compose, so manual network mode is unavailable here."}
                 </HintTooltip>
               </span>
             </div>

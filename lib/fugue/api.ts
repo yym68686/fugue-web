@@ -730,6 +730,7 @@ function buildServiceBindingView(binding: CamelizedSchema<"ServiceBinding">) {
 }
 
 function buildAppView(app: CamelizedSchema<"App">) {
+  const internalService = app.internalService;
   const route = app.route;
   const spec = app.spec;
   const status = app.status;
@@ -743,6 +744,12 @@ function buildAppView(app: CamelizedSchema<"App">) {
     createdAt: readNullableString(app.createdAt),
     currentResourceUsage: toResourceUsage(app.currentResourceUsage),
     updatedAt: readNullableString(app.updatedAt),
+    internalService: {
+      host: readNullableString(internalService?.host),
+      name: readNullableString(internalService?.name),
+      namespace: readNullableString(internalService?.namespace),
+      port: readNullableNumber(internalService?.port),
+    },
     route: {
       baseDomain: readNullableString(route?.baseDomain),
       hostname: readNullableString(route?.hostname),

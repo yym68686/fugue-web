@@ -789,6 +789,9 @@ const zhCNExtraMessages = {
   "Auto detect": "自动检测",
   "Background workers skip the managed route, Kubernetes Service, and readiness port.":
     "后台工作进程不会创建托管路由、Kubernetes Service 和就绪探测端口。",
+  "Internal service": "内部服务",
+  "Internal services get a cluster-only Service and readiness checks, without a public route.":
+    "内部服务会保留集群内 Service 和就绪检查，但不会暴露公网路由。",
   "Branch": "分支",
   "Branch {branch}": "分支 {branch}",
   "Branch, name, startup command, build strategy, and optional paths.":
@@ -862,6 +865,8 @@ const zhCNExtraMessages = {
   "Public service": "公开服务",
   "Public services get a managed route and readiness checks.":
     "公开服务会获得托管路由和就绪检查。",
+  "Whole-topology imports keep per-service networking from fugue.yaml or docker-compose, so manual network mode is unavailable here.":
+    "整套拓扑导入会沿用 fugue.yaml 或 docker-compose 中每个服务自己的网络配置，因此这里不能手动指定网络模式。",
   "Published image": "已发布镜像",
   "Repository link": "仓库链接",
   "Repository link is required.": "必须提供仓库链接。",
@@ -2123,6 +2128,9 @@ const zhTWExtraMessages = {
   "Auto detect": "自動偵測",
   "Background workers skip the managed route, Kubernetes Service, and readiness port.":
     "背景工作進程不會建立託管路由、Kubernetes Service 和就緒檢查埠。",
+  "Internal service": "內部服務",
+  "Internal services get a cluster-only Service and readiness checks, without a public route.":
+    "內部服務會保留叢集內 Service 與就緒檢查，但不會暴露公開路由。",
   "Branch": "分支",
   "Branch {branch}": "分支 {branch}",
   "Branch, name, startup command, build strategy, and optional paths.":
@@ -2196,6 +2204,8 @@ const zhTWExtraMessages = {
   "Public service": "公開服務",
   "Public services get a managed route and readiness checks.":
     "公開服務會取得託管路由與就緒檢查。",
+  "Whole-topology imports keep per-service networking from fugue.yaml or docker-compose, so manual network mode is unavailable here.":
+    "整套拓撲匯入會沿用 fugue.yaml 或 docker-compose 中各服務自己的網路設定，因此這裡不能手動指定網路模式。",
   "Published image": "已發佈映像",
   "Repository link": "儲存庫連結",
   "Repository link is required.": "必須提供儲存庫連結。",

@@ -25,7 +25,10 @@ import {
 } from "@/lib/console/raw-env";
 import { readDefaultImportRuntimeId } from "@/lib/console/runtime-targets";
 import type { FugueProject } from "@/lib/fugue/api";
-import { IMPORT_NETWORK_MODE_OPTIONS } from "@/lib/fugue/import-source";
+import {
+  IMPORT_NETWORK_MODE_OPTIONS,
+  type ImportNetworkMode,
+} from "@/lib/fugue/import-source";
 import {
   createPersistentStorageDraft,
   serializePersistentStorageDraft,
@@ -131,9 +134,8 @@ export function DeployImageWizard({
   );
   const [name, setName] = useState(initialName);
   const [imageRef, setImageRef] = useState(initialImageRef);
-  const [networkMode, setNetworkMode] = useState<"background" | "public">(
-    "public",
-  );
+  const [networkMode, setNetworkMode] =
+    useState<ImportNetworkMode>("public");
   const [servicePort, setServicePort] = useState(initialServicePort);
   const [envRawDraft, setEnvRawDraft] = useState(() =>
     serializeEnvRecord(initialEnv),
@@ -269,7 +271,7 @@ export function DeployImageWizard({
             projectName: projectName.trim(),
           }),
       ...(runtimeId ? { runtimeId } : {}),
-      ...(networkMode === "background" ? { networkMode: "background" } : {}),
+      ...(networkMode !== "public" ? { networkMode } : {}),
       ...(normalizedServicePort
         && networkMode !== "background"
         ? { servicePort: Number(normalizedServicePort) }
@@ -418,7 +420,7 @@ export function DeployImageWizard({
         </FormField>
 
         <FormField
-          hint="Choose whether Fugue should publish this app with a managed route."
+          hint="Choose whether Fugue should expose this app publicly, keep it cluster-internal, or run it as a background worker."
           htmlFor="deploy-image-network-mode"
           label="Network mode"
         >
@@ -458,6 +460,13 @@ export function DeployImageWizard({
             or readiness port.
           </InlineAlert>
         )}
+
+        {networkMode === "internal" ? (
+          <InlineAlert variant="info">
+            Internal services keep a cluster-only Service and readiness checks,
+            but Fugue does not publish a public route for them.
+          </InlineAlert>
+        ) : null}
 
         <InlineAlert variant="info">
           Public image references work best for one-click deploy links because

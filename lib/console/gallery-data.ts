@@ -1550,6 +1550,13 @@ function readRoute(app: FugueApp) {
     };
   }
 
+  if (app.spec.networkMode === "internal") {
+    return {
+      href: null,
+      label: "Internal service",
+    };
+  }
+
   if (app.route.publicUrl) {
     try {
       const url = new URL(app.route.publicUrl);
@@ -2094,7 +2101,9 @@ function buildSharedAppView(
       app.spec.runtimeId ??
       null,
     deployBehavior: readDeployBehavior(app),
-    exposesPublicRoute: app.spec.networkMode !== "background",
+    exposesPublicRoute:
+      app.spec.networkMode !== "background" &&
+      app.spec.networkMode !== "internal",
     failoverAuto: app.spec.failover?.auto ?? false,
     failoverConfigured: Boolean(app.spec.failover),
     failoverState,

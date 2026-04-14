@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, startTransition, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 
 import {
@@ -49,12 +49,10 @@ export function ConsoleRouteTransitionProvider({
             return;
           }
 
-          startTransition(() => {
-            setPendingRouteTransition({
-              fromPathname: pathname,
-              href,
-              label,
-            });
+          setPendingRouteTransition({
+            fromPathname: pathname,
+            href,
+            label,
           });
         },
         pendingRouteTransition,

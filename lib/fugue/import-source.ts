@@ -16,7 +16,7 @@ import {
 import { translate, type Locale } from "@/lib/i18n/core";
 
 export type ImportSourceMode = "github" | "docker-image" | "local-upload";
-export type ImportNetworkMode = "background" | "public";
+export type ImportNetworkMode = "background" | "internal" | "public";
 
 export const BUILD_STRATEGY_OPTIONS = [
   { label: "Auto detect", value: "auto" },
@@ -28,6 +28,7 @@ export const BUILD_STRATEGY_OPTIONS = [
 
 export const IMPORT_NETWORK_MODE_OPTIONS = [
   { label: "Public service", value: "public" },
+  { label: "Internal service", value: "internal" },
   { label: "Background worker", value: "background" },
 ] as const;
 
@@ -82,6 +83,8 @@ export function normalizeImportNetworkMode(
   switch (value?.trim().toLowerCase()) {
     case "public":
       return "public";
+    case "internal":
+      return "internal";
     case "background":
       return "background";
     default:
@@ -249,8 +252,8 @@ export function buildImportServicePayload(
     payload.name = normalizedName;
   }
 
-  if (draft.networkMode === "background") {
-    payload.networkMode = "background";
+  if (draft.networkMode !== "public") {
+    payload.networkMode = draft.networkMode;
   }
 
   if (draft.networkMode !== "background" && normalizedServicePort) {

@@ -271,7 +271,7 @@ export async function POST(request: Request) {
       repoVisibility: resolvedRepoVisibility,
       runtimeId: runtimeId || undefined,
       networkMode:
-        networkMode === "background" ? "background" : undefined,
+        networkMode && networkMode !== "public" ? networkMode : undefined,
       servicePort: servicePort ?? undefined,
       startupCommand: startupCommand || undefined,
       sourceDir: sourceDir || undefined,

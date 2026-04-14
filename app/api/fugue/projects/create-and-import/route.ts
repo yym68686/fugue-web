@@ -302,7 +302,7 @@ export async function POST(request: Request) {
             repoAuthToken: repoAccess?.token || undefined,
             runtimeId: runtimeId || undefined,
             networkMode:
-              networkMode === "background" ? "background" : undefined,
+              networkMode && networkMode !== "public" ? networkMode : undefined,
             repoVisibility: resolvedRepoVisibility,
             servicePort: servicePort ?? undefined,
             startupCommand: startupCommand || undefined,
@@ -317,7 +317,7 @@ export async function POST(request: Request) {
             persistentStorage,
             runtimeId: runtimeId || undefined,
             networkMode:
-              networkMode === "background" ? "background" : undefined,
+              networkMode && networkMode !== "public" ? networkMode : undefined,
             servicePort: servicePort ?? undefined,
             startupCommand: startupCommand || undefined,
             ...projectPayload,

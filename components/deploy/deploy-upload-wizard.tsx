@@ -36,6 +36,7 @@ import {
   supportsGitHubSourceDir,
   validateImportServiceDraft,
   type BuildStrategyValue,
+  type ImportNetworkMode,
 } from "@/lib/fugue/import-source";
 import {
   buildLocalUploadFormData,
@@ -149,9 +150,8 @@ export function DeployUploadWizard({
   const [dockerfilePath, setDockerfilePath] = useState("");
   const [buildContextDir, setBuildContextDir] = useState("");
   const [startupCommand, setStartupCommand] = useState("");
-  const [networkMode, setNetworkMode] = useState<"background" | "public">(
-    "public",
-  );
+  const [networkMode, setNetworkMode] =
+    useState<ImportNetworkMode>("public");
   const [persistentStorage, setPersistentStorage] = useState(() =>
     createPersistentStorageDraft(),
   );
@@ -231,7 +231,7 @@ export function DeployUploadWizard({
   }, [startupCommand, startupCommandSupported]);
 
   useEffect(() => {
-    if (networkModeSupported || networkMode !== "background") {
+    if (networkModeSupported || networkMode === "public") {
       return;
     }
 
@@ -464,7 +464,7 @@ export function DeployUploadWizard({
         />
 
         <FormField
-          hint="Public services get a managed route. Background workers skip route and readiness setup."
+          hint="Public services get a managed route. Internal services stay cluster-only. Background workers skip route and readiness setup."
           htmlFor="deploy-upload-network-mode"
           label="Network mode"
         >
@@ -487,8 +487,13 @@ export function DeployUploadWizard({
             Whole-topology uploads keep per-service networking from
             <code> fugue.yaml </code>
             or
-            <code> docker-compose.yml</code>, so background worker mode is only
+            <code> docker-compose.yml</code>, so manual network mode is only
             available for single-app uploads.
+          </InlineAlert>
+        ) : networkMode === "internal" ? (
+          <InlineAlert variant="info">
+            Internal services keep a cluster-only Service and readiness checks,
+            but Fugue does not publish a public route for them.
           </InlineAlert>
         ) : networkMode === "background" ? (
           <InlineAlert variant="info">

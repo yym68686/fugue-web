@@ -470,6 +470,159 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/cluster/pods": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Cluster Pods */
+        get: operations["listClusterPods"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/cluster/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Cluster Events */
+        get: operations["listClusterEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/cluster/logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Cluster Logs */
+        get: operations["getClusterLogs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/cluster/exec": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Exec Cluster Pod */
+        post: operations["execClusterPod"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/cluster/dns/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Resolve Cluster DNS */
+        get: operations["resolveClusterDNS"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/cluster/net/connect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Connect Cluster Network */
+        get: operations["connectClusterNetwork"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/cluster/tls/probe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Probe Cluster TLS */
+        get: operations["probeClusterTLS"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/cluster/workloads/{namespace}/{kind}/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Cluster Workload */
+        get: operations["getClusterWorkload"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/cluster/rollouts/{namespace}/{kind}/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Cluster Rollout Status */
+        get: operations["getClusterRolloutStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/nodes": {
         parameters: {
             query?: never;
@@ -1716,6 +1869,13 @@ export interface components {
             /** Format: int32 */
             service_port?: number;
         };
+        AppInternalService: {
+            name?: string;
+            namespace?: string;
+            host?: string;
+            /** Format: int32 */
+            port?: number;
+        };
         AppDomain: {
             hostname: string;
             app_id?: string;
@@ -1879,6 +2039,7 @@ export interface components {
             description: string;
             source?: components["schemas"]["AppSource"];
             route?: components["schemas"]["AppRoute"];
+            internal_service?: components["schemas"]["AppInternalService"];
             spec: components["schemas"]["AppSpec"];
             status: components["schemas"]["AppStatus"];
             current_resource_usage?: components["schemas"]["ResourceUsage"];
@@ -2414,9 +2575,215 @@ export interface components {
             /** Format: date-time */
             observed_at: string;
             components: components["schemas"]["ControlPlaneComponent"][];
+            deploy_workflow?: components["schemas"]["ControlPlaneWorkflowRun"];
         };
         ControlPlaneStatusResponse: {
             control_plane: components["schemas"]["ControlPlaneStatus"];
+        };
+        ControlPlaneWorkflowRun: {
+            repository: string;
+            workflow: string;
+            status: string;
+            conclusion?: string;
+            /** Format: int32 */
+            run_number?: number;
+            event?: string;
+            head_branch?: string;
+            head_sha: string;
+            html_url?: string;
+            /** Format: date-time */
+            created_at?: string;
+            /** Format: date-time */
+            updated_at?: string;
+            /** Format: date-time */
+            observed_at: string;
+            error?: string;
+        };
+        ClusterPodOwner: {
+            kind: string;
+            name: string;
+        };
+        ClusterPodContainer: {
+            name: string;
+            image: string;
+            ready: boolean;
+            /** Format: int32 */
+            restart_count: number;
+            state: string;
+            reason?: string;
+            message?: string;
+        };
+        ClusterPod: {
+            namespace: string;
+            name: string;
+            phase: string;
+            node_name?: string;
+            pod_ip?: string;
+            host_ip?: string;
+            qos_class?: string;
+            owner?: components["schemas"]["ClusterPodOwner"];
+            labels?: components["schemas"]["StringMap"];
+            ready: boolean;
+            /** Format: date-time */
+            start_time?: string;
+            containers: components["schemas"]["ClusterPodContainer"][];
+        };
+        ClusterPodListResponse: {
+            cluster_pods: components["schemas"]["ClusterPod"][];
+        };
+        ClusterEvent: {
+            namespace: string;
+            name: string;
+            type: string;
+            reason: string;
+            message: string;
+            object_kind: string;
+            object_name: string;
+            object_namespace?: string;
+            /** Format: int32 */
+            count?: number;
+            /** Format: date-time */
+            first_timestamp?: string;
+            /** Format: date-time */
+            last_timestamp?: string;
+            /** Format: date-time */
+            event_time?: string;
+        };
+        ClusterEventListResponse: {
+            events: components["schemas"]["ClusterEvent"][];
+        };
+        ClusterLogsResponse: {
+            namespace: string;
+            pod: string;
+            container?: string;
+            logs: string;
+        };
+        ClusterExecRequest: {
+            namespace: string;
+            pod: string;
+            container?: string;
+            command: string[];
+        };
+        ClusterExecResponse: {
+            namespace: string;
+            pod: string;
+            container?: string;
+            command: string[];
+            output: string;
+        };
+        ClusterDNSAnswer: {
+            type: string;
+            value: string;
+        };
+        ClusterDNSResolveResponse: {
+            name: string;
+            server?: string;
+            record_type: string;
+            answers: components["schemas"]["ClusterDNSAnswer"][];
+            /** Format: date-time */
+            observed_at: string;
+            error?: string;
+        };
+        ClusterNetworkConnectResponse: {
+            target: string;
+            network?: string;
+            success: boolean;
+            /** Format: int64 */
+            duration_ms: number;
+            remote_addr?: string;
+            resolved_addresses?: string[];
+            /** Format: date-time */
+            observed_at?: string;
+            error?: string;
+        };
+        ClusterTLSPeerCertificate: {
+            subject: string;
+            issuer: string;
+            sha256: string;
+            dns_names?: string[];
+            ip_addresses?: string[];
+            /** Format: date-time */
+            not_before?: string;
+            /** Format: date-time */
+            not_after?: string;
+        };
+        ClusterTLSProbeResponse: {
+            target: string;
+            server_name?: string;
+            success: boolean;
+            /** Format: int64 */
+            duration_ms: number;
+            version?: string;
+            cipher_suite?: string;
+            negotiated_protocol?: string;
+            verified?: boolean;
+            verification_error?: string;
+            /** Format: date-time */
+            observed_at?: string;
+            peer_certificates?: components["schemas"]["ClusterTLSPeerCertificate"][];
+            error?: string;
+        };
+        ClusterWorkloadCondition: {
+            type: string;
+            status: string;
+            reason?: string;
+            message?: string;
+        };
+        ClusterWorkloadContainer: {
+            name: string;
+            image: string;
+        };
+        ClusterWorkloadDetail: {
+            api_version: string;
+            kind: string;
+            namespace: string;
+            name: string;
+            selector?: string;
+            labels?: components["schemas"]["StringMap"];
+            annotations?: components["schemas"]["StringMap"];
+            node_selector?: components["schemas"]["StringMap"];
+            tolerations?: string[];
+            containers?: components["schemas"]["ClusterWorkloadContainer"][];
+            init_containers?: components["schemas"]["ClusterWorkloadContainer"][];
+            /** Format: int32 */
+            desired_replicas?: number;
+            /** Format: int32 */
+            ready_replicas?: number;
+            /** Format: int32 */
+            updated_replicas?: number;
+            /** Format: int32 */
+            available_replicas?: number;
+            /** Format: int32 */
+            current_replicas?: number;
+            conditions?: components["schemas"]["ClusterWorkloadCondition"][];
+            pods?: components["schemas"]["ClusterPod"][];
+            manifest?: {
+                [key: string]: unknown;
+            };
+        };
+        ClusterWorkloadResponse: {
+            workload: components["schemas"]["ClusterWorkloadDetail"];
+        };
+        ClusterRolloutStatus: {
+            kind: string;
+            namespace: string;
+            name: string;
+            status: string;
+            /** Format: int32 */
+            desired_replicas?: number;
+            /** Format: int32 */
+            ready_replicas?: number;
+            /** Format: int32 */
+            updated_replicas?: number;
+            /** Format: int32 */
+            available_replicas?: number;
+            message?: string;
+            conditions?: components["schemas"]["ClusterWorkloadCondition"][];
+            /** Format: date-time */
+            observed_at?: string;
+        };
+        ClusterRolloutStatusResponse: {
+            rollout: components["schemas"]["ClusterRolloutStatus"];
         };
         RuntimeListResponse: {
             runtimes: components["schemas"]["Runtime"][];
@@ -2694,11 +3061,13 @@ export interface components {
         };
         /**
          * @description Omit this field to deploy a public service with a managed route.
+         *     Set `internal` to run the app with a cluster-internal Kubernetes Service
+         *     and readiness checks, but without a public route.
          *     Set `background` to run the app without a public route, Kubernetes Service,
          *     or readiness port.
          * @enum {string}
          */
-        AppNetworkMode: "background";
+        AppNetworkMode: "background" | "internal";
         PatchAppRouteRequest: {
             hostname: string;
         };
@@ -2879,6 +3248,20 @@ export interface components {
         TailLinesQueryParam: number;
         ComponentQueryParam: string;
         PodQueryParam: string;
+        NamespaceQueryParam: string;
+        ContainerQueryParam: string;
+        NodeQueryParam: string;
+        LabelSelectorQueryParam: string;
+        IncludeTerminatedQueryParam: boolean;
+        InvolvedObjectKindQueryParam: string;
+        InvolvedObjectNameQueryParam: string;
+        EventTypeQueryParam: string;
+        EventReasonQueryParam: string;
+        LimitQueryParam: number;
+        DNSServerQueryParam: string;
+        RecordTypeQueryParam: string;
+        TimeoutMillisQueryParam: number;
+        ServerNameQueryParam: string;
         DepthQueryParam: number;
         /** @description Absolute path inside the selected filesystem scope. Tree requests default to the persistent workspace mount when legacy workspace storage is configured, otherwise to /. Read, write, and delete operations require an explicit file or directory path. */
         PathQueryParam: string;
@@ -3703,6 +4086,236 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ControlPlaneStatusResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    listClusterPods: {
+        parameters: {
+            query?: {
+                namespace?: components["parameters"]["NamespaceQueryParam"];
+                node?: components["parameters"]["NodeQueryParam"];
+                label_selector?: components["parameters"]["LabelSelectorQueryParam"];
+                include_terminated?: components["parameters"]["IncludeTerminatedQueryParam"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClusterPodListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    listClusterEvents: {
+        parameters: {
+            query?: {
+                namespace?: components["parameters"]["NamespaceQueryParam"];
+                kind?: components["parameters"]["InvolvedObjectKindQueryParam"];
+                name?: components["parameters"]["InvolvedObjectNameQueryParam"];
+                type?: components["parameters"]["EventTypeQueryParam"];
+                reason?: components["parameters"]["EventReasonQueryParam"];
+                limit?: components["parameters"]["LimitQueryParam"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClusterEventListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getClusterLogs: {
+        parameters: {
+            query?: {
+                namespace?: components["parameters"]["NamespaceQueryParam"];
+                pod?: components["parameters"]["PodQueryParam"];
+                container?: components["parameters"]["ContainerQueryParam"];
+                tail_lines?: components["parameters"]["TailLinesQueryParam"];
+                previous?: components["parameters"]["PreviousQueryParam"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClusterLogsResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    execClusterPod: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClusterExecRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClusterExecResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    resolveClusterDNS: {
+        parameters: {
+            query: {
+                name: string;
+                server?: components["parameters"]["DNSServerQueryParam"];
+                type?: components["parameters"]["RecordTypeQueryParam"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClusterDNSResolveResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    connectClusterNetwork: {
+        parameters: {
+            query: {
+                target: string;
+                timeout_ms?: components["parameters"]["TimeoutMillisQueryParam"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClusterNetworkConnectResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    probeClusterTLS: {
+        parameters: {
+            query: {
+                target: string;
+                server_name?: components["parameters"]["ServerNameQueryParam"];
+                timeout_ms?: components["parameters"]["TimeoutMillisQueryParam"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClusterTLSProbeResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getClusterWorkload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                namespace: string;
+                kind: string;
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClusterWorkloadResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getClusterRolloutStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                namespace: string;
+                kind: string;
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClusterRolloutStatusResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
