@@ -111,6 +111,7 @@ async function requestConsoleProjectDetailFromApi(
     `/api/fugue/console/projects/${projectId}`,
     {
       cache: "no-store",
+      signal: options?.signal,
     },
   );
 
@@ -155,7 +156,9 @@ function hasFreshProjectDetailWarmup() {
   return Date.now() - projectDetailWarmupAt < PROJECT_DETAIL_CACHE_TTL_MS;
 }
 
-export function primeConsoleProjectDetails(projects: ConsoleGalleryProjectView[]) {
+export function primeConsoleProjectDetails(
+  projects: ConsoleGalleryProjectView[],
+) {
   const normalizedProjects = projects
     .map((project) => ({
       ...project,

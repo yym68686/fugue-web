@@ -29,10 +29,7 @@ import {
   PanelSection,
   PanelTitle,
 } from "@/components/ui/panel";
-import {
-  ProofShell,
-  ProofShellEmpty,
-} from "@/components/ui/proof-shell";
+import { ProofShell, ProofShellEmpty } from "@/components/ui/proof-shell";
 import {
   SegmentedControl,
   type SegmentedControlOption,
@@ -331,7 +328,7 @@ const LOG_AUTO_REFRESH_INTERVAL_MS = 3_000;
 const LOG_STREAM_FIRST_EVENT_TIMEOUT_MS = 3_000;
 const PROJECT_ACTIVE_REFRESH_INTERVAL_MS = 3_000;
 const PROJECT_PASSIVE_REFRESH_INTERVAL_MS = 6_000;
-const LOG_TAIL_LINES = 200;
+const LOG_TAIL_LINES = 80;
 const APP_ENV_PREFETCH_CONCURRENCY = 3;
 const WORKBENCH_LAYER_PREFETCH_CONCURRENCY = 3;
 const PROJECT_IMAGE_USAGE_CACHE_TTL_MS = 60_000;
@@ -352,6 +349,8 @@ type CachedProjectImageUsage = {
 const envStateCache = new Map<string, CachedEnvState>();
 const envStateRequestCache = new Map<string, Promise<CachedEnvState>>();
 let cachedProjectImageUsage: CachedProjectImageUsage | null = null;
+let projectImageUsageRequestCache: Promise<ProjectImageUsageSummary[]> | null =
+  null;
 
 type Translator = (key: string, values?: TranslationValues) => string;
 
@@ -482,6 +481,48 @@ function writeCachedProjectImageUsage(projects: ProjectImageUsageSummary[]) {
   };
 }
 
+async function fetchCachedProjectImageUsage(options?: {
+  force?: boolean;
+  signal?: AbortSignal;
+}) {
+  if (options?.signal?.aborted) {
+    throw createAbortRequestError();
+  }
+
+  if (!options?.force) {
+    const cachedProjects = readCachedProjectImageUsage();
+
+    if (cachedProjects) {
+      return cachedProjects;
+    }
+
+    if (projectImageUsageRequestCache) {
+      return projectImageUsageRequestCache;
+    }
+  }
+
+  const request = requestJson<ProjectImageUsageResponse>(
+    "/api/fugue/projects/image-usage",
+    {
+      cache: "no-store",
+      signal: options?.signal,
+    },
+  )
+    .then((response) => {
+      const nextProjects = response.projects ?? [];
+      writeCachedProjectImageUsage(nextProjects);
+      return readCachedProjectImageUsage() ?? nextProjects;
+    })
+    .finally(() => {
+      if (projectImageUsageRequestCache === request) {
+        projectImageUsageRequestCache = null;
+      }
+    });
+
+  projectImageUsageRequestCache = request;
+  return request;
+}
+
 function buildProjectImageUsageMap(projects: ProjectImageUsageSummary[]) {
   return projects.reduce<Record<string, ProjectImageUsageSummary>>(
     (accumulator, project) => {
@@ -542,8 +583,7 @@ function isDeletingLifecycleValue(value?: string | null) {
   const normalized = value?.trim().toLowerCase() ?? "";
 
   return (
-    normalized.length > 0 &&
-    includesLifecycleKeyword(normalized, ["deleting"])
+    normalized.length > 0 && includesLifecycleKeyword(normalized, ["deleting"])
   );
 }
 
@@ -602,12 +642,10 @@ function readAppServiceRoleLabel(
 }
 
 function readBackingServiceRoleLabel(
-  service?:
-    | Pick<
-        ConsoleGalleryBackingServiceView,
-        "databaseTransferTargetRuntimeId" | "serviceRole" | "status"
-      >
-    | null,
+  service?: Pick<
+    ConsoleGalleryBackingServiceView,
+    "databaseTransferTargetRuntimeId" | "serviceRole" | "status"
+  > | null,
   t: Translator = (key) => key,
 ) {
   if (service?.serviceRole === "pending") {
@@ -680,7 +718,9 @@ function readForceDeleteActionLabel(
     return t("Abort deploy & delete");
   }
 
-  if (includesLifecycleKeyword(normalized, ["queued", "pending", "migrating"])) {
+  if (
+    includesLifecycleKeyword(normalized, ["queued", "pending", "migrating"])
+  ) {
     return t("Cancel rollout & delete");
   }
 
@@ -712,7 +752,9 @@ function readForceDeleteActionDescription(
     return t("Abort the in-flight deploy and force delete this service.");
   }
 
-  if (includesLifecycleKeyword(normalized, ["queued", "pending", "migrating"])) {
+  if (
+    includesLifecycleKeyword(normalized, ["queued", "pending", "migrating"])
+  ) {
     return t("Cancel the queued rollout and force delete this service.");
   }
 
@@ -749,7 +791,9 @@ function readDeleteActionSuccessMessage(
     return t("Deploy aborted. Force delete queued.");
   }
 
-  if (includesLifecycleKeyword(normalized, ["queued", "pending", "migrating"])) {
+  if (
+    includesLifecycleKeyword(normalized, ["queued", "pending", "migrating"])
+  ) {
     return t("Queued rollout canceled. Force delete queued.");
   }
 
@@ -1296,10 +1340,6 @@ function useWorkbenchAnticipatoryWarmup(
       (service): service is { kind: "app" } & ConsoleGalleryAppView =>
         service.kind === "app",
     );
-    const runningAppServices = appServices.filter(
-      (service) =>
-        service.serviceRole === "running" && !isPausedAppService(service),
-    );
     const hasBackingServices = orderedServices.some(
       (service) => service.kind === "backing-service",
     );
@@ -1317,21 +1357,6 @@ function useWorkbenchAnticipatoryWarmup(
       tasks.push(import("@/components/console/app-route-panel"));
       tasks.push(import("@/components/console/app-settings-panel"));
       tasks.push(
-        import("@/components/console/app-images-panel").then((module) =>
-          warmItemsWithConcurrency(
-            appServices,
-            (service) =>
-              module.warmAppImageInventory(service.id, {
-                signal,
-              }),
-            {
-              concurrency: WORKBENCH_LAYER_PREFETCH_CONCURRENCY,
-              signal,
-            },
-          ),
-        ),
-      );
-      tasks.push(
         warmConsoleAppEnvStates(
           appServices.map((service) => service.id),
           {
@@ -1340,27 +1365,6 @@ function useWorkbenchAnticipatoryWarmup(
           },
         ),
       );
-
-      if (runningAppServices.length > 0) {
-        tasks.push(
-          import("@/components/console/console-files-workbench").then(
-            (module) =>
-              warmItemsWithConcurrency(
-                runningAppServices,
-                (service) =>
-                  module.warmConsoleFilesWorkbench({
-                    appId: service.id,
-                    persistentStorageMounts: service.persistentStorageMounts,
-                    signal,
-                  }),
-                {
-                  concurrency: WORKBENCH_LAYER_PREFETCH_CONCURRENCY,
-                  signal,
-                },
-              ),
-          ),
-        );
-      }
     }
 
     if (hasBackingServices) {
@@ -1602,11 +1606,7 @@ function readServiceDefaultLogsMode(
   const preferredMode =
     service?.kind === "app" ? service.preferredLogsMode : "runtime";
 
-  return normalizeLogsModeForService(
-    service,
-    services,
-    preferredMode,
-  );
+  return normalizeLogsModeForService(service, services, preferredMode);
 }
 
 function usePreferredLogsModeSync(
@@ -1842,6 +1842,7 @@ async function fetchCachedEnvState(
     `/api/fugue/apps/${normalizedAppId}/env`,
     {
       cache: "no-store",
+      signal: options?.signal,
     },
     t,
   )
@@ -1906,10 +1907,7 @@ export async function warmConsoleAppEnvStates(
   );
 }
 
-function humanizeUiLabel(
-  value?: string | null,
-  t: Translator = (key) => key,
-) {
+function humanizeUiLabel(value?: string | null, t: Translator = (key) => key) {
   if (!value) {
     return t("Unknown");
   }
@@ -1972,10 +1970,9 @@ function readPersistentStorageLabel(
     return paths[0];
   }
 
-  return t(
-    paths.length === 1 ? "{count} mount" : "{count} mounts",
-    { count: paths.length },
-  );
+  return t(paths.length === 1 ? "{count} mount" : "{count} mounts", {
+    count: paths.length,
+  });
 }
 
 function renderExternalText(
@@ -2241,7 +2238,11 @@ function buildPendingCommitHint(
   const exact = options?.exact?.trim() || null;
   const label =
     options?.label?.trim() ||
-    (exact ? (exact.length > 8 ? exact.slice(0, 8) : exact) : t("Pending sync"));
+    (exact
+      ? exact.length > 8
+        ? exact.slice(0, 8)
+        : exact
+      : t("Pending sync"));
   const state = readPendingCommitState(app.phase, options?.operationStatus, t);
 
   return {
@@ -2270,13 +2271,17 @@ function inferPendingCommitHint(
 
   const parsedCommit = parsePendingCommitFromBuildJobName(buildLogs?.jobName);
 
-  return buildPendingCommitHint(app, {
-    committedAt: buildLogs?.startedAt ?? null,
-    exact: parsedCommit?.exact,
-    label: parsedCommit?.label,
-    operationId: buildLogs?.operationId,
-    operationStatus: buildLogs?.operationStatus,
-  }, t);
+  return buildPendingCommitHint(
+    app,
+    {
+      committedAt: buildLogs?.startedAt ?? null,
+      exact: parsedCommit?.exact,
+      label: parsedCommit?.label,
+      operationId: buildLogs?.operationId,
+      operationStatus: buildLogs?.operationStatus,
+    },
+    t,
+  );
 }
 
 function readDisplayedCommitView(
@@ -2529,7 +2534,9 @@ type ConsoleLogsPanelProps = {
   effectiveLogsMode: LogsView;
   externalRefreshToken: number;
   onLogsModeChange: (nextMode: LogsView) => void;
-  onPendingCommitHintChange: (nextValue: ConsoleGalleryCommitView | null) => void;
+  onPendingCommitHintChange: (
+    nextValue: ConsoleGalleryCommitView | null,
+  ) => void;
   runtimeLogsUnavailable: RuntimeLogsUnavailableState | null;
   selectedApp: ConsoleGalleryAppView;
   selectedAppNeedsPendingCommitHint: boolean;
@@ -2609,8 +2616,7 @@ function ConsoleLogsPanel({
   const showLogsLoadingPlaceholder =
     showLogsPlaceholder &&
     shouldShowLogsLoadingPlaceholder(logsStatus, logsConnectionState);
-  const canCopyLogs =
-    !runtimeLogsUnavailable && logLinesRef.current.length > 0;
+  const canCopyLogs = !runtimeLogsUnavailable && logLinesRef.current.length > 0;
   const logsStreamLabel = humanizeUiLabel(effectiveLogsMode, t).toLowerCase();
   const logsPanelNote = runtimeLogsUnavailable
     ? runtimeLogsUnavailable.description
@@ -2639,36 +2645,36 @@ function ConsoleLogsPanel({
                 streamLabel: logsStreamLabel,
               },
             )
-      : logsConnectionState === "ended"
-        ? hasBufferedLogOutput
-          ? t("{label} stream closed. Showing latest snapshot.", {
-              label: humanizeUiLabel(effectiveLogsMode, t),
-            })
-          : t("{label} stream closed.", {
-              label: humanizeUiLabel(effectiveLogsMode, t),
-            })
-        : logsConnectionState === "error"
+        : logsConnectionState === "ended"
           ? hasBufferedLogOutput
-            ? t("{message} Showing the latest received output.", {
-                message:
-                  logsErrorMessage ??
-                  t("Unable to open the {streamLabel} stream.", {
-                    streamLabel: logsStreamLabel,
-                  }),
+            ? t("{label} stream closed. Showing latest snapshot.", {
+                label: humanizeUiLabel(effectiveLogsMode, t),
               })
-            : (logsErrorMessage ??
-              t("Unable to open the {streamLabel} stream.", {
-                streamLabel: logsStreamLabel,
-              }))
-          : logsConnectionState === "connecting"
-            ? t("Opening live {streamLabel} output for {name}.", {
-                name: selectedService.name,
-                streamLabel: logsStreamLabel,
+            : t("{label} stream closed.", {
+                label: humanizeUiLabel(effectiveLogsMode, t),
               })
-            : t("Live {streamLabel} output for {name}.", {
-                name: selectedService.name,
-                streamLabel: logsStreamLabel,
-              });
+          : logsConnectionState === "error"
+            ? hasBufferedLogOutput
+              ? t("{message} Showing the latest received output.", {
+                  message:
+                    logsErrorMessage ??
+                    t("Unable to open the {streamLabel} stream.", {
+                      streamLabel: logsStreamLabel,
+                    }),
+                })
+              : (logsErrorMessage ??
+                t("Unable to open the {streamLabel} stream.", {
+                  streamLabel: logsStreamLabel,
+                }))
+            : logsConnectionState === "connecting"
+              ? t("Opening live {streamLabel} output for {name}.", {
+                  name: selectedService.name,
+                  streamLabel: logsStreamLabel,
+                })
+              : t("Live {streamLabel} output for {name}.", {
+                  name: selectedService.name,
+                  streamLabel: logsStreamLabel,
+                });
   const logsPanelNoteRole: "alert" | "status" | undefined =
     runtimeLogsUnavailable ||
     logsConnectionState === "idle" ||
@@ -2709,9 +2715,12 @@ function ConsoleLogsPanel({
       return;
     }
 
-    const hasVerticalOverflow = viewport.scrollHeight - viewport.clientHeight > 1;
+    const hasVerticalOverflow =
+      viewport.scrollHeight - viewport.clientHeight > 1;
 
-    viewport.dataset.hasVerticalOverflow = hasVerticalOverflow ? "true" : "false";
+    viewport.dataset.hasVerticalOverflow = hasVerticalOverflow
+      ? "true"
+      : "false";
   });
 
   function cancelScheduledLogCommit() {
@@ -2798,12 +2807,9 @@ function ConsoleLogsPanel({
       if (!copied) {
         setLogsCopyState("idle");
         showToast({
-          message: t(
-            "{label} logs are ready, but clipboard access failed.",
-            {
-              label: humanizeUiLabel(effectiveLogsMode),
-            },
-          ),
+          message: t("{label} logs are ready, but clipboard access failed.", {
+            label: humanizeUiLabel(effectiveLogsMode),
+          }),
           variant: "info",
         });
         return;
@@ -3205,9 +3211,7 @@ function ConsoleLogsPanel({
           return;
         }
 
-        if (
-          !isRetryableStreamError(error)
-        ) {
+        if (!isRetryableStreamError(error)) {
           syncPendingCommitHint(null);
           setLogsConnectionState("error");
           setLogsStatus("error");
@@ -3392,11 +3396,7 @@ function EnvironmentVariableTable({
 }: {
   rows: EnvRow[];
   onRemoveRow: (rowId: string) => void;
-  onUpdateRow: (
-    rowId: string,
-    field: "key" | "value",
-    value: string,
-  ) => void;
+  onUpdateRow: (rowId: string, field: "key" | "value", value: string) => void;
 }) {
   const { t } = useI18n();
   if (!rows.length) {
@@ -3512,6 +3512,10 @@ export function ConsoleProjectGallery({
     useState<Record<string, ProjectImageUsageSummary>>(() =>
       buildProjectImageUsageMap(readCachedProjectImageUsage() ?? []),
     );
+  const projectImageUsageKey = data.projects
+    .map((project) => project.id.trim())
+    .filter(Boolean)
+    .join("||");
   const [createOpen, setCreateOpen] = useState(defaultCreateOpen);
   const [createTargetProject, setCreateTargetProject] =
     useState<CreateDialogTarget | null>(null);
@@ -3530,10 +3534,9 @@ export function ConsoleProjectGallery({
     persistentStorageSupported: true,
     startupCommandSupported: true,
   });
-  const [importEnvFeedback, setImportEnvFeedback] =
-    useState<ImportEnvFeedback>(() =>
-      buildRawEnvFeedback(importDraft.envRaw, "console", locale),
-    );
+  const [importEnvFeedback, setImportEnvFeedback] = useState<ImportEnvFeedback>(
+    () => buildRawEnvFeedback(importDraft.envRaw, "console", locale),
+  );
   const {
     connectHref: githubConnectHref,
     connection: githubConnection,
@@ -3563,8 +3566,8 @@ export function ConsoleProjectGallery({
   const [envBaseline, setEnvBaseline] = useState<Record<string, string>>({});
   const [envRows, setEnvRows] = useState<EnvRow[]>([]);
   const [envRawDraft, setEnvRawDraft] = useState("");
-  const [envRawFeedback, setEnvRawFeedback] = useState<EnvRawFeedback>(
-    () => createDefaultEnvRawFeedback(t),
+  const [envRawFeedback, setEnvRawFeedback] = useState<EnvRawFeedback>(() =>
+    createDefaultEnvRawFeedback(t),
   );
   const [envSaving, setEnvSaving] = useState(false);
   const [logsMode, setLogsMode] = useState<LogsView>("build");
@@ -3573,11 +3576,14 @@ export function ConsoleProjectGallery({
   const galleryRefreshAbortRef = useRef<AbortController | null>(null);
   const galleryRefreshPendingRef = useRef(false);
   const pendingCommitHintRequestPendingRef = useRef(false);
-  const { markAppDeleting, optimisticProjects } =
-    useOptimisticDeletingProjects(data.projects);
+  const { markAppDeleting, optimisticProjects } = useOptimisticDeletingProjects(
+    data.projects,
+  );
 
   useEffect(() => {
-    setImportEnvFeedback(buildRawEnvFeedback(importDraft.envRaw, "console", locale));
+    setImportEnvFeedback(
+      buildRawEnvFeedback(importDraft.envRaw, "console", locale),
+    );
   }, [importDraft.envRaw, locale]);
 
   const selectedProject =
@@ -3648,9 +3654,8 @@ export function ConsoleProjectGallery({
     : "restart";
   const selectedServiceCanPause =
     !selectedServicePaused && !selectedServiceFailed;
-  const selectedServiceCanForceDelete = canForceDeletePendingService(
-    selectedServiceApp,
-  );
+  const selectedServiceCanForceDelete =
+    canForceDeletePendingService(selectedServiceApp);
   const selectedServiceDeleting = isDeletingLifecycleValue(
     selectedServiceApp?.phase,
   );
@@ -3966,7 +3971,7 @@ export function ConsoleProjectGallery({
   }, [data.projects.length, data.runtimeTargets]);
 
   useEffect(() => {
-    if (!data.projects.length) {
+    if (!projectImageUsageKey) {
       setProjectImageUsageByProjectId({});
       return undefined;
     }
@@ -3974,34 +3979,34 @@ export function ConsoleProjectGallery({
     const cachedProjects = readCachedProjectImageUsage();
 
     if (cachedProjects) {
-      setProjectImageUsageByProjectId(buildProjectImageUsageMap(cachedProjects));
+      setProjectImageUsageByProjectId(
+        buildProjectImageUsageMap(cachedProjects),
+      );
       return undefined;
     }
 
-    let cancelled = false;
+    const controller = new AbortController();
 
-    requestJson<ProjectImageUsageResponse>("/api/fugue/projects/image-usage", {
-      cache: "no-store",
+    fetchCachedProjectImageUsage({
+      signal: controller.signal,
     })
-      .then((response) => {
-        if (cancelled) {
+      .then((projects) => {
+        if (controller.signal.aborted) {
           return;
         }
 
-        const nextProjects = response.projects ?? [];
-        writeCachedProjectImageUsage(nextProjects);
-        setProjectImageUsageByProjectId(buildProjectImageUsageMap(nextProjects));
+        setProjectImageUsageByProjectId(buildProjectImageUsageMap(projects));
       })
       .catch(() => {
-        if (cancelled) {
+        if (controller.signal.aborted) {
           return;
         }
       });
 
     return () => {
-      cancelled = true;
+      controller.abort();
     };
-  }, [data.projects]);
+  }, [projectImageUsageKey]);
 
   useEffect(() => {
     if (!selectedServiceApp) {
@@ -4141,7 +4146,9 @@ export function ConsoleProjectGallery({
           return;
         }
 
-        setSelectedAppPendingCommitHint(inferPendingCommitHint(app, buildLogs, t));
+        setSelectedAppPendingCommitHint(
+          inferPendingCommitHint(app, buildLogs, t),
+        );
       } catch {
         if (cancelled || controller.signal.aborted) {
           return;
@@ -4288,8 +4295,7 @@ export function ConsoleProjectGallery({
     const validationError = validateImportServiceDraft(importDraft, {
       environmentFeedback: importEnvFeedback,
       localUpload,
-      persistentStorageSupported:
-        importCapabilities.persistentStorageSupported,
+      persistentStorageSupported: importCapabilities.persistentStorageSupported,
       privateGitHubAuthorized:
         githubConnectionLoading || Boolean(githubConnection?.connected),
       locale,
@@ -4356,7 +4362,10 @@ export function ConsoleProjectGallery({
               method: "POST",
             };
 
-      const response = await requestJson<CreateProjectResponse>(endpoint, requestInit);
+      const response = await requestJson<CreateProjectResponse>(
+        endpoint,
+        requestInit,
+      );
 
       if (response.project?.id) {
         setSelectedProjectId(response.project.id);
@@ -4457,28 +4466,24 @@ export function ConsoleProjectGallery({
           ? readForceDeleteActionLabel(selectedServiceApp.phase, t)
           : t("Delete service"),
         description: forceDelete
-          ? t(
-              "{name} is currently {phase}. {description}",
-              {
-                description: readForceDeleteActionDescription(
-                  selectedServiceApp.phase,
-                  t,
-                ),
-                name: selectedServiceApp.name,
-                phase: selectedServiceApp.phase,
-              },
-            )
-          : t(
-              "{name} will be queued for deletion from this project.",
-              {
-                name: selectedServiceApp.name,
-              },
-            ),
+          ? t("{name} is currently {phase}. {description}", {
+              description: readForceDeleteActionDescription(
+                selectedServiceApp.phase,
+                t,
+              ),
+              name: selectedServiceApp.name,
+              phase: selectedServiceApp.phase,
+            })
+          : t("{name} will be queued for deletion from this project.", {
+              name: selectedServiceApp.name,
+            }),
         textConfirmation: {
           hint: (
             <>
               {t("Type")}{" "}
-              <span className="fg-confirm-dialog__match-text">{selectedServiceApp.name}</span>{" "}
+              <span className="fg-confirm-dialog__match-text">
+                {selectedServiceApp.name}
+              </span>{" "}
               {t("exactly to enable deletion.")}
             </>
           ),
@@ -4869,7 +4874,9 @@ export function ConsoleProjectGallery({
               <aside className="fg-project-services fg-project-services--rail fg-project-workbench__rail">
                 <PanelSection className="fg-project-services__head">
                   <div className="fg-project-services__title-row">
-                    <p className="fg-label fg-panel__eyebrow">{t("Services")}</p>
+                    <p className="fg-label fg-panel__eyebrow">
+                      {t("Services")}
+                    </p>
                     <Button
                       onClick={() => openCreateService(project)}
                       size="compact"
@@ -5236,7 +5243,9 @@ export function ConsoleProjectGallery({
                       </div>
                       <div>
                         <dt>{t("State")}</dt>
-                        <dd>{readBackingServiceRoleLabel(selectedService, t)}</dd>
+                        <dd>
+                          {readBackingServiceRoleLabel(selectedService, t)}
+                        </dd>
                       </div>
                       <div>
                         <dt>{t("Location")}</dt>
@@ -5291,22 +5300,20 @@ export function ConsoleProjectGallery({
                             <Button
                               disabled={
                                 !selectedService.canRedeploy ||
-                                Boolean(
-                                  busyAction && busyAction !== "redeploy",
-                                )
+                                Boolean(busyAction && busyAction !== "redeploy")
                               }
                               loading={busyAction === "redeploy"}
-                              loadingLabel={
-                                t(selectedService.redeployActionLoadingLabel)
-                              }
+                              loadingLabel={t(
+                                selectedService.redeployActionLoadingLabel,
+                              )}
                               onClick={() => handleAppAction("redeploy")}
                               size="compact"
                               title={
                                 selectedService.canRedeploy
                                   ? t(selectedService.redeployActionDescription)
-                                  : (selectedService.redeployDisabledReason
-                                      ? t(selectedService.redeployDisabledReason)
-                                      : undefined)
+                                  : selectedService.redeployDisabledReason
+                                    ? t(selectedService.redeployDisabledReason)
+                                    : undefined
                               }
                               type="button"
                               variant="primary"
@@ -5316,7 +5323,7 @@ export function ConsoleProjectGallery({
                             <Button
                               disabled={Boolean(
                                 busyAction &&
-                                  busyAction !== selectedServiceLifecycleAction,
+                                busyAction !== selectedServiceLifecycleAction,
                               )}
                               loading={
                                 busyAction === selectedServiceLifecycleAction
@@ -5392,35 +5399,38 @@ export function ConsoleProjectGallery({
                             type="button"
                             variant="danger"
                           >
-                            {readForceDeleteActionLabel(selectedService.phase, t)}
+                            {readForceDeleteActionLabel(
+                              selectedService.phase,
+                              t,
+                            )}
                           </Button>
                         ) : null}
+                      </div>
                     </div>
-                  </div>
-                ) : null}
+                  ) : null}
 
-                <div className="fg-project-toolbar__group fg-project-toolbar__group--tabs">
-                  <p className="fg-label fg-project-toolbar__label">
-                    {t("Panels")}
-                  </p>
-                  <SegmentedControl
-                    ariaLabel={t("Service panels")}
-                    className="fg-project-toolbar__panels-switch"
-                    controlClassName="fg-console-nav"
-                    itemClassName="fg-console-nav__link"
-                    labelClassName="fg-console-nav__title"
-                    onChange={setActiveTab}
-                    options={localizedServiceWorkbenchOptions}
-                    value={
-                      selectedServiceWorkbenchOptions.some(
-                        (option) => option.value === activeTab,
-                      )
-                        ? activeTab
-                        : "logs"
-                    }
-                    variant="pill"
-                  />
-                </div>
+                  <div className="fg-project-toolbar__group fg-project-toolbar__group--tabs">
+                    <p className="fg-label fg-project-toolbar__label">
+                      {t("Panels")}
+                    </p>
+                    <SegmentedControl
+                      ariaLabel={t("Service panels")}
+                      className="fg-project-toolbar__panels-switch"
+                      controlClassName="fg-console-nav"
+                      itemClassName="fg-console-nav__link"
+                      labelClassName="fg-console-nav__title"
+                      onChange={setActiveTab}
+                      options={localizedServiceWorkbenchOptions}
+                      value={
+                        selectedServiceWorkbenchOptions.some(
+                          (option) => option.value === activeTab,
+                        )
+                          ? activeTab
+                          : "logs"
+                      }
+                      variant="pill"
+                    />
+                  </div>
                 </div>
               </PanelSection>
 
@@ -5664,13 +5674,14 @@ export function ConsoleProjectGallery({
               {optimisticProjects.map((project) => {
                 const expanded = selectedProjectId === project.id;
                 const detailId = `project-detail-${project.id}`;
-                const projectResourceUsage =
-                  projectImageUsageByProjectId[project.id]
-                    ? buildProjectResourceUsageView(
-                        project.resourceUsageSnapshot,
-                        projectImageUsageByProjectId[project.id],
-                      )
-                    : project.resourceUsage;
+                const projectResourceUsage = projectImageUsageByProjectId[
+                  project.id
+                ]
+                  ? buildProjectResourceUsageView(
+                      project.resourceUsageSnapshot,
+                      projectImageUsageByProjectId[project.id],
+                    )
+                  : project.resourceUsage;
 
                 return (
                   <article
@@ -5909,8 +5920,8 @@ function ConsoleProjectWorkbenchImpl({
   const [envBaseline, setEnvBaseline] = useState<Record<string, string>>({});
   const [envRows, setEnvRows] = useState<EnvRow[]>([]);
   const [envRawDraft, setEnvRawDraft] = useState("");
-  const [envRawFeedback, setEnvRawFeedback] = useState<EnvRawFeedback>(
-    () => createDefaultEnvRawFeedback(t),
+  const [envRawFeedback, setEnvRawFeedback] = useState<EnvRawFeedback>(() =>
+    createDefaultEnvRawFeedback(t),
   );
   const [envSaving, setEnvSaving] = useState(false);
   const [logsMode, setLogsMode] = useState<LogsView>("build");
@@ -5920,8 +5931,9 @@ function ConsoleProjectWorkbenchImpl({
   const runtimeInventory = useConsoleRuntimeTargetInventory(
     activeTab === "settings",
   );
-  const { markAppDeleting, optimisticProjects } =
-    useOptimisticDeletingProjects(detail?.project ? [detail.project] : []);
+  const { markAppDeleting, optimisticProjects } = useOptimisticDeletingProjects(
+    detail?.project ? [detail.project] : [],
+  );
 
   const detailProject = optimisticProjects[0] ?? null;
   const detailProjectServices = detailProject?.services ?? [];
@@ -5942,7 +5954,9 @@ function ConsoleProjectWorkbenchImpl({
   const selectedApp =
     selectedServiceApp ??
     (selectedService?.kind === "backing-service"
-      ? (detailProjectApps.find((app) => app.id === selectedService.ownerAppId) ??
+      ? (detailProjectApps.find(
+          (app) => app.id === selectedService.ownerAppId,
+        ) ??
         detailProjectApps.find((app) => app.id === selectedAppId) ??
         detailProjectApps[0] ??
         null)
@@ -5986,9 +6000,8 @@ function ConsoleProjectWorkbenchImpl({
     : "restart";
   const selectedServiceCanPause =
     !selectedServicePaused && !selectedServiceFailed;
-  const selectedServiceCanForceDelete = canForceDeletePendingService(
-    selectedServiceApp,
-  );
+  const selectedServiceCanForceDelete =
+    canForceDeletePendingService(selectedServiceApp);
   const selectedServiceDeleting = isDeletingLifecycleValue(
     selectedServiceApp?.phase,
   );
@@ -6103,7 +6116,9 @@ function ConsoleProjectWorkbenchImpl({
       return;
     }
 
-    setSelectedAppPendingCommitHint(buildPendingCommitHint(selectedServiceApp, undefined, t));
+    setSelectedAppPendingCommitHint(
+      buildPendingCommitHint(selectedServiceApp, undefined, t),
+    );
   }, [selectedAppNeedsPendingCommitHint, selectedServiceApp, t]);
 
   useEffect(() => {
@@ -6112,7 +6127,9 @@ function ConsoleProjectWorkbenchImpl({
     }
 
     if (!selectedService) {
-      const defaultService = readPreferredProjectService(detailProject.services);
+      const defaultService = readPreferredProjectService(
+        detailProject.services,
+      );
 
       if (!defaultService) {
         setSelectedAppId(null);
@@ -6270,7 +6287,9 @@ function ConsoleProjectWorkbenchImpl({
   function chooseService(service: ConsoleGalleryServiceView) {
     setSelectedServiceKey(serviceKey(service));
     setSelectedAppId(
-      service.kind === "app" ? service.id : (service.ownerAppId ?? selectedAppId),
+      service.kind === "app"
+        ? service.id
+        : (service.ownerAppId ?? selectedAppId),
     );
     if (readServiceDefaultTab(service) === "logs") {
       setActiveTab("logs");
@@ -6300,17 +6319,14 @@ function ConsoleProjectWorkbenchImpl({
           ? readForceDeleteActionLabel(selectedServiceApp.phase, t)
           : t("Delete service"),
         description: forceDelete
-          ? t(
-              "{name} is currently {phase}. {description}",
-              {
-                description: readForceDeleteActionDescription(
-                  selectedServiceApp.phase,
-                  t,
-                ),
-                name: selectedServiceApp.name,
-                phase: t(selectedServiceApp.phase),
-              },
-            )
+          ? t("{name} is currently {phase}. {description}", {
+              description: readForceDeleteActionDescription(
+                selectedServiceApp.phase,
+                t,
+              ),
+              name: selectedServiceApp.name,
+              phase: t(selectedServiceApp.phase),
+            })
           : t("{name} will be queued for deletion from this project.", {
               name: selectedServiceApp.name,
             }),
@@ -6377,9 +6393,13 @@ function ConsoleProjectWorkbenchImpl({
           break;
       }
 
-      const result = await requestJson<DeleteAppActionResult>(input, {
-        method,
-      }, t);
+      const result = await requestJson<DeleteAppActionResult>(
+        input,
+        {
+          method,
+        },
+        t,
+      );
 
       if (nextAction === "delete" || nextAction === "force-delete") {
         markAppDeleting(selectedServiceApp.id);
@@ -6445,9 +6465,13 @@ function ConsoleProjectWorkbenchImpl({
     setBusyProjectAction("delete");
 
     try {
-      await requestJson(`/api/fugue/projects/${detailProject.id}`, {
-        method: "DELETE",
-      }, t);
+      await requestJson(
+        `/api/fugue/projects/${detailProject.id}`,
+        {
+          method: "DELETE",
+        },
+        t,
+      );
       showToast({
         message: t("Project deleted."),
         variant: "success",
@@ -6542,7 +6566,9 @@ function ConsoleProjectWorkbenchImpl({
       buildEnvDraftRowsFromEntries(parsed.entries, envBaseline),
     );
     setEnvRows(nextRows);
-    setEnvRawFeedback(buildEnvRawFeedback(nextRows, parsed.ignoredLineCount, t));
+    setEnvRawFeedback(
+      buildEnvRawFeedback(nextRows, parsed.ignoredLineCount, t),
+    );
   }
 
   async function saveEnv() {
@@ -6798,13 +6824,13 @@ function ConsoleProjectWorkbenchImpl({
                     </p>
                     <div className="fg-project-actions">
                       <Button
-                      onClick={() => onRequestCreateService(project)}
-                      size="compact"
-                      type="button"
-                      variant="primary"
-                    >
-                      {t("Add service")}
-                    </Button>
+                        onClick={() => onRequestCreateService(project)}
+                        size="compact"
+                        type="button"
+                        variant="primary"
+                      >
+                        {t("Add service")}
+                      </Button>
                       <Button
                         disabled={busyProjectAction === "delete"}
                         loading={busyProjectAction === "delete"}
@@ -6932,7 +6958,9 @@ function ConsoleProjectWorkbenchImpl({
                         ].filter((value): value is string => Boolean(value))
                       : [
                           readBackingServiceRoleLabel(service),
-                          readDistinctText(service.ownerAppLabel, [service.name]),
+                          readDistinctText(service.ownerAppLabel, [
+                            service.name,
+                          ]),
                           readDistinctText(service.description, [
                             service.name,
                             service.ownerAppLabel,
@@ -7157,9 +7185,9 @@ function ConsoleProjectWorkbenchImpl({
                               Boolean(busyAction && busyAction !== "redeploy")
                             }
                             loading={busyAction === "redeploy"}
-                            loadingLabel={
-                              t(selectedService.redeployActionLoadingLabel)
-                            }
+                            loadingLabel={t(
+                              selectedService.redeployActionLoadingLabel,
+                            )}
                             onClick={() => {
                               void handleAppAction("redeploy");
                             }}
@@ -7167,9 +7195,9 @@ function ConsoleProjectWorkbenchImpl({
                             title={
                               selectedService.canRedeploy
                                 ? t(selectedService.redeployActionDescription)
-                                : (selectedService.redeployDisabledReason
-                                    ? t(selectedService.redeployDisabledReason)
-                                    : undefined)
+                                : selectedService.redeployDisabledReason
+                                  ? t(selectedService.redeployDisabledReason)
+                                  : undefined
                             }
                             type="button"
                             variant="primary"
@@ -7179,7 +7207,7 @@ function ConsoleProjectWorkbenchImpl({
                           <Button
                             disabled={Boolean(
                               busyAction &&
-                                busyAction !== selectedServiceLifecycleAction,
+                              busyAction !== selectedServiceLifecycleAction,
                             )}
                             loading={
                               busyAction === selectedServiceLifecycleAction
@@ -7190,7 +7218,9 @@ function ConsoleProjectWorkbenchImpl({
                                 : t("Restarting…")
                             }
                             onClick={() => {
-                              void handleAppAction(selectedServiceLifecycleAction);
+                              void handleAppAction(
+                                selectedServiceLifecycleAction,
+                              );
                             }}
                             size="compact"
                             title={
@@ -7374,7 +7404,9 @@ function ConsoleProjectWorkbenchImpl({
                   </div>
 
                   {envStatus === "loading" ? (
-                    <p className="fg-console-note">{t("Loading environment…")}</p>
+                    <p className="fg-console-note">
+                      {t("Loading environment…")}
+                    </p>
                   ) : envFormat === "table" ? (
                     <div className="fg-env-table">
                       <EnvironmentVariableTable
@@ -7406,7 +7438,9 @@ function ConsoleProjectWorkbenchImpl({
                         />
                       </FormField>
                       <div
-                        aria-live={envRawFeedback.valid ? "polite" : "assertive"}
+                        aria-live={
+                          envRawFeedback.valid ? "polite" : "assertive"
+                        }
                         className={cx(
                           "fg-inline-alert",
                           envRawFeedback.tone === "error" &&
