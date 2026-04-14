@@ -8,6 +8,7 @@ import {
   getAdminUsersUsageData,
 } from "@/lib/admin/service";
 import { getFugueEnv } from "@/lib/fugue/env";
+import { fetchFugueServer } from "@/lib/fugue/server-fetch";
 
 declare global {
   var __fugueWarmApiPromise: Promise<void> | undefined;
@@ -32,7 +33,7 @@ async function warmFugueApi() {
   try {
     await Promise.allSettled(
       warmPaths.map((path) =>
-        fetch(new URL(path, env.apiServerUrl), {
+        fetchFugueServer(new URL(path, env.apiServerUrl), {
           cache: "no-store",
           headers,
           signal: AbortSignal.timeout(5_000),

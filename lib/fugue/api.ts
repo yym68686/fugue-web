@@ -3,6 +3,10 @@ import "server-only";
 import createClient from "openapi-fetch";
 
 import { getFugueEnv } from "@/lib/fugue/env";
+import {
+  fetchFugueServer,
+  fugueServerFetch,
+} from "@/lib/fugue/server-fetch";
 import type { PersistentStoragePayload } from "@/lib/fugue/persistent-storage";
 import type { GitHubRepoVisibility } from "@/lib/github/repository";
 
@@ -114,6 +118,7 @@ function getClient(accessToken: string) {
   return createClient<paths>({
     baseUrl: env.apiServerUrl,
     cache: "no-store",
+    fetch: fugueServerFetch,
     headers: {
       Accept: "application/json",
       Authorization: `Bearer ${accessToken}`,
@@ -128,7 +133,7 @@ async function expectMultipartData<T>(
   body: FormData,
 ) {
   const env = getFugueEnv();
-  const response = await fetch(new URL(path, env.apiServerUrl), {
+  const response = await fetchFugueServer(new URL(path, env.apiServerUrl), {
     method: "POST",
     headers: {
       Accept: "application/json",

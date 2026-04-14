@@ -165,6 +165,8 @@ type CachedProjectImageUsage = {
 };
 
 let cachedProjectImageUsage: CachedProjectImageUsage | null = null;
+let projectImageUsageRequestCache: Promise<ProjectImageUsageSummary[]> | null =
+  null;
 
 function prepareProjectWorkbench(projectId?: string | null) {
   if (!projectId) {
@@ -192,6 +194,52 @@ function writeCachedProjectImageUsage(projects: ProjectImageUsageSummary[]) {
     cachedAt: Date.now(),
     projects,
   };
+}
+
+async function fetchCachedProjectImageUsage(
+  options?: {
+    force?: boolean;
+    signal?: AbortSignal;
+  },
+  t: Translator = (key) => key,
+) {
+  if (options?.signal?.aborted) {
+    throw new DOMException("Request aborted", "AbortError");
+  }
+
+  if (!options?.force) {
+    const cachedProjects = readCachedProjectImageUsage();
+
+    if (cachedProjects) {
+      return cachedProjects;
+    }
+
+    if (projectImageUsageRequestCache) {
+      return projectImageUsageRequestCache;
+    }
+  }
+
+  const request = requestJsonLocalized<ProjectImageUsageResponse>(
+    "/api/fugue/projects/image-usage",
+    {
+      cache: "no-store",
+      signal: options?.signal,
+    },
+    t,
+  )
+    .then((response) => {
+      const nextProjects = response.projects ?? [];
+      writeCachedProjectImageUsage(nextProjects);
+      return readCachedProjectImageUsage() ?? nextProjects;
+    })
+    .finally(() => {
+      if (projectImageUsageRequestCache === request) {
+        projectImageUsageRequestCache = null;
+      }
+    });
+
+  projectImageUsageRequestCache = request;
+  return request;
 }
 
 function buildProjectImageUsageMap(projects: ProjectImageUsageSummary[]) {
@@ -1263,9 +1311,6 @@ export function ConsoleProjectGallery({
     useState<Record<string, ProjectImageUsageSummary>>(() =>
       buildProjectImageUsageMap(initialProjectImageUsage ?? []),
     );
-  const [projectImageUsageLoaded, setProjectImageUsageLoaded] = useState(
-    () => Boolean(initialProjectImageUsage),
-  );
 
   useEffect(() => {
     setImportEnvFeedback(buildRawEnvFeedback(importDraft.envRaw, "console"));
@@ -1275,7 +1320,6 @@ export function ConsoleProjectGallery({
   const galleryRefreshPendingRef = useRef(false);
   const galleryStreamAbortRef = useRef<AbortController | null>(null);
   const projectUsageRequestRef = useRef<AbortController | null>(null);
-  const projectImageUsageRequestRef = useRef<AbortController | null>(null);
   const galleryStreamHashRef = useRef<string | null>(null);
   const selectedProjectIdRef = useRef<string | null>(selectedProjectId);
   const announcedPendingIntentErrorRef = useRef<string | null>(null);
@@ -1292,6 +1336,10 @@ export function ConsoleProjectGallery({
         name: item.name,
       })),
     [projects],
+  );
+  const projectImageUsageKey = useMemo(
+    () => data.projects.map((project) => project.id.trim()).join("||"),
+    [data.projects],
   );
   const { markProjectDeleting, optimisticProjects } =
     useOptimisticDeletingProjectSummaries(projects);
@@ -1706,7 +1754,6 @@ export function ConsoleProjectGallery({
       galleryRefreshAbortRef.current?.abort();
       galleryStreamAbortRef.current?.abort();
       projectUsageRequestRef.current?.abort();
-      projectImageUsageRequestRef.current?.abort();
     };
   }, []);
 
@@ -1799,10 +1846,8 @@ export function ConsoleProjectGallery({
   );
 
   useEffect(() => {
-    if (!projects.length) {
-      projectImageUsageRequestRef.current?.abort();
+    if (!projectImageUsageKey) {
       setProjectImageUsageByProjectId({});
-      setProjectImageUsageLoaded(false);
       return undefined;
     }
 
@@ -1810,62 +1855,39 @@ export function ConsoleProjectGallery({
 
     if (cachedProjects) {
       setProjectImageUsageByProjectId(buildProjectImageUsageMap(cachedProjects));
-      setProjectImageUsageLoaded(true);
       return undefined;
     }
 
-    if (projectImageUsageLoaded) {
-      setProjectImageUsageLoaded(false);
-      return undefined;
-    }
-
-    if (!selectedProjectId || projectImageUsageLoaded) {
-      return undefined;
-    }
-
-    if (projectImageUsageRequestRef.current) {
+    if (!selectedProjectId) {
       return undefined;
     }
 
     const controller = new AbortController();
-    projectImageUsageRequestRef.current = controller;
 
-    requestJsonLocalized<ProjectImageUsageResponse>(
-      "/api/fugue/projects/image-usage",
+    fetchCachedProjectImageUsage(
       {
-        cache: "no-store",
         signal: controller.signal,
       },
       t,
     )
-      .then((response) => {
+      .then((projects) => {
         if (controller.signal.aborted) {
           return;
         }
 
-        const nextProjects = response.projects ?? [];
-        writeCachedProjectImageUsage(nextProjects);
-        setProjectImageUsageByProjectId(buildProjectImageUsageMap(nextProjects));
-        setProjectImageUsageLoaded(true);
+        setProjectImageUsageByProjectId(buildProjectImageUsageMap(projects));
       })
       .catch(() => {
         if (controller.signal.aborted) {
           return;
         }
       })
-      .finally(() => {
-        if (projectImageUsageRequestRef.current === controller) {
-          projectImageUsageRequestRef.current = null;
-        }
-      });
+      .finally(() => undefined);
 
     return () => {
       controller.abort();
-      if (projectImageUsageRequestRef.current === controller) {
-        projectImageUsageRequestRef.current = null;
-      }
     };
-  }, [projectImageUsageLoaded, projects, selectedProjectId, t]);
+  }, [projectImageUsageKey, selectedProjectId, t]);
 
   useEffect(() => {
     let cancelled = false;

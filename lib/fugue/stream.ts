@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getFugueEnv } from "@/lib/fugue/env";
+import { fetchFugueServer } from "@/lib/fugue/server-fetch";
 
 const STREAM_CACHE_CONTROL_DIRECTIVES = [
   "no-cache",
@@ -132,7 +133,7 @@ export async function proxyFugueEventStream({
 }: ProxyFugueEventStreamOptions) {
   const env = getFugueEnv();
   const url = new URL(path, env.apiServerUrl);
-  const upstream = await fetch(url, {
+  const upstream = await fetchFugueServer(url, {
     cache: "no-store",
     headers: {
       Authorization: `Bearer ${accessToken}`,

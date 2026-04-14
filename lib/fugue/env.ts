@@ -30,7 +30,7 @@ function readOptionalEnv(name: string) {
   return value ? value : null;
 }
 
-const DEFAULT_INTERNAL_API_URL = "http://fugue-fugue.fugue-system.svc.cluster.local/";
+const DEFAULT_INTERNAL_API_URL = "http://fugue-fugue.fugue-system.svc/";
 
 function shouldUseInternalApi(publicApiUrl: string) {
   if (!process.env.KUBERNETES_SERVICE_HOST) {
