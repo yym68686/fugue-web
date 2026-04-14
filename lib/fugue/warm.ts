@@ -1,6 +1,11 @@
 import "server-only";
 
-import { getAdminAppsPageData, getAdminClusterPageData } from "@/lib/admin/service";
+import {
+  getAdminAppsPageData,
+  getAdminAppsUsageData,
+  getAdminClusterPageData,
+  getAdminUsersUsageData,
+} from "@/lib/admin/service";
 import { getFugueEnv } from "@/lib/fugue/env";
 
 declare global {
@@ -17,6 +22,7 @@ async function warmFugueApi() {
   const warmPaths = [
     "/v1/cluster/control-plane",
     "/v1/apps?include_resource_usage=false&include_live_status=false",
+    "/v1/apps?include_resource_usage=true&include_live_status=false",
     "/v1/cluster/nodes?sync_locations=false",
     "/v1/console/gallery",
   ];
@@ -65,7 +71,9 @@ async function warmCriticalRouteModules() {
 async function warmCriticalSnapshots() {
   await Promise.allSettled([
     getAdminAppsPageData(),
+    getAdminAppsUsageData(),
     getAdminClusterPageData(),
+    getAdminUsersUsageData(),
   ]);
 }
 

@@ -1,6 +1,12 @@
 "use client";
 
-import { startTransition, useEffect, useMemo, useState } from "react";
+import {
+  startTransition,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useState,
+} from "react";
 
 import { AdminSummaryGrid } from "@/components/admin/admin-summary-grid";
 import { AdminUserManager } from "@/components/admin/admin-user-manager";
@@ -20,8 +26,9 @@ import {
   readConsolePageSnapshot,
   useConsolePageSnapshot,
 } from "@/lib/console/page-snapshot-client";
+import { useAnticipatoryWarmup } from "@/lib/ui/anticipatory-warmup";
 
-const ADMIN_USERS_USAGE_SNAPSHOT_TTL_MS = 30_000;
+const ADMIN_USERS_USAGE_SNAPSHOT_TTL_MS = 300_000;
 
 type AdminUsersUsageSnapshot = {
   users: Array<{
@@ -62,6 +69,16 @@ function buildAdminUserUsageMap(
   }, {});
 }
 
+function readAdminUsersUsageSnapshot() {
+  return readConsolePageSnapshot<AdminUsersUsageSnapshot>(
+    CONSOLE_ADMIN_USERS_PAGE_USAGE_SNAPSHOT_URL,
+    {
+      allowStale: true,
+      ttlMs: ADMIN_USERS_USAGE_SNAPSHOT_TTL_MS,
+    },
+  );
+}
+
 export function AdminUsersPageShell() {
   const { t } = useI18n();
   const { data, error, loading, refresh } =
@@ -77,15 +94,7 @@ export function AdminUsersPageShell() {
       }
     >
   >(() =>
-    buildAdminUserUsageMap(
-      readConsolePageSnapshot<AdminUsersUsageSnapshot>(
-        CONSOLE_ADMIN_USERS_PAGE_USAGE_SNAPSHOT_URL,
-        {
-          allowStale: true,
-          ttlMs: ADMIN_USERS_USAGE_SNAPSHOT_TTL_MS,
-        },
-      ),
-    ),
+    buildAdminUserUsageMap(readAdminUsersUsageSnapshot()),
   );
 
   useEffect(() => {
@@ -94,15 +103,25 @@ export function AdminUsersPageShell() {
       return;
     }
 
-    const cached = readConsolePageSnapshot<AdminUsersUsageSnapshot>(
-      CONSOLE_ADMIN_USERS_PAGE_USAGE_SNAPSHOT_URL,
-      {
-        allowStale: true,
-        ttlMs: ADMIN_USERS_USAGE_SNAPSHOT_TTL_MS,
-      },
-    );
-    const cachedUsage = buildAdminUserUsageMap(cached);
-    const needsUsageFetch = data.users.some((user) => !cachedUsage[user.email]);
+    const cachedUsage = buildAdminUserUsageMap(readAdminUsersUsageSnapshot());
+
+    if (Object.keys(cachedUsage).length > 0) {
+      startTransition(() => {
+        setUsageByEmail(cachedUsage);
+      });
+    }
+  }, [data]);
+
+  const userUsageWarmupKey = useMemo(
+    () => (data?.users ?? []).map((user) => user.email).join("||"),
+    [data],
+  );
+  const warmAdminUserUsage = useEffectEvent(async (signal: AbortSignal) => {
+    if (!data?.users.length) {
+      return;
+    }
+
+    const cachedUsage = buildAdminUserUsageMap(readAdminUsersUsageSnapshot());
 
     if (Object.keys(cachedUsage).length > 0) {
       startTransition(() => {
@@ -110,34 +129,38 @@ export function AdminUsersPageShell() {
       });
     }
 
-    if (cached && !needsUsageFetch) {
+    const needsUsageFetch = data.users.some((user) => !cachedUsage[user.email]);
+
+    if (!needsUsageFetch) {
       return;
     }
 
-    let cancelled = false;
-
-    fetchConsolePageSnapshot<AdminUsersUsageSnapshot>(
+    const nextUsage = await fetchConsolePageSnapshot<AdminUsersUsageSnapshot>(
       CONSOLE_ADMIN_USERS_PAGE_USAGE_SNAPSHOT_URL,
       {
-        force: needsUsageFetch,
+        force: true,
+        signal,
         ttlMs: ADMIN_USERS_USAGE_SNAPSHOT_TTL_MS,
       },
-    )
-      .then((nextUsage) => {
-        if (cancelled) {
-          return;
-        }
+    );
 
-        startTransition(() => {
-          setUsageByEmail(buildAdminUserUsageMap(nextUsage));
-        });
-      })
-      .catch(() => undefined);
+    if (signal.aborted) {
+      return;
+    }
 
-    return () => {
-      cancelled = true;
-    };
-  }, [data]);
+    startTransition(() => {
+      setUsageByEmail(buildAdminUserUsageMap(nextUsage));
+    });
+  });
+
+  useAnticipatoryWarmup(
+    data?.users.length ? warmAdminUserUsage : null,
+    [userUsageWarmupKey],
+    {
+      mode: "idle",
+      timeoutMs: 3_000,
+    },
+  );
 
   const pageData = useMemo(() => {
     if (!data) {

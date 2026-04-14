@@ -211,6 +211,7 @@ export async function fetchConsolePageSnapshot<T>(
 
   const request = requestJson<T>(key, {
     cache: "no-store",
+    signal: options?.signal,
   })
     .then((value) => {
       writeConsolePageSnapshot(key, value);

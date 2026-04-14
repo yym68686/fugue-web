@@ -75,6 +75,7 @@ import {
   buildSuggestedProjectName,
   findProjectByName,
 } from "@/lib/project-names";
+import { useAnticipatoryWarmup } from "@/lib/ui/anticipatory-warmup";
 import { consumeSSEStream, type ParsedSSEEvent } from "@/lib/ui/sse";
 import { cx } from "@/lib/ui/cx";
 import {
@@ -144,7 +145,7 @@ type GalleryStreamPayload = {
 };
 
 const PROJECT_IMAGE_USAGE_CACHE_TTL_MS = 60_000;
-const PROJECT_USAGE_SNAPSHOT_TTL_MS = 30_000;
+const PROJECT_USAGE_SNAPSHOT_TTL_MS = 300_000;
 
 type ProjectUsageSnapshotResponse = {
   projects: Array<{
@@ -218,6 +219,16 @@ function buildProjectUsageSnapshotMap(
       return accumulator;
     },
     {},
+  );
+}
+
+function readProjectUsageSnapshotResponse() {
+  return readConsolePageSnapshot<ProjectUsageSnapshotResponse>(
+    CONSOLE_PROJECT_GALLERY_USAGE_SNAPSHOT_URL,
+    {
+      allowStale: true,
+      ttlMs: PROJECT_USAGE_SNAPSHOT_TTL_MS,
+    },
   );
 }
 
@@ -1245,13 +1256,7 @@ export function ConsoleProjectGallery({
     Record<string, ConsoleProjectResourceUsageSnapshot>
   >(() =>
     buildProjectUsageSnapshotMap(
-      readConsolePageSnapshot<ProjectUsageSnapshotResponse>(
-        CONSOLE_PROJECT_GALLERY_USAGE_SNAPSHOT_URL,
-        {
-          allowStale: true,
-          ttlMs: PROJECT_USAGE_SNAPSHOT_TTL_MS,
-        },
-      )?.projects ?? [],
+      readProjectUsageSnapshotResponse()?.projects ?? [],
     ),
   );
   const [projectImageUsageByProjectId, setProjectImageUsageByProjectId] =
@@ -1712,20 +1717,28 @@ export function ConsoleProjectGallery({
       return undefined;
     }
 
-    const cachedUsageSnapshot = readConsolePageSnapshot<ProjectUsageSnapshotResponse>(
-      CONSOLE_PROJECT_GALLERY_USAGE_SNAPSHOT_URL,
-      {
-        allowStale: true,
-        ttlMs: PROJECT_USAGE_SNAPSHOT_TTL_MS,
-      },
-    );
     const cachedUsage = buildProjectUsageSnapshotMap(
-      cachedUsageSnapshot?.projects ?? [],
+      readProjectUsageSnapshotResponse()?.projects ?? [],
     );
-    const needsUsageFetch = data.projects.some(
-      (project) =>
-        !cachedUsage[project.id] &&
-        !hasProjectUsageSnapshot(project.resourceUsageSnapshot),
+
+    if (Object.keys(cachedUsage).length) {
+      startTransition(() => {
+        setProjectUsageByProjectId(cachedUsage);
+      });
+    }
+  }, [data.projects]);
+
+  const projectUsageWarmupKey = useMemo(
+    () => data.projects.map((project) => project.id).join("||"),
+    [data.projects],
+  );
+  const warmProjectUsage = useEffectEvent(async (signal: AbortSignal) => {
+    if (!data.projects.length) {
+      return;
+    }
+
+    const cachedUsage = buildProjectUsageSnapshotMap(
+      readProjectUsageSnapshotResponse()?.projects ?? [],
     );
 
     if (Object.keys(cachedUsage).length) {
@@ -1734,50 +1747,56 @@ export function ConsoleProjectGallery({
       });
     }
 
-    if (cachedUsageSnapshot && !needsUsageFetch) {
-      return undefined;
-    }
+    const needsUsageFetch = data.projects.some(
+      (project) =>
+        !cachedUsage[project.id] &&
+        !hasProjectUsageSnapshot(project.resourceUsageSnapshot),
+    );
 
-    if (projectUsageRequestRef.current) {
-      return undefined;
+    if (!needsUsageFetch || projectUsageRequestRef.current) {
+      return;
     }
 
     const controller = new AbortController();
     projectUsageRequestRef.current = controller;
+    signal.addEventListener("abort", () => controller.abort(), { once: true });
 
-    fetchConsolePageSnapshot<ProjectUsageSnapshotResponse>(
-      CONSOLE_PROJECT_GALLERY_USAGE_SNAPSHOT_URL,
-      {
-        force: needsUsageFetch,
-        signal: controller.signal,
-        ttlMs: PROJECT_USAGE_SNAPSHOT_TTL_MS,
-      },
-    )
-      .then((response) => {
-        if (controller.signal.aborted) {
-          return;
-        }
+    try {
+      const response = await fetchConsolePageSnapshot<ProjectUsageSnapshotResponse>(
+        CONSOLE_PROJECT_GALLERY_USAGE_SNAPSHOT_URL,
+        {
+          force: true,
+          signal: controller.signal,
+          ttlMs: PROJECT_USAGE_SNAPSHOT_TTL_MS,
+        },
+      );
 
-        startTransition(() => {
-          setProjectUsageByProjectId(
-            buildProjectUsageSnapshotMap(response.projects),
-          );
-        });
-      })
-      .catch(() => undefined)
-      .finally(() => {
-        if (projectUsageRequestRef.current === controller) {
-          projectUsageRequestRef.current = null;
-        }
+      if (controller.signal.aborted) {
+        return;
+      }
+
+      startTransition(() => {
+        setProjectUsageByProjectId(
+          buildProjectUsageSnapshotMap(response.projects),
+        );
       });
-
-    return () => {
-      controller.abort();
+    } catch {
+      // Keep the page usable even if background usage refresh misses.
+    } finally {
       if (projectUsageRequestRef.current === controller) {
         projectUsageRequestRef.current = null;
       }
-    };
-  }, [data.projects]);
+    }
+  });
+
+  useAnticipatoryWarmup(
+    data.projects.length ? warmProjectUsage : null,
+    [projectUsageWarmupKey],
+    {
+      mode: "idle",
+      timeoutMs: 3_000,
+    },
+  );
 
   useEffect(() => {
     if (!projects.length) {

@@ -1,6 +1,12 @@
 "use client";
 
-import { startTransition, useEffect, useMemo, useState } from "react";
+import {
+  startTransition,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useState,
+} from "react";
 
 import { AdminAppManager } from "@/components/admin/admin-app-manager";
 import { AdminSummaryGrid } from "@/components/admin/admin-summary-grid";
@@ -21,8 +27,9 @@ import {
   readConsolePageSnapshot,
   useConsolePageSnapshot,
 } from "@/lib/console/page-snapshot-client";
+import { useAnticipatoryWarmup } from "@/lib/ui/anticipatory-warmup";
 
-const ADMIN_APPS_USAGE_SNAPSHOT_TTL_MS = 30_000;
+const ADMIN_APPS_USAGE_SNAPSHOT_TTL_MS = 300_000;
 
 type AdminAppsUsageSnapshot = {
   apps: Array<{
@@ -45,6 +52,16 @@ function buildAdminAppUsageMap(
   }, {});
 }
 
+function readAdminAppsUsageSnapshot() {
+  return readConsolePageSnapshot<AdminAppsUsageSnapshot>(
+    CONSOLE_ADMIN_APPS_PAGE_USAGE_SNAPSHOT_URL,
+    {
+      allowStale: true,
+      ttlMs: ADMIN_APPS_USAGE_SNAPSHOT_TTL_MS,
+    },
+  );
+}
+
 export function AdminAppsPageShell() {
   const { t } = useI18n();
   const { data, error, loading, refresh } =
@@ -54,15 +71,7 @@ export function AdminAppsPageShell() {
   const [usageByAppId, setUsageByAppId] = useState<
     Record<string, ConsoleCompactResourceItemView[]>
   >(() =>
-    buildAdminAppUsageMap(
-      readConsolePageSnapshot<AdminAppsUsageSnapshot>(
-        CONSOLE_ADMIN_APPS_PAGE_USAGE_SNAPSHOT_URL,
-        {
-          allowStale: true,
-          ttlMs: ADMIN_APPS_USAGE_SNAPSHOT_TTL_MS,
-        },
-      ),
-    ),
+    buildAdminAppUsageMap(readAdminAppsUsageSnapshot()),
   );
 
   useEffect(() => {
@@ -71,15 +80,25 @@ export function AdminAppsPageShell() {
       return;
     }
 
-    const cached = readConsolePageSnapshot<AdminAppsUsageSnapshot>(
-      CONSOLE_ADMIN_APPS_PAGE_USAGE_SNAPSHOT_URL,
-      {
-        allowStale: true,
-        ttlMs: ADMIN_APPS_USAGE_SNAPSHOT_TTL_MS,
-      },
-    );
-    const cachedUsage = buildAdminAppUsageMap(cached);
-    const needsUsageFetch = data.apps.some((app) => !cachedUsage[app.id]);
+    const cachedUsage = buildAdminAppUsageMap(readAdminAppsUsageSnapshot());
+
+    if (Object.keys(cachedUsage).length > 0) {
+      startTransition(() => {
+        setUsageByAppId(cachedUsage);
+      });
+    }
+  }, [data]);
+
+  const appUsageWarmupKey = useMemo(
+    () => (data?.apps ?? []).map((app) => app.id).join("||"),
+    [data],
+  );
+  const warmAdminAppUsage = useEffectEvent(async (signal: AbortSignal) => {
+    if (!data?.apps.length) {
+      return;
+    }
+
+    const cachedUsage = buildAdminAppUsageMap(readAdminAppsUsageSnapshot());
 
     if (Object.keys(cachedUsage).length > 0) {
       startTransition(() => {
@@ -87,34 +106,38 @@ export function AdminAppsPageShell() {
       });
     }
 
-    if (cached && !needsUsageFetch) {
+    const needsUsageFetch = data.apps.some((app) => !cachedUsage[app.id]);
+
+    if (!needsUsageFetch) {
       return;
     }
 
-    let cancelled = false;
-
-    fetchConsolePageSnapshot<AdminAppsUsageSnapshot>(
+    const nextUsage = await fetchConsolePageSnapshot<AdminAppsUsageSnapshot>(
       CONSOLE_ADMIN_APPS_PAGE_USAGE_SNAPSHOT_URL,
       {
-        force: needsUsageFetch,
+        force: true,
+        signal,
         ttlMs: ADMIN_APPS_USAGE_SNAPSHOT_TTL_MS,
       },
-    )
-      .then((nextUsage) => {
-        if (cancelled) {
-          return;
-        }
+    );
 
-        startTransition(() => {
-          setUsageByAppId(buildAdminAppUsageMap(nextUsage));
-        });
-      })
-      .catch(() => undefined);
+    if (signal.aborted) {
+      return;
+    }
 
-    return () => {
-      cancelled = true;
-    };
-  }, [data]);
+    startTransition(() => {
+      setUsageByAppId(buildAdminAppUsageMap(nextUsage));
+    });
+  });
+
+  useAnticipatoryWarmup(
+    data?.apps.length ? warmAdminAppUsage : null,
+    [appUsageWarmupKey],
+    {
+      mode: "idle",
+      timeoutMs: 3_000,
+    },
+  );
 
   const pageData = useMemo(() => {
     if (!data) {

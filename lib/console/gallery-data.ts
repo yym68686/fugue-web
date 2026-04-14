@@ -89,7 +89,7 @@ type ConsoleProjectGalleryUsageData = {
   }>;
 };
 
-const CONSOLE_PROJECT_USAGE_CACHE_TTL_MS = 30_000;
+const CONSOLE_PROJECT_USAGE_CACHE_TTL_MS = 300_000;
 const consoleProjectGalleryUsageCache =
   createExpiringAsyncCache<ConsoleProjectGalleryUsageData>(
     CONSOLE_PROJECT_USAGE_CACHE_TTL_MS,

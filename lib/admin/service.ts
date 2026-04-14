@@ -156,7 +156,7 @@ type AdminUsersEnrichmentLookup = {
 };
 
 const ADMIN_USERS_ENRICHMENT_CACHE_TTL_MS = 15_000;
-const ADMIN_USAGE_CACHE_TTL_MS = 30_000;
+const ADMIN_USAGE_CACHE_TTL_MS = 300_000;
 
 let cachedAdminUsersEnrichmentData: AdminUsersPageData | null = null;
 let cachedAdminUsersEnrichmentAt = 0;
