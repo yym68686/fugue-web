@@ -1,7 +1,10 @@
 import { redirect } from "next/navigation";
 
 import { DeployPage } from "@/components/deploy/deploy-page";
-import { getDeployPageData } from "@/lib/deploy/page-data";
+import {
+  getCurrentDeployWorkspaceInventory,
+  getDeployPageShellData,
+} from "@/lib/deploy/page-data";
 import { buildDeployHref, readDeploySearchState } from "@/lib/deploy/query";
 
 type SearchParams =
@@ -19,7 +22,7 @@ export default async function NewTemplatePage({
   const resolvedSearchParams = await Promise.resolve(searchParams);
   const search = readDeploySearchState(resolvedSearchParams);
   const currentPath = buildDeployHref(`/new/template/${resolvedParams.slug}`, search);
-  const data = await getDeployPageData(search);
+  const data = await getDeployPageShellData(search);
   const canonicalSlug = data.inspection?.template?.slug ?? null;
 
   if (canonicalSlug && canonicalSlug !== resolvedParams.slug) {
@@ -32,6 +35,9 @@ export default async function NewTemplatePage({
       requestedTemplateSlug={resolvedParams.slug}
       routeMode="template"
       search={search}
+      workspaceInventoryPromise={
+        data.sessionPresent ? getCurrentDeployWorkspaceInventory() : null
+      }
       {...data}
     />
   );

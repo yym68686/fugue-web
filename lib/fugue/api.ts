@@ -112,7 +112,7 @@ function getClient(accessToken: string) {
   const env = getFugueEnv();
 
   return createClient<paths>({
-    baseUrl: env.apiUrl,
+    baseUrl: env.apiServerUrl,
     cache: "no-store",
     headers: {
       Accept: "application/json",
@@ -128,7 +128,7 @@ async function expectMultipartData<T>(
   body: FormData,
 ) {
   const env = getFugueEnv();
-  const response = await fetch(new URL(path, env.apiUrl), {
+  const response = await fetch(new URL(path, env.apiServerUrl), {
     method: "POST",
     headers: {
       Accept: "application/json",

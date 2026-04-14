@@ -11,9 +11,7 @@ import {
 import { Panel, PanelSection } from "@/components/ui/panel";
 import { ToastOnMount } from "@/components/ui/toast-on-mount";
 import {
-  CONSOLE_ADMIN_USERS_PAGE_ENRICHMENT_SNAPSHOT_URL,
   CONSOLE_ADMIN_USERS_PAGE_SNAPSHOT_URL,
-  type ConsoleAdminUsersPageEnrichmentSnapshot,
   type ConsoleAdminUsersPageSnapshot,
   useConsolePageSnapshot,
 } from "@/lib/console/page-snapshot-client";
@@ -24,16 +22,6 @@ export function AdminUsersPageShell() {
     useConsolePageSnapshot<ConsoleAdminUsersPageSnapshot>(
       CONSOLE_ADMIN_USERS_PAGE_SNAPSHOT_URL,
     );
-  const {
-    data: enrichmentData,
-    error: enrichmentError,
-    refresh: refreshEnrichment,
-  } = useConsolePageSnapshot<ConsoleAdminUsersPageEnrichmentSnapshot>(
-    CONSOLE_ADMIN_USERS_PAGE_ENRICHMENT_SNAPSHOT_URL,
-    {
-      enabled: Boolean(data),
-    },
-  );
 
   if (loading && !data) {
     return (
@@ -58,11 +46,8 @@ export function AdminUsersPageShell() {
     );
   }
 
-  const pageData = enrichmentData ?? data;
-  const errorDetails = [
-    ...pageData.errors,
-    enrichmentError ? `enrichment: ${enrichmentError}` : null,
-  ].filter((value): value is string => Boolean(value));
+  const pageData = data;
+  const errorDetails = [...pageData.errors];
   const errorMessage = errorDetails.length
     ? t("Partial admin data: {details}.", { details: errorDetails.join(" | ") })
     : null;
@@ -84,10 +69,7 @@ export function AdminUsersPageShell() {
         <PanelSection>
           <AdminUserManager
             onRefresh={() => {
-              void Promise.allSettled([
-                refresh({ force: true }),
-                refreshEnrichment({ force: true }),
-              ]);
+              void refresh({ force: true });
             }}
             users={pageData.users}
           />

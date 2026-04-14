@@ -1,5 +1,8 @@
 import { DeployPage } from "@/components/deploy/deploy-page";
-import { getDeployPageData } from "@/lib/deploy/page-data";
+import {
+  getCurrentDeployWorkspaceInventory,
+  getDeployPageShellData,
+} from "@/lib/deploy/page-data";
 import { buildDeployHref, readDeploySearchState } from "@/lib/deploy/query";
 
 type SearchParams =
@@ -14,13 +17,16 @@ export default async function NewRepositoryPage({
   const resolved = await Promise.resolve(searchParams);
   const search = readDeploySearchState(resolved);
   const currentPath = buildDeployHref("/new/repository", search);
-  const data = await getDeployPageData(search);
+  const data = await getDeployPageShellData(search);
 
   return (
     <DeployPage
       currentPath={currentPath}
       routeMode="repository"
       search={search}
+      workspaceInventoryPromise={
+        data.sessionPresent ? getCurrentDeployWorkspaceInventory() : null
+      }
       {...data}
     />
   );

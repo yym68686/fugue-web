@@ -266,8 +266,8 @@ export function OfflineServerOverview({
 
         return (
           <PanelSection>
-            <div className="fg-cluster-node-card__section-head">
-              <div>
+            <div className="fg-cluster-node-card__section-head fg-offline-server-overview__danger-head">
+              <div className="fg-offline-server-overview__danger-copy">
                 <p className="fg-label fg-panel__eyebrow">{t("Danger zone")}</p>
                 <PanelCopy>
                   {t(
@@ -276,7 +276,7 @@ export function OfflineServerOverview({
                 </PanelCopy>
               </div>
 
-              <div className="fg-project-actions">
+              <div className="fg-offline-server-overview__danger-actions">
                 <Button
                   disabled={Boolean(deletingRuntimeId) && !deleting}
                   loading={deleting}

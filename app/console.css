@@ -2096,6 +2096,24 @@
   gap: 0.4rem;
 }
 
+.fg-offline-server-overview__danger-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.85rem 1rem;
+}
+
+.fg-offline-server-overview__danger-copy {
+  min-width: 0;
+  max-width: 40rem;
+}
+
+.fg-offline-server-overview__danger-actions {
+  display: flex;
+  align-items: flex-start;
+  justify-self: end;
+}
+
 .fg-cluster-node-facts {
   margin: 0;
   display: grid;
@@ -3158,6 +3176,19 @@
 
   .fg-console-metric-grid {
     grid-template-columns: 1fr;
+  }
+
+  .fg-offline-server-overview__danger-head {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .fg-offline-server-overview__danger-actions {
+    width: 100%;
+    justify-self: stretch;
+  }
+
+  .fg-offline-server-overview__danger-actions .fg-button {
+    width: 100%;
   }
 
   .fg-console-table {

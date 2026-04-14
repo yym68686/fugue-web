@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+
 import { DeployCreateProjectForm } from "@/components/deploy/deploy-create-project-form";
 import { DeployRepositoryLinkField } from "@/components/deploy/deploy-repository-link-field";
 import { Button, ButtonAnchor } from "@/components/ui/button";
@@ -13,18 +15,60 @@ import {
 } from "@/components/ui/panel";
 import { ScrollableControlStrip } from "@/components/ui/scrollable-control-strip";
 import { buildReturnToHref } from "@/lib/auth/validation";
-import type { DeployPageData } from "@/lib/deploy/page-data";
+import type {
+  DeployPageShellData,
+  DeployWorkspaceInventory,
+} from "@/lib/deploy/page-data";
 import type { DeploySearchState } from "@/lib/deploy/query";
 import { buildDeployHref } from "@/lib/deploy/query";
 import { isGitHubRepoUrl } from "@/lib/github/repository";
 import { getRequestI18n } from "@/lib/i18n/server";
 
-type DeployPageProps = DeployPageData & {
+type DeployPageProps = DeployPageShellData & {
   currentPath: string;
   requestedTemplateSlug?: string | null;
   routeMode: "repository" | "template";
   search: DeploySearchState;
+  workspaceInventoryPromise?: Promise<DeployWorkspaceInventory> | null;
 };
+
+async function DeployWorkspaceInventorySection({
+  currentPath,
+  inspection,
+  inspectionError,
+  requestedTemplateSlug,
+  routeMode,
+  search,
+  workspaceInventoryPromise,
+}: {
+  currentPath: string;
+  inspection: DeployPageShellData["inspection"];
+  inspectionError: DeployPageShellData["inspectionError"];
+  requestedTemplateSlug?: string | null;
+  routeMode: "repository" | "template";
+  search: DeploySearchState;
+  workspaceInventoryPromise: Promise<DeployWorkspaceInventory>;
+}) {
+  const workspaceInventory = await workspaceInventoryPromise;
+
+  if (workspaceInventory.workspaceError) {
+    return <InlineAlert variant="error">{workspaceInventory.workspaceError}</InlineAlert>;
+  }
+
+  return (
+    <DeployCreateProjectForm
+      currentPath={currentPath}
+      initialInspection={inspection}
+      initialInspectionError={inspectionError}
+      projects={workspaceInventory.projects}
+      requestedTemplateSlug={requestedTemplateSlug}
+      routeMode={routeMode}
+      runtimeTargetInventoryError={workspaceInventory.runtimeTargetInventoryError}
+      runtimeTargets={workspaceInventory.runtimeTargets}
+      search={search}
+    />
+  );
+}
 
 export async function DeployPage({
   currentPath,
@@ -34,7 +78,7 @@ export async function DeployPage({
   routeMode,
   search,
   sessionPresent,
-  workspaceInventory,
+  workspaceInventoryPromise = null,
 }: DeployPageProps) {
   const { t } = await getRequestI18n();
   const effectiveSourceMode =
@@ -135,25 +179,25 @@ export async function DeployPage({
                 {sourceModeSwitch}
 
                 {sessionPresent ? (
-                  workspaceInventory.workspaceError ? (
-                    <InlineAlert variant="error">
-                      {t(workspaceInventory.workspaceError)}
-                    </InlineAlert>
-                  ) : (
-                    <DeployCreateProjectForm
-                      currentPath={currentPath}
-                      initialInspection={inspection}
-                      initialInspectionError={inspectionError}
-                      projects={workspaceInventory.projects}
-                      requestedTemplateSlug={requestedTemplateSlug}
-                      routeMode={routeMode}
-                      runtimeTargetInventoryError={
-                        workspaceInventory.runtimeTargetInventoryError
+                  workspaceInventoryPromise ? (
+                    <Suspense
+                      fallback={
+                        <PanelCopy aria-live="polite">
+                          {t("Loading workspace inventory.")}
+                        </PanelCopy>
                       }
-                      runtimeTargets={workspaceInventory.runtimeTargets}
-                      search={search}
-                    />
-                  )
+                    >
+                      <DeployWorkspaceInventorySection
+                        currentPath={currentPath}
+                        inspection={inspection}
+                        inspectionError={inspectionError}
+                        requestedTemplateSlug={requestedTemplateSlug}
+                        routeMode={routeMode}
+                        search={search}
+                        workspaceInventoryPromise={workspaceInventoryPromise}
+                      />
+                    </Suspense>
+                  ) : null
                 ) : isLocalUploadMode ? (
                   <>
                     <InlineAlert variant="info">

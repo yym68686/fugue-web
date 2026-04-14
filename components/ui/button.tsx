@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from "react";
+import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ComponentProps, ReactNode } from "react";
 
 import { cx } from "@/lib/ui/cx";
 
@@ -24,6 +24,10 @@ type ButtonProps = SharedProps &
     loadingLabel?: ReactNode;
   };
 type ButtonLinkProps = SharedProps &
+  Omit<ComponentProps<typeof Link>, "children" | "className" | "href"> & {
+    href: ComponentProps<typeof Link>["href"];
+  };
+type ButtonAnchorProps = SharedProps &
   Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "href"> & {
     href: string;
   };
@@ -139,6 +143,7 @@ export function ButtonLink(props: ButtonLinkProps) {
     icon,
     iconPlacement,
     iconStyle,
+    prefetch = false,
     size = "default",
     variant = "secondary",
     ...rest
@@ -158,7 +163,7 @@ export function ButtonLink(props: ButtonLinkProps) {
       : null;
 
   return (
-    <Link {...rest} className={classes} href={href}>
+    <Link {...rest} className={classes} href={href} prefetch={prefetch}>
       {leadingIcon}
       <span className="fg-button__label">{children}</span>
       {trailingIcon}
@@ -166,7 +171,7 @@ export function ButtonLink(props: ButtonLinkProps) {
   );
 }
 
-export function ButtonAnchor(props: ButtonLinkProps) {
+export function ButtonAnchor(props: ButtonAnchorProps) {
   const {
     children,
     className,

@@ -131,7 +131,7 @@ export async function proxyFugueEventStream({
   signal,
 }: ProxyFugueEventStreamOptions) {
   const env = getFugueEnv();
-  const url = new URL(path, env.apiUrl);
+  const url = new URL(path, env.apiServerUrl);
   const upstream = await fetch(url, {
     cache: "no-store",
     headers: {

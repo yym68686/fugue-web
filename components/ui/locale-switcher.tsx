@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useId, useRef, useState, useTransition } from "react";
 import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 
@@ -46,20 +46,8 @@ function buildOptionLabel(label: string, shortLabel: string): ReactNode {
   );
 }
 
-function readPreferenceShortLabel(preference: LocalePreference, autoLabel: string) {
-  if (preference === "auto") {
-    return autoLabel;
-  }
-
-  return EXPLICIT_LOCALE_LABELS[preference].shortLabel;
-}
-
-function readPreferenceLongLabel(preference: LocalePreference, autoLabel: string) {
-  if (preference === "auto") {
-    return autoLabel;
-  }
-
-  return EXPLICIT_LOCALE_LABELS[preference].label;
+function readLocaleLabel(locale: Locale) {
+  return EXPLICIT_LOCALE_LABELS[locale].label;
 }
 
 function writeLocalePreference(preference: LocalePreference) {
@@ -74,7 +62,7 @@ function writeLocalePreference(preference: LocalePreference) {
 }
 
 function useLocalePreferenceControl() {
-  const { localePreference, t } = useI18n();
+  const { locale, localePreference, t } = useI18n();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [optimisticPreference, setOptimisticPreference] = useState<LocalePreference>(localePreference);
@@ -84,6 +72,10 @@ function useLocalePreferenceControl() {
   }, [localePreference]);
 
   const autoLabel = t("Auto");
+  const effectiveLocale = optimisticPreference === "auto" ? locale : optimisticPreference;
+  const triggerLabel = readLocaleLabel(effectiveLocale);
+  const triggerTitle =
+    optimisticPreference === "auto" ? `${triggerLabel} (${autoLabel})` : triggerLabel;
   const options: readonly SegmentedControlOption<LocalePreference>[] = [
     {
       disabled: isPending,
@@ -98,7 +90,6 @@ function useLocalePreferenceControl() {
   ];
 
   return {
-    autoLabel,
     isPending,
     preference: optimisticPreference,
     setPreference(nextPreference: LocalePreference) {
@@ -115,8 +106,9 @@ function useLocalePreferenceControl() {
       return true;
     },
     t,
-    triggerLabel: readPreferenceShortLabel(optimisticPreference, autoLabel),
-    triggerTitle: readPreferenceLongLabel(optimisticPreference, autoLabel),
+    triggerAriaLabel: `${t("Interface language")}: ${triggerTitle}`,
+    triggerLabel,
+    triggerTitle,
     options,
   };
 }
@@ -181,6 +173,7 @@ export function LocaleMenuButton({ className }: { className?: string }) {
   const control = useLocalePreferenceControl();
   const detailsRef = useRef<HTMLDetailsElement | null>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
+  const panelId = useId();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -244,20 +237,30 @@ export function LocaleMenuButton({ className }: { className?: string }) {
       ref={detailsRef}
     >
       <summary
+        aria-controls={panelId}
         aria-expanded={open}
-        aria-label={control.t("Interface language")}
+        aria-label={control.triggerAriaLabel}
         className="fg-button fg-button--secondary fg-button--compact fg-locale-menu__trigger"
         ref={triggerRef}
       >
         <span className="fg-button__label" title={control.triggerTitle}>
           {control.triggerLabel}
         </span>
-        <span aria-hidden="true" className="fg-button__icon is-plain is-trailing fg-locale-menu__caret">
-          v
+        <span aria-hidden="true" className="fg-button__icon is-island fg-locale-menu__caret">
+          <svg className="fg-locale-menu__caret-icon" viewBox="0 0 12 12">
+            <path
+              d="M3 4.5L6 7.5L9 4.5"
+              fill="none"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="1.35"
+            />
+          </svg>
         </span>
       </summary>
 
-      <div className="fg-locale-menu__panel">
+      <div className="fg-locale-menu__panel" id={panelId}>
         <p className="fg-locale-menu__title fg-mono">{control.t("Interface language")}</p>
         <LocaleSwitcherControl
           className="fg-locale-menu__switcher"

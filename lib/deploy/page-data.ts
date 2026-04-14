@@ -43,6 +43,8 @@ export type DeployPageData = {
   workspaceInventory: DeployWorkspaceInventory;
 };
 
+export type DeployPageShellData = Omit<DeployPageData, "workspaceInventory">;
+
 function readErrorMessage(error: unknown) {
   if (!(error instanceof Error) || !error.message.trim()) {
     return "Request failed.";
@@ -196,6 +198,26 @@ async function loadWorkspaceInventory(
       workspaceError: readErrorMessage(error),
     };
   }
+}
+
+export async function getCurrentDeployWorkspaceInventory() {
+  const session = await getCurrentSession();
+  const locale = await getRequestLocale();
+
+  return loadWorkspaceInventory(session, locale);
+}
+
+export async function getDeployPageShellData(
+  search: DeploySearchState,
+): Promise<DeployPageShellData> {
+  const session = await getCurrentSession();
+  const inspectionState = await loadInspection(search, session);
+
+  return {
+    inspection: inspectionState.inspection,
+    inspectionError: inspectionState.inspectionError,
+    sessionPresent: Boolean(session),
+  };
 }
 
 export async function getDeployPageData(
