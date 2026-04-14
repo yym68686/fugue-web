@@ -4,6 +4,7 @@ import {
   getAdminAppsPageData,
   getAdminAppsUsageData,
   getAdminClusterPageData,
+  getAdminUsersPageEnrichmentData,
   getAdminUsersUsageData,
 } from "@/lib/admin/service";
 import { getFugueEnv } from "@/lib/fugue/env";
@@ -24,6 +25,7 @@ async function warmFugueApi() {
     "/v1/apps?include_resource_usage=false&include_live_status=false",
     "/v1/apps?include_resource_usage=true&include_live_status=false",
     "/v1/cluster/nodes?sync_locations=false",
+    "/v1/runtimes?sync_locations=false",
     "/v1/console/gallery",
   ];
 
@@ -73,6 +75,7 @@ async function warmCriticalSnapshots() {
     getAdminAppsPageData(),
     getAdminAppsUsageData(),
     getAdminClusterPageData(),
+    getAdminUsersPageEnrichmentData(),
     getAdminUsersUsageData(),
   ]);
 }

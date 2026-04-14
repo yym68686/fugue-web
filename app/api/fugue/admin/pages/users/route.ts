@@ -1,7 +1,11 @@
 import { after, NextResponse } from "next/server";
 
 import { requireAdminApiSession } from "@/lib/admin/auth";
-import { getAdminUsersPageData, getAdminUsersUsageData } from "@/lib/admin/service";
+import {
+  getAdminUsersPageData,
+  getAdminUsersPageEnrichmentData,
+  getAdminUsersUsageData,
+} from "@/lib/admin/service";
 import {
   jsonError,
   readErrorMessage,
@@ -35,10 +39,20 @@ export async function GET(request: Request) {
     }
 
     after(async () => {
-      try {
-        await getAdminUsersUsageData();
-      } catch (error) {
-        console.error("Admin users usage background sync failed.", error);
+      const results = await Promise.allSettled([
+        getAdminUsersUsageData(),
+        getAdminUsersPageEnrichmentData(),
+      ]);
+
+      if (results[0].status === "rejected") {
+        console.error("Admin users usage background sync failed.", results[0].reason);
+      }
+
+      if (results[1].status === "rejected") {
+        console.error(
+          "Admin users enrichment background sync failed.",
+          results[1].reason,
+        );
       }
     });
 
