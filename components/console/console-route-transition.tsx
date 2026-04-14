@@ -17,6 +17,7 @@ type PendingRouteTransition = {
 
 type ConsoleRouteTransitionContextValue = {
   beginRouteTransition: (href: string, label: string) => void;
+  displayPathname: string;
   pendingRouteTransition: PendingRouteTransition;
 };
 
@@ -31,6 +32,10 @@ export function ConsoleRouteTransitionProvider({
   const pathname = usePathname();
   const [pendingRouteTransition, setPendingRouteTransition] =
     useState<PendingRouteTransition>(null);
+  const displayPathname =
+    pendingRouteTransition && pathname === pendingRouteTransition.fromPathname
+      ? pendingRouteTransition.href
+      : pathname;
 
   useEffect(() => {
     if (
@@ -45,7 +50,7 @@ export function ConsoleRouteTransitionProvider({
     <ConsoleRouteTransitionContext.Provider
       value={{
         beginRouteTransition: (href, label) => {
-          if (isConsoleNavHrefActive(pathname, href)) {
+          if (isConsoleNavHrefActive(displayPathname, href)) {
             return;
           }
 
@@ -55,6 +60,7 @@ export function ConsoleRouteTransitionProvider({
             label,
           });
         },
+        displayPathname,
         pendingRouteTransition,
       }}
     >

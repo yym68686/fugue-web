@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo } from "react";
-import { usePathname } from "next/navigation";
 
 import { useConsoleRouteTransition } from "@/components/console/console-route-transition";
 import { useI18n } from "@/components/providers/i18n-provider";
@@ -11,8 +10,7 @@ import { getConsoleNavGroups, isConsoleNavHrefActive } from "@/lib/console/nav";
 
 export function ConsoleNav({ isAdmin = false }: { isAdmin?: boolean }) {
   const { locale, t } = useI18n();
-  const pathname = usePathname();
-  const { beginRouteTransition } = useConsoleRouteTransition();
+  const { beginRouteTransition, displayPathname } = useConsoleRouteTransition();
   const items = useMemo(
     () => getConsoleNavGroups({ isAdmin, locale }).flatMap((group) => group.items),
     [isAdmin, locale],
@@ -24,11 +22,11 @@ export function ConsoleNav({ isAdmin = false }: { isAdmin?: boolean }) {
       className="fg-console-nav-shell"
       variant="pill"
       viewportClassName="fg-console-nav__viewport"
-      watchKey={pathname}
+      watchKey={displayPathname}
     >
       <PillNav ariaLabel={t("Console")} className="fg-console-nav">
         {items.map((item) => {
-          const active = isConsoleNavHrefActive(pathname, item.href);
+          const active = isConsoleNavHrefActive(displayPathname, item.href);
 
           return (
             <PillNavLink

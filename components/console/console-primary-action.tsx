@@ -1,7 +1,6 @@
 "use client";
 
-import { usePathname } from "next/navigation";
-
+import { useConsoleRouteTransition } from "@/components/console/console-route-transition";
 import { useI18n } from "@/components/providers/i18n-provider";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { dispatchOpenCreateProjectDialogEvent } from "@/lib/console/dialog-events";
@@ -9,9 +8,9 @@ import { dispatchOpenCreateProjectDialogEvent } from "@/lib/console/dialog-event
 export function ConsolePrimaryAction({ hasProjects }: { hasProjects: boolean }) {
   const { t } = useI18n();
   const className = "fg-console-topbar__primary-action";
-  const pathname = usePathname();
+  const { displayPathname } = useConsoleRouteTransition();
 
-  if (pathname === "/app") {
+  if (displayPathname === "/app") {
     return (
       <Button
         className={className}
