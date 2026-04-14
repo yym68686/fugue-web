@@ -9,7 +9,9 @@ const STREAM_CACHE_CONTROL_DIRECTIVES = [
   "must-revalidate",
   "no-transform",
 ] as const;
-const STREAM_PADDING_BYTES = 8 * 1024;
+// Cloud and ingress buffers can hold small SSE preambles. Use a larger
+// padding chunk so the first event flushes promptly on streamed log panels.
+const STREAM_PADDING_BYTES = 64 * 1024;
 const STREAM_PADDING_CHUNK = new TextEncoder().encode(
   `: ${" ".repeat(STREAM_PADDING_BYTES - 4)}\n\n`,
 );

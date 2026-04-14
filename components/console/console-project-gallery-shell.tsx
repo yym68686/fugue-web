@@ -145,6 +145,7 @@ type GalleryStreamPayload = {
 };
 
 const PROJECT_IMAGE_USAGE_CACHE_TTL_MS = 60_000;
+const PROJECT_IMAGE_USAGE_IDLE_WARMUP_MS = 12_000;
 const PROJECT_USAGE_SNAPSHOT_TTL_MS = 300_000;
 
 type ProjectUsageSnapshotResponse = {
@@ -1858,36 +1859,54 @@ export function ConsoleProjectGallery({
       return undefined;
     }
 
-    if (!selectedProjectId) {
-      return undefined;
+    return undefined;
+  }, [projectImageUsageKey]);
+
+  const warmProjectImageUsage = useEffectEvent(async (signal: AbortSignal) => {
+    if (!projectImageUsageKey || selectedProjectId) {
+      return;
     }
 
-    const controller = new AbortController();
+    const cachedProjects = readCachedProjectImageUsage();
 
-    fetchCachedProjectImageUsage(
-      {
-        signal: controller.signal,
-      },
-      t,
-    )
-      .then((projects) => {
-        if (controller.signal.aborted) {
-          return;
-        }
+    if (cachedProjects) {
+      startTransition(() => {
+        setProjectImageUsageByProjectId(buildProjectImageUsageMap(cachedProjects));
+      });
+      return;
+    }
 
+    try {
+      const projects = await fetchCachedProjectImageUsage(
+        {
+          signal,
+        },
+        t,
+      );
+
+      if (signal.aborted) {
+        return;
+      }
+
+      startTransition(() => {
         setProjectImageUsageByProjectId(buildProjectImageUsageMap(projects));
-      })
-      .catch(() => {
-        if (controller.signal.aborted) {
-          return;
-        }
-      })
-      .finally(() => undefined);
+      });
+    } catch {
+      if (signal.aborted) {
+        return;
+      }
+    }
+  });
 
-    return () => {
-      controller.abort();
-    };
-  }, [projectImageUsageKey, selectedProjectId, t]);
+  useAnticipatoryWarmup(
+    projectImageUsageKey ? warmProjectImageUsage : null,
+    [projectImageUsageKey, selectedProjectId],
+    {
+      enabled: !selectedProjectId,
+      mode: "idle",
+      timeoutMs: PROJECT_IMAGE_USAGE_IDLE_WARMUP_MS,
+    },
+  );
 
   useEffect(() => {
     let cancelled = false;

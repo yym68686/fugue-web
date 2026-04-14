@@ -6084,11 +6084,15 @@ function ConsoleProjectWorkbenchImpl({
     const forceRefresh = lastRefreshTokenRef.current !== refreshToken;
     lastRefreshTokenRef.current = refreshToken;
 
+    if (!forceRefresh && initialDetail) {
+      return;
+    }
+
     void refreshDetail({
       force: forceRefresh,
-      silent: Boolean(detail?.project ?? initialDetail),
+      silent: Boolean(initialDetail),
     });
-  }, [project.id, refreshDetail, refreshToken]);
+  }, [initialDetail, project.id, refreshDetail, refreshToken]);
 
   useEffect(() => {
     return () => {
