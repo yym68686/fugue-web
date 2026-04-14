@@ -766,13 +766,22 @@ export function AppCustomDomainsPanel({
     setSubmissionError(null);
   }
 
+  // `refreshDomains` is an effect event; changing apps is the actual reload trigger.
   useEffect(() => {
     domainsRefreshAbortRef.current?.abort();
     domainsRefreshAbortRef.current = null;
     domainsRefreshPendingRef.current = false;
+    setDomains([]);
+    setDraft("");
+    setBaselineHostname("");
+    setAvailability(null);
+    setAvailabilityError(null);
+    setAvailabilityState("idle");
+    setSubmissionError(null);
+    setDomainsState("loading");
 
     void refreshDomains({ syncDraft: true });
-  }, [appId, refreshDomains]);
+  }, [appId]);
 
   useEffect(() => {
     return () => {
@@ -873,7 +882,6 @@ export function AppCustomDomainsPanel({
     domainsState,
     isDirty,
     normalizedBaseline,
-    refreshDomains,
     submitting,
   ]);
 
