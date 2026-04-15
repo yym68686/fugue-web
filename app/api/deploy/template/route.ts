@@ -3,6 +3,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 
 import { getCurrentSession } from "@/lib/auth/session";
+import { resolveDeployAppName } from "@/lib/deploy/app-name";
 import type { FugueGitHubTemplateInspection } from "@/lib/fugue/api";
 import { importFugueGitHubApp, inspectGitHubTemplate } from "@/lib/fugue/api";
 import { getFugueEnv } from "@/lib/fugue/env";
@@ -320,6 +321,16 @@ export async function POST(request: Request) {
       }
     }
 
+    const resolvedAppName = resolveDeployAppName(
+      [
+        name,
+        inspection.repository.defaultAppName,
+        inspection.repository.repoName,
+      ],
+      {
+        fallbackSeeds: [repoUrl, inspection.repository.repoName],
+      },
+    );
     const createProject = !projectId && projectMode === "create";
     const requestedProjectId = createProject
       ? ""
@@ -381,9 +392,9 @@ export async function POST(request: Request) {
             buildStrategy: buildStrategy || undefined,
             dockerfilePath: dockerfilePath || undefined,
             sourceDir: sourceDir || undefined,
-          }),
+        }),
       env,
-      name: name || undefined,
+      name: resolvedAppName,
       persistentStorage,
       persistentStorageSeedFiles:
         persistentStorageSeedFiles.length > 0

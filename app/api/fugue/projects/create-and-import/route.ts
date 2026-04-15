@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 
 import { getCurrentSession } from "@/lib/auth/session";
 import {
+  readImageAppNameCandidate,
+  readRepositoryAppNameCandidate,
+  resolveDeployAppName,
+} from "@/lib/deploy/app-name";
+import {
   isObject,
   jsonError,
   readErrorMessage,
@@ -242,6 +247,20 @@ export async function POST(request: Request) {
             repoVisibility: resolvedRepoVisibility,
           })
         : null;
+    const resolvedAppName =
+      sourceMode === "github"
+        ? resolveDeployAppName(
+            [name, readRepositoryAppNameCandidate(repoUrl)],
+            {
+              fallbackSeeds: [repoUrl],
+            },
+          )
+        : resolveDeployAppName(
+            [name, readImageAppNameCandidate(imageRef)],
+            {
+              fallbackSeeds: [imageRef],
+            },
+          );
     const createProject = !requestedProjectId && projectMode === "create";
 
     if (
@@ -293,7 +312,7 @@ export async function POST(request: Request) {
             buildContextDir: buildContextDir || undefined,
             dockerfilePath: dockerfilePath || undefined,
             ...(Object.keys(env).length > 0 ? { env } : {}),
-            name: name || undefined,
+            name: resolvedAppName,
             persistentStorage,
             persistentStorageSeedFiles:
               persistentStorageSeedFiles.length > 0
@@ -313,7 +332,7 @@ export async function POST(request: Request) {
         : await importFugueDockerImageApp(workspace.adminKeySecret, {
             ...(Object.keys(env).length > 0 ? { env } : {}),
             imageRef,
-            name: name || undefined,
+            name: resolvedAppName,
             persistentStorage,
             runtimeId: runtimeId || undefined,
             networkMode:

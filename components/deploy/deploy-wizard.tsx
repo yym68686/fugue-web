@@ -25,6 +25,10 @@ import {
   buildRawEnvFeedback,
   serializeEnvRecord,
 } from "@/lib/console/raw-env";
+import {
+  readRepositoryAppNameCandidate,
+  resolveDeployAppName,
+} from "@/lib/deploy/app-name";
 import { pluralize, summarizeInspectManifest } from "@/lib/deploy/topology-display";
 import { readDefaultImportRuntimeId } from "@/lib/console/runtime-targets";
 import type {
@@ -291,6 +295,15 @@ export function DeployWizard({
     templateVariables.length > 0
       ? `${pluralize(templateVariables.length, "variable")} before first deploy`
       : null;
+  const appNamePlaceholder = resolveDeployAppName(
+    [
+      inspection?.repository.defaultAppName,
+      readRepositoryAppNameCandidate(repositoryUrl),
+    ],
+    {
+      fallbackSeeds: [repositoryUrl, inspection?.repository.repoName],
+    },
+  );
   const environmentSummaryCopy = !envFeedback.valid
     ? envFeedback.message
     : Object.keys(envFeedback.env).length > 0
@@ -751,9 +764,7 @@ export function DeployWizard({
                 className="fg-input"
                 id="deploy-name"
                 onChange={(event) => setName(event.target.value)}
-                placeholder={
-                  inspection?.repository.defaultAppName ?? "marketing-site"
-                }
+                placeholder={appNamePlaceholder}
                 value={name}
               />
             </FormField>

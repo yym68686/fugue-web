@@ -5,34 +5,32 @@ import { useEffect, useId, useRef, useState } from "react";
 import { useI18n } from "@/components/providers/i18n-provider";
 import { useTheme } from "@/components/providers/theme-provider";
 import { SegmentedControl, type SegmentedControlOption } from "@/components/ui/segmented-control";
-import type { ThemePreference } from "@/lib/theme";
+import type { Theme, ThemePreference } from "@/lib/theme";
 import { cx } from "@/lib/ui/cx";
 
 type ThemeSwitcherVariant = "segmented" | "pill";
 
 const THEME_OPTIONS = ["auto", "light", "dark"] as const;
 
-function readThemeLabel(preference: ThemePreference, t: (key: string) => string) {
-  if (preference === "light") {
+function readThemeLabel(theme: Theme, t: (key: string) => string) {
+  if (theme === "light") {
     return t("Light");
   }
 
-  if (preference === "dark") {
-    return t("Dark");
-  }
-
-  return t("Auto");
+  return t("Dark");
 }
 
 function useThemePreferenceControl() {
-  const { preference, setPreference } = useTheme();
+  const { preference, resolvedTheme, setPreference } = useTheme();
   const { t } = useI18n();
+  const autoLabel = t("Auto");
+  const effectiveTheme = preference === "auto" ? resolvedTheme : preference;
+  const triggerLabel = readThemeLabel(effectiveTheme, t);
+  const triggerTitle = preference === "auto" ? `${triggerLabel} (${autoLabel})` : triggerLabel;
   const options: readonly SegmentedControlOption<ThemePreference>[] =
     THEME_OPTIONS.map((value) => ({
       label:
-        value === "auto"
-          ? t("Auto")
-          : t(value === "light" ? "Light" : "Dark"),
+        value === "auto" ? autoLabel : t(value === "light" ? "Light" : "Dark"),
       value,
     }));
 
@@ -41,7 +39,8 @@ function useThemePreferenceControl() {
     preference,
     setPreference,
     t,
-    triggerAriaLabel: `${t("Theme")}: ${readThemeLabel(preference, t)}`,
+    triggerAriaLabel: `${t("Theme")}: ${triggerTitle}`,
+    triggerLabel,
   };
 }
 
@@ -182,7 +181,6 @@ export function ThemeSwitcher({
 export function ThemeUtilityMenu({ className }: { className?: string }) {
   const control = useThemePreferenceControl();
   const disclosure = useMenuDisclosure();
-  const currentLabel = readThemeLabel(control.preference, control.t);
 
   return (
     <details
@@ -198,7 +196,7 @@ export function ThemeUtilityMenu({ className }: { className?: string }) {
         className="fg-locale-utility__trigger"
         ref={disclosure.triggerRef}
       >
-        <span className="fg-locale-utility__value">{currentLabel}</span>
+        <span className="fg-locale-utility__value">{control.triggerLabel}</span>
         <span aria-hidden="true" className="fg-locale-utility__chevron">
           <svg viewBox="0 0 12 12">
             <path
@@ -251,7 +249,6 @@ export function ThemeUtilityMenu({ className }: { className?: string }) {
 export function ThemeMenuButton({ className }: { className?: string }) {
   const control = useThemePreferenceControl();
   const disclosure = useMenuDisclosure();
-  const currentLabel = readThemeLabel(control.preference, control.t);
 
   return (
     <details
@@ -267,7 +264,7 @@ export function ThemeMenuButton({ className }: { className?: string }) {
         className="fg-button fg-button--secondary fg-button--compact fg-locale-menu__trigger"
         ref={disclosure.triggerRef}
       >
-        <span className="fg-button__label">{currentLabel}</span>
+        <span className="fg-button__label">{control.triggerLabel}</span>
       </summary>
 
       <div className="fg-locale-menu__panel" id={disclosure.panelId}>

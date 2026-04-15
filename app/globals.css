@@ -155,10 +155,10 @@ canvas {
   gap: 0.72rem;
   align-items: start;
   padding: 0.36rem;
-  border: 1px solid rgba(var(--fg-toast-accent), 0.24);
+  border: 1px solid rgb(var(--fg-toast-accent) / 0.24);
   border-radius: 1.3rem;
   background:
-    linear-gradient(180deg, rgba(var(--fg-toast-accent), 0.08), transparent 42%),
+    linear-gradient(180deg, rgb(var(--fg-toast-accent) / 0.08), transparent 42%),
     var(--fugue-popover-bg);
   box-shadow:
     var(--fugue-popover-shadow),
@@ -188,7 +188,7 @@ canvas {
   border: 0;
   border-radius: 0.98rem;
   background:
-    radial-gradient(circle at 92% 0%, rgba(var(--fg-toast-accent), 0.18), transparent 46%),
+    radial-gradient(circle at 92% 0%, rgb(var(--fg-toast-accent) / 0.18), transparent 46%),
     var(--fugue-floating-chip-bg);
   color: inherit;
   text-align: left;
@@ -226,7 +226,7 @@ canvas {
   border-radius: 999px;
   flex: 0 0 0.58rem;
   background: rgb(var(--fg-toast-accent));
-  box-shadow: 0 0 0 0.34rem rgba(var(--fg-toast-accent), 0.12);
+  box-shadow: 0 0 0 0.34rem rgb(var(--fg-toast-accent) / 0.12);
 }
 
 .fg-toast__eyebrow strong {
@@ -236,7 +236,7 @@ canvas {
 
 .fg-toast__stack-label {
   margin-left: auto;
-  color: rgba(var(--fg-toast-accent), 0.9);
+  color: rgb(var(--fg-toast-accent) / 0.9);
   font-family: var(--fugue-font-mono);
   font-size: 0.62rem;
   letter-spacing: 0.1em;
@@ -267,7 +267,7 @@ canvas {
   padding: 0.42rem 0.62rem;
   border: 0;
   background: transparent;
-  color: rgba(var(--fg-toast-accent), 0.82);
+  color: rgb(var(--fg-toast-accent) / 0.82);
   font-family: var(--fugue-font-mono);
   font-size: 0.62rem;
   letter-spacing: 0.1em;
@@ -284,7 +284,7 @@ canvas {
 .fg-toast__action:hover,
 .fg-toast__action:focus-visible {
   color: rgb(var(--fg-toast-accent));
-  background: rgba(var(--fg-toast-accent), 0.08);
+  background: rgb(var(--fg-toast-accent) / 0.08);
   transform: translateY(-1px);
 }
 

@@ -6056,12 +6056,6 @@ function ConsoleProjectWorkbenchImpl({
         preferredProjectService ??
         null)
       : null;
-  const lastViewedService =
-    detailProjectServices.find(
-      (service) => serviceKey(service) === selectedServiceKey,
-    ) ??
-    preferredProjectService ??
-    null;
   const selectedServiceApp =
     selectedService?.kind === "app" ? selectedService : null;
   const selectedServiceAppId = selectedServiceApp?.id ?? null;
@@ -6757,7 +6751,7 @@ function ConsoleProjectWorkbenchImpl({
           : t("{name} is empty and will be removed from the workspace.", {
               name: detailProject.name,
             }),
-      eyebrow: t("Project settings"),
+      eyebrow: t("Settings"),
       textConfirmation: {
         hint: (
           <>
@@ -7105,6 +7099,32 @@ function ConsoleProjectWorkbenchImpl({
   const showProjectSettings =
     selectedWorkbenchScope === "project-settings" ||
     detailProjectServices.length === 0;
+  const projectRailHead = (
+    <PanelSection className="fg-project-services__head">
+      <div className="fg-project-services__title-row">
+        <p className="fg-label fg-panel__eyebrow">{t("Services")}</p>
+        <div className="fg-project-actions">
+          <Button
+            onClick={openProjectSettings}
+            size="compact"
+            type="button"
+            variant="secondary"
+          >
+            {t("Settings")}
+          </Button>
+          <Button
+            disabled={projectDeleting}
+            onClick={() => onRequestCreateService(projectActionTarget)}
+            size="compact"
+            type="button"
+            variant="primary"
+          >
+            {t("Add service")}
+          </Button>
+        </div>
+      </div>
+    </PanelSection>
+  );
 
   if (showProjectSettings) {
     const projectDeleteLabel =
@@ -7132,20 +7152,7 @@ function ConsoleProjectWorkbenchImpl({
         <section className="fg-bezel fg-panel fg-project-workbench">
           <div className="fg-bezel__inner fg-project-workbench__inner">
             <aside className="fg-project-services fg-project-services--rail fg-project-workbench__rail">
-              <PanelSection className="fg-project-services__head">
-                <div className="fg-project-services__title-row">
-                  <p className="fg-label fg-panel__eyebrow">{t("Services")}</p>
-                  <Button
-                    disabled={projectDeleting}
-                    onClick={() => onRequestCreateService(projectActionTarget)}
-                    size="compact"
-                    type="button"
-                    variant="primary"
-                  >
-                    {t("Add service")}
-                  </Button>
-                </div>
-              </PanelSection>
+              {projectRailHead}
 
               <PanelSection>
                 {detailProject.services.length ? (
@@ -7160,13 +7167,13 @@ function ConsoleProjectWorkbenchImpl({
                       const cardSecondaryLines =
                         service.kind === "app"
                           ? [
-                              readAppServiceRoleLabel(service),
+                              readAppServiceRoleLabel(service, t),
                               readDistinctText(service.sourceMeta, [
                                 service.name,
                               ]),
                             ].filter((value): value is string => Boolean(value))
                           : [
-                              readBackingServiceRoleLabel(service),
+                              readBackingServiceRoleLabel(service, t),
                               readDistinctText(service.ownerAppLabel, [
                                 service.name,
                               ]),
@@ -7256,7 +7263,7 @@ function ConsoleProjectWorkbenchImpl({
               <PanelSection className="fg-project-inspector__head">
                 <div className="fg-project-inspector__header-row">
                   <div className="fg-project-inspector__hero">
-                    <p className="fg-label">{t("Project settings")}</p>
+                    <p className="fg-label">{t("Settings")}</p>
                     <PanelTitle>{detailProject.name}</PanelTitle>
                     <PanelCopy className="fg-project-inspector__copy">
                       {projectSettingsCopy}
@@ -7294,50 +7301,17 @@ function ConsoleProjectWorkbenchImpl({
                 </div>
               </PanelSection>
 
-              <PanelSection className="fg-project-inspector__controls">
-                <div className="fg-project-toolbar">
-                  <div className="fg-project-toolbar__group">
-                    <p className="fg-label fg-project-toolbar__label">
-                      {t("Actions")}
-                    </p>
-                    <div className="fg-project-actions">
-                      {lastViewedService ? (
-                        <Button
-                          onClick={() => chooseService(lastViewedService)}
-                          size="compact"
-                          type="button"
-                          variant="secondary"
-                        >
-                          {t("Back to service")}
-                        </Button>
-                      ) : null}
-                      <Button
-                        disabled={projectDeleting}
-                        onClick={() =>
-                          onRequestCreateService(projectActionTarget)
-                        }
-                        size="compact"
-                        type="button"
-                        variant="primary"
-                      >
-                        {t("Add service")}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </PanelSection>
-
               <PanelSection className="fg-project-pane">
                 <div className="fg-workbench-section fg-settings-panel">
                   <div className="fg-workbench-section__copy fg-settings-panel__copy">
                     <HintInline
-                      ariaLabel={t("Project settings")}
+                      ariaLabel={t("Settings")}
                       hint={t(
                         "Project-level actions live here so naming and deletion stay scoped to the whole project.",
                       )}
                     >
                       <p className="fg-label fg-panel__eyebrow">
-                        {t("Project settings")}
+                        {t("Settings")}
                       </p>
                     </HintInline>
                   </div>
@@ -7691,20 +7665,7 @@ function ConsoleProjectWorkbenchImpl({
       <section className="fg-bezel fg-panel fg-project-workbench">
         <div className="fg-bezel__inner fg-project-workbench__inner">
           <aside className="fg-project-services fg-project-services--rail fg-project-workbench__rail">
-            <PanelSection className="fg-project-services__head">
-              <div className="fg-project-services__title-row">
-                <p className="fg-label fg-panel__eyebrow">{t("Services")}</p>
-                <Button
-                  disabled={projectDeleting}
-                  onClick={() => onRequestCreateService(projectActionTarget)}
-                  size="compact"
-                  type="button"
-                  variant="primary"
-                >
-                  {t("Add service")}
-                </Button>
-              </div>
-            </PanelSection>
+            {projectRailHead}
 
             <PanelSection>
               <ul className="fg-project-service-list">
@@ -7720,11 +7681,11 @@ function ConsoleProjectWorkbenchImpl({
                   const cardSecondaryLines =
                     service.kind === "app"
                       ? [
-                          readAppServiceRoleLabel(service),
+                          readAppServiceRoleLabel(service, t),
                           readDistinctText(service.sourceMeta, [service.name]),
                         ].filter((value): value is string => Boolean(value))
                       : [
-                          readBackingServiceRoleLabel(service),
+                          readBackingServiceRoleLabel(service, t),
                           readDistinctText(service.ownerAppLabel, [
                             service.name,
                           ]),
@@ -7935,22 +7896,6 @@ function ConsoleProjectWorkbenchImpl({
 
             <PanelSection className="fg-project-inspector__controls">
               <div className="fg-project-toolbar">
-                <div className="fg-project-toolbar__group">
-                  <p className="fg-label fg-project-toolbar__label">
-                    {t("Project")}
-                  </p>
-                  <div className="fg-project-actions">
-                    <Button
-                      onClick={openProjectSettings}
-                      size="compact"
-                      type="button"
-                      variant="secondary"
-                    >
-                      {t("Project settings")}
-                    </Button>
-                  </div>
-                </div>
-
                 {selectedService.kind === "app" &&
                 !selectedServiceDeleting &&
                 (selectedService.serviceRole === "running" ||

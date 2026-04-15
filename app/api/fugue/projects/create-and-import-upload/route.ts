@@ -155,6 +155,7 @@ export async function POST(request: Request) {
       archiveBaseName: name || null,
       label: multipartRequest.label,
     });
+    const resolvedAppName = archive.resolvedAppName || undefined;
     const projectDescription = `${resolvedExistingProject?.name ?? projectName} project`;
     const projectPayload = resolvedExistingProject
       ? {
@@ -174,7 +175,7 @@ export async function POST(request: Request) {
       buildStrategy: buildStrategy || undefined,
       dockerfilePath: dockerfilePath || undefined,
       ...(Object.keys(env).length > 0 ? { env } : {}),
-      name: name || undefined,
+      name: resolvedAppName,
       persistentStorage,
       runtimeId: runtimeId || undefined,
       networkMode:

@@ -3,8 +3,11 @@ import "server-only";
 import { promisify } from "node:util";
 import { gzip } from "node:zlib";
 
+import {
+  resolveDeployAppName,
+  stripDeployArchiveExtension,
+} from "@/lib/deploy/app-name";
 import { isObject } from "@/lib/fugue/product-route";
-import { slugifyProjectName } from "@/lib/workspace/projects";
 
 const gzipAsync = promisify(gzip);
 const TAR_BLOCK_BYTES = 512;
@@ -102,14 +105,6 @@ function readPathBaseName(path: string) {
   return segments[segments.length - 1] ?? path;
 }
 
-function stripArchiveExtension(value: string) {
-  return value
-    .replace(/\.tar\.gz$/i, "")
-    .replace(/\.tgz$/i, "")
-    .replace(/\.zip$/i, "")
-    .replace(/\.[^.]+$/u, "");
-}
-
 function isSupportedUploadArchiveName(name: string) {
   const normalized = name.trim().toLowerCase();
 
@@ -145,12 +140,16 @@ function resolveArchiveBaseName(
   label?: string | null,
   files: LocalUploadRouteFile[] = [],
 ) {
-  const candidate =
-    preferredName?.trim() ||
-    label?.trim() ||
-    stripArchiveExtension(readPathBaseName(files[0]?.path ?? "upload"));
+  const fileBaseName = stripDeployArchiveExtension(
+    readPathBaseName(files[0]?.path ?? "upload"),
+  );
 
-  return slugifyProjectName(candidate || "upload");
+  return resolveDeployAppName(
+    [preferredName, label, fileBaseName],
+    {
+      fallbackSeeds: [preferredName, label, fileBaseName, files[0]?.path],
+    },
+  );
 }
 
 function splitTarPath(path: string) {
@@ -272,7 +271,10 @@ export async function readLocalUploadMultipartRequest(request: Request) {
         name: archiveValue.name,
         size: archiveValue.size,
       },
-      label: normalizedLabel || stripArchiveExtension(archiveValue.name) || null,
+      label:
+        normalizedLabel ||
+        stripDeployArchiveExtension(archiveValue.name) ||
+        null,
       payload,
     } satisfies LocalUploadMultipartRequest;
   }
@@ -359,11 +361,18 @@ export async function createLocalUploadArchive(
     throw new Error(`Archive exceeds ${MAX_UPLOAD_ARCHIVE_BYTES} bytes.`);
   }
 
+  const resolvedAppName = resolveArchiveBaseName(
+    options?.archiveBaseName,
+    options?.label,
+    normalizedFiles,
+  );
+
   return {
     archiveBytes: new Uint8Array(gzipBuffer),
     archiveContentType: "application/gzip",
-    archiveName: `${resolveArchiveBaseName(options?.archiveBaseName, options?.label, normalizedFiles)}.tgz`,
+    archiveName: `${resolvedAppName}.tgz`,
     files: normalizedFiles,
+    resolvedAppName,
   };
 }
 
@@ -385,6 +394,20 @@ export async function prepareLocalUploadArchive(
       archiveBytes,
       archiveContentType: upload.archive.contentType,
       archiveName: upload.archive.name,
+      resolvedAppName: resolveDeployAppName(
+        [
+          options?.archiveBaseName,
+          options?.label,
+          stripDeployArchiveExtension(upload.archive.name),
+        ],
+        {
+          fallbackSeeds: [
+            options?.archiveBaseName,
+            options?.label,
+            upload.archive.name,
+          ],
+        },
+      ),
     };
   }
 
