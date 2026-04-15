@@ -80,6 +80,7 @@ import { consumeSSEStream, type ParsedSSEEvent } from "@/lib/ui/sse";
 import { cx } from "@/lib/ui/cx";
 import {
   isAbortRequestError,
+  readRequestErrorStatus,
 } from "@/lib/ui/request-json";
 
 const ConsoleProjectWorkbench = lazy(async () => {
@@ -520,6 +521,10 @@ function readErrorMessage(error: unknown, t: Translator) {
   }
 
   return t("Request failed.");
+}
+
+function isMissingProjectError(error: unknown) {
+  return readRequestErrorStatus(error) === 404;
 }
 
 async function readResponseError(response: Response, t: Translator) {
@@ -1643,6 +1648,36 @@ export function ConsoleProjectGallery({
     selectedProjectIdRef.current = selectedProjectId;
   }, [selectedProjectId]);
 
+  const finalizeDeletedProject = useEffectEvent((projectId: string) => {
+    invalidateConsoleProjectDetails(projectId);
+
+    startTransition(() => {
+      setData((current) => {
+        if (!current.projects.some((project) => project.id === projectId)) {
+          return current;
+        }
+
+        return {
+          ...current,
+          projects: current.projects.filter((project) => project.id !== projectId),
+        };
+      });
+    });
+
+    if (selectedProjectIdRef.current === projectId) {
+      selectedProjectIdRef.current = null;
+    }
+
+    setRequestedProjectId((current) => (current === projectId ? null : current));
+    setSelectedProjectDetailError(null);
+    setSelectedProjectDetailStatus("idle");
+    setSelectedProjectId((current) => (current === projectId ? null : current));
+
+    setWorkbenchRefreshToken((value) => value + 1);
+    void refreshGallery({ silent: true });
+    refreshRoute();
+  });
+
   const loadSelectedProjectDetail = useEffectEvent(async (projectId: string) => {
     const cachedDetail = readCachedConsoleProjectDetail(projectId);
 
@@ -1674,6 +1709,11 @@ export function ConsoleProjectGallery({
         selectedProjectIdRef.current !== projectId ||
         isAbortRequestError(error)
       ) {
+        return;
+      }
+
+      if (isMissingProjectError(error)) {
+        finalizeDeletedProject(projectId);
         return;
       }
 
@@ -2271,11 +2311,7 @@ export function ConsoleProjectGallery({
   }
 
   const handleProjectDeleted = useEffectEvent((projectId: string) => {
-    invalidateConsoleProjectDetails(projectId);
-    setSelectedProjectId((current) => (current === projectId ? null : current));
-    setWorkbenchRefreshToken((value) => value + 1);
-    void refreshGallery({ silent: true });
-    refreshRoute();
+    finalizeDeletedProject(projectId);
   });
 
   const handleProjectMutation = useEffectEvent((

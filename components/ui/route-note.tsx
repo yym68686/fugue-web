@@ -2,7 +2,7 @@ import type { HTMLAttributes, ReactNode } from "react";
 
 import { cx } from "@/lib/ui/cx";
 
-type RouteNoteProps = Omit<HTMLAttributes<HTMLElement>, "children"> & {
+type RouteNoteProps = Omit<HTMLAttributes<HTMLElement>, "children" | "title"> & {
   index: ReactNode;
   meta: ReactNode;
   title: ReactNode;

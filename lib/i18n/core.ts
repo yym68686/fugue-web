@@ -16,6 +16,7 @@ const TRADITIONAL_SCRIPTS = new Set(["HANT"]);
 const enMessages = {
   "Auto": "Auto",
   "Dark": "Dark",
+  "Docs": "Docs",
   "Interface language": "Interface language",
   "Light": "Light",
   "No stats": "-",
@@ -137,6 +138,7 @@ const zhCNMessages = {
   "Deploy onto this machine. It also contributes to the internal cluster.":
     "部署到这台机器上。它也会为内部集群提供容量。",
   "Docker image": "Docker 镜像",
+  "Docs": "文档",
   "Done": "完成",
   "Email": "邮箱",
   "Email access": "邮箱访问",
@@ -565,6 +567,7 @@ const zhTWMessages = {
   "Auth / Sign up": "認證 / 註冊",
   "Back to sign in": "返回登入",
   "Billing": "帳務",
+  "Docs": "文件",
   "Blocked": "已封鎖",
   "Check your inbox for the verification link.": "請檢查收件匣中的驗證連結。",
   "Choose a sign-in method.": "選擇登入方式。",

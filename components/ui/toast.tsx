@@ -58,6 +58,18 @@ function getToastTitle(toast: Pick<ToastInput, "title" | "variant">) {
   return "Notice";
 }
 
+function getToastToneLabel(variant: ToastVariant) {
+  if (variant === "error") {
+    return "Error";
+  }
+
+  if (variant === "success") {
+    return "Success";
+  }
+
+  return "Notice";
+}
+
 function ToastItem({
   depth,
   expanded,
@@ -109,7 +121,22 @@ function ToastItem({
   }, [toast.id]);
 
   const stackLabel =
-    isFront && total > 1 ? (expanded ? "Fold" : `+${total - 1}`) : null;
+    isFront && total > 1 ? (expanded ? "Collapse" : `+${total - 1} more`) : null;
+  const toneLabel = getToastToneLabel(toast.variant);
+
+  const bodyContent = (
+    <>
+      <span className="fg-toast__header">
+        <span className="fg-toast__signal">
+          <span aria-hidden="true" className="fg-toast__tone" />
+          <span>{toneLabel}</span>
+        </span>
+      </span>
+
+      <strong className="fg-toast__title">{getToastTitle(toast)}</strong>
+      <span className="fg-toast__message">{toast.message}</span>
+    </>
+  );
 
   async function handleCopy() {
     const didCopy = await copyText(toast.message);
@@ -143,24 +170,31 @@ function ToastItem({
       }
     >
       <div className="fg-toast__shell">
+        {total > 1 ? (
+          <button
+            aria-expanded={expanded}
+            className="fg-toast__toggle"
+            onClick={onToggleExpand}
+            type="button"
+          >
+            {bodyContent}
+          </button>
+        ) : (
+          <div className="fg-toast__toggle">{bodyContent}</div>
+        )}
+
         <button
-          aria-expanded={total > 1 ? expanded : undefined}
-          className="fg-toast__toggle"
-          onClick={onToggleExpand}
+          aria-label="Dismiss notification"
+          className="fg-toast__dismiss"
+          onClick={() => onDismiss(toast.id)}
           type="button"
-        >
-          <div className="fg-toast__eyebrow">
-            <span aria-hidden="true" className="fg-toast__tone" />
-            <strong>{getToastTitle(toast)}</strong>
-            {stackLabel ? (
-              <span className="fg-toast__stack-label">{stackLabel}</span>
-            ) : null}
-          </div>
+        />
 
-          <p className="fg-toast__message">{toast.message}</p>
-        </button>
+        <div className="fg-toast__footer">
+          {stackLabel ? (
+            <span className="fg-toast__stack-label">{stackLabel}</span>
+          ) : null}
 
-        <div className="fg-toast__actions">
           <button
             aria-label="Copy notification message"
             className="fg-toast__action"
@@ -170,15 +204,6 @@ function ToastItem({
             type="button"
           >
             {copied ? "Copied" : "Copy"}
-          </button>
-
-          <button
-            aria-label="Dismiss notification"
-            className="fg-toast__action"
-            onClick={() => onDismiss(toast.id)}
-            type="button"
-          >
-            Close
           </button>
         </div>
       </div>
@@ -317,6 +342,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         <div
           className="fg-toast-stack"
           data-expanded={stackExpanded ? "true" : "false"}
+          data-has-stack={activeToastCount > 1 ? "true" : "false"}
           onBlurCapture={(event) => {
             const nextTarget = event.relatedTarget;
 

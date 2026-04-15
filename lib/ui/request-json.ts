@@ -44,6 +44,18 @@ export function readRequestError(error: unknown) {
   return "Request failed.";
 }
 
+export function readRequestErrorStatus(error: unknown) {
+  if (!(error instanceof Error)) {
+    return null;
+  }
+
+  const match = error.message.match(
+    /\b(400|401|402|403|404|409|422|429|500|502|503)\b/,
+  );
+
+  return match ? Number(match[1]) : null;
+}
+
 export async function readResponseError(response: Response) {
   const body = await response.text().catch(() => "");
   const trimmed = body.trim();

@@ -6,6 +6,7 @@ import { ProofShell, ProofShellRibbon } from "@/components/ui/proof-shell";
 import { RouteNote } from "@/components/ui/route-note";
 import { ThemeUtilityMenu } from "@/components/ui/theme-switcher";
 import { getRequestI18n } from "@/lib/i18n/server";
+import { marketingPrimaryNav } from "@/lib/site/navigation";
 
 type LandingPageProps = {
   authenticatedAppPath: string | null;
@@ -113,13 +114,6 @@ const runwayStops = [
 
 const objectBeltItems = ["Workspace", "Project", "App", "Runtime", "Operation"];
 
-const landingNav = [
-  { href: "#route", label: "How it works" },
-  { href: "#surface", label: "Available now" },
-  { href: "#quickstart", label: "Quickstart" },
-  { href: "#launch", label: "Sign in" },
-];
-
 const quickstartCode = `export FUGUE_BASE_URL="https://api.fugue.pro"
 
 curl -sS "\${FUGUE_BASE_URL}/healthz"
@@ -184,7 +178,7 @@ export async function LandingPage({ authenticatedAppPath }: LandingPageProps) {
           <Brand meta={t("Deploy apps from source")} />
 
           <PillNav ariaLabel={t("Primary")} className="fg-landing-nav">
-            {landingNav.map((item) => (
+            {marketingPrimaryNav.map((item) => (
               <PillNavAnchor href={item.href} key={item.href}>
                 {t(item.label)}
               </PillNavAnchor>
@@ -213,7 +207,7 @@ export async function LandingPage({ authenticatedAppPath }: LandingPageProps) {
 
         <div className="fg-landing-mobile-sheet" id="fg-landing-mobile-menu" hidden>
           <nav aria-label={t("Mobile")} className="fg-landing-mobile-nav">
-            {landingNav.map((item) => (
+            {marketingPrimaryNav.map((item) => (
               <a href={item.href} key={item.href}>
                 {t(item.label)}
               </a>
@@ -443,7 +437,7 @@ export async function LandingPage({ authenticatedAppPath }: LandingPageProps) {
           </p>
 
           <nav aria-label={t("Footer")} className="fg-landing-footer__nav">
-            {landingNav.map((item) => (
+            {marketingPrimaryNav.map((item) => (
               <a href={item.href} key={item.href}>
                 {t(item.label)}
               </a>

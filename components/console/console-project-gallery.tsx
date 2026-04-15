@@ -100,6 +100,7 @@ import { cx } from "@/lib/ui/cx";
 import {
   createAbortRequestError,
   isAbortRequestError,
+  readRequestErrorStatus,
 } from "@/lib/ui/request-json";
 import { consumeSSEStream, type ParsedSSEEvent } from "@/lib/ui/sse";
 import type { TranslationValues } from "@/lib/i18n/core";
@@ -837,6 +838,10 @@ function readErrorMessage(error: unknown, t: Translator = (key) => key) {
   }
 
   return t("Request failed.");
+}
+
+function isMissingProjectError(error: unknown) {
+  return readRequestErrorStatus(error) === 404;
 }
 
 async function requestJson<T>(
@@ -5986,6 +5991,7 @@ function ConsoleProjectWorkbenchImpl({
     useOptimisticDeletingProjects(detail?.project ? [detail.project] : []);
 
   const detailProject = optimisticProjects[0] ?? null;
+  const hasVisibleDetail = Boolean(detail?.project);
   const detailProjectServices = detailProject?.services ?? [];
   const detailProjectApps = detailProject ? projectApps(detailProject) : [];
   const detailProjectLifecycle = detailProject
@@ -6162,6 +6168,11 @@ function ConsoleProjectWorkbenchImpl({
           return false;
         }
 
+        if (isMissingProjectError(error)) {
+          onProjectDeleted(project.id);
+          return false;
+        }
+
         setDetailStatus("error");
         setDetailError(readErrorMessage(error, t));
 
@@ -6192,15 +6203,15 @@ function ConsoleProjectWorkbenchImpl({
     const forceRefresh = lastRefreshTokenRef.current !== refreshToken;
     lastRefreshTokenRef.current = refreshToken;
 
-    if (!forceRefresh && initialDetail) {
+    if (!forceRefresh && (initialDetail || hasVisibleDetail)) {
       return;
     }
 
     void refreshDetail({
       force: forceRefresh,
-      silent: Boolean(initialDetail),
+      silent: Boolean(initialDetail || hasVisibleDetail),
     });
-  }, [initialDetail, project.id, refreshDetail, refreshToken]);
+  }, [hasVisibleDetail, initialDetail, project.id, refreshDetail, refreshToken]);
 
   useEffect(() => {
     return () => {
@@ -6818,6 +6829,15 @@ function ConsoleProjectWorkbenchImpl({
       });
       void refreshDetail({ force: true, silent: true });
     } catch (error) {
+      if (isMissingProjectError(error)) {
+        showToast({
+          message: t("Project deleted."),
+          variant: "success",
+        });
+        onProjectDeleted(detailProject.id);
+        return;
+      }
+
       setFlash({
         message: readErrorMessage(error, t),
         variant: "error",
