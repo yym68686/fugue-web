@@ -4,6 +4,7 @@ import { LocaleUtilityMenu } from "@/components/ui/locale-switcher";
 import { PillNav, PillNavAnchor } from "@/components/ui/pill-nav";
 import { ProofShell, ProofShellRibbon } from "@/components/ui/proof-shell";
 import { RouteNote } from "@/components/ui/route-note";
+import { ThemeUtilityMenu } from "@/components/ui/theme-switcher";
 import { getRequestI18n } from "@/lib/i18n/server";
 
 type LandingPageProps = {
@@ -191,6 +192,7 @@ export async function LandingPage({ authenticatedAppPath }: LandingPageProps) {
           </PillNav>
 
           <div className="fg-landing-masthead__actions">
+            <ThemeUtilityMenu className="fg-landing-theme-switcher" />
             <LocaleUtilityMenu className="fg-landing-locale-switcher" />
             <ButtonLink className="fg-landing-topbar-action" href={primaryHref} size="compact" variant="route">
               {primaryLabel}

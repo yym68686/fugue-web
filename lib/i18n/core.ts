@@ -15,8 +15,11 @@ const TRADITIONAL_SCRIPTS = new Set(["HANT"]);
 
 const enMessages = {
   "Auto": "Auto",
+  "Dark": "Dark",
   "Interface language": "Interface language",
+  "Light": "Light",
   "No stats": "-",
+  "Theme": "Theme",
 } satisfies MessageCatalog;
 
 const zhCNMessages = {
@@ -187,7 +190,9 @@ const zhCNMessages = {
   "How it works": "工作方式",
   "Image reference": "镜像引用",
   "Auto": "自动",
+  "Dark": "深色",
   "Interface language": "界面语言",
+  "Light": "浅色",
   "Import is already running.": "导入已在进行中。",
   "Import is still running. Switch to Build to follow progress.":
     "导入仍在进行中。切换到“构建”查看进度。",
@@ -343,6 +348,7 @@ const zhCNMessages = {
   "Waiting for first start": "等待首次启动",
   "Waiting for import": "等待导入",
   "Waiting in queue": "排队中",
+  "Theme": "主题",
   "Watch": "关注",
   "We are converting the provider callback into a first-party session before opening the destination route.":
     "我们正在把提供方回调转换成第一方会话，然后再打开目标路由。",
@@ -601,7 +607,9 @@ const zhTWMessages = {
   "Not yet": "尚未",
   "Open menu": "開啟選單",
   "Auto": "自動",
+  "Dark": "深色",
   "Interface language": "介面語言",
+  "Light": "淺色",
   "Opening the console": "正在開啟控制台",
   "Or continue with email": "或使用電子郵件繼續",
   "Or use your account email": "或使用你的帳號電子郵件",
@@ -638,6 +646,7 @@ const zhTWMessages = {
     "支援 GitHub 儲存庫、Docker 映像和本地上傳，直接部署到 Fugue 託管環境，更快拿到公開位址，也省掉第一台伺服器和首輪維運成本",
   "Start shared.": "從原始碼直接上線",
   "Waiting in queue": "排隊中",
+  "Theme": "主題",
   "Working": "處理中",
   "You have been signed out.": "你已登出。",
 } satisfies MessageCatalog;

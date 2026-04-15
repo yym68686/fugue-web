@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Brand } from "@/components/brand";
 import { LocaleMenuButton } from "@/components/ui/locale-switcher";
 import { RouteNote } from "@/components/ui/route-note";
+import { ThemeMenuButton } from "@/components/ui/theme-switcher";
 import { getRequestI18n } from "@/lib/i18n/server";
 
 type AuthRouteNote = {
@@ -39,7 +40,10 @@ export async function AuthShell({
         <section className="fg-auth-stage">
           <div className="fg-auth-stage__top fg-auth-stage__topbar">
             <Brand meta={resolvedBrandMeta} />
-            <LocaleMenuButton />
+            <div className="fg-auth-stage__utilities">
+              <ThemeMenuButton />
+              <LocaleMenuButton />
+            </div>
           </div>
 
           <div className="fg-auth-stage__copy">

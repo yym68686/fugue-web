@@ -1,6 +1,6 @@
 import { after, NextResponse } from "next/server";
 
-import { requireAdminApiSession } from "@/lib/admin/auth";
+import { requireAdminSnapshotApiSession } from "@/lib/admin/auth";
 import {
   getAdminUsersPageData,
   getAdminUsersPageEnrichmentData,
@@ -27,7 +27,7 @@ function readIncludeUsage(request: Request) {
 }
 
 export async function GET(request: Request) {
-  const access = await requireAdminApiSession();
+  const access = await requireAdminSnapshotApiSession();
 
   if (access.response) {
     return access.response;

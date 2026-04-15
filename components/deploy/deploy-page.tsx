@@ -7,6 +7,7 @@ import { FormField } from "@/components/ui/form-field";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { LocaleMenuButton } from "@/components/ui/locale-switcher";
 import { PillNav, PillNavAnchor } from "@/components/ui/pill-nav";
+import { ThemeMenuButton } from "@/components/ui/theme-switcher";
 import {
   Panel,
   PanelCopy,
@@ -160,7 +161,10 @@ export async function DeployPage({
       <div className="fg-auth-grid fg-deploy-grid fg-deploy-grid--solo fg-deploy-grid--repository">
         <section className="fg-auth-panel-slot fg-deploy-panel-slot fg-console-dialog-shell fg-project-dialog-shell fg-deploy-dialog-shell">
           <div className="fg-deploy-page__topbar">
-            <LocaleMenuButton />
+            <div className="fg-auth-stage__utilities">
+              <ThemeMenuButton />
+              <LocaleMenuButton />
+            </div>
           </div>
 
           <Panel className="fg-console-dialog-panel">

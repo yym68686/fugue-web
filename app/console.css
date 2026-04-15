@@ -400,7 +400,7 @@
   display: grid;
   place-items: center;
   padding: 1rem;
-  background: rgba(2, 5, 8, 0.7);
+  background: var(--fugue-console-dialog-scrim);
   backdrop-filter: blur(18px);
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -3427,23 +3427,29 @@
 }
 
 .fg-console-profile__locale-switcher,
+.fg-console-profile__theme-switcher,
 .fg-console-profile__locale-switcher .fg-control-strip__viewport,
-.fg-console-profile__locale-switcher .fg-pill-nav {
+.fg-console-profile__theme-switcher .fg-control-strip__viewport,
+.fg-console-profile__locale-switcher .fg-pill-nav,
+.fg-console-profile__theme-switcher .fg-pill-nav {
   max-width: 100%;
 }
 
-.fg-console-profile__locale-switcher {
+.fg-console-profile__locale-switcher,
+.fg-console-profile__theme-switcher {
   justify-self: start;
 }
 
-.fg-console-profile__locale-switcher .fg-pill-nav {
+.fg-console-profile__locale-switcher .fg-pill-nav,
+.fg-console-profile__theme-switcher .fg-pill-nav {
   --fugue-nav-pill-gap: 0.16rem;
   --fugue-nav-pill-item-font-size: 0.82rem;
   --fugue-nav-pill-item-padding-inline: 0.76rem;
   width: max-content;
 }
 
-.fg-console-profile__locale-switcher .fg-pill-nav__button {
+.fg-console-profile__locale-switcher .fg-pill-nav__button,
+.fg-console-profile__theme-switcher .fg-pill-nav__button {
   justify-content: center;
 }
 
@@ -8334,4 +8340,68 @@
     .fg-segmented__item {
     padding-inline: 0.68rem;
   }
+}
+
+:root[data-theme="light"] .fg-console-user-chip,
+:root[data-theme="light"] .fg-console-user-chip--minimal,
+:root[data-theme="light"] .fg-console-metric-card,
+:root[data-theme="light"] .fg-console-disclosure__summary-icon,
+:root[data-theme="light"] .fg-runtime-target-card__surface,
+:root[data-theme="light"] .fg-console-skeleton__list-item,
+:root[data-theme="light"] .fg-console-skeleton__workbench-main {
+  border-color: var(--fugue-border-default);
+  background: var(--fugue-floating-chip-bg);
+  box-shadow: var(--fugue-floating-chip-shadow);
+}
+
+:root[data-theme="light"] .fg-console-profile__trigger {
+  border-color: var(--fugue-border-default);
+  background: var(--fugue-floating-chip-bg);
+}
+
+:root[data-theme="light"] .fg-console-profile[open] .fg-console-profile__trigger,
+:root[data-theme="light"] .fg-console-profile__trigger:hover,
+:root[data-theme="light"] .fg-console-profile__trigger:focus-visible {
+  border-color: var(--fugue-selection-lens-border-hover);
+  background: var(--fugue-selection-lens-bg-hover);
+}
+
+:root[data-theme="light"] .fg-console-profile__avatar {
+  background:
+    radial-gradient(
+      circle at 30% 30%,
+      rgba(255, 255, 255, 0.88),
+      transparent 65%
+    ),
+    linear-gradient(
+      145deg,
+      rgba(95, 124, 155, 0.16),
+      rgba(23, 27, 32, 0.04)
+    );
+}
+
+:root[data-theme="light"] .fg-console-profile__menu {
+  background: var(--fugue-popover-bg);
+  box-shadow: var(--fugue-popover-shadow);
+}
+
+:root[data-theme="light"] .fg-runtime-target-card__indicator {
+  border-color: var(--fugue-border-strong);
+  background: rgba(22, 26, 31, 0.05);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+}
+
+:root[data-theme="light"] .fg-runtime-target-card__input:checked
+  + .fg-runtime-target-card__surface
+  .fg-runtime-target-card__indicator,
+:root[data-theme="light"] .fg-runtime-target-card--static .fg-runtime-target-card__indicator {
+  box-shadow:
+    0 0 0 0.18rem rgba(95, 124, 155, 0.12),
+    inset 0 0 0 0.18rem rgba(248, 243, 236, 0.92);
+}
+
+:root[data-theme="light"] .fg-status-badge__dot {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.82),
+    0 0 0 0 rgba(95, 124, 155, 0);
 }

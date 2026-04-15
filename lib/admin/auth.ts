@@ -1,5 +1,6 @@
 import "server-only";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import {
@@ -7,10 +8,12 @@ import {
   readErrorMessage,
   readErrorStatus,
 } from "@/lib/fugue/product-route";
+import { getFugueEnv } from "@/lib/fugue/env";
 import {
   getRequestAppUserRecord,
   getRequestSession,
 } from "@/lib/server/request-context";
+import type { SessionUser } from "@/lib/auth/session";
 
 function readInactiveRedirect(error: unknown) {
   if (!(error instanceof Error)) {
@@ -91,4 +94,62 @@ export async function requireAdminApiSession() {
       user: null,
     } as const;
   }
+}
+
+function readBearerToken(value: string | null) {
+  if (!value) {
+    return "";
+  }
+
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return "";
+  }
+
+  const parts = trimmed.split(/\s+/, 2);
+
+  if (parts.length !== 2 || parts[0].toLowerCase() !== "bearer") {
+    return "";
+  }
+
+  return parts[1]?.trim() ?? "";
+}
+
+function buildBootstrapSnapshotSession(): SessionUser {
+  return {
+    email: "bootstrap-admin@fugue.local",
+    provider: "email",
+    verified: true,
+    authMethod: "email_link",
+  };
+}
+
+export async function requireAdminSnapshotApiSession() {
+  const access = await requireAdminApiSession();
+
+  if (!access.response) {
+    return access;
+  }
+
+  let bootstrapKey = "";
+
+  try {
+    bootstrapKey = getFugueEnv().bootstrapKey;
+  } catch {
+    return access;
+  }
+
+  const headerStore = await headers();
+  const bearerToken = readBearerToken(headerStore.get("authorization"));
+
+  if (!bearerToken || bearerToken !== bootstrapKey) {
+    return access;
+  }
+
+  return {
+    response: null,
+    session: buildBootstrapSnapshotSession(),
+    user: null,
+  } as const;
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { requireAdminApiSession } from "@/lib/admin/auth";
+import { requireAdminSnapshotApiSession } from "@/lib/admin/auth";
 import { getAdminUsersPageEnrichmentData } from "@/lib/admin/service";
 import type { ConsoleAdminUsersPageEnrichmentSnapshot } from "@/lib/console/page-snapshot-types";
 import {
@@ -20,7 +20,7 @@ function jsonSnapshot(snapshot: ConsoleAdminUsersPageEnrichmentSnapshot) {
 }
 
 export async function GET() {
-  const access = await requireAdminApiSession();
+  const access = await requireAdminSnapshotApiSession();
 
   if (access.response) {
     return access.response;

@@ -245,3 +245,33 @@
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 520px) {
+  .fg-deploy-source-switch {
+    width: 100%;
+  }
+
+  .fg-deploy-source-switch .fg-console-nav {
+    --fugue-nav-pill-gap: 0.18rem;
+    --fugue-nav-pill-item-padding-inline: 0.64rem;
+    width: 100%;
+  }
+
+  .fg-deploy-source-switch .fg-control-strip__viewport > .fg-console-nav {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .fg-deploy-source-switch .fg-console-nav__link {
+    flex: 1 1 0;
+    white-space: normal;
+  }
+
+  .fg-deploy-source-switch .fg-console-nav__title {
+    display: block;
+    font-size: 0.8rem;
+    line-height: 1.1;
+    text-align: center;
+    text-wrap: balance;
+  }
+}
