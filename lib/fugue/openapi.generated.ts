@@ -453,6 +453,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/cluster/nodes/{name}/diagnosis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Cluster Node Diagnosis */
+        get: operations["getClusterNodeDiagnosis"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/cluster/control-plane": {
         parameters: {
             query?: never;
@@ -1298,6 +1315,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/apps/{id}/diagnosis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get App Diagnosis */
+        get: operations["getAppDiagnosis"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/apps/{id}/files": {
         parameters: {
             query?: never;
@@ -1565,6 +1599,23 @@ export interface paths {
         };
         /** Get Operation */
         get: operations["getOperation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/operations/{id}/diagnosis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Operation Diagnosis */
+        get: operations["getOperationDiagnosis"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2004,6 +2055,12 @@ export interface components {
             path: string;
             seed_content: string;
         };
+        ServicePersistentStorageOverride: {
+            storage_size?: string;
+        };
+        ServicePersistentStorageOverrideMap: {
+            [key: string]: components["schemas"]["ServicePersistentStorageOverride"];
+        };
         AppPersistentStorageSpec: {
             storage_path?: string;
             storage_size?: string;
@@ -2250,6 +2307,46 @@ export interface components {
             /** Format: date-time */
             created_at?: string;
         };
+        ClusterNodeFilesystemUsage: {
+            filesystem?: string;
+            mount_path: string;
+            /** Format: int64 */
+            size_bytes?: number;
+            /** Format: int64 */
+            used_bytes?: number;
+            /** Format: int64 */
+            available_bytes?: number;
+            used_percent?: number;
+        };
+        ClusterNodePathUsage: {
+            path: string;
+            /** Format: int64 */
+            bytes?: number;
+        };
+        ClusterNodeJournalEntry: {
+            /** Format: date-time */
+            timestamp?: string;
+            unit?: string;
+            message: string;
+        };
+        ClusterNodeMetricsDiagnosis: {
+            status: string;
+            summary: string;
+            evidence: string[];
+            warnings: string[];
+        };
+        ClusterNodeDiagnosis: {
+            node?: components["schemas"]["ClusterNode"];
+            summary: string;
+            janitor_namespace?: string;
+            janitor_pod?: string;
+            filesystems: components["schemas"]["ClusterNodeFilesystemUsage"][];
+            hot_paths: components["schemas"]["ClusterNodePathUsage"][];
+            journal: components["schemas"]["ClusterNodeJournalEntry"][];
+            events: components["schemas"]["ClusterEvent"][];
+            metrics?: components["schemas"]["ClusterNodeMetricsDiagnosis"];
+            warnings: string[];
+        };
         Operation: {
             id: string;
             tenant_id: string;
@@ -2277,6 +2374,23 @@ export interface components {
             started_at?: string;
             /** Format: date-time */
             completed_at?: string;
+        };
+        OperationDiagnosisBlocker: {
+            operation_id: string;
+            app_id?: string;
+            app_name?: string;
+            service?: string;
+            type?: string;
+            status?: string;
+        };
+        OperationDiagnosis: {
+            category: string;
+            summary: string;
+            hint?: string;
+            app_name?: string;
+            service?: string;
+            dependency_chain?: string[];
+            blocked_by?: components["schemas"]["OperationDiagnosisBlocker"][];
         };
         FailoverAppRequest: {
             target_runtime_id?: string;
@@ -2627,6 +2741,9 @@ export interface components {
         };
         ClusterNodeListResponse: {
             cluster_nodes: components["schemas"]["ClusterNode"][];
+        };
+        ClusterNodeDiagnosisResponse: {
+            diagnosis: components["schemas"]["ClusterNodeDiagnosis"];
         };
         ControlPlaneComponent: {
             component: string;
@@ -3071,6 +3188,7 @@ export interface components {
             build_context_dir?: string;
             env?: components["schemas"]["StringMap"];
             service_env?: components["schemas"]["ServiceEnvMap"];
+            service_persistent_storage?: components["schemas"]["ServicePersistentStorageOverrideMap"];
             config_content?: string;
             files?: components["schemas"]["AppFile"][];
             startup_command?: string;
@@ -3098,6 +3216,7 @@ export interface components {
             build_context_dir?: string;
             env?: components["schemas"]["StringMap"];
             service_env?: components["schemas"]["ServiceEnvMap"];
+            service_persistent_storage?: components["schemas"]["ServicePersistentStorageOverrideMap"];
             config_content?: string;
             files?: components["schemas"]["AppFile"][];
             startup_command?: string;
@@ -3254,6 +3373,9 @@ export interface components {
             groups: components["schemas"]["AppRuntimePodGroup"][];
             warnings: string[];
         };
+        AppDiagnosisResponse: {
+            diagnosis: components["schemas"]["AppDiagnosis"];
+        };
         AppEnvResponse: {
             env: components["schemas"]["StringMap"];
             entries?: components["schemas"]["AppEnvEntry"][];
@@ -3335,6 +3457,23 @@ export interface components {
             truncated?: boolean;
             server_timing?: string;
             timing: components["schemas"]["HTTPDiagnosticTiming"];
+        };
+        AppDiagnosis: {
+            category: string;
+            summary: string;
+            hint?: string;
+            component?: string;
+            namespace?: string;
+            selector?: string;
+            implicated_node?: string;
+            implicated_pod?: string;
+            /** Format: int32 */
+            live_pods?: number;
+            /** Format: int32 */
+            ready_pods?: number;
+            evidence: string[];
+            warnings: string[];
+            events: components["schemas"]["ClusterEvent"][];
         };
         AppFilesResponse: {
             files: components["schemas"]["AppFile"][];
@@ -3431,6 +3570,9 @@ export interface components {
         };
         OperationResponse: {
             operation: components["schemas"]["Operation"];
+        };
+        OperationDiagnosisResponse: {
+            diagnosis: components["schemas"]["OperationDiagnosis"];
         };
         AppDisableResponse: {
             app?: components["schemas"]["App"];
@@ -4298,6 +4440,29 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClusterNodeListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getClusterNodeDiagnosis: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClusterNodeDiagnosisResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
@@ -5858,6 +6023,31 @@ export interface operations {
             default: components["responses"]["ErrorResponse"];
         };
     };
+    getAppDiagnosis: {
+        parameters: {
+            query?: {
+                component?: "app" | "postgres";
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppDiagnosisResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
     getAppFiles: {
         parameters: {
             query?: never;
@@ -6370,6 +6560,29 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OperationResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getOperationDiagnosis: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperationDiagnosisResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];

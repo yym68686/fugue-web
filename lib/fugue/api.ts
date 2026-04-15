@@ -3768,7 +3768,16 @@ export async function getFugueClusterNodes(
 export async function getFugueConsoleGallery(accessToken: string) {
   const client = getClient(accessToken);
   const response = camelizeData(
-    await expectData("/v1/console/gallery", client.GET("/v1/console/gallery")),
+    await expectData(
+      "/v1/console/gallery?include_live_status=true",
+      client.GET("/v1/console/gallery", {
+        params: {
+          query: {
+            include_live_status: true,
+          },
+        },
+      }),
+    ),
   );
 
   return buildConsoleGalleryResponseView(response);
@@ -3781,10 +3790,13 @@ export async function getFugueConsoleProject(
   const client = getClient(accessToken);
   const response = camelizeData(
     await expectData(
-      `/v1/console/projects/${encodeURIComponent(projectId)}`,
+      `/v1/console/projects/${encodeURIComponent(projectId)}?include_live_status=true`,
       client.GET("/v1/console/projects/{id}", {
         params: {
           path: { id: projectId },
+          query: {
+            include_live_status: true,
+          },
         },
       }),
     ),

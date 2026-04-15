@@ -101,6 +101,16 @@ export type AdminUserView = {
   statusTone: ConsoleTone;
   usage: AdminUserServiceUsageView;
   verified: boolean;
+  workspace: AdminUserWorkspaceView | null;
+};
+
+export type AdminUserWorkspaceView = {
+  adminKeyLabel: string | null;
+  defaultProjectId: string | null;
+  defaultProjectName: string | null;
+  firstAppId: string | null;
+  tenantId: string | null;
+  tenantName: string | null;
 };
 
 export type AdminUserBillingView = {
@@ -911,6 +921,7 @@ function buildUserViews(
         hasWorkspace && !enrichment.loaded,
       ),
       verified: user.verified,
+      workspace: buildAdminUserWorkspaceView(workspace),
     } satisfies AdminUserView;
   });
 }
@@ -1152,6 +1163,22 @@ function buildAdminUserBillingView(
     statusReason: billing.statusReason,
     statusTone: readBillingStatusTone(billing),
     tenantId: billing.tenantId,
+  };
+}
+
+function buildAdminUserWorkspaceView(
+  workspace: WorkspaceSnapshot | undefined,
+): AdminUserWorkspaceView | null {
+  if (!workspace) {
+    return null;
+  }
+  return {
+    adminKeyLabel: workspace.adminKeyLabel ?? null,
+    defaultProjectId: workspace.defaultProjectId ?? null,
+    defaultProjectName: workspace.defaultProjectName ?? null,
+    firstAppId: workspace.firstAppId ?? null,
+    tenantId: workspace.tenantId ?? null,
+    tenantName: workspace.tenantName ?? null,
   };
 }
 

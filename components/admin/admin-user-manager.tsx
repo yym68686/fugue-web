@@ -78,6 +78,16 @@ type AdminUserView = {
   statusTone: ConsoleTone;
   usage: AdminUserServiceUsageView;
   verified: boolean;
+  workspace: AdminUserWorkspaceView | null;
+};
+
+type AdminUserWorkspaceView = {
+  adminKeyLabel: string | null;
+  defaultProjectId: string | null;
+  defaultProjectName: string | null;
+  firstAppId: string | null;
+  tenantId: string | null;
+  tenantName: string | null;
 };
 
 type AdminUserServiceUsageView = {
