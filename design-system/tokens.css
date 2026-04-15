@@ -16,21 +16,41 @@
   --fugue-color-shadow-1: rgba(4, 10, 18, 0.3);
   --fugue-color-focus: rgba(165, 191, 220, 0.72);
   --fugue-page-background:
-    radial-gradient(circle at 78% 12%, rgba(68, 98, 138, 0.18), transparent 22%),
-    radial-gradient(circle at 16% 20%, rgba(255, 255, 255, 0.04), transparent 26%),
+    radial-gradient(
+      circle at 78% 12%,
+      rgba(68, 98, 138, 0.18),
+      transparent 22%
+    ),
+    radial-gradient(
+      circle at 16% 20%,
+      rgba(255, 255, 255, 0.04),
+      transparent 26%
+    ),
     linear-gradient(180deg, #050608 0%, #040608 32%, #05070b 100%);
   --fugue-selection-bg: rgba(165, 191, 220, 0.24);
   --fugue-popover-bg:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.015)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.04),
+      rgba(255, 255, 255, 0.015)
+    ),
     rgba(8, 11, 15, 0.96);
   --fugue-popover-shadow: 0 22px 60px rgba(1, 4, 8, 0.34);
   --fugue-popover-arrow-bg: rgba(8, 11, 15, 0.96);
   --fugue-floating-chip-bg:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.014)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.045),
+      rgba(255, 255, 255, 0.014)
+    ),
     rgba(8, 11, 15, 0.86);
   --fugue-floating-chip-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
   --fugue-dialog-scrim:
-    radial-gradient(circle at 50% 0%, rgba(165, 191, 220, 0.09), transparent 28%),
+    radial-gradient(
+      circle at 50% 0%,
+      rgba(165, 191, 220, 0.09),
+      transparent 28%
+    ),
     rgba(2, 5, 8, 0.78);
   --fugue-console-dialog-scrim: rgba(2, 5, 8, 0.7);
   --fugue-field-error-border: rgba(229, 134, 134, 0.6);
@@ -172,12 +192,107 @@
   --fugue-status-badge-dot-info: #a5c5e6;
   --fugue-status-badge-halo-info: rgba(165, 197, 230, 0.22);
   --fugue-status-badge-bg-neutral:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.015)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.045),
+      rgba(255, 255, 255, 0.015)
+    ),
     rgba(10, 12, 16, 0.8);
   --fugue-status-badge-border-neutral: rgba(255, 255, 255, 0.1);
   --fugue-status-badge-text-neutral: var(--fugue-text-secondary);
   --fugue-status-badge-dot-neutral: rgba(244, 239, 231, 0.74);
   --fugue-status-badge-halo-neutral: rgba(255, 255, 255, 0.16);
+  --fugue-console-shell-border: var(--fugue-border-default);
+  --fugue-console-shell-bg:
+    radial-gradient(
+      circle at top left,
+      rgba(165, 191, 220, 0.1),
+      transparent 30%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.042),
+      rgba(255, 255, 255, 0.015)
+    ),
+    rgba(8, 11, 15, 0.9);
+  --fugue-console-shell-bg-active:
+    radial-gradient(
+      circle at top left,
+      rgba(165, 191, 220, 0.16),
+      transparent 32%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.05),
+      rgba(255, 255, 255, 0.018)
+    ),
+    rgba(8, 11, 15, 0.94);
+  --fugue-console-shell-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 20px 48px rgba(1, 4, 8, 0.2);
+  --fugue-console-shell-shadow-active:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 24px 56px rgba(1, 4, 8, 0.26);
+  --fugue-console-surface-border: var(--fugue-border-default);
+  --fugue-console-summary-bg:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.028),
+      rgba(255, 255, 255, 0.01)
+    ),
+    rgba(10, 13, 17, 0.7);
+  --fugue-console-summary-bg-hover:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.04),
+      rgba(255, 255, 255, 0.015)
+    ),
+    rgba(12, 15, 20, 0.82);
+  --fugue-console-summary-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  --fugue-console-surface-bg:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.032),
+      rgba(255, 255, 255, 0.012)
+    ),
+    rgba(8, 11, 15, 0.78);
+  --fugue-console-surface-bg-hover:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.042),
+      rgba(255, 255, 255, 0.015)
+    ),
+    rgba(10, 13, 18, 0.84);
+  --fugue-console-surface-shadow:
+    0 18px 36px -30px rgba(1, 4, 8, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  --fugue-console-inset-bg:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.032),
+      rgba(255, 255, 255, 0.012)
+    ),
+    rgba(8, 11, 15, 0.78);
+  --fugue-console-inset-strong-bg:
+    radial-gradient(
+      circle at top left,
+      rgba(165, 191, 220, 0.1),
+      transparent 28%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.032),
+      rgba(255, 255, 255, 0.012)
+    ),
+    rgba(7, 10, 14, 0.92);
+  --fugue-console-utility-border: var(--fugue-border-subtle);
+  --fugue-console-utility-bg:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.038),
+      rgba(255, 255, 255, 0.014)
+    ),
+    rgba(10, 13, 17, 0.58);
+  --fugue-console-utility-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --fugue-console-meter-track: rgba(255, 255, 255, 0.08);
   --fugue-button-height: 3rem;
   --fugue-button-height-compact: 2.75rem;
   --fugue-button-height-tight: 2.35rem;
@@ -210,16 +325,32 @@
     rgba(18, 24, 34, 0.96)
   );
   --fugue-button-bg-secondary:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.085), rgba(165, 191, 220, 0.03)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.085),
+      rgba(165, 191, 220, 0.03)
+    ),
     rgba(11, 14, 19, 0.96);
   --fugue-button-bg-secondary-hover:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.115), rgba(165, 191, 220, 0.055)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.115),
+      rgba(165, 191, 220, 0.055)
+    ),
     rgba(13, 17, 23, 0.98);
   --fugue-button-bg-ghost:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(165, 191, 220, 0.012)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.035),
+      rgba(165, 191, 220, 0.012)
+    ),
     rgba(8, 10, 14, 0.38);
   --fugue-button-bg-ghost-hover:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(165, 191, 220, 0.025)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.06),
+      rgba(165, 191, 220, 0.025)
+    ),
     rgba(10, 13, 18, 0.56);
   --fugue-button-bg-danger:
     linear-gradient(180deg, rgba(106, 44, 44, 0.42), rgba(69, 24, 24, 0.3)),
@@ -279,10 +410,18 @@
   --fugue-button-status-color: var(--fugue-accent-signal);
   --fugue-button-status-danger-color: #f0c3c3;
   --fugue-field-bg:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.058), rgba(255, 255, 255, 0.022)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.058),
+      rgba(255, 255, 255, 0.022)
+    ),
     rgba(9, 12, 17, 0.84);
   --fugue-field-bg-hover:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.072), rgba(255, 255, 255, 0.028)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.072),
+      rgba(255, 255, 255, 0.028)
+    ),
     rgba(11, 14, 19, 0.92);
   --fugue-field-border: rgba(255, 255, 255, 0.15);
   --fugue-field-border-hover: rgba(255, 255, 255, 0.22);
@@ -290,10 +429,18 @@
   --fugue-field-icon: var(--fugue-text-muted);
   --fugue-field-icon-hover: var(--fugue-text-secondary);
   --fugue-selection-lens-bg-hover:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(165, 191, 220, 0.018)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.05),
+      rgba(165, 191, 220, 0.018)
+    ),
     rgba(12, 16, 22, 0.76);
   --fugue-selection-lens-bg-active:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.095), rgba(165, 191, 220, 0.045)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.095),
+      rgba(165, 191, 220, 0.045)
+    ),
     rgba(17, 21, 28, 0.96);
   --fugue-selection-lens-border-hover: rgba(255, 255, 255, 0.12);
   --fugue-selection-lens-border-active: rgba(165, 191, 220, 0.24);
@@ -304,22 +451,37 @@
     0 18px 40px -32px rgba(7, 10, 14, 0.92),
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
   --fugue-slider-shell-bg:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.034), rgba(255, 255, 255, 0.014)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.034),
+      rgba(255, 255, 255, 0.014)
+    ),
     rgba(8, 11, 15, 0.8);
   --fugue-slider-shell-bg-hover:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.046), rgba(255, 255, 255, 0.018)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.046),
+      rgba(255, 255, 255, 0.018)
+    ),
     rgba(10, 13, 18, 0.88);
   --fugue-slider-shell-border: var(--fugue-border-default);
   --fugue-slider-shell-border-hover: var(--fugue-border-strong);
   --fugue-slider-value-bg:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(165, 191, 220, 0.03)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.06),
+      rgba(165, 191, 220, 0.03)
+    ),
     rgba(10, 13, 18, 0.92);
   --fugue-slider-value-border: rgba(255, 255, 255, 0.08);
   --fugue-slider-track-base: rgba(255, 255, 255, 0.08);
   --fugue-slider-track-fill: rgba(165, 191, 220, 0.92);
   --fugue-slider-track-fill-muted: rgba(165, 191, 220, 0.34);
-  --fugue-slider-thumb-bg:
-    linear-gradient(180deg, rgba(244, 239, 231, 0.98), rgba(226, 219, 210, 0.94));
+  --fugue-slider-thumb-bg: linear-gradient(
+    180deg,
+    rgba(244, 239, 231, 0.98),
+    rgba(226, 219, 210, 0.94)
+  );
   --fugue-slider-thumb-border: rgba(255, 255, 255, 0.18);
   --fugue-slider-thumb-shadow:
     0 14px 28px -16px rgba(0, 0, 0, 0.82),
@@ -328,14 +490,19 @@
   --fugue-segmented-gap: 0.2rem;
   --fugue-segmented-padding: 0.1875rem;
   --fugue-segmented-bg:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.036), rgba(255, 255, 255, 0.012)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.036),
+      rgba(255, 255, 255, 0.012)
+    ),
     rgba(7, 10, 14, 0.92);
   --fugue-segmented-border: rgba(255, 255, 255, 0.08);
   --fugue-segmented-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.04),
     0 14px 34px -26px rgba(0, 0, 0, 0.72);
-  --fugue-segmented-item-min-height:
-    calc(var(--fugue-segmented-height) - (var(--fugue-segmented-padding) * 2) - 2px);
+  --fugue-segmented-item-min-height: calc(
+    var(--fugue-segmented-height) - (var(--fugue-segmented-padding) * 2) - 2px
+  );
   --fugue-segmented-item-padding-inline: 0.96rem;
   --fugue-segmented-item-font-size: var(--fugue-button-font-size-compact);
   --fugue-segmented-item-bg-hover: var(--fugue-selection-lens-bg-hover);
@@ -349,7 +516,11 @@
   --fugue-segmented-item-shadow-active: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 
   --fugue-nav-pill-bg:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.046), rgba(255, 255, 255, 0.016)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.046),
+      rgba(255, 255, 255, 0.016)
+    ),
     rgba(8, 10, 14, 0.72);
   --fugue-nav-pill-border: rgba(255, 255, 255, 0.1);
   --fugue-nav-pill-shadow:
@@ -426,23 +597,43 @@
   --fugue-color-shadow-1: rgba(42, 56, 72, 0.08);
   --fugue-color-focus: rgba(95, 124, 155, 0.46);
   --fugue-page-background:
-    radial-gradient(circle at 82% 12%, rgba(145, 171, 202, 0.28), transparent 24%),
-    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.76), transparent 30%),
+    radial-gradient(
+      circle at 82% 12%,
+      rgba(145, 171, 202, 0.28),
+      transparent 24%
+    ),
+    radial-gradient(
+      circle at 18% 18%,
+      rgba(255, 255, 255, 0.76),
+      transparent 30%
+    ),
     linear-gradient(180deg, #fbf7f0 0%, #f5eee4 40%, #eee5d8 100%);
   --fugue-selection-bg: rgba(95, 124, 155, 0.18);
   --fugue-popover-bg:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 242, 234, 0.9)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.94),
+      rgba(247, 242, 234, 0.9)
+    ),
     rgba(243, 236, 226, 0.98);
   --fugue-popover-shadow: 0 22px 60px rgba(49, 38, 27, 0.14);
   --fugue-popover-arrow-bg: rgba(244, 238, 229, 0.98);
   --fugue-floating-chip-bg:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 243, 235, 0.9)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.94),
+      rgba(248, 243, 235, 0.9)
+    ),
     rgba(242, 235, 226, 0.96);
   --fugue-floating-chip-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.8),
     0 12px 24px -20px rgba(31, 42, 56, 0.16);
   --fugue-dialog-scrim:
-    radial-gradient(circle at 50% 0%, rgba(95, 124, 155, 0.12), transparent 28%),
+    radial-gradient(
+      circle at 50% 0%,
+      rgba(95, 124, 155, 0.12),
+      transparent 28%
+    ),
     rgba(15, 18, 23, 0.46);
   --fugue-console-dialog-scrim: rgba(15, 18, 23, 0.42);
   --fugue-field-error-border: rgba(176, 90, 90, 0.42);
@@ -474,7 +665,11 @@
   --fugue-shadow-proof: 0 48px 90px -72px rgba(31, 42, 56, 0.16);
 
   --fugue-status-badge-bg-positive:
-    linear-gradient(180deg, rgba(111, 160, 128, 0.18), rgba(111, 160, 128, 0.06)),
+    linear-gradient(
+      180deg,
+      rgba(111, 160, 128, 0.18),
+      rgba(111, 160, 128, 0.06)
+    ),
     rgba(249, 245, 239, 0.96);
   --fugue-status-badge-border-positive: rgba(91, 138, 108, 0.24);
   --fugue-status-badge-text-positive: #2e5a42;
@@ -488,7 +683,11 @@
   --fugue-status-badge-dot-warning: #bf8d37;
   --fugue-status-badge-halo-warning: rgba(191, 141, 55, 0.16);
   --fugue-status-badge-bg-danger:
-    linear-gradient(180deg, rgba(191, 109, 109, 0.18), rgba(191, 109, 109, 0.06)),
+    linear-gradient(
+      180deg,
+      rgba(191, 109, 109, 0.18),
+      rgba(191, 109, 109, 0.06)
+    ),
     rgba(249, 244, 239, 0.96);
   --fugue-status-badge-border-danger: rgba(176, 90, 90, 0.22);
   --fugue-status-badge-text-danger: #8b4343;
@@ -502,12 +701,120 @@
   --fugue-status-badge-dot-info: #5f7c9b;
   --fugue-status-badge-halo-info: rgba(95, 124, 155, 0.16);
   --fugue-status-badge-bg-neutral:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(245, 239, 231, 0.88)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.92),
+      rgba(245, 239, 231, 0.88)
+    ),
     rgba(244, 238, 228, 0.96);
   --fugue-status-badge-border-neutral: rgba(22, 26, 31, 0.1);
   --fugue-status-badge-text-neutral: var(--fugue-text-secondary);
   --fugue-status-badge-dot-neutral: rgba(23, 27, 32, 0.66);
   --fugue-status-badge-halo-neutral: rgba(23, 27, 32, 0.08);
+  --fugue-console-shell-border: rgba(47, 57, 69, 0.14);
+  --fugue-console-shell-bg:
+    radial-gradient(
+      circle at 8% 0%,
+      rgba(255, 255, 255, 0.82),
+      transparent 32%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(236, 226, 212, 0.96),
+      rgba(223, 211, 195, 0.94)
+    ),
+    rgba(229, 219, 205, 0.94);
+  --fugue-console-shell-bg-active:
+    radial-gradient(
+      circle at 8% 0%,
+      rgba(255, 255, 255, 0.88),
+      transparent 34%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(240, 230, 216, 0.98),
+      rgba(226, 214, 199, 0.96)
+    ),
+    rgba(232, 222, 208, 0.96);
+  --fugue-console-shell-shadow:
+    0 22px 44px -30px rgba(36, 46, 59, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    inset 0 -1px 0 rgba(183, 168, 146, 0.12);
+  --fugue-console-shell-shadow-active:
+    0 30px 56px -34px rgba(36, 46, 59, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88),
+    inset 0 -1px 0 rgba(95, 124, 155, 0.1);
+  --fugue-console-surface-border: rgba(55, 67, 80, 0.12);
+  --fugue-console-summary-bg:
+    linear-gradient(
+      100deg,
+      rgba(252, 249, 244, 0.96) 0%,
+      rgba(248, 242, 234, 0.94) 46%,
+      rgba(227, 235, 243, 0.88) 46%,
+      rgba(240, 232, 221, 0.9) 100%
+    ),
+    rgba(246, 239, 231, 0.9);
+  --fugue-console-summary-bg-hover:
+    linear-gradient(
+      100deg,
+      rgba(255, 253, 249, 0.98) 0%,
+      rgba(250, 245, 238, 0.96) 44%,
+      rgba(221, 233, 244, 0.92) 44%,
+      rgba(243, 236, 227, 0.92) 100%
+    ),
+    rgba(248, 242, 235, 0.92);
+  --fugue-console-summary-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.86),
+    inset 0 -1px 0 rgba(191, 178, 160, 0.16);
+  --fugue-console-surface-bg:
+    linear-gradient(
+      180deg,
+      rgba(250, 247, 242, 0.9),
+      rgba(239, 231, 220, 0.84)
+    ),
+    rgba(236, 227, 215, 0.9);
+  --fugue-console-surface-bg-hover:
+    linear-gradient(
+      180deg,
+      rgba(252, 250, 246, 0.94),
+      rgba(236, 231, 224, 0.88)
+    ),
+    rgba(239, 231, 220, 0.92);
+  --fugue-console-surface-shadow:
+    0 18px 36px -30px rgba(36, 46, 59, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.84),
+    inset 0 -1px 0 rgba(191, 178, 160, 0.12);
+  --fugue-console-inset-bg:
+    linear-gradient(
+      180deg,
+      rgba(250, 247, 242, 0.88),
+      rgba(239, 231, 220, 0.84)
+    ),
+    rgba(236, 227, 215, 0.9);
+  --fugue-console-inset-strong-bg:
+    radial-gradient(
+      circle at top right,
+      rgba(214, 226, 240, 0.52),
+      transparent 34%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(249, 246, 240, 0.94),
+      rgba(236, 228, 217, 0.92)
+    ),
+    rgba(236, 227, 216, 0.94);
+  --fugue-console-utility-border: rgba(95, 124, 155, 0.18);
+  --fugue-console-utility-bg:
+    linear-gradient(
+      180deg,
+      rgba(247, 250, 252, 0.94),
+      rgba(232, 238, 244, 0.82)
+    ),
+    rgba(239, 232, 223, 0.94);
+  --fugue-console-utility-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.88),
+    0 10px 22px -20px rgba(36, 46, 59, 0.18);
+  --fugue-console-meter-track: rgba(29, 37, 49, 0.08);
 
   --fugue-button-bg-route: linear-gradient(
     180deg,
@@ -530,22 +837,46 @@
     rgba(86, 112, 139, 0.96)
   );
   --fugue-button-bg-secondary:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(246, 239, 231, 0.9)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.94),
+      rgba(246, 239, 231, 0.9)
+    ),
     rgba(241, 233, 222, 0.94);
   --fugue-button-bg-secondary-hover:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(249, 243, 236, 0.94)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.98),
+      rgba(249, 243, 236, 0.94)
+    ),
     rgba(244, 236, 226, 0.96);
   --fugue-button-bg-ghost:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.46), rgba(255, 255, 255, 0.22)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.46),
+      rgba(255, 255, 255, 0.22)
+    ),
     rgba(241, 233, 222, 0.48);
   --fugue-button-bg-ghost-hover:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.28)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.6),
+      rgba(255, 255, 255, 0.28)
+    ),
     rgba(243, 235, 224, 0.64);
   --fugue-button-bg-danger:
-    linear-gradient(180deg, rgba(222, 192, 187, 0.34), rgba(207, 168, 168, 0.22)),
+    linear-gradient(
+      180deg,
+      rgba(222, 192, 187, 0.34),
+      rgba(207, 168, 168, 0.22)
+    ),
     rgba(247, 240, 236, 0.96);
   --fugue-button-bg-danger-hover:
-    linear-gradient(180deg, rgba(228, 198, 194, 0.4), rgba(212, 173, 173, 0.28)),
+    linear-gradient(
+      180deg,
+      rgba(228, 198, 194, 0.4),
+      rgba(212, 173, 173, 0.28)
+    ),
     rgba(249, 243, 238, 0.98);
   --fugue-button-border-route: rgba(18, 24, 33, 0.18);
   --fugue-button-border-primary: rgba(95, 124, 155, 0.3);
@@ -580,7 +911,11 @@
   --fugue-button-status-danger-color: #b96262;
 
   --fugue-field-bg:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(246, 239, 231, 0.9)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.96),
+      rgba(246, 239, 231, 0.9)
+    ),
     rgba(240, 231, 220, 0.94);
   --fugue-field-bg-hover:
     linear-gradient(180deg, rgba(255, 255, 255, 1), rgba(249, 242, 235, 0.94)),
@@ -592,59 +927,89 @@
   --fugue-field-icon-hover: var(--fugue-text-secondary);
 
   --fugue-selection-lens-bg-hover:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(240, 235, 228, 0.9)),
+    linear-gradient(
+      180deg,
+      rgba(252, 250, 247, 0.98),
+      rgba(233, 240, 247, 0.9)
+    ),
     rgba(239, 231, 221, 0.96);
   --fugue-selection-lens-bg-active:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(230, 237, 245, 0.88)),
-    rgba(241, 235, 227, 0.98);
-  --fugue-selection-lens-border-hover: rgba(95, 124, 155, 0.18);
-  --fugue-selection-lens-border-active: rgba(95, 124, 155, 0.28);
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.99),
+      rgba(220, 232, 244, 0.92)
+    ),
+    rgba(241, 234, 224, 0.98);
+  --fugue-selection-lens-border-hover: rgba(95, 124, 155, 0.22);
+  --fugue-selection-lens-border-active: rgba(95, 124, 155, 0.32);
   --fugue-selection-lens-text: var(--fugue-text-secondary);
   --fugue-selection-lens-text-hover: var(--fugue-text-primary);
   --fugue-selection-lens-text-active: var(--fugue-text-primary);
   --fugue-selection-lens-shadow-active:
-    0 18px 40px -32px rgba(42, 56, 72, 0.16),
-    inset 0 1px 0 rgba(255, 255, 255, 0.74);
+    0 18px 40px -32px rgba(42, 56, 72, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    inset 0 -1px 0 rgba(95, 124, 155, 0.08);
 
   --fugue-slider-shell-bg:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(246, 239, 231, 0.9)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.94),
+      rgba(246, 239, 231, 0.9)
+    ),
     rgba(242, 234, 223, 0.96);
   --fugue-slider-shell-bg-hover:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(249, 242, 235, 0.94)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.98),
+      rgba(249, 242, 235, 0.94)
+    ),
     rgba(244, 236, 226, 0.98);
   --fugue-slider-value-bg:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(240, 235, 227, 0.9)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.98),
+      rgba(240, 235, 227, 0.9)
+    ),
     rgba(243, 235, 225, 0.98);
   --fugue-slider-value-border: rgba(22, 26, 31, 0.08);
   --fugue-slider-track-base: rgba(22, 26, 31, 0.08);
   --fugue-slider-track-fill: rgba(95, 124, 155, 0.88);
   --fugue-slider-track-fill-muted: rgba(95, 124, 155, 0.28);
-  --fugue-slider-thumb-bg:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 238, 229, 0.94));
+  --fugue-slider-thumb-bg: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.98),
+    rgba(244, 238, 229, 0.94)
+  );
   --fugue-slider-thumb-border: rgba(22, 26, 31, 0.14);
   --fugue-slider-thumb-shadow:
     0 12px 24px -16px rgba(31, 42, 56, 0.24),
     inset 0 1px 0 rgba(255, 255, 255, 0.88);
 
   --fugue-segmented-bg:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(245, 239, 231, 0.88)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.94),
+      rgba(245, 239, 231, 0.88)
+    ),
     rgba(239, 231, 220, 0.94);
   --fugue-segmented-border: rgba(22, 26, 31, 0.08);
   --fugue-segmented-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.78),
     0 14px 34px -26px rgba(31, 42, 56, 0.14);
-  --fugue-segmented-item-shadow-active:
-    inset 0 1px 0 rgba(255, 255, 255, 0.84);
+  --fugue-segmented-item-shadow-active: inset 0 1px 0 rgba(255, 255, 255, 0.84);
 
   --fugue-nav-pill-bg:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(244, 238, 230, 0.88)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.94),
+      rgba(244, 238, 230, 0.88)
+    ),
     rgba(240, 232, 221, 0.86);
   --fugue-nav-pill-border: rgba(22, 26, 31, 0.1);
   --fugue-nav-pill-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.78),
     0 18px 36px -30px rgba(31, 42, 56, 0.14);
-  --fugue-nav-pill-item-shadow-active:
-    inset 0 1px 0 rgba(255, 255, 255, 0.84);
+  --fugue-nav-pill-item-shadow-active: inset 0 1px 0 rgba(255, 255, 255, 0.84);
 
   --fugue-panel-divider: linear-gradient(
     90deg,
