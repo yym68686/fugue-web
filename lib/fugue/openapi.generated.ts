@@ -1230,6 +1230,40 @@ export interface paths {
         patch: operations["patchAppEnv"];
         trace?: never;
     };
+    "/v1/apps/{id}/database/query": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Query App Database */
+        post: operations["queryAppDatabase"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/apps/{id}/request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request App Internal HTTP Endpoint */
+        post: operations["requestAppInternalHTTP"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/apps/{id}/files": {
         parameters: {
             query?: never;
@@ -1701,6 +1735,9 @@ export interface components {
         };
         StringMap: {
             [key: string]: string;
+        };
+        StringListMap: {
+            [key: string]: string[];
         };
         Tenant: {
             id: string;
@@ -2663,6 +2700,12 @@ export interface components {
             pod: string;
             container?: string;
             command: string[];
+            /** Format: int32 */
+            retries?: number;
+            /** Format: int32 */
+            retry_delay_ms?: number;
+            /** Format: int32 */
+            timeout_ms?: number;
         };
         ClusterExecResponse: {
             namespace: string;
@@ -2670,6 +2713,8 @@ export interface components {
             container?: string;
             command: string[];
             output: string;
+            /** Format: int32 */
+            attempt_count?: number;
         };
         ClusterDNSAnswer: {
             type: string;
@@ -3108,12 +3153,85 @@ export interface components {
         };
         AppEnvResponse: {
             env: components["schemas"]["StringMap"];
+            entries?: components["schemas"]["AppEnvEntry"][];
             already_current?: boolean;
             operation?: components["schemas"]["Operation"];
+        };
+        AppEnvEntry: {
+            key: string;
+            value: string;
+            source?: string;
+            source_ref?: string;
+            overrides?: string[];
         };
         PatchAppEnvRequest: {
             set?: components["schemas"]["StringMap"];
             delete?: string[];
+        };
+        AppDatabaseQueryRequest: {
+            sql: string;
+            /** Format: int32 */
+            max_rows?: number;
+            /** Format: int32 */
+            timeout_ms?: number;
+        };
+        AppDatabaseQueryColumn: {
+            name: string;
+            database_type: string;
+        };
+        AppDatabaseQueryRow: {
+            [key: string]: unknown;
+        };
+        AppDatabaseQueryResponse: {
+            database: string;
+            host: string;
+            user: string;
+            columns: components["schemas"]["AppDatabaseQueryColumn"][];
+            rows: components["schemas"]["AppDatabaseQueryRow"][];
+            /** Format: int32 */
+            row_count: number;
+            /** Format: int32 */
+            max_rows: number;
+            truncated?: boolean;
+            read_only: boolean;
+            /** Format: int64 */
+            duration_ms: number;
+        };
+        AppHTTPRequestRequest: {
+            method: string;
+            path: string;
+            query?: components["schemas"]["StringListMap"];
+            headers?: components["schemas"]["StringListMap"];
+            headers_from_env?: components["schemas"]["StringMap"];
+            body?: string;
+            body_encoding?: string;
+            /** Format: int32 */
+            timeout_ms?: number;
+            /** Format: int32 */
+            max_body_bytes?: number;
+        };
+        HTTPDiagnosticTiming: {
+            dns?: string;
+            connect?: string;
+            tls?: string;
+            ttfb?: string;
+            total: string;
+            reused_connection?: boolean;
+        };
+        AppHTTPRequestResponse: {
+            method: string;
+            url: string;
+            status: string;
+            /** Format: int32 */
+            status_code: number;
+            headers: components["schemas"]["StringListMap"];
+            body: string;
+            body_encoding: string;
+            /** Format: int64 */
+            body_size: number;
+            truncated?: boolean;
+            server_timing?: string;
+            timing: components["schemas"]["HTTPDiagnosticTiming"];
         };
         AppFilesResponse: {
             files: components["schemas"]["AppFile"][];
@@ -5516,6 +5634,60 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AppEnvResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    queryAppDatabase: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AppDatabaseQueryRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppDatabaseQueryResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    requestAppInternalHTTP: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AppHTTPRequestRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppHTTPRequestResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
