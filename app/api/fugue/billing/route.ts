@@ -49,7 +49,9 @@ export async function GET() {
 
   try {
     await ensureWorkspaceAccess(session);
-    const data = await getBillingPageData(session.email);
+    const data = await getBillingPageData(session.email, {
+      includeCurrentUsage: true,
+    });
 
     if (!data) {
       return jsonError(409, "Create a workspace first.");

@@ -8,6 +8,7 @@ import {
   getFugueApps,
   getFugueClusterNodes,
   getFugueControlPlaneStatus,
+  getFugueProjectImageUsage,
   getFugueProjects,
   getFugueRuntimes,
   getFugueTenants,
@@ -157,12 +158,21 @@ type AdminUsersEnrichmentLookup = {
 
 const ADMIN_USERS_ENRICHMENT_CACHE_TTL_MS = 300_000;
 const ADMIN_USAGE_CACHE_TTL_MS = 300_000;
+const ADMIN_CONTROL_PLANE_CACHE_TTL_MS = 300_000;
 
 let cachedAdminUsersEnrichmentData: AdminUsersPageData | null = null;
 let cachedAdminUsersEnrichmentAt = 0;
 let adminUsersEnrichmentRequest: Promise<AdminUsersPageData> | null = null;
 const adminAppsUsageCache =
   createExpiringAsyncCache<FugueApp[]>(ADMIN_USAGE_CACHE_TTL_MS);
+const adminAppImageUsageCache =
+  createExpiringAsyncCache<FugueProjectImageUsageResult | null>(
+    ADMIN_USAGE_CACHE_TTL_MS,
+  );
+const adminControlPlaneViewCache =
+  createExpiringAsyncCache<AdminControlPlaneView>(
+    ADMIN_CONTROL_PLANE_CACHE_TTL_MS,
+  );
 
 export type AdminClusterConditionView = {
   detailLabel: string;
@@ -1951,6 +1961,12 @@ async function getCachedAdminAppsWithResourceUsage(bootstrapKey: string) {
   );
 }
 
+async function getCachedAdminAppImageUsage(bootstrapKey: string) {
+  return adminAppImageUsageCache.getOrLoad("project-image-usage", () =>
+    getFugueProjectImageUsage(bootstrapKey),
+  );
+}
+
 export async function getAdminAppsUsageData(): Promise<{
   apps: Array<{
     id: string;
@@ -1958,8 +1974,11 @@ export async function getAdminAppsUsageData(): Promise<{
   }>;
 }> {
   const bootstrapKey = getFugueEnv().bootstrapKey;
-  const apps = await getCachedAdminAppsWithResourceUsage(bootstrapKey);
-  const appImageUsage = createAdminAppImageUsageLookup(null);
+  const [apps, imageUsageResult] = await Promise.all([
+    getCachedAdminAppsWithResourceUsage(bootstrapKey),
+    getCachedAdminAppImageUsage(bootstrapKey).catch(() => null),
+  ]);
+  const appImageUsage = createAdminAppImageUsageLookup(imageUsageResult);
 
   return {
     apps: apps.map((app) => ({
@@ -1977,19 +1996,21 @@ export async function getAdminUsersUsageData(): Promise<{
   }>;
 }> {
   const bootstrapKey = getFugueEnv().bootstrapKey;
-  const [base, apps] = await Promise.all([
+  const [base, apps, imageUsageResult] = await Promise.all([
     loadAdminUsersBaseData({
       includeWorkspaces: true,
     }),
     getCachedAdminAppsWithResourceUsage(bootstrapKey),
+    getCachedAdminAppImageUsage(bootstrapKey).catch(() => null),
   ]);
 
   const workspaceByEmail = new Map(
     base.workspaces.map((workspace) => [workspace.email, workspace] as const),
   );
+  const appImageUsage = createAdminAppImageUsageLookup(imageUsageResult);
   const tenantServiceUsageByTenant = buildAdminTenantServiceUsageLookup(
     apps,
-    createAdminAppImageUsageLookup(null),
+    appImageUsage,
   );
 
   return {
@@ -2005,7 +2026,7 @@ export async function getAdminUsersUsageData(): Promise<{
         serviceCount,
         usage: buildAdminUserServiceUsageView(
           tenantServiceUsage,
-          false,
+          appImageUsage.loaded,
           false,
         ),
       };
@@ -2110,9 +2131,10 @@ async function loadAdminUsersEnrichmentLookup(
 
   const userEmails = new Set(users.map((user) => user.email));
   const billingWorkspaces = workspaces.filter((workspace) => userEmails.has(workspace.email));
-  const [appsResult, billingResult] = await Promise.allSettled([
+  const [appsResult, billingResult, imageUsageResult] = await Promise.allSettled([
     getCachedAdminAppsWithResourceUsage(bootstrapKey),
     getAdminUserBillingLookup(bootstrapKey, billingWorkspaces),
+    getCachedAdminAppImageUsage(bootstrapKey),
   ]);
 
   let apps: FugueApp[] = [];
@@ -2130,6 +2152,10 @@ async function loadAdminUsersEnrichmentLookup(
     errors.push(...billingResult.value.errors);
   } else {
     errors.push(`billing: ${readErrorMessage(billingResult.reason)}`);
+  }
+
+  if (imageUsageResult.status === "fulfilled") {
+    appImageUsage = createAdminAppImageUsageLookup(imageUsageResult.value);
   }
 
   return {
@@ -2297,6 +2323,40 @@ function buildControlPlaneView(
   };
 }
 
+async function getCachedAdminControlPlaneView(bootstrapKey: string) {
+  return adminControlPlaneViewCache.getOrLoad("control-plane", async () =>
+    buildControlPlaneView(await getFugueControlPlaneStatus(bootstrapKey)),
+  );
+}
+
+export async function getAdminControlPlaneData(): Promise<{
+  controlPlane: AdminControlPlaneView | null;
+  errors: string[];
+}> {
+  let bootstrapKey: string;
+
+  try {
+    bootstrapKey = getFugueEnv().bootstrapKey;
+  } catch (error) {
+    return {
+      controlPlane: null,
+      errors: [readErrorMessage(error)],
+    };
+  }
+
+  try {
+    return {
+      controlPlane: await getCachedAdminControlPlaneView(bootstrapKey),
+      errors: [],
+    };
+  } catch (error) {
+    return {
+      controlPlane: null,
+      errors: [readErrorMessage(error)],
+    };
+  }
+}
+
 export async function getAdminClusterPageData(): Promise<AdminClusterPageData> {
   let bootstrapKey: string;
 
@@ -2327,7 +2387,7 @@ export async function getAdminClusterPageData(): Promise<AdminClusterPageData> {
       ADMIN_OPTIONAL_FETCH_TIMEOUT_MS,
     ),
     settleWithSoftTimeout(
-      getFugueControlPlaneStatus(bootstrapKey),
+      getCachedAdminControlPlaneView(bootstrapKey),
       ADMIN_OPTIONAL_FETCH_TIMEOUT_MS,
     ),
   ]);
@@ -2348,7 +2408,7 @@ export async function getAdminClusterPageData(): Promise<AdminClusterPageData> {
   const nodes = nodesResult.status === "fulfilled" ? nodesResult.value : [];
   const controlPlane =
     controlPlaneResult.status === "fulfilled"
-      ? buildControlPlaneView(controlPlaneResult.value)
+      ? controlPlaneResult.value
       : null;
   const views = buildClusterNodeViews(nodes, tenants);
 

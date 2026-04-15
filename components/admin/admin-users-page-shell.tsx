@@ -20,6 +20,7 @@ import { Panel, PanelSection } from "@/components/ui/panel";
 import { ToastOnMount } from "@/components/ui/toast-on-mount";
 import {
   CONSOLE_ADMIN_USERS_PAGE_SNAPSHOT_URL,
+  CONSOLE_ADMIN_USERS_PAGE_ENRICHMENT_SNAPSHOT_URL,
   CONSOLE_ADMIN_USERS_PAGE_USAGE_SNAPSHOT_URL,
   type ConsoleAdminUsersPageSnapshot,
   fetchConsolePageSnapshot,
@@ -29,6 +30,7 @@ import {
 import { useAnticipatoryWarmup } from "@/lib/ui/anticipatory-warmup";
 
 const ADMIN_USERS_USAGE_SNAPSHOT_TTL_MS = 300_000;
+const ADMIN_USERS_ENRICHMENT_SNAPSHOT_TTL_MS = 300_000;
 
 type AdminUsersUsageSnapshot = {
   users: Array<{
@@ -69,12 +71,42 @@ function buildAdminUserUsageMap(
   }, {});
 }
 
+function hasAdminUserUsageImageData(
+  usage: AdminUsersUsageSnapshot["users"][number]["usage"] | undefined,
+) {
+  return Boolean(usage && usage.imageLabel && usage.imageLabel !== "No stats");
+}
+
+function buildAdminUsersEnrichmentMap(
+  snapshot: ConsoleAdminUsersPageSnapshot | null,
+) {
+  return (snapshot?.users ?? []).reduce<
+    Record<string, ConsoleAdminUsersPageSnapshot["users"][number]>
+  >((accumulator, user) => {
+    if (user.email.trim()) {
+      accumulator[user.email] = user;
+    }
+
+    return accumulator;
+  }, {});
+}
+
 function readAdminUsersUsageSnapshot() {
   return readConsolePageSnapshot<AdminUsersUsageSnapshot>(
     CONSOLE_ADMIN_USERS_PAGE_USAGE_SNAPSHOT_URL,
     {
       allowStale: true,
       ttlMs: ADMIN_USERS_USAGE_SNAPSHOT_TTL_MS,
+    },
+  );
+}
+
+function readAdminUsersEnrichmentSnapshot() {
+  return readConsolePageSnapshot<ConsoleAdminUsersPageSnapshot>(
+    CONSOLE_ADMIN_USERS_PAGE_ENRICHMENT_SNAPSHOT_URL,
+    {
+      allowStale: true,
+      ttlMs: ADMIN_USERS_ENRICHMENT_SNAPSHOT_TTL_MS,
     },
   );
 }
@@ -96,18 +128,33 @@ export function AdminUsersPageShell() {
   >(() =>
     buildAdminUserUsageMap(readAdminUsersUsageSnapshot()),
   );
+  const [enrichedUsersByEmail, setEnrichedUsersByEmail] = useState<
+    Record<string, ConsoleAdminUsersPageSnapshot["users"][number]>
+  >(() =>
+    buildAdminUsersEnrichmentMap(readAdminUsersEnrichmentSnapshot()),
+  );
 
   useEffect(() => {
     if (!data?.users.length) {
       setUsageByEmail({});
+      setEnrichedUsersByEmail({});
       return;
     }
 
     const cachedUsage = buildAdminUserUsageMap(readAdminUsersUsageSnapshot());
+    const cachedEnrichment = buildAdminUsersEnrichmentMap(
+      readAdminUsersEnrichmentSnapshot(),
+    );
 
     if (Object.keys(cachedUsage).length > 0) {
       startTransition(() => {
         setUsageByEmail(cachedUsage);
+      });
+    }
+
+    if (Object.keys(cachedEnrichment).length > 0) {
+      startTransition(() => {
+        setEnrichedUsersByEmail(cachedEnrichment);
       });
     }
   }, [data]);
@@ -129,7 +176,10 @@ export function AdminUsersPageShell() {
       });
     }
 
-    const needsUsageFetch = data.users.some((user) => !cachedUsage[user.email]);
+    const needsUsageFetch = data.users.some((user) => {
+      const nextUsage = cachedUsage[user.email]?.usage ?? user.usage;
+      return !cachedUsage[user.email] || !hasAdminUserUsageImageData(nextUsage);
+    });
 
     if (!needsUsageFetch) {
       return;
@@ -153,9 +203,67 @@ export function AdminUsersPageShell() {
     });
   });
 
+  const userEnrichmentWarmupKey = useMemo(
+    () =>
+      (data?.users ?? [])
+        .map((user) => `${user.email}:${user.billing.loading ? "loading" : "ready"}`)
+        .join("||"),
+    [data],
+  );
+  const warmAdminUserEnrichment = useEffectEvent(async (signal: AbortSignal) => {
+    if (!data?.users.length) {
+      return;
+    }
+
+    const cachedEnrichment = buildAdminUsersEnrichmentMap(
+      readAdminUsersEnrichmentSnapshot(),
+    );
+
+    if (Object.keys(cachedEnrichment).length > 0) {
+      startTransition(() => {
+        setEnrichedUsersByEmail(cachedEnrichment);
+      });
+    }
+
+    const needsEnrichmentFetch = data.users.some(
+      (user) =>
+        !cachedEnrichment[user.email] || cachedEnrichment[user.email].billing.loading,
+    );
+
+    if (!needsEnrichmentFetch) {
+      return;
+    }
+
+    const nextEnrichment =
+      await fetchConsolePageSnapshot<ConsoleAdminUsersPageSnapshot>(
+        CONSOLE_ADMIN_USERS_PAGE_ENRICHMENT_SNAPSHOT_URL,
+        {
+          force: true,
+          signal,
+          ttlMs: ADMIN_USERS_ENRICHMENT_SNAPSHOT_TTL_MS,
+        },
+      );
+
+    if (signal.aborted) {
+      return;
+    }
+
+    startTransition(() => {
+      setEnrichedUsersByEmail(buildAdminUsersEnrichmentMap(nextEnrichment));
+    });
+  });
+
   useAnticipatoryWarmup(
     data?.users.length ? warmAdminUserUsage : null,
     [userUsageWarmupKey],
+    {
+      mode: "idle",
+      timeoutMs: 3_000,
+    },
+  );
+  useAnticipatoryWarmup(
+    data?.users.length ? warmAdminUserEnrichment : null,
+    [userEnrichmentWarmupKey],
     {
       mode: "idle",
       timeoutMs: 3_000,
@@ -169,21 +277,30 @@ export function AdminUsersPageShell() {
 
     return {
       ...data,
+      enrichmentState:
+        Object.keys(enrichedUsersByEmail).length > 0 ? "ready" : data.enrichmentState,
       users: data.users.map((user) => {
+        const enrichedUser = enrichedUsersByEmail[user.email];
         const patch = usageByEmail[user.email];
+        const nextUser = enrichedUser
+          ? {
+              ...user,
+              ...enrichedUser,
+            }
+          : user;
 
         if (!patch) {
-          return user;
+          return nextUser;
         }
 
         return {
-          ...user,
+          ...nextUser,
           serviceCount: patch.serviceCount,
           usage: patch.usage,
         };
       }),
     } satisfies ConsoleAdminUsersPageSnapshot;
-  }, [data, usageByEmail]);
+  }, [data, enrichedUsersByEmail, usageByEmail]);
 
   if (loading && !pageData) {
     return (

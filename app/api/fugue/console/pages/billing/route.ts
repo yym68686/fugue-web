@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 
 import type { ConsoleBillingPageSnapshot } from "@/lib/console/page-snapshot-types";
 import { getBillingPageData } from "@/lib/billing/service";
@@ -19,7 +19,11 @@ function jsonSnapshot(snapshot: ConsoleBillingPageSnapshot) {
   });
 }
 
-export async function GET() {
+function readIncludeUsage(request: Request) {
+  return new URL(request.url).searchParams.get("include_usage") === "1";
+}
+
+export async function GET(request: Request) {
   const { response, session } = await requireSession();
 
   if (response || !session) {
@@ -27,7 +31,23 @@ export async function GET() {
   }
 
   try {
-    const data = await getBillingPageData(session.email);
+    const includeUsage = readIncludeUsage(request);
+
+    if (!includeUsage) {
+      after(async () => {
+        try {
+          await getBillingPageData(session.email, {
+            includeCurrentUsage: true,
+          });
+        } catch (error) {
+          console.error("Billing usage background sync failed.", error);
+        }
+      });
+    }
+
+    const data = await getBillingPageData(session.email, {
+      includeCurrentUsage: includeUsage,
+    });
 
     if (!data) {
       return jsonSnapshot({

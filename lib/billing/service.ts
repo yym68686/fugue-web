@@ -4,12 +4,14 @@ import { NextResponse } from "next/server";
 
 import {
   getFugueBillingSummary,
+  getFugueProjectImageUsage,
   topUpFugueBilling,
   updateFugueBilling,
   type FugueBillingSummary,
   type FugueResourceSpec,
 } from "@/lib/fugue/api";
 import { getFugueEnv } from "@/lib/fugue/env";
+import { createExpiringAsyncCache } from "@/lib/server/expiring-async-cache";
 import { getCachedWorkspaceAccessByEmail } from "@/lib/server/session-state-cache";
 import {
   extractCreemAmountTotalCents,
@@ -56,6 +58,17 @@ export type BillingTopupStatusView = {
 
 const MIN_BILLING_TOP_UP_UNITS = 5;
 const MAX_BILLING_TOP_UP_UNITS = 5000;
+const BILLING_LIVE_USAGE_CACHE_TTL_MS = 300_000;
+
+const billingLiveSummaryCache =
+  createExpiringAsyncCache<FugueBillingSummary>(BILLING_LIVE_USAGE_CACHE_TTL_MS);
+const billingImageStorageCache =
+  createExpiringAsyncCache<number>(BILLING_LIVE_USAGE_CACHE_TTL_MS);
+
+function invalidateBillingLiveUsageCache(tenantId: string) {
+  billingLiveSummaryCache.clear(tenantId);
+  billingImageStorageCache.clear(tenantId);
+}
 
 function readErrorMessage(error: unknown) {
   if (error instanceof Error && error.message) {
@@ -175,18 +188,53 @@ async function requireWorkspaceAccess(email: string) {
   return workspace;
 }
 
-export async function getBillingPageData(email: string) {
+async function getCachedLiveBillingSummary(workspace: {
+  adminKeySecret: string;
+  tenantId: string;
+}) {
+  return billingLiveSummaryCache.getOrLoad(workspace.tenantId, () =>
+    getFugueBillingSummary(workspace.adminKeySecret, undefined, {
+      includeCurrentUsage: true,
+    }),
+  );
+}
+
+async function getCachedBillingImageStorageBytes(workspace: {
+  adminKeySecret: string;
+  tenantId: string;
+}) {
+  return billingImageStorageCache.getOrLoad(workspace.tenantId, async () => {
+    const usage = await getFugueProjectImageUsage(workspace.adminKeySecret);
+    return (usage.projects ?? []).reduce(
+      (total, project) => total + (project.totalSizeBytes ?? 0),
+      0,
+    );
+  });
+}
+
+export async function getBillingPageData(
+  email: string,
+  options?: {
+    includeCurrentUsage?: boolean;
+  },
+) {
+  const includeCurrentUsage = options?.includeCurrentUsage ?? false;
   const workspace = await getCachedWorkspaceAccessByEmail(email);
 
   if (!workspace) {
     return null;
   }
 
-  const billingResult = await Promise.allSettled([
-    getFugueBillingSummary(workspace.adminKeySecret, undefined, {
-      includeCurrentUsage: false,
-    }),
-  ]).then(([result]) => result);
+  const [billingResult, imageStorageResult] = await Promise.allSettled([
+    includeCurrentUsage
+      ? getCachedLiveBillingSummary(workspace)
+      : getFugueBillingSummary(workspace.adminKeySecret, undefined, {
+          includeCurrentUsage: false,
+        }),
+    includeCurrentUsage
+      ? getCachedBillingImageStorageBytes(workspace)
+      : Promise.resolve<number | null>(null),
+  ]);
 
   if (billingResult.status === "rejected") {
     return {
@@ -200,10 +248,19 @@ export async function getBillingPageData(email: string) {
     } satisfies BillingPageData;
   }
 
+  const syncErrors: string[] = [];
+  let imageStorageBytes: number | null = null;
+
+  if (imageStorageResult.status === "fulfilled") {
+    imageStorageBytes = imageStorageResult.value;
+  } else if (includeCurrentUsage) {
+    syncErrors.push(readErrorMessage(imageStorageResult.reason));
+  }
+
   return {
     billing: billingResult.value,
-    imageStorageBytes: null,
-    syncError: null,
+    imageStorageBytes,
+    syncError: syncErrors.length ? syncErrors.join(" | ") : null,
     workspace: {
       tenantId: workspace.tenantId,
       tenantName: workspace.tenantName,
@@ -226,12 +283,15 @@ export async function updateBillingForEmail(
       })
     ).managedCap.storageGibibytes;
 
-  return updateFugueBilling(workspace.adminKeySecret, {
+  const billing = await updateFugueBilling(workspace.adminKeySecret, {
     managedCap: {
       ...payload.managedCap,
       storageGibibytes,
     },
   });
+
+  invalidateBillingLiveUsageCache(workspace.tenantId);
+  return billing;
 }
 
 export async function topUpBillingForEmail(
@@ -243,10 +303,13 @@ export async function topUpBillingForEmail(
 ) {
   const workspace = await requireWorkspaceAccess(email);
 
-  return topUpFugueBilling(workspace.adminKeySecret, {
+  const billing = await topUpFugueBilling(workspace.adminKeySecret, {
     amountCents: payload.amountCents,
     note: payload.note,
   });
+
+  invalidateBillingLiveUsageCache(workspace.tenantId);
+  return billing;
 }
 
 export async function topUpBillingForTenant(
@@ -256,11 +319,14 @@ export async function topUpBillingForTenant(
     note?: string;
   },
 ) {
-  return topUpFugueBilling(getFugueEnv().bootstrapKey, {
+  const billing = await topUpFugueBilling(getFugueEnv().bootstrapKey, {
     amountCents: payload.amountCents,
     note: payload.note,
     tenantId,
   });
+
+  invalidateBillingLiveUsageCache(tenantId);
+  return billing;
 }
 
 export async function createBillingTopupCheckoutForEmail(

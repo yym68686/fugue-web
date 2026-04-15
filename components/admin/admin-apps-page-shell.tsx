@@ -52,6 +52,17 @@ function buildAdminAppUsageMap(
   }, {});
 }
 
+function hasAdminAppUsageImageData(
+  resourceUsage: ConsoleCompactResourceItemView[] | undefined,
+) {
+  const imageUsage = resourceUsage?.find((item) => item.id === "images");
+  return Boolean(
+    imageUsage &&
+      imageUsage.primaryLabel &&
+      imageUsage.primaryLabel !== "No stats",
+  );
+}
+
 function readAdminAppsUsageSnapshot() {
   return readConsolePageSnapshot<AdminAppsUsageSnapshot>(
     CONSOLE_ADMIN_APPS_PAGE_USAGE_SNAPSHOT_URL,
@@ -106,7 +117,10 @@ export function AdminAppsPageShell() {
       });
     }
 
-    const needsUsageFetch = data.apps.some((app) => !cachedUsage[app.id]);
+    const needsUsageFetch = data.apps.some((app) => {
+      const nextUsage = cachedUsage[app.id] ?? app.resourceUsage;
+      return !cachedUsage[app.id] || !hasAdminAppUsageImageData(nextUsage);
+    });
 
     if (!needsUsageFetch) {
       return;

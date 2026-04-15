@@ -43,6 +43,8 @@ const snapshotRequests = new Map<string, Promise<unknown>>();
 
 export const CONSOLE_BILLING_PAGE_SNAPSHOT_URL =
   "/api/fugue/console/pages/billing";
+export const CONSOLE_BILLING_PAGE_USAGE_SNAPSHOT_URL =
+  "/api/fugue/console/pages/billing?include_usage=1";
 export const CONSOLE_API_KEYS_PAGE_SNAPSHOT_URL =
   "/api/fugue/console/pages/api-keys";
 export const CONSOLE_CLUSTER_NODES_PAGE_SNAPSHOT_URL =
@@ -61,6 +63,8 @@ export const CONSOLE_ADMIN_USERS_PAGE_ENRICHMENT_SNAPSHOT_URL =
   "/api/fugue/admin/pages/users/enrich";
 export const CONSOLE_ADMIN_CLUSTER_PAGE_SNAPSHOT_URL =
   "/api/fugue/admin/pages/cluster";
+export const CONSOLE_ADMIN_CLUSTER_CONTROL_PLANE_SNAPSHOT_URL =
+  "/api/fugue/admin/pages/cluster?include_control_plane=1";
 export const CONSOLE_PROJECT_GALLERY_USAGE_SNAPSHOT_URL =
   "/api/fugue/console/gallery?include_usage=1";
 
