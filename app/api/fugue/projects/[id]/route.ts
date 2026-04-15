@@ -75,9 +75,20 @@ export async function DELETE(_request: Request, context: RouteContext) {
 
   try {
     const projectId = await readRouteParam(context, "id");
-    const result = await deleteFugueProject(workspaceState.workspace.adminKeySecret, projectId);
+    const cascade = new URL(_request.url).searchParams.get("cascade") === "true";
+    const result = await deleteFugueProject(
+      workspaceState.workspace.adminKeySecret,
+      projectId,
+      {
+        cascade,
+      },
+    );
 
-    if (workspaceState.workspace.defaultProjectId === result.id) {
+    if (
+      result.project &&
+      (result.deleted || result.deleteRequested) &&
+      workspaceState.workspace.defaultProjectId === result.project.id
+    ) {
       await saveWorkspaceAccess({
         ...workspaceState.workspace,
         defaultProjectId: null,
@@ -86,7 +97,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
       });
     }
 
-    return NextResponse.json({ project: result });
+    return NextResponse.json(result);
   } catch (error) {
     return jsonError(readErrorStatus(error), readErrorMessage(error));
   }

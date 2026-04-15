@@ -226,6 +226,17 @@ function buildProjectView(project: CamelizedSchema<"Project">) {
   };
 }
 
+function buildProjectDeleteResultView(
+  response: CamelizedSchema<"ProjectDeleteResponse">,
+) {
+  return {
+    deleted: response.deleted ?? false,
+    deleteRequested: response.deleteRequested ?? false,
+    operations: (response.operations ?? []).map(buildOperationView),
+    project: response.project ? buildProjectView(response.project) : null,
+  };
+}
+
 function buildTopologyInferenceView(
   inference: CamelizedSchema<"TopologyInference">,
 ) {
@@ -2008,20 +2019,32 @@ export async function patchFugueProject(
   return buildProjectView(response.project);
 }
 
-export async function deleteFugueProject(accessToken: string, id: string) {
+export async function deleteFugueProject(
+  accessToken: string,
+  id: string,
+  options?: {
+    cascade?: boolean;
+  },
+) {
   const client = getClient(accessToken);
   const response = camelizeData(
     await expectData(
       `/v1/projects/${encodeURIComponent(id)}`,
       client.DELETE("/v1/projects/{id}", {
         params: {
+          query:
+            options?.cascade !== undefined
+              ? {
+                  cascade: options.cascade,
+                }
+              : undefined,
           path: { id },
         },
       }),
     ),
   );
 
-  return buildProjectView(response.project);
+  return buildProjectDeleteResultView(response);
 }
 
 export async function importFugueGitHubApp(

@@ -4429,6 +4429,157 @@
   overflow-wrap: anywhere;
 }
 
+.fg-project-scope-list {
+  gap: 0.62rem;
+}
+
+.fg-project-overview,
+.fg-project-settings-panel {
+  gap: 1rem;
+}
+
+.fg-project-overview__resources {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.8rem, 1fr));
+  gap: 0.72rem;
+}
+
+.fg-project-overview__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.62rem;
+}
+
+.fg-project-overview__note,
+.fg-project-danger-card {
+  display: grid;
+  gap: 0.5rem;
+  padding: 1rem 1.04rem 1.05rem;
+  border-radius: 1.18rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.03),
+      rgba(255, 255, 255, 0.01)
+    ),
+    rgba(7, 10, 14, 0.5);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+.fg-project-overview__note strong {
+  color: var(--fugue-text-primary);
+}
+
+.fg-project-overview__note p,
+.fg-project-danger-card__copy p {
+  margin: 0;
+  color: var(--fugue-text-secondary);
+  line-height: 1.55;
+}
+
+.fg-project-danger-card {
+  gap: 0.9rem;
+  border-color: rgba(204, 112, 92, 0.28);
+  background:
+    linear-gradient(
+      180deg,
+      rgba(204, 112, 92, 0.08),
+      rgba(255, 255, 255, 0.012)
+    ),
+    rgba(16, 11, 10, 0.56);
+}
+
+.fg-project-danger-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.fg-project-membership-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.78rem;
+}
+
+.fg-project-membership-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.9rem;
+  padding: 0.9rem 0.96rem;
+  border-radius: 1.08rem;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.024),
+      rgba(255, 255, 255, 0.008)
+    ),
+    rgba(8, 10, 14, 0.38);
+}
+
+.fg-project-membership-item__copy,
+.fg-project-membership-item__identity {
+  min-width: 0;
+}
+
+.fg-project-membership-item__copy {
+  flex: 1 1 18rem;
+}
+
+.fg-project-membership-item__title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.fg-project-membership-item__summary {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.74rem;
+}
+
+.fg-project-membership-item__badge {
+  flex: 0 0 auto;
+}
+
+.fg-project-membership-item__badge .fg-project-badge {
+  width: 2.42rem;
+  height: 2.42rem;
+  border-radius: 0.82rem;
+}
+
+.fg-project-membership-item__identity {
+  display: grid;
+  gap: 0.18rem;
+}
+
+.fg-project-membership-item__identity strong {
+  display: block;
+  font-size: 0.92rem;
+}
+
+.fg-project-membership-item__identity span {
+  color: var(--fugue-text-muted);
+  font-size: 0.8rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.fg-project-membership-item__actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+}
+
 .fg-profile-panel__body {
   display: grid;
   gap: 1rem;
@@ -7896,6 +8047,15 @@
 
   .fg-settings-disclosure {
     max-width: none;
+  }
+
+  .fg-project-overview__resources {
+    grid-template-columns: 1fr;
+  }
+
+  .fg-project-membership-item__actions {
+    width: 100%;
+    justify-content: flex-start;
   }
 
   .fg-route-subsection__head {

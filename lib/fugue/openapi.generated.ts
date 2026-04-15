@@ -572,6 +572,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/cluster/net/websocket": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Probe Cluster WebSocket */
+        post: operations["probeClusterWebSocket"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/cluster/tls/probe": {
         parameters: {
             query?: never;
@@ -1204,6 +1221,23 @@ export interface paths {
         };
         /** Stream App Runtime Logs */
         get: operations["streamAppRuntimeLogs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/apps/{id}/runtime-pods": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get App Runtime Pod Inventory */
+        get: operations["getAppRuntimePods"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2374,6 +2408,12 @@ export interface components {
         ProjectResponse: {
             project: components["schemas"]["Project"];
         };
+        ProjectDeleteResponse: {
+            project: components["schemas"]["Project"];
+            deleted: boolean;
+            delete_requested: boolean;
+            operations?: components["schemas"]["Operation"][];
+        };
         ConsoleProjectBadge: {
             kind: string;
             label: string;
@@ -2741,6 +2781,38 @@ export interface components {
             observed_at?: string;
             error?: string;
         };
+        ClusterWebSocketProbeRequest: {
+            app_id: string;
+            path?: string;
+            headers?: components["schemas"]["StringMap"];
+            /** Format: int32 */
+            timeout_ms?: number;
+        };
+        ClusterWebSocketProbeAttempt: {
+            target: string;
+            url?: string;
+            status?: string;
+            /** Format: int32 */
+            status_code?: number;
+            upgraded: boolean;
+            /** Format: int64 */
+            duration_ms: number;
+            headers?: components["schemas"]["StringMap"];
+            body_preview?: string;
+            error?: string;
+        };
+        ClusterWebSocketProbeResponse: {
+            app_id: string;
+            app_name: string;
+            path: string;
+            route_configured: boolean;
+            service: components["schemas"]["ClusterWebSocketProbeAttempt"];
+            public_route: components["schemas"]["ClusterWebSocketProbeAttempt"];
+            conclusion_code: string;
+            conclusion: string;
+            /** Format: date-time */
+            observed_at: string;
+        };
         ClusterTLSPeerCertificate: {
             subject: string;
             issuer: string;
@@ -2954,6 +3026,9 @@ export interface components {
             default_runtime: string;
             variables: components["schemas"]["TemplateVariable"][];
         };
+        ServiceEnvMap: {
+            [key: string]: components["schemas"]["StringMap"];
+        };
         InspectGitHubTemplateResponse: {
             repository: components["schemas"]["InspectGitHubTemplateRepository"];
             fugue_manifest?: components["schemas"]["InspectGitHubTemplateManifest"];
@@ -2995,6 +3070,7 @@ export interface components {
             dockerfile_path?: string;
             build_context_dir?: string;
             env?: components["schemas"]["StringMap"];
+            service_env?: components["schemas"]["ServiceEnvMap"];
             config_content?: string;
             files?: components["schemas"]["AppFile"][];
             startup_command?: string;
@@ -3021,6 +3097,7 @@ export interface components {
             dockerfile_path?: string;
             build_context_dir?: string;
             env?: components["schemas"]["StringMap"];
+            service_env?: components["schemas"]["ServiceEnvMap"];
             config_content?: string;
             files?: components["schemas"]["AppFile"][];
             startup_command?: string;
@@ -3149,6 +3226,32 @@ export interface components {
             container: string;
             pods: string[];
             logs: string;
+            warnings: string[];
+        };
+        AppRuntimePodGroup: {
+            owner_kind: string;
+            owner_name: string;
+            parent?: components["schemas"]["ClusterPodOwner"];
+            revision?: string;
+            /** Format: date-time */
+            created_at?: string;
+            /** Format: int32 */
+            desired_replicas?: number | null;
+            /** Format: int32 */
+            ready_replicas?: number | null;
+            /** Format: int32 */
+            available_replicas?: number | null;
+            /** Format: int32 */
+            current_replicas?: number | null;
+            containers?: components["schemas"]["ClusterWorkloadContainer"][];
+            pods: components["schemas"]["ClusterPod"][];
+        };
+        AppRuntimePodInventoryResponse: {
+            component: string;
+            namespace: string;
+            selector: string;
+            container: string;
+            groups: components["schemas"]["AppRuntimePodGroup"][];
             warnings: string[];
         };
         AppEnvResponse: {
@@ -3753,7 +3856,10 @@ export interface operations {
     };
     deleteProject: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description When true, queue delete operations for every app in the project, remove any remaining unbound backing services, and delete the project automatically once the last resource is gone. */
+                cascade?: boolean;
+            };
             header?: never;
             path: {
                 id: components["parameters"]["IdPathParam"];
@@ -3768,7 +3874,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProjectResponse"];
+                    "application/json": components["schemas"]["ProjectDeleteResponse"];
+                };
+            };
+            /** @description Delete requested and cleanup queued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectDeleteResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
@@ -4359,6 +4474,31 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClusterNetworkConnectResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    probeClusterWebSocket: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClusterWebSocketProbeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClusterWebSocketProbeResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
@@ -5584,6 +5724,31 @@ export interface operations {
                 };
                 content: {
                     "text/event-stream": string;
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getAppRuntimePods: {
+        parameters: {
+            query?: {
+                component?: components["parameters"]["ComponentQueryParam"];
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppRuntimePodInventoryResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];

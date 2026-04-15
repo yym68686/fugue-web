@@ -44,13 +44,6 @@ import {
 } from "@/lib/github/repository";
 import { useGitHubConnection } from "@/lib/github/connection-client";
 
-type ProjectPatchResponse = {
-  project?: {
-    id?: string;
-    name?: string;
-  } | null;
-};
-
 type RebuildResponse = {
   operation?: {
     id?: string | null;
@@ -89,12 +82,10 @@ type ManualRefreshState = {
   tone: ConsoleTone;
 };
 
-type ProjectNameEntry = {
-  id: string;
-  name: string;
-};
-
-type Translator = (key: string, values?: Record<string, string | number>) => string;
+type Translator = (
+  key: string,
+  values?: Record<string, string | number>,
+) => string;
 
 const DEFAULT_IMAGE_MIRROR_LIMIT = 1;
 
@@ -133,31 +124,6 @@ function readImageMirrorLimitError(
   return null;
 }
 
-function slugifyLikeFugue(value: string) {
-  const normalized = normalizeText(value).toLowerCase();
-  let output = "";
-  let lastDash = false;
-
-  for (const char of normalized) {
-    const isAlpha = char >= "a" && char <= "z";
-    const isNumeric = char >= "0" && char <= "9";
-
-    if (isAlpha || isNumeric) {
-      output += char;
-      lastDash = false;
-      continue;
-    }
-
-    if (!lastDash && output.length > 0) {
-      output += "-";
-      lastDash = true;
-    }
-  }
-
-  const trimmed = output.replace(/^-+/, "").replace(/-+$/, "");
-  return trimmed || "item";
-}
-
 function isUploadSourceType(value?: string | null) {
   return value?.trim().toLowerCase() === "upload";
 }
@@ -175,12 +141,17 @@ function readErrorMessage(error: unknown, t: Translator = (key) => key) {
   return t("Request failed.");
 }
 
-async function readResponseError(response: Response, t: Translator = (key) => key) {
+async function readResponseError(
+  response: Response,
+  t: Translator = (key) => key,
+) {
   const body = await response.text().catch(() => "");
   const trimmed = body.trim();
 
   if (!trimmed) {
-    return t("Request failed with status {status}.", { status: response.status });
+    return t("Request failed with status {status}.", {
+      status: response.status,
+    });
   }
 
   try {
@@ -196,7 +167,11 @@ async function readResponseError(response: Response, t: Translator = (key) => ke
   return trimmed;
 }
 
-async function requestJson<T>(input: RequestInfo, init?: RequestInit, t: Translator = (key) => key) {
+async function requestJson<T>(
+  input: RequestInfo,
+  init?: RequestInit,
+  t: Translator = (key) => key,
+) {
   const response = await fetch(input, init);
 
   if (!response.ok) {
@@ -471,7 +446,9 @@ function readTransferPreparationNote(
     );
 
   if (hasPersistentStorage && app.hasPostgresService) {
-    return t("Persistent storage sync runs before the move completes. Database stays where it is.");
+    return t(
+      "Persistent storage sync runs before the move completes. Database stays where it is.",
+    );
   }
 
   if (hasPersistentStorage) {
@@ -539,11 +516,14 @@ function readTransferConfirmationDescription(
           transferPreparationNote,
         },
       )
-    : t("{appName} will move from {liveRuntimeLabel} to {selectedTargetLabel}.", {
-        appName: app.name,
-        liveRuntimeLabel,
-        selectedTargetLabel,
-      });
+    : t(
+        "{appName} will move from {liveRuntimeLabel} to {selectedTargetLabel}.",
+        {
+          appName: app.name,
+          liveRuntimeLabel,
+          selectedTargetLabel,
+        },
+      );
 }
 
 function readPersistentStorageSummaryNote(
@@ -551,10 +531,14 @@ function readPersistentStorageSummaryNote(
   t: Translator = (key) => key,
 ) {
   if (hasPersistentStorage) {
-    return t("Mounted storage survives restarts, rebuilds, managed transfers, and failover.");
+    return t(
+      "Mounted storage survives restarts, rebuilds, managed transfers, and failover.",
+    );
   }
 
-  return t("Files still live in the running container until persistent storage is configured.");
+  return t(
+    "Files still live in the running container until persistent storage is configured.",
+  );
 }
 
 function buildPersistentStorageSummaryItems(
@@ -666,8 +650,10 @@ function AppStartupCommandSection({ app }: { app: ConsoleGalleryAppView }) {
   const startupCommandChanged =
     normalizedDraftCommand !== normalizedBaselineCommand;
   const canSaveStartupCommand = startupCommandChanged && !saving;
-  const savedStartupCommandLabel =
-    readStartupCommandSummary(baselineStartupCommand, t);
+  const savedStartupCommandLabel = readStartupCommandSummary(
+    baselineStartupCommand,
+    t,
+  );
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -748,7 +734,9 @@ function AppStartupCommandSection({ app }: { app: ConsoleGalleryAppView }) {
       <ConsoleDisclosureSection
         className="fg-settings-disclosure"
         defaultOpen={startupCommandChanged || saving}
-        description={t("Runs as `sh -lc <command>`. Leave blank to use the image default entrypoint.")}
+        description={t(
+          "Runs as `sh -lc <command>`. Leave blank to use the image default entrypoint.",
+        )}
         summary={t("Startup command · {value}", {
           value: savedStartupCommandLabel,
         })}
@@ -1041,7 +1029,9 @@ function AppPersistentStorageSection({
     t,
   );
   const statusTone: ConsoleTone = hasPersistentStorage ? "info" : "neutral";
-  const statusLabel = hasPersistentStorage ? t("Attached") : t("Not configured");
+  const statusLabel = hasPersistentStorage
+    ? t("Attached")
+    : t("Not configured");
   const filesActionLabel = hasPersistentStorage
     ? t("Open Files")
     : t("Browse Live Files");
@@ -1078,10 +1068,9 @@ function AppPersistentStorageSection({
     baselinePersistentStorage,
     draftPersistentStorage,
   );
-  const persistentStorageError =
-    persistentStorageChanged
-      ? validatePersistentStorageDraft(draftPersistentStorage)
-      : null;
+  const persistentStorageError = persistentStorageChanged
+    ? validatePersistentStorageDraft(draftPersistentStorage)
+    : null;
   const canSavePersistentStorage =
     !saving && persistentStorageChanged && !persistentStorageError;
   const savedPersistentStorageLabel =
@@ -1205,14 +1194,18 @@ function AppPersistentStorageSection({
       <ConsoleDisclosureSection
         className="fg-settings-disclosure"
         defaultOpen={persistentStorageChanged || saving}
-        description={t("Changes queue a deploy. File contents are only used when Fugue needs to create that file for the first time.")}
+        description={t(
+          "Changes queue a deploy. File contents are only used when Fugue needs to create that file for the first time.",
+        )}
         summary={t("Persistent storage · {value}", {
           value: savedPersistentStorageLabel,
         })}
       >
         <form className="fg-settings-form" onSubmit={handleSubmit}>
           {persistentStorageError ? (
-            <InlineAlert variant="warning">{persistentStorageError}</InlineAlert>
+            <InlineAlert variant="warning">
+              {persistentStorageError}
+            </InlineAlert>
           ) : null}
 
           <PersistentStorageEditor
@@ -1252,7 +1245,10 @@ function AppPersistentStorageSection({
       </ConsoleDisclosureSection>
 
       <div className="fg-settings-form__actions">
-        <HintInline ariaLabel={filesActionLabel} hint={availabilityHint ?? undefined}>
+        <HintInline
+          ariaLabel={filesActionLabel}
+          hint={availabilityHint ?? undefined}
+        >
           <Button
             disabled={!onOpenFiles}
             onClick={onOpenFiles ?? undefined}
@@ -1334,7 +1330,8 @@ function AppAutomaticFailoverSection({
       ? targetRuntimeId
       : null;
   const configuredTargetRuntimeId =
-    app.failoverTargetRuntimeId && app.failoverTargetRuntimeId !== primaryRuntimeId
+    app.failoverTargetRuntimeId &&
+    app.failoverTargetRuntimeId !== primaryRuntimeId
       ? app.failoverTargetRuntimeId
       : null;
   const primaryRuntimeLabel = readRuntimeTargetLabel(
@@ -1489,7 +1486,9 @@ function AppAutomaticFailoverSection({
         message: result?.alreadyCurrent
           ? t("Automatic failover is already off.")
           : disablesDatabaseReplica
-            ? t("Automatic failover disabled. Standby database replica removed.")
+            ? t(
+                "Automatic failover disabled. Standby database replica removed.",
+              )
             : t("Automatic failover disabled."),
         variant: "success",
       });
@@ -1545,7 +1544,9 @@ function AppAutomaticFailoverSection({
         <div>
           <dt>{t("Standby runtime")}</dt>
           <dd>
-            {app.failoverConfigured ? configuredTargetLabel : t("Not configured")}
+            {app.failoverConfigured
+              ? configuredTargetLabel
+              : t("Not configured")}
           </dd>
         </div>
       </dl>
@@ -1787,7 +1788,10 @@ function AppTransferSection({
         ) : null}
 
         {transferTargets.length > 0 ? (
-          <FormField htmlFor={`transfer-target-${app.id}`} label={t("Destination")}>
+          <FormField
+            htmlFor={`transfer-target-${app.id}`}
+            label={t("Destination")}
+          >
             <SelectField
               disabled={transferSaving}
               id={`transfer-target-${app.id}`}
@@ -1829,30 +1833,23 @@ function AppTransferSection({
 export function AppSettingsPanel({
   app,
   onOpenFiles,
-  projectCatalog,
-  projectId,
   projectManaged,
   projectName,
+  onOpenProjectSettings,
   runtimeTargetInventoryError,
   runtimeTargets,
-  serviceCount,
 }: {
   app: ConsoleGalleryAppView;
   onOpenFiles?: (() => void) | null;
-  projectCatalog: ProjectNameEntry[];
-  projectId: string;
   projectManaged: boolean;
   projectName: string;
+  onOpenProjectSettings?: (() => void) | null;
   runtimeTargetInventoryError: string | null;
   runtimeTargets: ConsoleImportRuntimeTargetView[];
-  serviceCount: number;
 }) {
   const router = useRouter();
   const { t } = useI18n();
   const { showToast } = useToast();
-  const [projectNameDraft, setProjectNameDraft] = useState(projectName);
-  const [projectBaseline, setProjectBaseline] = useState(projectName);
-  const [projectSaving, setProjectSaving] = useState(false);
   const [branchDraft, setBranchDraft] = useState(app.sourceBranchName ?? "");
   const [branchBaseline, setBranchBaseline] = useState(
     app.sourceBranchName ?? "",
@@ -1871,11 +1868,6 @@ export function AppSettingsPanel({
   });
 
   useEffect(() => {
-    setProjectBaseline(projectName);
-    setProjectNameDraft(projectName);
-  }, [projectId, projectName]);
-
-  useEffect(() => {
     const nextBranch = app.sourceBranchName ?? "";
     setBranchBaseline(nextBranch);
     setBranchDraft(nextBranch);
@@ -1885,9 +1877,7 @@ export function AppSettingsPanel({
     setRepoAuthTokenDraft("");
   }, [app.id]);
 
-  const currentProjectName = normalizeText(projectBaseline);
   const currentBranch = branchBaseline;
-  const normalizedProjectName = normalizeText(projectNameDraft);
   const normalizedBranch = normalizeText(branchDraft);
   const normalizedRepoAuthToken = normalizeText(repoAuthTokenDraft);
   const isGitHubSource = isGitHubSourceType(app.sourceType);
@@ -1916,28 +1906,12 @@ export function AppSettingsPanel({
   const repoAccessSubmitLabel = normalizedRepoAuthToken
     ? t("Update token and rebuild")
     : t("Use saved access and rebuild");
-  const projectChanged = normalizedProjectName !== currentProjectName;
-  const projectSlug = slugifyLikeFugue(normalizedProjectName);
-  const conflictingProject = projectCatalog.find(
-    (entry) =>
-      entry.id !== projectId && slugifyLikeFugue(entry.name) === projectSlug,
-  );
-  const projectNameError =
-    projectManaged && projectChanged && !normalizedProjectName
-      ? t("Project name is required.")
-      : projectManaged && projectChanged && conflictingProject
-        ? t("Another project already uses “{name}”.", {
-            name: conflictingProject.name,
-          })
-        : undefined;
-  const canSaveProject =
-    projectManaged && projectChanged && !projectSaving && !projectNameError;
   const workspaceSummaryAction = hasPersistentStorage
     ? t("inspect persistent storage")
     : t("review persistent storage configuration");
   const settingsSummary = isPrivateGitHubSource
     ? t(
-        "Rename the shared project, manage repository sync and GitHub access, set a startup command, tune image retention, {workspaceSummaryAction}, set automatic failover, or move {appName} by hand.",
+        "Manage repository sync and GitHub access, set a startup command, tune image retention, {workspaceSummaryAction}, set automatic failover, or move {appName} by hand. Project naming and deletion live in project settings.",
         {
           appName: app.name,
           workspaceSummaryAction,
@@ -1945,7 +1919,7 @@ export function AppSettingsPanel({
       )
     : isGitHubSource
       ? t(
-          "Rename the shared project, manage repository sync, set a startup command, tune image retention, {workspaceSummaryAction}, set automatic failover, or move {appName} by hand.",
+          "Manage repository sync, set a startup command, tune image retention, {workspaceSummaryAction}, set automatic failover, or move {appName} by hand. Project naming and deletion live in project settings.",
           {
             appName: app.name,
             workspaceSummaryAction,
@@ -1953,7 +1927,7 @@ export function AppSettingsPanel({
         )
       : isDockerImageSource
         ? t(
-            "Rename the shared project, review the saved Docker image reference, set a startup command, tune image retention, {workspaceSummaryAction}, set automatic failover, or move {appName} by hand.",
+            "Review the saved Docker image reference, set a startup command, tune image retention, {workspaceSummaryAction}, set automatic failover, or move {appName} by hand. Project naming and deletion live in project settings.",
             {
               appName: app.name,
               workspaceSummaryAction,
@@ -1961,14 +1935,14 @@ export function AppSettingsPanel({
           )
         : isUploadSource
           ? t(
-              "Rename the shared project, review the saved upload source, set a startup command, tune image retention, {workspaceSummaryAction}, set automatic failover, or move {appName} by hand.",
+              "Review the saved upload source, set a startup command, tune image retention, {workspaceSummaryAction}, set automatic failover, or move {appName} by hand. Project naming and deletion live in project settings.",
               {
                 appName: app.name,
                 workspaceSummaryAction,
               },
             )
           : t(
-              "Rename the shared project, review the saved source definition, set a startup command, tune image retention, {workspaceSummaryAction}, set automatic failover, or move {appName} by hand.",
+              "Review the saved source definition, set a startup command, tune image retention, {workspaceSummaryAction}, set automatic failover, or move {appName} by hand. Project naming and deletion live in project settings.",
               {
                 appName: app.name,
                 workspaceSummaryAction,
@@ -1976,14 +1950,11 @@ export function AppSettingsPanel({
             );
   const projectSectionNote = projectManaged
     ? t(
-        serviceCount === 1
-          ? "{count} service shares this project shell. Renaming it updates the whole group."
-          : "{count} services share this project shell. Renaming it updates the whole group.",
-        {
-          count: serviceCount,
-        },
+        "Project naming, membership, and deletion now live in project settings so they are scoped to the whole project.",
       )
-    : t("This service still lives in the Unassigned bucket, so the shared shell cannot be renamed yet.");
+    : t(
+        "This service still lives in the Unassigned bucket, so the shared shell cannot be renamed yet.",
+      );
   const syncSummaryValue =
     syncState.action === "disable"
       ? t("Polling for new commits")
@@ -1992,102 +1963,23 @@ export function AppSettingsPanel({
         : t("Starts after first deploy");
   const branchSummaryValue = currentBranch || t("Default branch");
   const branchDisclosureDescription = !canEditBranch
-    ? branchFieldHint ?? t("Branch changes are unavailable.")
+    ? (branchFieldHint ?? t("Branch changes are unavailable."))
     : currentBranch
       ? t("Change the branch used for rebuilds.")
       : t("Leave it blank to follow the repository default branch.");
   const manualRefreshValue =
     manualRefreshState?.label === t("Manual")
       ? t("Refresh on demand")
-      : manualRefreshState?.label ?? t("Manual refresh");
-
-  async function handleProjectSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (!projectManaged) {
-      showToast({
-        message: t("Unassigned groups cannot be renamed yet."),
-        variant: "info",
-      });
-      return;
-    }
-
-    if (!normalizedProjectName) {
-      showToast({
-        message: t("Project name is required."),
-        variant: "error",
-      });
-      return;
-    }
-
-    if (!projectChanged) {
-      showToast({
-        message: t("No project name changes."),
-        variant: "info",
-      });
-      return;
-    }
-
-    if (conflictingProject) {
-      showToast({
-        message: t(
-          "Another project already uses “{name}”. Project names must be unique within the workspace.",
-          {
-            name: conflictingProject.name,
-          },
-        ),
-        variant: "error",
-      });
-      return;
-    }
-
-    setProjectSaving(true);
-
-    try {
-      await requestJson<ProjectPatchResponse>(
-        `/api/fugue/projects/${projectId}`,
-        {
-          body: JSON.stringify({
-            name: normalizedProjectName,
-          }),
-          headers: {
-            "Content-Type": "application/json",
-          },
-          method: "PATCH",
-        },
-        t,
-      );
-
-      setProjectBaseline(normalizedProjectName);
-      setProjectNameDraft(normalizedProjectName);
-      showToast({
-        message: t("Project name updated."),
-        variant: "success",
-      });
-      startTransition(() => {
-        router.refresh();
-      });
-    } catch (error) {
-      const message = readErrorMessage(error, t);
-      showToast({
-        message:
-          message.includes("resource conflict") ||
-          message.includes("409 Conflict")
-            ? t("Another project already uses this name. Project names must be unique within the workspace.")
-            : message,
-        variant: "error",
-      });
-    } finally {
-      setProjectSaving(false);
-    }
-  }
+      : (manualRefreshState?.label ?? t("Manual refresh"));
 
   async function handleBranchSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!isGitHubSource) {
       showToast({
-        message: t("Only GitHub-backed services can change the tracked branch."),
+        message: t(
+          "Only GitHub-backed services can change the tracked branch.",
+        ),
         variant: "info",
       });
       return;
@@ -2112,15 +2004,19 @@ export function AppSettingsPanel({
     setBranchSaving(true);
 
     try {
-      await requestJson<RebuildResponse>(`/api/fugue/apps/${app.id}/rebuild`, {
-        body: JSON.stringify({
-          branch: normalizedBranch,
-        }),
-        headers: {
-          "Content-Type": "application/json",
+      await requestJson<RebuildResponse>(
+        `/api/fugue/apps/${app.id}/rebuild`,
+        {
+          body: JSON.stringify({
+            branch: normalizedBranch,
+          }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          method: "POST",
         },
-        method: "POST",
-      }, t);
+        t,
+      );
 
       setBranchBaseline(normalizedBranch);
       setBranchDraft(normalizedBranch);
@@ -2165,7 +2061,9 @@ export function AppSettingsPanel({
 
       showToast({
         message:
-          syncState.action === "disable" ? t("Pause queued.") : t("Resume queued."),
+          syncState.action === "disable"
+            ? t("Pause queued.")
+            : t("Resume queued."),
         variant: "success",
       });
       startTransition(() => {
@@ -2188,8 +2086,9 @@ export function AppSettingsPanel({
 
     if (!isPrivateGitHubSource) {
       showToast({
-        message:
-          t("Only private GitHub-backed services store a repository token."),
+        message: t(
+          "Only private GitHub-backed services store a repository token.",
+        ),
         variant: "info",
       });
       return;
@@ -2206,7 +2105,9 @@ export function AppSettingsPanel({
     if (!normalizedRepoAuthToken && !hasSavedGitHubAccess) {
       showToast({
         message: githubConnectionLoading
-          ? t("Still checking saved GitHub access. Try again in a moment or paste a token.")
+          ? t(
+              "Still checking saved GitHub access. Try again in a moment or paste a token.",
+            )
           : t("Authorize GitHub or paste a new token first."),
         variant: "info",
       });
@@ -2216,19 +2117,23 @@ export function AppSettingsPanel({
     setRepoAuthTokenSaving(true);
 
     try {
-      await requestJson<RebuildResponse>(`/api/fugue/apps/${app.id}/rebuild`, {
-        body: JSON.stringify(
-          normalizedRepoAuthToken
-            ? {
-                repoAuthToken: normalizedRepoAuthToken,
-              }
-            : {},
-        ),
-        headers: {
-          "Content-Type": "application/json",
+      await requestJson<RebuildResponse>(
+        `/api/fugue/apps/${app.id}/rebuild`,
+        {
+          body: JSON.stringify(
+            normalizedRepoAuthToken
+              ? {
+                  repoAuthToken: normalizedRepoAuthToken,
+                }
+              : {},
+          ),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          method: "POST",
         },
-        method: "POST",
-      }, t);
+        t,
+      );
 
       setRepoAuthTokenDraft("");
       showToast({
@@ -2265,7 +2170,10 @@ export function AppSettingsPanel({
         <div className="fg-route-subsection__head">
           <div className="fg-route-subsection__copy fg-settings-section__copy">
             <p className="fg-label fg-panel__eyebrow">{t("Project")}</p>
-            <HintInline ariaLabel={t("Project shell")} hint={projectSectionNote}>
+            <HintInline
+              ariaLabel={t("Project shell")}
+              hint={projectSectionNote}
+            >
               <h3 className="fg-route-subsection__title fg-ui-heading">
                 {t("Project shell")}
               </h3>
@@ -2273,72 +2181,35 @@ export function AppSettingsPanel({
           </div>
 
           <StatusBadge tone="neutral">
-            {projectManaged
-              ? t(
-                  serviceCount === 1 ? "{count} service" : "{count} services",
-                  {
-                    count: serviceCount,
-                  },
-                )
-              : t("Unassigned")}
+            {projectManaged ? t("Shared shell") : t("Unassigned")}
           </StatusBadge>
         </div>
 
-        {projectManaged ? (
-          <form className="fg-settings-form" onSubmit={handleProjectSubmit}>
-            <FormField
-              error={projectNameError}
-              hint={t("Must stay unique within this workspace.")}
-              htmlFor={`project-name-${projectId}`}
-              label={t("Project name")}
-            >
-              <input
-                autoComplete="off"
-                className="fg-input"
-                id={`project-name-${projectId}`}
-                name="projectName"
-                onChange={(event) => setProjectNameDraft(event.target.value)}
-                placeholder={t("Project name")}
-                value={projectNameDraft}
-              />
-            </FormField>
-
-            {projectChanged || projectSaving ? (
-              <div className="fg-settings-form__actions">
+        <SettingsSummaryList>
+          <SettingsSummaryRow
+            label={t("Project")}
+            note={projectSectionNote}
+            side={
+              onOpenProjectSettings ? (
                 <Button
-                  disabled={projectSaving}
-                  onClick={() => setProjectNameDraft(projectBaseline)}
+                  onClick={onOpenProjectSettings}
                   size="compact"
                   type="button"
                   variant="secondary"
                 >
-                  {t("Reset")}
+                  {t("Open project settings")}
                 </Button>
-                <Button
-                  disabled={!canSaveProject}
-                  loading={projectSaving}
-                  loadingLabel={t("Saving…")}
-                  size="compact"
-                  type="submit"
-                  variant="primary"
-                >
-                  {t("Save name")}
-                </Button>
-              </div>
-            ) : null}
-          </form>
-        ) : (
-          <dl className="fg-settings-meta">
-            <div>
-              <dt>{t("Current group")}</dt>
-              <dd>{projectName}</dd>
-            </div>
-            <div>
-              <dt>{t("Save mode")}</dt>
-              <dd>{t("Unavailable")}</dd>
-            </div>
-          </dl>
-        )}
+              ) : null
+            }
+            value={projectName}
+          />
+          <SettingsSummaryRow
+            label={t("Scope")}
+            value={
+              projectManaged ? t("Managed project") : t("Unassigned bucket")
+            }
+          />
+        </SettingsSummaryList>
       </section>
 
       <section
@@ -2348,7 +2219,10 @@ export function AppSettingsPanel({
         <div className="fg-route-subsection__head">
           <div className="fg-route-subsection__copy fg-settings-section__copy">
             <p className="fg-label fg-panel__eyebrow">{t("Source")}</p>
-            <HintInline ariaLabel={sourceSectionTitle} hint={sourceSectionHint ?? undefined}>
+            <HintInline
+              ariaLabel={sourceSectionTitle}
+              hint={sourceSectionHint ?? undefined}
+            >
               <h3 className="fg-route-subsection__title fg-ui-heading">
                 {sourceSectionTitle}
               </h3>
@@ -2425,7 +2299,10 @@ export function AppSettingsPanel({
                   value: branchSummaryValue,
                 })}
               >
-                <form className="fg-settings-form" onSubmit={handleBranchSubmit}>
+                <form
+                  className="fg-settings-form"
+                  onSubmit={handleBranchSubmit}
+                >
                   <FormField
                     hint={branchFieldHint ?? undefined}
                     htmlFor={`service-branch-${app.id}`}
@@ -2458,7 +2335,9 @@ export function AppSettingsPanel({
                         {t("Reset")}
                       </Button>
                       <Button
-                        disabled={!canEditBranch || !branchChanged || branchSaving}
+                        disabled={
+                          !canEditBranch || !branchChanged || branchSaving
+                        }
                         loading={branchSaving}
                         loadingLabel={t("Queueing…")}
                         size="compact"
@@ -2529,7 +2408,9 @@ export function AppSettingsPanel({
             onSubmit={handleRepositoryAccessSubmit}
           >
             <div className="fg-settings-source-meta">
-              <span className="fg-settings-source-meta__label">{t("Repository")}</span>
+              <span className="fg-settings-source-meta__label">
+                {t("Repository")}
+              </span>
               <span className="fg-settings-source-meta__value">
                 {app.sourceHref ? (
                   <a
@@ -2586,7 +2467,9 @@ export function AppSettingsPanel({
               </InlineAlert>
             ) : githubConnection?.authEnabled && githubConnectHref ? (
               <InlineAlert>
-                {t("Authorize GitHub in the browser, or paste a replacement token below.")}{" "}
+                {t(
+                  "Authorize GitHub in the browser, or paste a replacement token below.",
+                )}{" "}
                 <ButtonAnchor
                   href={githubConnectHref}
                   size="compact"
@@ -2600,7 +2483,9 @@ export function AppSettingsPanel({
             <FormField
               hint={
                 hasSavedGitHubAccess
-                  ? t("Leave blank to use saved GitHub access. Paste a token only to override it.")
+                  ? t(
+                      "Leave blank to use saved GitHub access. Paste a token only to override it.",
+                    )
                   : t("Needs GitHub repo read access.")
               }
               htmlFor={`repo-auth-token-${app.id}`}
