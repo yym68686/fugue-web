@@ -8444,7 +8444,7 @@
 
 :root[data-theme="light"] .fg-project-card__summary,
 :root[data-theme="light"] .fg-cluster-node-card__summary {
-  border: 1px solid var(--fugue-console-surface-border);
+  border: 0;
   background: var(--fugue-console-summary-bg);
   box-shadow: var(--fugue-console-summary-shadow);
 }
@@ -8538,6 +8538,8 @@
 
 :root[data-theme="light"] .fg-cluster-resource--compact {
   border-left-color: var(--fugue-console-surface-border);
+  background: transparent;
+  box-shadow: none;
 }
 
 :root[data-theme="light"] .fg-cluster-resource__meter {
@@ -8549,6 +8551,20 @@
   .fg-cluster-resource--compact
   .fg-cluster-resource__meter {
   background: rgba(29, 37, 49, 0.05);
+  box-shadow: none;
+}
+
+:root[data-theme="light"] .fg-cluster-resource--compact-static,
+:root[data-theme="light"]
+  .fg-project-card__summary-resources
+  > .fg-cluster-resource--compact,
+:root[data-theme="light"]
+  .fg-cluster-node-card__summary-resources
+  > .fg-cluster-resource--compact,
+:root[data-theme="light"]
+  .fg-console-table__resource-grid
+  > .fg-cluster-resource--compact {
+  background: transparent;
   box-shadow: none;
 }
 
