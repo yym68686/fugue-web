@@ -1833,17 +1833,11 @@ function AppTransferSection({
 export function AppSettingsPanel({
   app,
   onOpenFiles,
-  projectManaged,
-  projectName,
-  onOpenProjectSettings,
   runtimeTargetInventoryError,
   runtimeTargets,
 }: {
   app: ConsoleGalleryAppView;
   onOpenFiles?: (() => void) | null;
-  projectManaged: boolean;
-  projectName: string;
-  onOpenProjectSettings?: (() => void) | null;
   runtimeTargetInventoryError: string | null;
   runtimeTargets: ConsoleImportRuntimeTargetView[];
 }) {
@@ -1948,13 +1942,6 @@ export function AppSettingsPanel({
                 workspaceSummaryAction,
               },
             );
-  const projectSectionNote = projectManaged
-    ? t(
-        "Project naming, membership, and deletion now live in project settings so they are scoped to the whole project.",
-      )
-    : t(
-        "This service still lives in the Unassigned bucket, so the shared shell cannot be renamed yet.",
-      );
   const syncSummaryValue =
     syncState.action === "disable"
       ? t("Polling for new commits")
@@ -2162,55 +2149,6 @@ export function AppSettingsPanel({
           <p className="fg-label fg-panel__eyebrow">{t("Settings")}</p>
         </HintInline>
       </div>
-
-      <section
-        aria-label={t("Project shell")}
-        className="fg-route-subsection fg-settings-section"
-      >
-        <div className="fg-route-subsection__head">
-          <div className="fg-route-subsection__copy fg-settings-section__copy">
-            <p className="fg-label fg-panel__eyebrow">{t("Project")}</p>
-            <HintInline
-              ariaLabel={t("Project shell")}
-              hint={projectSectionNote}
-            >
-              <h3 className="fg-route-subsection__title fg-ui-heading">
-                {t("Project shell")}
-              </h3>
-            </HintInline>
-          </div>
-
-          <StatusBadge tone="neutral">
-            {projectManaged ? t("Shared shell") : t("Unassigned")}
-          </StatusBadge>
-        </div>
-
-        <SettingsSummaryList>
-          <SettingsSummaryRow
-            label={t("Project")}
-            note={projectSectionNote}
-            side={
-              onOpenProjectSettings ? (
-                <Button
-                  onClick={onOpenProjectSettings}
-                  size="compact"
-                  type="button"
-                  variant="secondary"
-                >
-                  {t("Open project settings")}
-                </Button>
-              ) : null
-            }
-            value={projectName}
-          />
-          <SettingsSummaryRow
-            label={t("Scope")}
-            value={
-              projectManaged ? t("Managed project") : t("Unassigned bucket")
-            }
-          />
-        </SettingsSummaryList>
-      </section>
 
       <section
         aria-label={sourceSectionTitle}

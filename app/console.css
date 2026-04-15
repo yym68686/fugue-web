@@ -4429,28 +4429,6 @@
   overflow-wrap: anywhere;
 }
 
-.fg-project-scope-list {
-  gap: 0.62rem;
-}
-
-.fg-project-overview,
-.fg-project-settings-panel {
-  gap: 1rem;
-}
-
-.fg-project-overview__resources {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(8.8rem, 1fr));
-  gap: 0.72rem;
-}
-
-.fg-project-overview__badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.62rem;
-}
-
-.fg-project-overview__note,
 .fg-project-danger-card {
   display: grid;
   gap: 0.5rem;
@@ -4467,11 +4445,6 @@
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
 }
 
-.fg-project-overview__note strong {
-  color: var(--fugue-text-primary);
-}
-
-.fg-project-overview__note p,
 .fg-project-danger-card__copy p {
   margin: 0;
   color: var(--fugue-text-secondary);
@@ -8047,10 +8020,6 @@
 
   .fg-settings-disclosure {
     max-width: none;
-  }
-
-  .fg-project-overview__resources {
-    grid-template-columns: 1fr;
   }
 
   .fg-project-membership-item__actions {
