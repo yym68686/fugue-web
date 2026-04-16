@@ -853,11 +853,11 @@
   background:
     linear-gradient(
       90deg,
-      rgba(255, 255, 255, 0.03),
-      rgba(255, 255, 255, 0.08),
-      rgba(255, 255, 255, 0.03)
+      var(--fugue-console-skeleton-block-edge),
+      var(--fugue-console-skeleton-block-highlight),
+      var(--fugue-console-skeleton-block-edge)
     ),
-    rgba(255, 255, 255, 0.02);
+    var(--fugue-console-skeleton-block-base);
   background-size: 200% 100%;
   animation: fg-console-skeleton-shimmer 1.35s var(--fugue-ease-out-quart)
     infinite;
@@ -963,15 +963,9 @@
   gap: 0.9rem;
   align-items: center;
   padding: 0.9rem 0.95rem;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--fugue-console-skeleton-surface-border);
   border-radius: 1rem;
-  background:
-    linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.02),
-      rgba(255, 255, 255, 0.012)
-    ),
-    rgba(255, 255, 255, 0.015);
+  background: var(--fugue-console-skeleton-surface-bg);
 }
 
 .fg-console-skeleton__list-copy,
@@ -1019,15 +1013,9 @@
   display: grid;
   gap: 0.7rem;
   padding: 0.9rem;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--fugue-console-skeleton-surface-border);
   border-radius: 1rem;
-  background:
-    linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.018),
-      rgba(255, 255, 255, 0.008)
-    ),
-    rgba(5, 7, 10, 0.48);
+  background: var(--fugue-console-skeleton-surface-bg);
 }
 
 .fg-console-skeleton__code-line {
@@ -1085,7 +1073,7 @@
   gap: 0.85rem;
   align-items: center;
   padding-top: 0.75rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid var(--fugue-console-skeleton-surface-border);
 }
 
 .fg-console-skeleton__table-cell {
@@ -7218,11 +7206,11 @@
   background:
     linear-gradient(
       90deg,
-      rgba(255, 255, 255, 0.03),
-      rgba(255, 255, 255, 0.06),
-      rgba(255, 255, 255, 0.03)
+      var(--fugue-console-skeleton-block-edge),
+      var(--fugue-console-skeleton-block-highlight),
+      var(--fugue-console-skeleton-block-edge)
     ),
-    rgba(255, 255, 255, 0.02);
+    var(--fugue-console-skeleton-block-base);
   background-size: 200% 100%;
   animation: fg-filesystem-skeleton 1.4s ease-in-out infinite;
 }
@@ -8487,11 +8475,16 @@
 :root[data-theme="light"] .fg-console-user-chip--minimal,
 :root[data-theme="light"] .fg-console-metric-card,
 :root[data-theme="light"] .fg-console-disclosure__summary-icon,
-:root[data-theme="light"] .fg-runtime-target-card__surface,
-:root[data-theme="light"] .fg-console-skeleton__list-item,
-:root[data-theme="light"] .fg-console-skeleton__workbench-main {
+:root[data-theme="light"] .fg-runtime-target-card__surface {
   border-color: var(--fugue-console-surface-border);
   background: var(--fugue-console-utility-bg);
+  box-shadow: var(--fugue-console-utility-shadow);
+}
+
+:root[data-theme="light"] .fg-console-skeleton__list-item,
+:root[data-theme="light"] .fg-console-skeleton__workbench-main {
+  border-color: var(--fugue-console-skeleton-surface-border);
+  background: var(--fugue-console-skeleton-surface-bg);
   box-shadow: var(--fugue-console-utility-shadow);
 }
 
@@ -8608,12 +8601,18 @@
 
 :root[data-theme="light"] .fg-project-pending-summary,
 :root[data-theme="light"] .fg-settings-card,
+:root[data-theme="light"] .fg-console-disclosure,
+:root[data-theme="light"] .fg-console-disclosure--section,
+:root[data-theme="light"] .fg-project-service-card,
+:root[data-theme="light"] .fg-project-danger-card,
 :root[data-theme="light"] .fg-profile-auth-summary,
 :root[data-theme="light"] .fg-profile-auth-provider,
 :root[data-theme="light"] .fg-profile-auth-capability,
 :root[data-theme="light"] .fg-cluster-condition,
 :root[data-theme="light"] .fg-cluster-resource,
 :root[data-theme="light"] .fg-cluster-workload,
+:root[data-theme="light"] .fg-env-editor__table .fg-env-row,
+:root[data-theme="light"] .fg-file-pill,
 :root[data-theme="light"] .fg-route-composer__shell {
   border-color: var(--fugue-console-surface-border);
   background: var(--fugue-console-surface-bg);
@@ -8923,8 +8922,56 @@
     inset 0 0 0 1px rgba(95, 124, 155, 0.08);
 }
 
+:root[data-theme="light"] .fg-project-services--rail .fg-panel__section + .fg-panel__section,
+:root[data-theme="light"] .fg-console-disclosure--section[open] > summary,
+:root[data-theme="light"] .fg-filesystem__editor,
+:root[data-theme="light"] .fg-filesystem-editor__advanced {
+  border-color: var(--fugue-console-surface-border);
+}
+
+:root[data-theme="light"] .fg-env-editor__empty,
+:root[data-theme="light"] .fg-filesystem__path-composer .fg-route-composer__shell {
+  border-color: var(--fugue-console-utility-border);
+  background: var(--fugue-console-utility-bg);
+  box-shadow: var(--fugue-console-utility-shadow);
+}
+
+:root[data-theme="light"] .fg-filesystem-shell,
+:root[data-theme="light"] .fg-project-textarea {
+  border-color: var(--fugue-console-surface-border);
+  background: var(--fugue-console-editor-bg);
+  box-shadow:
+    0 24px 44px -36px rgba(36, 46, 59, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -1px 0 rgba(191, 178, 160, 0.12);
+}
+
+:root[data-theme="light"] .fg-filesystem__path-composer .fg-route-composer__shell:hover,
+:root[data-theme="light"] .fg-filesystem__path-composer .fg-route-composer__shell:focus-within {
+  border-color: var(--fugue-selection-lens-border-hover);
+  background: var(--fugue-selection-lens-bg-hover);
+  box-shadow: var(--fugue-selection-lens-shadow-active);
+}
+
+:root[data-theme="light"] .fg-filesystem-node__button:hover,
+:root[data-theme="light"] .fg-filesystem-node__button:focus-visible {
+  border-color: var(--fugue-selection-lens-border-hover);
+  background: var(--fugue-selection-lens-bg-hover);
+}
+
+:root[data-theme="light"] .fg-filesystem-node__button.is-active {
+  border-color: var(--fugue-selection-lens-border-active);
+  background: var(--fugue-selection-lens-bg-active);
+  box-shadow: var(--fugue-selection-lens-shadow-active);
+}
+
+:root[data-theme="light"] .fg-filesystem-node__button:focus-visible {
+  outline-color: var(--fugue-focus-ring);
+}
+
 :root[data-theme="light"] .fg-filesystem-editor__textarea {
-  background: var(--fugue-console-inset-strong-bg);
+  background: var(--fugue-console-editor-bg);
+  box-shadow: none;
   color: var(--fugue-text-primary);
 }
 
