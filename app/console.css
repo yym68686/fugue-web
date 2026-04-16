@@ -353,7 +353,7 @@
   transform: rotate(180deg);
   border-color: var(--fugue-selection-lens-border-active);
   background: var(--fugue-selection-lens-bg-active);
-  color: var(--fugue-text-primary);
+  color: var(--fugue-selection-lens-text-active);
 }
 
 .fg-console-disclosure__panel {
@@ -849,18 +849,52 @@
   display: block;
   position: relative;
   overflow: hidden;
+  isolation: isolate;
   border-radius: 999px;
   background:
     linear-gradient(
-      90deg,
-      var(--fugue-console-skeleton-block-edge),
-      var(--fugue-console-skeleton-block-highlight),
-      var(--fugue-console-skeleton-block-edge)
+      180deg,
+      color-mix(
+        in srgb,
+        var(--fugue-console-skeleton-block-highlight) 40%,
+        transparent
+      ),
+      transparent 46%
     ),
-    var(--fugue-console-skeleton-block-base);
-  background-size: 200% 100%;
-  animation: fg-console-skeleton-shimmer 1.35s var(--fugue-ease-out-quart)
+    linear-gradient(
+      180deg,
+      var(--fugue-console-skeleton-block-base),
+      var(--fugue-console-skeleton-block-edge)
+    );
+  box-shadow: inset 0 1px 0
+    color-mix(in srgb, var(--fugue-console-skeleton-block-highlight) 42%, transparent);
+}
+
+.fg-console-skeleton__block::after {
+  content: "";
+  position: absolute;
+  inset: -36% -58%;
+  background: linear-gradient(
+    112deg,
+    transparent 18%,
+    var(--fugue-console-skeleton-sheen-soft) 34%,
+    var(--fugue-console-skeleton-sheen-strong) 50%,
+    var(--fugue-console-skeleton-sheen-soft) 66%,
+    transparent 82%
+  );
+  transform: translate3d(-72%, 0, 0) skewX(-18deg);
+  animation: fg-console-skeleton-shimmer 1.65s var(--fugue-ease-out-expo)
     infinite;
+  will-change: transform;
+  pointer-events: none;
+}
+
+.fg-console-skeleton__block:nth-child(3n)::after {
+  animation-delay: 120ms;
+}
+
+.fg-console-skeleton__block:nth-child(4n)::after {
+  animation-delay: 220ms;
 }
 
 .fg-console-skeleton__intro {
@@ -1088,11 +1122,11 @@
 
 @keyframes fg-console-skeleton-shimmer {
   0% {
-    background-position: 200% 0;
+    transform: translate3d(-72%, 0, 0) skewX(-18deg);
   }
 
   100% {
-    background-position: -200% 0;
+    transform: translate3d(72%, 0, 0) skewX(-18deg);
   }
 }
 
@@ -7201,18 +7235,45 @@
 }
 
 .fg-filesystem-tree__skeleton {
+  position: relative;
+  overflow: hidden;
   height: 1.92rem;
   border-radius: 0.4rem;
   background:
     linear-gradient(
-      90deg,
-      var(--fugue-console-skeleton-block-edge),
-      var(--fugue-console-skeleton-block-highlight),
-      var(--fugue-console-skeleton-block-edge)
+      180deg,
+      color-mix(
+        in srgb,
+        var(--fugue-console-skeleton-block-highlight) 40%,
+        transparent
+      ),
+      transparent 44%
     ),
-    var(--fugue-console-skeleton-block-base);
-  background-size: 200% 100%;
-  animation: fg-filesystem-skeleton 1.4s ease-in-out infinite;
+    linear-gradient(
+      180deg,
+      var(--fugue-console-skeleton-block-base),
+      var(--fugue-console-skeleton-block-edge)
+    );
+  box-shadow: inset 0 1px 0
+    color-mix(in srgb, var(--fugue-console-skeleton-block-highlight) 42%, transparent);
+}
+
+.fg-filesystem-tree__skeleton::after {
+  content: "";
+  position: absolute;
+  inset: -38% -58%;
+  background: linear-gradient(
+    112deg,
+    transparent 18%,
+    var(--fugue-console-skeleton-sheen-soft) 34%,
+    var(--fugue-console-skeleton-sheen-strong) 50%,
+    var(--fugue-console-skeleton-sheen-soft) 66%,
+    transparent 82%
+  );
+  transform: translate3d(-72%, 0, 0) skewX(-18deg);
+  animation: fg-filesystem-skeleton 1.7s var(--fugue-ease-out-expo) infinite;
+  will-change: transform;
+  pointer-events: none;
 }
 
 .fg-filesystem-node {
@@ -7486,11 +7547,11 @@
 
 @keyframes fg-filesystem-skeleton {
   0% {
-    background-position: 200% 0;
+    transform: translate3d(-72%, 0, 0) skewX(-18deg);
   }
 
   100% {
-    background-position: -200% 0;
+    transform: translate3d(72%, 0, 0) skewX(-18deg);
   }
 }
 
@@ -7559,6 +7620,7 @@
   border-color: var(--fugue-selection-lens-border-active);
   background: var(--fugue-selection-lens-bg-active);
   box-shadow: var(--fugue-selection-lens-shadow-active);
+  color: var(--fugue-selection-lens-text-active);
   transform: translateY(-1px);
 }
 
@@ -7702,11 +7764,12 @@
   }
 
   .fg-console-skeleton__block,
-  .fg-console-skeleton__block {
+  .fg-console-skeleton__block::after,
+  .fg-filesystem-tree__skeleton,
+  .fg-filesystem-tree__skeleton::after {
     animation: none;
   }
 
-  .fg-filesystem-tree__skeleton,
   .fg-filesystem-loading__spinner {
     animation: none;
   }
@@ -8533,35 +8596,13 @@
   .fg-runtime-target-card__indicator {
   box-shadow:
     0 0 0 0.18rem rgba(95, 124, 155, 0.12),
-    inset 0 0 0 0.18rem rgba(248, 243, 236, 0.92);
+    inset 0 0 0 0.18rem rgba(243, 248, 255, 0.96);
 }
 
 :root[data-theme="light"] .fg-status-badge__dot {
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.82),
     0 0 0 0 rgba(95, 124, 155, 0);
-}
-
-:root[data-theme="light"] .fg-console-nav {
-  --fugue-nav-pill-bg:
-    linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.92),
-      rgba(245, 239, 231, 0.86)
-    ),
-    rgba(243, 235, 224, 0.9);
-  --fugue-nav-pill-border: rgba(92, 78, 60, 0.12);
-  --fugue-nav-pill-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.84),
-    0 14px 30px -28px rgba(36, 46, 59, 0.14);
-  --fugue-nav-pill-item-border-hover: rgba(95, 124, 155, 0.12);
-  --fugue-nav-pill-item-border-active: rgba(95, 124, 155, 0.22);
-  --fugue-nav-pill-item-shadow-active:
-    0 12px 24px -20px rgba(42, 56, 72, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  --fugue-selection-lens-text: rgba(23, 27, 32, 0.8);
-  --fugue-selection-lens-text-hover: rgba(22, 26, 31, 0.96);
-  --fugue-selection-lens-text-active: rgba(16, 20, 24, 0.98);
 }
 
 :root[data-theme="light"] .fg-project-card,
@@ -8619,6 +8660,24 @@
   box-shadow: var(--fugue-console-surface-shadow);
 }
 
+:root[data-theme="light"] .fg-project-service-card:hover .fg-project-service-card__meta span,
+:root[data-theme="light"]
+  .fg-project-service-card:focus-visible
+  .fg-project-service-card__meta
+  span,
+:root[data-theme="light"] .fg-project-service-card.is-active .fg-project-service-card__meta span,
+:root[data-theme="light"]
+  .fg-project-service-card:hover
+  .fg-project-service-card__status-meta,
+:root[data-theme="light"]
+  .fg-project-service-card:focus-visible
+  .fg-project-service-card__status-meta,
+:root[data-theme="light"]
+  .fg-project-service-card.is-active
+  .fg-project-service-card__status-meta {
+  color: rgba(220, 231, 246, 0.76);
+}
+
 :root[data-theme="light"] .fg-project-card:hover .fg-project-card__summary,
 :root[data-theme="light"] .fg-project-card__summary:focus-visible,
 :root[data-theme="light"] .fg-project-card.is-active .fg-project-card__summary,
@@ -8657,6 +8716,7 @@
   border-color: var(--fugue-selection-lens-border-active);
   background: var(--fugue-selection-lens-bg-active);
   box-shadow: var(--fugue-selection-lens-shadow-active);
+  color: var(--fugue-selection-lens-text-active);
 }
 
 :root[data-theme="light"] .fg-project-workbench > .fg-bezel__inner,
@@ -8666,9 +8726,9 @@
   border-color: var(--fugue-console-surface-border);
   background: var(--fugue-console-inset-strong-bg);
   box-shadow:
-    0 28px 60px -48px rgba(36, 46, 59, 0.16),
-    inset 0 1px 0 rgba(255, 255, 255, 0.84),
-    inset 0 -1px 0 rgba(191, 178, 160, 0.12);
+    0 28px 60px -48px rgba(34, 52, 83, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    inset 0 -1px 0 rgba(109, 133, 167, 0.08);
 }
 
 :root[data-theme="light"] .fg-project-workbench__rail {
@@ -8676,20 +8736,20 @@
   background:
     linear-gradient(
       180deg,
-      rgba(249, 245, 238, 0.96),
-      rgba(236, 227, 216, 0.92)
+      rgba(246, 250, 254, 0.98),
+      rgba(228, 237, 247, 0.94)
     ),
-    rgba(231, 222, 210, 0.88);
+    rgba(224, 234, 245, 0.92);
 }
 
 :root[data-theme="light"] .fg-project-workbench__main {
   background:
     linear-gradient(
       180deg,
-      rgba(255, 255, 255, 0.3),
-      rgba(243, 236, 228, 0.12)
+      rgba(255, 255, 255, 0.24),
+      rgba(229, 239, 248, 0.14)
     ),
-    rgba(250, 246, 240, 0.18);
+    rgba(247, 251, 255, 0.22);
 }
 
 :root[data-theme="light"] .fg-cluster-resource--compact {
@@ -8727,19 +8787,29 @@
 :root[data-theme="light"] .fg-billing-surface > .fg-bezel__inner {
   border-color: var(--fugue-console-surface-border);
   box-shadow:
-    0 28px 60px -48px rgba(36, 46, 59, 0.16),
-    inset 0 1px 0 rgba(255, 255, 255, 0.86),
-    inset 0 -1px 0 rgba(191, 178, 160, 0.12);
+    0 28px 60px -48px rgba(34, 52, 83, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    inset 0 -1px 0 rgba(109, 133, 167, 0.08);
 }
 
 :root[data-theme="light"] .fg-billing-surface--health > .fg-bezel__inner {
   background:
     radial-gradient(
-      circle at top left,
-      rgba(95, 124, 155, 0.18),
-      transparent 30%
+      circle at 18% 16%,
+      rgba(145, 178, 224, 0.24),
+      transparent 34%
     ),
-    var(--fugue-console-inset-strong-bg);
+    linear-gradient(
+      180deg,
+      rgba(24, 45, 78, 0.98),
+      rgba(12, 28, 54, 0.97)
+    ),
+    rgba(11, 24, 46, 0.98);
+  border-color: rgba(97, 128, 176, 0.18);
+  box-shadow:
+    0 32px 68px -44px rgba(11, 24, 46, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -1px 0 rgba(137, 169, 209, 0.14);
 }
 
 :root[data-theme="light"] .fg-billing-surface--envelope > .fg-bezel__inner {
@@ -8774,6 +8844,32 @@
   box-shadow:
     var(--fugue-console-surface-shadow),
     inset 0 0 0 1px rgba(95, 124, 155, 0.08);
+}
+
+:root[data-theme="light"] .fg-billing-surface--health .fg-panel__eyebrow {
+  color: rgba(191, 210, 236, 0.82);
+}
+
+:root[data-theme="light"] .fg-billing-surface--health .fg-panel__title,
+:root[data-theme="light"] .fg-billing-surface--health .fg-console-metric-card__value {
+  color: #f4f8ff;
+}
+
+:root[data-theme="light"] .fg-billing-surface--health .fg-billing-health__stamp,
+:root[data-theme="light"] .fg-billing-surface--health .fg-admin-summary-card__label {
+  color: rgba(201, 215, 234, 0.72);
+}
+
+:root[data-theme="light"] .fg-billing-surface--health .fg-console-metric-card {
+  border-color: rgba(137, 169, 209, 0.14);
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.04),
+      rgba(255, 255, 255, 0.01)
+    ),
+    rgba(7, 16, 31, 0.32);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 :root[data-theme="light"] .fg-profile-auth-summary::before,
@@ -8941,9 +9037,9 @@
   border-color: var(--fugue-console-surface-border);
   background: var(--fugue-console-editor-bg);
   box-shadow:
-    0 24px 44px -36px rgba(36, 46, 59, 0.16),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    inset 0 -1px 0 rgba(191, 178, 160, 0.12);
+    0 24px 44px -36px rgba(34, 52, 83, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.94),
+    inset 0 -1px 0 rgba(109, 133, 167, 0.08);
 }
 
 :root[data-theme="light"] .fg-filesystem__path-composer .fg-route-composer__shell:hover,
@@ -8957,12 +9053,14 @@
 :root[data-theme="light"] .fg-filesystem-node__button:focus-visible {
   border-color: var(--fugue-selection-lens-border-hover);
   background: var(--fugue-selection-lens-bg-hover);
+  color: var(--fugue-selection-lens-text-hover);
 }
 
 :root[data-theme="light"] .fg-filesystem-node__button.is-active {
   border-color: var(--fugue-selection-lens-border-active);
   background: var(--fugue-selection-lens-bg-active);
   box-shadow: var(--fugue-selection-lens-shadow-active);
+  color: var(--fugue-selection-lens-text-active);
 }
 
 :root[data-theme="light"] .fg-filesystem-node__button:focus-visible {
