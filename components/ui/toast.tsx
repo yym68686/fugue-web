@@ -131,6 +131,10 @@ function ToastItem({
           <span aria-hidden="true" className="fg-toast__tone" />
           <span>{toneLabel}</span>
         </span>
+
+        {stackLabel ? (
+          <span className="fg-toast__stack-label">{stackLabel}</span>
+        ) : null}
       </span>
 
       <strong className="fg-toast__title">{getToastTitle(toast)}</strong>
@@ -191,10 +195,6 @@ function ToastItem({
         />
 
         <div className="fg-toast__footer">
-          {stackLabel ? (
-            <span className="fg-toast__stack-label">{stackLabel}</span>
-          ) : null}
-
           <button
             aria-label="Copy notification message"
             className="fg-toast__action"

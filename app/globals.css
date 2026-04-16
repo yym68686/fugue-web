@@ -102,7 +102,7 @@ canvas {
 }
 
 .fg-toast + .fg-toast {
-  margin-top: 0.72rem;
+  margin-top: 0.56rem;
 }
 
 .fg-toast-stack[data-expanded="false"] .fg-toast {
@@ -169,20 +169,20 @@ canvas {
   position: relative;
   isolation: isolate;
   display: grid;
-  gap: 0.72rem;
-  padding: 0.88rem 0.94rem 0.92rem;
+  gap: 0.46rem;
+  padding: 0.72rem 0.78rem 0.74rem;
   border: 1px solid
     color-mix(
       in srgb,
       var(--fugue-console-surface-border) 68%,
       rgb(var(--fg-toast-accent)) 32%
     );
-  border-radius: 1.22rem;
+  border-radius: 1.02rem;
   background:
-    radial-gradient(circle at top right, rgb(var(--fg-toast-accent) / 0.13), transparent 38%),
+    radial-gradient(circle at top right, rgb(var(--fg-toast-accent) / 0.1), transparent 34%),
     var(--fugue-console-surface-bg);
   box-shadow: var(--fugue-console-shell-shadow);
-  backdrop-filter: blur(18px);
+  backdrop-filter: blur(16px);
   overflow: hidden;
   transition:
     box-shadow var(--fg-toast-motion-duration) var(--fugue-ease-out-expo),
@@ -210,8 +210,8 @@ canvas {
 .fg-toast__toggle {
   min-width: 0;
   display: grid;
-  gap: 0.44rem;
-  padding: 0 3.05rem 0 0;
+  gap: 0.24rem;
+  padding: 0 2.55rem 0 0;
   border: 0;
   background: transparent;
   color: inherit;
@@ -243,64 +243,66 @@ canvas {
 .fg-toast__header {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.5rem;
   min-width: 0;
 }
 
 .fg-toast__signal {
   display: inline-flex;
   align-items: center;
-  gap: 0.42rem;
-  min-height: 1.52rem;
-  padding: 0.18rem 0.56rem 0.18rem 0.42rem;
+  gap: 0.34rem;
+  min-height: 1.32rem;
+  padding: 0.14rem 0.46rem 0.14rem 0.34rem;
   border: 1px solid var(--fg-toast-signal-border);
   border-radius: var(--fugue-radius-pill);
   background: var(--fg-toast-signal-bg);
   color: var(--fg-toast-signal-text);
   font-family: var(--fugue-font-mono);
-  font-size: 0.62rem;
-  letter-spacing: 0.08em;
+  font-size: 0.58rem;
+  letter-spacing: 0.07em;
   line-height: 1;
   text-transform: none;
 }
 
 .fg-toast__tone {
-  width: 0.46rem;
-  height: 0.46rem;
+  width: 0.4rem;
+  height: 0.4rem;
   border-radius: 999px;
-  flex: 0 0 0.46rem;
+  flex: 0 0 0.4rem;
   background: var(--fg-toast-signal-dot);
-  box-shadow: 0 0 0 0.26rem var(--fg-toast-signal-halo);
+  box-shadow: 0 0 0 0.22rem var(--fg-toast-signal-halo);
 }
 
 .fg-toast__title {
   display: block;
   color: var(--fugue-text-primary);
   font-family: var(--fugue-font-ui-heading);
-  font-size: 0.98rem;
+  font-size: 0.9rem;
   font-weight: 780;
-  letter-spacing: -0.03em;
-  line-height: 1.18;
-  text-wrap: balance;
+  letter-spacing: -0.026em;
+  line-height: 1.14;
+  text-wrap: pretty;
 }
 
 .fg-toast__stack-label {
+  margin-left: auto;
   color: color-mix(
     in srgb,
     var(--fugue-text-muted) 72%,
     rgb(var(--fg-toast-accent)) 28%
   );
   font-family: var(--fugue-font-mono);
-  font-size: 0.62rem;
+  font-size: 0.56rem;
   letter-spacing: 0.08em;
+  white-space: nowrap;
   text-transform: none;
 }
 
 .fg-toast__message {
   display: block;
   color: var(--fugue-text-secondary);
-  font-size: 0.88rem;
-  line-height: 1.58;
+  font-size: 0.82rem;
+  line-height: 1.44;
   overflow: hidden;
   text-wrap: pretty;
 }
@@ -308,30 +310,34 @@ canvas {
 .fg-toast__footer {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
+  justify-content: flex-end;
+  gap: 0.5rem;
   min-width: 0;
 }
 
 .fg-toast__dismiss {
   position: absolute;
-  top: 0.68rem;
-  right: 0.68rem;
-  width: 2.75rem;
-  height: 2.75rem;
+  top: 0.48rem;
+  right: 0.48rem;
+  width: 2.15rem;
+  height: 2.15rem;
   padding: 0;
   border: 1px solid
     color-mix(
       in srgb,
-      var(--fugue-border-default) 74%,
-      rgb(var(--fg-toast-accent)) 26%
+      var(--fugue-border-default) 82%,
+      rgb(var(--fg-toast-accent)) 18%
     );
-  border-radius: 0.92rem;
-  background: var(--fugue-selection-lens-bg-hover);
-  box-shadow: var(--fugue-console-summary-shadow);
+  border-radius: 0.76rem;
+  background: color-mix(
+    in srgb,
+    var(--fugue-selection-lens-bg-hover) 66%,
+    transparent 34%
+  );
   color: color-mix(
     in srgb,
-    var(--fugue-text-muted) 76%,
-    rgb(var(--fg-toast-accent)) 24%
+    var(--fugue-text-muted) 84%,
+    rgb(var(--fg-toast-accent)) 16%
   );
   touch-action: manipulation;
   transition:
@@ -347,7 +353,7 @@ canvas {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 0.86rem;
+  width: 0.7rem;
   height: 1.5px;
   border-radius: 999px;
   background: currentColor;
@@ -366,10 +372,14 @@ canvas {
   color: rgb(var(--fg-toast-accent));
   border-color: color-mix(
     in srgb,
-    var(--fugue-border-default) 54%,
-    rgb(var(--fg-toast-accent)) 46%
+    var(--fugue-border-default) 62%,
+    rgb(var(--fg-toast-accent)) 38%
   );
-  background: var(--fugue-selection-lens-bg-active);
+  background: color-mix(
+    in srgb,
+    var(--fugue-selection-lens-bg-active) 76%,
+    transparent 24%
+  );
   transform: translateY(-1px);
 }
 
@@ -378,32 +388,32 @@ canvas {
 }
 
 .fg-toast__action {
-  margin-left: auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 4.2rem;
-  min-height: 2.75rem;
-  padding: 0.42rem 0.9rem;
-  border: 1px solid
-    color-mix(
-      in srgb,
-      var(--fugue-border-default) 74%,
-      rgb(var(--fg-toast-accent)) 26%
-    );
-  background: var(--fugue-selection-lens-bg-hover);
-  box-shadow: var(--fugue-console-summary-shadow);
+  min-width: auto;
+  min-height: 1.6rem;
+  padding: 0.08rem 0;
+  border: 0;
+  background: transparent;
   color: var(--fugue-text-secondary);
   font-family: var(--fugue-font-mono);
-  font-size: 0.62rem;
+  font-size: 0.58rem;
   letter-spacing: 0.08em;
+  line-height: 1;
   text-transform: none;
-  border-radius: var(--fugue-radius-pill);
+  text-decoration: underline;
+  text-decoration-color: color-mix(
+    in srgb,
+    var(--fugue-border-default) 74%,
+    rgb(var(--fg-toast-accent)) 26%
+  );
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.28em;
   touch-action: manipulation;
   transition:
     color var(--fugue-duration-fast) var(--fugue-ease-out-expo),
-    border-color var(--fugue-duration-fast) var(--fugue-ease-out-expo),
-    background-color var(--fugue-duration-fast) var(--fugue-ease-out-expo),
+    text-decoration-color var(--fugue-duration-fast) var(--fugue-ease-out-expo),
     opacity var(--fugue-duration-fast) var(--fugue-ease-out-expo),
     transform var(--fugue-duration-fast) var(--fugue-ease-out-expo);
 }
@@ -411,26 +421,25 @@ canvas {
 .fg-toast__action:hover,
 .fg-toast__action:focus-visible {
   color: var(--fugue-text-primary);
-  border-color: color-mix(
+  text-decoration-color: color-mix(
     in srgb,
-    var(--fugue-border-default) 54%,
-    rgb(var(--fg-toast-accent)) 46%
+    var(--fugue-border-default) 42%,
+    rgb(var(--fg-toast-accent)) 58%
   );
-  background: var(--fugue-selection-lens-bg-active);
-  transform: translateY(-1px);
+  transform: translateY(-0.5px);
 }
 
 .fg-toast__action:active {
-  transform: translateY(0) scale(0.97);
+  transform: translateY(0);
 }
 
 .fg-toast-stack[data-has-stack="true"][data-expanded="false"] .fg-toast + .fg-toast {
-  margin-top: -3.55rem;
+  margin-top: -2.9rem;
 }
 
 .fg-toast-stack[data-has-stack="true"][data-expanded="false"] .fg-toast:last-child .fg-toast__message {
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
 }
 
@@ -439,7 +448,7 @@ canvas {
 }
 
 .fg-toast-stack[data-has-stack="true"][data-expanded="false"] .fg-toast:not(:last-child) .fg-toast__title {
-  font-size: 0.92rem;
+  font-size: 0.86rem;
   opacity: 0.82;
 }
 
