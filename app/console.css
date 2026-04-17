@@ -8660,22 +8660,40 @@
   box-shadow: var(--fugue-console-surface-shadow);
 }
 
+:root[data-theme="light"] .fg-project-service-card:hover,
+:root[data-theme="light"] .fg-project-service-card:focus-visible {
+  border-color: var(--fugue-selection-lens-border-hover);
+  background: var(--fugue-selection-lens-bg-hover);
+  box-shadow: var(--fugue-selection-lens-shadow-active);
+  color: var(--fugue-selection-lens-text-hover);
+}
+
+:root[data-theme="light"] .fg-project-service-card.is-active {
+  border-color: var(--fugue-selection-lens-border-hover);
+  background: var(--fugue-console-inset-strong-bg);
+  box-shadow:
+    var(--fugue-console-surface-shadow),
+    inset 0 0 0 1px rgba(95, 124, 155, 0.08);
+  color: var(--fugue-text-primary);
+}
+
 :root[data-theme="light"] .fg-project-service-card:hover .fg-project-service-card__meta span,
 :root[data-theme="light"]
   .fg-project-service-card:focus-visible
   .fg-project-service-card__meta
   span,
-:root[data-theme="light"] .fg-project-service-card.is-active .fg-project-service-card__meta span,
-:root[data-theme="light"]
-  .fg-project-service-card:hover
-  .fg-project-service-card__status-meta,
+:root[data-theme="light"] .fg-project-service-card.is-active .fg-project-service-card__meta span {
+  color: var(--fugue-text-secondary);
+}
+
+:root[data-theme="light"] .fg-project-service-card:hover .fg-project-service-card__status-meta,
 :root[data-theme="light"]
   .fg-project-service-card:focus-visible
   .fg-project-service-card__status-meta,
 :root[data-theme="light"]
   .fg-project-service-card.is-active
   .fg-project-service-card__status-meta {
-  color: rgba(220, 231, 246, 0.76);
+  color: var(--fugue-text-tertiary);
 }
 
 :root[data-theme="light"] .fg-project-card:hover .fg-project-card__summary,
@@ -9016,6 +9034,70 @@
   box-shadow:
     var(--fugue-console-surface-shadow),
     inset 0 0 0 1px rgba(95, 124, 155, 0.08);
+}
+
+:root[data-theme="light"] .fg-app-images__summary-card,
+:root[data-theme="light"] .fg-app-images__card {
+  border-color: var(--fugue-console-surface-border);
+  box-shadow: var(--fugue-console-surface-shadow);
+}
+
+:root[data-theme="light"] .fg-app-images__summary-card {
+  background: var(--fugue-console-surface-bg);
+}
+
+:root[data-theme="light"] .fg-app-images__card {
+  background: var(--fugue-console-surface-bg);
+}
+
+:root[data-theme="light"] .fg-app-images__card.is-current {
+  border-color: rgba(91, 138, 108, 0.22);
+  background:
+    radial-gradient(
+      circle at top right,
+      rgba(95, 154, 116, 0.16),
+      transparent 28%
+    ),
+    var(--fugue-console-inset-strong-bg);
+  box-shadow:
+    var(--fugue-console-surface-shadow),
+    inset 0 0 0 1px rgba(91, 138, 108, 0.08);
+}
+
+:root[data-theme="light"] .fg-app-images__card.is-missing {
+  border-color: rgba(177, 136, 62, 0.22);
+  background:
+    radial-gradient(
+      circle at top right,
+      rgba(191, 141, 55, 0.12),
+      transparent 28%
+    ),
+    var(--fugue-console-surface-bg);
+}
+
+:root[data-theme="light"] .fg-app-images__summary-card strong,
+:root[data-theme="light"] .fg-app-images__card-title,
+:root[data-theme="light"] .fg-app-images__details dd {
+  color: var(--fugue-text-primary);
+}
+
+:root[data-theme="light"] .fg-app-images__summary-card p,
+:root[data-theme="light"] .fg-app-images__card-meta,
+:root[data-theme="light"] .fg-app-images__mono,
+:root[data-theme="light"] .fg-app-images__link {
+  color: var(--fugue-text-secondary);
+}
+
+:root[data-theme="light"] .fg-app-images__chip,
+:root[data-theme="light"] .fg-app-images__empty {
+  border-color: var(--fugue-console-utility-border);
+  background: var(--fugue-console-utility-bg);
+  box-shadow: var(--fugue-console-utility-shadow);
+}
+
+:root[data-theme="light"] .fg-app-images__link:hover {
+  color: var(--fugue-accent-signal);
+  text-decoration-color: currentColor;
 }
 
 :root[data-theme="light"] .fg-project-services--rail .fg-panel__section + .fg-panel__section,
