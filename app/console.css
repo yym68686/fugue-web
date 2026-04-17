@@ -8644,8 +8644,10 @@
 :root[data-theme="light"] .fg-settings-card,
 :root[data-theme="light"] .fg-console-disclosure,
 :root[data-theme="light"] .fg-console-disclosure--section,
+:root[data-theme="light"] .fg-control-plane-card,
 :root[data-theme="light"] .fg-project-service-card,
 :root[data-theme="light"] .fg-project-danger-card,
+:root[data-theme="light"] .fg-project-membership-item,
 :root[data-theme="light"] .fg-profile-auth-summary,
 :root[data-theme="light"] .fg-profile-auth-provider,
 :root[data-theme="light"] .fg-profile-auth-capability,
@@ -8658,6 +8660,50 @@
   border-color: var(--fugue-console-surface-border);
   background: var(--fugue-console-surface-bg);
   box-shadow: var(--fugue-console-surface-shadow);
+}
+
+:root[data-theme="light"] .fg-control-plane-card--positive {
+  border-color: rgba(91, 138, 108, 0.22);
+  background:
+    radial-gradient(
+      circle at top right,
+      rgba(95, 154, 116, 0.14),
+      transparent 28%
+    ),
+    var(--fugue-console-surface-bg);
+}
+
+:root[data-theme="light"] .fg-control-plane-card--info {
+  border-color: rgba(95, 124, 155, 0.22);
+  background:
+    radial-gradient(
+      circle at top right,
+      rgba(95, 124, 155, 0.14),
+      transparent 28%
+    ),
+    var(--fugue-console-surface-bg);
+}
+
+:root[data-theme="light"] .fg-control-plane-card--warning {
+  border-color: rgba(177, 136, 62, 0.22);
+  background:
+    radial-gradient(
+      circle at top right,
+      rgba(191, 141, 55, 0.14),
+      transparent 28%
+    ),
+    var(--fugue-console-surface-bg);
+}
+
+:root[data-theme="light"] .fg-control-plane-card--danger {
+  border-color: rgba(176, 90, 90, 0.2);
+  background:
+    radial-gradient(
+      circle at top right,
+      rgba(185, 98, 98, 0.12),
+      transparent 28%
+    ),
+    var(--fugue-console-surface-bg);
 }
 
 :root[data-theme="light"] .fg-project-service-card:hover,
@@ -8857,6 +8903,21 @@
 }
 
 :root[data-theme="light"] .fg-billing-signal-card.is-primary {
+  border-color: var(--fugue-selection-lens-border-active);
+  background: var(--fugue-console-inset-strong-bg);
+  box-shadow:
+    var(--fugue-console-surface-shadow),
+    inset 0 0 0 1px rgba(95, 124, 155, 0.08);
+}
+
+:root[data-theme="light"] .fg-billing-balance__figure,
+:root[data-theme="light"] .fg-billing-estimate {
+  border-color: var(--fugue-console-utility-border);
+  background: var(--fugue-console-utility-bg);
+  box-shadow: var(--fugue-console-utility-shadow);
+}
+
+:root[data-theme="light"] .fg-billing-balance__figure.is-primary {
   border-color: var(--fugue-selection-lens-border-active);
   background: var(--fugue-console-inset-strong-bg);
   box-shadow:
