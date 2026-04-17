@@ -1675,6 +1675,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/source-uploads/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Source Upload Metadata */
+        get: operations["getSourceUpload"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/agent/enroll": {
         parameters: {
             query?: never;
@@ -2751,6 +2768,8 @@ export interface components {
             image: string;
             image_repository: string;
             image_tag: string;
+            observed_image_tags?: string[];
+            observed_pods?: components["schemas"]["ControlPlanePod"][];
             status: string;
             /** Format: int32 */
             desired_replicas: number;
@@ -2761,10 +2780,22 @@ export interface components {
             /** Format: int32 */
             available_replicas: number;
         };
+        ControlPlanePod: {
+            name: string;
+            node_name?: string;
+            phase?: string;
+            ready: boolean;
+            image?: string;
+            image_repository?: string;
+            image_tag?: string;
+            /** Format: date-time */
+            start_time?: string;
+        };
         ControlPlaneStatus: {
             namespace: string;
             release_instance: string;
             version: string;
+            live_version?: string;
             status: string;
             /** Format: date-time */
             observed_at: string;
@@ -2789,8 +2820,44 @@ export interface components {
             created_at?: string;
             /** Format: date-time */
             updated_at?: string;
+        };
+        SourceUpload: {
+            id: string;
+            tenant_id: string;
+            filename?: string;
+            content_type?: string;
+            sha256: string;
+            /** Format: int64 */
+            size_bytes: number;
             /** Format: date-time */
-            observed_at: string;
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        SourceUploadReference: {
+            operation_id: string;
+            operation_type: string;
+            operation_status: string;
+            app_id?: string;
+            app_name?: string;
+            build_strategy?: string;
+            source_dir?: string;
+            dockerfile_path?: string;
+            build_context_dir?: string;
+            resolved_image_ref?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        SourceUploadInspection: {
+            upload: components["schemas"]["SourceUpload"];
+            references: components["schemas"]["SourceUploadReference"][];
+        };
+        SourceUploadInspectionResponse: {
+            source_upload: components["schemas"]["SourceUploadInspection"];
+            /** Format: date-time */
+            observed_at?: string;
             error?: string;
         };
         ClusterPodOwner: {
@@ -6648,6 +6715,29 @@ export interface operations {
                 };
                 content: {
                     "application/octet-stream": string;
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getSourceUpload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourceUploadInspectionResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
