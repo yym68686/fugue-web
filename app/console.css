@@ -3012,23 +3012,33 @@
   border: 1px solid var(--fugue-border-default);
   border-radius: 1rem;
   background: rgba(255, 255, 255, 0.02);
+  color: var(--fugue-text-primary);
   cursor: pointer;
   transition:
     border-color var(--fugue-duration-fast) var(--fugue-ease-out-expo),
     background-color var(--fugue-duration-fast) var(--fugue-ease-out-expo),
+    box-shadow var(--fugue-duration-fast) var(--fugue-ease-out-expo),
+    color var(--fugue-duration-fast) var(--fugue-ease-out-expo),
     transform var(--fugue-duration-fast) var(--fugue-ease-out-expo);
 }
 
-.fg-api-key-permission:hover,
-.fg-api-key-permission:focus-within {
-  border-color: var(--fugue-border-strong);
-  background: rgba(255, 255, 255, 0.045);
+.fg-api-key-permission:hover {
+  border-color: var(--fugue-selection-lens-border-hover);
+  background: var(--fugue-console-surface-bg-hover);
   transform: translateY(-1px);
 }
 
+.fg-api-key-permission:focus-within {
+  border-color: var(--fugue-selection-lens-border-hover);
+  background: var(--fugue-console-surface-bg-hover);
+  outline: 2px solid var(--fugue-focus-ring);
+  outline-offset: 3px;
+}
+
 .fg-api-key-permission.is-selected {
-  border-color: rgba(165, 191, 220, 0.38);
-  background: rgba(24, 38, 56, 0.34);
+  border-color: var(--fugue-selection-lens-border-active);
+  background: var(--fugue-console-inset-strong-bg);
+  box-shadow: var(--fugue-console-surface-shadow);
 }
 
 .fg-api-key-permission__input {
@@ -3059,6 +3069,11 @@
   letter-spacing: 0.08em;
   text-transform: none;
   white-space: nowrap;
+}
+
+.fg-api-key-permission.is-selected .fg-api-key-permission__row span,
+.fg-api-key-permission.is-selected .fg-api-key-permission__copy {
+  color: var(--fugue-text-secondary);
 }
 
 .fg-api-key-permission__copy,
@@ -8634,6 +8649,12 @@
 :root[data-theme="light"] .fg-cluster-node-card.is-active {
   border-color: var(--fugue-selection-lens-border-hover);
   box-shadow: var(--fugue-console-shell-shadow-active);
+}
+
+:root[data-theme="light"] .fg-api-key-permission.is-selected {
+  box-shadow:
+    var(--fugue-console-surface-shadow),
+    inset 0 0 0 1px rgba(95, 124, 155, 0.08);
 }
 
 :root[data-theme="light"] .fg-project-card.is-expanded,

@@ -420,10 +420,10 @@ function buildPublicOfferPayload(draft: PublicOfferDraft) {
 
   return {
     free: draft.free,
-    freeCpu: draft.freeCpu,
-    freeMemory: draft.freeMemory,
-    freeStorage: draft.freeStorage,
-    referenceBundle: {
+    free_cpu: draft.freeCpu,
+    free_memory: draft.freeMemory,
+    free_storage: draft.freeStorage,
+    reference_bundle: {
       cpu_millicores: Math.round((cpu.value ?? 0) * MILLICORES_PER_CORE),
       memory_mebibytes: Math.round((memory.value ?? 0) * MEBIBYTES_PER_GIB),
       storage_gibibytes: Math.round(storage.value ?? 0),

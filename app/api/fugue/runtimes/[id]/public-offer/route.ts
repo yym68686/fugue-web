@@ -20,6 +20,47 @@ function readOptionalNumber(value: unknown) {
     : undefined;
 }
 
+function readOptionalBoolean(value: unknown) {
+  return typeof value === "boolean" ? value : undefined;
+}
+
+function readOptionalPayloadNumber(
+  body: Record<string, unknown>,
+  snakeCaseKey: string,
+  camelCaseKey: string,
+) {
+  return (
+    readOptionalNumber(body[snakeCaseKey]) ??
+    readOptionalNumber(body[camelCaseKey])
+  );
+}
+
+function readOptionalPayloadBoolean(
+  body: Record<string, unknown>,
+  snakeCaseKey: string,
+  camelCaseKey: string,
+) {
+  return (
+    readOptionalBoolean(body[snakeCaseKey]) ??
+    readOptionalBoolean(body[camelCaseKey])
+  );
+}
+
+function readOptionalPayloadObject(
+  body: Record<string, unknown>,
+  snakeCaseKey: string,
+  camelCaseKey: string,
+) {
+  const snakeCaseValue = body[snakeCaseKey];
+
+  if (isObject(snakeCaseValue)) {
+    return snakeCaseValue;
+  }
+
+  const camelCaseValue = body[camelCaseKey];
+  return isObject(camelCaseValue) ? camelCaseValue : null;
+}
+
 async function readJsonObject(request: Request) {
   let body: unknown;
 
@@ -54,34 +95,44 @@ export async function POST(request: Request, context: RouteContext) {
   try {
     await ensureWorkspaceAccess(session);
     const runtimeId = await readRouteParam(context, "id");
-    const referenceBundle = isObject(body.reference_bundle)
-      ? body.reference_bundle
-      : null;
+    const referenceBundle = readOptionalPayloadObject(
+      body,
+      "reference_bundle",
+      "referenceBundle",
+    );
     const sharing = await setRuntimePublicOfferForEmail(
       session.email,
       runtimeId,
       {
-        free: typeof body.free === "boolean" ? body.free : undefined,
-        freeCpu: typeof body.free_cpu === "boolean" ? body.free_cpu : undefined,
-        freeMemory:
-          typeof body.free_memory === "boolean" ? body.free_memory : undefined,
-        freeStorage:
-          typeof body.free_storage === "boolean"
-            ? body.free_storage
-            : undefined,
+        free: readOptionalBoolean(body.free),
+        freeCpu: readOptionalPayloadBoolean(body, "free_cpu", "freeCpu"),
+        freeMemory: readOptionalPayloadBoolean(
+          body,
+          "free_memory",
+          "freeMemory",
+        ),
+        freeStorage: readOptionalPayloadBoolean(
+          body,
+          "free_storage",
+          "freeStorage",
+        ),
         referenceBundle: referenceBundle
           ? {
-              cpuMillicores: readOptionalNumber(referenceBundle.cpu_millicores),
-              memoryMebibytes: readOptionalNumber(
-                referenceBundle.memory_mebibytes,
-              ),
-              storageGibibytes: readOptionalNumber(
-                referenceBundle.storage_gibibytes,
-              ),
+              cpuMillicores:
+                readOptionalNumber(referenceBundle.cpu_millicores) ??
+                readOptionalNumber(referenceBundle.cpuMillicores),
+              memoryMebibytes:
+                readOptionalNumber(referenceBundle.memory_mebibytes) ??
+                readOptionalNumber(referenceBundle.memoryMebibytes),
+              storageGibibytes:
+                readOptionalNumber(referenceBundle.storage_gibibytes) ??
+                readOptionalNumber(referenceBundle.storageGibibytes),
             }
           : undefined,
-        referenceMonthlyPriceMicroCents: readOptionalNumber(
-          body.reference_monthly_price_microcents,
+        referenceMonthlyPriceMicroCents: readOptionalPayloadNumber(
+          body,
+          "reference_monthly_price_microcents",
+          "referenceMonthlyPriceMicroCents",
         ),
       },
     );
