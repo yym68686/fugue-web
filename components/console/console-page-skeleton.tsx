@@ -1516,4 +1516,19 @@ export function ConsoleProjectGalleryTransitionSkeleton() {
   );
 }
 
+export function ConsoleProjectDetailPageSkeleton() {
+  return (
+    <ConsoleSkeletonPage className="fg-console-skeleton--projects">
+      <PageIntroSkeleton
+        actions={["8rem"]}
+        copyWidths={["18rem", "24rem"]}
+        eyebrowWidth="4.75rem"
+        titleWidth="14rem"
+      />
+
+      <ConsoleProjectWorkbenchSkeleton />
+    </ConsoleSkeletonPage>
+  );
+}
+
 export const ConsolePageSkeleton = ConsoleProjectGallerySkeleton;

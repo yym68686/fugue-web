@@ -3681,6 +3681,7 @@
   justify-self: end;
 }
 
+.fg-project-card__summary-link-indicator,
 .fg-project-card__summary-expand {
   width: 2.05rem;
   height: 2.05rem;
@@ -3696,9 +3697,17 @@
     background-color var(--fugue-duration-fast) var(--fugue-ease-out-expo);
 }
 
+.fg-project-card__summary-link-indicator svg,
 .fg-project-card__summary-expand svg {
   width: 0.92rem;
   height: 0.92rem;
+}
+
+.fg-project-card:hover .fg-project-card__summary-link-indicator,
+.fg-project-card__summary:focus-visible .fg-project-card__summary-link-indicator {
+  transform: translate(0.12rem, -0.12rem);
+  border-color: rgba(165, 191, 220, 0.24);
+  background: rgba(165, 191, 220, 0.08);
 }
 
 .fg-project-card__summary[aria-expanded="true"]
@@ -8764,11 +8773,20 @@
 }
 
 :root[data-theme="light"] .fg-project-card__summary-expand,
+:root[data-theme="light"] .fg-project-card__summary-link-indicator,
 :root[data-theme="light"] .fg-cluster-node-card__summary-expand,
 :root[data-theme="light"] .fg-console-tech-pill {
   border-color: var(--fugue-console-utility-border);
   background: var(--fugue-console-utility-bg);
   box-shadow: var(--fugue-console-utility-shadow);
+}
+
+:root[data-theme="light"] .fg-project-card:hover .fg-project-card__summary-link-indicator,
+:root[data-theme="light"] .fg-project-card__summary:focus-visible .fg-project-card__summary-link-indicator {
+  border-color: var(--fugue-selection-lens-border-active);
+  background: var(--fugue-selection-lens-bg-active);
+  box-shadow: var(--fugue-selection-lens-shadow-active);
+  color: var(--fugue-selection-lens-text-active);
 }
 
 :root[data-theme="light"]

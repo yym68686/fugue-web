@@ -59,6 +59,7 @@ async function warmCriticalRouteModules() {
     import("@/app/page"),
     import("@/app/app/layout"),
     import("@/app/app/page"),
+    import("@/app/app/projects/[projectId]/page"),
     import("@/app/app/apps/page"),
     import("@/app/app/cluster/page"),
     import("@/app/app/cluster-nodes/page"),

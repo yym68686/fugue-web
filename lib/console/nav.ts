@@ -3,7 +3,7 @@ import { translate, type Locale } from "@/lib/i18n/core";
 
 export function isConsoleNavHrefActive(pathname: string, href: string) {
   if (href === "/app") {
-    return pathname === href;
+    return pathname === href || pathname.startsWith("/app/projects/");
   }
 
   return pathname === href || pathname.startsWith(`${href}/`);

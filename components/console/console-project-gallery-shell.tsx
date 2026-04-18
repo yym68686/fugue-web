@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Suspense,
@@ -15,6 +16,7 @@ import {
 } from "react";
 
 import { CompactResourceMeter } from "@/components/console/compact-resource-meter";
+import { ConsolePageIntro } from "@/components/console/console-page-intro";
 import { ConsoleProjectBadge } from "@/components/console/console-project-badge";
 import { ConsoleProjectWorkbenchSkeleton } from "@/components/console/console-page-skeleton";
 import { ImportServiceFields } from "@/components/console/import-service-fields";
@@ -55,7 +57,6 @@ import {
 import {
   fetchConsoleProjectDetail,
   invalidateConsoleProjectDetails,
-  readCachedConsoleProjectDetail,
 } from "@/lib/console/project-detail-client";
 import { buildProjectResourceUsageView } from "@/lib/console/project-resource-usage";
 import { readDefaultImportRuntimeId } from "@/lib/console/runtime-targets";
@@ -80,7 +81,6 @@ import { consumeSSEStream, type ParsedSSEEvent } from "@/lib/ui/sse";
 import { cx } from "@/lib/ui/cx";
 import {
   isAbortRequestError,
-  readRequestErrorStatus,
 } from "@/lib/ui/request-json";
 
 const ConsoleProjectWorkbench = lazy(async () => {
@@ -176,6 +176,10 @@ function prepareProjectWorkbench(projectId?: string | null) {
   }
 
   void fetchConsoleProjectDetail(projectId).catch(() => undefined);
+}
+
+function buildProjectHref(projectId: string) {
+  return `/app/projects/${encodeURIComponent(projectId)}`;
 }
 
 function readCachedProjectImageUsage() {
@@ -521,10 +525,6 @@ function readErrorMessage(error: unknown, t: Translator) {
   }
 
   return t("Request failed.");
-}
-
-function isMissingProjectError(error: unknown) {
-  return readRequestErrorStatus(error) === 404;
 }
 
 async function readResponseError(response: Response, t: Translator) {
@@ -1016,39 +1016,23 @@ function parseGalleryStreamPayload(event: ParsedSSEEvent) {
 
 const ProjectGalleryShelf = memo(function ProjectGalleryShelf({
   onFocusPendingIntentCard,
-  onProjectDeleted,
-  onProjectMutation,
   onRequestCreateService,
-  onRetrySelectedProjectDetail,
-  onSelectProject,
+  onWarmProjectRoute,
   optimisticProjects,
   pendingIntent,
   pendingIntentFocused,
   pendingProjectVisible,
-  projectCatalog,
   projectImageUsageByProjectId,
-  refreshToken,
-  selectedProjectDetailError,
-  selectedProjectDetailStatus,
-  selectedProjectId,
   workspaceMissing,
 }: {
   onFocusPendingIntentCard: () => void;
-  onProjectDeleted: (projectId: string) => void;
-  onProjectMutation: (options?: ProjectMutationOptions) => void;
   onRequestCreateService: (target?: ConsoleProjectSummaryView | null) => void;
-  onRetrySelectedProjectDetail: () => void;
-  onSelectProject: (project: ConsoleProjectSummaryView) => void;
+  onWarmProjectRoute: (projectId: string) => void;
   optimisticProjects: readonly ConsoleProjectSummaryView[];
   pendingIntent: PendingProjectIntent | null;
   pendingIntentFocused: boolean;
   pendingProjectVisible: boolean;
-  projectCatalog: ProjectCatalogEntry[];
   projectImageUsageByProjectId: Readonly<Record<string, ProjectImageUsageSummary>>;
-  refreshToken: number;
-  selectedProjectDetailError: string | null;
-  selectedProjectDetailStatus: "error" | "idle" | "loading" | "ready";
-  selectedProjectId: string | null;
   workspaceMissing: boolean;
 }) {
   const { t } = useI18n();
@@ -1088,11 +1072,6 @@ const ProjectGalleryShelf = memo(function ProjectGalleryShelf({
             ) : null}
 
             {optimisticProjects.map((project) => {
-              const expanded = selectedProjectId === project.id;
-              const cachedProjectDetail = expanded
-                ? readCachedConsoleProjectDetail(project.id)
-                : null;
-              const detailId = `project-detail-${project.id}`;
               const projectResourceUsage =
                 projectImageUsageByProjectId[project.id]
                   ? buildProjectResourceUsageView(
@@ -1102,23 +1081,14 @@ const ProjectGalleryShelf = memo(function ProjectGalleryShelf({
                   : project.resourceUsage;
 
               return (
-                <article
-                  className={cx(
-                    "fg-project-card",
-                    expanded && "is-active",
-                    expanded && "is-expanded",
-                  )}
-                  key={project.id}
-                >
-                  <button
-                    aria-controls={detailId}
-                    aria-expanded={expanded}
+                <article className="fg-project-card" key={project.id}>
+                  <Link
                     className="fg-project-card__summary"
-                    onClick={() => onSelectProject(project)}
-                    onFocus={() => prepareProjectWorkbench(project.id)}
-                    onPointerDown={() => prepareProjectWorkbench(project.id)}
-                    onPointerEnter={() => prepareProjectWorkbench(project.id)}
-                    type="button"
+                    href={buildProjectHref(project.id)}
+                    onFocus={() => onWarmProjectRoute(project.id)}
+                    onPointerDown={() => onWarmProjectRoute(project.id)}
+                    onPointerEnter={() => onWarmProjectRoute(project.id)}
+                    prefetch={false}
                   >
                     <div className="fg-project-card__summary-head">
                       <div className="fg-project-card__summary-copy">
@@ -1162,12 +1132,20 @@ const ProjectGalleryShelf = memo(function ProjectGalleryShelf({
 
                       <div className="fg-project-card__summary-side">
                         <span
-                          className="fg-project-card__summary-expand"
+                          className="fg-project-card__summary-link-indicator"
                           aria-hidden="true"
                         >
                           <svg viewBox="0 0 24 24">
                             <path
-                              d="m7.2 9.4 4.8 5.2 4.8-5.2"
+                              d="M7 17 17 7"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="1.7"
+                            />
+                            <path
+                              d="M9 7h8v8"
                               fill="none"
                               stroke="currentColor"
                               strokeLinecap="round"
@@ -1178,52 +1156,7 @@ const ProjectGalleryShelf = memo(function ProjectGalleryShelf({
                         </span>
                       </div>
                     </div>
-                  </button>
-
-                  {expanded ? (
-                    cachedProjectDetail?.project ? (
-                      <Suspense
-                        fallback={
-                          <ConsoleProjectWorkbenchSkeleton detailId={detailId} />
-                        }
-                      >
-                        <ConsoleProjectWorkbench
-                          detailId={detailId}
-                          onProjectDeleted={onProjectDeleted}
-                          onProjectMutation={onProjectMutation}
-                          onRequestCreateService={onRequestCreateService}
-                          projectCatalog={projectCatalog}
-                          project={project}
-                          refreshToken={refreshToken}
-                        />
-                      </Suspense>
-                    ) : selectedProjectDetailStatus === "error" ? (
-                      <div className="fg-project-card__detail" id={detailId}>
-                        <section className="fg-bezel fg-panel fg-project-workbench">
-                          <div className="fg-bezel__inner fg-project-workbench__inner">
-                            <div className="fg-workbench-section">
-                              <p className="fg-console-note">
-                                {selectedProjectDetailError ??
-                                  t("Unable to load this project right now.")}
-                              </p>
-                              <div className="fg-project-actions">
-                                <Button
-                                  onClick={onRetrySelectedProjectDetail}
-                                  size="compact"
-                                  type="button"
-                                  variant="secondary"
-                                >
-                                  {t("Retry")}
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        </section>
-                      </div>
-                    ) : (
-                      <ConsoleProjectWorkbenchSkeleton detailId={detailId} />
-                    )
-                  ) : null}
+                  </Link>
                 </article>
               );
             })}
@@ -1244,32 +1177,122 @@ const ProjectGalleryShelf = memo(function ProjectGalleryShelf({
   );
 });
 
+const ProjectDetailPage = memo(function ProjectDetailPage({
+  onProjectDeleted,
+  onProjectMutation,
+  onRequestCreateService,
+  project,
+  projectCatalog,
+  projectId,
+  refreshToken,
+  workspaceMissing,
+}: {
+  onProjectDeleted: (projectId: string) => void;
+  onProjectMutation: (options?: ProjectMutationOptions) => void;
+  onRequestCreateService: (target?: ConsoleProjectSummaryView | null) => void;
+  project: ConsoleProjectSummaryView | null;
+  projectCatalog: ProjectCatalogEntry[];
+  projectId: string;
+  refreshToken: number;
+  workspaceMissing: boolean;
+}) {
+  const { t } = useI18n();
+  const detailId = `project-detail-${projectId}`;
+
+  if (workspaceMissing) {
+    return (
+      <div className="fg-console-page">
+        <ConsolePageIntro
+          actions={[{ href: "/app", label: t("Back to projects") }]}
+          description={t(
+            "Create a workspace first, then return to the console to import your first service.",
+          )}
+          eyebrow={t("Project")}
+          title={t("No workspace yet")}
+        />
+
+        <Panel className="fg-console-dialog-panel">
+          <PanelSection>
+            <PanelTitle>{t("No workspace yet")}</PanelTitle>
+            <PanelCopy>
+              {t(
+                "Create a workspace first, then return to the console to import your first service.",
+              )}
+            </PanelCopy>
+          </PanelSection>
+        </Panel>
+      </div>
+    );
+  }
+
+  if (!project) {
+    return (
+      <div className="fg-console-page">
+        <ConsolePageIntro
+          actions={[{ href: "/app", label: t("Back to projects") }]}
+          description={t(
+            "This project no longer exists in the current workspace, or you do not have access to it.",
+          )}
+          eyebrow={t("Project")}
+          title={t("Project unavailable")}
+        />
+
+        <Panel>
+          <PanelSection>
+            <PanelTitle>{t("Project unavailable")}</PanelTitle>
+            <PanelCopy>
+              {t(
+                "This project no longer exists in the current workspace, or you do not have access to it.",
+              )}
+            </PanelCopy>
+          </PanelSection>
+        </Panel>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fg-console-page">
+      <ConsolePageIntro
+        actions={[{ href: "/app", label: t("Back to projects") }]}
+        description={t(
+          "Manage services, routes, logs, files, and project settings from one workspace.",
+        )}
+        eyebrow={t("Project")}
+        title={project.name}
+      />
+
+      <Suspense fallback={<ConsoleProjectWorkbenchSkeleton detailId={detailId} />}>
+        <ConsoleProjectWorkbench
+          detailId={detailId}
+          onProjectDeleted={onProjectDeleted}
+          onProjectMutation={onProjectMutation}
+          onRequestCreateService={onRequestCreateService}
+          project={project}
+          projectCatalog={projectCatalog}
+          refreshToken={refreshToken}
+        />
+      </Suspense>
+    </div>
+  );
+});
+
 export function ConsoleProjectGallery({
   initialData,
   defaultCreateOpen = false,
   initialPendingIntentId = null,
+  routeProjectId = null,
 }: {
   initialData: ConsoleProjectGallerySummaryData;
   defaultCreateOpen?: boolean;
   initialPendingIntentId?: string | null;
+  routeProjectId?: string | null;
 }) {
   const router = useRouter();
   const { t } = useI18n();
   const { showToast } = useToast();
   const [flash, setFlash] = useState<FlashState | null>(null);
   const [data, setData] = useState(initialData);
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
-    null,
-  );
-  const [requestedProjectId, setRequestedProjectId] = useState<string | null>(
-    null,
-  );
-  const [selectedProjectDetailError, setSelectedProjectDetailError] =
-    useState<string | null>(null);
-  const [selectedProjectDetailRequestToken, setSelectedProjectDetailRequestToken] =
-    useState(0);
-  const [selectedProjectDetailStatus, setSelectedProjectDetailStatus] =
-    useState<"error" | "idle" | "loading" | "ready">("idle");
   const [workbenchRefreshToken, setWorkbenchRefreshToken] = useState(0);
   const [createOpen, setCreateOpen] = useState(defaultCreateOpen);
   const [activePendingIntentId, setActivePendingIntentId] = useState<string | null>(
@@ -1327,7 +1350,8 @@ export function ConsoleProjectGallery({
   const galleryStreamAbortRef = useRef<AbortController | null>(null);
   const projectUsageRequestRef = useRef<AbortController | null>(null);
   const galleryStreamHashRef = useRef<string | null>(null);
-  const selectedProjectIdRef = useRef<string | null>(selectedProjectId);
+  const activeProjectId = routeProjectId?.trim() || null;
+  const activeProjectIdRef = useRef<string | null>(activeProjectId);
   const announcedPendingIntentErrorRef = useRef<string | null>(null);
   const runtimeInventory = useConsoleRuntimeTargetInventory(createOpen);
   const projects = useMemo(
@@ -1349,15 +1373,17 @@ export function ConsoleProjectGallery({
   );
   const { markProjectDeleting, optimisticProjects } =
     useOptimisticDeletingProjectSummaries(projects);
-  const pendingProjectVisible = Boolean(
-    pendingIntent &&
-      (!pendingIntent.projectId ||
-        !optimisticProjects.some((project) => project.id === pendingIntent.projectId)),
-  );
-
-  const selectedProject =
-    optimisticProjects.find((project) => project.id === selectedProjectId) ??
-    null;
+  const pendingProjectVisible = !activeProjectId
+    ? Boolean(
+        pendingIntent &&
+          (!pendingIntent.projectId ||
+            !optimisticProjects.some(
+              (project) => project.id === pendingIntent.projectId,
+            )),
+      )
+    : false;
+  const activeProject =
+    optimisticProjects.find((project) => project.id === activeProjectId) ?? null;
   const isCreateServiceMode = createTargetProject !== null;
   const createDialogEyebrow = isCreateServiceMode
     ? t("Add service")
@@ -1539,28 +1565,8 @@ export function ConsoleProjectGallery({
   }, [activePendingIntentId, pendingIntent]);
 
   useEffect(() => {
-    if (!pendingIntent?.projectId) {
-      return;
-    }
-
-    setRequestedProjectId(pendingIntent.projectId);
-  }, [pendingIntent?.projectId]);
-
-  useEffect(() => {
-    if (!requestedProjectId) {
-      return;
-    }
-
-    if (!data.projects.some((project) => project.id === requestedProjectId)) {
-      return;
-    }
-
-    setSelectedProjectDetailError(null);
-    setSelectedProjectDetailStatus("idle");
-    setSelectedProjectId(requestedProjectId);
-    setPendingIntentFocused(false);
-    setRequestedProjectId(null);
-  }, [data.projects, requestedProjectId]);
+    activeProjectIdRef.current = activeProjectId;
+  }, [activeProjectId]);
 
   useEffect(() => {
     if (
@@ -1603,7 +1609,9 @@ export function ConsoleProjectGallery({
       }
 
       void refreshGallery({
-        refreshWorkbench: Boolean(pendingIntent.projectId),
+        refreshWorkbench: Boolean(
+          pendingIntent.projectId || activeProjectIdRef.current,
+        ),
         silent: true,
       });
     }, 2500);
@@ -1631,22 +1639,14 @@ export function ConsoleProjectGallery({
     setActivePendingIntentId((current) =>
       current === pendingIntent.id ? null : current,
     );
-  }, [data.projects, pendingIntent]);
+    setPendingIntentFocused(false);
 
-  useEffect(() => {
-    if (
-      selectedProjectId &&
-      !data.projects.some((project) => project.id === selectedProjectId)
-    ) {
-      setSelectedProjectDetailError(null);
-      setSelectedProjectDetailStatus("idle");
-      setSelectedProjectId(null);
+    if (pendingIntent.projectId !== activeProjectId) {
+      startTransition(() => {
+        router.push(buildProjectHref(pendingIntent.projectId!));
+      });
     }
-  }, [data.projects, selectedProjectId]);
-
-  useEffect(() => {
-    selectedProjectIdRef.current = selectedProjectId;
-  }, [selectedProjectId]);
+  }, [activeProjectId, data.projects, pendingIntent, router]);
 
   const finalizeDeletedProject = useEffectEvent((projectId: string) => {
     invalidateConsoleProjectDetails(projectId);
@@ -1664,77 +1664,17 @@ export function ConsoleProjectGallery({
       });
     });
 
-    if (selectedProjectIdRef.current === projectId) {
-      selectedProjectIdRef.current = null;
-    }
-
-    setRequestedProjectId((current) => (current === projectId ? null : current));
-    setSelectedProjectDetailError(null);
-    setSelectedProjectDetailStatus("idle");
-    setSelectedProjectId((current) => (current === projectId ? null : current));
-
     setWorkbenchRefreshToken((value) => value + 1);
     void refreshGallery({ silent: true });
+    if (activeProjectIdRef.current === projectId) {
+      startTransition(() => {
+        router.replace("/app");
+      });
+      return;
+    }
+
     refreshRoute();
   });
-
-  const loadSelectedProjectDetail = useEffectEvent(async (projectId: string) => {
-    const cachedDetail = readCachedConsoleProjectDetail(projectId);
-
-    if (cachedDetail?.project) {
-      setSelectedProjectDetailError(null);
-      setSelectedProjectDetailStatus("ready");
-      return;
-    }
-
-    setSelectedProjectDetailError(null);
-    setSelectedProjectDetailStatus("loading");
-
-    try {
-      const detail = await fetchConsoleProjectDetail(projectId);
-
-      if (selectedProjectIdRef.current !== projectId) {
-        return;
-      }
-
-      if (detail.project) {
-        setSelectedProjectDetailStatus("ready");
-        return;
-      }
-
-      setSelectedProjectDetailError(t("Project detail is not available yet."));
-      setSelectedProjectDetailStatus("error");
-    } catch (error) {
-      if (
-        selectedProjectIdRef.current !== projectId ||
-        isAbortRequestError(error)
-      ) {
-        return;
-      }
-
-      if (isMissingProjectError(error)) {
-        finalizeDeletedProject(projectId);
-        return;
-      }
-
-      setSelectedProjectDetailError(readErrorMessage(error, t));
-      setSelectedProjectDetailStatus("error");
-    }
-  });
-
-  useEffect(() => {
-    if (!selectedProjectId) {
-      setSelectedProjectDetailError(null);
-      setSelectedProjectDetailStatus("idle");
-      return;
-    }
-
-    void loadSelectedProjectDetail(selectedProjectId);
-  }, [
-    loadSelectedProjectDetail,
-    selectedProjectDetailRequestToken,
-    selectedProjectId,
-  ]);
 
   useEffect(() => {
     if (!createOpen && !isCreating) {
@@ -1903,7 +1843,7 @@ export function ConsoleProjectGallery({
   }, [projectImageUsageKey]);
 
   const warmProjectImageUsage = useEffectEvent(async (signal: AbortSignal) => {
-    if (!projectImageUsageKey || selectedProjectId) {
+    if (!projectImageUsageKey || activeProjectId) {
       return;
     }
 
@@ -1940,9 +1880,9 @@ export function ConsoleProjectGallery({
 
   useAnticipatoryWarmup(
     projectImageUsageKey ? warmProjectImageUsage : null,
-    [projectImageUsageKey, selectedProjectId],
+    [projectImageUsageKey, activeProjectId],
     {
-      enabled: !selectedProjectId,
+      enabled: !activeProjectId,
       mode: "idle",
       timeoutMs: PROJECT_IMAGE_USAGE_IDLE_WARMUP_MS,
     },
@@ -2024,7 +1964,7 @@ export function ConsoleProjectGallery({
             galleryStreamHashRef.current = payload.hash;
 
             void refreshGallery({
-              refreshWorkbench: Boolean(selectedProjectIdRef.current),
+              refreshWorkbench: Boolean(activeProjectIdRef.current),
               silent: true,
             });
           },
@@ -2073,30 +2013,11 @@ export function ConsoleProjectGallery({
 
   const focusPendingIntentCard = useEffectEvent(() => {
     setPendingIntentFocused(true);
-    setRequestedProjectId(null);
-    setSelectedProjectDetailError(null);
-    setSelectedProjectDetailStatus("idle");
-    setSelectedProjectId(null);
   });
 
-  const chooseProject = useEffectEvent((project: ConsoleProjectSummaryView) => {
-    setPendingIntentFocused(false);
-    setRequestedProjectId(null);
-
-    if (selectedProjectId === project.id) {
-      setSelectedProjectDetailError(null);
-      setSelectedProjectDetailStatus("idle");
-      setSelectedProjectId(null);
-      return;
-    }
-
-    setSelectedProjectDetailError(null);
-    setSelectedProjectDetailStatus("idle");
-    setSelectedProjectId(project.id);
-  });
-
-  const retrySelectedProjectDetail = useEffectEvent(() => {
-    setSelectedProjectDetailRequestToken((value) => value + 1);
+  const warmProjectRoute = useEffectEvent((projectId: string) => {
+    prepareProjectWorkbench(projectId);
+    void router.prefetch(buildProjectHref(projectId));
   });
 
   async function handleCreateProject(event: FormEvent<HTMLFormElement>) {
@@ -2281,10 +2202,6 @@ export function ConsoleProjectGallery({
         invalidateConsoleProjectDetails(affectedProjectId);
       }
 
-      if (affectedProjectId) {
-        setRequestedProjectId(affectedProjectId);
-      }
-
       setCreateOpen(false);
       setCreateTargetProject(null);
       setFlash({
@@ -2324,8 +2241,8 @@ export function ConsoleProjectGallery({
   ) => {
     const affectedProjectId =
       options && typeof options === "object"
-        ? options.optimisticDeletingProjectId || selectedProjectIdRef.current
-        : selectedProjectIdRef.current;
+        ? options.optimisticDeletingProjectId || activeProjectIdRef.current
+        : activeProjectIdRef.current;
 
     if (affectedProjectId) {
       invalidateConsoleProjectDetails(affectedProjectId);
@@ -2350,25 +2267,30 @@ export function ConsoleProjectGallery({
 
   return (
     <>
-      <ProjectGalleryShelf
-        onFocusPendingIntentCard={focusPendingIntentCard}
-        onProjectDeleted={handleProjectDeleted}
-        onProjectMutation={handleProjectMutation}
-        onRequestCreateService={openCreateDialog}
-        onRetrySelectedProjectDetail={retrySelectedProjectDetail}
-        onSelectProject={chooseProject}
-        optimisticProjects={optimisticProjects}
-        pendingIntent={pendingIntent}
-        pendingIntentFocused={pendingIntentFocused}
-        pendingProjectVisible={pendingProjectVisible}
-        projectCatalog={projectCatalog}
-        projectImageUsageByProjectId={projectImageUsageByProjectId}
-        refreshToken={workbenchRefreshToken}
-        selectedProjectDetailError={selectedProjectDetailError}
-        selectedProjectDetailStatus={selectedProjectDetailStatus}
-        selectedProjectId={selectedProjectId}
-        workspaceMissing={workspaceMissing}
-      />
+      {activeProjectId ? (
+        <ProjectDetailPage
+          onProjectDeleted={handleProjectDeleted}
+          onProjectMutation={handleProjectMutation}
+          onRequestCreateService={openCreateDialog}
+          project={activeProject}
+          projectCatalog={projectCatalog}
+          projectId={activeProjectId}
+          refreshToken={workbenchRefreshToken}
+          workspaceMissing={workspaceMissing}
+        />
+      ) : (
+        <ProjectGalleryShelf
+          onFocusPendingIntentCard={focusPendingIntentCard}
+          onRequestCreateService={openCreateDialog}
+          onWarmProjectRoute={warmProjectRoute}
+          optimisticProjects={optimisticProjects}
+          pendingIntent={pendingIntent}
+          pendingIntentFocused={pendingIntentFocused}
+          pendingProjectVisible={pendingProjectVisible}
+          projectImageUsageByProjectId={projectImageUsageByProjectId}
+          workspaceMissing={workspaceMissing}
+        />
+      )}
 
       {createOpen ? (
         <div className="fg-console-dialog-backdrop">

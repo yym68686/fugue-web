@@ -256,6 +256,9 @@ const zhCNMessages = {
   "Project": "项目",
   "Project deleted.": "项目已删除。",
   "Project detail is not available yet.": "项目详情暂不可用。",
+  "Project unavailable": "项目不可用",
+  "This project no longer exists in the current workspace, or you do not have access to it.":
+    "当前工作区中已不存在该项目，或你没有访问权限。",
   "Project name": "项目名称",
   "Project name is required when creating a new project.": "创建新项目时必须提供项目名称。",
   "Projects": "项目",
@@ -624,6 +627,9 @@ const zhTWMessages = {
   "Project": "專案",
   "Project deleted.": "專案已刪除。",
   "Project detail is not available yet.": "專案詳情暫時不可用。",
+  "Project unavailable": "專案不可用",
+  "This project no longer exists in the current workspace, or you do not have access to it.":
+    "目前工作區中已不存在此專案，或你沒有存取權限。",
   "Project name": "專案名稱",
   "Project name is required when creating a new project.": "建立新專案時必須提供專案名稱。",
   "Projects": "專案",
@@ -1362,6 +1368,8 @@ const zhCNExtraMessages = {
   "Available credits": "可用额度",
   "BYO VPS free": "自带 VPS 免费",
   "Back to projects": "返回项目",
+  "Manage services, routes, logs, files, and project settings from one workspace.":
+    "在一个工作台里管理服务、路由、日志、文件和项目设置。",
   "Balance adjusted": "余额已调整",
   "Balance adjustment": "余额调整",
   "Balance after": "调整后余额",
@@ -2731,6 +2739,8 @@ const zhTWExtraMessages = {
   "Available credits": "可用額度",
   "BYO VPS free": "自備 VPS 免費",
   "Back to projects": "返回專案",
+  "Manage services, routes, logs, files, and project settings from one workspace.":
+    "在同一個工作台中管理服務、路由、日誌、檔案與專案設定。",
   "Balance adjusted": "餘額已調整",
   "Balance adjustment": "餘額調整",
   "Balance after": "調整後餘額",
