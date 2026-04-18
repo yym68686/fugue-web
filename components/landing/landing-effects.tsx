@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 
 import { useI18n } from "@/components/providers/i18n-provider";
+import { useTheme } from "@/components/providers/theme-provider";
 import { copyText } from "@/lib/ui/clipboard";
 
 declare global {
@@ -26,6 +27,7 @@ type LandingNavigator = Navigator & {
 
 export function LandingEffects() {
   const { t } = useI18n();
+  const { resolvedTheme } = useTheme();
 
   useEffect(() => {
     const root = document.querySelector<HTMLElement>("[data-landing-root]");
@@ -130,12 +132,24 @@ export function LandingEffects() {
       });
     }
 
+    function resetSceneSurface(scene: HTMLElement) {
+      scene.replaceChildren();
+      scene.removeAttribute("data-us-initialized");
+      scene.removeAttribute("style");
+    }
+
     function initUnicornScene() {
       const scene = landingRoot.querySelector<HTMLElement>("#fg-landing-scene");
 
       trackTimeout(window.setTimeout(markPageReady, prefersReducedMotion ? 0 : 120));
 
       if (!scene) {
+        return;
+      }
+
+      if (resolvedTheme === "light") {
+        resetSceneSurface(scene);
+        body.classList.add("is-fallback");
         return;
       }
 
@@ -469,7 +483,7 @@ export function LandingEffects() {
         tiltRoot.style.removeProperty("--tilt-y");
       });
     };
-  }, [t]);
+  }, [resolvedTheme, t]);
 
   return null;
 }

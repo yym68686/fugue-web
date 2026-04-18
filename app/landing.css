@@ -934,6 +934,14 @@ body.has-scene .fg-landing-scene-container::before {
     linear-gradient(180deg, #edf4fb 0%, #e5edf8 44%, #dbe6f2 100%);
 }
 
+:root[data-theme="light"] body.has-scene .fg-landing-scene-container::before {
+  opacity: 1;
+}
+
+:root[data-theme="light"] .fg-landing-scene-container > * {
+  display: none !important;
+}
+
 :root[data-theme="light"] .fg-landing-overlay-radial {
   opacity: 0.54;
   background:
