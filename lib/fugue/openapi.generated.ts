@@ -2544,6 +2544,12 @@ export interface components {
             deleted: boolean;
             delete_requested: boolean;
             operations?: components["schemas"]["Operation"][];
+            /** Format: int32 */
+            queued_operations?: number;
+            /** Format: int32 */
+            already_deleting_apps?: number;
+            /** Format: int32 */
+            deleted_backing_services?: number;
         };
         ConsoleProjectBadge: {
             kind: string;
@@ -3263,6 +3269,9 @@ export interface components {
             persistent_storage_seed_files?: components["schemas"]["ImportGitHubPersistentStorageSeedFile"][];
             postgres?: components["schemas"]["AppPostgresSpec"];
             idempotency_key?: string;
+            update_existing?: boolean;
+            delete_missing?: boolean;
+            dry_run?: boolean;
         };
         ImportUploadRequest: {
             app_id?: string;
@@ -3289,6 +3298,9 @@ export interface components {
             startup_command?: string;
             persistent_storage?: components["schemas"]["AppPersistentStorageSpec"];
             postgres?: components["schemas"]["AppPostgresSpec"];
+            update_existing?: boolean;
+            delete_missing?: boolean;
+            dry_run?: boolean;
         };
         ImportUploadMultipartRequest: {
             request: components["schemas"]["ImportUploadRequest"];
@@ -3307,6 +3319,7 @@ export interface components {
             fugue_manifest?: components["schemas"]["FugueManifestSummary"];
             idempotency?: components["schemas"]["ImportGitHubIdempotency"];
             request_in_progress?: boolean;
+            plan?: components["schemas"]["TopologyDeployPlan"];
         };
         ImportUploadResponse: {
             app?: components["schemas"]["App"];
@@ -3315,6 +3328,41 @@ export interface components {
             operations?: components["schemas"]["Operation"][];
             compose_stack?: components["schemas"]["ComposeStackSummary"];
             fugue_manifest?: components["schemas"]["FugueManifestSummary"];
+            plan?: components["schemas"]["TopologyDeployPlan"];
+        };
+        TopologyDeployPlan: {
+            mode: string;
+            project_id?: string;
+            project_name?: string;
+            primary_service?: string;
+            update_existing: boolean;
+            delete_missing: boolean;
+            dry_run: boolean;
+            services: components["schemas"]["TopologyDeployPlanService"][];
+            delete_candidates: components["schemas"]["TopologyDeployDeleteTarget"][];
+            warnings: string[];
+        };
+        TopologyDeployPlanService: {
+            service: string;
+            kind?: string;
+            service_type?: string;
+            compose_service?: string;
+            build_strategy?: string;
+            action: string;
+            app_id?: string;
+            app_name?: string;
+            existing_app_id?: string;
+            existing_app_name?: string;
+            hostname?: string;
+            public_url?: string;
+            /** Format: int32 */
+            internal_port?: number;
+        };
+        TopologyDeployDeleteTarget: {
+            app_id?: string;
+            app_name?: string;
+            service?: string;
+            reason: string;
         };
         ImportImageRequest: {
             tenant_id?: string;
