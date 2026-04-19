@@ -943,8 +943,19 @@ export function BillingPanel({
         time: formatRelativeTime(billing.updatedAt, formatRelativeTimeValue, t),
       })
     : t("Billing snapshot ready");
-  const billingHealthHint = t(
-    "Add credits to your balance, then set a capacity cap. Fugue deducts credits from active resources, and stored images count toward disk usage.",
+  const billingHealthHint = (
+    <span className="fg-hint-tooltip__stack">
+      <span>
+        {t(
+          "Keep prepaid balance, managed capacity, and retained image storage aligned for this workspace.",
+        )}
+      </span>
+      <span>
+        {t(
+          "Add credits before you raise the saved cap. Fugue deducts credits from active resources, and stored images count toward disk usage.",
+        )}
+      </span>
+    </span>
   );
   const capacitySectionHint = t(
     "Save the maximum managed CPU, memory, and disk for this workspace. Once any billable resource is active, Fugue charges against this saved envelope.",
@@ -972,12 +983,6 @@ export function BillingPanel({
       billing.managedCap.memoryMebibytes > MEMORY_SLIDER_MAX_MEBIBYTES ||
       billing.managedCap.storageGibibytes > STORAGE_SLIDER_MAX_GIB);
   const workspaceLabel = workspaceName?.trim() || t("Current workspace");
-  const billingIntroContext = t("{count} recent events · {updated}", {
-    count: formatNumber(billing?.events.length ?? 0, {
-      maximumFractionDigits: 0,
-    }),
-    updated: billingUpdatedLabel,
-  });
   const savedCapLabel = billing ? formatResourceSpec(billing.managedCap, formatNumber) : "";
   const currentRateLabel =
     billing && billing.hourlyRateMicroCents > 0 && billing.status !== "inactive"
@@ -1446,30 +1451,13 @@ export function BillingPanel({
 
   return (
     <>
+      <h1 className="fg-visually-hidden">{t("Billing & capacity")}</h1>
+
       {syncError ? (
         <InlineAlert variant="info">
           {readBillingSyncAlert(syncError, t)}
         </InlineAlert>
       ) : null}
-
-      <section className="fg-billing-page-intro">
-        <div className="fg-billing-page-intro__copy">
-          <div className="fg-billing-page-intro__meta">
-            <span className="fg-billing-page-intro__workspace">{workspaceLabel}</span>
-            <span className="fg-billing-page-intro__context">{billingIntroContext}</span>
-          </div>
-
-          <h1 className="fg-billing-page-intro__title fg-ui-heading">
-            {t("Billing & capacity")}
-          </h1>
-
-          <p className="fg-billing-page-intro__description">
-            {t(
-              "Keep prepaid balance, managed capacity, and retained image storage aligned for this workspace.",
-            )}
-          </p>
-        </div>
-      </section>
 
       <Panel className="fg-billing-surface fg-billing-surface--health">
         <PanelSection>
@@ -1477,17 +1465,14 @@ export function BillingPanel({
             <div className="fg-billing-section-copy">
               <p className="fg-label fg-panel__eyebrow">{t("Billing health")}</p>
               <BillingSectionTitle
-                ariaLabel={t("Billing health details")}
+                ariaLabel={t("Billing and capacity details")}
                 hint={billingHealthHint}
                 title={t("Credits and capacity stay aligned")}
               />
               <PanelCopy className="fg-billing-health__summary">
-                {t(
-                  "Current managed usage is {usage}. Stored images count toward disk usage.",
-                  {
-                    usage: currentUsageLabel,
-                  },
-                )}
+                {t("Current managed usage is {usage}.", {
+                  usage: currentUsageLabel,
+                })}
               </PanelCopy>
             </div>
 
@@ -1508,11 +1493,6 @@ export function BillingPanel({
               </div>
 
               <dl className="fg-billing-health__facts">
-                <div>
-                  <dt>{t("Workspace")}</dt>
-                  <dd>{workspaceLabel}</dd>
-                </div>
-
                 <div>
                   <dt>{t("Saved cap")}</dt>
                   <dd>{savedCapLabel}</dd>
@@ -1557,11 +1537,6 @@ export function BillingPanel({
                     hint={capacitySectionHint}
                     title={t("Set the managed capacity cap")}
                   />
-                  <PanelCopy className="fg-billing-section-copy__body">
-                    {t(
-                      "Save the CPU, memory, and storage envelope before you expand this workspace.",
-                    )}
-                  </PanelCopy>
                 </div>
               </div>
 
@@ -1724,11 +1699,6 @@ export function BillingPanel({
                     hint={creditsSectionHint}
                     title={t("Keep the workspace funded")}
                   />
-                  <PanelCopy className="fg-billing-section-copy__body">
-                    {t(
-                      "Add balance before you raise capacity or start new managed resources.",
-                    )}
-                  </PanelCopy>
                 </div>
               </div>
 
@@ -1906,23 +1876,7 @@ export function BillingPanel({
                 hint={billingHistoryHint}
                 title={t("Billing activity")}
               />
-              <PanelCopy className="fg-billing-section-copy__body">
-                {t(
-                  "Recent top-ups, balance adjustments, and capacity changes for {workspace}.",
-                  {
-                    workspace: workspaceLabel,
-                  },
-                )}
-              </PanelCopy>
             </div>
-
-            <span className="fg-billing-ledger__count">
-              {t("{count} recent events", {
-                count: formatNumber(billing.events.length, {
-                  maximumFractionDigits: 0,
-                }),
-              })}
-            </span>
           </PanelSection>
 
           <PanelSection>

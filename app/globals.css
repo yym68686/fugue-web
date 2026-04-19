@@ -174,14 +174,14 @@ canvas {
   border: 1px solid
     color-mix(
       in srgb,
-      var(--fugue-console-surface-border) 68%,
+      var(--fugue-toast-surface-border) 68%,
       rgb(var(--fg-toast-accent)) 32%
     );
   border-radius: 1.02rem;
   background:
     radial-gradient(circle at top right, rgb(var(--fg-toast-accent) / 0.1), transparent 34%),
-    var(--fugue-console-surface-bg);
-  box-shadow: var(--fugue-console-shell-shadow);
+    var(--fugue-toast-surface-bg);
+  box-shadow: var(--fugue-toast-surface-shadow);
   backdrop-filter: blur(16px);
   overflow: hidden;
   transition:
@@ -193,18 +193,18 @@ canvas {
 .fg-toast:focus-within .fg-toast__shell {
   border-color: color-mix(
     in srgb,
-    var(--fugue-console-surface-border) 52%,
+    var(--fugue-toast-surface-border) 52%,
     rgb(var(--fg-toast-accent)) 48%
   );
-  box-shadow: var(--fugue-console-shell-shadow-active);
+  box-shadow: var(--fugue-toast-surface-shadow-active);
 }
 
 .fg-toast[data-state="entering"] .fg-toast__shell {
-  box-shadow: var(--fugue-console-shell-shadow-active);
+  box-shadow: var(--fugue-toast-surface-shadow-active);
 }
 
 .fg-toast[data-state="closing"] .fg-toast__shell {
-  box-shadow: var(--fugue-console-shell-shadow);
+  box-shadow: var(--fugue-toast-surface-shadow);
 }
 
 .fg-toast__toggle {

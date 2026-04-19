@@ -5143,66 +5143,6 @@
   gap: 1rem;
 }
 
-.fg-billing-page-intro {
-  display: grid;
-  gap: 0.8rem;
-}
-
-.fg-billing-page-intro__copy {
-  display: grid;
-  gap: 0.7rem;
-  max-width: 46rem;
-}
-
-.fg-billing-page-intro__meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.7rem;
-}
-
-.fg-billing-page-intro__workspace,
-.fg-billing-ledger__count {
-  display: inline-flex;
-  align-items: center;
-  min-height: 2rem;
-  min-width: 0;
-  padding: 0.38rem 0.72rem;
-  border: 1px solid var(--fugue-console-utility-border);
-  border-radius: 999px;
-  background: var(--fugue-console-utility-bg);
-  box-shadow: var(--fugue-console-utility-shadow);
-  color: var(--fugue-text-secondary);
-  font-family: var(--fugue-font-mono);
-  font-size: var(--fugue-type-meta-small);
-  line-height: var(--fugue-leading-meta);
-  letter-spacing: 0.06em;
-  text-transform: none;
-}
-
-.fg-billing-page-intro__context {
-  color: var(--fugue-text-tertiary);
-  font-family: var(--fugue-font-mono);
-  font-size: 0.72rem;
-  line-height: 1.6;
-  letter-spacing: 0.05em;
-}
-
-.fg-billing-page-intro__title {
-  margin: 0;
-  font-size: clamp(2.2rem, 5vw, 3.5rem);
-  letter-spacing: -0.08em;
-  line-height: 0.94;
-}
-
-.fg-billing-page-intro__description {
-  margin: 0;
-  max-width: 38rem;
-  color: var(--fugue-text-secondary);
-  font-size: 0.98rem;
-  line-height: 1.68;
-}
-
 .fg-billing-surface {
   padding: 0;
   border: 0;
@@ -5302,14 +5242,6 @@
   min-width: 0;
 }
 
-.fg-billing-section-copy__body {
-  margin: 0;
-  max-width: 34rem;
-  color: var(--fugue-text-secondary);
-  font-size: 0.9rem;
-  line-height: 1.64;
-}
-
 .fg-billing-health__summary {
   margin: 0;
   max-width: 34rem;
@@ -5321,7 +5253,7 @@
 .fg-billing-health__facts {
   margin: 0;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
   gap: 0.85rem;
   width: min(100%, 33rem);
 }
@@ -6125,10 +6057,6 @@
 }
 
 @media (max-width: 860px) {
-  .fg-billing-page-intro {
-    gap: 0.65rem;
-  }
-
   .fg-billing-health__head {
     display: grid;
   }

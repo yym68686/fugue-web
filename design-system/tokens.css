@@ -202,6 +202,12 @@
   --fugue-status-badge-text-neutral: var(--fugue-text-secondary);
   --fugue-status-badge-dot-neutral: rgba(244, 239, 231, 0.74);
   --fugue-status-badge-halo-neutral: rgba(255, 255, 255, 0.16);
+  --fugue-toast-surface-bg: var(--fugue-console-surface-bg);
+  --fugue-toast-surface-border: var(--fugue-console-surface-border);
+  --fugue-toast-surface-shadow: var(--fugue-console-shell-shadow);
+  --fugue-toast-surface-shadow-active: var(
+    --fugue-console-shell-shadow-active
+  );
   --fugue-console-shell-border: var(--fugue-border-default);
   --fugue-console-shell-bg:
     radial-gradient(
@@ -703,14 +709,14 @@
   --fugue-status-badge-bg-positive:
     linear-gradient(
       180deg,
-      rgba(111, 160, 128, 0.18),
-      rgba(111, 160, 128, 0.06)
+      rgba(111, 160, 128, 0.22),
+      rgba(111, 160, 128, 0.08)
     ),
-    rgba(249, 245, 239, 0.96);
-  --fugue-status-badge-border-positive: rgba(91, 138, 108, 0.24);
-  --fugue-status-badge-text-positive: #2e5a42;
-  --fugue-status-badge-dot-positive: #5f9a74;
-  --fugue-status-badge-halo-positive: rgba(95, 154, 116, 0.16);
+    rgba(247, 252, 248, 0.98);
+  --fugue-status-badge-border-positive: rgba(86, 132, 103, 0.3);
+  --fugue-status-badge-text-positive: #284f39;
+  --fugue-status-badge-dot-positive: #508765;
+  --fugue-status-badge-halo-positive: rgba(80, 135, 101, 0.18);
   --fugue-status-badge-bg-warning:
     linear-gradient(180deg, rgba(201, 160, 83, 0.16), rgba(201, 160, 83, 0.06)),
     rgba(249, 245, 239, 0.96);
@@ -747,6 +753,27 @@
   --fugue-status-badge-text-neutral: var(--fugue-text-secondary);
   --fugue-status-badge-dot-neutral: rgba(17, 34, 59, 0.56);
   --fugue-status-badge-halo-neutral: rgba(17, 34, 59, 0.08);
+  --fugue-toast-surface-bg:
+    radial-gradient(
+      circle at top left,
+      rgba(255, 255, 255, 0.98),
+      transparent 44%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.996),
+      rgba(247, 252, 255, 0.978)
+    ),
+    rgba(248, 252, 255, 0.986);
+  --fugue-toast-surface-border: rgba(39, 64, 101, 0.12);
+  --fugue-toast-surface-shadow:
+    0 26px 50px -38px rgba(34, 52, 83, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.98),
+    inset 0 -1px 0 rgba(102, 126, 161, 0.05);
+  --fugue-toast-surface-shadow-active:
+    0 30px 56px -40px rgba(30, 49, 79, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 1),
+    inset 0 -1px 0 rgba(102, 126, 161, 0.08);
   --fugue-console-shell-border: rgba(39, 64, 101, 0.08);
   --fugue-console-shell-bg:
     radial-gradient(
