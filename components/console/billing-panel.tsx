@@ -17,7 +17,6 @@ import {
   readConsolePageSnapshot,
   writeConsolePageSnapshot,
 } from "@/lib/console/page-snapshot-client";
-import { ConsoleSummaryGrid } from "@/components/console/console-summary-grid";
 import { StatusBadge } from "@/components/console/status-badge";
 import { Button } from "@/components/ui/button";
 import { HintTooltip } from "@/components/ui/hint-tooltip";
@@ -261,6 +260,18 @@ function formatStorageGibibytes(
     formatNumber,
     Number.isInteger(storageGibibytes) ? 0 : 2,
   )} GiB`;
+}
+
+function formatMetricMagnitude(value: number, formatNumber: NumberFormatter) {
+  if (!Number.isFinite(value) || value <= 0) {
+    return "0";
+  }
+
+  return formatCompactNumber(
+    value,
+    formatNumber,
+    Number.isInteger(value) ? 0 : value >= 10 ? 1 : 2,
+  );
 }
 
 function readNonNegativeMetric(value: number | null | undefined) {
@@ -521,10 +532,8 @@ function readTopUpHint(
   )}`;
 }
 
-function readTopUpButtonLabel(units: number | null, t: Translator) {
-  return units !== null
-    ? t("Add {amount} credits", { amount: `$${units}` })
-    : t("Add credits");
+function readTopUpButtonLabel(_units: number | null, t: Translator) {
+  return t("Add credits");
 }
 
 function parseDollarUnits(value: string) {
@@ -815,23 +824,6 @@ function BillingSectionTitle({
   );
 }
 
-function BillingSignalLabel({
-  ariaLabel,
-  hint,
-  label,
-}: {
-  ariaLabel: string;
-  hint: ReactNode;
-  label: string;
-}) {
-  return (
-    <div className="fg-billing-signal-card__label-row">
-      <span className="fg-billing-signal-card__label">{label}</span>
-      <HintTooltip ariaLabel={ariaLabel}>{hint}</HintTooltip>
-    </div>
-  );
-}
-
 export function BillingPanel({
   initialBilling,
   initialImageStorageBytes,
@@ -922,6 +914,11 @@ export function BillingPanel({
     currency,
     locale,
   );
+  const currentHourlyRateLabel = formatHourlyCurrencyFromMicroCents(
+    billing?.hourlyRateMicroCents ?? 0,
+    currency,
+    locale,
+  );
   const availableCreditsLabel = formatCurrencyFromMicroCents(
     billing?.balanceMicroCents ?? 0,
     currency,
@@ -974,6 +971,67 @@ export function BillingPanel({
     (billing.managedCap.cpuMillicores > CPU_SLIDER_MAX_MILLICORES ||
       billing.managedCap.memoryMebibytes > MEMORY_SLIDER_MAX_MEBIBYTES ||
       billing.managedCap.storageGibibytes > STORAGE_SLIDER_MAX_GIB);
+  const workspaceLabel = workspaceName?.trim() || t("Current workspace");
+  const billingIntroContext = t("{count} recent events · {updated}", {
+    count: formatNumber(billing?.events.length ?? 0, {
+      maximumFractionDigits: 0,
+    }),
+    updated: billingUpdatedLabel,
+  });
+  const savedCapLabel = billing ? formatResourceSpec(billing.managedCap, formatNumber) : "";
+  const currentRateLabel =
+    billing && billing.hourlyRateMicroCents > 0 && billing.status !== "inactive"
+      ? t("{amount} / hour", {
+          amount: currentHourlyRateLabel,
+        })
+      : t("Paused");
+  const imageStorageGibibytes = readNonNegativeMetric(imageStorageBytes) / BYTES_PER_GIBIBYTE;
+  const currentCpuCores =
+    readNonNegativeMetric(billing?.currentUsage?.cpuMillicores) / MILLICORES_PER_VCPU;
+  const currentMemoryGib =
+    readNonNegativeMetric(billing?.currentUsage?.memoryBytes) / BYTES_PER_GIBIBYTE;
+  const currentStorageGibibytes =
+    (readNonNegativeMetric(billing?.currentUsage?.ephemeralStorageBytes) +
+      readNonNegativeMetric(imageStorageBytes)) /
+    BYTES_PER_GIBIBYTE;
+  const healthMetrics = [
+    {
+      detail: t("Saved cap {cap}", {
+        cap: formatCPU(billing?.managedCap.cpuMillicores ?? 0, formatNumber),
+      }),
+      label: t("Current CPU"),
+      unit: "CPU",
+      value: formatMetricMagnitude(currentCpuCores, formatNumber),
+    },
+    {
+      detail: t("Saved cap {cap}", {
+        cap: formatMemoryMebibytes(billing?.managedCap.memoryMebibytes ?? 0, formatNumber),
+      }),
+      label: t("Current memory"),
+      unit: "GiB",
+      value: formatMetricMagnitude(currentMemoryGib, formatNumber),
+    },
+    {
+      detail:
+        imageStorageGibibytes > 0
+          ? t("Includes {storage} of retained images", {
+              storage: formatStorageGibibytes(imageStorageGibibytes, formatNumber),
+            })
+          : t("Saved cap {cap}", {
+              cap: formatStorageGibibytes(
+                billing?.managedCap.storageGibibytes ?? 0,
+                formatNumber,
+              ),
+            }),
+      label: t("Current storage"),
+      unit: "GiB",
+      value: formatMetricMagnitude(currentStorageGibibytes, formatNumber),
+    },
+  ];
+  const topUpMetaLabel = t("Whole USD only · {min} to {max}", {
+    max: `$${MAX_TOP_UP_UNITS}`,
+    min: `$${MIN_TOP_UP_UNITS}`,
+  });
 
   function applyBillingSnapshot(nextBilling: FugueBillingSummary) {
     setBilling(nextBilling);
@@ -1394,6 +1452,25 @@ export function BillingPanel({
         </InlineAlert>
       ) : null}
 
+      <section className="fg-billing-page-intro">
+        <div className="fg-billing-page-intro__copy">
+          <div className="fg-billing-page-intro__meta">
+            <span className="fg-billing-page-intro__workspace">{workspaceLabel}</span>
+            <span className="fg-billing-page-intro__context">{billingIntroContext}</span>
+          </div>
+
+          <h1 className="fg-billing-page-intro__title fg-ui-heading">
+            {t("Billing & capacity")}
+          </h1>
+
+          <p className="fg-billing-page-intro__description">
+            {t(
+              "Keep prepaid balance, managed capacity, and retained image storage aligned for this workspace.",
+            )}
+          </p>
+        </div>
+      </section>
+
       <Panel className="fg-billing-surface fg-billing-surface--health">
         <PanelSection>
           <div className="fg-billing-health__head">
@@ -1402,11 +1479,19 @@ export function BillingPanel({
               <BillingSectionTitle
                 ariaLabel={t("Billing health details")}
                 hint={billingHealthHint}
-                title={t("Keep credits and capacity in sync")}
+                title={t("Credits and capacity stay aligned")}
               />
+              <PanelCopy className="fg-billing-health__summary">
+                {t(
+                  "Current managed usage is {usage}. Stored images count toward disk usage.",
+                  {
+                    usage: currentUsageLabel,
+                  },
+                )}
+              </PanelCopy>
             </div>
 
-            <div className="fg-billing-health__meta">
+            <div className="fg-billing-health__rail">
               <div className="fg-billing-status-row">
                 <StatusBadge tone={readStatusTone(billing)}>
                   {humanizeStatus(billing.status, t)}
@@ -1422,18 +1507,41 @@ export function BillingPanel({
                 ) : null}
               </div>
 
+              <dl className="fg-billing-health__facts">
+                <div>
+                  <dt>{t("Workspace")}</dt>
+                  <dd>{workspaceLabel}</dd>
+                </div>
+
+                <div>
+                  <dt>{t("Saved cap")}</dt>
+                  <dd>{savedCapLabel}</dd>
+                </div>
+
+                <div>
+                  <dt>{t("Current rate")}</dt>
+                  <dd>{currentRateLabel}</dd>
+                </div>
+              </dl>
+
               <p className="fg-billing-health__stamp">{billingUpdatedLabel}</p>
             </div>
           </div>
         </PanelSection>
 
-        <PanelSection>
-          <ConsoleSummaryGrid
-            ariaLabel={t("Billing health")}
-            items={[
-              { label: t("Current usage"), value: currentUsageLabel },
-            ]}
-          />
+        <PanelSection className="fg-billing-health__metrics-shell">
+          <div className="fg-billing-health-metrics" role="list" aria-label={t("Billing health")}>
+            {healthMetrics.map((metric) => (
+              <article className="fg-billing-health-metric" key={metric.label} role="listitem">
+                <span className="fg-billing-health-metric__label">{metric.label}</span>
+                <div className="fg-billing-health-metric__value-row">
+                  <strong>{metric.value}</strong>
+                  <span>{metric.unit}</span>
+                </div>
+                <p>{metric.detail}</p>
+              </article>
+            ))}
+          </div>
         </PanelSection>
       </Panel>
 
@@ -1447,30 +1555,44 @@ export function BillingPanel({
                   <BillingSectionTitle
                     ariaLabel={t("Capacity cap details")}
                     hint={capacitySectionHint}
-                    title={t("Set your capacity cap")}
+                    title={t("Set the managed capacity cap")}
                   />
+                  <PanelCopy className="fg-billing-section-copy__body">
+                    {t(
+                      "Save the CPU, memory, and storage envelope before you expand this workspace.",
+                    )}
+                  </PanelCopy>
                 </div>
               </div>
 
-              <div className="fg-billing-signal-grid">
-                <article className="fg-billing-signal-card">
-                  <BillingSignalLabel
-                    ariaLabel={t("Charged at details")}
-                    hint={chargedAtCopy}
-                    label={t("Charged at")}
-                  />
+              <div className="fg-billing-capacity-summary">
+                <article className="fg-billing-capacity-summary__item">
+                  <span className="fg-billing-capacity-summary__label">
+                    {t("Charged at")}
+                  </span>
                   <strong>{formatResourceSpec(previewSpec, formatNumber)}</strong>
+                  <p>{projectedSpendCopy}</p>
                 </article>
 
-                <article className="fg-billing-signal-card">
-                  <BillingSignalLabel
-                    ariaLabel={t("{label} details", {
-                      label: projectedSpendLabel,
-                    })}
-                    hint={projectedSpendCopy}
-                    label={projectedSpendLabel}
-                  />
+                <article className="fg-billing-capacity-summary__item">
+                  <div className="fg-billing-signal-card__label-row">
+                    <span className="fg-billing-capacity-summary__label">
+                      {projectedSpendLabel}
+                    </span>
+                    <HintTooltip
+                      ariaLabel={t("{label} details", {
+                        label: projectedSpendLabel,
+                      })}
+                    >
+                      {projectedSpendCopy}
+                    </HintTooltip>
+                  </div>
                   <strong>{previewMonthlyEstimateLabel}</strong>
+                  <p>
+                    {hasEnvelopeChanges
+                      ? t("Preview based on unsaved capacity changes.")
+                      : t("Based on the saved managed envelope.")}
+                  </p>
                 </article>
               </div>
             </PanelSection>
@@ -1486,91 +1608,107 @@ export function BillingPanel({
               ) : null}
 
               <form className="fg-settings-form fg-billing-form" noValidate onSubmit={handleEnvelopeSubmit}>
-                <div className="fg-billing-form__grid">
-                  <SteppedSliderField
-                    disabled={isSavingEnvelope}
-                    id="billing-envelope-cpu"
-                    label={t("CPU")}
-                    max={CPU_SLIDER_MAX_CORES}
-                    maxLabel={formatCPU(Math.round(CPU_SLIDER_MAX_CORES * MILLICORES_PER_VCPU), formatNumber)}
-                    minLabel={formatCPU(0, formatNumber)}
-                    onChange={(nextValue) => {
-                      setEnvelopeCpu(
-                        clampEnvelopeCpuMillicores(nextValue * MILLICORES_PER_VCPU),
-                      );
-                      if (envelopeError) {
-                        setEnvelopeError(null);
-                      }
-                    }}
-                    step={CPU_STEP_CORES}
-                    value={envelopeCpuCores}
-                    valueLabel={formatCPU(envelopeCpu, formatNumber)}
-                  />
+                <div className="fg-billing-capacity-grid">
+                  <div className="fg-billing-capacity-control-card">
+                    <SteppedSliderField
+                      disabled={isSavingEnvelope}
+                      id="billing-envelope-cpu"
+                      label={t("CPU")}
+                      max={CPU_SLIDER_MAX_CORES}
+                      maxLabel={formatCPU(
+                        Math.round(CPU_SLIDER_MAX_CORES * MILLICORES_PER_VCPU),
+                        formatNumber,
+                      )}
+                      minLabel={formatCPU(0, formatNumber)}
+                      onChange={(nextValue) => {
+                        setEnvelopeCpu(
+                          clampEnvelopeCpuMillicores(nextValue * MILLICORES_PER_VCPU),
+                        );
+                        if (envelopeError) {
+                          setEnvelopeError(null);
+                        }
+                      }}
+                      step={CPU_STEP_CORES}
+                      value={envelopeCpuCores}
+                      valueLabel={formatCPU(envelopeCpu, formatNumber)}
+                    />
+                  </div>
 
-                  <SteppedSliderField
-                    disabled={isSavingEnvelope}
-                    id="billing-envelope-memory"
-                    label={t("Memory")}
-                    max={MEMORY_SLIDER_MAX_GIB}
-                    maxLabel={formatMemoryMebibytes(Math.round(MEMORY_SLIDER_MAX_GIB * MEBIBYTES_PER_GIB), formatNumber)}
-                    minLabel={formatMemoryMebibytes(0, formatNumber)}
-                    onChange={(nextValue) => {
-                      setEnvelopeMemory(
-                        clampEnvelopeMemoryMebibytes(nextValue * MEBIBYTES_PER_GIB),
-                      );
-                      if (envelopeError) {
-                        setEnvelopeError(null);
-                      }
-                    }}
-                    step={MEMORY_STEP_GIB}
-                    value={envelopeMemoryGib}
-                    valueLabel={formatMemoryMebibytes(envelopeMemory, formatNumber)}
-                  />
+                  <div className="fg-billing-capacity-control-card">
+                    <SteppedSliderField
+                      disabled={isSavingEnvelope}
+                      id="billing-envelope-memory"
+                      label={t("Memory")}
+                      max={MEMORY_SLIDER_MAX_GIB}
+                      maxLabel={formatMemoryMebibytes(
+                        Math.round(MEMORY_SLIDER_MAX_GIB * MEBIBYTES_PER_GIB),
+                        formatNumber,
+                      )}
+                      minLabel={formatMemoryMebibytes(0, formatNumber)}
+                      onChange={(nextValue) => {
+                        setEnvelopeMemory(
+                          clampEnvelopeMemoryMebibytes(nextValue * MEBIBYTES_PER_GIB),
+                        );
+                        if (envelopeError) {
+                          setEnvelopeError(null);
+                        }
+                      }}
+                      step={MEMORY_STEP_GIB}
+                      value={envelopeMemoryGib}
+                      valueLabel={formatMemoryMebibytes(envelopeMemory, formatNumber)}
+                    />
+                  </div>
 
-                  <SteppedSliderField
-                    disabled={isSavingEnvelope}
-                    id="billing-envelope-storage"
-                    label={t("Storage")}
-                    max={STORAGE_SLIDER_MAX_GIB}
-                    maxLabel={formatStorageGibibytes(STORAGE_SLIDER_MAX_GIB, formatNumber)}
-                    minLabel={formatStorageGibibytes(0, formatNumber)}
-                    onChange={(nextValue) => {
-                      setEnvelopeStorage(clampEnvelopeStorageGibibytes(nextValue));
-                      if (envelopeError) {
-                        setEnvelopeError(null);
-                      }
-                    }}
-                    step={STORAGE_STEP_GIB}
-                    value={envelopeStorage}
-                    valueLabel={formatStorageGibibytes(envelopeStorage, formatNumber)}
-                  />
+                  <div className="fg-billing-capacity-control-card">
+                    <SteppedSliderField
+                      disabled={isSavingEnvelope}
+                      id="billing-envelope-storage"
+                      label={t("Storage")}
+                      max={STORAGE_SLIDER_MAX_GIB}
+                      maxLabel={formatStorageGibibytes(STORAGE_SLIDER_MAX_GIB, formatNumber)}
+                      minLabel={formatStorageGibibytes(0, formatNumber)}
+                      onChange={(nextValue) => {
+                        setEnvelopeStorage(clampEnvelopeStorageGibibytes(nextValue));
+                        if (envelopeError) {
+                          setEnvelopeError(null);
+                        }
+                      }}
+                      step={STORAGE_STEP_GIB}
+                      value={envelopeStorage}
+                      valueLabel={formatStorageGibibytes(envelopeStorage, formatNumber)}
+                    />
+                  </div>
                 </div>
 
                 {envelopeError ? <InlineAlert variant="error">{envelopeError}</InlineAlert> : null}
 
-                <div className="fg-settings-form__actions">
-                  <Button
-                    disabled={!hasEnvelopeChanges}
-                    loading={isSavingEnvelope}
-                    loadingLabel={t("Saving cap…")}
-                    type="submit"
-                    variant="primary"
-                  >
-                    {t("Save capacity cap")}
-                  </Button>
+                <div className="fg-billing-capacity-footer">
+                  <p className="fg-billing-capacity-footer__note">{chargedAtCopy}</p>
 
-                  <Button
-                    disabled={isSavingEnvelope || isToppingUp}
-                    loading={isRefreshing}
-                    loadingLabel={t("Refreshing…")}
-                    onClick={() => {
-                      void handleRefresh();
-                    }}
-                    type="button"
-                    variant="secondary"
-                  >
-                    {t("Refresh billing")}
-                  </Button>
+                  <div className="fg-settings-form__actions">
+                    <Button
+                      disabled={isSavingEnvelope || isToppingUp}
+                      loading={isRefreshing}
+                      loadingLabel={t("Refreshing…")}
+                      onClick={() => {
+                        void handleRefresh();
+                      }}
+                      type="button"
+                      variant="secondary"
+                    >
+                      {t("Refresh billing")}
+                    </Button>
+
+                    <Button
+                      disabled={!hasEnvelopeChanges}
+                      loading={isSavingEnvelope}
+                      loadingLabel={t("Saving cap…")}
+                      type="submit"
+                      variant="primary"
+                    >
+                      {t("Save capacity cap")}
+                    </Button>
+                  </div>
                 </div>
               </form>
             </PanelSection>
@@ -1584,28 +1722,27 @@ export function BillingPanel({
                   <BillingSectionTitle
                     ariaLabel={t("Credits details")}
                     hint={creditsSectionHint}
-                    title={t("Keep your workspace funded")}
+                    title={t("Keep the workspace funded")}
                   />
+                  <PanelCopy className="fg-billing-section-copy__body">
+                    {t(
+                      "Add balance before you raise capacity or start new managed resources.",
+                    )}
+                  </PanelCopy>
                 </div>
               </div>
 
-              <div className="fg-billing-signal-grid">
-                <article className="fg-billing-signal-card is-primary">
-                  <BillingSignalLabel
-                    ariaLabel={t("Available credits details")}
-                    hint={t("Credits ready to cover current managed usage.")}
-                    label={t("Available credits")}
-                  />
+              <div className="fg-billing-balance__figures">
+                <article className="fg-billing-balance__figure is-primary">
+                  <span>{t("Available credits")}</span>
                   <strong>{availableCreditsLabel}</strong>
+                  <p>{t("Ready to cover the saved managed envelope.")}</p>
                 </article>
 
-                <article className="fg-billing-signal-card">
-                  <BillingSignalLabel
-                    ariaLabel={t("Estimated runway details")}
-                    hint={runwaySupportCopy}
-                    label={t("Estimated runway")}
-                  />
+                <article className="fg-billing-balance__figure">
+                  <span>{t("Estimated runway")}</span>
                   <strong>{runwayLabel}</strong>
+                  <p>{runwaySupportCopy}</p>
                 </article>
               </div>
             </PanelSection>
@@ -1675,6 +1812,7 @@ export function BillingPanel({
                           }
                           loading={isToppingUp}
                           loadingLabel={t("Preparing checkout…")}
+                          size="compact"
                           type="submit"
                           variant="primary"
                         >
@@ -1714,6 +1852,11 @@ export function BillingPanel({
                         ${amount}
                       </Button>
                     ))}
+                  </div>
+
+                  <div className="fg-billing-top-up-form__meta">
+                    <span>{topUpMetaLabel}</span>
+                    <span>{t("Secure checkout")}</span>
                   </div>
                 </div>
               </form>
@@ -1755,13 +1898,31 @@ export function BillingPanel({
         </div>
 
         <Panel>
-          <PanelSection>
-            <p className="fg-label fg-panel__eyebrow">{t("History")}</p>
-            <BillingSectionTitle
-              ariaLabel={t("Billing activity details")}
-              hint={billingHistoryHint}
-              title={t("Billing activity")}
-            />
+          <PanelSection className="fg-billing-ledger__intro">
+            <div className="fg-billing-section-copy">
+              <p className="fg-label fg-panel__eyebrow">{t("Activity")}</p>
+              <BillingSectionTitle
+                ariaLabel={t("Billing activity details")}
+                hint={billingHistoryHint}
+                title={t("Billing activity")}
+              />
+              <PanelCopy className="fg-billing-section-copy__body">
+                {t(
+                  "Recent top-ups, balance adjustments, and capacity changes for {workspace}.",
+                  {
+                    workspace: workspaceLabel,
+                  },
+                )}
+              </PanelCopy>
+            </div>
+
+            <span className="fg-billing-ledger__count">
+              {t("{count} recent events", {
+                count: formatNumber(billing.events.length, {
+                  maximumFractionDigits: 0,
+                }),
+              })}
+            </span>
           </PanelSection>
 
           <PanelSection>
