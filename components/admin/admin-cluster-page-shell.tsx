@@ -9,7 +9,8 @@ import {
 } from "react";
 
 import { AdminControlPlanePanel } from "@/components/admin/admin-control-plane-panel";
-import { AdminClusterOverview } from "@/components/admin/admin-cluster-overview";
+import { AdminClusterNodeManager } from "@/components/admin/admin-cluster-node-manager";
+import { AdminPlatformNodeEnrollmentPanel } from "@/components/admin/admin-platform-node-enrollment-panel";
 import { AdminSummaryGrid } from "@/components/admin/admin-summary-grid";
 import { ConsoleEmptyState } from "@/components/console/console-empty-state";
 import { useI18n } from "@/components/providers/i18n-provider";
@@ -24,10 +25,12 @@ import {
   CONSOLE_ADMIN_CLUSTER_PAGE_SNAPSHOT_URL,
   type ConsoleAdminClusterPageSnapshot,
   fetchConsolePageSnapshot,
+  writeConsolePageSnapshot,
   readConsolePageSnapshot,
   useConsolePageSnapshot,
 } from "@/lib/console/page-snapshot-client";
 import { useAnticipatoryWarmup } from "@/lib/ui/anticipatory-warmup";
+import type { AdminClusterNodeView } from "@/lib/admin/service";
 
 const ADMIN_CLUSTER_CONTROL_PLANE_TTL_MS = 300_000;
 
@@ -62,6 +65,24 @@ function mergeAdminClusterSnapshot(
       ...sidecar.errors,
     ],
   } satisfies ConsoleAdminClusterPageSnapshot;
+}
+
+function buildClusterSummary(nodes: AdminClusterNodeView[]) {
+  return {
+    nodeCount: nodes.length,
+    pressuredCount: nodes.filter(
+      (node) =>
+        node.statusTone === "warning" ||
+        node.statusTone === "danger" ||
+        node.resources.some(
+          (resource) =>
+            resource.statusTone === "warning" ||
+            resource.statusTone === "danger",
+        ),
+    ).length,
+    readyCount: nodes.filter((node) => node.statusLabel === "Ready").length,
+    workloadCount: nodes.reduce((total, node) => total + node.workloadCount, 0),
+  };
 }
 
 export function AdminClusterPageShell() {
@@ -123,12 +144,14 @@ export function AdminClusterPageShell() {
     });
   });
 
-  useAnticipatoryWarmup(data && !data.controlPlane ? warmControlPlane : null, [
-    data?.controlPlane ? "ready" : "pending",
-  ], {
-    mode: "idle",
-    timeoutMs: 3_000,
-  });
+  useAnticipatoryWarmup(
+    data && !data.controlPlane ? warmControlPlane : null,
+    [data?.controlPlane ? "ready" : "pending"],
+    {
+      mode: "idle",
+      timeoutMs: 3_000,
+    },
+  );
 
   const pageData = useMemo(() => {
     if (!data) {
@@ -137,6 +160,11 @@ export function AdminClusterPageShell() {
 
     return mergeAdminClusterSnapshot(data, controlPlaneSnapshot);
   }, [controlPlaneSnapshot, data]);
+  const [nodes, setNodes] = useState<AdminClusterNodeView[]>([]);
+
+  useEffect(() => {
+    setNodes(pageData?.nodes ?? []);
+  }, [pageData]);
 
   if (loading && !pageData) {
     return (
@@ -152,7 +180,9 @@ export function AdminClusterPageShell() {
         <Panel>
           <PanelSection>
             <ConsoleEmptyState
-              description={t(error ?? "Fugue could not load the cluster snapshot right now.")}
+              description={t(
+                error ?? "Fugue could not load the cluster snapshot right now.",
+              )}
               title={t("Cluster snapshot unavailable")}
             />
           </PanelSection>
@@ -162,8 +192,37 @@ export function AdminClusterPageShell() {
   }
 
   const errorMessage = pageData.errors.length
-    ? t("Partial admin data: {details}.", { details: pageData.errors.join(" | ") })
+    ? t("Partial admin data: {details}.", {
+        details: pageData.errors.join(" | "),
+      })
     : null;
+  const summary = buildClusterSummary(nodes);
+
+  function handleNodeUpdated(nextNode: AdminClusterNodeView) {
+    if (!pageData) {
+      return;
+    }
+
+    const snapshotBase = pageData;
+
+    setNodes((current) => {
+      const nextNodes = current
+        .map((node) => (node.name === nextNode.name ? nextNode : node))
+        .sort((left, right) => left.name.localeCompare(right.name));
+      const nextSnapshot: ConsoleAdminClusterPageSnapshot = {
+        controlPlane: snapshotBase.controlPlane ?? null,
+        errors: snapshotBase.errors,
+        nodes: nextNodes,
+        summary: buildClusterSummary(nextNodes),
+      };
+
+      writeConsolePageSnapshot<ConsoleAdminClusterPageSnapshot>(
+        CONSOLE_ADMIN_CLUSTER_PAGE_SNAPSHOT_URL,
+        nextSnapshot,
+      );
+      return nextNodes;
+    });
+  }
 
   return (
     <div className="fg-console-page">
@@ -173,14 +232,19 @@ export function AdminClusterPageShell() {
 
       <AdminSummaryGrid
         items={[
-          { label: t("Nodes"), value: pageData.summary.nodeCount },
-          { label: t("Clear"), value: pageData.summary.readyCount },
-          { label: t("Attention"), value: pageData.summary.pressuredCount },
-          { label: t("Workloads"), value: pageData.summary.workloadCount },
+          { label: t("Nodes"), value: summary.nodeCount },
+          { label: t("Clear"), value: summary.readyCount },
+          { label: t("Attention"), value: summary.pressuredCount },
+          { label: t("Workloads"), value: summary.workloadCount },
         ]}
       />
 
-      <AdminClusterOverview nodes={pageData.nodes} />
+      <AdminPlatformNodeEnrollmentPanel />
+
+      <AdminClusterNodeManager
+        nodes={nodes}
+        onNodeUpdated={handleNodeUpdated}
+      />
     </div>
   );
 }

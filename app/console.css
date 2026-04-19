@@ -867,7 +867,11 @@
       var(--fugue-console-skeleton-block-edge)
     );
   box-shadow: inset 0 1px 0
-    color-mix(in srgb, var(--fugue-console-skeleton-block-highlight) 42%, transparent);
+    color-mix(
+      in srgb,
+      var(--fugue-console-skeleton-block-highlight) 42%,
+      transparent
+    );
 }
 
 .fg-console-skeleton__block::after {
@@ -2213,6 +2217,368 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
   gap: 0.95rem;
+}
+
+.fg-admin-cluster-manager {
+  display: grid;
+  gap: 1rem;
+}
+
+.fg-admin-platform-enroll {
+  overflow: hidden;
+}
+
+.fg-admin-platform-enroll__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.9rem 1rem;
+}
+
+.fg-admin-platform-enroll__copy {
+  display: grid;
+  gap: 0.3rem;
+  min-width: 0;
+  max-width: 48rem;
+}
+
+.fg-admin-platform-enroll__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.fg-admin-platform-enroll__grid {
+  display: grid;
+  grid-template-columns: minmax(18rem, 0.88fr) minmax(0, 1.12fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.fg-admin-platform-enroll__surface {
+  display: grid;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.fg-admin-platform-enroll__surface + .fg-admin-platform-enroll__surface {
+  padding-left: 1rem;
+  border-left: 1px solid var(--fugue-border-subtle);
+}
+
+.fg-admin-platform-enroll__note {
+  margin: 0;
+  color: var(--fugue-text-tertiary);
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+
+.fg-admin-platform-enroll__result,
+.fg-admin-platform-enroll__placeholder {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.fg-admin-platform-enroll__facts {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.fg-admin-platform-enroll__command-shell {
+  display: grid;
+  gap: 0.42rem;
+}
+
+.fg-admin-platform-enroll__command-shell > span {
+  color: var(--fugue-text-tertiary);
+  font-family: var(--fugue-font-mono);
+  font-size: 0.68rem;
+  line-height: 1.45;
+}
+
+.fg-admin-platform-enroll__command {
+  margin: 0;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--fugue-border-subtle);
+  border-radius: 1rem;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.024),
+      rgba(255, 255, 255, 0.012)
+    ),
+    rgba(255, 255, 255, 0.014);
+  color: var(--fugue-text-secondary);
+  font-family: var(--fugue-font-mono);
+  font-size: 0.76rem;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow: auto;
+}
+
+.fg-admin-platform-enroll__result-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.fg-admin-platform-enroll__placeholder strong {
+  color: var(--fugue-text-secondary);
+  font-family: var(--fugue-font-ui-heading);
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.fg-admin-platform-enroll__placeholder p {
+  margin: 0;
+  color: var(--fugue-text-tertiary);
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+
+.fg-admin-cluster-manager__card {
+  overflow: hidden;
+}
+
+.fg-admin-cluster-manager__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.9rem 1rem;
+}
+
+.fg-admin-cluster-manager__copy {
+  display: grid;
+  gap: 0.3rem;
+  min-width: 0;
+  max-width: 44rem;
+}
+
+.fg-admin-cluster-manager__badges {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.fg-admin-cluster-manager__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(20rem, 0.92fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.fg-admin-cluster-manager__surface {
+  display: grid;
+  gap: 0.9rem;
+  min-width: 0;
+}
+
+.fg-admin-cluster-manager__surface + .fg-admin-cluster-manager__surface {
+  padding-left: 1rem;
+  border-left: 1px solid var(--fugue-border-subtle);
+}
+
+.fg-admin-cluster-manager__surface-head {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.fg-admin-cluster-manager__surface-head strong {
+  color: var(--fugue-text-primary);
+  font-family: var(--fugue-font-ui-heading);
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.fg-admin-cluster-manager__surface-head span {
+  color: var(--fugue-text-tertiary);
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+
+.fg-admin-cluster-manager__facts {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.fg-admin-cluster-manager__resource-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.fg-admin-cluster-manager__state-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+.fg-admin-cluster-manager__state-block {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.fg-admin-cluster-manager__state-block strong {
+  color: var(--fugue-text-secondary);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.fg-admin-cluster-manager__pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.fg-admin-cluster-manager__workload-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.fg-admin-cluster-manager__workload-list li {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.68rem 0.78rem;
+  border: 1px solid var(--fugue-border-subtle);
+  border-radius: 0.95rem;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.024),
+      rgba(255, 255, 255, 0.012)
+    ),
+    rgba(255, 255, 255, 0.014);
+}
+
+.fg-admin-cluster-manager__workload-list li span:first-child {
+  color: var(--fugue-text-secondary);
+  font-weight: 600;
+}
+
+.fg-admin-cluster-manager__workload-list li span:last-child {
+  color: var(--fugue-text-tertiary);
+  font-size: 0.74rem;
+  line-height: 1.5;
+  text-align: right;
+}
+
+.fg-admin-cluster-manager__policy-stack {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.fg-admin-cluster-manager__field {
+  display: grid;
+  gap: 0.42rem;
+}
+
+.fg-admin-cluster-manager__field-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.8rem;
+}
+
+.fg-admin-cluster-manager__field-label {
+  color: var(--fugue-text-secondary);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.fg-admin-cluster-manager__field-hint {
+  max-width: 28rem;
+  color: var(--fugue-text-tertiary);
+  font-size: 0.74rem;
+  line-height: 1.5;
+}
+
+.fg-admin-cluster-manager__toggle {
+  min-height: 0;
+  padding: 0;
+  align-items: flex-start;
+}
+
+.fg-admin-cluster-manager__toggle span {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.fg-admin-cluster-manager__toggle strong {
+  color: var(--fugue-text-secondary);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.fg-admin-cluster-manager__toggle small {
+  color: var(--fugue-text-tertiary);
+  font-size: 0.74rem;
+  line-height: 1.5;
+}
+
+.fg-admin-cluster-manager__toggle input {
+  margin-top: 0.22rem;
+  accent-color: var(--fugue-accent-signal);
+}
+
+.fg-admin-cluster-manager__segmented-control {
+  width: 100%;
+}
+
+.fg-admin-cluster-manager__live-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.fg-admin-cluster-manager__live-grid > div {
+  display: grid;
+  gap: 0.38rem;
+  padding: 0.74rem 0.8rem;
+  border: 1px solid var(--fugue-border-subtle);
+  border-radius: 0.98rem;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.026),
+      rgba(255, 255, 255, 0.014)
+    ),
+    rgba(255, 255, 255, 0.012);
+}
+
+.fg-admin-cluster-manager__live-grid span {
+  color: var(--fugue-text-tertiary);
+  font-family: var(--fugue-font-mono);
+  font-size: 0.68rem;
+  line-height: 1.45;
+}
+
+.fg-admin-cluster-manager__actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.fg-admin-cluster-manager__empty-copy {
+  margin: 0;
+  color: var(--fugue-text-tertiary);
+  font-size: 0.78rem;
+  line-height: 1.55;
 }
 
 .fg-control-plane-card {
@@ -3719,7 +4085,8 @@
 }
 
 .fg-project-card:hover .fg-project-card__summary-link-indicator,
-.fg-project-card__summary:focus-visible .fg-project-card__summary-link-indicator {
+.fg-project-card__summary:focus-visible
+  .fg-project-card__summary-link-indicator {
   transform: translate(0.12rem, -0.12rem);
   border-color: rgba(165, 191, 220, 0.24);
   background: rgba(165, 191, 220, 0.08);
@@ -7492,7 +7859,11 @@
       var(--fugue-console-skeleton-block-edge)
     );
   box-shadow: inset 0 1px 0
-    color-mix(in srgb, var(--fugue-console-skeleton-block-highlight) 42%, transparent);
+    color-mix(
+      in srgb,
+      var(--fugue-console-skeleton-block-highlight) 42%,
+      transparent
+    );
 }
 
 .fg-filesystem-tree__skeleton::after {
@@ -8062,6 +8433,33 @@
   .fg-console-topbar__primary-action {
     flex-basis: 7.9rem;
   }
+
+  .fg-admin-platform-enroll__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fg-admin-platform-enroll__surface + .fg-admin-platform-enroll__surface {
+    padding-top: 1rem;
+    padding-left: 0;
+    border-top: 1px solid var(--fugue-border-subtle);
+    border-left: 0;
+  }
+
+  .fg-admin-cluster-manager__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fg-admin-cluster-manager__surface + .fg-admin-cluster-manager__surface {
+    padding-top: 1rem;
+    padding-left: 0;
+    border-top: 1px solid var(--fugue-border-subtle);
+    border-left: 0;
+  }
+
+  .fg-admin-cluster-manager__resource-strip,
+  .fg-admin-cluster-manager__live-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 860px) {
@@ -8095,9 +8493,14 @@
 
   .fg-cluster-node-card__summary-head,
   .fg-cluster-node-facts,
+  .fg-admin-platform-enroll__facts,
   .fg-cluster-condition-grid,
   .fg-cluster-resource-grid,
   .fg-cluster-workload-list,
+  .fg-admin-cluster-manager__facts,
+  .fg-admin-cluster-manager__resource-strip,
+  .fg-admin-cluster-manager__state-grid,
+  .fg-admin-cluster-manager__live-grid,
   .fg-app-images__summary-grid,
   .fg-app-images__details,
   .fg-project-card__summary-head,
@@ -8213,6 +8616,45 @@
 
   .fg-project-card__summary-resources .fg-cluster-resource__label {
     padding-top: 0.04rem;
+  }
+
+  .fg-admin-platform-enroll__head {
+    display: grid;
+  }
+
+  .fg-admin-platform-enroll__actions,
+  .fg-admin-platform-enroll__result-actions {
+    justify-content: stretch;
+  }
+
+  .fg-admin-platform-enroll__actions > .fg-button,
+  .fg-admin-platform-enroll__result-actions > .fg-button {
+    width: 100%;
+  }
+
+  .fg-admin-cluster-manager__head {
+    display: grid;
+  }
+
+  .fg-admin-cluster-manager__badges {
+    justify-content: flex-start;
+  }
+
+  .fg-admin-cluster-manager__field-head,
+  .fg-admin-cluster-manager__workload-list li {
+    display: grid;
+  }
+
+  .fg-admin-cluster-manager__workload-list li span:last-child {
+    text-align: left;
+  }
+
+  .fg-admin-cluster-manager__actions {
+    justify-content: stretch;
+  }
+
+  .fg-admin-cluster-manager__actions > .fg-button {
+    width: 100%;
   }
 
   .fg-project-card__summary-resources .fg-cluster-resource__compact-values {
@@ -8966,16 +9408,24 @@
   color: var(--fugue-text-primary);
 }
 
-:root[data-theme="light"] .fg-project-service-card:hover .fg-project-service-card__meta span,
+:root[data-theme="light"]
+  .fg-project-service-card:hover
+  .fg-project-service-card__meta
+  span,
 :root[data-theme="light"]
   .fg-project-service-card:focus-visible
   .fg-project-service-card__meta
   span,
-:root[data-theme="light"] .fg-project-service-card.is-active .fg-project-service-card__meta span {
+:root[data-theme="light"]
+  .fg-project-service-card.is-active
+  .fg-project-service-card__meta
+  span {
   color: var(--fugue-text-secondary);
 }
 
-:root[data-theme="light"] .fg-project-service-card:hover .fg-project-service-card__status-meta,
+:root[data-theme="light"]
+  .fg-project-service-card:hover
+  .fg-project-service-card__status-meta,
 :root[data-theme="light"]
   .fg-project-service-card:focus-visible
   .fg-project-service-card__status-meta,
@@ -9015,8 +9465,12 @@
   box-shadow: var(--fugue-console-utility-shadow);
 }
 
-:root[data-theme="light"] .fg-project-card:hover .fg-project-card__summary-link-indicator,
-:root[data-theme="light"] .fg-project-card__summary:focus-visible .fg-project-card__summary-link-indicator {
+:root[data-theme="light"]
+  .fg-project-card:hover
+  .fg-project-card__summary-link-indicator,
+:root[data-theme="light"]
+  .fg-project-card__summary:focus-visible
+  .fg-project-card__summary-link-indicator {
   border-color: var(--fugue-selection-lens-border-active);
   background: var(--fugue-selection-lens-bg-active);
   box-shadow: var(--fugue-selection-lens-shadow-active);
@@ -9115,11 +9569,7 @@
       rgba(145, 178, 224, 0.24),
       transparent 34%
     ),
-    linear-gradient(
-      180deg,
-      rgba(24, 45, 78, 0.98),
-      rgba(12, 28, 54, 0.97)
-    ),
+    linear-gradient(180deg, rgba(24, 45, 78, 0.98), rgba(12, 28, 54, 0.97)),
     rgba(11, 24, 46, 0.98);
   border-color: rgba(97, 128, 176, 0.18);
   box-shadow:
@@ -9182,22 +9632,45 @@
 }
 
 :root[data-theme="light"] .fg-billing-surface--health .fg-panel__title,
-:root[data-theme="light"] .fg-billing-surface--health .fg-console-metric-card__value,
-:root[data-theme="light"] .fg-billing-surface--health .fg-billing-health-metric__value-row strong,
-:root[data-theme="light"] .fg-billing-surface--health .fg-billing-health__facts dd {
+:root[data-theme="light"]
+  .fg-billing-surface--health
+  .fg-console-metric-card__value,
+:root[data-theme="light"]
+  .fg-billing-surface--health
+  .fg-billing-health-metric__value-row
+  strong,
+:root[data-theme="light"]
+  .fg-billing-surface--health
+  .fg-billing-health__facts
+  dd {
   color: #f4f8ff;
 }
 
 :root[data-theme="light"] .fg-billing-surface--health .fg-billing-health__stamp,
-:root[data-theme="light"] .fg-billing-surface--health .fg-admin-summary-card__label,
-:root[data-theme="light"] .fg-billing-surface--health .fg-billing-health__summary,
-:root[data-theme="light"] .fg-billing-surface--health .fg-billing-health__facts dt,
-:root[data-theme="light"] .fg-billing-surface--health .fg-billing-health-metric__label,
-:root[data-theme="light"] .fg-billing-surface--health .fg-billing-health-metric p {
+:root[data-theme="light"]
+  .fg-billing-surface--health
+  .fg-admin-summary-card__label,
+:root[data-theme="light"]
+  .fg-billing-surface--health
+  .fg-billing-health__summary,
+:root[data-theme="light"]
+  .fg-billing-surface--health
+  .fg-billing-health__facts
+  dt,
+:root[data-theme="light"]
+  .fg-billing-surface--health
+  .fg-billing-health-metric__label,
+:root[data-theme="light"]
+  .fg-billing-surface--health
+  .fg-billing-health-metric
+  p {
   color: rgba(201, 215, 234, 0.72);
 }
 
-:root[data-theme="light"] .fg-billing-surface--health .fg-billing-health-metric__value-row span {
+:root[data-theme="light"]
+  .fg-billing-surface--health
+  .fg-billing-health-metric__value-row
+  span {
   color: rgba(226, 236, 248, 0.86);
 }
 
@@ -9423,7 +9896,10 @@
   text-decoration-color: currentColor;
 }
 
-:root[data-theme="light"] .fg-project-services--rail .fg-panel__section + .fg-panel__section,
+:root[data-theme="light"]
+  .fg-project-services--rail
+  .fg-panel__section
+  + .fg-panel__section,
 :root[data-theme="light"] .fg-console-disclosure--section[open] > summary,
 :root[data-theme="light"] .fg-filesystem__editor,
 :root[data-theme="light"] .fg-filesystem-editor__advanced {
@@ -9431,7 +9907,9 @@
 }
 
 :root[data-theme="light"] .fg-env-editor__empty,
-:root[data-theme="light"] .fg-filesystem__path-composer .fg-route-composer__shell {
+:root[data-theme="light"]
+  .fg-filesystem__path-composer
+  .fg-route-composer__shell {
   border-color: var(--fugue-console-utility-border);
   background: var(--fugue-console-utility-bg);
   box-shadow: var(--fugue-console-utility-shadow);
@@ -9447,8 +9925,12 @@
     inset 0 -1px 0 rgba(109, 133, 167, 0.08);
 }
 
-:root[data-theme="light"] .fg-filesystem__path-composer .fg-route-composer__shell:hover,
-:root[data-theme="light"] .fg-filesystem__path-composer .fg-route-composer__shell:focus-within {
+:root[data-theme="light"]
+  .fg-filesystem__path-composer
+  .fg-route-composer__shell:hover,
+:root[data-theme="light"]
+  .fg-filesystem__path-composer
+  .fg-route-composer__shell:focus-within {
   border-color: var(--fugue-selection-lens-border-hover);
   background: var(--fugue-selection-lens-bg-hover);
   box-shadow: var(--fugue-selection-lens-shadow-active);

@@ -470,6 +470,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/cluster/nodes/{name}/policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Set Cluster Node Policy */
+        patch: operations["setClusterNodePolicy"];
+        trace?: never;
+    };
     "/v1/cluster/control-plane": {
         parameters: {
             query?: never;
@@ -1883,6 +1900,7 @@ export interface components {
             label: string;
             prefix: string;
             hash: string;
+            scope: string;
             status: string;
             /** Format: date-time */
             created_at: string;
@@ -2320,9 +2338,30 @@ export interface components {
             ephemeral_storage?: components["schemas"]["ClusterNodeStorageStats"];
             runtime_id?: string;
             tenant_id?: string;
+            machine?: components["schemas"]["ClusterNodeMachine"];
+            policy?: components["schemas"]["ClusterNodePolicy"];
             workloads?: components["schemas"]["ClusterNodeWorkload"][];
             /** Format: date-time */
             created_at?: string;
+        };
+        ClusterNodeMachine: {
+            id: string;
+            scope: string;
+            connection_mode: string;
+            status: string;
+            tenant_id?: string;
+            runtime_id?: string;
+            node_key_id?: string;
+        };
+        ClusterNodePolicy: {
+            allow_builds: boolean;
+            build_tier: string;
+            allow_shared_pool: boolean;
+            desired_control_plane_role: string;
+            effective_builds: boolean;
+            effective_build_tier: string;
+            effective_shared_pool: boolean;
+            effective_control_plane_role: string;
         };
         ClusterNodeFilesystemUsage: {
             filesystem?: string;
@@ -2757,6 +2796,7 @@ export interface components {
         CreateNodeKeyRequest: {
             tenant_id?: string;
             label?: string;
+            scope?: string;
         };
         RevokeNodeKeyResponse: {
             node_key: components["schemas"]["NodeKey"];
@@ -2767,6 +2807,17 @@ export interface components {
         };
         ClusterNodeDiagnosisResponse: {
             diagnosis: components["schemas"]["ClusterNodeDiagnosis"];
+        };
+        SetClusterNodePolicyRequest: {
+            allow_builds?: boolean;
+            build_tier?: string;
+            allow_shared_pool?: boolean;
+            desired_control_plane_role?: string;
+        };
+        ClusterNodePolicyResponse: {
+            cluster_node: components["schemas"]["ClusterNode"];
+            node_reconciled: boolean;
+            reconcile_error?: string;
         };
         ControlPlaneComponent: {
             component: string;
@@ -4578,6 +4629,33 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClusterNodeDiagnosisResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    setClusterNodePolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetClusterNodePolicyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClusterNodePolicyResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];

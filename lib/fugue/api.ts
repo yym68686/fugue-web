@@ -3,10 +3,7 @@ import "server-only";
 import createClient from "openapi-fetch";
 
 import { getFugueEnv } from "@/lib/fugue/env";
-import {
-  fetchFugueServer,
-  fugueServerFetch,
-} from "@/lib/fugue/server-fetch";
+import { fetchFugueServer, fugueServerFetch } from "@/lib/fugue/server-fetch";
 import type { PersistentStoragePayload } from "@/lib/fugue/persistent-storage";
 import type { GitHubRepoVisibility } from "@/lib/github/repository";
 
@@ -279,9 +276,7 @@ function buildInspectGitHubTemplateManifestServiceView(
     dockerfilePath: service.dockerfilePath,
     internalPort: service.internalPort,
     kind: service.kind,
-    persistentStorageSeedFiles: (
-      service.persistentStorageSeedFiles ?? []
-    )
+    persistentStorageSeedFiles: (service.persistentStorageSeedFiles ?? [])
       .map(buildPersistentStorageSeedFileView)
       .flatMap((file) => (file.path ? [file] : [])),
     published: service.published,
@@ -320,7 +315,9 @@ function buildInspectGitHubTemplateComposeStackView(
 
   return {
     composePath: stack.composePath,
-    inferenceReport: (stack.inferenceReport ?? []).map(buildTopologyInferenceView),
+    inferenceReport: (stack.inferenceReport ?? []).map(
+      buildTopologyInferenceView,
+    ),
     primaryService: stack.primaryService,
     services: (stack.services ?? []).map(
       buildInspectGitHubTemplateManifestServiceView,
@@ -446,6 +443,7 @@ function buildNodeKeyView(nodeKey: CamelizedSchema<"NodeKey">) {
     lastUsedAt: readNullableString(nodeKey.lastUsedAt),
     prefix: readNullableString(nodeKey.prefix),
     revokedAt: readNullableString(nodeKey.revokedAt),
+    scope: readNullableString(nodeKey.scope),
     status: readNullableString(nodeKey.status),
     tenantId: readNullableString(nodeKey.tenantId),
     updatedAt: readNullableString(nodeKey.updatedAt),
@@ -988,6 +986,45 @@ function buildClusterNodeWorkloadView(
   };
 }
 
+function buildClusterNodeMachineView(
+  machine?: CamelizedSchema<"ClusterNodeMachine"> | null,
+) {
+  if (!machine) {
+    return null;
+  }
+
+  return {
+    connectionMode: readNullableString(machine.connectionMode),
+    id: machine.id,
+    nodeKeyId: readNullableString(machine.nodeKeyId),
+    runtimeId: readNullableString(machine.runtimeId),
+    scope: readNullableString(machine.scope),
+    status: readNullableString(machine.status),
+    tenantId: readNullableString(machine.tenantId),
+  };
+}
+
+function buildClusterNodePolicyView(
+  policy?: CamelizedSchema<"ClusterNodePolicy"> | null,
+) {
+  if (!policy) {
+    return null;
+  }
+
+  return {
+    allowBuilds: policy.allowBuilds ?? false,
+    allowSharedPool: policy.allowSharedPool ?? false,
+    buildTier: readNullableString(policy.buildTier),
+    desiredControlPlaneRole: readNullableString(policy.desiredControlPlaneRole),
+    effectiveBuilds: policy.effectiveBuilds ?? false,
+    effectiveBuildTier: readNullableString(policy.effectiveBuildTier),
+    effectiveControlPlaneRole: readNullableString(
+      policy.effectiveControlPlaneRole,
+    ),
+    effectiveSharedPool: policy.effectiveSharedPool ?? false,
+  };
+}
+
 function buildClusterNodeView(node: CamelizedSchema<"ClusterNode">) {
   return {
     conditions: buildClusterNodeConditionMapView(node.conditions),
@@ -1000,9 +1037,11 @@ function buildClusterNodeView(node: CamelizedSchema<"ClusterNode">) {
     publicIp: readNullableString(node.publicIp),
     kernelVersion: readNullableString(node.kernelVersion),
     kubeletVersion: readNullableString(node.kubeletVersion),
+    machine: buildClusterNodeMachineView(node.machine),
     memory: buildClusterNodeMemoryStatsView(node.memory),
     name: node.name,
     osImage: readNullableString(node.osImage),
+    policy: buildClusterNodePolicyView(node.policy),
     region: readNullableString(node.region),
     roles: readStringArray(node.roles),
     runtimeId: readNullableString(node.runtimeId),
@@ -1325,7 +1364,9 @@ function buildAppPatchResultView(
   return {
     alreadyCurrent: response.alreadyCurrent ?? false,
     app: response.app ? buildAppView(response.app) : null,
-    operation: response.operation ? buildOperationView(response.operation) : null,
+    operation: response.operation
+      ? buildOperationView(response.operation)
+      : null,
   };
 }
 
@@ -1554,7 +1595,9 @@ function buildContinuityResultView(
     appFailover: response.appFailover
       ? buildAppFailoverView(response.appFailover)
       : null,
-    database: response.database ? buildAppPostgresView(response.database) : null,
+    database: response.database
+      ? buildAppPostgresView(response.database)
+      : null,
     operation: response.operation
       ? buildOperationView(response.operation)
       : null,
@@ -1919,6 +1962,7 @@ export async function createFugueNodeKey(
   accessToken: string,
   payload?: {
     label?: string;
+    scope?: string;
     tenantId?: string;
   },
 ) {
@@ -1929,10 +1973,15 @@ export async function createFugueNodeKey(
       client.POST("/v1/node-keys", {
         body:
           payload &&
-          (payload.label !== undefined || payload.tenantId !== undefined)
+          (payload.label !== undefined ||
+            payload.scope !== undefined ||
+            payload.tenantId !== undefined)
             ? {
                 ...(payload.label !== undefined
                   ? { label: payload.label }
+                  : {}),
+                ...(payload.scope !== undefined
+                  ? { scope: payload.scope }
                   : {}),
                 ...(payload.tenantId !== undefined
                   ? { tenant_id: payload.tenantId }
@@ -2110,9 +2159,7 @@ export async function importFugueGitHubApp(
             : {}),
           ...(payload.name ? { name: payload.name } : {}),
           ...(payload.runtimeId ? { runtime_id: payload.runtimeId } : {}),
-          ...(payload.networkMode
-            ? { network_mode: payload.networkMode }
-            : {}),
+          ...(payload.networkMode ? { network_mode: payload.networkMode } : {}),
           ...(typeof payload.servicePort === "number"
             ? { service_port: payload.servicePort }
             : {}),
@@ -2727,9 +2774,7 @@ export async function importFugueDockerImageApp(
             : {}),
           ...(payload.name ? { name: payload.name } : {}),
           ...(payload.runtimeId ? { runtime_id: payload.runtimeId } : {}),
-          ...(payload.networkMode
-            ? { network_mode: payload.networkMode }
-            : {}),
+          ...(payload.networkMode ? { network_mode: payload.networkMode } : {}),
           ...(typeof payload.servicePort === "number"
             ? { service_port: payload.servicePort }
             : {}),
@@ -3696,7 +3741,9 @@ export async function setFugueRuntimePublicOffer(
               }
             : {}),
           ...(payload.free !== undefined ? { free: payload.free } : {}),
-          ...(payload.freeCpu !== undefined ? { free_cpu: payload.freeCpu } : {}),
+          ...(payload.freeCpu !== undefined
+            ? { free_cpu: payload.freeCpu }
+            : {}),
           ...(payload.freeMemory !== undefined
             ? { free_memory: payload.freeMemory }
             : {}),
@@ -3763,6 +3810,61 @@ export async function getFugueClusterNodes(
   );
 
   return (response.clusterNodes ?? []).map(buildClusterNodeView);
+}
+
+function buildClusterNodePolicyResultView(
+  response: CamelizedSchema<"ClusterNodePolicyResponse">,
+) {
+  return {
+    clusterNode: response.clusterNode
+      ? buildClusterNodeView(response.clusterNode)
+      : null,
+    nodeReconciled: response.nodeReconciled ?? false,
+    reconcileError: readNullableString(response.reconcileError),
+  };
+}
+
+export async function setFugueClusterNodePolicy(
+  accessToken: string,
+  nodeName: string,
+  payload: {
+    allowBuilds?: boolean;
+    allowSharedPool?: boolean;
+    buildTier?: string;
+    desiredControlPlaneRole?: string;
+  },
+) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/cluster/nodes/${encodeURIComponent(nodeName)}/policy`,
+      client.PATCH("/v1/cluster/nodes/{name}/policy", {
+        body: {
+          ...(payload.allowBuilds !== undefined
+            ? { allow_builds: payload.allowBuilds }
+            : {}),
+          ...(payload.allowSharedPool !== undefined
+            ? { allow_shared_pool: payload.allowSharedPool }
+            : {}),
+          ...(payload.buildTier !== undefined
+            ? { build_tier: payload.buildTier }
+            : {}),
+          ...(payload.desiredControlPlaneRole !== undefined
+            ? {
+                desired_control_plane_role: payload.desiredControlPlaneRole,
+              }
+            : {}),
+        },
+        params: {
+          path: {
+            name: nodeName,
+          },
+        },
+      }),
+    ),
+  );
+
+  return buildClusterNodePolicyResultView(response);
 }
 
 export async function getFugueConsoleGallery(accessToken: string) {

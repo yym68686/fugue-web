@@ -4,6 +4,7 @@ import { listAppUsers, type AppUserRecord } from "@/lib/app-users/store";
 import type { ConsoleCompactResourceItemView } from "@/lib/console/gallery-types";
 import type { ConsoleTone } from "@/lib/console/types";
 import {
+  createFugueNodeKey,
   getFugueBillingSummary,
   getFugueApps,
   getFugueClusterNodes,
@@ -12,6 +13,7 @@ import {
   getFugueProjects,
   getFugueRuntimes,
   getFugueTenants,
+  setFugueClusterNodePolicy,
   setFugueBillingBalance,
   updateFugueBilling,
   type FugueApp,
@@ -32,7 +34,10 @@ import {
   type FugueTenant,
 } from "@/lib/fugue/api";
 import { getFugueEnv } from "@/lib/fugue/env";
-import { readFugueSourceHref, readFugueSourceLabel } from "@/lib/fugue/source-display";
+import {
+  readFugueSourceHref,
+  readFugueSourceLabel,
+} from "@/lib/fugue/source-display";
 import {
   readTechStackBadgeKind,
   readTechnologyLabel,
@@ -173,8 +178,9 @@ const ADMIN_CONTROL_PLANE_CACHE_TTL_MS = 300_000;
 let cachedAdminUsersEnrichmentData: AdminUsersPageData | null = null;
 let cachedAdminUsersEnrichmentAt = 0;
 let adminUsersEnrichmentRequest: Promise<AdminUsersPageData> | null = null;
-const adminAppsUsageCache =
-  createExpiringAsyncCache<FugueApp[]>(ADMIN_USAGE_CACHE_TTL_MS);
+const adminAppsUsageCache = createExpiringAsyncCache<FugueApp[]>(
+  ADMIN_USAGE_CACHE_TTL_MS,
+);
 const adminAppImageUsageCache =
   createExpiringAsyncCache<FugueProjectImageUsageResult | null>(
     ADMIN_USAGE_CACHE_TTL_MS,
@@ -217,6 +223,7 @@ export type AdminClusterWorkloadView = {
 
 export type AdminClusterNodeView = {
   appCount: number;
+  canManagePolicy: boolean;
   conditions: AdminClusterConditionView[];
   createdExact: string;
   createdLabel: string;
@@ -224,7 +231,9 @@ export type AdminClusterNodeView = {
   internalIpLabel: string;
   locationCountryCode: string | null;
   locationLabel: string;
+  machine: AdminClusterNodeMachineView | null;
   name: string;
+  policy: AdminClusterNodePolicyView | null;
   publicIpLabel: string;
   roleLabels: string[];
   resources: AdminClusterResourceView[];
@@ -237,6 +246,33 @@ export type AdminClusterNodeView = {
   workloadCount: number;
   workloads: AdminClusterWorkloadView[];
   zoneLabel: string;
+};
+
+export type AdminClusterNodeMachineView = {
+  connectionMode: string | null;
+  connectionModeLabel: string;
+  id: string | null;
+  nodeKeyId: string | null;
+  nodeKeyLabel: string;
+  scope: string | null;
+  scopeLabel: string;
+  status: string | null;
+  statusLabel: string;
+};
+
+export type AdminClusterNodePolicyView = {
+  allowBuilds: boolean;
+  allowSharedPool: boolean;
+  buildTier: string | null;
+  buildTierLabel: string;
+  desiredControlPlaneRole: string | null;
+  desiredControlPlaneRoleLabel: string;
+  effectiveBuilds: boolean;
+  effectiveBuildTier: string | null;
+  effectiveBuildTierLabel: string;
+  effectiveControlPlaneRole: string | null;
+  effectiveControlPlaneRoleLabel: string;
+  effectiveSharedPool: boolean;
 };
 
 export type AdminControlPlaneComponentView = {
@@ -275,6 +311,17 @@ export type AdminClusterPageData = {
     pressuredCount: number;
     readyCount: number;
     workloadCount: number;
+  };
+};
+
+export type AdminPlatformNodeEnrollmentResult = {
+  joinCommand: string;
+  nodeKey: {
+    createdAt: string | null;
+    id: string;
+    label: string;
+    scope: string | null;
+    status: string | null;
   };
 };
 
@@ -457,6 +504,15 @@ function shortControlPlaneVersion(value?: string | null) {
   return `${normalized.slice(0, 14)}…${normalized.slice(-6)}`;
 }
 
+function normalizeNodeKeyLabel(value?: string | null) {
+  const normalized = value?.trim();
+  return normalized ? normalized : undefined;
+}
+
+function buildPlatformJoinCommand(apiBaseUrl: string, secret: string) {
+  return `curl -fsSL ${apiBaseUrl}/install/join-cluster.sh | sudo FUGUE_NODE_KEY='${secret}' bash`;
+}
+
 function shortImageRepository(value?: string | null) {
   const normalized = value?.trim();
   if (!normalized) {
@@ -538,7 +594,10 @@ function readControlPlaneComponentStatusLabel(value?: string | null) {
   }
 }
 
-function readControlPlaneVersionLabel(status?: string | null, version?: string | null) {
+function readControlPlaneVersionLabel(
+  status?: string | null,
+  version?: string | null,
+) {
   if (version?.trim()) {
     return `Release ${shortControlPlaneVersion(version)}`;
   }
@@ -591,7 +650,8 @@ function buildAppStack(app: FugueApp) {
     source?: string | null,
   ) => {
     const normalizedKind = normalizeTechKind(kind);
-    const normalizedSlug = slug?.trim().toLowerCase() || label?.trim().toLowerCase() || "";
+    const normalizedSlug =
+      slug?.trim().toLowerCase() || label?.trim().toLowerCase() || "";
     const normalizedLabel = label?.trim();
 
     if (!normalizedSlug || !normalizedLabel) {
@@ -628,7 +688,8 @@ function buildAppStack(app: FugueApp) {
       "language",
       app.source.detectedProvider,
       app.source.detectedProvider
-        ? (readTechnologyLabel(app.source.detectedProvider) ?? humanize(app.source.detectedProvider))
+        ? (readTechnologyLabel(app.source.detectedProvider) ??
+            humanize(app.source.detectedProvider))
         : null,
       "fallback",
     );
@@ -655,7 +716,10 @@ function buildAppStack(app: FugueApp) {
     ["build", 2],
   ]);
   const primary = items.filter(
-    (item) => item.kind === "stack" || item.kind === "language" || item.kind === "service",
+    (item) =>
+      item.kind === "stack" ||
+      item.kind === "language" ||
+      item.kind === "service",
   );
   const visible = (primary.length ? primary : items).filter(
     (item) => item.kind !== "source",
@@ -678,11 +742,19 @@ function buildAppStack(app: FugueApp) {
 function toneForStatus(status?: string | null): ConsoleTone {
   const normalized = status?.trim().toLowerCase() ?? "";
 
-  if (normalized.includes("ready") || normalized.includes("active") || normalized.includes("running")) {
+  if (
+    normalized.includes("ready") ||
+    normalized.includes("active") ||
+    normalized.includes("running")
+  ) {
     return "positive";
   }
 
-  if (normalized.includes("deploy") || normalized.includes("build") || normalized.includes("pending")) {
+  if (
+    normalized.includes("deploy") ||
+    normalized.includes("build") ||
+    normalized.includes("pending")
+  ) {
     return "info";
   }
 
@@ -690,7 +762,11 @@ function toneForStatus(status?: string | null): ConsoleTone {
     return "warning";
   }
 
-  if (normalized.includes("delete") || normalized.includes("fail") || normalized.includes("error")) {
+  if (
+    normalized.includes("delete") ||
+    normalized.includes("fail") ||
+    normalized.includes("error")
+  ) {
     return "danger";
   }
 
@@ -739,7 +815,9 @@ function mapAdminApps(
     projects.map((project) => [project.id, project.name] as const),
   );
   const workspaceEmailsByTenant = new Map(
-    workspaces.map((workspace) => [workspace.tenantId, workspace.email] as const),
+    workspaces.map(
+      (workspace) => [workspace.tenantId, workspace.email] as const,
+    ),
   );
   const tenantNames = new Map(
     tenants.map((tenant) => [tenant.id, tenant.name] as const),
@@ -748,7 +826,8 @@ function mapAdminApps(
 
   for (const runtime of runtimes) {
     const runtimeId = runtime.id?.trim();
-    const serverName = runtime.clusterNodeName?.trim() || runtime.machineName?.trim();
+    const serverName =
+      runtime.clusterNodeName?.trim() || runtime.machineName?.trim();
 
     if (!runtimeId || !serverName || serverNamesByRuntime.has(runtimeId)) {
       continue;
@@ -760,13 +839,18 @@ function mapAdminApps(
   return [...apps]
     .sort(
       (left, right) =>
-        parseTimestamp(right.status.updatedAt ?? right.updatedAt ?? right.createdAt) -
-        parseTimestamp(left.status.updatedAt ?? left.updatedAt ?? left.createdAt),
+        parseTimestamp(
+          right.status.updatedAt ?? right.updatedAt ?? right.createdAt,
+        ) -
+        parseTimestamp(
+          left.status.updatedAt ?? left.updatedAt ?? left.createdAt,
+        ),
     )
     .map((app) => {
       const createdAt = app.createdAt;
       const route = readRouteInfo(app);
-      const phase = app.status.phase ?? (app.spec.disabled ? "disabled" : "unknown");
+      const phase =
+        app.status.phase ?? (app.spec.disabled ? "disabled" : "unknown");
       const runtimeId = app.status.currentRuntimeId ?? app.spec.runtimeId;
 
       return {
@@ -776,18 +860,20 @@ function mapAdminApps(
         id: app.id,
         name: app.name,
         ownerLabel: app.tenantId
-          ? workspaceEmailsByTenant.get(app.tenantId) ??
+          ? (workspaceEmailsByTenant.get(app.tenantId) ??
             tenantNames.get(app.tenantId) ??
-            shortId(app.tenantId)
+            shortId(app.tenantId))
           : "Unknown",
         phase: humanize(phase),
         phaseTone: toneForStatus(phase),
-        projectLabel: app.projectId ? projectNames.get(app.projectId) ?? shortId(app.projectId) : "Unassigned",
+        projectLabel: app.projectId
+          ? (projectNames.get(app.projectId) ?? shortId(app.projectId))
+          : "Unassigned",
         resourceUsage: buildAdminAppResourceUsage(app, appImageUsage),
         routeHref: route.href,
         routeLabel: route.label,
         serverLabel: runtimeId
-          ? serverNamesByRuntime.get(runtimeId) ?? shortId(runtimeId)
+          ? (serverNamesByRuntime.get(runtimeId) ?? shortId(runtimeId))
           : "Unassigned",
         sourceHref: readFugueSourceHref(app.source),
         sourceLabel: readFugueSourceLabel(app.source),
@@ -893,7 +979,9 @@ function buildUserViews(
       ? tenantServiceUsageByTenant.get(workspace.tenantId)
       : undefined;
     const serviceCount =
-      enrichment.loaded && tenantServiceUsage ? tenantServiceUsage.serviceCount : 0;
+      enrichment.loaded && tenantServiceUsage
+        ? tenantServiceUsage.serviceCount
+        : 0;
     const hasWorkspace = Boolean(workspace?.tenantId);
 
     return {
@@ -926,14 +1014,19 @@ function buildUserViews(
   });
 }
 
-function formatCountLabel(count: number, singular: string, plural = `${singular}s`) {
+function formatCountLabel(
+  count: number,
+  singular: string,
+  plural = `${singular}s`,
+) {
   return `${count} ${count === 1 ? singular : plural}`;
 }
 
 function hasFreshAdminUsersEnrichmentData() {
   return (
     cachedAdminUsersEnrichmentData !== null &&
-    Date.now() - cachedAdminUsersEnrichmentAt < ADMIN_USERS_ENRICHMENT_CACHE_TTL_MS
+    Date.now() - cachedAdminUsersEnrichmentAt <
+      ADMIN_USERS_ENRICHMENT_CACHE_TTL_MS
   );
 }
 
@@ -951,8 +1044,12 @@ function buildAdminUsersSummary(
 ): AdminUsersPageData["summary"] {
   return {
     adminCount: users.filter((user) => user.isAdmin).length,
-    blockedCount: users.filter((user) => user.status.trim().toLowerCase() === "blocked").length,
-    deletedCount: users.filter((user) => user.status.trim().toLowerCase() === "deleted").length,
+    blockedCount: users.filter(
+      (user) => user.status.trim().toLowerCase() === "blocked",
+    ).length,
+    deletedCount: users.filter(
+      (user) => user.status.trim().toLowerCase() === "deleted",
+    ).length,
     userCount: users.length,
   };
 }
@@ -963,11 +1060,7 @@ function buildAdminUsersPageData(
   errors: string[],
   enrichmentState: AdminUsersPageData["enrichmentState"],
 ): AdminUsersPageData {
-  const users = buildUserViews(
-    base.users,
-    base.workspaces,
-    enrichment,
-  );
+  const users = buildUserViews(base.users, base.workspaces, enrichment);
 
   return {
     enrichmentState,
@@ -987,9 +1080,12 @@ async function loadAdminUsersBaseData(options?: {
   ]);
 
   const users = usersResult.status === "fulfilled" ? usersResult.value : [];
-  const workspaces = workspacesResult.status === "fulfilled" ? workspacesResult.value : [];
+  const workspaces =
+    workspacesResult.status === "fulfilled" ? workspacesResult.value : [];
   const errors = [
-    usersResult.status === "rejected" ? `users: ${readErrorMessage(usersResult.reason)}` : null,
+    usersResult.status === "rejected"
+      ? `users: ${readErrorMessage(usersResult.reason)}`
+      : null,
     workspacesResult.status === "rejected"
       ? `workspaces: ${readErrorMessage(workspacesResult.reason)}`
       : null,
@@ -1126,7 +1222,9 @@ function buildAdminUserBillingView(
       committedStorageGibibytes: null,
       cpuMillicores: null,
       limitLabel: "Billing unavailable",
-      loadError: billingLookup?.error ?? "Fugue billing is unavailable for this workspace.",
+      loadError:
+        billingLookup?.error ??
+        "Fugue billing is unavailable for this workspace.",
       loading: false,
       memoryMebibytes: null,
       monthlyEstimateLabel: null,
@@ -1191,7 +1289,12 @@ function formatPercentLabel(value?: number | null) {
 }
 
 function formatBytesLabel(value?: number | null) {
-  if (value === null || value === undefined || !Number.isFinite(value) || value < 0) {
+  if (
+    value === null ||
+    value === undefined ||
+    !Number.isFinite(value) ||
+    value < 0
+  ) {
     return "No stats";
   }
 
@@ -1214,7 +1317,12 @@ function formatBytesLabel(value?: number | null) {
 }
 
 function formatCPUCapacityLabel(value?: number | null) {
-  if (value === null || value === undefined || !Number.isFinite(value) || value < 0) {
+  if (
+    value === null ||
+    value === undefined ||
+    !Number.isFinite(value) ||
+    value < 0
+  ) {
     return "No stats";
   }
 
@@ -1263,7 +1371,11 @@ function formatAdminImageUsageLabel(
     return "No stats";
   }
 
-  if (!imageUsage || imageUsage.versionCount <= 0 || imageUsage.totalSizeBytes <= 0) {
+  if (
+    !imageUsage ||
+    imageUsage.versionCount <= 0 ||
+    imageUsage.totalSizeBytes <= 0
+  ) {
     return "No images";
   }
 
@@ -1412,8 +1524,14 @@ function buildAdminUserServiceUsageView(
   };
 }
 
-function buildResourceTitle(label: string, primaryLabel: string, secondaryLabel?: string | null) {
-  return secondaryLabel ? `${label} / ${primaryLabel} / ${secondaryLabel}` : `${label} / ${primaryLabel}`;
+function buildResourceTitle(
+  label: string,
+  primaryLabel: string,
+  secondaryLabel?: string | null,
+) {
+  return secondaryLabel
+    ? `${label} / ${primaryLabel} / ${secondaryLabel}`
+    : `${label} / ${primaryLabel}`;
 }
 
 function buildAdminAppResourceUsage(
@@ -1433,13 +1551,20 @@ function buildAdminAppResourceUsage(
     imageUsage,
     appImageUsage.loaded,
   );
-  const hasCpuUsage = usage?.cpuMillicores !== null && usage?.cpuMillicores !== undefined;
-  const hasMemoryUsage = usage?.memoryBytes !== null && usage?.memoryBytes !== undefined;
+  const hasCpuUsage =
+    usage?.cpuMillicores !== null && usage?.cpuMillicores !== undefined;
+  const hasMemoryUsage =
+    usage?.memoryBytes !== null && usage?.memoryBytes !== undefined;
   const hasDiskUsage =
-    usage?.ephemeralStorageBytes !== null && usage?.ephemeralStorageBytes !== undefined;
+    usage?.ephemeralStorageBytes !== null &&
+    usage?.ephemeralStorageBytes !== undefined;
   const hasImageUsage =
     appImageUsage.loaded &&
-    Boolean(imageUsage && imageUsage.versionCount > 0 && imageUsage.totalSizeBytes > 0);
+    Boolean(
+      imageUsage &&
+      imageUsage.versionCount > 0 &&
+      imageUsage.totalSizeBytes > 0,
+    );
 
   return [
     {
@@ -1448,7 +1573,11 @@ function buildAdminAppResourceUsage(
       meterValue: null,
       primaryLabel: cpuPrimaryLabel,
       secondaryLabel: null,
-      title: buildResourceTitle("CPU", cpuPrimaryLabel, hasCpuUsage ? "Current live sample" : null),
+      title: buildResourceTitle(
+        "CPU",
+        cpuPrimaryLabel,
+        hasCpuUsage ? "Current live sample" : null,
+      ),
       tone: hasCpuUsage ? "info" : "neutral",
     },
     {
@@ -1487,7 +1616,7 @@ function buildAdminAppResourceUsage(
         "Images",
         imagePrimaryLabel,
         appImageUsage.loaded
-          ? imageSecondaryLabel ?? "Stored app images"
+          ? (imageSecondaryLabel ?? "Stored app images")
           : null,
       ),
       tone: hasImageUsage ? "info" : "neutral",
@@ -1510,7 +1639,10 @@ function toneWeight(tone: ConsoleTone) {
   }
 }
 
-function readResourceTone(percent?: number | null, dangerSignal = false): ConsoleTone {
+function readResourceTone(
+  percent?: number | null,
+  dangerSignal = false,
+): ConsoleTone {
   if (dangerSignal) {
     return "danger";
   }
@@ -1534,7 +1666,10 @@ function readResourceTone(percent?: number | null, dangerSignal = false): Consol
   return "positive";
 }
 
-function readResourceStatusLabel(percent?: number | null, dangerSignal = false) {
+function readResourceStatusLabel(
+  percent?: number | null,
+  dangerSignal = false,
+) {
   if (dangerSignal) {
     return "Pressure";
   }
@@ -1558,7 +1693,10 @@ function readResourceStatusLabel(percent?: number | null, dangerSignal = false) 
   return "Headroom";
 }
 
-function readConditionTone(conditionID: string, status?: string | null): ConsoleTone {
+function readConditionTone(
+  conditionID: string,
+  status?: string | null,
+): ConsoleTone {
   const normalized = status?.trim().toLowerCase() ?? "";
 
   if (conditionID === CLUSTER_READY_CONDITION) {
@@ -1614,13 +1752,17 @@ function isConditionActive(status?: string | null) {
   return status?.trim().toLowerCase() === "true";
 }
 
-function buildCPUResourceView(stats: FugueClusterNodeCPUStats | null): AdminClusterResourceView {
+function buildCPUResourceView(
+  stats: FugueClusterNodeCPUStats | null,
+): AdminClusterResourceView {
   const percent = stats?.usagePercent ?? null;
-  const total = stats?.allocatableMilliCores ?? stats?.capacityMilliCores ?? null;
+  const total =
+    stats?.allocatableMilliCores ?? stats?.capacityMilliCores ?? null;
 
   return {
     detailLabel:
-      stats?.capacityMilliCores !== null && stats?.capacityMilliCores !== undefined
+      stats?.capacityMilliCores !== null &&
+      stats?.capacityMilliCores !== undefined
         ? `${formatCPUCapacityLabel(stats.capacityMilliCores)} capacity`
         : "Capacity unknown",
     id: "cpu",
@@ -1689,7 +1831,9 @@ function buildStorageResourceView(
   };
 }
 
-function buildClusterConditionViews(node: FugueClusterNode): AdminClusterConditionView[] {
+function buildClusterConditionViews(
+  node: FugueClusterNode,
+): AdminClusterConditionView[] {
   const definitions = [
     { id: CLUSTER_READY_CONDITION, label: "Ready" },
     { id: CLUSTER_MEMORY_PRESSURE_CONDITION, label: "Memory" },
@@ -1704,7 +1848,10 @@ function buildClusterConditionViews(node: FugueClusterNode): AdminClusterConditi
 
     return {
       detailLabel:
-        detail || (transitionedAt ? `Updated ${formatRelativeTime(transitionedAt)}` : "No signal reported"),
+        detail ||
+        (transitionedAt
+          ? `Updated ${formatRelativeTime(transitionedAt)}`
+          : "No signal reported"),
       id: definition.id,
       label: definition.label,
       lastTransitionExact: formatExactTime(transitionedAt),
@@ -1727,13 +1874,114 @@ function joinConditionLabels(labels: string[]) {
   return `${labels.slice(0, -1).join(", ")}, and ${labels[labels.length - 1]}`;
 }
 
+function readClusterNodeMachineScopeLabel(value?: string | null) {
+  switch (value?.trim().toLowerCase()) {
+    case "platform-node":
+      return "Platform node";
+    case "tenant-runtime":
+      return "Tenant runtime";
+    default:
+      return "Unmanaged";
+  }
+}
+
+function readClusterNodeConnectionModeLabel(value?: string | null) {
+  switch (value?.trim().toLowerCase()) {
+    case "cluster":
+      return "Cluster join";
+    case "agent":
+      return "Agent";
+    default:
+      return "Unknown";
+  }
+}
+
+function readClusterNodeControlPlaneRoleLabel(value?: string | null) {
+  switch (value?.trim().toLowerCase()) {
+    case "member":
+      return "Member";
+    case "candidate":
+      return "Candidate";
+    case "none":
+      return "Off";
+    default:
+      return "Unknown";
+  }
+}
+
+function readClusterNodeBuildTierLabel(value?: string | null) {
+  switch (value?.trim().toLowerCase()) {
+    case "small":
+      return "Small";
+    case "medium":
+      return "Medium";
+    case "large":
+      return "Large";
+    default:
+      return "Unassigned";
+  }
+}
+
+function buildAdminClusterNodeMachineView(
+  node: FugueClusterNode,
+): AdminClusterNodeMachineView | null {
+  if (!node.machine) {
+    return null;
+  }
+
+  return {
+    connectionMode: node.machine.connectionMode,
+    connectionModeLabel: readClusterNodeConnectionModeLabel(
+      node.machine.connectionMode,
+    ),
+    id: node.machine.id?.trim() || null,
+    nodeKeyId: node.machine.nodeKeyId?.trim() || null,
+    nodeKeyLabel: node.machine.nodeKeyId
+      ? shortId(node.machine.nodeKeyId)
+      : "Unassigned",
+    scope: node.machine.scope,
+    scopeLabel: readClusterNodeMachineScopeLabel(node.machine.scope),
+    status: node.machine.status,
+    statusLabel: humanize(node.machine.status) || "Unknown",
+  };
+}
+
+function buildAdminClusterNodePolicyView(
+  node: FugueClusterNode,
+): AdminClusterNodePolicyView | null {
+  if (!node.policy) {
+    return null;
+  }
+
+  return {
+    allowBuilds: node.policy.allowBuilds ?? false,
+    allowSharedPool: node.policy.allowSharedPool ?? false,
+    buildTier: node.policy.buildTier,
+    buildTierLabel: readClusterNodeBuildTierLabel(node.policy.buildTier),
+    desiredControlPlaneRole: node.policy.desiredControlPlaneRole,
+    desiredControlPlaneRoleLabel: readClusterNodeControlPlaneRoleLabel(
+      node.policy.desiredControlPlaneRole,
+    ),
+    effectiveBuilds: node.policy.effectiveBuilds ?? false,
+    effectiveBuildTier: node.policy.effectiveBuildTier,
+    effectiveBuildTierLabel: readClusterNodeBuildTierLabel(
+      node.policy.effectiveBuildTier,
+    ),
+    effectiveControlPlaneRole: node.policy.effectiveControlPlaneRole,
+    effectiveControlPlaneRoleLabel: readClusterNodeControlPlaneRoleLabel(
+      node.policy.effectiveControlPlaneRole,
+    ),
+    effectiveSharedPool: node.policy.effectiveSharedPool ?? false,
+  };
+}
+
 function buildClusterWorkloadViews(
   workloads: FugueClusterNodeWorkload[],
   tenantNames: Map<string, string>,
 ) {
   return workloads.map((workload) => {
     const tenantLabel = workload.tenantId
-      ? tenantNames.get(workload.tenantId) ?? shortId(workload.tenantId)
+      ? (tenantNames.get(workload.tenantId) ?? shortId(workload.tenantId))
       : "Shared";
     const podCount = workload.podCount || workload.pods.length;
     const kindLabel =
@@ -1768,6 +2016,100 @@ function buildClusterWorkloadViews(
   });
 }
 
+function buildClusterNodeViewItem(
+  node: FugueClusterNode,
+  tenantNames: Map<string, string>,
+) {
+  const conditionViews = buildClusterConditionViews(node);
+  const memoryPressure = isConditionActive(
+    node.conditions[CLUSTER_MEMORY_PRESSURE_CONDITION]?.status,
+  );
+  const diskPressure = isConditionActive(
+    node.conditions[CLUSTER_DISK_PRESSURE_CONDITION]?.status,
+  );
+  const pressureSignals = conditionViews.filter(
+    (condition) =>
+      condition.id !== CLUSTER_READY_CONDITION &&
+      condition.statusLabel === "Pressure",
+  );
+  const workloadCount = node.workloads.length;
+  const appCount = node.workloads.filter(
+    (workload) => workload.kind === "app",
+  ).length;
+  const serviceCount = node.workloads.filter(
+    (workload) => workload.kind === "backing_service",
+  ).length;
+  const statusLabel =
+    node.status?.trim().toLowerCase() === "not-ready"
+      ? "Not ready"
+      : pressureSignals.length
+        ? "Pressure"
+        : node.status?.trim().toLowerCase() === "ready"
+          ? "Ready"
+          : humanize(node.status);
+  const statusTone =
+    node.status?.trim().toLowerCase() === "not-ready"
+      ? "danger"
+      : pressureSignals.length
+        ? "warning"
+        : node.status?.trim().toLowerCase() === "ready"
+          ? "positive"
+          : toneForStatus(node.status);
+  const location = readCountryLocation(node.region, node.zone);
+  const locationLabel = location.locationLabel;
+  const statusFragments = [
+    locationLabel !== "Unassigned" ? locationLabel : null,
+    pressureSignals.length
+      ? `${pressureSignals.map((condition) => condition.label.toLowerCase()).join(" + ")} signal${
+          pressureSignals.length === 1 ? "" : "s"
+        }`
+      : null,
+    formatCountLabel(workloadCount, "workload"),
+  ].filter((value): value is string => Boolean(value));
+
+  return {
+    appCount,
+    canManagePolicy: Boolean(node.machine),
+    conditions: conditionViews,
+    createdExact: formatExactTime(node.createdAt),
+    createdLabel: formatRelativeTime(node.createdAt),
+    headerMeta: statusFragments.join(" · "),
+    internalIpLabel: node.internalIp?.trim() || "Unavailable",
+    locationCountryCode: location.locationCountryCode,
+    locationLabel,
+    machine: buildAdminClusterNodeMachineView(node),
+    name: node.name,
+    policy: buildAdminClusterNodePolicyView(node),
+    publicIpLabel: node.publicIp?.trim() || "Unavailable",
+    roleLabels: node.roles.length ? node.roles : [],
+    resources: [
+      buildCPUResourceView(node.cpu),
+      buildMemoryResourceView(node.memory, memoryPressure),
+      buildStorageResourceView(node.ephemeralStorage, diskPressure),
+    ],
+    runtimeLabel: node.runtimeId ? shortId(node.runtimeId) : "Unassigned",
+    serviceCount,
+    statusDetail:
+      pressureSignals.length > 0
+        ? `${joinConditionLabels(
+            pressureSignals.map((condition) => condition.label.toLowerCase()),
+          )} pressure reported.`
+        : node.status?.trim().toLowerCase() === "ready"
+          ? null
+          : "Waiting for complete node health telemetry.",
+    statusLabel,
+    statusTone,
+    tenantLabel: node.tenantId
+      ? (tenantNames.get(node.tenantId) ?? shortId(node.tenantId))
+      : node.runtimeId
+        ? "Shared"
+        : "Unassigned",
+    workloadCount,
+    workloads: buildClusterWorkloadViews(node.workloads, tenantNames),
+    zoneLabel: node.zone?.trim() || "Unassigned",
+  } satisfies AdminClusterNodeView;
+}
+
 function buildClusterNodeViews(
   nodes: FugueClusterNode[],
   tenants: FugueTenant[],
@@ -1776,87 +2118,9 @@ function buildClusterNodeViews(
     tenants.map((tenant) => [tenant.id, tenant.name] as const),
   );
 
-  const views = nodes.map((node) => {
-    const conditionViews = buildClusterConditionViews(node);
-    const memoryPressure = isConditionActive(node.conditions[CLUSTER_MEMORY_PRESSURE_CONDITION]?.status);
-    const diskPressure = isConditionActive(node.conditions[CLUSTER_DISK_PRESSURE_CONDITION]?.status);
-    const pressureSignals = conditionViews.filter(
-      (condition) =>
-        condition.id !== CLUSTER_READY_CONDITION &&
-        condition.statusLabel === "Pressure",
-    );
-    const workloadCount = node.workloads.length;
-    const appCount = node.workloads.filter((workload) => workload.kind === "app").length;
-    const serviceCount = node.workloads.filter(
-      (workload) => workload.kind === "backing_service",
-    ).length;
-    const statusLabel =
-      node.status?.trim().toLowerCase() === "not-ready"
-        ? "Not ready"
-        : pressureSignals.length
-          ? "Pressure"
-          : node.status?.trim().toLowerCase() === "ready"
-            ? "Ready"
-            : humanize(node.status);
-    const statusTone =
-      node.status?.trim().toLowerCase() === "not-ready"
-        ? "danger"
-        : pressureSignals.length
-          ? "warning"
-          : node.status?.trim().toLowerCase() === "ready"
-            ? "positive"
-            : toneForStatus(node.status);
-    const location = readCountryLocation(node.region, node.zone);
-    const locationLabel = location.locationLabel;
-    const statusFragments = [
-      locationLabel !== "Unassigned" ? locationLabel : null,
-      pressureSignals.length
-        ? `${pressureSignals.map((condition) => condition.label.toLowerCase()).join(" + ")} signal${
-            pressureSignals.length === 1 ? "" : "s"
-          }`
-        : null,
-      formatCountLabel(workloadCount, "workload"),
-    ].filter((value): value is string => Boolean(value));
-
-    return {
-      appCount,
-      conditions: conditionViews,
-      createdExact: formatExactTime(node.createdAt),
-      createdLabel: formatRelativeTime(node.createdAt),
-      headerMeta: statusFragments.join(" · "),
-      internalIpLabel: node.internalIp?.trim() || "Unavailable",
-      locationCountryCode: location.locationCountryCode,
-      locationLabel,
-      name: node.name,
-      publicIpLabel: node.publicIp?.trim() || "Unavailable",
-      roleLabels: node.roles.length ? node.roles : [],
-      resources: [
-        buildCPUResourceView(node.cpu),
-        buildMemoryResourceView(node.memory, memoryPressure),
-        buildStorageResourceView(node.ephemeralStorage, diskPressure),
-      ],
-      runtimeLabel: node.runtimeId ? shortId(node.runtimeId) : "Unassigned",
-      serviceCount,
-      statusDetail:
-        pressureSignals.length > 0
-          ? `${joinConditionLabels(
-              pressureSignals.map((condition) => condition.label.toLowerCase()),
-            )} pressure reported.`
-          : node.status?.trim().toLowerCase() === "ready"
-            ? null
-            : "Waiting for complete node health telemetry.",
-      statusLabel,
-      statusTone,
-      tenantLabel: node.tenantId
-        ? tenantNames.get(node.tenantId) ?? shortId(node.tenantId)
-        : node.runtimeId
-          ? "Shared"
-          : "Unassigned",
-      workloadCount,
-      workloads: buildClusterWorkloadViews(node.workloads, tenantNames),
-      zoneLabel: node.zone?.trim() || "Unassigned",
-    } satisfies AdminClusterNodeView;
-  });
+  const views = nodes.map((node) =>
+    buildClusterNodeViewItem(node, tenantNames),
+  );
 
   return views.sort((left, right) => {
     const leftTone = Math.max(
@@ -1937,10 +2201,13 @@ export async function getAdminAppsPageData(): Promise<AdminAppsPageData> {
       : null,
   ].filter((value): value is string => Boolean(value));
 
-  const tenants = tenantsResult.status === "fulfilled" ? tenantsResult.value : [];
+  const tenants =
+    tenantsResult.status === "fulfilled" ? tenantsResult.value : [];
   const apps = appsResult.status === "fulfilled" ? appsResult.value : [];
-  const workspaces = workspacesResult.status === "fulfilled" ? workspacesResult.value : [];
-  const runtimes = runtimesResult.status === "fulfilled" ? runtimesResult.value : [];
+  const workspaces =
+    workspacesResult.status === "fulfilled" ? workspacesResult.value : [];
+  const runtimes =
+    runtimesResult.status === "fulfilled" ? runtimesResult.value : [];
   const appImageUsage = createAdminAppImageUsageLookup(null);
   const projectDataResult =
     tenantsResult.status === "fulfilled"
@@ -1961,10 +2228,19 @@ export async function getAdminAppsPageData(): Promise<AdminAppsPageData> {
       : { errors: [], projects: [] };
   const projects = projectData.projects;
   errors.push(...projectData.errors);
-  const views = mapAdminApps(apps, projects, workspaces, tenants, appImageUsage, runtimes);
+  const views = mapAdminApps(
+    apps,
+    projects,
+    workspaces,
+    tenants,
+    appImageUsage,
+    runtimes,
+  );
   const latestUpdateAt = apps.reduce<string | null>((latest, app) => {
     const candidate = app.status.updatedAt ?? app.updatedAt ?? app.createdAt;
-    return parseTimestamp(candidate) > parseTimestamp(latest) ? candidate : latest;
+    return parseTimestamp(candidate) > parseTimestamp(latest)
+      ? candidate
+      : latest;
   }, null);
 
   return {
@@ -1973,8 +2249,10 @@ export async function getAdminAppsPageData(): Promise<AdminAppsPageData> {
     summary: {
       appCount: views.length,
       latestUpdateLabel: formatRelativeTime(latestUpdateAt),
-      routedCount: views.filter((app) => app.routeLabel !== "Unassigned").length,
-      tenantCount: new Set(apps.map((app) => app.tenantId).filter(Boolean)).size,
+      routedCount: views.filter((app) => app.routeLabel !== "Unassigned")
+        .length,
+      tenantCount: new Set(apps.map((app) => app.tenantId).filter(Boolean))
+        .size,
     },
   };
 }
@@ -2065,11 +2343,13 @@ async function getAdminUserBillingLookup(
   bootstrapKey: string,
   workspaces: WorkspaceSnapshot[],
 ) {
-  const uniqueWorkspaces = [...new Map(
-    workspaces
-      .filter((workspace) => workspace.tenantId)
-      .map((workspace) => [workspace.tenantId, workspace] as const),
-  ).values()];
+  const uniqueWorkspaces = [
+    ...new Map(
+      workspaces
+        .filter((workspace) => workspace.tenantId)
+        .map((workspace) => [workspace.tenantId, workspace] as const),
+    ).values(),
+  ];
 
   if (!uniqueWorkspaces.length) {
     return {
@@ -2109,7 +2389,9 @@ async function getAdminUserBillingLookup(
       billing: null,
       error: message,
     });
-    errors.push(`billing (${workspace.tenantName || workspace.tenantId}): ${message}`);
+    errors.push(
+      `billing (${workspace.tenantName || workspace.tenantId}): ${message}`,
+    );
   }
 
   return {
@@ -2157,12 +2439,15 @@ async function loadAdminUsersEnrichmentLookup(
   }
 
   const userEmails = new Set(users.map((user) => user.email));
-  const billingWorkspaces = workspaces.filter((workspace) => userEmails.has(workspace.email));
-  const [appsResult, billingResult, imageUsageResult] = await Promise.allSettled([
-    getCachedAdminAppsWithResourceUsage(bootstrapKey),
-    getAdminUserBillingLookup(bootstrapKey, billingWorkspaces),
-    getCachedAdminAppImageUsage(bootstrapKey),
-  ]);
+  const billingWorkspaces = workspaces.filter((workspace) =>
+    userEmails.has(workspace.email),
+  );
+  const [appsResult, billingResult, imageUsageResult] =
+    await Promise.allSettled([
+      getCachedAdminAppsWithResourceUsage(bootstrapKey),
+      getAdminUserBillingLookup(bootstrapKey, billingWorkspaces),
+      getCachedAdminAppImageUsage(bootstrapKey),
+    ]);
 
   let apps: FugueApp[] = [];
   let billingByTenant = new Map<string, AdminTenantBillingLookup>();
@@ -2210,7 +2495,10 @@ export async function getAdminUsersPageEnrichmentData(): Promise<AdminUsersPageD
     const base = await loadAdminUsersBaseData({
       includeWorkspaces: true,
     });
-    const enrichment = await loadAdminUsersEnrichmentLookup(base.users, base.workspaces);
+    const enrichment = await loadAdminUsersEnrichmentLookup(
+      base.users,
+      base.workspaces,
+    );
     const data = buildAdminUsersPageData(
       base,
       enrichment.lookup,
@@ -2431,12 +2719,11 @@ export async function getAdminClusterPageData(): Promise<AdminClusterPageData> {
       : null,
   ].filter((value): value is string => Boolean(value));
 
-  const tenants = tenantsResult.status === "fulfilled" ? tenantsResult.value : [];
+  const tenants =
+    tenantsResult.status === "fulfilled" ? tenantsResult.value : [];
   const nodes = nodesResult.status === "fulfilled" ? nodesResult.value : [];
   const controlPlane =
-    controlPlaneResult.status === "fulfilled"
-      ? controlPlaneResult.value
-      : null;
+    controlPlaneResult.status === "fulfilled" ? controlPlaneResult.value : null;
   const views = buildClusterNodeViews(nodes, tenants);
 
   return {
@@ -2451,11 +2738,68 @@ export async function getAdminClusterPageData(): Promise<AdminClusterPageData> {
           node.statusTone === "danger" ||
           node.resources.some(
             (resource) =>
-              resource.statusTone === "warning" || resource.statusTone === "danger",
+              resource.statusTone === "warning" ||
+              resource.statusTone === "danger",
           ),
       ).length,
       readyCount: views.filter((node) => node.statusLabel === "Ready").length,
-      workloadCount: views.reduce((total, node) => total + node.workloadCount, 0),
+      workloadCount: views.reduce(
+        (total, node) => total + node.workloadCount,
+        0,
+      ),
     },
   };
+}
+
+export async function setAdminClusterNodePolicy(
+  nodeName: string,
+  payload: {
+    allowBuilds?: boolean;
+    allowSharedPool?: boolean;
+    buildTier?: string;
+    desiredControlPlaneRole?: string;
+  },
+) {
+  const bootstrapKey = getFugueEnv().bootstrapKey;
+  const result = await setFugueClusterNodePolicy(
+    bootstrapKey,
+    nodeName,
+    payload,
+  );
+  const tenants = await getFugueTenants(bootstrapKey).catch(
+    () => [] as FugueTenant[],
+  );
+  const node = result.clusterNode
+    ? (buildClusterNodeViews([result.clusterNode], tenants)[0] ?? null)
+    : null;
+
+  return {
+    node,
+    nodeReconciled: result.nodeReconciled,
+    reconcileError: result.reconcileError,
+  };
+}
+
+export async function createAdminPlatformNodeEnrollment(payload?: {
+  label?: string;
+}) {
+  const env = getFugueEnv();
+  const created = await createFugueNodeKey(env.bootstrapKey, {
+    label: normalizeNodeKeyLabel(payload?.label),
+    scope: "platform-node",
+  });
+
+  return {
+    joinCommand: buildPlatformJoinCommand(
+      env.apiUrl.replace(/\/+$/, ""),
+      created.secret,
+    ),
+    nodeKey: {
+      createdAt: created.nodeKey.createdAt,
+      id: created.nodeKey.id,
+      label: created.nodeKey.label,
+      scope: created.nodeKey.scope,
+      status: created.nodeKey.status,
+    },
+  } satisfies AdminPlatformNodeEnrollmentResult;
 }
