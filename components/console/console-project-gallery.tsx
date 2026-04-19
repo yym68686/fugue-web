@@ -7674,6 +7674,17 @@ function ConsoleProjectWorkbenchImpl({
   const selectedServiceUrl = readServicePublicUrl(selectedService);
   const selectedServiceLocationLabel =
     selectedService.locationLabel ?? t("Unavailable");
+  const selectedServiceSourceType =
+    selectedService.kind === "app"
+      ? selectedService.sourceType?.trim().toLowerCase() ?? ""
+      : "";
+  const selectedServiceImportTimestampLabel =
+    selectedService.kind === "app" && selectedServiceSourceType === "upload"
+      ? t("Uploaded")
+      : selectedService.kind === "app" &&
+          selectedServiceSourceType === "docker-image"
+        ? t("Imported")
+        : null;
   const envSectionHint = readEnvironmentSectionHint(
     envFormat,
     selectedService.name,
@@ -7815,15 +7826,28 @@ function ConsoleProjectWorkbenchImpl({
                       <dt>{t("Release")}</dt>
                       <dd>{readAppServiceRoleLabel(selectedService, t)}</dd>
                     </div>
-                    <div>
-                      <dt>{t("Commit")}</dt>
-                      <dd>
-                        {renderCommitText(
-                          selectedService,
-                          selectedAppPendingCommitHint,
-                        )}
-                      </dd>
-                    </div>
+                    {isGitHubSourceType(selectedServiceSourceType) ? (
+                      <div>
+                        <dt>{t("Commit")}</dt>
+                        <dd>
+                          {renderCommitText(
+                            selectedService,
+                            selectedAppPendingCommitHint,
+                          )}
+                        </dd>
+                      </div>
+                    ) : selectedServiceImportTimestampLabel ? (
+                      <div>
+                        <dt>{selectedServiceImportTimestampLabel}</dt>
+                        <dd>
+                          {selectedService.createdAt ? (
+                            <LocalDateTimeNote value={selectedService.createdAt} />
+                          ) : (
+                            <span>—</span>
+                          )}
+                        </dd>
+                      </div>
+                    ) : null}
                     <div>
                       <dt>{t("Build")}</dt>
                       <dd>{selectedService.sourceMeta}</dd>

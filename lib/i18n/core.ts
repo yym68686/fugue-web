@@ -681,6 +681,14 @@ const zhCNExtraMessages = {
   "Changes apply immediately.": "更改会立即生效。",
   "Change the managed billing envelope and top up tenant balance.":
     "调整托管计费额度并为租户余额充值。",
+  "Activity": "活动",
+  "Based on the saved managed envelope.": "基于已保存的托管额度。",
+  "Billing & capacity": "计费与容量",
+  "Billing activity details": "计费活动详情",
+  "Billing health details": "计费状态详情",
+  "Billing needs a workspace": "计费需要工作区",
+  "Billing snapshot unavailable": "计费快照不可用",
+  "Capacity cap details": "容量上限详情",
   "Cluster join command copied with {label}.":
     "已使用 {label} 复制集群加入命令。",
   "Cluster join command is ready, but clipboard access failed.":
@@ -690,6 +698,8 @@ const zhCNExtraMessages = {
   "Copyable": "可复制",
   "Copy a join command for a VPS, or copy the raw secret if you need it.":
     "可复制用于 VPS 的加入命令；如果需要，也可以复制原始密钥。",
+  "Create the workspace admin access first so Fugue can read and update tenant billing.":
+    "请先创建工作区管理员访问，以便 Fugue 读取并更新租户计费。",
   "Create app metadata and desired specs.":
     "创建应用元数据和期望规格。",
   "Create node key": "创建节点密钥",
@@ -706,7 +716,14 @@ const zhCNExtraMessages = {
   "Credential revocation": "凭证吊销",
   "Credential rotation": "凭证轮换",
   "Current key": "当前密钥",
+  "Current CPU": "当前 CPU",
+  "Current memory": "当前内存",
+  "Current rate": "当前费率",
+  "Current storage": "当前存储",
+  "Current workspace": "当前工作区",
   "Custom scope.": "自定义权限。",
+  "Credits and capacity stay aligned": "额度与容量保持同步",
+  "Credits details": "额度详情",
   "Delete access key?": "删除访问密钥？",
   "Delete apps without broad write access.":
     "在不授予广泛写权限的情况下删除应用。",
@@ -716,9 +733,13 @@ const zhCNExtraMessages = {
   "Deploy, rebuild, and restart apps.": "部署、重建并重启应用。",
   "Existing runtimes stay attached, but this secret can no longer enroll new nodes.":
     "现有运行时会继续保持挂接，但这个密钥不能再接入新的节点。",
+  "Fugue could not load the billing snapshot right now.":
+    "Fugue 当前无法加载计费快照。",
   "Identifier": "标识符",
+  "Includes {storage} of retained images": "包含 {storage} 的保留镜像存储",
   "Keep at least one permission enabled.":
     "请至少保留一个已启用权限。",
+  "Keep the workspace funded": "保持工作区额度充足",
   "Key disabled.": "密钥已禁用。",
   "Key deleted.": "密钥已删除。",
   "Key restored.": "密钥已恢复。",
@@ -748,11 +769,16 @@ const zhCNExtraMessages = {
   "Node key revoked and removed from the list.":
     "节点密钥已吊销并已从列表中移除。",
   "Node keys": "节点密钥",
+  "Open access setup": "打开访问设置",
   "Permissions": "权限",
   "Permissions updated.": "权限已更新。",
+  "Preview based on unsaved capacity changes.":
+    "基于未保存的容量变更预估。",
   "Prefix": "前缀",
   "Primary VPS key…": "主 VPS 密钥…",
   "Refresh keys": "刷新密钥",
+  "Ready to cover the saved managed envelope.":
+    "可用于覆盖已保存的托管额度。",
   "Rename": "重命名",
   "Rename node key": "重命名节点密钥",
   "Replace": "替换",
@@ -761,6 +787,10 @@ const zhCNExtraMessages = {
   "Replace access key?": "替换访问密钥？",
   "Replace key": "替换密钥",
   "Replacing…": "正在替换…",
+  "Saved cap": "已保存额度",
+  "Saved cap {cap}": "已保存额度 {cap}",
+  "Secure checkout": "安全结账",
+  "Set the managed capacity cap": "设置托管容量上限",
   "Restore": "恢复",
   "Restore the workspace to continue.":
     "请先恢复工作区再继续。",
@@ -789,9 +819,14 @@ const zhCNExtraMessages = {
     "这会立即在 Fugue 中吊销该密钥。",
   "Trigger failover onto a secondary runtime.":
     "触发切换到备用运行时的故障转移。",
+  "Whole USD only · {min} to {max}":
+    "仅支持整数美元 · {min} 到 {max}",
   "Update the display name used in this workspace. The key ID, secret, prefix, and attached VPS stay the same.":
     "更新此工作区中显示的名称。密钥 ID、密钥内容、前缀和已挂接的 VPS 都不会变化。",
   "VPS": "VPS",
+  "{count} recent events": "{count} 条最近事件",
+  "{count} recent events · {updated}": "{count} 条最近事件 · {updated}",
+  "{label} details": "{label} 详情",
   "Access & deployment": "访问与部署",
   "Add directories or files that must survive redeploys.":
     "添加在重新部署后仍需保留的目录或文件。",
@@ -2022,6 +2057,14 @@ const zhTWExtraMessages = {
   "Changes apply immediately.": "變更會立即生效。",
   "Change the managed billing envelope and top up tenant balance.":
     "調整託管計費額度並為租戶餘額儲值。",
+  "Activity": "活動",
+  "Based on the saved managed envelope.": "根據已儲存的託管額度。",
+  "Billing & capacity": "帳務與容量",
+  "Billing activity details": "帳務活動詳情",
+  "Billing health details": "帳務狀態詳情",
+  "Billing needs a workspace": "帳務需要工作區",
+  "Billing snapshot unavailable": "帳務快照不可用",
+  "Capacity cap details": "容量上限詳情",
   "Cluster join command copied with {label}.":
     "已使用 {label} 複製叢集加入命令。",
   "Cluster join command is ready, but clipboard access failed.":
@@ -2031,6 +2074,8 @@ const zhTWExtraMessages = {
   "Copyable": "可複製",
   "Copy a join command for a VPS, or copy the raw secret if you need it.":
     "可複製用於 VPS 的加入命令；如果需要，也可以複製原始密鑰。",
+  "Create the workspace admin access first so Fugue can read and update tenant billing.":
+    "請先建立工作區管理員存取，讓 Fugue 可以讀取並更新租戶帳務。",
   "Create app metadata and desired specs.":
     "建立應用中繼資料與目標規格。",
   "Create node key": "建立節點金鑰",
@@ -2047,7 +2092,14 @@ const zhTWExtraMessages = {
   "Credential revocation": "憑證吊銷",
   "Credential rotation": "憑證輪換",
   "Current key": "目前金鑰",
+  "Current CPU": "目前 CPU",
+  "Current memory": "目前記憶體",
+  "Current rate": "目前費率",
+  "Current storage": "目前儲存",
+  "Current workspace": "目前工作區",
   "Custom scope.": "自訂權限。",
+  "Credits and capacity stay aligned": "額度與容量保持同步",
+  "Credits details": "額度詳情",
   "Delete access key?": "刪除存取金鑰？",
   "Delete apps without broad write access.":
     "在不授予廣泛寫入權限的情況下刪除應用。",
@@ -2057,9 +2109,13 @@ const zhTWExtraMessages = {
   "Deploy, rebuild, and restart apps.": "部署、重建並重新啟動應用。",
   "Existing runtimes stay attached, but this secret can no longer enroll new nodes.":
     "現有執行環境會繼續保持掛接，但這個密鑰不能再接入新的節點。",
+  "Fugue could not load the billing snapshot right now.":
+    "Fugue 目前無法載入帳務快照。",
   "Identifier": "識別碼",
+  "Includes {storage} of retained images": "包含 {storage} 的保留映像儲存",
   "Keep at least one permission enabled.":
     "請至少保留一個已啟用的權限。",
+  "Keep the workspace funded": "讓工作區額度保持充足",
   "Key disabled.": "金鑰已停用。",
   "Key deleted.": "金鑰已刪除。",
   "Key restored.": "金鑰已恢復。",
@@ -2089,11 +2145,16 @@ const zhTWExtraMessages = {
   "Node key revoked and removed from the list.":
     "節點金鑰已吊銷並已從清單中移除。",
   "Node keys": "節點金鑰",
+  "Open access setup": "開啟存取設定",
   "Permissions": "權限",
   "Permissions updated.": "權限已更新。",
+  "Preview based on unsaved capacity changes.":
+    "根據尚未儲存的容量變更預估。",
   "Prefix": "前綴",
   "Primary VPS key…": "主 VPS 金鑰…",
   "Refresh keys": "重新整理金鑰",
+  "Ready to cover the saved managed envelope.":
+    "可用於覆蓋已儲存的託管額度。",
   "Rename": "重新命名",
   "Rename node key": "重新命名節點金鑰",
   "Replace": "替換",
@@ -2102,6 +2163,10 @@ const zhTWExtraMessages = {
   "Replace access key?": "替換存取金鑰？",
   "Replace key": "替換金鑰",
   "Replacing…": "替換中…",
+  "Saved cap": "已儲存額度",
+  "Saved cap {cap}": "已儲存額度 {cap}",
+  "Secure checkout": "安全結帳",
+  "Set the managed capacity cap": "設定託管容量上限",
   "Restore": "恢復",
   "Restore the workspace to continue.":
     "請先恢復工作區再繼續。",
@@ -2130,9 +2195,14 @@ const zhTWExtraMessages = {
     "這會立即在 Fugue 中吊銷該密鑰。",
   "Trigger failover onto a secondary runtime.":
     "觸發切換到備援執行環境的故障轉移。",
+  "Whole USD only · {min} to {max}":
+    "僅支援整數美元 · {min} 到 {max}",
   "Update the display name used in this workspace. The key ID, secret, prefix, and attached VPS stay the same.":
     "更新此工作區中顯示的名稱。金鑰 ID、密鑰內容、前綴與已掛接的 VPS 都不會變化。",
   "VPS": "VPS",
+  "{count} recent events": "{count} 則近期事件",
+  "{count} recent events · {updated}": "{count} 則近期事件 · {updated}",
+  "{label} details": "{label} 詳情",
   "Access & deployment": "存取與部署",
   "Add directories or files that must survive redeploys.":
     "新增在重新部署後仍需保留的目錄或檔案。",

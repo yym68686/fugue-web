@@ -10,6 +10,7 @@ import {
 
 import { ConsoleEmptyState } from "@/components/console/console-empty-state";
 import { BillingPanel } from "@/components/console/billing-panel";
+import { useI18n } from "@/components/providers/i18n-provider";
 import {
   ConsoleBillingPageSkeleton,
   ConsoleLoadingState,
@@ -71,6 +72,7 @@ function mergeBillingSnapshots(
 }
 
 export function ConsoleBillingPageShell() {
+  const { t } = useI18n();
   const { data, error, loading } =
     useConsolePageSnapshot<ConsoleBillingPageSnapshot>(
       CONSOLE_BILLING_PAGE_SNAPSHOT_URL,
@@ -164,8 +166,8 @@ export function ConsoleBillingPageShell() {
         <Panel>
           <PanelSection>
             <ConsoleEmptyState
-              description={error ?? "Fugue could not load the billing snapshot right now."}
-              title="Billing snapshot unavailable"
+              description={error ?? t("Fugue could not load the billing snapshot right now.")}
+              title={t("Billing snapshot unavailable")}
             />
           </PanelSection>
         </Panel>
@@ -188,11 +190,13 @@ export function ConsoleBillingPageShell() {
             <ConsoleEmptyState
               action={{
                 href: "/app/api-keys",
-                label: "Open access setup",
+                label: t("Open access setup"),
                 variant: "primary",
               }}
-              description="Create the workspace admin access first so Fugue can read and update tenant billing."
-              title="Billing needs a workspace"
+              description={t(
+                "Create the workspace admin access first so Fugue can read and update tenant billing.",
+              )}
+              title={t("Billing needs a workspace")}
             />
           </PanelSection>
         </Panel>

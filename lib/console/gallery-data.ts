@@ -2094,6 +2094,7 @@ function buildSharedAppView(
 
   return {
     canRedeploy: redeploy.canRedeploy,
+    createdAt: app.createdAt ?? null,
     currentRuntimeId:
       options?.currentRuntimeId ??
       app.status.currentRuntimeId ??

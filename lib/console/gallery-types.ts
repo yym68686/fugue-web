@@ -82,6 +82,7 @@ export type ConsoleGalleryPersistentStorageMountView = {
 export type ConsoleGalleryAppView = {
   buildLogsOperationId: string | null;
   commitViews: ConsoleGalleryCommitView[];
+  createdAt: string | null;
   currentCommitCommittedAt: string | null;
   canRedeploy: boolean;
   currentCommitExact: string | null;
