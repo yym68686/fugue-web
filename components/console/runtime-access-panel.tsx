@@ -243,7 +243,11 @@ function parseNonNegativeDecimal(value: string, maximumDecimals = 3) {
     } as const;
   }
 
-  const pattern = new RegExp(`^\\d+(?:\\.\\d{1,${maximumDecimals}})?$`);
+  const normalizedMaximumDecimals = Math.max(0, Math.trunc(maximumDecimals));
+  const pattern =
+    normalizedMaximumDecimals === 0
+      ? /^\d+$/
+      : new RegExp(`^\\d+(?:\\.\\d{1,${normalizedMaximumDecimals}})?$`);
 
   if (!pattern.test(normalized)) {
     return {
