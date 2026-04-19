@@ -873,6 +873,10 @@ canvas {
   min-width: 0;
 }
 
+.fg-hint-inline > .fg-panel__eyebrow {
+  margin-bottom: 0;
+}
+
 .fg-field-label__text {
   min-width: 0;
   display: inline-flex;
@@ -902,28 +906,26 @@ canvas {
 
 .fg-hint-tooltip__trigger {
   display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
   width: 1.5rem;
   height: 1.5rem;
   padding: 0;
-  border: 1px solid var(--fugue-border-default);
+  border: 0;
   border-radius: 999px;
-  background: var(--fugue-floating-chip-bg);
-  box-shadow: var(--fugue-floating-chip-shadow);
+  background: transparent;
+  box-shadow: none;
   color: var(--fugue-text-tertiary);
   cursor: help;
+  appearance: none;
   transition:
-    border-color var(--fugue-duration-fast) var(--fugue-ease-out-expo),
-    background var(--fugue-duration-fast) var(--fugue-ease-out-expo),
     color var(--fugue-duration-fast) var(--fugue-ease-out-expo),
     transform var(--fugue-duration-fast) var(--fugue-ease-out-expo);
 }
 
 .fg-hint-tooltip__trigger:hover,
 .fg-hint-tooltip:focus-within .fg-hint-tooltip__trigger {
-  border-color: var(--fugue-selection-lens-border-hover);
-  background: var(--fugue-selection-lens-bg-hover);
   color: var(--fugue-text-secondary);
   transform: translateY(-1px);
 }

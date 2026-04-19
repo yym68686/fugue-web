@@ -28,12 +28,12 @@ function HintTooltipIcon() {
     >
       <circle cx="10" cy="10" r="7.35" stroke="currentColor" strokeWidth="1.35" />
       <path
-        d="M10 5.8V10.2"
+        d="M10 8.65V13.15"
         stroke="currentColor"
         strokeLinecap="round"
         strokeWidth="1.6"
       />
-      <circle cx="10" cy="13.6" fill="currentColor" r="0.95" />
+      <circle cx="10" cy="6.2" fill="currentColor" r="0.95" />
     </svg>
   );
 }

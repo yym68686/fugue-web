@@ -167,7 +167,7 @@ Shared confirmation surface for destructive or high-impact product actions such 
                   class="fg-hint-tooltip__trigger"
                   type="button"
                 >
-                  !
+                  i
                 </button>
                 <span class="fg-hint-tooltip__bubble" id="confirm-service-hint" role="tooltip">
                   Type the service name exactly as shown to enable deletion.

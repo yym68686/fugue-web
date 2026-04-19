@@ -7381,7 +7381,7 @@ function ConsoleProjectWorkbenchImpl({
                       >
                         <FormField
                           error={projectNameError}
-                          hint={t("Must stay unique within this workspace.")}
+                          hideLabel
                           htmlFor={`project-name-${detailProject.id}`}
                           label={t("Project name")}
                         >
