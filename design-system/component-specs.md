@@ -1,36 +1,32 @@
-# Fugue Minimal Component Specs
+# Fugue Product Design System Specs
 
 ## Scope
 
-This minimal system only includes patterns that are already stable in the current Fugue product baseline and are safe to reuse across marketing, auth, docs, and console.
+This spec reflects the current production baseline across marketing, docs, auth, deploy flows, and the console. It is intentionally product-shaped: the shared system captures patterns that are already reused in real routes and leaves page-specific choreography outside the design system.
 
-Included:
+Included today:
 
-- `Button`
-- `ConfirmDialog`
-- `ScrollableControlStrip`
-- `SegmentedControl`
-- `DisplayHeading`
-- `UiHeading`
-- `PillNav`
-- `SectionLabel`
-- `RouteNote`
-- `BezelShell`
-- `ProofShell`
-- `ObjectBelt`
-- `RouteSignal`
-- `LayoutShell`
+- Typography roles: `DisplayHeading`, `UiHeading`, `SectionLabel`, `Copy`
+- Actions: `Button`
+- Navigation and selection: `ScrollableControlStrip`, `SegmentedControl`, `PillNav`, `UtilityMenu`, `LocaleMenuButton`
+- Surfaces: `BezelShell`, `Panel`, `ProofShell`, `ConsoleDisclosure`, `LayoutShell`
+- Forms and feedback: `FormField`, `Input`, `SelectField`, `SteppedSlider`, `HintTooltip`, `InlineAlert`, `ConfirmDialog`
+- Product semantics: `RouteNote`, `StatusBadge`, `ConsolePageIntro`, `ConsoleEmptyState`, `UploadSource`, `ObjectBelt`, `RouteSignal`, `CodeTextarea`
 
-Not included yet:
+Still outside the shared baseline:
 
-- `Input`
-- `FormField`
-- `Badge`
-- `Alert`
-- `Dialog`
-- `Table`
+- full table system and dense data-view rules
+- page-specific topbar chips and profile surfaces
+- landing scene choreography and route-level atmospheric composition
+- one-off galleries, wizard layouts, and marketing-specific storytelling shells
 
-Those should be added after auth and console requirements are real, not guessed early.
+## System Rules
+
+- `Route is the product.` Shared primitives should reinforce route, object, and control-plane meaning instead of becoming generic SaaS decoration.
+- `Display is not UI heading.` `Syne` is reserved for authored display moments. Serious product headings use the `UiHeading` role.
+- `Shells are single-layer now.` The historical `fg-bezel` class name remains, but the current visual language is a single hairline inner shell with depth from gradient and shadow, not a nested double bezel.
+- `Selection reads as one lens system.` Segmented controls, pill nav, and small active chips should all reuse the same raised active-state language.
+- `Shared controls ship complete states.` Focus-visible, disabled, loading, empty, error, and reduced-motion behavior are part of the component, not optional polish.
 
 ## Typography Roles
 
@@ -38,24 +34,24 @@ Those should be added after auth and console requirements are real, not guessed 
 
 Purpose:
 
-- Branded or atmospheric display copy for landing and stage areas.
+- Brand, hero, and authored stage copy.
 
 Class:
 
 - `.fg-display-heading`
-- `.fg-heading` remains a legacy alias for display usage
+- `.fg-heading` remains the legacy alias
 
 Notes:
 
 - Uses `Syne`.
-- Safe for marketing hero copy and auth stage display copy.
-- Do not use for panel, modal, or dense product UI titles.
+- Safe for landing hero copy and auth stage display copy.
+- Do not use for panel titles, docs section heads, table objects, or console readouts.
 
 ### `UiHeading`
 
 Purpose:
 
-- Readable, serious headings for product surfaces.
+- Serious product titles that need fast scanning and low reading friction.
 
 Class:
 
@@ -63,31 +59,72 @@ Class:
 
 Notes:
 
-- Uses `Manrope`-based UI typography.
-- Default for panel titles, modal titles, console page intros, dense docs sections, and empty-state titles.
-- Prefer this whenever the heading needs fast scanning over editorial character.
+- Uses the `Manrope`-based UI-heading role.
+- Default for panel titles, modal titles, docs section heads, page intros, and empty states.
 
-## Button
+### `SectionLabel`
 
-### Purpose
+Purpose:
 
-Shared action system for route-level actions, product submits, quiet utilities, and destructive workbench controls.
+- Mono overline for chapter labels, object names, and technical metadata.
 
-### Variants
+Class:
+
+- `.fg-label`
+
+Notes:
+
+- Use sentence case or title case.
+- Do not force full-uppercase labels with `text-transform`.
+
+### `Copy`
+
+Purpose:
+
+- Long-form supporting body copy with controlled width and quieter contrast.
+
+Class:
+
+- `.fg-copy`
+
+Notes:
+
+- Prefer this over ad hoc paragraph styling when the text is part of the shared visual rhythm.
+
+## Actions
+
+### `Button`
+
+Purpose:
+
+- Shared action system for route-level actions, product submits, quiet utilities, and destructive workbench controls.
+
+Variants:
 
 | Variant | Class | Use |
 | --- | --- | --- |
-| route | `.fg-button--route` | Topbar or route-level action |
-| primary | `.fg-button--primary` | Main action in a product section or form |
-| secondary | `.fg-button--secondary` | Default utility action with readable resting chrome |
-| ghost | `.fg-button--ghost` | Tertiary or dismissive action with quiet outline |
-| danger | `.fg-button--danger` | Destructive action |
-| compact | `.fg-button--compact` | Standard compact control-rail or header action |
-| tight | `.fg-button--tight` | Dense row or list action |
-| inline | `.fg-button--inline` | Mono row action for tables and key lists |
-| full-width | `.fg-button--full-width` | Stretch to container width |
+| route | `.fg-button--route` | topbar or route-level CTA |
+| primary | `.fg-button--primary` | main action inside a product section or form |
+| secondary | `.fg-button--secondary` | default visible utility action |
+| ghost | `.fg-button--ghost` | tertiary or dismissive action |
+| danger | `.fg-button--danger` | destructive action |
 
-### Anatomy
+Size modifiers:
+
+| Size | Class | Use |
+| --- | --- | --- |
+| default | none | standard form and panel actions |
+| compact | `.fg-button--compact` | rails, topbars, and dense control zones |
+| tight | `.fg-button--tight` | dense row actions |
+
+Additional modifiers:
+
+| Modifier | Class | Use |
+| --- | --- | --- |
+| inline | `.fg-button--inline` | mono row action for lists and key-value rows |
+| full width | `.fg-button--full-width` | stretch to container width |
+
+Anatomy:
 
 ```html
 <a class="fg-button fg-button--route" href="#">
@@ -96,167 +133,48 @@ Shared action system for route-level actions, product submits, quiet utilities, 
 </a>
 ```
 
-```html
-<button class="fg-button fg-button--primary" type="button">
-  <span class="fg-button__label">Create project</span>
-</button>
-```
-
-```html
-<button class="fg-button fg-button--secondary fg-button--inline fg-button--tight" type="button">
-  <span class="fg-button__label">Refresh keys</span>
-</button>
-```
-
-```html
-<button class="fg-button fg-button--primary" data-loading="true" aria-busy="true" disabled type="button">
-  <span class="fg-button__status" aria-hidden="true"></span>
-  <span class="fg-button__label">Saving...</span>
-</button>
-```
-
-### States
-
-| State | Treatment |
-| --- | --- |
-| default | Route / product / ghost / danger surface according to role; resting state stays legible before hover |
-| hover | `translateY(-1px)` plus border and surface lift |
-| focus-visible | Accent outline with 3px offset |
-| active | Return to neutral Y position with a light press scale |
-| loading | Keep the button legible, show a status spinner or pulse, disable repeat click |
-| disabled | Muted surface, muted text, no pointer events |
-
-### Notes
+Notes:
 
 - Only `route` keeps the icon island by default.
-- `primary`, `secondary`, `ghost`, and `danger` are product actions. Do not force the island into dense auth / docs / console surfaces.
-- `secondary` is the default non-primary button on dark product surfaces. It should remain clearly visible in its resting state.
-- `ghost` is reserved for tertiary or dismissive actions. Do not use it as the default page-intro or modal-cancel button in product UI.
-- When buttons share a rail with segmented controls, keep them on the same compact height.
-- Row-level list and table actions should prefer `inline + tight`.
-- Avoid adding boolean prop combinations later like `primary + compact + quiet + iconOnly`; prefer explicit variants or composition.
+- `ghost` is not the default page-intro secondary action inside product UI; use `secondary` unless the action is intentionally quieter.
+- `inline + tight` is the default row-action treatment.
+- Loading state should keep label legibility and disable repeat clicks.
 
-## ConfirmDialog
+## Navigation And Selection
 
-### Purpose
+### `ScrollableControlStrip`
 
-Shared confirmation surface for destructive or high-impact product actions such as deleting services, revoking credentials, or promoting a workspace member to admin.
+Purpose:
 
-### Anatomy
+- Shared outer shell for compact rails that should hug their content in roomy layouts and scroll horizontally when space gets tight.
 
-```html
-<div class="fg-confirm-dialog-backdrop">
-  <div aria-modal="true" class="fg-confirm-dialog-shell" role="alertdialog">
-    <section class="fg-bezel fg-panel fg-confirm-dialog-panel">
-      <div class="fg-panel__section fg-confirm-dialog__section">
-        <p class="fg-label fg-panel__eyebrow fg-confirm-dialog__eyebrow is-danger">
-          Destructive action
-        </p>
-        <h2 class="fg-panel__title fg-ui-heading fg-confirm-dialog__title">Delete service?</h2>
-        <p class="fg-panel__copy fg-confirm-dialog__copy">
-          This queues removal and the route will stop serving once the operation completes.
-        </p>
-        <div class="fg-field-stack fg-confirm-dialog__field">
-          <span class="fg-field-label">
-            <span class="fg-field-label__main">
-              <label class="fg-field-label__text" for="service-name-confirm">Service name</label>
-              <span class="fg-hint-tooltip">
-                <button
-                  aria-describedby="confirm-service-hint"
-                  aria-label="Service name"
-                  class="fg-hint-tooltip__trigger"
-                  type="button"
-                >
-                  i
-                </button>
-                <span class="fg-hint-tooltip__bubble" id="confirm-service-hint" role="tooltip">
-                  Type the service name exactly as shown to enable deletion.
-                </span>
-              </span>
-            </span>
-          </span>
-          <span class="fg-field-control">
-            <input class="fg-input" id="service-name-confirm" name="confirmation" type="text" />
-          </span>
-        </div>
-      </div>
-      <div class="fg-panel__section fg-confirm-dialog__actions">
-        <button class="fg-button fg-button--secondary" type="button">Cancel</button>
-        <button class="fg-button fg-button--danger" type="button">Delete service</button>
-      </div>
-    </section>
-  </div>
-</div>
-```
+Classes:
 
-### States
+- `.fg-control-strip-shell`
+- `.fg-control-strip__viewport`
 
-| State | Treatment |
-| --- | --- |
-| default | Centered bezel shell with dimmed backdrop and explicit cancel + confirm actions |
-| focus-visible | Both actions keep the shared product focus ring; initial focus defaults to the cancel action |
-| danger | Danger eyebrow plus danger confirm button; copy explains the irreversible effect clearly |
-| dismiss | Escape, backdrop click, and cancel button all close the dialog without side effects |
-| text confirmation | For irreversible object deletes, show a labeled input and keep the danger action disabled until the typed value exactly matches the named object |
-
-### Notes
-
-- Use `alertdialog` for destructive actions and `dialog` for neutral confirmations.
-- Default the initial focus to the least destructive option.
-- Dialog copy must name the object being changed and describe the real effect; do not rely on generic `Are you sure?`.
-- Action rails should stay on the same proof-shell inner surface as the dialog body; use the section divider for structure instead of a darker footer tray.
-- For high-risk product deletes such as removing a service, require exact-text confirmation with a visible label, helper copy in the shared tooltip trigger, and inline mismatch feedback.
-- Keep confirm labels action-specific: `Delete service`, `Revoke key`, `Make admin`.
-- Backdrop blur is functional context dismissal, not decorative chrome.
-
-## ScrollableControlStrip
-
-### Purpose
-
-Shared outer shell for local navigation rails that should hug their content in roomy layouts and switch to internal horizontal scrolling when the available slot gets tighter.
-
-### Anatomy
-
-```html
-<div
-  class="fg-control-strip-shell fg-control-strip-shell--segmented"
-  data-overflow="true"
-  data-scroll-start="true"
-  data-scroll-end="false"
->
-  <div class="fg-control-strip__viewport">
-    <!-- fg-segmented or fg-pill-nav -->
-  </div>
-</div>
-```
-
-### Notes
+Notes:
 
 - Use this as a wrapper around `PillNav` or `SegmentedControl`, not as a standalone control.
-- Wide layouts should let the shell collapse to content width. Do not force full-width trays unless the surrounding layout genuinely needs them.
-- When the rail overflows, keep the outer shell fixed and move the contents inside the viewport. Do not wrap onto multiple rows and do not hide options behind a `More` menu by default.
-- Edge fades are an overflow affordance, not decoration. They should appear only when content extends past the current scroll position.
-- React implementation: `components/ui/scrollable-control-strip.tsx`.
+- Let the shell hug content when possible.
+- When content overflows, keep the shell fixed and move the content inside the viewport instead of wrapping or hiding items in a `More` menu.
 
-## SegmentedControl
+### `SegmentedControl`
 
-### Purpose
+Purpose:
 
-Shared local view switch for mutually exclusive app states such as `Environment / Files / Logs`, `Variables / Raw`, or `Build / Runtime`.
+- Shared local view switch for mutually exclusive states such as `Environment / Files / Logs` or `Build / Runtime`.
 
-### Anatomy
+Anatomy:
 
 ```html
 <div class="fg-control-strip-shell fg-control-strip-shell--segmented">
   <div class="fg-control-strip__viewport">
     <div class="fg-segmented" aria-label="Workbench views" role="group">
-      <button class="fg-segmented__item is-active" type="button" aria-pressed="true">
+      <button class="fg-segmented__item is-active" aria-pressed="true" type="button">
         <span class="fg-segmented__label">Environment</span>
       </button>
-      <button class="fg-segmented__item" type="button" aria-pressed="false">
-        <span class="fg-segmented__label">Files</span>
-      </button>
-      <button class="fg-segmented__item" type="button" aria-pressed="false">
+      <button class="fg-segmented__item" aria-pressed="false" type="button">
         <span class="fg-segmented__label">Logs</span>
       </button>
     </div>
@@ -264,218 +182,462 @@ Shared local view switch for mutually exclusive app states such as `Environment 
 </div>
 ```
 
-### States
+Notes:
 
-| State | Treatment |
-| --- | --- |
-| default | Shared tray plus readable inactive labels |
-| hover | Quiet hover fill and stronger text |
-| active | Raised active lens, stronger border, full text contrast |
-| focus-visible | Accent outline with 3px offset |
-| disabled | Reduced opacity, no interaction |
+- Use this for local mode switches, not submit actions.
+- The active state must be visible without hover.
+- Segmented items should share the same active lens language as current pill-nav items and other small selected chips.
 
-### Notes
+### `PillNav`
 
-- Use this for local view switching, not for destructive or submit actions.
-- If clicking an option swaps a panel, picker, or content mode, prefer `SegmentedControl` over `Button`.
-- Keep all options in one shared rail so users read them as one mutually exclusive set.
-- The selected state must be visible without hover.
-- Let the tray hug content when space is available. If the rail becomes wider than its slot, keep the outer shell fixed and let the inner viewport scroll horizontally instead of switching to a dropdown or wrapping into multiple rows.
-- Segmented items, stateful pill-nav links, and file pills should reuse the same raised selection lens. Only the tray density and padding should change by context.
-- In mixed control rails, align the segmented outer height with adjacent compact buttons.
-- React implementation: `components/ui/segmented-control.tsx` composes `components/ui/scrollable-control-strip.tsx` so detail-page `Panels`, environment format switches, and similar rails all inherit the same overflow behavior.
+Purpose:
 
-## PillNav
+- Detached navigation container for top-level marketing/docs rails or small sub-nav clusters.
 
-### Purpose
+Classes:
 
-Detached floating navigation container.
+- `.fg-pill-nav`
+- `.fg-pill-nav__button`
+- `.fg-pill-nav__label`
 
-### Anatomy
+Notes:
 
-```html
-<div class="fg-control-strip-shell fg-control-strip-shell--pill">
-  <div class="fg-control-strip__viewport">
-    <nav class="fg-pill-nav" aria-label="Primary">
-      <a href="#route" aria-current="page">Route</a>
-      <a href="#surface">Surface</a>
-      <a href="#proof">Proof</a>
-    </nav>
-  </div>
-</div>
-```
-
-### States
-
-| State | Treatment |
-| --- | --- |
-| default | Detached tray with readable resting labels |
-| hover | Quiet lens, stronger text |
-| current | Raised active lens, stronger border, full text contrast |
-| focus-visible | Accent outline with 3px offset |
-
-### Notes
-
-- Use for top-level nav or small sub-nav clusters.
-- When one link represents the current page or current shell view, mark it with `aria-current="page"` and reuse the same active lens as segmented controls. Do not rely on text color alone.
-- Use the same fixed-shell, inner-scroll pattern when labels may overflow. The navigation tray should not grow a wide empty gutter just because the container has more room.
+- Mark the current route with `aria-current="page"` or `aria-pressed="true"`.
 - Not for dense app sidebars.
-- React wrapper: `components/ui/pill-nav.tsx` with `PillNav`, `PillNavLink`, and `PillNavAnchor`; compose it with `components/ui/scrollable-control-strip.tsx` when overflow safety matters.
 
-## SectionLabel
+### `UtilityMenu`
 
-### Purpose
+Purpose:
 
-Mono overline for chapter labels, object names, or system metadata.
+- Shared small utility disclosure used by theme and locale controls.
 
-### Anatomy
+Variants:
+
+| Variant | Class | Use |
+| --- | --- | --- |
+| underline utility | `.fg-locale-utility` | landing and docs mastheads |
+| compact menu button | `.fg-locale-menu` | auth and tighter product chrome |
+
+Anatomy:
 
 ```html
-<p class="fg-label">Current boundary</p>
+<details class="fg-locale-utility" open>
+  <summary class="fg-locale-utility__trigger">
+    <span class="fg-locale-utility__value">English</span>
+    <span class="fg-locale-utility__chevron" aria-hidden="true">...</span>
+  </summary>
+  <div class="fg-locale-utility__panel">
+    <ul class="fg-locale-utility__list">
+      <li class="fg-locale-utility__list-item">
+        <button class="fg-locale-utility__option is-active" aria-pressed="true" type="button">
+          <span class="fg-locale-utility__option-label">English</span>
+          <span class="fg-locale-utility__option-mark" aria-hidden="true"></span>
+        </button>
+      </li>
+    </ul>
+  </div>
+</details>
 ```
 
-### Notes
+Notes:
 
-- Use sentence case or title case. Do not force all-uppercase labels with `text-transform`.
-- If a code literal must stay exact, keep it inside code or command content rather than UI copy.
-- Use sparingly to anchor sections and technical semantics.
+- Locale and theme share the same shell language even when their content differs.
+- Utility menus should read like quiet masthead tools, not product-primary buttons.
+- The compact `fg-locale-menu` variant reuses the button system and is preferred in auth and constrained topbars.
 
-## RouteNote
+## Surfaces
 
-### Purpose
+### `BezelShell`
 
-The right-rail route card language used across the current landing and console surfaces.
+Purpose:
 
-### Anatomy
+- Shared shell surface for panels, proofs, and other high-trust content blocks.
 
-```html
-<article class="fg-route-note">
-  <span class="fg-route-note__index">01</span>
-  <strong class="fg-route-note__title">GitHub intake</strong>
-  <span class="fg-route-note__meta">Repository / Branch / Builder</span>
-</article>
-```
+Classes:
 
-### Notes
+- `.fg-bezel`
+- `.fg-bezel__inner`
 
-- Safe for onboarding steps, integration summaries, migration notices.
-- Do not turn it into a generic marketing feature card.
-- React wrapper: `components/ui/route-note.tsx`.
+Notes:
 
-## BezelShell
+- `fg-bezel` is the historical class name. The current shell is a single inner hairline surface.
+- Use it when a surface needs stronger separation than a plain section, not for every list row.
 
-### Purpose
+### `Panel`
 
-Double-layer hardware shell for premium containers.
+Purpose:
 
-### Anatomy
+- Default structured product surface for forms, settings groups, and inline modules.
 
-```html
-<section class="fg-bezel">
-  <div class="fg-bezel__inner">...</div>
-</section>
-```
+Classes:
 
-### Notes
+- `.fg-panel`
+- `.fg-panel__section`
+- `.fg-panel__eyebrow`
+- `.fg-panel__title`
+- `.fg-panel__copy`
+- `.fg-panel__divider`
 
-- Default container for auth panels, docs code areas, and high-trust console modules.
-- The inner shell should carry the real content surface.
-
-## ProofShell
-
-### Purpose
-
-Specialized bezel shell for command blocks and control-plane proof.
-
-### Anatomy
+Anatomy:
 
 ```html
-<section class="fg-bezel fg-proof-shell">
+<section class="fg-bezel fg-panel">
   <div class="fg-bezel__inner">
-    <div class="fg-proof-shell__ribbon">
-      <span>Public or private access</span>
-      <span>Managed shared runtime</span>
+    <div class="fg-panel__section">
+      <p class="fg-label fg-panel__eyebrow">Workspace route</p>
+      <h2 class="fg-panel__title fg-ui-heading">Create a route from source.</h2>
+      <p class="fg-panel__copy">Source import and runtime choice stay in the same shared shell.</p>
     </div>
-    <pre><code>curl -sS "${FUGUE_BASE_URL}/healthz"</code></pre>
   </div>
 </section>
 ```
 
-### Notes
+Notes:
+
+- Prefer dividers and section rhythm over nested shell-within-shell chrome.
+- Auth pages may locally flatten panel internals for composition, but they still inherit the same shared typography and section grammar.
+
+### `ProofShell`
+
+Purpose:
+
+- Specialized shell for command blocks and control-plane proof.
+
+Classes:
+
+- `.fg-proof-shell`
+- `.fg-proof-shell__ribbon`
+- `.fg-proof-shell__empty`
+
+Notes:
 
 - Prefer this over a naked `pre`.
-- Use the ribbon for environment or object metadata, not decorative tags.
-- React wrapper: `components/ui/proof-shell.tsx` with `ProofShell`, `ProofShellRibbon`, and `ProofShellEmpty`.
+- Ribbon items should carry real environment or object metadata, not decorative tags.
 
-## ObjectBelt
+### `ConsoleDisclosure`
 
-### Purpose
+Purpose:
 
-Compact object model strip for product nouns.
+- Shared reveal surface for secondary product details that should stay in-band with the surrounding shell language.
 
-### Anatomy
+Classes:
 
-```html
-<div class="fg-object-belt" aria-label="Core objects">
-  <span>Workspace</span>
-  <span>Project</span>
-  <span>App</span>
-  <span>Runtime</span>
-  <span>Operation</span>
-</div>
-```
+- `.fg-console-disclosure`
+- `.fg-console-disclosure--section`
+- `.fg-console-disclosure__summary-*`
+- `.fg-console-disclosure__panel`
 
-### Notes
+Notes:
 
-- Reuse in docs, onboarding, and console section headers.
-- This is a semantic map, not a tag cloud.
+- Use the `--section` variant for product settings and expandable details inside console surfaces.
+- The summary icon should reuse the same active lens language when open.
+- On narrow screens, label and value rows stack instead of forcing right-aligned compression.
 
-## RouteSignal
+### `LayoutShell`
 
-### Purpose
+Purpose:
 
-Visual route path for process, migration, and topology.
+- Shared width control for full-bleed and content-width sections.
 
-### Anatomy
-
-```html
-<svg class="fg-route-signal" viewBox="0 0 1200 170" aria-hidden="true">
-  <path class="fg-route-signal__base" d="M40 118 C232 26, 372 32, 538 96 S860 180, 1160 36" />
-  <path class="fg-route-signal__active" d="M40 118 C232 26, 372 32, 538 96 S860 180, 1160 36" />
-  <circle class="fg-route-signal__dot" cx="40" cy="118" r="7" />
-  <circle class="fg-route-signal__dot" cx="538" cy="96" r="7" />
-  <circle class="fg-route-signal__dot" cx="1160" cy="36" r="7" />
-</svg>
-```
-
-### Notes
-
-- Keep it meaningful. It should map to real product transitions or information structure.
-- Hide it on narrow screens if it stops being legible.
-
-## LayoutShell
-
-### Purpose
-
-Shared outer width control for full-bleed and content-width sections.
-
-### Classes
+Classes:
 
 | Class | Width |
 | --- | --- |
 | `.fg-shell` | `1400px` max |
 | `.fg-content-shell` | `1180px` max |
 
-### Notes
+## Forms And Feedback
 
-- Prefer shell primitives over ad hoc width math.
+### `FormField`
 
-## React Port Guidance
+Purpose:
 
-As this system moves into React or Next.js:
+- Shared label, optional meta, tooltip, control, and error stack.
 
-- Keep tokens in a global design-token file.
-- Port visual primitives first: `Button`, `Panel`, `ProofShell`, `ObjectBelt`.
-- Keep stable shared wrappers in `components/ui/` and migrate page-level DOM to them before adding new surface-specific variants.
-- Prefer explicit sibling wrappers for structured patterns, for example `ProofShell` + `ProofShellRibbon` + `ProofShellEmpty`.
-- Avoid boolean prop explosion. If a pattern diverges materially, create a sibling component instead of more mode flags.
+Classes:
+
+- `.fg-field-stack`
+- `.fg-field-label`
+- `.fg-field-label__main`
+- `.fg-field-label__text`
+- `.fg-field-label__meta`
+- `.fg-field-control`
+- `.fg-field-error`
+
+Notes:
+
+- Labels sit above the control.
+- Helper text belongs in tooltips or nearby copy, not inside placeholders.
+- Error state belongs on both the control and the field copy.
+
+### `Input`
+
+Purpose:
+
+- Shared text input surface for auth, deploy, and console forms.
+
+Class:
+
+- `.fg-input`
+
+Notes:
+
+- Use the field shell for most one-line inputs.
+- Hover and focus lift the surface slightly; focus-visible uses the shared accent outline.
+
+### `SelectField`
+
+Purpose:
+
+- Shared select control with floating chip chevron.
+
+Classes:
+
+- `.fg-select`
+- `.fg-select__control`
+- `.fg-select__icon`
+
+Notes:
+
+- The chevron lives inside its own small raised chip, matching the broader hardware language.
+
+### `SteppedSlider`
+
+Purpose:
+
+- Shared numeric slider surface with a readable current-value pill.
+
+Classes:
+
+- `.fg-stepped-slider`
+- `.fg-stepped-slider__value-pill`
+- `.fg-stepped-slider__input`
+- `.fg-stepped-slider__bounds`
+
+Notes:
+
+- Use for bounded numeric choices with a small number of meaningful steps.
+- Keep the value pill visible; do not rely on thumb position alone.
+
+### `HintTooltip`
+
+Purpose:
+
+- Quiet inline help for labels and secondary explanatory details.
+
+Classes:
+
+- `.fg-hint-tooltip`
+- `.fg-hint-tooltip__trigger`
+- `.fg-hint-tooltip__bubble`
+- `.fg-hint-inline`
+
+Notes:
+
+- Use for targeted clarification, not long-form documentation.
+- Tooltip copy should stay short, concrete, and task-relevant.
+
+### `InlineAlert`
+
+Purpose:
+
+- Shared in-band feedback block for info, warning, success, and error states.
+
+Classes:
+
+- `.fg-inline-alert`
+- `.fg-inline-alert--info`
+- `.fg-inline-alert--warning`
+- `.fg-inline-alert--success`
+- `.fg-inline-alert--error`
+
+Notes:
+
+- Error alerts should name the real failure and the next useful action.
+- Do not use inline alerts as decorative highlight cards.
+
+### `ConfirmDialog`
+
+Purpose:
+
+- Shared confirmation surface for destructive or high-impact actions.
+
+Classes:
+
+- `.fg-confirm-dialog-*`
+
+Notes:
+
+- Use `alertdialog` for destructive confirmation, `dialog` for neutral confirmation.
+- Initial focus should land on the least destructive action.
+- For irreversible deletes, require exact-text confirmation when the product risk is high.
+
+## Product Semantics
+
+### `RouteNote`
+
+Purpose:
+
+- Right-rail route card language used across landing, docs side notes, and console summaries.
+
+Class:
+
+- `.fg-route-note`
+
+Notes:
+
+- This is route and object language, not a generic marketing feature card.
+
+### `StatusBadge`
+
+Purpose:
+
+- Compact mono status pill for live state, health, and operational tone.
+
+Classes:
+
+- `.fg-status-badge`
+- `.fg-status-badge--positive`
+- `.fg-status-badge--warning`
+- `.fg-status-badge--danger`
+- `.fg-status-badge--info`
+- `.fg-status-badge--neutral`
+- `.fg-status-badge--live`
+
+Notes:
+
+- Use `live` only when the breathing dot has real meaning.
+- Keep labels short enough to fit inline with other controls.
+
+### `ConsolePageIntro`
+
+Purpose:
+
+- Standard page-intro block for console and admin routes.
+
+Classes:
+
+- `.fg-console-page-intro`
+- `.fg-console-page-intro__copy`
+- `.fg-console-page-intro__actions`
+
+Notes:
+
+- Intro copy stays left-aligned; action rail sits to the right on wide screens and drops below on narrow screens.
+
+### `ConsoleEmptyState`
+
+Purpose:
+
+- Shared empty-state language for console and admin panels.
+
+Classes:
+
+- `.fg-console-empty-state`
+- `.fg-console-empty-state__actions`
+
+Notes:
+
+- Empty states should explain why the surface is empty and offer the next useful route when one exists.
+
+### `UploadSource`
+
+Purpose:
+
+- Shared upload dropzone pattern for deploy and import flows.
+
+Classes:
+
+- `.fg-upload-source`
+- `.fg-upload-source__dropzone`
+- `.fg-upload-source__head`
+- `.fg-upload-source__meter`
+- `.fg-upload-source__chip`
+- `.fg-upload-source__list`
+
+Notes:
+
+- This is the shared dropzone shell, not a generic marketing card.
+- Drag-active state should lift slightly and keep the copy readable.
+
+### `ObjectBelt`
+
+Purpose:
+
+- Compact object-model strip for core product nouns.
+
+Class:
+
+- `.fg-object-belt`
+
+Notes:
+
+- Use this as a semantic map, not a tag cloud.
+
+### `RouteSignal`
+
+Purpose:
+
+- Visual route path for process, migration, and topology.
+
+Class:
+
+- `.fg-route-signal`
+
+Notes:
+
+- Keep it meaningful. It should map to a real product transition or information path.
+- Hide it when it stops being legible on narrow screens.
+
+### `CodeTextarea`
+
+Purpose:
+
+- Syntax-highlighted textarea layer for file editors and technical composition surfaces.
+
+Classes:
+
+- `.fg-code-textarea`
+- `.fg-code-textarea__highlight`
+- `.fg-code-textarea__input`
+
+Notes:
+
+- The component owns the syntax overlay behavior and token colors.
+- The surrounding editor shell should own padding, border, background, and overall height.
+
+## React Wrappers
+
+Current React wrappers live in:
+
+| Pattern | Path |
+| --- | --- |
+| Button | `components/ui/button.tsx` |
+| ScrollableControlStrip | `components/ui/scrollable-control-strip.tsx` |
+| SegmentedControl | `components/ui/segmented-control.tsx` |
+| PillNav | `components/ui/pill-nav.tsx` |
+| Panel | `components/ui/panel.tsx` |
+| ProofShell | `components/ui/proof-shell.tsx` |
+| FormField | `components/ui/form-field.tsx` |
+| SelectField | `components/ui/select-field.tsx` |
+| SteppedSlider | `components/ui/stepped-slider-field.tsx` |
+| HintTooltip | `components/ui/hint-tooltip.tsx` |
+| InlineAlert | `components/ui/inline-alert.tsx` |
+| ConfirmDialog | `components/ui/confirm-dialog.tsx` |
+| UtilityMenu | `components/ui/locale-switcher.tsx`, `components/ui/theme-switcher.tsx` |
+| StatusBadge | `components/console/status-badge.tsx` |
+| ConsolePageIntro | `components/console/console-page-intro.tsx` |
+| ConsoleEmptyState | `components/console/console-empty-state.tsx` |
+| ConsoleDisclosure | `components/console/console-disclosure-section.tsx` |
+| CodeTextarea | `components/ui/code-textarea.tsx` |
+
+## Change Rule
+
+When the visual baseline moves, update all four layers together:
+
+1. `tokens.css`
+2. `components.css`
+3. `component-specs.md`
+4. `preview.html`
+
+If a pattern only exists in one route or one experiment, keep it out of the design system until it proves reusable.

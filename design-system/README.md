@@ -1,70 +1,65 @@
-# Fugue Minimal Design System Seed
+# Fugue Design System Baseline
 
-This directory captures the current Fugue visual system into reusable design-system assets.
-
-It is intentionally small. The goal is not to freeze every possible component now. The goal is to capture the parts that are already stable enough to become shared UI for landing, auth, docs, and console.
+This directory is the shared UI baseline for the current Fugue website and product shell. It is no longer a deliberately tiny seed. It now mirrors the visual language that is already live across marketing, docs, auth, deploy flows, and console surfaces.
 
 ## Files
 
 - `index.css`
   - single entrypoint for CSS consumers
 - `tokens.css`
-  - `primitive -> semantic -> component` token layers
+  - `primitive -> semantic -> component` tokens for both dark and light themes
 - `components.css`
-  - reusable class-based implementations of stable Fugue patterns
+  - shared class implementations for current Fugue primitives and product controls
 - `component-specs.md`
-  - usage rules, anatomy, and state guidance
+  - usage rules, anatomy, and extraction boundary for the current baseline
 - `preview.html`
-  - visual inspection page for the extracted system
+  - theme-toggleable inspection page for the shared system
 
-## What this seed includes
+## What the baseline owns now
 
-- off-black canvas and warm-ivory text palette
-- `Syne + Manrope + IBM Plex Mono` typography pairing
-- split typography roles: `Syne` for display moments, `Manrope`-based UI headings for serious product surfaces
-- pill CTA with nested icon island
-- detached pill navigation
-- route-note card language
-- double-bezel proof shell
-- object belt
-- route signal SVG treatment
-- shell width primitives
+- three-layer tokens for canvas, typography roles, shell surfaces, selection lenses, fields, alerts, status tones, and console surfaces
+- layout primitives for `fg-shell`, `fg-content-shell`, display copy, ui headings, mono labels, and restrained body copy
+- shared controls for buttons, segmented rails, pill nav, utility menus, compact menu buttons, form fields, selects, stepped sliders, hint tooltips, and inline alerts
+- shared surfaces for shell containers, panels, proof shells, route notes, upload surfaces, confirm dialogs, console disclosures, page intros, empty states, and status badges
+- route-language primitives for object belts, route signals, and proof-oriented command blocks
+- a preview page that exercises these patterns under both dark and light tokens
 
-## What this seed does not include
+## What stays route-specific
 
-- Unicorn scene integration
-- full landing-page hero layout
-- ghost wordmark
-- runway strip section
-- form fields and auth-specific controls
+- landing hero scene composition, canvas/WebGL layers, and chapter choreography
+- docs information architecture and longform reading layout
+- auth stage composition and route-specific copy layout
+- page-specific workbenches, galleries, tables, and wizard sequencing
 
-Those remain outside the minimal system until they are needed by real product routes.
+## Current design rules
 
-## Design rules carried from the current product baseline
+- `route is the product`: route, shell, and object transitions should stay legible and product-shaped.
+- `Syne` is for display moments only. Product titles use the quieter UI-heading role built on `Manrope`.
+- Shells now read as single hairline surfaces with depth from gradient and shadow, not the older double-bezel story.
+- Selected states across pill nav, segmented controls, file pills, and small utilities reuse the same raised lens language.
+- Product feedback must ship with loading, empty, error, disabled, and focus-visible states.
 
-- Use near-black, not pure black.
-- Use warm ivory text, not cold white.
-- Keep one restrained accent color.
-- Prefer edge light, border, and gradient depth over obvious glow.
-- Preserve the button-in-button icon island.
-- Keep route metaphors tied to real product structure.
-- Outside marketing, background effects should stay static or low-frequency.
+## Adoption
 
-## Suggested adoption order
+1. Import `design-system/index.css`.
+2. Set `data-theme="dark"` or `data-theme="light"` on the root element.
+3. Use `.fg-shell` or `.fg-content-shell` for width control.
+4. Build from shared roles and primitives before inventing page-local variants.
+5. Keep page choreography in route CSS, but keep reusable shell, control, and form patterns here.
+6. When a stable new pattern lands, update `tokens.css`, `components.css`, `component-specs.md`, and `preview.html` together.
 
-1. Import Google fonts or self-host the three font families.
-2. Import `design-system/index.css`.
-3. Wrap the page with `.fg-theme-dark`.
-4. Use `.fg-shell` or `.fg-content-shell` for width control.
-5. Build sections from `fg-label`, `fg-display-heading`, `fg-ui-heading`, `fg-copy`, `fg-button`, `fg-route-note`, and `fg-bezel`.
+## Current extraction boundary
 
-## Next recommended additions
+Good candidates for the next pass:
 
-- `Input`
-- `FormField`
-- `AuthPanel`
-- `StatusBadge`
-- `Alert`
-- `DataPanel`
+- shared table density rules
+- checklist and stat-list primitives
+- compact topbar chips and profile triggers
+- richer docs-specific content blocks if they become reusable outside docs
 
-Those should be extracted from real auth and console implementations, not invented in advance.
+Bad candidates for extraction:
+
+- one-off hero experiments
+- page-specific metric layouts
+- temporary onboarding copy shells
+- speculative variants that are not reused yet

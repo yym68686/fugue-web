@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Fugue Minimal Design System</title>
+    <title>Fugue Design System Baseline</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -22,138 +22,351 @@
 
       main {
         min-height: 100dvh;
-        padding: 2rem 0 4rem;
+        padding: 1.5rem 0 4rem;
       }
 
-      .preview-stack {
+      .preview-shell {
         display: grid;
-        gap: 1.5rem;
+        gap: 2.25rem;
       }
 
-      .preview-section {
-        padding-top: 2rem;
-        border-top: 1px solid var(--fugue-border-subtle);
+      .preview-topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1.5rem;
       }
 
       .preview-heading {
         display: grid;
         gap: 0.8rem;
-        margin-bottom: 1.5rem;
+        max-width: 58rem;
       }
 
-      .preview-heading h1,
-      .preview-heading h2 {
-        font-size: clamp(2.2rem, 5vw, 4.6rem);
+      .preview-heading h1 {
+        font-size: clamp(2.6rem, 6vw, 5.8rem);
       }
 
-      .preview-actions,
-      .preview-notes {
+      .preview-theme {
+        display: grid;
+        gap: 0.7rem;
+        justify-items: start;
+        min-width: min(100%, 16rem);
+      }
+
+      .preview-theme__copy {
+        max-width: 22rem;
+      }
+
+      .preview-section {
+        display: grid;
+        gap: 1.2rem;
+        padding-top: 2rem;
+        border-top: 1px solid var(--fugue-border-subtle);
+      }
+
+      .preview-section__intro {
+        display: grid;
+        gap: 0.5rem;
+        max-width: 52rem;
+      }
+
+      .preview-grid {
+        display: grid;
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+        gap: 1rem;
+      }
+
+      .preview-span-4,
+      .preview-span-5,
+      .preview-span-6,
+      .preview-span-7,
+      .preview-span-8 {
+        min-width: 0;
+      }
+
+      .preview-span-4 {
+        grid-column: span 4;
+      }
+
+      .preview-span-5 {
+        grid-column: span 5;
+      }
+
+      .preview-span-6 {
+        grid-column: span 6;
+      }
+
+      .preview-span-7 {
+        grid-column: span 7;
+      }
+
+      .preview-span-8 {
+        grid-column: span 8;
+      }
+
+      .preview-stack {
         display: grid;
         gap: 1rem;
       }
 
-      .preview-actions {
+      .preview-actions,
+      .preview-status-row,
+      .preview-utility-row,
+      .preview-upload-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+      }
+
+      .preview-utility-row {
+        align-items: flex-start;
+      }
+
+      .preview-surface {
+        display: grid;
+        gap: 0.9rem;
+        padding: 1rem;
+        border: 1px solid var(--fugue-border-subtle);
+        border-radius: 1.2rem;
+        background:
+          linear-gradient(
+            180deg,
+            rgba(255, 255, 255, 0.028),
+            rgba(255, 255, 255, 0.008)
+          ),
+          color-mix(in srgb, var(--fugue-surface-canvas) 72%, transparent);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+      }
+
+      .preview-card-grid {
+        display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1rem;
       }
 
-      .preview-notes {
+      .preview-form {
+        display: grid;
+        gap: 0.9rem;
+      }
+
+      .preview-inline-grid {
+        display: grid;
+        gap: 0.7rem;
+      }
+
+      .preview-proof pre {
+        min-height: 15rem;
+      }
+
+      .preview-editor {
+        overflow: hidden;
+        min-height: 14rem;
+        padding: 0;
+        border: 1px solid var(--fugue-border-default);
+        border-radius: 1rem;
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .preview-editor .fg-code-textarea {
+        min-height: 14rem;
+      }
+
+      .preview-editor .fg-code-textarea__highlight code,
+      .preview-editor .fg-code-textarea__input {
+        display: block;
+        min-height: 14rem;
+        padding: 0.95rem;
+        color: inherit;
+        font-family: var(--fugue-font-mono);
+        font-size: 0.82rem;
+        line-height: 1.7;
+      }
+
+      .preview-editor .fg-code-textarea__input {
+        border: 0;
+        resize: none;
+      }
+
+      .preview-editor .fg-code-textarea__highlight code {
+        color: var(--fugue-code-textarea-token-foreground);
+      }
+
+      .preview-note-grid {
+        display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1rem;
       }
 
-      .preview-proof {
-        margin-top: 1rem;
+      .preview-route-signal-shell {
+        display: grid;
+        gap: 1rem;
       }
 
-      @media (max-width: 900px) {
-        .preview-actions,
-        .preview-notes {
+      .preview-title-row {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 1rem;
+      }
+
+      .preview-title-row .fg-copy {
+        max-width: 30rem;
+      }
+
+      @media (max-width: 1100px) {
+        .preview-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .preview-span-4,
+        .preview-span-5,
+        .preview-span-6,
+        .preview-span-7,
+        .preview-span-8 {
+          grid-column: span 2;
+        }
+
+        .preview-card-grid,
+        .preview-note-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 760px) {
+        main {
+          padding-top: 1rem;
+        }
+
+        .preview-topbar {
+          display: grid;
+        }
+
+        .preview-grid,
+        .preview-card-grid,
+        .preview-note-grid {
           grid-template-columns: 1fr;
+        }
+
+        .preview-span-4,
+        .preview-span-5,
+        .preview-span-6,
+        .preview-span-7,
+        .preview-span-8 {
+          grid-column: span 1;
         }
       }
     </style>
   </head>
   <body class="fg-theme-dark fg-atmosphere">
     <main>
-      <div class="fg-content-shell preview-stack">
-        <section class="preview-heading">
-          <p class="fg-label">Design system seed</p>
-          <h1 class="fg-heading">Current Fugue primitives.</h1>
-          <p class="fg-copy">
-            This page is not a landing page. It is the smallest reusable surface extracted from
-            the current Fugue product baseline for auth, docs, and console work.
-          </p>
-        </section>
-
-        <section class="preview-section">
+      <div class="fg-content-shell preview-shell">
+        <section class="preview-topbar">
           <div class="preview-heading">
-            <p class="fg-label">Buttons</p>
-            <h2 class="fg-heading">Route action, product primary, quiet utility, destructive control.</h2>
+            <p class="fg-label">Fugue design system</p>
+            <h1 class="fg-display-heading">Current product baseline, not a stale seed.</h1>
+            <p class="fg-copy">
+              This preview mirrors the live language already shared by marketing, docs, auth,
+              deploy flows, and the console. Theme, shell, selection, and field grammar all stay
+              in one system now.
+            </p>
           </div>
-          <div class="preview-actions">
-            <a class="fg-button fg-button--route" href="#">
-              <span class="fg-button__label">Inspect quickstart</span>
-              <span class="fg-button__icon is-island" aria-hidden="true">-&gt;</span>
-            </a>
-            <a class="fg-button fg-button--primary" href="#">
-              <span class="fg-button__label">Create project</span>
-            </a>
-            <a class="fg-button fg-button--secondary" href="#">
-              <span class="fg-button__label">Open auth</span>
-            </a>
-            <a class="fg-button fg-button--ghost" href="#">
-              <span class="fg-button__label">Read import rules</span>
-            </a>
-            <button class="fg-button fg-button--danger fg-button--tight" type="button">
-              <span class="fg-button__label">Delete</span>
+
+          <div class="preview-theme">
+            <button class="fg-button fg-button--secondary fg-button--compact" id="theme-toggle" type="button">
+              <span class="fg-button__label" data-theme-toggle-label>Switch to light</span>
             </button>
-            <button class="fg-button fg-button--secondary fg-button--inline fg-button--tight" type="button">
-              <span class="fg-button__label">Refresh keys</span>
-            </button>
+            <p class="fg-copy preview-theme__copy">
+              Dark and light both keep the same shell depth, restrained accent discipline, and
+              raised active lens treatment.
+            </p>
           </div>
         </section>
 
         <section class="preview-section">
-          <div class="preview-heading">
-            <p class="fg-label">Segmented control</p>
-            <h2 class="fg-heading">Local views should read as one switchboard, not a row of mini buttons.</h2>
+          <div class="preview-section__intro">
+            <p class="fg-label">Typography and actions</p>
+            <h2 class="fg-ui-heading">Display moments stay authored. Product actions stay legible.</h2>
+            <p class="fg-copy">
+              The system now distinguishes brand-display copy from serious UI headings and keeps the
+              button family aligned across route, primary, utility, and destructive work.
+            </p>
           </div>
-          <div class="preview-actions">
-            <div class="fg-control-strip-shell fg-control-strip-shell--segmented">
-              <div class="fg-control-strip__viewport">
-                <div class="fg-segmented" aria-label="Workbench views" role="group">
-                  <button class="fg-segmented__item is-active" type="button" aria-pressed="true">
-                    <span class="fg-segmented__label">Environment</span>
-                  </button>
-                  <button class="fg-segmented__item" type="button" aria-pressed="false">
-                    <span class="fg-segmented__label">Files</span>
-                  </button>
-                  <button class="fg-segmented__item" type="button" aria-pressed="false">
-                    <span class="fg-segmented__label">Logs</span>
-                  </button>
+
+          <div class="preview-grid">
+            <div class="preview-span-8 preview-stack">
+              <section class="fg-bezel fg-panel">
+                <div class="fg-bezel__inner">
+                  <div class="fg-panel__section">
+                    <p class="fg-label fg-panel__eyebrow">Display role</p>
+                    <h2 class="fg-display-heading">Start shared. Move cleanly.</h2>
+                    <p class="fg-copy">
+                      Use display typography for authored hero moments, route framing, and stage
+                      copy. Keep it out of dense product chrome.
+                    </p>
+                  </div>
+                  <div class="fg-panel__section">
+                    <p class="fg-label fg-panel__eyebrow">Ui heading role</p>
+                    <h3 class="fg-ui-heading fg-panel__title">Workspace routing stays readable under load.</h3>
+                    <p class="fg-panel__copy">
+                      Console pages, modals, empty states, and docs sections should default to the
+                      quieter UI-heading voice.
+                    </p>
+                  </div>
                 </div>
+              </section>
+
+              <div class="preview-actions">
+                <a class="fg-button fg-button--route" href="#">
+                  <span class="fg-button__label">Inspect quickstart</span>
+                  <span class="fg-button__icon is-island" aria-hidden="true">-&gt;</span>
+                </a>
+                <button class="fg-button fg-button--primary" type="button">
+                  <span class="fg-button__label">Create project</span>
+                </button>
+                <button class="fg-button fg-button--secondary" type="button">
+                  <span class="fg-button__label">Open auth</span>
+                </button>
+                <button class="fg-button fg-button--ghost" type="button">
+                  <span class="fg-button__label">Read route rules</span>
+                </button>
+                <button class="fg-button fg-button--danger fg-button--tight" type="button">
+                  <span class="fg-button__label">Delete</span>
+                </button>
+                <button class="fg-button fg-button--secondary fg-button--inline fg-button--tight" type="button">
+                  <span class="fg-button__label">Refresh keys</span>
+                </button>
               </div>
             </div>
-            <div class="fg-control-strip-shell fg-control-strip-shell--segmented">
-              <div class="fg-control-strip__viewport">
-                <div class="fg-segmented" aria-label="Environment formats" role="group">
-                  <button class="fg-segmented__item is-active" type="button" aria-pressed="true">
-                    <span class="fg-segmented__label">Variables</span>
-                  </button>
-                  <button class="fg-segmented__item" type="button" aria-pressed="false">
-                    <span class="fg-segmented__label">Raw</span>
-                  </button>
+
+            <div class="preview-span-4 preview-stack">
+              <div class="preview-surface">
+                <p class="fg-label">State tones</p>
+                <div class="preview-status-row">
+                  <span class="fg-status-badge fg-status-badge--positive fg-status-badge--live">
+                    <span class="fg-status-badge__dot" aria-hidden="true"></span>
+                    <span class="fg-status-badge__label">Healthy</span>
+                  </span>
+                  <span class="fg-status-badge fg-status-badge--info">
+                    <span class="fg-status-badge__label">Shared</span>
+                  </span>
+                  <span class="fg-status-badge fg-status-badge--warning">
+                    <span class="fg-status-badge__label">Review</span>
+                  </span>
+                  <span class="fg-status-badge fg-status-badge--danger">
+                    <span class="fg-status-badge__label">Blocked</span>
+                  </span>
                 </div>
               </div>
-            </div>
-            <div class="fg-control-strip-shell fg-control-strip-shell--segmented">
-              <div class="fg-control-strip__viewport">
-                <div class="fg-segmented" aria-label="Log views" role="group">
-                  <button class="fg-segmented__item" type="button" aria-pressed="false">
-                    <span class="fg-segmented__label">Build</span>
-                  </button>
-                  <button class="fg-segmented__item is-active" type="button" aria-pressed="true">
-                    <span class="fg-segmented__label">Runtime</span>
-                  </button>
+
+              <div class="preview-surface">
+                <p class="fg-label">Object belt</p>
+                <div class="fg-object-belt" aria-label="Core objects">
+                  <span>Workspace</span>
+                  <span>Project</span>
+                  <span>App</span>
+                  <span>Runtime</span>
+                  <span>Operation</span>
                 </div>
               </div>
             </div>
@@ -161,31 +374,438 @@
         </section>
 
         <section class="preview-section">
-          <div class="preview-heading">
-            <p class="fg-label">Pill nav</p>
-            <h2 class="fg-heading">Detached navigation should still advertise the current route clearly.</h2>
+          <div class="preview-section__intro">
+            <p class="fg-label">Navigation and selection</p>
+            <h2 class="fg-ui-heading">All small-choice surfaces now speak the same lens language.</h2>
+            <p class="fg-copy">
+              Detached nav, segmented switches, masthead utilities, and compact menu buttons all
+              share one active-state grammar instead of drifting page by page.
+            </p>
           </div>
-          <div class="fg-control-strip-shell fg-control-strip-shell--pill">
-            <div class="fg-control-strip__viewport">
-              <nav class="fg-pill-nav" aria-label="Preview navigation">
-                <a href="#notes" aria-current="page">Route</a>
-                <a href="#proof">Proof</a>
-                <a href="#objects">Objects</a>
-              </nav>
+
+          <div class="preview-grid">
+            <div class="preview-span-7 preview-stack">
+              <div class="preview-surface">
+                <p class="fg-label">Pill nav</p>
+                <div class="fg-control-strip-shell fg-control-strip-shell--pill">
+                  <div class="fg-control-strip__viewport">
+                    <nav class="fg-pill-nav" aria-label="Primary">
+                      <a aria-current="page" href="#route">Route</a>
+                      <a href="#proof">Proof</a>
+                      <a href="#deploy">Deploy</a>
+                    </nav>
+                  </div>
+                </div>
+              </div>
+
+              <div class="preview-card-grid">
+                <div class="preview-surface">
+                  <p class="fg-label">Workbench views</p>
+                  <div class="fg-control-strip-shell fg-control-strip-shell--segmented">
+                    <div class="fg-control-strip__viewport">
+                      <div class="fg-segmented" aria-label="Workbench views" role="group">
+                        <button class="fg-segmented__item is-active" aria-pressed="true" type="button">
+                          <span class="fg-segmented__label">Environment</span>
+                        </button>
+                        <button class="fg-segmented__item" aria-pressed="false" type="button">
+                          <span class="fg-segmented__label">Files</span>
+                        </button>
+                        <button class="fg-segmented__item" aria-pressed="false" type="button">
+                          <span class="fg-segmented__label">Logs</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="preview-surface">
+                  <p class="fg-label">Format switch</p>
+                  <div class="fg-control-strip-shell fg-control-strip-shell--segmented">
+                    <div class="fg-control-strip__viewport">
+                      <div class="fg-segmented" aria-label="Environment format" role="group">
+                        <button class="fg-segmented__item is-active" aria-pressed="true" type="button">
+                          <span class="fg-segmented__label">Variables</span>
+                        </button>
+                        <button class="fg-segmented__item" aria-pressed="false" type="button">
+                          <span class="fg-segmented__label">Raw</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="preview-surface">
+                  <p class="fg-label">Compact rail</p>
+                  <div class="fg-control-strip-shell fg-control-strip-shell--segmented">
+                    <div class="fg-control-strip__viewport">
+                      <div class="fg-segmented" aria-label="Logs" role="group">
+                        <button class="fg-segmented__item" aria-pressed="false" type="button">
+                          <span class="fg-segmented__label">Build</span>
+                        </button>
+                        <button class="fg-segmented__item is-active" aria-pressed="true" type="button">
+                          <span class="fg-segmented__label">Runtime</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="preview-span-5 preview-stack">
+              <div class="preview-surface">
+                <p class="fg-label">Utility menu</p>
+                <div class="preview-utility-row">
+                  <details class="fg-locale-utility" open>
+                    <summary class="fg-locale-utility__trigger">
+                      <span class="fg-locale-utility__value">English</span>
+                      <span class="fg-locale-utility__chevron" aria-hidden="true">
+                        <svg viewBox="0 0 12 12">
+                          <path
+                            d="M3 4.5 6 7.5 9 4.5"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="1.2"
+                          />
+                        </svg>
+                      </span>
+                    </summary>
+                    <div class="fg-locale-utility__panel">
+                      <ul class="fg-locale-utility__list" aria-label="Interface language">
+                        <li class="fg-locale-utility__list-item">
+                          <button class="fg-locale-utility__option is-active" aria-pressed="true" type="button">
+                            <span class="fg-locale-utility__option-label">English</span>
+                            <span class="fg-locale-utility__option-mark" aria-hidden="true"></span>
+                          </button>
+                        </li>
+                        <li class="fg-locale-utility__list-item">
+                          <button class="fg-locale-utility__option" aria-pressed="false" type="button">
+                            <span class="fg-locale-utility__option-label" lang="zh-CN">简体中文</span>
+                            <span class="fg-locale-utility__option-mark" aria-hidden="true"></span>
+                          </button>
+                        </li>
+                        <li class="fg-locale-utility__list-item">
+                          <button class="fg-locale-utility__option" aria-pressed="false" type="button">
+                            <span class="fg-locale-utility__option-label" lang="zh-TW">繁體中文</span>
+                            <span class="fg-locale-utility__option-mark" aria-hidden="true"></span>
+                          </button>
+                        </li>
+                      </ul>
+                    </div>
+                  </details>
+                </div>
+              </div>
+
+              <div class="preview-surface">
+                <p class="fg-label">Compact menu button</p>
+                <details class="fg-locale-menu" open>
+                  <summary class="fg-button fg-button--secondary fg-button--compact fg-locale-menu__trigger">
+                    <span class="fg-button__label">English</span>
+                  </summary>
+                  <div class="fg-locale-menu__panel">
+                    <p class="fg-locale-menu__title fg-mono">Interface language</p>
+                    <div class="fg-locale-menu__switcher">
+                      <div class="fg-control-strip-shell fg-control-strip-shell--segmented">
+                        <div class="fg-control-strip__viewport">
+                          <div class="fg-segmented" aria-label="Interface language" role="group">
+                            <button class="fg-segmented__item" aria-pressed="false" type="button">
+                              <span class="fg-segmented__label">Auto</span>
+                            </button>
+                            <button class="fg-segmented__item is-active" aria-pressed="true" type="button">
+                              <span class="fg-segmented__label">EN</span>
+                            </button>
+                            <button class="fg-segmented__item" aria-pressed="false" type="button">
+                              <span class="fg-segmented__label">简</span>
+                            </button>
+                            <button class="fg-segmented__item" aria-pressed="false" type="button">
+                              <span class="fg-segmented__label">繁</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </details>
+              </div>
             </div>
           </div>
         </section>
 
-        <section class="preview-section" id="notes">
-          <div class="preview-heading">
-            <p class="fg-label">Route notes</p>
-            <h2 class="fg-heading">Cards that explain the route, not decorative features.</h2>
+        <section class="preview-section">
+          <div class="preview-section__intro">
+            <p class="fg-label">Forms and feedback</p>
+            <h2 class="fg-ui-heading">Field chrome, help, and error voice stay shared across routes.</h2>
+            <p class="fg-copy">
+              Auth, deploy, and console forms now all inherit the same field shell, tooltip,
+              select, slider, and inline alert treatment.
+            </p>
           </div>
-          <div class="preview-notes">
+
+          <div class="preview-grid">
+            <div class="preview-span-7">
+              <section class="fg-bezel fg-panel">
+                <div class="fg-bezel__inner">
+                  <div class="fg-panel__section">
+                    <p class="fg-label fg-panel__eyebrow">Create route</p>
+                    <h2 class="fg-ui-heading fg-panel__title">Bring source into the shared runtime first.</h2>
+                    <p class="fg-panel__copy">
+                      The form stack below is the same shell language used by auth, deploy, and
+                      console-side configuration work.
+                    </p>
+                  </div>
+
+                  <div class="fg-panel__section preview-form">
+                    <div class="fg-field-stack">
+                      <span class="fg-field-label">
+                        <span class="fg-field-label__main">
+                          <label class="fg-field-label__text" for="preview-project-name">Project name</label>
+                          <span class="fg-hint-tooltip">
+                            <button class="fg-hint-tooltip__trigger" aria-describedby="preview-project-name-hint" aria-label="Project name" type="button">
+                              <svg aria-hidden="true" class="fg-hint-tooltip__icon" fill="none" viewBox="0 0 20 20">
+                                <circle cx="10" cy="10" r="7.35" stroke="currentColor" stroke-width="1.35"></circle>
+                                <path d="M10 8.65V13.15" stroke="currentColor" stroke-linecap="round" stroke-width="1.6"></path>
+                                <circle cx="10" cy="6.2" fill="currentColor" r="0.95"></circle>
+                              </svg>
+                            </button>
+                            <span class="fg-hint-tooltip__bubble" id="preview-project-name-hint" role="tooltip">
+                              Keep route names human-readable. The shell already carries the technical context.
+                            </span>
+                          </span>
+                        </span>
+                        <span class="fg-field-label__meta">Required</span>
+                      </span>
+                      <span class="fg-field-control">
+                        <input class="fg-input" id="preview-project-name" placeholder="marketing-site" type="text" />
+                      </span>
+                    </div>
+
+                    <div class="fg-field-stack">
+                      <span class="fg-field-label">
+                        <span class="fg-field-label__main">
+                          <label class="fg-field-label__text" for="preview-runtime">Runtime</label>
+                        </span>
+                        <span class="fg-field-label__meta">Default</span>
+                      </span>
+                      <span class="fg-field-control">
+                        <span class="fg-select">
+                          <select class="fg-select__control" id="preview-runtime">
+                            <option>Managed shared runtime</option>
+                            <option>Attached machine</option>
+                          </select>
+                          <span class="fg-select__icon" aria-hidden="true">
+                            <svg fill="none" height="12" viewBox="0 0 12 12" width="12">
+                              <path
+                                d="M2.25 4.5 6 8.25 9.75 4.5"
+                                stroke="currentColor"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="1.35"
+                              />
+                            </svg>
+                          </span>
+                        </span>
+                      </span>
+                    </div>
+
+                    <div class="fg-field-stack">
+                      <span class="fg-field-label">
+                        <span class="fg-field-label__main">
+                          <span class="fg-field-label__text">Instance cap</span>
+                        </span>
+                        <span class="fg-field-label__meta">Optional</span>
+                      </span>
+                      <span class="fg-field-control">
+                        <div class="fg-stepped-slider" style="--fg-slider-percent: 58%;">
+                          <span class="fg-stepped-slider__value-pill">4 instances</span>
+                          <input class="fg-stepped-slider__input" max="8" min="1" type="range" value="4" />
+                          <div class="fg-stepped-slider__bounds">
+                            <span>1</span>
+                            <span>8</span>
+                          </div>
+                        </div>
+                      </span>
+                    </div>
+
+                    <div class="fg-inline-alert fg-inline-alert--info">
+                      Shared field chrome, helper voice, and validation tone now belong to the design system instead of route-local CSS.
+                    </div>
+
+                    <div class="preview-actions">
+                      <button class="fg-button fg-button--primary" type="button">
+                        <span class="fg-button__label">Create project</span>
+                      </button>
+                      <button class="fg-button fg-button--secondary" type="button">
+                        <span class="fg-button__label">Preview config</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <div class="preview-span-5 preview-stack">
+              <div class="preview-surface preview-inline-grid">
+                <p class="fg-label">Inline alerts</p>
+                <div class="fg-inline-alert fg-inline-alert--success">Shared runtime is ready.</div>
+                <div class="fg-inline-alert fg-inline-alert--warning">Node key expires in 12 hours.</div>
+                <div class="fg-inline-alert fg-inline-alert--error">Build logs could not be loaded.</div>
+              </div>
+
+              <div class="preview-surface">
+                <p class="fg-label">Static choice</p>
+                <div class="fg-static-choice">
+                  <span class="fg-static-choice__label">Public route</span>
+                  <span class="fg-static-choice__meta">Generated</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="preview-section">
+          <div class="preview-section__intro">
+            <p class="fg-label">Product surfaces</p>
+            <h2 class="fg-ui-heading">Console shell patterns now belong to the shared system too.</h2>
+            <p class="fg-copy">
+              Page intros, empty states, disclosures, proof shells, and status badges no longer
+              sit outside the design-system boundary.
+            </p>
+          </div>
+
+          <div class="preview-grid">
+            <div class="preview-span-7 preview-stack">
+              <div class="preview-surface">
+                <section class="fg-console-page-intro">
+                  <div class="fg-console-page-intro__copy">
+                    <p class="fg-label">Workspace route</p>
+                    <h2 class="fg-ui-heading">Route configuration stays visible next to operations.</h2>
+                    <p class="fg-copy">
+                      Product page intros keep authored copy quiet, actions visible, and shell
+                      language consistent with the rest of the console.
+                    </p>
+                  </div>
+                  <div class="fg-console-page-intro__actions">
+                    <button class="fg-button fg-button--secondary" type="button">
+                      <span class="fg-button__label">View logs</span>
+                    </button>
+                    <button class="fg-button fg-button--primary" type="button">
+                      <span class="fg-button__label">Open route</span>
+                    </button>
+                  </div>
+                </section>
+              </div>
+
+              <details class="fg-console-disclosure fg-console-disclosure--section" open>
+                <summary>
+                  <span class="fg-console-disclosure__summary-copy">
+                    <span class="fg-console-disclosure__summary-label-row">
+                      <span class="fg-console-disclosure__summary-label">Shared runtime details</span>
+                    </span>
+                  </span>
+                  <span class="fg-console-disclosure__summary-icon" aria-hidden="true">
+                    <svg fill="none" height="12" viewBox="0 0 12 12" width="12">
+                      <path
+                        d="M2.25 4.5 6 8.25 9.75 4.5"
+                        stroke="currentColor"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="1.35"
+                      />
+                    </svg>
+                  </span>
+                </summary>
+                <div class="fg-console-disclosure__panel">
+                  <dl class="fg-console-disclosure__list">
+                    <div class="fg-console-disclosure__item">
+                      <dt>Runtime</dt>
+                      <dd>Managed shared k3s</dd>
+                    </div>
+                    <div class="fg-console-disclosure__item">
+                      <dt>Route</dt>
+                      <dd>https://marketing.fugue.pro</dd>
+                    </div>
+                    <div class="fg-console-disclosure__item">
+                      <dt>Migration path</dt>
+                      <dd>Shared first, attached later without changing the route model.</dd>
+                    </div>
+                  </dl>
+                </div>
+              </details>
+
+              <div class="preview-surface">
+                <div class="fg-console-empty-state">
+                  <div>
+                    <strong>No custom domains yet</strong>
+                    <p>
+                      The shell explains the empty condition plainly and keeps the next action in the
+                      same product language.
+                    </p>
+                  </div>
+                  <div class="fg-console-empty-state__actions">
+                    <button class="fg-button fg-button--secondary" type="button">
+                      <span class="fg-button__label">Add domain</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="preview-span-5 preview-stack">
+              <section class="fg-bezel fg-proof-shell preview-proof">
+                <div class="fg-bezel__inner">
+                  <div class="fg-proof-shell__ribbon">
+                    <span>Public access</span>
+                    <span>Managed shared runtime</span>
+                    <span>api.fugue.pro</span>
+                  </div>
+                  <pre><code>export FUGUE_BASE_URL="https://api.fugue.pro"
+
+curl -sS "${FUGUE_BASE_URL}/healthz"
+
+curl -sS "${FUGUE_BASE_URL}/v1/apps/import-github" \
+  -H "Authorization: Bearer &lt;tenant-api-key&gt;" \
+  -H "Content-Type: application/json"</code></pre>
+                </div>
+              </section>
+
+              <div class="preview-surface">
+                <p class="fg-label">Code textarea layer</p>
+                <div class="preview-editor">
+                  <div class="fg-code-textarea">
+                    <pre aria-hidden="true" class="fg-code-textarea__highlight"><code><span class="token keyword">export</span> <span class="token variable">FUGUE_BASE_URL</span>=<span class="token string">"https://api.fugue.pro"</span>
+
+<span class="token keyword">curl</span> -sS <span class="token string">"${FUGUE_BASE_URL}/healthz"</span>
+
+<span class="token keyword">curl</span> -sS <span class="token string">"${FUGUE_BASE_URL}/v1/apps/import-github"</span></code></pre>
+                    <textarea aria-label="Code editor sample" class="fg-code-textarea__input" spellcheck="false">export FUGUE_BASE_URL="https://api.fugue.pro"
+
+curl -sS "${FUGUE_BASE_URL}/healthz"
+
+curl -sS "${FUGUE_BASE_URL}/v1/apps/import-github"</textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="preview-section">
+          <div class="preview-section__intro">
+            <p class="fg-label">Route language</p>
+            <h2 class="fg-ui-heading">Marketing and product still share the same route grammar.</h2>
+            <p class="fg-copy">
+              Route notes, route signals, upload surfaces, and object belts preserve the product
+              narrative without copying the landing page wholesale into product UI.
+            </p>
+          </div>
+
+          <div class="preview-note-grid">
             <article class="fg-route-note">
               <span class="fg-route-note__index">01</span>
-              <strong class="fg-route-note__title">GitHub intake</strong>
-              <span class="fg-route-note__meta">Repository / Branch / Builder</span>
+              <strong class="fg-route-note__title">Source intake</strong>
+              <span class="fg-route-note__meta">Repository / Image / Upload</span>
             </article>
             <article class="fg-route-note">
               <span class="fg-route-note__index">02</span>
@@ -198,63 +818,93 @@
               <span class="fg-route-note__meta">Node key / Heartbeat / Migrate</span>
             </article>
           </div>
-        </section>
 
-        <section class="preview-section">
-          <div class="preview-heading">
-            <p class="fg-label">Route signal</p>
-            <h2 class="fg-heading">A path is only useful if it maps to a real transition.</h2>
-          </div>
-          <svg class="fg-route-signal" viewBox="0 0 1200 170" aria-hidden="true">
-            <path class="fg-route-signal__base" d="M40 118 C232 26, 372 32, 538 96 S860 180, 1160 36" />
-            <path class="fg-route-signal__active" d="M40 118 C232 26, 372 32, 538 96 S860 180, 1160 36" />
-            <circle class="fg-route-signal__dot" cx="40" cy="118" r="7" />
-            <circle class="fg-route-signal__dot" cx="538" cy="96" r="7" />
-            <circle class="fg-route-signal__dot" cx="1160" cy="36" r="7" />
-          </svg>
-        </section>
+          <div class="preview-route-signal-shell">
+            <svg class="fg-route-signal" viewBox="0 0 1200 170" aria-hidden="true">
+              <path class="fg-route-signal__base" d="M40 118 C232 26, 372 32, 538 96 S860 180, 1160 36" />
+              <path class="fg-route-signal__active" d="M40 118 C232 26, 372 32, 538 96 S860 180, 1160 36" />
+              <circle class="fg-route-signal__dot" cx="40" cy="118" r="7" />
+              <circle class="fg-route-signal__dot" cx="538" cy="96" r="7" />
+              <circle class="fg-route-signal__dot" cx="1160" cy="36" r="7" />
+            </svg>
 
-        <section class="preview-section preview-proof" id="proof">
-          <div class="preview-heading">
-            <p class="fg-label">Proof shell</p>
-            <h2 class="fg-heading">Command and control-plane proof should live in hardware, not naked code.</h2>
-          </div>
-          <section class="fg-bezel fg-proof-shell">
-            <div class="fg-bezel__inner">
-              <div class="fg-proof-shell__ribbon">
-                <span>Public or private access</span>
-                <span>Managed shared runtime</span>
-                <span>api.fugue.pro</span>
+            <div class="preview-grid">
+              <div class="preview-span-6">
+                <div class="fg-upload-source">
+                  <input class="fg-upload-source__input" id="preview-upload" type="file" />
+                  <label class="fg-upload-source__dropzone" for="preview-upload">
+                    <div class="fg-upload-source__head">
+                      <div>
+                        <p class="fg-upload-source__eyebrow">Upload source</p>
+                        <strong class="fg-upload-source__title">Bring a local bundle into the route.</strong>
+                      </div>
+                      <span class="fg-upload-source__meter">12 MB max</span>
+                    </div>
+                    <p class="fg-upload-source__copy">
+                      Upload, inspect, and keep the route model aligned with the same shared shell
+                      used by repository and image imports.
+                    </p>
+                    <div class="fg-upload-source__chips">
+                      <span class="fg-upload-source__chip">zip</span>
+                      <span class="fg-upload-source__chip">tar.gz</span>
+                      <span class="fg-upload-source__chip">Single file</span>
+                    </div>
+                    <ul class="fg-upload-source__list">
+                      <li>Uploads enter the same route-first operating model as repository and image imports.</li>
+                    </ul>
+                  </label>
+                </div>
               </div>
-              <pre><code>export FUGUE_BASE_URL="https://api.fugue.pro"
 
-curl -sS "${FUGUE_BASE_URL}/healthz"
-
-curl -sS "${FUGUE_BASE_URL}/v1/apps/import-github" \
-  -H "Authorization: Bearer &lt;tenant-api-key&gt;" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "repo_url":"https://github.com/example/static-site",
-    "runtime_id":"runtime_managed_shared"
-  }'</code></pre>
+              <div class="preview-span-6">
+                <div class="preview-surface">
+                  <div class="preview-title-row">
+                    <h3 class="fg-ui-heading">Current extraction boundary</h3>
+                    <p class="fg-copy">
+                      Shared shell, field, and route language live here. Page choreography stays in route CSS.
+                    </p>
+                  </div>
+                  <div class="preview-upload-row">
+                    <span class="fg-status-badge fg-status-badge--neutral">
+                      <span class="fg-status-badge__label">Shared shell</span>
+                    </span>
+                    <span class="fg-status-badge fg-status-badge--info">
+                      <span class="fg-status-badge__label">Utility menus</span>
+                    </span>
+                    <span class="fg-status-badge fg-status-badge--positive">
+                      <span class="fg-status-badge__label">Forms</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
-          </section>
-        </section>
-
-        <section class="preview-section" id="objects">
-          <div class="preview-heading">
-            <p class="fg-label">Object belt</p>
-            <h2 class="fg-heading">Keep product nouns visible and stable.</h2>
-          </div>
-          <div class="fg-object-belt" aria-label="Core objects">
-            <span>Workspace</span>
-            <span>Project</span>
-            <span>App</span>
-            <span>Runtime</span>
-            <span>Operation</span>
           </div>
         </section>
       </div>
     </main>
+
+    <script>
+      (() => {
+        const root = document.documentElement;
+        const body = document.body;
+        const toggle = document.getElementById("theme-toggle");
+        const label = document.querySelector("[data-theme-toggle-label]");
+
+        function applyTheme(theme) {
+          root.dataset.theme = theme;
+          body.classList.toggle("fg-theme-dark", theme === "dark");
+          body.classList.toggle("fg-theme-light", theme === "light");
+          if (label) {
+            label.textContent = theme === "dark" ? "Switch to light" : "Switch to dark";
+          }
+        }
+
+        toggle?.addEventListener("click", () => {
+          applyTheme(root.dataset.theme === "light" ? "dark" : "light");
+        });
+
+        applyTheme(root.dataset.theme === "light" ? "light" : "dark");
+      })();
+    </script>
   </body>
 </html>

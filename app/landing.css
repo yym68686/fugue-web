@@ -1,7 +1,145 @@
 .fg-landing-page {
   --fg-landing-header-offset: 5.8rem;
+  --fg-landing-skip-link-bg: rgba(10, 11, 15, 0.96);
+  --fg-landing-hero-ghost-stroke: rgba(255, 255, 255, 0.08);
+  --fg-landing-hero-ghost-opacity: 0.72;
+  --fg-landing-hero-copy-veil:
+    radial-gradient(circle at 22% 32%, rgba(4, 6, 8, 0.92), transparent 56%),
+    linear-gradient(
+      90deg,
+      rgba(4, 6, 8, 0.92) 0%,
+      rgba(4, 6, 8, 0.78) 38%,
+      rgba(4, 6, 8, 0.2) 72%,
+      rgba(4, 6, 8, 0) 100%
+    );
+  --fg-landing-hero-heading-shadow: 0 16px 42px rgba(2, 4, 6, 0.34);
+  --fg-landing-scene-fallback-bg:
+    radial-gradient(circle at 28% 24%, rgba(87, 120, 171, 0.56), transparent 22%),
+    radial-gradient(circle at 70% 18%, rgba(134, 160, 205, 0.24), transparent 25%),
+    radial-gradient(circle at 54% 54%, rgba(63, 84, 122, 0.24), transparent 34%),
+    linear-gradient(180deg, #081019 0%, #03070d 44%, #030406 100%);
+  --fg-landing-overlay-radial-bg:
+    radial-gradient(circle at 52% 8%, rgba(255, 255, 255, 0.14), transparent 18%),
+    radial-gradient(circle at 50% -6%, rgba(98, 124, 167, 0.26), transparent 34%);
+  --fg-landing-overlay-radial-opacity: 0.66;
+  --fg-landing-overlay-gradient-bg:
+    linear-gradient(
+      180deg,
+      rgba(3, 4, 6, 0.08) 0%,
+      transparent 20%,
+      rgba(3, 4, 6, 0.18) 54%,
+      rgba(3, 4, 6, 0.86) 94%
+    ),
+    linear-gradient(
+      90deg,
+      rgba(2, 3, 5, 0.84) 0%,
+      rgba(2, 3, 5, 0.34) 34%,
+      rgba(2, 3, 5, 0.08) 58%,
+      rgba(2, 3, 5, 0.58) 100%
+    );
+  --fg-landing-overlay-noise-bg:
+    radial-gradient(circle at 18% 28%, rgba(255, 255, 255, 0.22) 0 0.8px, transparent 0.8px),
+    radial-gradient(circle at 74% 24%, rgba(255, 255, 255, 0.12) 0 0.8px, transparent 0.8px),
+    radial-gradient(circle at 42% 76%, rgba(255, 255, 255, 0.1) 0 0.8px, transparent 0.8px);
+  --fg-landing-overlay-noise-opacity: 0.16;
+  --fg-landing-overlay-scan-bg: repeating-linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.08) 0 1px,
+    transparent 1px 4px
+  );
+  --fg-landing-overlay-scan-opacity: 0.14;
+  --fg-landing-overlay-scan-blend: screen;
+  --fg-landing-stage-glare-bg:
+    linear-gradient(118deg, rgba(255, 255, 255, 0.08), transparent 24%),
+    radial-gradient(circle at 62% 22%, rgba(167, 197, 229, 0.18), transparent 22%);
+  --fg-landing-stage-glare-opacity: 0.82;
+  --fg-landing-stage-glare-blend: screen;
+  --fg-landing-route-section-bg: linear-gradient(180deg, #050608 0%, #040608 32%, #05070b 100%);
+  --fg-landing-runway-border: var(--fugue-border-subtle);
+  --fg-landing-runway-bg: linear-gradient(180deg, #050608 0%, #040608 32%, #05070b 100%);
+  --fg-landing-runway-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  --fg-landing-runway-stop-border: var(--fugue-border-strong);
+  --fg-landing-runway-label-color: var(--fugue-accent-signal);
+  --fg-landing-runway-title-color: var(--fugue-text-primary);
   position: relative;
   overflow-x: hidden;
+}
+
+:root[data-theme="light"] .fg-landing-page {
+  --fg-landing-skip-link-bg: color-mix(in srgb, var(--fugue-surface-canvas) 94%, transparent);
+  --fg-landing-hero-ghost-stroke: rgba(17, 34, 59, 0.1);
+  --fg-landing-hero-ghost-opacity: 0.26;
+  --fg-landing-hero-copy-veil:
+    radial-gradient(circle at 18% 26%, rgba(255, 255, 255, 0.98), transparent 56%),
+    linear-gradient(
+      90deg,
+      rgba(249, 253, 255, 0.96) 0%,
+      rgba(240, 248, 254, 0.84) 38%,
+      rgba(233, 243, 251, 0.26) 72%,
+      rgba(233, 243, 251, 0) 100%
+    );
+  --fg-landing-hero-heading-shadow: 0 18px 42px rgba(47, 78, 120, 0.14);
+  --fg-landing-scene-fallback-bg:
+    radial-gradient(circle at 18% 14%, rgba(255, 255, 255, 0.82), transparent 28%),
+    radial-gradient(circle at 72% 12%, rgba(134, 163, 205, 0.28), transparent 24%),
+    radial-gradient(circle at 54% 52%, rgba(95, 124, 155, 0.16), transparent 34%),
+    var(--fugue-page-background);
+  --fg-landing-overlay-radial-bg:
+    radial-gradient(circle at 52% 8%, rgba(255, 255, 255, 0.56), transparent 20%),
+    radial-gradient(circle at 46% -4%, rgba(59, 95, 139, 0.16), transparent 34%);
+  --fg-landing-overlay-radial-opacity: 0.58;
+  --fg-landing-overlay-gradient-bg:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.1) 0%,
+      transparent 20%,
+      rgba(227, 237, 247, 0.22) 54%,
+      rgba(224, 235, 246, 0.82) 94%
+    ),
+    linear-gradient(
+      90deg,
+      rgba(248, 252, 255, 0.96) 0%,
+      rgba(244, 249, 254, 0.62) 34%,
+      rgba(244, 249, 254, 0.16) 58%,
+      rgba(228, 238, 248, 0.68) 100%
+    );
+  --fg-landing-overlay-noise-bg:
+    radial-gradient(circle at 18% 28%, rgba(17, 34, 59, 0.06) 0 0.8px, transparent 0.8px),
+    radial-gradient(circle at 74% 24%, rgba(17, 34, 59, 0.04) 0 0.8px, transparent 0.8px),
+    radial-gradient(circle at 42% 76%, rgba(17, 34, 59, 0.035) 0 0.8px, transparent 0.8px);
+  --fg-landing-overlay-noise-opacity: 0.08;
+  --fg-landing-overlay-scan-bg: repeating-linear-gradient(
+    180deg,
+    rgba(17, 34, 59, 0.035) 0 1px,
+    transparent 1px 4px
+  );
+  --fg-landing-overlay-scan-opacity: 0.05;
+  --fg-landing-overlay-scan-blend: multiply;
+  --fg-landing-stage-glare-bg:
+    linear-gradient(118deg, rgba(255, 255, 255, 0.28), transparent 24%),
+    radial-gradient(circle at 62% 22%, rgba(112, 144, 186, 0.12), transparent 22%);
+  --fg-landing-stage-glare-opacity: 0.56;
+  --fg-landing-stage-glare-blend: normal;
+  --fg-landing-route-section-bg:
+    radial-gradient(circle at 12% 0%, rgba(255, 255, 255, 0.74), transparent 26%),
+    linear-gradient(180deg, rgba(251, 254, 255, 0.84), rgba(232, 241, 249, 0.98)),
+    var(--fugue-surface-canvas);
+  --fg-landing-runway-border: rgba(97, 128, 176, 0.16);
+  --fg-landing-runway-bg:
+    radial-gradient(circle at 12% 16%, rgba(145, 178, 224, 0.18), transparent 34%),
+    linear-gradient(
+      180deg,
+      rgba(25, 46, 80, 0.98),
+      rgba(13, 29, 54, 0.97)
+    ),
+    rgba(11, 24, 46, 0.98);
+  --fg-landing-runway-shadow:
+    0 30px 68px -46px rgba(11, 24, 46, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -1px 0 rgba(137, 169, 209, 0.14);
+  --fg-landing-runway-stop-border: rgba(191, 210, 236, 0.16);
+  --fg-landing-runway-label-color: rgba(191, 210, 236, 0.74);
+  --fg-landing-runway-title-color: #f4f8ff;
 }
 
 #main,
@@ -22,7 +160,7 @@ body.menu-open {
   padding: 0.8rem 1rem;
   border: 1px solid var(--fugue-border-strong);
   border-radius: var(--fugue-radius-pill);
-  background: rgba(10, 11, 15, 0.96);
+  background: var(--fg-landing-skip-link-bg);
   color: var(--fugue-text-primary);
   font-size: 0.72rem;
   letter-spacing: 0.08em;
@@ -418,8 +556,8 @@ body.is-ready .fg-landing-hero-media {
   line-height: 0.82;
   letter-spacing: -0.09em;
   color: transparent;
-  -webkit-text-stroke: 1px rgba(255, 255, 255, 0.08);
-  opacity: 0.72;
+  -webkit-text-stroke: 1px var(--fg-landing-hero-ghost-stroke);
+  opacity: var(--fg-landing-hero-ghost-opacity);
   pointer-events: none;
 }
 
@@ -439,15 +577,7 @@ body.is-ready .fg-landing-hero-media {
   position: absolute;
   inset: -2rem -5rem -1.85rem -4rem;
   z-index: -1;
-  background:
-    radial-gradient(circle at 22% 32%, rgba(4, 6, 8, 0.92), transparent 56%),
-    linear-gradient(
-      90deg,
-      rgba(4, 6, 8, 0.92) 0%,
-      rgba(4, 6, 8, 0.78) 38%,
-      rgba(4, 6, 8, 0.2) 72%,
-      rgba(4, 6, 8, 0) 100%
-    );
+  background: var(--fg-landing-hero-copy-veil);
   pointer-events: none;
 }
 
@@ -498,7 +628,7 @@ body.is-ready .fg-landing-hero-rail[data-stagger] {
   margin-top: 0.9rem;
   max-width: 8ch;
   font-size: clamp(4.4rem, 9.5vw, 9.25rem);
-  text-shadow: 0 16px 42px rgba(2, 4, 6, 0.34);
+  text-shadow: var(--fg-landing-hero-heading-shadow);
 }
 
 .fg-landing-hero-title-line {
@@ -572,11 +702,7 @@ body.is-ready .fg-landing-hero-rail[data-stagger] {
   content: "";
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(circle at 28% 24%, rgba(87, 120, 171, 0.56), transparent 22%),
-    radial-gradient(circle at 70% 18%, rgba(134, 160, 205, 0.24), transparent 25%),
-    radial-gradient(circle at 54% 54%, rgba(63, 84, 122, 0.24), transparent 34%),
-    linear-gradient(180deg, #081019 0%, #03070d 44%, #030406 100%);
+  background: var(--fg-landing-scene-fallback-bg);
   opacity: 1;
   transition: opacity 420ms var(--fugue-ease-out-expo);
 }
@@ -592,63 +718,38 @@ body.has-scene .fg-landing-scene-container::before {
 
 .fg-landing-overlay-radial {
   z-index: 10;
-  opacity: 0.66;
-  background:
-    radial-gradient(circle at 52% 8%, rgba(255, 255, 255, 0.14), transparent 18%),
-    radial-gradient(circle at 50% -6%, rgba(98, 124, 167, 0.26), transparent 34%);
+  opacity: var(--fg-landing-overlay-radial-opacity);
+  background: var(--fg-landing-overlay-radial-bg);
   pointer-events: none;
 }
 
 .fg-landing-overlay-gradient {
   z-index: 11;
-  background:
-    linear-gradient(
-      180deg,
-      rgba(3, 4, 6, 0.08) 0%,
-      transparent 20%,
-      rgba(3, 4, 6, 0.18) 54%,
-      rgba(3, 4, 6, 0.86) 94%
-    ),
-    linear-gradient(
-      90deg,
-      rgba(2, 3, 5, 0.84) 0%,
-      rgba(2, 3, 5, 0.34) 34%,
-      rgba(2, 3, 5, 0.08) 58%,
-      rgba(2, 3, 5, 0.58) 100%
-    );
+  background: var(--fg-landing-overlay-gradient-bg);
   pointer-events: none;
 }
 
 .fg-landing-overlay-noise {
   z-index: 12;
-  opacity: 0.16;
-  background:
-    radial-gradient(circle at 18% 28%, rgba(255, 255, 255, 0.22) 0 0.8px, transparent 0.8px),
-    radial-gradient(circle at 74% 24%, rgba(255, 255, 255, 0.12) 0 0.8px, transparent 0.8px),
-    radial-gradient(circle at 42% 76%, rgba(255, 255, 255, 0.1) 0 0.8px, transparent 0.8px);
+  opacity: var(--fg-landing-overlay-noise-opacity);
+  background: var(--fg-landing-overlay-noise-bg);
   background-size: 170px 170px;
   pointer-events: none;
 }
 
 .fg-landing-overlay-scan {
   z-index: 13;
-  opacity: 0.14;
-  background: repeating-linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.08) 0 1px,
-    transparent 1px 4px
-  );
-  mix-blend-mode: screen;
+  opacity: var(--fg-landing-overlay-scan-opacity);
+  background: var(--fg-landing-overlay-scan-bg);
+  mix-blend-mode: var(--fg-landing-overlay-scan-blend);
   pointer-events: none;
 }
 
 .fg-landing-stage-glare {
   z-index: 14;
-  background:
-    linear-gradient(118deg, rgba(255, 255, 255, 0.08), transparent 24%),
-    radial-gradient(circle at 62% 22%, rgba(167, 197, 229, 0.18), transparent 22%);
-  mix-blend-mode: screen;
-  opacity: 0.82;
+  background: var(--fg-landing-stage-glare-bg);
+  mix-blend-mode: var(--fg-landing-stage-glare-blend);
+  opacity: var(--fg-landing-stage-glare-opacity);
   pointer-events: none;
 }
 
@@ -671,24 +772,26 @@ body.has-scene .fg-landing-scene-container::before {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1.5rem;
   padding: 1.45rem 1.2rem 2.2rem;
-  border: 1px solid var(--fugue-border-subtle);
+  border: 1px solid var(--fg-landing-runway-border);
   border-bottom: 0;
   border-radius: 1.5rem 1.5rem 0 0;
-  background: linear-gradient(180deg, #050608 0%, #040608 32%, #05070b 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  background: var(--fg-landing-runway-bg);
+  box-shadow: var(--fg-landing-runway-shadow);
 }
 
 .fg-landing-runway-stop {
   padding-top: 1.05rem;
-  border-top: 1px solid var(--fugue-border-strong);
+  border-top: 1px solid var(--fg-landing-runway-stop-border);
 }
 
 .fg-landing-runway-stop .fg-label {
   margin: 0;
+  color: var(--fg-landing-runway-label-color);
 }
 
 .fg-landing-runway-stop h2 {
   margin: 0.7rem 0 0;
+  color: var(--fg-landing-runway-title-color);
   font-size: clamp(1.1rem, 1.65vw, 1.32rem);
   line-height: 1.18;
   letter-spacing: -0.04em;
@@ -715,7 +818,7 @@ body.has-scene .fg-landing-scene-container::before {
   position: relative;
   margin-top: -1px;
   padding-top: clamp(4.4rem, 8.4vw, 6.2rem);
-  background: linear-gradient(180deg, #050608 0%, #040608 32%, #05070b 100%);
+  background: var(--fg-landing-route-section-bg);
   border-top: 0;
 }
 
@@ -905,126 +1008,8 @@ body.has-scene .fg-landing-scene-container::before {
   outline-offset: 3px;
 }
 
-:root[data-theme="light"] .fg-landing-hero-ghost {
-  -webkit-text-stroke: 1px rgba(17, 34, 59, 0.1);
-  opacity: 0.26;
-}
-
-:root[data-theme="light"] .fg-landing-hero-copy::before {
-  background:
-    radial-gradient(circle at 18% 26%, rgba(255, 255, 255, 0.98), transparent 56%),
-    linear-gradient(
-      90deg,
-      rgba(249, 253, 255, 0.96) 0%,
-      rgba(240, 248, 254, 0.84) 38%,
-      rgba(233, 243, 251, 0.26) 72%,
-      rgba(233, 243, 251, 0) 100%
-    );
-}
-
-:root[data-theme="light"] .fg-landing-hero-copy .fg-display-heading {
-  text-shadow: 0 18px 42px rgba(47, 78, 120, 0.14);
-}
-
-:root[data-theme="light"] .fg-landing-scene-container::before {
-  background:
-    radial-gradient(circle at 18% 14%, rgba(255, 255, 255, 0.86), transparent 28%),
-    radial-gradient(circle at 72% 12%, rgba(144, 176, 217, 0.34), transparent 24%),
-    radial-gradient(circle at 54% 52%, rgba(116, 146, 185, 0.16), transparent 34%),
-    linear-gradient(180deg, #edf4fb 0%, #e5edf8 44%, #dbe6f2 100%);
-}
-
-:root[data-theme="light"] body.has-scene .fg-landing-scene-container::before {
-  opacity: 1;
-}
-
 :root[data-theme="light"] .fg-landing-scene-container > * {
   display: none !important;
-}
-
-:root[data-theme="light"] .fg-landing-overlay-radial {
-  opacity: 0.54;
-  background:
-    radial-gradient(circle at 52% 8%, rgba(255, 255, 255, 0.52), transparent 20%),
-    radial-gradient(circle at 46% -4%, rgba(59, 95, 139, 0.14), transparent 34%);
-}
-
-:root[data-theme="light"] .fg-landing-overlay-gradient {
-  background:
-    linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.08) 0%,
-      transparent 20%,
-      rgba(227, 237, 247, 0.22) 54%,
-      rgba(224, 235, 246, 0.82) 94%
-    ),
-    linear-gradient(
-      90deg,
-      rgba(248, 252, 255, 0.96) 0%,
-      rgba(244, 249, 254, 0.58) 34%,
-      rgba(244, 249, 254, 0.12) 58%,
-      rgba(228, 238, 248, 0.68) 100%
-    );
-}
-
-:root[data-theme="light"] .fg-landing-overlay-noise {
-  opacity: 0.08;
-  background:
-    radial-gradient(circle at 18% 28%, rgba(17, 34, 59, 0.06) 0 0.8px, transparent 0.8px),
-    radial-gradient(circle at 74% 24%, rgba(17, 34, 59, 0.04) 0 0.8px, transparent 0.8px),
-    radial-gradient(circle at 42% 76%, rgba(17, 34, 59, 0.035) 0 0.8px, transparent 0.8px);
-}
-
-:root[data-theme="light"] .fg-landing-overlay-scan {
-  opacity: 0.05;
-  background: repeating-linear-gradient(
-    180deg,
-    rgba(17, 34, 59, 0.035) 0 1px,
-    transparent 1px 4px
-  );
-  mix-blend-mode: multiply;
-}
-
-:root[data-theme="light"] .fg-landing-stage-glare {
-  background:
-    linear-gradient(118deg, rgba(255, 255, 255, 0.32), transparent 24%),
-    radial-gradient(circle at 62% 22%, rgba(112, 144, 186, 0.14), transparent 22%);
-  opacity: 0.62;
-}
-
-:root[data-theme="light"] .fg-landing-section--route {
-  background:
-    radial-gradient(circle at 12% 0%, rgba(255, 255, 255, 0.74), transparent 26%),
-    linear-gradient(180deg, rgba(251, 254, 255, 0.82), rgba(232, 241, 249, 0.98)),
-    var(--fugue-surface-canvas);
-}
-
-:root[data-theme="light"] .fg-landing-runway {
-  border-color: rgba(97, 128, 176, 0.16);
-  background:
-    radial-gradient(circle at 12% 16%, rgba(145, 178, 224, 0.18), transparent 34%),
-    linear-gradient(
-      180deg,
-      rgba(25, 46, 80, 0.98),
-      rgba(13, 29, 54, 0.97)
-    ),
-    rgba(11, 24, 46, 0.98);
-  box-shadow:
-    0 30px 68px -46px rgba(11, 24, 46, 0.34),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    inset 0 -1px 0 rgba(137, 169, 209, 0.14);
-}
-
-:root[data-theme="light"] .fg-landing-runway-stop {
-  border-top-color: rgba(191, 210, 236, 0.16);
-}
-
-:root[data-theme="light"] .fg-landing-runway-stop .fg-label {
-  color: rgba(191, 210, 236, 0.74);
-}
-
-:root[data-theme="light"] .fg-landing-runway-stop h2 {
-  color: #f4f8ff;
 }
 
 :root[data-theme="light"] .fg-landing-chapter__number {
