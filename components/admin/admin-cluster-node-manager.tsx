@@ -158,37 +158,41 @@ function AdminClusterPolicyLiveCard({
   );
 }
 
-function AdminClusterPolicyToggle({
+function AdminClusterPolicySwitch({
   checked,
-  description,
   id,
   label,
-  liveBadge,
   onChange,
 }: {
   checked: boolean;
-  description: string;
   id: string;
   label: string;
-  liveBadge: ReactNode;
   onChange: (checked: boolean) => void;
 }) {
+  const { t } = useI18n();
+
   return (
-    <label className="fg-admin-cluster-manager__toggle-card" htmlFor={id}>
+    <label className="fg-admin-cluster-manager__policy-switch" htmlFor={id}>
       <input
+        aria-label={label}
         checked={checked}
         id={id}
         onChange={(event) => {
           onChange(event.target.checked);
         }}
+        role="switch"
         type="checkbox"
       />
-      <span className="fg-admin-cluster-manager__toggle-copy">
-        <strong>{label}</strong>
-        <small>{description}</small>
-      </span>
-      <span className="fg-admin-cluster-manager__toggle-status">
-        {liveBadge}
+      <span className="fg-admin-cluster-manager__policy-switch-ui">
+        <span className="fg-admin-cluster-manager__policy-switch-state">
+          {checked ? t("On") : t("Off")}
+        </span>
+        <span
+          aria-hidden="true"
+          className="fg-admin-cluster-manager__policy-switch-track"
+        >
+          <span className="fg-admin-cluster-manager__policy-switch-thumb" />
+        </span>
       </span>
     </label>
   );
@@ -274,7 +278,12 @@ function AdminClusterPolicySection({
       <div className="fg-admin-cluster-manager__policy-grid">
         <section className="fg-admin-cluster-manager__policy-column">
           <div className="fg-admin-cluster-manager__subhead">
-            <strong>{t("Live policy")}</strong>
+            <div className="fg-admin-cluster-manager__subhead-copy">
+              <strong>{t("Current status")}</strong>
+              <p className="fg-admin-cluster-manager__section-note">
+                {t("Live node state after the most recent reconcile.")}
+              </p>
+            </div>
           </div>
 
           <div className="fg-admin-cluster-manager__policy-live-grid">
@@ -319,101 +328,108 @@ function AdminClusterPolicySection({
           {node.canManagePolicy ? (
             <>
               <div className="fg-admin-cluster-manager__subhead">
-                <strong>{t("Desired policy")}</strong>
+                <div className="fg-admin-cluster-manager__subhead-copy">
+                  <strong>{t("Desired policy")}</strong>
+                  <p className="fg-admin-cluster-manager__section-note">
+                    {t("Edit the policy Fugue will reconcile onto this machine.")}
+                  </p>
+                </div>
               </div>
-
-              <p className="fg-admin-cluster-manager__section-note">
-                {t("Edit the policy Fugue will reconcile onto this machine.")}
-              </p>
 
               <fieldset
                 className="fg-admin-cluster-manager__policy-form"
                 disabled={busy}
               >
-                <div className="fg-admin-cluster-manager__toggle-list">
-                  <AdminClusterPolicyToggle
-                    checked={draft.allowBuilds}
-                    description={t("Accept source builds on this machine.")}
-                    id={`allow-builds-${node.name}`}
-                    label={t("Allow builds")}
-                    liveBadge={
-                      <StatusBadge
-                        tone={readLiveFlagTone(
-                          node.policy?.effectiveBuilds ?? false,
-                        )}
-                      >
-                        {liveBuildLabel}
-                      </StatusBadge>
-                    }
-                    onChange={(checked) => {
-                      onDraftChange({ allowBuilds: checked });
-                    }}
-                  />
+                <div className="fg-admin-cluster-manager__policy-card-grid">
+                  <section className="fg-admin-cluster-manager__policy-card fg-admin-cluster-manager__policy-card--builds">
+                    <div className="fg-admin-cluster-manager__policy-card-head">
+                      <div className="fg-admin-cluster-manager__field-head">
+                        <strong className="fg-admin-cluster-manager__field-label">
+                          {t("Allow builds")}
+                        </strong>
+                        <span className="fg-admin-cluster-manager__field-hint">
+                          {t("Accept source builds on this machine.")}
+                        </span>
+                      </div>
+                      <AdminClusterPolicySwitch
+                        checked={draft.allowBuilds}
+                        id={`allow-builds-${node.name}`}
+                        label={t("Allow builds")}
+                        onChange={(checked) => {
+                          onDraftChange({ allowBuilds: checked });
+                        }}
+                      />
+                    </div>
 
-                  <AdminClusterPolicyToggle
-                    checked={draft.allowSharedPool}
-                    description={t(
-                      "Accept shared Fugue workloads from outside a tenant runtime.",
-                    )}
-                    id={`allow-shared-pool-${node.name}`}
-                    label={t("Allow shared pool apps")}
-                    liveBadge={
-                      <StatusBadge
-                        tone={readLiveFlagTone(
-                          node.policy?.effectiveSharedPool ?? false,
-                        )}
-                      >
-                        {liveSharedPoolLabel}
-                      </StatusBadge>
-                    }
-                    onChange={(checked) => {
-                      onDraftChange({ allowSharedPool: checked });
-                    }}
-                  />
-                </div>
+                    <div className="fg-admin-cluster-manager__field-stack">
+                      <div className="fg-admin-cluster-manager__field-head">
+                        <strong className="fg-admin-cluster-manager__field-label">
+                          {t("Build tier")}
+                        </strong>
+                        <span className="fg-admin-cluster-manager__field-hint">
+                          {t(
+                            "Build tier is stored as policy even if builds are currently off.",
+                          )}
+                        </span>
+                      </div>
+                      <SegmentedControl
+                        ariaLabel={t("Build tier")}
+                        controlClassName="fg-admin-cluster-manager__segmented-control"
+                        onChange={(value) => {
+                          onDraftChange({ buildTier: value });
+                        }}
+                        options={buildTierOptions}
+                        value={draft.buildTier}
+                      />
+                    </div>
+                  </section>
 
-                <div className="fg-admin-cluster-manager__field">
-                  <div className="fg-admin-cluster-manager__field-head">
-                    <strong className="fg-admin-cluster-manager__field-label">
-                      {t("Build tier")}
-                    </strong>
-                    <span className="fg-admin-cluster-manager__field-hint">
-                      {t(
-                        "Build tier is stored as policy even if builds are currently off.",
-                      )}
-                    </span>
-                  </div>
-                  <SegmentedControl
-                    ariaLabel={t("Build tier")}
-                    controlClassName="fg-admin-cluster-manager__segmented-control"
-                    onChange={(value) => {
-                      onDraftChange({ buildTier: value });
-                    }}
-                    options={buildTierOptions}
-                    value={draft.buildTier}
-                  />
-                </div>
+                  <section className="fg-admin-cluster-manager__policy-card fg-admin-cluster-manager__policy-card--shared-pool">
+                    <div className="fg-admin-cluster-manager__policy-card-head">
+                      <div className="fg-admin-cluster-manager__field-head">
+                        <strong className="fg-admin-cluster-manager__field-label">
+                          {t("Allow shared pool apps")}
+                        </strong>
+                        <span className="fg-admin-cluster-manager__field-hint">
+                          {t(
+                            "Accept shared Fugue workloads from outside a tenant runtime.",
+                          )}
+                        </span>
+                      </div>
+                      <AdminClusterPolicySwitch
+                        checked={draft.allowSharedPool}
+                        id={`allow-shared-pool-${node.name}`}
+                        label={t("Allow shared pool apps")}
+                        onChange={(checked) => {
+                          onDraftChange({ allowSharedPool: checked });
+                        }}
+                      />
+                    </div>
+                  </section>
 
-                <div className="fg-admin-cluster-manager__field">
-                  <div className="fg-admin-cluster-manager__field-head">
-                    <strong className="fg-admin-cluster-manager__field-label">
-                      {t("Control plane role")}
-                    </strong>
-                    <span className="fg-admin-cluster-manager__field-hint">
-                      {t(
-                        "Member is a desired target only. The live node becomes member only after real control-plane promotion outside the agent path.",
-                      )}
-                    </span>
-                  </div>
-                  <SegmentedControl
-                    ariaLabel={t("Control plane role")}
-                    controlClassName="fg-admin-cluster-manager__segmented-control"
-                    onChange={(value) => {
-                      onDraftChange({ desiredControlPlaneRole: value });
-                    }}
-                    options={controlPlaneRoleOptions}
-                    value={draft.desiredControlPlaneRole}
-                  />
+                  <section className="fg-admin-cluster-manager__policy-card fg-admin-cluster-manager__policy-card--control-plane">
+                    <div className="fg-admin-cluster-manager__field-stack">
+                      <div className="fg-admin-cluster-manager__field-head">
+                        <strong className="fg-admin-cluster-manager__field-label">
+                          {t("Control plane role")}
+                        </strong>
+                        <span className="fg-admin-cluster-manager__field-hint">
+                          {t(
+                            "Member is a desired target only. The live node becomes member only after real control-plane promotion outside the agent path.",
+                          )}
+                        </span>
+                      </div>
+                      <SegmentedControl
+                        ariaLabel={t("Control plane role")}
+                        controlClassName="fg-admin-cluster-manager__segmented-control"
+                        onChange={(value) => {
+                          onDraftChange({ desiredControlPlaneRole: value });
+                        }}
+                        options={controlPlaneRoleOptions}
+                        value={draft.desiredControlPlaneRole}
+                      />
+                    </div>
+                  </section>
                 </div>
               </fieldset>
 

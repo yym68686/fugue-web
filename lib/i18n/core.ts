@@ -563,6 +563,7 @@ const zhCNMessages = {
   "Conditions": "条件",
   "Connection": "连接",
   "Control plane role": "控制平面角色",
+  "Current status": "当前状态",
   "Desired capabilities and the live node state after reconciliation":
     "期望能力，以及节点在完成 reconcile 后的实时状态",
   "Desired policy": "期望策略",
@@ -572,6 +573,8 @@ const zhCNMessages = {
     "节点标识、可达性与放置信息。",
   "Large": "大型",
   "Live policy": "实时策略",
+  "Live node state after the most recent reconcile.":
+    "最近一次 reconcile 完成后的节点实时状态。",
   "Machine scope": "机器范围",
   "Medium": "中型",
   "Member": "成员",
@@ -2107,6 +2110,7 @@ const zhTWExtraMessages = {
   "Connection": "連線",
   "Control plane": "控制平面",
   "Control plane role": "控制平面角色",
+  "Current status": "目前狀態",
   "Desired capabilities and the live node state after reconciliation":
     "期望能力，以及節點在完成 reconcile 後的即時狀態",
   "Desired policy": "期望策略",
@@ -2116,6 +2120,8 @@ const zhTWExtraMessages = {
     "節點識別、可達性與放置資訊。",
   "Large": "大型",
   "Live policy": "即時策略",
+  "Live node state after the most recent reconcile.":
+    "最近一次 reconcile 完成後的節點即時狀態。",
   "Machine scope": "機器範圍",
   "Medium": "中型",
   "Member": "成員",
