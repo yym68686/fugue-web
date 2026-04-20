@@ -1343,12 +1343,14 @@ const zhCNExtraMessages = {
   "Select a standby runtime…": "选择备用运行时…",
   "Serving now": "当前正在服务",
   "Settings": "设置",
+  "Source & build": "来源与构建",
   "Source": "来源",
   "Source package": "源码包",
   "Standby is ready. {message}": "备用实例已就绪。{message}",
   "Standby runtime": "备用运行时",
   "Start the service before moving it.": "请先启动服务再迁移。",
   "Start the service before opening Files.": "请先启动服务再打开“文件”。",
+  "Storage & files": "存储与文件",
   "Still checking saved GitHub access. Try again in a moment or paste a token.":
     "仍在检查已保存的 GitHub 访问。请稍后重试，或直接粘贴 Token。",
   "Storage class": "存储类",
@@ -1374,6 +1376,10 @@ const zhCNExtraMessages = {
   "Transfer Now": "立即迁移",
   "Transfer Service?": "迁移服务？",
   "Transfer queued to {target}.": "已将迁移加入队列，目标为 {target}。",
+  "Fugue prepares the destination before cutover.":
+    "Fugue 会先准备目标位置，再执行切换。",
+  "Move immediately once the destination is chosen.":
+    "选定目标位置后立即迁移。",
   "Unable to check availability right now.":
     "当前无法检查可用性。",
   "Unable to check hostname availability right now.":
@@ -1391,6 +1397,11 @@ const zhCNExtraMessages = {
   "Update token and rebuild": "更新 Token 并重建",
   "Updates paused": "更新已暂停",
   "Upload": "上传",
+  "Keep the saved source, sync behavior, and build inputs together so rebuild decisions stay local to this service.":
+    "将已保存的来源、同步行为和构建输入放在一起，让重建决策始终围绕当前服务展开。",
+  "Review where traffic is serving now, keep a standby runtime ready, and move this service without leaving the workbench.":
+    "在同一个工作台里查看当前流量落点、维护备用运行时，并完成服务迁移。",
+  "Runtime & continuity": "运行时与连续性",
   "Use a whole number.": "请输入整数。",
   "Use lowercase letters, numbers, and hyphens.":
     "请使用小写字母、数字和连字符。",
@@ -2096,6 +2107,34 @@ const zhCNExtraMessages = {
   "Version unavailable": "版本不可用",
   "Watch": "留意",
   "Workloads": "工作负载",
+  "All services attached to this project are listed here. Open a service to manage its runtime-specific settings.":
+    "这个项目中的所有服务都列在这里。打开某个服务即可管理对应运行时的设置。",
+  "Backing services": "后端服务",
+  "Danger zone": "危险区域",
+  "Delete project & {count} service": "删除项目和 {count} 个服务",
+  "Delete project & {count} services": "删除项目和 {count} 个服务",
+  "Deletion is already in progress. Services stay visible until the control plane finishes removing them.":
+    "删除已经在进行中。在控制平面完成移除之前，这些服务仍会继续显示。",
+  "Destructive": "危险操作",
+  "Editable": "可编辑",
+  "General": "常规",
+  "Locked": "锁定",
+  "Managed project": "托管项目",
+  "Open service": "打开服务",
+  "Project details": "项目详情",
+  "Project names stay unique within the workspace.":
+    "项目名称在当前工作区内必须保持唯一。",
+  "Project settings": "项目设置",
+  "Rename this project, review attached services, and delete the entire project from one place.":
+    "在一个地方完成项目重命名、检查挂接服务，以及删除整个项目。",
+  "Scope": "范围",
+  "Services in this project": "此项目中的服务",
+  "The Unassigned bucket is managed by Fugue.":
+    "未分配分组由 Fugue 管理。",
+  "This project is already empty. Deleting it only removes the shell from the workspace.":
+    "这个项目已经为空。删除它只会把这个壳层从工作区里移除。",
+  "This will remove the project shell and queue deletion for {serviceCount} services, including {appCount} apps and {backingCount} backing services.":
+    "这会移除项目壳层，并把 {serviceCount} 个服务加入删除队列，其中包括 {appCount} 个应用和 {backingCount} 个后端服务。",
 } satisfies MessageCatalog;
 
 const zhTWExtraMessages = {
@@ -2813,12 +2852,14 @@ const zhTWExtraMessages = {
   "Select a standby runtime…": "選擇備援執行環境…",
   "Serving now": "目前正在服務",
   "Settings": "設定",
+  "Source & build": "來源與建置",
   "Source": "來源",
   "Source package": "原始碼套件",
   "Standby is ready. {message}": "備援實例已就緒。{message}",
   "Standby runtime": "備援執行環境",
   "Start the service before moving it.": "請先啟動服務再遷移。",
   "Start the service before opening Files.": "請先啟動服務再開啟「檔案」。",
+  "Storage & files": "儲存與檔案",
   "Still checking saved GitHub access. Try again in a moment or paste a token.":
     "仍在檢查已儲存的 GitHub 存取。請稍後再試，或直接貼上 Token。",
   "Storage class": "儲存類別",
@@ -2844,6 +2885,10 @@ const zhTWExtraMessages = {
   "Transfer Now": "立即遷移",
   "Transfer Service?": "遷移服務？",
   "Transfer queued to {target}.": "已將遷移加入佇列，目標為 {target}。",
+  "Fugue prepares the destination before cutover.":
+    "Fugue 會先準備目的地，再執行切換。",
+  "Move immediately once the destination is chosen.":
+    "選定目的地後立即遷移。",
   "Unable to check availability right now.":
     "目前無法檢查可用性。",
   "Unable to check hostname availability right now.":
@@ -2861,6 +2906,11 @@ const zhTWExtraMessages = {
   "Update token and rebuild": "更新 Token 並重建",
   "Updates paused": "更新已暫停",
   "Upload": "上傳",
+  "Keep the saved source, sync behavior, and build inputs together so rebuild decisions stay local to this service.":
+    "把已儲存的來源、同步行為與建置輸入放在一起，讓重建決策始終圍繞目前服務。",
+  "Review where traffic is serving now, keep a standby runtime ready, and move this service without leaving the workbench.":
+    "在同一個工作台裡查看目前流量落點、維持備援執行環境，並完成服務遷移。",
+  "Runtime & continuity": "執行環境與連續性",
   "Use a whole number.": "請輸入整數。",
   "Use lowercase letters, numbers, and hyphens.":
     "請使用小寫字母、數字與連字號。",
@@ -3753,6 +3803,34 @@ const zhTWExtraMessages = {
   "Disk free": "磁碟免費",
   "Disk must be greater than 0 unless disk is free.":
     "除非磁碟免費，否則磁碟值必須大於 0。",
+  "All services attached to this project are listed here. Open a service to manage its runtime-specific settings.":
+    "這個專案中的所有服務都列在這裡。開啟某個服務即可管理對應執行環境的設定。",
+  "Backing services": "後端服務",
+  "Danger zone": "危險區域",
+  "Delete project & {count} service": "刪除專案和 {count} 個服務",
+  "Delete project & {count} services": "刪除專案和 {count} 個服務",
+  "Deletion is already in progress. Services stay visible until the control plane finishes removing them.":
+    "刪除已在進行中。在控制平面完成移除之前，這些服務仍會繼續顯示。",
+  "Destructive": "危險操作",
+  "Editable": "可編輯",
+  "General": "一般",
+  "Locked": "鎖定",
+  "Managed project": "託管專案",
+  "Open service": "開啟服務",
+  "Project details": "專案詳情",
+  "Project names stay unique within the workspace.":
+    "專案名稱在目前工作區內必須保持唯一。",
+  "Project settings": "專案設定",
+  "Rename this project, review attached services, and delete the entire project from one place.":
+    "在同一個地方完成專案重新命名、檢查掛接服務，以及刪除整個專案。",
+  "Scope": "範圍",
+  "Services in this project": "此專案中的服務",
+  "The Unassigned bucket is managed by Fugue.":
+    "未分配分組由 Fugue 管理。",
+  "This project is already empty. Deleting it only removes the shell from the workspace.":
+    "這個專案已經是空的。刪除它只會把這個殼層從工作區中移除。",
+  "This will remove the project shell and queue deletion for {serviceCount} services, including {appCount} apps and {backingCount} backing services.":
+    "這會移除專案殼層，並把 {serviceCount} 個服務加入刪除佇列，其中包括 {appCount} 個應用和 {backingCount} 個後端服務。",
 } satisfies MessageCatalog;
 
 const catalogs: Record<Locale, MessageCatalog> = {

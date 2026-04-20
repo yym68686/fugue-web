@@ -50,6 +50,7 @@ import {
   hasInternalClusterLocationTarget,
   readRuntimeLocation,
 } from "@/lib/fugue/runtime-location";
+import { isRuntimeSelectableForDeployment } from "@/lib/fugue/runtime-status";
 import { readCountryLocation } from "@/lib/geo/country";
 import {
   readGitHubBranchHref,
@@ -2853,6 +2854,7 @@ async function loadRuntimeInventoryData(
   const runtimeTargets =
     runtimesResult.status === "fulfilled"
       ? [...runtimesResult.value]
+          .filter((runtime) => isRuntimeSelectableForDeployment(runtime.status))
           .map((runtime) =>
             buildImportRuntimeTargetView(
               runtime,
@@ -3004,6 +3006,9 @@ const getConsoleProjectGalleryDataCached = cache(
     const runtimeTargets =
       includeRuntimeTargets && runtimesResult.status === "fulfilled"
         ? [...(runtimesResult.value ?? [])]
+            .filter((runtime) =>
+              isRuntimeSelectableForDeployment(runtime.status),
+            )
             .map((runtime) =>
               buildImportRuntimeTargetView(
                 runtime,

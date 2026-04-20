@@ -6,6 +6,7 @@ import {
   hasInternalClusterLocationTarget,
   readRuntimeLocation,
 } from "@/lib/fugue/runtime-location";
+import { isRuntimeSelectableForDeployment } from "@/lib/fugue/runtime-status";
 import { translate, type Locale } from "@/lib/i18n/core";
 import { readRuntimePublicOfferDescription } from "@/lib/runtimes/public-offer";
 
@@ -188,6 +189,7 @@ export function buildDeployRuntimeTargets(
   locale: Locale = "en",
 ) {
   return [...runtimes]
+    .filter((runtime) => isRuntimeSelectableForDeployment(runtime.status))
     .map((runtime) =>
       buildDeployRuntimeTarget(runtime, workspaceTenantId, locale),
     )

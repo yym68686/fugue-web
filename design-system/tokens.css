@@ -164,12 +164,16 @@
   /* component */
   --fugue-dialog-footer-bg: var(--fugue-proof-shell-inner-bg);
   --fugue-status-badge-bg-positive:
-    linear-gradient(180deg, rgba(129, 188, 158, 0.14), rgba(44, 64, 52, 0.08)),
-    rgba(10, 15, 12, 0.82);
-  --fugue-status-badge-border-positive: rgba(129, 188, 158, 0.22);
-  --fugue-status-badge-text-positive: #dcefe3;
-  --fugue-status-badge-dot-positive: #95ddb6;
-  --fugue-status-badge-halo-positive: rgba(149, 221, 182, 0.22);
+    linear-gradient(
+      180deg,
+      rgba(137, 205, 168, 0.22),
+      rgba(54, 82, 64, 0.14)
+    ),
+    rgba(14, 24, 19, 0.94);
+  --fugue-status-badge-border-positive: rgba(137, 205, 168, 0.42);
+  --fugue-status-badge-text-positive: #e4f4e9;
+  --fugue-status-badge-dot-positive: #9be0b9;
+  --fugue-status-badge-halo-positive: rgba(155, 224, 185, 0.26);
   --fugue-status-badge-bg-warning:
     linear-gradient(180deg, rgba(225, 182, 105, 0.14), rgba(92, 68, 34, 0.08)),
     rgba(18, 13, 8, 0.82);

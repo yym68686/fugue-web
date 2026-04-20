@@ -10,10 +10,12 @@ import {
   useRef,
   useState,
   type FormEvent,
+  type ReactNode,
 } from "react";
 import dynamic from "next/dynamic";
 
 import { CompactResourceMeter } from "@/components/console/compact-resource-meter";
+import { ConsoleDisclosureSection } from "@/components/console/console-disclosure-section";
 import { ImportServiceFields } from "@/components/console/import-service-fields";
 import { ConsoleProjectWorkbenchSkeleton } from "@/components/console/console-page-skeleton";
 import { useI18n } from "@/components/providers/i18n-provider";
@@ -3428,6 +3430,128 @@ function ProjectBadge({
       </span>
       <span className="fg-project-badge__sr">{label}</span>
     </div>
+  );
+}
+
+function SettingsSummaryList({ children }: { children: ReactNode }) {
+  return <dl className="fg-settings-summary-list">{children}</dl>;
+}
+
+function SettingsSummaryRow({
+  label,
+  note,
+  side,
+  value,
+}: {
+  label: string;
+  note?: ReactNode;
+  side?: ReactNode;
+  value: ReactNode;
+}) {
+  return (
+    <div className="fg-settings-summary-row">
+      <dt className="fg-settings-summary-row__copy">
+        <HintInline
+          ariaLabel={label}
+          as="span"
+          className="fg-settings-summary-row__label-row"
+          hint={note}
+        >
+          <span className="fg-settings-summary-row__label">{label}</span>
+        </HintInline>
+        <span className="fg-settings-summary-row__value">{value}</span>
+      </dt>
+      {side ? <dd className="fg-settings-summary-row__side">{side}</dd> : null}
+    </div>
+  );
+}
+
+function ProjectSettingsRouteSignal() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="fg-route-signal fg-project-settings-context__signal"
+      viewBox="0 0 1200 170"
+    >
+      <path
+        className="fg-route-signal__base"
+        d="M40 118 C232 26, 372 32, 538 96 S860 180, 1160 36"
+      />
+      <path
+        className="fg-route-signal__active"
+        d="M40 118 C232 26, 372 32, 538 96 S860 180, 1160 36"
+      />
+      <circle className="fg-route-signal__dot" cx="40" cy="118" r="7" />
+      <circle className="fg-route-signal__dot" cx="538" cy="96" r="7" />
+      <circle className="fg-route-signal__dot" cx="1160" cy="36" r="7" />
+    </svg>
+  );
+}
+
+function ProjectSettingsMembershipRow({
+  onOpen,
+  service,
+  t,
+}: {
+  onOpen: (service: ConsoleGalleryServiceView) => void;
+  service: ConsoleGalleryServiceView;
+  t: Translator;
+}) {
+  const serviceStatus = service.kind === "app" ? service.phase : service.status;
+  const serviceTone =
+    service.kind === "app" ? service.phaseTone : service.statusTone;
+  const metaParts =
+    service.kind === "app"
+      ? [
+          readAppServiceRoleLabel(service, t),
+          readDistinctText(service.sourceMeta, [service.name]),
+          readDistinctText(service.locationLabel, [t("Unavailable")]),
+        ]
+      : [
+          readBackingServiceRoleLabel(service, t),
+          readDistinctText(service.ownerAppLabel, [service.name]),
+          readDistinctText(service.locationLabel, [t("Unavailable")]),
+        ];
+  const metaLabel = metaParts.filter((value): value is string => Boolean(value)).join(
+    " · ",
+  );
+
+  return (
+    <button
+      aria-label={t("Inspect {name} ({status})", {
+        name: service.name,
+        status: t(serviceStatus),
+      })}
+      className="fg-project-membership-row"
+      onClick={() => onOpen(service)}
+      type="button"
+    >
+      <span className="fg-project-membership-row__summary">
+        <span className="fg-project-membership-row__badge">
+          <ProjectBadge
+            kind={service.primaryBadge.kind}
+            label={service.primaryBadge.label}
+            meta={service.primaryBadge.meta}
+          />
+        </span>
+        <span className="fg-project-membership-row__identity">
+          <strong>{service.name}</strong>
+          {metaLabel ? <span>{metaLabel}</span> : null}
+        </span>
+      </span>
+
+      <span className="fg-project-membership-row__meta">
+        <StatusBadge
+          live={shouldShowLiveStatusBadge(serviceStatus)}
+          tone={serviceTone}
+        >
+          {t(serviceStatus)}
+        </StatusBadge>
+        <span className="fg-project-membership-row__action">
+          {t("Open service")}
+        </span>
+      </span>
+    </button>
   );
 }
 
@@ -7158,132 +7282,135 @@ function ConsoleProjectWorkbenchImpl({
             },
           )
         : t("Delete project");
+    const projectLifecycleTone = readProjectLifecycleTone(
+      detailProjectLifecycle.label,
+    );
     const projectSettingsCopy =
       detailProject.serviceCount > 0
         ? t(
-            "Rename this project, review membership, and delete the entire project from one place.",
+            "Rename this project, review attached services, and delete the entire project from one place.",
           )
         : t(
             "This project does not have any attached services yet. You can reuse the shell, add a service, or remove it.",
           );
+    const projectScopeLabel = projectManaged
+      ? t("Managed project")
+      : t("Unassigned");
+    const projectServicesCountLabel = t(
+      detailProject.serviceCount === 1 ? "{count} service" : "{count} services",
+      {
+        count: detailProject.serviceCount,
+      },
+    );
+    const appServices = detailProject.services.filter(
+      (
+        service,
+      ): service is Extract<ConsoleGalleryServiceView, { kind: "app" }> =>
+        service.kind === "app",
+    );
+    const backingServices = detailProject.services.filter(
+      (
+        service,
+      ): service is Extract<
+        ConsoleGalleryServiceView,
+        { kind: "backing-service" }
+      > => service.kind === "backing-service",
+    );
+    const projectDeletePreviewNames = detailProject.services
+      .slice(0, 4)
+      .map((service) => service.name);
 
     return (
       <div className="fg-project-card__detail" id={detailId}>
         <section className="fg-bezel fg-panel fg-project-workbench">
-          <div className="fg-bezel__inner fg-project-workbench__inner">
-            <aside className="fg-project-services fg-project-services--rail fg-project-workbench__rail">
-              {projectRailHead}
-
-              <PanelSection>
-                {detailProject.services.length ? (
-                  <ul className="fg-project-service-list">
-                    {detailProject.services.map((service) => {
-                      const serviceStatus =
-                        service.kind === "app" ? service.phase : service.status;
-                      const serviceStatusTone =
-                        service.kind === "app"
-                          ? service.phaseTone
-                          : service.statusTone;
-                      const cardSecondaryLines =
-                        service.kind === "app"
-                          ? [
-                              readAppServiceRoleLabel(service, t),
-                              readDistinctText(service.sourceMeta, [
-                                service.name,
-                              ]),
-                            ].filter((value): value is string => Boolean(value))
-                          : [
-                              readBackingServiceRoleLabel(service, t),
-                              readDistinctText(service.ownerAppLabel, [
-                                service.name,
-                              ]),
-                              readDistinctText(service.description, [
-                                service.name,
-                                service.ownerAppLabel,
-                                service.type,
-                                humanizeUiLabel(service.type, t),
-                              ]),
-                            ].filter((value): value is string =>
-                              Boolean(value),
-                            );
-                      const cardStatusMeta = service.serviceDurationLabel
-                        ? t("{duration} elapsed", {
-                            duration: service.serviceDurationLabel,
-                          })
-                        : null;
-
-                      return (
-                        <li key={serviceKey(service)}>
-                          <button
-                            aria-label={t("Inspect {name} ({status})", {
-                              name: service.name,
-                              status:
-                                service.kind === "app"
-                                  ? t(service.phase)
-                                  : humanizeUiLabel(service.type, t),
-                            })}
-                            className="fg-project-service-card"
-                            onClick={() => chooseService(service)}
-                            type="button"
-                          >
-                            <div className="fg-project-service-card__head">
-                              <div className="fg-project-service-card__title-row">
-                                <div className="fg-project-service-card__summary">
-                                  <span className="fg-project-service-card__primary-badge">
-                                    <ProjectBadge
-                                      kind={service.primaryBadge.kind}
-                                      label={service.primaryBadge.label}
-                                      meta={service.primaryBadge.meta}
-                                    />
-                                  </span>
-                                  <div className="fg-project-service-card__identity">
-                                    <strong>{service.name}</strong>
-                                  </div>
-                                </div>
-
-                                <div className="fg-project-service-card__status">
-                                  <StatusBadge
-                                    live={shouldShowLiveStatusBadge(
-                                      serviceStatus,
-                                    )}
-                                    tone={serviceStatusTone}
-                                  >
-                                    {t(serviceStatus)}
-                                  </StatusBadge>
-                                  {cardStatusMeta ? (
-                                    <span className="fg-project-service-card__status-meta">
-                                      {cardStatusMeta}
-                                    </span>
-                                  ) : null}
-                                </div>
-                              </div>
-
-                              {cardSecondaryLines.length ? (
-                                <div className="fg-project-service-card__meta">
-                                  {cardSecondaryLines.map((line) => (
-                                    <span key={line}>{line}</span>
-                                  ))}
-                                </div>
-                              ) : null}
-                            </div>
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                ) : (
-                  <p className="fg-console-note">
-                    {t("No services are attached to this project yet.")}
+          <div className="fg-bezel__inner fg-project-workbench__inner fg-project-workbench__inner--project-settings">
+            <aside className="fg-project-settings-context fg-project-workbench__rail">
+              <PanelSection className="fg-project-settings-context__head">
+                <div className="fg-project-settings-context__eyebrow-row">
+                  <p className="fg-label fg-panel__eyebrow">
+                    {t("Project shell")}
                   </p>
-                )}
+                  <StatusBadge
+                    live={shouldShowLiveStatusBadge(detailProjectLifecycle.label)}
+                    tone={projectLifecycleTone}
+                  >
+                    {t(detailProjectLifecycle.label)}
+                  </StatusBadge>
+                </div>
+
+                <div className="fg-project-settings-context__identity">
+                  <strong>{detailProject.name}</strong>
+                  <span>{projectScopeLabel}</span>
+                </div>
+
+                <div
+                  aria-label={t("Core objects")}
+                  className="fg-object-belt fg-project-settings-context__belt"
+                >
+                  <span>{t("Workspace")}</span>
+                  <span>{t("Project")}</span>
+                  <span>{t("App")}</span>
+                  <span>{t("Backing services")}</span>
+                </div>
+
+                <ProjectSettingsRouteSignal />
+
+                <dl className="fg-project-settings-context__metrics">
+                  <div className="fg-project-settings-context__metric">
+                    <dt>{t("Services")}</dt>
+                    <dd>{detailProject.serviceCount}</dd>
+                  </div>
+                  <div className="fg-project-settings-context__metric">
+                    <dt>{t("Apps")}</dt>
+                    <dd>{detailProject.appCount}</dd>
+                  </div>
+                  <div className="fg-project-settings-context__metric">
+                    <dt>{t("Backing services")}</dt>
+                    <dd>{backingServiceCount}</dd>
+                  </div>
+                </dl>
+
+                <div className="fg-project-actions fg-project-settings-context__actions">
+                  <Button
+                    disabled={projectDeleting}
+                    onClick={() => onRequestCreateService(projectActionTarget)}
+                    size="compact"
+                    type="button"
+                    variant="primary"
+                  >
+                    {t("Add service")}
+                  </Button>
+                </div>
+              </PanelSection>
+
+              <PanelSection className="fg-project-settings-context__details-shell">
+                <ConsoleDisclosureSection
+                  className="fg-project-settings-context__details"
+                  summary={t("Project details")}
+                >
+                  <SettingsSummaryList>
+                    <SettingsSummaryRow
+                      label={t("State")}
+                      value={t(detailProjectLifecycle.label)}
+                    />
+                    <SettingsSummaryRow
+                      label={t("Scope")}
+                      value={projectScopeLabel}
+                    />
+                    <SettingsSummaryRow
+                      label={t("Project id")}
+                      value={<span translate="no">{detailProject.id}</span>}
+                    />
+                  </SettingsSummaryList>
+                </ConsoleDisclosureSection>
               </PanelSection>
             </aside>
 
-            <div className="fg-project-inspector fg-project-workbench__main">
-              <PanelSection className="fg-project-inspector__head">
-                <div className="fg-project-inspector__header-row">
+            <div className="fg-project-inspector fg-project-workbench__main fg-project-settings-main">
+              <PanelSection className="fg-project-settings-hero">
+                <div className="fg-project-settings-hero__copy">
+                  <p className="fg-label">{t("Project settings")}</p>
                   <div className="fg-project-inspector__hero">
-                    <p className="fg-label">{t("Settings")}</p>
                     <PanelTitle>{detailProject.name}</PanelTitle>
                     <PanelCopy className="fg-project-inspector__copy">
                       {projectSettingsCopy}
@@ -7291,51 +7418,18 @@ function ConsoleProjectWorkbenchImpl({
                   </div>
                 </div>
 
-                <div className="fg-project-inspector__meta-grid">
-                  <div>
-                    <dt>{t("Apps")}</dt>
-                    <dd>{detailProject.appCount}</dd>
-                  </div>
-                  <div>
-                    <dt>{t("Services")}</dt>
-                    <dd>{detailProject.serviceCount}</dd>
-                  </div>
-                  <div>
-                    <dt>{t("Backing services")}</dt>
-                    <dd>{backingServiceCount}</dd>
-                  </div>
-                  <div>
-                    <dt>{t("State")}</dt>
-                    <dd>{t(detailProjectLifecycle.label)}</dd>
-                  </div>
-                  <div>
-                    <dt>{t("Project id")}</dt>
-                    <dd>{detailProject.id}</dd>
-                  </div>
-                  <div>
-                    <dt>{t("Scope")}</dt>
-                    <dd>
-                      {projectManaged ? t("Managed project") : t("Unassigned")}
-                    </dd>
-                  </div>
+                <div className="fg-project-settings-hero__badges">
+                  <StatusBadge tone="neutral">
+                    {projectManaged ? t("Editable") : t("Locked")}
+                  </StatusBadge>
+                  <StatusBadge tone="neutral">
+                    {projectServicesCountLabel}
+                  </StatusBadge>
                 </div>
               </PanelSection>
 
               <PanelSection className="fg-project-pane">
-                <div className="fg-workbench-section fg-settings-panel">
-                  <div className="fg-workbench-section__copy fg-settings-panel__copy">
-                    <HintInline
-                      ariaLabel={t("Settings")}
-                      hint={t(
-                        "Project-level actions live here so naming and deletion stay scoped to the whole project.",
-                      )}
-                    >
-                      <p className="fg-label fg-panel__eyebrow">
-                        {t("Settings")}
-                      </p>
-                    </HintInline>
-                  </div>
-
+                <div className="fg-workbench-section fg-settings-panel fg-project-settings-panel">
                   {projectDeleting ? (
                     <InlineAlert variant="warning">
                       {t(
@@ -7368,10 +7462,6 @@ function ConsoleProjectWorkbenchImpl({
                           </h3>
                         </HintInline>
                       </div>
-
-                      <StatusBadge tone="neutral">
-                        {projectManaged ? t("Editable") : t("Locked")}
-                      </StatusBadge>
                     </div>
 
                     {projectManaged ? (
@@ -7381,7 +7471,7 @@ function ConsoleProjectWorkbenchImpl({
                       >
                         <FormField
                           error={projectNameError}
-                          hideLabel
+                          hint={t("Shown in the project list.")}
                           htmlFor={`project-name-${detailProject.id}`}
                           label={t("Project name")}
                         >
@@ -7440,104 +7530,85 @@ function ConsoleProjectWorkbenchImpl({
                   </section>
 
                   <section
-                    aria-label={t("Membership")}
+                    aria-label={t("Services in this project")}
                     className="fg-route-subsection fg-settings-section"
                   >
                     <div className="fg-route-subsection__head">
                       <div className="fg-route-subsection__copy fg-settings-section__copy">
                         <p className="fg-label fg-panel__eyebrow">
-                          {t("Membership")}
+                          {t("Services")}
                         </p>
                         <HintInline
-                          ariaLabel={t("Project membership")}
+                          ariaLabel={t("Services in this project")}
                           hint={t(
                             "All services attached to this project are listed here. Open a service to manage its runtime-specific settings.",
                           )}
                         >
                           <h3 className="fg-route-subsection__title fg-ui-heading">
-                            {t("Project membership")}
+                            {t("Services in this project")}
                           </h3>
                         </HintInline>
                       </div>
 
-                      <StatusBadge tone="neutral">
-                        {t(
-                          detailProject.serviceCount === 1
-                            ? "{count} service"
-                            : "{count} services",
-                          {
-                            count: detailProject.serviceCount,
-                          },
-                        )}
-                      </StatusBadge>
+                      <StatusBadge tone="neutral">{projectServicesCountLabel}</StatusBadge>
                     </div>
 
                     {detailProject.services.length ? (
-                      <ul className="fg-project-membership-list">
-                        {detailProject.services.map((service) => {
-                          const serviceStatus =
-                            service.kind === "app"
-                              ? service.phase
-                              : service.status;
-                          const membershipMeta =
-                            service.kind === "app"
-                              ? (readDistinctText(service.sourceMeta, [
-                                  service.name,
-                                ]) ?? readAppServiceRoleLabel(service, t))
-                              : (readDistinctText(service.ownerAppLabel, [
-                                  service.name,
-                                ]) ?? humanizeUiLabel(service.type, t));
+                      <div className="fg-project-membership-groups">
+                        {appServices.length ? (
+                          <section
+                            aria-label={t("Apps")}
+                            className="fg-project-membership-group"
+                          >
+                            <div className="fg-project-membership-group__head">
+                              <div className="fg-project-membership-group__head-copy">
+                                <strong>{t("Apps")}</strong>
+                              </div>
+                              <StatusBadge tone="neutral">
+                                {appServices.length}
+                              </StatusBadge>
+                            </div>
+                            <ul className="fg-project-membership-group__list">
+                              {appServices.map((service) => (
+                                <li key={serviceKey(service)}>
+                                  <ProjectSettingsMembershipRow
+                                    onOpen={chooseService}
+                                    service={service}
+                                    t={t}
+                                  />
+                                </li>
+                              ))}
+                            </ul>
+                          </section>
+                        ) : null}
 
-                          return (
-                            <li
-                              className="fg-project-membership-item"
-                              key={serviceKey(service)}
-                            >
-                              <div className="fg-project-membership-item__copy">
-                                <div className="fg-project-membership-item__title-row">
-                                  <div className="fg-project-membership-item__summary">
-                                    <span className="fg-project-membership-item__badge">
-                                      <ProjectBadge
-                                        kind={service.primaryBadge.kind}
-                                        label={service.primaryBadge.label}
-                                        meta={service.primaryBadge.meta}
-                                      />
-                                    </span>
-                                    <div className="fg-project-membership-item__identity">
-                                      <strong>{service.name}</strong>
-                                      {membershipMeta ? (
-                                        <span>{membershipMeta}</span>
-                                      ) : null}
-                                    </div>
-                                  </div>
-                                  <StatusBadge
-                                    live={shouldShowLiveStatusBadge(
-                                      serviceStatus,
-                                    )}
-                                    tone={
-                                      service.kind === "app"
-                                        ? service.phaseTone
-                                        : service.statusTone
-                                    }
-                                  >
-                                    {t(serviceStatus)}
-                                  </StatusBadge>
-                                </div>
+                        {backingServices.length ? (
+                          <section
+                            aria-label={t("Backing services")}
+                            className="fg-project-membership-group"
+                          >
+                            <div className="fg-project-membership-group__head">
+                              <div className="fg-project-membership-group__head-copy">
+                                <strong>{t("Backing services")}</strong>
                               </div>
-                              <div className="fg-project-membership-item__actions">
-                                <Button
-                                  onClick={() => chooseService(service)}
-                                  size="compact"
-                                  type="button"
-                                  variant="secondary"
-                                >
-                                  {t("Open service")}
-                                </Button>
-                              </div>
-                            </li>
-                          );
-                        })}
-                      </ul>
+                              <StatusBadge tone="neutral">
+                                {backingServices.length}
+                              </StatusBadge>
+                            </div>
+                            <ul className="fg-project-membership-group__list">
+                              {backingServices.map((service) => (
+                                <li key={serviceKey(service)}>
+                                  <ProjectSettingsMembershipRow
+                                    onOpen={chooseService}
+                                    service={service}
+                                    t={t}
+                                  />
+                                </li>
+                              ))}
+                            </ul>
+                          </section>
+                        ) : null}
+                      </div>
                     ) : (
                       <div className="fg-console-empty-state fg-project-empty-state">
                         <div>
@@ -7610,6 +7681,32 @@ function ConsoleProjectWorkbenchImpl({
                                 )}
                           </p>
                         </div>
+                        {projectDeletePreviewNames.length ? (
+                          <div className="fg-project-danger-preview">
+                            <span className="fg-project-danger-preview__label">
+                              {t("Services")}
+                            </span>
+                            <div className="fg-project-danger-preview__list">
+                              {projectDeletePreviewNames.map((serviceName) => (
+                                <span
+                                  className="fg-project-danger-preview__token"
+                                  key={serviceName}
+                                  translate="no"
+                                >
+                                  {serviceName}
+                                </span>
+                              ))}
+                              {detailProject.services.length >
+                              projectDeletePreviewNames.length ? (
+                                <span className="fg-project-danger-preview__token">
+                                  +
+                                  {detailProject.services.length -
+                                    projectDeletePreviewNames.length}
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
+                        ) : null}
                         <div className="fg-project-danger-card__actions">
                           <Button
                             disabled={
