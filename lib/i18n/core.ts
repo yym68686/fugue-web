@@ -551,6 +551,7 @@ const zhCNMessages = {
   "Accept source builds on this machine.": "允许这台机器承接源码构建。",
   "Allow builds": "允许构建",
   "Allow shared pool apps": "允许共享池应用",
+  "Agent": "代理",
   "Apply policy": "应用策略",
   "Applying…": "正在应用…",
   "Build tier": "构建规格",
@@ -558,6 +559,7 @@ const zhCNMessages = {
     "即使当前关闭构建，也会将构建规格作为策略保存。",
   "Builds": "构建",
   "Candidate": "候选",
+  "Cluster join": "集群加入",
   "Conditions": "条件",
   "Connection": "连接",
   "Control plane role": "控制平面角色",
@@ -581,6 +583,7 @@ const zhCNMessages = {
   "Node policy saved.": "节点策略已保存。",
   "Node policy updated.": "节点策略已更新。",
   "Node state": "节点状态",
+  "Platform node": "平台节点",
   "Policy access unavailable": "策略访问不可用",
   "Policy saved, but live reconcile reported: {details}":
     "策略已保存，但实时 reconcile 回报：{details}",
@@ -589,6 +592,7 @@ const zhCNMessages = {
   "Shared pool": "共享池",
   "Small": "小型",
   "Tenant": "租户",
+  "Tenant runtime": "租户运行时",
   "This node is visible, but it is not backed by a managed machine or runtime yet.":
     "这个节点当前可见，但它还没有挂接到受管机器或运行时。",
   "Unmanaged": "未托管",
@@ -2090,6 +2094,7 @@ const zhTWExtraMessages = {
   "Accept source builds on this machine.": "允許這台機器承接原始碼建置。",
   "Allow builds": "允許建置",
   "Allow shared pool apps": "允許共享池應用",
+  "Agent": "代理程式",
   "Apply policy": "套用策略",
   "Applying…": "套用中…",
   "Build tier": "建置規格",
@@ -2097,6 +2102,7 @@ const zhTWExtraMessages = {
     "即使目前關閉建置，也會將建置規格作為策略儲存。",
   "Builds": "建置",
   "Candidate": "候選",
+  "Cluster join": "叢集加入",
   "Conditions": "條件",
   "Connection": "連線",
   "Control plane": "控制平面",
@@ -2121,6 +2127,7 @@ const zhTWExtraMessages = {
   "Node policy saved.": "節點策略已儲存。",
   "Node policy updated.": "節點策略已更新。",
   "Node state": "節點狀態",
+  "Platform node": "平台節點",
   "Policy access unavailable": "策略存取不可用",
   "Policy saved, but live reconcile reported: {details}":
     "策略已儲存，但即時 reconcile 回報：{details}",
@@ -2129,6 +2136,7 @@ const zhTWExtraMessages = {
   "Shared pool": "共享池",
   "Small": "小型",
   "Tenant": "租戶",
+  "Tenant runtime": "租戶執行環境",
   "This node is visible, but it is not backed by a managed machine or runtime yet.":
     "這個節點目前可見，但它還沒有掛接到受管機器或執行環境。",
   "Unmanaged": "未託管",

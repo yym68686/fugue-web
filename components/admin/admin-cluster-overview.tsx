@@ -9,7 +9,9 @@ import { useI18n } from "@/components/providers/i18n-provider";
 import { Panel, PanelSection } from "@/components/ui/panel";
 import type { AdminClusterNodeView } from "@/lib/admin/service";
 
-function toClusterGalleryItem(node: AdminClusterNodeView): ClusterNodeGalleryItem {
+export function buildAdminClusterGalleryItem(
+  node: AdminClusterNodeView,
+): ClusterNodeGalleryItem {
   return {
     appCount: node.appCount,
     conditions: node.conditions,
@@ -45,6 +47,24 @@ function toClusterGalleryItem(node: AdminClusterNodeView): ClusterNodeGalleryIte
         id: "tenant",
         label: "Tenant",
         value: node.tenantLabel,
+      },
+      {
+        id: "machine-scope",
+        label: "Machine scope",
+        translateValue: true,
+        value: node.machine?.scopeLabel ?? "Unmanaged",
+      },
+      {
+        id: "connection",
+        label: "Connection",
+        translateValue: true,
+        value: node.machine?.connectionModeLabel ?? "Unavailable",
+      },
+      {
+        id: "node-key",
+        label: "Node key",
+        title: node.machine?.nodeKeyId ?? node.machine?.nodeKeyLabel,
+        value: node.machine?.nodeKeyLabel ?? "Unavailable",
       },
       {
         id: "created",
@@ -94,7 +114,7 @@ export function AdminClusterOverview({
   return (
     <ClusterNodeGallery
       ariaLabel={t("Cluster nodes")}
-      items={nodes.map(toClusterGalleryItem)}
+      items={nodes.map(buildAdminClusterGalleryItem)}
     />
   );
 }

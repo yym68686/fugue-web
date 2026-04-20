@@ -23,8 +23,14 @@ export type ClusterNodeGalleryFact = {
   id: string;
   label: string;
   title?: string;
+  translateValue?: boolean;
   value: string;
   valueTone?: ConsoleTone | null;
+};
+
+export type ClusterNodeGallerySummaryBadge = {
+  label: string;
+  tone: ConsoleTone;
 };
 
 export type ClusterNodeGalleryCondition = {
@@ -76,6 +82,7 @@ export type ClusterNodeGalleryItem = {
   publicOffer?: RuntimePublicOfferView | null;
   resources: ClusterNodeGalleryResource[];
   roleLabels: string[];
+  summaryBadges?: ClusterNodeGallerySummaryBadge[];
   runtimeId?: string | null;
   runtimeType?: string | null;
   serviceCount: number;
@@ -191,17 +198,20 @@ function ClusterResourceMeter({
 }
 
 function ClusterFactValue({ fact }: { fact: ClusterNodeGalleryFact }) {
+  const { t } = useI18n();
+  const value = fact.translateValue ? t(fact.value) : fact.value;
+
   if (fact.valueTone) {
-    return <StatusBadge tone={fact.valueTone}>{fact.value}</StatusBadge>;
+    return <StatusBadge tone={fact.valueTone}>{value}</StatusBadge>;
   }
 
   if (fact.countryCode || fact.id === "location") {
     return (
-      <CountryFlagLabel countryCode={fact.countryCode} label={fact.value} />
+      <CountryFlagLabel countryCode={fact.countryCode} label={value} />
     );
   }
 
-  return <>{fact.value}</>;
+  return <>{value}</>;
 }
 
 function buildCompactResourceItem(
@@ -342,6 +352,11 @@ export function ClusterNodeGallery({
                     ) : null}
 
                     <div className="fg-project-card__summary-side fg-cluster-node-card__summary-side">
+                      {item.summaryBadges?.map((badge) => (
+                        <StatusBadge key={`${item.id}:${badge.label}`} tone={badge.tone}>
+                          {t(badge.label)}
+                        </StatusBadge>
+                      ))}
                       {ownershipBadge ? (
                         <StatusBadge tone={ownershipBadge.tone}>
                           {ownershipBadge.label}
