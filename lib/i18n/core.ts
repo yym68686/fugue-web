@@ -554,9 +554,6 @@ const zhCNMessages = {
   "Agent": "代理",
   "Apply policy": "应用策略",
   "Applying…": "正在应用…",
-  "Build tier": "构建规格",
-  "Build tier is stored as policy even if builds are currently off.":
-    "即使当前关闭构建，也会将构建规格作为策略保存。",
   "Builds": "构建",
   "Candidate": "候选",
   "Cluster join": "集群加入",
@@ -2110,9 +2107,6 @@ const zhTWExtraMessages = {
   "Agent": "代理程式",
   "Apply policy": "套用策略",
   "Applying…": "套用中…",
-  "Build tier": "建置規格",
-  "Build tier is stored as policy even if builds are currently off.":
-    "即使目前關閉建置，也會將建置規格作為策略儲存。",
   "Builds": "建置",
   "Candidate": "候選",
   "Cluster join": "叢集加入",

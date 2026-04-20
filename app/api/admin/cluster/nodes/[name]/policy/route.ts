@@ -87,9 +87,6 @@ export async function PATCH(request: Request, context: RouteContext) {
       {
         allowBuilds: readOptionalBoolean(body, "allowBuilds"),
         allowSharedPool: readOptionalBoolean(body, "allowSharedPool"),
-        buildTier: Object.prototype.hasOwnProperty.call(body, "buildTier")
-          ? readOptionalString(body, "buildTier")
-          : undefined,
         desiredControlPlaneRole: Object.prototype.hasOwnProperty.call(
           body,
           "desiredControlPlaneRole",

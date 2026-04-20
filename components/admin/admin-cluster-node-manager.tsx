@@ -27,7 +27,6 @@ import type { ConsoleTone } from "@/lib/console/types";
 type NodePolicyDraft = {
   allowBuilds: boolean;
   allowSharedPool: boolean;
-  buildTier: "large" | "medium" | "small";
   desiredControlPlaneRole: "candidate" | "member" | "none";
 };
 
@@ -61,24 +60,10 @@ function readPolicyDraft(node: AdminClusterNodeView): NodePolicyDraft {
   return {
     allowBuilds: node.policy?.allowBuilds ?? false,
     allowSharedPool: node.policy?.allowSharedPool ?? false,
-    buildTier: normalizeBuildTier(node.policy?.buildTier),
     desiredControlPlaneRole: normalizeControlPlaneRole(
       node.policy?.desiredControlPlaneRole,
     ),
   };
-}
-
-function normalizeBuildTier(
-  value?: string | null,
-): NodePolicyDraft["buildTier"] {
-  switch (value?.trim().toLowerCase()) {
-    case "small":
-      return "small";
-    case "large":
-      return "large";
-    default:
-      return "medium";
-  }
 }
 
 function normalizeControlPlaneRole(
@@ -122,7 +107,6 @@ function draftMatchesPolicy(
   return (
     draft.allowBuilds === policy.allowBuilds &&
     draft.allowSharedPool === policy.allowSharedPool &&
-    draft.buildTier === normalizeBuildTier(policy.buildTier) &&
     draft.desiredControlPlaneRole ===
       normalizeControlPlaneRole(policy.desiredControlPlaneRole)
   );
@@ -135,8 +119,6 @@ function policyNeedsReconcile(policy: AdminClusterNodePolicyView | null) {
 
   return (
     policy.allowBuilds !== policy.effectiveBuilds ||
-    normalizeBuildTier(policy.buildTier) !==
-      normalizeBuildTier(policy.effectiveBuildTier) ||
     policy.allowSharedPool !== policy.effectiveSharedPool
   );
 }
@@ -232,7 +214,6 @@ function AdminClusterInlineEmptyState({
 
 function AdminClusterPolicySection({
   busy,
-  buildTierOptions,
   controlPlaneRoleOptions,
   dirty,
   draft,
@@ -243,9 +224,6 @@ function AdminClusterPolicySection({
   onReset,
 }: {
   busy: boolean;
-  buildTierOptions: readonly SegmentedControlOption<
-    NodePolicyDraft["buildTier"]
-  >[];
   controlPlaneRoleOptions: readonly SegmentedControlOption<
     NodePolicyDraft["desiredControlPlaneRole"]
   >[];
@@ -258,10 +236,7 @@ function AdminClusterPolicySection({
   onReset: () => void;
 }) {
   const { t } = useI18n();
-  const liveBuildLabel = t("{state} / {tier}", {
-    state: node.policy?.effectiveBuilds ? t("On") : t("Off"),
-    tier: t(node.policy?.effectiveBuildTierLabel ?? "Unassigned"),
-  });
+  const liveBuildLabel = node.policy?.effectiveBuilds ? t("On") : t("Off");
   const liveSharedPoolLabel = node.policy?.effectiveSharedPool
     ? t("On")
     : t("Off");
@@ -392,28 +367,6 @@ function AdminClusterPolicySection({
                         }}
                       />
                     </div>
-
-                    <div className="fg-admin-cluster-manager__field-stack">
-                      <div className="fg-admin-cluster-manager__field-head">
-                        <strong className="fg-admin-cluster-manager__field-label">
-                          {t("Build tier")}
-                        </strong>
-                        <span className="fg-admin-cluster-manager__field-hint">
-                          {t(
-                            "Build tier is stored as policy even if builds are currently off.",
-                          )}
-                        </span>
-                      </div>
-                      <SegmentedControl
-                        ariaLabel={t("Build tier")}
-                        controlClassName="fg-admin-cluster-manager__segmented-control"
-                        onChange={(value) => {
-                          onDraftChange({ buildTier: value });
-                        }}
-                        options={buildTierOptions}
-                        value={draft.buildTier}
-                      />
-                    </div>
                   </section>
 
                   <section className="fg-admin-cluster-manager__policy-card fg-admin-cluster-manager__policy-card--shared-pool">
@@ -535,18 +488,6 @@ export function AdminClusterNodeManager({
       ),
     );
   }, [busyNodeName, nodes]);
-
-  const buildTierOptions = useMemo(
-    () =>
-      [
-        { label: t("Small"), value: "small" },
-        { label: t("Medium"), value: "medium" },
-        { label: t("Large"), value: "large" },
-      ] satisfies readonly SegmentedControlOption<
-        NodePolicyDraft["buildTier"]
-      >[],
-    [t],
-  );
 
   const controlPlaneRoleOptions = useMemo(
     () =>
@@ -683,7 +624,6 @@ export function AdminClusterNodeManager({
           return (
             <AdminClusterPolicySection
               busy={busy}
-              buildTierOptions={buildTierOptions}
               controlPlaneRoleOptions={controlPlaneRoleOptions}
               dirty={dirty}
               draft={draft}

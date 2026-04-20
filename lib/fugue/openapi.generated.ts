@@ -2355,11 +2355,9 @@ export interface components {
         };
         ClusterNodePolicy: {
             allow_builds: boolean;
-            build_tier: string;
             allow_shared_pool: boolean;
             desired_control_plane_role: string;
             effective_builds: boolean;
-            effective_build_tier: string;
             effective_shared_pool: boolean;
             effective_control_plane_role: string;
         };
@@ -2810,7 +2808,6 @@ export interface components {
         };
         SetClusterNodePolicyRequest: {
             allow_builds?: boolean;
-            build_tier?: string;
             allow_shared_pool?: boolean;
             desired_control_plane_role?: string;
         };

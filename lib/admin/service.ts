@@ -263,13 +263,9 @@ export type AdminClusterNodeMachineView = {
 export type AdminClusterNodePolicyView = {
   allowBuilds: boolean;
   allowSharedPool: boolean;
-  buildTier: string | null;
-  buildTierLabel: string;
   desiredControlPlaneRole: string | null;
   desiredControlPlaneRoleLabel: string;
   effectiveBuilds: boolean;
-  effectiveBuildTier: string | null;
-  effectiveBuildTierLabel: string;
   effectiveControlPlaneRole: string | null;
   effectiveControlPlaneRoleLabel: string;
   effectiveSharedPool: boolean;
@@ -1909,19 +1905,6 @@ function readClusterNodeControlPlaneRoleLabel(value?: string | null) {
   }
 }
 
-function readClusterNodeBuildTierLabel(value?: string | null) {
-  switch (value?.trim().toLowerCase()) {
-    case "small":
-      return "Small";
-    case "medium":
-      return "Medium";
-    case "large":
-      return "Large";
-    default:
-      return "Unassigned";
-  }
-}
-
 function buildAdminClusterNodeMachineView(
   node: FugueClusterNode,
 ): AdminClusterNodeMachineView | null {
@@ -1956,17 +1939,11 @@ function buildAdminClusterNodePolicyView(
   return {
     allowBuilds: node.policy.allowBuilds ?? false,
     allowSharedPool: node.policy.allowSharedPool ?? false,
-    buildTier: node.policy.buildTier,
-    buildTierLabel: readClusterNodeBuildTierLabel(node.policy.buildTier),
     desiredControlPlaneRole: node.policy.desiredControlPlaneRole,
     desiredControlPlaneRoleLabel: readClusterNodeControlPlaneRoleLabel(
       node.policy.desiredControlPlaneRole,
     ),
     effectiveBuilds: node.policy.effectiveBuilds ?? false,
-    effectiveBuildTier: node.policy.effectiveBuildTier,
-    effectiveBuildTierLabel: readClusterNodeBuildTierLabel(
-      node.policy.effectiveBuildTier,
-    ),
     effectiveControlPlaneRole: node.policy.effectiveControlPlaneRole,
     effectiveControlPlaneRoleLabel: readClusterNodeControlPlaneRoleLabel(
       node.policy.effectiveControlPlaneRole,
@@ -2756,7 +2733,6 @@ export async function setAdminClusterNodePolicy(
   payload: {
     allowBuilds?: boolean;
     allowSharedPool?: boolean;
-    buildTier?: string;
     desiredControlPlaneRole?: string;
   },
 ) {

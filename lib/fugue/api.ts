@@ -1014,10 +1014,8 @@ function buildClusterNodePolicyView(
   return {
     allowBuilds: policy.allowBuilds ?? false,
     allowSharedPool: policy.allowSharedPool ?? false,
-    buildTier: readNullableString(policy.buildTier),
     desiredControlPlaneRole: readNullableString(policy.desiredControlPlaneRole),
     effectiveBuilds: policy.effectiveBuilds ?? false,
-    effectiveBuildTier: readNullableString(policy.effectiveBuildTier),
     effectiveControlPlaneRole: readNullableString(
       policy.effectiveControlPlaneRole,
     ),
@@ -3830,7 +3828,6 @@ export async function setFugueClusterNodePolicy(
   payload: {
     allowBuilds?: boolean;
     allowSharedPool?: boolean;
-    buildTier?: string;
     desiredControlPlaneRole?: string;
   },
 ) {
@@ -3845,9 +3842,6 @@ export async function setFugueClusterNodePolicy(
             : {}),
           ...(payload.allowSharedPool !== undefined
             ? { allow_shared_pool: payload.allowSharedPool }
-            : {}),
-          ...(payload.buildTier !== undefined
-            ? { build_tier: payload.buildTier }
             : {}),
           ...(payload.desiredControlPlaneRole !== undefined
             ? {
