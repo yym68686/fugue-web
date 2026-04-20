@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 
-import { CompactResourceMeter } from "@/components/console/compact-resource-meter";
 import { ConsoleEmptyState } from "@/components/console/console-empty-state";
 import { StatusBadge } from "@/components/console/status-badge";
 import { useI18n } from "@/components/providers/i18n-provider";
@@ -18,12 +17,12 @@ import {
   type SegmentedControlOption,
 } from "@/components/ui/segmented-control";
 import { useToast } from "@/components/ui/toast";
-import type { ConsoleCompactResourceItemView } from "@/lib/console/gallery-types";
 import type {
   AdminClusterNodePolicyView,
   AdminClusterNodeView,
 } from "@/lib/admin/service";
 import type { ConsoleTone } from "@/lib/console/types";
+import { cx } from "@/lib/ui/cx";
 
 type NodePolicyDraft = {
   allowBuilds: boolean;
@@ -95,18 +94,12 @@ function normalizeControlPlaneRole(
   }
 }
 
-function toCompactResourceItem(
-  resource: AdminClusterNodeView["resources"][number],
-) {
-  return {
-    id: resource.id,
-    label: resource.label,
-    meterValue: resource.percentValue,
-    primaryLabel: resource.percentLabel,
-    secondaryLabel: resource.usageLabel,
-    title: `${resource.label} / ${resource.usageLabel} / ${resource.totalLabel}`,
-    tone: resource.statusTone,
-  } satisfies ConsoleCompactResourceItemView;
+function readMeterWidth(value?: number | null) {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.min(100, value));
 }
 
 function readControlPlaneTone(roleLabel: string): ConsoleTone {
@@ -124,6 +117,151 @@ function readControlPlaneTone(roleLabel: string): ConsoleTone {
 
 function readLiveFlagTone(enabled: boolean): ConsoleTone {
   return enabled ? "positive" : "neutral";
+}
+
+function AdminClusterResourceMeter({
+  resource,
+}: {
+  resource: AdminClusterNodeView["resources"][number];
+}) {
+  const { t } = useI18n();
+  const label = resource.id === "cpu" ? t("CPU") : t(resource.label);
+  const percentLabel =
+    resource.percentLabel === "No stats"
+      ? t("No stats")
+      : resource.percentLabel;
+  const usageLabel =
+    resource.usageLabel === "No stats" ? t("No stats") : resource.usageLabel;
+
+  return (
+    <article
+      className="fg-cluster-resource"
+      title={t("{label} / {usage} / {total}", {
+        label,
+        total: resource.totalLabel,
+        usage: resource.usageLabel,
+      })}
+    >
+      <div className="fg-cluster-resource__head">
+        <div className="fg-cluster-resource__copy">
+          <span className="fg-cluster-resource__label">{label}</span>
+          <strong>{percentLabel}</strong>
+        </div>
+
+        <StatusBadge tone={resource.statusTone}>
+          {t(resource.statusLabel)}
+        </StatusBadge>
+      </div>
+
+      <div
+        aria-label={t("{label} usage {percent} ({usage})", {
+          label,
+          percent: resource.percentLabel,
+          usage: resource.usageLabel,
+        })}
+        className="fg-cluster-resource__meter"
+        role="img"
+      >
+        <span
+          className={cx(
+            "fg-cluster-resource__fill",
+            `fg-cluster-resource__fill--${resource.statusTone}`,
+          )}
+          style={{ width: `${readMeterWidth(resource.percentValue)}%` }}
+        />
+      </div>
+
+      <div className="fg-cluster-resource__meta">
+        <span>{usageLabel}</span>
+        <span>{resource.totalLabel}</span>
+      </div>
+
+      <p className="fg-cluster-resource__detail">{resource.detailLabel}</p>
+    </article>
+  );
+}
+
+function AdminClusterOverviewStat({
+  label,
+  title,
+  value,
+}: {
+  label: string;
+  title?: string;
+  value: ReactNode;
+}) {
+  return (
+    <div className="fg-admin-cluster-manager__overview-stat" title={title}>
+      <dt>{label}</dt>
+      <dd>{value}</dd>
+    </div>
+  );
+}
+
+function AdminClusterPolicyLiveCard({
+  label,
+  value,
+}: {
+  label: string;
+  value: ReactNode;
+}) {
+  return (
+    <div className="fg-admin-cluster-manager__policy-live-card">
+      <span>{label}</span>
+      <div className="fg-admin-cluster-manager__policy-live-value">{value}</div>
+    </div>
+  );
+}
+
+function AdminClusterPolicyToggle({
+  checked,
+  description,
+  id,
+  label,
+  liveBadge,
+  onChange,
+}: {
+  checked: boolean;
+  description: string;
+  id: string;
+  label: string;
+  liveBadge: ReactNode;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <label className="fg-admin-cluster-manager__toggle-card" htmlFor={id}>
+      <input
+        checked={checked}
+        id={id}
+        onChange={(event) => {
+          onChange(event.target.checked);
+        }}
+        type="checkbox"
+      />
+      <span className="fg-admin-cluster-manager__toggle-copy">
+        <strong>{label}</strong>
+        <small>{description}</small>
+      </span>
+      <span className="fg-admin-cluster-manager__toggle-status">
+        {liveBadge}
+      </span>
+    </label>
+  );
+}
+
+function AdminClusterInlineEmptyState({
+  description,
+  title,
+}: {
+  description: string;
+  title: string;
+}) {
+  return (
+    <div className="fg-admin-cluster-manager__inline-empty">
+      <strong>{title}</strong>
+      <p>{description}</p>
+    </div>
+  );
 }
 
 function draftMatchesPolicy(
@@ -290,70 +428,140 @@ export function AdminClusterNodeManager({
           ? !draftMatchesPolicy(draft, node.policy)
           : false;
         const busy = busyNodeName === node.name;
+        const visibleWorkloads = node.workloads.slice(0, 4);
+        const workloadCountLabel = t(
+          node.workloadCount === 1 ? "{count} workload" : "{count} workloads",
+          {
+            count: node.workloadCount,
+          },
+        );
+        const appCountLabel = t(
+          node.appCount === 1 ? "{count} app" : "{count} apps",
+          {
+            count: node.appCount,
+          },
+        );
+        const serviceCountLabel = t(
+          node.serviceCount === 1
+            ? "{count} service"
+            : "{count} services",
+          {
+            count: node.serviceCount,
+          },
+        );
+        const liveBuildLabel = t("{state} / {tier}", {
+          state: node.policy?.effectiveBuilds ? t("On") : t("Off"),
+          tier: t(node.policy?.effectiveBuildTierLabel ?? "Unassigned"),
+        });
+        const liveSharedPoolLabel = node.policy?.effectiveSharedPool
+          ? t("On")
+          : t("Off");
+        const liveControlPlaneLabel = t(
+          node.policy?.effectiveControlPlaneRoleLabel ?? "Unknown",
+        );
+        const summaryCopy =
+          node.statusDetail || node.headerMeta || t("No summary available.");
+        const stateFacts = [
+          {
+            id: "public",
+            label: t("Public address"),
+            title: node.publicIpLabel,
+            value: node.publicIpLabel,
+          },
+          {
+            id: "internal",
+            label: t("Internal address"),
+            title: node.internalIpLabel,
+            value: node.internalIpLabel,
+          },
+          {
+            id: "zone",
+            label: t("Zone"),
+            title: node.zoneLabel,
+            value: node.zoneLabel,
+          },
+          {
+            id: "scope",
+            label: t("Machine scope"),
+            title: node.machine?.scopeLabel ?? t("Unmanaged"),
+            value: node.machine?.scopeLabel
+              ? t(node.machine.scopeLabel)
+              : t("Unmanaged"),
+          },
+          {
+            id: "connection",
+            label: t("Connection"),
+            title: node.machine?.connectionModeLabel ?? t("Unavailable"),
+            value: node.machine?.connectionModeLabel
+              ? t(node.machine.connectionModeLabel)
+              : t("Unavailable"),
+          },
+          {
+            id: "status",
+            label: t("Status"),
+            value: (
+              <StatusBadge tone={node.statusTone}>
+                {t(node.statusLabel)}
+              </StatusBadge>
+            ),
+          },
+          {
+            id: "node-key",
+            label: t("Node key"),
+            title: node.machine?.nodeKeyId ?? node.machine?.nodeKeyLabel,
+            value: node.machine?.nodeKeyLabel ?? t("Unavailable"),
+          },
+        ];
 
         return (
           <Panel className="fg-admin-cluster-manager__card" key={node.name}>
-            <PanelSection className="fg-admin-cluster-manager__head">
-              <div className="fg-admin-cluster-manager__copy">
-                <p className="fg-label fg-panel__eyebrow">
-                  {t("Cluster node")}
-                </p>
-                <PanelTitle>{node.name}</PanelTitle>
-                <PanelCopy>
-                  {node.headerMeta ||
-                    node.statusDetail ||
-                    t("No summary available.")}
-                </PanelCopy>
-              </div>
+            <PanelSection className="fg-admin-cluster-manager__overview">
+              <div className="fg-admin-cluster-manager__overview-copy">
+                <div className="fg-admin-cluster-manager__head">
+                  <div className="fg-admin-cluster-manager__headline">
+                    <p className="fg-label fg-panel__eyebrow">
+                      {t("Cluster node")}
+                    </p>
+                    <PanelTitle className="fg-admin-cluster-manager__title">
+                      {node.name}
+                    </PanelTitle>
+                    <PanelCopy className="fg-admin-cluster-manager__summary">
+                      {summaryCopy}
+                    </PanelCopy>
+                  </div>
 
-              <div className="fg-admin-cluster-manager__badges">
-                <StatusBadge tone={node.statusTone}>
-                  {t(node.statusLabel)}
-                </StatusBadge>
-                {node.machine ? (
-                  <StatusBadge tone="neutral">
-                    {t(node.machine.scopeLabel)}
-                  </StatusBadge>
-                ) : (
-                  <StatusBadge tone="warning">{t("Read only")}</StatusBadge>
-                )}
-                {node.policy ? (
-                  <StatusBadge
-                    tone={readControlPlaneTone(
-                      node.policy.effectiveControlPlaneRoleLabel,
+                  <div className="fg-admin-cluster-manager__badges">
+                    <StatusBadge tone={node.statusTone}>
+                      {t(node.statusLabel)}
+                    </StatusBadge>
+                    {dirty ? (
+                      <StatusBadge tone="info">
+                        {t("Unsaved policy")}
+                      </StatusBadge>
+                    ) : null}
+                    {node.machine ? (
+                      <StatusBadge tone="neutral">
+                        {t(node.machine.scopeLabel)}
+                      </StatusBadge>
+                    ) : (
+                      <StatusBadge tone="warning">{t("Read only")}</StatusBadge>
                     )}
-                  >
-                    {t(node.policy.effectiveControlPlaneRoleLabel)}
-                  </StatusBadge>
-                ) : null}
-              </div>
-            </PanelSection>
-
-            <PanelSection className="fg-admin-cluster-manager__grid">
-              <div className="fg-admin-cluster-manager__surface">
-                <div className="fg-admin-cluster-manager__surface-head">
-                  <strong>{t("Node state")}</strong>
-                  <span>
-                    {t("Live inventory, workloads, and placement facts")}
-                  </span>
+                    {node.policy ? (
+                      <StatusBadge
+                        tone={readControlPlaneTone(
+                          node.policy.effectiveControlPlaneRoleLabel,
+                        )}
+                      >
+                        {t(node.policy.effectiveControlPlaneRoleLabel)}
+                      </StatusBadge>
+                    ) : null}
+                  </div>
                 </div>
 
-                <dl className="fg-cluster-node-facts fg-admin-cluster-manager__facts">
+                <dl className="fg-admin-cluster-manager__summary-meta">
                   <div>
                     <dt>{t("Location")}</dt>
                     <dd>{t(node.locationLabel)}</dd>
-                  </div>
-                  <div>
-                    <dt>{t("Public address")}</dt>
-                    <dd>{node.publicIpLabel}</dd>
-                  </div>
-                  <div>
-                    <dt>{t("Internal address")}</dt>
-                    <dd>{node.internalIpLabel}</dd>
-                  </div>
-                  <div>
-                    <dt>{t("Zone")}</dt>
-                    <dd>{node.zoneLabel}</dd>
                   </div>
                   <div>
                     <dt>{t("Runtime")}</dt>
@@ -363,70 +571,168 @@ export function AdminClusterNodeManager({
                     <dt>{t("Tenant")}</dt>
                     <dd>{node.tenantLabel}</dd>
                   </div>
-                  <div>
-                    <dt>{t("Machine scope")}</dt>
-                    <dd>{node.machine?.scopeLabel ?? t("Unmanaged")}</dd>
-                  </div>
-                  <div>
-                    <dt>{t("Connection")}</dt>
-                    <dd>
-                      {node.machine?.connectionModeLabel ?? t("Unavailable")}
-                    </dd>
-                  </div>
                 </dl>
 
-                <div className="fg-admin-cluster-manager__resource-strip">
+                {node.roleLabels.length ? (
+                  <div className="fg-console-tech-list fg-admin-cluster-manager__roles">
+                    {node.roleLabels.map((role) => (
+                      <span className="fg-console-tech-pill" key={role}>
+                        <span className="fg-console-tech-pill__label">
+                          {t(role)}
+                        </span>
+                        <span className="fg-console-tech-pill__meta">
+                          {t("Role")}
+                        </span>
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+
+              <dl className="fg-admin-cluster-manager__overview-stats">
+                <AdminClusterOverviewStat
+                  label={t("Workloads")}
+                  value={node.workloadCount}
+                />
+                <AdminClusterOverviewStat
+                  label={t("Apps")}
+                  value={node.appCount}
+                />
+                <AdminClusterOverviewStat
+                  label={t("Services")}
+                  value={node.serviceCount}
+                />
+                <AdminClusterOverviewStat
+                  label={t("Created")}
+                  title={node.createdExact}
+                  value={node.createdLabel}
+                />
+              </dl>
+            </PanelSection>
+
+            <PanelSection className="fg-admin-cluster-manager__body">
+              <section className="fg-admin-cluster-manager__lane">
+                <div className="fg-admin-cluster-manager__lane-head">
+                  <strong>{t("Node state")}</strong>
+                  <span>
+                    {t("Identity, reachability, and placement facts.")}
+                  </span>
+                </div>
+
+                <dl className="fg-cluster-node-facts fg-admin-cluster-manager__facts">
+                  {stateFacts.map((fact) => (
+                    <div key={`${node.name}:${fact.id}`}>
+                      <dt>{fact.label}</dt>
+                      <dd title={fact.title}>{fact.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+
+              <section className="fg-admin-cluster-manager__lane">
+                <div className="fg-admin-cluster-manager__lane-head">
+                  <strong>{t("Signals")}</strong>
+                  <span>{t("Ready and pressure signals.")}</span>
+                </div>
+
+                <div className="fg-cluster-resource-grid fg-admin-cluster-manager__resource-grid">
                   {node.resources.map((resource) => (
-                    <CompactResourceMeter
-                      item={toCompactResourceItem(resource)}
+                    <AdminClusterResourceMeter
                       key={`${node.name}:${resource.id}`}
-                      showLabel
+                      resource={resource}
                     />
                   ))}
                 </div>
 
-                <div className="fg-admin-cluster-manager__state-grid">
-                  <div className="fg-admin-cluster-manager__state-block">
-                    <strong>{t("Conditions")}</strong>
-                    <div className="fg-admin-cluster-manager__pill-row">
-                      {node.conditions.map((condition) => (
-                        <StatusBadge
-                          key={`${node.name}:${condition.id}`}
-                          tone={condition.tone}
-                        >
-                          {t("{label}: {status}", {
-                            label: condition.label,
-                            status: condition.statusLabel,
-                          })}
-                        </StatusBadge>
-                      ))}
+                <div className="fg-admin-cluster-manager__lane-stack">
+                  <div className="fg-admin-cluster-manager__subsection">
+                    <div className="fg-admin-cluster-manager__subhead">
+                      <strong>{t("Conditions")}</strong>
                     </div>
+
+                    {node.conditions.length ? (
+                      <div className="fg-cluster-condition-grid">
+                        {node.conditions.map((condition) => (
+                          <article
+                            className="fg-cluster-condition"
+                            key={`${node.name}:${condition.id}`}
+                          >
+                            <div className="fg-cluster-condition__head">
+                              <span className="fg-cluster-condition__label">
+                                {t(condition.label)}
+                              </span>
+                              <StatusBadge tone={condition.tone}>
+                                {t(condition.statusLabel)}
+                              </StatusBadge>
+                            </div>
+                            <p
+                              className="fg-cluster-condition__detail"
+                              title={`${condition.detailLabel} / ${condition.lastTransitionExact}`}
+                            >
+                              {condition.detailLabel}
+                            </p>
+                          </article>
+                        ))}
+                      </div>
+                    ) : (
+                      <AdminClusterInlineEmptyState
+                        description={t("No live signals reported.")}
+                        title={t("Conditions")}
+                      />
+                    )}
                   </div>
 
-                  <div className="fg-admin-cluster-manager__state-block">
-                    <strong>{t("Workloads")}</strong>
-                    {node.workloads.length ? (
-                      <ul className="fg-admin-cluster-manager__workload-list">
-                        {node.workloads.slice(0, 4).map((workload) => (
+                  <div className="fg-admin-cluster-manager__subsection">
+                    <div className="fg-admin-cluster-manager__subhead">
+                      <strong>{t("Workloads")}</strong>
+                      <div className="fg-admin-cluster-manager__section-badges">
+                        <StatusBadge tone="neutral">
+                          {workloadCountLabel}
+                        </StatusBadge>
+                        {node.appCount ? (
+                          <StatusBadge tone="info">{appCountLabel}</StatusBadge>
+                        ) : null}
+                        {node.serviceCount ? (
+                          <StatusBadge tone="neutral">
+                            {serviceCountLabel}
+                          </StatusBadge>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    {visibleWorkloads.length ? (
+                      <ul className="fg-cluster-workload-list fg-admin-cluster-manager__workload-list">
+                        {visibleWorkloads.map((workload) => (
                           <li key={`${node.name}:${workload.id}`}>
-                            <span>{workload.name}</span>
-                            <span>{workload.metaLabel}</span>
+                            <article
+                              className="fg-cluster-workload"
+                              title={workload.title}
+                            >
+                              <div className="fg-cluster-workload__head">
+                                <strong>{workload.name}</strong>
+                                <StatusBadge tone={workload.kindTone}>
+                                  {t(workload.kindLabel)}
+                                </StatusBadge>
+                              </div>
+                              <p>{workload.metaLabel}</p>
+                            </article>
                           </li>
                         ))}
                       </ul>
                     ) : (
-                      <p className="fg-admin-cluster-manager__empty-copy">
-                        {t(
-                          "No Fugue app or backing service is currently scheduled here.",
+                      <AdminClusterInlineEmptyState
+                        description={t(
+                          "No Fugue app or backing service is currently scheduled onto this node.",
                         )}
-                      </p>
+                        title={t("No workloads on this node")}
+                      />
                     )}
                   </div>
                 </div>
-              </div>
+              </section>
 
-              <div className="fg-admin-cluster-manager__surface">
-                <div className="fg-admin-cluster-manager__surface-head">
+              <section className="fg-admin-cluster-manager__lane fg-admin-cluster-manager__lane--policy">
+                <div className="fg-admin-cluster-manager__lane-head">
                   <strong>{t("Node policy")}</strong>
                   <span>
                     {node.canManagePolicy
@@ -439,196 +745,216 @@ export function AdminClusterNodeManager({
                   </span>
                 </div>
 
-                <div className="fg-admin-cluster-manager__policy-stack">
-                  <label className="fg-project-toggle fg-admin-cluster-manager__toggle">
-                    <input
-                      id={`allow-builds-${node.name}`}
-                      checked={draft.allowBuilds}
-                      disabled={!node.canManagePolicy || busy}
-                      onChange={(event) => {
-                        const checked = event.target.checked;
-                        setDrafts((current) => ({
-                          ...current,
-                          [node.name]: {
-                            ...draft,
-                            allowBuilds: checked,
-                          },
-                        }));
-                      }}
-                      type="checkbox"
-                    />
-                    <span>
-                      <strong>{t("Allow builds")}</strong>
-                      <small>
-                        {t("Live: {state} / {tier}", {
-                          state: node.policy?.effectiveBuilds
-                            ? t("On")
-                            : t("Off"),
-                          tier: t(
-                            node.policy?.effectiveBuildTierLabel ??
-                              "Unassigned",
-                          ),
-                        })}
-                      </small>
-                    </span>
-                  </label>
-
-                  <label className="fg-project-toggle fg-admin-cluster-manager__toggle">
-                    <input
-                      id={`allow-shared-pool-${node.name}`}
-                      checked={draft.allowSharedPool}
-                      disabled={!node.canManagePolicy || busy}
-                      onChange={(event) => {
-                        const checked = event.target.checked;
-                        setDrafts((current) => ({
-                          ...current,
-                          [node.name]: {
-                            ...draft,
-                            allowSharedPool: checked,
-                          },
-                        }));
-                      }}
-                      type="checkbox"
-                    />
-                    <span>
-                      <strong>{t("Allow shared pool apps")}</strong>
-                      <small>
-                        {t("Live: {state}", {
-                          state: node.policy?.effectiveSharedPool
-                            ? t("On")
-                            : t("Off"),
-                        })}
-                      </small>
-                    </span>
-                  </label>
-
-                  <div className="fg-admin-cluster-manager__field">
-                    <div className="fg-admin-cluster-manager__field-head">
-                      <strong className="fg-admin-cluster-manager__field-label">
-                        {t("Build tier")}
-                      </strong>
-                      <span className="fg-admin-cluster-manager__field-hint">
-                        {t(
-                          "Build tier is stored as policy even if builds are currently off.",
-                        )}
-                      </span>
-                    </div>
-                    <SegmentedControl
-                      ariaLabel={t("Build tier")}
-                      controlClassName="fg-admin-cluster-manager__segmented-control"
-                      onChange={(value) => {
-                        setDrafts((current) => ({
-                          ...current,
-                          [node.name]: {
-                            ...draft,
-                            buildTier: value,
-                          },
-                        }));
-                      }}
-                      options={buildTierOptions}
-                      value={draft.buildTier}
-                    />
+                <div className="fg-admin-cluster-manager__subsection">
+                  <div className="fg-admin-cluster-manager__subhead">
+                    <strong>{t("Live policy")}</strong>
                   </div>
 
-                  <div className="fg-admin-cluster-manager__field">
-                    <div className="fg-admin-cluster-manager__field-head">
-                      <strong className="fg-admin-cluster-manager__field-label">
-                        {t("Control plane role")}
-                      </strong>
-                      <span className="fg-admin-cluster-manager__field-hint">
-                        {t(
-                          "Member is a desired target only. The live node becomes member only after real control-plane promotion outside the agent path.",
-                        )}
-                      </span>
-                    </div>
-                    <SegmentedControl
-                      ariaLabel={t("Control plane role")}
-                      controlClassName="fg-admin-cluster-manager__segmented-control"
-                      onChange={(value) => {
-                        setDrafts((current) => ({
-                          ...current,
-                          [node.name]: {
-                            ...draft,
-                            desiredControlPlaneRole: value,
-                          },
-                        }));
-                      }}
-                      options={controlPlaneRoleOptions}
-                      value={draft.desiredControlPlaneRole}
+                  <div className="fg-admin-cluster-manager__policy-live-grid">
+                    <AdminClusterPolicyLiveCard
+                      label={t("Builds")}
+                      value={
+                        <StatusBadge
+                          tone={readLiveFlagTone(
+                            node.policy?.effectiveBuilds ?? false,
+                          )}
+                        >
+                          {liveBuildLabel}
+                        </StatusBadge>
+                      }
                     />
-                  </div>
-
-                  <div className="fg-admin-cluster-manager__live-grid">
-                    <div>
-                      <span>{t("Builds")}</span>
-                      <StatusBadge
-                        tone={readLiveFlagTone(
-                          node.policy?.effectiveBuilds ?? false,
-                        )}
-                      >
-                        {t("{state} / {tier}", {
-                          state: node.policy?.effectiveBuilds
-                            ? t("On")
-                            : t("Off"),
-                          tier: t(
-                            node.policy?.effectiveBuildTierLabel ??
-                              "Unassigned",
-                          ),
-                        })}
-                      </StatusBadge>
-                    </div>
-                    <div>
-                      <span>{t("Shared pool")}</span>
-                      <StatusBadge
-                        tone={readLiveFlagTone(
-                          node.policy?.effectiveSharedPool ?? false,
-                        )}
-                      >
-                        {node.policy?.effectiveSharedPool ? t("On") : t("Off")}
-                      </StatusBadge>
-                    </div>
-                    <div>
-                      <span>{t("Control plane")}</span>
-                      <StatusBadge
-                        tone={readControlPlaneTone(
-                          node.policy?.effectiveControlPlaneRoleLabel ??
-                            "Unknown",
-                        )}
-                      >
-                        {t(
-                          node.policy?.effectiveControlPlaneRoleLabel ??
-                            "Unknown",
-                        )}
-                      </StatusBadge>
-                    </div>
-                  </div>
-
-                  <div className="fg-admin-cluster-manager__actions">
-                    <Button
-                      disabled={!dirty || !node.canManagePolicy}
-                      loading={busy}
-                      loadingLabel={t("Applying…")}
-                      onClick={() => {
-                        void handleApply(node);
-                      }}
-                      size="compact"
-                      variant="primary"
-                    >
-                      {t("Apply policy")}
-                    </Button>
-                    <Button
-                      disabled={!dirty || busy || !node.canManagePolicy}
-                      onClick={() => {
-                        resetDraft(node);
-                      }}
-                      size="compact"
-                      variant="secondary"
-                    >
-                      {t("Reset draft")}
-                    </Button>
+                    <AdminClusterPolicyLiveCard
+                      label={t("Shared pool")}
+                      value={
+                        <StatusBadge
+                          tone={readLiveFlagTone(
+                            node.policy?.effectiveSharedPool ?? false,
+                          )}
+                        >
+                          {liveSharedPoolLabel}
+                        </StatusBadge>
+                      }
+                    />
+                    <AdminClusterPolicyLiveCard
+                      label={t("Control plane")}
+                      value={
+                        <StatusBadge
+                          tone={readControlPlaneTone(
+                            node.policy?.effectiveControlPlaneRoleLabel ??
+                              "Unknown",
+                          )}
+                        >
+                          {liveControlPlaneLabel}
+                        </StatusBadge>
+                      }
+                    />
                   </div>
                 </div>
-              </div>
+
+                {node.canManagePolicy ? (
+                  <div className="fg-admin-cluster-manager__subsection">
+                    <div className="fg-admin-cluster-manager__subhead">
+                      <strong>{t("Desired policy")}</strong>
+                      {dirty ? (
+                        <StatusBadge tone="info">
+                          {t("Unsaved policy")}
+                        </StatusBadge>
+                      ) : null}
+                    </div>
+
+                    <p className="fg-admin-cluster-manager__section-note">
+                      {t("Edit the policy Fugue will reconcile onto this machine.")}
+                    </p>
+
+                    <fieldset
+                      className="fg-admin-cluster-manager__policy-form"
+                      disabled={busy}
+                    >
+                      <div className="fg-admin-cluster-manager__toggle-list">
+                        <AdminClusterPolicyToggle
+                          checked={draft.allowBuilds}
+                          description={t("Accept source builds on this machine.")}
+                          id={`allow-builds-${node.name}`}
+                          label={t("Allow builds")}
+                          liveBadge={
+                            <StatusBadge
+                              tone={readLiveFlagTone(
+                                node.policy?.effectiveBuilds ?? false,
+                              )}
+                            >
+                              {liveBuildLabel}
+                            </StatusBadge>
+                          }
+                          onChange={(checked) => {
+                            setDrafts((current) => ({
+                              ...current,
+                              [node.name]: {
+                                ...draft,
+                                allowBuilds: checked,
+                              },
+                            }));
+                          }}
+                        />
+
+                        <AdminClusterPolicyToggle
+                          checked={draft.allowSharedPool}
+                          description={t(
+                            "Accept shared Fugue workloads from outside a tenant runtime.",
+                          )}
+                          id={`allow-shared-pool-${node.name}`}
+                          label={t("Allow shared pool apps")}
+                          liveBadge={
+                            <StatusBadge
+                              tone={readLiveFlagTone(
+                                node.policy?.effectiveSharedPool ?? false,
+                              )}
+                            >
+                              {liveSharedPoolLabel}
+                            </StatusBadge>
+                          }
+                          onChange={(checked) => {
+                            setDrafts((current) => ({
+                              ...current,
+                              [node.name]: {
+                                ...draft,
+                                allowSharedPool: checked,
+                              },
+                            }));
+                          }}
+                        />
+                      </div>
+
+                      <div className="fg-admin-cluster-manager__field">
+                        <div className="fg-admin-cluster-manager__field-head">
+                          <strong className="fg-admin-cluster-manager__field-label">
+                            {t("Build tier")}
+                          </strong>
+                          <span className="fg-admin-cluster-manager__field-hint">
+                            {t(
+                              "Build tier is stored as policy even if builds are currently off.",
+                            )}
+                          </span>
+                        </div>
+                        <SegmentedControl
+                          ariaLabel={t("Build tier")}
+                          controlClassName="fg-admin-cluster-manager__segmented-control"
+                          onChange={(value) => {
+                            setDrafts((current) => ({
+                              ...current,
+                              [node.name]: {
+                                ...draft,
+                                buildTier: value,
+                              },
+                            }));
+                          }}
+                          options={buildTierOptions}
+                          value={draft.buildTier}
+                        />
+                      </div>
+
+                      <div className="fg-admin-cluster-manager__field">
+                        <div className="fg-admin-cluster-manager__field-head">
+                          <strong className="fg-admin-cluster-manager__field-label">
+                            {t("Control plane role")}
+                          </strong>
+                          <span className="fg-admin-cluster-manager__field-hint">
+                            {t(
+                              "Member is a desired target only. The live node becomes member only after real control-plane promotion outside the agent path.",
+                            )}
+                          </span>
+                        </div>
+                        <SegmentedControl
+                          ariaLabel={t("Control plane role")}
+                          controlClassName="fg-admin-cluster-manager__segmented-control"
+                          onChange={(value) => {
+                            setDrafts((current) => ({
+                              ...current,
+                              [node.name]: {
+                                ...draft,
+                                desiredControlPlaneRole: value,
+                              },
+                            }));
+                          }}
+                          options={controlPlaneRoleOptions}
+                          value={draft.desiredControlPlaneRole}
+                        />
+                      </div>
+                    </fieldset>
+
+                    <div className="fg-admin-cluster-manager__actions">
+                      <Button
+                        disabled={!dirty}
+                        loading={busy}
+                        loadingLabel={t("Applying…")}
+                        onClick={() => {
+                          void handleApply(node);
+                        }}
+                        size="compact"
+                        variant="primary"
+                      >
+                        {t("Apply policy")}
+                      </Button>
+                      <Button
+                        disabled={!dirty || busy}
+                        onClick={() => {
+                          resetDraft(node);
+                        }}
+                        size="compact"
+                        variant="secondary"
+                      >
+                        {t("Reset draft")}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <AdminClusterInlineEmptyState
+                    description={t(
+                      "This node is visible, but it is not backed by a managed machine or runtime yet.",
+                    )}
+                    title={t("Policy access unavailable")}
+                  />
+                )}
+              </section>
             </PanelSection>
           </Panel>
         );

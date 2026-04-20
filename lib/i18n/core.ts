@@ -546,6 +546,54 @@ const zhCNMessages = {
   "Your public pricing draft will be lost if you close this dialog now.":
     "如果现在关闭此对话框，公开定价草稿将丢失。",
   "Zone": "可用区",
+  "Accept shared Fugue workloads from outside a tenant runtime.":
+    "接受来自租户运行时之外的共享 Fugue 工作负载。",
+  "Accept source builds on this machine.": "允许这台机器承接源码构建。",
+  "Allow builds": "允许构建",
+  "Allow shared pool apps": "允许共享池应用",
+  "Apply policy": "应用策略",
+  "Applying…": "正在应用…",
+  "Build tier": "构建规格",
+  "Build tier is stored as policy even if builds are currently off.":
+    "即使当前关闭构建，也会将构建规格作为策略保存。",
+  "Builds": "构建",
+  "Candidate": "候选",
+  "Conditions": "条件",
+  "Connection": "连接",
+  "Control plane role": "控制平面角色",
+  "Desired capabilities and the live node state after reconciliation":
+    "期望能力，以及节点在完成 reconcile 后的实时状态",
+  "Desired policy": "期望策略",
+  "Edit the policy Fugue will reconcile onto this machine.":
+    "编辑 Fugue 将要 reconcile 到这台机器上的期望策略。",
+  "Identity, reachability, and placement facts.":
+    "节点标识、可达性与放置信息。",
+  "Large": "大型",
+  "Live policy": "实时策略",
+  "Machine scope": "机器范围",
+  "Medium": "中型",
+  "Member": "成员",
+  "Member is a desired target only. The live node becomes member only after real control-plane promotion outside the agent path.":
+    "Member 只是期望目标。节点只有在 agent 路径之外完成真正的控制平面晋升后，实时状态才会变成 member。",
+  "No live signals reported.": "当前没有上报实时信号。",
+  "No summary available.": "暂无摘要。",
+  "Node policy": "节点策略",
+  "Node policy saved.": "节点策略已保存。",
+  "Node policy updated.": "节点策略已更新。",
+  "Node state": "节点状态",
+  "Policy access unavailable": "策略访问不可用",
+  "Policy saved, but live reconcile reported: {details}":
+    "策略已保存，但实时 reconcile 回报：{details}",
+  "Read only": "只读",
+  "Reset draft": "重置草稿",
+  "Shared pool": "共享池",
+  "Small": "小型",
+  "Tenant": "租户",
+  "This node is visible, but it is not backed by a managed machine or runtime yet.":
+    "这个节点当前可见，但它还没有挂接到受管机器或运行时。",
+  "Unmanaged": "未托管",
+  "Unsaved policy": "策略未保存",
+  "{state} / {tier}": "{state} / {tier}",
   "CPU free": "CPU 免费",
   "CPU must be greater than 0 unless CPU is free.":
     "除非 CPU 免费，否则 CPU 值必须大于 0。",
@@ -2037,6 +2085,55 @@ const zhCNExtraMessages = {
 } satisfies MessageCatalog;
 
 const zhTWExtraMessages = {
+  "Accept shared Fugue workloads from outside a tenant runtime.":
+    "接受來自租戶執行環境之外的共享 Fugue 工作負載。",
+  "Accept source builds on this machine.": "允許這台機器承接原始碼建置。",
+  "Allow builds": "允許建置",
+  "Allow shared pool apps": "允許共享池應用",
+  "Apply policy": "套用策略",
+  "Applying…": "套用中…",
+  "Build tier": "建置規格",
+  "Build tier is stored as policy even if builds are currently off.":
+    "即使目前關閉建置，也會將建置規格作為策略儲存。",
+  "Builds": "建置",
+  "Candidate": "候選",
+  "Conditions": "條件",
+  "Connection": "連線",
+  "Control plane": "控制平面",
+  "Control plane role": "控制平面角色",
+  "Desired capabilities and the live node state after reconciliation":
+    "期望能力，以及節點在完成 reconcile 後的即時狀態",
+  "Desired policy": "期望策略",
+  "Edit the policy Fugue will reconcile onto this machine.":
+    "編輯 Fugue 將要 reconcile 到這台機器上的期望策略。",
+  "Identity, reachability, and placement facts.":
+    "節點識別、可達性與放置資訊。",
+  "Large": "大型",
+  "Live policy": "即時策略",
+  "Machine scope": "機器範圍",
+  "Medium": "中型",
+  "Member": "成員",
+  "Member is a desired target only. The live node becomes member only after real control-plane promotion outside the agent path.":
+    "Member 只是期望目標。節點只有在 agent 路徑之外完成真正的控制平面晉升後，即時狀態才會變成 member。",
+  "No live signals reported.": "目前沒有回報即時訊號。",
+  "No summary available.": "暫無摘要。",
+  "Node policy": "節點策略",
+  "Node policy saved.": "節點策略已儲存。",
+  "Node policy updated.": "節點策略已更新。",
+  "Node state": "節點狀態",
+  "Policy access unavailable": "策略存取不可用",
+  "Policy saved, but live reconcile reported: {details}":
+    "策略已儲存，但即時 reconcile 回報：{details}",
+  "Read only": "唯讀",
+  "Reset draft": "重設草稿",
+  "Shared pool": "共享池",
+  "Small": "小型",
+  "Tenant": "租戶",
+  "This node is visible, but it is not backed by a managed machine or runtime yet.":
+    "這個節點目前可見，但它還沒有掛接到受管機器或執行環境。",
+  "Unmanaged": "未託管",
+  "Unsaved policy": "策略未儲存",
+  "{state} / {tier}": "{state} / {tier}",
   "{count} permission": "{count} 項權限",
   "{count} permissions": "{count} 項權限",
   "Access key list refreshed.": "存取金鑰清單已重新整理。",
