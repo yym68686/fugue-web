@@ -128,19 +128,36 @@ function draftMatchesPolicy(
   );
 }
 
+function policyNeedsReconcile(policy: AdminClusterNodePolicyView | null) {
+  if (!policy) {
+    return false;
+  }
+
+  return (
+    policy.allowBuilds !== policy.effectiveBuilds ||
+    normalizeBuildTier(policy.buildTier) !==
+      normalizeBuildTier(policy.effectiveBuildTier) ||
+    policy.allowSharedPool !== policy.effectiveSharedPool
+  );
+}
+
 function readSummaryBadges(
   node: AdminClusterNodeView,
   dirty: boolean,
+  needsReconcile: boolean,
 ): ClusterNodeGallerySummaryBadge[] {
   if (!node.canManagePolicy) {
     return [{ label: "Read only", tone: "warning" }];
   }
 
-  if (!dirty) {
-    return [];
+  const badges: ClusterNodeGallerySummaryBadge[] = [];
+  if (dirty) {
+    badges.push({ label: "Unsaved policy", tone: "info" });
   }
-
-  return [{ label: "Unsaved policy", tone: "info" }];
+  if (needsReconcile) {
+    badges.push({ label: "Reconcile needed", tone: "warning" });
+  }
+  return badges;
 }
 
 function AdminClusterPolicyLiveCard({
@@ -219,6 +236,7 @@ function AdminClusterPolicySection({
   controlPlaneRoleOptions,
   dirty,
   draft,
+  needsReconcile,
   node,
   onApply,
   onDraftChange,
@@ -233,6 +251,7 @@ function AdminClusterPolicySection({
   >[];
   dirty: boolean;
   draft: NodePolicyDraft;
+  needsReconcile: boolean;
   node: AdminClusterNodeView;
   onApply: () => void;
   onDraftChange: (patch: Partial<NodePolicyDraft>) => void;
@@ -249,11 +268,19 @@ function AdminClusterPolicySection({
   const liveControlPlaneLabel = t(
     node.policy?.effectiveControlPlaneRoleLabel ?? "Unknown",
   );
+  const canApply = dirty || needsReconcile;
+  const applyLabel =
+    !dirty && needsReconcile ? t("Reapply policy") : t("Apply policy");
   const sectionDescription = node.canManagePolicy
-    ? t("Desired capabilities and the live node state after reconciliation")
+    ? t("Saved machine policy and the current live node state.")
     : t(
         "This node is visible, but it is not backed by a managed machine or runtime yet.",
       );
+  const liveStatusNote = needsReconcile
+    ? t(
+        "Live node labels still differ from the saved policy. Reapply the policy to reconcile again.",
+      )
+    : t("Current node labels and live role observed in the cluster.");
 
   return (
     <PanelSection>
@@ -269,6 +296,9 @@ function AdminClusterPolicySection({
           {!node.canManagePolicy ? (
             <StatusBadge tone="warning">{t("Read only")}</StatusBadge>
           ) : null}
+          {needsReconcile ? (
+            <StatusBadge tone="warning">{t("Reconcile needed")}</StatusBadge>
+          ) : null}
           {dirty ? (
             <StatusBadge tone="info">{t("Unsaved policy")}</StatusBadge>
           ) : null}
@@ -281,7 +311,7 @@ function AdminClusterPolicySection({
             <div className="fg-admin-cluster-manager__subhead-copy">
               <strong>{t("Current status")}</strong>
               <p className="fg-admin-cluster-manager__section-note">
-                {t("Live node state after the most recent reconcile.")}
+                {liveStatusNote}
               </p>
             </div>
           </div>
@@ -331,7 +361,9 @@ function AdminClusterPolicySection({
                 <div className="fg-admin-cluster-manager__subhead-copy">
                   <strong>{t("Desired policy")}</strong>
                   <p className="fg-admin-cluster-manager__section-note">
-                    {t("Edit the policy Fugue will reconcile onto this machine.")}
+                    {t(
+                      "Edit the saved machine policy Fugue will try to reconcile onto this node.",
+                    )}
                   </p>
                 </div>
               </div>
@@ -435,14 +467,14 @@ function AdminClusterPolicySection({
 
               <div className="fg-admin-cluster-manager__actions">
                 <Button
-                  disabled={!dirty}
+                  disabled={!canApply}
                   loading={busy}
                   loadingLabel={t("Applying…")}
                   onClick={onApply}
                   size="compact"
                   variant="primary"
                 >
-                  {t("Apply policy")}
+                  {applyLabel}
                 </Button>
                 <Button
                   disabled={!dirty || busy}
@@ -540,10 +572,11 @@ export function AdminClusterNodeManager({
         const dirty = node.canManagePolicy
           ? !draftMatchesPolicy(draft, node.policy)
           : false;
+        const needsReconcile = policyNeedsReconcile(node.policy);
 
         return {
           ...buildAdminClusterGalleryItem(node),
-          summaryBadges: readSummaryBadges(node, dirty),
+          summaryBadges: readSummaryBadges(node, dirty, needsReconcile),
         } satisfies ClusterNodeGalleryItem;
       }),
     [drafts, nodes],
@@ -565,7 +598,7 @@ export function AdminClusterNodeManager({
   }
 
   async function handleApply(node: AdminClusterNodeView) {
-    const draft = drafts[node.name];
+    const draft = drafts[node.name] ?? readPolicyDraft(node);
 
     if (!draft || busyNodeName || !node.canManagePolicy) {
       return;
@@ -644,6 +677,7 @@ export function AdminClusterNodeManager({
           const dirty = node.canManagePolicy
             ? !draftMatchesPolicy(draft, node.policy)
             : false;
+          const needsReconcile = policyNeedsReconcile(node.policy);
           const busy = busyNodeName === node.name;
 
           return (
@@ -653,6 +687,7 @@ export function AdminClusterNodeManager({
               controlPlaneRoleOptions={controlPlaneRoleOptions}
               dirty={dirty}
               draft={draft}
+              needsReconcile={needsReconcile}
               node={node}
               onApply={() => {
                 void handleApply(node);

@@ -564,15 +564,21 @@ const zhCNMessages = {
   "Connection": "连接",
   "Control plane role": "控制平面角色",
   "Current status": "当前状态",
+  "Current node labels and live role observed in the cluster.":
+    "集群里当前观测到的节点标签和实时角色。",
   "Desired capabilities and the live node state after reconciliation":
     "期望能力，以及节点在完成 reconcile 后的实时状态",
   "Desired policy": "期望策略",
   "Edit the policy Fugue will reconcile onto this machine.":
     "编辑 Fugue 将要 reconcile 到这台机器上的期望策略。",
+  "Edit the saved machine policy Fugue will try to reconcile onto this node.":
+    "编辑 Fugue 将尝试 reconcile 到这个节点上的已保存机器策略。",
   "Identity, reachability, and placement facts.":
     "节点标识、可达性与放置信息。",
   "Large": "大型",
   "Live policy": "实时策略",
+  "Live node labels still differ from the saved policy. Reapply the policy to reconcile again.":
+    "节点当前的实时标签仍然与已保存策略不一致。请重新应用策略，再触发一次 reconcile。",
   "Live node state after the most recent reconcile.":
     "最近一次 reconcile 完成后的节点实时状态。",
   "Machine scope": "机器范围",
@@ -591,7 +597,11 @@ const zhCNMessages = {
   "Policy saved, but live reconcile reported: {details}":
     "策略已保存，但实时 reconcile 回报：{details}",
   "Read only": "只读",
+  "Reapply policy": "重新应用策略",
+  "Reconcile needed": "需要 reconcile",
   "Reset draft": "重置草稿",
+  "Saved machine policy and the current live node state.":
+    "已保存的机器策略，以及当前的实时节点状态。",
   "Shared pool": "共享池",
   "Small": "小型",
   "Tenant": "租户",
@@ -2111,15 +2121,21 @@ const zhTWExtraMessages = {
   "Control plane": "控制平面",
   "Control plane role": "控制平面角色",
   "Current status": "目前狀態",
+  "Current node labels and live role observed in the cluster.":
+    "叢集中目前觀測到的節點標籤與即時角色。",
   "Desired capabilities and the live node state after reconciliation":
     "期望能力，以及節點在完成 reconcile 後的即時狀態",
   "Desired policy": "期望策略",
   "Edit the policy Fugue will reconcile onto this machine.":
     "編輯 Fugue 將要 reconcile 到這台機器上的期望策略。",
+  "Edit the saved machine policy Fugue will try to reconcile onto this node.":
+    "編輯 Fugue 將嘗試 reconcile 到這個節點上的已儲存機器策略。",
   "Identity, reachability, and placement facts.":
     "節點識別、可達性與放置資訊。",
   "Large": "大型",
   "Live policy": "即時策略",
+  "Live node labels still differ from the saved policy. Reapply the policy to reconcile again.":
+    "節點目前的即時標籤仍然與已儲存策略不一致。請重新套用策略，再觸發一次 reconcile。",
   "Live node state after the most recent reconcile.":
     "最近一次 reconcile 完成後的節點即時狀態。",
   "Machine scope": "機器範圍",
@@ -2138,7 +2154,11 @@ const zhTWExtraMessages = {
   "Policy saved, but live reconcile reported: {details}":
     "策略已儲存，但即時 reconcile 回報：{details}",
   "Read only": "唯讀",
+  "Reapply policy": "重新套用策略",
+  "Reconcile needed": "需要 reconcile",
   "Reset draft": "重設草稿",
+  "Saved machine policy and the current live node state.":
+    "已儲存的機器策略，以及目前的即時節點狀態。",
   "Shared pool": "共享池",
   "Small": "小型",
   "Tenant": "租戶",
