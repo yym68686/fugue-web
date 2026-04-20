@@ -301,29 +301,6 @@ function readSourceSectionTitle(
   return t("Source");
 }
 
-function readSourceSectionHint(app: ConsoleGalleryAppView) {
-  return null;
-}
-
-function readSourceFieldLabel(
-  app: ConsoleGalleryAppView,
-  t: Translator = (key) => key,
-) {
-  if (isGitHubSourceType(app.sourceType)) {
-    return t("Tracked branch");
-  }
-
-  if (isDockerImageSourceType(app.sourceType)) {
-    return t("Image reference");
-  }
-
-  if (isUploadSourceType(app.sourceType)) {
-    return t("Source package");
-  }
-
-  return t("Source");
-}
-
 function readManualRefreshState(
   app: ConsoleGalleryAppView,
   t: Translator = (key) => key,
@@ -391,63 +368,6 @@ function SettingsSummaryRow({
   );
 }
 
-function SettingsOverviewCard({
-  href,
-  label,
-  note,
-  status,
-  value,
-}: {
-  href: string;
-  label: ReactNode;
-  note?: ReactNode;
-  status?: ReactNode;
-  value: ReactNode;
-}) {
-  return (
-    <a className="fg-settings-overview-card" href={href}>
-      <div className="fg-settings-overview-card__head">
-        <span className="fg-settings-overview-card__label">{label}</span>
-        {status ? <span className="fg-settings-overview-card__status">{status}</span> : null}
-      </div>
-      <strong className="fg-settings-overview-card__value">{value}</strong>
-      {note ? <p className="fg-settings-overview-card__note">{note}</p> : null}
-    </a>
-  );
-}
-
-function SettingsPane({
-  children,
-  description,
-  id,
-  rail,
-  status,
-  title,
-}: {
-  children: ReactNode;
-  description?: ReactNode;
-  id: string;
-  rail?: ReactNode;
-  status?: ReactNode;
-  title: ReactNode;
-}) {
-  return (
-    <section className="fg-settings-pane" id={id}>
-      <div className="fg-settings-pane__head">
-        <div className="fg-settings-pane__copy">
-          <h3 className="fg-settings-pane__title fg-ui-heading">{title}</h3>
-          {description ? <p className="fg-settings-pane__description">{description}</p> : null}
-        </div>
-        {status ? <div className="fg-settings-pane__status">{status}</div> : null}
-      </div>
-      <div className={cx("fg-settings-pane__body", Boolean(rail) && "has-rail")}>
-        <div className="fg-settings-pane__main">{children}</div>
-        {rail ? <aside className="fg-settings-pane__rail">{rail}</aside> : null}
-      </div>
-    </section>
-  );
-}
-
 function SettingsSectionBlock({
   children,
   className,
@@ -462,7 +382,7 @@ function SettingsSectionBlock({
   title: ReactNode;
 }) {
   return (
-    <section className={cx("fg-settings-block", className)}>
+    <div className={cx("fg-settings-block", className)}>
       <div className="fg-settings-block__head">
         <div className="fg-settings-block__copy">
           <h4 className="fg-settings-block__title">{title}</h4>
@@ -471,80 +391,6 @@ function SettingsSectionBlock({
         {status ? <div className="fg-settings-block__status">{status}</div> : null}
       </div>
       {children}
-    </section>
-  );
-}
-
-function SettingsMiniPanel({
-  children,
-  className,
-  description,
-  status,
-  title,
-}: {
-  children: ReactNode;
-  className?: string;
-  description?: ReactNode;
-  status?: ReactNode;
-  title: ReactNode;
-}) {
-  return (
-    <section className={cx("fg-settings-mini-panel", className)}>
-      <div className="fg-settings-mini-panel__head">
-        <div className="fg-settings-mini-panel__copy">
-          <h4 className="fg-settings-mini-panel__title">{title}</h4>
-          {description ? (
-            <p className="fg-settings-mini-panel__description">{description}</p>
-          ) : null}
-        </div>
-        {status ? <div className="fg-settings-mini-panel__status">{status}</div> : null}
-      </div>
-      {children}
-    </section>
-  );
-}
-
-function SettingsRailCard({
-  children,
-  className,
-  status,
-  title,
-}: {
-  children: ReactNode;
-  className?: string;
-  status?: ReactNode;
-  title: ReactNode;
-}) {
-  return (
-    <section className={cx("fg-settings-rail-card", className)}>
-      <div className="fg-settings-rail-card__head">
-        <h4 className="fg-settings-rail-card__title">{title}</h4>
-        {status ? <div className="fg-settings-rail-card__status">{status}</div> : null}
-      </div>
-      {children}
-    </section>
-  );
-}
-
-function SettingsObjectField({
-  label,
-  note,
-  side,
-  value,
-}: {
-  label: ReactNode;
-  note?: ReactNode;
-  side?: ReactNode;
-  value: ReactNode;
-}) {
-  return (
-    <div className="fg-settings-object-field">
-      <div className="fg-settings-object-field__head">
-        <span className="fg-settings-object-field__label">{label}</span>
-        {side ? <div className="fg-settings-object-field__side">{side}</div> : null}
-      </div>
-      <div className="fg-settings-object-field__value">{value}</div>
-      {note ? <p className="fg-settings-object-field__note">{note}</p> : null}
     </div>
   );
 }
@@ -689,111 +535,6 @@ function readTransferConfirmationDescription(
       );
 }
 
-function readPersistentStorageSummaryNote(
-  hasPersistentStorage: boolean,
-  t: Translator = (key) => key,
-) {
-  if (hasPersistentStorage) {
-    return t(
-      "Mounted storage survives restarts, rebuilds, managed transfers, and failover.",
-    );
-  }
-
-  return t(
-    "Files still live in the running container until persistent storage is configured.",
-  );
-}
-
-function readCurrentRuntimeLabel(
-  app: ConsoleGalleryAppView,
-  runtimeTargets: ConsoleImportRuntimeTargetView[],
-  locale: string,
-  runtimeTargetInventoryError: string | null,
-  t: Translator = (key) => key,
-) {
-  const currentRuntimeId = app.currentRuntimeId ?? app.runtimeId;
-  const currentRuntimeTarget =
-    runtimeTargets.find((target) => target.id === currentRuntimeId) ?? null;
-
-  return currentRuntimeTarget || !runtimeTargetInventoryError
-    ? readRuntimeTargetLabel(
-        runtimeTargets,
-        currentRuntimeId,
-        locale,
-        t("Runtime unavailable"),
-      )
-    : t("Inventory unavailable");
-}
-
-function buildPersistentStorageSummaryItems(
-  app: ConsoleGalleryAppView,
-  hasPersistentStorage: boolean,
-  currentRuntimeLabel: string,
-  replicas: number | null,
-  t: Translator = (key) => key,
-) {
-  if (hasPersistentStorage) {
-    const items = [
-      {
-        label: t("Mounted items"),
-        value: `${app.persistentStorageMounts.length}`,
-      },
-      {
-        label: t("Storage"),
-        value: app.persistentStorageStorageSize || t("Platform default"),
-      },
-      {
-        label: t("Current runtime"),
-        value: currentRuntimeLabel,
-      },
-    ];
-
-    if (normalizeText(app.persistentStorageStorageClassName)) {
-      items.push({
-        label: t("Storage class"),
-        value: app.persistentStorageStorageClassName || t("Platform default"),
-      });
-    }
-
-    return items;
-  }
-
-  return [
-    {
-      label: t("File storage"),
-      value: t("Live container filesystem"),
-    },
-    {
-      label: t("Current runtime"),
-      value: currentRuntimeLabel,
-    },
-    {
-      label: t("Replica plan"),
-      value: replicas === null ? t("Unknown") : `${replicas}`,
-    },
-  ];
-}
-
-function buildPersistentStorageMountItems(
-  mounts: ConsoleGalleryAppView["persistentStorageMounts"],
-  t: Translator = (key) => key,
-) {
-  return mounts.map((mount, index) => {
-    const kindLabel =
-      mount.kind === "file"
-        ? t("File")
-        : mount.kind === "directory"
-          ? t("Directory")
-          : t("Mount");
-    const suffix = mounts.length > 1 ? ` ${index + 1}` : ` ${t("mount")}`;
-
-    return {
-      label: `${kindLabel}${suffix}`,
-      value: mount.path,
-    };
-  });
-}
-
 function readStartupCommandSummary(
   value?: string | null,
   t: Translator = (key) => key,
@@ -895,15 +636,10 @@ function AppStartupCommandSection({ app }: { app: ConsoleGalleryAppView }) {
   }
 
   return (
-    <SettingsMiniPanel
-      description={t(
-        "Runs as `sh -lc <command>`. Leave blank to use the image default entrypoint.",
-      )}
-      status={<StatusBadge tone="neutral">{savedStartupCommandLabel}</StatusBadge>}
-      title={t("Startup command")}
-    >
+    <SettingsSectionBlock title={t("Startup command")}>
       <form className="fg-settings-form" onSubmit={handleSubmit}>
         <FormField
+          hideLabel
           htmlFor={`startup-command-${app.id}`}
           label={t("Startup command")}
           optionalLabel={t("Optional")}
@@ -920,9 +656,7 @@ function AppStartupCommandSection({ app }: { app: ConsoleGalleryAppView }) {
             value={draftStartupCommand}
           />
         </FormField>
-        <SettingsHelperCopy>
-          {t("Queued changes roll out in the next deploy operation.")}
-        </SettingsHelperCopy>
+        <SettingsHelperCopy>{savedStartupCommandLabel}</SettingsHelperCopy>
 
         {startupCommandChanged || saving ? (
           <div className="fg-settings-form__actions">
@@ -948,7 +682,7 @@ function AppStartupCommandSection({ app }: { app: ConsoleGalleryAppView }) {
           </div>
         ) : null}
       </form>
-    </SettingsMiniPanel>
+    </SettingsSectionBlock>
   );
 }
 
@@ -1057,21 +791,13 @@ function AppImageMirrorLimitSection({ app }: { app: ConsoleGalleryAppView }) {
   }
 
   return (
-    <SettingsMiniPanel
-      description={t(
-        "Default is {count} saved images. The current release counts toward this limit.",
-        {
-          count: DEFAULT_IMAGE_MIRROR_LIMIT,
-        },
-      )}
-      status={<StatusBadge tone="neutral">{savedImageLimitLabel}</StatusBadge>}
-      title={t("Image retention")}
-    >
+    <SettingsSectionBlock title={t("Image retention")}>
       <form className="fg-settings-form" onSubmit={handleSubmit}>
         <FormField
           error={
             limitError ?? (limitChanged ? draftLimitError : null) ?? undefined
           }
+          hideLabel
           htmlFor={`mirrored-image-limit-${app.id}`}
           label={t("Saved image limit")}
         >
@@ -1092,7 +818,7 @@ function AppImageMirrorLimitSection({ app }: { app: ConsoleGalleryAppView }) {
             value={draftLimit}
           />
         </FormField>
-        <SettingsHelperCopy>{t("Use 1 or more.")}</SettingsHelperCopy>
+        <SettingsHelperCopy>{savedImageLimitLabel}</SettingsHelperCopy>
 
         {limitChanged || saving ? (
           <div className="fg-settings-form__actions">
@@ -1121,50 +847,21 @@ function AppImageMirrorLimitSection({ app }: { app: ConsoleGalleryAppView }) {
           </div>
         ) : null}
       </form>
-    </SettingsMiniPanel>
+    </SettingsSectionBlock>
   );
 }
 
 function AppPersistentStorageSection({
   app,
   onOpenFiles,
-  paneId,
-  runtimeTargetInventoryError,
-  runtimeTargets,
 }: {
   app: ConsoleGalleryAppView;
   onOpenFiles?: (() => void) | null;
-  paneId: string;
-  runtimeTargetInventoryError: string | null;
-  runtimeTargets: ConsoleImportRuntimeTargetView[];
 }) {
   const router = useRouter();
-  const { locale, t } = useI18n();
+  const { t } = useI18n();
   const { showToast } = useToast();
   const hasPersistentStorage = app.persistentStorageMounts.length > 0;
-  const currentRuntimeLabel = readCurrentRuntimeLabel(
-    app,
-    runtimeTargets,
-    locale,
-    runtimeTargetInventoryError,
-    t,
-  );
-  const replicas =
-    typeof app.replicaCount === "number" && Number.isFinite(app.replicaCount)
-      ? app.replicaCount
-      : null;
-  const summaryNote = readPersistentStorageSummaryNote(hasPersistentStorage, t);
-  const summaryItems = buildPersistentStorageSummaryItems(
-    app,
-    hasPersistentStorage,
-    currentRuntimeLabel,
-    replicas,
-    t,
-  );
-  const mountItems = buildPersistentStorageMountItems(
-    app.persistentStorageMounts,
-    t,
-  );
   const statusTone: ConsoleTone = hasPersistentStorage ? "info" : "neutral";
   const statusLabel = hasPersistentStorage
     ? t("Attached")
@@ -1291,139 +988,94 @@ function AppPersistentStorageSection({
   }
 
   return (
-    <SettingsPane
-      description={summaryNote}
-      id={paneId}
-      rail={
-        <>
-          <SettingsRailCard
-            status={<StatusBadge tone={statusTone}>{statusLabel}</StatusBadge>}
-            title={t("Persistent storage")}
-          >
-            <SettingsSummaryList>
-              {summaryItems.map((item) => (
-                <SettingsSummaryRow
-                  key={item.label}
-                  label={item.label}
-                  value={item.value}
-                />
-              ))}
-            </SettingsSummaryList>
-          </SettingsRailCard>
-
-          <SettingsRailCard title={t("Files")}>
-            <SettingsSummaryList>
-              <SettingsSummaryRow
-                label={t("Current runtime")}
-                value={currentRuntimeLabel}
-              />
-              <SettingsSummaryRow
-                label={t("File storage")}
-                value={
-                  hasPersistentStorage
-                    ? t("Persistent storage")
-                    : t("Live container filesystem")
-                }
-              />
-            </SettingsSummaryList>
-            <div className="fg-settings-rail-card__actions">
-              <HintInline
-                ariaLabel={filesActionLabel}
-                hint={availabilityHint ?? undefined}
-              >
-                <Button
-                  disabled={!onOpenFiles}
-                  onClick={onOpenFiles ?? undefined}
-                  size="compact"
-                  type="button"
-                  variant={hasPersistentStorage ? "primary" : "secondary"}
-                >
-                  {filesActionLabel}
-                </Button>
-              </HintInline>
-            </div>
-          </SettingsRailCard>
-        </>
-      }
-      status={<StatusBadge tone={statusTone}>{statusLabel}</StatusBadge>}
-      title={t("Storage & files")}
+    <section
+      aria-label={t("Persistent storage")}
+      className="fg-route-subsection fg-settings-section"
     >
-      <div className="fg-settings-pane__stack">
-        <SettingsSectionBlock
-          description={t(
-            "Changes queue a deploy. File contents are only used when Fugue needs to create that file for the first time.",
-          )}
-          title={t("Persistent storage")}
-        >
-          {!hasPersistentStorage ? (
-            <div className="fg-console-empty-state fg-settings-empty-state">
-              <div>
-                <strong>{t("Not configured")}</strong>
-                <p>{t("Files still live in the running container until persistent storage is configured.")}</p>
-              </div>
-            </div>
-          ) : null}
+      <div className="fg-route-subsection__head">
+        <div className="fg-route-subsection__copy fg-settings-section__copy">
+          <p className="fg-label fg-panel__eyebrow">{t("Storage")}</p>
+          <h3 className="fg-route-subsection__title fg-ui-heading">
+            {t("Persistent storage")}
+          </h3>
+        </div>
 
-          {mountItems.length > 0 ? (
-            <div className="fg-settings-object-grid">
-              {mountItems.map((item) => (
-                <SettingsObjectField
-                  key={`${item.label}:${item.value}`}
-                  label={item.label}
-                  value={item.value}
-                />
-              ))}
-            </div>
-          ) : null}
-
-          <form className="fg-settings-form" onSubmit={handleSubmit}>
-            {persistentStorageError ? (
-              <InlineAlert variant="warning">{persistentStorageError}</InlineAlert>
-            ) : null}
-
-            <PersistentStorageEditor
-              disabled={saving}
-              idPrefix={`persistent-storage-${app.id}`}
-              onChange={setDraftPersistentStorage}
-              surface="console"
-              value={draftPersistentStorage}
-            />
-
-            <SettingsHelperCopy>
-              {t("Persistent storage · {value}", {
-                value: savedPersistentStorageLabel,
-              })}
-            </SettingsHelperCopy>
-
-            {persistentStorageChanged || saving ? (
-              <div className="fg-settings-form__actions">
-                <Button
-                  disabled={saving}
-                  onClick={() =>
-                    setDraftPersistentStorage(baselinePersistentStorage)
-                  }
-                  size="compact"
-                  type="button"
-                  variant="secondary"
-                >
-                  {t("Reset")}
-                </Button>
-                <Button
-                  disabled={!canSavePersistentStorage}
-                  loading={saving}
-                  loadingLabel={t("Queueing…")}
-                  size="compact"
-                  type="submit"
-                  variant="primary"
-                >
-                  {t("Save storage")}
-                </Button>
-              </div>
-            ) : null}
-          </form>
-        </SettingsSectionBlock>
+        <StatusBadge tone={statusTone}>{statusLabel}</StatusBadge>
       </div>
-    </SettingsPane>
+
+      <SettingsHelperCopy>
+        {hasPersistentStorage
+          ? t(
+              "Mounted storage survives restarts, rebuilds, managed transfers, and failover.",
+            )
+          : t(
+              "Files still live in the running container until persistent storage is configured.",
+            )}
+      </SettingsHelperCopy>
+
+      <form className="fg-settings-form" onSubmit={handleSubmit}>
+        {persistentStorageError ? (
+          <InlineAlert variant="warning">{persistentStorageError}</InlineAlert>
+        ) : null}
+
+        <PersistentStorageEditor
+          disabled={saving}
+          idPrefix={`persistent-storage-${app.id}`}
+          onChange={setDraftPersistentStorage}
+          surface="console"
+          value={draftPersistentStorage}
+        />
+
+        <SettingsHelperCopy>
+          {t("Persistent storage · {value}", {
+            value: savedPersistentStorageLabel,
+          })}
+        </SettingsHelperCopy>
+
+        {persistentStorageChanged || saving ? (
+          <div className="fg-settings-form__actions">
+            <Button
+              disabled={saving}
+              onClick={() =>
+                setDraftPersistentStorage(baselinePersistentStorage)
+              }
+              size="compact"
+              type="button"
+              variant="secondary"
+            >
+              {t("Reset")}
+            </Button>
+            <Button
+              disabled={!canSavePersistentStorage}
+              loading={saving}
+              loadingLabel={t("Queueing…")}
+              size="compact"
+              type="submit"
+              variant="primary"
+            >
+              {t("Save storage")}
+            </Button>
+          </div>
+        ) : null}
+      </form>
+
+      <div className="fg-settings-section__actions">
+        <HintInline
+          ariaLabel={filesActionLabel}
+          hint={availabilityHint ?? undefined}
+        >
+          <Button
+            disabled={!onOpenFiles}
+            onClick={onOpenFiles ?? undefined}
+            size="compact"
+            type="button"
+            variant={hasPersistentStorage ? "primary" : "secondary"}
+          >
+            {filesActionLabel}
+          </Button>
+        </HintInline>
+      </div>
+    </section>
   );
 }
 
@@ -1670,31 +1322,9 @@ function AppAutomaticFailoverSection({
 
   return (
     <SettingsSectionBlock
-      description={t(
-        "Keep a standby runtime ready. Traffic only moves there if the primary runtime disappears. After a failover, choose a new standby to restore protection.",
-      )}
       status={<StatusBadge tone={app.failoverStateTone}>{failoverStateLabel}</StatusBadge>}
       title={t("Automatic failover")}
     >
-      <dl className="fg-settings-meta">
-        <div>
-          <dt>{t("Primary runtime")}</dt>
-          <dd>{primaryRuntimeLabel}</dd>
-        </div>
-        {activeRuntimeId && activeRuntimeId !== primaryRuntimeId ? (
-          <div>
-            <dt>{t("Serving now")}</dt>
-            <dd>{activeRuntimeLabel}</dd>
-          </div>
-        ) : null}
-        <div>
-          <dt>{t("Standby runtime")}</dt>
-          <dd>
-            {app.failoverConfigured ? configuredTargetLabel : t("Not configured")}
-          </dd>
-        </div>
-      </dl>
-
       <form className="fg-settings-form" onSubmit={handleSubmit}>
         {failoverMessage ? (
           <InlineAlert variant="warning">{failoverMessage}</InlineAlert>
@@ -1702,6 +1332,13 @@ function AppAutomaticFailoverSection({
         {blockerMessage ? (
           <InlineAlert variant="warning">{blockerMessage}</InlineAlert>
         ) : null}
+
+        <SettingsHelperCopy>
+          {`${t("Current runtime")}: ${activeRuntimeLabel}`}
+          {app.failoverConfigured
+            ? ` · ${t("Standby runtime")}: ${configuredTargetLabel}`
+            : ""}
+        </SettingsHelperCopy>
 
         {continuityTargets.length > 0 ? (
           <FormField
@@ -1809,6 +1446,7 @@ function AppTransferSection({
     locale,
     t("Current runtime unavailable"),
   );
+  const transferPreparationNote = readTransferPreparationNote(app, t);
   const actionHint = readTransferActionHint(app, t);
   const targetSelectionHint = runtimeTargetInventoryError
     ? t("Runtime list unavailable.")
@@ -1895,27 +1533,17 @@ function AppTransferSection({
 
   return (
     <SettingsSectionBlock
-      description={
-        transferMode === "migrate"
-          ? t(
-              "Current: {liveRuntimeLabel}. Fugue keeps the current runtime serving until the destination is ready.",
-              {
-                liveRuntimeLabel,
-              },
-            )
-          : t(
-              "Current: {liveRuntimeLabel}. Choose a destination and move this service now.",
-              {
-                liveRuntimeLabel,
-              },
-            )
-      }
       title={t("One-Click Transfer")}
     >
       <form className="fg-settings-form" onSubmit={handleTransferSubmit}>
         {blockerMessage ? (
           <InlineAlert variant="warning">{blockerMessage}</InlineAlert>
         ) : null}
+
+        <SettingsHelperCopy>
+          {`${t("Current runtime")}: ${liveRuntimeLabel}`}
+          {transferPreparationNote ? ` · ${transferPreparationNote}` : ""}
+        </SettingsHelperCopy>
 
         {transferTargets.length > 0 ? (
           <FormField htmlFor={`transfer-target-${app.id}`} label={t("Destination")}>
@@ -1959,10 +1587,8 @@ function AppTransferSection({
 
 function AppSourceBuildPane({
   app,
-  paneId,
 }: {
   app: ConsoleGalleryAppView;
-  paneId: string;
 }) {
   const router = useRouter();
   const { t } = useI18n();
@@ -2002,7 +1628,6 @@ function AppSourceBuildPane({
   const sourceLabel = normalizeText(app.sourceLabel) || t("Unlinked source");
   const sourceKindLabel = readSourceKindLabel(app, t);
   const sourceSectionTitle = readSourceSectionTitle(app, t);
-  const sourceFieldLabel = readSourceFieldLabel(app, t);
   const manualRefreshState = readManualRefreshState(app, t);
   const branchFieldHint = readBranchFieldHint(app, t);
   const repositoryAccessHint = readRepositoryAccessHint(app, t);
@@ -2215,79 +1840,27 @@ function AppSourceBuildPane({
   }
 
   return (
-    <SettingsPane
-      description={t(
-        "Keep the saved source, sync behavior, and build inputs together so rebuild decisions stay local to this service.",
-      )}
-      id={paneId}
-      rail={
-        <>
-          <SettingsRailCard
-            status={
-              <StatusBadge tone={isGitHubSource ? "info" : "neutral"}>
-                {sourceKindLabel}
-              </StatusBadge>
-            }
-            title={sourceSectionTitle}
-          >
-            <SettingsSummaryList>
-              <SettingsSummaryRow
-                label={sourceFieldLabel}
-                value={sourceLabel}
-              />
-              <SettingsSummaryRow
-                label={isGitHubSource ? t("Auto sync") : t("Refresh")}
-                value={isGitHubSource ? syncSummaryValue : manualRefreshValue}
-              />
-              {isGitHubSource ? (
-                <SettingsSummaryRow
-                  label={t("Tracked branch")}
-                  value={branchSummaryValue}
-                />
-              ) : null}
-              {isPrivateGitHubSource ? (
-                <SettingsSummaryRow
-                  label={t("GitHub access")}
-                  value={hasSavedGitHubAccess ? t("Saved access") : t("Stored token")}
-                />
-              ) : null}
-            </SettingsSummaryList>
-          </SettingsRailCard>
+    <section
+      aria-label={t("Source")}
+      className="fg-route-subsection fg-settings-section"
+    >
+      <div className="fg-route-subsection__head">
+        <div className="fg-route-subsection__copy fg-settings-section__copy">
+          <p className="fg-label fg-panel__eyebrow">{t("Source")}</p>
+          <h3 className="fg-route-subsection__title fg-ui-heading">
+            {sourceSectionTitle}
+          </h3>
+        </div>
 
-          <SettingsRailCard title={t("Build")}>
-            <SettingsSummaryList>
-              <SettingsSummaryRow
-                label={t("Startup command")}
-                value={readStartupCommandSummary(app.startupCommand, t)}
-              />
-              <SettingsSummaryRow
-                label={t("Saved image limit")}
-                value={
-                  readImageMirrorLimit(app.imageMirrorLimit) === 1
-                    ? t("{count} saved image", {
-                        count: readImageMirrorLimit(app.imageMirrorLimit),
-                      })
-                    : t("{count} saved images", {
-                        count: readImageMirrorLimit(app.imageMirrorLimit),
-                      })
-                }
-              />
-            </SettingsSummaryList>
-          </SettingsRailCard>
-        </>
-      }
-      status={
         <StatusBadge tone={isGitHubSource ? "info" : "neutral"}>
           {sourceKindLabel}
         </StatusBadge>
-      }
-      title={t("Source & build")}
-    >
-      <div className="fg-settings-pane__stack">
-        <SettingsSectionBlock title={sourceSectionTitle}>
-          <SettingsObjectField
-            label={sourceFieldLabel}
-            note={sourceKindLabel}
+      </div>
+
+      <div className="fg-settings-section__stack">
+        <SettingsSummaryList>
+          <SettingsSummaryRow
+            label={sourceSectionTitle}
             value={
               app.sourceHref ? (
                 <a
@@ -2305,9 +1878,8 @@ function AppSourceBuildPane({
           />
 
           {isGitHubSource ? (
-            <SettingsObjectField
+            <SettingsSummaryRow
               label={t("Auto sync")}
-              note={syncState.description ?? undefined}
               side={
                 <>
                   <StatusBadge
@@ -2341,16 +1913,30 @@ function AppSourceBuildPane({
               value={syncSummaryValue}
             />
           ) : manualRefreshState ? (
-            <SettingsObjectField
+            <SettingsSummaryRow
               label={manualRefreshState.title}
-              side={<StatusBadge tone={manualRefreshState.tone}>{manualRefreshState.label}</StatusBadge>}
+              side={
+                <StatusBadge tone={manualRefreshState.tone}>
+                  {manualRefreshState.label}
+                </StatusBadge>
+              }
               value={manualRefreshValue}
             />
           ) : null}
 
-          {canEditBranch ? (
+          {isGitHubSource && !canEditBranch ? (
+            <SettingsSummaryRow
+              label={t("Tracked branch")}
+              value={branchSummaryValue}
+            />
+          ) : null}
+        </SettingsSummaryList>
+
+        {canEditBranch ? (
+          <SettingsSectionBlock title={t("Tracked branch")}>
             <form className="fg-settings-form" onSubmit={handleBranchSubmit}>
               <FormField
+                hideLabel
                 htmlFor={`service-branch-${app.id}`}
                 label={t("Tracked branch")}
               >
@@ -2396,251 +1982,178 @@ function AppSourceBuildPane({
                 </div>
               ) : null}
             </form>
-          ) : isGitHubSource ? (
-            <SettingsObjectField
-              label={t("Tracked branch")}
-              note={branchFieldHint ?? undefined}
-              value={branchSummaryValue}
-            />
-          ) : null}
+          </SettingsSectionBlock>
+        ) : null}
 
-          {isPrivateGitHubSource ? (
-            <ConsoleDisclosureSection
-              className="fg-settings-disclosure"
-              defaultOpen={repoAuthTokenChanged || repoAuthTokenSaving}
-              description={
-                repositoryAccessHint ??
-                t("Only private GitHub-backed services store a repository token.")
-              }
-              summary={t("GitHub access")}
+        {isPrivateGitHubSource ? (
+          <ConsoleDisclosureSection
+            className="fg-settings-disclosure"
+            defaultOpen={repoAuthTokenChanged || repoAuthTokenSaving}
+            description={repositoryAccessHint ?? undefined}
+            summary={t("GitHub access")}
+          >
+            <form
+              className="fg-settings-form"
+              onSubmit={handleRepositoryAccessSubmit}
             >
-              <form
-                className="fg-settings-form"
-                onSubmit={handleRepositoryAccessSubmit}
-              >
-                {githubConnectionLoading ? (
-                  <InlineAlert>{t("Checking saved GitHub access…")}</InlineAlert>
-                ) : githubConnectionError ? (
-                  <InlineAlert variant="warning">
-                    {githubConnectionError}
-                    {githubConnection?.authEnabled && githubConnectHref ? (
-                      <>
-                        {" "}
-                        <ButtonAnchor
-                          href={githubConnectHref}
-                          size="compact"
-                          variant="secondary"
-                        >
-                          {t("Reconnect GitHub")}
-                        </ButtonAnchor>
-                      </>
-                    ) : null}
-                  </InlineAlert>
-                ) : hasSavedGitHubAccess ? (
-                  <InlineAlert variant="success">
-                    {githubConnection?.login
-                      ? t("Saved GitHub access is ready as @{login}.", {
-                          login: githubConnection.login,
-                        })
-                      : t("Saved GitHub access is ready.")}
-                    {githubConnection?.authEnabled && githubConnectHref ? (
-                      <>
-                        {" "}
-                        <ButtonAnchor
-                          href={githubConnectHref}
-                          size="compact"
-                          variant="secondary"
-                        >
-                          {t("Reconnect GitHub")}
-                        </ButtonAnchor>
-                      </>
-                    ) : null}
-                  </InlineAlert>
-                ) : githubConnection?.authEnabled && githubConnectHref ? (
-                  <InlineAlert>
-                    {t(
-                      "Authorize GitHub in the browser, or paste a replacement token below.",
-                    )}{" "}
-                    <ButtonAnchor
-                      href={githubConnectHref}
-                      size="compact"
-                      variant="secondary"
-                    >
-                      {t("Connect GitHub")}
-                    </ButtonAnchor>
-                  </InlineAlert>
-                ) : null}
-
-                <FormField
-                  htmlFor={`repo-auth-token-${app.id}`}
-                  label={t("Replace token")}
-                >
-                  <input
-                    autoCapitalize="none"
-                    autoComplete="new-password"
-                    className="fg-input"
-                    disabled={!canUpdateRepoAccess || repoAuthTokenSaving}
-                    id={`repo-auth-token-${app.id}`}
-                    name="repoAuthToken"
-                    onChange={(event) => setRepoAuthTokenDraft(event.target.value)}
-                    placeholder={
-                      hasSavedGitHubAccess
-                        ? t("Paste a token to override saved GitHub access")
-                        : t("github_pat_...")
-                    }
-                    spellCheck={false}
-                    type="password"
-                    value={repoAuthTokenDraft}
-                  />
-                </FormField>
-
-                <SettingsHelperCopy>
-                  {hasSavedGitHubAccess
-                    ? t(
-                        "Leave blank to use saved GitHub access. Paste a token only to override it.",
-                      )
-                    : t("Needs GitHub repo read access.")}
-                </SettingsHelperCopy>
-
-                {repoAccessActionsVisible ? (
-                  <div className="fg-settings-form__actions">
-                    {repoAuthTokenChanged || repoAuthTokenSaving ? (
-                      <Button
-                        disabled={repoAuthTokenSaving}
-                        onClick={() => setRepoAuthTokenDraft("")}
+              {githubConnectionLoading ? (
+                <InlineAlert>{t("Checking saved GitHub access…")}</InlineAlert>
+              ) : githubConnectionError ? (
+                <InlineAlert variant="warning">
+                  {githubConnectionError}
+                  {githubConnection?.authEnabled && githubConnectHref ? (
+                    <>
+                      {" "}
+                      <ButtonAnchor
+                        href={githubConnectHref}
                         size="compact"
-                        type="button"
                         variant="secondary"
                       >
-                        {t("Reset")}
-                      </Button>
-                    ) : null}
-                    <Button
-                      disabled={
-                        !canUpdateRepoAccess ||
-                        (!repoAuthTokenChanged && !hasSavedGitHubAccess) ||
-                        repoAuthTokenSaving
-                      }
-                      loading={repoAuthTokenSaving}
-                      loadingLabel={t("Queueing…")}
-                      size="compact"
-                      type="submit"
-                      variant="primary"
-                    >
-                      {repoAccessSubmitLabel}
-                    </Button>
-                  </div>
-                ) : null}
-              </form>
-            </ConsoleDisclosureSection>
-          ) : null}
-        </SettingsSectionBlock>
+                        {t("Reconnect GitHub")}
+                      </ButtonAnchor>
+                    </>
+                  ) : null}
+                </InlineAlert>
+              ) : hasSavedGitHubAccess ? (
+                <InlineAlert variant="success">
+                  {githubConnection?.login
+                    ? t("Saved GitHub access is ready as @{login}.", {
+                        login: githubConnection.login,
+                      })
+                    : t("Saved GitHub access is ready.")}
+                  {githubConnection?.authEnabled && githubConnectHref ? (
+                    <>
+                      {" "}
+                      <ButtonAnchor
+                        href={githubConnectHref}
+                        size="compact"
+                        variant="secondary"
+                      >
+                        {t("Reconnect GitHub")}
+                      </ButtonAnchor>
+                    </>
+                  ) : null}
+                </InlineAlert>
+              ) : githubConnection?.authEnabled && githubConnectHref ? (
+                <InlineAlert>
+                  {t(
+                    "Authorize GitHub in the browser, or paste a replacement token below.",
+                  )}{" "}
+                  <ButtonAnchor
+                    href={githubConnectHref}
+                    size="compact"
+                    variant="secondary"
+                  >
+                    {t("Connect GitHub")}
+                  </ButtonAnchor>
+                </InlineAlert>
+              ) : null}
 
-        <div className="fg-settings-mini-grid fg-settings-mini-grid--build">
-          <AppStartupCommandSection app={app} />
-          <AppImageMirrorLimitSection app={app} />
-        </div>
+              <FormField
+                htmlFor={`repo-auth-token-${app.id}`}
+                label={t("Replace token")}
+              >
+                <input
+                  autoCapitalize="none"
+                  autoComplete="new-password"
+                  className="fg-input"
+                  disabled={!canUpdateRepoAccess || repoAuthTokenSaving}
+                  id={`repo-auth-token-${app.id}`}
+                  name="repoAuthToken"
+                  onChange={(event) => setRepoAuthTokenDraft(event.target.value)}
+                  placeholder={
+                    hasSavedGitHubAccess
+                      ? t("Paste a token to override saved GitHub access")
+                      : t("github_pat_...")
+                  }
+                  spellCheck={false}
+                  type="password"
+                  value={repoAuthTokenDraft}
+                />
+              </FormField>
+
+              <SettingsHelperCopy>
+                {hasSavedGitHubAccess
+                  ? t(
+                      "Leave blank to use saved GitHub access. Paste a token only to override it.",
+                    )
+                  : t("Needs GitHub repo read access.")}
+              </SettingsHelperCopy>
+
+              {repoAccessActionsVisible ? (
+                <div className="fg-settings-form__actions">
+                  {repoAuthTokenChanged || repoAuthTokenSaving ? (
+                    <Button
+                      disabled={repoAuthTokenSaving}
+                      onClick={() => setRepoAuthTokenDraft("")}
+                      size="compact"
+                      type="button"
+                      variant="secondary"
+                    >
+                      {t("Reset")}
+                    </Button>
+                  ) : null}
+                  <Button
+                    disabled={
+                      !canUpdateRepoAccess ||
+                      (!repoAuthTokenChanged && !hasSavedGitHubAccess) ||
+                      repoAuthTokenSaving
+                    }
+                    loading={repoAuthTokenSaving}
+                    loadingLabel={t("Queueing…")}
+                    size="compact"
+                    type="submit"
+                    variant="primary"
+                  >
+                    {repoAccessSubmitLabel}
+                  </Button>
+                </div>
+              ) : null}
+            </form>
+          </ConsoleDisclosureSection>
+        ) : null}
+
+        <AppStartupCommandSection app={app} />
+        <AppImageMirrorLimitSection app={app} />
       </div>
-    </SettingsPane>
+    </section>
   );
 }
 
 function AppRuntimeContinuityPane({
   app,
-  paneId,
   runtimeTargetInventoryError,
   runtimeTargets,
 }: {
   app: ConsoleGalleryAppView;
-  paneId: string;
   runtimeTargetInventoryError: string | null;
   runtimeTargets: ConsoleImportRuntimeTargetView[];
 }) {
-  const { locale, t } = useI18n();
-  const primaryRuntimeId = app.runtimeId ?? app.currentRuntimeId;
-  const activeRuntimeId = app.currentRuntimeId ?? app.runtimeId;
-  const primaryRuntimeLabel = readRuntimeTargetLabel(
-    runtimeTargets,
-    primaryRuntimeId,
-    locale,
-    t("Primary runtime unavailable"),
-  );
-  const activeRuntimeLabel = readRuntimeTargetLabel(
-    runtimeTargets,
-    activeRuntimeId,
-    locale,
-    t("Runtime unavailable"),
-  );
-  const standbyRuntimeLabel = readRuntimeTargetLabel(
-    runtimeTargets,
-    app.failoverTargetRuntimeId,
-    locale,
-    t("Not configured"),
-  );
+  const { t } = useI18n();
   const failoverStateLabel =
     app.failoverState === "configured"
       ? t("Configured")
       : app.failoverState === "unprotected"
         ? t("Protection missing")
         : t("Off");
-  const transferMode = readTransferRequestMode(app);
-  const transferPreparationNote = readTransferPreparationNote(app, t);
 
   return (
-    <SettingsPane
-      description={t(
-        "Review where traffic is serving now, keep a standby runtime ready, and move this service without leaving the workbench.",
-      )}
-      id={paneId}
-      rail={
-        <>
-          <SettingsRailCard
-            status={<StatusBadge tone={app.failoverStateTone}>{failoverStateLabel}</StatusBadge>}
-            title={t("Continuity")}
-          >
-            <SettingsSummaryList>
-              <SettingsSummaryRow
-                label={t("Primary runtime")}
-                value={primaryRuntimeLabel}
-              />
-              {activeRuntimeId && activeRuntimeId !== primaryRuntimeId ? (
-                <SettingsSummaryRow
-                  label={t("Serving now")}
-                  value={activeRuntimeLabel}
-                />
-              ) : null}
-              <SettingsSummaryRow
-                label={t("Standby runtime")}
-                value={app.failoverConfigured ? standbyRuntimeLabel : t("Not configured")}
-              />
-            </SettingsSummaryList>
-          </SettingsRailCard>
-
-          <SettingsRailCard title={t("Runtime")}>
-            <SettingsSummaryList>
-              <SettingsSummaryRow
-                label={t("Current runtime")}
-                value={activeRuntimeLabel}
-              />
-              <SettingsSummaryRow
-                label={t("One-Click Transfer")}
-                value={
-                  transferMode === "migrate"
-                    ? t("Fugue prepares the destination before cutover.")
-                    : t("Move immediately once the destination is chosen.")
-                }
-              />
-            </SettingsSummaryList>
-            {transferPreparationNote ? (
-              <SettingsHelperCopy>{transferPreparationNote}</SettingsHelperCopy>
-            ) : null}
-          </SettingsRailCard>
-        </>
-      }
-      status={<StatusBadge tone={app.failoverStateTone}>{failoverStateLabel}</StatusBadge>}
-      title={t("Runtime & continuity")}
+    <section
+      aria-label={t("Continuity")}
+      className="fg-route-subsection fg-settings-section"
     >
-      <div className="fg-settings-pane__stack">
+      <div className="fg-route-subsection__head">
+        <div className="fg-route-subsection__copy fg-settings-section__copy">
+          <p className="fg-label fg-panel__eyebrow">{t("Runtime")}</p>
+          <h3 className="fg-route-subsection__title fg-ui-heading">
+            {t("Continuity")}
+          </h3>
+        </div>
+
+        <StatusBadge tone={app.failoverStateTone}>{failoverStateLabel}</StatusBadge>
+      </div>
+
+      <div className="fg-settings-section__stack">
         <AppAutomaticFailoverSection
           app={app}
           runtimeTargetInventoryError={runtimeTargetInventoryError}
@@ -2652,7 +2165,7 @@ function AppRuntimeContinuityPane({
           runtimeTargets={runtimeTargets}
         />
       </div>
-    </SettingsPane>
+    </section>
   );
 }
 
@@ -2667,148 +2180,21 @@ export function AppSettingsPanel({
   runtimeTargetInventoryError: string | null;
   runtimeTargets: ConsoleImportRuntimeTargetView[];
 }) {
-  const { locale, t } = useI18n();
-  const isGitHubSource = isGitHubSourceType(app.sourceType);
-  const isPrivateGitHubSource = isPrivateGitHubSourceType(app.sourceType);
-  const isDockerImageSource = isDockerImageSourceType(app.sourceType);
-  const isUploadSource = isUploadSourceType(app.sourceType);
-  const sourceLabel = normalizeText(app.sourceLabel) || t("Unlinked source");
-  const sourceKindLabel = readSourceKindLabel(app, t);
-  const sourceFieldLabel = readSourceFieldLabel(app, t);
-  const manualRefreshState = readManualRefreshState(app, t);
-  const hasPersistentStorage = app.persistentStorageMounts.length > 0;
-  const syncState = readGitHubSyncState(app, t);
-  const currentRuntimeLabel = readCurrentRuntimeLabel(
-    app,
-    runtimeTargets,
-    locale,
-    runtimeTargetInventoryError,
-    t,
-  );
-  const workspaceSummaryAction = hasPersistentStorage
-    ? t("inspect persistent storage")
-    : t("review persistent storage configuration");
-  const settingsSummary = isPrivateGitHubSource
-    ? t(
-        "Manage repository sync and GitHub access, set a startup command, tune image retention, {workspaceSummaryAction}, set automatic failover, or move {appName} by hand. Project naming and deletion live in project settings.",
-        {
-          appName: app.name,
-          workspaceSummaryAction,
-        },
-      )
-    : isGitHubSource
-      ? t(
-          "Manage repository sync, set a startup command, tune image retention, {workspaceSummaryAction}, set automatic failover, or move {appName} by hand. Project naming and deletion live in project settings.",
-          {
-            appName: app.name,
-            workspaceSummaryAction,
-          },
-        )
-      : isDockerImageSource
-        ? t(
-            "Review the saved Docker image reference, set a startup command, tune image retention, {workspaceSummaryAction}, set automatic failover, or move {appName} by hand. Project naming and deletion live in project settings.",
-            {
-              appName: app.name,
-              workspaceSummaryAction,
-            },
-          )
-        : isUploadSource
-          ? t(
-              "Review the saved upload source, set a startup command, tune image retention, {workspaceSummaryAction}, set automatic failover, or move {appName} by hand. Project naming and deletion live in project settings.",
-              {
-                appName: app.name,
-                workspaceSummaryAction,
-              },
-            )
-          : t(
-              "Review the saved source definition, set a startup command, tune image retention, {workspaceSummaryAction}, set automatic failover, or move {appName} by hand. Project naming and deletion live in project settings.",
-              {
-                appName: app.name,
-                workspaceSummaryAction,
-              },
-            );
-  const storageOverviewValue = hasPersistentStorage
-    ? summarizePersistentStorageDraft(
-        readPersistentStorageDraft({
-          mounts: app.persistentStorageMounts,
-        }),
-      ) ?? t("No mounts attached")
-    : t("Live container filesystem");
-  const failoverStateLabel =
-    app.failoverState === "configured"
-      ? t("Configured")
-      : app.failoverState === "unprotected"
-        ? t("Protection missing")
-        : t("Off");
-  const standbyRuntimeLabel = readRuntimeTargetLabel(
-    runtimeTargets,
-    app.failoverTargetRuntimeId,
-    locale,
-    t("Not configured"),
-  );
-  const sourcePaneId = `app-settings-source-build-${app.id}`;
-  const storagePaneId = `app-settings-storage-files-${app.id}`;
-  const runtimePaneId = `app-settings-runtime-continuity-${app.id}`;
+  const { t } = useI18n();
 
   return (
     <div className="fg-workbench-section fg-settings-panel">
-      <div className="fg-settings-stage">
-        <div className="fg-settings-stage__copy fg-settings-panel__copy">
-          <p className="fg-label fg-panel__eyebrow">{t("Settings")}</p>
-          <p className="fg-settings-stage__summary">{settingsSummary}</p>
-        </div>
-
-        <nav aria-label={t("Settings")} className="fg-settings-overview-grid">
-          <SettingsOverviewCard
-            href={`#${sourcePaneId}`}
-            label={t("Source")}
-            note={sourceLabel}
-            status={
-              <StatusBadge tone={isGitHubSource ? "info" : "neutral"}>
-                {isGitHubSource ? syncState.label : (manualRefreshState?.label ?? sourceFieldLabel)}
-              </StatusBadge>
-            }
-            value={sourceKindLabel}
-          />
-          <SettingsOverviewCard
-            href={`#${storagePaneId}`}
-            label={t("Storage")}
-            note={hasPersistentStorage ? t("Persistent storage") : t("Files")}
-            status={<StatusBadge tone={hasPersistentStorage ? "info" : "neutral"}>{hasPersistentStorage ? t("Attached") : t("Not configured")}</StatusBadge>}
-            value={storageOverviewValue}
-          />
-          <SettingsOverviewCard
-            href={`#${runtimePaneId}`}
-            label={t("Runtime")}
-            note={
-              app.currentRuntimeId && app.currentRuntimeId !== app.runtimeId
-                ? t("Serving now")
-                : t("Primary runtime")
-            }
-            status={<StatusBadge tone="neutral">{t(app.phase)}</StatusBadge>}
-            value={currentRuntimeLabel}
-          />
-          <SettingsOverviewCard
-            href={`#${runtimePaneId}`}
-            label={t("Continuity")}
-            note={app.failoverConfigured ? t("Standby runtime") : t("Automatic failover")}
-            status={<StatusBadge tone={app.failoverStateTone}>{failoverStateLabel}</StatusBadge>}
-            value={app.failoverConfigured ? standbyRuntimeLabel : failoverStateLabel}
-          />
-        </nav>
+      <div className="fg-workbench-section__copy fg-settings-panel__copy">
+        <p className="fg-label fg-panel__eyebrow">{t("Settings")}</p>
       </div>
 
-      <AppSourceBuildPane app={app} paneId={sourcePaneId} />
+      <AppSourceBuildPane app={app} />
       <AppPersistentStorageSection
         app={app}
         onOpenFiles={onOpenFiles}
-        paneId={storagePaneId}
-        runtimeTargetInventoryError={runtimeTargetInventoryError}
-        runtimeTargets={runtimeTargets}
       />
       <AppRuntimeContinuityPane
         app={app}
-        paneId={runtimePaneId}
         runtimeTargetInventoryError={runtimeTargetInventoryError}
         runtimeTargets={runtimeTargets}
       />

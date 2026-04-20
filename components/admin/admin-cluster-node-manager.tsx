@@ -256,6 +256,19 @@ function AdminClusterPolicySection({
         "Live node labels still differ from the saved policy. Reapply the policy to reconcile again.",
       )
     : t("Current node labels and live role observed in the cluster.");
+  const actionSummaryTone: ConsoleTone = dirty
+    ? "info"
+    : needsReconcile
+      ? "warning"
+      : "neutral";
+  const actionSummaryLabel = dirty
+    ? t("Unsaved policy")
+    : needsReconcile
+      ? t("Reconcile needed")
+      : t("Current status");
+  const actionSummaryNote = dirty
+    ? t("Edit the saved machine policy Fugue will try to reconcile onto this node.")
+    : liveStatusNote;
 
   return (
     <PanelSection>
@@ -281,7 +294,7 @@ function AdminClusterPolicySection({
       </div>
 
       <div className="fg-admin-cluster-manager__policy-grid">
-        <section className="fg-admin-cluster-manager__policy-column">
+        <section className="fg-admin-cluster-manager__policy-column fg-admin-cluster-manager__policy-column--status">
           <div className="fg-admin-cluster-manager__subhead">
             <div className="fg-admin-cluster-manager__subhead-copy">
               <strong>{t("Current status")}</strong>
@@ -329,7 +342,7 @@ function AdminClusterPolicySection({
           </div>
         </section>
 
-        <section className="fg-admin-cluster-manager__policy-column">
+        <section className="fg-admin-cluster-manager__policy-column fg-admin-cluster-manager__policy-column--editor">
           {node.canManagePolicy ? (
             <>
               <div className="fg-admin-cluster-manager__subhead">
@@ -347,9 +360,9 @@ function AdminClusterPolicySection({
                 className="fg-admin-cluster-manager__policy-form"
                 disabled={busy}
               >
-                <div className="fg-admin-cluster-manager__policy-card-grid">
-                  <section className="fg-admin-cluster-manager__policy-card fg-admin-cluster-manager__policy-card--builds">
-                    <div className="fg-admin-cluster-manager__policy-card-head">
+                <div className="fg-admin-cluster-manager__policy-editor">
+                  <section className="fg-admin-cluster-manager__policy-row">
+                    <div className="fg-admin-cluster-manager__policy-row-main">
                       <div className="fg-admin-cluster-manager__field-head">
                         <strong className="fg-admin-cluster-manager__field-label">
                           {t("Allow builds")}
@@ -358,6 +371,8 @@ function AdminClusterPolicySection({
                           {t("Accept source builds on this machine.")}
                         </span>
                       </div>
+                    </div>
+                    <div className="fg-admin-cluster-manager__policy-row-control">
                       <AdminClusterPolicySwitch
                         checked={draft.allowBuilds}
                         id={`allow-builds-${node.name}`}
@@ -369,8 +384,8 @@ function AdminClusterPolicySection({
                     </div>
                   </section>
 
-                  <section className="fg-admin-cluster-manager__policy-card fg-admin-cluster-manager__policy-card--shared-pool">
-                    <div className="fg-admin-cluster-manager__policy-card-head">
+                  <section className="fg-admin-cluster-manager__policy-row">
+                    <div className="fg-admin-cluster-manager__policy-row-main">
                       <div className="fg-admin-cluster-manager__field-head">
                         <strong className="fg-admin-cluster-manager__field-label">
                           {t("Allow shared pool apps")}
@@ -381,6 +396,8 @@ function AdminClusterPolicySection({
                           )}
                         </span>
                       </div>
+                    </div>
+                    <div className="fg-admin-cluster-manager__policy-row-control">
                       <AdminClusterPolicySwitch
                         checked={draft.allowSharedPool}
                         id={`allow-shared-pool-${node.name}`}
@@ -392,8 +409,8 @@ function AdminClusterPolicySection({
                     </div>
                   </section>
 
-                  <section className="fg-admin-cluster-manager__policy-card fg-admin-cluster-manager__policy-card--control-plane">
-                    <div className="fg-admin-cluster-manager__field-stack">
+                  <section className="fg-admin-cluster-manager__policy-row fg-admin-cluster-manager__policy-row--control-plane">
+                    <div className="fg-admin-cluster-manager__policy-row-main">
                       <div className="fg-admin-cluster-manager__field-head">
                         <strong className="fg-admin-cluster-manager__field-label">
                           {t("Control plane role")}
@@ -404,6 +421,8 @@ function AdminClusterPolicySection({
                           )}
                         </span>
                       </div>
+                    </div>
+                    <div className="fg-admin-cluster-manager__policy-row-control fg-admin-cluster-manager__policy-row-control--wide">
                       <SegmentedControl
                         ariaLabel={t("Control plane role")}
                         controlClassName="fg-admin-cluster-manager__segmented-control"
@@ -416,28 +435,41 @@ function AdminClusterPolicySection({
                     </div>
                   </section>
                 </div>
-              </fieldset>
 
-              <div className="fg-admin-cluster-manager__actions">
-                <Button
-                  disabled={!canApply}
-                  loading={busy}
-                  loadingLabel={t("Applying…")}
-                  onClick={onApply}
-                  size="compact"
-                  variant="primary"
-                >
-                  {applyLabel}
-                </Button>
-                <Button
-                  disabled={!dirty || busy}
-                  onClick={onReset}
-                  size="compact"
-                  variant="secondary"
-                >
-                  {t("Reset draft")}
-                </Button>
-              </div>
+                <div className="fg-admin-cluster-manager__actions">
+                  <div className="fg-admin-cluster-manager__actions-copy">
+                    <StatusBadge tone={actionSummaryTone}>
+                      {actionSummaryLabel}
+                    </StatusBadge>
+                    <p className="fg-admin-cluster-manager__section-note">
+                      {actionSummaryNote}
+                    </p>
+                  </div>
+
+                  <div className="fg-admin-cluster-manager__action-buttons">
+                    <Button
+                      disabled={!canApply || busy}
+                      loading={busy}
+                      loadingLabel={t("Applying…")}
+                      onClick={onApply}
+                      size="compact"
+                      variant="primary"
+                    >
+                      {applyLabel}
+                    </Button>
+                    {dirty ? (
+                      <Button
+                        disabled={busy}
+                        onClick={onReset}
+                        size="compact"
+                        variant="secondary"
+                      >
+                        {t("Reset draft")}
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
+              </fieldset>
             </>
           ) : (
             <AdminClusterInlineEmptyState

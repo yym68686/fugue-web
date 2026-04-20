@@ -2135,6 +2135,8 @@ const zhCNExtraMessages = {
     "这个项目已经为空。删除它只会把这个壳层从工作区里移除。",
   "This will remove the project shell and queue deletion for {serviceCount} services, including {appCount} apps and {backingCount} backing services.":
     "这会移除项目壳层，并把 {serviceCount} 个服务加入删除队列，其中包括 {appCount} 个应用和 {backingCount} 个后端服务。",
+  "This will remove the project shell and queue deletion for every attached service, including {appCount} apps and {backingCount} backing services.":
+    "这会移除项目壳层，并把所有挂接服务加入删除队列，其中包括 {appCount} 个应用和 {backingCount} 个后端服务。",
 } satisfies MessageCatalog;
 
 const zhTWExtraMessages = {
@@ -3831,6 +3833,8 @@ const zhTWExtraMessages = {
     "這個專案已經是空的。刪除它只會把這個殼層從工作區中移除。",
   "This will remove the project shell and queue deletion for {serviceCount} services, including {appCount} apps and {backingCount} backing services.":
     "這會移除專案殼層，並把 {serviceCount} 個服務加入刪除佇列，其中包括 {appCount} 個應用和 {backingCount} 個後端服務。",
+  "This will remove the project shell and queue deletion for every attached service, including {appCount} apps and {backingCount} backing services.":
+    "這會移除專案殼層，並把所有掛接服務加入刪除佇列，其中包括 {appCount} 個應用和 {backingCount} 個後端服務。",
 } satisfies MessageCatalog;
 
 const catalogs: Record<Locale, MessageCatalog> = {
