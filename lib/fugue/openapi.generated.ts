@@ -1022,6 +1022,23 @@ export interface paths {
         patch: operations["patchApp"];
         trace?: never;
     };
+    "/v1/apps/{id}/source": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Patch App Source Ownership */
+        patch: operations["patchAppSource"];
+        trace?: never;
+    };
     "/v1/apps/{id}/images": {
         parameters: {
             query?: never;
@@ -2200,7 +2217,15 @@ export interface components {
             project_id: string;
             name: string;
             description: string;
+            /**
+             * @deprecated
+             * @description Current build source for the app. Prefer build_source for new integrations.
+             */
             source?: components["schemas"]["AppSource"];
+            /** @description Durable source-of-truth used for GitHub sync and source ownership. */
+            origin_source?: components["schemas"]["AppSource"];
+            /** @description Last build input applied to the app. */
+            build_source?: components["schemas"]["AppSource"];
             route?: components["schemas"]["AppRoute"];
             internal_service?: components["schemas"]["AppInternalService"];
             spec: components["schemas"]["AppSpec"];
@@ -2356,6 +2381,7 @@ export interface components {
         ClusterNodePolicy: {
             allow_builds: boolean;
             allow_shared_pool: boolean;
+            node_mode?: string;
             desired_control_plane_role: string;
             effective_builds: boolean;
             effective_shared_pool: boolean;
@@ -2415,7 +2441,10 @@ export interface components {
             /** Format: int32 */
             desired_replicas?: number;
             desired_spec?: components["schemas"]["AppSpec"];
+            /** @description Build input requested by the operation. */
             desired_source?: components["schemas"]["AppSource"];
+            /** @description Durable source ownership that should persist after the operation completes. */
+            desired_origin_source?: components["schemas"]["AppSource"];
             result_message?: string;
             manifest_path?: string;
             assigned_runtime_id?: string;
@@ -2437,12 +2466,67 @@ export interface components {
             type?: string;
             status?: string;
         };
+        BuilderResourceSnapshot: {
+            /** Format: int64 */
+            cpu_milli?: number;
+            /** Format: int64 */
+            memory_bytes?: number;
+            /** Format: int64 */
+            ephemeral_bytes?: number;
+        };
+        BuilderPlacementReservationInspection: {
+            name: string;
+            node_name?: string;
+            /** Format: date-time */
+            renewed_at?: string;
+            /** Format: date-time */
+            expires_at?: string;
+            demand: components["schemas"]["BuilderResourceSnapshot"];
+        };
+        BuilderPlacementLockInspection: {
+            name: string;
+            node_name?: string;
+            holder_identity?: string;
+            /** Format: date-time */
+            renewed_at?: string;
+            /** Format: date-time */
+            expires_at?: string;
+        };
+        BuilderPlacementNodeInspection: {
+            node_name: string;
+            hostname?: string;
+            node_mode?: string;
+            ready: boolean;
+            disk_pressure: boolean;
+            eligible: boolean;
+            rank?: number;
+            reasons?: string[];
+            allocatable?: components["schemas"]["BuilderResourceSnapshot"];
+            used?: components["schemas"]["BuilderResourceSnapshot"];
+            reserved?: components["schemas"]["BuilderResourceSnapshot"];
+            safety_buffer?: components["schemas"]["BuilderResourceSnapshot"];
+            available?: components["schemas"]["BuilderResourceSnapshot"];
+            remaining?: components["schemas"]["BuilderResourceSnapshot"];
+        };
+        BuilderPlacementInspection: {
+            profile?: string;
+            build_strategy?: string;
+            required_node_labels?: {
+                [key: string]: string;
+            };
+            demand: components["schemas"]["BuilderResourceSnapshot"];
+            reservations?: components["schemas"]["BuilderPlacementReservationInspection"][];
+            locks?: components["schemas"]["BuilderPlacementLockInspection"][];
+            nodes?: components["schemas"]["BuilderPlacementNodeInspection"][];
+        };
         OperationDiagnosis: {
             category: string;
             summary: string;
             hint?: string;
             app_name?: string;
             service?: string;
+            evidence?: string[];
+            builder_placement?: components["schemas"]["BuilderPlacementInspection"];
             dependency_chain?: string[];
             blocked_by?: components["schemas"]["OperationDiagnosisBlocker"][];
         };
@@ -2734,6 +2818,9 @@ export interface components {
             image_mirror_limit?: number;
             startup_command?: string;
             persistent_storage?: components["schemas"]["AppPersistentStorageSpec"];
+        };
+        PatchAppSourceRequest: {
+            origin_source: components["schemas"]["AppSource"];
         };
         BillingResponse: {
             billing: components["schemas"]["TenantBillingSummary"];
@@ -3346,6 +3433,7 @@ export interface components {
             startup_command?: string;
             persistent_storage?: components["schemas"]["AppPersistentStorageSpec"];
             postgres?: components["schemas"]["AppPostgresSpec"];
+            replace_source?: boolean;
             update_existing?: boolean;
             delete_missing?: boolean;
             dry_run?: boolean;
@@ -5633,6 +5721,33 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["PatchAppRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppPatchResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    patchAppSource: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatchAppSourceRequest"];
             };
         };
         responses: {
