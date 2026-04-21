@@ -125,7 +125,7 @@ export function AdminPlatformNodeEnrollmentPanel() {
           <PanelTitle>{t("Issue a platform-scoped join key")}</PanelTitle>
           <PanelCopy>
             {t(
-              "Attach an admin-managed VPS as a platform node first, then use node policy below to allow builds, shared pool apps, or mark it as a control-plane candidate.",
+              "Attach an admin-managed VPS as a platform node first, then use node policy below to allow builds, place workloads, or mark it as a control-plane candidate.",
             )}
           </PanelCopy>
         </div>

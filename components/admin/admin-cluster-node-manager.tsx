@@ -237,9 +237,7 @@ function AdminClusterPolicySection({
 }) {
   const { t } = useI18n();
   const liveBuildLabel = node.policy?.effectiveBuilds ? t("On") : t("Off");
-  const liveSharedPoolLabel = node.policy?.effectiveSharedPool
-    ? t("On")
-    : t("Off");
+  const liveWorkloadLabel = node.policy?.effectiveSharedPool ? t("On") : t("Off");
   const liveControlPlaneLabel = t(
     node.policy?.effectiveControlPlaneRoleLabel ?? "Unknown",
   );
@@ -316,14 +314,14 @@ function AdminClusterPolicySection({
               }
             />
             <AdminClusterPolicyLiveCard
-              label={t("Shared pool")}
+              label={t("Workloads")}
               value={
                 <StatusBadge
                   tone={readLiveFlagTone(
                     node.policy?.effectiveSharedPool ?? false,
                   )}
                 >
-                  {liveSharedPoolLabel}
+                  {liveWorkloadLabel}
                 </StatusBadge>
               }
             />
@@ -388,11 +386,11 @@ function AdminClusterPolicySection({
                     <div className="fg-admin-cluster-manager__policy-row-main">
                       <div className="fg-admin-cluster-manager__field-head">
                         <strong className="fg-admin-cluster-manager__field-label">
-                          {t("Allow shared pool apps")}
+                          {t("Allow workloads")}
                         </strong>
                         <span className="fg-admin-cluster-manager__field-hint">
                           {t(
-                            "Accept shared Fugue workloads from outside a tenant runtime.",
+                            "Let Fugue place app and service workloads on this machine.",
                           )}
                         </span>
                       </div>
@@ -401,7 +399,7 @@ function AdminClusterPolicySection({
                       <AdminClusterPolicySwitch
                         checked={draft.allowSharedPool}
                         id={`allow-shared-pool-${node.name}`}
-                        label={t("Allow shared pool apps")}
+                        label={t("Allow workloads")}
                         onChange={(checked) => {
                           onDraftChange({ allowSharedPool: checked });
                         }}

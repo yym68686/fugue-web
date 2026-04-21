@@ -549,11 +549,14 @@ const zhCNMessages = {
   "Accept shared Fugue workloads from outside a tenant runtime.":
     "接受来自租户运行时之外的共享 Fugue 工作负载。",
   "Accept source builds on this machine.": "允许这台机器承接源码构建。",
+  "Allow workloads": "允许放置负载",
   "Allow builds": "允许构建",
   "Allow shared pool apps": "允许共享池应用",
   "Agent": "代理",
   "Apply policy": "应用策略",
   "Applying…": "正在应用…",
+  "Attach an admin-managed VPS as a platform node first, then use node policy below to allow builds, place workloads, or mark it as a control-plane candidate.":
+    "先把管理员托管的 VPS 接入为平台节点，再用下面的节点策略决定是否允许构建、放置负载，或将它标记为控制平面候选。",
   "Builds": "构建",
   "Candidate": "候选",
   "Cluster join": "集群加入",
@@ -578,6 +581,8 @@ const zhCNMessages = {
     "节点当前的实时标签仍然与已保存策略不一致。请重新应用策略，再触发一次 reconcile。",
   "Live node state after the most recent reconcile.":
     "最近一次 reconcile 完成后的节点实时状态。",
+  "Let Fugue place app and service workloads on this machine.":
+    "允许 Fugue 将应用和服务负载放到这台机器上。",
   "Machine scope": "机器范围",
   "Medium": "中型",
   "Member": "成员",
@@ -2143,11 +2148,14 @@ const zhTWExtraMessages = {
   "Accept shared Fugue workloads from outside a tenant runtime.":
     "接受來自租戶執行環境之外的共享 Fugue 工作負載。",
   "Accept source builds on this machine.": "允許這台機器承接原始碼建置。",
+  "Allow workloads": "允許放置負載",
   "Allow builds": "允許建置",
   "Allow shared pool apps": "允許共享池應用",
   "Agent": "代理程式",
   "Apply policy": "套用策略",
   "Applying…": "套用中…",
+  "Attach an admin-managed VPS as a platform node first, then use node policy below to allow builds, place workloads, or mark it as a control-plane candidate.":
+    "先把管理員託管的 VPS 接入為平台節點，再用下面的節點策略決定是否允許建置、放置負載，或將它標記為控制平面候選。",
   "Builds": "建置",
   "Candidate": "候選",
   "Cluster join": "叢集加入",
@@ -2173,6 +2181,8 @@ const zhTWExtraMessages = {
     "節點目前的即時標籤仍然與已儲存策略不一致。請重新套用策略，再觸發一次 reconcile。",
   "Live node state after the most recent reconcile.":
     "最近一次 reconcile 完成後的節點即時狀態。",
+  "Let Fugue place app and service workloads on this machine.":
+    "允許 Fugue 將應用和服務負載放到這台機器上。",
   "Machine scope": "機器範圍",
   "Medium": "中型",
   "Member": "成員",
