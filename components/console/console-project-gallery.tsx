@@ -13,6 +13,10 @@ import {
 } from "react";
 import dynamic from "next/dynamic";
 
+import {
+  ConsolePillSwitch,
+  type ConsolePillSwitchOption,
+} from "@/components/console/console-pill-switch";
 import { CompactResourceMeter } from "@/components/console/compact-resource-meter";
 import { ImportServiceFields } from "@/components/console/import-service-fields";
 import { ConsoleProjectWorkbenchSkeleton } from "@/components/console/console-page-skeleton";
@@ -31,10 +35,6 @@ import {
   PanelTitle,
 } from "@/components/ui/panel";
 import { ProofShell, ProofShellEmpty } from "@/components/ui/proof-shell";
-import {
-  SegmentedControl,
-  type SegmentedControlOption,
-} from "@/components/ui/segmented-control";
 import { TechStackLogo } from "@/components/ui/tech-stack-logo";
 import { useToast } from "@/components/ui/toast";
 import {
@@ -303,7 +303,7 @@ type ProjectPatchResponse = {
 
 type ConsoleGalleryServiceView = ConsoleGalleryProjectView["services"][number];
 
-const WORKBENCH_VIEW_OPTIONS: readonly SegmentedControlOption<WorkbenchView>[] =
+const WORKBENCH_VIEW_OPTIONS: readonly ConsolePillSwitchOption<WorkbenchView>[] =
   [
     { value: "env", label: "Environment" },
     { value: "route", label: "Route" },
@@ -313,7 +313,7 @@ const WORKBENCH_VIEW_OPTIONS: readonly SegmentedControlOption<WorkbenchView>[] =
     { value: "settings", label: "Settings" },
   ];
 
-const ENV_ROUTE_AND_LOGS_WORKBENCH_OPTIONS: readonly SegmentedControlOption<WorkbenchView>[] =
+const ENV_ROUTE_AND_LOGS_WORKBENCH_OPTIONS: readonly ConsolePillSwitchOption<WorkbenchView>[] =
   [
     { value: "env", label: "Environment" },
     { value: "route", label: "Route" },
@@ -322,24 +322,24 @@ const ENV_ROUTE_AND_LOGS_WORKBENCH_OPTIONS: readonly SegmentedControlOption<Work
     { value: "settings", label: "Settings" },
   ];
 
-const BACKING_SERVICE_WORKBENCH_OPTIONS: readonly SegmentedControlOption<WorkbenchView>[] =
+const BACKING_SERVICE_WORKBENCH_OPTIONS: readonly ConsolePillSwitchOption<WorkbenchView>[] =
   [
     { value: "settings", label: "Settings" },
     { value: "logs", label: "Logs" },
   ];
 
-const ENVIRONMENT_FORMAT_OPTIONS: readonly SegmentedControlOption<EnvironmentFormat>[] =
+const ENVIRONMENT_FORMAT_OPTIONS: readonly ConsolePillSwitchOption<EnvironmentFormat>[] =
   [
     { value: "table", label: "Variables" },
     { value: "raw", label: "Raw" },
   ];
 
-const LOG_VIEW_OPTIONS: readonly SegmentedControlOption<LogsView>[] = [
+const LOG_VIEW_OPTIONS: readonly ConsolePillSwitchOption<LogsView>[] = [
   { value: "build", label: "Build" },
   { value: "runtime", label: "Runtime" },
 ];
 
-const RUNTIME_ONLY_LOG_VIEW_OPTIONS: readonly SegmentedControlOption<LogsView>[] =
+const RUNTIME_ONLY_LOG_VIEW_OPTIONS: readonly ConsolePillSwitchOption<LogsView>[] =
   [{ value: "runtime", label: "Runtime" }];
 
 const LOG_AUTO_REFRESH_INTERVAL_MS = 3_000;
@@ -2598,7 +2598,7 @@ type ConsoleLogsPanelProps = {
   selectedAppNeedsPendingCommitHint: boolean;
   selectedService: ConsoleGalleryServiceView;
   selectedServiceApp: ConsoleGalleryAppView | null;
-  selectedServiceLogViewOptions: readonly SegmentedControlOption<LogsView>[];
+  selectedServiceLogViewOptions: readonly ConsolePillSwitchOption<LogsView>[];
 };
 
 function ConsoleLogsPanel({
@@ -3316,21 +3316,17 @@ function ConsoleLogsPanel({
 
         <div className="fg-workbench-section__actions">
           {selectedService.kind === "app" ? (
-            <SegmentedControl
+            <ConsolePillSwitch
               ariaLabel={t("Log views")}
-              controlClassName="fg-console-nav"
-              itemClassName="fg-console-nav__link"
-              labelClassName="fg-console-nav__title"
               onChange={onLogsModeChange}
               options={selectedServiceLogViewOptions.map((option) => ({
                 ...option,
                 label:
                   typeof option.label === "string"
                     ? t(option.label)
-                    : option.label,
+                  : option.label,
               }))}
               value={effectiveLogsMode}
-              variant="pill"
             />
           ) : null}
 
@@ -5628,12 +5624,9 @@ export function ConsoleProjectGallery({
                     <p className="fg-label fg-project-toolbar__label">
                       {t("Panels")}
                     </p>
-                    <SegmentedControl
+                    <ConsolePillSwitch
                       ariaLabel={t("Service panels")}
                       className="fg-project-toolbar__panels-switch"
-                      controlClassName="fg-console-nav"
-                      itemClassName="fg-console-nav__link"
-                      labelClassName="fg-console-nav__title"
                       onChange={setActiveTab}
                       options={localizedServiceWorkbenchOptions}
                       value={
@@ -5643,7 +5636,6 @@ export function ConsoleProjectGallery({
                           ? activeTab
                           : "logs"
                       }
-                      variant="pill"
                     />
                   </div>
                 </div>
@@ -5677,11 +5669,8 @@ export function ConsoleProjectGallery({
                       </div>
 
                       <div className="fg-workbench-section__actions fg-env-section__actions">
-                        <SegmentedControl
+                        <ConsolePillSwitch
                           ariaLabel={t("Environment formats")}
-                          controlClassName="fg-console-nav"
-                          itemClassName="fg-console-nav__link"
-                          labelClassName="fg-console-nav__title"
                           onChange={changeEnvFormat}
                           options={ENVIRONMENT_FORMAT_OPTIONS.map((option) => ({
                             ...option,
@@ -5691,7 +5680,6 @@ export function ConsoleProjectGallery({
                                 : option.label,
                           }))}
                           value={envFormat}
-                          variant="pill"
                         />
                         {envFormat === "table" ? (
                           <Button
@@ -8015,12 +8003,9 @@ function ConsoleProjectWorkbenchImpl({
                   <p className="fg-label fg-project-toolbar__label">
                     {t("Panels")}
                   </p>
-                  <SegmentedControl
+                  <ConsolePillSwitch
                     ariaLabel={t("Service panels")}
                     className="fg-project-toolbar__panels-switch"
-                    controlClassName="fg-console-nav"
-                    itemClassName="fg-console-nav__link"
-                    labelClassName="fg-console-nav__title"
                     onChange={setActiveTab}
                     options={localizedServiceWorkbenchOptions}
                     value={
@@ -8030,7 +8015,6 @@ function ConsoleProjectWorkbenchImpl({
                         ? activeTab
                         : "logs"
                     }
-                    variant="pill"
                   />
                 </div>
               </div>
@@ -8064,11 +8048,8 @@ function ConsoleProjectWorkbenchImpl({
                     </div>
 
                     <div className="fg-workbench-section__actions fg-env-section__actions">
-                      <SegmentedControl
+                      <ConsolePillSwitch
                         ariaLabel={t("Environment formats")}
-                        controlClassName="fg-console-nav"
-                        itemClassName="fg-console-nav__link"
-                        labelClassName="fg-console-nav__title"
                         onChange={changeEnvFormat}
                         options={ENVIRONMENT_FORMAT_OPTIONS.map((option) => ({
                           ...option,
@@ -8078,7 +8059,6 @@ function ConsoleProjectWorkbenchImpl({
                               : option.label,
                         }))}
                         value={envFormat}
-                        variant="pill"
                       />
                       {envFormat === "table" ? (
                         <Button

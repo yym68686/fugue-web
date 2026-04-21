@@ -18,7 +18,7 @@ export function SegmentedControl<Value extends string>({
   onChange,
   options,
   value,
-  variant = "segmented",
+  variant,
 }: {
   ariaLabel: string;
   className?: string;
@@ -28,7 +28,7 @@ export function SegmentedControl<Value extends string>({
   onChange: (value: Value) => void;
   options: readonly SegmentedControlOption<Value>[];
   value: Value;
-  variant?: "pill" | "segmented";
+  variant: "pill" | "segmented";
 }) {
   const controlBaseClassName =
     variant === "pill" ? "fg-pill-nav" : "fg-segmented";

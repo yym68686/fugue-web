@@ -12,6 +12,10 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
+import {
+  ConsolePillSwitch,
+  type ConsolePillSwitchOption,
+} from "@/components/console/console-pill-switch";
 import { StatusBadge } from "@/components/console/status-badge";
 import { useI18n } from "@/components/providers/i18n-provider";
 import { Button, InlineButton } from "@/components/ui/button";
@@ -20,10 +24,6 @@ import { FormField } from "@/components/ui/form-field";
 import { HintInline, HintTooltip } from "@/components/ui/hint-tooltip";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { Panel, PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
-import {
-  SegmentedControl,
-  type SegmentedControlOption,
-} from "@/components/ui/segmented-control";
 import { useToast } from "@/components/ui/toast";
 import type { Locale, TranslationValues } from "@/lib/i18n/core";
 import {
@@ -1359,7 +1359,7 @@ export function RuntimeAccessPanel({
       label: t("Public"),
       value: "public",
     },
-  ] satisfies readonly SegmentedControlOption<RuntimeAccessMode>[];
+  ] satisfies readonly ConsolePillSwitchOption<RuntimeAccessMode>[];
   const poolModeOptions = [
     {
       label: t("Dedicated"),
@@ -1369,7 +1369,7 @@ export function RuntimeAccessPanel({
       label: t("Internal"),
       value: "internal-shared",
     },
-  ] satisfies readonly SegmentedControlOption<RuntimePoolMode>[];
+  ] satisfies readonly ConsolePillSwitchOption<RuntimePoolMode>[];
   const [sharing, setSharing] = useState<RuntimeSharingView | null>(null);
   const [sharingError, setSharingError] = useState<string | null>(null);
   const [loadingSharing, setLoadingSharing] = useState(() => canManageSharing);
@@ -1764,19 +1764,15 @@ export function RuntimeAccessPanel({
           <AccessSection
             action={
               showShareForm ? (
-                <SegmentedControl
+                <ConsolePillSwitch
                   ariaLabel={t("Runtime visibility")}
                   className="fg-runtime-access-section__segmented"
-                  controlClassName="fg-console-nav"
-                  itemClassName="fg-console-nav__link"
-                  labelClassName="fg-console-nav__title"
                   onChange={handleAccessModeChange}
                   options={accessModeOptions.map((option) => ({
                     ...option,
                     disabled: busyAction !== null,
                   }))}
                   value={editableAccessMode}
-                  variant="pill"
                 />
               ) : isPublicAccess ? (
                 <StatusBadge tone="info">{t("Public")}</StatusBadge>
@@ -1982,19 +1978,15 @@ export function RuntimeAccessPanel({
                 <AccessRow
                   action={
                     canManagePool && ownership === "owned" ? (
-                      <SegmentedControl
+                      <ConsolePillSwitch
                         ariaLabel={t("Internal cluster access")}
                         className="fg-runtime-share-row__segmented"
-                        controlClassName="fg-console-nav"
-                        itemClassName="fg-console-nav__link"
-                        labelClassName="fg-console-nav__title"
                         onChange={handlePoolModeChange}
                         options={poolModeOptions.map((option) => ({
                           ...option,
                           disabled: busyAction !== null,
                         }))}
                         value={currentPoolMode}
-                        variant="pill"
                       />
                     ) : null
                   }

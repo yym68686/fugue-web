@@ -8,11 +8,14 @@ import {
 } from "react";
 
 import { useI18n } from "@/components/providers/i18n-provider";
+import {
+  ConsolePillSwitch,
+  type ConsolePillSwitchOption,
+} from "@/components/console/console-pill-switch";
 import { Button } from "@/components/ui/button";
 import { CodeTextarea } from "@/components/ui/code-textarea";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { InlineAlert } from "@/components/ui/inline-alert";
-import { SegmentedControl, type SegmentedControlOption } from "@/components/ui/segmented-control";
 import type { ConsoleGalleryPersistentStorageMountView } from "@/lib/console/gallery-types";
 import { useToast } from "@/components/ui/toast";
 import { useAnticipatoryWarmup } from "@/lib/ui/anticipatory-warmup";
@@ -30,7 +33,7 @@ type ConsoleFilesWorkbenchProps = {
 
 type FilesystemRootMode = "filesystem" | "storage";
 
-const FILESYSTEM_ROOT_MODE_OPTIONS: readonly SegmentedControlOption<FilesystemRootMode>[] = [
+const FILESYSTEM_ROOT_MODE_OPTIONS: readonly ConsolePillSwitchOption<FilesystemRootMode>[] = [
   { label: "Live filesystem", value: "filesystem" },
   { label: "Persistent storage", value: "storage" },
 ];
@@ -2008,16 +2011,12 @@ export function ConsoleFilesWorkbench({
         >
           {hasPersistentStorage ? (
             <div className="fg-filesystem__mode-slot">
-              <SegmentedControl
+              <ConsolePillSwitch
                 ariaLabel={t("Filesystem scope")}
                 className="fg-project-toolbar__panels-switch fg-filesystem__mode-switch"
-                controlClassName="fg-console-nav"
-                itemClassName="fg-console-nav__link"
-                labelClassName="fg-console-nav__title"
                 onChange={setRootMode}
                 options={rootModeOptions}
                 value={rootMode}
-                variant="pill"
               />
             </div>
           ) : null}

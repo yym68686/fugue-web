@@ -36,6 +36,7 @@ export function SignInMethodSwitcher({
           { label: t("Email link"), value: "email_link" },
         ]}
         value={method}
+        variant="segmented"
       />
 
       <div className="fg-auth-method-switcher__body">

@@ -1,9 +1,12 @@
 import { ButtonAnchor } from "@/components/ui/button";
+import {
+  ConsolePillSwitch,
+  type ConsolePillSwitchOption,
+} from "@/components/console/console-pill-switch";
 import { useI18n } from "@/components/providers/i18n-provider";
 import { FormField } from "@/components/ui/form-field";
 import { HintTooltip } from "@/components/ui/hint-tooltip";
 import { InlineAlert } from "@/components/ui/inline-alert";
-import { SegmentedControl, type SegmentedControlOption } from "@/components/ui/segmented-control";
 import type { GitHubRepoVisibility } from "@/lib/github/repository";
 import type { GitHubConnectionView } from "@/lib/github/types";
 
@@ -39,7 +42,7 @@ export function GitHubRepositoryAccessFields({
   onVisibilityChange: (value: GitHubRepoVisibility) => void;
 }) {
   const { t } = useI18n();
-  const repositoryAccessOptions: readonly SegmentedControlOption<GitHubRepoVisibility>[] =
+  const repositoryAccessOptions: readonly ConsolePillSwitchOption<GitHubRepoVisibility>[] =
     [
       { label: t("Public"), value: "public" },
       { label: t("Private"), value: "private" },
@@ -94,15 +97,11 @@ export function GitHubRepositoryAccessFields({
           </span>
         </div>
         <div className="fg-field-control">
-          <SegmentedControl
+          <ConsolePillSwitch
             ariaLabel={resolvedVisibilityLabel}
-            controlClassName="fg-console-nav"
-            itemClassName="fg-console-nav__link"
-            labelClassName="fg-console-nav__title"
             onChange={onVisibilityChange}
             options={repositoryAccessOptions}
             value={visibility}
-            variant="pill"
           />
         </div>
       </div>

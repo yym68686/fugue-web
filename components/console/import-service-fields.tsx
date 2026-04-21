@@ -2,6 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import {
+  ConsolePillSwitch,
+  type ConsolePillSwitchOption,
+} from "@/components/console/console-pill-switch";
 import { ConsoleDisclosureSection } from "@/components/console/console-disclosure-section";
 import { DeploymentTargetField } from "@/components/console/deployment-target-field";
 import { EnvironmentEditor } from "@/components/console/environment-editor";
@@ -13,10 +17,6 @@ import { FormField } from "@/components/ui/form-field";
 import { HintTooltip } from "@/components/ui/hint-tooltip";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { SelectField } from "@/components/ui/select-field";
-import {
-  SegmentedControl,
-  type SegmentedControlOption,
-} from "@/components/ui/segmented-control";
 import type { ConsoleImportRuntimeTargetView } from "@/lib/console/gallery-types";
 import {
   areRawEnvFeedbackEqual,
@@ -144,7 +144,7 @@ export function ImportServiceFields({
   showSourceModeSwitch = true,
 }: ImportServiceFieldProps) {
   const { locale, t } = useI18n();
-  const sourceModeOptions: readonly SegmentedControlOption<ImportSourceMode>[] =
+  const sourceModeOptions: readonly ConsolePillSwitchOption<ImportSourceMode>[] =
     [
       { label: t("GitHub repository"), value: "github" },
       { label: t("Local upload"), value: "local-upload" },
@@ -532,15 +532,11 @@ export function ImportServiceFields({
             <span>{t("Source mode")}</span>
           </div>
           <div className="fg-field-control">
-            <SegmentedControl
+            <ConsolePillSwitch
               ariaLabel={t("Import source mode")}
-              controlClassName="fg-console-nav"
-              itemClassName="fg-console-nav__link"
-              labelClassName="fg-console-nav__title"
               onChange={updateSourceMode}
               options={sourceModeOptions}
               value={draft.sourceMode}
-              variant="pill"
             />
           </div>
         </div>
@@ -775,11 +771,8 @@ export function ImportServiceFields({
             </span>
           </div>
           <div className="fg-field-control">
-            <SegmentedControl
+            <ConsolePillSwitch
               ariaLabel={t("App network mode")}
-              controlClassName="fg-console-nav"
-              itemClassName="fg-console-nav__link"
-              labelClassName="fg-console-nav__title"
               onChange={updateNetworkMode}
               options={IMPORT_NETWORK_MODE_OPTIONS.map((option) => ({
                 ...option,
@@ -788,7 +781,6 @@ export function ImportServiceFields({
               value={
                 networkModeSupported ? draft.networkMode : "public"
               }
-              variant="pill"
             />
           </div>
         </div>

@@ -5,6 +5,10 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { buildAdminClusterGalleryItem } from "@/components/admin/admin-cluster-overview";
 import { ConsoleEmptyState } from "@/components/console/console-empty-state";
 import {
+  ConsolePillSwitch,
+  type ConsolePillSwitchOption,
+} from "@/components/console/console-pill-switch";
+import {
   ClusterNodeGallery,
   type ClusterNodeGalleryItem,
   type ClusterNodeGallerySummaryBadge,
@@ -13,10 +17,6 @@ import { StatusBadge } from "@/components/console/status-badge";
 import { useI18n } from "@/components/providers/i18n-provider";
 import { Button } from "@/components/ui/button";
 import { Panel, PanelSection } from "@/components/ui/panel";
-import {
-  SegmentedControl,
-  type SegmentedControlOption,
-} from "@/components/ui/segmented-control";
 import { useToast } from "@/components/ui/toast";
 import type {
   AdminClusterNodePolicyView,
@@ -224,7 +224,7 @@ function AdminClusterPolicySection({
   onReset,
 }: {
   busy: boolean;
-  controlPlaneRoleOptions: readonly SegmentedControlOption<
+  controlPlaneRoleOptions: readonly ConsolePillSwitchOption<
     NodePolicyDraft["desiredControlPlaneRole"]
   >[];
   dirty: boolean;
@@ -421,7 +421,7 @@ function AdminClusterPolicySection({
                       </div>
                     </div>
                     <div className="fg-admin-cluster-manager__policy-row-control fg-admin-cluster-manager__policy-row-control--wide">
-                      <SegmentedControl
+                      <ConsolePillSwitch
                         ariaLabel={t("Control plane role")}
                         controlClassName="fg-admin-cluster-manager__segmented-control"
                         onChange={(value) => {
@@ -525,7 +525,7 @@ export function AdminClusterNodeManager({
         { label: t("Off"), value: "none" },
         { label: t("Candidate"), value: "candidate" },
         { label: t("Member"), value: "member" },
-      ] satisfies readonly SegmentedControlOption<
+      ] satisfies readonly ConsolePillSwitchOption<
         NodePolicyDraft["desiredControlPlaneRole"]
       >[],
     [t],

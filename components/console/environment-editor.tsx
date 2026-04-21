@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from "react";
 
+import {
+  ConsolePillSwitch,
+  type ConsolePillSwitchOption,
+} from "@/components/console/console-pill-switch";
 import { useI18n } from "@/components/providers/i18n-provider";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { InlineAlert } from "@/components/ui/inline-alert";
-import {
-  SegmentedControl,
-  type SegmentedControlOption,
-} from "@/components/ui/segmented-control";
 import type { EnvEntry } from "@/lib/console/env-editor";
 import {
   parseRawEnvInput,
@@ -244,7 +244,7 @@ export function EnvironmentEditor({
     }
   }
 
-  const modeOptions: readonly SegmentedControlOption<EnvironmentEditorMode>[] =
+  const modeOptions: readonly ConsolePillSwitchOption<EnvironmentEditorMode>[] =
     [
       { label: t("Variables"), value: "variables" as const },
       { label: t("Raw"), value: "raw" as const },
@@ -256,15 +256,11 @@ export function EnvironmentEditor({
   return (
     <div className="fg-env-editor">
       <div className="fg-env-editor__toolbar">
-        <SegmentedControl
+        <ConsolePillSwitch
           ariaLabel={t("Environment edit modes")}
-          controlClassName="fg-console-nav"
-          itemClassName="fg-console-nav__link"
-          labelClassName="fg-console-nav__title"
           onChange={setMode}
           options={modeOptions}
           value={mode}
-          variant="pill"
         />
 
         {mode === "variables" ? (

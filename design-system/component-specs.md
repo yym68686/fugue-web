@@ -8,7 +8,7 @@ Included today:
 
 - Typography roles: `DisplayHeading`, `UiHeading`, `SectionLabel`, `Copy`
 - Actions: `Button`
-- Navigation and selection: `ScrollableControlStrip`, `SegmentedControl`, `PillNav`, `UtilityMenu`, `LocaleMenuButton`
+- Navigation and selection: `ScrollableControlStrip`, `SegmentedControl`, `PillNav`, `ConsolePillSwitch`, `UtilityMenu`, `LocaleMenuButton`
 - Surfaces: `BezelShell`, `Panel`, `ProofShell`, `ConsoleDisclosure`, `LayoutShell`
 - Forms and feedback: `FormField`, `Input`, `SelectField`, `SteppedSlider`, `HintTooltip`, `InlineAlert`, `ConfirmDialog`
 - Product semantics: `RouteNote`, `StatusBadge`, `ConsolePageIntro`, `ConsoleEmptyState`, `UploadSource`, `ObjectBelt`, `RouteSignal`, `CodeTextarea`
@@ -187,6 +187,8 @@ Notes:
 - Use this for local mode switches, not submit actions.
 - The active state must be visible without hover.
 - Segmented items should share the same active lens language as current pill-nav items and other small selected chips.
+- `variant` is explicit. Never rely on a default visual fallback.
+- Inside `components/console/` and `components/admin/`, prefer `ConsolePillSwitch` instead of wiring raw `SegmentedControl` with console nav classes by hand.
 
 ### `PillNav`
 
@@ -204,6 +206,23 @@ Notes:
 
 - Mark the current route with `aria-current="page"` or `aria-pressed="true"`.
 - Not for dense app sidebars.
+
+### `ConsolePillSwitch`
+
+Purpose:
+
+- Console/admin wrapper that keeps local segmented controls on the same pill-nav language as topbar navigation and project-detail panel switches.
+
+React wrapper:
+
+- `components/console/console-pill-switch.tsx`
+
+Notes:
+
+- Console segmented controls must use the same pill-nav language as topbar navigation.
+- Use this inside `components/console/` and `components/admin/` instead of raw `SegmentedControl`.
+- This is the required pattern for project detail panels, runtime access rows, cluster policy controls, and similar console-local switches.
+- Do not hand-write the `variant="pill" + fg-console-nav + fg-console-nav__link + fg-console-nav__title` combination at call sites.
 
 ### `UtilityMenu`
 
@@ -616,6 +635,7 @@ Current React wrappers live in:
 | ScrollableControlStrip | `components/ui/scrollable-control-strip.tsx` |
 | SegmentedControl | `components/ui/segmented-control.tsx` |
 | PillNav | `components/ui/pill-nav.tsx` |
+| ConsolePillSwitch | `components/console/console-pill-switch.tsx` |
 | Panel | `components/ui/panel.tsx` |
 | ProofShell | `components/ui/proof-shell.tsx` |
 | FormField | `components/ui/form-field.tsx` |
