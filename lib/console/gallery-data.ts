@@ -2220,9 +2220,6 @@ function buildAppView(
     fallbackPhase,
     activeOperation,
   );
-  const runningFailureSummary = isTerminalAppFailurePhase(app.status.phase)
-    ? readReleaseFailureSummary(commitOperations)
-    : null;
   const pendingRuntimeId =
     activeOperation && isTransferOperation(activeOperation)
       ? activeOperation.targetRuntimeId?.trim() || null
@@ -2258,7 +2255,7 @@ function buildAppView(
               : readRunningServiceMessage(app, commitOperations, activeOperation),
           phase: runningReleaseStatus.phase,
           phaseTone: runningReleaseStatus.tone,
-          preferredLogsMode: runningFailureSummary?.logsMode ?? "build",
+          preferredLogsMode: "runtime",
           serviceDurationLabel: null,
           serviceRole: "running",
         } satisfies ConsoleGalleryAppView)

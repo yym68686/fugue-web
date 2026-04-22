@@ -1665,6 +1665,19 @@ function readServiceDefaultLogsMode(
   return normalizeLogsModeForService(service, services, preferredMode);
 }
 
+function readLogsModeForWorkbenchTab(
+  nextTab: WorkbenchView,
+  service: ConsoleGalleryServiceView | null,
+  services: ConsoleGalleryProjectView["services"],
+  currentLogsMode: LogsView,
+) {
+  if (nextTab !== "logs") {
+    return currentLogsMode;
+  }
+
+  return readServiceDefaultLogsMode(service, services);
+}
+
 function usePreferredLogsModeSync(
   service: ConsoleGalleryServiceView | null,
   preferredLogsMode: LogsView,
@@ -3846,6 +3859,20 @@ export function ConsoleProjectGallery({
     logsMode,
     setLogsMode,
   );
+  const handleWorkbenchTabChange = useEffectEvent((nextTab: WorkbenchView) => {
+    setActiveTab(nextTab);
+
+    const nextLogsMode = readLogsModeForWorkbenchTab(
+      nextTab,
+      selectedService,
+      selectedProjectServices,
+      logsMode,
+    );
+
+    if (nextLogsMode !== logsMode) {
+      setLogsMode(nextLogsMode);
+    }
+  });
   const effectiveLogsMode = normalizeLogsModeForService(
     selectedService,
     selectedProjectServices,
@@ -5627,7 +5654,7 @@ export function ConsoleProjectGallery({
                     <ConsolePillSwitch
                       ariaLabel={t("Service panels")}
                       className="fg-project-toolbar__panels-switch"
-                      onChange={setActiveTab}
+                      onChange={handleWorkbenchTabChange}
                       options={localizedServiceWorkbenchOptions}
                       value={
                         selectedServiceWorkbenchOptions.some(
@@ -6245,6 +6272,20 @@ function ConsoleProjectWorkbenchImpl({
     logsMode,
     setLogsMode,
   );
+  const handleWorkbenchTabChange = useEffectEvent((nextTab: WorkbenchView) => {
+    setActiveTab(nextTab);
+
+    const nextLogsMode = readLogsModeForWorkbenchTab(
+      nextTab,
+      selectedService,
+      detailProjectServices,
+      logsMode,
+    );
+
+    if (nextLogsMode !== logsMode) {
+      setLogsMode(nextLogsMode);
+    }
+  });
   const effectiveLogsMode = normalizeLogsModeForService(
     selectedService,
     detailProjectServices,
@@ -8006,7 +8047,7 @@ function ConsoleProjectWorkbenchImpl({
                   <ConsolePillSwitch
                     ariaLabel={t("Service panels")}
                     className="fg-project-toolbar__panels-switch"
-                    onChange={setActiveTab}
+                    onChange={handleWorkbenchTabChange}
                     options={localizedServiceWorkbenchOptions}
                     value={
                       selectedServiceWorkbenchOptions.some(
