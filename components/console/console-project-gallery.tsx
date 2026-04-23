@@ -2277,6 +2277,32 @@ function readPendingCommitState(
   };
 }
 
+function matchesCommitReference(
+  exact: string | null,
+  label: string,
+  commit?: Pick<ConsoleGalleryCommitView, "exact" | "label"> | null,
+) {
+  const normalizedExact = exact?.trim().toLowerCase() ?? "";
+  const normalizedCommitExact = commit?.exact?.trim().toLowerCase() ?? "";
+
+  if (normalizedExact && normalizedCommitExact) {
+    return (
+      normalizedExact === normalizedCommitExact ||
+      normalizedExact.startsWith(normalizedCommitExact) ||
+      normalizedCommitExact.startsWith(normalizedExact)
+    );
+  }
+
+  const normalizedLabel = label.trim().toLowerCase();
+  const normalizedCommitLabel = commit?.label?.trim().toLowerCase() ?? "";
+
+  return Boolean(
+    normalizedLabel.length > 0 &&
+      normalizedCommitLabel.length > 0 &&
+      normalizedLabel === normalizedCommitLabel,
+  );
+}
+
 function buildPendingCommitHint(
   app: ConsoleGalleryAppView,
   options?: {
@@ -2313,11 +2339,22 @@ function buildPendingCommitHint(
         : exact
       : t("Pending sync"));
   const state = readPendingCommitState(app.phase, options?.operationStatus, t);
+  const pendingMatchesRunning = matchesCommitReference(
+    exact,
+    label,
+    runningCommit,
+  );
+  const fallbackCommit = pendingMatchesRunning ? runningCommit : null;
 
   return {
-    committedAt: options?.committedAt?.trim() || null,
-    exact,
-    href: readGitHubCommitHref(app.sourceHref, exact),
+    committedAt:
+      fallbackCommit?.committedAt?.trim() ||
+      options?.committedAt?.trim() ||
+      null,
+    exact: fallbackCommit?.exact ?? exact,
+    href:
+      fallbackCommit?.href ??
+      readGitHubCommitHref(app.sourceHref, exact),
     id: `pending-hint:${app.id}:${options?.operationId?.trim() || exact || label.toLowerCase().replace(/\s+/g, "-")}`,
     kind: "pending",
     label,
@@ -2343,7 +2380,6 @@ function inferPendingCommitHint(
   return buildPendingCommitHint(
     app,
     {
-      committedAt: buildLogs?.startedAt ?? null,
       exact: parsedCommit?.exact,
       label: parsedCommit?.label,
       operationId: buildLogs?.operationId,
