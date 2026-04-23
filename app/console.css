@@ -7547,8 +7547,31 @@
 .fg-log-output__viewport {
   block-size: min(35rem, calc(56dvh + 3rem));
   max-block-size: min(35rem, calc(56dvh + 3rem));
+  overflow: auto;
   overscroll-behavior-y: contain;
   scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+}
+
+.fg-log-output__viewport::-webkit-scrollbar {
+  width: 0.7rem;
+  height: 0.7rem;
+}
+
+.fg-log-output__viewport::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.fg-log-output__viewport::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  background-clip: padding-box;
+}
+
+.fg-log-output__viewport::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 .fg-log-output__viewport[data-has-vertical-overflow="false"] {
