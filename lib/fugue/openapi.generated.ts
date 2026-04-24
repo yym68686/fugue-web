@@ -657,6 +657,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/cluster/services/{namespace}/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Cluster Service */
+        get: operations["getClusterService"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/cluster/rollouts/{namespace}/{kind}/{name}": {
         parameters: {
             query?: never;
@@ -1343,6 +1360,23 @@ export interface paths {
         put?: never;
         /** Request App Internal HTTP Endpoint */
         post: operations["requestAppInternalHTTP"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/apps/{id}/request-stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Diagnose App Internal HTTP Streaming Behavior */
+        post: operations["requestAppInternalHTTPStream"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3206,6 +3240,37 @@ export interface components {
         ClusterWorkloadResponse: {
             workload: components["schemas"]["ClusterWorkloadDetail"];
         };
+        ClusterServicePort: {
+            name?: string;
+            /** Format: int32 */
+            port: number;
+            protocol?: string;
+            target_port?: string;
+        };
+        ClusterServiceEndpoint: {
+            ip?: string;
+            node_name?: string;
+            ready: boolean;
+            target_kind?: string;
+            target_name?: string;
+            target_namespace?: string;
+            pod?: string;
+        };
+        ClusterServiceDetail: {
+            namespace: string;
+            name: string;
+            type?: string;
+            cluster_ip?: string;
+            external_name?: string;
+            selector?: components["schemas"]["StringMap"];
+            labels?: components["schemas"]["StringMap"];
+            annotations?: components["schemas"]["StringMap"];
+            ports?: components["schemas"]["ClusterServicePort"][];
+            endpoints?: components["schemas"]["ClusterServiceEndpoint"][];
+        };
+        ClusterServiceResponse: {
+            service: components["schemas"]["ClusterServiceDetail"];
+        };
         ClusterRolloutStatus: {
             kind: string;
             namespace: string;
@@ -3686,6 +3751,22 @@ export interface components {
             /** Format: int32 */
             max_body_bytes?: number;
         };
+        AppHTTPRequestStreamRequest: {
+            method: string;
+            path: string;
+            query?: components["schemas"]["StringListMap"];
+            headers?: components["schemas"]["StringListMap"];
+            headers_from_env?: components["schemas"]["StringMap"];
+            body?: string;
+            body_encoding?: string;
+            /** Format: int32 */
+            timeout_ms?: number;
+            /** Format: int32 */
+            max_chunks?: number;
+            /** Format: int32 */
+            max_chunk_bytes?: number;
+            accepts?: string[];
+        };
         HTTPDiagnosticTiming: {
             dns?: string;
             connect?: string;
@@ -3708,6 +3789,49 @@ export interface components {
             truncated?: boolean;
             server_timing?: string;
             timing: components["schemas"]["HTTPDiagnosticTiming"];
+        };
+        HTTPStreamChunkSample: {
+            /** Format: int32 */
+            index: number;
+            kind: string;
+            encoding: string;
+            payload: string;
+            /** Format: int32 */
+            size_bytes: number;
+            truncated?: boolean;
+        };
+        HTTPStreamTiming: {
+            headers_observed: boolean;
+            body_byte_observed: boolean;
+            sse_event_observed: boolean;
+            /** Format: int64 */
+            time_to_headers_ms?: number;
+            /** Format: int64 */
+            time_to_first_body_byte_ms?: number;
+            /** Format: int64 */
+            time_to_first_sse_event_ms?: number;
+            /** Format: int64 */
+            total_time_ms?: number;
+        };
+        HTTPStreamProbe: {
+            target: string;
+            accept: string;
+            url: string;
+            status?: string;
+            /** Format: int32 */
+            status_code?: number;
+            headers?: components["schemas"]["StringListMap"];
+            error?: string;
+            headers_only_stall?: boolean;
+            /** Format: int32 */
+            body_bytes?: number;
+            /** Format: int32 */
+            chunk_count?: number;
+            timing: components["schemas"]["HTTPStreamTiming"];
+            first_chunks?: components["schemas"]["HTTPStreamChunkSample"][];
+        };
+        AppHTTPRequestStreamResponse: {
+            probes: components["schemas"]["HTTPStreamProbe"][];
         };
         AppDiagnosis: {
             category: string;
@@ -4992,6 +5116,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClusterWorkloadResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getClusterService: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                namespace: string;
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClusterServiceResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
@@ -6323,6 +6471,33 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AppHTTPRequestResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    requestAppInternalHTTPStream: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AppHTTPRequestStreamRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppHTTPRequestStreamResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
