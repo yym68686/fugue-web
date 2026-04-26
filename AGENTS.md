@@ -1,20 +1,27 @@
 # AGENTS.md
 
-本仓库是 `fugue` 的产品层前端 / Web 包装层。凡是涉及前端的任务，不允许只凭通用经验直接下手，必须先到 `/Users/yanyuming/Downloads/GitHub/web-design/AGENTS.md` 里查对应 skill，再进入设计、实现、改版、评审或优化。
+本仓库是 `fugue` 的产品层前端 / Web 包装层。凡是涉及前端的任务，不允许只凭通用经验直接下手，必须先到 `$HOME/Downloads/GitHub/web-design/AGENTS.md` 里查对应 skill，再进入设计、实现、改版、评审或优化。
 
-`fugue` 的底层仓库 / 核心实现目录位于 `/Users/yanyuming/Downloads/GitHub/fugue`。凡是需要核对底层能力边界、共享对象模型、上游实现来源或 Web 包装层与产品核心之间的衔接关系时，优先参考该目录中的正式实现。
+`fugue` 的底层仓库 / 核心实现目录位于 `$HOME/Downloads/GitHub/fugue`。凡是需要核对底层能力边界、共享对象模型、上游实现来源或 Web 包装层与产品核心之间的衔接关系时，优先参考该目录中的正式实现。
 
 ## 控制平面发布路径
 
-- 凡是改动落到 `/Users/yanyuming/Downloads/GitHub/fugue` 仓库，且影响 control plane、edge proxy、Caddy、Ingress、cluster bootstrap、registry、runtime 路由或平台级流量规则时，标准发布路径不是手改线上机器，而是回到 `fugue` 仓库走正式控制平面发布链路。
+- 凡是改动落到 `$HOME/Downloads/GitHub/fugue` 仓库，且影响 control plane、edge proxy、Caddy、Ingress、cluster bootstrap、registry、runtime 路由或平台级流量规则时，标准发布路径不是手改线上机器，而是回到 `fugue` 仓库走正式控制平面发布链路。
 - 正常控制平面升级路径是：提交 `fugue` 仓库变更，`git push` 到 `main`，再由 `.github/workflows/deploy-control-plane.yml` 和其 self-hosted runner 更新远端控制平面。
 - 不要把 `./scripts/install_fugue_ha.sh`、手工 `ssh` 改文件、手工重启服务、手工 patch Deployment、手工同步镜像，视为正常发布方式。
 - 只有在用户明确要求紧急止血、线上恢复或现场调试例外时，才可以做手工线上热修；一旦这样做，必须在同一任务里把改动回写到 `fugue` 仓库，并明确说明正式发布仍应走 GitHub Actions 控制平面链路。
-- 如果 `fugue` 仓库自己的 `AGENTS.md` 与本仓库规则不一致，以 `/Users/yanyuming/Downloads/GitHub/fugue/AGENTS.md` 的控制平面发布要求为准。
+- 如果 `fugue` 仓库自己的 `AGENTS.md` 与本仓库规则不一致，以 `$HOME/Downloads/GitHub/fugue/AGENTS.md` 的控制平面发布要求为准。
+
+## 线上排障入口
+
+- 本机已安装 `fugue` CLI，并且终端通常已经配置 `FUGUE_API_KEY`；该 key 使用的是 `fugue` 的 `FUGUE_BOOTSTRAP_KEY`，理论上具备最高权限。线上调查时应优先用 `fugue` CLI 和当前环境变量查询控制平面、租户、项目、app、operation、runtime、cluster 状态。
+- 运行 `fugue` 相关排障命令时，默认直接以 `fugue ...` 开头执行；不要把 `[ -f $HOME/Downloads/GitHub/fugue/.env ] && . $HOME/Downloads/GitHub/fugue/.env` 作为常规命令前缀。`fugue` CLI 会读取它需要的本地配置 / 环境入口。
+- 如果 `fugue` CLI 无法满足调查需求，可以到 `$HOME/Downloads/GitHub/fugue/.env` 查看 `FUGUE_BOOTSTRAP_KEY`、`FUGUE_API_URL` 等后端排障入口，再直接请求控制平面 API。输出和记录中不要泄露实际 secret。
+- 如仍需要核对控制平面或集群现场状态，可以通过 `ssh` 登录控制平面相关服务器：`gcp1`、`gcp2`、`gcp3`、`alicehk2`。默认只做只读调查；除非用户明确要求紧急止血、线上恢复或现场调试，不要把 SSH 上手工改文件、重启服务、patch Deployment、同步镜像当作正式修复路径。
 
 ## 强制规则
 
-以下任务都属于“前端相关”，开始前必须先调查 `/Users/yanyuming/Downloads/GitHub/web-design/AGENTS.md`，并继续打开对应 `SKILL.md` 学习后再动手：
+以下任务都属于“前端相关”，开始前必须先调查 `$HOME/Downloads/GitHub/web-design/AGENTS.md`，并继续打开对应 `SKILL.md` 学习后再动手：
 
 - 前端改动
 - 前端架构
@@ -31,7 +38,7 @@
 
 每次遇到前端任务时，按这个顺序执行：
 
-1. 先读 `/Users/yanyuming/Downloads/GitHub/web-design/AGENTS.md`
+1. 先读 `$HOME/Downloads/GitHub/web-design/AGENTS.md`
 2. 根据任务类型定位相关 skill
 3. 打开对应 `SKILL.md`，只读当前任务真正需要的部分
 4. 将 skill 里的方法落实到本仓库方案、代码、样式、组件或评审意见中
@@ -117,20 +124,20 @@
 - 本仓库的前端需要同时服务 marketing、docs、auth、app console 几个层次，做页面和组件时必须考虑整站一致性，而不是只看单页。
 - 任何新页面、新组件、新视觉方向，都应优先复用或沉淀成可复用模式，而不是散落一次性实现。
 - 已沉淀出的共享实现种子位于 `design-system/`；当任务目标是共享 UI、token、组件或页面骨架时，优先复用这里，再结合 `app/`、`components/` 里的当前已落地实现继续抽取。
-- 涉及 `frontend-website-plan.md`、设计方案、页面结构、控制台 IA、auth flow、onboarding flow 的修改，也属于前端任务，同样必须先参考 `/Users/yanyuming/Downloads/GitHub/web-design/AGENTS.md` 中的对应 skills。
+- 涉及 `frontend-website-plan.md`、设计方案、页面结构、控制台 IA、auth flow、onboarding flow 的修改，也属于前端任务，同样必须先参考 `$HOME/Downloads/GitHub/web-design/AGENTS.md` 中的对应 skills。
 
 ## API 协作规范
 
-- `fugue` 后端现在采用 OpenAPI-first。后端 HTTP API 的唯一权威来源是 `/Users/yanyuming/Downloads/GitHub/fugue/openapi/openapi.yaml`。
+- `fugue` 后端现在采用 OpenAPI-first。后端 HTTP API 的唯一权威来源是 `$HOME/Downloads/GitHub/fugue/openapi/openapi.yaml`。
 - 不要把 README、抓包结果、控制台现有调用、临时返回体、测试桩、口头约定当作 API 真源。
 - 当前可直接查看的权威 API 产物包括：
-  - `/Users/yanyuming/Downloads/GitHub/fugue/openapi/openapi.yaml`
+  - `$HOME/Downloads/GitHub/fugue/openapi/openapi.yaml`
   - 后端运行时暴露的 `/openapi.yaml`
   - 后端运行时暴露的 `/openapi.json`
   - 后端运行时暴露的 `/docs`
 - 本仓库与 OpenAPI 相关的派生产物包括：
-  - `/Users/yanyuming/Downloads/GitHub/fugue-web/openapi/fugue.yaml`
-  - `/Users/yanyuming/Downloads/GitHub/fugue-web/lib/fugue/openapi.generated.ts`
+  - `$HOME/Downloads/GitHub/fugue-web/openapi/fugue.yaml`
+  - `$HOME/Downloads/GitHub/fugue-web/lib/fugue/openapi.generated.ts`
 - 这两个文件都是从后端权威契约派生出来的，禁止手写维护、禁止直接当作“可以随手修”的本地事实源。
 - 当前端任务涉及 API 接入、字段消费、鉴权方式、请求体、响应体、轮询、日志流、上传、下载、错误处理时，必须先对照上述权威契约。
 - 如果前端发现后端行为与 OpenAPI 契约不一致，应优先视为后端契约/实现漂移问题，不能直接在前端写“猜测性兼容”并把错误固化下来。
@@ -139,7 +146,7 @@
 
 凡是需求涉及新增接口、修改接口、删除接口、改字段、改鉴权、改 content-type、改上传下载协议，按这个顺序执行：
 
-1. 先在 `/Users/yanyuming/Downloads/GitHub/fugue/openapi/openapi.yaml` 修改契约。
+1. 先在 `$HOME/Downloads/GitHub/fugue/openapi/openapi.yaml` 修改契约。
 2. 在 `fugue` 仓库生成并校验后端产物：
    - `make generate-openapi`
    - `make test`
@@ -174,14 +181,14 @@
 
 ## 评审要求
 
-- 评审 API 相关前端改动时，先核对 `/Users/yanyuming/Downloads/GitHub/fugue/openapi/openapi.yaml`，再看页面代码。
-- 再核对 `/Users/yanyuming/Downloads/GitHub/fugue-web/openapi/fugue.yaml` 和 `/Users/yanyuming/Downloads/GitHub/fugue-web/lib/fugue/openapi.generated.ts` 是否已经同步。
+- 评审 API 相关前端改动时，先核对 `$HOME/Downloads/GitHub/fugue/openapi/openapi.yaml`，再看页面代码。
+- 再核对 `$HOME/Downloads/GitHub/fugue-web/openapi/fugue.yaml` 和 `$HOME/Downloads/GitHub/fugue-web/lib/fugue/openapi.generated.ts` 是否已经同步。
 - 如果需求需要改 API，但 PR 里没有对应的后端契约变更或没有明确说明“后端已完成在哪个提交/分支”，应视为信息不完整。
 - 如果 `npm run contract:check` 没跑过或已经失败，视为 API 改动未完成。
 
 ## 前端 CI 契约检查
 
-- 本仓库的契约漂移检查工作流位于 `/Users/yanyuming/Downloads/GitHub/fugue-web/.github/workflows/contract-drift.yml`。
+- 本仓库的契约漂移检查工作流位于 `$HOME/Downloads/GitHub/fugue-web/.github/workflows/contract-drift.yml`。
 - 该工作流会从 `yym68686/fugue` 拉取后端仓库，用后端真实 `openapi/openapi.yaml` 对本仓库执行：
   - `npm run openapi:sync:check`
   - `npm run openapi:generate:check`
