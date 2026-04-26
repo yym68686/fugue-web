@@ -137,16 +137,10 @@ type ProjectImageUsageSummary = {
   versionCount: number;
 };
 
-type ProjectImageUsageResponse = {
-  projects?: ProjectImageUsageSummary[];
-};
-
 type GalleryStreamPayload = {
   hash?: string | null;
 };
 
-const PROJECT_IMAGE_USAGE_CACHE_TTL_MS = 60_000;
-const PROJECT_IMAGE_USAGE_IDLE_WARMUP_MS = 12_000;
 const PROJECT_USAGE_SNAPSHOT_TTL_MS = 300_000;
 
 type ProjectUsageSnapshotResponse = {
@@ -161,15 +155,6 @@ type Translator = (
   values?: Record<string, number | string>,
 ) => string;
 
-type CachedProjectImageUsage = {
-  cachedAt: number;
-  projects: ProjectImageUsageSummary[];
-};
-
-let cachedProjectImageUsage: CachedProjectImageUsage | null = null;
-let projectImageUsageRequestCache: Promise<ProjectImageUsageSummary[]> | null =
-  null;
-
 function prepareProjectWorkbench(projectId?: string | null) {
   if (!projectId) {
     return;
@@ -180,85 +165,6 @@ function prepareProjectWorkbench(projectId?: string | null) {
 
 function buildProjectHref(projectId: string) {
   return `/app/projects/${encodeURIComponent(projectId)}`;
-}
-
-function readCachedProjectImageUsage() {
-  if (
-    !cachedProjectImageUsage ||
-    Date.now() - cachedProjectImageUsage.cachedAt >
-      PROJECT_IMAGE_USAGE_CACHE_TTL_MS
-  ) {
-    cachedProjectImageUsage = null;
-    return null;
-  }
-
-  return cachedProjectImageUsage.projects;
-}
-
-function writeCachedProjectImageUsage(projects: ProjectImageUsageSummary[]) {
-  cachedProjectImageUsage = {
-    cachedAt: Date.now(),
-    projects,
-  };
-}
-
-async function fetchCachedProjectImageUsage(
-  options?: {
-    force?: boolean;
-    signal?: AbortSignal;
-  },
-  t: Translator = (key) => key,
-) {
-  if (options?.signal?.aborted) {
-    throw new DOMException("Request aborted", "AbortError");
-  }
-
-  if (!options?.force) {
-    const cachedProjects = readCachedProjectImageUsage();
-
-    if (cachedProjects) {
-      return cachedProjects;
-    }
-
-    if (projectImageUsageRequestCache) {
-      return projectImageUsageRequestCache;
-    }
-  }
-
-  const request = requestJsonLocalized<ProjectImageUsageResponse>(
-    "/api/fugue/projects/image-usage",
-    {
-      cache: "no-store",
-      signal: options?.signal,
-    },
-    t,
-  )
-    .then((response) => {
-      const nextProjects = response.projects ?? [];
-      writeCachedProjectImageUsage(nextProjects);
-      return readCachedProjectImageUsage() ?? nextProjects;
-    })
-    .finally(() => {
-      if (projectImageUsageRequestCache === request) {
-        projectImageUsageRequestCache = null;
-      }
-    });
-
-  projectImageUsageRequestCache = request;
-  return request;
-}
-
-function buildProjectImageUsageMap(projects: ProjectImageUsageSummary[]) {
-  return projects.reduce<Record<string, ProjectImageUsageSummary>>(
-    (accumulator, project) => {
-      if (project.projectId.trim()) {
-        accumulator[project.projectId] = project;
-      }
-
-      return accumulator;
-    },
-    {},
-  );
 }
 
 function buildProjectUsageSnapshotMap(
@@ -1328,7 +1234,6 @@ export function ConsoleProjectGallery({
   } = useGitHubConnection({
     enabled: createOpen,
   });
-  const initialProjectImageUsage = readCachedProjectImageUsage();
   const [projectUsageByProjectId, setProjectUsageByProjectId] = useState<
     Record<string, ConsoleProjectResourceUsageSnapshot>
   >(() =>
@@ -1336,10 +1241,8 @@ export function ConsoleProjectGallery({
       readProjectUsageSnapshotResponse()?.projects ?? [],
     ),
   );
-  const [projectImageUsageByProjectId, setProjectImageUsageByProjectId] =
-    useState<Record<string, ProjectImageUsageSummary>>(() =>
-      buildProjectImageUsageMap(initialProjectImageUsage ?? []),
-    );
+  const [projectImageUsageByProjectId] =
+    useState<Record<string, ProjectImageUsageSummary>>({});
 
   useEffect(() => {
     setImportEnvFeedback(buildRawEnvFeedback(importDraft.envRaw, "console"));
@@ -1366,10 +1269,6 @@ export function ConsoleProjectGallery({
         name: item.name,
       })),
     [projects],
-  );
-  const projectImageUsageKey = useMemo(
-    () => data.projects.map((project) => project.id.trim()).join("||"),
-    [data.projects],
   );
   const { markProjectDeleting, optimisticProjects } =
     useOptimisticDeletingProjectSummaries(projects);
@@ -1823,68 +1722,6 @@ export function ConsoleProjectGallery({
     {
       mode: "idle",
       timeoutMs: 3_000,
-    },
-  );
-
-  useEffect(() => {
-    if (!projectImageUsageKey) {
-      setProjectImageUsageByProjectId({});
-      return undefined;
-    }
-
-    const cachedProjects = readCachedProjectImageUsage();
-
-    if (cachedProjects) {
-      setProjectImageUsageByProjectId(buildProjectImageUsageMap(cachedProjects));
-      return undefined;
-    }
-
-    return undefined;
-  }, [projectImageUsageKey]);
-
-  const warmProjectImageUsage = useEffectEvent(async (signal: AbortSignal) => {
-    if (!projectImageUsageKey || activeProjectId) {
-      return;
-    }
-
-    const cachedProjects = readCachedProjectImageUsage();
-
-    if (cachedProjects) {
-      startTransition(() => {
-        setProjectImageUsageByProjectId(buildProjectImageUsageMap(cachedProjects));
-      });
-      return;
-    }
-
-    try {
-      const projects = await fetchCachedProjectImageUsage(
-        {
-          signal,
-        },
-        t,
-      );
-
-      if (signal.aborted) {
-        return;
-      }
-
-      startTransition(() => {
-        setProjectImageUsageByProjectId(buildProjectImageUsageMap(projects));
-      });
-    } catch {
-      if (signal.aborted) {
-        return;
-      }
-    }
-  });
-
-  useAnticipatoryWarmup(
-    projectImageUsageKey ? warmProjectImageUsage : null,
-    [projectImageUsageKey, activeProjectId],
-    {
-      enabled: !activeProjectId,
-      mode: "idle",
-      timeoutMs: PROJECT_IMAGE_USAGE_IDLE_WARMUP_MS,
     },
   );
 

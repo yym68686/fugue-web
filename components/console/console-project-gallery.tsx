@@ -1643,16 +1643,18 @@ function readServiceDefaultTab(
   service: ConsoleGalleryServiceView | null,
 ): WorkbenchView {
   if (!service) {
-    return "env";
+    return "logs";
   }
 
   if (service.kind === "backing-service") {
     return "settings";
   }
 
-  return service.serviceRole === "pending" || isFailedAppService(service)
-    ? "logs"
-    : "env";
+  if (service.serviceRole === "pending" || isFailedAppService(service)) {
+    return "logs";
+  }
+
+  return service.exposesPublicRoute ? "route" : "logs";
 }
 
 function readServiceDefaultLogsMode(
@@ -3814,7 +3816,7 @@ export function ConsoleProjectGallery({
   );
   const [selectedAppPendingCommitHint, setSelectedAppPendingCommitHint] =
     useState<ConsoleGalleryCommitView | null>(null);
-  const [activeTab, setActiveTab] = useState<WorkbenchView>("env");
+  const [activeTab, setActiveTab] = useState<WorkbenchView>("route");
   const [isCreating, setIsCreating] = useState(false);
   const [busyAction, setBusyAction] = useState<AppAction | null>(null);
   const [busyProjectAction, setBusyProjectAction] =
@@ -6174,7 +6176,7 @@ function ConsoleProjectWorkbenchImpl({
   const [projectSaving, setProjectSaving] = useState(false);
   const [selectedAppPendingCommitHint, setSelectedAppPendingCommitHint] =
     useState<ConsoleGalleryCommitView | null>(null);
-  const [activeTab, setActiveTab] = useState<WorkbenchView>("env");
+  const [activeTab, setActiveTab] = useState<WorkbenchView>("route");
   const [busyAction, setBusyAction] = useState<AppAction | null>(null);
   const [busyProjectAction, setBusyProjectAction] =
     useState<ProjectAction | null>(null);
