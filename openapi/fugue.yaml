@@ -2710,6 +2710,31 @@ paths:
                 $ref: "#/components/schemas/OperationResponse"
         default:
           $ref: "#/components/responses/ErrorResponse"
+  /v1/apps/{id}/database/localize:
+    post:
+      operationId: localizeAppDatabase
+      summary: Localize App Database
+      tags: [Apps]
+      x-fugue-handler: handleLocalizeAppDatabase
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPathParam"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LocalizeAppDatabaseRequest"
+      responses:
+        '202':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OperationResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
   /v1/apps/{id}/continuity:
     patch:
       operationId: patchAppContinuity
@@ -3771,11 +3796,16 @@ components:
       type: object
       additionalProperties: false
       properties:
+        mode:
+          type: string
+          enum: [dedicated_pvc, shared_project_rwx]
         storage_path:
           type: string
         storage_size:
           type: string
         storage_class_name:
+          type: string
+        shared_sub_path:
           type: string
         reset_token:
           type: string
@@ -3808,6 +3838,8 @@ components:
         runtime_id:
           type: string
         failover_target_runtime_id:
+          type: string
+        primary_node_name:
           type: string
         primary_placement_pending_rebalance:
           type: boolean
@@ -4620,6 +4652,12 @@ components:
       properties:
         target_runtime_id:
           type: string
+    LocalizeAppDatabaseRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        target_node_name:
+          type: string
     AppContinuityAppFailoverRequest:
       type: object
       additionalProperties: false
@@ -4758,6 +4796,8 @@ components:
           type: string
         compose_service:
           type: string
+        clear_files:
+          type: boolean
     ImportProjectRequest:
       type: object
       additionalProperties: false
@@ -6676,6 +6716,8 @@ components:
           $ref: "#/components/schemas/AppPersistentStorageSpec"
         postgres:
           $ref: "#/components/schemas/AppPostgresSpec"
+        clear_files:
+          type: boolean
         replace_source:
           type: boolean
         update_existing:
@@ -7577,6 +7619,8 @@ components:
           type: string
         repo_auth_token:
           type: string
+        clear_files:
+          type: boolean
     AppRebuildResponse:
       type: object
       additionalProperties: false

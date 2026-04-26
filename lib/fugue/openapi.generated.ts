@@ -1624,6 +1624,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/apps/{id}/database/localize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Localize App Database */
+        post: operations["localizeAppDatabase"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/apps/{id}/continuity": {
         parameters: {
             query?: never;
@@ -2148,9 +2165,12 @@ export interface components {
             [key: string]: components["schemas"]["ServicePersistentStorageOverride"];
         };
         AppPersistentStorageSpec: {
+            /** @enum {string} */
+            mode?: "dedicated_pvc" | "shared_project_rwx";
             storage_path?: string;
             storage_size?: string;
             storage_class_name?: string;
+            shared_sub_path?: string;
             reset_token?: string;
             mounts?: components["schemas"]["AppPersistentStorageMount"][];
         };
@@ -2166,6 +2186,7 @@ export interface components {
             service_name?: string;
             runtime_id?: string;
             failover_target_runtime_id?: string;
+            primary_node_name?: string;
             primary_placement_pending_rebalance?: boolean;
             storage_size?: string;
             storage_class_name?: string;
@@ -2567,6 +2588,9 @@ export interface components {
         FailoverAppRequest: {
             target_runtime_id?: string;
         };
+        LocalizeAppDatabaseRequest: {
+            target_node_name?: string;
+        };
         AppContinuityAppFailoverRequest: {
             enabled: boolean;
             target_runtime_id?: string;
@@ -2634,6 +2658,7 @@ export interface components {
             build_context_dir?: string;
             build_strategy?: string;
             compose_service?: string;
+            clear_files?: boolean;
         };
         ImportProjectRequest: {
             name: string;
@@ -3498,6 +3523,7 @@ export interface components {
             startup_command?: string;
             persistent_storage?: components["schemas"]["AppPersistentStorageSpec"];
             postgres?: components["schemas"]["AppPostgresSpec"];
+            clear_files?: boolean;
             replace_source?: boolean;
             update_existing?: boolean;
             delete_missing?: boolean;
@@ -3924,6 +3950,7 @@ export interface components {
             dockerfile_path?: string;
             build_context_dir?: string;
             repo_auth_token?: string;
+            clear_files?: boolean;
         };
         AppRebuildResponse: {
             operation: components["schemas"]["Operation"];
@@ -6947,6 +6974,33 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["FailoverAppRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperationResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    localizeAppDatabase: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["LocalizeAppDatabaseRequest"];
             };
         };
         responses: {
