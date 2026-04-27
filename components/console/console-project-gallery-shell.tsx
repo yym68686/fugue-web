@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Suspense,
   lazy,
@@ -13,12 +13,18 @@ import {
   useRef,
   useState,
   type FormEvent,
+  type MouseEvent,
 } from "react";
 
 import { CompactResourceMeter } from "@/components/console/compact-resource-meter";
 import { ConsolePageIntro } from "@/components/console/console-page-intro";
 import { ConsoleProjectBadge } from "@/components/console/console-project-badge";
-import { ConsoleProjectWorkbenchSkeleton } from "@/components/console/console-page-skeleton";
+import {
+  ConsoleLoadingState,
+  ConsoleProjectDetailPageSkeleton,
+  ConsoleProjectGalleryTransitionSkeleton,
+  ConsoleProjectWorkbenchSkeleton,
+} from "@/components/console/console-page-skeleton";
 import { ImportServiceFields } from "@/components/console/import-service-fields";
 import { useI18n } from "@/components/providers/i18n-provider";
 import { StatusBadge } from "@/components/console/status-badge";
@@ -151,6 +157,8 @@ type GalleryStreamPayload = {
   hash?: string | null;
 };
 
+type InstantRouteFeedback = "project-detail" | "project-gallery";
+
 const PROJECT_USAGE_SNAPSHOT_TTL_MS = 300_000;
 
 type ProjectUsageSnapshotResponse = {
@@ -171,6 +179,17 @@ function prepareProjectWorkbench(_projectId?: string | null) {
 
 function buildProjectHref(projectId: string) {
   return `/app/projects/${encodeURIComponent(projectId)}`;
+}
+
+function shouldShowInstantRouteFeedback(event: MouseEvent<HTMLAnchorElement>) {
+  return (
+    !event.defaultPrevented &&
+    event.button === 0 &&
+    !event.metaKey &&
+    !event.ctrlKey &&
+    !event.shiftKey &&
+    !event.altKey
+  );
 }
 
 function buildProjectUsageSnapshotMap(
@@ -918,6 +937,7 @@ function parseGalleryStreamPayload(event: ParsedSSEEvent) {
 
 const ProjectGalleryShelf = memo(function ProjectGalleryShelf({
   onFocusPendingIntentCard,
+  onOpenProjectRoute,
   onRequestCreateService,
   onWarmProjectRoute,
   optimisticProjects,
@@ -928,6 +948,10 @@ const ProjectGalleryShelf = memo(function ProjectGalleryShelf({
   workspaceMissing,
 }: {
   onFocusPendingIntentCard: () => void;
+  onOpenProjectRoute: (
+    projectId: string,
+    event: MouseEvent<HTMLAnchorElement>,
+  ) => void;
   onRequestCreateService: (target?: ConsoleProjectSummaryView | null) => void;
   onWarmProjectRoute: (projectId: string) => void;
   optimisticProjects: readonly ConsoleProjectSummaryView[];
@@ -987,6 +1011,7 @@ const ProjectGalleryShelf = memo(function ProjectGalleryShelf({
                   <Link
                     className="fg-project-card__summary"
                     href={buildProjectHref(project.id)}
+                    onClick={(event) => onOpenProjectRoute(project.id, event)}
                     onFocus={() => onWarmProjectRoute(project.id)}
                     onPointerDown={() => onWarmProjectRoute(project.id)}
                     onPointerEnter={() => onWarmProjectRoute(project.id)}
@@ -1080,6 +1105,7 @@ const ProjectGalleryShelf = memo(function ProjectGalleryShelf({
 });
 
 const ProjectDetailPage = memo(function ProjectDetailPage({
+  onBackToProjects,
   onProjectDeleted,
   onProjectMutation,
   onRequestCreateService,
@@ -1090,6 +1116,7 @@ const ProjectDetailPage = memo(function ProjectDetailPage({
   refreshToken,
   workspaceMissing,
 }: {
+  onBackToProjects: (event: MouseEvent<HTMLAnchorElement>) => void;
   onProjectDeleted: (projectId: string) => void;
   onProjectMutation: (options?: ProjectMutationOptions) => void;
   onRequestCreateService: (target?: ConsoleProjectSummaryView | null) => void;
@@ -1107,7 +1134,13 @@ const ProjectDetailPage = memo(function ProjectDetailPage({
     return (
       <div className="fg-console-page">
         <ConsolePageIntro
-          actions={[{ href: "/app", label: t("Back to projects") }]}
+          actions={[
+            {
+              href: "/app",
+              label: t("Back to projects"),
+              onClick: onBackToProjects,
+            },
+          ]}
           description={t(
             "Create a workspace first, then return to the console to import your first service.",
           )}
@@ -1133,7 +1166,13 @@ const ProjectDetailPage = memo(function ProjectDetailPage({
     return (
       <div className="fg-console-page">
         <ConsolePageIntro
-          actions={[{ href: "/app", label: t("Back to projects") }]}
+          actions={[
+            {
+              href: "/app",
+              label: t("Back to projects"),
+              onClick: onBackToProjects,
+            },
+          ]}
           description={t(
             "This project no longer exists in the current workspace, or you do not have access to it.",
           )}
@@ -1158,7 +1197,13 @@ const ProjectDetailPage = memo(function ProjectDetailPage({
   return (
     <div className="fg-console-page">
       <ConsolePageIntro
-        actions={[{ href: "/app", label: t("Back to projects") }]}
+        actions={[
+          {
+            href: "/app",
+            label: t("Back to projects"),
+            onClick: onBackToProjects,
+          },
+        ]}
         description={t(
           "Manage services, routes, logs, files, and project settings from one workspace.",
         )}
@@ -1196,6 +1241,7 @@ export function ConsoleProjectGallery({
   routeProjectId?: string | null;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { t } = useI18n();
   const { showToast } = useToast();
   const [flash, setFlash] = useState<FlashState | null>(null);
@@ -1244,6 +1290,8 @@ export function ConsoleProjectGallery({
   );
   const [projectImageUsageByProjectId] =
     useState<Record<string, ProjectImageUsageSummary>>({});
+  const [instantRouteFeedback, setInstantRouteFeedback] =
+    useState<InstantRouteFeedback | null>(null);
 
   useEffect(() => {
     setImportEnvFeedback(buildRawEnvFeedback(importDraft.envRaw, "console"));
@@ -1443,6 +1491,10 @@ export function ConsoleProjectGallery({
       setData(initialData);
     });
   }, [initialData]);
+
+  useEffect(() => {
+    setInstantRouteFeedback(null);
+  }, [pathname, routeProjectId]);
 
   useEffect(() => {
     if (!initialPendingIntentId) {
@@ -1811,6 +1863,32 @@ export function ConsoleProjectGallery({
     prepareProjectWorkbench();
   });
 
+  const openProjectRoute = useEffectEvent((
+    projectId: string,
+    event: MouseEvent<HTMLAnchorElement>,
+  ) => {
+    if (!shouldShowInstantRouteFeedback(event)) {
+      return;
+    }
+
+    const href = buildProjectHref(projectId);
+
+    if (pathname === href) {
+      return;
+    }
+
+    prepareProjectWorkbench(projectId);
+    setInstantRouteFeedback("project-detail");
+  });
+
+  const backToProjects = useEffectEvent((event: MouseEvent<HTMLAnchorElement>) => {
+    if (!shouldShowInstantRouteFeedback(event) || pathname === "/app") {
+      return;
+    }
+
+    setInstantRouteFeedback("project-gallery");
+  });
+
   async function handleCreateProject(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -2058,13 +2136,22 @@ export function ConsoleProjectGallery({
 
   return (
     <>
-      {activeProjectId ? (
+      {instantRouteFeedback === "project-detail" ? (
+        <ConsoleLoadingState label={t("Loading project")}>
+          <ConsoleProjectDetailPageSkeleton />
+        </ConsoleLoadingState>
+      ) : instantRouteFeedback === "project-gallery" ? (
+        <ConsoleLoadingState label={t("Loading projects")}>
+          <ConsoleProjectGalleryTransitionSkeleton />
+        </ConsoleLoadingState>
+      ) : activeProjectId ? (
         <ProjectDetailPage
           initialProjectDetail={
             initialProjectDetail?.project?.id === activeProjectId
               ? initialProjectDetail
               : null
           }
+          onBackToProjects={backToProjects}
           onProjectDeleted={handleProjectDeleted}
           onProjectMutation={handleProjectMutation}
           onRequestCreateService={openCreateDialog}
@@ -2077,6 +2164,7 @@ export function ConsoleProjectGallery({
       ) : (
         <ProjectGalleryShelf
           onFocusPendingIntentCard={focusPendingIntentCard}
+          onOpenProjectRoute={openProjectRoute}
           onRequestCreateService={openCreateDialog}
           onWarmProjectRoute={warmProjectRoute}
           optimisticProjects={optimisticProjects}

@@ -1,10 +1,11 @@
-import type { ReactNode } from "react";
+import type { MouseEventHandler, ReactNode } from "react";
 
 import { ButtonLink, type ButtonVariant } from "@/components/ui/button";
 
 type IntroAction = {
   href: string;
   label: string;
+  onClick?: MouseEventHandler<HTMLAnchorElement>;
   variant?: ButtonVariant;
 };
 
@@ -30,7 +31,12 @@ export function ConsolePageIntro({
       {actions.length ? (
         <div className="fg-console-page-intro__actions">
           {actions.map((action) => (
-            <ButtonLink href={action.href} key={action.href} variant={action.variant ?? "secondary"}>
+            <ButtonLink
+              href={action.href}
+              key={action.href}
+              onClick={action.onClick}
+              variant={action.variant ?? "secondary"}
+            >
               {action.label}
             </ButtonLink>
           ))}
