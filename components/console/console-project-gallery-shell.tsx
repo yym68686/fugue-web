@@ -1807,9 +1807,8 @@ export function ConsoleProjectGallery({
     setPendingIntentFocused(true);
   });
 
-  const warmProjectRoute = useEffectEvent((projectId: string) => {
-    prepareProjectWorkbench(projectId);
-    void router.prefetch(buildProjectHref(projectId));
+  const warmProjectRoute = useEffectEvent((_projectId: string) => {
+    prepareProjectWorkbench();
   });
 
   async function handleCreateProject(event: FormEvent<HTMLFormElement>) {
