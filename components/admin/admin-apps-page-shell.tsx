@@ -23,7 +23,6 @@ import {
   CONSOLE_ADMIN_APPS_PAGE_SNAPSHOT_URL,
   CONSOLE_ADMIN_APPS_PAGE_USAGE_SNAPSHOT_URL,
   type ConsoleAdminAppsPageSnapshot,
-  fetchConsolePageSnapshot,
   readConsolePageSnapshot,
   useConsolePageSnapshot,
 } from "@/lib/console/page-snapshot-client";
@@ -104,7 +103,7 @@ export function AdminAppsPageShell() {
     () => (data?.apps ?? []).map((app) => app.id).join("||"),
     [data],
   );
-  const warmAdminAppUsage = useEffectEvent(async (signal: AbortSignal) => {
+  const warmAdminAppUsage = useEffectEvent((_signal: AbortSignal) => {
     if (!data?.apps.length) {
       return;
     }
@@ -125,23 +124,9 @@ export function AdminAppsPageShell() {
     if (!needsUsageFetch) {
       return;
     }
-
-    const nextUsage = await fetchConsolePageSnapshot<AdminAppsUsageSnapshot>(
-      CONSOLE_ADMIN_APPS_PAGE_USAGE_SNAPSHOT_URL,
-      {
-        force: true,
-        signal,
-        ttlMs: ADMIN_APPS_USAGE_SNAPSHOT_TTL_MS,
-      },
-    );
-
-    if (signal.aborted) {
-      return;
-    }
-
-    startTransition(() => {
-      setUsageByAppId(buildAdminAppUsageMap(nextUsage));
-    });
+    // Admin app usage includes live resource samples and registry image usage.
+    // The server refreshes it in the background; the client only applies an
+    // already-warmed snapshot during page entry.
   });
 
   useAnticipatoryWarmup(

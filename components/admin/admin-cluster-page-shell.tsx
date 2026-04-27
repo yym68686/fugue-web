@@ -24,7 +24,6 @@ import {
   CONSOLE_ADMIN_CLUSTER_CONTROL_PLANE_SNAPSHOT_URL,
   CONSOLE_ADMIN_CLUSTER_PAGE_SNAPSHOT_URL,
   type ConsoleAdminClusterPageSnapshot,
-  fetchConsolePageSnapshot,
   writeConsolePageSnapshot,
   readConsolePageSnapshot,
   useConsolePageSnapshot,
@@ -111,7 +110,7 @@ export function AdminClusterPageShell() {
     }
   }, [data]);
 
-  const warmControlPlane = useEffectEvent(async (signal: AbortSignal) => {
+  const warmControlPlane = useEffectEvent((_signal: AbortSignal) => {
     if (!data || data.controlPlane) {
       return;
     }
@@ -124,24 +123,8 @@ export function AdminClusterPageShell() {
       });
       return;
     }
-
-    const nextControlPlane =
-      await fetchConsolePageSnapshot<AdminClusterControlPlaneSnapshot>(
-        CONSOLE_ADMIN_CLUSTER_CONTROL_PLANE_SNAPSHOT_URL,
-        {
-          force: true,
-          signal,
-          ttlMs: ADMIN_CLUSTER_CONTROL_PLANE_TTL_MS,
-        },
-      );
-
-    if (signal.aborted) {
-      return;
-    }
-
-    startTransition(() => {
-      setControlPlaneSnapshot(nextControlPlane);
-    });
+    // The base route soft-loads control-plane state and refreshes it server-side.
+    // Avoid a client sidecar fetch on first navigation.
   });
 
   useAnticipatoryWarmup(

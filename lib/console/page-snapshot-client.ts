@@ -76,10 +76,7 @@ const CONSOLE_ROUTE_SNAPSHOT_URLS: Record<string, string[]> = {
   "/app/cluster-nodes": [CONSOLE_CLUSTER_NODES_PAGE_SNAPSHOT_URL],
   "/app/settings": [CONSOLE_PROFILE_SETTINGS_PAGE_SNAPSHOT_URL],
   "/app/settings/profile": [CONSOLE_PROFILE_SETTINGS_PAGE_SNAPSHOT_URL],
-  "/app/users": [
-    CONSOLE_ADMIN_USERS_PAGE_SNAPSHOT_URL,
-    CONSOLE_ADMIN_USERS_PAGE_ENRICHMENT_SNAPSHOT_URL,
-  ],
+  "/app/users": [CONSOLE_ADMIN_USERS_PAGE_SNAPSHOT_URL],
 };
 
 function mergeSnapshotValue(key: string, previous: unknown, next: unknown) {

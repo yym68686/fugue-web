@@ -23,7 +23,6 @@ import {
   CONSOLE_ADMIN_USERS_PAGE_ENRICHMENT_SNAPSHOT_URL,
   CONSOLE_ADMIN_USERS_PAGE_USAGE_SNAPSHOT_URL,
   type ConsoleAdminUsersPageSnapshot,
-  fetchConsolePageSnapshot,
   readConsolePageSnapshot,
   useConsolePageSnapshot,
 } from "@/lib/console/page-snapshot-client";
@@ -163,7 +162,7 @@ export function AdminUsersPageShell() {
     () => (data?.users ?? []).map((user) => user.email).join("||"),
     [data],
   );
-  const warmAdminUserUsage = useEffectEvent(async (signal: AbortSignal) => {
+  const warmAdminUserUsage = useEffectEvent((_signal: AbortSignal) => {
     if (!data?.users.length) {
       return;
     }
@@ -184,23 +183,8 @@ export function AdminUsersPageShell() {
     if (!needsUsageFetch) {
       return;
     }
-
-    const nextUsage = await fetchConsolePageSnapshot<AdminUsersUsageSnapshot>(
-      CONSOLE_ADMIN_USERS_PAGE_USAGE_SNAPSHOT_URL,
-      {
-        force: true,
-        signal,
-        ttlMs: ADMIN_USERS_USAGE_SNAPSHOT_TTL_MS,
-      },
-    );
-
-    if (signal.aborted) {
-      return;
-    }
-
-    startTransition(() => {
-      setUsageByEmail(buildAdminUserUsageMap(nextUsage));
-    });
+    // User usage is refreshed by the server route after the base snapshot is
+    // returned. Keep initial page entry to cached data only.
   });
 
   const userEnrichmentWarmupKey = useMemo(
@@ -210,7 +194,7 @@ export function AdminUsersPageShell() {
         .join("||"),
     [data],
   );
-  const warmAdminUserEnrichment = useEffectEvent(async (signal: AbortSignal) => {
+  const warmAdminUserEnrichment = useEffectEvent((_signal: AbortSignal) => {
     if (!data?.users.length) {
       return;
     }
@@ -233,24 +217,7 @@ export function AdminUsersPageShell() {
     if (!needsEnrichmentFetch) {
       return;
     }
-
-    const nextEnrichment =
-      await fetchConsolePageSnapshot<ConsoleAdminUsersPageSnapshot>(
-        CONSOLE_ADMIN_USERS_PAGE_ENRICHMENT_SNAPSHOT_URL,
-        {
-          force: true,
-          signal,
-          ttlMs: ADMIN_USERS_ENRICHMENT_SNAPSHOT_TTL_MS,
-        },
-      );
-
-    if (signal.aborted) {
-      return;
-    }
-
-    startTransition(() => {
-      setEnrichedUsersByEmail(buildAdminUsersEnrichmentMap(nextEnrichment));
-    });
+    // Billing and registry enrichment stays server-side on initial navigation.
   });
 
   useAnticipatoryWarmup(

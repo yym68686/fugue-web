@@ -20,7 +20,6 @@ import {
   CONSOLE_BILLING_PAGE_SNAPSHOT_URL,
   CONSOLE_BILLING_PAGE_USAGE_SNAPSHOT_URL,
   type ConsoleBillingPageSnapshot,
-  fetchConsolePageSnapshot,
   readConsolePageSnapshot,
   useConsolePageSnapshot,
 } from "@/lib/console/page-snapshot-client";
@@ -97,7 +96,7 @@ export function ConsoleBillingPageShell() {
     }
   }, [data]);
 
-  const warmBillingUsage = useEffectEvent(async (signal: AbortSignal) => {
+  const warmBillingUsage = useEffectEvent((_signal: AbortSignal) => {
     if (data?.state !== "ready") {
       return;
     }
@@ -116,23 +115,9 @@ export function ConsoleBillingPageShell() {
     ) {
       return;
     }
-
-    const nextUsage = await fetchConsolePageSnapshot<ConsoleBillingPageSnapshot>(
-      CONSOLE_BILLING_PAGE_USAGE_SNAPSHOT_URL,
-      {
-        force: true,
-        signal,
-        ttlMs: BILLING_USAGE_SNAPSHOT_TTL_MS,
-      },
-    );
-
-    if (signal.aborted) {
-      return;
-    }
-
-    startTransition(() => {
-      setLiveUsageSnapshot(nextUsage);
-    });
+    // Billing live usage is expensive on cold control-plane paths. The API
+    // route refreshes it with after(); the client only reuses an existing
+    // snapshot so navigation stays inside the 1s data-request budget.
   });
 
   useAnticipatoryWarmup(

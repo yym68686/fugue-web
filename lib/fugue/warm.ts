@@ -79,6 +79,7 @@ async function warmCriticalRouteModules() {
     import("@/app/api/fugue/admin/pages/cluster/route"),
     import("@/app/api/fugue/admin/pages/users/route"),
     import("@/app/api/fugue/admin/pages/users/enrich/route"),
+    import("@/app/api/fugue/apps/[id]/domains/route"),
   ]);
 }
 
