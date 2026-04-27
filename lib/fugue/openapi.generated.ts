@@ -2174,6 +2174,15 @@ export interface components {
             reset_token?: string;
             mounts?: components["schemas"]["AppPersistentStorageMount"][];
         };
+        AppVolumeReplicationSpec: {
+            /**
+             * @description Defaults to disabled. Apps with a configured app failover policy and a dedicated volume are treated as scheduled for compatibility.
+             * @enum {string}
+             */
+            mode?: "disabled" | "manual" | "scheduled";
+            /** @description Cron schedule used when mode is scheduled. Defaults to every five minutes. */
+            schedule?: string;
+        };
         AppFailoverSpec: {
             target_runtime_id?: string;
             auto?: boolean;
@@ -2260,6 +2269,7 @@ export interface components {
             files?: components["schemas"]["AppFile"][];
             workspace?: components["schemas"]["AppWorkspaceSpec"];
             persistent_storage?: components["schemas"]["AppPersistentStorageSpec"];
+            volume_replication?: components["schemas"]["AppVolumeReplicationSpec"];
             postgres?: components["schemas"]["AppPostgresSpec"];
             failover?: components["schemas"]["AppFailoverSpec"];
             /** Format: int32 */
@@ -2877,6 +2887,7 @@ export interface components {
             image_mirror_limit?: number;
             startup_command?: string;
             persistent_storage?: components["schemas"]["AppPersistentStorageSpec"];
+            volume_replication?: components["schemas"]["AppVolumeReplicationSpec"];
         };
         PatchAppSourceRequest: {
             origin_source: components["schemas"]["AppSource"];
