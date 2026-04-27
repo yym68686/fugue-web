@@ -72,11 +72,18 @@ function readAdminAppsUsageSnapshot() {
   );
 }
 
-export function AdminAppsPageShell() {
+export function AdminAppsPageShell({
+  initialSnapshot = null,
+}: {
+  initialSnapshot?: ConsoleAdminAppsPageSnapshot | null;
+}) {
   const { t } = useI18n();
   const { data, error, loading, refresh } =
     useConsolePageSnapshot<ConsoleAdminAppsPageSnapshot>(
       CONSOLE_ADMIN_APPS_PAGE_SNAPSHOT_URL,
+      {
+        initialData: initialSnapshot,
+      },
     );
   const [usageByAppId, setUsageByAppId] = useState<
     Record<string, ConsoleCompactResourceItemView[]>

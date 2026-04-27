@@ -18,11 +18,18 @@ import {
 } from "@/lib/console/page-snapshot-client";
 import { useI18n } from "@/components/providers/i18n-provider";
 
-export function ConsoleClusterNodesPageShell() {
+export function ConsoleClusterNodesPageShell({
+  initialSnapshot = null,
+}: {
+  initialSnapshot?: ConsoleClusterNodesPageSnapshot | null;
+}) {
   const { t } = useI18n();
   const { data, error, loading, refresh } =
     useConsolePageSnapshot<ConsoleClusterNodesPageSnapshot>(
       CONSOLE_CLUSTER_NODES_PAGE_SNAPSHOT_URL,
+      {
+        initialData: initialSnapshot,
+      },
     );
 
   if (loading && !data) {

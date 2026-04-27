@@ -271,21 +271,25 @@ export function useConsolePageSnapshot<T>(
   key: string,
   options?: {
     enabled?: boolean;
+    initialData?: T | null;
     ttlMs?: number;
   },
 ): UseConsolePageSnapshotResult<T> {
   const enabled = options?.enabled ?? true;
+  const initialData = options?.initialData ?? null;
   const [data, setData] = useState<T | null>(() =>
-    enabled
+    initialData ??
+    (enabled
       ? readConsolePageSnapshot<T>(key, {
           allowStale: true,
           ttlMs: options?.ttlMs,
         })
-      : null,
+      : null),
   );
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(
     enabled &&
+      initialData === null &&
       readConsolePageSnapshot<T>(key, {
         allowStale: true,
         ttlMs: options?.ttlMs,
@@ -294,6 +298,14 @@ export function useConsolePageSnapshot<T>(
 
   useEffect(() => {
     if (!enabled) {
+      return;
+    }
+
+    if (initialData !== null) {
+      writeConsolePageSnapshot(key, initialData);
+      setData(initialData);
+      setError(null);
+      setLoading(false);
       return;
     }
 
@@ -364,7 +376,7 @@ export function useConsolePageSnapshot<T>(
       cancelled = true;
       controller.abort();
     };
-  }, [enabled, key, options?.ttlMs]);
+  }, [enabled, initialData, key, options?.ttlMs]);
 
   return {
     data,

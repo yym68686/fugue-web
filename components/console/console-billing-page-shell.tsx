@@ -70,11 +70,18 @@ function mergeBillingSnapshots(
   } satisfies ConsoleBillingPageSnapshot;
 }
 
-export function ConsoleBillingPageShell() {
+export function ConsoleBillingPageShell({
+  initialSnapshot = null,
+}: {
+  initialSnapshot?: ConsoleBillingPageSnapshot | null;
+}) {
   const { t } = useI18n();
   const { data, error, loading } =
     useConsolePageSnapshot<ConsoleBillingPageSnapshot>(
       CONSOLE_BILLING_PAGE_SNAPSHOT_URL,
+      {
+        initialData: initialSnapshot,
+      },
     );
   const [liveUsageSnapshot, setLiveUsageSnapshot] =
     useState<ConsoleBillingPageSnapshot | null>(() =>

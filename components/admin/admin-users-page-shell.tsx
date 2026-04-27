@@ -110,11 +110,18 @@ function readAdminUsersEnrichmentSnapshot() {
   );
 }
 
-export function AdminUsersPageShell() {
+export function AdminUsersPageShell({
+  initialSnapshot = null,
+}: {
+  initialSnapshot?: ConsoleAdminUsersPageSnapshot | null;
+}) {
   const { t } = useI18n();
   const { data, error, loading, refresh } =
     useConsolePageSnapshot<ConsoleAdminUsersPageSnapshot>(
       CONSOLE_ADMIN_USERS_PAGE_SNAPSHOT_URL,
+      {
+        initialData: initialSnapshot,
+      },
     );
   const [usageByEmail, setUsageByEmail] = useState<
     Record<

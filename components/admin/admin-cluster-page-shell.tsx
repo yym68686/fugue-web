@@ -84,11 +84,18 @@ function buildClusterSummary(nodes: AdminClusterNodeView[]) {
   };
 }
 
-export function AdminClusterPageShell() {
+export function AdminClusterPageShell({
+  initialSnapshot = null,
+}: {
+  initialSnapshot?: ConsoleAdminClusterPageSnapshot | null;
+}) {
   const { t } = useI18n();
   const { data, error, loading } =
     useConsolePageSnapshot<ConsoleAdminClusterPageSnapshot>(
       CONSOLE_ADMIN_CLUSTER_PAGE_SNAPSHOT_URL,
+      {
+        initialData: initialSnapshot,
+      },
     );
   const [controlPlaneSnapshot, setControlPlaneSnapshot] =
     useState<AdminClusterControlPlaneSnapshot | null>(() =>

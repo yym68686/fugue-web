@@ -17,10 +17,17 @@ import {
   useConsolePageSnapshot,
 } from "@/lib/console/page-snapshot-client";
 
-export function ConsoleApiKeysPageShell() {
+export function ConsoleApiKeysPageShell({
+  initialSnapshot = null,
+}: {
+  initialSnapshot?: ConsoleApiKeysPageSnapshot | null;
+}) {
   const { data, error, loading, refresh } =
     useConsolePageSnapshot<ConsoleApiKeysPageSnapshot>(
       CONSOLE_API_KEYS_PAGE_SNAPSHOT_URL,
+      {
+        initialData: initialSnapshot,
+      },
     );
   const didRefreshStaleRef = useRef(false);
 
