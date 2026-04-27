@@ -55,7 +55,6 @@ import {
   useConsoleRuntimeTargetInventory,
 } from "@/lib/console/runtime-target-inventory-client";
 import {
-  fetchConsoleProjectDetail,
   invalidateConsoleProjectDetails,
 } from "@/lib/console/project-detail-client";
 import { buildProjectResourceUsageView } from "@/lib/console/project-resource-usage";
@@ -166,14 +165,8 @@ type Translator = (
   values?: Record<string, number | string>,
 ) => string;
 
-function prepareProjectWorkbench(projectId?: string | null) {
+function prepareProjectWorkbench(_projectId?: string | null) {
   void loadConsoleProjectWorkbenchModule();
-
-  if (!projectId) {
-    return;
-  }
-
-  void fetchConsoleProjectDetail(projectId).catch(() => undefined);
 }
 
 function buildProjectHref(projectId: string) {
