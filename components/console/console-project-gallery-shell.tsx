@@ -34,13 +34,13 @@ import {
 } from "@/lib/console/raw-env";
 import type {
   ConsoleProjectGallerySummaryData,
+  ConsoleProjectDetailData,
   ConsoleProjectResourceUsageSnapshot,
   ConsoleProjectSummaryView,
 } from "@/lib/console/gallery-types";
 import type { ConsoleTone } from "@/lib/console/types";
 import {
   CONSOLE_PROJECT_GALLERY_USAGE_SNAPSHOT_URL,
-  fetchConsolePageSnapshot,
   readConsolePageSnapshot,
 } from "@/lib/console/page-snapshot-client";
 import {
@@ -189,16 +189,6 @@ function readProjectUsageSnapshotResponse() {
       allowStale: true,
       ttlMs: PROJECT_USAGE_SNAPSHOT_TTL_MS,
     },
-  );
-}
-
-function hasProjectUsageSnapshot(
-  usage: ConsoleProjectResourceUsageSnapshot,
-) {
-  return (
-    usage.cpuMillicores !== null ||
-    usage.memoryBytes !== null ||
-    usage.ephemeralStorageBytes !== null
   );
 }
 
@@ -1090,6 +1080,7 @@ const ProjectDetailPage = memo(function ProjectDetailPage({
   project,
   projectCatalog,
   projectId,
+  initialProjectDetail,
   refreshToken,
   workspaceMissing,
 }: {
@@ -1099,6 +1090,7 @@ const ProjectDetailPage = memo(function ProjectDetailPage({
   project: ConsoleProjectSummaryView | null;
   projectCatalog: ProjectCatalogEntry[];
   projectId: string;
+  initialProjectDetail?: ConsoleProjectDetailData | null;
   refreshToken: number;
   workspaceMissing: boolean;
 }) {
@@ -1171,6 +1163,7 @@ const ProjectDetailPage = memo(function ProjectDetailPage({
       <Suspense fallback={<ConsoleProjectWorkbenchSkeleton detailId={detailId} />}>
         <ConsoleProjectWorkbench
           detailId={detailId}
+          initialDetail={initialProjectDetail}
           onProjectDeleted={onProjectDeleted}
           onProjectMutation={onProjectMutation}
           onRequestCreateService={onRequestCreateService}
@@ -1185,11 +1178,13 @@ const ProjectDetailPage = memo(function ProjectDetailPage({
 
 export function ConsoleProjectGallery({
   initialData,
+  initialProjectDetail = null,
   defaultCreateOpen = false,
   initialPendingIntentId = null,
   routeProjectId = null,
 }: {
   initialData: ConsoleProjectGallerySummaryData;
+  initialProjectDetail?: ConsoleProjectDetailData | null;
   defaultCreateOpen?: boolean;
   initialPendingIntentId?: string | null;
   routeProjectId?: string | null;
@@ -1251,7 +1246,6 @@ export function ConsoleProjectGallery({
   const galleryRefreshAbortRef = useRef<AbortController | null>(null);
   const galleryRefreshPendingRef = useRef(false);
   const galleryStreamAbortRef = useRef<AbortController | null>(null);
-  const projectUsageRequestRef = useRef<AbortController | null>(null);
   const galleryStreamHashRef = useRef<string | null>(null);
   const activeProjectId = routeProjectId?.trim() || null;
   const activeProjectIdRef = useRef<string | null>(activeProjectId);
@@ -1633,13 +1627,11 @@ export function ConsoleProjectGallery({
     return () => {
       galleryRefreshAbortRef.current?.abort();
       galleryStreamAbortRef.current?.abort();
-      projectUsageRequestRef.current?.abort();
     };
   }, []);
 
   useEffect(() => {
     if (!data.projects.length) {
-      projectUsageRequestRef.current?.abort();
       setProjectUsageByProjectId({});
       return undefined;
     }
@@ -1659,7 +1651,7 @@ export function ConsoleProjectGallery({
     () => data.projects.map((project) => project.id).join("||"),
     [data.projects],
   );
-  const warmProjectUsage = useEffectEvent(async (signal: AbortSignal) => {
+  const warmProjectUsage = useEffectEvent(async (_signal: AbortSignal) => {
     if (!data.projects.length) {
       return;
     }
@@ -1674,56 +1666,13 @@ export function ConsoleProjectGallery({
       });
     }
 
-    const needsUsageFetch = data.projects.some(
-      (project) =>
-        !cachedUsage[project.id] &&
-        !hasProjectUsageSnapshot(project.resourceUsageSnapshot),
-    );
-
-    if (!needsUsageFetch || projectUsageRequestRef.current) {
-      return;
-    }
-
-    const controller = new AbortController();
-    projectUsageRequestRef.current = controller;
-    signal.addEventListener("abort", () => controller.abort(), { once: true });
-
-    try {
-      const response = await fetchConsolePageSnapshot<ProjectUsageSnapshotResponse>(
-        CONSOLE_PROJECT_GALLERY_USAGE_SNAPSHOT_URL,
-        {
-          force: true,
-          signal: controller.signal,
-          ttlMs: PROJECT_USAGE_SNAPSHOT_TTL_MS,
-        },
-      );
-
-      if (controller.signal.aborted) {
-        return;
-      }
-
-      startTransition(() => {
-        setProjectUsageByProjectId(
-          buildProjectUsageSnapshotMap(response.projects),
-        );
-      });
-    } catch {
-      // Keep the page usable even if background usage refresh misses.
-    } finally {
-      if (projectUsageRequestRef.current === controller) {
-        projectUsageRequestRef.current = null;
-      }
-    }
+    // Usage is expensive on large workspaces; keep initial navigation bound to
+    // the summary payload and only reuse an existing snapshot here.
   });
 
-  useAnticipatoryWarmup(
-    data.projects.length ? warmProjectUsage : null,
-    [projectUsageWarmupKey],
-    {
-      mode: "idle",
-      timeoutMs: 3_000,
-    },
-  );
+  useAnticipatoryWarmup(data.projects.length ? warmProjectUsage : null, [
+    projectUsageWarmupKey,
+  ]);
 
   useEffect(() => {
     let cancelled = false;
@@ -2106,6 +2055,11 @@ export function ConsoleProjectGallery({
     <>
       {activeProjectId ? (
         <ProjectDetailPage
+          initialProjectDetail={
+            initialProjectDetail?.project?.id === activeProjectId
+              ? initialProjectDetail
+              : null
+          }
           onProjectDeleted={handleProjectDeleted}
           onProjectMutation={handleProjectMutation}
           onRequestCreateService={openCreateDialog}

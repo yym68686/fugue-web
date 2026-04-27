@@ -2785,7 +2785,9 @@ const getConsoleProjectGallerySummaryDataCached = cache(async () => {
 
   try {
     const gallery = await requestWithWorkspaceRefresh(workspace, (active) =>
-      getFugueConsoleGallery(active.adminKeySecret),
+      getFugueConsoleGallery(active.adminKeySecret, {
+        includeLiveStatus: false,
+      }),
     );
 
     return {

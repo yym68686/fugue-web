@@ -3861,15 +3861,21 @@ export async function setFugueClusterNodePolicy(
   return buildClusterNodePolicyResultView(response);
 }
 
-export async function getFugueConsoleGallery(accessToken: string) {
+export async function getFugueConsoleGallery(
+  accessToken: string,
+  options?: {
+    includeLiveStatus?: boolean;
+  },
+) {
   const client = getClient(accessToken);
+  const includeLiveStatus = options?.includeLiveStatus ?? true;
   const response = camelizeData(
     await expectData(
-      "/v1/console/gallery?include_live_status=true",
+      `/v1/console/gallery?include_live_status=${includeLiveStatus ? "true" : "false"}`,
       client.GET("/v1/console/gallery", {
         params: {
           query: {
-            include_live_status: true,
+            include_live_status: includeLiveStatus,
           },
         },
       }),

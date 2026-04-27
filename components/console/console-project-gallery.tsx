@@ -69,7 +69,6 @@ import { readConsoleProjectLifecycle } from "@/lib/console/project-lifecycle";
 import { buildProjectResourceUsageView } from "@/lib/console/project-resource-usage";
 import {
   useConsoleRuntimeTargetInventory,
-  warmConsoleRuntimeTargetInventory,
 } from "@/lib/console/runtime-target-inventory-client";
 import { readDefaultImportRuntimeId } from "@/lib/console/runtime-targets";
 import {
@@ -127,6 +126,7 @@ type CreateDialogTarget = {
 
 type ConsoleProjectWorkbenchProps = {
   detailId: string;
+  initialDetail?: ConsoleProjectDetailData | null;
   onProjectDeleted: (projectId: string) => void;
   onProjectMutation: (
     options?:
@@ -1360,42 +1360,20 @@ function useWorkbenchAnticipatoryWarmup(
   services: ConsoleGalleryProjectView["services"],
   selectedService: ConsoleGalleryServiceView | null,
 ) {
-  const warmWorkbenchResources = useEffectEvent(async (signal: AbortSignal) => {
+  const warmWorkbenchResources = useEffectEvent(async (_signal: AbortSignal) => {
     const orderedServices = orderServicesForWarmup(services, selectedService);
 
     if (!orderedServices.length) {
       return;
     }
 
-    const appServices = orderedServices.filter(
-      (service): service is { kind: "app" } & ConsoleGalleryAppView =>
-        service.kind === "app",
-    );
     const hasBackingServices = orderedServices.some(
       (service) => service.kind === "backing-service",
     );
     const tasks: Promise<unknown>[] = [];
 
-    if (orderedServices.length > 0) {
-      tasks.push(
-        warmConsoleRuntimeTargetInventory({
-          signal,
-        }),
-      );
-    }
-
-    if (appServices.length > 0) {
+    if (orderedServices.some((service) => service.kind === "app")) {
       tasks.push(import("@/components/console/app-route-panel"));
-      tasks.push(import("@/components/console/app-settings-panel"));
-      tasks.push(
-        warmConsoleAppEnvStates(
-          appServices.map((service) => service.id),
-          {
-            concurrency: WORKBENCH_LAYER_PREFETCH_CONCURRENCY,
-            signal,
-          },
-        ),
-      );
     }
 
     if (hasBackingServices) {
@@ -6144,6 +6122,7 @@ export function ConsoleProjectGallery({
 
 function ConsoleProjectWorkbenchImpl({
   detailId,
+  initialDetail: initialDetailProp = null,
   onProjectDeleted,
   onProjectMutation,
   onRequestCreateService,
@@ -6151,7 +6130,11 @@ function ConsoleProjectWorkbenchImpl({
   project,
   refreshToken,
 }: ConsoleProjectWorkbenchProps) {
-  const initialDetail = readCachedConsoleProjectDetail(project.id);
+  const cachedInitialDetail = readCachedConsoleProjectDetail(project.id);
+  const initialDetail =
+    initialDetailProp?.project?.id === project.id
+      ? initialDetailProp
+      : cachedInitialDetail;
   const { t } = useI18n();
   const confirm = useConfirmDialog();
   const { showToast } = useToast();
@@ -6202,7 +6185,7 @@ function ConsoleProjectWorkbenchImpl({
     useOptimisticDeletingProjects(detail?.project ? [detail.project] : []);
 
   const detailProject = optimisticProjects[0] ?? null;
-  const hasVisibleDetail = Boolean(detail?.project);
+  const hasVisibleDetail = detail?.project?.id === project.id;
   const detailProjectServices = detailProject?.services ?? [];
   const detailProjectApps = detailProject ? projectApps(detailProject) : [];
   const detailProjectLifecycle = detailProject
@@ -6423,6 +6406,20 @@ function ConsoleProjectWorkbenchImpl({
       variant: flash.variant,
     });
   }, [flash, showToast]);
+
+  useEffect(() => {
+    if (!initialDetail?.project || initialDetail.project.id !== project.id) {
+      return;
+    }
+
+    if (detail?.project?.id === project.id) {
+      return;
+    }
+
+    setDetail(initialDetail);
+    setDetailStatus("ready");
+    setDetailError(null);
+  }, [detail?.project?.id, initialDetail, project.id]);
 
   useEffect(() => {
     const forceRefresh = lastRefreshTokenRef.current !== refreshToken;
