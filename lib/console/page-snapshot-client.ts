@@ -298,6 +298,7 @@ export function useConsolePageSnapshot<T>(
     }
 
     let cancelled = false;
+    const controller = new AbortController();
     const cached = readConsolePageSnapshot<T>(key, {
       allowStale: true,
       ttlMs: options?.ttlMs,
@@ -316,6 +317,7 @@ export function useConsolePageSnapshot<T>(
     }
 
     fetchConsolePageSnapshot<T>(key, {
+      signal: controller.signal,
       ttlMs: options?.ttlMs,
     })
       .then((nextData) => {
@@ -360,6 +362,7 @@ export function useConsolePageSnapshot<T>(
 
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, [enabled, key, options?.ttlMs]);
 
