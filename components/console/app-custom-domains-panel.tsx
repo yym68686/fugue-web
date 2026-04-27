@@ -629,7 +629,8 @@ export function AppCustomDomainsPanel({
   const { showToast } = useToast();
   const noteId = `custom-domain-note-${appId}`;
   const [domains, setDomains] = useState<AppDomain[]>([]);
-  const [domainsState, setDomainsState] = useState<"error" | "loading" | "ready">("loading");
+  const [domainsState, setDomainsState] = useState<"error" | "loading" | "ready">("ready");
+  const [domainsLoaded, setDomainsLoaded] = useState(false);
   const [draft, setDraft] = useState("");
   const [baselineHostname, setBaselineHostname] = useState("");
   const [availability, setAvailability] = useState<AppDomainAvailability | null>(null);
@@ -719,6 +720,7 @@ export function AppCustomDomainsPanel({
 
         startTransition(() => {
           setDomains(nextDomains);
+          setDomainsLoaded(true);
           setBaselineHostname(nextHostname);
           if (syncDraft) {
             setDraft(nextHostname);
@@ -778,10 +780,17 @@ export function AppCustomDomainsPanel({
     setAvailabilityError(null);
     setAvailabilityState("idle");
     setSubmissionError(null);
-    setDomainsState("loading");
-
-    void refreshDomains({ syncDraft: true });
+    setDomainsLoaded(false);
+    setDomainsState("ready");
   }, [appId]);
+
+  const ensureDomainsLoaded = useEffectEvent(() => {
+    if (domainsLoaded || domainsRefreshPendingRef.current) {
+      return;
+    }
+
+    void refreshDomains({ silent: true, syncDraft: true });
+  });
 
   useEffect(() => {
     return () => {
@@ -997,6 +1006,9 @@ export function AppCustomDomainsPanel({
               onChange={(event) => {
                 setDraft(sanitizeCustomDomainInput(event.target.value));
                 setSubmissionError(null);
+              }}
+              onFocus={() => {
+                ensureDomainsLoaded();
               }}
               placeholder={t("app.example.com or example.com")}
               spellCheck={false}
