@@ -83,8 +83,19 @@ import {
   isAbortRequestError,
 } from "@/lib/ui/request-json";
 
+let consoleProjectWorkbenchModulePromise: Promise<
+  typeof import("@/components/console/console-project-gallery")
+> | null = null;
+
+function loadConsoleProjectWorkbenchModule() {
+  consoleProjectWorkbenchModulePromise ??= import(
+    "@/components/console/console-project-gallery"
+  );
+  return consoleProjectWorkbenchModulePromise;
+}
+
 const ConsoleProjectWorkbench = lazy(async () => {
-  const module = await import("@/components/console/console-project-gallery");
+  const module = await loadConsoleProjectWorkbenchModule();
   return { default: module.ConsoleProjectWorkbench };
 });
 
@@ -156,6 +167,8 @@ type Translator = (
 ) => string;
 
 function prepareProjectWorkbench(projectId?: string | null) {
+  void loadConsoleProjectWorkbenchModule();
+
   if (!projectId) {
     return;
   }

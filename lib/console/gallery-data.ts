@@ -2783,6 +2783,12 @@ const getConsoleProjectGallerySummaryDataCached = cache(async () => {
     } satisfies ConsoleProjectGallerySummaryData;
   }
 
+  return getConsoleProjectGallerySummaryDataForWorkspace(workspace);
+});
+
+export async function getConsoleProjectGallerySummaryDataForWorkspace(
+  workspace: WorkspaceAccess,
+) {
   try {
     const gallery = await requestWithWorkspaceRefresh(workspace, (active) =>
       getFugueConsoleGallery(active.adminKeySecret, {
@@ -2808,7 +2814,7 @@ const getConsoleProjectGallerySummaryDataCached = cache(async () => {
       },
     } satisfies ConsoleProjectGallerySummaryData;
   }
-});
+}
 
 async function loadRuntimeInventoryData(
   workspace: WorkspaceAccess,
@@ -3268,6 +3274,13 @@ export async function getConsoleProjectDetailData(
     };
   }
 
+  return getConsoleProjectDetailDataForWorkspace(workspace, projectId);
+}
+
+export async function getConsoleProjectDetailDataForWorkspace(
+  workspace: WorkspaceAccess,
+  projectId: string,
+): Promise<ConsoleProjectDetailData> {
   const detail = await requestWithWorkspaceRefresh(workspace, (active) =>
     getFugueConsoleProject(active.adminKeySecret, projectId),
   );

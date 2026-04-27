@@ -7135,7 +7135,10 @@ export interface operations {
     };
     listAuditEvents: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Maximum number of recent audit events to return. Defaults to 200 and cannot exceed 1000. */
+                limit?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;

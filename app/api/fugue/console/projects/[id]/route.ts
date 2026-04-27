@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getConsoleProjectDetailData } from "@/lib/console/gallery-data";
+import { getConsoleProjectDetailDataForWorkspace } from "@/lib/console/gallery-data";
 import {
   jsonError,
   readErrorMessage,
@@ -30,7 +30,10 @@ export async function GET(_request: Request, context: RouteContext) {
 
   try {
     const projectId = await readRouteParam(context, "id");
-    const data = await getConsoleProjectDetailData(projectId);
+    const data = await getConsoleProjectDetailDataForWorkspace(
+      workspaceState.workspace,
+      projectId,
+    );
 
     return NextResponse.json(data, {
       headers: {
