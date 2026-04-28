@@ -31,8 +31,8 @@ function readLocalizedResourceValue(
     return value;
   }
 
-  if (value === "No stats") {
-    return t("No stats");
+  if (value === "No stats" || value === "No images") {
+    return t(value);
   }
 
   const versionMatch = value.match(/^(\d+) version(s)?$/);
