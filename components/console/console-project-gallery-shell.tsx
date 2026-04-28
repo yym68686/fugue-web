@@ -94,6 +94,7 @@ import { cx } from "@/lib/ui/cx";
 import {
   isAbortRequestError,
 } from "@/lib/ui/request-json";
+import { useTransitionPresence } from "@/lib/ui/transition-presence";
 
 let consoleProjectWorkbenchModulePromise: Promise<
   typeof import("@/components/console/console-project-gallery")
@@ -1247,7 +1248,13 @@ export function ConsoleProjectGallery({
   const [flash, setFlash] = useState<FlashState | null>(null);
   const [data, setData] = useState(initialData);
   const [workbenchRefreshToken, setWorkbenchRefreshToken] = useState(0);
-  const [createOpen, setCreateOpen] = useState(defaultCreateOpen);
+  const createDialog = useTransitionPresence({
+    closePropertyName: "--modal-close-dur",
+    fallbackCloseMs: 150,
+    initialOpen: defaultCreateOpen,
+  });
+  const createOpen = createDialog.open;
+  const setCreateOpen = createDialog.setOpen;
   const [activePendingIntentId, setActivePendingIntentId] = useState<string | null>(
     initialPendingIntentId,
   );
@@ -1688,10 +1695,10 @@ export function ConsoleProjectGallery({
   });
 
   useEffect(() => {
-    if (!createOpen && !isCreating) {
+    if (!createDialog.present && !isCreating) {
       setProjectName(buildSuggestedProjectName(data.projects));
     }
-  }, [createOpen, data.projects, isCreating]);
+  }, [createDialog.present, data.projects, isCreating]);
 
   useEffect(() => {
     if (!runtimeInventory.runtimeTargets.length) {
@@ -2236,12 +2243,20 @@ export function ConsoleProjectGallery({
         />
       )}
 
-      {createOpen ? (
-        <div className="fg-console-dialog-backdrop">
+      {createDialog.present ? (
+        <div
+          className="fg-console-dialog-backdrop"
+          data-state={createDialog.closing ? "closing" : "open"}
+        >
           <div
             aria-labelledby="fugue-create-project-title"
             aria-modal="true"
-            className="fg-console-dialog-shell fg-project-dialog-shell fg-project-create-dialog-shell"
+            className={cx(
+              "fg-console-dialog-shell fg-project-dialog-shell fg-project-create-dialog-shell",
+              "t-modal",
+              createOpen && "is-open",
+              createDialog.closing && "is-closing",
+            )}
             onClick={(event) => event.stopPropagation()}
             role="dialog"
           >

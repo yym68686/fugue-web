@@ -34,6 +34,8 @@ import {
   type LocalUploadState,
 } from "@/lib/fugue/local-upload";
 import { type TranslationValues } from "@/lib/i18n/core";
+import { cx } from "@/lib/ui/cx";
+import { useTransitionPresence } from "@/lib/ui/transition-presence";
 
 type OnboardingStage = "needs-workspace" | "needs-import";
 type FlashState = {
@@ -104,9 +106,13 @@ export function ConsoleOnboarding({
   const [stage, setStage] = useState<OnboardingStage>(initialStage);
   const [projectName, setProjectName] = useState(defaultProjectName);
   const [flash, setFlash] = useState<FlashState | null>(null);
-  const [importOpen, setImportOpen] = useState(
-    initialStage === "needs-import" && defaultImportOpen,
-  );
+  const importDialog = useTransitionPresence({
+    closePropertyName: "--modal-close-dur",
+    fallbackCloseMs: 150,
+    initialOpen: initialStage === "needs-import" && defaultImportOpen,
+  });
+  const importOpen = importDialog.open;
+  const setImportOpen = importDialog.setOpen;
   const [isCreating, setIsCreating] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [draft, setDraft] = useState<ImportServiceDraft>(() =>
@@ -479,21 +485,27 @@ export function ConsoleOnboarding({
         </Panel>
       </section>
 
-      {importOpen ? (
+      {importDialog.present ? (
         <div
           aria-hidden={isImporting}
           className="fg-console-dialog-backdrop"
+          data-state={importDialog.closing ? "closing" : "open"}
           onClick={handleImportBackdropClick}
           onPointerDown={handleImportBackdropPointerDown}
         >
           <div
             aria-labelledby="fugue-import-title"
             aria-modal="true"
-            className="fg-console-dialog-shell"
+            className={cx(
+              "fg-console-dialog-shell",
+              "t-modal",
+              importOpen && "is-open",
+              importDialog.closing && "is-closing",
+            )}
             onClick={(event) => event.stopPropagation()}
             role="dialog"
-            >
-              <Panel className="fg-console-dialog-panel">
+          >
+            <Panel className="fg-console-dialog-panel">
               <PanelSection>
                 <p className="fg-label fg-panel__eyebrow">
                   {t("Import / {projectName}", { projectName })}

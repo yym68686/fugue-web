@@ -29,6 +29,8 @@ import {
 } from "@/lib/node-keys/selection";
 import type { NodeKeyRecord } from "@/lib/node-keys/types";
 import { copyText } from "@/lib/ui/clipboard";
+import { cx } from "@/lib/ui/cx";
+import { useTransitionPresence } from "@/lib/ui/transition-presence";
 
 type NodeKeyPagePayload = {
   keys: NodeKeyRecord[];
@@ -164,12 +166,17 @@ export function NodeKeyManager({
   const renameDialogRef = useRef<HTMLDivElement | null>(null);
   const renameBackdropPressStartedRef = useRef(false);
   const renameReturnFocusRef = useRef<HTMLElement | null>(null);
+  const renameRestoreFocusAfterCloseRef = useRef(false);
   const renameInputRef = useRef<HTMLInputElement | null>(null);
   const normalizedApiBaseUrl = apiBaseUrl.replace(/\/+$/, "");
   const [keys, setKeys] = useState(() => sortNodeKeys(initialKeys));
   const [syncError, setSyncError] = useState<string | null>(initialSyncError);
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [renameState, setRenameState] = useState<RenameState | null>(null);
+  const renameDialog = useTransitionPresence({
+    closePropertyName: "--modal-close-dur",
+    fallbackCloseMs: 150,
+  });
   const renameRecord = renameState
     ? keys.find((key) => key.id === renameState.keyId) ?? null
     : null;
@@ -215,7 +222,7 @@ export function NodeKeyManager({
   }, []);
 
   useEffect(() => {
-    if (!renameRecord) {
+    if (!renameDialog.present) {
       return;
     }
 
@@ -230,6 +237,18 @@ export function NodeKeyManager({
       body.style.paddingRight = `${scrollbarWidth}px`;
     }
 
+    return () => {
+      renameBackdropPressStartedRef.current = false;
+      body.style.overflow = previousOverflow;
+      body.style.paddingRight = previousPaddingRight;
+    };
+  }, [renameDialog.present]);
+
+  useEffect(() => {
+    if (!renameDialog.open || !renameRecord) {
+      return;
+    }
+
     const frame = window.requestAnimationFrame(() => {
       const input = renameInputRef.current;
 
@@ -238,12 +257,33 @@ export function NodeKeyManager({
     });
 
     return () => {
-      renameBackdropPressStartedRef.current = false;
       window.cancelAnimationFrame(frame);
-      body.style.overflow = previousOverflow;
-      body.style.paddingRight = previousPaddingRight;
     };
-  }, [renameRecord]);
+  }, [renameDialog.open, renameRecord]);
+
+  useEffect(() => {
+    if (renameDialog.present || !renameState) {
+      return;
+    }
+
+    setRenameState(null);
+
+    const returnFocusTarget = renameReturnFocusRef.current;
+    renameReturnFocusRef.current = null;
+
+    if (!renameRestoreFocusAfterCloseRef.current || !returnFocusTarget) {
+      renameRestoreFocusAfterCloseRef.current = false;
+      return;
+    }
+
+    renameRestoreFocusAfterCloseRef.current = false;
+
+    window.requestAnimationFrame(() => {
+      if (returnFocusTarget.isConnected) {
+        returnFocusTarget.focus();
+      }
+    });
+  }, [renameDialog.present, renameState]);
 
   useEffect(() => {
     if (!renameState) {
@@ -375,20 +415,8 @@ export function NodeKeyManager({
   };
 
   function dismissRenameDialog(restoreFocus: boolean) {
-    setRenameState(null);
-
-    const returnFocusTarget = renameReturnFocusRef.current;
-    renameReturnFocusRef.current = null;
-
-    if (!restoreFocus || !returnFocusTarget) {
-      return;
-    }
-
-    window.requestAnimationFrame(() => {
-      if (returnFocusTarget.isConnected) {
-        returnFocusTarget.focus();
-      }
-    });
+    renameRestoreFocusAfterCloseRef.current = restoreFocus;
+    renameDialog.close();
   }
 
   function handleStartRename(record: NodeKeyRecord) {
@@ -409,6 +437,7 @@ export function NodeKeyManager({
       keyId: record.id,
       label: record.label,
     });
+    renameDialog.openPresence();
   }
 
   function handleRenameDraftChange(nextLabel: string) {
@@ -883,9 +912,10 @@ export function NodeKeyManager({
         )}
         </PanelSection>
       </Panel>
-      {renameRecord ? (
+      {renameDialog.present && renameRecord ? (
         <div
           className="fg-console-dialog-backdrop"
+          data-state={renameDialog.closing ? "closing" : "open"}
           onClick={handleRenameBackdropClick}
           onPointerDown={handleRenameBackdropPointerDown}
         >
@@ -894,7 +924,12 @@ export function NodeKeyManager({
             aria-describedby={renameDescriptionId}
             aria-labelledby={renameTitleId}
             aria-modal="true"
-            className="fg-console-dialog-shell fg-node-key-rename-dialog-shell"
+            className={cx(
+              "fg-console-dialog-shell fg-node-key-rename-dialog-shell",
+              "t-modal",
+              renameDialog.open && "is-open",
+              renameDialog.closing && "is-closing",
+            )}
             onClick={(event) => event.stopPropagation()}
             onKeyDown={handleRenameDialogKeyDown}
             ref={renameDialogRef}

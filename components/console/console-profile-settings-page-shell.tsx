@@ -32,6 +32,7 @@ import {
 import type { ConsoleProfileSettingsPageSnapshot } from "@/lib/console/page-snapshot-types";
 import { requestJson } from "@/lib/ui/request-json";
 import { cx } from "@/lib/ui/cx";
+import { useTransitionPresence } from "@/lib/ui/transition-presence";
 
 type ProfileMethodKey = ConsoleProfileSettingsPageSnapshot["methods"][number]["method"];
 type ProfileMethodRecord = ConsoleProfileSettingsPageSnapshot["methods"][number];
@@ -758,7 +759,14 @@ function EmailMethodItem({
       ? readAuthMethodLabel("password", undefined, locale)
       : readAuthMethodLabel("email_link", undefined, locale);
   const [busyEmailLink, setBusyEmailLink] = useState(false);
-  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const passwordDialog = useTransitionPresence({
+    closePropertyName: "--modal-close-dur",
+    fallbackCloseMs: 150,
+  });
+  const passwordDialogOpen = passwordDialog.open;
+  const setPasswordDialogOpen = passwordDialog.setOpen;
+  const passwordDialogCleanupPendingRef = useRef(false);
+  const passwordDialogRestoreFocusAfterCloseRef = useRef(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -773,7 +781,7 @@ function EmailMethodItem({
   const passwordDialogBusy = submitting || removing;
 
   useEffect(() => {
-    if (!passwordDialogOpen) {
+    if (!passwordDialog.present) {
       return;
     }
 
@@ -788,6 +796,18 @@ function EmailMethodItem({
       body.style.paddingRight = `${scrollbarWidth}px`;
     }
 
+    return () => {
+      passwordDialogBackdropPressStartedRef.current = false;
+      body.style.overflow = previousOverflow;
+      body.style.paddingRight = previousPaddingRight;
+    };
+  }, [passwordDialog.present]);
+
+  useEffect(() => {
+    if (!passwordDialogOpen) {
+      return;
+    }
+
     const frame = window.requestAnimationFrame(() => {
       const preferredInput = hasPassword
         ? currentPasswordInputRef.current
@@ -797,12 +817,34 @@ function EmailMethodItem({
     });
 
     return () => {
-      passwordDialogBackdropPressStartedRef.current = false;
       window.cancelAnimationFrame(frame);
-      body.style.overflow = previousOverflow;
-      body.style.paddingRight = previousPaddingRight;
     };
   }, [hasPassword, passwordDialogOpen]);
+
+  useEffect(() => {
+    if (passwordDialog.present || !passwordDialogCleanupPendingRef.current) {
+      return;
+    }
+
+    passwordDialogCleanupPendingRef.current = false;
+    resetPasswordEditor();
+
+    const returnFocusTarget = passwordDialogReturnFocusRef.current;
+    passwordDialogReturnFocusRef.current = null;
+
+    if (!passwordDialogRestoreFocusAfterCloseRef.current || !returnFocusTarget) {
+      passwordDialogRestoreFocusAfterCloseRef.current = false;
+      return;
+    }
+
+    passwordDialogRestoreFocusAfterCloseRef.current = false;
+
+    window.requestAnimationFrame(() => {
+      if (returnFocusTarget.isConnected) {
+        returnFocusTarget.focus();
+      }
+    });
+  }, [passwordDialog.present]);
 
   function resetPasswordEditor() {
     setCurrentPassword("");
@@ -821,21 +863,9 @@ function EmailMethodItem({
   }
 
   function dismissPasswordDialog(restoreFocus: boolean) {
+    passwordDialogCleanupPendingRef.current = true;
+    passwordDialogRestoreFocusAfterCloseRef.current = restoreFocus;
     setPasswordDialogOpen(false);
-    resetPasswordEditor();
-
-    const returnFocusTarget = passwordDialogReturnFocusRef.current;
-    passwordDialogReturnFocusRef.current = null;
-
-    if (!restoreFocus || !returnFocusTarget) {
-      return;
-    }
-
-    window.requestAnimationFrame(() => {
-      if (returnFocusTarget.isConnected) {
-        returnFocusTarget.focus();
-      }
-    });
   }
 
   function openPasswordDialog(target: HTMLElement | null) {
@@ -844,6 +874,8 @@ function EmailMethodItem({
     }
 
     passwordDialogReturnFocusRef.current = target;
+    passwordDialogCleanupPendingRef.current = false;
+    passwordDialogRestoreFocusAfterCloseRef.current = false;
     setPasswordDialogOpen(true);
   }
 
@@ -1272,9 +1304,10 @@ function EmailMethodItem({
         ) : null}
       </section>
 
-      {passwordDialogOpen ? (
+      {passwordDialog.present ? (
         <div
           className="fg-console-dialog-backdrop"
+          data-state={passwordDialog.closing ? "closing" : "open"}
           onClick={handlePasswordDialogBackdropClick}
           onPointerDown={handlePasswordDialogBackdropPointerDown}
         >
@@ -1283,7 +1316,12 @@ function EmailMethodItem({
             aria-describedby={passwordDialogDescriptionId}
             aria-labelledby={passwordDialogTitleId}
             aria-modal="true"
-            className="fg-console-dialog-shell fg-profile-password-dialog-shell"
+            className={cx(
+              "fg-console-dialog-shell fg-profile-password-dialog-shell",
+              "t-modal",
+              passwordDialogOpen && "is-open",
+              passwordDialog.closing && "is-closing",
+            )}
             id={passwordDialogId}
             onClick={(event) => event.stopPropagation()}
             onKeyDown={handlePasswordDialogKeyDown}

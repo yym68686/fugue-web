@@ -40,6 +40,8 @@ import type {
   RuntimePublicOfferView,
   RuntimeSharingView,
 } from "@/lib/runtimes/types";
+import { cx } from "@/lib/ui/cx";
+import { useTransitionPresence } from "@/lib/ui/transition-presence";
 
 type RuntimeSharingPayload = {
   sharing: RuntimeSharingView;
@@ -666,8 +668,16 @@ function RuntimePublicPricingDialogControl({
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const dialogBackdropPressStartedRef = useRef(false);
   const dialogReturnFocusRef = useRef<HTMLElement | null>(null);
+  const dialogCloseCleanupPendingRef = useRef(false);
+  const dialogResetDraftAfterCloseRef = useRef(true);
+  const dialogRestoreFocusAfterCloseRef = useRef(false);
   const lastAutoOpenSignalRef = useRef(0);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const pricingDialog = useTransitionPresence({
+    closePropertyName: "--modal-close-dur",
+    fallbackCloseMs: 150,
+  });
+  const dialogOpen = pricingDialog.open;
+  const setDialogOpen = pricingDialog.setOpen;
   const [publicOfferDraft, setPublicOfferDraft] = useState<PublicOfferDraft>(() =>
     buildPublicOfferDraft(currentPublicOffer),
   );
@@ -714,25 +724,11 @@ function RuntimePublicPricingDialogControl({
 
   const closeDialog = useEffectEvent(
     (restoreFocus: boolean, resetDraft = true) => {
+      dialogCloseCleanupPendingRef.current = true;
+      dialogResetDraftAfterCloseRef.current = resetDraft;
+      dialogRestoreFocusAfterCloseRef.current = restoreFocus;
       setDialogOpen(false);
       dialogBackdropPressStartedRef.current = false;
-
-      if (resetDraft) {
-        syncDraftFromCurrentOffer();
-      }
-
-      const returnFocusTarget = dialogReturnFocusRef.current;
-      dialogReturnFocusRef.current = null;
-
-      if (!restoreFocus || !returnFocusTarget) {
-        return;
-      }
-
-      window.requestAnimationFrame(() => {
-        if (returnFocusTarget.isConnected) {
-          returnFocusTarget.focus();
-        }
-      });
     },
   );
 
@@ -742,6 +738,8 @@ function RuntimePublicPricingDialogControl({
     }
 
     dialogReturnFocusRef.current = target;
+    dialogCloseCleanupPendingRef.current = false;
+    dialogRestoreFocusAfterCloseRef.current = false;
     syncDraftFromCurrentOffer();
     setDialogOpen(true);
   });
@@ -897,15 +895,15 @@ function RuntimePublicPricingDialogControl({
   );
 
   useEffect(() => {
-    if (dialogOpen) {
+    if (pricingDialog.present) {
       return;
     }
 
     syncDraftFromCurrentOffer();
-  }, [currentPublicOffer, dialogOpen, runtimeId, syncDraftFromCurrentOffer]);
+  }, [currentPublicOffer, pricingDialog.present, runtimeId, syncDraftFromCurrentOffer]);
 
   useEffect(() => {
-    if (!dialogOpen) {
+    if (!pricingDialog.present) {
       return;
     }
 
@@ -920,18 +918,57 @@ function RuntimePublicPricingDialogControl({
       body.style.paddingRight = `${scrollbarWidth}px`;
     }
 
+    return () => {
+      dialogBackdropPressStartedRef.current = false;
+      body.style.overflow = previousOverflow;
+      body.style.paddingRight = previousPaddingRight;
+    };
+  }, [pricingDialog.present]);
+
+  useEffect(() => {
+    if (!dialogOpen) {
+      return;
+    }
+
     const frame = window.requestAnimationFrame(() => {
       const focusableElements = readFocusableElements(dialogRef.current);
       focusableElements[0]?.focus({ preventScroll: true });
     });
 
     return () => {
-      dialogBackdropPressStartedRef.current = false;
       window.cancelAnimationFrame(frame);
-      body.style.overflow = previousOverflow;
-      body.style.paddingRight = previousPaddingRight;
     };
   }, [dialogOpen]);
+
+  useEffect(() => {
+    if (pricingDialog.present || !dialogCloseCleanupPendingRef.current) {
+      return;
+    }
+
+    dialogCloseCleanupPendingRef.current = false;
+
+    if (dialogResetDraftAfterCloseRef.current) {
+      syncDraftFromCurrentOffer();
+    }
+
+    dialogResetDraftAfterCloseRef.current = true;
+
+    const returnFocusTarget = dialogReturnFocusRef.current;
+    dialogReturnFocusRef.current = null;
+
+    if (!dialogRestoreFocusAfterCloseRef.current || !returnFocusTarget) {
+      dialogRestoreFocusAfterCloseRef.current = false;
+      return;
+    }
+
+    dialogRestoreFocusAfterCloseRef.current = false;
+
+    window.requestAnimationFrame(() => {
+      if (returnFocusTarget.isConnected) {
+        returnFocusTarget.focus();
+      }
+    });
+  }, [pricingDialog.present, syncDraftFromCurrentOffer]);
 
   useEffect(() => {
     if (showPublicPricingEditor) {
@@ -988,10 +1025,11 @@ function RuntimePublicPricingDialogControl({
         {currentPublicOffer ? t("Edit pricing") : t("Set pricing")}
       </Button>
 
-      {dialogOpen && dialogPortalTarget
+      {pricingDialog.present && dialogPortalTarget
         ? createPortal(
             <div
               className="fg-console-dialog-backdrop"
+              data-state={pricingDialog.closing ? "closing" : "open"}
               onClick={handleDialogBackdropClick}
               onPointerDown={handleDialogBackdropPointerDown}
             >
@@ -1000,7 +1038,12 @@ function RuntimePublicPricingDialogControl({
                 aria-describedby={pricingDialogDescriptionId}
                 aria-labelledby={pricingDialogTitleId}
                 aria-modal="true"
-                className="fg-console-dialog-shell fg-runtime-pricing-dialog-shell"
+                className={cx(
+                  "fg-console-dialog-shell fg-runtime-pricing-dialog-shell",
+                  "t-modal",
+                  dialogOpen && "is-open",
+                  pricingDialog.closing && "is-closing",
+                )}
                 id={pricingDialogId}
                 onClick={(event) => event.stopPropagation()}
                 onKeyDown={handleDialogKeyDown}

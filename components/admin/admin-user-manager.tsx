@@ -35,6 +35,8 @@ import { useToast } from "@/components/ui/toast";
 import type { ConsoleCompactResourceItemView } from "@/lib/console/gallery-types";
 import type { ConsoleTone } from "@/lib/console/types";
 import type { FugueBillingSummary } from "@/lib/fugue/api";
+import { cx } from "@/lib/ui/cx";
+import { useTransitionPresence } from "@/lib/ui/transition-presence";
 
 type AdminUserBillingView = {
   balanceLabel: string | null;
@@ -472,6 +474,11 @@ export function AdminUserManager({
   const quotaDialogRef = useRef<HTMLDivElement | null>(null);
   const quotaDialogBackdropPressStartedRef = useRef(false);
   const quotaDialogReturnFocusRef = useRef<HTMLElement | null>(null);
+  const quotaDialogRestoreFocusAfterCloseRef = useRef(false);
+  const quotaDialog = useTransitionPresence({
+    closePropertyName: "--modal-close-dur",
+    fallbackCloseMs: 150,
+  });
   const editingQuotaUser = editingQuotaEmail
     ? userRows.find((candidate) => candidate.email === editingQuotaEmail) ?? null
     : null;
@@ -563,18 +570,14 @@ export function AdminUserManager({
       return;
     }
 
+    quotaDialog.close(true);
     setEditingQuotaEmail(null);
-    setQuotaCpu(0);
-    setQuotaMemory(0);
-    setQuotaStorage(0);
-    setBalanceAmount("0.00");
-    setQuotaError(null);
-    setBalanceError(null);
+    resetQuotaEditorDraft();
     quotaDialogReturnFocusRef.current = null;
-  }, [editingQuotaEmail, editingQuotaUser]);
+  }, [editingQuotaEmail, editingQuotaUser, quotaDialog.close]);
 
   useEffect(() => {
-    if (!editingQuotaUser) {
+    if (!quotaDialog.present) {
       return;
     }
 
@@ -589,37 +592,66 @@ export function AdminUserManager({
       body.style.paddingRight = `${scrollbarWidth}px`;
     }
 
+    return () => {
+      quotaDialogBackdropPressStartedRef.current = false;
+      body.style.overflow = previousOverflow;
+      body.style.paddingRight = previousPaddingRight;
+    };
+  }, [quotaDialog.present]);
+
+  useEffect(() => {
+    if (!quotaDialog.open || !editingQuotaUser) {
+      return;
+    }
+
     const frame = window.requestAnimationFrame(() => {
       readFocusableElements(quotaDialogRef.current)[0]?.focus();
     });
 
     return () => {
-      quotaDialogBackdropPressStartedRef.current = false;
       window.cancelAnimationFrame(frame);
-      body.style.overflow = previousOverflow;
-      body.style.paddingRight = previousPaddingRight;
     };
-  }, [editingQuotaUser]);
+  }, [editingQuotaUser, quotaDialog.open]);
 
-  function closeQuotaEditor() {
+  useEffect(() => {
+    if (quotaDialog.present || !editingQuotaEmail) {
+      return;
+    }
+
     setEditingQuotaEmail(null);
-    setQuotaCpu(0);
-    setQuotaMemory(0);
-    setQuotaStorage(0);
-    setBalanceAmount("0.00");
-    setQuotaError(null);
-    setBalanceError(null);
+    resetQuotaEditorDraft();
 
     const returnFocusTarget = quotaDialogReturnFocusRef.current;
     quotaDialogReturnFocusRef.current = null;
 
-    if (returnFocusTarget && typeof window !== "undefined") {
+    if (!quotaDialogRestoreFocusAfterCloseRef.current || !returnFocusTarget) {
+      quotaDialogRestoreFocusAfterCloseRef.current = false;
+      return;
+    }
+
+    quotaDialogRestoreFocusAfterCloseRef.current = false;
+
+    if (typeof window !== "undefined") {
       window.requestAnimationFrame(() => {
         if (returnFocusTarget.isConnected) {
           returnFocusTarget.focus();
         }
       });
     }
+  }, [editingQuotaEmail, quotaDialog.present]);
+
+  function resetQuotaEditorDraft() {
+    setQuotaCpu(0);
+    setQuotaMemory(0);
+    setQuotaStorage(0);
+    setBalanceAmount("0.00");
+    setQuotaError(null);
+    setBalanceError(null);
+  }
+
+  function closeQuotaEditor() {
+    quotaDialogRestoreFocusAfterCloseRef.current = true;
+    quotaDialog.close();
   }
 
   function openQuotaEditor(user: AdminUserView) {
@@ -642,6 +674,7 @@ export function AdminUserManager({
     setBalanceAmount(formatBalanceDraftFromMicroCents(user.billing.balanceMicroCents));
     setQuotaError(null);
     setBalanceError(null);
+    quotaDialog.openPresence();
   }
 
   function handleQuotaDialogKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
@@ -1356,9 +1389,10 @@ export function AdminUserManager({
         </table>
       </div>
 
-      {editingQuotaUser ? (
+      {quotaDialog.present && editingQuotaUser ? (
         <div
           className="fg-console-dialog-backdrop"
+          data-state={quotaDialog.closing ? "closing" : "open"}
           onClick={handleQuotaDialogBackdropClick}
           onPointerDown={handleQuotaDialogBackdropPointerDown}
         >
@@ -1367,7 +1401,12 @@ export function AdminUserManager({
             aria-describedby={quotaDialogDescriptionId}
             aria-labelledby={quotaDialogTitleId}
             aria-modal="true"
-            className="fg-console-dialog-shell fg-admin-user-billing-dialog-shell"
+            className={cx(
+              "fg-console-dialog-shell fg-admin-user-billing-dialog-shell",
+              "t-modal",
+              quotaDialog.open && "is-open",
+              quotaDialog.closing && "is-closing",
+            )}
             onClick={(event) => event.stopPropagation()}
             onKeyDown={handleQuotaDialogKeyDown}
             ref={quotaDialogRef}

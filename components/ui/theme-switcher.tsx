@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef } from "react";
 
 import { useI18n } from "@/components/providers/i18n-provider";
 import { useTheme } from "@/components/providers/theme-provider";
 import { SegmentedControl, type SegmentedControlOption } from "@/components/ui/segmented-control";
 import type { Theme, ThemePreference } from "@/lib/theme";
 import { cx } from "@/lib/ui/cx";
+import { useTransitionPresence } from "@/lib/ui/transition-presence";
 
 type ThemeSwitcherVariant = "segmented" | "pill";
 
@@ -48,7 +49,10 @@ function useMenuDisclosure() {
   const detailsRef = useRef<HTMLDetailsElement | null>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
   const panelId = useId();
-  const [open, setOpen] = useState(false);
+  const { close, closing, open, present, toggle } = useTransitionPresence({
+    closePropertyName: "--dropdown-close-dur",
+    fallbackCloseMs: 150,
+  });
 
   useEffect(() => {
     if (!open) {
@@ -66,7 +70,7 @@ function useMenuDisclosure() {
         return;
       }
 
-      setOpen(false);
+      close();
     }
 
     function handleKeyDown(event: KeyboardEvent) {
@@ -74,7 +78,7 @@ function useMenuDisclosure() {
         return;
       }
 
-      setOpen(false);
+      close();
       triggerRef.current?.focus();
     }
 
@@ -89,7 +93,7 @@ function useMenuDisclosure() {
         return;
       }
 
-      setOpen(false);
+      close();
     }
 
     document.addEventListener("pointerdown", handlePointerDown, true);
@@ -101,13 +105,16 @@ function useMenuDisclosure() {
       document.removeEventListener("keydown", handleKeyDown);
       document.removeEventListener("focusin", handleFocusIn);
     };
-  }, [open]);
+  }, [close, open]);
 
   return {
+    closing,
     detailsRef,
     open,
     panelId,
-    setOpen,
+    present,
+    close,
+    toggle,
     triggerRef,
   };
 }
@@ -185,8 +192,7 @@ export function ThemeUtilityMenu({ className }: { className?: string }) {
   return (
     <details
       className={cx("fg-locale-utility", className)}
-      onToggle={(event) => disclosure.setOpen(event.currentTarget.open)}
-      open={disclosure.open}
+      open={disclosure.present}
       ref={disclosure.detailsRef}
     >
       <summary
@@ -194,6 +200,10 @@ export function ThemeUtilityMenu({ className }: { className?: string }) {
         aria-expanded={disclosure.open}
         aria-label={control.triggerAriaLabel}
         className="fg-locale-utility__trigger"
+        onClick={(event) => {
+          event.preventDefault();
+          disclosure.toggle();
+        }}
         ref={disclosure.triggerRef}
       >
         <span className="fg-locale-utility__value">{control.triggerLabel}</span>
@@ -211,7 +221,16 @@ export function ThemeUtilityMenu({ className }: { className?: string }) {
         </span>
       </summary>
 
-      <div className="fg-locale-utility__panel" id={disclosure.panelId}>
+      <div
+        className={cx(
+          "fg-locale-utility__panel",
+          "t-dropdown",
+          disclosure.open && "is-open",
+          disclosure.closing && "is-closing",
+        )}
+        data-origin="top-right"
+        id={disclosure.panelId}
+      >
         <ul aria-label={control.t("Theme")} className="fg-locale-utility__list">
           {THEME_OPTIONS.map((value) => {
             const isActive = value === control.preference;
@@ -226,7 +245,7 @@ export function ThemeUtilityMenu({ className }: { className?: string }) {
                       control.setPreference(value);
                     }
 
-                    disclosure.setOpen(false);
+                    disclosure.close();
                   }}
                   type="button"
                 >
@@ -253,8 +272,7 @@ export function ThemeMenuButton({ className }: { className?: string }) {
   return (
     <details
       className={cx("fg-locale-menu", className)}
-      onToggle={(event) => disclosure.setOpen(event.currentTarget.open)}
-      open={disclosure.open}
+      open={disclosure.present}
       ref={disclosure.detailsRef}
     >
       <summary
@@ -262,12 +280,25 @@ export function ThemeMenuButton({ className }: { className?: string }) {
         aria-expanded={disclosure.open}
         aria-label={control.triggerAriaLabel}
         className="fg-button fg-button--secondary fg-button--compact fg-locale-menu__trigger"
+        onClick={(event) => {
+          event.preventDefault();
+          disclosure.toggle();
+        }}
         ref={disclosure.triggerRef}
       >
         <span className="fg-button__label">{control.triggerLabel}</span>
       </summary>
 
-      <div className="fg-locale-menu__panel" id={disclosure.panelId}>
+      <div
+        className={cx(
+          "fg-locale-menu__panel",
+          "t-dropdown",
+          disclosure.open && "is-open",
+          disclosure.closing && "is-closing",
+        )}
+        data-origin="top-right"
+        id={disclosure.panelId}
+      >
         <p className="fg-locale-menu__title fg-mono">{control.t("Theme")}</p>
         <ThemeSwitcherControl
           className="fg-locale-menu__switcher"
@@ -276,7 +307,7 @@ export function ThemeMenuButton({ className }: { className?: string }) {
               control.setPreference(nextPreference);
             }
 
-            disclosure.setOpen(false);
+            disclosure.close();
           }}
           options={control.options}
           preference={control.preference}

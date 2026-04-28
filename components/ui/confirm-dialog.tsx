@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { HintTooltip } from "@/components/ui/hint-tooltip";
 import { Panel, PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
 import { cx } from "@/lib/ui/cx";
+import { readCssDurationMs } from "@/lib/ui/transition-presence";
 
 type ConfirmDialogVariant = "danger" | "primary";
 type ConfirmDialogTextConfirmation = {
@@ -111,6 +112,7 @@ function readFocusableElements(container: HTMLElement | null) {
 export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
   const [isMounted, setIsMounted] = useState(false);
   const [queue, setQueue] = useState<ConfirmDialogRecord[]>([]);
+  const [dialogClosing, setDialogClosing] = useState(false);
   const [textConfirmationInteracted, setTextConfirmationInteracted] = useState(false);
   const [textConfirmationValue, setTextConfirmationValue] = useState("");
   const queueRef = useRef<ConfirmDialogRecord[]>([]);
@@ -118,6 +120,8 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const textConfirmationInputRef = useRef<HTMLInputElement | null>(null);
   const backdropPressStartedRef = useRef(false);
+  const dialogClosingRef = useRef(false);
+  const dialogCloseTimerRef = useRef<number | null>(null);
   const activeRecord = queue[0] ?? null;
   const activeTextConfirmation = activeRecord?.textConfirmation ?? null;
   const titleId = activeRecord ? `fg-confirm-dialog-title-${activeRecord.id}` : undefined;
@@ -160,12 +164,22 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     return () => {
+      if (dialogCloseTimerRef.current !== null) {
+        window.clearTimeout(dialogCloseTimerRef.current);
+        dialogCloseTimerRef.current = null;
+      }
+
       queueRef.current.forEach((record) => {
         record.resolve(false);
       });
       queueRef.current = [];
     };
   }, []);
+
+  useEffect(() => {
+    dialogClosingRef.current = false;
+    setDialogClosing(false);
+  }, [activeRecord?.id]);
 
   useEffect(() => {
     setTextConfirmationInteracted(false);
@@ -230,13 +244,21 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
   const dismissActiveRecord = useCallback((value: boolean) => {
     const currentRecord = queueRef.current[0];
 
-    if (!currentRecord) {
+    if (!currentRecord || dialogClosingRef.current) {
       return;
     }
 
-    queueRef.current = queueRef.current.slice(1);
-    setQueue(queueRef.current);
-    currentRecord.resolve(value);
+    dialogClosingRef.current = true;
+    setDialogClosing(true);
+
+    dialogCloseTimerRef.current = window.setTimeout(() => {
+      dialogCloseTimerRef.current = null;
+      queueRef.current = queueRef.current.slice(1);
+      setQueue(queueRef.current);
+      currentRecord.resolve(value);
+      dialogClosingRef.current = false;
+      setDialogClosing(false);
+    }, readCssDurationMs("--modal-close-dur", 150));
   }, []);
 
   const confirm = useCallback((options: ConfirmDialogOptions) => {
@@ -336,7 +358,7 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
         ? createPortal(
             <div
               className="fg-confirm-dialog-backdrop"
-              data-state="open"
+              data-state={dialogClosing ? "closing" : "open"}
               onClick={handleBackdropClick}
               onPointerDown={handleBackdropPointerDown}
             >
@@ -346,6 +368,8 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
                 aria-modal="true"
                 className={cx(
                   "fg-confirm-dialog-shell",
+                  "t-modal",
+                  dialogClosing ? "is-closing" : "is-open",
                   activeRecord.variant === "danger" && "is-danger",
                 )}
                 onClick={(event) => event.stopPropagation()}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
 import { StatusBadge } from "@/components/console/status-badge";
 import { useI18n } from "@/components/providers/i18n-provider";
@@ -14,6 +14,8 @@ import {
   readVerificationLabel,
 } from "@/lib/auth/presenters";
 import type { SessionUser } from "@/lib/auth/session";
+import { cx } from "@/lib/ui/cx";
+import { useTransitionPresence } from "@/lib/ui/transition-presence";
 
 export function ConsoleProfileMenu({
   isAdmin = false,
@@ -25,11 +27,20 @@ export function ConsoleProfileMenu({
   const { locale, t } = useI18n();
   const detailsRef = useRef<HTMLDetailsElement | null>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
-  const [open, setOpen] = useState(false);
+  const {
+    close: closeProfileMenu,
+    closing: profileMenuClosing,
+    open: profileMenuOpen,
+    present: profileMenuPresent,
+    toggle: toggleProfileMenu,
+  } = useTransitionPresence({
+    closePropertyName: "--dropdown-close-dur",
+    fallbackCloseMs: 150,
+  });
   const sessionLabel = readSessionLabel(session);
 
   useEffect(() => {
-    if (!open) {
+    if (!profileMenuOpen) {
       return;
     }
 
@@ -44,7 +55,7 @@ export function ConsoleProfileMenu({
         return;
       }
 
-      setOpen(false);
+      closeProfileMenu();
     }
 
     function handleKeyDown(event: KeyboardEvent) {
@@ -52,7 +63,7 @@ export function ConsoleProfileMenu({
         return;
       }
 
-      setOpen(false);
+      closeProfileMenu();
       triggerRef.current?.focus();
     }
 
@@ -67,7 +78,7 @@ export function ConsoleProfileMenu({
         return;
       }
 
-      setOpen(false);
+      closeProfileMenu();
     }
 
     document.addEventListener("pointerdown", handlePointerDown, true);
@@ -79,16 +90,23 @@ export function ConsoleProfileMenu({
       document.removeEventListener("keydown", handleKeyDown);
       document.removeEventListener("focusin", handleFocusIn);
     };
-  }, [open]);
+  }, [closeProfileMenu, profileMenuOpen]);
 
   return (
     <details
       className="fg-console-profile"
-      onToggle={(event) => setOpen(event.currentTarget.open)}
-      open={open}
+      open={profileMenuPresent}
       ref={detailsRef}
     >
-      <summary aria-expanded={open} className="fg-console-profile__trigger" ref={triggerRef}>
+      <summary
+        aria-expanded={profileMenuOpen}
+        className="fg-console-profile__trigger"
+        onClick={(event) => {
+          event.preventDefault();
+          toggleProfileMenu();
+        }}
+        ref={triggerRef}
+      >
         <span className="fg-console-profile__avatar" aria-hidden="true">
           {readSessionMonogram(sessionLabel)}
         </span>
@@ -98,7 +116,15 @@ export function ConsoleProfileMenu({
         </span>
       </summary>
 
-      <div className="fg-console-profile__menu">
+      <div
+        className={cx(
+          "fg-console-profile__menu",
+          "t-dropdown",
+          profileMenuOpen && "is-open",
+          profileMenuClosing && "is-closing",
+        )}
+        data-origin="top-right"
+      >
         <div className="fg-console-profile__menu-head">
           <strong>{sessionLabel}</strong>
           <span>{session.email}</span>
@@ -118,7 +144,7 @@ export function ConsoleProfileMenu({
           <p className="fg-console-profile__section-label fg-mono">{t("Theme")}</p>
           <ThemeSwitcher
             className="fg-console-profile__theme-switcher"
-            onChangeComplete={() => setOpen(false)}
+            onChangeComplete={() => closeProfileMenu()}
             variant="pill"
           />
         </div>
@@ -127,7 +153,7 @@ export function ConsoleProfileMenu({
           <p className="fg-console-profile__section-label fg-mono">{t("Interface language")}</p>
           <LocaleSwitcher
             className="fg-console-profile__locale-switcher"
-            onChangeComplete={() => setOpen(false)}
+            onChangeComplete={() => closeProfileMenu()}
             variant="pill"
           />
         </div>

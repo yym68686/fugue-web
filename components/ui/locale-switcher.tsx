@@ -13,6 +13,7 @@ import {
   type Locale,
 } from "@/lib/i18n/core";
 import { cx } from "@/lib/ui/cx";
+import { useTransitionPresence } from "@/lib/ui/transition-presence";
 
 const EXPLICIT_LOCALE_LABELS: Record<
   Locale,
@@ -220,7 +221,10 @@ function useLocaleMenuDisclosure() {
   const detailsRef = useRef<HTMLDetailsElement | null>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
   const panelId = useId();
-  const [open, setOpen] = useState(false);
+  const { close, closing, open, present, toggle } = useTransitionPresence({
+    closePropertyName: "--dropdown-close-dur",
+    fallbackCloseMs: 150,
+  });
 
   useEffect(() => {
     if (!open) {
@@ -238,7 +242,7 @@ function useLocaleMenuDisclosure() {
         return;
       }
 
-      setOpen(false);
+      close();
     }
 
     function handleKeyDown(event: KeyboardEvent) {
@@ -246,7 +250,7 @@ function useLocaleMenuDisclosure() {
         return;
       }
 
-      setOpen(false);
+      close();
       triggerRef.current?.focus();
     }
 
@@ -261,7 +265,7 @@ function useLocaleMenuDisclosure() {
         return;
       }
 
-      setOpen(false);
+      close();
     }
 
     document.addEventListener("pointerdown", handlePointerDown, true);
@@ -273,13 +277,16 @@ function useLocaleMenuDisclosure() {
       document.removeEventListener("keydown", handleKeyDown);
       document.removeEventListener("focusin", handleFocusIn);
     };
-  }, [open]);
+  }, [close, open]);
 
   return {
+    closing,
     detailsRef,
     open,
     panelId,
-    setOpen,
+    present,
+    close,
+    toggle,
     triggerRef,
   };
 }
@@ -291,8 +298,7 @@ export function LocaleUtilityMenu({ className }: { className?: string }) {
   return (
     <details
       className={cx("fg-locale-utility", className)}
-      onToggle={(event) => disclosure.setOpen(event.currentTarget.open)}
-      open={disclosure.open}
+      open={disclosure.present}
       ref={disclosure.detailsRef}
     >
       <summary
@@ -300,6 +306,10 @@ export function LocaleUtilityMenu({ className }: { className?: string }) {
         aria-expanded={disclosure.open}
         aria-label={control.triggerAriaLabel}
         className="fg-locale-utility__trigger"
+        onClick={(event) => {
+          event.preventDefault();
+          disclosure.toggle();
+        }}
         ref={disclosure.triggerRef}
       >
         <span
@@ -323,7 +333,16 @@ export function LocaleUtilityMenu({ className }: { className?: string }) {
         </span>
       </summary>
 
-      <div className="fg-locale-utility__panel" id={disclosure.panelId}>
+      <div
+        className={cx(
+          "fg-locale-utility__panel",
+          "t-dropdown",
+          disclosure.open && "is-open",
+          disclosure.closing && "is-closing",
+        )}
+        data-origin="top-right"
+        id={disclosure.panelId}
+      >
         <ul aria-label={control.t("Interface language")} className="fg-locale-utility__list">
           {EXPLICIT_LOCALE_VALUES.map((value) => {
             const isActive = value === control.effectiveLocale;
@@ -338,7 +357,7 @@ export function LocaleUtilityMenu({ className }: { className?: string }) {
                       control.setPreference(value);
                     }
 
-                    disclosure.setOpen(false);
+                    disclosure.close();
                   }}
                   type="button"
                 >
@@ -363,8 +382,7 @@ export function LocaleMenuButton({ className }: { className?: string }) {
   return (
     <details
       className={cx("fg-locale-menu", className)}
-      onToggle={(event) => disclosure.setOpen(event.currentTarget.open)}
-      open={disclosure.open}
+      open={disclosure.present}
       ref={disclosure.detailsRef}
     >
       <summary
@@ -372,6 +390,10 @@ export function LocaleMenuButton({ className }: { className?: string }) {
         aria-expanded={disclosure.open}
         aria-label={control.triggerAriaLabel}
         className="fg-button fg-button--secondary fg-button--compact fg-locale-menu__trigger"
+        onClick={(event) => {
+          event.preventDefault();
+          disclosure.toggle();
+        }}
         ref={disclosure.triggerRef}
       >
         <span className="fg-button__label" title={control.triggerTitle}>
@@ -379,7 +401,16 @@ export function LocaleMenuButton({ className }: { className?: string }) {
         </span>
       </summary>
 
-      <div className="fg-locale-menu__panel" id={disclosure.panelId}>
+      <div
+        className={cx(
+          "fg-locale-menu__panel",
+          "t-dropdown",
+          disclosure.open && "is-open",
+          disclosure.closing && "is-closing",
+        )}
+        data-origin="top-right"
+        id={disclosure.panelId}
+      >
         <p className="fg-locale-menu__title fg-mono">{control.t("Interface language")}</p>
         <LocaleSwitcherControl
           className="fg-locale-menu__switcher"
@@ -387,7 +418,7 @@ export function LocaleMenuButton({ className }: { className?: string }) {
             const changed = control.setPreference(nextPreference);
 
             if (changed) {
-              disclosure.setOpen(false);
+              disclosure.close();
             }
           }}
           options={control.options}
