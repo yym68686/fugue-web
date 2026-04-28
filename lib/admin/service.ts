@@ -146,6 +146,21 @@ export type AdminUserServiceUsageView = {
   serviceCountLabel: string;
 };
 
+export type AdminAppsUsageData = {
+  apps: Array<{
+    id: string;
+    resourceUsage: ConsoleCompactResourceItemView[];
+  }>;
+};
+
+export type AdminUsersUsageData = {
+  users: Array<{
+    email: string;
+    serviceCount: number;
+    usage: AdminUserServiceUsageView;
+  }>;
+};
+
 export type AdminUsersPageData = {
   enrichmentState: "pending" | "ready";
   errors: string[];
@@ -185,6 +200,10 @@ const adminAppImageUsageCache =
   createExpiringAsyncCache<FugueProjectImageUsageResult | null>(
     ADMIN_USAGE_CACHE_TTL_MS,
   );
+const adminAppsUsageDataCache =
+  createExpiringAsyncCache<AdminAppsUsageData>(ADMIN_USAGE_CACHE_TTL_MS);
+const adminUsersUsageDataCache =
+  createExpiringAsyncCache<AdminUsersUsageData>(ADMIN_USAGE_CACHE_TTL_MS);
 const adminControlPlaneViewCache =
   createExpiringAsyncCache<AdminControlPlaneView>(
     ADMIN_CONTROL_PLANE_CACHE_TTL_MS,
@@ -2249,12 +2268,7 @@ async function getCachedAdminAppImageUsage(bootstrapKey: string) {
   );
 }
 
-export async function getAdminAppsUsageData(): Promise<{
-  apps: Array<{
-    id: string;
-    resourceUsage: ConsoleCompactResourceItemView[];
-  }>;
-}> {
+async function loadAdminAppsUsageData(): Promise<AdminAppsUsageData> {
   const bootstrapKey = getFugueEnv().bootstrapKey;
   const [apps, imageUsageResult] = await Promise.all([
     getCachedAdminAppsWithResourceUsage(bootstrapKey),
@@ -2270,13 +2284,14 @@ export async function getAdminAppsUsageData(): Promise<{
   };
 }
 
-export async function getAdminUsersUsageData(): Promise<{
-  users: Array<{
-    email: string;
-    serviceCount: number;
-    usage: AdminUserServiceUsageView;
-  }>;
-}> {
+export async function getAdminAppsUsageData(): Promise<AdminAppsUsageData> {
+  return adminAppsUsageDataCache.getOrLoad(
+    "admin-apps-usage-data",
+    loadAdminAppsUsageData,
+  );
+}
+
+async function loadAdminUsersUsageData(): Promise<AdminUsersUsageData> {
   const bootstrapKey = getFugueEnv().bootstrapKey;
   const [base, apps, imageUsageResult] = await Promise.all([
     loadAdminUsersBaseData({
@@ -2314,6 +2329,13 @@ export async function getAdminUsersUsageData(): Promise<{
       };
     }),
   };
+}
+
+export async function getAdminUsersUsageData(): Promise<AdminUsersUsageData> {
+  return adminUsersUsageDataCache.getOrLoad(
+    "admin-users-usage-data",
+    loadAdminUsersUsageData,
+  );
 }
 
 async function getAdminUserBillingLookup(
@@ -2500,6 +2522,7 @@ export function invalidateAdminUsersPageEnrichmentData() {
   cachedAdminUsersEnrichmentData = null;
   cachedAdminUsersEnrichmentAt = 0;
   adminUsersEnrichmentRequest = null;
+  adminUsersUsageDataCache.clear("admin-users-usage-data");
 }
 
 export async function updateAdminUserBillingForEmail(
