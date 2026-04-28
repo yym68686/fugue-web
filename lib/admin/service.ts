@@ -195,7 +195,7 @@ type AdminUsersEnrichmentLookup = {
 
 const ADMIN_USERS_ENRICHMENT_CACHE_TTL_MS = 300_000;
 const ADMIN_USAGE_CACHE_TTL_MS = 300_000;
-const ADMIN_USAGE_PERSISTED_STALE_MS = 30 * 60_000;
+const ADMIN_USAGE_PERSISTED_STALE_MS = 6 * 60 * 60_000;
 const ADMIN_CONTROL_PLANE_CACHE_TTL_MS = 300_000;
 const ADMIN_APPS_PAGE_DATA_CACHE_KEY = "admin-apps-page-data";
 const ADMIN_APPS_USAGE_DATA_CACHE_KEY = "admin-apps-usage-data";
@@ -2333,6 +2333,26 @@ async function loadAdminAppsPageData(): Promise<AdminAppsPageData> {
   };
 }
 
+function hasCriticalAdminDataError(errors: string[], label: string) {
+  return errors.some((error) => error.startsWith(`${label}:`));
+}
+
+function rejectCriticalAdminAppsPageData(data: AdminAppsPageData) {
+  if (data.apps.length || !hasCriticalAdminDataError(data.errors, "apps")) {
+    return;
+  }
+
+  throw new Error(data.errors.join("; "));
+}
+
+function rejectCriticalAdminUsersBaseData(data: AdminUsersBaseData) {
+  if (data.users.length || !hasCriticalAdminDataError(data.errors, "users")) {
+    return;
+  }
+
+  throw new Error(data.errors.join("; "));
+}
+
 async function readPersistedAdminAppsPageData() {
   const entry = await readAdminSnapshotCache<AdminAppsPageData>(
     ADMIN_APPS_PAGE_DATA_CACHE_KEY,
@@ -2353,6 +2373,7 @@ export async function refreshAdminAppsPageData(): Promise<AdminAppsPageData> {
 
   const request = loadAdminAppsPageData()
     .then(async (data) => {
+      rejectCriticalAdminAppsPageData(data);
       adminAppsPageDataCache.set(ADMIN_APPS_PAGE_DATA_CACHE_KEY, data);
       await writeAdminSnapshotCache(ADMIN_APPS_PAGE_DATA_CACHE_KEY, data).catch(
         () => undefined,
@@ -2525,6 +2546,7 @@ async function loadAdminUsersUsageData(): Promise<AdminUsersUsageData> {
     getCachedAdminAppsWithResourceUsage(bootstrapKey),
     getCachedAdminAppImageUsage(bootstrapKey).catch(() => null),
   ]);
+  rejectCriticalAdminUsersBaseData(base);
 
   const workspaceByEmail = new Map(
     base.workspaces.map((workspace) => [workspace.email, workspace] as const),
@@ -2709,6 +2731,7 @@ async function loadAdminUsersPageData(): Promise<AdminUsersPageData> {
   const base = await loadAdminUsersBaseData({
     includeWorkspaces: false,
   });
+  rejectCriticalAdminUsersBaseData(base);
   const usageData =
     adminUsersUsageDataCache.read(ADMIN_USERS_USAGE_DATA_CACHE_KEY) ??
     (await readPersistedAdminUsersUsageData());
