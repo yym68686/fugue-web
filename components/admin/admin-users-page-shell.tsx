@@ -199,7 +199,6 @@ export function AdminUsersPageShell({
     const needsUsageFetch = data.users.some((user) => {
       const nextUsage = cachedUsage[user.email]?.usage ?? user.usage;
       return (
-        !cachedUsage[user.email] ||
         !hasLoadedAdminUserUsage(nextUsage) ||
         !hasAdminUserUsageImageData(nextUsage)
       );

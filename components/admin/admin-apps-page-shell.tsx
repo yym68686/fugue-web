@@ -138,7 +138,6 @@ export function AdminAppsPageShell({
     const needsUsageFetch = data.apps.some((app) => {
       const nextUsage = cachedUsage[app.id] ?? app.resourceUsage;
       return (
-        !cachedUsage[app.id] ||
         !hasLoadedAdminAppUsage(nextUsage) ||
         !hasAdminAppUsageImageData(nextUsage)
       );

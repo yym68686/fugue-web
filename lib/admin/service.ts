@@ -189,6 +189,8 @@ type AdminUsersEnrichmentLookup = {
 const ADMIN_USERS_ENRICHMENT_CACHE_TTL_MS = 300_000;
 const ADMIN_USAGE_CACHE_TTL_MS = 300_000;
 const ADMIN_CONTROL_PLANE_CACHE_TTL_MS = 300_000;
+const ADMIN_APPS_USAGE_DATA_CACHE_KEY = "admin-apps-usage-data";
+const ADMIN_USERS_USAGE_DATA_CACHE_KEY = "admin-users-usage-data";
 
 let cachedAdminUsersEnrichmentData: AdminUsersPageData | null = null;
 let cachedAdminUsersEnrichmentAt = 0;
@@ -897,6 +899,30 @@ function mapAdminApps(
     });
 }
 
+function applyAdminAppsUsageData(
+  apps: AdminClusterAppView[],
+  usageData: AdminAppsUsageData | null,
+) {
+  if (!usageData?.apps.length) {
+    return apps;
+  }
+
+  const usageByAppId = new Map(
+    usageData.apps.map((app) => [app.id, app.resourceUsage] as const),
+  );
+
+  return apps.map((app) => {
+    const resourceUsage = usageByAppId.get(app.id);
+
+    return resourceUsage
+      ? {
+          ...app,
+          resourceUsage,
+        }
+      : app;
+  });
+}
+
 async function getClusterProjects(
   bootstrapKey: string,
   tenants: FugueTenant[],
@@ -1066,6 +1092,36 @@ function buildAdminUsersSummary(
       (user) => user.status.trim().toLowerCase() === "deleted",
     ).length,
     userCount: users.length,
+  };
+}
+
+function applyAdminUsersUsageData(
+  data: AdminUsersPageData,
+  usageData: AdminUsersUsageData | null,
+) {
+  if (!usageData?.users.length) {
+    return data;
+  }
+
+  const usageByEmail = new Map(
+    usageData.users.map((user) => [user.email, user] as const),
+  );
+  const users = data.users.map((user) => {
+    const usage = usageByEmail.get(user.email);
+
+    return usage
+      ? {
+          ...user,
+          serviceCount: usage.serviceCount,
+          usage: usage.usage,
+        }
+      : user;
+  });
+
+  return {
+    ...data,
+    summary: buildAdminUsersSummary(users),
+    users,
   };
 }
 
@@ -2224,13 +2280,16 @@ export async function getAdminAppsPageData(): Promise<AdminAppsPageData> {
       : { errors: [], projects: [] };
   const projects = projectData.projects;
   errors.push(...projectData.errors);
-  const views = mapAdminApps(
-    apps,
-    projects,
-    workspaces,
-    tenants,
-    appImageUsage,
-    runtimes,
+  const views = applyAdminAppsUsageData(
+    mapAdminApps(
+      apps,
+      projects,
+      workspaces,
+      tenants,
+      appImageUsage,
+      runtimes,
+    ),
+    adminAppsUsageDataCache.read(ADMIN_APPS_USAGE_DATA_CACHE_KEY),
   );
   const latestUpdateAt = apps.reduce<string | null>((latest, app) => {
     const candidate = app.status.updatedAt ?? app.updatedAt ?? app.createdAt;
@@ -2286,7 +2345,7 @@ async function loadAdminAppsUsageData(): Promise<AdminAppsUsageData> {
 
 export async function getAdminAppsUsageData(): Promise<AdminAppsUsageData> {
   return adminAppsUsageDataCache.getOrLoad(
-    "admin-apps-usage-data",
+    ADMIN_APPS_USAGE_DATA_CACHE_KEY,
     loadAdminAppsUsageData,
   );
 }
@@ -2333,7 +2392,7 @@ async function loadAdminUsersUsageData(): Promise<AdminUsersUsageData> {
 
 export async function getAdminUsersUsageData(): Promise<AdminUsersUsageData> {
   return adminUsersUsageDataCache.getOrLoad(
-    "admin-users-usage-data",
+    ADMIN_USERS_USAGE_DATA_CACHE_KEY,
     loadAdminUsersUsageData,
   );
 }
@@ -2404,11 +2463,14 @@ export async function getAdminUsersPageData(): Promise<AdminUsersPageData> {
     includeWorkspaces: false,
   });
 
-  return buildAdminUsersPageData(
-    base,
-    createPendingAdminUsersEnrichmentLookup(),
-    base.errors,
-    "pending",
+  return applyAdminUsersUsageData(
+    buildAdminUsersPageData(
+      base,
+      createPendingAdminUsersEnrichmentLookup(),
+      base.errors,
+      "pending",
+    ),
+    adminUsersUsageDataCache.read(ADMIN_USERS_USAGE_DATA_CACHE_KEY),
   );
 }
 
@@ -2522,7 +2584,7 @@ export function invalidateAdminUsersPageEnrichmentData() {
   cachedAdminUsersEnrichmentData = null;
   cachedAdminUsersEnrichmentAt = 0;
   adminUsersEnrichmentRequest = null;
-  adminUsersUsageDataCache.clear("admin-users-usage-data");
+  adminUsersUsageDataCache.clear(ADMIN_USERS_USAGE_DATA_CACHE_KEY);
 }
 
 export async function updateAdminUserBillingForEmail(

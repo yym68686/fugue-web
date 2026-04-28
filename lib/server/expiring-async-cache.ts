@@ -14,6 +14,20 @@ export function createExpiringAsyncCache<T>(ttlMs: number) {
       entries.delete(key);
       pending.delete(key);
     },
+    read(key: string) {
+      const entry = entries.get(key);
+
+      if (!entry) {
+        return null;
+      }
+
+      if (ttlMs > 0 && entry.expiresAt <= Date.now()) {
+        entries.delete(key);
+        return null;
+      }
+
+      return entry.value;
+    },
     async getOrLoad(key: string, load: () => Promise<T>) {
       if (ttlMs > 0) {
         const entry = entries.get(key);
