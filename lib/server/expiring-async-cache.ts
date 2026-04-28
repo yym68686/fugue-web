@@ -28,6 +28,16 @@ export function createExpiringAsyncCache<T>(ttlMs: number) {
 
       return entry.value;
     },
+    set(key: string, value: T) {
+      pending.delete(key);
+
+      if (ttlMs > 0) {
+        entries.set(key, {
+          expiresAt: Date.now() + ttlMs,
+          value,
+        });
+      }
+    },
     async getOrLoad(key: string, load: () => Promise<T>) {
       if (ttlMs > 0) {
         const entry = entries.get(key);

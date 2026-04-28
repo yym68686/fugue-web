@@ -1,7 +1,11 @@
 import { after, NextResponse } from "next/server";
 
 import { requireAdminSnapshotApiSession } from "@/lib/admin/auth";
-import { getAdminAppsPageData, getAdminAppsUsageData } from "@/lib/admin/service";
+import {
+  getAdminAppsPageData,
+  getAdminAppsUsageData,
+  getAdminAppsUsageDataFast,
+} from "@/lib/admin/service";
 import {
   jsonError,
   readErrorMessage,
@@ -31,7 +35,7 @@ export async function GET(request: Request) {
 
   try {
     if (readIncludeUsage(request)) {
-      return jsonSnapshot(await getAdminAppsUsageData());
+      return jsonSnapshot(await getAdminAppsUsageDataFast());
     }
 
     after(async () => {

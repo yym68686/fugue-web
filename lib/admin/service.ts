@@ -1,6 +1,10 @@
 import "server-only";
 
 import { listAppUsers, type AppUserRecord } from "@/lib/app-users/store";
+import {
+  readAdminSnapshotCache,
+  writeAdminSnapshotCache,
+} from "@/lib/admin/snapshot-store";
 import type { ConsoleCompactResourceItemView } from "@/lib/console/gallery-types";
 import type { ConsoleTone } from "@/lib/console/types";
 import {
@@ -151,9 +155,11 @@ export type AdminAppsUsageData = {
     id: string;
     resourceUsage: ConsoleCompactResourceItemView[];
   }>;
+  pending?: boolean;
 };
 
 export type AdminUsersUsageData = {
+  pending?: boolean;
   users: Array<{
     email: string;
     serviceCount: number;
@@ -188,6 +194,7 @@ type AdminUsersEnrichmentLookup = {
 
 const ADMIN_USERS_ENRICHMENT_CACHE_TTL_MS = 300_000;
 const ADMIN_USAGE_CACHE_TTL_MS = 300_000;
+const ADMIN_USAGE_PERSISTED_STALE_MS = 30 * 60_000;
 const ADMIN_CONTROL_PLANE_CACHE_TTL_MS = 300_000;
 const ADMIN_APPS_USAGE_DATA_CACHE_KEY = "admin-apps-usage-data";
 const ADMIN_USERS_USAGE_DATA_CACHE_KEY = "admin-users-usage-data";
@@ -195,6 +202,8 @@ const ADMIN_USERS_USAGE_DATA_CACHE_KEY = "admin-users-usage-data";
 let cachedAdminUsersEnrichmentData: AdminUsersPageData | null = null;
 let cachedAdminUsersEnrichmentAt = 0;
 let adminUsersEnrichmentRequest: Promise<AdminUsersPageData> | null = null;
+let adminAppsUsageRefreshRequest: Promise<AdminAppsUsageData> | null = null;
+let adminUsersUsageRefreshRequest: Promise<AdminUsersUsageData> | null = null;
 const adminAppsUsageCache = createExpiringAsyncCache<FugueApp[]>(
   ADMIN_USAGE_CACHE_TTL_MS,
 );
@@ -2261,6 +2270,9 @@ export async function getAdminAppsPageData(): Promise<AdminAppsPageData> {
   const runtimes =
     runtimesResult.status === "fulfilled" ? runtimesResult.value : [];
   const appImageUsage = createAdminAppImageUsageLookup(null);
+  const usageData =
+    adminAppsUsageDataCache.read(ADMIN_APPS_USAGE_DATA_CACHE_KEY) ??
+    (await readPersistedAdminAppsUsageData());
   const projectDataResult =
     tenantsResult.status === "fulfilled"
       ? await settleWithSoftTimeout(
@@ -2289,7 +2301,7 @@ export async function getAdminAppsPageData(): Promise<AdminAppsPageData> {
       appImageUsage,
       runtimes,
     ),
-    adminAppsUsageDataCache.read(ADMIN_APPS_USAGE_DATA_CACHE_KEY),
+    usageData,
   );
   const latestUpdateAt = apps.reduce<string | null>((latest, app) => {
     const candidate = app.status.updatedAt ?? app.updatedAt ?? app.createdAt;
@@ -2343,11 +2355,93 @@ async function loadAdminAppsUsageData(): Promise<AdminAppsUsageData> {
   };
 }
 
-export async function getAdminAppsUsageData(): Promise<AdminAppsUsageData> {
-  return adminAppsUsageDataCache.getOrLoad(
+async function readPersistedAdminAppsUsageData() {
+  const entry = await readAdminSnapshotCache<AdminAppsUsageData>(
     ADMIN_APPS_USAGE_DATA_CACHE_KEY,
-    loadAdminAppsUsageData,
+  ).catch(() => null);
+
+  if (!entry || entry.ageMs > ADMIN_USAGE_PERSISTED_STALE_MS) {
+    return null;
+  }
+
+  const data = {
+    ...entry.payload,
+    pending: false,
+  } satisfies AdminAppsUsageData;
+
+  adminAppsUsageDataCache.set(ADMIN_APPS_USAGE_DATA_CACHE_KEY, data);
+  return data;
+}
+
+async function refreshAdminAppsUsageData(): Promise<AdminAppsUsageData> {
+  if (adminAppsUsageRefreshRequest) {
+    return adminAppsUsageRefreshRequest;
+  }
+
+  const request = loadAdminAppsUsageData()
+    .then(async (data) => {
+      adminAppsUsageDataCache.set(ADMIN_APPS_USAGE_DATA_CACHE_KEY, data);
+      await writeAdminSnapshotCache(ADMIN_APPS_USAGE_DATA_CACHE_KEY, data).catch(
+        () => undefined,
+      );
+      return data;
+    })
+    .finally(() => {
+      if (adminAppsUsageRefreshRequest === request) {
+        adminAppsUsageRefreshRequest = null;
+      }
+    });
+
+  adminAppsUsageRefreshRequest = request;
+  return request;
+}
+
+export async function getAdminAppsUsageData(): Promise<AdminAppsUsageData> {
+  const cached = adminAppsUsageDataCache.read(ADMIN_APPS_USAGE_DATA_CACHE_KEY);
+
+  if (cached) {
+    return cached;
+  }
+
+  const persisted = await readPersistedAdminAppsUsageData();
+
+  if (persisted) {
+    void refreshAdminAppsUsageData();
+    return persisted;
+  }
+
+  return refreshAdminAppsUsageData();
+}
+
+export async function getAdminAppsUsageDataFast(
+  waitMs = 800,
+): Promise<AdminAppsUsageData> {
+  const cached = adminAppsUsageDataCache.read(ADMIN_APPS_USAGE_DATA_CACHE_KEY);
+
+  if (cached) {
+    return cached;
+  }
+
+  const persisted = await readPersistedAdminAppsUsageData();
+
+  if (persisted) {
+    void refreshAdminAppsUsageData();
+    return persisted;
+  }
+
+  const result = await settleWithSoftTimeout(
+    refreshAdminAppsUsageData(),
+    waitMs,
   );
+
+  if (result.status === "fulfilled") {
+    return result.value;
+  }
+
+  return {
+    apps: [],
+    pending: true,
+  };
 }
 
 async function loadAdminUsersUsageData(): Promise<AdminUsersUsageData> {
@@ -2390,11 +2484,94 @@ async function loadAdminUsersUsageData(): Promise<AdminUsersUsageData> {
   };
 }
 
-export async function getAdminUsersUsageData(): Promise<AdminUsersUsageData> {
-  return adminUsersUsageDataCache.getOrLoad(
+async function readPersistedAdminUsersUsageData() {
+  const entry = await readAdminSnapshotCache<AdminUsersUsageData>(
     ADMIN_USERS_USAGE_DATA_CACHE_KEY,
-    loadAdminUsersUsageData,
+  ).catch(() => null);
+
+  if (!entry || entry.ageMs > ADMIN_USAGE_PERSISTED_STALE_MS) {
+    return null;
+  }
+
+  const data = {
+    ...entry.payload,
+    pending: false,
+  } satisfies AdminUsersUsageData;
+
+  adminUsersUsageDataCache.set(ADMIN_USERS_USAGE_DATA_CACHE_KEY, data);
+  return data;
+}
+
+async function refreshAdminUsersUsageData(): Promise<AdminUsersUsageData> {
+  if (adminUsersUsageRefreshRequest) {
+    return adminUsersUsageRefreshRequest;
+  }
+
+  const request = loadAdminUsersUsageData()
+    .then(async (data) => {
+      adminUsersUsageDataCache.set(ADMIN_USERS_USAGE_DATA_CACHE_KEY, data);
+      await writeAdminSnapshotCache(
+        ADMIN_USERS_USAGE_DATA_CACHE_KEY,
+        data,
+      ).catch(() => undefined);
+      return data;
+    })
+    .finally(() => {
+      if (adminUsersUsageRefreshRequest === request) {
+        adminUsersUsageRefreshRequest = null;
+      }
+    });
+
+  adminUsersUsageRefreshRequest = request;
+  return request;
+}
+
+export async function getAdminUsersUsageData(): Promise<AdminUsersUsageData> {
+  const cached = adminUsersUsageDataCache.read(ADMIN_USERS_USAGE_DATA_CACHE_KEY);
+
+  if (cached) {
+    return cached;
+  }
+
+  const persisted = await readPersistedAdminUsersUsageData();
+
+  if (persisted) {
+    void refreshAdminUsersUsageData();
+    return persisted;
+  }
+
+  return refreshAdminUsersUsageData();
+}
+
+export async function getAdminUsersUsageDataFast(
+  waitMs = 800,
+): Promise<AdminUsersUsageData> {
+  const cached = adminUsersUsageDataCache.read(ADMIN_USERS_USAGE_DATA_CACHE_KEY);
+
+  if (cached) {
+    return cached;
+  }
+
+  const persisted = await readPersistedAdminUsersUsageData();
+
+  if (persisted) {
+    void refreshAdminUsersUsageData();
+    return persisted;
+  }
+
+  const result = await settleWithSoftTimeout(
+    refreshAdminUsersUsageData(),
+    waitMs,
   );
+
+  if (result.status === "fulfilled") {
+    return result.value;
+  }
+
+  return {
+    pending: true,
+    users: [],
+  };
 }
 
 async function getAdminUserBillingLookup(
@@ -2462,6 +2639,9 @@ export async function getAdminUsersPageData(): Promise<AdminUsersPageData> {
   const base = await loadAdminUsersBaseData({
     includeWorkspaces: false,
   });
+  const usageData =
+    adminUsersUsageDataCache.read(ADMIN_USERS_USAGE_DATA_CACHE_KEY) ??
+    (await readPersistedAdminUsersUsageData());
 
   return applyAdminUsersUsageData(
     buildAdminUsersPageData(
@@ -2470,7 +2650,7 @@ export async function getAdminUsersPageData(): Promise<AdminUsersPageData> {
       base.errors,
       "pending",
     ),
-    adminUsersUsageDataCache.read(ADMIN_USERS_USAGE_DATA_CACHE_KEY),
+    usageData,
   );
 }
 

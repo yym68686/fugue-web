@@ -34,6 +34,7 @@ const ADMIN_USERS_USAGE_SNAPSHOT_TTL_MS = 300_000;
 const ADMIN_USERS_ENRICHMENT_SNAPSHOT_TTL_MS = 300_000;
 
 type AdminUsersUsageSnapshot = {
+  pending?: boolean;
   users: Array<{
     email: string;
     serviceCount: number;
@@ -208,6 +209,48 @@ export function AdminUsersPageShell({
       return;
     }
 
+    const applyUsageSnapshot = (snapshot: AdminUsersUsageSnapshot) => {
+      if (signal.aborted) {
+        return;
+      }
+
+      startTransition(() => {
+        setUsageByEmail(buildAdminUserUsageMap(snapshot));
+      });
+    };
+    const retryUsageSnapshot = (attempt: number) => {
+      if (attempt > 5) {
+        return;
+      }
+
+      window.setTimeout(() => {
+        if (signal.aborted) {
+          return;
+        }
+
+        void fetchConsolePageSnapshot<AdminUsersUsageSnapshot>(
+          CONSOLE_ADMIN_USERS_PAGE_USAGE_SNAPSHOT_URL,
+          {
+            force: true,
+            signal,
+            ttlMs: ADMIN_USERS_USAGE_SNAPSHOT_TTL_MS,
+          },
+        )
+          .then((snapshot) => {
+            applyUsageSnapshot(snapshot);
+
+            if (snapshot.pending) {
+              retryUsageSnapshot(attempt + 1);
+            }
+          })
+          .catch((error) => {
+            if (!signal.aborted && !isAbortRequestError(error)) {
+              console.error("Admin users usage refresh failed.", error);
+            }
+          });
+      }, 1_000);
+    };
+
     void fetchConsolePageSnapshot<AdminUsersUsageSnapshot>(
       CONSOLE_ADMIN_USERS_PAGE_USAGE_SNAPSHOT_URL,
       {
@@ -216,13 +259,11 @@ export function AdminUsersPageShell({
       },
     )
       .then((snapshot) => {
-        if (signal.aborted) {
-          return;
-        }
+        applyUsageSnapshot(snapshot);
 
-        startTransition(() => {
-          setUsageByEmail(buildAdminUserUsageMap(snapshot));
-        });
+        if (snapshot.pending) {
+          retryUsageSnapshot(1);
+        }
       })
       .catch((error) => {
         if (!signal.aborted && !isAbortRequestError(error)) {

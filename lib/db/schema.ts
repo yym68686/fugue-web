@@ -7,7 +7,7 @@ declare global {
   var __fugueDbSchemaVersion: string | undefined;
 }
 
-const SCHEMA_VERSION = "2026-04-07-auth-profile-methods";
+const SCHEMA_VERSION = "2026-04-28-admin-usage-cache";
 
 const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS app_users (
@@ -150,6 +150,13 @@ CREATE TABLE IF NOT EXISTS app_creem_events (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS app_admin_snapshots (
+  key TEXT PRIMARY KEY,
+  payload JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 CREATE INDEX IF NOT EXISTS idx_app_workspaces_tenant_id
   ON app_workspaces (tenant_id);
 
@@ -198,6 +205,9 @@ CREATE INDEX IF NOT EXISTS idx_app_creem_events_request_id
 
 CREATE INDEX IF NOT EXISTS idx_app_creem_events_user_email
   ON app_creem_events (user_email, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_app_admin_snapshots_updated_at
+  ON app_admin_snapshots (updated_at DESC);
 
 UPDATE app_users
 SET is_admin = TRUE

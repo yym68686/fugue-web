@@ -5,6 +5,7 @@ import {
   getAdminUsersPageData,
   getAdminUsersPageEnrichmentData,
   getAdminUsersUsageData,
+  getAdminUsersUsageDataFast,
 } from "@/lib/admin/service";
 import {
   jsonError,
@@ -35,7 +36,7 @@ export async function GET(request: Request) {
 
   try {
     if (readIncludeUsage(request)) {
-      return jsonSnapshot(await getAdminUsersUsageData());
+      return jsonSnapshot(await getAdminUsersUsageDataFast());
     }
 
     after(async () => {

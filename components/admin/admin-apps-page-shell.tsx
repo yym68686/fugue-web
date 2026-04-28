@@ -37,6 +37,7 @@ type AdminAppsUsageSnapshot = {
     id: string;
     resourceUsage: ConsoleCompactResourceItemView[];
   }>;
+  pending?: boolean;
 };
 
 function buildAdminAppUsageMap(
@@ -147,6 +148,48 @@ export function AdminAppsPageShell({
       return;
     }
 
+    const applyUsageSnapshot = (snapshot: AdminAppsUsageSnapshot) => {
+      if (signal.aborted) {
+        return;
+      }
+
+      startTransition(() => {
+        setUsageByAppId(buildAdminAppUsageMap(snapshot));
+      });
+    };
+    const retryUsageSnapshot = (attempt: number) => {
+      if (attempt > 5) {
+        return;
+      }
+
+      window.setTimeout(() => {
+        if (signal.aborted) {
+          return;
+        }
+
+        void fetchConsolePageSnapshot<AdminAppsUsageSnapshot>(
+          CONSOLE_ADMIN_APPS_PAGE_USAGE_SNAPSHOT_URL,
+          {
+            force: true,
+            signal,
+            ttlMs: ADMIN_APPS_USAGE_SNAPSHOT_TTL_MS,
+          },
+        )
+          .then((snapshot) => {
+            applyUsageSnapshot(snapshot);
+
+            if (snapshot.pending) {
+              retryUsageSnapshot(attempt + 1);
+            }
+          })
+          .catch((error) => {
+            if (!signal.aborted && !isAbortRequestError(error)) {
+              console.error("Admin apps usage refresh failed.", error);
+            }
+          });
+      }, 1_000);
+    };
+
     void fetchConsolePageSnapshot<AdminAppsUsageSnapshot>(
       CONSOLE_ADMIN_APPS_PAGE_USAGE_SNAPSHOT_URL,
       {
@@ -155,13 +198,11 @@ export function AdminAppsPageShell({
       },
     )
       .then((snapshot) => {
-        if (signal.aborted) {
-          return;
-        }
+        applyUsageSnapshot(snapshot);
 
-        startTransition(() => {
-          setUsageByAppId(buildAdminAppUsageMap(snapshot));
-        });
+        if (snapshot.pending) {
+          retryUsageSnapshot(1);
+        }
       })
       .catch((error) => {
         if (!signal.aborted && !isAbortRequestError(error)) {
