@@ -2907,10 +2907,20 @@
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.04);
 }
 
+.fg-cluster-resource__meters {
+  display: grid;
+  gap: 0.26rem;
+}
+
 .fg-cluster-resource--compact .fg-cluster-resource__meter {
   height: 0.36rem;
   background: rgba(255, 255, 255, 0.06);
   box-shadow: none;
+}
+
+.fg-cluster-resource__meter--request {
+  height: 0.32rem;
+  background: rgba(165, 191, 220, 0.08);
 }
 
 .fg-cluster-resource__fill {
@@ -2967,6 +2977,10 @@
   color: var(--fugue-text-secondary);
   font-size: 0.76rem;
   line-height: 1.45;
+}
+
+.fg-cluster-resource__meta--request {
+  color: var(--fugue-text-tertiary);
 }
 
 .fg-cluster-resource__compact-meta {

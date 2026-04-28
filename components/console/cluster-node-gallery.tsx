@@ -49,9 +49,15 @@ export type ClusterNodeGalleryResource = {
   label: string;
   percentLabel: string;
   percentValue: number | null;
+  requestLabel: string | null;
+  requestPercentLabel: string;
+  requestPercentValue: number | null;
+  requestTone: ConsoleTone;
+  schedulableFreeLabel: string | null;
   statusLabel: string;
   statusTone: ConsoleTone;
   totalLabel: string;
+  usageTone: ConsoleTone;
   usageLabel: string;
 };
 
@@ -131,6 +137,38 @@ function ClusterResourceMeter({
       : resource.percentLabel;
   const usageLabel =
     resource.usageLabel === "No stats" ? t("No stats") : resource.usageLabel;
+  const requestLabel =
+    resource.requestLabel === "No stats"
+      ? t("No stats")
+      : resource.requestLabel;
+  const requestPercentLabel =
+    resource.requestPercentLabel === "No stats"
+      ? t("No stats")
+      : resource.requestPercentLabel;
+  const schedulableFreeLabel =
+    resource.schedulableFreeLabel === "No stats"
+      ? t("No stats")
+      : resource.schedulableFreeLabel;
+  const title = requestLabel
+    ? schedulableFreeLabel
+      ? t("{label} / {usage} / {total} / {request} / {free}", {
+          free: schedulableFreeLabel,
+          label,
+          request: requestLabel,
+          total: resource.totalLabel,
+          usage: resource.usageLabel,
+        })
+      : t("{label} / {usage} / {total} / {request}", {
+          label,
+          request: requestLabel,
+          total: resource.totalLabel,
+          usage: resource.usageLabel,
+        })
+    : t("{label} / {usage} / {total}", {
+        label,
+        total: resource.totalLabel,
+        usage: resource.usageLabel,
+      });
 
   return (
     <article
@@ -138,11 +176,7 @@ function ClusterResourceMeter({
         "fg-cluster-resource",
         compact && "fg-cluster-resource--compact",
       )}
-      title={t("{label} / {usage} / {total}", {
-        label,
-        total: resource.totalLabel,
-        usage: resource.usageLabel,
-      })}
+      title={title}
     >
       {compact ? (
         <>
@@ -165,22 +199,47 @@ function ClusterResourceMeter({
         </div>
       )}
 
-      <div
-        aria-label={t("{label} usage {percent} ({usage})", {
-          label,
-          percent: resource.percentLabel,
-          usage: resource.usageLabel,
-        })}
-        className="fg-cluster-resource__meter"
-        role="img"
-      >
-        <span
-          className={cx(
-            "fg-cluster-resource__fill",
-            `fg-cluster-resource__fill--${resource.statusTone}`,
-          )}
-          style={{ width: `${readMeterWidth(resource.percentValue)}%` }}
-        />
+      <div className="fg-cluster-resource__meters">
+        <div
+          aria-label={t("{label} usage {percent} ({usage})", {
+            label,
+            percent: resource.percentLabel,
+            usage: resource.usageLabel,
+          })}
+          className="fg-cluster-resource__meter"
+          role="img"
+        >
+          <span
+            className={cx(
+              "fg-cluster-resource__fill",
+              `fg-cluster-resource__fill--${resource.usageTone}`,
+            )}
+            style={{ width: `${readMeterWidth(resource.percentValue)}%` }}
+          />
+        </div>
+
+        {resource.requestPercentValue !== null &&
+        resource.requestPercentValue !== undefined ? (
+          <div
+            aria-label={t("{label} requested {percent} ({usage})", {
+              label,
+              percent: resource.requestPercentLabel,
+              usage: resource.requestLabel ?? resource.requestPercentLabel,
+            })}
+            className="fg-cluster-resource__meter fg-cluster-resource__meter--request"
+            role="img"
+          >
+            <span
+              className={cx(
+                "fg-cluster-resource__fill",
+                `fg-cluster-resource__fill--${resource.requestTone}`,
+              )}
+              style={{
+                width: `${readMeterWidth(resource.requestPercentValue)}%`,
+              }}
+            />
+          </div>
+        ) : null}
       </div>
 
       {compact ? null : (
@@ -189,6 +248,13 @@ function ClusterResourceMeter({
             <span>{usageLabel}</span>
             <span>{resource.totalLabel}</span>
           </div>
+
+          {requestLabel ? (
+            <div className="fg-cluster-resource__meta fg-cluster-resource__meta--request">
+              <span>{requestLabel}</span>
+              {schedulableFreeLabel ? <span>{schedulableFreeLabel}</span> : null}
+            </div>
+          ) : null}
 
           <p className="fg-cluster-resource__detail">{resource.detailLabel}</p>
         </>
@@ -219,19 +285,58 @@ function buildCompactResourceItem(
   t: ReturnType<typeof useI18n>["t"],
 ): ConsoleCompactResourceItemView {
   const label = resource.id === "cpu" ? t("CPU") : t(resource.label);
+  const requestSummaryLabel =
+    resource.requestPercentValue !== null &&
+    resource.requestPercentValue !== undefined
+      ? t("Req {percent}", { percent: resource.requestPercentLabel })
+      : null;
+  const requestIsPrimary =
+    resource.requestPercentValue !== null &&
+    resource.requestPercentValue !== undefined &&
+    (resource.percentValue === null ||
+      resource.percentValue === undefined ||
+      resource.requestPercentValue > resource.percentValue);
+  const usageSummaryLabel = t("Use {percent}", {
+    percent: resource.percentLabel,
+  });
+  const title = resource.requestLabel
+    ? resource.schedulableFreeLabel
+      ? t("{label} / {usage} / {total} / {request} / {free}", {
+          free: resource.schedulableFreeLabel,
+          label,
+          request: resource.requestLabel,
+          total: resource.totalLabel,
+          usage: resource.usageLabel,
+        })
+      : t("{label} / {usage} / {total} / {request}", {
+          label,
+          request: resource.requestLabel,
+          total: resource.totalLabel,
+          usage: resource.usageLabel,
+        })
+    : t("{label} / {usage} / {total}", {
+        label,
+        total: resource.totalLabel,
+        usage: resource.usageLabel,
+      });
 
   return {
     id: resource.id,
     label: resource.label,
-    meterValue: resource.percentValue,
-    primaryLabel: resource.percentLabel,
-    secondaryLabel: resource.usageLabel,
-    title: t("{label} / {usage} / {total}", {
-      label,
-      total: resource.totalLabel,
-      usage: resource.usageLabel,
-    }),
-    tone: resource.statusTone,
+    meterValue: requestIsPrimary
+      ? resource.requestPercentValue
+      : resource.percentValue,
+    primaryLabel:
+      requestIsPrimary && requestSummaryLabel
+        ? requestSummaryLabel
+        : resource.percentLabel,
+    secondaryLabel: requestSummaryLabel
+      ? requestIsPrimary
+        ? usageSummaryLabel
+        : requestSummaryLabel
+      : resource.usageLabel,
+    title,
+    tone: requestIsPrimary ? resource.requestTone : resource.usageTone,
   };
 }
 
@@ -481,7 +586,9 @@ export function ClusterNodeGallery({
                           <div>
                             <HintInline
                               ariaLabel={t("Capacity")}
-                              hint={t("Live CPU, memory, and disk usage.")}
+                              hint={t(
+                                "Live and reserved CPU, memory, and disk capacity.",
+                              )}
                             >
                               <p className="fg-label fg-panel__eyebrow">
                                 {t("Capacity")}

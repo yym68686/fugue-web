@@ -2368,6 +2368,12 @@ export interface components {
             used_millicores?: number;
             /** Format: double */
             usage_percent?: number;
+            /** Format: int64 */
+            requested_millicores?: number;
+            /** Format: double */
+            request_percent?: number;
+            /** Format: int64 */
+            schedulable_free_millicores?: number;
         };
         ClusterNodeMemoryStats: {
             /** Format: int64 */
@@ -2378,6 +2384,12 @@ export interface components {
             used_bytes?: number;
             /** Format: double */
             usage_percent?: number;
+            /** Format: int64 */
+            requested_bytes?: number;
+            /** Format: double */
+            request_percent?: number;
+            /** Format: int64 */
+            schedulable_free_bytes?: number;
         };
         ClusterNodeStorageStats: {
             /** Format: int64 */
@@ -2388,6 +2400,12 @@ export interface components {
             used_bytes?: number;
             /** Format: double */
             usage_percent?: number;
+            /** Format: int64 */
+            requested_bytes?: number;
+            /** Format: double */
+            request_percent?: number;
+            /** Format: int64 */
+            schedulable_free_bytes?: number;
         };
         ClusterNodeWorkloadPod: {
             name: string;

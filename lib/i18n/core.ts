@@ -19,9 +19,21 @@ const enMessages = {
   "Docs": "Docs",
   "Interface language": "Interface language",
   "Light": "Light",
+  "Live and reserved CPU, memory, and disk capacity.":
+    "Live and reserved CPU, memory, and disk capacity.",
   "No images": "-",
   "No stats": "-",
+  "Req {percent}": "Req {percent}",
+  "Reserved {percent} ({amount})": "Reserved {percent} ({amount})",
   "Theme": "Theme",
+  "Use {percent}": "Use {percent}",
+  "{amount} schedulable": "{amount} schedulable",
+  "{label} / {usage} / {total} / {request}":
+    "{label} / {usage} / {total} / {request}",
+  "{label} / {usage} / {total} / {request} / {free}":
+    "{label} / {usage} / {total} / {request} / {free}",
+  "{label} requested {percent} ({usage})":
+    "{label} requested {percent} ({usage})",
 } satisfies MessageCatalog;
 
 const zhCNMessages = {
@@ -1857,6 +1869,8 @@ const zhCNExtraMessages = {
     "修改密码前必须提供。",
   "Reserve the project and the first service slot.":
     "预留项目和首个服务槽位。",
+  "Req {percent}": "预留 {percent}",
+  "Reserved {percent} ({amount})": "已预留 {percent}（{amount}）",
   "Reset raw": "重置原始输入",
   "Restart the current release without rebuilding the image. Persistent storage is preserved when configured.":
     "在不重建镜像的情况下重启当前版本。若已配置持久化存储，则会保留。",
@@ -1917,6 +1931,7 @@ const zhCNExtraMessages = {
   "Update or remove the stored password. Email link stays the recovery anchor for this account.":
     "更新或移除已保存的密码。邮箱链接仍是这个账号的恢复锚点。",
   "Updating": "更新中",
+  "Use {percent}": "使用 {percent}",
   "Use GitHub as another return path into the console.":
     "使用 GitHub 作为返回控制台的另一条路径。",
   "Use a linked Google or Gmail identity to reopen the console.":
@@ -1956,7 +1971,14 @@ const zhCNExtraMessages = {
     "{email} 将成为管理员，并恢复其访问权限。",
   "{email} will gain workspace admin access.":
     "{email} 将获得工作区管理员权限。",
+  "{amount} schedulable": "{amount} 可调度",
   "{label} / {usage} / {total}": "{label} / {usage} / {total}",
+  "{label} / {usage} / {total} / {request}":
+    "{label} / {usage} / {total} / {request}",
+  "{label} / {usage} / {total} / {request} / {free}":
+    "{label} / {usage} / {total} / {request} / {free}",
+  "{label} requested {percent} ({usage})":
+    "{label} 已预留 {percent}（{usage}）",
   "{label} usage {percent} ({usage})": "{label} 使用量 {percent}（{usage}）",
   "{limit} limit. Billed as {billed} until live storage shrinks.":
     "上限为 {limit}。在实时存储缩减前，将按 {billed} 计费。",
@@ -2012,6 +2034,8 @@ const zhCNExtraMessages = {
   "Last login": "最后登录",
   "Last update": "最近更新",
   "Limit {value}": "上限 {value}",
+  "Live and reserved CPU, memory, and disk capacity.":
+    "实时与已预留的 CPU、内存、磁盘容量。",
   "Live CPU, memory, and disk usage.": "实时 CPU、内存和磁盘用量。",
   "Make admin": "设为管理员",
   "Managed limit": "托管上限",
@@ -3372,6 +3396,8 @@ const zhTWExtraMessages = {
     "變更密碼前必須提供。",
   "Reserve the project and the first service slot.":
     "預留專案與第一個服務槽位。",
+  "Req {percent}": "預留 {percent}",
+  "Reserved {percent} ({amount})": "已預留 {percent}（{amount}）",
   "Reset raw": "重設原始輸入",
   "Restart the current release without rebuilding the image. Persistent storage is preserved when configured.":
     "在不重建映像的情況下重新啟動目前版本。若已設定持久化儲存，則會保留。",
@@ -3432,6 +3458,7 @@ const zhTWExtraMessages = {
   "Update or remove the stored password. Email link stays the recovery anchor for this account.":
     "更新或移除已儲存的密碼。電子郵件連結仍是這個帳號的恢復錨點。",
   "Updating": "更新中",
+  "Use {percent}": "使用 {percent}",
   "Use GitHub as another return path into the console.":
     "使用 GitHub 作為返回控制台的另一條路徑。",
   "Use a linked Google or Gmail identity to reopen the console.":
@@ -3471,7 +3498,14 @@ const zhTWExtraMessages = {
     "{email} 將成為管理員，並恢復其存取權限。",
   "{email} will gain workspace admin access.":
     "{email} 將取得工作區管理員權限。",
+  "{amount} schedulable": "{amount} 可排程",
   "{label} / {usage} / {total}": "{label} / {usage} / {total}",
+  "{label} / {usage} / {total} / {request}":
+    "{label} / {usage} / {total} / {request}",
+  "{label} / {usage} / {total} / {request} / {free}":
+    "{label} / {usage} / {total} / {request} / {free}",
+  "{label} requested {percent} ({usage})":
+    "{label} 已預留 {percent}（{usage}）",
   "{label} usage {percent} ({usage})": "{label} 使用量 {percent}（{usage}）",
   "{limit} limit. Billed as {billed} until live storage shrinks.":
     "上限為 {limit}。在即時儲存縮減前，將按 {billed} 計費。",
@@ -3529,6 +3563,8 @@ const zhTWExtraMessages = {
   "Last login": "上次登入",
   "Last update": "最近更新",
   "Limit {value}": "上限 {value}",
+  "Live and reserved CPU, memory, and disk capacity.":
+    "即時與已預留的 CPU、記憶體、磁碟容量。",
   "Live CPU, memory, and disk usage.": "即時 CPU、記憶體與磁碟用量。",
   "Make admin": "設為管理員",
   "Managed limit": "託管上限",

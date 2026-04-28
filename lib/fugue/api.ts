@@ -922,6 +922,11 @@ function buildClusterNodeCpuStatsView(
   return {
     allocatableMilliCores: readNullableNumber(stats.allocatableMillicores),
     capacityMilliCores: readNullableNumber(stats.capacityMillicores),
+    requestPercent: readNullableNumber(stats.requestPercent),
+    requestedMilliCores: readNullableNumber(stats.requestedMillicores),
+    schedulableFreeMilliCores: readNullableNumber(
+      stats.schedulableFreeMillicores,
+    ),
     usagePercent: readNullableNumber(stats.usagePercent),
     usedMilliCores: readNullableNumber(stats.usedMillicores),
   };
@@ -937,6 +942,9 @@ function buildClusterNodeMemoryStatsView(
   return {
     allocatableBytes: readNullableNumber(stats.allocatableBytes),
     capacityBytes: readNullableNumber(stats.capacityBytes),
+    requestPercent: readNullableNumber(stats.requestPercent),
+    requestedBytes: readNullableNumber(stats.requestedBytes),
+    schedulableFreeBytes: readNullableNumber(stats.schedulableFreeBytes),
     usagePercent: readNullableNumber(stats.usagePercent),
     usedBytes: readNullableNumber(stats.usedBytes),
   };
@@ -952,6 +960,9 @@ function buildClusterNodeStorageStatsView(
   return {
     allocatableBytes: readNullableNumber(stats.allocatableBytes),
     capacityBytes: readNullableNumber(stats.capacityBytes),
+    requestPercent: readNullableNumber(stats.requestPercent),
+    requestedBytes: readNullableNumber(stats.requestedBytes),
+    schedulableFreeBytes: readNullableNumber(stats.schedulableFreeBytes),
     usagePercent: readNullableNumber(stats.usagePercent),
     usedBytes: readNullableNumber(stats.usedBytes),
   };

@@ -245,9 +245,15 @@ export type AdminClusterResourceView = {
   label: string;
   percentLabel: string;
   percentValue: number | null;
+  requestLabel: string | null;
+  requestPercentLabel: string;
+  requestPercentValue: number | null;
+  requestTone: ConsoleTone;
+  schedulableFreeLabel: string | null;
   statusLabel: string;
   statusTone: ConsoleTone;
   totalLabel: string;
+  usageTone: ConsoleTone;
   usageLabel: string;
 };
 
@@ -1423,6 +1429,47 @@ function formatCPUCapacityLabel(value?: number | null) {
   return `${Math.round(value)} millicores`;
 }
 
+function isFiniteResourceValue(value?: number | null): value is number {
+  return value !== null && value !== undefined && Number.isFinite(value);
+}
+
+function maxFinitePercent(...values: Array<number | null | undefined>) {
+  let output: number | null = null;
+
+  for (const value of values) {
+    if (!isFiniteResourceValue(value)) {
+      continue;
+    }
+
+    output = output === null ? value : Math.max(output, value);
+  }
+
+  return output;
+}
+
+function buildRequestLabel(
+  percent: number | null | undefined,
+  percentLabel: string,
+  amountLabel: string,
+) {
+  if (!isFiniteResourceValue(percent)) {
+    return null;
+  }
+
+  return `Reserved ${percentLabel} (${amountLabel})`;
+}
+
+function buildSchedulableFreeLabel(
+  value: number | null | undefined,
+  amountLabel: string,
+) {
+  if (!isFiniteResourceValue(value)) {
+    return null;
+  }
+
+  return `${amountLabel} schedulable`;
+}
+
 type AdminAppImageUsageLookup = {
   byAppId: Map<string, FugueProjectImageUsageAppSummary>;
   loaded: boolean;
@@ -1845,6 +1892,13 @@ function buildCPUResourceView(
   stats: FugueClusterNodeCPUStats | null,
 ): AdminClusterResourceView {
   const percent = stats?.usagePercent ?? null;
+  const requestPercent = stats?.requestPercent ?? null;
+  const requestedLabel = formatCPUCapacityLabel(stats?.requestedMilliCores);
+  const requestPercentLabel = formatPercentLabel(requestPercent);
+  const schedulableFreeLabel = formatCPUCapacityLabel(
+    stats?.schedulableFreeMilliCores,
+  );
+  const statusPercent = maxFinitePercent(percent, requestPercent);
   const total =
     stats?.allocatableMilliCores ?? stats?.capacityMilliCores ?? null;
 
@@ -1858,12 +1912,25 @@ function buildCPUResourceView(
     label: "Compute",
     percentLabel: formatPercentLabel(percent),
     percentValue: percent,
-    statusLabel: readResourceStatusLabel(percent),
-    statusTone: readResourceTone(percent),
+    requestLabel: buildRequestLabel(
+      requestPercent,
+      requestPercentLabel,
+      requestedLabel,
+    ),
+    requestPercentLabel,
+    requestPercentValue: requestPercent,
+    requestTone: readResourceTone(requestPercent),
+    schedulableFreeLabel: buildSchedulableFreeLabel(
+      stats?.schedulableFreeMilliCores,
+      schedulableFreeLabel,
+    ),
+    statusLabel: readResourceStatusLabel(statusPercent),
+    statusTone: readResourceTone(statusPercent),
     totalLabel:
       total !== null && total !== undefined
         ? `${formatCPUCapacityLabel(total)} allocatable`
         : "Allocatable unknown",
+    usageTone: readResourceTone(percent),
     usageLabel: formatCPUCapacityLabel(stats?.usedMilliCores),
   };
 }
@@ -1873,6 +1940,11 @@ function buildMemoryResourceView(
   hasPressure: boolean,
 ): AdminClusterResourceView {
   const percent = stats?.usagePercent ?? null;
+  const requestPercent = stats?.requestPercent ?? null;
+  const requestedLabel = formatBytesLabel(stats?.requestedBytes);
+  const requestPercentLabel = formatPercentLabel(requestPercent);
+  const schedulableFreeLabel = formatBytesLabel(stats?.schedulableFreeBytes);
+  const statusPercent = maxFinitePercent(percent, requestPercent);
   const total = stats?.allocatableBytes ?? stats?.capacityBytes ?? null;
 
   return {
@@ -1884,12 +1956,25 @@ function buildMemoryResourceView(
     label: "Memory",
     percentLabel: formatPercentLabel(percent),
     percentValue: percent,
-    statusLabel: readResourceStatusLabel(percent, hasPressure),
-    statusTone: readResourceTone(percent, hasPressure),
+    requestLabel: buildRequestLabel(
+      requestPercent,
+      requestPercentLabel,
+      requestedLabel,
+    ),
+    requestPercentLabel,
+    requestPercentValue: requestPercent,
+    requestTone: readResourceTone(requestPercent),
+    schedulableFreeLabel: buildSchedulableFreeLabel(
+      stats?.schedulableFreeBytes,
+      schedulableFreeLabel,
+    ),
+    statusLabel: readResourceStatusLabel(statusPercent, hasPressure),
+    statusTone: readResourceTone(statusPercent, hasPressure),
     totalLabel:
       total !== null && total !== undefined
         ? `${formatBytesLabel(total)} allocatable`
         : "Allocatable unknown",
+    usageTone: readResourceTone(percent, hasPressure),
     usageLabel: formatBytesLabel(stats?.usedBytes),
   };
 }
@@ -1899,6 +1984,11 @@ function buildStorageResourceView(
   hasPressure: boolean,
 ): AdminClusterResourceView {
   const percent = stats?.usagePercent ?? null;
+  const requestPercent = stats?.requestPercent ?? null;
+  const requestedLabel = formatBytesLabel(stats?.requestedBytes);
+  const requestPercentLabel = formatPercentLabel(requestPercent);
+  const schedulableFreeLabel = formatBytesLabel(stats?.schedulableFreeBytes);
+  const statusPercent = maxFinitePercent(percent, requestPercent);
   const total = stats?.allocatableBytes ?? stats?.capacityBytes ?? null;
 
   return {
@@ -1910,12 +2000,25 @@ function buildStorageResourceView(
     label: "Disk",
     percentLabel: formatPercentLabel(percent),
     percentValue: percent,
-    statusLabel: readResourceStatusLabel(percent, hasPressure),
-    statusTone: readResourceTone(percent, hasPressure),
+    requestLabel: buildRequestLabel(
+      requestPercent,
+      requestPercentLabel,
+      requestedLabel,
+    ),
+    requestPercentLabel,
+    requestPercentValue: requestPercent,
+    requestTone: readResourceTone(requestPercent),
+    schedulableFreeLabel: buildSchedulableFreeLabel(
+      stats?.schedulableFreeBytes,
+      schedulableFreeLabel,
+    ),
+    statusLabel: readResourceStatusLabel(statusPercent, hasPressure),
+    statusTone: readResourceTone(statusPercent, hasPressure),
     totalLabel:
       total !== null && total !== undefined
         ? `${formatBytesLabel(total)} allocatable`
         : "Allocatable unknown",
+    usageTone: readResourceTone(percent, hasPressure),
     usageLabel: formatBytesLabel(stats?.usedBytes),
   };
 }
