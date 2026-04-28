@@ -23,10 +23,12 @@ import {
   CONSOLE_ADMIN_USERS_PAGE_ENRICHMENT_SNAPSHOT_URL,
   CONSOLE_ADMIN_USERS_PAGE_USAGE_SNAPSHOT_URL,
   type ConsoleAdminUsersPageSnapshot,
+  fetchConsolePageSnapshot,
   readConsolePageSnapshot,
   useConsolePageSnapshot,
 } from "@/lib/console/page-snapshot-client";
 import { useAnticipatoryWarmup } from "@/lib/ui/anticipatory-warmup";
+import { isAbortRequestError } from "@/lib/ui/request-json";
 
 const ADMIN_USERS_USAGE_SNAPSHOT_TTL_MS = 300_000;
 const ADMIN_USERS_ENRICHMENT_SNAPSHOT_TTL_MS = 300_000;
@@ -74,6 +76,18 @@ function hasAdminUserUsageImageData(
   usage: AdminUsersUsageSnapshot["users"][number]["usage"] | undefined,
 ) {
   return Boolean(usage && usage.imageLabel && usage.imageLabel !== "No stats");
+}
+
+function hasLoadedAdminUserUsage(
+  usage: AdminUsersUsageSnapshot["users"][number]["usage"] | undefined,
+) {
+  return Boolean(
+    usage &&
+      !usage.loading &&
+      [usage.cpuLabel, usage.memoryLabel, usage.diskLabel, usage.imageLabel].some(
+        (label) => label && label !== "No stats",
+      ),
+  );
 }
 
 function buildAdminUsersEnrichmentMap(
@@ -169,7 +183,7 @@ export function AdminUsersPageShell({
     () => (data?.users ?? []).map((user) => user.email).join("||"),
     [data],
   );
-  const warmAdminUserUsage = useEffectEvent((_signal: AbortSignal) => {
+  const warmAdminUserUsage = useEffectEvent((signal: AbortSignal) => {
     if (!data?.users.length) {
       return;
     }
@@ -184,14 +198,38 @@ export function AdminUsersPageShell({
 
     const needsUsageFetch = data.users.some((user) => {
       const nextUsage = cachedUsage[user.email]?.usage ?? user.usage;
-      return !cachedUsage[user.email] || !hasAdminUserUsageImageData(nextUsage);
+      return (
+        !cachedUsage[user.email] ||
+        !hasLoadedAdminUserUsage(nextUsage) ||
+        !hasAdminUserUsageImageData(nextUsage)
+      );
     });
 
     if (!needsUsageFetch) {
       return;
     }
-    // User usage is refreshed by the server route after the base snapshot is
-    // returned. Keep initial page entry to cached data only.
+
+    void fetchConsolePageSnapshot<AdminUsersUsageSnapshot>(
+      CONSOLE_ADMIN_USERS_PAGE_USAGE_SNAPSHOT_URL,
+      {
+        signal,
+        ttlMs: ADMIN_USERS_USAGE_SNAPSHOT_TTL_MS,
+      },
+    )
+      .then((snapshot) => {
+        if (signal.aborted) {
+          return;
+        }
+
+        startTransition(() => {
+          setUsageByEmail(buildAdminUserUsageMap(snapshot));
+        });
+      })
+      .catch((error) => {
+        if (!signal.aborted && !isAbortRequestError(error)) {
+          console.error("Admin users usage refresh failed.", error);
+        }
+      });
   });
 
   const userEnrichmentWarmupKey = useMemo(

@@ -23,10 +23,12 @@ import {
   CONSOLE_ADMIN_APPS_PAGE_SNAPSHOT_URL,
   CONSOLE_ADMIN_APPS_PAGE_USAGE_SNAPSHOT_URL,
   type ConsoleAdminAppsPageSnapshot,
+  fetchConsolePageSnapshot,
   readConsolePageSnapshot,
   useConsolePageSnapshot,
 } from "@/lib/console/page-snapshot-client";
 import { useAnticipatoryWarmup } from "@/lib/ui/anticipatory-warmup";
+import { isAbortRequestError } from "@/lib/ui/request-json";
 
 const ADMIN_APPS_USAGE_SNAPSHOT_TTL_MS = 300_000;
 
@@ -59,6 +61,16 @@ function hasAdminAppUsageImageData(
     imageUsage &&
       imageUsage.primaryLabel &&
       imageUsage.primaryLabel !== "No stats",
+  );
+}
+
+function hasLoadedAdminAppUsage(
+  resourceUsage: ConsoleCompactResourceItemView[] | undefined,
+) {
+  return Boolean(
+    resourceUsage?.some(
+      (item) => item.primaryLabel && item.primaryLabel !== "No stats",
+    ),
   );
 }
 
@@ -110,7 +122,7 @@ export function AdminAppsPageShell({
     () => (data?.apps ?? []).map((app) => app.id).join("||"),
     [data],
   );
-  const warmAdminAppUsage = useEffectEvent((_signal: AbortSignal) => {
+  const warmAdminAppUsage = useEffectEvent((signal: AbortSignal) => {
     if (!data?.apps.length) {
       return;
     }
@@ -125,15 +137,38 @@ export function AdminAppsPageShell({
 
     const needsUsageFetch = data.apps.some((app) => {
       const nextUsage = cachedUsage[app.id] ?? app.resourceUsage;
-      return !cachedUsage[app.id] || !hasAdminAppUsageImageData(nextUsage);
+      return (
+        !cachedUsage[app.id] ||
+        !hasLoadedAdminAppUsage(nextUsage) ||
+        !hasAdminAppUsageImageData(nextUsage)
+      );
     });
 
     if (!needsUsageFetch) {
       return;
     }
-    // Admin app usage includes live resource samples and registry image usage.
-    // The server refreshes it in the background; the client only applies an
-    // already-warmed snapshot during page entry.
+
+    void fetchConsolePageSnapshot<AdminAppsUsageSnapshot>(
+      CONSOLE_ADMIN_APPS_PAGE_USAGE_SNAPSHOT_URL,
+      {
+        signal,
+        ttlMs: ADMIN_APPS_USAGE_SNAPSHOT_TTL_MS,
+      },
+    )
+      .then((snapshot) => {
+        if (signal.aborted) {
+          return;
+        }
+
+        startTransition(() => {
+          setUsageByAppId(buildAdminAppUsageMap(snapshot));
+        });
+      })
+      .catch((error) => {
+        if (!signal.aborted && !isAbortRequestError(error)) {
+          console.error("Admin apps usage refresh failed.", error);
+        }
+      });
   });
 
   useAnticipatoryWarmup(
