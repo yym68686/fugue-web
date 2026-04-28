@@ -47,8 +47,15 @@ import type {
 import type { ConsoleTone } from "@/lib/console/types";
 import {
   CONSOLE_PROJECT_GALLERY_USAGE_SNAPSHOT_URL,
+  fetchConsolePageSnapshot,
   readConsolePageSnapshot,
 } from "@/lib/console/page-snapshot-client";
+import {
+  buildProjectImageUsageMap,
+  fetchCachedProjectImageUsage,
+  readCachedProjectImageUsage,
+  type ProjectImageUsageSummary,
+} from "@/lib/console/project-image-usage-client";
 import {
   clearPendingProjectIntent,
   createPendingProjectIntent,
@@ -144,13 +151,6 @@ type PendingProjectProgressStep = {
   live?: boolean;
   status: string;
   tone: ConsoleTone;
-};
-
-type ProjectImageUsageSummary = {
-  projectId: string;
-  reclaimableSizeBytes: number;
-  totalSizeBytes: number;
-  versionCount: number;
 };
 
 type GalleryStreamPayload = {
@@ -1288,8 +1288,10 @@ export function ConsoleProjectGallery({
       readProjectUsageSnapshotResponse()?.projects ?? [],
     ),
   );
-  const [projectImageUsageByProjectId] =
-    useState<Record<string, ProjectImageUsageSummary>>({});
+  const [projectImageUsageByProjectId, setProjectImageUsageByProjectId] =
+    useState<Record<string, ProjectImageUsageSummary>>(() =>
+      buildProjectImageUsageMap(readCachedProjectImageUsage() ?? []),
+    );
   const [instantRouteFeedback, setInstantRouteFeedback] =
     useState<InstantRouteFeedback | null>(null);
 
@@ -1310,6 +1312,10 @@ export function ConsoleProjectGallery({
       applyProjectUsageToProjectSummaries(data.projects, projectUsageByProjectId),
     [data.projects, projectUsageByProjectId],
   );
+  const projectUsageKey = data.projects
+    .map((project) => project.id.trim())
+    .filter(Boolean)
+    .join("||");
   const projectCatalog = useMemo<ProjectCatalogEntry[]>(
     () =>
       projects.map((item) => ({
@@ -1491,6 +1497,60 @@ export function ConsoleProjectGallery({
       setData(initialData);
     });
   }, [initialData]);
+
+  useEffect(() => {
+    if (!data.workspace.exists || !projectUsageKey) {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    void fetchConsolePageSnapshot<ProjectUsageSnapshotResponse>(
+      CONSOLE_PROJECT_GALLERY_USAGE_SNAPSHOT_URL,
+      {
+        signal: controller.signal,
+        ttlMs: PROJECT_USAGE_SNAPSHOT_TTL_MS,
+      },
+    )
+      .then((response) => {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        startTransition(() => {
+          setProjectUsageByProjectId(
+            buildProjectUsageSnapshotMap(response.projects),
+          );
+        });
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted && !isAbortRequestError(error)) {
+          console.error("Console gallery usage refresh failed.", error);
+        }
+      });
+
+    void fetchCachedProjectImageUsage({
+      signal: controller.signal,
+    })
+      .then((projects) => {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        startTransition(() => {
+          setProjectImageUsageByProjectId(buildProjectImageUsageMap(projects));
+        });
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted && !isAbortRequestError(error)) {
+          console.error("Project image usage refresh failed.", error);
+        }
+      });
+
+    return () => {
+      controller.abort();
+    };
+  }, [data.workspace.exists, projectUsageKey]);
 
   useEffect(() => {
     setInstantRouteFeedback(null);
