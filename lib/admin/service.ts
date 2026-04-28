@@ -2,6 +2,7 @@ import "server-only";
 
 import { listAppUsers, type AppUserRecord } from "@/lib/app-users/store";
 import {
+  deleteAdminSnapshotCache,
   readAdminSnapshotCache,
   writeAdminSnapshotCache,
 } from "@/lib/admin/snapshot-store";
@@ -196,14 +197,20 @@ const ADMIN_USERS_ENRICHMENT_CACHE_TTL_MS = 300_000;
 const ADMIN_USAGE_CACHE_TTL_MS = 300_000;
 const ADMIN_USAGE_PERSISTED_STALE_MS = 30 * 60_000;
 const ADMIN_CONTROL_PLANE_CACHE_TTL_MS = 300_000;
+const ADMIN_APPS_PAGE_DATA_CACHE_KEY = "admin-apps-page-data";
 const ADMIN_APPS_USAGE_DATA_CACHE_KEY = "admin-apps-usage-data";
+const ADMIN_USERS_PAGE_DATA_CACHE_KEY = "admin-users-page-data";
 const ADMIN_USERS_USAGE_DATA_CACHE_KEY = "admin-users-usage-data";
 
 let cachedAdminUsersEnrichmentData: AdminUsersPageData | null = null;
 let cachedAdminUsersEnrichmentAt = 0;
 let adminUsersEnrichmentRequest: Promise<AdminUsersPageData> | null = null;
+let adminAppsPageRefreshRequest: Promise<AdminAppsPageData> | null = null;
 let adminAppsUsageRefreshRequest: Promise<AdminAppsUsageData> | null = null;
+let adminUsersPageRefreshRequest: Promise<AdminUsersPageData> | null = null;
 let adminUsersUsageRefreshRequest: Promise<AdminUsersUsageData> | null = null;
+const adminAppsPageDataCache =
+  createExpiringAsyncCache<AdminAppsPageData>(ADMIN_USAGE_CACHE_TTL_MS);
 const adminAppsUsageCache = createExpiringAsyncCache<FugueApp[]>(
   ADMIN_USAGE_CACHE_TTL_MS,
 );
@@ -215,6 +222,8 @@ const adminAppsUsageDataCache =
   createExpiringAsyncCache<AdminAppsUsageData>(ADMIN_USAGE_CACHE_TTL_MS);
 const adminUsersUsageDataCache =
   createExpiringAsyncCache<AdminUsersUsageData>(ADMIN_USAGE_CACHE_TTL_MS);
+const adminUsersPageDataCache =
+  createExpiringAsyncCache<AdminUsersPageData>(ADMIN_USAGE_CACHE_TTL_MS);
 const adminControlPlaneViewCache =
   createExpiringAsyncCache<AdminControlPlaneView>(
     ADMIN_CONTROL_PLANE_CACHE_TTL_MS,
@@ -2205,7 +2214,7 @@ function buildClusterNodeViews(
   });
 }
 
-export async function getAdminAppsPageData(): Promise<AdminAppsPageData> {
+async function loadAdminAppsPageData(): Promise<AdminAppsPageData> {
   let bootstrapKey: string;
 
   try {
@@ -2322,6 +2331,72 @@ export async function getAdminAppsPageData(): Promise<AdminAppsPageData> {
         .size,
     },
   };
+}
+
+async function readPersistedAdminAppsPageData() {
+  const entry = await readAdminSnapshotCache<AdminAppsPageData>(
+    ADMIN_APPS_PAGE_DATA_CACHE_KEY,
+  ).catch(() => null);
+
+  if (!entry || entry.ageMs > ADMIN_USAGE_PERSISTED_STALE_MS) {
+    return null;
+  }
+
+  adminAppsPageDataCache.set(ADMIN_APPS_PAGE_DATA_CACHE_KEY, entry.payload);
+  return entry.payload;
+}
+
+async function refreshAdminAppsPageData(): Promise<AdminAppsPageData> {
+  if (adminAppsPageRefreshRequest) {
+    return adminAppsPageRefreshRequest;
+  }
+
+  const request = loadAdminAppsPageData()
+    .then(async (data) => {
+      adminAppsPageDataCache.set(ADMIN_APPS_PAGE_DATA_CACHE_KEY, data);
+      await writeAdminSnapshotCache(ADMIN_APPS_PAGE_DATA_CACHE_KEY, data).catch(
+        () => undefined,
+      );
+      return data;
+    })
+    .finally(() => {
+      if (adminAppsPageRefreshRequest === request) {
+        adminAppsPageRefreshRequest = null;
+      }
+    });
+
+  adminAppsPageRefreshRequest = request;
+  return request;
+}
+
+export async function getAdminAppsPageData(): Promise<AdminAppsPageData> {
+  const cached = adminAppsPageDataCache.read(ADMIN_APPS_PAGE_DATA_CACHE_KEY);
+
+  if (cached) {
+    return cached;
+  }
+
+  const persisted = await readPersistedAdminAppsPageData();
+
+  if (persisted) {
+    void refreshAdminAppsPageData();
+    return persisted;
+  }
+
+  return refreshAdminAppsPageData();
+}
+
+export function invalidateAdminAppsPageData() {
+  adminAppsPageRefreshRequest = null;
+  adminAppsUsageRefreshRequest = null;
+  adminAppsPageDataCache.clear(ADMIN_APPS_PAGE_DATA_CACHE_KEY);
+  adminAppsUsageDataCache.clear(ADMIN_APPS_USAGE_DATA_CACHE_KEY);
+  adminAppsUsageCache.clear("apps-with-resource-usage");
+  adminAppImageUsageCache.clear("project-image-usage");
+  void Promise.allSettled([
+    deleteAdminSnapshotCache(ADMIN_APPS_PAGE_DATA_CACHE_KEY),
+    deleteAdminSnapshotCache(ADMIN_APPS_USAGE_DATA_CACHE_KEY),
+  ]);
 }
 
 async function getCachedAdminAppsWithResourceUsage(bootstrapKey: string) {
@@ -2635,7 +2710,7 @@ async function getAdminUserBillingLookup(
   };
 }
 
-export async function getAdminUsersPageData(): Promise<AdminUsersPageData> {
+async function loadAdminUsersPageData(): Promise<AdminUsersPageData> {
   const base = await loadAdminUsersBaseData({
     includeWorkspaces: false,
   });
@@ -2652,6 +2727,59 @@ export async function getAdminUsersPageData(): Promise<AdminUsersPageData> {
     ),
     usageData,
   );
+}
+
+async function readPersistedAdminUsersPageData() {
+  const entry = await readAdminSnapshotCache<AdminUsersPageData>(
+    ADMIN_USERS_PAGE_DATA_CACHE_KEY,
+  ).catch(() => null);
+
+  if (!entry || entry.ageMs > ADMIN_USAGE_PERSISTED_STALE_MS) {
+    return null;
+  }
+
+  adminUsersPageDataCache.set(ADMIN_USERS_PAGE_DATA_CACHE_KEY, entry.payload);
+  return entry.payload;
+}
+
+async function refreshAdminUsersPageData(): Promise<AdminUsersPageData> {
+  if (adminUsersPageRefreshRequest) {
+    return adminUsersPageRefreshRequest;
+  }
+
+  const request = loadAdminUsersPageData()
+    .then(async (data) => {
+      adminUsersPageDataCache.set(ADMIN_USERS_PAGE_DATA_CACHE_KEY, data);
+      await writeAdminSnapshotCache(ADMIN_USERS_PAGE_DATA_CACHE_KEY, data).catch(
+        () => undefined,
+      );
+      return data;
+    })
+    .finally(() => {
+      if (adminUsersPageRefreshRequest === request) {
+        adminUsersPageRefreshRequest = null;
+      }
+    });
+
+  adminUsersPageRefreshRequest = request;
+  return request;
+}
+
+export async function getAdminUsersPageData(): Promise<AdminUsersPageData> {
+  const cached = adminUsersPageDataCache.read(ADMIN_USERS_PAGE_DATA_CACHE_KEY);
+
+  if (cached) {
+    return cached;
+  }
+
+  const persisted = await readPersistedAdminUsersPageData();
+
+  if (persisted) {
+    void refreshAdminUsersPageData();
+    return persisted;
+  }
+
+  return refreshAdminUsersPageData();
 }
 
 async function loadAdminUsersEnrichmentLookup(
@@ -2764,7 +2892,13 @@ export function invalidateAdminUsersPageEnrichmentData() {
   cachedAdminUsersEnrichmentData = null;
   cachedAdminUsersEnrichmentAt = 0;
   adminUsersEnrichmentRequest = null;
+  adminUsersPageRefreshRequest = null;
+  adminUsersPageDataCache.clear(ADMIN_USERS_PAGE_DATA_CACHE_KEY);
   adminUsersUsageDataCache.clear(ADMIN_USERS_USAGE_DATA_CACHE_KEY);
+  void Promise.allSettled([
+    deleteAdminSnapshotCache(ADMIN_USERS_PAGE_DATA_CACHE_KEY),
+    deleteAdminSnapshotCache(ADMIN_USERS_USAGE_DATA_CACHE_KEY),
+  ]);
 }
 
 export async function updateAdminUserBillingForEmail(

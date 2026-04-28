@@ -77,3 +77,15 @@ export async function writeAdminSnapshotCache<T>(key: string, payload: T) {
     ),
   );
 }
+
+export async function deleteAdminSnapshotCache(key: string) {
+  await withDbSchemaRetry(() =>
+    queryDb(
+      `
+        DELETE FROM app_admin_snapshots
+        WHERE key = $1
+      `,
+      [key],
+    ),
+  );
+}
