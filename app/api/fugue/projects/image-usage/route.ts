@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 
-import { getFugueProjectImageUsage } from "@/lib/fugue/api";
+import {
+  getConsoleProjectImageUsageDataForWorkspace,
+} from "@/lib/console/gallery-data";
 import {
   jsonError,
   readErrorMessage,
@@ -23,8 +25,8 @@ export async function GET() {
   }
 
   try {
-    const result = await getFugueProjectImageUsage(
-      workspaceState.workspace.adminKeySecret,
+    const result = await getConsoleProjectImageUsageDataForWorkspace(
+      workspaceState.workspace,
     );
 
     return NextResponse.json(result);

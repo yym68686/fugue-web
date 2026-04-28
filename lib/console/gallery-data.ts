@@ -42,6 +42,7 @@ import {
   type FugueOperation,
   type FugueProject,
   type FugueAppTechnology,
+  type FugueProjectImageUsageResult,
   type FugueResourceUsage,
   type FugueRuntime,
 } from "@/lib/fugue/api";
@@ -94,6 +95,11 @@ const CONSOLE_PROJECT_USAGE_CACHE_TTL_MS = 300_000;
 const consoleProjectGalleryUsageCache =
   createExpiringAsyncCache<ConsoleProjectGalleryUsageData>(
     CONSOLE_PROJECT_USAGE_CACHE_TTL_MS,
+  );
+const CONSOLE_PROJECT_IMAGE_USAGE_CACHE_TTL_MS = 300_000;
+const consoleProjectImageUsageCache =
+  createExpiringAsyncCache<FugueProjectImageUsageResult>(
+    CONSOLE_PROJECT_IMAGE_USAGE_CACHE_TTL_MS,
   );
 
 function readErrorMessage(reason: unknown) {
@@ -3261,6 +3267,16 @@ export async function getConsoleProjectGalleryUsageData() {
   }
 
   return getConsoleProjectGalleryUsageDataForWorkspace(workspace);
+}
+
+export async function getConsoleProjectImageUsageDataForWorkspace(
+  workspace: WorkspaceAccess,
+) {
+  return consoleProjectImageUsageCache.getOrLoad(workspace.tenantId, () =>
+    requestWithWorkspaceRefresh(workspace, (active) =>
+      getFugueProjectImageUsage(active.adminKeySecret),
+    ),
+  );
 }
 
 export async function getConsoleProjectDetailData(
