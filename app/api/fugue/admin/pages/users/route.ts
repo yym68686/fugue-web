@@ -4,8 +4,9 @@ import { requireAdminSnapshotApiSession } from "@/lib/admin/auth";
 import {
   getAdminUsersPageData,
   getAdminUsersPageEnrichmentData,
-  getAdminUsersUsageData,
   getAdminUsersUsageDataFast,
+  refreshAdminUsersPageData,
+  refreshAdminUsersUsageData,
 } from "@/lib/admin/service";
 import {
   jsonError,
@@ -36,23 +37,36 @@ export async function GET(request: Request) {
 
   try {
     if (readIncludeUsage(request)) {
+      after(async () => {
+        try {
+          await refreshAdminUsersUsageData();
+        } catch (error) {
+          console.error("Admin users usage background sync failed.", error);
+        }
+      });
+
       return jsonSnapshot(await getAdminUsersUsageDataFast());
     }
 
     after(async () => {
       const results = await Promise.allSettled([
-        getAdminUsersUsageData(),
+        refreshAdminUsersPageData(),
+        refreshAdminUsersUsageData(),
         getAdminUsersPageEnrichmentData(),
       ]);
 
       if (results[0].status === "rejected") {
-        console.error("Admin users usage background sync failed.", results[0].reason);
+        console.error("Admin users page background sync failed.", results[0].reason);
       }
 
       if (results[1].status === "rejected") {
+        console.error("Admin users usage background sync failed.", results[1].reason);
+      }
+
+      if (results[2].status === "rejected") {
         console.error(
           "Admin users enrichment background sync failed.",
-          results[1].reason,
+          results[2].reason,
         );
       }
     });

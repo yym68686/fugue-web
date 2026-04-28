@@ -6,6 +6,10 @@ import {
   getAdminClusterPageData,
   getAdminUsersPageEnrichmentData,
   getAdminUsersUsageData,
+  refreshAdminAppsPageData,
+  refreshAdminAppsUsageData,
+  refreshAdminUsersPageData,
+  refreshAdminUsersUsageData,
 } from "@/lib/admin/service";
 import { getFugueEnv } from "@/lib/fugue/env";
 import { fetchFugueServer } from "@/lib/fugue/server-fetch";
@@ -90,6 +94,10 @@ async function warmCriticalSnapshots() {
     getAdminClusterPageData(),
     getAdminUsersPageEnrichmentData(),
     getAdminUsersUsageData(),
+    refreshAdminAppsPageData(),
+    refreshAdminAppsUsageData(),
+    refreshAdminUsersPageData(),
+    refreshAdminUsersUsageData(),
   ]);
 }
 

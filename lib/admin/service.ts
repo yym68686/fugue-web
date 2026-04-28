@@ -2346,7 +2346,7 @@ async function readPersistedAdminAppsPageData() {
   return entry.payload;
 }
 
-async function refreshAdminAppsPageData(): Promise<AdminAppsPageData> {
+export async function refreshAdminAppsPageData(): Promise<AdminAppsPageData> {
   if (adminAppsPageRefreshRequest) {
     return adminAppsPageRefreshRequest;
   }
@@ -2379,7 +2379,6 @@ export async function getAdminAppsPageData(): Promise<AdminAppsPageData> {
   const persisted = await readPersistedAdminAppsPageData();
 
   if (persisted) {
-    void refreshAdminAppsPageData();
     return persisted;
   }
 
@@ -2448,7 +2447,7 @@ async function readPersistedAdminAppsUsageData() {
   return data;
 }
 
-async function refreshAdminAppsUsageData(): Promise<AdminAppsUsageData> {
+export async function refreshAdminAppsUsageData(): Promise<AdminAppsUsageData> {
   if (adminAppsUsageRefreshRequest) {
     return adminAppsUsageRefreshRequest;
   }
@@ -2481,7 +2480,6 @@ export async function getAdminAppsUsageData(): Promise<AdminAppsUsageData> {
   const persisted = await readPersistedAdminAppsUsageData();
 
   if (persisted) {
-    void refreshAdminAppsUsageData();
     return persisted;
   }
 
@@ -2500,7 +2498,6 @@ export async function getAdminAppsUsageDataFast(
   const persisted = await readPersistedAdminAppsUsageData();
 
   if (persisted) {
-    void refreshAdminAppsUsageData();
     return persisted;
   }
 
@@ -2577,7 +2574,7 @@ async function readPersistedAdminUsersUsageData() {
   return data;
 }
 
-async function refreshAdminUsersUsageData(): Promise<AdminUsersUsageData> {
+export async function refreshAdminUsersUsageData(): Promise<AdminUsersUsageData> {
   if (adminUsersUsageRefreshRequest) {
     return adminUsersUsageRefreshRequest;
   }
@@ -2611,7 +2608,6 @@ export async function getAdminUsersUsageData(): Promise<AdminUsersUsageData> {
   const persisted = await readPersistedAdminUsersUsageData();
 
   if (persisted) {
-    void refreshAdminUsersUsageData();
     return persisted;
   }
 
@@ -2630,7 +2626,6 @@ export async function getAdminUsersUsageDataFast(
   const persisted = await readPersistedAdminUsersUsageData();
 
   if (persisted) {
-    void refreshAdminUsersUsageData();
     return persisted;
   }
 
@@ -2742,7 +2737,7 @@ async function readPersistedAdminUsersPageData() {
   return entry.payload;
 }
 
-async function refreshAdminUsersPageData(): Promise<AdminUsersPageData> {
+export async function refreshAdminUsersPageData(): Promise<AdminUsersPageData> {
   if (adminUsersPageRefreshRequest) {
     return adminUsersPageRefreshRequest;
   }
@@ -2775,7 +2770,6 @@ export async function getAdminUsersPageData(): Promise<AdminUsersPageData> {
   const persisted = await readPersistedAdminUsersPageData();
 
   if (persisted) {
-    void refreshAdminUsersPageData();
     return persisted;
   }
 

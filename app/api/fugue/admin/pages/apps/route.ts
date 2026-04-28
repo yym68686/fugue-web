@@ -3,8 +3,9 @@ import { after, NextResponse } from "next/server";
 import { requireAdminSnapshotApiSession } from "@/lib/admin/auth";
 import {
   getAdminAppsPageData,
-  getAdminAppsUsageData,
   getAdminAppsUsageDataFast,
+  refreshAdminAppsPageData,
+  refreshAdminAppsUsageData,
 } from "@/lib/admin/service";
 import {
   jsonError,
@@ -35,14 +36,29 @@ export async function GET(request: Request) {
 
   try {
     if (readIncludeUsage(request)) {
+      after(async () => {
+        try {
+          await refreshAdminAppsUsageData();
+        } catch (error) {
+          console.error("Admin apps usage background sync failed.", error);
+        }
+      });
+
       return jsonSnapshot(await getAdminAppsUsageDataFast());
     }
 
     after(async () => {
-      try {
-        await getAdminAppsUsageData();
-      } catch (error) {
-        console.error("Admin apps usage background sync failed.", error);
+      const results = await Promise.allSettled([
+        refreshAdminAppsPageData(),
+        refreshAdminAppsUsageData(),
+      ]);
+
+      if (results[0].status === "rejected") {
+        console.error("Admin apps page background sync failed.", results[0].reason);
+      }
+
+      if (results[1].status === "rejected") {
+        console.error("Admin apps usage background sync failed.", results[1].reason);
       }
     });
 
