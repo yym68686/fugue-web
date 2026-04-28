@@ -1,4 +1,4 @@
-import { after, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
 import { requireAdminSnapshotApiSession } from "@/lib/admin/auth";
 import {
@@ -16,6 +16,12 @@ import {
 
 export const dynamic = "force-dynamic";
 
+const ADMIN_USERS_BACKGROUND_SYNC_INTERVAL_MS = 30_000;
+
+let nextAdminUsersEnrichmentSyncAt = 0;
+let nextAdminUsersPageSyncAt = 0;
+let nextAdminUsersUsageSyncAt = 0;
+
 function jsonSnapshot(snapshot: unknown) {
   return NextResponse.json(snapshot, {
     headers: {
@@ -28,6 +34,58 @@ function readIncludeUsage(request: Request) {
   return new URL(request.url).searchParams.get("include_usage") === "1";
 }
 
+function scheduleAdminUsersBackgroundSync(options: {
+  enrichment?: boolean;
+  page?: boolean;
+  usage?: boolean;
+}) {
+  const now = Date.now();
+  const tasks: Array<{ label: string; run: () => Promise<unknown> }> = [];
+
+  if (options.page && now >= nextAdminUsersPageSyncAt) {
+    nextAdminUsersPageSyncAt = now + ADMIN_USERS_BACKGROUND_SYNC_INTERVAL_MS;
+    tasks.push({
+      label: "page",
+      run: refreshAdminUsersPageData,
+    });
+  }
+
+  if (options.usage && now >= nextAdminUsersUsageSyncAt) {
+    nextAdminUsersUsageSyncAt = now + ADMIN_USERS_BACKGROUND_SYNC_INTERVAL_MS;
+    tasks.push({
+      label: "usage",
+      run: refreshAdminUsersUsageData,
+    });
+  }
+
+  if (options.enrichment && now >= nextAdminUsersEnrichmentSyncAt) {
+    nextAdminUsersEnrichmentSyncAt =
+      now + ADMIN_USERS_BACKGROUND_SYNC_INTERVAL_MS;
+    tasks.push({
+      label: "enrichment",
+      run: getAdminUsersPageEnrichmentData,
+    });
+  }
+
+  if (!tasks.length) {
+    return;
+  }
+
+  setTimeout(() => {
+    void Promise.allSettled(tasks.map((task) => task.run())).then((results) => {
+      for (const [index, result] of results.entries()) {
+        if (result.status === "rejected") {
+          const task = tasks[index];
+          console.error(
+            `Admin users ${task?.label ?? "snapshot"} background sync failed.`,
+            result.reason,
+          );
+        }
+      }
+    });
+  }, 0);
+}
+
 export async function GET(request: Request) {
   const access = await requireAdminSnapshotApiSession();
 
@@ -37,38 +95,15 @@ export async function GET(request: Request) {
 
   try {
     if (readIncludeUsage(request)) {
-      after(async () => {
-        try {
-          await refreshAdminUsersUsageData();
-        } catch (error) {
-          console.error("Admin users usage background sync failed.", error);
-        }
-      });
+      scheduleAdminUsersBackgroundSync({ usage: true });
 
       return jsonSnapshot(await getAdminUsersUsageDataFast());
     }
 
-    after(async () => {
-      const results = await Promise.allSettled([
-        refreshAdminUsersPageData(),
-        refreshAdminUsersUsageData(),
-        getAdminUsersPageEnrichmentData(),
-      ]);
-
-      if (results[0].status === "rejected") {
-        console.error("Admin users page background sync failed.", results[0].reason);
-      }
-
-      if (results[1].status === "rejected") {
-        console.error("Admin users usage background sync failed.", results[1].reason);
-      }
-
-      if (results[2].status === "rejected") {
-        console.error(
-          "Admin users enrichment background sync failed.",
-          results[2].reason,
-        );
-      }
+    scheduleAdminUsersBackgroundSync({
+      enrichment: true,
+      page: true,
+      usage: true,
     });
 
     return jsonSnapshot(await getAdminUsersPageData());
