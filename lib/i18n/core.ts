@@ -19,6 +19,7 @@ const enMessages = {
   "Docs": "Docs",
   "Interface language": "Interface language",
   "Light": "Light",
+  "No images": "-",
   "No stats": "-",
   "Theme": "Theme",
 } satisfies MessageCatalog;
@@ -2034,7 +2035,7 @@ const zhCNExtraMessages = {
   "No estimate": "暂无估算",
   "No Fugue app or backing service is currently scheduled onto this node.":
     "当前没有 Fugue 应用或后端服务被调度到该节点上。",
-  "No images": "没有镜像",
+  "No images": "-",
   "No product users have signed in yet.": "还没有产品用户登录。",
   "No tag": "无标签",
   "No users yet": "还没有用户",
@@ -3551,7 +3552,7 @@ const zhTWExtraMessages = {
   "No estimate": "暫無估算",
   "No Fugue app or backing service is currently scheduled onto this node.":
     "目前沒有 Fugue 應用或後端服務被排程到此節點上。",
-  "No images": "沒有映像",
+  "No images": "-",
   "No stats": "-",
   "No product users have signed in yet.": "尚無產品使用者登入。",
   "No tag": "無標籤",
