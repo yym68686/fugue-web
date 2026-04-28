@@ -1229,6 +1229,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/apps/{id}/resources/recommendation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get App Resource Recommendation */
+        get: operations["getAppResourceRecommendation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/apps/{id}/resources/apply-recommendation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Apply App Resource Recommendation */
+        post: operations["applyAppResourceRecommendation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/apps/{id}/build-logs": {
         parameters: {
             query?: never;
@@ -1990,6 +2024,10 @@ export interface components {
             cpu_millicores?: number;
             /** Format: int64 */
             memory_mebibytes?: number;
+            /** Format: int64 */
+            cpu_limit_millicores?: number;
+            /** Format: int64 */
+            memory_limit_mebibytes?: number;
         };
         BillingResourceSpec: {
             /** Format: int64 */
@@ -2006,6 +2044,53 @@ export interface components {
             memory_bytes?: number;
             /** Format: int64 */
             ephemeral_storage_bytes?: number;
+        };
+        ResourceRightSizingPolicy: {
+            /** Format: int32 */
+            window_hours: number;
+            /** Format: int32 */
+            min_samples: number;
+            /** Format: double */
+            cpu_percentile: number;
+            /** Format: double */
+            cpu_multiplier: number;
+            /** Format: int64 */
+            cpu_floor_millicores: number;
+            /** Format: double */
+            memory_percentile: number;
+            /** Format: double */
+            memory_multiplier: number;
+            /** Format: int64 */
+            memory_floor_mebibytes: number;
+        };
+        ResourceRightSizingRecommendation: {
+            target_kind: string;
+            target_id: string;
+            target_name?: string;
+            service_type?: string;
+            workload_class?: components["schemas"]["WorkloadClass"];
+            /** Format: int32 */
+            window_hours: number;
+            /** Format: int32 */
+            sample_count: number;
+            current?: components["schemas"]["ResourceSpec"];
+            recommended?: components["schemas"]["ResourceSpec"];
+            policy: components["schemas"]["ResourceRightSizingPolicy"];
+            ready: boolean;
+            already_current: boolean;
+            reason?: string;
+            /** Format: date-time */
+            observed_at?: string;
+            /** Format: date-time */
+            last_sample_observed_at?: string;
+            /** Format: int64 */
+            peak_cpu_usage_millicores?: number;
+            /** Format: int64 */
+            peak_memory_usage_bytes?: number;
+        };
+        AppRightSizingRecommendation: {
+            app: components["schemas"]["ResourceRightSizingRecommendation"];
+            backing_services?: components["schemas"]["ResourceRightSizingRecommendation"][];
         };
         BillingPriceBook: {
             currency: string;
@@ -2261,10 +2346,12 @@ export interface components {
             args?: string[];
             env?: components["schemas"]["StringMap"];
             network_mode?: components["schemas"]["AppNetworkMode"];
+            workload_class?: components["schemas"]["WorkloadClass"];
             ports?: number[];
             /** Format: int32 */
             replicas?: number;
             resources?: components["schemas"]["ResourceSpec"];
+            right_sizing?: components["schemas"]["AppRightSizingSpec"];
             runtime_id?: string;
             files?: components["schemas"]["AppFile"][];
             workspace?: components["schemas"]["AppWorkspaceSpec"];
@@ -2275,6 +2362,13 @@ export interface components {
             /** Format: int32 */
             image_mirror_limit?: number;
             restart_token?: string;
+        };
+        AppRightSizingSpec: {
+            mode?: components["schemas"]["AppRightSizingMode"];
+            /** Format: int32 */
+            window_hours?: number;
+            /** Format: int32 */
+            min_samples?: number;
         };
         App: {
             id: string;
@@ -2906,6 +3000,21 @@ export interface components {
             startup_command?: string;
             persistent_storage?: components["schemas"]["AppPersistentStorageSpec"];
             volume_replication?: components["schemas"]["AppVolumeReplicationSpec"];
+            right_sizing?: components["schemas"]["AppRightSizingSpec"];
+        };
+        ApplyAppResourceRecommendationRequest: {
+            /** Format: int32 */
+            window_hours?: number;
+            /** Format: int32 */
+            min_samples?: number;
+        };
+        AppResourceRecommendationResponse: {
+            recommendation: components["schemas"]["AppRightSizingRecommendation"];
+        };
+        AppResourceRecommendationApplyResponse: {
+            recommendation: components["schemas"]["AppRightSizingRecommendation"];
+            already_current: boolean;
+            operation?: components["schemas"]["Operation"];
         };
         PatchAppSourceRequest: {
             origin_source: components["schemas"]["AppSource"];
@@ -3680,6 +3789,10 @@ export interface components {
          * @enum {string}
          */
         AppNetworkMode: "background" | "internal";
+        /** @enum {string} */
+        WorkloadClass: "critical" | "service" | "demo" | "batch";
+        /** @enum {string} */
+        AppRightSizingMode: "disabled" | "recommend" | "auto";
         PatchAppRouteRequest: {
             hostname: string;
         };
@@ -6298,6 +6411,68 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getAppResourceRecommendation: {
+        parameters: {
+            query?: {
+                window_hours?: number;
+                min_samples?: number;
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppResourceRecommendationResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    applyAppResourceRecommendation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ApplyAppResourceRecommendationRequest"];
+            };
+        };
+        responses: {
+            /** @description Recommendation was already current */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppResourceRecommendationApplyResponse"];
+                };
+            };
+            /** @description Deploy operation queued with recommended resources */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppResourceRecommendationApplyResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
