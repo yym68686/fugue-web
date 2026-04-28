@@ -19,7 +19,7 @@ const enMessages = {
   "Docs": "Docs",
   "Interface language": "Interface language",
   "Light": "Light",
-  "No stats": "No stats",
+  "No stats": "-",
   "Theme": "Theme",
 } satisfies MessageCatalog;
 
@@ -225,7 +225,7 @@ const zhCNMessages = {
   "No environment changes.": "环境变量没有变化。",
   "No log lines were received before the stream closed.": "流关闭前没有收到任何日志。",
   "No logs available.": "没有可用日志。",
-  "No stats": "无采样",
+  "No stats": "-",
   "Not yet": "尚未",
   "Offline": "离线",
   "One route, two runtimes": "一套路由，两种运行时",
@@ -3552,7 +3552,7 @@ const zhTWExtraMessages = {
   "No Fugue app or backing service is currently scheduled onto this node.":
     "目前沒有 Fugue 應用或後端服務被排程到此節點上。",
   "No images": "沒有映像",
-  "No stats": "無採樣",
+  "No stats": "-",
   "No product users have signed in yet.": "尚無產品使用者登入。",
   "No tag": "無標籤",
   "No users yet": "尚無使用者",
