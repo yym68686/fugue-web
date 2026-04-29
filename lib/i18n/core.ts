@@ -756,6 +756,7 @@ const zhCNExtraMessages = {
   "Admin key unavailable": "管理员密钥不可用",
   "A fresh secret will be copied for this website copy without revoking other environments.":
     "会为此网站副本复制一份新的密钥，不会吊销其他环境中的密钥。",
+  "Add dedicated VPS": "添加专用 VPS",
   "Attached VPS": "已挂接 VPS",
   "Cannot join": "不可加入",
   "Changes apply immediately.": "更改会立即生效。",
@@ -802,12 +803,42 @@ const zhCNExtraMessages = {
   "Current storage": "当前存储",
   "Current workspace": "当前工作区",
   "Custom scope.": "自定义权限。",
+  "Choose a VPS": "选择 VPS",
   "Credits and capacity stay aligned": "额度与容量保持同步",
   "Credits details": "额度详情",
   "Delete access key?": "删除访问密钥？",
   "Delete apps without broad write access.":
     "在不授予广泛写权限的情况下删除应用。",
   "Delete key": "删除密钥",
+  "Dedicated VPS": "专用 VPS",
+  "Dedicated VPS added.": "专用 VPS 已添加。",
+  "Dedicated VPS removed.": "专用 VPS 已移除。",
+  "Default VPS": "默认 VPS",
+  "Default VPS updated.": "默认 VPS 已更新。",
+  "Exclusive": "专用",
+  "Exclusive placement": "专用放置",
+  "Loading dedicated VPS settings…": "正在加载专用 VPS 设置…",
+  "New services use the default VPS unless a deploy, move, or failover chooses another target.":
+    "新服务默认使用这个 VPS；部署、移动或故障切换仍可选择其他目标。",
+  "No available VPS": "没有可用 VPS",
+  "No VPS is reserved for this project.": "此项目还没有保留专用 VPS。",
+  "Only tenant-owned VPS targets can be reserved for one project.":
+    "只有租户自有 VPS 可以保留给单个项目专用。",
+  "Placement": "放置",
+  "Reserved VPS targets reject new placements from other projects. This project can still deploy, move, and fail over onto them.":
+    "已保留的 VPS 会拒绝其他项目的新放置；此项目仍可部署、移动或故障切换到这些 VPS。",
+  "Reserve VPS targets exclusively for projects.":
+    "将 VPS 目标保留为项目专用。",
+  "Runtime inventory is unavailable. Existing default settings stay unchanged.":
+    "运行时清单暂不可用，现有默认设置保持不变。",
+  "Runtime inventory is unavailable. Try again after the inventory refreshes.":
+    "运行时清单暂不可用，请在清单刷新后重试。",
+  "Save default VPS": "保存默认 VPS",
+  "Shared internal cluster": "共享内部集群",
+  "This changes where new services start. Existing services can still move or fail over manually.":
+    "这只会改变新服务的启动位置；现有服务仍可手动移动或故障切换。",
+  "VPS placement": "VPS 放置",
+  "{count} reserved": "已保留 {count} 个",
   "Disabling…": "正在禁用…",
   "disabled": "已禁用",
   "Deploy, rebuild, and restart apps.": "部署、重建并重启应用。",
@@ -1050,7 +1081,14 @@ const zhCNExtraMessages = {
     "自定义域名可用性响应格式不正确。",
   "Custom domain response was malformed.": "自定义域名响应格式不正确。",
   "Custom domains": "自定义域名",
+  "App handoff": "应用切换",
+  "Attach a server later": "稍后接入服务器",
+  "Attach your own machine later without changing the workflow.":
+    "之后接入自己的机器，工作流保持不变。",
+  "Auth -> App": "认证 -> 应用",
   "Back to top": "返回顶部",
+  "Build / Deploy / Route": "构建 / 部署 / 路由",
+  "Build / Runtime / Operations": "构建 / 运行时 / 操作",
   "Copied": "已复制",
   "Copy command": "复制命令",
   "Copy manually": "请手动复制",
@@ -1063,15 +1101,30 @@ const zhCNExtraMessages = {
   "Footer": "页脚",
   "Gallery / Services / Controls": "画廊 / 服务 / 控制",
   "GitHub import example": "GitHub 导入示例",
+  "GitHub / Docker image / Upload / Builder": "GitHub / Docker 镜像 / 上传 / 构建器",
+  "GitHub, Docker image, local upload": "GitHub、Docker 镜像、本地上传",
   "Google / Email / Verified identity": "Google / 邮箱 / 已验证身份",
+  "Google sign-in and email sign-up run as full routes with loading, validation, retry, and failure states. The public page hands off directly into the app instead of restarting the journey in a different shell.":
+    "Google 登录和邮箱注册都作为完整路由运行，覆盖加载、校验、重试和失败状态。公开页面会直接切换进应用，而不是让用户在另一个壳层里重新开始。",
   "Health / Heartbeat / Workloads": "健康 / 心跳 / 工作负载",
+  "Issue a node key, confirm heartbeat, and move the same app onto your own machine. The route and operating model stay consistent.":
+    "签发节点密钥、确认心跳，然后把同一个应用迁移到你的机器上。路由和运行模型保持一致。",
   "Loading": "正在加载",
   "Loading apps": "正在加载应用",
   "Loading profile settings": "正在加载个人资料设置",
   "Loading users": "正在加载用户",
+  "Live provider flow": "在线提供方流程",
+  "Logs and audit trail": "日志与审计轨迹",
   "Magic link / Resend / Callback": "魔法链接 / 重发 / 回调",
+  "Managed shared runtime / Logs / Route / Deploy ops":
+    "托管共享运行时 / 日志 / 路由 / 部署操作",
   "Managed shared runtime": "托管共享运行时",
+  "Migration": "迁移",
   "Mobile": "移动端",
+  "Node key / Heartbeat / Migrate": "节点密钥 / 心跳 / 迁移",
+  "Node key / Heartbeat / Migrate / Same control model":
+    "节点密钥 / 心跳 / 迁移 / 同一控制模型",
+  "Node key setup": "节点密钥设置",
   "Nodes / Pressure / Workloads": "节点 / 压力 / 工作负载",
   "OAuth / Profile / Verified email": "OAuth / 个人资料 / 已验证邮箱",
   "OAuth / Verified email": "OAuth / 已验证邮箱",
@@ -1087,20 +1140,33 @@ const zhCNExtraMessages = {
   "Repository / Image / Upload": "仓库 / 镜像 / 上传",
   "Repository import": "仓库导入",
   "Reset": "重置",
+  "Route model": "路由模型",
   "Route, sign-in, and the app already share one system.": "路由、登录和应用现在已经是同一个系统。",
   "Routes": "路径",
   "Routed": "已路由",
   "Service port": "服务端口",
+  "Shared -> Attached": "共享 -> 接入",
+  "Shared runtime gets the app public quickly while preserving deploy history, route state, and logs from the first run.":
+    "共享运行时能让应用快速获得公开访问，同时从首次运行开始保留部署历史、路由状态和日志。",
   "shared": "共享",
   "Sign in without breaking the product flow.": "在不打断产品流程的情况下完成登录。",
   "Sign in with password": "使用密码登录",
+  "Sign up": "注册",
+  "Sign-in and handoff": "登录与切换",
   "Sign-in handoff": "登录切换",
   "Sign-in method": "登录方式",
   "Sign-in route": "登录路径",
   "Sign-up route": "注册路径",
   "Signing in": "正在登录",
   "source": "源码",
+  "attached": "接入",
+  "Source location, access mode, and build metadata define the app before the first deploy. GitHub repositories, Docker images, and local uploads all enter the same route-first operating model.":
+    "源码位置、访问方式和构建元数据会在首次部署前定义应用。GitHub 仓库、Docker 镜像和本地上传都会进入同一套路由优先的运行模型。",
+  "Start from a repository, image, or uploaded bundle.":
+    "从仓库、镜像或上传包开始。",
   "Stored secret / Current account email": "已保存密钥 / 当前账号邮箱",
+  "Fugue keeps the public route, sign-in handoff, and app shell inside one product. The same route and workflow continue from the first deploy to the signed-in workspace.":
+    "Fugue 将公开路由、登录切换和应用壳层保持在同一个产品中。同一路由和工作流会从首次部署延续到已登录工作区。",
   "The fastest path to a public URL should not trap the app in a throwaway setup. In Fugue, the route stays stable while the runtime changes: import the source, go live on shared infrastructure, then migrate onto your own machine when you are ready.":
     "通往公开 URL 的最快路径，不应该把应用困在一次性环境里。在 Fugue 中，路由保持稳定，运行时可以变化：先导入源码、在共享基础设施上上线，准备好后再迁移到你的机器。",
   "The provider identity is already verified. We are now finishing sign-in with a same-origin form POST so Safari can treat the session write like a regular first-party login redirect.":
@@ -2179,10 +2245,12 @@ const zhTWExtraMessages = {
   "Agent": "代理程式",
   "Apply policy": "套用策略",
   "Applying…": "套用中…",
+  "Add dedicated VPS": "新增專用 VPS",
   "Attach an admin-managed VPS as a platform node first, then use node policy below to allow builds, place workloads, or mark it as a control-plane candidate.":
     "先把管理員託管的 VPS 接入為平台節點，再用下面的節點策略決定是否允許建置、放置負載，或將它標記為控制平面候選。",
   "Builds": "建置",
   "Candidate": "候選",
+  "Choose a VPS": "選擇 VPS",
   "Cluster join": "叢集加入",
   "Conditions": "條件",
   "Connection": "連線",
@@ -2191,6 +2259,11 @@ const zhTWExtraMessages = {
   "Current status": "目前狀態",
   "Current node labels and live role observed in the cluster.":
     "叢集中目前觀測到的節點標籤與即時角色。",
+  "Dedicated VPS": "專用 VPS",
+  "Dedicated VPS added.": "專用 VPS 已新增。",
+  "Dedicated VPS removed.": "專用 VPS 已移除。",
+  "Default VPS": "預設 VPS",
+  "Default VPS updated.": "預設 VPS 已更新。",
   "Desired capabilities and the live node state after reconciliation":
     "期望能力，以及節點在完成 reconcile 後的即時狀態",
   "Desired policy": "期望策略",
@@ -2198,6 +2271,8 @@ const zhTWExtraMessages = {
     "編輯 Fugue 將要 reconcile 到這台機器上的期望策略。",
   "Edit the saved machine policy Fugue will try to reconcile onto this node.":
     "編輯 Fugue 將嘗試 reconcile 到這個節點上的已儲存機器策略。",
+  "Exclusive": "專用",
+  "Exclusive placement": "專用放置",
   "Identity, reachability, and placement facts.":
     "節點識別、可達性與放置資訊。",
   "Large": "大型",
@@ -2206,6 +2281,7 @@ const zhTWExtraMessages = {
     "節點目前的即時標籤仍然與已儲存策略不一致。請重新套用策略，再觸發一次 reconcile。",
   "Live node state after the most recent reconcile.":
     "最近一次 reconcile 完成後的節點即時狀態。",
+  "Loading dedicated VPS settings…": "正在載入專用 VPS 設定…",
   "Let Fugue place app and service workloads on this machine.":
     "允許 Fugue 將應用和服務負載放到這台機器上。",
   "Machine scope": "機器範圍",
@@ -2219,13 +2295,34 @@ const zhTWExtraMessages = {
   "Node policy saved.": "節點策略已儲存。",
   "Node policy updated.": "節點策略已更新。",
   "Node state": "節點狀態",
+  "New services use the default VPS unless a deploy, move, or failover chooses another target.":
+    "新服務預設使用這台 VPS；部署、移動或故障切換仍可選擇其他目標。",
+  "No available VPS": "沒有可用 VPS",
+  "No VPS is reserved for this project.": "此專案尚未保留專用 VPS。",
+  "Only tenant-owned VPS targets can be reserved for one project.":
+    "只有租戶自有 VPS 可以保留給單一專案專用。",
+  "Placement": "放置",
   "Platform node": "平台節點",
   "Policy access unavailable": "策略存取不可用",
   "Policy saved, but live reconcile reported: {details}":
     "策略已儲存，但即時 reconcile 回報：{details}",
   "Read only": "唯讀",
   "Reapply policy": "重新套用策略",
+  "Reserved VPS targets reject new placements from other projects. This project can still deploy, move, and fail over onto them.":
+    "已保留的 VPS 會拒絕其他專案的新放置；此專案仍可部署、移動或故障切換到這些 VPS。",
+  "Reserve VPS targets exclusively for projects.":
+    "將 VPS 目標保留為專案專用。",
   "Reconcile needed": "需要 reconcile",
+  "Runtime inventory is unavailable. Existing default settings stay unchanged.":
+    "執行環境清單暫不可用，現有預設設定保持不變。",
+  "Runtime inventory is unavailable. Try again after the inventory refreshes.":
+    "執行環境清單暫不可用，請在清單重新整理後再試。",
+  "Save default VPS": "儲存預設 VPS",
+  "Shared internal cluster": "共享內部叢集",
+  "This changes where new services start. Existing services can still move or fail over manually.":
+    "這只會改變新服務的啟動位置；現有服務仍可手動移動或故障切換。",
+  "VPS placement": "VPS 放置",
+  "{count} reserved": "已保留 {count} 個",
   "Reset draft": "重設草稿",
   "Saved machine policy and the current live node state.":
     "已儲存的機器策略，以及目前的即時節點狀態。",
@@ -2547,7 +2644,15 @@ const zhTWExtraMessages = {
     "自訂網域可用性回應格式不正確。",
   "Custom domain response was malformed.": "自訂網域回應格式不正確。",
   "Custom domains": "自訂網域",
+  "App handoff": "應用切換",
+  "Attach a server later": "稍後接入伺服器",
+  "Attach your own machine later without changing the workflow.":
+    "之後接入自己的機器，工作流程保持不變。",
+  "Attached machine": "接入機器",
+  "Auth -> App": "認證 -> 應用",
   "Back to top": "返回頂部",
+  "Build / Deploy / Route": "建置 / 部署 / 路由",
+  "Build / Runtime / Operations": "建置 / 執行環境 / 操作",
   "Copied": "已複製",
   "Continue with {label}": "使用 {label} 繼續",
   "Copy command": "複製命令",
@@ -2567,20 +2672,38 @@ const zhTWExtraMessages = {
     "Google 最快。電子郵件仍透過驗證連結完成。密碼可在註冊後再設定。",
   "Google is fastest. Password works if you already added one.":
     "Google 最快。如果你已經設定密碼，也可以直接使用密碼。",
+  "GitHub / Docker image / Upload / Builder": "GitHub / Docker 映像 / 上傳 / 建置器",
   "GitHub import example": "GitHub 匯入範例",
+  "GitHub, Docker image, local upload": "GitHub、Docker 映像、本機上傳",
   "Google / Email / Verified identity": "Google / 電子郵件 / 已驗證身分",
   "Google or GitHub are fastest. Password works if you already added one.":
     "Google 或 GitHub 最快。如果你已經設定密碼，也可以直接使用密碼。",
   "Google provider": "Google 提供方",
+  "Google sign-in": "Google 登入",
+  "Google sign-in and email sign-up run as full routes with loading, validation, retry, and failure states. The public page hands off directly into the app instead of restarting the journey in a different shell.":
+    "Google 登入與電子郵件註冊都作為完整路由執行，涵蓋載入、驗證、重試與失敗狀態。公開頁面會直接切換進應用，而不是讓使用者在另一個殼層裡重新開始。",
   "Health / Heartbeat / Workloads": "健康 / 心跳 / 工作負載",
+  "How it works": "運作方式",
+  "Issue a node key, confirm heartbeat, and move the same app onto your own machine. The route and operating model stay consistent.":
+    "簽發節點金鑰、確認心跳，然後把同一個應用遷移到你的機器上。路由與運作模型保持一致。",
   "Loading": "正在載入",
   "Loading apps": "正在載入應用",
   "Loading profile settings": "正在載入個人資料設定",
   "Loading users": "正在載入使用者",
+  "Live provider flow": "線上提供者流程",
+  "Logs and audit trail": "日誌與稽核軌跡",
   "Magic link / Resend / Callback": "魔法連結 / 重送 / 回呼",
+  "Managed first path": "託管首發路徑",
+  "Managed shared runtime / Logs / Route / Deploy ops":
+    "託管共享執行環境 / 日誌 / 路由 / 部署操作",
   "Managed shared runtime": "託管共享執行環境",
+  "Migration": "遷移",
   "Mobile": "行動端",
   "Need a fresh account boundary?": "需要新的帳號邊界？",
+  "Node key / Heartbeat / Migrate": "節點金鑰 / 心跳 / 遷移",
+  "Node key / Heartbeat / Migrate / Same control model":
+    "節點金鑰 / 心跳 / 遷移 / 同一控制模型",
+  "Node key setup": "節點金鑰設定",
   "Nodes / Pressure / Workloads": "節點 / 壓力 / 工作負載",
   "OAuth / Profile / Verified email": "OAuth / 個人資料 / 已驗證電子郵件",
   "OAuth / Verified email": "OAuth / 已驗證電子郵件",
@@ -2595,25 +2718,53 @@ const zhTWExtraMessages = {
   "Private GitHub repositories require GitHub authorization or a GitHub token with repository read access.":
     "私有 GitHub 儲存庫需要 GitHub 授權，或提供具備儲存庫讀取權限的 GitHub Token。",
   "Provider callback": "提供者回呼",
+  "Public route": "公開路由",
   "Quickstart": "快速開始",
   "Registration stays on the verification flow. Workspace setup comes next.":
     "註冊會停留在驗證流程中，接下來才是工作區設定。",
   "Repository / Image / Upload": "儲存庫 / 映像 / 上傳",
   "Repository import": "儲存庫匯入",
   "Reset": "重設",
+  "Route model": "路由模型",
   "Route, sign-in, and the app already share one system.": "路由、登入與應用現在已經共用同一套系統。",
   "Routes": "路徑",
   "Routed": "已路由",
   "Service port": "服務埠",
+  "Shared -> Attached": "共享 -> 接入",
+  "Shared runtime": "共享執行環境",
+  "Shared runtime gets the app public quickly while preserving deploy history, route state, and logs from the first run.":
+    "共享執行環境能讓應用快速取得公開存取，同時從首次執行開始保留部署歷史、路由狀態與日誌。",
   "shared": "共享",
   "Sign in without breaking the product flow.": "在不打斷產品流程的情況下登入。",
   "Sign in with password": "使用密碼登入",
+  "Sign up": "註冊",
+  "Sign-in and handoff": "登入與切換",
   "Sign-in handoff": "登入切換",
   "Sign-in method": "登入方式",
   "Sign-in route": "登入路徑",
   "Sign-up route": "註冊路徑",
   "Signing in": "登入中",
+  "Skip to content": "跳到內容",
   "source": "原始碼",
+  "attached": "接入",
+  "Available now": "目前可用",
+  "Email access": "電子郵件存取",
+  "Fugue keeps the public route, sign-in handoff, and app shell inside one product. The same route and workflow continue from the first deploy to the signed-in workspace.":
+    "Fugue 將公開路由、登入切換與應用殼層保持在同一個產品中。同一路由與工作流程會從首次部署延續到已登入的工作區。",
+  "Go live on shared infrastructure first.": "先在共享基礎設施上線。",
+  "Move to your own machine without changing the route.":
+    "遷移到你的機器上，同時保持路由不變。",
+  "One route, two runtimes": "一套路由，兩種執行環境",
+  "Open app": "開啟應用",
+  "See the route": "查看路由",
+  "Source import": "原始碼匯入",
+  "Source intake": "原始碼接入",
+  "Source location, access mode, and build metadata define the app before the first deploy. GitHub repositories, Docker images, and local uploads all enter the same route-first operating model.":
+    "原始碼位置、存取方式與建置中繼資料會在首次部署前定義應用。GitHub 儲存庫、Docker 映像與本機上傳都會進入同一套路由優先的運作模型。",
+  "Start from a repository, Docker image, or uploaded bundle.":
+    "從儲存庫、Docker 映像或上傳套件開始。",
+  "Start from a repository, image, or uploaded bundle.":
+    "從儲存庫、映像或上傳套件開始。",
   "Stored secret / Current account email": "已儲存密鑰 / 目前帳號電子郵件",
   "Use the password saved from the profile page.":
     "使用你在個人資料頁儲存的密碼。",
@@ -2629,6 +2780,9 @@ const zhTWExtraMessages = {
   "Unavailable": "不可用",
   "Use a public image reference to unlock the deploy form after sign-in.":
     "使用公開映像引用，即可在登入後解鎖部署表單。",
+  "Verify the public route, then continue to sign in.":
+    "先確認公開路由，再繼續登入。",
+  "Verify the public route, then open the app.": "先確認公開路由，再開啟應用。",
   "We send one verification link. No password required.":
     "我們會寄出一封驗證連結，不需要密碼。",
   "We verify the email locally and open the session immediately.":

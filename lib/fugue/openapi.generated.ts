@@ -245,6 +245,41 @@ export interface paths {
         patch: operations["patchProject"];
         trace?: never;
     };
+    "/v1/projects/{id}/runtime-reservations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Project Runtime Reservations */
+        get: operations["listProjectRuntimeReservations"];
+        put?: never;
+        /** Reserve Project Runtime */
+        post: operations["reserveProjectRuntime"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/projects/{id}/runtime-reservations/{runtime_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Project Runtime Reservation */
+        delete: operations["deleteProjectRuntimeReservation"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/billing": {
         parameters: {
             query?: never;
@@ -1777,6 +1812,160 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/install/node-updater.sh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Node Updater Install Script */
+        get: operations["nodeUpdaterInstallScript"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/node-updaters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Node Updaters */
+        get: operations["listNodeUpdaters"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/node-update-tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Node Update Tasks */
+        get: operations["listNodeUpdateTasks"];
+        put?: never;
+        /** Create Node Update Task */
+        post: operations["createNodeUpdateTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/node-updater/enroll": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Node Updater Enroll */
+        post: operations["nodeUpdaterEnroll"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/node-updater/heartbeat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Node Updater Heartbeat */
+        post: operations["nodeUpdaterHeartbeat"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/node-updater/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Node Updater Tasks */
+        get: operations["nodeUpdaterTasks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/node-updater/tasks/{id}/claim": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Node Updater Claim Task */
+        post: operations["nodeUpdaterClaimTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/node-updater/tasks/{id}/log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Node Updater Log Task */
+        post: operations["nodeUpdaterLogTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/node-updater/tasks/{id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Node Updater Complete Task */
+        post: operations["nodeUpdaterCompleteTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/source-uploads/{id}/archive": {
         parameters: {
             query?: never;
@@ -1976,6 +2165,18 @@ export interface components {
             name: string;
             slug: string;
             description: string;
+            default_runtime_id?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        ProjectRuntimeReservation: {
+            tenant_id: string;
+            project_id: string;
+            runtime_id: string;
+            /** @enum {string} */
+            mode: "exclusive";
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
@@ -2018,6 +2219,66 @@ export interface components {
             deleted_bootstrap_token_ids?: string[];
             detached_runtime_ids?: string[];
             warnings?: string[];
+        };
+        NodeUpdater: {
+            id: string;
+            tenant_id?: string;
+            node_key_id?: string;
+            machine_id?: string;
+            runtime_id?: string;
+            cluster_node_name?: string;
+            status: string;
+            token_prefix?: string;
+            labels?: {
+                [key: string]: string;
+            };
+            capabilities?: string[];
+            updater_version?: string;
+            join_script_version?: string;
+            k3s_version?: string;
+            os?: string;
+            arch?: string;
+            last_error?: string;
+            /** Format: date-time */
+            last_seen_at?: string;
+            /** Format: date-time */
+            last_heartbeat_at?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        NodeUpdateTaskLog: {
+            /** Format: date-time */
+            at: string;
+            message: string;
+        };
+        NodeUpdateTask: {
+            id: string;
+            tenant_id?: string;
+            node_updater_id: string;
+            machine_id?: string;
+            runtime_id?: string;
+            node_key_id?: string;
+            cluster_node_name?: string;
+            type: string;
+            status: string;
+            payload?: {
+                [key: string]: string;
+            };
+            result_message?: string;
+            error_message?: string;
+            logs?: components["schemas"]["NodeUpdateTaskLog"][];
+            requested_by_type?: string;
+            requested_by_id?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: date-time */
+            claimed_at?: string;
+            /** Format: date-time */
+            completed_at?: string;
         };
         ResourceSpec: {
             /** Format: int64 */
@@ -2841,6 +3102,16 @@ export interface components {
         ProjectResponse: {
             project: components["schemas"]["Project"];
         };
+        ProjectRuntimeReservationListResponse: {
+            runtime_reservations: components["schemas"]["ProjectRuntimeReservation"][];
+        };
+        ProjectRuntimeReservationResponse: {
+            runtime_reservation: components["schemas"]["ProjectRuntimeReservation"];
+        };
+        DeleteProjectRuntimeReservationResponse: {
+            deleted: boolean;
+            runtime_reservation: components["schemas"]["ProjectRuntimeReservation"];
+        };
         ProjectDeleteResponse: {
             project: components["schemas"]["Project"];
             deleted: boolean;
@@ -2989,10 +3260,18 @@ export interface components {
             tenant_id?: string;
             name: string;
             description?: string;
+            default_runtime_id?: string;
         };
         PatchProjectRequest: {
             name?: string;
             description?: string;
+            default_runtime_id?: string;
+            clear_default_runtime_id?: boolean;
+        };
+        ReserveProjectRuntimeRequest: {
+            runtime_id: string;
+            /** @enum {string} */
+            mode?: "exclusive";
         };
         PatchAppRequest: {
             /** Format: int32 */
@@ -3083,6 +3362,65 @@ export interface components {
         RevokeNodeKeyResponse: {
             node_key: components["schemas"]["NodeKey"];
             cleanup: components["schemas"]["NodeKeyCleanupResult"];
+        };
+        NodeUpdaterListResponse: {
+            node_updaters: components["schemas"]["NodeUpdater"][];
+        };
+        NodeUpdaterResponse: {
+            node_updater: components["schemas"]["NodeUpdater"];
+        };
+        NodeUpdaterEnrollRequest: {
+            node_key?: string;
+            node_name?: string;
+            runtime_name?: string;
+            machine_name?: string;
+            machine_fingerprint?: string;
+            endpoint?: string;
+            labels?: {
+                [key: string]: string;
+            };
+            updater_version?: string;
+            join_script_version?: string;
+            capabilities?: string[];
+        };
+        NodeUpdaterEnrollResponse: {
+            node_updater: components["schemas"]["NodeUpdater"];
+            token: string;
+        };
+        NodeUpdaterHeartbeatRequest: {
+            labels?: {
+                [key: string]: string;
+            };
+            capabilities?: string[];
+            updater_version?: string;
+            join_script_version?: string;
+            k3s_version?: string;
+            os?: string;
+            arch?: string;
+            last_error?: string;
+        };
+        CreateNodeUpdateTaskRequest: {
+            node_updater_id?: string;
+            cluster_node_name?: string;
+            runtime_id?: string;
+            type: string;
+            payload?: {
+                [key: string]: string;
+            };
+        };
+        NodeUpdateTaskResponse: {
+            task: components["schemas"]["NodeUpdateTask"];
+        };
+        NodeUpdateTaskListResponse: {
+            tasks: components["schemas"]["NodeUpdateTask"][];
+        };
+        NodeUpdateTaskLogRequest: {
+            message: string;
+        };
+        NodeUpdateTaskCompleteRequest: {
+            status: string;
+            message?: string;
+            error_message?: string;
         };
         ClusterNodeListResponse: {
             cluster_nodes: components["schemas"]["ClusterNode"][];
@@ -4149,6 +4487,7 @@ export interface components {
     parameters: {
         IdPathParam: string;
         TenantIdPathParam: string;
+        RuntimeIdPathParam: string;
         TenantIdQueryParam: string;
         HostnameQueryParam: string;
         OperationIdQueryParam: string;
@@ -4597,6 +4936,80 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProjectResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    listProjectRuntimeReservations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectRuntimeReservationListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    reserveProjectRuntime: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReserveProjectRuntimeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectRuntimeReservationResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    deleteProjectRuntimeReservation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+                runtime_id: components["parameters"]["RuntimeIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteProjectRuntimeReservationResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
@@ -7366,6 +7779,263 @@ export interface operations {
                 };
                 content: {
                     "text/plain": string;
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    nodeUpdaterInstallScript: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    listNodeUpdaters: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NodeUpdaterListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    listNodeUpdateTasks: {
+        parameters: {
+            query?: {
+                node_updater_id?: string;
+                status?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NodeUpdateTaskListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    createNodeUpdateTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CreateNodeUpdateTaskRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NodeUpdateTaskResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    nodeUpdaterEnroll: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["NodeUpdaterEnrollRequest"];
+                "application/x-www-form-urlencoded": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NodeUpdaterEnrollResponse"];
+                    "text/plain": string;
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    nodeUpdaterHeartbeat: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["NodeUpdaterHeartbeatRequest"];
+                "application/x-www-form-urlencoded": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NodeUpdaterResponse"];
+                    "text/plain": string;
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    nodeUpdaterTasks: {
+        parameters: {
+            query?: {
+                limit?: number;
+                format?: "json" | "env";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NodeUpdateTaskListResponse"];
+                    "text/plain": string;
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    nodeUpdaterClaimTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NodeUpdateTaskResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    nodeUpdaterLogTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["NodeUpdateTaskLogRequest"];
+                "application/x-www-form-urlencoded": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NodeUpdateTaskResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    nodeUpdaterCompleteTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["NodeUpdateTaskCompleteRequest"];
+                "application/x-www-form-urlencoded": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NodeUpdateTaskResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];

@@ -215,11 +215,25 @@ function buildProjectView(project: CamelizedSchema<"Project">) {
   return {
     createdAt: readNullableString(project.createdAt),
     description: readNullableString(project.description),
+    defaultRuntimeId: readNullableString(project.defaultRuntimeId),
     id: project.id,
     name: project.name,
     slug: readNullableString(project.slug),
     tenantId: readNullableString(project.tenantId),
     updatedAt: readNullableString(project.updatedAt),
+  };
+}
+
+function buildProjectRuntimeReservationView(
+  reservation: CamelizedSchema<"ProjectRuntimeReservation">,
+) {
+  return {
+    createdAt: readNullableString(reservation.createdAt),
+    mode: reservation.mode,
+    projectId: reservation.projectId,
+    runtimeId: reservation.runtimeId,
+    tenantId: reservation.tenantId,
+    updatedAt: readNullableString(reservation.updatedAt),
   };
 }
 
@@ -1662,6 +1676,9 @@ function buildNodeKeyUsageCountView(response: Record<string, unknown>) {
 
 export type FugueTenant = ReturnType<typeof buildTenantView>;
 export type FugueProject = ReturnType<typeof buildProjectView>;
+export type FugueProjectRuntimeReservation = ReturnType<
+  typeof buildProjectRuntimeReservationView
+>;
 export type FugueApiKey = ReturnType<typeof buildApiKeyView>;
 export type FugueNodeKey = ReturnType<typeof buildNodeKeyView>;
 export type FugueAppFile = ReturnType<typeof buildAppFileView>;
@@ -2052,6 +2069,8 @@ export async function patchFugueProject(
   accessToken: string,
   id: string,
   payload: {
+    clearDefaultRuntimeId?: boolean;
+    defaultRuntimeId?: string | null;
     description?: string;
     name?: string;
   },
@@ -2062,6 +2081,13 @@ export async function patchFugueProject(
       `/v1/projects/${encodeURIComponent(id)}`,
       client.PATCH("/v1/projects/{id}", {
         body: {
+          ...(payload.clearDefaultRuntimeId
+            ? { clear_default_runtime_id: true }
+            : {}),
+          ...(payload.defaultRuntimeId !== undefined &&
+          payload.defaultRuntimeId !== null
+            ? { default_runtime_id: payload.defaultRuntimeId }
+            : {}),
           ...(payload.description !== undefined
             ? { description: payload.description }
             : {}),
@@ -2075,6 +2101,70 @@ export async function patchFugueProject(
   );
 
   return buildProjectView(response.project);
+}
+
+export async function listFugueProjectRuntimeReservations(
+  accessToken: string,
+  projectId: string,
+) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/projects/${encodeURIComponent(projectId)}/runtime-reservations`,
+      client.GET("/v1/projects/{id}/runtime-reservations", {
+        params: {
+          path: { id: projectId },
+        },
+      }),
+    ),
+  );
+
+  return (response.runtimeReservations ?? []).map(
+    buildProjectRuntimeReservationView,
+  );
+}
+
+export async function reserveFugueProjectRuntime(
+  accessToken: string,
+  projectId: string,
+  runtimeId: string,
+) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/projects/${encodeURIComponent(projectId)}/runtime-reservations`,
+      client.POST("/v1/projects/{id}/runtime-reservations", {
+        body: {
+          runtime_id: runtimeId,
+        },
+        params: {
+          path: { id: projectId },
+        },
+      }),
+    ),
+  );
+
+  return buildProjectRuntimeReservationView(response.runtimeReservation);
+}
+
+export async function deleteFugueProjectRuntimeReservation(
+  accessToken: string,
+  projectId: string,
+  runtimeId: string,
+) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/projects/${encodeURIComponent(projectId)}/runtime-reservations/${encodeURIComponent(runtimeId)}`,
+      client.DELETE("/v1/projects/{id}/runtime-reservations/{runtime_id}", {
+        params: {
+          path: { id: projectId, runtime_id: runtimeId },
+        },
+      }),
+    ),
+  );
+
+  return buildProjectRuntimeReservationView(response.runtimeReservation);
 }
 
 export async function deleteFugueProject(

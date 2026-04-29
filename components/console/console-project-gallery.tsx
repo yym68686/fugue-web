@@ -28,6 +28,7 @@ import { CountryFlagLabel } from "@/components/ui/country-flag-label";
 import { FormField } from "@/components/ui/form-field";
 import { HintInline } from "@/components/ui/hint-tooltip";
 import { InlineAlert } from "@/components/ui/inline-alert";
+import { SelectField } from "@/components/ui/select-field";
 import {
   Panel,
   PanelCopy,
@@ -70,7 +71,11 @@ import { buildProjectResourceUsageView } from "@/lib/console/project-resource-us
 import {
   useConsoleRuntimeTargetInventory,
 } from "@/lib/console/runtime-target-inventory-client";
-import { readDefaultImportRuntimeId } from "@/lib/console/runtime-targets";
+import {
+  readDefaultImportRuntimeId,
+  readRuntimeTargetOptionLabel,
+} from "@/lib/console/runtime-targets";
+import type { Locale } from "@/lib/i18n/core";
 import {
   buildImportServicePayload,
   createImportServiceDraft,
@@ -296,9 +301,27 @@ type DeleteProjectActionResult = {
 
 type ProjectPatchResponse = {
   project?: {
+    defaultRuntimeId?: string | null;
     id?: string;
     name?: string;
   } | null;
+};
+
+type ProjectRuntimeReservationView = {
+  createdAt?: string | null;
+  mode: string;
+  projectId: string;
+  runtimeId: string;
+  tenantId: string;
+  updatedAt?: string | null;
+};
+
+type ProjectRuntimeReservationListResponse = {
+  runtimeReservations?: ProjectRuntimeReservationView[];
+};
+
+type ProjectRuntimeReservationResponse = {
+  runtimeReservation?: ProjectRuntimeReservationView;
 };
 
 type ConsoleGalleryServiceView = ConsoleGalleryProjectView["services"][number];
@@ -820,6 +843,31 @@ function readDeleteActionSuccessMessage(
 
 function normalizeProjectSettingText(value?: string | null) {
   return value?.trim() ?? "";
+}
+
+function normalizeRuntimeSettingId(value?: string | null) {
+  return value?.trim() ?? "";
+}
+
+function readRuntimeTargetLabel(
+  runtimeId: string | null | undefined,
+  runtimeTargets: ConsoleProjectGalleryData["runtimeTargets"],
+  locale: Locale,
+  t: Translator = (key) => key,
+) {
+  const normalized = normalizeRuntimeSettingId(runtimeId);
+
+  if (!normalized || normalized === "runtime_managed_shared") {
+    return t("Shared internal cluster");
+  }
+
+  const target = runtimeTargets.find((item) => item.id === normalized);
+
+  if (!target) {
+    return normalized;
+  }
+
+  return readRuntimeTargetOptionLabel(target, locale);
 }
 
 function isDeletingProjectLifecycleLabel(value?: string | null) {
@@ -2642,7 +2690,7 @@ function ConsoleLogsPanel({
   selectedServiceApp,
   selectedServiceLogViewOptions,
 }: ConsoleLogsPanelProps) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const { showToast } = useToast();
   const [logsConnectionState, setLogsConnectionState] =
     useState<LogsConnectionState>("idle");
@@ -3638,7 +3686,7 @@ function EnvironmentVariableTable({
   onRemoveRow: (rowId: string) => void;
   onUpdateRow: (rowId: string, field: "key" | "value", value: string) => void;
 }) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   if (!rows.length) {
     return (
       <p className="fg-console-note">
@@ -6135,7 +6183,7 @@ function ConsoleProjectWorkbenchImpl({
     initialDetailProp?.project?.id === project.id
       ? initialDetailProp
       : cachedInitialDetail;
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const confirm = useConfirmDialog();
   const { showToast } = useToast();
   const [flash, setFlash] = useState<FlashState | null>(null);
@@ -6157,6 +6205,21 @@ function ConsoleProjectWorkbenchImpl({
   const [projectNameDraft, setProjectNameDraft] = useState(project.name);
   const [projectNameBaseline, setProjectNameBaseline] = useState(project.name);
   const [projectSaving, setProjectSaving] = useState(false);
+  const [defaultRuntimeDraft, setDefaultRuntimeDraft] = useState("");
+  const [defaultRuntimeBaseline, setDefaultRuntimeBaseline] = useState("");
+  const [projectRuntimeSaving, setProjectRuntimeSaving] = useState(false);
+  const [projectRuntimeReservations, setProjectRuntimeReservations] = useState<
+    ProjectRuntimeReservationView[]
+  >([]);
+  const [projectRuntimeReservationsStatus, setProjectRuntimeReservationsStatus] =
+    useState<"error" | "idle" | "loading" | "ready">("idle");
+  const [projectRuntimeReservationsError, setProjectRuntimeReservationsError] =
+    useState<string | null>(null);
+  const [dedicatedRuntimeDraft, setDedicatedRuntimeDraft] = useState("");
+  const [dedicatedRuntimeSaving, setDedicatedRuntimeSaving] = useState(false);
+  const [dedicatedRuntimeRemovingId, setDedicatedRuntimeRemovingId] = useState<
+    string | null
+  >(null);
   const [selectedAppPendingCommitHint, setSelectedAppPendingCommitHint] =
     useState<ConsoleGalleryCommitView | null>(null);
   const [activeTab, setActiveTab] = useState<WorkbenchView>("route");
@@ -6179,7 +6242,7 @@ function ConsoleProjectWorkbenchImpl({
   const detailRefreshAbortRef = useRef<AbortController | null>(null);
   const lastRefreshTokenRef = useRef(refreshToken);
   const runtimeInventory = useConsoleRuntimeTargetInventory(
-    activeTab === "settings",
+    activeTab === "settings" || selectedWorkbenchScope === "project-settings",
   );
   const { markAppDeleting, markAppsDeleting, optimisticProjects } =
     useOptimisticDeletingProjects(detail?.project ? [detail.project] : []);
@@ -6238,12 +6301,43 @@ function ConsoleProjectWorkbenchImpl({
             name: projectNameConflict.name,
           })
         : undefined;
+  const normalizedDefaultRuntimeDraft =
+    normalizeRuntimeSettingId(defaultRuntimeDraft);
+  const normalizedDefaultRuntimeBaseline = normalizeRuntimeSettingId(
+    defaultRuntimeBaseline,
+  );
+  const defaultRuntimeChanged =
+    normalizedDefaultRuntimeDraft !== normalizedDefaultRuntimeBaseline;
+  const projectRuntimeReservedIds = new Set(
+    projectRuntimeReservations.map((reservation) => reservation.runtimeId),
+  );
+  const dedicatedRuntimeOptions = runtimeInventory.runtimeTargets.filter(
+    (target) =>
+      target.runtimeType !== "managed-shared" &&
+      !projectRuntimeReservedIds.has(target.id),
+  );
+  const dedicatedRuntimeSelectValue =
+    dedicatedRuntimeOptions.some(
+      (target) => target.id === dedicatedRuntimeDraft,
+    )
+      ? dedicatedRuntimeDraft
+      : "";
   const canSaveProject =
     projectManaged &&
     projectChanged &&
     !projectDeleting &&
     !projectSaving &&
     !projectNameError;
+  const canSaveDefaultRuntime =
+    projectManaged &&
+    defaultRuntimeChanged &&
+    !projectDeleting &&
+    !projectRuntimeSaving;
+  const canAddDedicatedRuntime =
+    projectManaged &&
+    Boolean(dedicatedRuntimeSelectValue) &&
+    !projectDeleting &&
+    !dedicatedRuntimeSaving;
   const hasProjectContinuityTransition = detailProjectServices.some(
     (service) =>
       service.kind === "backing-service" && hasLiveDatabaseContinuity(service),
@@ -6451,6 +6545,15 @@ function ConsoleProjectWorkbenchImpl({
     setProjectNameBaseline(project.name);
     setProjectNameDraft(project.name);
     setProjectSaving(false);
+    setDefaultRuntimeBaseline("");
+    setDefaultRuntimeDraft("");
+    setProjectRuntimeSaving(false);
+    setProjectRuntimeReservations([]);
+    setProjectRuntimeReservationsStatus("idle");
+    setProjectRuntimeReservationsError(null);
+    setDedicatedRuntimeDraft("");
+    setDedicatedRuntimeSaving(false);
+    setDedicatedRuntimeRemovingId(null);
   }, [project.id, project.name, project.serviceCount]);
 
   useEffect(() => {
@@ -6466,6 +6569,69 @@ function ConsoleProjectWorkbenchImpl({
     detailProject?.name,
     project.name,
     projectNameBaseline,
+  ]);
+
+  useEffect(() => {
+    const nextDefaultRuntimeId = detailProject?.defaultRuntimeId ?? "";
+    const previousDefaultRuntimeId = defaultRuntimeBaseline;
+
+    setDefaultRuntimeBaseline(nextDefaultRuntimeId);
+    setDefaultRuntimeDraft((current) =>
+      current === previousDefaultRuntimeId ? nextDefaultRuntimeId : current,
+    );
+  }, [defaultRuntimeBaseline, detailProject?.defaultRuntimeId, detailProject?.id]);
+
+  useEffect(() => {
+    if (
+      !detailProject ||
+      !projectManaged ||
+      (selectedWorkbenchScope !== "project-settings" &&
+        detailProjectServices.length > 0)
+    ) {
+      return;
+    }
+
+    let canceled = false;
+
+    async function loadReservations() {
+      setProjectRuntimeReservationsStatus("loading");
+      setProjectRuntimeReservationsError(null);
+
+      try {
+        const response = await requestJson<ProjectRuntimeReservationListResponse>(
+          `/api/fugue/projects/${detailProject.id}/runtime-reservations`,
+          undefined,
+          t,
+        );
+
+        if (canceled) {
+          return;
+        }
+
+        setProjectRuntimeReservations(response.runtimeReservations ?? []);
+        setProjectRuntimeReservationsStatus("ready");
+      } catch (error) {
+        if (canceled) {
+          return;
+        }
+
+        setProjectRuntimeReservations([]);
+        setProjectRuntimeReservationsError(readErrorMessage(error, t));
+        setProjectRuntimeReservationsStatus("error");
+      }
+    }
+
+    void loadReservations();
+
+    return () => {
+      canceled = true;
+    };
+  }, [
+    detailProject,
+    detailProjectServices.length,
+    projectManaged,
+    selectedWorkbenchScope,
+    t,
   ]);
 
   useEffect(() => {
@@ -6941,6 +7107,155 @@ function ConsoleProjectWorkbenchImpl({
     }
   }
 
+  async function handleProjectDefaultRuntimeSave(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!detailProject || !projectManaged) {
+      return;
+    }
+
+    if (!defaultRuntimeChanged) {
+      setFlash({
+        message: t("No runtime changes."),
+        variant: "info",
+      });
+      return;
+    }
+
+    setProjectRuntimeSaving(true);
+
+    try {
+      const response = await requestJson<ProjectPatchResponse>(
+        `/api/fugue/projects/${detailProject.id}`,
+        {
+          body: JSON.stringify(
+            normalizedDefaultRuntimeDraft
+              ? { defaultRuntimeId: normalizedDefaultRuntimeDraft }
+              : { clearDefaultRuntimeId: true },
+          ),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          method: "PATCH",
+        },
+        t,
+      );
+      const nextDefaultRuntimeId =
+        normalizeRuntimeSettingId(response.project?.defaultRuntimeId) ||
+        normalizedDefaultRuntimeDraft;
+
+      setDefaultRuntimeBaseline(nextDefaultRuntimeId);
+      setDefaultRuntimeDraft(nextDefaultRuntimeId);
+      setDetail((current) =>
+        current?.project
+          ? {
+              project: {
+                ...current.project,
+                defaultRuntimeId: nextDefaultRuntimeId || null,
+              },
+            }
+          : current,
+      );
+      setFlash({
+        message: t("Default VPS updated."),
+        variant: "success",
+      });
+      onProjectMutation();
+      void refreshDetail({ force: true, silent: true });
+    } catch (error) {
+      setFlash({
+        message: readErrorMessage(error, t),
+        variant: "error",
+      });
+    } finally {
+      setProjectRuntimeSaving(false);
+    }
+  }
+
+  async function handleDedicatedRuntimeAdd(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!detailProject || !projectManaged || !dedicatedRuntimeSelectValue) {
+      return;
+    }
+
+    setDedicatedRuntimeSaving(true);
+
+    try {
+      const response = await requestJson<ProjectRuntimeReservationResponse>(
+        `/api/fugue/projects/${detailProject.id}/runtime-reservations`,
+        {
+          body: JSON.stringify({
+            runtimeId: dedicatedRuntimeSelectValue,
+          }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          method: "POST",
+        },
+        t,
+      );
+
+      const runtimeReservation = response.runtimeReservation;
+
+      if (runtimeReservation) {
+        setProjectRuntimeReservations((current) => [
+          ...current.filter(
+            (reservation) =>
+              reservation.runtimeId !== runtimeReservation.runtimeId,
+          ),
+          runtimeReservation,
+        ]);
+      }
+      setDedicatedRuntimeDraft("");
+      setProjectRuntimeReservationsStatus("ready");
+      setProjectRuntimeReservationsError(null);
+      setFlash({
+        message: t("Dedicated VPS added."),
+        variant: "success",
+      });
+    } catch (error) {
+      setFlash({
+        message: readErrorMessage(error, t),
+        variant: "error",
+      });
+    } finally {
+      setDedicatedRuntimeSaving(false);
+    }
+  }
+
+  async function handleDedicatedRuntimeRemove(runtimeId: string) {
+    if (!detailProject || !projectManaged || !runtimeId) {
+      return;
+    }
+
+    setDedicatedRuntimeRemovingId(runtimeId);
+
+    try {
+      await requestJson<ProjectRuntimeReservationResponse>(
+        `/api/fugue/projects/${detailProject.id}/runtime-reservations/${encodeURIComponent(runtimeId)}`,
+        {
+          method: "DELETE",
+        },
+        t,
+      );
+      setProjectRuntimeReservations((current) =>
+        current.filter((reservation) => reservation.runtimeId !== runtimeId),
+      );
+      setFlash({
+        message: t("Dedicated VPS removed."),
+        variant: "success",
+      });
+    } catch (error) {
+      setFlash({
+        message: readErrorMessage(error, t),
+        variant: "error",
+      });
+    } finally {
+      setDedicatedRuntimeRemovingId(null);
+    }
+  }
+
   async function handleProjectDelete() {
     if (
       busyProjectAction ||
@@ -7393,6 +7708,33 @@ function ConsoleProjectWorkbenchImpl({
     const projectDeletePreviewNames = detailProject.services
       .slice(0, 4)
       .map((service) => service.name);
+    const defaultRuntimeOptions = runtimeInventory.runtimeTargets.filter(
+      (target) => target.id !== "runtime_managed_shared",
+    );
+    const defaultRuntimeLabel = readRuntimeTargetLabel(
+      defaultRuntimeBaseline,
+      runtimeInventory.runtimeTargets,
+      locale,
+      t,
+    );
+    const sortedRuntimeReservations = [...projectRuntimeReservations].sort(
+      (left, right) =>
+        readRuntimeTargetLabel(
+          left.runtimeId,
+          runtimeInventory.runtimeTargets,
+          locale,
+          t,
+        ).localeCompare(
+          readRuntimeTargetLabel(
+            right.runtimeId,
+            runtimeInventory.runtimeTargets,
+            locale,
+            t,
+          ),
+          locale,
+          { sensitivity: "base" },
+        ),
+    );
 
     return (
       <div className="fg-project-card__detail" id={detailId}>
@@ -7522,6 +7864,266 @@ function ConsoleProjectWorkbenchImpl({
                         </div>
                       </dl>
                     )}
+                  </section>
+
+                  <section
+                    aria-label={t("VPS placement")}
+                    className="fg-route-subsection fg-settings-section"
+                  >
+                    <div className="fg-route-subsection__head">
+                      <div className="fg-route-subsection__copy fg-settings-section__copy">
+                        <p className="fg-label fg-panel__eyebrow">
+                          {t("Placement")}
+                        </p>
+                        <HintInline
+                          ariaLabel={t("Default VPS")}
+                          hint={t(
+                            "New services use the default VPS unless a deploy, move, or failover chooses another target.",
+                          )}
+                        >
+                          <h3 className="fg-route-subsection__title fg-ui-heading">
+                            {t("Default VPS")}
+                          </h3>
+                        </HintInline>
+                      </div>
+
+                      <StatusBadge tone="neutral">{defaultRuntimeLabel}</StatusBadge>
+                    </div>
+
+                    {projectManaged ? (
+                      <form
+                        className="fg-settings-form"
+                        onSubmit={handleProjectDefaultRuntimeSave}
+                      >
+                        <FormField
+                          hint={
+                            runtimeInventory.runtimeTargetInventoryError
+                              ? t(
+                                  "Runtime inventory is unavailable. Existing default settings stay unchanged.",
+                                )
+                              : t(
+                                  "This changes where new services start. Existing services can still move or fail over manually.",
+                                )
+                          }
+                          htmlFor={`project-default-runtime-${detailProject.id}`}
+                          label={t("Default VPS")}
+                        >
+                          <SelectField
+                            disabled={
+                              projectDeleting ||
+                              projectRuntimeSaving ||
+                              Boolean(
+                                runtimeInventory.runtimeTargetInventoryError,
+                              )
+                            }
+                            id={`project-default-runtime-${detailProject.id}`}
+                            onChange={(event) =>
+                              setDefaultRuntimeDraft(event.target.value)
+                            }
+                            value={defaultRuntimeDraft}
+                          >
+                            <option value="">
+                              {t("Shared internal cluster")}
+                            </option>
+                            {defaultRuntimeOptions.map((target) => (
+                              <option key={target.id} value={target.id}>
+                                {readRuntimeTargetOptionLabel(target, locale)}
+                              </option>
+                            ))}
+                          </SelectField>
+                        </FormField>
+
+                        {defaultRuntimeChanged || projectRuntimeSaving ? (
+                          <div className="fg-settings-form__actions">
+                            <Button
+                              disabled={projectRuntimeSaving}
+                              onClick={() =>
+                                setDefaultRuntimeDraft(defaultRuntimeBaseline)
+                              }
+                              size="compact"
+                              type="button"
+                              variant="secondary"
+                            >
+                              {t("Reset")}
+                            </Button>
+                            <Button
+                              disabled={!canSaveDefaultRuntime}
+                              loading={projectRuntimeSaving}
+                              loadingLabel={t("Saving…")}
+                              size="compact"
+                              type="submit"
+                              variant="primary"
+                            >
+                              {t("Save default VPS")}
+                            </Button>
+                          </div>
+                        ) : null}
+                      </form>
+                    ) : (
+                      <dl className="fg-settings-meta">
+                        <div>
+                          <dt>{t("Default VPS")}</dt>
+                          <dd>{defaultRuntimeLabel}</dd>
+                        </div>
+                      </dl>
+                    )}
+                  </section>
+
+                  <section
+                    aria-label={t("Dedicated VPS")}
+                    className="fg-route-subsection fg-settings-section"
+                  >
+                    <div className="fg-route-subsection__head">
+                      <div className="fg-route-subsection__copy fg-settings-section__copy">
+                        <p className="fg-label fg-panel__eyebrow">
+                          {t("Exclusive placement")}
+                        </p>
+                        <HintInline
+                          ariaLabel={t("Dedicated VPS")}
+                          hint={t(
+                            "Reserved VPS targets reject new placements from other projects. This project can still deploy, move, and fail over onto them.",
+                          )}
+                        >
+                          <h3 className="fg-route-subsection__title fg-ui-heading">
+                            {t("Dedicated VPS")}
+                          </h3>
+                        </HintInline>
+                      </div>
+
+                      <StatusBadge tone="neutral">
+                        {t("{count} reserved", {
+                          count: sortedRuntimeReservations.length,
+                        })}
+                      </StatusBadge>
+                    </div>
+
+                    {projectRuntimeReservationsStatus === "error" &&
+                    projectRuntimeReservationsError ? (
+                      <InlineAlert variant="warning">
+                        {projectRuntimeReservationsError}
+                      </InlineAlert>
+                    ) : null}
+
+                    {sortedRuntimeReservations.length ? (
+                      <ul className="fg-project-membership-group__list">
+                        {sortedRuntimeReservations.map((reservation) => {
+                          const runtimeLabel = readRuntimeTargetLabel(
+                            reservation.runtimeId,
+                            runtimeInventory.runtimeTargets,
+                            locale,
+                            t,
+                          );
+
+                          return (
+                            <li key={reservation.runtimeId}>
+                              <div className="fg-project-membership-row fg-project-membership-row--static">
+                                <span className="fg-project-membership-row__summary">
+                                  <span className="fg-project-membership-row__identity">
+                                    <strong>{runtimeLabel}</strong>
+                                    <span>
+                                      {reservation.mode === "exclusive"
+                                        ? t("Exclusive")
+                                        : reservation.mode}
+                                    </span>
+                                  </span>
+                                </span>
+                                <span className="fg-project-membership-row__meta">
+                                  <Button
+                                    disabled={
+                                      projectDeleting ||
+                                      dedicatedRuntimeRemovingId ===
+                                        reservation.runtimeId
+                                    }
+                                    loading={
+                                      dedicatedRuntimeRemovingId ===
+                                      reservation.runtimeId
+                                    }
+                                    loadingLabel={t("Removing…")}
+                                    onClick={() =>
+                                      void handleDedicatedRuntimeRemove(
+                                        reservation.runtimeId,
+                                      )
+                                    }
+                                    size="compact"
+                                    type="button"
+                                    variant="secondary"
+                                  >
+                                    {t("Remove")}
+                                  </Button>
+                                </span>
+                              </div>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    ) : (
+                      <p className="fg-console-note">
+                        {projectRuntimeReservationsStatus === "loading"
+                          ? t("Loading dedicated VPS settings…")
+                          : t("No VPS is reserved for this project.")}
+                      </p>
+                    )}
+
+                    {projectManaged ? (
+                      <form
+                        className="fg-settings-form"
+                        onSubmit={handleDedicatedRuntimeAdd}
+                      >
+                        <FormField
+                          hint={
+                            runtimeInventory.runtimeTargetInventoryError
+                              ? t(
+                                  "Runtime inventory is unavailable. Try again after the inventory refreshes.",
+                                )
+                              : t(
+                                  "Only tenant-owned VPS targets can be reserved for one project.",
+                                )
+                          }
+                          htmlFor={`project-dedicated-runtime-${detailProject.id}`}
+                          label={t("Add dedicated VPS")}
+                        >
+                          <SelectField
+                            disabled={
+                              projectDeleting ||
+                              dedicatedRuntimeSaving ||
+                              Boolean(
+                                runtimeInventory.runtimeTargetInventoryError,
+                              ) ||
+                              dedicatedRuntimeOptions.length === 0
+                            }
+                            id={`project-dedicated-runtime-${detailProject.id}`}
+                            onChange={(event) =>
+                              setDedicatedRuntimeDraft(event.target.value)
+                            }
+                            value={dedicatedRuntimeSelectValue}
+                          >
+                            <option value="">
+                              {dedicatedRuntimeOptions.length
+                                ? t("Choose a VPS")
+                                : t("No available VPS")}
+                            </option>
+                            {dedicatedRuntimeOptions.map((target) => (
+                              <option key={target.id} value={target.id}>
+                                {readRuntimeTargetOptionLabel(target, locale)}
+                              </option>
+                            ))}
+                          </SelectField>
+                        </FormField>
+
+                        <div className="fg-settings-form__actions">
+                          <Button
+                            disabled={!canAddDedicatedRuntime}
+                            loading={dedicatedRuntimeSaving}
+                            loadingLabel={t("Adding…")}
+                            size="compact"
+                            type="submit"
+                            variant="primary"
+                          >
+                            {t("Add dedicated VPS")}
+                          </Button>
+                        </div>
+                      </form>
+                    ) : null}
                   </section>
 
                   <section

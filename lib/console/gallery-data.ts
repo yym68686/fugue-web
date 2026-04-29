@@ -2743,6 +2743,7 @@ function buildConsoleProjectViewFromDetail(
 
   return {
     appCount: sortedApps.length,
+    defaultRuntimeId: detail.project?.defaultRuntimeId ?? null,
     id: detail.projectId,
     name: detail.project?.name ?? detail.projectName,
     resourceUsage: buildProjectResourceUsageView(resourceUsage),
@@ -3162,6 +3163,7 @@ const getConsoleProjectGalleryDataCached = cache(
             resourceUsage,
             projectImageUsageByProjectId.get(projectId) ?? null,
           ),
+          defaultRuntimeId: null,
           resourceUsageSnapshot,
           serviceBadges: buildProjectServiceBadges(services),
           serviceCount: services.length,

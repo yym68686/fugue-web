@@ -5163,6 +5163,10 @@
     transform var(--fugue-duration-fast) var(--fugue-ease-out-expo);
 }
 
+.fg-project-membership-row--static {
+  cursor: default;
+}
+
 .fg-project-membership-row:hover,
 .fg-project-membership-row:focus-visible {
   background:
@@ -5172,6 +5176,11 @@
       rgba(255, 255, 255, 0.012)
     ),
     rgba(10, 13, 18, 0.4);
+}
+
+.fg-project-membership-row--static:hover,
+.fg-project-membership-row--static:focus-visible {
+  background: transparent;
 }
 
 .fg-project-membership-row:focus-visible {

@@ -3,6 +3,7 @@ export const WORKSPACE_ADMIN_SCOPES = [
   "apikey.write",
   "runtime.attach",
   "runtime.write",
+  "runtime.reserve",
   "billing.write",
   "app.write",
   "app.deploy",
@@ -27,6 +28,10 @@ export const FUGUE_SCOPE_CATALOG = [
   {
     description: "Create or edit runtime records.",
     value: "runtime.write",
+  },
+  {
+    description: "Reserve VPS targets exclusively for projects.",
+    value: "runtime.reserve",
   },
   {
     description: "Change the managed billing envelope and top up tenant balance.",

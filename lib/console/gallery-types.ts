@@ -163,6 +163,7 @@ export type ConsoleGalleryBackingServiceView = {
 
 export type ConsoleGalleryProjectView = {
   appCount: number;
+  defaultRuntimeId: string | null;
   id: string;
   name: string;
   resourceUsage: ConsoleCompactResourceItemView[];

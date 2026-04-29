@@ -25,6 +25,14 @@ function readOptionalString(record: Record<string, unknown> | null, key: string)
   return typeof value === "string" ? value : undefined;
 }
 
+function readOptionalBoolean(
+  record: Record<string, unknown> | null,
+  key: string,
+) {
+  const value = record?.[key];
+  return typeof value === "boolean" ? value : undefined;
+}
+
 export async function PATCH(request: Request, context: RouteContext) {
   const { response, session } = await requireSession();
 
@@ -41,10 +49,17 @@ export async function PATCH(request: Request, context: RouteContext) {
   try {
     const projectId = await readRouteParam(context, "id");
     const body = asRecord(await request.json().catch(() => null));
-    const result = await patchFugueProject(workspaceState.workspace.adminKeySecret, projectId, {
-      description: readOptionalString(body, "description"),
-      name: readOptionalString(body, "name"),
-    });
+    const result = await patchFugueProject(
+      workspaceState.workspace.adminKeySecret,
+      projectId,
+      {
+        clearDefaultRuntimeId:
+          readOptionalBoolean(body, "clearDefaultRuntimeId") ?? false,
+        defaultRuntimeId: readOptionalString(body, "defaultRuntimeId"),
+        description: readOptionalString(body, "description"),
+        name: readOptionalString(body, "name"),
+      },
+    );
 
     if (workspaceState.workspace.defaultProjectId === result.id) {
       await saveWorkspaceAccess({
