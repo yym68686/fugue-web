@@ -4568,6 +4568,14 @@
     rgba(8, 10, 14, 0.22);
 }
 
+.fg-project-services--rail {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.fg-project-services--rail > .fg-panel__section:not(.fg-project-services__head) {
+  min-height: 0;
+}
+
 .fg-project-workbench__main {
   min-width: 0;
   background:
@@ -8649,6 +8657,50 @@
   justify-content: space-between;
   align-items: center;
   gap: 0.75rem;
+}
+
+@media (min-width: 981px) {
+  .fg-console-page--project-detail {
+    --fg-project-detail-rail-offset: clamp(9.75rem, 17dvh, 12.25rem);
+  }
+
+  .fg-console-page--project-detail .fg-project-workbench__rail {
+    height: max(
+      18rem,
+      calc(100dvh - var(--fg-project-detail-rail-offset))
+    );
+    overflow: hidden;
+  }
+
+  .fg-console-page--project-detail
+    .fg-project-services--rail
+    > .fg-panel__section:not(.fg-project-services__head) {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+  }
+
+  .fg-console-page--project-detail
+    .fg-project-services--rail
+    > .fg-panel__section:not(.fg-project-services__head)::-webkit-scrollbar {
+    width: 0.58rem;
+  }
+
+  .fg-console-page--project-detail
+    .fg-project-services--rail
+    > .fg-panel__section:not(.fg-project-services__head)::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .fg-console-page--project-detail
+    .fg-project-services--rail
+    > .fg-panel__section:not(.fg-project-services__head)::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.16);
+  }
 }
 
 .fg-project-service-list {

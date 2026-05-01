@@ -1196,7 +1196,7 @@ const ProjectDetailPage = memo(function ProjectDetailPage({
   }
 
   return (
-    <div className="fg-console-page">
+    <div className="fg-console-page fg-console-page--project-detail">
       <ConsolePageIntro
         actions={[
           {
