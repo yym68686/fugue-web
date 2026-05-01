@@ -1197,21 +1197,6 @@ const ProjectDetailPage = memo(function ProjectDetailPage({
 
   return (
     <div className="fg-console-page fg-console-page--project-detail">
-      <ConsolePageIntro
-        actions={[
-          {
-            href: "/app",
-            label: t("Back to projects"),
-            onClick: onBackToProjects,
-          },
-        ]}
-        description={t(
-          "Manage services, routes, logs, files, and project settings from one workspace.",
-        )}
-        eyebrow={t("Project")}
-        title={project.name}
-      />
-
       <Suspense fallback={<ConsoleProjectWorkbenchSkeleton detailId={detailId} />}>
         <ConsoleProjectWorkbench
           detailId={detailId}

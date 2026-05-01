@@ -8661,7 +8661,7 @@
 
 @media (min-width: 981px) {
   .fg-console-page--project-detail {
-    --fg-project-detail-rail-offset: clamp(9.75rem, 17dvh, 12.25rem);
+    --fg-project-detail-rail-offset: clamp(5.75rem, 9dvh, 7.25rem);
   }
 
   .fg-console-page--project-detail .fg-project-workbench__rail {
