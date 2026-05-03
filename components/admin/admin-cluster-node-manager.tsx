@@ -57,9 +57,11 @@ function readErrorMessage(error: unknown) {
 }
 
 function readPolicyDraft(node: AdminClusterNodeView): NodePolicyDraft {
+  const allowSharedPool = node.policy?.allowSharedPool ?? false;
+
   return {
-    allowBuilds: node.policy?.allowBuilds ?? false,
-    allowSharedPool: node.policy?.allowSharedPool ?? false,
+    allowBuilds: allowSharedPool || (node.policy?.allowBuilds ?? false),
+    allowSharedPool,
     desiredControlPlaneRole: normalizeControlPlaneRole(
       node.policy?.desiredControlPlaneRole,
     ),
@@ -104,9 +106,12 @@ function draftMatchesPolicy(
     return false;
   }
 
+  const policyAllowSharedPool = policy.allowSharedPool;
+  const policyAllowBuilds = policyAllowSharedPool || policy.allowBuilds;
+
   return (
-    draft.allowBuilds === policy.allowBuilds &&
-    draft.allowSharedPool === policy.allowSharedPool &&
+    draft.allowBuilds === policyAllowBuilds &&
+    draft.allowSharedPool === policyAllowSharedPool &&
     draft.desiredControlPlaneRole ===
       normalizeControlPlaneRole(policy.desiredControlPlaneRole)
   );
@@ -159,11 +164,13 @@ function AdminClusterPolicyLiveCard({
 
 function AdminClusterPolicySwitch({
   checked,
+  disabled = false,
   id,
   label,
   onChange,
 }: {
   checked: boolean;
+  disabled?: boolean;
   id: string;
   label: string;
   onChange: (checked: boolean) => void;
@@ -175,6 +182,7 @@ function AdminClusterPolicySwitch({
       <input
         aria-label={label}
         checked={checked}
+        disabled={disabled}
         id={id}
         onChange={(event) => {
           onChange(event.target.checked);
@@ -372,7 +380,8 @@ function AdminClusterPolicySection({
                     </div>
                     <div className="fg-admin-cluster-manager__policy-row-control">
                       <AdminClusterPolicySwitch
-                        checked={draft.allowBuilds}
+                        checked={draft.allowSharedPool || draft.allowBuilds}
+                        disabled={draft.allowSharedPool}
                         id={`allow-builds-${node.name}`}
                         label={t("Allow builds")}
                         onChange={(checked) => {
@@ -401,7 +410,10 @@ function AdminClusterPolicySection({
                         id={`allow-shared-pool-${node.name}`}
                         label={t("Allow workloads")}
                         onChange={(checked) => {
-                          onDraftChange({ allowSharedPool: checked });
+                          onDraftChange({
+                            allowBuilds: checked ? true : draft.allowBuilds,
+                            allowSharedPool: checked,
+                          });
                         }}
                       />
                     </div>
