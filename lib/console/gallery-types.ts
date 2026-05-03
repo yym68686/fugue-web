@@ -13,6 +13,13 @@ export type ConsoleGalleryBadgeView = {
 export type ConsoleCompactResourceItemView = {
   id: string;
   label: string;
+  meterLanes?: Array<{
+    id: string;
+    label: string;
+    meterValue: number | null;
+    tone: ConsoleTone;
+    valueLabel: string;
+  }>;
   meterValue: number | null;
   primaryLabel: string;
   secondaryLabel: string | null;

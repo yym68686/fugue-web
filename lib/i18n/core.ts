@@ -23,9 +23,13 @@ const enMessages = {
     "Live and reserved CPU, memory, and disk capacity.",
   "No images": "-",
   "No stats": "-",
+  "Allocatable": "Allocatable",
+  "Free to schedule": "Free to schedule",
   "Req {percent}": "Req {percent}",
+  "Reserved": "Reserved",
   "Reserved {percent} ({amount})": "Reserved {percent} ({amount})",
   "Theme": "Theme",
+  "Use": "Use",
   "Use {percent}": "Use {percent}",
   "{amount} schedulable": "{amount} schedulable",
   "{label} / {usage} / {total} / {request}":
@@ -85,6 +89,7 @@ const zhCNMessages = {
   "App name": "应用名称",
   "Application": "应用",
   "Apps": "应用",
+  "Allocatable": "可分配",
   "Attached app": "挂接应用",
   "Attached backing service.": "挂接后端服务。",
   "Attached machine": "接入机器",
@@ -169,6 +174,7 @@ const zhCNMessages = {
   "Finish DNS setup and Fugue will verify this hostname automatically.":
     "完成 DNS 配置后，Fugue 会自动验证此主机名。",
   "Force delete": "强制删除",
+  "Free to schedule": "可调度余量",
   "Force delete is already queued.": "强制删除已在队列中。",
   "Force delete queued.": "强制删除已加入队列。",
   "Force delete service": "强制删除服务",
@@ -614,6 +620,7 @@ const zhCNMessages = {
   "Read only": "只读",
   "Reapply policy": "重新应用策略",
   "Reconcile needed": "需要 reconcile",
+  "Reserved": "预留",
   "Reset draft": "重置草稿",
   "Saved machine policy and the current live node state.":
     "已保存的机器策略，以及当前的实时节点状态。",
@@ -934,6 +941,7 @@ const zhCNExtraMessages = {
     "仅支持整数美元 · {min} 到 {max}",
   "Update the display name used in this workspace. The key ID, secret, prefix, and attached VPS stay the same.":
     "更新此工作区中显示的名称。密钥 ID、密钥内容、前缀和已挂接的 VPS 都不会变化。",
+  "Use": "使用",
   "VPS": "VPS",
   "{count} recent events": "{count} 条最近事件",
   "{count} recent events · {updated}": "{count} 条最近事件 · {updated}",
@@ -2242,6 +2250,7 @@ const zhTWExtraMessages = {
   "Allow workloads": "允許放置負載",
   "Allow builds": "允許建置",
   "Allow shared pool apps": "允許共享池應用",
+  "Allocatable": "可分配",
   "Agent": "代理程式",
   "Apply policy": "套用策略",
   "Applying…": "套用中…",
@@ -2308,6 +2317,7 @@ const zhTWExtraMessages = {
     "策略已儲存，但即時 reconcile 回報：{details}",
   "Read only": "唯讀",
   "Reapply policy": "重新套用策略",
+  "Reserved": "預留",
   "Reserved VPS targets reject new placements from other projects. This project can still deploy, move, and fail over onto them.":
     "已保留的 VPS 會拒絕其他專案的新放置；此專案仍可部署、移動或故障切換到這些 VPS。",
   "Reserve VPS targets exclusively for projects.":
@@ -2407,6 +2417,7 @@ const zhTWExtraMessages = {
   "Deploy, rebuild, and restart apps.": "部署、重建並重新啟動應用。",
   "Existing runtimes stay attached, but this secret can no longer enroll new nodes.":
     "現有執行環境會繼續保持掛接，但這個密鑰不能再接入新的節點。",
+  "Free to schedule": "可調度餘量",
   "Fugue could not load the billing snapshot right now.":
     "Fugue 目前無法載入帳務快照。",
   "Identifier": "識別碼",
@@ -2497,6 +2508,7 @@ const zhTWExtraMessages = {
     "僅支援整數美元 · {min} 到 {max}",
   "Update the display name used in this workspace. The key ID, secret, prefix, and attached VPS stay the same.":
     "更新此工作區中顯示的名稱。金鑰 ID、密鑰內容、前綴與已掛接的 VPS 都不會變化。",
+  "Use": "使用",
   "VPS": "VPS",
   "{count} recent events": "{count} 則近期事件",
   "{count} recent events · {updated}": "{count} 則近期事件 · {updated}",

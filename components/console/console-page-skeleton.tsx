@@ -243,11 +243,13 @@ function ProjectServiceCardSkeleton({ active = false }: { active?: boolean }) {
 function ClusterResourceSkeleton({
   compact = false,
   showMeter = true,
+  showMeterLanes = false,
   showLabel = true,
   showSecondary = true,
 }: {
   compact?: boolean;
   showMeter?: boolean;
+  showMeterLanes?: boolean;
   showLabel?: boolean;
   showSecondary?: boolean;
 }) {
@@ -281,24 +283,73 @@ function ClusterResourceSkeleton({
         </div>
       )}
 
-      {showMeter ? (
+      {showMeter && compact && showMeterLanes ? (
+        <div className="fg-cluster-resource__compact-lanes">
+          {["58%", "76%"].map((width, index) => (
+            <div className="fg-cluster-resource__compact-lane" key={width}>
+              <SkeletonBlock className="fg-console-skeleton__item-meta" width="1.6rem" />
+              <div className="fg-cluster-resource__meter">
+                <SkeletonBlock
+                  className="fg-console-skeleton__meter"
+                  height="100%"
+                  radius="inherit"
+                  width={width}
+                />
+              </div>
+              <SkeletonBlock
+                className="fg-console-skeleton__item-meta"
+                width={index === 0 ? "2.1rem" : "2.5rem"}
+              />
+            </div>
+          ))}
+        </div>
+      ) : showMeter && compact ? (
         <div className="fg-cluster-resource__meter">
           <SkeletonBlock
             className="fg-console-skeleton__meter"
             height="100%"
             radius="inherit"
-            width={compact ? "58%" : "64%"}
+            width="58%"
           />
+        </div>
+      ) : showMeter ? (
+        <div className="fg-cluster-resource__lanes">
+          {["64%", "78%"].map((width, index) => (
+            <div
+              className={cx(
+                "fg-cluster-resource__lane",
+                index === 1 && "fg-cluster-resource__lane--request",
+              )}
+              key={width}
+            >
+              <div className="fg-cluster-resource__lane-head">
+                <SkeletonBlock className="fg-console-skeleton__section-label" width={index === 0 ? "5rem" : "4rem"} />
+                <SkeletonBlock className="fg-console-skeleton__item-meta" width="2.6rem" />
+              </div>
+              <div className="fg-cluster-resource__meter">
+                <SkeletonBlock
+                  className="fg-console-skeleton__meter"
+                  height="100%"
+                  radius="inherit"
+                  width={width}
+                />
+              </div>
+              <SkeletonBlock className="fg-console-skeleton__item-meta" width={index === 0 ? "4.5rem" : "5.6rem"} />
+            </div>
+          ))}
         </div>
       ) : null}
 
       {compact ? null : (
         <>
-          <div className="fg-cluster-resource__meta">
-            <SkeletonBlock className="fg-console-skeleton__item-meta" width="4.5rem" />
-            <SkeletonBlock className="fg-console-skeleton__item-meta" width="3.75rem" />
-          </div>
-          <SkeletonBlock className="fg-console-skeleton__copy" width="9rem" />
+          <dl className="fg-cluster-resource__facts">
+            {["4.5rem", "5rem", "4rem"].map((width) => (
+              <div key={width}>
+                <SkeletonBlock className="fg-console-skeleton__section-label" width="3.6rem" />
+                <SkeletonBlock className="fg-console-skeleton__item-meta" width={width} />
+              </div>
+            ))}
+          </dl>
         </>
       )}
     </article>
@@ -344,7 +395,11 @@ function ClusterGallerySkeleton({ includeInventoryHead = false }: { includeInven
 
                       <div className="fg-cluster-node-card__summary-resources">
                         {RESOURCE_ITEMS.map((resource) => (
-                          <ClusterResourceSkeleton compact key={`cluster-summary-resource-${resource}`} />
+                          <ClusterResourceSkeleton
+                            compact
+                            key={`cluster-summary-resource-${resource}`}
+                            showMeterLanes
+                          />
                         ))}
                       </div>
 

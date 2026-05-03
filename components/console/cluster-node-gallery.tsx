@@ -44,18 +44,22 @@ export type ClusterNodeGalleryCondition = {
 };
 
 export type ClusterNodeGalleryResource = {
+  capacityAmountLabel: string | null;
   detailLabel: string;
   id: string;
   label: string;
   percentLabel: string;
   percentValue: number | null;
+  requestAmountLabel: string | null;
   requestLabel: string | null;
   requestPercentLabel: string;
   requestPercentValue: number | null;
   requestTone: ConsoleTone;
+  schedulableFreeAmountLabel: string | null;
   schedulableFreeLabel: string | null;
   statusLabel: string;
   statusTone: ConsoleTone;
+  totalAmountLabel: string | null;
   totalLabel: string;
   usageTone: ConsoleTone;
   usageLabel: string;
@@ -114,12 +118,72 @@ function readMeterWidth(value?: number | null) {
   return Math.max(0, Math.min(100, value));
 }
 
+function hasMeterValue(value?: number | null): value is number {
+  return value !== null && value !== undefined && Number.isFinite(value);
+}
+
 function sanitizeDomId(value: string) {
   return value
     .toLowerCase()
     .replace(/[^a-z0-9_-]+/g, "-")
     .replace(/-{2,}/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+function ClusterResourceLane({
+  amountLabel,
+  ariaLabel,
+  label,
+  percentLabel,
+  percentValue,
+  tone,
+  variant,
+}: {
+  amountLabel: string;
+  ariaLabel: string;
+  label: string;
+  percentLabel: string;
+  percentValue: number | null;
+  tone: ConsoleTone;
+  variant: "usage" | "request";
+}) {
+  const hasValue = hasMeterValue(percentValue);
+  const meterProps = hasValue
+    ? {
+        "aria-label": ariaLabel,
+        "aria-valuemax": 100,
+        "aria-valuemin": 0,
+        "aria-valuenow": Math.round(readMeterWidth(percentValue)),
+        role: "meter" as const,
+      }
+    : {
+        "aria-label": ariaLabel,
+        role: "img" as const,
+      };
+
+  return (
+    <div
+      className={cx(
+        "fg-cluster-resource__lane",
+        `fg-cluster-resource__lane--${variant}`,
+      )}
+    >
+      <div className="fg-cluster-resource__lane-head">
+        <span>{label}</span>
+        <strong>{percentLabel}</strong>
+      </div>
+      <div className="fg-cluster-resource__meter" {...meterProps}>
+        <span
+          className={cx(
+            "fg-cluster-resource__fill",
+            `fg-cluster-resource__fill--${tone}`,
+          )}
+          style={{ width: `${readMeterWidth(percentValue)}%` }}
+        />
+      </div>
+      <p className="fg-cluster-resource__lane-value">{amountLabel}</p>
+    </div>
+  );
 }
 
 function ClusterResourceMeter({
@@ -149,26 +213,74 @@ function ClusterResourceMeter({
     resource.schedulableFreeLabel === "No stats"
       ? t("No stats")
       : resource.schedulableFreeLabel;
-  const title = requestLabel
-    ? schedulableFreeLabel
+  const requestAmountLabel =
+    resource.requestAmountLabel === "No stats"
+      ? t("No stats")
+      : resource.requestAmountLabel;
+  const schedulableFreeAmountLabel =
+    resource.schedulableFreeAmountLabel === "No stats"
+      ? t("No stats")
+      : resource.schedulableFreeAmountLabel;
+  const totalAmountLabel =
+    resource.totalAmountLabel === "No stats"
+      ? t("No stats")
+      : resource.totalAmountLabel;
+  const capacityAmountLabel =
+    resource.capacityAmountLabel === "No stats"
+      ? t("No stats")
+      : resource.capacityAmountLabel;
+  const localizedRequestLabel = requestAmountLabel
+    ? t("Reserved {percent} ({amount})", {
+        amount: requestAmountLabel,
+        percent: requestPercentLabel,
+      })
+    : requestLabel;
+  const localizedSchedulableFreeLabel = schedulableFreeAmountLabel
+    ? t("{amount} schedulable", {
+        amount: schedulableFreeAmountLabel,
+      })
+    : schedulableFreeLabel;
+  const localizedTotalLabel = totalAmountLabel
+    ? t("{amount} allocatable", {
+        amount: totalAmountLabel,
+      })
+    : t(resource.totalLabel);
+  const localizedCapacityLabel = capacityAmountLabel
+    ? t("{amount} capacity", {
+        amount: capacityAmountLabel,
+      })
+    : t(resource.detailLabel);
+  const title = localizedRequestLabel
+    ? localizedSchedulableFreeLabel
       ? t("{label} / {usage} / {total} / {request} / {free}", {
-          free: schedulableFreeLabel,
+          free: localizedSchedulableFreeLabel,
           label,
-          request: requestLabel,
-          total: resource.totalLabel,
-          usage: resource.usageLabel,
+          request: localizedRequestLabel,
+          total: localizedTotalLabel,
+          usage: usageLabel,
         })
       : t("{label} / {usage} / {total} / {request}", {
           label,
-          request: requestLabel,
-          total: resource.totalLabel,
-          usage: resource.usageLabel,
+          request: localizedRequestLabel,
+          total: localizedTotalLabel,
+          usage: usageLabel,
         })
     : t("{label} / {usage} / {total}", {
         label,
-        total: resource.totalLabel,
-        usage: resource.usageLabel,
+        total: localizedTotalLabel,
+        usage: usageLabel,
       });
+  const usageAriaLabel = t("{label} usage {percent} ({usage})", {
+    label,
+    percent: percentLabel,
+    usage: usageLabel,
+  });
+  const requestAriaLabel = t("{label} requested {percent} ({usage})", {
+    label,
+    percent: requestPercentLabel,
+    usage:
+      requestAmountLabel ?? localizedRequestLabel ?? resource.requestPercentLabel,
+  });
 
   return (
     <article
@@ -199,64 +311,58 @@ function ClusterResourceMeter({
         </div>
       )}
 
-      <div className="fg-cluster-resource__meters">
-        <div
-          aria-label={t("{label} usage {percent} ({usage})", {
-            label,
-            percent: resource.percentLabel,
-            usage: resource.usageLabel,
-          })}
-          className="fg-cluster-resource__meter"
-          role="img"
-        >
-          <span
-            className={cx(
-              "fg-cluster-resource__fill",
-              `fg-cluster-resource__fill--${resource.usageTone}`,
-            )}
-            style={{ width: `${readMeterWidth(resource.percentValue)}%` }}
-          />
-        </div>
+      <div className="fg-cluster-resource__lanes">
+        <ClusterResourceLane
+          amountLabel={usageLabel}
+          ariaLabel={usageAriaLabel}
+          label={t("Current usage")}
+          percentLabel={percentLabel}
+          percentValue={resource.percentValue}
+          tone={resource.usageTone}
+          variant="usage"
+        />
 
-        {resource.requestPercentValue !== null &&
-        resource.requestPercentValue !== undefined ? (
-          <div
-            aria-label={t("{label} requested {percent} ({usage})", {
-              label,
-              percent: resource.requestPercentLabel,
-              usage: resource.requestLabel ?? resource.requestPercentLabel,
-            })}
-            className="fg-cluster-resource__meter fg-cluster-resource__meter--request"
-            role="img"
-          >
-            <span
-              className={cx(
-                "fg-cluster-resource__fill",
-                `fg-cluster-resource__fill--${resource.requestTone}`,
-              )}
-              style={{
-                width: `${readMeterWidth(resource.requestPercentValue)}%`,
-              }}
-            />
-          </div>
+        {hasMeterValue(resource.requestPercentValue) ? (
+          <ClusterResourceLane
+            amountLabel={
+              requestAmountLabel ?? localizedRequestLabel ?? requestPercentLabel
+            }
+            ariaLabel={requestAriaLabel}
+            label={t("Reserved")}
+            percentLabel={requestPercentLabel}
+            percentValue={resource.requestPercentValue}
+            tone={resource.requestTone}
+            variant="request"
+          />
         ) : null}
       </div>
 
       {compact ? null : (
         <>
-          <div className="fg-cluster-resource__meta">
-            <span>{usageLabel}</span>
-            <span>{resource.totalLabel}</span>
-          </div>
-
-          {requestLabel ? (
-            <div className="fg-cluster-resource__meta fg-cluster-resource__meta--request">
-              <span>{requestLabel}</span>
-              {schedulableFreeLabel ? <span>{schedulableFreeLabel}</span> : null}
+          <dl className="fg-cluster-resource__facts">
+            <div>
+              <dt>{t("Allocatable")}</dt>
+              <dd>{totalAmountLabel ?? localizedTotalLabel}</dd>
             </div>
-          ) : null}
 
-          <p className="fg-cluster-resource__detail">{resource.detailLabel}</p>
+            {schedulableFreeAmountLabel ? (
+              <div>
+                <dt>{t("Free to schedule")}</dt>
+                <dd>{schedulableFreeAmountLabel}</dd>
+              </div>
+            ) : null}
+
+            <div>
+              <dt>{t("Capacity")}</dt>
+              <dd>{capacityAmountLabel ?? localizedCapacityLabel}</dd>
+            </div>
+          </dl>
+
+          {localizedRequestLabel ? (
+            <p className="fg-cluster-resource__detail">
+              {localizedRequestLabel}
+            </p>
+          ) : null}
         </>
       )}
     </article>
@@ -290,53 +396,76 @@ function buildCompactResourceItem(
     resource.requestPercentValue !== undefined
       ? t("Req {percent}", { percent: resource.requestPercentLabel })
       : null;
-  const requestIsPrimary =
-    resource.requestPercentValue !== null &&
-    resource.requestPercentValue !== undefined &&
-    (resource.percentValue === null ||
-      resource.percentValue === undefined ||
-      resource.requestPercentValue > resource.percentValue);
-  const usageSummaryLabel = t("Use {percent}", {
-    percent: resource.percentLabel,
-  });
-  const title = resource.requestLabel
-    ? resource.schedulableFreeLabel
+  const localizedRequestLabel = resource.requestAmountLabel
+    ? t("Reserved {percent} ({amount})", {
+        amount: resource.requestAmountLabel,
+        percent: resource.requestPercentLabel,
+      })
+    : resource.requestLabel;
+  const localizedSchedulableFreeLabel = resource.schedulableFreeAmountLabel
+    ? t("{amount} schedulable", {
+        amount: resource.schedulableFreeAmountLabel,
+      })
+    : resource.schedulableFreeLabel;
+  const localizedTotalLabel = resource.totalAmountLabel
+    ? t("{amount} allocatable", {
+        amount: resource.totalAmountLabel,
+      })
+    : resource.totalLabel;
+  const localizedUsageLabel =
+    resource.usageLabel === "No stats" ? t("No stats") : resource.usageLabel;
+  const title = localizedRequestLabel
+    ? localizedSchedulableFreeLabel
       ? t("{label} / {usage} / {total} / {request} / {free}", {
-          free: resource.schedulableFreeLabel,
+          free: localizedSchedulableFreeLabel,
           label,
-          request: resource.requestLabel,
-          total: resource.totalLabel,
-          usage: resource.usageLabel,
+          request: localizedRequestLabel,
+          total: localizedTotalLabel,
+          usage: localizedUsageLabel,
         })
       : t("{label} / {usage} / {total} / {request}", {
           label,
-          request: resource.requestLabel,
-          total: resource.totalLabel,
-          usage: resource.usageLabel,
+          request: localizedRequestLabel,
+          total: localizedTotalLabel,
+          usage: localizedUsageLabel,
         })
     : t("{label} / {usage} / {total}", {
         label,
-        total: resource.totalLabel,
-        usage: resource.usageLabel,
+        total: localizedTotalLabel,
+        usage: localizedUsageLabel,
       });
 
   return {
     id: resource.id,
     label: resource.label,
-    meterValue: requestIsPrimary
-      ? resource.requestPercentValue
-      : resource.percentValue,
-    primaryLabel:
-      requestIsPrimary && requestSummaryLabel
-        ? requestSummaryLabel
-        : resource.percentLabel,
+    meterLanes: [
+      {
+        id: "usage",
+        label: t("Use"),
+        meterValue: resource.percentValue,
+        tone: resource.usageTone,
+        valueLabel: resource.percentLabel,
+      },
+      ...(resource.requestPercentValue !== null &&
+      resource.requestPercentValue !== undefined
+        ? [
+            {
+              id: "request",
+              label: t("Reserved"),
+              meterValue: resource.requestPercentValue,
+              tone: resource.requestTone,
+              valueLabel: resource.requestPercentLabel,
+            },
+          ]
+        : []),
+    ],
+    meterValue: resource.percentValue,
+    primaryLabel: resource.percentLabel,
     secondaryLabel: requestSummaryLabel
-      ? requestIsPrimary
-        ? usageSummaryLabel
-        : requestSummaryLabel
+      ? requestSummaryLabel
       : resource.usageLabel,
     title,
-    tone: requestIsPrimary ? resource.requestTone : resource.usageTone,
+    tone: resource.statusTone,
   };
 }
 

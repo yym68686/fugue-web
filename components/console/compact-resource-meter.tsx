@@ -12,6 +12,10 @@ function readMeterWidth(value?: number | null) {
   return Math.max(0, Math.min(100, value));
 }
 
+function hasMeterValue(value?: number | null): value is number {
+  return value !== null && value !== undefined && Number.isFinite(value);
+}
+
 function readLocalizedResourceLabel(
   item: ConsoleCompactResourceItemView,
   t: ReturnType<typeof useI18n>["t"],
@@ -58,7 +62,10 @@ export function CompactResourceMeter({
   showLabel?: boolean;
 }) {
   const { t } = useI18n();
-  const showMeter = item.meterValue !== null && item.meterValue !== undefined;
+  const meterLanes =
+    item.meterLanes?.filter((lane) => hasMeterValue(lane.meterValue)) ?? [];
+  const showMeter =
+    meterLanes.length > 0 || (item.meterValue !== null && item.meterValue !== undefined);
   const label = readLocalizedResourceLabel(item, t);
   const primaryLabel = readLocalizedResourceValue(item.primaryLabel, t) ?? item.primaryLabel;
   const secondaryLabel = readLocalizedResourceValue(item.secondaryLabel, t);
@@ -85,7 +92,36 @@ export function CompactResourceMeter({
         {secondaryLabel ? <span>{secondaryLabel}</span> : null}
       </div>
 
-      {showMeter ? (
+      {meterLanes.length ? (
+        <div className="fg-cluster-resource__compact-lanes">
+          {meterLanes.map((lane) => (
+            <div className="fg-cluster-resource__compact-lane" key={lane.id}>
+              <span className="fg-cluster-resource__compact-lane-label">
+                {lane.label}
+              </span>
+              <div
+                aria-label={`${label} ${lane.label} ${lane.valueLabel}`}
+                aria-valuemax={100}
+                aria-valuemin={0}
+                aria-valuenow={Math.round(readMeterWidth(lane.meterValue))}
+                className="fg-cluster-resource__meter"
+                role="meter"
+              >
+                <span
+                  className={cx(
+                    "fg-cluster-resource__fill",
+                    `fg-cluster-resource__fill--${lane.tone}`,
+                  )}
+                  style={{ width: `${readMeterWidth(lane.meterValue)}%` }}
+                />
+              </div>
+              <span className="fg-cluster-resource__compact-lane-value">
+                {lane.valueLabel}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : showMeter ? (
         <div aria-label={item.title} className="fg-cluster-resource__meter" role="img">
           <span
             className={cx(

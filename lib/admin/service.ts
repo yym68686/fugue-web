@@ -240,18 +240,22 @@ export type AdminClusterConditionView = {
 };
 
 export type AdminClusterResourceView = {
+  capacityAmountLabel: string | null;
   detailLabel: string;
   id: "cpu" | "memory" | "storage";
   label: string;
   percentLabel: string;
   percentValue: number | null;
+  requestAmountLabel: string | null;
   requestLabel: string | null;
   requestPercentLabel: string;
   requestPercentValue: number | null;
   requestTone: ConsoleTone;
+  schedulableFreeAmountLabel: string | null;
   schedulableFreeLabel: string | null;
   statusLabel: string;
   statusTone: ConsoleTone;
+  totalAmountLabel: string | null;
   totalLabel: string;
   usageTone: ConsoleTone;
   usageLabel: string;
@@ -1895,23 +1899,33 @@ function buildCPUResourceView(
   const requestPercent = stats?.requestPercent ?? null;
   const requestedLabel = formatCPUCapacityLabel(stats?.requestedMilliCores);
   const requestPercentLabel = formatPercentLabel(requestPercent);
+  const capacityMilliCores = stats?.capacityMilliCores ?? null;
+  const capacityAmountLabel = isFiniteResourceValue(capacityMilliCores)
+    ? formatCPUCapacityLabel(capacityMilliCores)
+    : null;
   const schedulableFreeLabel = formatCPUCapacityLabel(
     stats?.schedulableFreeMilliCores,
   );
   const statusPercent = maxFinitePercent(percent, requestPercent);
   const total =
     stats?.allocatableMilliCores ?? stats?.capacityMilliCores ?? null;
+  const totalAmountLabel = isFiniteResourceValue(total)
+    ? formatCPUCapacityLabel(total)
+    : null;
 
   return {
+    capacityAmountLabel,
     detailLabel:
-      stats?.capacityMilliCores !== null &&
-      stats?.capacityMilliCores !== undefined
-        ? `${formatCPUCapacityLabel(stats.capacityMilliCores)} capacity`
+      capacityAmountLabel !== null
+        ? `${capacityAmountLabel} capacity`
         : "Capacity unknown",
     id: "cpu",
     label: "Compute",
     percentLabel: formatPercentLabel(percent),
     percentValue: percent,
+    requestAmountLabel: isFiniteResourceValue(requestPercent)
+      ? requestedLabel
+      : null,
     requestLabel: buildRequestLabel(
       requestPercent,
       requestPercentLabel,
@@ -1920,15 +1934,21 @@ function buildCPUResourceView(
     requestPercentLabel,
     requestPercentValue: requestPercent,
     requestTone: readResourceTone(requestPercent),
+    schedulableFreeAmountLabel: isFiniteResourceValue(
+      stats?.schedulableFreeMilliCores,
+    )
+      ? schedulableFreeLabel
+      : null,
     schedulableFreeLabel: buildSchedulableFreeLabel(
       stats?.schedulableFreeMilliCores,
       schedulableFreeLabel,
     ),
     statusLabel: readResourceStatusLabel(statusPercent),
     statusTone: readResourceTone(statusPercent),
+    totalAmountLabel,
     totalLabel:
-      total !== null && total !== undefined
-        ? `${formatCPUCapacityLabel(total)} allocatable`
+      totalAmountLabel !== null
+        ? `${totalAmountLabel} allocatable`
         : "Allocatable unknown",
     usageTone: readResourceTone(percent),
     usageLabel: formatCPUCapacityLabel(stats?.usedMilliCores),
@@ -1943,19 +1963,30 @@ function buildMemoryResourceView(
   const requestPercent = stats?.requestPercent ?? null;
   const requestedLabel = formatBytesLabel(stats?.requestedBytes);
   const requestPercentLabel = formatPercentLabel(requestPercent);
+  const capacityBytes = stats?.capacityBytes ?? null;
+  const capacityAmountLabel = isFiniteResourceValue(capacityBytes)
+    ? formatBytesLabel(capacityBytes)
+    : null;
   const schedulableFreeLabel = formatBytesLabel(stats?.schedulableFreeBytes);
   const statusPercent = maxFinitePercent(percent, requestPercent);
   const total = stats?.allocatableBytes ?? stats?.capacityBytes ?? null;
+  const totalAmountLabel = isFiniteResourceValue(total)
+    ? formatBytesLabel(total)
+    : null;
 
   return {
+    capacityAmountLabel,
     detailLabel:
-      stats?.capacityBytes !== null && stats?.capacityBytes !== undefined
-        ? `${formatBytesLabel(stats.capacityBytes)} capacity`
+      capacityAmountLabel !== null
+        ? `${capacityAmountLabel} capacity`
         : "Capacity unknown",
     id: "memory",
     label: "Memory",
     percentLabel: formatPercentLabel(percent),
     percentValue: percent,
+    requestAmountLabel: isFiniteResourceValue(requestPercent)
+      ? requestedLabel
+      : null,
     requestLabel: buildRequestLabel(
       requestPercent,
       requestPercentLabel,
@@ -1964,15 +1995,21 @@ function buildMemoryResourceView(
     requestPercentLabel,
     requestPercentValue: requestPercent,
     requestTone: readResourceTone(requestPercent),
+    schedulableFreeAmountLabel: isFiniteResourceValue(
+      stats?.schedulableFreeBytes,
+    )
+      ? schedulableFreeLabel
+      : null,
     schedulableFreeLabel: buildSchedulableFreeLabel(
       stats?.schedulableFreeBytes,
       schedulableFreeLabel,
     ),
     statusLabel: readResourceStatusLabel(statusPercent, hasPressure),
     statusTone: readResourceTone(statusPercent, hasPressure),
+    totalAmountLabel,
     totalLabel:
-      total !== null && total !== undefined
-        ? `${formatBytesLabel(total)} allocatable`
+      totalAmountLabel !== null
+        ? `${totalAmountLabel} allocatable`
         : "Allocatable unknown",
     usageTone: readResourceTone(percent, hasPressure),
     usageLabel: formatBytesLabel(stats?.usedBytes),
@@ -1987,19 +2024,30 @@ function buildStorageResourceView(
   const requestPercent = stats?.requestPercent ?? null;
   const requestedLabel = formatBytesLabel(stats?.requestedBytes);
   const requestPercentLabel = formatPercentLabel(requestPercent);
+  const capacityBytes = stats?.capacityBytes ?? null;
+  const capacityAmountLabel = isFiniteResourceValue(capacityBytes)
+    ? formatBytesLabel(capacityBytes)
+    : null;
   const schedulableFreeLabel = formatBytesLabel(stats?.schedulableFreeBytes);
   const statusPercent = maxFinitePercent(percent, requestPercent);
   const total = stats?.allocatableBytes ?? stats?.capacityBytes ?? null;
+  const totalAmountLabel = isFiniteResourceValue(total)
+    ? formatBytesLabel(total)
+    : null;
 
   return {
+    capacityAmountLabel,
     detailLabel:
-      stats?.capacityBytes !== null && stats?.capacityBytes !== undefined
-        ? `${formatBytesLabel(stats.capacityBytes)} capacity`
+      capacityAmountLabel !== null
+        ? `${capacityAmountLabel} capacity`
         : "Capacity unknown",
     id: "storage",
     label: "Disk",
     percentLabel: formatPercentLabel(percent),
     percentValue: percent,
+    requestAmountLabel: isFiniteResourceValue(requestPercent)
+      ? requestedLabel
+      : null,
     requestLabel: buildRequestLabel(
       requestPercent,
       requestPercentLabel,
@@ -2008,15 +2056,21 @@ function buildStorageResourceView(
     requestPercentLabel,
     requestPercentValue: requestPercent,
     requestTone: readResourceTone(requestPercent),
+    schedulableFreeAmountLabel: isFiniteResourceValue(
+      stats?.schedulableFreeBytes,
+    )
+      ? schedulableFreeLabel
+      : null,
     schedulableFreeLabel: buildSchedulableFreeLabel(
       stats?.schedulableFreeBytes,
       schedulableFreeLabel,
     ),
     statusLabel: readResourceStatusLabel(statusPercent, hasPressure),
     statusTone: readResourceTone(statusPercent, hasPressure),
+    totalAmountLabel,
     totalLabel:
-      total !== null && total !== undefined
-        ? `${formatBytesLabel(total)} allocatable`
+      totalAmountLabel !== null
+        ? `${totalAmountLabel} allocatable`
         : "Allocatable unknown",
     usageTone: readResourceTone(percent, hasPressure),
     usageLabel: formatBytesLabel(stats?.usedBytes),
