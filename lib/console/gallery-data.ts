@@ -1045,15 +1045,114 @@ const releaseFailurePrefixPatterns = [
 function readLatestFailedReleaseOperation(
   commitOperations?: AppCommitOperations,
 ) {
+  const supersedingSuccesses: FugueOperation[] = [];
+
+  for (const operation of sortByTimestampDesc(
+    commitOperations?.releases ?? [],
+    readOperationTimestamp,
+  )) {
+    if (isSuccessfulReleaseOperation(operation)) {
+      supersedingSuccesses.push(operation);
+      continue;
+    }
+
+    if (!isFailedReleaseOperation(operation)) {
+      continue;
+    }
+
+    if (
+      supersedingSuccesses.some((success) =>
+        releaseOperationCanSupersedeFailure(success, operation),
+      )
+    ) {
+      continue;
+    }
+
+    return operation;
+  }
+
+  return null;
+}
+
+function hasSupersededReleaseFailure(
+  commitOperations?: AppCommitOperations,
+) {
+  const supersedingSuccesses: FugueOperation[] = [];
+
+  for (const operation of sortByTimestampDesc(
+    commitOperations?.releases ?? [],
+    readOperationTimestamp,
+  )) {
+    if (isSuccessfulReleaseOperation(operation)) {
+      supersedingSuccesses.push(operation);
+      continue;
+    }
+
+    if (
+      isFailedReleaseOperation(operation) &&
+      supersedingSuccesses.some((success) =>
+        releaseOperationCanSupersedeFailure(success, operation),
+      )
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function isFailedReleaseOperation(operation?: FugueOperation | null) {
+  const normalizedStatus = readNormalizedOperationStatus(operation);
+
   return (
-    commitOperations?.releases.find((operation) => {
-      const normalizedStatus = readNormalizedOperationStatus(operation);
-      return (
-        !isActiveOperation(operation.status) &&
-        (normalizedStatus.includes("failed") ||
-          Boolean(operation.errorMessage?.trim()))
-      );
-    }) ?? null
+    Boolean(operation) &&
+    !isActiveOperation(operation?.status) &&
+    (normalizedStatus.includes("failed") ||
+      normalizedStatus.includes("error") ||
+      Boolean(operation?.errorMessage?.trim()))
+  );
+}
+
+function isSuccessfulReleaseOperation(operation?: FugueOperation | null) {
+  const normalizedStatus = readNormalizedOperationStatus(operation);
+
+  return (
+    Boolean(operation) &&
+    !isActiveOperation(operation?.status) &&
+    isReleaseOperationCandidate(operation) &&
+    !operation?.errorMessage?.trim() &&
+    (normalizedStatus.includes("completed") ||
+      normalizedStatus.includes("succeeded") ||
+      normalizedStatus.includes("success"))
+  );
+}
+
+function isRuntimeReleaseOperation(operation?: FugueOperation | null) {
+  const normalizedType = readNormalizedOperationType(operation);
+  const normalizedStatus = readNormalizedOperationStatus(operation);
+
+  return (
+    normalizedType === "deploy" ||
+    normalizedType === "migrate" ||
+    normalizedType === "failover" ||
+    normalizedStatus.includes("deploy") ||
+    normalizedStatus.includes("migrat") ||
+    normalizedStatus.includes("failover") ||
+    normalizedStatus.includes("failing-over")
+  );
+}
+
+function releaseOperationCanSupersedeFailure(
+  success: FugueOperation,
+  failure: FugueOperation,
+) {
+  if (isRuntimeReleaseOperation(success)) {
+    return true;
+  }
+
+  return (
+    isBuildLogsOperationCandidate(success) &&
+    isBuildLogsOperationCandidate(failure)
   );
 }
 
@@ -1272,6 +1371,9 @@ function readRunningServiceMessage(
   app: FugueApp,
   commitOperations?: AppCommitOperations,
   activeOperation?: FugueOperation | null,
+  options?: {
+    terminalFailureSuperseded?: boolean;
+  },
 ) {
   if (activeOperation) {
     if (isTransferOperation(activeOperation)) {
@@ -1292,6 +1394,10 @@ function readRunningServiceMessage(
     }
 
     return "Serving the current release while the next release builds.";
+  }
+
+  if (options?.terminalFailureSuperseded) {
+    return "Current release is serving traffic.";
   }
 
   const failureSummary = isTerminalAppFailurePhase(app.status.phase)
@@ -2217,8 +2323,12 @@ function buildAppView(
   const currentCommitLabel =
     primaryCommit?.label ??
     (isGitHubSource(app) ? readCurrentCommitLabel(app) : null);
+  const terminalFailureSuperseded =
+    hasLiveRelease(app) && hasSupersededReleaseFailure(commitOperations);
   const fallbackPhase =
-    continuityOnlyDeploy && hasLiveRelease(app)
+    terminalFailureSuperseded
+      ? "running"
+      : continuityOnlyDeploy && hasLiveRelease(app)
       ? "running"
       : (app.status.phase ?? (app.spec.disabled ? "disabled" : "unknown"));
   const runningReleaseStatus = readRunningReleaseStatus(
@@ -2258,7 +2368,9 @@ function buildAppView(
           lastMessage:
             continuityOnlyDeploy && hasLiveRelease(app)
               ? "Current release is serving traffic."
-              : readRunningServiceMessage(app, commitOperations, activeOperation),
+              : readRunningServiceMessage(app, commitOperations, activeOperation, {
+                  terminalFailureSuperseded,
+                }),
           phase: runningReleaseStatus.phase,
           phaseTone: runningReleaseStatus.tone,
           preferredLogsMode: "runtime",
@@ -2799,7 +2911,7 @@ export async function getConsoleProjectGallerySummaryDataForWorkspace(
   try {
     const gallery = await requestWithWorkspaceRefresh(workspace, (active) =>
       getFugueConsoleGallery(active.adminKeySecret, {
-        includeLiveStatus: false,
+        includeLiveStatus: true,
       }),
     );
 
@@ -2908,7 +3020,7 @@ const getConsoleProjectGalleryDataCached = cache(
           workspace.tenantId ?? undefined,
         ),
         getFugueApps(workspace.adminKeySecret, {
-          includeLiveStatus: false,
+          includeLiveStatus: true,
           includeResourceUsage: false,
         }),
         getFugueOperations(workspace.adminKeySecret),

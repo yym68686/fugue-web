@@ -25,6 +25,9 @@ export async function GET(request: Request) {
 
   try {
     const url = new URL(request.url);
+    if (!url.searchParams.has("include_live_status")) {
+      url.searchParams.set("include_live_status", "true");
+    }
 
     return await proxyFugueEventStream({
       accessToken: workspaceState.workspace.adminKeySecret,
