@@ -89,6 +89,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/edge/routes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Edge Routes */
+        get: operations["edgeRoutes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/edge/domains/tls-report": {
         parameters: {
             query?: never;
@@ -1227,6 +1244,23 @@ export interface paths {
         head?: never;
         /** Patch App Route */
         patch: operations["patchAppRoute"];
+        trace?: never;
+    };
+    "/v1/backing-services/{id}/migrate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Migrate Backing Service */
+        post: operations["migrateBackingService"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/v1/apps/{id}/bindings": {
@@ -2440,6 +2474,50 @@ export interface components {
             /** Format: int32 */
             service_port?: number;
         };
+        EdgeRouteBundle: {
+            version: string;
+            /** Format: date-time */
+            generated_at: string;
+            edge_id?: string;
+            edge_group_id?: string;
+            routes: components["schemas"]["EdgeRouteBinding"][];
+            tls_allowlist: components["schemas"]["EdgeTLSAllowlistEntry"][];
+        };
+        EdgeRouteBinding: {
+            hostname: string;
+            /** @enum {string} */
+            route_kind: "platform" | "custom-domain";
+            app_id: string;
+            tenant_id: string;
+            runtime_id: string;
+            edge_group_id: string;
+            fallback_edge_group_id?: string;
+            /** @enum {string} */
+            route_policy: "primary";
+            /** @enum {string} */
+            upstream_kind: "kubernetes-service";
+            upstream_url?: string;
+            /** Format: int32 */
+            service_port: number;
+            /** @enum {string} */
+            tls_policy: "platform" | "custom-domain";
+            streaming: boolean;
+            /** @enum {string} */
+            status: "active" | "disabled" | "unavailable" | "runtime-missing";
+            status_reason?: string;
+            route_generation: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        EdgeTLSAllowlistEntry: {
+            hostname: string;
+            app_id: string;
+            tenant_id: string;
+            status: string;
+            tls_status?: string;
+        };
         AppInternalService: {
             name?: string;
             namespace?: string;
@@ -2512,10 +2590,11 @@ export interface components {
         };
         AppPersistentStorageSpec: {
             /** @enum {string} */
-            mode?: "dedicated_pvc" | "shared_project_rwx";
+            mode?: "dedicated_pvc" | "movable_rwo" | "shared_project_rwx";
             storage_path?: string;
             storage_size?: string;
             storage_class_name?: string;
+            claim_name?: string;
             shared_sub_path?: string;
             reset_token?: string;
             mounts?: components["schemas"]["AppPersistentStorageMount"][];
@@ -2606,7 +2685,9 @@ export interface components {
             command?: string[];
             args?: string[];
             env?: components["schemas"]["StringMap"];
+            generated_env?: components["schemas"]["AppGeneratedEnvMap"];
             network_mode?: components["schemas"]["AppNetworkMode"];
+            network_policy?: components["schemas"]["AppNetworkPolicySpec"];
             workload_class?: components["schemas"]["WorkloadClass"];
             ports?: number[];
             /** Format: int32 */
@@ -2623,6 +2704,32 @@ export interface components {
             /** Format: int32 */
             image_mirror_limit?: number;
             restart_token?: string;
+        };
+        AppNetworkPolicySpec: {
+            egress?: components["schemas"]["AppNetworkPolicyDirectionSpec"];
+            ingress?: components["schemas"]["AppNetworkPolicyDirectionSpec"];
+        };
+        AppNetworkPolicyDirectionSpec: {
+            mode?: components["schemas"]["AppNetworkPolicyMode"];
+            allow_dns?: boolean;
+            allow_public_internet?: boolean;
+            allow_apps?: components["schemas"]["AppNetworkPolicyAppPeer"][];
+        };
+        AppNetworkPolicyAppPeer: {
+            app_id?: string;
+            ports?: number[];
+        };
+        AppGeneratedEnvMap: {
+            [key: string]: components["schemas"]["AppGeneratedEnvSpec"];
+        };
+        AppGeneratedEnvSpec: {
+            generate?: components["schemas"]["AppGeneratedEnvGenerate"];
+            encoding?: components["schemas"]["AppGeneratedEnvEncoding"];
+            /**
+             * Format: int32
+             * @description Random byte length before encoding. Defaults to 32.
+             */
+            length?: number;
         };
         AppRightSizingSpec: {
             mode?: components["schemas"]["AppRightSizingMode"];
@@ -2896,6 +3003,32 @@ export interface components {
             /** Format: date-time */
             completed_at?: string;
         };
+        OperationSummary: {
+            id: string;
+            tenant_id: string;
+            type: string;
+            status: string;
+            execution_mode: string;
+            requested_by_type: string;
+            requested_by_id: string;
+            app_id: string;
+            source_runtime_id?: string;
+            target_runtime_id?: string;
+            /** Format: int32 */
+            desired_replicas?: number;
+            result_message?: string;
+            manifest_path?: string;
+            assigned_runtime_id?: string;
+            error_message?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: date-time */
+            started_at?: string;
+            /** Format: date-time */
+            completed_at?: string;
+        };
         OperationDiagnosisBlocker: {
             operation_id: string;
             app_id?: string;
@@ -3154,7 +3287,7 @@ export interface components {
             project_id: string;
             project_name: string;
             apps: components["schemas"]["App"][];
-            operations: components["schemas"]["Operation"][];
+            operations: (components["schemas"]["OperationSummary"] | components["schemas"]["Operation"])[];
             cluster_nodes: components["schemas"]["ClusterNode"][];
         };
         AppImageSummary: {
@@ -3961,6 +4094,7 @@ export interface components {
             dockerfile_path?: string;
             build_context_dir?: string;
             env?: components["schemas"]["StringMap"];
+            generated_env?: components["schemas"]["AppGeneratedEnvMap"];
             service_env?: components["schemas"]["ServiceEnvMap"];
             service_persistent_storage?: components["schemas"]["ServicePersistentStorageOverrideMap"];
             config_content?: string;
@@ -3992,6 +4126,7 @@ export interface components {
             dockerfile_path?: string;
             build_context_dir?: string;
             env?: components["schemas"]["StringMap"];
+            generated_env?: components["schemas"]["AppGeneratedEnvMap"];
             service_env?: components["schemas"]["ServiceEnvMap"];
             service_persistent_storage?: components["schemas"]["ServicePersistentStorageOverrideMap"];
             config_content?: string;
@@ -4081,8 +4216,10 @@ export interface components {
             /** Format: int32 */
             service_port?: number;
             env?: components["schemas"]["StringMap"];
+            generated_env?: components["schemas"]["AppGeneratedEnvMap"];
             config_content?: string;
             startup_command?: string;
+            network_policy?: components["schemas"]["AppNetworkPolicySpec"];
             files?: components["schemas"]["AppFile"][];
             persistent_storage?: components["schemas"]["AppPersistentStorageSpec"];
             postgres?: components["schemas"]["AppPostgresSpec"];
@@ -4127,6 +4264,12 @@ export interface components {
          * @enum {string}
          */
         AppNetworkMode: "background" | "internal";
+        /** @enum {string} */
+        AppNetworkPolicyMode: "restricted";
+        /** @enum {string} */
+        AppGeneratedEnvGenerate: "random";
+        /** @enum {string} */
+        AppGeneratedEnvEncoding: "base64url" | "base64" | "hex";
         /** @enum {string} */
         WorkloadClass: "critical" | "service" | "demo" | "batch";
         /** @enum {string} */
@@ -4467,7 +4610,7 @@ export interface components {
             deleted?: boolean;
         };
         OperationListResponse: {
-            operations: components["schemas"]["Operation"][];
+            operations: (components["schemas"]["OperationSummary"] | components["schemas"]["Operation"])[];
         };
         AuditEventListResponse: {
             audit_events: components["schemas"]["AuditEvent"][];
@@ -4632,6 +4775,39 @@ export interface operations {
                         [key: string]: unknown;
                     };
                 };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    edgeRoutes: {
+        parameters: {
+            query?: {
+                edge_id?: string;
+                edge_group_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    ETag?: string;
+                    "X-Fugue-Route-Bundle-Version"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EdgeRouteBundle"];
+                };
+            };
+            /** @description Route bundle unchanged */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             default: components["responses"]["ErrorResponse"];
         };
@@ -6278,6 +6454,17 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Already current response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
             /** @description Successful response */
             202: {
                 headers: {
@@ -6744,6 +6931,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AppRoutePatchResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    migrateBackingService: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    target_runtime_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             default: components["responses"]["ErrorResponse"];
@@ -7674,6 +7892,8 @@ export interface operations {
             query?: {
                 /** @description Limit operations to a single app. */
                 app_id?: string;
+                /** @description When true, include desired_spec and desired_source in each operation. Defaults to false so list responses stay lightweight. */
+                include_desired?: boolean;
             };
             header?: never;
             path?: never;

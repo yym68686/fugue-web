@@ -130,6 +130,43 @@ paths:
                 additionalProperties: true
         default:
           $ref: "#/components/responses/ErrorResponse"
+  /v1/edge/routes:
+    get:
+      operationId: edgeRoutes
+      summary: Edge Routes
+      tags: [Edge]
+      x-fugue-handler: handleEdgeRoutes
+      security:
+        - EdgeToken: []
+      parameters:
+        - in: query
+          name: edge_id
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: edge_group_id
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          headers:
+            ETag:
+              schema:
+                type: string
+            X-Fugue-Route-Bundle-Version:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EdgeRouteBundle"
+        '304':
+          description: Route bundle unchanged
+        default:
+          $ref: "#/components/responses/ErrorResponse"
   /v1/edge/domains/tls-report:
     post:
       operationId: edgeDomainTLSReport
@@ -1643,6 +1680,13 @@ paths:
             schema:
               $ref: "#/components/schemas/ImportGitHubRequest"
       responses:
+        '200':
+          description: Already current response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
         '202':
           description: Successful response
           content:
@@ -2060,6 +2104,40 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AppRoutePatchResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/backing-services/{id}/migrate:
+    post:
+      operationId: migrateBackingService
+      summary: Migrate Backing Service
+      tags: [Backing Services]
+      x-fugue-handler: handleMigrateBackingService
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [target_runtime_id]
+              properties:
+                target_runtime_id:
+                  type: string
+      responses:
+        '202':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
         default:
           $ref: "#/components/responses/ErrorResponse"
   /v1/apps/{id}/bindings:
@@ -2908,6 +2986,12 @@ paths:
           description: Limit operations to a single app.
           schema:
             type: string
+        - in: query
+          name: include_desired
+          required: false
+          description: When true, include desired_spec and desired_source in each operation. Defaults to false so list responses stay lightweight.
+          schema:
+            type: boolean
       responses:
         '200':
           description: Successful response
@@ -4284,6 +4368,107 @@ components:
         service_port:
           type: integer
           format: int32
+    EdgeRouteBundle:
+      type: object
+      additionalProperties: false
+      required: [version, generated_at, routes, tls_allowlist]
+      properties:
+        version:
+          type: string
+        generated_at:
+          type: string
+          format: date-time
+        edge_id:
+          type: string
+        edge_group_id:
+          type: string
+        routes:
+          type: array
+          items:
+            $ref: "#/components/schemas/EdgeRouteBinding"
+        tls_allowlist:
+          type: array
+          items:
+            $ref: "#/components/schemas/EdgeTLSAllowlistEntry"
+    EdgeRouteBinding:
+      type: object
+      additionalProperties: false
+      required:
+        - hostname
+        - route_kind
+        - app_id
+        - tenant_id
+        - runtime_id
+        - edge_group_id
+        - route_policy
+        - upstream_kind
+        - service_port
+        - tls_policy
+        - streaming
+        - status
+        - route_generation
+        - created_at
+        - updated_at
+      properties:
+        hostname:
+          type: string
+        route_kind:
+          type: string
+          enum: [platform, custom-domain]
+        app_id:
+          type: string
+        tenant_id:
+          type: string
+        runtime_id:
+          type: string
+        edge_group_id:
+          type: string
+        fallback_edge_group_id:
+          type: string
+        route_policy:
+          type: string
+          enum: [primary]
+        upstream_kind:
+          type: string
+          enum: [kubernetes-service]
+        upstream_url:
+          type: string
+        service_port:
+          type: integer
+          format: int32
+        tls_policy:
+          type: string
+          enum: [platform, custom-domain]
+        streaming:
+          type: boolean
+        status:
+          type: string
+          enum: [active, disabled, unavailable, runtime-missing]
+        status_reason:
+          type: string
+        route_generation:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    EdgeTLSAllowlistEntry:
+      type: object
+      additionalProperties: false
+      required: [hostname, app_id, tenant_id, status]
+      properties:
+        hostname:
+          type: string
+        app_id:
+          type: string
+        tenant_id:
+          type: string
+        status:
+          type: string
+        tls_status:
+          type: string
     AppInternalService:
       type: object
       additionalProperties: false
@@ -4423,12 +4608,14 @@ components:
       properties:
         mode:
           type: string
-          enum: [dedicated_pvc, shared_project_rwx]
+          enum: [dedicated_pvc, movable_rwo, shared_project_rwx]
         storage_path:
           type: string
         storage_size:
           type: string
         storage_class_name:
+          type: string
+        claim_name:
           type: string
         shared_sub_path:
           type: string
@@ -4600,8 +4787,12 @@ components:
             type: string
         env:
           $ref: "#/components/schemas/StringMap"
+        generated_env:
+          $ref: "#/components/schemas/AppGeneratedEnvMap"
         network_mode:
           $ref: "#/components/schemas/AppNetworkMode"
+        network_policy:
+          $ref: "#/components/schemas/AppNetworkPolicySpec"
         workload_class:
           $ref: "#/components/schemas/WorkloadClass"
         ports:
@@ -4637,6 +4828,55 @@ components:
           format: int32
         restart_token:
           type: string
+    AppNetworkPolicySpec:
+      type: object
+      additionalProperties: false
+      properties:
+        egress:
+          $ref: "#/components/schemas/AppNetworkPolicyDirectionSpec"
+        ingress:
+          $ref: "#/components/schemas/AppNetworkPolicyDirectionSpec"
+    AppNetworkPolicyDirectionSpec:
+      type: object
+      additionalProperties: false
+      properties:
+        mode:
+          $ref: "#/components/schemas/AppNetworkPolicyMode"
+        allow_dns:
+          type: boolean
+        allow_public_internet:
+          type: boolean
+        allow_apps:
+          type: array
+          items:
+            $ref: "#/components/schemas/AppNetworkPolicyAppPeer"
+    AppNetworkPolicyAppPeer:
+      type: object
+      additionalProperties: false
+      properties:
+        app_id:
+          type: string
+        ports:
+          type: array
+          items:
+            type: integer
+            format: int32
+    AppGeneratedEnvMap:
+      type: object
+      additionalProperties:
+        $ref: "#/components/schemas/AppGeneratedEnvSpec"
+    AppGeneratedEnvSpec:
+      type: object
+      additionalProperties: false
+      properties:
+        generate:
+          $ref: "#/components/schemas/AppGeneratedEnvGenerate"
+        encoding:
+          $ref: "#/components/schemas/AppGeneratedEnvEncoding"
+        length:
+          type: integer
+          format: int32
+          description: Random byte length before encoding. Defaults to 32.
     AppRightSizingSpec:
       type: object
       additionalProperties: false
@@ -5152,6 +5392,54 @@ components:
         desired_origin_source:
           description: Durable source ownership that should persist after the operation completes.
           $ref: "#/components/schemas/AppSource"
+        result_message:
+          type: string
+        manifest_path:
+          type: string
+        assigned_runtime_id:
+          type: string
+        error_message:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        started_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+    OperationSummary:
+      type: object
+      additionalProperties: false
+      required: [id, tenant_id, type, status, execution_mode, requested_by_type, requested_by_id, app_id, created_at, updated_at]
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        type:
+          type: string
+        status:
+          type: string
+        execution_mode:
+          type: string
+        requested_by_type:
+          type: string
+        requested_by_id:
+          type: string
+        app_id:
+          type: string
+        source_runtime_id:
+          type: string
+        target_runtime_id:
+          type: string
+        desired_replicas:
+          type: integer
+          format: int32
         result_message:
           type: string
         manifest_path:
@@ -5758,7 +6046,9 @@ components:
         operations:
           type: array
           items:
-            $ref: "#/components/schemas/Operation"
+            anyOf:
+              - $ref: "#/components/schemas/OperationSummary"
+              - $ref: "#/components/schemas/Operation"
         cluster_nodes:
           type: array
           items:
@@ -7518,6 +7808,8 @@ components:
           type: string
         env:
           $ref: "#/components/schemas/StringMap"
+        generated_env:
+          $ref: "#/components/schemas/AppGeneratedEnvMap"
         service_env:
           $ref: "#/components/schemas/ServiceEnvMap"
         service_persistent_storage:
@@ -7582,6 +7874,8 @@ components:
           type: string
         env:
           $ref: "#/components/schemas/StringMap"
+        generated_env:
+          $ref: "#/components/schemas/AppGeneratedEnvMap"
         service_env:
           $ref: "#/components/schemas/ServiceEnvMap"
         service_persistent_storage:
@@ -7773,10 +8067,14 @@ components:
           format: int32
         env:
           $ref: "#/components/schemas/StringMap"
+        generated_env:
+          $ref: "#/components/schemas/AppGeneratedEnvMap"
         config_content:
           type: string
         startup_command:
           type: string
+        network_policy:
+          $ref: "#/components/schemas/AppNetworkPolicySpec"
         files:
           type: array
           items:
@@ -7867,6 +8165,15 @@ components:
         Set `background` to run the app without a public route, Kubernetes Service,
         or readiness port.
       enum: [background, internal]
+    AppNetworkPolicyMode:
+      type: string
+      enum: [restricted]
+    AppGeneratedEnvGenerate:
+      type: string
+      enum: [random]
+    AppGeneratedEnvEncoding:
+      type: string
+      enum: [base64url, base64, hex]
     WorkloadClass:
       type: string
       enum: [critical, service, demo, batch]
@@ -8589,7 +8896,9 @@ components:
         operations:
           type: array
           items:
-            $ref: "#/components/schemas/Operation"
+            anyOf:
+              - $ref: "#/components/schemas/OperationSummary"
+              - $ref: "#/components/schemas/Operation"
     AuditEventListResponse:
       type: object
       additionalProperties: false
