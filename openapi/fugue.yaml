@@ -167,6 +167,155 @@ paths:
           description: Route bundle unchanged
         default:
           $ref: "#/components/responses/ErrorResponse"
+  /v1/edge/route-policies:
+    get:
+      operationId: listEdgeRoutePolicies
+      summary: List Edge Route Policies
+      tags: [Edge]
+      x-fugue-handler: handleListEdgeRoutePolicies
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EdgeRoutePolicyListResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/edge/route-policies/{hostname}:
+    get:
+      operationId: getEdgeRoutePolicy
+      summary: Get Edge Route Policy
+      tags: [Edge]
+      x-fugue-handler: handleGetEdgeRoutePolicy
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: hostname
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EdgeRoutePolicyResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+    put:
+      operationId: putEdgeRoutePolicy
+      summary: Put Edge Route Policy
+      tags: [Edge]
+      x-fugue-handler: handlePutEdgeRoutePolicy
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: hostname
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PutEdgeRoutePolicyRequest"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EdgeRoutePolicyResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+    delete:
+      operationId: deleteEdgeRoutePolicy
+      summary: Delete Edge Route Policy
+      tags: [Edge]
+      x-fugue-handler: handleDeleteEdgeRoutePolicy
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: hostname
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteEdgeRoutePolicyResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/edge/dns:
+    get:
+      operationId: edgeDNSBundle
+      summary: Edge DNS Bundle
+      tags: [Edge]
+      x-fugue-handler: handleEdgeDNSBundle
+      security:
+        - EdgeToken: []
+      parameters:
+        - in: query
+          name: dns_node_id
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: edge_group_id
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: zone
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: answer_ip
+          required: true
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: true
+        - in: query
+          name: ttl
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 3600
+      responses:
+        '200':
+          description: Successful response
+          headers:
+            ETag:
+              schema:
+                type: string
+            X-Fugue-DNS-Bundle-Version:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EdgeDNSBundle"
+        '304':
+          description: DNS bundle unchanged
+        default:
+          $ref: "#/components/responses/ErrorResponse"
   /v1/edge/domains/tls-report:
     post:
       operationId: edgeDomainTLSReport
@@ -4427,7 +4576,7 @@ components:
           type: string
         route_policy:
           type: string
-          enum: [primary]
+          enum: [route_a_only, edge_canary, edge_enabled]
         upstream_kind:
           type: string
           enum: [kubernetes-service]
@@ -4454,6 +4603,69 @@ components:
         updated_at:
           type: string
           format: date-time
+    EdgeRoutePolicy:
+      type: object
+      additionalProperties: false
+      required: [id, hostname, app_id, tenant_id, route_policy, enabled, created_at, updated_at]
+      properties:
+        id:
+          type: string
+        hostname:
+          type: string
+        app_id:
+          type: string
+        tenant_id:
+          type: string
+        edge_group_id:
+          type: string
+        route_policy:
+          type: string
+          enum: [route_a_only, edge_canary, edge_enabled]
+        enabled:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    EdgeRoutePolicyListResponse:
+      type: object
+      additionalProperties: false
+      required: [policies]
+      properties:
+        policies:
+          type: array
+          items:
+            $ref: "#/components/schemas/EdgeRoutePolicy"
+    EdgeRoutePolicyResponse:
+      type: object
+      additionalProperties: false
+      required: [policy]
+      properties:
+        policy:
+          $ref: "#/components/schemas/EdgeRoutePolicy"
+    DeleteEdgeRoutePolicyResponse:
+      type: object
+      additionalProperties: false
+      required: [policy, deleted]
+      properties:
+        policy:
+          $ref: "#/components/schemas/EdgeRoutePolicy"
+        deleted:
+          type: boolean
+    PutEdgeRoutePolicyRequest:
+      type: object
+      additionalProperties: false
+      required: [route_policy]
+      properties:
+        edge_group_id:
+          type: string
+        route_policy:
+          type: string
+          enum: [route_a_only, edge_canary, edge_enabled]
+        enabled:
+          type: boolean
     EdgeTLSAllowlistEntry:
       type: object
       additionalProperties: false
@@ -4468,6 +4680,68 @@ components:
         status:
           type: string
         tls_status:
+          type: string
+    EdgeDNSBundle:
+      type: object
+      additionalProperties: false
+      required: [version, generated_at, zone, records]
+      properties:
+        version:
+          type: string
+        generated_at:
+          type: string
+          format: date-time
+        dns_node_id:
+          type: string
+        edge_group_id:
+          type: string
+        zone:
+          type: string
+        records:
+          type: array
+          items:
+            $ref: "#/components/schemas/EdgeDNSRecord"
+    EdgeDNSRecord:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - type
+        - values
+        - ttl
+        - record_kind
+        - status
+        - record_generation
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          enum: [A, AAAA]
+        values:
+          type: array
+          items:
+            type: string
+        ttl:
+          type: integer
+          format: int32
+        record_kind:
+          type: string
+          enum: [custom-domain-target, probe]
+        app_id:
+          type: string
+        tenant_id:
+          type: string
+        edge_group_id:
+          type: string
+        fallback_edge_group_id:
+          type: string
+        status:
+          type: string
+          enum: [active, disabled, unavailable, runtime-missing]
+        status_reason:
+          type: string
+        record_generation:
           type: string
     AppInternalService:
       type: object
@@ -5240,25 +5514,54 @@ components:
       additionalProperties: false
       required:
         [
+          allow_app_runtime,
           allow_builds,
           allow_shared_pool,
+          allow_edge,
+          allow_dns,
+          allow_internal_maintenance,
           desired_control_plane_role,
+          effective_app_runtime,
           effective_builds,
           effective_shared_pool,
+          effective_edge,
+          effective_dns,
+          effective_internal_maintenance,
+          effective_schedulable,
           effective_control_plane_role
         ]
       properties:
+        allow_app_runtime:
+          type: boolean
         allow_builds:
           type: boolean
         allow_shared_pool:
           type: boolean
+        allow_edge:
+          type: boolean
+        allow_dns:
+          type: boolean
+        allow_internal_maintenance:
+          type: boolean
         node_mode:
+          type: string
+        node_health:
           type: string
         desired_control_plane_role:
           type: string
+        effective_app_runtime:
+          type: boolean
         effective_builds:
           type: boolean
         effective_shared_pool:
+          type: boolean
+        effective_edge:
+          type: boolean
+        effective_dns:
+          type: boolean
+        effective_internal_maintenance:
+          type: boolean
+        effective_schedulable:
           type: boolean
         effective_control_plane_role:
           type: string
@@ -6659,9 +6962,17 @@ components:
       type: object
       additionalProperties: false
       properties:
+        allow_app_runtime:
+          type: boolean
         allow_builds:
           type: boolean
         allow_shared_pool:
+          type: boolean
+        allow_edge:
+          type: boolean
+        allow_dns:
+          type: boolean
+        allow_internal_maintenance:
           type: boolean
         desired_control_plane_role:
           type: string

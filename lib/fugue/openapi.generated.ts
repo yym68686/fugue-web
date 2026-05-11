@@ -106,6 +106,59 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/edge/route-policies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Edge Route Policies */
+        get: operations["listEdgeRoutePolicies"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/edge/route-policies/{hostname}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Edge Route Policy */
+        get: operations["getEdgeRoutePolicy"];
+        /** Put Edge Route Policy */
+        put: operations["putEdgeRoutePolicy"];
+        post?: never;
+        /** Delete Edge Route Policy */
+        delete: operations["deleteEdgeRoutePolicy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/edge/dns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Edge DNS Bundle */
+        get: operations["edgeDNSBundle"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/edge/domains/tls-report": {
         parameters: {
             query?: never;
@@ -2493,7 +2546,7 @@ export interface components {
             edge_group_id: string;
             fallback_edge_group_id?: string;
             /** @enum {string} */
-            route_policy: "primary";
+            route_policy: "route_a_only" | "edge_canary" | "edge_enabled";
             /** @enum {string} */
             upstream_kind: "kubernetes-service";
             upstream_url?: string;
@@ -2511,12 +2564,69 @@ export interface components {
             /** Format: date-time */
             updated_at: string;
         };
+        EdgeRoutePolicy: {
+            id: string;
+            hostname: string;
+            app_id: string;
+            tenant_id: string;
+            edge_group_id?: string;
+            /** @enum {string} */
+            route_policy: "route_a_only" | "edge_canary" | "edge_enabled";
+            enabled: boolean;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        EdgeRoutePolicyListResponse: {
+            policies: components["schemas"]["EdgeRoutePolicy"][];
+        };
+        EdgeRoutePolicyResponse: {
+            policy: components["schemas"]["EdgeRoutePolicy"];
+        };
+        DeleteEdgeRoutePolicyResponse: {
+            policy: components["schemas"]["EdgeRoutePolicy"];
+            deleted: boolean;
+        };
+        PutEdgeRoutePolicyRequest: {
+            edge_group_id?: string;
+            /** @enum {string} */
+            route_policy: "route_a_only" | "edge_canary" | "edge_enabled";
+            enabled?: boolean;
+        };
         EdgeTLSAllowlistEntry: {
             hostname: string;
             app_id: string;
             tenant_id: string;
             status: string;
             tls_status?: string;
+        };
+        EdgeDNSBundle: {
+            version: string;
+            /** Format: date-time */
+            generated_at: string;
+            dns_node_id?: string;
+            edge_group_id?: string;
+            zone: string;
+            records: components["schemas"]["EdgeDNSRecord"][];
+        };
+        EdgeDNSRecord: {
+            name: string;
+            /** @enum {string} */
+            type: "A" | "AAAA";
+            values: string[];
+            /** Format: int32 */
+            ttl: number;
+            /** @enum {string} */
+            record_kind: "custom-domain-target" | "probe";
+            app_id?: string;
+            tenant_id?: string;
+            edge_group_id?: string;
+            fallback_edge_group_id?: string;
+            /** @enum {string} */
+            status: "active" | "disabled" | "unavailable" | "runtime-missing";
+            status_reason?: string;
+            record_generation: string;
         };
         AppInternalService: {
             name?: string;
@@ -2924,12 +3034,22 @@ export interface components {
             node_key_id?: string;
         };
         ClusterNodePolicy: {
+            allow_app_runtime: boolean;
             allow_builds: boolean;
             allow_shared_pool: boolean;
+            allow_edge: boolean;
+            allow_dns: boolean;
+            allow_internal_maintenance: boolean;
             node_mode?: string;
+            node_health?: string;
             desired_control_plane_role: string;
+            effective_app_runtime: boolean;
             effective_builds: boolean;
             effective_shared_pool: boolean;
+            effective_edge: boolean;
+            effective_dns: boolean;
+            effective_internal_maintenance: boolean;
+            effective_schedulable: boolean;
             effective_control_plane_role: string;
         };
         ClusterNodeFilesystemUsage: {
@@ -3562,8 +3682,12 @@ export interface components {
             diagnosis: components["schemas"]["ClusterNodeDiagnosis"];
         };
         SetClusterNodePolicyRequest: {
+            allow_app_runtime?: boolean;
             allow_builds?: boolean;
             allow_shared_pool?: boolean;
+            allow_edge?: boolean;
+            allow_dns?: boolean;
+            allow_internal_maintenance?: boolean;
             desired_control_plane_role?: string;
         };
         ClusterNodePolicyResponse: {
@@ -4803,6 +4927,136 @@ export interface operations {
                 };
             };
             /** @description Route bundle unchanged */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    listEdgeRoutePolicies: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EdgeRoutePolicyListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getEdgeRoutePolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                hostname: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EdgeRoutePolicyResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    putEdgeRoutePolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                hostname: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PutEdgeRoutePolicyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EdgeRoutePolicyResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    deleteEdgeRoutePolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                hostname: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteEdgeRoutePolicyResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    edgeDNSBundle: {
+        parameters: {
+            query: {
+                dns_node_id?: string;
+                edge_group_id?: string;
+                zone?: string;
+                answer_ip: string[];
+                ttl?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    ETag?: string;
+                    "X-Fugue-DNS-Bundle-Version"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EdgeDNSBundle"];
+                };
+            };
+            /** @description DNS bundle unchanged */
             304: {
                 headers: {
                     [name: string]: unknown;
