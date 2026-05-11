@@ -626,6 +626,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/cluster/node-policies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Cluster Node Policies */
+        get: operations["listClusterNodePolicies"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/cluster/node-policies/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Cluster Node Policy Status */
+        get: operations["getClusterNodePolicyStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/cluster/node-policies/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Cluster Node Policy */
+        get: operations["getClusterNodePolicy"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/cluster/nodes/{name}/diagnosis": {
         parameters: {
             query?: never;
@@ -2611,12 +2662,18 @@ export interface components {
             app_id: string;
             tenant_id: string;
             runtime_id: string;
+            runtime_type?: string;
+            runtime_edge_group_id?: string;
+            runtime_cluster_node?: string;
             edge_group_id: string;
             fallback_edge_group_id?: string;
+            policy_edge_group_id?: string;
             /** @enum {string} */
             route_policy: "route_a_only" | "edge_canary" | "edge_enabled";
             /** @enum {string} */
-            upstream_kind: "kubernetes-service";
+            upstream_kind: "kubernetes-service" | "mesh";
+            /** @enum {string} */
+            upstream_scope?: "local-service" | "mesh";
             upstream_url?: string;
             /** Format: int32 */
             service_port: number;
@@ -3215,6 +3272,55 @@ export interface components {
             effective_internal_maintenance: boolean;
             effective_schedulable: boolean;
             effective_control_plane_role: string;
+        };
+        ClusterNodeTaint: {
+            key: string;
+            value?: string;
+            effect?: string;
+        };
+        ClusterNodePolicyStatus: {
+            node_name: string;
+            runtime_id?: string;
+            tenant_id?: string;
+            machine_id?: string;
+            policy?: components["schemas"]["ClusterNodePolicy"];
+            labels?: {
+                [key: string]: string;
+            };
+            taints?: components["schemas"]["ClusterNodeTaint"][];
+            conditions?: {
+                [key: string]: components["schemas"]["ClusterNodeCondition"];
+            };
+            ready: boolean;
+            disk_pressure: boolean;
+            node_schedulable: boolean;
+            reconciled: boolean;
+            reconcile_reasons?: string[];
+            reconcile_error?: string;
+        };
+        ClusterNodePolicyStatusSummary: {
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            reconciled: number;
+            /** Format: int32 */
+            drifted: number;
+            /** Format: int32 */
+            ready: number;
+            /** Format: int32 */
+            disk_pressure: number;
+            /** Format: int32 */
+            blocked_by_health: number;
+        };
+        ClusterNodePolicyListResponse: {
+            node_policies: components["schemas"]["ClusterNodePolicyStatus"][];
+        };
+        ClusterNodePolicyStatusItemResponse: {
+            node_policy: components["schemas"]["ClusterNodePolicyStatus"];
+        };
+        ClusterNodePolicyStatusResponse: {
+            summary: components["schemas"]["ClusterNodePolicyStatusSummary"];
+            node_policies: components["schemas"]["ClusterNodePolicyStatus"][];
         };
         ClusterNodeFilesystemUsage: {
             filesystem?: string;
@@ -6089,6 +6195,71 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClusterNodeListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    listClusterNodePolicies: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClusterNodePolicyListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getClusterNodePolicyStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClusterNodePolicyStatusResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getClusterNodePolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClusterNodePolicyStatusItemResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
