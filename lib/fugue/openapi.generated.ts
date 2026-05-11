@@ -106,6 +106,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/edge/nodes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Edge Nodes */
+        get: operations["listEdgeNodes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/edge/nodes/{edge_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Edge Node */
+        get: operations["getEdgeNode"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/edge/nodes/{edge_id}/token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Edge Node Token */
+        post: operations["createEdgeNodeToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/edge/heartbeat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Edge Heartbeat */
+        post: operations["edgeHeartbeat"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/edge/route-policies": {
         parameters: {
             query?: never;
@@ -2584,6 +2652,102 @@ export interface components {
         EdgeRoutePolicyResponse: {
             policy: components["schemas"]["EdgeRoutePolicy"];
         };
+        EdgeNode: {
+            id: string;
+            edge_group_id: string;
+            region?: string;
+            country?: string;
+            public_hostname?: string;
+            public_ipv4?: string;
+            public_ipv6?: string;
+            mesh_ip?: string;
+            /** @enum {string} */
+            status: "unknown" | "healthy" | "degraded" | "unhealthy";
+            healthy: boolean;
+            draining: boolean;
+            route_bundle_version?: string;
+            dns_bundle_version?: string;
+            /** Format: int32 */
+            caddy_route_count: number;
+            caddy_applied_version?: string;
+            caddy_last_error?: string;
+            cache_status?: string;
+            last_error?: string;
+            token_prefix?: string;
+            /** Format: date-time */
+            last_seen_at?: string;
+            /** Format: date-time */
+            last_heartbeat_at?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        EdgeGroup: {
+            id: string;
+            region?: string;
+            country?: string;
+            status?: string;
+            /** Format: int32 */
+            node_count: number;
+            /** Format: int32 */
+            healthy_node_count: number;
+            has_healthy_nodes: boolean;
+            /** Format: date-time */
+            last_seen_at?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        EdgeNodeListResponse: {
+            nodes: components["schemas"]["EdgeNode"][];
+            groups: components["schemas"]["EdgeGroup"][];
+        };
+        EdgeNodeResponse: {
+            node: components["schemas"]["EdgeNode"];
+            group: components["schemas"]["EdgeGroup"];
+        };
+        CreateEdgeNodeTokenRequest: {
+            edge_group_id: string;
+            region?: string;
+            country?: string;
+            public_hostname?: string;
+            public_ipv4?: string;
+            public_ipv6?: string;
+            mesh_ip?: string;
+            draining?: boolean;
+        };
+        CreateEdgeNodeTokenResponse: {
+            node: components["schemas"]["EdgeNode"];
+            token: string;
+        };
+        EdgeHeartbeatRequest: {
+            edge_id: string;
+            edge_group_id: string;
+            region?: string;
+            country?: string;
+            public_hostname?: string;
+            public_ipv4?: string;
+            public_ipv6?: string;
+            mesh_ip?: string;
+            route_bundle_version?: string;
+            dns_bundle_version?: string;
+            /** Format: int32 */
+            caddy_route_count?: number;
+            caddy_applied_version?: string;
+            caddy_last_error?: string;
+            cache_status?: string;
+            /** @enum {string} */
+            status: "unknown" | "healthy" | "degraded" | "unhealthy";
+            healthy: boolean;
+            draining: boolean;
+            last_error?: string;
+        };
+        EdgeHeartbeatResponse: {
+            node: components["schemas"]["EdgeNode"];
+            accepted: boolean;
+        };
         DeleteEdgeRoutePolicyResponse: {
             policy: components["schemas"]["EdgeRoutePolicy"];
             deleted: boolean;
@@ -4932,6 +5096,104 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    listEdgeNodes: {
+        parameters: {
+            query?: {
+                edge_group_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EdgeNodeListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getEdgeNode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                edge_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EdgeNodeResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    createEdgeNodeToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                edge_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateEdgeNodeTokenRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateEdgeNodeTokenResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    edgeHeartbeat: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EdgeHeartbeatRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EdgeHeartbeatResponse"];
+                };
             };
             default: components["responses"]["ErrorResponse"];
         };
