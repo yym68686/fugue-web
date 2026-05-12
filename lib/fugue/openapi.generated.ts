@@ -227,6 +227,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/dns/nodes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List DNS Nodes */
+        get: operations["listDNSNodes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/dns/nodes/{dns_node_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get DNS Node */
+        get: operations["getDNSNode"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/dns/heartbeat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** DNS Heartbeat */
+        post: operations["dnsHeartbeat"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/dns/delegation/preflight": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** DNS Delegation Preflight */
+        get: operations["dnsDelegationPreflight"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/edge/domains/tls-report": {
         parameters: {
             query?: never;
@@ -2849,6 +2917,168 @@ export interface components {
             status_reason?: string;
             record_generation: string;
         };
+        DNSNode: {
+            id: string;
+            edge_group_id: string;
+            public_hostname?: string;
+            public_ipv4?: string;
+            public_ipv6?: string;
+            mesh_ip?: string;
+            zone: string;
+            /** @enum {string} */
+            status: "unknown" | "healthy" | "degraded" | "unhealthy";
+            healthy: boolean;
+            dns_bundle_version?: string;
+            /** Format: int32 */
+            record_count: number;
+            cache_status?: string;
+            /** Format: int64 */
+            cache_write_errors: number;
+            /** Format: int64 */
+            cache_load_errors: number;
+            /** Format: int64 */
+            bundle_sync_errors: number;
+            /** Format: int64 */
+            query_count: number;
+            /** Format: int64 */
+            query_error_count: number;
+            query_rcode_counts?: {
+                [key: string]: number;
+            };
+            query_qtype_counts?: {
+                [key: string]: number;
+            };
+            listen_addr?: string;
+            udp_addr?: string;
+            tcp_addr?: string;
+            udp_listen: boolean;
+            tcp_listen: boolean;
+            last_error?: string;
+            /** Format: date-time */
+            last_seen_at?: string;
+            /** Format: date-time */
+            last_heartbeat_at?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        DNSNodeListResponse: {
+            nodes: components["schemas"]["DNSNode"][];
+        };
+        DNSNodeResponse: {
+            node: components["schemas"]["DNSNode"];
+        };
+        DNSHeartbeatRequest: {
+            dns_node_id: string;
+            edge_group_id: string;
+            public_hostname?: string;
+            public_ipv4?: string;
+            public_ipv6?: string;
+            mesh_ip?: string;
+            zone: string;
+            dns_bundle_version?: string;
+            /** Format: int32 */
+            record_count?: number;
+            cache_status?: string;
+            /** Format: int64 */
+            cache_write_errors?: number;
+            /** Format: int64 */
+            cache_load_errors?: number;
+            /** Format: int64 */
+            bundle_sync_errors?: number;
+            /** Format: int64 */
+            query_count?: number;
+            /** Format: int64 */
+            query_error_count?: number;
+            query_rcode_counts?: {
+                [key: string]: number;
+            };
+            query_qtype_counts?: {
+                [key: string]: number;
+            };
+            listen_addr?: string;
+            udp_addr?: string;
+            tcp_addr?: string;
+            udp_listen?: boolean;
+            tcp_listen?: boolean;
+            /** @enum {string} */
+            status: "unknown" | "healthy" | "degraded" | "unhealthy";
+            healthy: boolean;
+            last_error?: string;
+        };
+        DNSHeartbeatResponse: {
+            node: components["schemas"]["DNSNode"];
+            accepted: boolean;
+        };
+        DNSDelegationRecord: {
+            name: string;
+            type: string;
+            values: string[];
+            /** Format: int32 */
+            ttl?: number;
+            comment?: string;
+        };
+        DNSDelegationPlan: {
+            current_parent_ns: string[];
+            planned_a_records: components["schemas"]["DNSDelegationRecord"][];
+            planned_ns_records: components["schemas"]["DNSDelegationRecord"][];
+            rollback_delete_records: components["schemas"]["DNSDelegationRecord"][];
+            notes?: string[];
+        };
+        DNSDelegationPreflightCheck: {
+            name: string;
+            pass: boolean;
+            message?: string;
+        };
+        DNSDelegationNodeCheck: {
+            dns_node_id: string;
+            edge_group_id?: string;
+            public_ip?: string;
+            zone?: string;
+            status?: string;
+            healthy: boolean;
+            dns_bundle_version?: string;
+            /** Format: int32 */
+            record_count: number;
+            cache_status?: string;
+            /** Format: int64 */
+            cache_write_errors: number;
+            /** Format: int64 */
+            cache_load_errors: number;
+            /** Format: int64 */
+            bundle_sync_errors: number;
+            /** Format: int64 */
+            query_count: number;
+            /** Format: int64 */
+            query_error_count: number;
+            udp_53_reachable: boolean;
+            tcp_53_reachable: boolean;
+            probe_pass: boolean;
+            probe_answers?: string[];
+            kubernetes_node_known: boolean;
+            node_ready: boolean;
+            node_disk_pressure: boolean;
+            /** Format: date-time */
+            last_seen_at?: string;
+            pass: boolean;
+            message?: string;
+        };
+        DNSDelegationPreflightResponse: {
+            pass: boolean;
+            zone: string;
+            probe_name: string;
+            /** Format: int32 */
+            min_healthy_nodes: number;
+            /** Format: int32 */
+            healthy_node_count: number;
+            dns_bundle_version?: string;
+            /** Format: date-time */
+            generated_at: string;
+            checks: components["schemas"]["DNSDelegationPreflightCheck"][];
+            nodes: components["schemas"]["DNSDelegationNodeCheck"][];
+            delegation_plan: components["schemas"]["DNSDelegationPlan"];
+        };
         AppInternalService: {
             name?: string;
             namespace?: string;
@@ -3371,6 +3601,7 @@ export interface components {
             requested_by_type: string;
             requested_by_id: string;
             app_id: string;
+            service_id?: string;
             source_runtime_id?: string;
             target_runtime_id?: string;
             /** Format: int32 */
@@ -3402,6 +3633,7 @@ export interface components {
             requested_by_type: string;
             requested_by_id: string;
             app_id: string;
+            service_id?: string;
             source_runtime_id?: string;
             target_runtime_id?: string;
             /** Format: int32 */
@@ -4367,6 +4599,11 @@ export interface components {
         };
         BackingServiceListResponse: {
             backing_services: components["schemas"]["BackingService"][];
+        };
+        BackingServiceMigrateResponse: {
+            backing_service: components["schemas"]["BackingService"];
+            already_current: boolean;
+            operation?: components["schemas"]["Operation"];
         };
         AppListResponse: {
             apps: components["schemas"]["App"][];
@@ -5405,6 +5642,8 @@ export interface operations {
                 edge_group_id?: string;
                 zone?: string;
                 answer_ip: string[];
+                /** @description Route A fallback origin IPs used for route_a_only custom-domain targets. */
+                route_a_answer_ip?: string[];
                 ttl?: number;
             };
             header?: never;
@@ -5430,6 +5669,103 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    listDNSNodes: {
+        parameters: {
+            query?: {
+                edge_group_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DNSNodeListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getDNSNode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dns_node_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DNSNodeResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    dnsHeartbeat: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DNSHeartbeatRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DNSHeartbeatResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    dnsDelegationPreflight: {
+        parameters: {
+            query?: {
+                zone?: string;
+                probe_name?: string;
+                edge_group_id?: string;
+                min_healthy_nodes?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DNSDelegationPreflightResponse"];
+                };
             };
             default: components["responses"]["ErrorResponse"];
         };
@@ -7640,15 +7976,22 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Successful response */
+            /** @description Backing service already targets the requested runtime */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackingServiceMigrateResponse"];
+                };
+            };
+            /** @description Database switchover accepted */
             202: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["BackingServiceMigrateResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
