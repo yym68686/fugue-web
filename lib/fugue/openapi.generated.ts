@@ -244,6 +244,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/dns/acme-challenges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List DNS ACME Challenges */
+        get: operations["listDNSACMEChallenges"];
+        put?: never;
+        /** Upsert DNS ACME Challenge */
+        post: operations["upsertDNSACMEChallenge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/dns/acme-challenges/{challenge_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete DNS ACME Challenge */
+        delete: operations["deleteDNSACMEChallenge"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/dns/nodes/{dns_node_id}": {
         parameters: {
             query?: never;
@@ -1497,6 +1532,23 @@ export interface paths {
         put?: never;
         /** Migrate Backing Service */
         post: operations["migrateBackingService"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backing-services/{id}/localize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Localize Backing Service */
+        post: operations["localizeBackingService"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2902,12 +2954,12 @@ export interface components {
         EdgeDNSRecord: {
             name: string;
             /** @enum {string} */
-            type: "A" | "AAAA";
+            type: "A" | "AAAA" | "CAA" | "CNAME" | "MX" | "NS" | "TXT";
             values: string[];
             /** Format: int32 */
             ttl: number;
             /** @enum {string} */
-            record_kind: "custom-domain-target" | "probe";
+            record_kind: "acme-challenge" | "custom-domain-target" | "platform" | "probe" | "protected";
             app_id?: string;
             tenant_id?: string;
             edge_group_id?: string;
@@ -2916,6 +2968,53 @@ export interface components {
             status: "active" | "disabled" | "unavailable" | "runtime-missing";
             status_reason?: string;
             record_generation: string;
+        };
+        DNSACMEChallenge: {
+            id: string;
+            zone: string;
+            name: string;
+            value: string;
+            /** Format: int32 */
+            ttl: number;
+            /** Format: date-time */
+            expires_at: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        UpsertDNSACMEChallengeRequest: {
+            /** @description DNS zone containing the challenge name. Defaults to the suffix after _acme-challenge. */
+            zone?: string;
+            /** @description Fully-qualified _acme-challenge hostname. */
+            name: string;
+            /** @description TXT value provided by the ACME client. */
+            value: string;
+            /**
+             * Format: int32
+             * @default 60
+             */
+            ttl: number;
+            /**
+             * Format: date-time
+             * @description Absolute expiration time. Overrides expires_in_seconds when present.
+             */
+            expires_at?: string;
+            /**
+             * Format: int32
+             * @description Relative expiration in seconds. Defaults to 3600.
+             */
+            expires_in_seconds?: number;
+        };
+        DNSACMEChallengeResponse: {
+            challenge: components["schemas"]["DNSACMEChallenge"];
+        };
+        DNSACMEChallengeListResponse: {
+            challenges: components["schemas"]["DNSACMEChallenge"][];
+        };
+        DeleteDNSACMEChallengeResponse: {
+            deleted: boolean;
+            challenge: components["schemas"]["DNSACMEChallenge"];
         };
         DNSNode: {
             id: string;
@@ -3728,6 +3827,7 @@ export interface components {
         };
         LocalizeAppDatabaseRequest: {
             target_node_name?: string;
+            target_runtime_id?: string;
         };
         AppContinuityAppFailoverRequest: {
             enabled: boolean;
@@ -5691,6 +5791,78 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DNSNodeListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    listDNSACMEChallenges: {
+        parameters: {
+            query?: {
+                zone?: string;
+                include_expired?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DNSACMEChallengeListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    upsertDNSACMEChallenge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpsertDNSACMEChallengeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DNSACMEChallengeResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    deleteDNSACMEChallenge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                challenge_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteDNSACMEChallengeResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
@@ -7986,6 +8158,33 @@ export interface operations {
                 };
             };
             /** @description Database switchover accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackingServiceMigrateResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    localizeBackingService: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LocalizeAppDatabaseRequest"];
+            };
+        };
+        responses: {
+            /** @description Database localize accepted */
             202: {
                 headers: {
                     [name: string]: unknown;
