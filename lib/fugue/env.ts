@@ -30,26 +30,11 @@ function readOptionalEnv(name: string) {
   return value ? value : null;
 }
 
-const DEFAULT_INTERNAL_API_URL = "http://fugue-fugue.fugue-system.svc/";
-
-function shouldUseInternalApi(publicApiUrl: string) {
-  if (!process.env.KUBERNETES_SERVICE_HOST) {
-    return false;
-  }
-
-  const hostname = new URL(publicApiUrl).hostname;
-  return hostname === "api.fugue.pro";
-}
-
 function readApiServerUrl(publicApiUrl: string) {
   const explicitInternalApiUrl = readOptionalEnv("FUGUE_API_INTERNAL_URL");
 
   if (explicitInternalApiUrl) {
     return normalizeApiUrl(explicitInternalApiUrl);
-  }
-
-  if (shouldUseInternalApi(publicApiUrl)) {
-    return DEFAULT_INTERNAL_API_URL;
   }
 
   return publicApiUrl;

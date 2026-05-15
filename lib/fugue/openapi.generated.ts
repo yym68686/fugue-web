@@ -210,6 +210,178 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/domains": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Platform Domain Bindings */
+        get: operations["listPlatformDomainBindings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/control-plane/store/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Control Plane Store Status */
+        get: operations["getControlPlaneStoreStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/control-plane/store/promote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Promote Control Plane Store */
+        post: operations["promoteControlPlaneStore"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/routes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Route Serving Modes */
+        get: operations["listRouteServingModes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/routes/explain/{hostname}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Explain Route */
+        get: operations["explainRoute"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/platform/autonomy/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Platform Autonomy Status */
+        get: operations["getPlatformAutonomyStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/platform/failure-drills": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Run Platform Failure Drill */
+        post: operations["runPlatformFailureDrill"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/security/key-rotation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preflight Bundle Signing Key Rotation */
+        post: operations["preflightKeyRotation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/dns/full-zone/preflight": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** DNS Full Zone Preflight */
+        get: operations["dnsFullZonePreflight"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/domains/{hostname}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Platform Domain Binding */
+        get: operations["getPlatformDomainBinding"];
+        /** Put Platform Domain Binding */
+        put: operations["putPlatformDomainBinding"];
+        post?: never;
+        /** Delete Platform Domain Binding */
+        delete: operations["deletePlatformDomainBinding"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/edge/dns": {
         parameters: {
             query?: never;
@@ -823,6 +995,23 @@ export interface paths {
         };
         /** Get Control Plane Status */
         get: operations["getControlPlaneStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/discovery/bundle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Discovery Bundle */
+        get: operations["getDiscoveryBundle"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2019,6 +2208,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/apps/{id}/database/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get App Database Status */
+        get: operations["getAppDatabaseStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/apps/{id}/database/localize": {
         parameters: {
             query?: never;
@@ -2218,6 +2424,23 @@ export interface paths {
         put?: never;
         /** Node Updater Heartbeat */
         post: operations["nodeUpdaterHeartbeat"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/node-updater/desired-state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Node Updater Desired State */
+        get: operations["nodeUpdaterDesiredState"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2562,6 +2785,15 @@ export interface components {
             updater_version?: string;
             join_script_version?: string;
             k3s_version?: string;
+            k3s_server?: string;
+            k3s_fallback_servers?: string;
+            registry_mirror?: string;
+            labels_hash?: string;
+            taints_hash?: string;
+            edge_env_generation?: string;
+            dns_env_generation?: string;
+            config_hash?: string;
+            discovery_generation?: string;
             os?: string;
             arch?: string;
             last_error?: string;
@@ -2766,10 +2998,92 @@ export interface components {
             /** Format: int32 */
             service_port?: number;
         };
-        EdgeRouteBundle: {
-            version: string;
+        BundleSignature: {
+            schema_version?: string;
+            issuer?: string;
+            key_id?: string;
+            signature?: string;
+            /** Format: date-time */
+            generated_at?: string;
+            /** Format: date-time */
+            valid_until?: string;
+            previous_generation?: string;
+        };
+        DiscoveryEndpoint: {
+            name: string;
+            url: string;
+        };
+        DiscoveryRegistryEndpoint: {
+            name: string;
+            push_base?: string;
+            pull_base?: string;
+            mirror?: string;
+        };
+        DiscoveryKubernetesEndpoint: {
+            name: string;
+            server?: string;
+            fallback_servers?: string[];
+            ca_hash?: string;
+            registry_endpoint?: string;
+        };
+        DiscoveryBundle: {
+            schema_version: string;
+            generation: string;
+            previous_generation?: string;
             /** Format: date-time */
             generated_at: string;
+            /** Format: date-time */
+            valid_until: string;
+            issuer: string;
+            key_id?: string;
+            signature?: string;
+            signatures?: components["schemas"]["BundleSignature"][];
+            api_endpoints: components["schemas"]["DiscoveryEndpoint"][];
+            kubernetes: components["schemas"]["DiscoveryKubernetesEndpoint"][];
+            registry: components["schemas"]["DiscoveryRegistryEndpoint"][];
+            edge_groups: components["schemas"]["EdgeGroup"][];
+            edge_nodes: components["schemas"]["EdgeNode"][];
+            dns_nodes: components["schemas"]["DNSNode"][];
+            platform_routes?: components["schemas"]["PlatformRoute"][];
+            public_runtime_env?: {
+                [key: string]: string;
+            };
+        };
+        EdgeSelectionPolicy: {
+            runtime_locality: boolean;
+            client_locality: boolean;
+            edge_health: boolean;
+            capacity: boolean;
+            latency: boolean;
+            fallback_order?: string[];
+        };
+        PlatformRoute: {
+            hostname: string;
+            upstream_url?: string;
+            /** @enum {string} */
+            route_policy: "route_a_only" | "edge_canary" | "edge_enabled";
+            edge_group_id?: string;
+            /** @enum {string} */
+            edge_group_mode?: "all_healthy" | "region_aware" | "pinned";
+            /** @enum {string} */
+            status: "active" | "disabled" | "unavailable" | "runtime-missing";
+            status_reason?: string;
+            /** Format: int32 */
+            ttl?: number;
+        };
+        EdgeRouteBundle: {
+            schema_version?: string;
+            version: string;
+            generation?: string;
+            previous_generation?: string;
+            /** Format: date-time */
+            generated_at: string;
+            /** Format: date-time */
+            valid_until?: string;
+            issuer?: string;
+            key_id?: string;
+            signature?: string;
+            signatures?: components["schemas"]["BundleSignature"][];
             edge_id?: string;
             edge_group_id?: string;
             routes: components["schemas"]["EdgeRouteBinding"][];
@@ -2778,18 +3092,22 @@ export interface components {
         EdgeRouteBinding: {
             hostname: string;
             /** @enum {string} */
-            route_kind: "platform" | "custom-domain";
+            route_kind: "platform" | "custom-domain" | "platform-domain" | "platform-route";
             app_id: string;
             tenant_id: string;
             runtime_id: string;
             runtime_type?: string;
+            runtime_edge_group?: string;
             runtime_edge_group_id?: string;
             runtime_cluster_node?: string;
+            selected_edge_group?: string;
             edge_group_id: string;
             fallback_edge_group_id?: string;
             policy_edge_group_id?: string;
             /** @enum {string} */
             route_policy: "route_a_only" | "edge_canary" | "edge_enabled";
+            selection_reason?: string;
+            fallback_reason?: string;
             /** @enum {string} */
             upstream_kind: "kubernetes-service" | "mesh";
             /** @enum {string} */
@@ -2829,6 +3147,30 @@ export interface components {
         EdgeRoutePolicyResponse: {
             policy: components["schemas"]["EdgeRoutePolicy"];
         };
+        PlatformDomainBinding: {
+            hostname: string;
+            zone: string;
+            app_id: string;
+            app_name?: string;
+            project_id?: string;
+            tenant_id: string;
+            status: string;
+            tls_status?: string;
+            /** @enum {string} */
+            route_policy: "route_a_only" | "edge_canary" | "edge_enabled";
+            edge_group_id?: string;
+            dns_record_kind: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        PlatformDomainBindingListResponse: {
+            bindings: components["schemas"]["PlatformDomainBinding"][];
+        };
+        PlatformDomainBindingResponse: {
+            binding: components["schemas"]["PlatformDomainBinding"];
+        };
         EdgeNode: {
             id: string;
             edge_group_id: string;
@@ -2844,6 +3186,8 @@ export interface components {
             draining: boolean;
             route_bundle_version?: string;
             dns_bundle_version?: string;
+            serving_generation?: string;
+            lkg_generation?: string;
             /** Format: int32 */
             caddy_route_count: number;
             caddy_applied_version?: string;
@@ -2910,6 +3254,8 @@ export interface components {
             mesh_ip?: string;
             route_bundle_version?: string;
             dns_bundle_version?: string;
+            serving_generation?: string;
+            lkg_generation?: string;
             /** Format: int32 */
             caddy_route_count?: number;
             caddy_applied_version?: string;
@@ -2935,6 +3281,16 @@ export interface components {
             route_policy: "route_a_only" | "edge_canary" | "edge_enabled";
             enabled?: boolean;
         };
+        PutPlatformDomainBindingRequest: {
+            app_id: string;
+            /** @enum {string} */
+            route_policy?: "route_a_only" | "edge_canary" | "edge_enabled";
+            edge_group_id?: string;
+        };
+        DeletePlatformDomainBindingResponse: {
+            binding: components["schemas"]["PlatformDomainBinding"];
+            deleted: boolean;
+        };
         EdgeTLSAllowlistEntry: {
             hostname: string;
             app_id: string;
@@ -2943,9 +3299,18 @@ export interface components {
             tls_status?: string;
         };
         EdgeDNSBundle: {
+            schema_version?: string;
             version: string;
+            generation?: string;
+            previous_generation?: string;
             /** Format: date-time */
             generated_at: string;
+            /** Format: date-time */
+            valid_until?: string;
+            issuer?: string;
+            key_id?: string;
+            signature?: string;
+            signatures?: components["schemas"]["BundleSignature"][];
             dns_node_id?: string;
             edge_group_id?: string;
             zone: string;
@@ -2959,7 +3324,7 @@ export interface components {
             /** Format: int32 */
             ttl: number;
             /** @enum {string} */
-            record_kind: "acme-challenge" | "custom-domain-target" | "platform" | "probe" | "protected";
+            record_kind: "acme-challenge" | "custom-domain-target" | "platform" | "platform-domain" | "platform-route" | "probe" | "protected";
             app_id?: string;
             tenant_id?: string;
             edge_group_id?: string;
@@ -2976,6 +3341,8 @@ export interface components {
             value: string;
             /** Format: int32 */
             ttl: number;
+            owner?: string;
+            created_by?: string;
             /** Format: date-time */
             expires_at: string;
             /** Format: date-time */
@@ -2995,6 +3362,8 @@ export interface components {
              * @default 60
              */
             ttl: number;
+            /** @description Logical owner for cleanup and audit attribution. */
+            owner?: string;
             /**
              * Format: date-time
              * @description Absolute expiration time. Overrides expires_in_seconds when present.
@@ -3028,6 +3397,8 @@ export interface components {
             status: "unknown" | "healthy" | "degraded" | "unhealthy";
             healthy: boolean;
             dns_bundle_version?: string;
+            serving_generation?: string;
+            lkg_generation?: string;
             /** Format: int32 */
             record_count: number;
             cache_status?: string;
@@ -3077,6 +3448,8 @@ export interface components {
             mesh_ip?: string;
             zone: string;
             dns_bundle_version?: string;
+            serving_generation?: string;
+            lkg_generation?: string;
             /** Format: int32 */
             record_count?: number;
             cache_status?: string;
@@ -3626,6 +3999,9 @@ export interface components {
             reconciled: boolean;
             reconcile_reasons?: string[];
             reconcile_error?: string;
+            block_rollout?: boolean;
+            gate_reason?: string;
+            suggested_fix_command?: string;
         };
         ClusterNodePolicyStatusSummary: {
             /** Format: int32 */
@@ -4224,6 +4600,17 @@ export interface components {
         NodeUpdaterResponse: {
             node_updater: components["schemas"]["NodeUpdater"];
         };
+        NodeUpdaterDesiredState: {
+            /** Format: date-time */
+            generated_at: string;
+            node_updater: components["schemas"]["NodeUpdater"];
+            discovery_bundle: components["schemas"]["DiscoveryBundle"];
+            node_policy?: components["schemas"]["ClusterNodePolicyStatus"];
+            warnings?: string[];
+        };
+        NodeUpdaterDesiredStateResponse: {
+            desired_state: components["schemas"]["NodeUpdaterDesiredState"];
+        };
         NodeUpdaterEnrollRequest: {
             node_key?: string;
             node_name?: string;
@@ -4250,6 +4637,15 @@ export interface components {
             updater_version?: string;
             join_script_version?: string;
             k3s_version?: string;
+            k3s_server?: string;
+            k3s_fallback_servers?: string;
+            registry_mirror?: string;
+            labels_hash?: string;
+            taints_hash?: string;
+            edge_env_generation?: string;
+            dns_env_generation?: string;
+            config_hash?: string;
+            discovery_generation?: string;
             os?: string;
             arch?: string;
             last_error?: string;
@@ -5327,6 +5723,48 @@ export interface components {
         OperationResponse: {
             operation: components["schemas"]["Operation"];
         };
+        MigrateAppRequest: {
+            target_runtime_id?: string;
+            dry_run?: boolean;
+        };
+        AppMoveVolumeImpact: {
+            mode?: string;
+            storage_class_name?: string;
+            claim_name?: string;
+            /** Format: int32 */
+            mount_count?: number;
+            strategy?: string;
+        };
+        AppMoveDatabaseImpact: {
+            service_name?: string;
+            current_runtime_id?: string;
+            target_runtime_id?: string;
+            backup_status: string;
+            restore_status: string;
+            grant_verification: string;
+            requires_localization: boolean;
+        };
+        AppMoveImpact: {
+            app_id: string;
+            target_runtime_id: string;
+            dry_run: boolean;
+            pass: boolean;
+            blockers?: string[];
+            rollback_ref?: string;
+            operation_chain?: string[];
+            volumes?: components["schemas"]["AppMoveVolumeImpact"][];
+            databases?: components["schemas"]["AppMoveDatabaseImpact"][];
+            services?: string[];
+            routes?: string[];
+            dns?: string[];
+            checks?: components["schemas"]["StoreInvariantCheck"][];
+            /** Format: date-time */
+            generated_at: string;
+        };
+        AppMoveDryRunResponse: {
+            impact: components["schemas"]["AppMoveImpact"];
+            app: components["schemas"]["App"];
+        };
         OperationDiagnosisResponse: {
             diagnosis: components["schemas"]["OperationDiagnosis"];
         };
@@ -5345,6 +5783,213 @@ export interface components {
         };
         AuditEventListResponse: {
             audit_events: components["schemas"]["AuditEvent"][];
+        };
+        StoreInvariantCheck: {
+            name: string;
+            pass: boolean;
+            /** Format: int32 */
+            count?: number;
+            message?: string;
+        };
+        StorePromotion: {
+            id?: string;
+            source_kind?: string;
+            source_fingerprint?: string;
+            target_store?: string;
+            generation?: string;
+            status?: string;
+            dry_run?: boolean;
+            backup_ref?: string;
+            rollback_ref?: string;
+            restore_manifest_ref?: string;
+            /** Format: date-time */
+            started_at?: string;
+            /** Format: date-time */
+            completed_at?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        ControlPlaneStoreStatus: {
+            authoritative_store: string;
+            store_generation: string;
+            source_fingerprint: string;
+            schema_version?: string;
+            last_promotion?: components["schemas"]["StorePromotion"];
+            last_restore?: components["schemas"]["StorePromotion"];
+            last_backup_ref?: string;
+            permission_verification_status?: string;
+            restore_readiness?: string;
+            invariants: components["schemas"]["StoreInvariantCheck"][];
+            block_rollout: boolean;
+            gate_reason?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        ControlPlaneStoreStatusResponse: {
+            status: components["schemas"]["ControlPlaneStoreStatus"];
+        };
+        RestoreManifest: {
+            dump_ref?: string;
+            target_store?: string;
+            owner?: string;
+            expected_counts?: {
+                [key: string]: number;
+            };
+            required_grants?: string[];
+            restore_order?: string[];
+        };
+        StorePromoteRequest: {
+            source_kind?: string;
+            source_fingerprint?: string;
+            target_store?: string;
+            generation?: string;
+            backup_ref?: string;
+            rollback_ref?: string;
+            restore_manifest_ref?: string;
+            restore_manifest?: components["schemas"]["RestoreManifest"];
+            dry_run?: boolean;
+            confirm?: boolean;
+        };
+        StorePromotionResponse: {
+            promotion: components["schemas"]["StorePromotion"];
+            status: components["schemas"]["ControlPlaneStoreStatus"];
+        };
+        RouteExplainResponse: {
+            hostname?: string;
+            /** @enum {string} */
+            serving_mode?: "edge" | "route_a_legacy" | "unrouted" | "degraded";
+            route?: components["schemas"]["EdgeRouteBinding"];
+            healthy_edge_groups?: {
+                [key: string]: boolean;
+            };
+            fallback_chain?: string[];
+            reasons?: string[];
+            /** Format: date-time */
+            generated_at?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        RouteExplainResponseEnvelope: {
+            explain: components["schemas"]["RouteExplainResponse"];
+        };
+        RouteServingMode: {
+            hostname?: string;
+            /** @enum {string} */
+            serving_mode?: "edge" | "route_a_legacy" | "unrouted" | "degraded";
+            selected_edge_group?: string;
+            runtime_edge_group?: string;
+            route_kind?: string;
+            route_policy?: string;
+            reason?: string;
+            /** Format: date-time */
+            generated_at?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        RouteServingModeListResponse: {
+            routes: components["schemas"]["RouteServingMode"][];
+            /** Format: date-time */
+            generated_at: string;
+        };
+        PlatformAutonomyStatus: {
+            /** Format: date-time */
+            generated_at?: string;
+            pass?: boolean;
+            block_rollout?: boolean;
+            control_plane_store?: components["schemas"]["ControlPlaneStoreStatus"];
+            checks?: components["schemas"]["StoreInvariantCheck"][];
+        } & {
+            [key: string]: unknown;
+        };
+        PlatformAutonomyStatusResponse: {
+            status: components["schemas"]["PlatformAutonomyStatus"];
+        };
+        PlatformFailureDrillRequest: {
+            dry_run?: boolean;
+            target?: string;
+        };
+        PlatformFailureDrillReport: {
+            id: string;
+            dry_run: boolean;
+            target: string;
+            /** Format: date-time */
+            generated_at: string;
+            status: string;
+            block_rollout: boolean;
+            checks: components["schemas"]["StoreInvariantCheck"][];
+            backlog?: string[];
+            report_ref?: string;
+            autonomy_state: components["schemas"]["PlatformAutonomyStatus"];
+        };
+        PlatformFailureDrillResponse: {
+            report: components["schemas"]["PlatformFailureDrillReport"];
+        };
+        KeyRotationPreflightRequest: {
+            dry_run?: boolean;
+            stage?: boolean;
+            confirm_revoke?: boolean;
+            new_key_id?: string;
+            previous_key_id?: string;
+        };
+        KeyRotationNodeAcceptance: {
+            node_kind: string;
+            node_id: string;
+            healthy: boolean;
+            serving_generation?: string;
+            lkg_generation?: string;
+            accepted: boolean;
+            reason?: string;
+        };
+        KeyRotationPreflight: {
+            /** Format: date-time */
+            generated_at: string;
+            dry_run: boolean;
+            stage: boolean;
+            confirm_revoke: boolean;
+            current_key_id?: string;
+            new_key_id?: string;
+            previous_key_id?: string;
+            revoked_key_ids?: string[];
+            can_stage: boolean;
+            can_revoke_previous: boolean;
+            block_rollout: boolean;
+            checks: components["schemas"]["StoreInvariantCheck"][];
+            nodes: components["schemas"]["KeyRotationNodeAcceptance"][];
+        };
+        KeyRotationPreflightResponse: {
+            preflight: components["schemas"]["KeyRotationPreflight"];
+        };
+        ManagedPostgresStatus: {
+            app_id: string;
+            enabled: boolean;
+            service_name?: string;
+            owner?: string;
+            runtime_id?: string;
+            failover_runtime_id?: string;
+            last_backup?: string;
+            last_restore?: string;
+            backup_status: string;
+            restore_status: string;
+            grant_verification: string;
+            /** Format: date-time */
+            generated_at: string;
+        };
+        ManagedPostgresStatusResponse: {
+            status: components["schemas"]["ManagedPostgresStatus"];
+            app: components["schemas"]["App"];
+        };
+        DNSFullZonePreflight: {
+            zone?: string;
+            pass?: boolean;
+            dnssec_status?: string;
+            checks?: components["schemas"]["DNSDelegationPreflightCheck"][];
+            delegation_plan?: components["schemas"]["DNSDelegationPlan"];
+            rollback_plan?: components["schemas"]["DNSDelegationPlan"];
+        } & {
+            [key: string]: unknown;
+        };
+        DNSFullZonePreflightResponseEnvelope: {
+            preflight: components["schemas"]["DNSFullZonePreflight"];
         };
     };
     responses: {
@@ -5730,6 +6375,288 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DeleteEdgeRoutePolicyResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    listPlatformDomainBindings: {
+        parameters: {
+            query?: {
+                zone?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformDomainBindingListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getControlPlaneStoreStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ControlPlaneStoreStatusResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    promoteControlPlaneStore: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StorePromoteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StorePromotionResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    listRouteServingModes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RouteServingModeListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    explainRoute: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                hostname: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RouteExplainResponseEnvelope"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getPlatformAutonomyStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformAutonomyStatusResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    runPlatformFailureDrill: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PlatformFailureDrillRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformFailureDrillResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    preflightKeyRotation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KeyRotationPreflightRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KeyRotationPreflightResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    dnsFullZonePreflight: {
+        parameters: {
+            query?: {
+                zone?: string;
+                dnssec_status?: "disabled" | "enabling" | "enabled" | "drift";
+                min_healthy_nodes?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DNSFullZonePreflightResponseEnvelope"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getPlatformDomainBinding: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                hostname: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformDomainBindingResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    putPlatformDomainBinding: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                hostname: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PutPlatformDomainBindingRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformDomainBindingResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    deletePlatformDomainBinding: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                hostname: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeletePlatformDomainBindingResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
@@ -6840,6 +7767,36 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ControlPlaneStatusResponse"];
                 };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getDiscoveryBundle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    ETag?: string;
+                    "X-Fugue-Discovery-Bundle-Version"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiscoveryBundle"];
+                };
+            };
+            /** @description Discovery bundle unchanged */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             default: components["responses"]["ErrorResponse"];
         };
@@ -8979,21 +9936,26 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": {
-                    [key: string]: unknown;
-                };
+                "application/json": components["schemas"]["MigrateAppRequest"];
             };
         };
         responses: {
+            /** @description App move dry-run impact report */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppMoveDryRunResponse"];
+                };
+            };
             /** @description Successful response */
             202: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["OperationResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
@@ -9048,6 +10010,29 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OperationResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getAppDatabaseStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagedPostgresStatusResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
@@ -9377,6 +10362,27 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["NodeUpdaterResponse"];
                     "text/plain": string;
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    nodeUpdaterDesiredState: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NodeUpdaterDesiredStateResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
