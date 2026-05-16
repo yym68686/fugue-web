@@ -484,6 +484,27 @@ async function requestJsonLocalized<T>(
   return (await response.json().catch(() => ({}))) as T;
 }
 
+function shouldPreserveCurrentGalleryOnPartialRefresh(
+  current: ConsoleProjectGallerySummaryData,
+  next: ConsoleProjectGallerySummaryData,
+) {
+  return (
+    next.errors.length > 0 &&
+    next.projects.length === 0 &&
+    current.projects.length > 0 &&
+    current.workspace.exists
+  );
+}
+
+function buildPartialFugueDataMessage(
+  errors: readonly string[],
+  t: Translator,
+) {
+  return t("Partial Fugue data: {details}.", {
+    details: errors.join(" | "),
+  });
+}
+
 function readPendingProjectIntentStatus(
   intent: PendingProjectIntent,
   t: Translator,
@@ -1400,6 +1421,17 @@ export function ConsoleProjectGallery({
           return false;
         }
 
+        if (shouldPreserveCurrentGalleryOnPartialRefresh(data, nextData)) {
+          if (!options?.silent) {
+            setFlash({
+              message: buildPartialFugueDataMessage(nextData.errors, t),
+              variant: nextData.errors.length >= 3 ? "error" : "info",
+            });
+          }
+
+          return false;
+        }
+
         startTransition(() => {
           setData(nextData);
         });
@@ -1477,9 +1509,7 @@ export function ConsoleProjectGallery({
     }
 
     showToast({
-      message: t("Partial Fugue data: {details}.", {
-        details: data.errors.join(" | "),
-      }),
+      message: buildPartialFugueDataMessage(data.errors, t),
       variant: data.errors.length >= 3 ? "error" : "info",
     });
   }, [data.errors, showToast, t]);
