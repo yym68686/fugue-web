@@ -43,6 +43,7 @@ import {
   readFugueSourceHref,
   readFugueSourceLabel,
 } from "@/lib/fugue/source-display";
+import { toneForAppPhase } from "@/lib/console/app-phase-tone";
 import {
   readTechStackBadgeKind,
   readTechnologyLabel,
@@ -910,7 +911,7 @@ function mapAdminApps(
             shortId(app.tenantId))
           : "Unknown",
         phase: humanize(phase),
-        phaseTone: toneForStatus(phase),
+        phaseTone: toneForAppPhase(phase),
         projectLabel: app.projectId
           ? (projectNames.get(app.projectId) ?? shortId(app.projectId))
           : "Unassigned",

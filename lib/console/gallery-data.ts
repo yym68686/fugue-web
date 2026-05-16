@@ -2,6 +2,7 @@ import "server-only";
 
 import { cache } from "react";
 
+import { toneForAppPhase } from "@/lib/console/app-phase-tone";
 import type { ConsoleTone } from "@/lib/console/types";
 import type {
   ConsoleGalleryAppView,
@@ -446,7 +447,7 @@ function readRunningReleaseStatus(
 
   return {
     phase: readAppPhaseLabel(fallbackPhase),
-    tone: toneForStatus(fallbackPhase),
+    tone: toneForAppPhase(fallbackPhase),
   };
 }
 

@@ -16,6 +16,7 @@ import {
   type FugueTenant,
 } from "@/lib/fugue/api";
 import { getFugueEnv } from "@/lib/fugue/env";
+import { toneForAppPhase } from "@/lib/console/app-phase-tone";
 import type { ConsoleTone } from "@/lib/console/types";
 import {
   getCurrentWorkspaceAccess,
@@ -682,7 +683,9 @@ export async function getConsoleData(): Promise<ConsoleData> {
           : "No operation yet",
       name: app.name,
       phase: humanize(app.status.phase ?? (app.spec.disabled ? "disabled" : "unknown")),
-      phaseTone: toneForStatus(app.status.phase ?? (app.spec.disabled ? "disabled" : "unknown")),
+      phaseTone: toneForAppPhase(
+        app.status.phase ?? (app.spec.disabled ? "disabled" : "unknown"),
+      ),
       projectLabel: resolveProjectLabel(app.projectId, projectNames),
       replicasLabel: app.spec.disabled
         ? "Disabled"
