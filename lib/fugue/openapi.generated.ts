@@ -6178,13 +6178,6 @@ export interface operations {
                     "application/json": components["schemas"]["EdgeRouteBundle"];
                 };
             };
-            /** @description Route bundle unchanged */
-            304: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
             default: components["responses"]["ErrorResponse"];
         };
     };
@@ -6689,13 +6682,6 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["EdgeDNSBundle"];
                 };
-            };
-            /** @description DNS bundle unchanged */
-            304: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
             default: components["responses"]["ErrorResponse"];
         };
