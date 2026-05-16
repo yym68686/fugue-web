@@ -12,7 +12,7 @@ function isProjectDetailPathname(pathname: string) {
 export function ConsolePrimaryAction({ hasProjects }: { hasProjects: boolean }) {
   const { t } = useI18n();
   const className = "fg-console-topbar__primary-action";
-  const { displayPathname } = useConsoleRouteTransition();
+  const { beginRouteTransition, displayPathname } = useConsoleRouteTransition();
 
   if (displayPathname === "/app") {
     return (
@@ -30,7 +30,15 @@ export function ConsolePrimaryAction({ hasProjects }: { hasProjects: boolean }) 
 
   if (isProjectDetailPathname(displayPathname)) {
     return (
-      <ButtonLink className={className} href="/app" size="compact" variant="secondary">
+      <ButtonLink
+        className={className}
+        href="/app"
+        onNavigate={() => {
+          beginRouteTransition("/app", t("Projects"));
+        }}
+        size="compact"
+        variant="secondary"
+      >
         {t("Back home")}
       </ButtonLink>
     );

@@ -7,7 +7,6 @@ import {
   ConsoleLoadingState,
   ConsoleProjectGalleryTransitionSkeleton,
 } from "@/components/console/console-page-skeleton";
-import { isConsoleNavHrefActive } from "@/lib/console/nav";
 
 type PendingRouteTransition = {
   fromPathname: string;
@@ -50,7 +49,7 @@ export function ConsoleRouteTransitionProvider({
     <ConsoleRouteTransitionContext.Provider
       value={{
         beginRouteTransition: (href, label) => {
-          if (isConsoleNavHrefActive(displayPathname, href)) {
+          if (displayPathname === href) {
             return;
           }
 
