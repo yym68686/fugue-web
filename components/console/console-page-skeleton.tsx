@@ -508,16 +508,16 @@ function AdminAppsTableSkeleton() {
       <table className="fg-console-table fg-console-table--admin fg-console-table--apps">
         <colgroup>
           <col className="fg-console-table__col fg-console-table__col--app-name" />
-          <col className="fg-console-table__col fg-console-table__col--app-id" />
           <col className="fg-console-table__col fg-console-table__col--tenant" />
-          <col className="fg-console-table__col fg-console-table__col--project" />
-          <col className="fg-console-table__col fg-console-table__col--route" />
-          <col className="fg-console-table__col fg-console-table__col--runtime" />
           <col className="fg-console-table__col fg-console-table__col--usage" />
+          <col className="fg-console-table__col fg-console-table__col--route" />
           <col className="fg-console-table__col fg-console-table__col--phase" />
+          <col className="fg-console-table__col fg-console-table__col--updated" />
+          <col className="fg-console-table__col fg-console-table__col--app-id" />
+          <col className="fg-console-table__col fg-console-table__col--project" />
+          <col className="fg-console-table__col fg-console-table__col--runtime" />
           <col className="fg-console-table__col fg-console-table__col--source" />
           <col className="fg-console-table__col fg-console-table__col--stack" />
-          <col className="fg-console-table__col fg-console-table__col--updated" />
           <col className="fg-console-table__col fg-console-table__col--actions" />
         </colgroup>
         <thead>
@@ -526,19 +526,7 @@ function AdminAppsTableSkeleton() {
               <SkeletonBlock className="fg-console-skeleton__table-label" width="4rem" />
             </th>
             <th>
-              <SkeletonBlock className="fg-console-skeleton__table-label" width="5rem" />
-            </th>
-            <th>
               <SkeletonBlock className="fg-console-skeleton__table-label" width="4.5rem" />
-            </th>
-            <th>
-              <SkeletonBlock className="fg-console-skeleton__table-label" width="4rem" />
-            </th>
-            <th>
-              <SkeletonBlock className="fg-console-skeleton__table-label" width="4rem" />
-            </th>
-            <th>
-              <SkeletonBlock className="fg-console-skeleton__table-label" width="4rem" />
             </th>
             <th className="fg-console-table__head--usage">
               <div className="fg-console-table__resource-head">
@@ -552,7 +540,19 @@ function AdminAppsTableSkeleton() {
               </div>
             </th>
             <th>
+              <SkeletonBlock className="fg-console-skeleton__table-label" width="4rem" />
+            </th>
+            <th>
               <SkeletonBlock className="fg-console-skeleton__table-label" width="3.5rem" />
+            </th>
+            <th>
+              <SkeletonBlock className="fg-console-skeleton__table-label" width="4rem" />
+            </th>
+            <th>
+              <SkeletonBlock className="fg-console-skeleton__table-label" width="5rem" />
+            </th>
+            <th>
+              <SkeletonBlock className="fg-console-skeleton__table-label" width="4rem" />
             </th>
             <th>
               <SkeletonBlock className="fg-console-skeleton__table-label" width="4rem" />
@@ -575,19 +575,7 @@ function AdminAppsTableSkeleton() {
                 <SkeletonBlock className="fg-console-skeleton__item-title" width="8rem" />
               </td>
               <td>
-                <SkeletonBlock className="fg-console-skeleton__item-meta" width="7rem" />
-              </td>
-              <td>
                 <SkeletonBlock className="fg-console-skeleton__item-title" width="9rem" />
-              </td>
-              <td>
-                <SkeletonBlock className="fg-console-skeleton__item-title" width="7rem" />
-              </td>
-              <td>
-                <SkeletonBlock className="fg-console-skeleton__item-meta" width="7.5rem" />
-              </td>
-              <td>
-                <SkeletonBlock className="fg-console-skeleton__item-title" width="5rem" />
               </td>
               <td className="fg-console-table__cell--usage">
                 <div className="fg-console-table__resource-grid">
@@ -608,7 +596,22 @@ function AdminAppsTableSkeleton() {
                 </div>
               </td>
               <td>
+                <SkeletonBlock className="fg-console-skeleton__item-meta" width="7.5rem" />
+              </td>
+              <td>
                 <SkeletonBlock className="fg-console-skeleton__badge" width="4.4rem" />
+              </td>
+              <td>
+                <SkeletonBlock className="fg-console-skeleton__item-meta" width="5rem" />
+              </td>
+              <td>
+                <SkeletonBlock className="fg-console-skeleton__item-meta" width="7rem" />
+              </td>
+              <td>
+                <SkeletonBlock className="fg-console-skeleton__item-title" width="7rem" />
+              </td>
+              <td>
+                <SkeletonBlock className="fg-console-skeleton__item-title" width="5rem" />
               </td>
               <td>
                 <SkeletonBlock className="fg-console-skeleton__item-meta" width="6.75rem" />
@@ -618,9 +621,6 @@ function AdminAppsTableSkeleton() {
                   <SkeletonBlock className="fg-console-skeleton__chip" width="4rem" />
                   <SkeletonBlock className="fg-console-skeleton__chip" width="3.5rem" />
                 </div>
-              </td>
-              <td>
-                <SkeletonBlock className="fg-console-skeleton__item-meta" width="5rem" />
               </td>
               <td>
                 <div className="fg-console-toolbar">

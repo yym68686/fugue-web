@@ -389,6 +389,9 @@ const MICRO_CENTS_PER_DOLLAR = 100_000_000;
 // Keep optional admin-side enrichments from dragging first-paint snapshots past
 // the 1s budget when control-plane reads are cold.
 const ADMIN_OPTIONAL_FETCH_TIMEOUT_MS = 200;
+const ADMIN_BILLING_LOOKUP_CONCURRENCY = 6;
+const ADMIN_BILLING_LOOKUP_RETRY_COUNT = 2;
+const ADMIN_BILLING_LOOKUP_RETRY_DELAY_MS = 250;
 
 function readErrorMessage(error: unknown) {
   if (error instanceof Error && error.message) {
@@ -451,6 +454,40 @@ async function settleWithSoftTimeout<T>(
       clearTimeout(timeoutHandle);
     }
   }
+}
+
+function delay(ms: number) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+async function settleWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  run: (item: T, index: number) => Promise<R>,
+): Promise<Array<SettledResult<R>>> {
+  const results = new Array<SettledResult<R>>(items.length);
+  let nextIndex = 0;
+  const workerCount = Math.min(Math.max(1, concurrency), items.length);
+
+  await Promise.all(
+    Array.from({ length: workerCount }, async () => {
+      while (nextIndex < items.length) {
+        const index = nextIndex;
+        nextIndex += 1;
+        const item = items[index];
+
+        if (item === undefined) {
+          continue;
+        }
+
+        results[index] = await settleResult(run(item, index));
+      }
+    }),
+  );
+
+  return results;
 }
 
 function parseTimestamp(value?: string | null) {
@@ -2398,10 +2435,7 @@ async function loadAdminAppsPageData(): Promise<AdminAppsPageData> {
           includeResourceUsage: false,
         }),
       ),
-      settleWithSoftTimeout(
-        listWorkspaceSnapshots(),
-        ADMIN_OPTIONAL_FETCH_TIMEOUT_MS,
-      ),
+      settleResult(listWorkspaceSnapshots()),
       settleWithSoftTimeout(
         getFugueTenants(bootstrapKey),
         ADMIN_OPTIONAL_FETCH_TIMEOUT_MS,
@@ -2843,12 +2877,11 @@ async function getAdminUserBillingLookup(
     };
   }
 
-  const billingResults = await Promise.allSettled(
-    uniqueWorkspaces.map((workspace) =>
-      getFugueBillingSummary(bootstrapKey, workspace.tenantId, {
-        includeCurrentUsage: false,
-      }),
-    ),
+  const billingResults = await settleWithConcurrency(
+    uniqueWorkspaces,
+    ADMIN_BILLING_LOOKUP_CONCURRENCY,
+    (workspace) =>
+      getAdminUserBillingSummaryWithRetry(bootstrapKey, workspace.tenantId),
   );
 
   const byTenant = new Map<string, AdminTenantBillingLookup>();
@@ -2883,6 +2916,35 @@ async function getAdminUserBillingLookup(
     byTenant,
     errors,
   };
+}
+
+async function getAdminUserBillingSummaryWithRetry(
+  bootstrapKey: string,
+  tenantId: string,
+) {
+  let lastError: unknown;
+
+  for (
+    let attempt = 0;
+    attempt <= ADMIN_BILLING_LOOKUP_RETRY_COUNT;
+    attempt += 1
+  ) {
+    try {
+      return await getFugueBillingSummary(bootstrapKey, tenantId, {
+        includeCurrentUsage: false,
+      });
+    } catch (error) {
+      lastError = error;
+
+      if (attempt >= ADMIN_BILLING_LOOKUP_RETRY_COUNT) {
+        break;
+      }
+
+      await delay(ADMIN_BILLING_LOOKUP_RETRY_DELAY_MS * (attempt + 1));
+    }
+  }
+
+  throw lastError;
 }
 
 async function loadAdminUsersPageData(): Promise<AdminUsersPageData> {

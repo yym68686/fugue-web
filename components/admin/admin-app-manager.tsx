@@ -188,26 +188,22 @@ export function AdminAppManager({
       <table className="fg-console-table fg-console-table--admin fg-console-table--apps">
         <colgroup>
           <col className="fg-console-table__col fg-console-table__col--app-name" />
-          <col className="fg-console-table__col fg-console-table__col--app-id" />
           <col className="fg-console-table__col fg-console-table__col--tenant" />
-          <col className="fg-console-table__col fg-console-table__col--project" />
-          <col className="fg-console-table__col fg-console-table__col--route" />
-          <col className="fg-console-table__col fg-console-table__col--runtime" />
           <col className="fg-console-table__col fg-console-table__col--usage" />
+          <col className="fg-console-table__col fg-console-table__col--route" />
           <col className="fg-console-table__col fg-console-table__col--phase" />
+          <col className="fg-console-table__col fg-console-table__col--updated" />
+          <col className="fg-console-table__col fg-console-table__col--app-id" />
+          <col className="fg-console-table__col fg-console-table__col--project" />
+          <col className="fg-console-table__col fg-console-table__col--runtime" />
           <col className="fg-console-table__col fg-console-table__col--source" />
           <col className="fg-console-table__col fg-console-table__col--stack" />
-          <col className="fg-console-table__col fg-console-table__col--updated" />
           <col className="fg-console-table__col fg-console-table__col--actions" />
         </colgroup>
         <thead>
           <tr>
             <th scope="col">{t("Name")}</th>
-            <th scope="col">{t("App identifier")}</th>
             <th scope="col">{t("User email")}</th>
-            <th scope="col">{t("Project")}</th>
-            <th scope="col">{t("Route")}</th>
-            <th scope="col">{t("Server")}</th>
             <th className="fg-console-table__head--usage" scope="col">
               <div className="fg-console-table__resource-head">
                 <span className="fg-console-table__resource-head-label">{t("Usage")}</span>
@@ -218,10 +214,14 @@ export function AdminAppManager({
                 </div>
               </div>
             </th>
+            <th scope="col">{t("Route")}</th>
             <th scope="col">{t("Phase")}</th>
+            <th scope="col">{t("Created")}</th>
+            <th scope="col">{t("App identifier")}</th>
+            <th scope="col">{t("Project")}</th>
+            <th scope="col">{t("Server")}</th>
             <th scope="col">{t("Source")}</th>
             <th scope="col">{t("Stack")}</th>
-            <th scope="col">{t("Created")}</th>
             <th scope="col">{t("Actions")}</th>
           </tr>
         </thead>
@@ -234,19 +234,19 @@ export function AdminAppManager({
                 </span>
               </td>
               <td>
-                <span className="fg-console-table__mono fg-console-table__clip" title={app.id}>
-                  {app.id}
-                </span>
-              </td>
-              <td>
                 <span className="fg-console-table__clip" title={app.ownerLabel}>
                   {t(app.ownerLabel)}
                 </span>
               </td>
-              <td>
-                <span className="fg-console-table__clip" title={app.projectLabel}>
-                  {t(app.projectLabel)}
-                </span>
+              <td className="fg-console-table__cell--usage">
+                <div
+                  aria-label={t("{name} resource usage", { name: app.name })}
+                  className="fg-console-table__resource-grid"
+                >
+                  {app.resourceUsage.map((resource) => (
+                    <CompactResourceMeter item={resource} key={resource.id} showLabel={false} />
+                  ))}
+                </div>
               </td>
               <td>
                 {app.routeHref ? (
@@ -266,22 +266,25 @@ export function AdminAppManager({
                 )}
               </td>
               <td>
+                <StatusBadge tone={app.phaseTone}>{t(app.phase)}</StatusBadge>
+              </td>
+              <td>
+                <span title={app.createdExact}>{app.createdLabel}</span>
+              </td>
+              <td>
+                <span className="fg-console-table__mono fg-console-table__clip" title={app.id}>
+                  {app.id}
+                </span>
+              </td>
+              <td>
+                <span className="fg-console-table__clip" title={app.projectLabel}>
+                  {t(app.projectLabel)}
+                </span>
+              </td>
+              <td>
                 <span className="fg-console-table__clip" title={app.serverLabel}>
                   {t(app.serverLabel)}
                 </span>
-              </td>
-              <td className="fg-console-table__cell--usage">
-                <div
-                  aria-label={t("{name} resource usage", { name: app.name })}
-                  className="fg-console-table__resource-grid"
-                >
-                  {app.resourceUsage.map((resource) => (
-                    <CompactResourceMeter item={resource} key={resource.id} showLabel={false} />
-                  ))}
-                </div>
-              </td>
-              <td>
-                <StatusBadge tone={app.phaseTone}>{t(app.phase)}</StatusBadge>
               </td>
               <td>
                 {app.sourceHref ? (
@@ -323,9 +326,6 @@ export function AdminAppManager({
                 ) : (
                   <span className="fg-console-tech-empty">{t("Not detected")}</span>
                 )}
-              </td>
-              <td>
-                <span title={app.createdExact}>{app.createdLabel}</span>
               </td>
               <td>
                 <div className="fg-console-toolbar">

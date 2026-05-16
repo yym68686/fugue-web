@@ -279,7 +279,7 @@ export function AdminUsersPageShell({
         .join("||"),
     [data],
   );
-  const warmAdminUserEnrichment = useEffectEvent((_signal: AbortSignal) => {
+  const warmAdminUserEnrichment = useEffectEvent((signal: AbortSignal) => {
     if (!data?.users.length) {
       return;
     }
@@ -294,15 +294,40 @@ export function AdminUsersPageShell({
       });
     }
 
-    const needsEnrichmentFetch = data.users.some(
-      (user) =>
-        !cachedEnrichment[user.email] || cachedEnrichment[user.email].billing.loading,
-    );
+    const needsEnrichmentFetch =
+      data.enrichmentState !== "ready" ||
+      data.users.some(
+        (user) =>
+          !cachedEnrichment[user.email] ||
+          cachedEnrichment[user.email].billing.loading,
+      );
 
     if (!needsEnrichmentFetch) {
       return;
     }
-    // Billing and registry enrichment stays server-side on initial navigation.
+
+    void fetchConsolePageSnapshot<ConsoleAdminUsersPageSnapshot>(
+      CONSOLE_ADMIN_USERS_PAGE_ENRICHMENT_SNAPSHOT_URL,
+      {
+        force: true,
+        signal,
+        ttlMs: ADMIN_USERS_ENRICHMENT_SNAPSHOT_TTL_MS,
+      },
+    )
+      .then((snapshot) => {
+        if (signal.aborted) {
+          return;
+        }
+
+        startTransition(() => {
+          setEnrichedUsersByEmail(buildAdminUsersEnrichmentMap(snapshot));
+        });
+      })
+      .catch((error) => {
+        if (!signal.aborted && !isAbortRequestError(error)) {
+          console.error("Admin users enrichment refresh failed.", error);
+        }
+      });
   });
 
   useAnticipatoryWarmup(
