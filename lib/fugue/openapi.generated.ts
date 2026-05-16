@@ -1640,6 +1640,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/apps/{id}/image-tracking": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get App Image Tracking */
+        get: operations["getAppImageTracking"];
+        /** Put App Image Tracking */
+        put: operations["putAppImageTracking"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/apps/{id}/image-sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sync App Image */
+        post: operations["syncAppImage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/apps/{id}/images/redeploy": {
         parameters: {
             query?: never;
@@ -4673,6 +4708,50 @@ export interface components {
         };
         AppImageActionRequest: {
             image_ref: string;
+        };
+        AppImageTracking: {
+            id: string;
+            tenant_id: string;
+            app_id: string;
+            image_ref: string;
+            enabled: boolean;
+            last_seen_digest?: string;
+            last_queued_digest?: string;
+            last_deployed_digest?: string;
+            last_operation_id?: string;
+            last_delivery_id?: string;
+            last_event?: string;
+            last_error?: string;
+            /** Format: date-time */
+            last_checked_at?: string;
+            /** Format: date-time */
+            last_triggered_at?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        AppImageTrackingRequest: {
+            image_ref: string;
+            enabled?: boolean;
+        };
+        AppImageTrackingResponse: {
+            app_id: string;
+            tracking?: components["schemas"]["AppImageTracking"];
+        };
+        AppImageSyncRequest: {
+            image_ref?: string;
+            event?: string;
+            delivery_id?: string;
+        };
+        AppImageSyncResponse: {
+            app_id: string;
+            tracking?: components["schemas"]["AppImageTracking"];
+            operation?: components["schemas"]["Operation"];
+            digest?: string;
+            changed: boolean;
+            already_current: boolean;
+            message?: string;
         };
         AppImageInventoryResponse: {
             app_id: string;
@@ -9219,6 +9298,92 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AppImageInventoryResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getAppImageTracking: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppImageTrackingResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    putAppImageTracking: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AppImageTrackingRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppImageTrackingResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    syncAppImage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["AppImageSyncRequest"];
+            };
+        };
+        responses: {
+            /** @description Tracked image already current */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppImageSyncResponse"];
+                };
+            };
+            /** @description Image sync queued or deferred */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppImageSyncResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];

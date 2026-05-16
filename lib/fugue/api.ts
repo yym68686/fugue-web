@@ -1335,6 +1335,58 @@ function buildAppImageRedeployResultView(
   };
 }
 
+function buildAppImageTrackingView(
+  tracking: CamelizedSchema<"AppImageTracking">,
+) {
+  return {
+    appId: tracking.appId,
+    createdAt: readNullableString(tracking.createdAt),
+    enabled: tracking.enabled ?? false,
+    id: tracking.id,
+    imageRef: tracking.imageRef,
+    lastCheckedAt: readNullableString(tracking.lastCheckedAt),
+    lastDeployedDigest: readNullableString(tracking.lastDeployedDigest),
+    lastDeliveryId: readNullableString(tracking.lastDeliveryId),
+    lastError: readNullableString(tracking.lastError),
+    lastEvent: readNullableString(tracking.lastEvent),
+    lastOperationId: readNullableString(tracking.lastOperationId),
+    lastQueuedDigest: readNullableString(tracking.lastQueuedDigest),
+    lastSeenDigest: readNullableString(tracking.lastSeenDigest),
+    lastTriggeredAt: readNullableString(tracking.lastTriggeredAt),
+    tenantId: tracking.tenantId,
+    updatedAt: readNullableString(tracking.updatedAt),
+  };
+}
+
+function buildAppImageTrackingResultView(
+  response: CamelizedSchema<"AppImageTrackingResponse">,
+) {
+  return {
+    appId: response.appId,
+    tracking: response.tracking
+      ? buildAppImageTrackingView(response.tracking)
+      : null,
+  };
+}
+
+function buildAppImageSyncResultView(
+  response: CamelizedSchema<"AppImageSyncResponse">,
+) {
+  return {
+    alreadyCurrent: response.alreadyCurrent ?? false,
+    appId: response.appId,
+    changed: response.changed ?? false,
+    digest: readNullableString(response.digest),
+    message: readNullableString(response.message),
+    operation: response.operation
+      ? buildOperationView(response.operation)
+      : null,
+    tracking: response.tracking
+      ? buildAppImageTrackingView(response.tracking)
+      : null,
+  };
+}
+
 function buildProjectImageUsageAppSummaryView(
   summary: CamelizedSchema<"ProjectImageUsageAppSummary">,
 ) {
@@ -1829,6 +1881,15 @@ export type FugueAppImageDeleteResult = ReturnType<
 >;
 export type FugueAppImageRedeployResult = ReturnType<
   typeof buildAppImageRedeployResultView
+>;
+export type FugueAppImageTracking = ReturnType<
+  typeof buildAppImageTrackingView
+>;
+export type FugueAppImageTrackingResult = ReturnType<
+  typeof buildAppImageTrackingResultView
+>;
+export type FugueAppImageSyncResult = ReturnType<
+  typeof buildAppImageSyncResultView
 >;
 export type FugueProjectImageUsageAppSummary = ReturnType<
   typeof buildProjectImageUsageAppSummaryView
@@ -2822,6 +2883,74 @@ export async function getFugueAppImages(accessToken: string, appId: string) {
   );
 
   return buildAppImageInventoryResultView(response);
+}
+
+export async function getFugueAppImageTracking(
+  accessToken: string,
+  appId: string,
+) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}/image-tracking`,
+      client.GET("/v1/apps/{id}/image-tracking", {
+        params: {
+          path: { id: appId },
+        },
+      }),
+    ),
+  );
+
+  return buildAppImageTrackingResultView(response);
+}
+
+export async function putFugueAppImageTracking(
+  accessToken: string,
+  appId: string,
+  payload: { enabled?: boolean; imageRef: string },
+) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}/image-tracking`,
+      client.PUT("/v1/apps/{id}/image-tracking", {
+        body: {
+          enabled: payload.enabled,
+          image_ref: payload.imageRef,
+        },
+        params: {
+          path: { id: appId },
+        },
+      }),
+    ),
+  );
+
+  return buildAppImageTrackingResultView(response);
+}
+
+export async function syncFugueAppImage(
+  accessToken: string,
+  appId: string,
+  payload?: { deliveryId?: string; event?: string; imageRef?: string },
+) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}/image-sync`,
+      client.POST("/v1/apps/{id}/image-sync", {
+        body: {
+          delivery_id: payload?.deliveryId,
+          event: payload?.event,
+          image_ref: payload?.imageRef,
+        },
+        params: {
+          path: { id: appId },
+        },
+      }),
+    ),
+  );
+
+  return buildAppImageSyncResultView(response);
 }
 
 export async function redeployFugueAppImage(

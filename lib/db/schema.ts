@@ -7,7 +7,7 @@ declare global {
   var __fugueDbSchemaVersion: string | undefined;
 }
 
-const SCHEMA_VERSION = "2026-04-28-admin-usage-cache";
+const SCHEMA_VERSION = "2026-05-17-github-app-image-links";
 
 const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS app_users (
@@ -115,6 +115,29 @@ CREATE TABLE IF NOT EXISTS app_github_connections (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS app_github_app_image_links (
+  id TEXT PRIMARY KEY,
+  user_email TEXT NOT NULL REFERENCES app_users(email) ON DELETE CASCADE,
+  fugue_app_id TEXT NOT NULL,
+  image_ref TEXT NOT NULL,
+  github_repo TEXT NOT NULL,
+  github_workflow TEXT NOT NULL DEFAULT '',
+  github_package TEXT NOT NULL DEFAULT '',
+  github_installation_id TEXT NOT NULL DEFAULT '',
+  enabled BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE app_github_app_image_links
+  ADD COLUMN IF NOT EXISTS github_workflow TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE app_github_app_image_links
+  ADD COLUMN IF NOT EXISTS github_package TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE app_github_app_image_links
+  ADD COLUMN IF NOT EXISTS github_installation_id TEXT NOT NULL DEFAULT '';
+
 CREATE TABLE IF NOT EXISTS app_billing_topups (
   request_id TEXT PRIMARY KEY,
   provider TEXT NOT NULL DEFAULT 'creem',
@@ -190,6 +213,15 @@ CREATE INDEX IF NOT EXISTS idx_app_node_keys_status
 
 CREATE INDEX IF NOT EXISTS idx_app_github_connections_github_user_id
   ON app_github_connections (github_user_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_app_github_app_image_links_unique_app
+  ON app_github_app_image_links (user_email, fugue_app_id);
+
+CREATE INDEX IF NOT EXISTS idx_app_github_app_image_links_repo
+  ON app_github_app_image_links (github_repo, enabled);
+
+CREATE INDEX IF NOT EXISTS idx_app_github_app_image_links_installation
+  ON app_github_app_image_links (github_installation_id, enabled);
 
 CREATE INDEX IF NOT EXISTS idx_app_billing_topups_user_email
   ON app_billing_topups (user_email, created_at DESC);
