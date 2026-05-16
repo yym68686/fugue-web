@@ -5,6 +5,10 @@ import { useI18n } from "@/components/providers/i18n-provider";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { dispatchOpenCreateProjectDialogEvent } from "@/lib/console/dialog-events";
 
+function isProjectDetailPathname(pathname: string) {
+  return pathname.startsWith("/app/projects/");
+}
+
 export function ConsolePrimaryAction({ hasProjects }: { hasProjects: boolean }) {
   const { t } = useI18n();
   const className = "fg-console-topbar__primary-action";
@@ -21,6 +25,14 @@ export function ConsolePrimaryAction({ hasProjects }: { hasProjects: boolean }) 
       >
         {t("Create project")}
       </Button>
+    );
+  }
+
+  if (isProjectDetailPathname(displayPathname)) {
+    return (
+      <ButtonLink className={className} href="/app" size="compact" variant="secondary">
+        {t("Back home")}
+      </ButtonLink>
     );
   }
 
