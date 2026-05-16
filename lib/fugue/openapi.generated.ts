@@ -2259,6 +2259,24 @@ export interface paths {
         patch: operations["patchAppContinuity"];
         trace?: never;
     };
+    "/v1/image-locations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Image Locations */
+        get: operations["listImageLocations"];
+        put?: never;
+        /** Report Image Location */
+        post: operations["reportImageLocation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/operations": {
         parameters: {
             query?: never;
@@ -2441,6 +2459,24 @@ export interface paths {
         get: operations["nodeUpdaterDesiredState"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/node-updater/image-locations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Node Updater Image Locations */
+        get: operations["nodeUpdaterImageLocations"];
+        put?: never;
+        /** Node Updater Report Image Location */
+        post: operations["nodeUpdaterReportImageLocation"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2662,6 +2698,24 @@ export interface paths {
         get: operations["agentOperations"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/agent/image-locations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Agent Image Locations */
+        get: operations["agentImageLocations"];
+        put?: never;
+        /** Agent Report Image Location */
+        post: operations["agentReportImageLocation"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4593,6 +4647,53 @@ export interface components {
         RevokeNodeKeyResponse: {
             node_key: components["schemas"]["NodeKey"];
             cleanup: components["schemas"]["NodeKeyCleanupResult"];
+        };
+        ImageLocation: {
+            id: string;
+            tenant_id?: string;
+            app_id?: string;
+            image_ref: string;
+            digest?: string;
+            source_operation_id?: string;
+            node_id?: string;
+            runtime_id?: string;
+            cluster_node_name?: string;
+            cache_endpoint?: string;
+            /** @enum {string} */
+            status: "present" | "missing" | "pulling" | "failed";
+            /** Format: date-time */
+            last_seen_at?: string;
+            /** Format: int64 */
+            size_bytes?: number;
+            last_error?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        ImageLocationReportRequest: {
+            tenant_id?: string;
+            app_id?: string;
+            image_ref?: string;
+            digest?: string;
+            source_operation_id?: string;
+            node_id?: string;
+            runtime_id?: string;
+            cluster_node_name?: string;
+            cache_endpoint?: string;
+            /** @enum {string} */
+            status?: "present" | "missing" | "pulling" | "failed";
+            /** Format: date-time */
+            last_seen_at?: string;
+            /** Format: int64 */
+            size_bytes?: number;
+            last_error?: string;
+        };
+        ImageLocationResponse: {
+            image_location: components["schemas"]["ImageLocation"];
+        };
+        ImageLocationListResponse: {
+            image_locations: components["schemas"]["ImageLocation"][];
         };
         NodeUpdaterListResponse: {
             node_updaters: components["schemas"]["NodeUpdater"][];
@@ -10087,6 +10188,61 @@ export interface operations {
             default: components["responses"]["ErrorResponse"];
         };
     };
+    listImageLocations: {
+        parameters: {
+            query?: {
+                tenant_id?: string;
+                app_id?: string;
+                image_ref?: string;
+                digest?: string;
+                status?: "present" | "missing" | "pulling" | "failed";
+                node_id?: string;
+                runtime_id?: string;
+                cluster_node_name?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageLocationListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    reportImageLocation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImageLocationReportRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageLocationResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
     listOperations: {
         parameters: {
             query?: {
@@ -10369,6 +10525,60 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NodeUpdaterDesiredStateResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    nodeUpdaterImageLocations: {
+        parameters: {
+            query?: {
+                app_id?: string;
+                image_ref?: string;
+                digest?: string;
+                status?: "present" | "missing" | "pulling" | "failed";
+                node_id?: string;
+                runtime_id?: string;
+                cluster_node_name?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageLocationListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    nodeUpdaterReportImageLocation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImageLocationReportRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageLocationResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
@@ -10716,6 +10926,60 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    agentImageLocations: {
+        parameters: {
+            query?: {
+                app_id?: string;
+                image_ref?: string;
+                digest?: string;
+                status?: "present" | "missing" | "pulling" | "failed";
+                node_id?: string;
+                runtime_id?: string;
+                cluster_node_name?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageLocationListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    agentReportImageLocation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImageLocationReportRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageLocationResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
