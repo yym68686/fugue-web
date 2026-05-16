@@ -658,6 +658,40 @@ export interface paths {
         patch: operations["patchProject"];
         trace?: never;
     };
+    "/v1/projects/{id}/split-plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Plan Project Split */
+        post: operations["planProjectSplit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/projects/{id}/split": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Split Project */
+        post: operations["splitProject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/projects/{id}/runtime-reservations": {
         parameters: {
             query?: never;
@@ -1727,6 +1761,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/backing-services/{id}/move-project": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move Backing Service To Project */
+        post: operations["moveBackingServiceProject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/backing-services/{id}/localize": {
         parameters: {
             query?: never;
@@ -2168,6 +2219,23 @@ export interface paths {
         put?: never;
         /** Migrate App */
         post: operations["migrateApp"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/apps/{id}/move-project": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move App To Project */
+        post: operations["moveAppProject"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2784,6 +2852,62 @@ export interface components {
             created_at: string;
             /** Format: date-time */
             updated_at: string;
+        };
+        /**
+         * @description How to handle backing service name conflicts in the target project.
+         * @enum {string}
+         */
+        ProjectMoveConflictPolicy: "fail" | "rename" | "use-existing";
+        MoveAppProjectRequest: {
+            /** @description Existing target project ID. */
+            target_project_id?: string;
+            /** @description Target project name or slug. Used to resolve or create the project when target_project_id is omitted. */
+            target_project_name?: string;
+            /** @description Create target_project_name when it does not already exist. */
+            create_project?: boolean;
+            /** @description Move app-owned backing services, such as the app-managed postgres service, with the app. */
+            include_owned_services?: boolean;
+            /** @description Move independently-created services bound to the app when they are not bound to apps left behind. */
+            include_bound_services?: boolean;
+            on_conflict?: components["schemas"]["ProjectMoveConflictPolicy"];
+            /** @description Return the move plan without changing project ownership. */
+            dry_run?: boolean;
+        };
+        MoveBackingServiceProjectRequest: {
+            target_project_id?: string;
+            target_project_name?: string;
+            create_project?: boolean;
+            on_conflict?: components["schemas"]["ProjectMoveConflictPolicy"];
+            dry_run?: boolean;
+        };
+        ProjectSplitTarget: {
+            app_id?: string;
+            app_name?: string;
+            target_project_id?: string;
+            target_project_name?: string;
+        };
+        ProjectSplitRequest: {
+            targets: components["schemas"]["ProjectSplitTarget"][];
+            /** @description Create target project names that do not already exist. */
+            create_projects?: boolean;
+            /** @description Move app-owned backing services with each moved app. */
+            include_owned_services?: boolean;
+            /** @description Move independently-created services only when every bound app moves to the same target project. */
+            include_bound_services?: boolean;
+            on_conflict?: components["schemas"]["ProjectMoveConflictPolicy"];
+            /** @description Return the split plan without changing project ownership. */
+            dry_run?: boolean;
+        };
+        ProjectMovePlan: {
+            dry_run: boolean;
+            source_project: components["schemas"]["Project"];
+            target_projects: components["schemas"]["Project"][];
+            created_projects?: components["schemas"]["Project"][];
+            apps?: components["schemas"]["App"][];
+            backing_services?: components["schemas"]["BackingService"][];
+            bindings?: components["schemas"]["ServiceBinding"][];
+            warnings?: string[];
+            blockers?: string[];
         };
         APIKey: {
             id: string;
@@ -4152,6 +4276,7 @@ export interface components {
             started_at?: string;
             /** Format: date-time */
             completed_at?: string;
+            controller_timing_segments?: components["schemas"]["OperationControllerTimingSegment"][];
         };
         OperationSummary: {
             id: string;
@@ -4179,6 +4304,12 @@ export interface components {
             started_at?: string;
             /** Format: date-time */
             completed_at?: string;
+            controller_timing_segments?: components["schemas"]["OperationControllerTimingSegment"][];
+        };
+        OperationControllerTimingSegment: {
+            name: string;
+            /** Format: int64 */
+            duration_ms: number;
         };
         OperationDiagnosisBlocker: {
             operation_id: string;
@@ -4251,6 +4382,34 @@ export interface components {
             builder_placement?: components["schemas"]["BuilderPlacementInspection"];
             dependency_chain?: string[];
             blocked_by?: components["schemas"]["OperationDiagnosisBlocker"][];
+            controller_lane?: components["schemas"]["OperationControllerLane"];
+        };
+        OperationControllerLaneOccupant: {
+            operation_id: string;
+            app_id?: string;
+            app_name?: string;
+            service?: string;
+            type?: string;
+            status?: string;
+            /** Format: date-time */
+            started_at?: string;
+            /** Format: int64 */
+            elapsed_seconds?: number;
+            /** Format: int32 */
+            estimated_seconds_remaining?: number;
+            controller_timing_segments?: components["schemas"]["OperationControllerTimingSegment"][];
+        };
+        OperationControllerLane: {
+            lane: string;
+            /** Format: int32 */
+            queue_position?: number;
+            active?: components["schemas"]["OperationControllerLaneOccupant"][];
+            /** Format: int32 */
+            estimated_seconds_remaining?: number;
+            /** Format: int32 */
+            median_completed_seconds?: number;
+            /** Format: int32 */
+            sample_size?: number;
         };
         FailoverAppRequest: {
             target_runtime_id?: string;
@@ -4386,6 +4545,9 @@ export interface components {
         };
         ProjectResponse: {
             project: components["schemas"]["Project"];
+        };
+        ProjectMovePlanResponse: {
+            plan: components["schemas"]["ProjectMovePlan"];
         };
         ProjectRuntimeReservationListResponse: {
             runtime_reservations: components["schemas"]["ProjectRuntimeReservation"][];
@@ -4823,6 +4985,15 @@ export interface components {
             /** Format: date-time */
             start_time?: string;
         };
+        ControlPlaneWarning: {
+            severity: string;
+            namespace?: string;
+            kind?: string;
+            name: string;
+            status?: string;
+            reason?: string;
+            message?: string;
+        };
         ControlPlaneStatus: {
             namespace: string;
             release_instance: string;
@@ -4832,6 +5003,7 @@ export interface components {
             /** Format: date-time */
             observed_at: string;
             components: components["schemas"]["ControlPlaneComponent"][];
+            warnings?: components["schemas"]["ControlPlaneWarning"][];
             deploy_workflow?: components["schemas"]["ControlPlaneWorkflowRun"];
         };
         ControlPlaneStatusResponse: {
@@ -7261,6 +7433,60 @@ export interface operations {
             default: components["responses"]["ErrorResponse"];
         };
     };
+    planProjectSplit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectSplitRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectMovePlanResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    splitProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectSplitRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectMovePlanResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
     listProjectRuntimeReservations: {
         parameters: {
             query?: never;
@@ -9213,6 +9439,33 @@ export interface operations {
             default: components["responses"]["ErrorResponse"];
         };
     };
+    moveBackingServiceProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MoveBackingServiceProjectRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectMovePlanResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
     localizeBackingService: {
         parameters: {
             query?: never;
@@ -10048,6 +10301,33 @@ export interface operations {
             default: components["responses"]["ErrorResponse"];
         };
     };
+    moveAppProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MoveAppProjectRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectMovePlanResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
     failoverApp: {
         parameters: {
             query?: never;
@@ -10248,6 +10528,16 @@ export interface operations {
             query?: {
                 /** @description Limit operations to a single app. */
                 app_id?: string;
+                /** @description Platform-admin only filter for one tenant. Tenant-scoped callers are always limited to their own tenant. */
+                tenant_id?: string;
+                /** @description Limit operations to apps in one project. */
+                project_id?: string;
+                /** @description Limit operations to one or more operation types. May be repeated or comma-separated. */
+                type?: string[];
+                /** @description Limit operations to one or more statuses. May be repeated or comma-separated. */
+                status?: string[];
+                /** @description Return only the newest N matching operations. */
+                limit?: number;
                 /** @description When true, include desired_spec and desired_source in each operation. Defaults to false so list responses stay lightweight. */
                 include_desired?: boolean;
             };
