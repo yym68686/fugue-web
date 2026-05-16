@@ -88,10 +88,6 @@ export function ConsoleClusterNodesPageShell({
           { label: t("Ready"), value: data.data.summary.readyCount },
           { label: t("Offline"), value: data.data.summary.offlineCount },
           { label: t("Workloads"), value: data.data.summary.workloadCount },
-          {
-            label: t("Latest signal"),
-            value: data.data.summary.latestHeartbeatLabel,
-          },
         ]}
       />
 

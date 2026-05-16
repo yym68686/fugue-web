@@ -544,8 +544,13 @@ export function DeployImageWizard({
 
       <PanelSection>
         <div className="fg-deploy-inline-actions">
-          <Button disabled={isPending} type="submit" variant="route">
-            {isPending ? "Queueing image deploy..." : "Queue image deploy"}
+          <Button
+            loading={isPending}
+            loadingLabel="Queueing image deploy…"
+            type="submit"
+            variant="route"
+          >
+            Queue image deploy
           </Button>
         </div>
         <p className="fg-deploy-inline-copy">

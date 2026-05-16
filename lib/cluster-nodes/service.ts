@@ -141,7 +141,6 @@ export type ClusterNodesPageData = {
   nodes: ClusterNodeView[];
   offlineServers: OfflineServerView[];
   summary: {
-    latestHeartbeatLabel: string;
     nodeCount: number;
     offlineCount: number;
     readyCount: number;
@@ -1117,16 +1116,7 @@ function buildClusterNodeViews(
     } satisfies ClusterNodeView;
   });
 
-  const latestHeartbeatTimestamp = visibleNodes.reduce((latest, node) => {
-    const runtime = resolveRuntimeForNode(node, runtimeById, runtimeByNodeName);
-    const next = runtime ? readRuntimeTimestamp(runtime) : 0;
-    return Math.max(latest, next);
-  }, 0);
-
   return {
-    latestHeartbeatAt: latestHeartbeatTimestamp
-      ? new Date(latestHeartbeatTimestamp).toISOString()
-      : null,
     views: views.sort((left, right) => {
       const leftTone = Math.max(
         toneWeight(left.statusTone),
@@ -1200,15 +1190,7 @@ function buildOfflineServerViews(
       );
     });
 
-  const latestHeartbeatTimestamp = offlineOwnedRuntimes.reduce(
-    (latest, runtime) => Math.max(latest, readRuntimeTimestamp(runtime)),
-    0,
-  );
-
   return {
-    latestHeartbeatAt: latestHeartbeatTimestamp
-      ? new Date(latestHeartbeatTimestamp).toISOString()
-      : null,
     views: offlineOwnedRuntimes.map((runtime) => {
       const location = readRuntimeLocation(runtime.labels, locale);
       const lastContactAt =
@@ -1383,20 +1365,12 @@ export async function getClusterNodesPageData(
     (total, node) => total + node.workloadCount,
     0,
   );
-  const latestHeartbeatTimestamp = Math.max(
-    parseTimestamp(built.latestHeartbeatAt),
-    parseTimestamp(offlineBuilt.latestHeartbeatAt),
-  );
-  const latestHeartbeatAt = latestHeartbeatTimestamp
-    ? new Date(latestHeartbeatTimestamp).toISOString()
-    : null;
 
   return {
     errors,
     nodes: built.views,
     offlineServers: offlineBuilt.views,
     summary: {
-      latestHeartbeatLabel: formatRelativeTime(locale, t, latestHeartbeatAt),
       nodeCount: built.views.length + offlineBuilt.views.length,
       offlineCount: offlineBuilt.views.length,
       readyCount,
