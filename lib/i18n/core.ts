@@ -195,6 +195,18 @@ const zhCNMessages = {
   "GitHub repository": "GitHub 仓库",
   "GitHub repository links must use https://github.com/owner/repo.":
     "GitHub 仓库链接必须使用 https://github.com/owner/repo。",
+  "GitHub source": "GitHub 来源",
+  "GitHub source saved. Redeploy when you are ready.":
+    "GitHub 来源已保存。准备好后可重新部署。",
+  "Authorize GitHub or paste a token first.":
+    "请先授权 GitHub，或粘贴 Token。",
+  "Public repositories can be read anonymously. Private repositories need saved GitHub access or a token.":
+    "公开仓库可匿名读取。私有仓库需要已保存的 GitHub 访问或 Token。",
+  "Save source": "保存来源",
+  "Saving this changes the source Fugue uses for future redeploys. The current release keeps running until you redeploy.":
+    "保存后，Fugue 未来重新部署会使用这个来源。当前版本会继续运行，直到你重新部署。",
+  "This source is already linked or cannot be changed here.":
+    "此来源已经关联，或不能在这里更改。",
   "GitHub sync controller": "GitHub 同步控制器",
   "Give the project a name, then point Fugue at the first GitHub repository, local folder, or Docker image.":
     "先为项目命名，然后将 Fugue 指向第一个 GitHub 仓库、本地文件夹或 Docker 镜像。",
@@ -957,6 +969,8 @@ const zhCNExtraMessages = {
   "App network mode": "应用网络模式",
   "Authorize GitHub in the browser, or paste a GitHub token. Fugue stores the resolved secret server-side for later rebuilds and syncs.":
     "可先在浏览器中授权 GitHub，或粘贴一个 GitHub Token。Fugue 会把解析后的密钥保存在服务端，供后续重建和同步使用。",
+  "Authorize GitHub or paste a token first.":
+    "请先授权 GitHub，或粘贴 Token。",
   "Authorize GitHub in the browser, or paste a token below.":
     "可先在浏览器中授权 GitHub，或在下方粘贴 Token。",
   "Authorized as @{login}.": "已授权为 @{login}。",
@@ -998,6 +1012,11 @@ const zhCNExtraMessages = {
   "Drag a folder, a .zip or .tgz archive, docker-compose.yml, fugue.yaml, Dockerfile, or multiple source files. Fugue creates the archive on the server before import unless you upload an archive directly.":
     "拖入文件夹、.zip 或 .tgz 归档、docker-compose.yml、fugue.yaml、Dockerfile 或多个源码文件。除非直接上传归档，否则 Fugue 会在导入前先在服务端生成归档。",
   "Fixed": "固定",
+  "GitHub repository links must use https://github.com/owner/repo.":
+    "GitHub 儲存庫連結必須使用 https://github.com/owner/repo。",
+  "GitHub source": "GitHub 來源",
+  "GitHub source saved. Redeploy when you are ready.":
+    "GitHub 來源已儲存。準備好後可重新部署。",
   "GitHub token": "GitHub Token",
   "Image reference is required.": "必须提供镜像引用。",
   "Import source mode": "导入来源模式",
@@ -1035,6 +1054,8 @@ const zhCNExtraMessages = {
   "Private": "私有",
   "Private repo": "私有仓库",
   "Public": "公开",
+  "Public repositories can be read anonymously. Private repositories need saved GitHub access or a token.":
+    "公开仓库可匿名读取。私有仓库需要已保存的 GitHub 访问或 Token。",
   "Public repo": "公开仓库",
   "Public service": "公开服务",
   "Public services get a managed route and readiness checks.":
@@ -1053,6 +1074,9 @@ const zhCNExtraMessages = {
     "已保存的 GitHub 访问已就绪，当前账号为 @{login}。仅在需要覆盖此次导入时再粘贴 Token。",
   "Saved GitHub access is ready. Paste a token only to override it for this import.":
     "已保存的 GitHub 访问已就绪。仅在需要覆盖此次导入时再粘贴 Token。",
+  "Save source": "保存来源",
+  "Saving this changes the source Fugue uses for future redeploys. The current release keeps running until you redeploy.":
+    "保存后，Fugue 未来重新部署会使用这个来源。当前版本会继续运行，直到你重新部署。",
   "Service {service}. Leave blank to create an empty file on first deploy.":
     "服务 {service}。留空则在首次部署时创建空文件。",
   "Service name and optional startup command.":
@@ -1067,6 +1091,8 @@ const zhCNExtraMessages = {
   "Static site": "静态站点",
   "This build strategy is reused for later syncs.":
     "后续同步会复用这个构建策略。",
+  "This source is already linked or cannot be changed here.":
+    "此来源已经关联，或不能在这里更改。",
   "This target uses one fixed region.": "此目标只使用一个固定区域。",
   "Upload {label}": "上传 {label}",
   "Use a public image reference such as ghcr.io/example/api:1.2.3. Fugue mirrors it into the internal registry before rollout.":
@@ -2524,6 +2550,8 @@ const zhTWExtraMessages = {
   "App network mode": "應用網路模式",
   "Authorize GitHub in the browser, or paste a GitHub token. Fugue stores the resolved secret server-side for later rebuilds and syncs.":
     "可先在瀏覽器中授權 GitHub，或貼上一個 GitHub Token。Fugue 會將解析後的密鑰儲存在伺服器端，供後續重建與同步使用。",
+  "Authorize GitHub or paste a token first.":
+    "請先授權 GitHub，或貼上 Token。",
   "Authorize GitHub in the browser, or paste a token below.":
     "可先在瀏覽器中授權 GitHub，或在下方貼上 Token。",
   "Authorized as @{login}.": "已授權為 @{login}。",
@@ -2602,6 +2630,8 @@ const zhTWExtraMessages = {
   "Private": "私有",
   "Private repo": "私有儲存庫",
   "Public": "公開",
+  "Public repositories can be read anonymously. Private repositories need saved GitHub access or a token.":
+    "公開儲存庫可匿名讀取。私有儲存庫需要已儲存的 GitHub 存取或 Token。",
   "Public repo": "公開儲存庫",
   "Public service": "公開服務",
   "Public services get a managed route and readiness checks.":
@@ -2620,6 +2650,9 @@ const zhTWExtraMessages = {
     "已儲存的 GitHub 存取已就緒，目前帳號為 @{login}。僅在需要覆蓋此次匯入時再貼上 Token。",
   "Saved GitHub access is ready. Paste a token only to override it for this import.":
     "已儲存的 GitHub 存取已就緒。僅在需要覆蓋此次匯入時再貼上 Token。",
+  "Save source": "儲存來源",
+  "Saving this changes the source Fugue uses for future redeploys. The current release keeps running until you redeploy.":
+    "儲存後，Fugue 未來重新部署會使用這個來源。目前版本會繼續執行，直到你重新部署。",
   "Service {service}. Leave blank to create an empty file on first deploy.":
     "服務 {service}。留空則在首次部署時建立空檔案。",
   "Service name and optional startup command.":
@@ -2634,6 +2667,8 @@ const zhTWExtraMessages = {
   "Static site": "靜態網站",
   "This build strategy is reused for later syncs.":
     "後續同步會重用這個建置策略。",
+  "This source is already linked or cannot be changed here.":
+    "此來源已經連結，或不能在這裡變更。",
   "This target uses one fixed region.": "此目標只使用一個固定區域。",
   "Upload {label}": "上傳 {label}",
   "Use a public image reference such as ghcr.io/example/api:1.2.3. Fugue mirrors it into the internal registry before rollout.":

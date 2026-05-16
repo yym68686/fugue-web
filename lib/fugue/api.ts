@@ -211,6 +211,20 @@ function buildTenantView(tenant: CamelizedSchema<"Tenant">) {
   };
 }
 
+function buildAuthContextView(
+  principal: CamelizedSchema<"AuthPrincipalContext">,
+) {
+  return {
+    actorId: readNullableString(principal.actorId),
+    actorType: readNullableString(principal.actorType),
+    appId: readNullableString(principal.appId),
+    platformAdmin: Boolean(principal.platformAdmin),
+    projectId: readNullableString(principal.projectId),
+    scopes: readStringArray(principal.scopes),
+    tenantId: readNullableString(principal.tenantId),
+  };
+}
+
 function buildProjectView(project: CamelizedSchema<"Project">) {
   return {
     createdAt: readNullableString(project.createdAt),
@@ -780,6 +794,7 @@ function buildAppView(app: CamelizedSchema<"App">) {
       servicePort: readNullableNumber(route?.servicePort),
     },
     source: buildAppSourceView(app.source),
+    originSource: buildAppSourceView(app.originSource ?? app.source),
     spec: {
       imageMirrorLimit: readNullableNumber(spec?.imageMirrorLimit) ?? 1,
       networkMode: readNullableString(spec?.networkMode),
@@ -2455,6 +2470,20 @@ export async function getFugueTenants(accessToken: string) {
   return (response.tenants ?? []).map(buildTenantView);
 }
 
+export async function getFugueAuthContext(accessToken: string) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      "/v1/auth/context",
+      client.GET("/v1/auth/context"),
+    ),
+  );
+
+  return {
+    principal: buildAuthContextView(response.principal),
+  };
+}
+
 export async function getFugueProjects(accessToken: string, tenantId?: string) {
   const client = getClient(accessToken);
   const response = camelizeData(
@@ -2728,6 +2757,46 @@ export async function patchFugueApp(
                 },
               }
             : {}),
+        },
+        params: {
+          path: { id: appId },
+        },
+      }),
+    ),
+  );
+
+  return buildAppPatchResultView(response);
+}
+
+export async function patchFugueAppSource(
+  accessToken: string,
+  appId: string,
+  payload: {
+    repoAuthToken?: string;
+    repoBranch?: string;
+    repoUrl: string;
+    repoVisibility: GitHubRepoVisibility;
+  },
+) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}/source`,
+      client.PATCH("/v1/apps/{id}/source", {
+        body: {
+          origin_source: {
+            type:
+              payload.repoVisibility === "private"
+                ? "github-private"
+                : "github-public",
+            repo_url: payload.repoUrl,
+            ...(payload.repoBranch !== undefined
+              ? { repo_branch: payload.repoBranch }
+              : {}),
+            ...(payload.repoAuthToken
+              ? { repo_auth_token: payload.repoAuthToken }
+              : {}),
+          },
         },
         params: {
           path: { id: appId },

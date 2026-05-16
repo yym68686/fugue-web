@@ -10,6 +10,7 @@ import {
 import { useRouter } from "next/navigation";
 
 import { ConsoleDisclosureSection } from "@/components/console/console-disclosure-section";
+import { GitHubRepositoryAccessFields } from "@/components/console/github-repository-access-fields";
 import { useI18n } from "@/components/providers/i18n-provider";
 import { PersistentStorageEditor } from "@/components/console/persistent-storage-editor";
 import { StatusBadge } from "@/components/console/status-badge";
@@ -39,8 +40,10 @@ import {
   validatePersistentStorageDraft,
 } from "@/lib/fugue/persistent-storage";
 import {
+  isGitHubRepoUrl,
   isGitHubSourceType,
   isPrivateGitHubSourceType,
+  type GitHubRepoVisibility,
 } from "@/lib/github/repository";
 import { useGitHubConnection } from "@/lib/github/connection-client";
 import { cx } from "@/lib/ui/cx";
@@ -127,6 +130,10 @@ function readImageMirrorLimitError(
 
 function isUploadSourceType(value?: string | null) {
   return value?.trim().toLowerCase() === "upload";
+}
+
+function readGitHubRepoVisibility(value?: string | null): GitHubRepoVisibility {
+  return isPrivateGitHubSourceType(value) ? "private" : "public";
 }
 
 function isPausedApp(app: Pick<ConsoleGalleryAppView, "phase">) {
@@ -1598,6 +1605,24 @@ function AppSourceBuildPane({
     app.sourceBranchName ?? "",
   );
   const [branchSaving, setBranchSaving] = useState(false);
+  const [sourceRepoUrlDraft, setSourceRepoUrlDraft] = useState(
+    app.originSource.repoUrl ?? "",
+  );
+  const [sourceRepoUrlBaseline, setSourceRepoUrlBaseline] = useState(
+    app.originSource.repoUrl ?? "",
+  );
+  const [sourceRepoBranchDraft, setSourceRepoBranchDraft] = useState(
+    app.originSource.repoBranch ?? "",
+  );
+  const [sourceRepoBranchBaseline, setSourceRepoBranchBaseline] = useState(
+    app.originSource.repoBranch ?? "",
+  );
+  const [sourceRepoVisibility, setSourceRepoVisibility] =
+    useState<GitHubRepoVisibility>(readGitHubRepoVisibility(app.sourceType));
+  const [sourceRepoVisibilityBaseline, setSourceRepoVisibilityBaseline] =
+    useState<GitHubRepoVisibility>(readGitHubRepoVisibility(app.sourceType));
+  const [sourceRepoAuthTokenDraft, setSourceRepoAuthTokenDraft] = useState("");
+  const [sourceSaving, setSourceSaving] = useState(false);
   const [repoAuthTokenDraft, setRepoAuthTokenDraft] = useState("");
   const [repoAuthTokenSaving, setRepoAuthTokenSaving] = useState(false);
   const [syncSaving, setSyncSaving] = useState(false);
@@ -1607,7 +1632,9 @@ function AppSourceBuildPane({
     error: githubConnectionError,
     loading: githubConnectionLoading,
   } = useGitHubConnection({
-    enabled: isPrivateGitHubSourceType(app.sourceType),
+    enabled:
+      isPrivateGitHubSourceType(app.sourceType) ||
+      sourceRepoVisibility === "private",
   });
 
   useEffect(() => {
@@ -1617,14 +1644,35 @@ function AppSourceBuildPane({
   }, [app.id, app.sourceBranchName]);
 
   useEffect(() => {
+    const nextRepoUrl = app.originSource.repoUrl ?? "";
+    const nextRepoBranch = app.originSource.repoBranch ?? "";
+    const nextRepoVisibility = readGitHubRepoVisibility(app.sourceType);
+
+    setSourceRepoUrlBaseline(nextRepoUrl);
+    setSourceRepoUrlDraft(nextRepoUrl);
+    setSourceRepoBranchBaseline(nextRepoBranch);
+    setSourceRepoBranchDraft(nextRepoBranch);
+    setSourceRepoVisibilityBaseline(nextRepoVisibility);
+    setSourceRepoVisibility(nextRepoVisibility);
     setRepoAuthTokenDraft("");
-  }, [app.id]);
+    setSourceRepoAuthTokenDraft("");
+  }, [
+    app.id,
+    app.originSource.repoBranch,
+    app.originSource.repoUrl,
+    app.sourceType,
+  ]);
 
   const currentBranch = branchBaseline;
   const normalizedBranch = normalizeText(branchDraft);
   const normalizedRepoAuthToken = normalizeText(repoAuthTokenDraft);
+  const normalizedSourceRepoUrl = normalizeText(sourceRepoUrlDraft);
+  const normalizedSourceRepoBranch = normalizeText(sourceRepoBranchDraft);
+  const normalizedSourceRepoAuthToken = normalizeText(sourceRepoAuthTokenDraft);
   const isGitHubSource = isGitHubSourceType(app.sourceType);
   const isPrivateGitHubSource = isPrivateGitHubSourceType(app.sourceType);
+  const canSetGitHubSource =
+    !isGitHubSource && isUploadSourceType(app.sourceType);
   const sourceLabel = normalizeText(app.sourceLabel) || t("Unlinked source");
   const sourceKindLabel = readSourceKindLabel(app, t);
   const sourceSectionTitle = readSourceSectionTitle(app, t);
@@ -1639,6 +1687,11 @@ function AppSourceBuildPane({
   const branchChanged = normalizedBranch !== normalizeText(currentBranch);
   const repoAuthTokenChanged = normalizedRepoAuthToken.length > 0;
   const hasSavedGitHubAccess = Boolean(githubConnection?.connected);
+  const sourceRepoChanged =
+    normalizedSourceRepoUrl !== normalizeText(sourceRepoUrlBaseline) ||
+    normalizedSourceRepoBranch !== normalizeText(sourceRepoBranchBaseline) ||
+    sourceRepoVisibility !== sourceRepoVisibilityBaseline ||
+    normalizedSourceRepoAuthToken.length > 0;
   const repoAccessActionsVisible =
     repoAuthTokenChanged || repoAuthTokenSaving || hasSavedGitHubAccess;
   const repoAccessSubmitLabel = normalizedRepoAuthToken
@@ -1655,6 +1708,94 @@ function AppSourceBuildPane({
     manualRefreshState?.label === t("Manual")
       ? t("Refresh on demand")
       : (manualRefreshState?.label ?? t("Manual refresh"));
+
+  async function handleSourceSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!canSetGitHubSource) {
+      showToast({
+        message: t("This source is already linked or cannot be changed here."),
+        variant: "info",
+      });
+      return;
+    }
+
+    if (!normalizedSourceRepoUrl) {
+      showToast({
+        message: t("Repository link is required."),
+        variant: "info",
+      });
+      return;
+    }
+
+    if (!isGitHubRepoUrl(normalizedSourceRepoUrl)) {
+      showToast({
+        message: t(
+          "GitHub repository links must use https://github.com/owner/repo.",
+        ),
+        variant: "error",
+      });
+      return;
+    }
+
+    if (
+      sourceRepoVisibility === "private" &&
+      !normalizedSourceRepoAuthToken &&
+      !hasSavedGitHubAccess
+    ) {
+      showToast({
+        message: githubConnectionLoading
+          ? t(
+              "Still checking saved GitHub access. Try again in a moment or paste a token.",
+            )
+          : t("Authorize GitHub or paste a token first."),
+        variant: "info",
+      });
+      return;
+    }
+
+    setSourceSaving(true);
+
+    try {
+      await requestJson<AppPatchResponse>(
+        `/api/fugue/apps/${app.id}/source`,
+        {
+          body: JSON.stringify({
+            repoBranch: normalizedSourceRepoBranch,
+            repoAuthToken: normalizedSourceRepoAuthToken,
+            repoUrl: normalizedSourceRepoUrl,
+            repoVisibility: sourceRepoVisibility,
+          }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          method: "PATCH",
+        },
+        t,
+      );
+
+      setSourceRepoUrlBaseline(normalizedSourceRepoUrl);
+      setSourceRepoUrlDraft(normalizedSourceRepoUrl);
+      setSourceRepoBranchBaseline(normalizedSourceRepoBranch);
+      setSourceRepoBranchDraft(normalizedSourceRepoBranch);
+      setSourceRepoVisibilityBaseline(sourceRepoVisibility);
+      setSourceRepoAuthTokenDraft("");
+      showToast({
+        message: t("GitHub source saved. Redeploy when you are ready."),
+        variant: "success",
+      });
+      startTransition(() => {
+        router.refresh();
+      });
+    } catch (error) {
+      showToast({
+        message: readErrorMessage(error, t),
+        variant: "error",
+      });
+    } finally {
+      setSourceSaving(false);
+    }
+  }
 
   async function handleBranchSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -1931,6 +2072,115 @@ function AppSourceBuildPane({
             />
           ) : null}
         </SettingsSummaryList>
+
+        {canSetGitHubSource ? (
+          <SettingsSectionBlock title={t("GitHub source")}>
+            <form className="fg-settings-form" onSubmit={handleSourceSubmit}>
+              <FormField
+                htmlFor={`service-repo-url-${app.id}`}
+                label={t("Repository link")}
+              >
+                <input
+                  autoCapitalize="off"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  className="fg-input"
+                  disabled={sourceSaving}
+                  id={`service-repo-url-${app.id}`}
+                  name="repoUrl"
+                  onChange={(event) => setSourceRepoUrlDraft(event.target.value)}
+                  placeholder="https://github.com/owner/repo"
+                  spellCheck={false}
+                  type="url"
+                  value={sourceRepoUrlDraft}
+                />
+              </FormField>
+
+              <FormField
+                htmlFor={`service-repo-branch-${app.id}`}
+                label={t("Tracked branch")}
+                optionalLabel={t("Optional")}
+              >
+                <input
+                  autoCapitalize="off"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  className="fg-input"
+                  disabled={sourceSaving}
+                  id={`service-repo-branch-${app.id}`}
+                  name="repoBranch"
+                  onChange={(event) =>
+                    setSourceRepoBranchDraft(event.target.value)
+                  }
+                  placeholder={t("main")}
+                  spellCheck={false}
+                  value={sourceRepoBranchDraft}
+                />
+              </FormField>
+
+              <GitHubRepositoryAccessFields
+                disabled={sourceSaving}
+                githubConnectHref={githubConnectHref}
+                githubConnection={githubConnection}
+                githubConnectionError={githubConnectionError}
+                githubConnectionLoading={githubConnectionLoading}
+                onTokenChange={setSourceRepoAuthTokenDraft}
+                onVisibilityChange={setSourceRepoVisibility}
+                token={sourceRepoAuthTokenDraft}
+                tokenFieldId={`source-repo-auth-token-${app.id}`}
+                tokenLabel={t("GitHub token")}
+                tokenRequired={sourceRepoVisibility === "private"}
+                visibility={sourceRepoVisibility}
+                visibilityHint={t(
+                  "Public repositories can be read anonymously. Private repositories need saved GitHub access or a token.",
+                )}
+                visibilityLabel={t("Repository access")}
+              />
+
+              <SettingsHelperCopy>
+                {t(
+                  "Saving this changes the source Fugue uses for future redeploys. The current release keeps running until you redeploy.",
+                )}
+              </SettingsHelperCopy>
+
+              {sourceRepoChanged || sourceSaving ? (
+                <div className="fg-settings-form__actions">
+                  <Button
+                    disabled={sourceSaving}
+                    onClick={() => {
+                      setSourceRepoUrlDraft(sourceRepoUrlBaseline);
+                      setSourceRepoBranchDraft(sourceRepoBranchBaseline);
+                      setSourceRepoVisibility(sourceRepoVisibilityBaseline);
+                      setSourceRepoAuthTokenDraft("");
+                    }}
+                    size="compact"
+                    type="button"
+                    variant="secondary"
+                  >
+                    {t("Reset")}
+                  </Button>
+                  <Button
+                    disabled={
+                      sourceSaving ||
+                      !sourceRepoChanged ||
+                      !normalizedSourceRepoUrl ||
+                      (sourceRepoVisibility === "private" &&
+                        !normalizedSourceRepoAuthToken &&
+                        !hasSavedGitHubAccess)
+                    }
+                    loading={sourceSaving}
+                    loadingLabel={t("Saving…")}
+                    size="compact"
+                    type="submit"
+                    variant="primary"
+                  >
+                    {t("Save source")}
+                  </Button>
+                </div>
+              ) : null}
+            </form>
+          </SettingsSectionBlock>
+        ) : null}
 
         {canEditBranch ? (
           <SettingsSectionBlock title={t("Tracked branch")}>

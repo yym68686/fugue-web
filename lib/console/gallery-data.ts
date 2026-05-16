@@ -1761,24 +1761,28 @@ function isUploadAppSource(source?: FugueAppSource | null) {
   return source?.type?.trim().toLowerCase() === "upload";
 }
 
+function readAppOriginSource(app: FugueApp) {
+  return app.originSource ?? app.source;
+}
+
 function readSourceLabelFromSource(source: FugueAppSource) {
   return readFugueSourceLabel(source);
 }
 
 function readSourceLabel(app: FugueApp) {
-  return readSourceLabelFromSource(app.source);
+  return readSourceLabelFromSource(readAppOriginSource(app));
 }
 
 function isGitHubSource(app: FugueApp) {
-  return isGitHubAppSource(app.source);
+  return isGitHubAppSource(readAppOriginSource(app));
 }
 
 function isUploadSource(app: FugueApp) {
-  return isUploadAppSource(app.source);
+  return isUploadAppSource(readAppOriginSource(app));
 }
 
 function isDockerImageSource(app: FugueApp) {
-  return isDockerImageAppSource(app.source);
+  return isDockerImageAppSource(readAppOriginSource(app));
 }
 
 function readSourceBranchLabelFromSource(source: FugueAppSource) {
@@ -1790,7 +1794,7 @@ function readSourceBranchLabelFromSource(source: FugueAppSource) {
 }
 
 function readSourceBranchLabel(app: FugueApp) {
-  return readSourceBranchLabelFromSource(app.source);
+  return readSourceBranchLabelFromSource(readAppOriginSource(app));
 }
 
 function readCurrentCommitLabel(app: FugueApp) {
@@ -2185,7 +2189,7 @@ function buildSharedAppView(
     techStack?: FugueAppTechnology[];
   },
 ) {
-  const source = options?.source ?? app.source;
+  const source = options?.source ?? readAppOriginSource(app);
   const techStack = options?.techStack ?? app.techStack;
   const route = readRoute(app);
   const routeHostname = readRouteHostname(app);
@@ -2237,6 +2241,7 @@ function buildSharedAppView(
     locationLabel: options?.location?.locationLabel ?? null,
     name: app.name,
     networkMode: app.spec.networkMode ?? null,
+    originSource: source,
     primaryBadge,
     replicaCount: app.spec.replicas ?? null,
     startupCommand: app.spec.startupCommand ?? null,

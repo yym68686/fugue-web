@@ -55,6 +55,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/auth/context": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Auth Context */
+        get: operations["getAuthContext"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/edge/tls/ask": {
         parameters: {
             query?: never;
@@ -2813,6 +2830,24 @@ export interface components {
     schemas: {
         ErrorResponse: {
             error: string;
+            code?: string;
+            category?: string;
+            retryable?: boolean;
+            details?: {
+                [key: string]: unknown;
+            };
+        };
+        AuthPrincipalContext: {
+            actor_type: string;
+            actor_id: string;
+            tenant_id?: string;
+            project_id?: string;
+            app_id?: string;
+            scopes: string[];
+            platform_admin: boolean;
+        };
+        AuthContextResponse: {
+            principal: components["schemas"]["AuthPrincipalContext"];
         };
         StringMap: {
             [key: string]: string;
@@ -6377,6 +6412,27 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getAuthContext: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthContextResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];

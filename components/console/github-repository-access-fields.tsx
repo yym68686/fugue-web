@@ -11,6 +11,7 @@ import type { GitHubRepoVisibility } from "@/lib/github/repository";
 import type { GitHubConnectionView } from "@/lib/github/types";
 
 export function GitHubRepositoryAccessFields({
+  disabled = false,
   githubConnectHref = null,
   githubConnection = null,
   githubConnectionError = null,
@@ -26,6 +27,7 @@ export function GitHubRepositoryAccessFields({
   onTokenChange,
   onVisibilityChange,
 }: {
+  disabled?: boolean;
   githubConnectHref?: string | null;
   githubConnection?: GitHubConnectionView | null;
   githubConnectionError?: string | null;
@@ -44,8 +46,8 @@ export function GitHubRepositoryAccessFields({
   const { t } = useI18n();
   const repositoryAccessOptions: readonly ConsolePillSwitchOption<GitHubRepoVisibility>[] =
     [
-      { label: t("Public"), value: "public" },
-      { label: t("Private"), value: "private" },
+      { disabled, label: t("Public"), value: "public" },
+      { disabled, label: t("Private"), value: "private" },
     ];
   const hasSavedGitHubAccess = Boolean(githubConnection?.connected);
   const canReconnectGitHub =
@@ -158,6 +160,7 @@ export function GitHubRepositoryAccessFields({
               autoCapitalize="none"
               autoComplete="new-password"
               className="fg-input"
+              disabled={disabled}
               id={tokenFieldId}
               name="repoAuthToken"
               onChange={(event) => onTokenChange(event.target.value)}

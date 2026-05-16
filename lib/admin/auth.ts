@@ -14,6 +14,7 @@ import {
   getRequestSession,
 } from "@/lib/server/request-context";
 import type { SessionUser } from "@/lib/auth/session";
+import { getFugueAuthContext } from "@/lib/fugue/api";
 
 function readInactiveRedirect(error: unknown) {
   if (!(error instanceof Error)) {
@@ -150,6 +151,62 @@ export async function requireAdminSnapshotApiSession() {
   return {
     response: null,
     session: buildBootstrapSnapshotSession(),
+    user: null,
+  } as const;
+}
+
+export async function requireAdminManagementApiSession() {
+  const headerStore = await headers();
+  const bearerToken = readBearerToken(headerStore.get("authorization"));
+
+  if (!bearerToken) {
+    return requireAdminApiSession();
+  }
+
+  let bootstrapKey = "";
+
+  try {
+    bootstrapKey = getFugueEnv().bootstrapKey;
+  } catch {
+    return {
+      response: jsonError(
+        500,
+        "Fugue management key verification is not configured.",
+      ),
+      session: null,
+      user: null,
+    } as const;
+  }
+
+  if (bearerToken === bootstrapKey) {
+    return {
+      response: null,
+      session: buildBootstrapSnapshotSession(),
+      user: null,
+    } as const;
+  }
+
+  try {
+    const context = await getFugueAuthContext(bearerToken);
+
+    if (context.principal.platformAdmin) {
+      return {
+        response: null,
+        session: buildBootstrapSnapshotSession(),
+        user: null,
+      } as const;
+    }
+  } catch {
+    return {
+      response: jsonError(401, "Invalid admin API key."),
+      session: null,
+      user: null,
+    } as const;
+  }
+
+  return {
+    response: jsonError(403, "Platform admin key required."),
+    session: null,
     user: null,
   } as const;
 }

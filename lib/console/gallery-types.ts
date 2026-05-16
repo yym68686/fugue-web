@@ -1,5 +1,6 @@
 import type { TechStackBadgeKind } from "@/lib/tech-stack";
 import type { ConsoleTone } from "@/lib/console/types";
+import type { FugueAppSource } from "@/lib/fugue/api";
 
 export type ConsoleGalleryBadgeKind = TechStackBadgeKind;
 
@@ -113,6 +114,7 @@ export type ConsoleGalleryAppView = {
   locationLabel: string | null;
   name: string;
   networkMode: string | null;
+  originSource: FugueAppSource;
   phase: string;
   phaseTone: ConsoleTone;
   preferredLogsMode: "build" | "runtime";
