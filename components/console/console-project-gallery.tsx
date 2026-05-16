@@ -5890,6 +5890,7 @@ export function ConsoleProjectGallery({
                     appName={selectedService.name}
                     key={selectedService.id}
                     onRequestRefreshWindow={armRefreshWindow}
+                    source={selectedService.originSource}
                   />
                 ) : null}
 
@@ -8852,6 +8853,7 @@ function ConsoleProjectWorkbenchImpl({
                   appName={selectedService.name}
                   key={selectedService.id}
                   onRequestRefreshWindow={onProjectMutation}
+                  source={selectedService.originSource}
                 />
               ) : null}
 

@@ -18,6 +18,7 @@ import {
 } from "@/lib/fugue/product-route";
 import {
   getGitHubAppImageLinkForApp,
+  normalizeGitHubRepositoryName,
   upsertGitHubAppImageLink,
 } from "@/lib/github/app-image-links";
 
@@ -90,6 +91,12 @@ export async function PUT(request: Request, context: RouteContext) {
 
   try {
     const appId = await readRouteParam(context, "id");
+    const normalizedGitHubRepo = githubRepo
+      ? normalizeGitHubRepositoryName(githubRepo)
+      : null;
+    const existingLink = await getGitHubAppImageLinkForApp(session.email, appId);
+    const persistedGitHubRepo =
+      normalizedGitHubRepo || existingLink?.githubRepo || null;
     const tracking = await putFugueAppImageTracking(
       workspaceState.workspace.adminKeySecret,
       appId,
@@ -98,17 +105,14 @@ export async function PUT(request: Request, context: RouteContext) {
         imageRef,
       },
     );
-
-    const existingLink = await getGitHubAppImageLinkForApp(session.email, appId);
-    const shouldPersistLink = Boolean(githubRepo || existingLink);
-    const githubLink = shouldPersistLink
+    const githubLink = persistedGitHubRepo
       ? await upsertGitHubAppImageLink({
           enabled,
           fugueAppId: appId,
           githubInstallationId:
             githubInstallationId || existingLink?.githubInstallationId,
           githubPackage: githubPackage || existingLink?.githubPackage,
-          githubRepo: githubRepo || existingLink?.githubRepo || "",
+          githubRepo: persistedGitHubRepo,
           githubWorkflow: githubWorkflow || existingLink?.githubWorkflow,
           imageRef,
           userEmail: session.email,
