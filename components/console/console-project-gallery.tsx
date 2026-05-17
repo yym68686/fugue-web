@@ -502,6 +502,16 @@ const AppImagesPanel = dynamic(
   },
 );
 
+const ProjectImageTrackingPanel = dynamic(
+  () =>
+    import("@/components/console/project-image-tracking-panel").then(
+      (module) => module.ProjectImageTrackingPanel,
+    ),
+  {
+    loading: () => <WorkbenchLoadingNote label="Loading image updates…" />,
+  },
+);
+
 function readCachedProjectImageUsage() {
   if (
     !cachedProjectImageUsage ||
@@ -5890,7 +5900,6 @@ export function ConsoleProjectGallery({
                     appName={selectedService.name}
                     key={selectedService.id}
                     onRequestRefreshWindow={armRefreshWindow}
-                    source={selectedService.originSource}
                   />
                 ) : null}
 
@@ -7970,6 +7979,15 @@ function ConsoleProjectWorkbenchImpl({
                     )}
                   </section>
 
+                  {projectManaged ? (
+                    <ProjectImageTrackingPanel
+                      disabled={projectDeleting}
+                      onLinked={requestWorkbenchRefresh}
+                      projectId={detailProject.id}
+                      projectName={detailProject.name}
+                    />
+                  ) : null}
+
                   <section
                     aria-label={t("Dedicated VPS")}
                     className="fg-route-subsection fg-settings-section"
@@ -8853,7 +8871,6 @@ function ConsoleProjectWorkbenchImpl({
                   appName={selectedService.name}
                   key={selectedService.id}
                   onRequestRefreshWindow={onProjectMutation}
-                  source={selectedService.originSource}
                 />
               ) : null}
 

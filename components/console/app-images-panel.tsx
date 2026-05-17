@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { useI18n } from "@/components/providers/i18n-provider";
 import { StatusBadge } from "@/components/console/status-badge";
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
-import { FormField } from "@/components/ui/form-field";
 import { HintInline } from "@/components/ui/hint-tooltip";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { useToast } from "@/components/ui/toast";
@@ -31,6 +30,7 @@ type AppImageSource = {
   detectedProvider?: string | null;
   detectedStack?: string | null;
   dockerfilePath?: string | null;
+  imageNameSuffix?: string | null;
   imageRef?: string | null;
   repoBranch?: string | null;
   repoUrl?: string | null;
@@ -86,74 +86,13 @@ type AppImageRedeployResponse = {
   } | null;
 };
 
-type AppImageTracking = {
-  appId: string;
-  createdAt: string | null;
-  enabled: boolean;
-  id: string;
-  imageRef: string;
-  lastCheckedAt: string | null;
-  lastDeployedDigest: string | null;
-  lastDeliveryId: string | null;
-  lastError: string | null;
-  lastEvent: string | null;
-  lastOperationId: string | null;
-  lastQueuedDigest: string | null;
-  lastSeenDigest: string | null;
-  lastTriggeredAt: string | null;
-  tenantId: string;
-  updatedAt: string | null;
-};
-
-type GitHubAppImageLink = {
-  enabled: boolean;
-  fugueAppId: string;
-  githubInstallationId: string | null;
-  githubPackage: string | null;
-  githubRepo: string;
-  githubWorkflow: string | null;
-  id: string;
-  imageRef: string;
-  updatedAt: string;
-  userEmail: string;
-};
-
-type AppImageTrackingResponse = {
-  appId: string;
-  githubLink?: GitHubAppImageLink | null;
-  tracking: AppImageTracking | null;
-};
-
-type AppImageSyncResponse = {
-  alreadyCurrent: boolean;
-  appId: string;
-  changed: boolean;
-  digest: string | null;
-  message: string | null;
-  operation: {
-    id?: string | null;
-  } | null;
-  tracking: AppImageTracking | null;
-};
-
 type AppImagesPanelProps = {
   appId: string;
   appName: string;
   onRequestRefreshWindow?: (durationMs?: number) => void;
-  source?: AppImageSource | null;
 };
 
 type InventoryState = "error" | "idle" | "loading" | "ready";
-type TrackingState = "error" | "idle" | "loading" | "ready";
-
-type TrackingDraft = {
-  enabled: boolean;
-  githubInstallationId: string;
-  githubPackage: string;
-  githubRepo: string;
-  githubWorkflow: string;
-  imageRef: string;
-};
 
 const APP_IMAGE_CACHE_TTL_MS = 60_000;
 
@@ -310,139 +249,6 @@ async function requestJson<T>(input: RequestInfo, init?: RequestInit) {
 function shortHash(value?: string | null, length = 12) {
   const normalized = value?.trim() ?? "";
   return normalized ? normalized.slice(0, length) : null;
-}
-
-function normalizeText(value?: string | null) {
-  return value?.trim() ?? "";
-}
-
-function normalizeGitHubRepoInput(value: string) {
-  let normalized = value.trim();
-
-  if (!normalized) {
-    return "";
-  }
-
-  const sshMatch = /^git@github\.com:([^/\s]+)\/([^/\s]+)$/i.exec(normalized);
-
-  if (sshMatch) {
-    normalized = `${sshMatch[1]}/${sshMatch[2]}`;
-  } else {
-    const urlMatch =
-      /^https?:\/\/(?:www\.)?github\.com\/([^/\s]+)\/([^/\s?#]+)(?:[/?#].*)?$/i.exec(
-        normalized,
-      );
-
-    if (urlMatch) {
-      normalized = `${urlMatch[1]}/${urlMatch[2]}`;
-    }
-  }
-
-  return normalized.replace(/\.git$/i, "").toLowerCase();
-}
-
-function isValidGitHubRepoName(value: string) {
-  return /^[a-z0-9_.-]+\/[a-z0-9_.-]+$/.test(value);
-}
-
-function readGitHubRepoError(value: string, t: Translator) {
-  const normalized = normalizeGitHubRepoInput(value);
-
-  if (!normalized) {
-    return t("GitHub repository is required.");
-  }
-
-  if (!isValidGitHubRepoName(normalized)) {
-    return t("Use owner/repo or a GitHub repository URL.");
-  }
-
-  return null;
-}
-
-function readSuggestedGitHubRepo(source?: AppImageSource | null) {
-  const normalized = normalizeGitHubRepoInput(source?.repoUrl ?? "");
-  return isValidGitHubRepoName(normalized) ? normalized : "";
-}
-
-function readSuggestedImageRef(
-  source: AppImageSource | null | undefined,
-  currentVersions: AppImageVersion[],
-) {
-  const sourceImageRef = normalizeText(source?.imageRef);
-
-  if (sourceImageRef) {
-    return sourceImageRef;
-  }
-
-  for (const version of currentVersions) {
-    const versionSourceRef = normalizeText(version.source?.imageRef);
-
-    if (versionSourceRef) {
-      return versionSourceRef;
-    }
-  }
-
-  return "";
-}
-
-function buildTrackingDraft(
-  response: AppImageTrackingResponse | null,
-  source: AppImageSource | null | undefined,
-  currentVersions: AppImageVersion[],
-): TrackingDraft {
-  const tracking = response?.tracking ?? null;
-  const githubLink = response?.githubLink ?? null;
-
-  return {
-    enabled: tracking?.enabled ?? githubLink?.enabled ?? true,
-    githubInstallationId: githubLink?.githubInstallationId ?? "",
-    githubPackage: githubLink?.githubPackage ?? "",
-    githubRepo: githubLink?.githubRepo ?? readSuggestedGitHubRepo(source),
-    githubWorkflow: githubLink?.githubWorkflow ?? "",
-    imageRef:
-      tracking?.imageRef ??
-      githubLink?.imageRef ??
-      readSuggestedImageRef(source, currentVersions),
-  };
-}
-
-function readTrackingStatusLabel(
-  response: AppImageTrackingResponse | null,
-  state: TrackingState,
-  t: Translator,
-) {
-  if (state === "loading" || state === "idle") {
-    return t("Loading");
-  }
-
-  if (state === "error") {
-    return t("Unavailable");
-  }
-
-  if (!response?.tracking) {
-    return t("Not linked");
-  }
-
-  return response.tracking.enabled ? t("Linked") : t("Paused");
-}
-
-function readTrackingStatusTone(
-  response: AppImageTrackingResponse | null,
-  state: TrackingState,
-) {
-  if (state === "error") {
-    return "warning" as const;
-  }
-
-  if (response?.tracking?.enabled) {
-    return "positive" as const;
-  }
-
-  if (response?.tracking) {
-    return "neutral" as const;
-  }
-
-  return "neutral" as const;
 }
 
 function readVersionTitle(version: AppImageVersion, t: Translator) {
@@ -774,7 +580,6 @@ export function AppImagesPanel({
   appId,
   appName,
   onRequestRefreshWindow,
-  source,
 }: AppImagesPanelProps) {
   const { formatDateTime, formatNumber, formatRelativeTime: formatRelativeTimeValue, t } = useI18n();
   const confirm = useConfirmDialog();
@@ -788,16 +593,6 @@ export function AppImagesPanel({
   const [refreshing, setRefreshing] = useState(false);
   const [refreshToken, setRefreshToken] = useState(0);
   const [busyKey, setBusyKey] = useState<string | null>(null);
-  const [trackingResponse, setTrackingResponse] =
-    useState<AppImageTrackingResponse | null>(null);
-  const [trackingState, setTrackingState] = useState<TrackingState>("idle");
-  const [trackingDraft, setTrackingDraft] = useState<TrackingDraft>(() =>
-    buildTrackingDraft(null, source, []),
-  );
-  const [trackingTouched, setTrackingTouched] = useState(false);
-  const [trackingSubmitAttempted, setTrackingSubmitAttempted] = useState(false);
-  const [trackingSaving, setTrackingSaving] = useState(false);
-  const [trackingSyncing, setTrackingSyncing] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -870,77 +665,6 @@ export function AppImagesPanel({
     formatExactTime(value, formatDateTime, t);
   const formatRelative = (value?: string | null) =>
     formatRelativeTime(value, formatRelativeTimeValue, t);
-  const normalizedTrackingImageRef = normalizeText(trackingDraft.imageRef);
-  const normalizedTrackingRepo = normalizeGitHubRepoInput(
-    trackingDraft.githubRepo,
-  );
-  const trackingImageRefError = normalizedTrackingImageRef
-    ? null
-    : t("Image reference is required.");
-  const trackingRepoError = readGitHubRepoError(trackingDraft.githubRepo, t);
-  const trackingInputsDisabled = trackingSaving || trackingSyncing;
-  const canSaveTracking =
-    !trackingInputsDisabled &&
-    trackingState !== "loading" &&
-    !trackingImageRefError &&
-    !trackingRepoError;
-  const canSyncTracking =
-    !trackingInputsDisabled &&
-    Boolean(trackingResponse?.tracking) &&
-    !trackingImageRefError;
-
-  useEffect(() => {
-    let cancelled = false;
-
-    setTrackingState("loading");
-    requestJson<AppImageTrackingResponse>(
-      `/api/fugue/apps/${appId}/image-tracking`,
-    )
-      .then((response) => {
-        if (cancelled) {
-          return;
-        }
-
-        const nextResponse = response ?? {
-          appId,
-          githubLink: null,
-          tracking: null,
-        };
-
-        setTrackingResponse(nextResponse);
-        setTrackingDraft(
-          buildTrackingDraft(nextResponse, source, currentVersions),
-        );
-        setTrackingTouched(false);
-        setTrackingSubmitAttempted(false);
-        setTrackingState("ready");
-      })
-      .catch((error) => {
-        if (cancelled) {
-          return;
-        }
-
-        setTrackingState("error");
-        showToast({
-          message: readErrorMessage(error, t),
-          variant: "error",
-        });
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [appId, showToast, t]);
-
-  useEffect(() => {
-    if (trackingTouched) {
-      return;
-    }
-
-    setTrackingDraft(
-      buildTrackingDraft(trackingResponse, source, currentVersions),
-    );
-  }, [currentVersions, source, trackingResponse, trackingTouched]);
 
   function applyInventory(
     nextInventory:
@@ -1012,122 +736,6 @@ export function AppImagesPanel({
         method: "POST",
       },
     );
-  }
-
-  function updateTrackingDraft(next: Partial<TrackingDraft>) {
-    setTrackingTouched(true);
-    setTrackingDraft((current) => ({ ...current, ...next }));
-  }
-
-  async function handleTrackingSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setTrackingSubmitAttempted(true);
-
-    if (trackingImageRefError || trackingRepoError || trackingSaving) {
-      return;
-    }
-
-    setTrackingSaving(true);
-
-    try {
-      const response = await requestJson<AppImageTrackingResponse>(
-        `/api/fugue/apps/${appId}/image-tracking`,
-        {
-          body: JSON.stringify({
-            enabled: trackingDraft.enabled,
-            githubInstallationId: normalizeText(
-              trackingDraft.githubInstallationId,
-            ),
-            githubPackage: normalizeText(trackingDraft.githubPackage),
-            githubRepo: normalizedTrackingRepo,
-            githubWorkflow: normalizeText(trackingDraft.githubWorkflow),
-            imageRef: normalizedTrackingImageRef,
-          }),
-          headers: {
-            "Content-Type": "application/json",
-          },
-          method: "PUT",
-        },
-      );
-      const nextResponse = response ?? {
-        appId,
-        githubLink: null,
-        tracking: null,
-      };
-
-      setTrackingResponse(nextResponse);
-      setTrackingDraft(
-        buildTrackingDraft(nextResponse, source, currentVersions),
-      );
-      setTrackingTouched(false);
-      setTrackingSubmitAttempted(false);
-      setTrackingState("ready");
-      showToast({
-        message: trackingDraft.enabled
-          ? t("GitHub repository linked.")
-          : t("GitHub image sync paused."),
-        variant: "success",
-      });
-    } catch (error) {
-      showToast({
-        message: readErrorMessage(error, t),
-        variant: "error",
-      });
-    } finally {
-      setTrackingSaving(false);
-    }
-  }
-
-  async function handleTrackingSyncNow() {
-    if (!canSyncTracking) {
-      return;
-    }
-
-    setTrackingSyncing(true);
-
-    try {
-      const response = await requestJson<AppImageSyncResponse>(
-        `/api/fugue/apps/${appId}/image-sync`,
-        {
-          body: JSON.stringify({
-            event: "manual",
-            imageRef: normalizedTrackingImageRef,
-          }),
-          headers: {
-            "Content-Type": "application/json",
-          },
-          method: "POST",
-        },
-      );
-
-      if (response?.tracking) {
-        setTrackingResponse((current) => ({
-          appId,
-          githubLink: current?.githubLink ?? null,
-          tracking: response.tracking,
-        }));
-      }
-
-      if (response?.operation?.id) {
-        onRequestRefreshWindow?.(90_000);
-      }
-
-      showToast({
-        message: response?.operation?.id
-          ? t("Image update queued.")
-          : response?.alreadyCurrent
-            ? t("Image already current.")
-            : t("Image checked."),
-        variant: "success",
-      });
-    } catch (error) {
-      showToast({
-        message: readErrorMessage(error, t),
-        variant: "error",
-      });
-    } finally {
-      setTrackingSyncing(false);
-    }
   }
 
   async function handleRedeploy(version: AppImageVersion) {
@@ -1416,271 +1024,6 @@ export function AppImagesPanel({
     );
   }
 
-  function renderTrackingPanel() {
-    const tracking = trackingResponse?.tracking ?? null;
-    const githubLink = trackingResponse?.githubLink ?? null;
-    const trackingStatusLabel = readTrackingStatusLabel(
-      trackingResponse,
-      trackingState,
-      t,
-    );
-    const trackingStatusTone = readTrackingStatusTone(
-      trackingResponse,
-      trackingState,
-    );
-
-    return (
-      <section
-        aria-label={t("GitHub image sync")}
-        className="fg-app-images__tracking"
-      >
-        <div className="fg-app-images__tracking-head">
-          <div className="fg-app-images__tracking-copy">
-            <HintInline
-              ariaLabel={t("GitHub image sync")}
-              hint={t(
-                "Bind the GitHub repository that publishes this image. Matching GitHub App webhooks trigger Fugue to check and deploy the latest digest.",
-              )}
-            >
-              <p className="fg-label fg-panel__eyebrow">
-                {t("GitHub image sync")}
-              </p>
-            </HintInline>
-            <strong>{t("Repository binding")}</strong>
-          </div>
-
-          <StatusBadge
-            live={trackingState === "ready" && Boolean(tracking?.enabled)}
-            tone={trackingStatusTone}
-          >
-            {trackingStatusLabel}
-          </StatusBadge>
-        </div>
-
-        {trackingState === "error" ? (
-          <InlineAlert variant="error">
-            {t("Unable to load GitHub image sync settings right now.")}
-          </InlineAlert>
-        ) : null}
-
-        <form
-          className="fg-app-images__tracking-form"
-          onSubmit={handleTrackingSubmit}
-        >
-          <div className="fg-app-images__tracking-grid">
-            <FormField
-              error={
-                trackingSubmitAttempted || trackingDraft.imageRef
-                  ? trackingImageRefError ?? undefined
-                  : undefined
-              }
-              htmlFor={`image-tracking-ref-${appId}`}
-              label={t("Image ref")}
-            >
-              <input
-                autoCapitalize="off"
-                autoComplete="off"
-                autoCorrect="off"
-                className="fg-input"
-                disabled={trackingInputsDisabled}
-                id={`image-tracking-ref-${appId}`}
-                onChange={(event) =>
-                  updateTrackingDraft({ imageRef: event.target.value })
-                }
-                placeholder="ghcr.io/owner/app:latest"
-                spellCheck={false}
-                value={trackingDraft.imageRef}
-              />
-            </FormField>
-
-            <FormField
-              error={
-                trackingSubmitAttempted || trackingDraft.githubRepo
-                  ? trackingRepoError ?? undefined
-                  : undefined
-              }
-              htmlFor={`image-tracking-repo-${appId}`}
-              label={t("GitHub repository")}
-            >
-              <input
-                autoCapitalize="off"
-                autoComplete="off"
-                autoCorrect="off"
-                className="fg-input"
-                disabled={trackingInputsDisabled}
-                id={`image-tracking-repo-${appId}`}
-                onBlur={() => {
-                  const normalized = normalizeGitHubRepoInput(
-                    trackingDraft.githubRepo,
-                  );
-
-                  if (normalized) {
-                    updateTrackingDraft({ githubRepo: normalized });
-                  }
-                }}
-                onChange={(event) =>
-                  updateTrackingDraft({ githubRepo: event.target.value })
-                }
-                placeholder="owner/repo"
-                spellCheck={false}
-                value={trackingDraft.githubRepo}
-              />
-            </FormField>
-
-            <FormField
-              htmlFor={`image-tracking-workflow-${appId}`}
-              label={t("Workflow")}
-              optionalLabel={t("Optional")}
-            >
-              <input
-                autoCapitalize="off"
-                autoComplete="off"
-                autoCorrect="off"
-                className="fg-input"
-                disabled={trackingInputsDisabled}
-                id={`image-tracking-workflow-${appId}`}
-                onChange={(event) =>
-                  updateTrackingDraft({ githubWorkflow: event.target.value })
-                }
-                placeholder="deploy.yml"
-                spellCheck={false}
-                value={trackingDraft.githubWorkflow}
-              />
-            </FormField>
-
-            <FormField
-              htmlFor={`image-tracking-package-${appId}`}
-              label={t("Package")}
-              optionalLabel={t("Optional")}
-            >
-              <input
-                autoCapitalize="off"
-                autoComplete="off"
-                autoCorrect="off"
-                className="fg-input"
-                disabled={trackingInputsDisabled}
-                id={`image-tracking-package-${appId}`}
-                onChange={(event) =>
-                  updateTrackingDraft({ githubPackage: event.target.value })
-                }
-                placeholder="container/package"
-                spellCheck={false}
-                value={trackingDraft.githubPackage}
-              />
-            </FormField>
-
-            <FormField
-              htmlFor={`image-tracking-installation-${appId}`}
-              label={t("Installation ID")}
-              optionalLabel={t("Optional")}
-            >
-              <input
-                autoCapitalize="off"
-                autoComplete="off"
-                autoCorrect="off"
-                className="fg-input"
-                disabled={trackingInputsDisabled}
-                id={`image-tracking-installation-${appId}`}
-                inputMode="numeric"
-                onChange={(event) =>
-                  updateTrackingDraft({
-                    githubInstallationId: event.target.value,
-                  })
-                }
-                placeholder="12345678"
-                spellCheck={false}
-                value={trackingDraft.githubInstallationId}
-              />
-            </FormField>
-
-            <label className="fg-app-images__tracking-toggle">
-              <input
-                checked={trackingDraft.enabled}
-                disabled={trackingInputsDisabled}
-                onChange={(event) =>
-                  updateTrackingDraft({ enabled: event.target.checked })
-                }
-                type="checkbox"
-              />
-              <span>
-                <strong>{t("Enabled")}</strong>
-                <small>{t("Webhook-triggered checks are active.")}</small>
-              </span>
-            </label>
-          </div>
-
-          {tracking || githubLink ? (
-            <dl className="fg-app-images__tracking-meta">
-              {githubLink?.githubRepo ? (
-                <div>
-                  <dt>{t("Repository")}</dt>
-                  <dd title={githubLink.githubRepo}>{githubLink.githubRepo}</dd>
-                </div>
-              ) : null}
-              {tracking?.lastSeenDigest ? (
-                <div>
-                  <dt>{t("Last seen digest")}</dt>
-                  <dd title={tracking.lastSeenDigest}>
-                    {shortHash(tracking.lastSeenDigest, 18)}
-                  </dd>
-                </div>
-              ) : null}
-              {tracking?.lastTriggeredAt ? (
-                <div>
-                  <dt>{t("Last trigger")}</dt>
-                  <dd title={formatExact(tracking.lastTriggeredAt)}>
-                    {formatRelative(tracking.lastTriggeredAt)}
-                  </dd>
-                </div>
-              ) : tracking?.lastCheckedAt ? (
-                <div>
-                  <dt>{t("Last check")}</dt>
-                  <dd title={formatExact(tracking.lastCheckedAt)}>
-                    {formatRelative(tracking.lastCheckedAt)}
-                  </dd>
-                </div>
-              ) : null}
-              {tracking?.lastError ? (
-                <div>
-                  <dt>{t("Last error")}</dt>
-                  <dd title={tracking.lastError}>{tracking.lastError}</dd>
-                </div>
-              ) : null}
-            </dl>
-          ) : null}
-
-          <div className="fg-app-images__tracking-actions">
-            <Button
-              disabled={!canSaveTracking}
-              loading={trackingSaving}
-              loadingLabel={t("Saving…")}
-              size="compact"
-              type="submit"
-              variant="primary"
-            >
-              {trackingResponse?.tracking
-                ? t("Update binding")
-                : t("Bind repository")}
-            </Button>
-            <Button
-              disabled={!canSyncTracking}
-              loading={trackingSyncing}
-              loadingLabel={t("Checking…")}
-              onClick={() => {
-                void handleTrackingSyncNow();
-              }}
-              size="compact"
-              type="button"
-              variant="secondary"
-            >
-              {t("Sync now")}
-            </Button>
-          </div>
-        </form>
-      </section>
-    );
-  }
-
   return (
     <div className="fg-workbench-section fg-app-images">
       <div className="fg-workbench-section__head">
@@ -1739,8 +1082,6 @@ export function AppImagesPanel({
           {t("Unable to load saved images right now. Try refreshing this panel.")}
         </InlineAlert>
       ) : null}
-
-      {renderTrackingPanel()}
 
       {status === "ready" && inventory ? (
         <>

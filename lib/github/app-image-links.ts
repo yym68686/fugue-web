@@ -9,6 +9,7 @@ import { queryDb } from "@/lib/db/pool";
 type GitHubAppImageLinkRow = {
   id: string;
   user_email: string;
+  fugue_project_id: string;
   fugue_app_id: string;
   image_ref: string;
   github_repo: string;
@@ -23,6 +24,7 @@ type GitHubAppImageLinkRow = {
 export type GitHubAppImageLink = {
   id: string;
   userEmail: string;
+  fugueProjectId: string | null;
   fugueAppId: string;
   imageRef: string;
   githubRepo: string;
@@ -37,6 +39,7 @@ export type GitHubAppImageLink = {
 export type UpsertGitHubAppImageLinkInput = {
   enabled?: boolean;
   fugueAppId: string;
+  fugueProjectId?: string | null;
   githubInstallationId?: string | null;
   githubPackage?: string | null;
   githubRepo: string;
@@ -90,6 +93,7 @@ function linkFromRow(row: GitHubAppImageLinkRow): GitHubAppImageLink {
   return {
     createdAt: readTimestamp(row.created_at),
     enabled: Boolean(row.enabled),
+    fugueProjectId: readOptionalString(row.fugue_project_id),
     fugueAppId: row.fugue_app_id,
     githubInstallationId: readOptionalString(row.github_installation_id),
     githubPackage: readOptionalString(row.github_package),
@@ -153,6 +157,7 @@ export async function upsertGitHubAppImageLink(
   const userEmail = normalizeEmail(input.userEmail);
   const githubRepo = normalizeGitHubRepositoryName(input.githubRepo);
   const fugueAppId = input.fugueAppId.trim();
+  const fugueProjectId = input.fugueProjectId?.trim() ?? "";
   const imageRef = input.imageRef.trim();
 
   if (!fugueAppId) {
@@ -169,6 +174,7 @@ export async function upsertGitHubAppImageLink(
         INSERT INTO app_github_app_image_links (
           id,
           user_email,
+          fugue_project_id,
           fugue_app_id,
           image_ref,
           github_repo,
@@ -179,10 +185,11 @@ export async function upsertGitHubAppImageLink(
           created_at,
           updated_at
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
         ON CONFLICT (user_email, fugue_app_id)
         DO UPDATE SET
           image_ref = EXCLUDED.image_ref,
+          fugue_project_id = EXCLUDED.fugue_project_id,
           github_repo = EXCLUDED.github_repo,
           github_workflow = EXCLUDED.github_workflow,
           github_package = EXCLUDED.github_package,
@@ -192,6 +199,7 @@ export async function upsertGitHubAppImageLink(
         RETURNING
           id,
           user_email,
+          fugue_project_id,
           fugue_app_id,
           image_ref,
           github_repo,
@@ -205,6 +213,7 @@ export async function upsertGitHubAppImageLink(
       [
         randomUUID(),
         userEmail,
+        fugueProjectId,
         fugueAppId,
         imageRef,
         githubRepo,
@@ -231,6 +240,7 @@ export async function getGitHubAppImageLinkForApp(
         SELECT
           id,
           user_email,
+          fugue_project_id,
           fugue_app_id,
           image_ref,
           github_repo,
@@ -266,6 +276,7 @@ export async function listGitHubAppImageLinksForEvent(
         SELECT
           id,
           user_email,
+          fugue_project_id,
           fugue_app_id,
           image_ref,
           github_repo,
@@ -288,4 +299,56 @@ export async function listGitHubAppImageLinksForEvent(
   return result.rows
     .map(linkFromRow)
     .filter((link) => linkMatchesEvent(link, filter));
+}
+
+export async function listGitHubAppImageLinksForProject(
+  userEmail: string,
+  fugueProjectId: string,
+) {
+  await ensureDbSchema();
+
+  const result = await withDbSchemaRetry(() =>
+    queryDb<GitHubAppImageLinkRow>(
+      `
+        SELECT
+          id,
+          user_email,
+          fugue_project_id,
+          fugue_app_id,
+          image_ref,
+          github_repo,
+          github_workflow,
+          github_package,
+          github_installation_id,
+          enabled,
+          created_at,
+          updated_at
+        FROM app_github_app_image_links
+        WHERE user_email = $1
+          AND fugue_project_id = $2
+        ORDER BY updated_at DESC
+      `,
+      [normalizeEmail(userEmail), fugueProjectId.trim()],
+    ),
+  );
+
+  return result.rows.map(linkFromRow);
+}
+
+export async function deleteGitHubAppImageLinksForProject(
+  userEmail: string,
+  fugueProjectId: string,
+) {
+  await ensureDbSchema();
+
+  await withDbSchemaRetry(() =>
+    queryDb(
+      `
+        DELETE FROM app_github_app_image_links
+        WHERE user_email = $1
+          AND fugue_project_id = $2
+      `,
+      [normalizeEmail(userEmail), fugueProjectId.trim()],
+    ),
+  );
 }

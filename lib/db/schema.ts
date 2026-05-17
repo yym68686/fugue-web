@@ -7,7 +7,7 @@ declare global {
   var __fugueDbSchemaVersion: string | undefined;
 }
 
-const SCHEMA_VERSION = "2026-05-17-github-app-image-links";
+const SCHEMA_VERSION = "2026-05-17-project-github-image-links";
 
 const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS app_users (
@@ -118,6 +118,7 @@ CREATE TABLE IF NOT EXISTS app_github_connections (
 CREATE TABLE IF NOT EXISTS app_github_app_image_links (
   id TEXT PRIMARY KEY,
   user_email TEXT NOT NULL REFERENCES app_users(email) ON DELETE CASCADE,
+  fugue_project_id TEXT NOT NULL DEFAULT '',
   fugue_app_id TEXT NOT NULL,
   image_ref TEXT NOT NULL,
   github_repo TEXT NOT NULL,
@@ -130,6 +131,9 @@ CREATE TABLE IF NOT EXISTS app_github_app_image_links (
 );
 
 ALTER TABLE app_github_app_image_links
+  ADD COLUMN IF NOT EXISTS fugue_project_id TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE app_github_app_image_links
   ADD COLUMN IF NOT EXISTS github_workflow TEXT NOT NULL DEFAULT '';
 
 ALTER TABLE app_github_app_image_links
@@ -137,6 +141,16 @@ ALTER TABLE app_github_app_image_links
 
 ALTER TABLE app_github_app_image_links
   ADD COLUMN IF NOT EXISTS github_installation_id TEXT NOT NULL DEFAULT '';
+
+CREATE TABLE IF NOT EXISTS app_github_project_image_links (
+  id TEXT PRIMARY KEY,
+  user_email TEXT NOT NULL REFERENCES app_users(email) ON DELETE CASCADE,
+  fugue_project_id TEXT NOT NULL,
+  github_repo TEXT NOT NULL,
+  enabled BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 
 CREATE TABLE IF NOT EXISTS app_billing_topups (
   request_id TEXT PRIMARY KEY,
@@ -217,11 +231,20 @@ CREATE INDEX IF NOT EXISTS idx_app_github_connections_github_user_id
 CREATE UNIQUE INDEX IF NOT EXISTS idx_app_github_app_image_links_unique_app
   ON app_github_app_image_links (user_email, fugue_app_id);
 
+CREATE INDEX IF NOT EXISTS idx_app_github_app_image_links_project
+  ON app_github_app_image_links (user_email, fugue_project_id);
+
 CREATE INDEX IF NOT EXISTS idx_app_github_app_image_links_repo
   ON app_github_app_image_links (github_repo, enabled);
 
 CREATE INDEX IF NOT EXISTS idx_app_github_app_image_links_installation
   ON app_github_app_image_links (github_installation_id, enabled);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_app_github_project_image_links_unique_project
+  ON app_github_project_image_links (user_email, fugue_project_id);
+
+CREATE INDEX IF NOT EXISTS idx_app_github_project_image_links_repo
+  ON app_github_project_image_links (github_repo, enabled);
 
 CREATE INDEX IF NOT EXISTS idx_app_billing_topups_user_email
   ON app_billing_topups (user_email, created_at DESC);
