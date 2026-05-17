@@ -72,12 +72,21 @@ function mergeBillingSnapshots(
     return base;
   }
 
+  const billing =
+    base.data.billing && next.data.billing
+      ? {
+          ...base.data.billing,
+          currentUsage:
+            next.data.billing.currentUsage ?? base.data.billing.currentUsage,
+        }
+      : next.data.billing ?? base.data.billing;
+
   return {
     state: "ready",
     data: {
       ...base.data,
       ...next.data,
-      billing: next.data.billing ?? base.data.billing,
+      billing,
       imageStorageBytes:
         next.data.imageStorageBytes ?? base.data.imageStorageBytes,
       syncError: next.data.syncError ?? base.data.syncError,
