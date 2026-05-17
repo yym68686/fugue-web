@@ -7246,6 +7246,58 @@
   max-width: 40rem;
 }
 
+.fg-project-image-sync__actions {
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.fg-project-image-sync__summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.fg-project-image-sync__summary-card {
+  min-width: 0;
+  display: grid;
+  gap: 0.28rem;
+  padding: 0.95rem 1rem;
+  border: 1px solid var(--fugue-border-subtle);
+  border-radius: 1rem;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.026),
+      rgba(255, 255, 255, 0.01)
+    ),
+    rgba(8, 11, 15, 0.62);
+}
+
+.fg-project-image-sync__summary-card span {
+  color: var(--fugue-text-muted);
+  font-family: var(--fugue-font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: none;
+}
+
+.fg-project-image-sync__summary-card strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--fugue-text-primary);
+  font-size: 1rem;
+  letter-spacing: -0.03em;
+}
+
+.fg-project-image-sync__summary-card p {
+  min-width: 0;
+  margin: 0;
+  color: var(--fugue-text-tertiary);
+  font-size: 0.78rem;
+  line-height: 1.58;
+  overflow-wrap: anywhere;
+}
+
 .fg-project-image-sync__services {
   margin: 0;
   display: grid;
@@ -9198,6 +9250,7 @@
   .fg-admin-cluster-manager__policy-live-grid,
   .fg-app-images__summary-grid,
   .fg-app-images__details,
+  .fg-project-image-sync__summary-grid,
   .fg-project-image-sync__service,
   .fg-project-card__summary-head,
   .fg-file-editor,
@@ -10608,12 +10661,14 @@
 }
 
 :root[data-theme="light"] .fg-app-images__summary-card,
+:root[data-theme="light"] .fg-project-image-sync__summary-card,
 :root[data-theme="light"] .fg-app-images__card {
   border-color: var(--fugue-console-surface-border);
   box-shadow: var(--fugue-console-surface-shadow);
 }
 
-:root[data-theme="light"] .fg-app-images__summary-card {
+:root[data-theme="light"] .fg-app-images__summary-card,
+:root[data-theme="light"] .fg-project-image-sync__summary-card {
   background: var(--fugue-console-surface-bg);
 }
 
@@ -10647,6 +10702,7 @@
 }
 
 :root[data-theme="light"] .fg-app-images__summary-card strong,
+:root[data-theme="light"] .fg-project-image-sync__summary-card strong,
 :root[data-theme="light"] .fg-app-images__card-title,
 :root[data-theme="light"] .fg-app-images__details dd,
 :root[data-theme="light"] .fg-project-image-sync__service-copy strong {
@@ -10654,6 +10710,7 @@
 }
 
 :root[data-theme="light"] .fg-app-images__summary-card p,
+:root[data-theme="light"] .fg-project-image-sync__summary-card p,
 :root[data-theme="light"] .fg-app-images__card-meta,
 :root[data-theme="light"] .fg-app-images__mono,
 :root[data-theme="light"] .fg-app-images__link,

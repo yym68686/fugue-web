@@ -20,8 +20,10 @@ import {
 import {
   deleteGitHubAppImageLinksForProject,
   listGitHubAppImageLinksForProject,
+  recordGitHubAppImageLinkSyncResult,
   upsertGitHubAppImageLink,
 } from "@/lib/github/app-image-links";
+import { readGitHubAppInstallationStatusForRepo } from "@/lib/github/app-installations";
 import { getGitHubConnectionByEmail } from "@/lib/github/connection-store";
 import {
   buildProjectImageTrackingBoundResponseView,
@@ -31,6 +33,7 @@ import {
 } from "@/lib/github/project-image-tracking";
 import {
   getGitHubProjectImageLink,
+  recordGitHubProjectImageSyncResult,
   upsertGitHubProjectImageLink,
 } from "@/lib/github/project-image-links";
 
@@ -61,11 +64,18 @@ export async function GET(_request: Request, context: RouteContext) {
       getGitHubProjectImageLink(session.email, projectId),
       listGitHubAppImageLinksForProject(session.email, projectId),
     ]);
+    const githubAppInstallation = binding?.githubRepo
+      ? (await readGitHubAppInstallationStatusForRepo({
+          githubRepo: binding.githubRepo,
+          userEmail: session.email,
+        })).status
+      : null;
 
     return NextResponse.json(
       buildProjectImageTrackingResponseView({
         apps: projectDetail.apps,
         binding,
+        githubAppInstallation,
         links,
         projectId,
       }),
@@ -120,6 +130,41 @@ export async function PUT(request: Request, context: RouteContext) {
       getFugueConsoleProject(workspaceState.workspace.adminKeySecret, projectId),
       getGitHubConnectionByEmail(session.email),
     ]);
+    const githubAppInstallation = await readGitHubAppInstallationStatusForRepo({
+      githubRepo,
+      userEmail: session.email,
+    });
+
+    if (!githubAppInstallation.status.installed) {
+      return NextResponse.json(
+        {
+          error:
+            githubAppInstallation.status.source === "error"
+              ? "Could not verify the Fugue GitHub App installation for this repository."
+              : "Install the Fugue GitHub App on this repository before binding the project.",
+          githubApp: githubAppInstallation.status,
+        },
+        {
+          status: githubAppInstallation.status.source === "error" ? 503 : 409,
+        },
+      );
+    }
+
+    const githubInstallationId =
+      githubAppInstallation.status.githubInstallationId?.trim() ?? "";
+
+    if (!githubInstallationId) {
+      return NextResponse.json(
+        {
+          error: "GitHub App installation id is missing for this repository.",
+          githubApp: githubAppInstallation.status,
+        },
+        {
+          status: 409,
+        },
+      );
+    }
+
     const inference = await inferProjectImageBindings({
       apps: projectDetail.apps,
       githubRepo,
@@ -137,6 +182,7 @@ export async function PUT(request: Request, context: RouteContext) {
     const binding = await upsertGitHubProjectImageLink({
       enabled,
       fugueProjectId: projectId,
+      githubInstallationId,
       githubRepo,
       userEmail: session.email,
     });
@@ -155,30 +201,71 @@ export async function PUT(request: Request, context: RouteContext) {
           enabled,
           fugueAppId: app.id,
           fugueProjectId: projectId,
+          githubInstallationId,
           githubRepo,
           imageRef: candidate.imageRef,
           userEmail: session.email,
         });
 
         if (enabled) {
-          await syncFugueAppImage(
-            workspaceState.workspace.adminKeySecret,
-            app.id,
-            {
-              event: "github:project-bind",
-              imageRef: candidate.imageRef,
-            },
-          ).catch(() => null);
+          const deliveryId = "project-bind";
+
+          try {
+            await syncFugueAppImage(
+              workspaceState.workspace.adminKeySecret,
+              app.id,
+              {
+                event: "github:project-bind",
+                imageRef: candidate.imageRef,
+              },
+            );
+
+            await recordGitHubAppImageLinkSyncResult({
+              deliveryId,
+              fugueAppId: app.id,
+              githubInstallationId,
+            }).catch(() => null);
+
+            await recordGitHubProjectImageSyncResult({
+              deliveryId,
+              githubInstallationId,
+              githubRepo,
+              userEmail: session.email,
+            }).catch(() => null);
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : "image sync failed";
+
+            await recordGitHubAppImageLinkSyncResult({
+              deliveryId,
+              error: message,
+              fugueAppId: app.id,
+              githubInstallationId,
+            }).catch(() => null);
+
+            await recordGitHubProjectImageSyncResult({
+              deliveryId,
+              error: message,
+              githubInstallationId,
+              githubRepo,
+              userEmail: session.email,
+            }).catch(() => null);
+          }
         }
 
         return link;
       }),
     );
+    const [nextBinding, nextLinks] = await Promise.all([
+      getGitHubProjectImageLink(session.email, projectId),
+      listGitHubAppImageLinksForProject(session.email, projectId),
+    ]);
 
     return NextResponse.json(
       buildProjectImageTrackingBoundResponseView({
-        binding,
-        links,
+        binding: nextBinding ?? binding,
+        githubAppInstallation: githubAppInstallation.status,
+        links: nextLinks.length ? nextLinks : links,
         matches: inference.matches,
         projectId,
       }),

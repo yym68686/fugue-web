@@ -16,6 +16,12 @@ type GitHubAppImageLinkRow = {
   github_workflow: string;
   github_package: string;
   github_installation_id: string;
+  github_last_webhook_delivery_id: string;
+  github_last_webhook_event_name: string;
+  github_last_webhook_received_at: Date | string | null;
+  github_last_image_sync_at: Date | string | null;
+  github_last_image_sync_delivery_id: string;
+  github_last_image_sync_error: string;
   enabled: boolean;
   created_at: Date | string;
   updated_at: Date | string;
@@ -31,6 +37,12 @@ export type GitHubAppImageLink = {
   githubWorkflow: string | null;
   githubPackage: string | null;
   githubInstallationId: string | null;
+  lastImageSyncAt: string | null;
+  lastImageSyncDeliveryId: string;
+  lastImageSyncError: string | null;
+  lastWebhookDeliveryId: string;
+  lastWebhookEventName: string;
+  lastWebhookReceivedAt: string | null;
   enabled: boolean;
   createdAt: string;
   updatedAt: string;
@@ -101,6 +113,16 @@ function linkFromRow(row: GitHubAppImageLinkRow): GitHubAppImageLink {
     githubWorkflow: readOptionalString(row.github_workflow),
     id: row.id,
     imageRef: row.image_ref,
+    lastImageSyncAt: readOptionalString(row.github_last_image_sync_at)
+      ? readTimestamp(row.github_last_image_sync_at)
+      : null,
+    lastImageSyncDeliveryId: row.github_last_image_sync_delivery_id,
+    lastImageSyncError: readOptionalString(row.github_last_image_sync_error),
+    lastWebhookDeliveryId: row.github_last_webhook_delivery_id,
+    lastWebhookEventName: row.github_last_webhook_event_name,
+    lastWebhookReceivedAt: readOptionalString(row.github_last_webhook_received_at)
+      ? readTimestamp(row.github_last_webhook_received_at)
+      : null,
     updatedAt: readTimestamp(row.updated_at),
     userEmail: normalizeEmail(row.user_email),
   };
@@ -181,11 +203,17 @@ export async function upsertGitHubAppImageLink(
           github_workflow,
           github_package,
           github_installation_id,
+          github_last_webhook_delivery_id,
+          github_last_webhook_event_name,
+          github_last_webhook_received_at,
+          github_last_image_sync_at,
+          github_last_image_sync_delivery_id,
+          github_last_image_sync_error,
           enabled,
           created_at,
           updated_at
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, '', '', NULL, NULL, '', '', $10, NOW(), NOW())
         ON CONFLICT (user_email, fugue_app_id)
         DO UPDATE SET
           image_ref = EXCLUDED.image_ref,
@@ -206,6 +234,12 @@ export async function upsertGitHubAppImageLink(
           github_workflow,
           github_package,
           github_installation_id,
+          github_last_webhook_delivery_id,
+          github_last_webhook_event_name,
+          github_last_webhook_received_at,
+          github_last_image_sync_at,
+          github_last_image_sync_delivery_id,
+          github_last_image_sync_error,
           enabled,
           created_at,
           updated_at
@@ -247,6 +281,12 @@ export async function getGitHubAppImageLinkForApp(
           github_workflow,
           github_package,
           github_installation_id,
+          github_last_webhook_delivery_id,
+          github_last_webhook_event_name,
+          github_last_webhook_received_at,
+          github_last_image_sync_at,
+          github_last_image_sync_delivery_id,
+          github_last_image_sync_error,
           enabled,
           created_at,
           updated_at
@@ -283,6 +323,12 @@ export async function listGitHubAppImageLinksForEvent(
           github_workflow,
           github_package,
           github_installation_id,
+          github_last_webhook_delivery_id,
+          github_last_webhook_event_name,
+          github_last_webhook_received_at,
+          github_last_image_sync_at,
+          github_last_image_sync_delivery_id,
+          github_last_image_sync_error,
           enabled,
           created_at,
           updated_at
@@ -320,6 +366,12 @@ export async function listGitHubAppImageLinksForProject(
           github_workflow,
           github_package,
           github_installation_id,
+          github_last_webhook_delivery_id,
+          github_last_webhook_event_name,
+          github_last_webhook_received_at,
+          github_last_image_sync_at,
+          github_last_image_sync_delivery_id,
+          github_last_image_sync_error,
           enabled,
           created_at,
           updated_at
@@ -351,4 +403,112 @@ export async function deleteGitHubAppImageLinksForProject(
       [normalizeEmail(userEmail), fugueProjectId.trim()],
     ),
   );
+}
+
+export async function recordGitHubAppImageLinkWebhookEvent(input: {
+  deliveryId: string;
+  eventName: string;
+  fugueAppId: string;
+  githubInstallationId?: string | null;
+}) {
+  await ensureDbSchema();
+
+  const result = await withDbSchemaRetry(() =>
+    queryDb<GitHubAppImageLinkRow>(
+      `
+        UPDATE app_github_app_image_links
+        SET
+          github_installation_id = CASE
+            WHEN $4 <> '' THEN $4
+            ELSE github_installation_id
+          END,
+          github_last_webhook_delivery_id = $2,
+          github_last_webhook_event_name = $3,
+          github_last_webhook_received_at = NOW(),
+          updated_at = NOW()
+        WHERE fugue_app_id = $1
+        RETURNING
+          id,
+          user_email,
+          fugue_project_id,
+          fugue_app_id,
+          image_ref,
+          github_repo,
+          github_workflow,
+          github_package,
+          github_installation_id,
+          github_last_webhook_delivery_id,
+          github_last_webhook_event_name,
+          github_last_webhook_received_at,
+          github_last_image_sync_at,
+          github_last_image_sync_delivery_id,
+          github_last_image_sync_error,
+          enabled,
+          created_at,
+          updated_at
+      `,
+      [
+        input.fugueAppId.trim(),
+        input.deliveryId.trim(),
+        input.eventName.trim(),
+        input.githubInstallationId?.trim() ?? "",
+      ],
+    ),
+  );
+
+  return result.rows.map(linkFromRow);
+}
+
+export async function recordGitHubAppImageLinkSyncResult(input: {
+  deliveryId: string;
+  error?: string | null;
+  fugueAppId: string;
+  githubInstallationId?: string | null;
+}) {
+  await ensureDbSchema();
+
+  const result = await withDbSchemaRetry(() =>
+    queryDb<GitHubAppImageLinkRow>(
+      `
+        UPDATE app_github_app_image_links
+        SET
+          github_installation_id = CASE
+            WHEN $4 <> '' THEN $4
+            ELSE github_installation_id
+          END,
+          github_last_image_sync_at = NOW(),
+          github_last_image_sync_delivery_id = $2,
+          github_last_image_sync_error = $3,
+          updated_at = NOW()
+        WHERE fugue_app_id = $1
+        RETURNING
+          id,
+          user_email,
+          fugue_project_id,
+          fugue_app_id,
+          image_ref,
+          github_repo,
+          github_workflow,
+          github_package,
+          github_installation_id,
+          github_last_webhook_delivery_id,
+          github_last_webhook_event_name,
+          github_last_webhook_received_at,
+          github_last_image_sync_at,
+          github_last_image_sync_delivery_id,
+          github_last_image_sync_error,
+          enabled,
+          created_at,
+          updated_at
+      `,
+      [
+        input.fugueAppId.trim(),
+        input.deliveryId.trim(),
+        input.error?.trim() ?? "",
+        input.githubInstallationId?.trim() ?? "",
+      ],
+    ),
+  );
+
+  return result.rows.map(linkFromRow);
 }

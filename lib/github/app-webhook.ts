@@ -8,8 +8,14 @@ import { syncFugueAppImage } from "@/lib/fugue/api";
 import {
   listGitHubAppImageLinksForEvent,
   normalizeGitHubRepositoryName,
+  recordGitHubAppImageLinkSyncResult,
+  recordGitHubAppImageLinkWebhookEvent,
   type GitHubAppImageLink,
 } from "@/lib/github/app-image-links";
+import {
+  recordGitHubProjectImageSyncResult,
+  recordGitHubProjectImageWebhookEvent,
+} from "@/lib/github/project-image-links";
 import { getWorkspaceAccessByEmail } from "@/lib/workspace/store";
 
 type GitHubObject = Record<string, unknown>;
@@ -176,6 +182,21 @@ async function syncLinkedImage(link: GitHubAppImageLink, event: GitHubImageEvent
   const workspace = await getWorkspaceAccessByEmail(link.userEmail);
 
   if (!workspace) {
+    await recordGitHubAppImageLinkSyncResult({
+      deliveryId: event.deliveryId,
+      error: "workspace not found",
+      fugueAppId: link.fugueAppId,
+      githubInstallationId: event.githubInstallationId,
+    }).catch(() => null);
+
+    await recordGitHubProjectImageSyncResult({
+      deliveryId: event.deliveryId,
+      error: "workspace not found",
+      githubInstallationId: event.githubInstallationId,
+      githubRepo: event.githubRepo,
+      userEmail: link.userEmail,
+    }).catch(() => null);
+
     return {
       appId: link.fugueAppId,
       error: "workspace not found",
@@ -195,6 +216,19 @@ async function syncLinkedImage(link: GitHubAppImageLink, event: GitHubImageEvent
       },
     );
 
+    await recordGitHubAppImageLinkSyncResult({
+      deliveryId: event.deliveryId,
+      fugueAppId: link.fugueAppId,
+      githubInstallationId: event.githubInstallationId,
+    }).catch(() => null);
+
+    await recordGitHubProjectImageSyncResult({
+      deliveryId: event.deliveryId,
+      githubInstallationId: event.githubInstallationId,
+      githubRepo: event.githubRepo,
+      userEmail: link.userEmail,
+    }).catch(() => null);
+
     return {
       appId: link.fugueAppId,
       imageRef: link.imageRef,
@@ -203,6 +237,21 @@ async function syncLinkedImage(link: GitHubAppImageLink, event: GitHubImageEvent
     } satisfies GitHubImageSyncResult;
   } catch (error) {
     const message = error instanceof Error ? error.message : "sync failed";
+
+    await recordGitHubAppImageLinkSyncResult({
+      deliveryId: event.deliveryId,
+      error: message,
+      fugueAppId: link.fugueAppId,
+      githubInstallationId: event.githubInstallationId,
+    }).catch(() => null);
+
+    await recordGitHubProjectImageSyncResult({
+      deliveryId: event.deliveryId,
+      error: message,
+      githubInstallationId: event.githubInstallationId,
+      githubRepo: event.githubRepo,
+      userEmail: link.userEmail,
+    }).catch(() => null);
 
     return {
       appId: link.fugueAppId,
@@ -277,7 +326,26 @@ export async function processGitHubWebhookRequest(request: Request) {
   });
   const results: GitHubImageSyncResult[] = [];
 
+  const userEmails = Array.from(new Set(links.map((link) => link.userEmail)));
+
+  for (const userEmail of userEmails) {
+    await recordGitHubProjectImageWebhookEvent({
+      deliveryId,
+      eventName,
+      githubInstallationId: event.githubInstallationId,
+      githubRepo: event.githubRepo,
+      userEmail,
+    }).catch(() => null);
+  }
+
   for (const link of links) {
+    await recordGitHubAppImageLinkWebhookEvent({
+      deliveryId,
+      eventName,
+      fugueAppId: link.fugueAppId,
+      githubInstallationId: event.githubInstallationId,
+    }).catch(() => null);
+
     results.push(await syncLinkedImage(link, event));
   }
 

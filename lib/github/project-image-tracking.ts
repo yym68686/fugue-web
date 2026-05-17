@@ -5,6 +5,7 @@ import {
   normalizeGitHubRepositoryName,
   type GitHubAppImageLink,
 } from "@/lib/github/app-image-links";
+import type { GitHubAppInstallationStatus } from "@/lib/github/app-installations";
 import type { GitHubProjectImageLink } from "@/lib/github/project-image-links";
 
 type GitHubRepoParts = {
@@ -56,9 +57,28 @@ export type ProjectImageTrackingServiceView = {
 
 export type ProjectImageTrackingResponseView = {
   binding: GitHubProjectImageLink | null;
+  githubApp: ProjectImageTrackingGitHubAppView;
   linkedCount: number;
   projectId: string;
   services: ProjectImageTrackingServiceView[];
+};
+
+export type ProjectImageTrackingGitHubAppView = {
+  accountLogin: string | null;
+  checkedAt: string | null;
+  githubRepo: string;
+  installed: boolean;
+  githubInstallationId: string | null;
+  installationId: string | null;
+  installationSource: GitHubAppInstallationStatus["source"] | "binding" | "none";
+  lastEventName: string | null;
+  lastEventReceivedAt: string | null;
+  lastImageSyncAt: string | null;
+  lastImageSyncError: string | null;
+  repositorySelection: string | null;
+  source: GitHubAppInstallationStatus["source"] | "binding" | "none";
+  verified: boolean;
+  webhookActive: boolean;
 };
 
 export type InferProjectImageBindingsInput = {
@@ -212,9 +232,38 @@ function buildServiceView(
   };
 }
 
+function buildGitHubAppView(
+  binding: GitHubProjectImageLink | null,
+  installation: GitHubAppInstallationStatus | null,
+): ProjectImageTrackingGitHubAppView {
+  const installationId =
+    installation?.githubInstallationId ?? binding?.githubInstallationId ?? null;
+  const lastEventName = binding?.lastWebhookEventName.trim() || null;
+
+  return {
+    accountLogin: installation?.accountLogin ?? null,
+    checkedAt: installation?.checkedAt ?? null,
+    githubRepo: installation?.githubRepo ?? binding?.githubRepo ?? "",
+    installed: installation?.installed ?? Boolean(installationId),
+    githubInstallationId: installationId,
+    installationId,
+    installationSource:
+      installation?.source ?? (binding?.githubInstallationId ? "binding" : "none"),
+    lastEventName,
+    lastEventReceivedAt: binding?.lastWebhookReceivedAt ?? null,
+    lastImageSyncAt: binding?.lastImageSyncAt ?? null,
+    lastImageSyncError: binding?.lastImageSyncError ?? null,
+    repositorySelection: installation?.repositorySelection ?? null,
+    source: installation?.source ?? (binding?.githubInstallationId ? "binding" : "none"),
+    verified: installation?.verified ?? Boolean(binding?.githubInstallationId),
+    webhookActive: Boolean(binding?.lastWebhookReceivedAt),
+  };
+}
+
 export function buildProjectImageTrackingResponseView(input: {
   apps: FugueApp[];
   binding: GitHubProjectImageLink | null;
+  githubAppInstallation?: GitHubAppInstallationStatus | null;
   links: GitHubAppImageLink[];
   projectId: string;
 }): ProjectImageTrackingResponseView {
@@ -227,6 +276,10 @@ export function buildProjectImageTrackingResponseView(input: {
 
   return {
     binding: input.binding,
+    githubApp: buildGitHubAppView(
+      input.binding,
+      input.githubAppInstallation ?? null,
+    ),
     linkedCount: services.filter((service) => service.linked).length,
     projectId: input.projectId,
     services,
@@ -235,6 +288,7 @@ export function buildProjectImageTrackingResponseView(input: {
 
 export function buildProjectImageTrackingBoundResponseView(input: {
   binding: GitHubProjectImageLink;
+  githubAppInstallation?: GitHubAppInstallationStatus | null;
   links: GitHubAppImageLink[];
   matches: ProjectImageTrackingMatch[];
   projectId: string;
@@ -255,6 +309,10 @@ export function buildProjectImageTrackingBoundResponseView(input: {
 
   return {
     binding: input.binding,
+    githubApp: buildGitHubAppView(
+      input.binding,
+      input.githubAppInstallation ?? null,
+    ),
     linkedCount: services.filter((service) => service.linked).length,
     projectId: input.projectId,
     services,
