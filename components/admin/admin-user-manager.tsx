@@ -109,9 +109,9 @@ const MEBIBYTES_PER_GIB = 1024;
 const CPU_STEP_CORES = 0.5;
 const MEMORY_STEP_GIB = 0.25;
 const STORAGE_STEP_GIB = 1;
-const CPU_SLIDER_MAX_CORES = 2;
-const MEMORY_SLIDER_MAX_GIB = 4;
-const STORAGE_SLIDER_MAX_GIB = 30;
+const CPU_SLIDER_MAX_CORES = 8;
+const MEMORY_SLIDER_MAX_GIB = 32;
+const STORAGE_SLIDER_MAX_GIB = 256;
 const CPU_SLIDER_MAX_MILLICORES = CPU_SLIDER_MAX_CORES * MILLICORES_PER_VCPU;
 const MEMORY_SLIDER_MAX_MEBIBYTES = MEMORY_SLIDER_MAX_GIB * MEBIBYTES_PER_GIB;
 type Translator = ReturnType<typeof useI18n>["t"];
@@ -1456,7 +1456,7 @@ export function AdminUserManager({
                   {quotaExceedsUiCap ? (
                     <InlineAlert variant="warning">
                       {t(
-                        "The saved limit is above the temporary control cap of 2 cpu / 4 GiB / 30 GiB storage. Save a new limit here to bring the user back inside the current range.",
+                        "The saved limit is above the temporary control cap of 8 cpu / 32 GiB / 256 GiB storage. Save a new limit here to bring the user back inside the current range.",
                       )}
                     </InlineAlert>
                   ) : null}

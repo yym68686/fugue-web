@@ -112,9 +112,9 @@ const BYTES_PER_GIBIBYTE = BYTES_PER_MEBIBYTE * MEBIBYTES_PER_GIB;
 const CPU_STEP_CORES = 0.5;
 const MEMORY_STEP_GIB = 0.25;
 const STORAGE_STEP_GIB = 1;
-const CPU_SLIDER_MAX_CORES = 2;
-const MEMORY_SLIDER_MAX_GIB = 4;
-const STORAGE_SLIDER_MAX_GIB = 30;
+const CPU_SLIDER_MAX_CORES = 8;
+const MEMORY_SLIDER_MAX_GIB = 32;
+const STORAGE_SLIDER_MAX_GIB = 256;
 const CPU_SLIDER_MAX_MILLICORES = CPU_SLIDER_MAX_CORES * MILLICORES_PER_VCPU;
 const MEMORY_SLIDER_MAX_MEBIBYTES = MEMORY_SLIDER_MAX_GIB * MEBIBYTES_PER_GIB;
 const BILLING_TOP_UP_PRESET_AMOUNTS = [10, 25, 50, 100];
@@ -1577,7 +1577,7 @@ export function BillingPanel({
               {envelopeExceedsUiCap ? (
                 <InlineAlert variant="warning">
                   {t(
-                    "Saved capacity exceeds the temporary 2 CPU / 4 GiB / 30 GiB UI cap. Save again to bring it back into range.",
+                    "Saved capacity exceeds the temporary 8 CPU / 32 GiB / 256 GiB UI cap. Save again to bring it back into range.",
                   )}
                 </InlineAlert>
               ) : null}

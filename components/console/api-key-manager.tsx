@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useI18n } from "@/components/providers/i18n-provider";
 import { InlineButton } from "@/components/ui/button";
@@ -68,6 +68,26 @@ function buildPermissionCatalog(record: Pick<ApiKeyRecord, "isWorkspaceAdmin" | 
   ]);
 }
 
+type ApiKeyPermissionView = {
+  catalog: string[];
+  selectedScopes: Set<string>;
+};
+
+function buildPermissionViews(
+  keys: ApiKeyRecord[],
+  scopeCatalog: string[],
+) {
+  return new Map<string, ApiKeyPermissionView>(
+    keys.map((record) => [
+      record.id,
+      {
+        catalog: buildPermissionCatalog(record, scopeCatalog),
+        selectedScopes: new Set(record.scopes),
+      },
+    ] as const),
+  );
+}
+
 function sortKeys(keys: ApiKeyRecord[]) {
   const statusOrder = new Map<ApiKeyRecord["status"], number>([
     ["active", 0],
@@ -127,6 +147,10 @@ export function ApiKeyManager({
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [workspaceAdminKeyId, setWorkspaceAdminKeyId] = useState(
     initialWorkspaceAdminKeyId,
+  );
+  const permissionViewsByKeyId = useMemo(
+    () => buildPermissionViews(keys, scopeCatalog),
+    [keys, scopeCatalog],
   );
 
   useEffect(() => {
@@ -453,8 +477,8 @@ export function ApiKeyManager({
       return;
     }
 
-    const permissionCatalog = buildPermissionCatalog(record, scopeCatalog);
-    const hasScope = record.scopes.includes(scope);
+    const selectedScopes = new Set(record.scopes);
+    const hasScope = selectedScopes.has(scope);
     const nextScopes = hasScope
       ? record.scopes.filter((item) => item !== scope)
       : sortFugueScopes([...record.scopes, scope]);
@@ -555,7 +579,12 @@ export function ApiKeyManager({
           <div className="fg-api-key-list">
             {keys.map((record) => {
               const expanded = expandedId === record.id;
-              const permissionCatalog = buildPermissionCatalog(record, scopeCatalog);
+              const permissionView =
+                permissionViewsByKeyId.get(record.id) ??
+                ({
+                  catalog: buildPermissionCatalog(record, scopeCatalog),
+                  selectedScopes: new Set(record.scopes),
+                } satisfies ApiKeyPermissionView);
 
               return (
                 <article
@@ -703,14 +732,14 @@ export function ApiKeyManager({
                           </div>
 
                           <span className="fg-api-key-permissions__count">
-                            {record.scopes.length}/{permissionCatalog.length || record.scopes.length}
+                            {record.scopes.length}/{permissionView.catalog.length || record.scopes.length}
                           </span>
                         </div>
 
-                        {permissionCatalog.length ? (
+                        {permissionView.catalog.length ? (
                           <div className="fg-api-key-permission-grid">
-                            {permissionCatalog.map((scope) => {
-                              const selected = record.scopes.includes(scope);
+                            {permissionView.catalog.map((scope) => {
+                              const selected = permissionView.selectedScopes.has(scope);
 
                               return (
                                 <label

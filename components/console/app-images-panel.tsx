@@ -95,6 +95,7 @@ type AppImagesPanelProps = {
 type InventoryState = "error" | "idle" | "loading" | "ready";
 
 const APP_IMAGE_CACHE_TTL_MS = 60_000;
+const APP_IMAGE_DELETE_CONCURRENCY = 4;
 
 type CachedAppImageInventory = {
   cachedAt: number;
@@ -478,6 +479,44 @@ function buildInventorySummary(versions: AppImageVersion[]): AppImageSummary {
   };
 }
 
+async function settleWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  run: (item: T) => Promise<R>,
+) {
+  const results = new Array<PromiseSettledResult<R>>(items.length);
+  let nextIndex = 0;
+  const workerCount = Math.min(Math.max(1, concurrency), items.length);
+
+  await Promise.all(
+    Array.from({ length: workerCount }, async () => {
+      while (nextIndex < items.length) {
+        const index = nextIndex;
+        nextIndex += 1;
+        const item = items[index];
+
+        if (item === undefined) {
+          continue;
+        }
+
+        try {
+          results[index] = {
+            status: "fulfilled",
+            value: await run(item),
+          };
+        } catch (reason) {
+          results[index] = {
+            reason,
+            status: "rejected",
+          };
+        }
+      }
+    }),
+  );
+
+  return results;
+}
+
 function readCachedInventory(appId: string) {
   const cached = appImageInventoryCache.get(appId);
 
@@ -845,26 +884,33 @@ export function AppImagesPanel({
     let failedCount = 0;
     const removedImageRefs: string[] = [];
 
-    for (const version of clearableVersions) {
-      try {
-        const response = await deleteVersion(version);
+    const deleteResults = await settleWithConcurrency(
+      clearableVersions,
+      APP_IMAGE_DELETE_CONCURRENCY,
+      deleteVersion,
+    );
 
-        if (response?.alreadyMissing) {
-          alreadyMissingCount += 1;
-          removedImageRefs.push(version.imageRef);
-          continue;
-        }
+    for (const [index, result] of deleteResults.entries()) {
+      const version = clearableVersions[index];
 
-        if (response?.deleted) {
-          deletedCount += 1;
-          removedImageRefs.push(version.imageRef);
-          continue;
-        }
-
+      if (!version || result.status === "rejected") {
         failedCount += 1;
-      } catch {
-        failedCount += 1;
+        continue;
       }
+
+      if (result.value?.alreadyMissing) {
+        alreadyMissingCount += 1;
+        removedImageRefs.push(version.imageRef);
+        continue;
+      }
+
+      if (result.value?.deleted) {
+        deletedCount += 1;
+        removedImageRefs.push(version.imageRef);
+        continue;
+      }
+
+      failedCount += 1;
     }
 
     removeVersionsFromInventory(removedImageRefs);

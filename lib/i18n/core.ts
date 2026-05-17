@@ -1986,8 +1986,8 @@ const zhCNExtraMessages = {
     "续航估算会在最新实时账单同步后更新。",
   "Save the maximum managed CPU, memory, and disk for this workspace. Fugue charges against the larger of your saved cap and any resources already committed.":
     "保存这个工作区的最大托管 CPU、内存和磁盘。Fugue 会按你保存的上限与已提交资源中更大的那一个计费。",
-  "Saved capacity exceeds the temporary 2 CPU / 4 GiB / 30 GiB UI cap. Save again to bring it back into range.":
-    "已保存容量超出了当前临时的 2 CPU / 4 GiB / 30 GiB 界面上限。请再次保存，将它调回范围内。",
+  "Saved capacity exceeds the temporary 8 CPU / 32 GiB / 256 GiB UI cap. Save again to bring it back into range.":
+    "已保存容量超出了当前临时的 8 CPU / 32 GiB / 256 GiB 界面上限。请再次保存，将它调回范围内。",
   "Saving": "保存中",
   "Send a one-time verification link to the account email on the sign-in page.":
     "在登录页向账号邮箱发送一次性验证链接。",
@@ -2216,8 +2216,8 @@ const zhCNExtraMessages = {
   "Synced": "已同步",
   "The admin API could not resolve the current API and controller release.":
     "管理员 API 当前无法解析现有 API 与控制器版本。",
-  "The saved limit is above the temporary control cap of 2 cpu / 4 GiB / 30 GiB storage. Save a new limit here to bring the user back inside the current range.":
-    "已保存的上限超过当前临时控制上限 2 CPU / 4 GiB / 30 GiB 存储。请在这里保存新的上限，使用户回到当前范围内。",
+  "The saved limit is above the temporary control cap of 8 cpu / 32 GiB / 256 GiB storage. Save a new limit here to bring the user back inside the current range.":
+    "已保存的上限超过当前临时控制上限 8 CPU / 32 GiB / 256 GiB 存储。请在这里保存新的上限，使用户回到当前范围内。",
   "This workspace": "此工作区",
   "Tenants": "租户",
   "Unknown namespace": "未知命名空间",
@@ -3614,8 +3614,8 @@ const zhTWExtraMessages = {
     "續航估算會在最新即時帳務同步後更新。",
   "Save the maximum managed CPU, memory, and disk for this workspace. Fugue charges against the larger of your saved cap and any resources already committed.":
     "儲存這個工作區的最大託管 CPU、記憶體與磁碟。Fugue 會依你儲存的上限與已提交資源中較大的那一個計費。",
-  "Saved capacity exceeds the temporary 2 CPU / 4 GiB / 30 GiB UI cap. Save again to bring it back into range.":
-    "已儲存容量超出目前臨時的 2 CPU / 4 GiB / 30 GiB 介面上限。請再次儲存，將它調回範圍內。",
+  "Saved capacity exceeds the temporary 8 CPU / 32 GiB / 256 GiB UI cap. Save again to bring it back into range.":
+    "已儲存容量超出目前臨時的 8 CPU / 32 GiB / 256 GiB 介面上限。請再次儲存，將它調回範圍內。",
   "Saving": "儲存中",
   "Send a one-time verification link to the account email on the sign-in page.":
     "在登入頁向帳號電子郵件傳送一次性驗證連結。",
@@ -3848,8 +3848,8 @@ const zhTWExtraMessages = {
   "Synced": "已同步",
   "The admin API could not resolve the current API and controller release.":
     "管理員 API 目前無法解析現有 API 與控制器版本。",
-  "The saved limit is above the temporary control cap of 2 cpu / 4 GiB / 30 GiB storage. Save a new limit here to bring the user back inside the current range.":
-    "已儲存的上限超過目前臨時控制上限 2 CPU / 4 GiB / 30 GiB 儲存。請在這裡儲存新的上限，讓使用者回到目前範圍內。",
+  "The saved limit is above the temporary control cap of 8 cpu / 32 GiB / 256 GiB storage. Save a new limit here to bring the user back inside the current range.":
+    "已儲存的上限超過目前臨時控制上限 8 CPU / 32 GiB / 256 GiB 儲存。請在這裡儲存新的上限，讓使用者回到目前範圍內。",
   "Tenants": "租戶",
   "Unknown namespace": "未知命名空間",
   "Unknown release": "未知發布實例",

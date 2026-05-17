@@ -392,6 +392,7 @@ const ADMIN_OPTIONAL_FETCH_TIMEOUT_MS = 200;
 const ADMIN_BILLING_LOOKUP_CONCURRENCY = 6;
 const ADMIN_BILLING_LOOKUP_RETRY_COUNT = 2;
 const ADMIN_BILLING_LOOKUP_RETRY_DELAY_MS = 250;
+const ADMIN_PROJECT_FALLBACK_LOOKUP_CONCURRENCY = 6;
 
 function readErrorMessage(error: unknown) {
   if (error instanceof Error && error.message) {
@@ -1016,8 +1017,10 @@ async function getClusterProjects(
     };
   }
 
-  const projectResults = await Promise.allSettled(
-    tenants.map((tenant) => getFugueProjects(bootstrapKey, tenant.id)),
+  const projectResults = await settleWithConcurrency(
+    tenants,
+    ADMIN_PROJECT_FALLBACK_LOOKUP_CONCURRENCY,
+    (tenant) => getFugueProjects(bootstrapKey, tenant.id),
   );
   const projects: FugueProject[] = [];
   const errors: string[] = [];

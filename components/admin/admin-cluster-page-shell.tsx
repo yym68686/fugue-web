@@ -196,9 +196,9 @@ export function AdminClusterPageShell({
     const snapshotBase = pageData;
 
     setNodes((current) => {
-      const nextNodes = current
-        .map((node) => (node.name === nextNode.name ? nextNode : node))
-        .sort((left, right) => left.name.localeCompare(right.name));
+      const nextNodes = current.map((node) =>
+        node.name === nextNode.name ? nextNode : node,
+      );
       const nextSnapshot: ConsoleAdminClusterPageSnapshot = {
         controlPlane: snapshotBase.controlPlane ?? null,
         errors: snapshotBase.errors,

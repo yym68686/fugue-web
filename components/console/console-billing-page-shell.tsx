@@ -3,7 +3,6 @@
 import {
   startTransition,
   useEffect,
-  useEffectEvent,
   useMemo,
   useState,
 } from "react";
@@ -20,10 +19,11 @@ import {
   CONSOLE_BILLING_PAGE_SNAPSHOT_URL,
   CONSOLE_BILLING_PAGE_USAGE_SNAPSHOT_URL,
   type ConsoleBillingPageSnapshot,
+  fetchConsolePageSnapshot,
   readConsolePageSnapshot,
   useConsolePageSnapshot,
 } from "@/lib/console/page-snapshot-client";
-import { useAnticipatoryWarmup } from "@/lib/ui/anticipatory-warmup";
+import { isAbortRequestError } from "@/lib/ui/request-json";
 
 const BILLING_USAGE_SNAPSHOT_TTL_MS = 300_000;
 
@@ -45,11 +45,30 @@ function hasBillingLiveUsage(snapshot: ConsoleBillingPageSnapshot | null) {
   );
 }
 
+function hasSameBillingWorkspace(
+  baseSnapshot: ConsoleBillingPageSnapshot | null,
+  liveSnapshot: ConsoleBillingPageSnapshot | null,
+) {
+  if (baseSnapshot?.state !== "ready" || liveSnapshot?.state !== "ready") {
+    return false;
+  }
+
+  const baseTenantId = baseSnapshot.data.workspace.tenantId.trim();
+  const liveTenantId = liveSnapshot.data.workspace.tenantId.trim();
+
+  return !baseTenantId || !liveTenantId || baseTenantId === liveTenantId;
+}
+
 function mergeBillingSnapshots(
   base: ConsoleBillingPageSnapshot,
   next: ConsoleBillingPageSnapshot | null,
 ) {
-  if (base.state !== "ready" || !next || next.state !== "ready") {
+  if (
+    base.state !== "ready" ||
+    !next ||
+    next.state !== "ready" ||
+    !hasSameBillingWorkspace(base, next)
+  ) {
     return base;
   }
 
@@ -95,46 +114,55 @@ export function ConsoleBillingPageShell({
     }
 
     const cachedUsage = readBillingUsageSnapshot();
+    const canUseCachedUsage =
+      hasBillingLiveUsage(cachedUsage) &&
+      hasSameBillingWorkspace(data, cachedUsage);
 
-    if (hasBillingLiveUsage(cachedUsage)) {
+    if (canUseCachedUsage) {
       startTransition(() => {
         setLiveUsageSnapshot(cachedUsage);
       });
+    } else {
+      setLiveUsageSnapshot(null);
     }
+
+    if (canUseCachedUsage) {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    void fetchConsolePageSnapshot<ConsoleBillingPageSnapshot>(
+      CONSOLE_BILLING_PAGE_USAGE_SNAPSHOT_URL,
+      {
+        signal: controller.signal,
+        ttlMs: BILLING_USAGE_SNAPSHOT_TTL_MS,
+      },
+    )
+      .then((snapshot) => {
+        if (
+          controller.signal.aborted ||
+          snapshot.state !== "ready" ||
+          !hasBillingLiveUsage(snapshot) ||
+          !hasSameBillingWorkspace(data, snapshot)
+        ) {
+          return;
+        }
+
+        startTransition(() => {
+          setLiveUsageSnapshot(snapshot);
+        });
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted && !isAbortRequestError(error)) {
+          console.error("Billing usage refresh failed.", error);
+        }
+      });
+
+    return () => {
+      controller.abort();
+    };
   }, [data]);
-
-  const warmBillingUsage = useEffectEvent((_signal: AbortSignal) => {
-    if (data?.state !== "ready") {
-      return;
-    }
-
-    const cachedUsage = readBillingUsageSnapshot();
-
-    if (hasBillingLiveUsage(cachedUsage)) {
-      startTransition(() => {
-        setLiveUsageSnapshot(cachedUsage);
-      });
-    }
-
-    if (
-      hasBillingLiveUsage(cachedUsage) ||
-      hasBillingLiveUsage(data)
-    ) {
-      return;
-    }
-    // Billing live usage is expensive on cold control-plane paths. The API
-    // route refreshes it with after(); the client only reuses an existing
-    // snapshot so navigation stays inside the 1s data-request budget.
-  });
-
-  useAnticipatoryWarmup(
-    data?.state === "ready" ? warmBillingUsage : null,
-    [data?.state, data?.state === "ready" ? data.data.workspace.tenantId : ""],
-    {
-      mode: "idle",
-      timeoutMs: 3_000,
-    },
-  );
 
   const pageData = useMemo(() => {
     if (!data) {

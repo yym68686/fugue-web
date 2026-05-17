@@ -7,6 +7,7 @@ import {
   useEffect,
   useEffectEvent,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type FormEvent,
@@ -859,10 +860,21 @@ function normalizeRuntimeSettingId(value?: string | null) {
   return value?.trim() ?? "";
 }
 
-function readRuntimeTargetLabel(
-  runtimeId: string | null | undefined,
+function buildRuntimeTargetLabelMap(
   runtimeTargets: ConsoleProjectGalleryData["runtimeTargets"],
   locale: Locale,
+) {
+  return new Map(
+    runtimeTargets.map((target) => [
+      target.id,
+      readRuntimeTargetOptionLabel(target, locale),
+    ] as const),
+  );
+}
+
+function readRuntimeTargetLabelFromMap(
+  runtimeId: string | null | undefined,
+  runtimeTargetLabelsById: ReadonlyMap<string, string>,
   t: Translator = (key) => key,
 ) {
   const normalized = normalizeRuntimeSettingId(runtimeId);
@@ -871,13 +883,7 @@ function readRuntimeTargetLabel(
     return t("Shared internal cluster");
   }
 
-  const target = runtimeTargets.find((item) => item.id === normalized);
-
-  if (!target) {
-    return normalized;
-  }
-
-  return readRuntimeTargetOptionLabel(target, locale);
+  return runtimeTargetLabelsById.get(normalized) ?? normalized;
 }
 
 function isDeletingProjectLifecycleLabel(value?: string | null) {
@@ -1293,19 +1299,90 @@ function readLogStreamErrorMessage(
 }
 
 function projectApps(project: ConsoleGalleryProjectView) {
-  const runningApps = project.services.filter(
-    (service): service is { kind: "app" } & ConsoleGalleryAppView =>
-      service.kind === "app" && service.serviceRole === "running",
-  );
+  const pendingApps: Array<{ kind: "app" } & ConsoleGalleryAppView> = [];
+  const runningApps: Array<{ kind: "app" } & ConsoleGalleryAppView> = [];
+
+  for (const service of project.services) {
+    if (service.kind !== "app") {
+      continue;
+    }
+
+    if (service.serviceRole === "running") {
+      runningApps.push(service);
+      continue;
+    }
+
+    if (service.serviceRole === "pending") {
+      pendingApps.push(service);
+    }
+  }
 
   if (runningApps.length > 0) {
     return runningApps;
   }
 
-  return project.services.filter(
-    (service): service is { kind: "app" } & ConsoleGalleryAppView =>
-      service.kind === "app" && service.serviceRole === "pending",
+  return pendingApps;
+}
+
+function buildServiceByKeyMap(services: ConsoleGalleryServiceView[]) {
+  return new Map(services.map((service) => [serviceKey(service), service] as const));
+}
+
+function buildAppByIdMap(apps: Array<{ kind: "app" } & ConsoleGalleryAppView>) {
+  return new Map(apps.map((app) => [app.id, app] as const));
+}
+
+function readSelectedProjectApp(options: {
+  appById: ReadonlyMap<string, { kind: "app" } & ConsoleGalleryAppView>;
+  apps: Array<{ kind: "app" } & ConsoleGalleryAppView>;
+  selectedAppId: string | null;
+  selectedService: ConsoleGalleryServiceView | null;
+}) {
+  const { appById, apps, selectedAppId, selectedService } = options;
+
+  if (selectedService?.kind === "app") {
+    return selectedService;
+  }
+
+  if (selectedService?.kind === "backing-service") {
+    return (
+      appById.get(selectedService.ownerAppId ?? "") ??
+      (selectedAppId ? (appById.get(selectedAppId) ?? null) : null) ??
+      apps[0] ??
+      null
+    );
+  }
+
+  return (
+    (selectedAppId ? (appById.get(selectedAppId) ?? null) : null) ??
+    apps[0] ??
+    null
   );
+}
+
+function readProjectServiceGroups(services: ConsoleGalleryServiceView[]) {
+  const appServiceIds: string[] = [];
+  const appServices: Array<{ kind: "app" } & ConsoleGalleryAppView> = [];
+  const backingServices: Array<
+    { kind: "backing-service" } & ConsoleGalleryBackingServiceView
+  > = [];
+
+  for (const service of services) {
+    if (service.kind === "app") {
+      appServiceIds.push(service.id);
+      appServices.push(service);
+      continue;
+    }
+
+    backingServices.push(service);
+  }
+
+  return {
+    appServiceIds,
+    appServices,
+    backingServiceCount: backingServices.length,
+    backingServices,
+  };
 }
 
 function serviceKey(service: ConsoleGalleryServiceView) {
@@ -3884,33 +3961,40 @@ export function ConsoleProjectGallery({
     );
   }, [importDraft.envRaw, locale]);
 
+  const projectById = useMemo(
+    () => new Map(optimisticProjects.map((project) => [project.id, project] as const)),
+    [optimisticProjects],
+  );
   const selectedProject =
-    optimisticProjects.find((project) => project.id === selectedProjectId) ??
-    null;
+    selectedProjectId ? (projectById.get(selectedProjectId) ?? null) : null;
   const selectedProjectServices = selectedProject?.services ?? [];
-  const selectedProjectApps = selectedProject
-    ? projectApps(selectedProject)
-    : [];
+  const selectedProjectApps = useMemo(
+    () => (selectedProject ? projectApps(selectedProject) : []),
+    [selectedProject],
+  );
+  const selectedProjectServiceByKey = useMemo(
+    () => buildServiceByKeyMap(selectedProjectServices),
+    [selectedProjectServices],
+  );
+  const selectedProjectAppById = useMemo(
+    () => buildAppByIdMap(selectedProjectApps),
+    [selectedProjectApps],
+  );
+  const preferredSelectedProjectService = useMemo(
+    () => readPreferredProjectService(selectedProjectServices),
+    [selectedProjectServices],
+  );
   const selectedService =
-    selectedProjectServices.find(
-      (service) => serviceKey(service) === selectedServiceKey,
-    ) ??
-    readPreferredProjectService(selectedProjectServices) ??
+    selectedProjectServiceByKey.get(selectedServiceKey ?? "") ??
+    preferredSelectedProjectService ??
     null;
-  const selectedServiceApp =
-    selectedService?.kind === "app" ? selectedService : null;
-  const selectedApp =
-    selectedServiceApp ??
-    (selectedService?.kind === "backing-service"
-      ? (selectedProjectApps.find(
-          (app) => app.id === selectedService.ownerAppId,
-        ) ??
-        selectedProjectApps.find((app) => app.id === selectedAppId) ??
-        selectedProjectApps[0] ??
-        null)
-      : (selectedProjectApps.find((app) => app.id === selectedAppId) ??
-        selectedProjectApps[0] ??
-        null));
+  const selectedServiceApp = selectedService?.kind === "app" ? selectedService : null;
+  const selectedApp = readSelectedProjectApp({
+    appById: selectedProjectAppById,
+    apps: selectedProjectApps,
+    selectedAppId,
+    selectedService,
+  });
   const selectedServiceWorkbenchOptions =
     readServiceWorkbenchOptions(selectedService);
   const localizedServiceWorkbenchOptions = selectedServiceWorkbenchOptions.map(
@@ -6260,12 +6344,28 @@ function ConsoleProjectWorkbenchImpl({
   const detailProject = optimisticProjects[0] ?? null;
   const hasVisibleDetail = detail?.project?.id === project.id;
   const detailProjectServices = detailProject?.services ?? [];
-  const detailProjectApps = detailProject ? projectApps(detailProject) : [];
+  const detailProjectApps = useMemo(
+    () => (detailProject ? projectApps(detailProject) : []),
+    [detailProject],
+  );
+  const detailProjectServiceByKey = useMemo(
+    () => buildServiceByKeyMap(detailProjectServices),
+    [detailProjectServices],
+  );
+  const detailProjectAppById = useMemo(
+    () => buildAppByIdMap(detailProjectApps),
+    [detailProjectApps],
+  );
   const detailProjectLifecycle = detailProject
     ? readConsoleProjectLifecycle(detailProject)
     : project.lifecycle;
-  const preferredProjectService = readPreferredProjectService(
-    detailProjectServices,
+  const preferredProjectService = useMemo(
+    () => readPreferredProjectService(detailProjectServices),
+    [detailProjectServices],
+  );
+  const projectServiceGroups = useMemo(
+    () => readProjectServiceGroups(detailProjectServices),
+    [detailProjectServices],
   );
   const projectDeleting = isDeletingProjectLifecycleLabel(
     detailProjectLifecycle.label,
@@ -6284,14 +6384,10 @@ function ConsoleProjectWorkbenchImpl({
           resourceUsageSnapshot: detailProject.resourceUsageSnapshot,
           serviceBadges: detailProject.serviceBadges,
           serviceCount: detailProject.serviceCount,
-        }
+      }
       : project;
-  const projectAppServiceIds = detailProjectServices.flatMap((service) =>
-    service.kind === "app" ? [service.id] : [],
-  );
-  const backingServiceCount = detailProjectServices.filter(
-    (service) => service.kind === "backing-service",
-  ).length;
+  const projectAppServiceIds = projectServiceGroups.appServiceIds;
+  const backingServiceCount = projectServiceGroups.backingServiceCount;
   const normalizedProjectName = normalizeProjectSettingText(projectNameDraft);
   const currentProjectName = normalizeProjectSettingText(projectNameBaseline);
   const projectChanged = normalizedProjectName !== currentProjectName;
@@ -6318,13 +6414,50 @@ function ConsoleProjectWorkbenchImpl({
   );
   const defaultRuntimeChanged =
     normalizedDefaultRuntimeDraft !== normalizedDefaultRuntimeBaseline;
-  const projectRuntimeReservedIds = new Set(
-    projectRuntimeReservations.map((reservation) => reservation.runtimeId),
+  const projectRuntimeReservedIds = useMemo(
+    () =>
+      new Set(
+        projectRuntimeReservations.map((reservation) => reservation.runtimeId),
+      ),
+    [projectRuntimeReservations],
   );
-  const dedicatedRuntimeOptions = runtimeInventory.runtimeTargets.filter(
-    (target) =>
-      target.runtimeType !== "managed-shared" &&
-      !projectRuntimeReservedIds.has(target.id),
+  const runtimeTargetLabelsById = useMemo(
+    () => buildRuntimeTargetLabelMap(runtimeInventory.runtimeTargets, locale),
+    [locale, runtimeInventory.runtimeTargets],
+  );
+  const dedicatedRuntimeOptions = useMemo(
+    () =>
+      runtimeInventory.runtimeTargets.filter(
+        (target) =>
+          target.runtimeType !== "managed-shared" &&
+          !projectRuntimeReservedIds.has(target.id),
+      ),
+    [projectRuntimeReservedIds, runtimeInventory.runtimeTargets],
+  );
+  const defaultRuntimeOptions = useMemo(
+    () =>
+      runtimeInventory.runtimeTargets.filter(
+        (target) => target.id !== "runtime_managed_shared",
+      ),
+    [runtimeInventory.runtimeTargets],
+  );
+  const sortedRuntimeReservationViews = useMemo(
+    () =>
+      projectRuntimeReservations
+        .map((reservation) => ({
+          reservation,
+          runtimeLabel: readRuntimeTargetLabelFromMap(
+            reservation.runtimeId,
+            runtimeTargetLabelsById,
+            t,
+          ),
+        }))
+        .sort((left, right) =>
+          left.runtimeLabel.localeCompare(right.runtimeLabel, locale, {
+            sensitivity: "base",
+          }),
+        ),
+    [locale, projectRuntimeReservations, runtimeTargetLabelsById, t],
   );
   const dedicatedRuntimeSelectValue =
     dedicatedRuntimeOptions.some(
@@ -6354,27 +6487,19 @@ function ConsoleProjectWorkbenchImpl({
   );
   const selectedService =
     selectedWorkbenchScope === "service"
-      ? (detailProjectServices.find(
-          (service) => serviceKey(service) === selectedServiceKey,
-        ) ??
+      ? (detailProjectServiceByKey.get(selectedServiceKey ?? "") ??
         preferredProjectService ??
         null)
       : null;
   const selectedServiceApp =
     selectedService?.kind === "app" ? selectedService : null;
   const selectedServiceAppId = selectedServiceApp?.id ?? null;
-  const selectedApp =
-    selectedServiceApp ??
-    (selectedService?.kind === "backing-service"
-      ? (detailProjectApps.find(
-          (app) => app.id === selectedService.ownerAppId,
-        ) ??
-        detailProjectApps.find((app) => app.id === selectedAppId) ??
-        detailProjectApps[0] ??
-        null)
-      : (detailProjectApps.find((app) => app.id === selectedAppId) ??
-        detailProjectApps[0] ??
-        null));
+  const selectedApp = readSelectedProjectApp({
+    appById: detailProjectAppById,
+    apps: detailProjectApps,
+    selectedAppId,
+    selectedService,
+  });
   const selectedServiceWorkbenchOptions =
     readServiceWorkbenchOptions(selectedService);
   const localizedServiceWorkbenchOptions = selectedServiceWorkbenchOptions.map(
@@ -7701,49 +7826,15 @@ function ConsoleProjectWorkbenchImpl({
         count: detailProject.serviceCount,
       },
     );
-    const appServices = detailProject.services.filter(
-      (
-        service,
-      ): service is Extract<ConsoleGalleryServiceView, { kind: "app" }> =>
-        service.kind === "app",
-    );
-    const backingServices = detailProject.services.filter(
-      (
-        service,
-      ): service is Extract<
-        ConsoleGalleryServiceView,
-        { kind: "backing-service" }
-      > => service.kind === "backing-service",
-    );
+    const appServices = projectServiceGroups.appServices;
+    const backingServices = projectServiceGroups.backingServices;
     const projectDeletePreviewNames = detailProject.services
       .slice(0, 4)
       .map((service) => service.name);
-    const defaultRuntimeOptions = runtimeInventory.runtimeTargets.filter(
-      (target) => target.id !== "runtime_managed_shared",
-    );
-    const defaultRuntimeLabel = readRuntimeTargetLabel(
+    const defaultRuntimeLabel = readRuntimeTargetLabelFromMap(
       defaultRuntimeBaseline,
-      runtimeInventory.runtimeTargets,
-      locale,
+      runtimeTargetLabelsById,
       t,
-    );
-    const sortedRuntimeReservations = [...projectRuntimeReservations].sort(
-      (left, right) =>
-        readRuntimeTargetLabel(
-          left.runtimeId,
-          runtimeInventory.runtimeTargets,
-          locale,
-          t,
-        ).localeCompare(
-          readRuntimeTargetLabel(
-            right.runtimeId,
-            runtimeInventory.runtimeTargets,
-            locale,
-            t,
-          ),
-          locale,
-          { sensitivity: "base" },
-        ),
     );
 
     return (
@@ -8011,7 +8102,7 @@ function ConsoleProjectWorkbenchImpl({
 
                       <StatusBadge tone="neutral">
                         {t("{count} reserved", {
-                          count: sortedRuntimeReservations.length,
+                          count: sortedRuntimeReservationViews.length,
                         })}
                       </StatusBadge>
                     </div>
@@ -8023,16 +8114,9 @@ function ConsoleProjectWorkbenchImpl({
                       </InlineAlert>
                     ) : null}
 
-                    {sortedRuntimeReservations.length ? (
+                    {sortedRuntimeReservationViews.length ? (
                       <ul className="fg-project-membership-group__list">
-                        {sortedRuntimeReservations.map((reservation) => {
-                          const runtimeLabel = readRuntimeTargetLabel(
-                            reservation.runtimeId,
-                            runtimeInventory.runtimeTargets,
-                            locale,
-                            t,
-                          );
-
+                        {sortedRuntimeReservationViews.map(({ reservation, runtimeLabel }) => {
                           return (
                             <li key={reservation.runtimeId}>
                               <div className="fg-project-membership-row fg-project-membership-row--static">

@@ -1585,13 +1585,10 @@ function buildCommitViews(
   return [];
 }
 
-function collectCommitOperationsByAppId(operations: FugueOperation[]) {
+function collectCommitOperationsByAppId(sortedOperations: FugueOperation[]) {
   const commitOperationsByAppId = new Map<string, AppCommitOperations>();
 
-  for (const operation of sortByTimestampDesc(
-    operations,
-    readOperationTimestamp,
-  )) {
+  for (const operation of sortedOperations) {
     if (!operation.appId) {
       continue;
     }
@@ -1617,10 +1614,12 @@ function collectCommitOperationsByAppId(operations: FugueOperation[]) {
   return commitOperationsByAppId;
 }
 
-function collectDatabaseTransferOperationsByAppId(operations: FugueOperation[]) {
+function collectDatabaseTransferOperationsByAppId(
+  sortedOperations: FugueOperation[],
+) {
   const databaseTransferOperationsByAppId = new Map<string, FugueOperation>();
 
-  for (const operation of sortByTimestampDesc(operations, readOperationTimestamp)) {
+  for (const operation of sortedOperations) {
     if (
       !operation.appId ||
       databaseTransferOperationsByAppId.has(operation.appId) ||
@@ -1637,11 +1636,11 @@ function collectDatabaseTransferOperationsByAppId(operations: FugueOperation[]) 
 }
 
 function collectDatabaseContinuityOperationsByAppId(
-  operations: FugueOperation[],
+  sortedOperations: FugueOperation[],
 ) {
   const databaseContinuityOperationsByAppId = new Map<string, FugueOperation>();
 
-  for (const operation of sortByTimestampDesc(operations, readOperationTimestamp)) {
+  for (const operation of sortedOperations) {
     if (
       !operation.appId ||
       databaseContinuityOperationsByAppId.has(operation.appId) ||
@@ -1654,6 +1653,18 @@ function collectDatabaseContinuityOperationsByAppId(
   }
 
   return databaseContinuityOperationsByAppId;
+}
+
+function collectOperationLookupsByAppId(operations: FugueOperation[]) {
+  const sortedOperations = sortByTimestampDesc(operations, readOperationTimestamp);
+
+  return {
+    commitOperationsByAppId: collectCommitOperationsByAppId(sortedOperations),
+    databaseContinuityOperationsByAppId:
+      collectDatabaseContinuityOperationsByAppId(sortedOperations),
+    databaseTransferOperationsByAppId:
+      collectDatabaseTransferOperationsByAppId(sortedOperations),
+  };
 }
 
 function readRoute(app: FugueApp) {
@@ -2787,13 +2798,11 @@ function buildConsoleProjectViewFromDetail(
       (app) => [app.id, readAppFailoverState(app)] as const,
     ),
   );
-  const commitOperationsByAppId = collectCommitOperationsByAppId(
-    detail.operations,
-  );
-  const databaseTransferOperationsByAppId =
-    collectDatabaseTransferOperationsByAppId(detail.operations);
-  const databaseContinuityOperationsByAppId =
-    collectDatabaseContinuityOperationsByAppId(detail.operations);
+  const {
+    commitOperationsByAppId,
+    databaseContinuityOperationsByAppId,
+    databaseTransferOperationsByAppId,
+  } = collectOperationLookupsByAppId(detail.operations);
   const workloadLocationsById = buildWorkloadLocationMap(detail.clusterNodes);
   const runtimeLocationsById = buildRuntimeTargetLocationMap(detail.clusterNodes);
   const backingServicesById = new Map<string, FugueBackingService>();
@@ -3153,11 +3162,11 @@ const getConsoleProjectGalleryDataCached = cache(
       workspace.defaultProjectId,
       workspace.defaultProjectName,
     );
-    const commitOperationsByAppId = collectCommitOperationsByAppId(operations);
-    const databaseTransferOperationsByAppId =
-      collectDatabaseTransferOperationsByAppId(operations);
-    const databaseContinuityOperationsByAppId =
-      collectDatabaseContinuityOperationsByAppId(operations);
+    const {
+      commitOperationsByAppId,
+      databaseContinuityOperationsByAppId,
+      databaseTransferOperationsByAppId,
+    } = collectOperationLookupsByAppId(operations);
     const workloadLocationsById = buildWorkloadLocationMap(clusterNodes);
     const runtimeTargetLocationsById =
       buildRuntimeTargetLocationMap(clusterNodes);
