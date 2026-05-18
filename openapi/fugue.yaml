@@ -6087,6 +6087,10 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/EdgeTLSAllowlistEntry"
+        cache_policies:
+          type: array
+          items:
+            $ref: "#/components/schemas/CachePolicy"
     EdgeRouteBinding:
       type: object
       additionalProperties: false
@@ -6155,6 +6159,12 @@ components:
         tls_policy:
           type: string
           enum: [platform, custom-domain]
+        cache_policy_id:
+          type: string
+        cache_namespace:
+          type: string
+        deployment_generation:
+          type: string
         streaming:
           type: boolean
         status:
@@ -6315,6 +6325,13 @@ components:
           type: string
         cache_status:
           type: string
+        tls_status:
+          type: string
+        tls_last_message:
+          type: string
+        tls_ready_at:
+          type: string
+          format: date-time
         last_error:
           type: string
         token_prefix:
@@ -6457,6 +6474,13 @@ components:
           type: string
         cache_status:
           type: string
+        tls_status:
+          type: string
+        tls_last_message:
+          type: string
+        tls_ready_at:
+          type: string
+          format: date-time
         status:
           type: string
           enum: [unknown, healthy, degraded, unhealthy]
@@ -6466,6 +6490,10 @@ components:
           type: boolean
         last_error:
           type: string
+        performance_samples:
+          type: array
+          items:
+            $ref: "#/components/schemas/EdgePerformanceSample"
     EdgeHeartbeatResponse:
       type: object
       additionalProperties: false
@@ -6475,6 +6503,63 @@ components:
           $ref: "#/components/schemas/EdgeNode"
         accepted:
           type: boolean
+    EdgePerformanceSample:
+      type: object
+      additionalProperties: false
+      required: [edge_group_id, hostname, sampled_at]
+      properties:
+        id:
+          type: string
+        edge_id:
+          type: string
+        edge_group_id:
+          type: string
+        hostname:
+          type: string
+        client_country:
+          type: string
+        client_region:
+          type: string
+        client_asn:
+          type: string
+        runtime_region:
+          type: string
+        route_generation:
+          type: string
+        cache_status:
+          type: string
+        dns_policy:
+          type: string
+        tls_handshake_ms:
+          type: integer
+          format: int64
+        ttfb_ms:
+          type: integer
+          format: int64
+        upstream_ms:
+          type: integer
+          format: int64
+        total_ms:
+          type: integer
+          format: int64
+        status_code:
+          type: integer
+          format: int32
+        sample_count:
+          type: integer
+          format: int32
+        cache_hit_count:
+          type: integer
+          format: int32
+        cache_observation_count:
+          type: integer
+          format: int32
+        error_count:
+          type: integer
+          format: int32
+        sampled_at:
+          type: string
+          format: date-time
     DeleteEdgeRoutePolicyResponse:
       type: object
       additionalProperties: false
@@ -6532,6 +6617,52 @@ components:
           type: string
         tls_status:
           type: string
+    CachePolicy:
+      type: object
+      additionalProperties: false
+      required: [id, kind]
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+          enum: [static-assets, disabled]
+        hostname_scope:
+          type: string
+        path_patterns:
+          type: array
+          items:
+            type: string
+        method_allowlist:
+          type: array
+          items:
+            type: string
+        status_allowlist:
+          type: array
+          items:
+            type: integer
+            format: int32
+        ttl_seconds:
+          type: integer
+          format: int32
+        stale_while_revalidate_seconds:
+          type: integer
+          format: int32
+        browser_cache_control:
+          type: string
+        edge_cache_control:
+          type: string
+        bypass_on_authorization:
+          type: boolean
+        bypass_on_cookie:
+          type: boolean
+        vary_allowlist:
+          type: array
+          items:
+            type: string
+        purge_mode:
+          type: string
+          enum: [generation, none]
     EdgeDNSBundle:
       type: object
       additionalProperties: false
@@ -6613,6 +6744,80 @@ components:
           type: string
         record_generation:
           type: string
+        answer_policy:
+          $ref: "#/components/schemas/DNSAnswerPolicy"
+        candidates:
+          type: array
+          items:
+            $ref: "#/components/schemas/EdgeDNSAnswerCandidate"
+    DNSAnswerPolicy:
+      type: object
+      additionalProperties: false
+      required: [policy_kind]
+      properties:
+        policy_kind:
+          type: string
+          enum: [global, geo, weighted, latency_aware, pinned, disabled]
+        allowed_edge_groups:
+          type: array
+          items:
+            type: string
+        preferred_edge_groups:
+          type: array
+          items:
+            type: string
+        fallback_edge_groups:
+          type: array
+          items:
+            type: string
+        ttl_seconds:
+          type: integer
+          format: int32
+        ecs_enabled:
+          type: boolean
+        health_required:
+          type: boolean
+        route_ready_required:
+          type: boolean
+        region:
+          type: string
+        country:
+          type: string
+        priority:
+          type: integer
+          format: int32
+        weight:
+          type: integer
+          format: int32
+        reason:
+          type: string
+    EdgeDNSAnswerCandidate:
+      type: object
+      additionalProperties: false
+      required: [ip]
+      properties:
+        ip:
+          type: string
+        edge_group_id:
+          type: string
+        region:
+          type: string
+        country:
+          type: string
+        priority:
+          type: integer
+          format: int32
+        weight:
+          type: integer
+          format: int32
+        reason:
+          type: string
+        healthy:
+          type: boolean
+        route_ready:
+          type: boolean
+        tls_ready:
+          type: boolean
     DNSACMEChallenge:
       type: object
       additionalProperties: false
@@ -7844,6 +8049,7 @@ components:
           allow_edge,
           allow_dns,
           allow_internal_maintenance,
+          dedicated_mode,
           desired_control_plane_role,
           effective_app_runtime,
           effective_builds,
@@ -7851,6 +8057,7 @@ components:
           effective_edge,
           effective_dns,
           effective_internal_maintenance,
+          effective_dedicated_mode,
           effective_schedulable,
           effective_control_plane_role
         ]
@@ -7867,6 +8074,8 @@ components:
           type: boolean
         allow_internal_maintenance:
           type: boolean
+        dedicated_mode:
+          type: string
         node_mode:
           type: string
         node_health:
@@ -7885,6 +8094,8 @@ components:
           type: boolean
         effective_internal_maintenance:
           type: boolean
+        effective_dedicated_mode:
+          type: string
         effective_schedulable:
           type: boolean
         effective_control_plane_role:
@@ -12244,6 +12455,10 @@ components:
           enum: [edge, route_a_legacy, unrouted, degraded]
         route:
           $ref: "#/components/schemas/EdgeRouteBinding"
+        routes:
+          type: array
+          items:
+            $ref: "#/components/schemas/EdgeRouteBinding"
         healthy_edge_groups:
           type: object
           additionalProperties:

@@ -3336,6 +3336,7 @@ export interface components {
             edge_group_id?: string;
             routes: components["schemas"]["EdgeRouteBinding"][];
             tls_allowlist: components["schemas"]["EdgeTLSAllowlistEntry"][];
+            cache_policies?: components["schemas"]["CachePolicy"][];
         };
         EdgeRouteBinding: {
             hostname: string;
@@ -3365,6 +3366,9 @@ export interface components {
             service_port: number;
             /** @enum {string} */
             tls_policy: "platform" | "custom-domain";
+            cache_policy_id?: string;
+            cache_namespace?: string;
+            deployment_generation?: string;
             streaming: boolean;
             /** @enum {string} */
             status: "active" | "disabled" | "unavailable" | "runtime-missing";
@@ -3441,6 +3445,10 @@ export interface components {
             caddy_applied_version?: string;
             caddy_last_error?: string;
             cache_status?: string;
+            tls_status?: string;
+            tls_last_message?: string;
+            /** Format: date-time */
+            tls_ready_at?: string;
             last_error?: string;
             token_prefix?: string;
             /** Format: date-time */
@@ -3509,15 +3517,53 @@ export interface components {
             caddy_applied_version?: string;
             caddy_last_error?: string;
             cache_status?: string;
+            tls_status?: string;
+            tls_last_message?: string;
+            /** Format: date-time */
+            tls_ready_at?: string;
             /** @enum {string} */
             status: "unknown" | "healthy" | "degraded" | "unhealthy";
             healthy: boolean;
             draining: boolean;
             last_error?: string;
+            performance_samples?: components["schemas"]["EdgePerformanceSample"][];
         };
         EdgeHeartbeatResponse: {
             node: components["schemas"]["EdgeNode"];
             accepted: boolean;
+        };
+        EdgePerformanceSample: {
+            id?: string;
+            edge_id?: string;
+            edge_group_id: string;
+            hostname: string;
+            client_country?: string;
+            client_region?: string;
+            client_asn?: string;
+            runtime_region?: string;
+            route_generation?: string;
+            cache_status?: string;
+            dns_policy?: string;
+            /** Format: int64 */
+            tls_handshake_ms?: number;
+            /** Format: int64 */
+            ttfb_ms?: number;
+            /** Format: int64 */
+            upstream_ms?: number;
+            /** Format: int64 */
+            total_ms?: number;
+            /** Format: int32 */
+            status_code?: number;
+            /** Format: int32 */
+            sample_count?: number;
+            /** Format: int32 */
+            cache_hit_count?: number;
+            /** Format: int32 */
+            cache_observation_count?: number;
+            /** Format: int32 */
+            error_count?: number;
+            /** Format: date-time */
+            sampled_at: string;
         };
         DeleteEdgeRoutePolicyResponse: {
             policy: components["schemas"]["EdgeRoutePolicy"];
@@ -3545,6 +3591,26 @@ export interface components {
             tenant_id: string;
             status: string;
             tls_status?: string;
+        };
+        CachePolicy: {
+            id: string;
+            /** @enum {string} */
+            kind: "static-assets" | "disabled";
+            hostname_scope?: string;
+            path_patterns?: string[];
+            method_allowlist?: string[];
+            status_allowlist?: number[];
+            /** Format: int32 */
+            ttl_seconds?: number;
+            /** Format: int32 */
+            stale_while_revalidate_seconds?: number;
+            browser_cache_control?: string;
+            edge_cache_control?: string;
+            bypass_on_authorization?: boolean;
+            bypass_on_cookie?: boolean;
+            vary_allowlist?: string[];
+            /** @enum {string} */
+            purge_mode?: "generation" | "none";
         };
         EdgeDNSBundle: {
             schema_version?: string;
@@ -3581,6 +3647,41 @@ export interface components {
             status: "active" | "disabled" | "unavailable" | "runtime-missing";
             status_reason?: string;
             record_generation: string;
+            answer_policy?: components["schemas"]["DNSAnswerPolicy"];
+            candidates?: components["schemas"]["EdgeDNSAnswerCandidate"][];
+        };
+        DNSAnswerPolicy: {
+            /** @enum {string} */
+            policy_kind: "global" | "geo" | "weighted" | "latency_aware" | "pinned" | "disabled";
+            allowed_edge_groups?: string[];
+            preferred_edge_groups?: string[];
+            fallback_edge_groups?: string[];
+            /** Format: int32 */
+            ttl_seconds?: number;
+            ecs_enabled?: boolean;
+            health_required?: boolean;
+            route_ready_required?: boolean;
+            region?: string;
+            country?: string;
+            /** Format: int32 */
+            priority?: number;
+            /** Format: int32 */
+            weight?: number;
+            reason?: string;
+        };
+        EdgeDNSAnswerCandidate: {
+            ip: string;
+            edge_group_id?: string;
+            region?: string;
+            country?: string;
+            /** Format: int32 */
+            priority?: number;
+            /** Format: int32 */
+            weight?: number;
+            reason?: string;
+            healthy?: boolean;
+            route_ready?: boolean;
+            tls_ready?: boolean;
         };
         DNSACMEChallenge: {
             id: string;
@@ -4211,6 +4312,7 @@ export interface components {
             allow_edge: boolean;
             allow_dns: boolean;
             allow_internal_maintenance: boolean;
+            dedicated_mode: string;
             node_mode?: string;
             node_health?: string;
             desired_control_plane_role: string;
@@ -4220,6 +4322,7 @@ export interface components {
             effective_edge: boolean;
             effective_dns: boolean;
             effective_internal_maintenance: boolean;
+            effective_dedicated_mode: string;
             effective_schedulable: boolean;
             effective_control_plane_role: string;
         };
@@ -6246,6 +6349,7 @@ export interface components {
             /** @enum {string} */
             serving_mode?: "edge" | "route_a_legacy" | "unrouted" | "degraded";
             route?: components["schemas"]["EdgeRouteBinding"];
+            routes?: components["schemas"]["EdgeRouteBinding"][];
             healthy_edge_groups?: {
                 [key: string]: boolean;
             };
