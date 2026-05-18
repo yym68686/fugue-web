@@ -8,6 +8,54 @@ import { ConsoleEmptyState } from "@/components/console/console-empty-state";
 import { useI18n } from "@/components/providers/i18n-provider";
 import { Panel, PanelSection } from "@/components/ui/panel";
 import type { AdminClusterNodeView } from "@/lib/admin/service";
+import type { ConsoleTone } from "@/lib/console/types";
+
+function readOnOffTone(enabled: boolean): ConsoleTone {
+  return enabled ? "positive" : "neutral";
+}
+
+function readDedicatedModeTone(value?: string | null): ConsoleTone {
+  const normalized = value?.trim().toLowerCase();
+
+  if (!normalized) {
+    return "neutral";
+  }
+
+  switch (normalized) {
+    case "edge":
+    case "dns":
+    case "internal":
+      return "info";
+    case "none":
+      return "neutral";
+    default:
+      return "warning";
+  }
+}
+
+function readPolicyModeLabel(value?: string | null) {
+  const normalized = value?.trim().toLowerCase();
+
+  if (!normalized) {
+    return "Unknown";
+  }
+
+  switch (normalized) {
+    case "dns":
+      return "DNS";
+    case "edge":
+      return "Edge";
+    case "internal":
+      return "Internal";
+    case "none":
+      return "None";
+    default:
+      return normalized
+        .replace(/[._-]+/g, " ")
+        .trim()
+        .replace(/\b\w/g, (match) => match.toUpperCase());
+  }
+}
 
 export function buildAdminClusterGalleryItem(
   node: AdminClusterNodeView,
@@ -37,6 +85,34 @@ export function buildAdminClusterGalleryItem(
         id: "zone",
         label: "Zone",
         value: node.zoneLabel,
+      },
+      {
+        id: "edge-policy",
+        label: "Edge",
+        translateValue: true,
+        value: node.policy?.effectiveEdge ? "On" : "Off",
+        valueTone: readOnOffTone(node.policy?.effectiveEdge ?? false),
+      },
+      {
+        id: "dns-policy",
+        label: "DNS",
+        translateValue: true,
+        value: node.policy?.effectiveDns ? "On" : "Off",
+        valueTone: readOnOffTone(node.policy?.effectiveDns ?? false),
+      },
+      {
+        id: "dedicated-mode",
+        label: "Placement",
+        translateValue: true,
+        value: readPolicyModeLabel(node.policy?.effectiveDedicatedMode),
+        valueTone: readDedicatedModeTone(node.policy?.effectiveDedicatedMode),
+      },
+      {
+        id: "schedulable",
+        label: "Schedulable",
+        translateValue: true,
+        value: node.policy?.effectiveSchedulable ? "On" : "Off",
+        valueTone: readOnOffTone(node.policy?.effectiveSchedulable ?? false),
       },
       {
         id: "runtime",

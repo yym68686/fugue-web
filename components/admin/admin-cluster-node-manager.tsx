@@ -26,6 +26,8 @@ import type { ConsoleTone } from "@/lib/console/types";
 
 type NodePolicyDraft = {
   allowBuilds: boolean;
+  allowDns: boolean;
+  allowEdge: boolean;
   allowSharedPool: boolean;
   desiredControlPlaneRole: "candidate" | "member" | "none";
 };
@@ -61,6 +63,8 @@ function readPolicyDraft(node: AdminClusterNodeView): NodePolicyDraft {
 
   return {
     allowBuilds: allowSharedPool || (node.policy?.allowBuilds ?? false),
+    allowDns: node.policy?.allowDns ?? false,
+    allowEdge: node.policy?.allowEdge ?? false,
     allowSharedPool,
     desiredControlPlaneRole: normalizeControlPlaneRole(
       node.policy?.desiredControlPlaneRole,
@@ -98,6 +102,51 @@ function readLiveFlagTone(enabled: boolean): ConsoleTone {
   return enabled ? "positive" : "neutral";
 }
 
+function readModeLabel(value?: string | null) {
+  const normalized = value?.trim().toLowerCase();
+
+  if (!normalized) {
+    return "Unknown";
+  }
+
+  switch (normalized) {
+    case "dns":
+      return "DNS";
+    case "edge":
+      return "Edge";
+    case "internal":
+      return "Internal";
+    case "managed-owned":
+      return "Managed owned";
+    case "none":
+      return "None";
+    default:
+      return normalized
+        .replace(/[._-]+/g, " ")
+        .trim()
+        .replace(/\b\w/g, (match) => match.toUpperCase());
+  }
+}
+
+function readDedicatedModeTone(value?: string | null): ConsoleTone {
+  const normalized = value?.trim().toLowerCase();
+
+  if (!normalized) {
+    return "neutral";
+  }
+
+  switch (normalized) {
+    case "edge":
+    case "dns":
+    case "internal":
+      return "info";
+    case "none":
+      return "neutral";
+    default:
+      return "warning";
+  }
+}
+
 function draftMatchesPolicy(
   draft: NodePolicyDraft,
   policy: AdminClusterNodePolicyView | null,
@@ -111,6 +160,8 @@ function draftMatchesPolicy(
 
   return (
     draft.allowBuilds === policyAllowBuilds &&
+    draft.allowDns === policy.allowDns &&
+    draft.allowEdge === policy.allowEdge &&
     draft.allowSharedPool === policyAllowSharedPool &&
     draft.desiredControlPlaneRole ===
       normalizeControlPlaneRole(policy.desiredControlPlaneRole)
@@ -122,8 +173,12 @@ function policyNeedsReconcile(policy: AdminClusterNodePolicyView | null) {
     return false;
   }
 
+  const policyAllowBuilds = policy.allowSharedPool || policy.allowBuilds;
+
   return (
-    policy.allowBuilds !== policy.effectiveBuilds ||
+    policyAllowBuilds !== policy.effectiveBuilds ||
+    policy.allowDns !== policy.effectiveDns ||
+    policy.allowEdge !== policy.effectiveEdge ||
     policy.allowSharedPool !== policy.effectiveSharedPool
   );
 }
@@ -138,6 +193,12 @@ function readSummaryBadges(
   }
 
   const badges: ClusterNodeGallerySummaryBadge[] = [];
+  if (node.policy?.effectiveEdge) {
+    badges.push({ label: "Edge", tone: "info" });
+  }
+  if (node.policy?.effectiveDns) {
+    badges.push({ label: "DNS", tone: "info" });
+  }
   if (dirty) {
     badges.push({ label: "Unsaved policy", tone: "info" });
   }
@@ -149,16 +210,45 @@ function readSummaryBadges(
 
 function AdminClusterPolicyLiveCard({
   label,
+  note,
   value,
 }: {
   label: string;
+  note?: ReactNode;
   value: ReactNode;
 }) {
   return (
     <div className="fg-admin-cluster-manager__policy-live-card">
       <span>{label}</span>
       <div className="fg-admin-cluster-manager__policy-live-value">{value}</div>
+      {note ? (
+        <p className="fg-admin-cluster-manager__policy-live-note">{note}</p>
+      ) : null}
     </div>
+  );
+}
+
+function AdminClusterPolicyFlagLiveCard({
+  desired,
+  effective,
+  label,
+}: {
+  desired: boolean;
+  effective: boolean;
+  label: string;
+}) {
+  const { t } = useI18n();
+  const effectiveLabel = effective ? t("On") : t("Off");
+  const desiredLabel = desired ? t("On") : t("Off");
+  const tone: ConsoleTone =
+    desired === effective ? readLiveFlagTone(effective) : "warning";
+
+  return (
+    <AdminClusterPolicyLiveCard
+      label={label}
+      note={t("Desired {state}", { state: desiredLabel })}
+      value={<StatusBadge tone={tone}>{effectiveLabel}</StatusBadge>}
+    />
   );
 }
 
@@ -244,11 +334,22 @@ function AdminClusterPolicySection({
   onReset: () => void;
 }) {
   const { t } = useI18n();
-  const liveBuildLabel = node.policy?.effectiveBuilds ? t("On") : t("Off");
-  const liveWorkloadLabel = node.policy?.effectiveSharedPool ? t("On") : t("Off");
   const liveControlPlaneLabel = t(
     node.policy?.effectiveControlPlaneRoleLabel ?? "Unknown",
   );
+  const desiredControlPlaneLabel = t(
+    node.policy?.desiredControlPlaneRoleLabel ?? "Unknown",
+  );
+  const effectiveDedicatedModeLabel = t(
+    readModeLabel(node.policy?.effectiveDedicatedMode),
+  );
+  const desiredDedicatedModeLabel = t(readModeLabel(node.policy?.dedicatedMode));
+  const effectiveSchedulableLabel = node.policy?.effectiveSchedulable
+    ? t("Schedulable")
+    : t("Blocked");
+  const dedicatedModeMismatch =
+    (node.policy?.dedicatedMode ?? null) !==
+    (node.policy?.effectiveDedicatedMode ?? null);
   const canApply = dirty || needsReconcile;
   const applyLabel =
     !dirty && needsReconcile ? t("Reapply policy") : t("Apply policy");
@@ -311,30 +412,34 @@ function AdminClusterPolicySection({
           </div>
 
           <div className="fg-admin-cluster-manager__policy-live-grid">
-            <AdminClusterPolicyLiveCard
+            <AdminClusterPolicyFlagLiveCard
+              desired={
+                node.policy?.allowSharedPool ||
+                (node.policy?.allowBuilds ?? false)
+              }
+              effective={node.policy?.effectiveBuilds ?? false}
               label={t("Builds")}
-              value={
-                <StatusBadge
-                  tone={readLiveFlagTone(node.policy?.effectiveBuilds ?? false)}
-                >
-                  {liveBuildLabel}
-                </StatusBadge>
-              }
             />
-            <AdminClusterPolicyLiveCard
+            <AdminClusterPolicyFlagLiveCard
+              desired={node.policy?.allowSharedPool ?? false}
+              effective={node.policy?.effectiveSharedPool ?? false}
               label={t("Workloads")}
-              value={
-                <StatusBadge
-                  tone={readLiveFlagTone(
-                    node.policy?.effectiveSharedPool ?? false,
-                  )}
-                >
-                  {liveWorkloadLabel}
-                </StatusBadge>
-              }
+            />
+            <AdminClusterPolicyFlagLiveCard
+              desired={node.policy?.allowEdge ?? false}
+              effective={node.policy?.effectiveEdge ?? false}
+              label={t("Edge")}
+            />
+            <AdminClusterPolicyFlagLiveCard
+              desired={node.policy?.allowDns ?? false}
+              effective={node.policy?.effectiveDns ?? false}
+              label={t("DNS")}
             />
             <AdminClusterPolicyLiveCard
               label={t("Control plane")}
+              note={t("Desired {state}", {
+                state: desiredControlPlaneLabel,
+              })}
               value={
                 <StatusBadge
                   tone={readControlPlaneTone(
@@ -343,6 +448,34 @@ function AdminClusterPolicySection({
                 >
                   {liveControlPlaneLabel}
                 </StatusBadge>
+              }
+            />
+            <AdminClusterPolicyLiveCard
+              label={t("Placement")}
+              note={t("Desired {state}", {
+                state: desiredDedicatedModeLabel,
+              })}
+              value={
+                <div className="fg-admin-cluster-manager__policy-live-badges">
+                  <StatusBadge
+                    tone={
+                      dedicatedModeMismatch
+                        ? "warning"
+                        : readDedicatedModeTone(
+                            node.policy?.effectiveDedicatedMode,
+                          )
+                    }
+                  >
+                    {effectiveDedicatedModeLabel}
+                  </StatusBadge>
+                  <StatusBadge
+                    tone={readLiveFlagTone(
+                      node.policy?.effectiveSchedulable ?? false,
+                    )}
+                  >
+                    {effectiveSchedulableLabel}
+                  </StatusBadge>
+                </div>
               }
             />
           </div>
@@ -414,6 +547,52 @@ function AdminClusterPolicySection({
                             allowBuilds: checked ? true : draft.allowBuilds,
                             allowSharedPool: checked,
                           });
+                        }}
+                      />
+                    </div>
+                  </section>
+
+                  <section className="fg-admin-cluster-manager__policy-row">
+                    <div className="fg-admin-cluster-manager__policy-row-main">
+                      <div className="fg-admin-cluster-manager__field-head">
+                        <strong className="fg-admin-cluster-manager__field-label">
+                          {t("Allow edge")}
+                        </strong>
+                        <span className="fg-admin-cluster-manager__field-hint">
+                          {t("Run the public edge proxy on this machine.")}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="fg-admin-cluster-manager__policy-row-control">
+                      <AdminClusterPolicySwitch
+                        checked={draft.allowEdge}
+                        id={`allow-edge-${node.name}`}
+                        label={t("Allow edge")}
+                        onChange={(checked) => {
+                          onDraftChange({ allowEdge: checked });
+                        }}
+                      />
+                    </div>
+                  </section>
+
+                  <section className="fg-admin-cluster-manager__policy-row">
+                    <div className="fg-admin-cluster-manager__policy-row-main">
+                      <div className="fg-admin-cluster-manager__field-head">
+                        <strong className="fg-admin-cluster-manager__field-label">
+                          {t("Allow DNS")}
+                        </strong>
+                        <span className="fg-admin-cluster-manager__field-hint">
+                          {t("Run authoritative DNS service on this machine.")}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="fg-admin-cluster-manager__policy-row-control">
+                      <AdminClusterPolicySwitch
+                        checked={draft.allowDns}
+                        id={`allow-dns-${node.name}`}
+                        label={t("Allow DNS")}
+                        onChange={(checked) => {
+                          onDraftChange({ allowDns: checked });
                         }}
                       />
                     </div>

@@ -2408,7 +2408,7 @@
 
 .fg-admin-cluster-manager__policy-live-grid {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
   gap: 0.7rem;
 }
 
@@ -2436,6 +2436,20 @@
 
 .fg-admin-cluster-manager__policy-live-value {
   min-width: 0;
+}
+
+.fg-admin-cluster-manager__policy-live-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.42rem;
+  min-width: 0;
+}
+
+.fg-admin-cluster-manager__policy-live-note {
+  margin: -0.08rem 0 0;
+  color: var(--fugue-text-tertiary);
+  font-size: 0.72rem;
+  line-height: 1.45;
 }
 
 .fg-admin-cluster-manager__policy-form {

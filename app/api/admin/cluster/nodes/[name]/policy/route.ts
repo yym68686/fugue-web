@@ -86,6 +86,8 @@ export async function PATCH(request: Request, context: RouteContext) {
       await readRouteParam(context, "name"),
       {
         allowBuilds: readOptionalBoolean(body, "allowBuilds"),
+        allowDns: readOptionalBoolean(body, "allowDns"),
+        allowEdge: readOptionalBoolean(body, "allowEdge"),
         allowSharedPool: readOptionalBoolean(body, "allowSharedPool"),
         desiredControlPlaneRole: Object.prototype.hasOwnProperty.call(
           body,

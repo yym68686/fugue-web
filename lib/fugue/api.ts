@@ -1054,14 +1054,23 @@ function buildClusterNodePolicyView(
   }
 
   return {
+    allowDns: policy.allowDns ?? false,
+    allowEdge: policy.allowEdge ?? false,
     allowBuilds: policy.allowBuilds ?? false,
     allowSharedPool: policy.allowSharedPool ?? false,
+    dedicatedMode: readNullableString(policy.dedicatedMode),
     desiredControlPlaneRole: readNullableString(policy.desiredControlPlaneRole),
+    effectiveDns: policy.effectiveDns ?? false,
+    effectiveEdge: policy.effectiveEdge ?? false,
     effectiveBuilds: policy.effectiveBuilds ?? false,
     effectiveControlPlaneRole: readNullableString(
       policy.effectiveControlPlaneRole,
     ),
+    effectiveDedicatedMode: readNullableString(policy.effectiveDedicatedMode),
+    effectiveSchedulable: policy.effectiveSchedulable ?? false,
     effectiveSharedPool: policy.effectiveSharedPool ?? false,
+    nodeHealth: readNullableString(policy.nodeHealth),
+    nodeMode: readNullableString(policy.nodeMode),
   };
 }
 
@@ -4128,6 +4137,8 @@ export async function setFugueClusterNodePolicy(
   nodeName: string,
   payload: {
     allowBuilds?: boolean;
+    allowDns?: boolean;
+    allowEdge?: boolean;
     allowSharedPool?: boolean;
     desiredControlPlaneRole?: string;
   },
@@ -4140,6 +4151,12 @@ export async function setFugueClusterNodePolicy(
         body: {
           ...(payload.allowBuilds !== undefined
             ? { allow_builds: payload.allowBuilds }
+            : {}),
+          ...(payload.allowDns !== undefined
+            ? { allow_dns: payload.allowDns }
+            : {}),
+          ...(payload.allowEdge !== undefined
+            ? { allow_edge: payload.allowEdge }
             : {}),
           ...(payload.allowSharedPool !== undefined
             ? { allow_shared_pool: payload.allowSharedPool }

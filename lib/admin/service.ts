@@ -311,14 +311,23 @@ export type AdminClusterNodeMachineView = {
 };
 
 export type AdminClusterNodePolicyView = {
+  allowDns: boolean;
+  allowEdge: boolean;
   allowBuilds: boolean;
   allowSharedPool: boolean;
+  dedicatedMode: string | null;
   desiredControlPlaneRole: string | null;
   desiredControlPlaneRoleLabel: string;
+  effectiveDns: boolean;
+  effectiveEdge: boolean;
   effectiveBuilds: boolean;
   effectiveControlPlaneRole: string | null;
   effectiveControlPlaneRoleLabel: string;
+  effectiveDedicatedMode: string | null;
+  effectiveSchedulable: boolean;
   effectiveSharedPool: boolean;
+  nodeHealth: string | null;
+  nodeMode: string | null;
 };
 
 export type AdminControlPlaneComponentView = {
@@ -2228,18 +2237,27 @@ function buildAdminClusterNodePolicyView(
   }
 
   return {
+    allowDns: node.policy.allowDns ?? false,
+    allowEdge: node.policy.allowEdge ?? false,
     allowBuilds: node.policy.allowBuilds ?? false,
     allowSharedPool: node.policy.allowSharedPool ?? false,
+    dedicatedMode: node.policy.dedicatedMode,
     desiredControlPlaneRole: node.policy.desiredControlPlaneRole,
     desiredControlPlaneRoleLabel: readClusterNodeControlPlaneRoleLabel(
       node.policy.desiredControlPlaneRole,
     ),
+    effectiveDns: node.policy.effectiveDns ?? false,
+    effectiveEdge: node.policy.effectiveEdge ?? false,
     effectiveBuilds: node.policy.effectiveBuilds ?? false,
     effectiveControlPlaneRole: node.policy.effectiveControlPlaneRole,
     effectiveControlPlaneRoleLabel: readClusterNodeControlPlaneRoleLabel(
       node.policy.effectiveControlPlaneRole,
     ),
+    effectiveDedicatedMode: node.policy.effectiveDedicatedMode,
+    effectiveSchedulable: node.policy.effectiveSchedulable ?? false,
     effectiveSharedPool: node.policy.effectiveSharedPool ?? false,
+    nodeHealth: node.policy.nodeHealth,
+    nodeMode: node.policy.nodeMode,
   };
 }
 
@@ -3371,6 +3389,8 @@ export async function setAdminClusterNodePolicy(
   nodeName: string,
   payload: {
     allowBuilds?: boolean;
+    allowDns?: boolean;
+    allowEdge?: boolean;
     allowSharedPool?: boolean;
     desiredControlPlaneRole?: string;
   },
