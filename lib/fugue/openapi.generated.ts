@@ -5852,7 +5852,10 @@ export interface components {
             existing_app_id?: string;
             existing_app_name?: string;
             hostname?: string;
+            path_prefix?: string;
             public_url?: string;
+            domain_name?: string;
+            entrypoint_name?: string;
             /** Format: int32 */
             internal_port?: number;
         };
@@ -6409,6 +6412,7 @@ export interface components {
         };
         RouteServingMode: {
             hostname?: string;
+            path_prefix?: string;
             /** @enum {string} */
             serving_mode?: "edge" | "route_a_legacy" | "unrouted" | "degraded";
             selected_edge_group?: string;
