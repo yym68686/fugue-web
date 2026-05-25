@@ -273,6 +273,37 @@ function buildTopologyInferenceView(
   };
 }
 
+function buildTopologyDomainView(domain: CamelizedSchema<"TopologyDomain">) {
+  return {
+    host: readNullableString(domain.host),
+    name: readNullableString(domain.name),
+    ownerService: readNullableString(domain.ownerService),
+    tls: readNullableString(domain.tls),
+  };
+}
+
+function buildTopologyEntrypointRouteView(
+  route: CamelizedSchema<"TopologyEntrypointRoute">,
+) {
+  return {
+    path: readNullableString(route.path),
+    pathPrefix: readNullableString(route.pathPrefix),
+    rewrite: readNullableString(route.rewrite),
+    service: readNullableString(route.service),
+    stripPrefix: route.stripPrefix ?? false,
+  };
+}
+
+function buildTopologyEntrypointView(
+  entrypoint: CamelizedSchema<"TopologyEntrypoint">,
+) {
+  return {
+    domain: readNullableString(entrypoint.domain),
+    name: readNullableString(entrypoint.name),
+    routes: (entrypoint.routes ?? []).map(buildTopologyEntrypointRouteView),
+  };
+}
+
 function buildImportServiceDetailView(
   service: CamelizedSchema<"ImportServiceDetail">,
 ) {
@@ -324,6 +355,10 @@ function buildInspectGitHubTemplateManifestView(
   return {
     inferenceReport: (manifest.inferenceReport ?? []).map(
       buildTopologyInferenceView,
+    ),
+    domains: (manifest.domains ?? []).map(buildTopologyDomainView),
+    entrypoints: (manifest.entrypoints ?? []).map(
+      buildTopologyEntrypointView,
     ),
     manifestPath: manifest.manifestPath,
     primaryService: manifest.primaryService,
@@ -383,6 +418,8 @@ function buildFugueManifestSummaryView(
     inferenceReport: (summary.inferenceReport ?? []).map(
       buildTopologyInferenceView,
     ),
+    domains: (summary.domains ?? []).map(buildTopologyDomainView),
+    entrypoints: (summary.entrypoints ?? []).map(buildTopologyEntrypointView),
     manifestPath: summary.manifestPath,
     primaryService: summary.primaryService,
     services: (summary.services ?? []).map(buildImportServiceDetailView),
@@ -791,7 +828,10 @@ function buildAppView(app: CamelizedSchema<"App">) {
     },
     route: {
       baseDomain: readNullableString(route?.baseDomain),
+      domainName: readNullableString(route?.domainName),
+      entrypointName: readNullableString(route?.entrypointName),
       hostname: readNullableString(route?.hostname),
+      pathPrefix: readNullableString(route?.pathPrefix),
       publicUrl: readNullableString(route?.publicUrl),
       servicePort: readNullableNumber(route?.servicePort),
     },
@@ -835,6 +875,7 @@ function buildAppRouteAvailabilityView(
     hostname: readNullableString(availability?.hostname),
     input: readNullableString(availability?.input),
     label: readNullableString(availability?.label),
+    pathPrefix: readNullableString(availability?.pathPrefix),
     publicUrl: readNullableString(availability?.publicUrl),
     reason: readNullableString(availability?.reason),
     valid: availability?.valid ?? false,
@@ -3126,6 +3167,7 @@ export async function getFugueAppRouteAvailability(
   accessToken: string,
   appId: string,
   hostname: string,
+  pathPrefix?: string | null,
 ) {
   const client = getClient(accessToken);
   const response = camelizeData(
@@ -3136,6 +3178,7 @@ export async function getFugueAppRouteAvailability(
           path: { id: appId },
           query: {
             hostname,
+            ...(pathPrefix ? { path_prefix: pathPrefix } : {}),
           },
         },
       }),
@@ -3150,6 +3193,7 @@ export async function patchFugueAppRoute(
   appId: string,
   payload: {
     hostname: string;
+    pathPrefix?: string | null;
   },
 ) {
   const client = getClient(accessToken);
@@ -3159,6 +3203,7 @@ export async function patchFugueAppRoute(
       client.PATCH("/v1/apps/{id}/route", {
         body: {
           hostname: payload.hostname,
+          ...(payload.pathPrefix ? { path_prefix: payload.pathPrefix } : {}),
         },
         params: {
           path: { id: appId },

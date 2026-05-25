@@ -88,6 +88,8 @@ export function summarizeInspectManifest(
   manifest?: DeployInspectionManifest | null,
 ) {
   const services = manifest?.services ?? [];
+  const domains = manifest?.domains ?? [];
+  const entrypoints = manifest?.entrypoints ?? [];
   const warnings = manifest?.warnings ?? [];
   const inferenceReport = manifest?.inferenceReport ?? [];
   const backingServices = services.filter((service) => service.backingService);
@@ -102,7 +104,13 @@ export function summarizeInspectManifest(
   return {
     backingServiceCount: backingServices.length,
     bindingEdgeCount,
+    domainCount: domains.length,
+    entrypointCount: entrypoints.length,
     inferenceReport,
+    routeCount: entrypoints.reduce(
+      (total, entrypoint) => total + (entrypoint.routes?.length ?? 0),
+      0,
+    ),
     serviceCount: services.length,
     services,
     servicesWithBindings,

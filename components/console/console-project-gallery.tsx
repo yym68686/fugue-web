@@ -5833,6 +5833,7 @@ export function ConsoleProjectGallery({
                     appName={selectedService.name}
                     initialBaseDomain={selectedService.routeBaseDomain}
                     initialHostname={selectedService.routeHostname}
+                    initialPathPrefix={selectedService.routePathPrefix}
                     initialPublicUrl={selectedService.routePublicUrl}
                     key={selectedService.id}
                   />
@@ -8805,12 +8806,13 @@ function ConsoleProjectWorkbenchImpl({
               {selectedService.kind === "app" && activeTab === "route" ? (
                 <AppRoutePanel
                   appId={selectedService.id}
-                  appName={selectedService.name}
-                  initialBaseDomain={selectedService.routeBaseDomain}
-                  initialHostname={selectedService.routeHostname}
-                  initialPublicUrl={selectedService.routePublicUrl}
-                  key={selectedService.id}
-                />
+                appName={selectedService.name}
+                initialBaseDomain={selectedService.routeBaseDomain}
+                initialHostname={selectedService.routeHostname}
+                initialPathPrefix={selectedService.routePathPrefix}
+                initialPublicUrl={selectedService.routePublicUrl}
+                key={selectedService.id}
+              />
               ) : null}
 
               {selectedService.kind === "app" && activeTab === "env" ? (

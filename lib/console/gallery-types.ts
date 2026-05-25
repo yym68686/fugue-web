@@ -127,9 +127,12 @@ export type ConsoleGalleryAppView = {
   redeployQueuedMessage: string;
   redeployDisabledReason: string | null;
   routeBaseDomain: string | null;
+  routeDomainName: string | null;
+  routeEntrypointName: string | null;
   routeHref: string | null;
   routeHostname: string | null;
   routeLabel: string;
+  routePathPrefix: string | null;
   routePublicUrl: string | null;
   runtimeId: string | null;
   serviceBadges: ConsoleGalleryBadgeView[];

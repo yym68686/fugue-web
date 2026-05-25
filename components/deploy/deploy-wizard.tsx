@@ -248,6 +248,21 @@ export function DeployWizard({
 
   const manifest = inspection?.fugueManifest ?? null;
   const manifestSummary = summarizeInspectManifest(manifest);
+  const manifestRouteSummaryParts = [
+    manifestSummary.domainCount > 0
+      ? pluralize(manifestSummary.domainCount, "domain")
+      : null,
+    manifestSummary.entrypointCount > 0
+      ? pluralize(manifestSummary.entrypointCount, "entrypoint")
+      : null,
+    manifestSummary.routeCount > 0
+      ? pluralize(manifestSummary.routeCount, "path route")
+      : null,
+  ].filter((part): part is string => Boolean(part));
+  const manifestRouteSummaryCopy =
+    manifestRouteSummaryParts.length > 0
+      ? ` Includes ${manifestRouteSummaryParts.join(", ")}.`
+      : "";
   const hasFugueManifest = Boolean(manifest);
   const preservesTopologyImport =
     hasFugueManifest ||
@@ -875,7 +890,7 @@ export function DeployWizard({
             >
               {manifestSummary.warnings.length
                 ? `${pluralize(manifestSummary.warnings.length, "warning")} found in ${manifest?.manifestPath ?? "fugue.yaml"}. Review before deploying.`
-                : `Imports ${pluralize(manifestSummary.serviceCount, "service")} from ${manifest?.manifestPath ?? "fugue.yaml"}. Primary service: ${manifest?.primaryService ?? "not declared"}.`}
+                : `Imports ${pluralize(manifestSummary.serviceCount, "service")} from ${manifest?.manifestPath ?? "fugue.yaml"}. Primary service: ${manifest?.primaryService ?? "not declared"}.${manifestRouteSummaryCopy}`}
             </InlineAlert>
           ) : null}
         </ConsoleDisclosureSection>

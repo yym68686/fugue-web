@@ -1667,6 +1667,40 @@ function collectOperationLookupsByAppId(operations: FugueOperation[]) {
   };
 }
 
+function normalizeRoutePathPrefix(value?: string | null) {
+  let normalized = value?.trim() ?? "";
+
+  if (!normalized) {
+    return "/";
+  }
+
+  normalized = normalized.replace(/\\/g, "/");
+  normalized = normalized.split("#")[0]?.split("?")[0]?.trim() ?? "";
+
+  if (!normalized) {
+    return "/";
+  }
+
+  if (!normalized.startsWith("/")) {
+    normalized = `/${normalized}`;
+  }
+
+  normalized = normalized.replace(/\/{2,}/g, "/");
+
+  if (normalized.length > 1) {
+    normalized = normalized.replace(/\/+$/, "");
+  }
+
+  return normalized || "/";
+}
+
+function formatRouteLabel(hostname: string, pathPrefix?: string | null) {
+  const normalizedPathPrefix = normalizeRoutePathPrefix(pathPrefix);
+  return normalizedPathPrefix === "/"
+    ? hostname
+    : `${hostname}${normalizedPathPrefix}`;
+}
+
 function readRoute(app: FugueApp) {
   if (app.spec.networkMode === "background") {
     return {
@@ -1687,7 +1721,7 @@ function readRoute(app: FugueApp) {
       const url = new URL(app.route.publicUrl);
       return {
         href: app.route.publicUrl,
-        label: url.host,
+        label: formatRouteLabel(url.host, app.route.pathPrefix ?? url.pathname),
       };
     } catch {
       return {
@@ -1700,7 +1734,7 @@ function readRoute(app: FugueApp) {
   if (app.route.hostname) {
     return {
       href: null,
-      label: app.route.hostname,
+      label: formatRouteLabel(app.route.hostname, app.route.pathPrefix),
     };
   }
 
@@ -1758,6 +1792,10 @@ function readAppRouteBaseDomain(app: FugueApp) {
     normalizeHostname(app.route.baseDomain) ??
     readRouteBaseDomain(readRouteHostname(app))
   );
+}
+
+function readAppRoutePathPrefix(app: FugueApp) {
+  return normalizeRoutePathPrefix(app.route.pathPrefix);
 }
 
 function isGitHubAppSource(source?: FugueAppSource | null) {
@@ -2204,6 +2242,9 @@ function buildSharedAppView(
   const techStack = options?.techStack ?? app.techStack;
   const route = readRoute(app);
   const routeHostname = readRouteHostname(app);
+  const hasPublishedRoute = Boolean(
+    routeHostname || app.route.publicUrl?.trim(),
+  );
   const redeploy = readRedeployState(app);
   const redeployAction = readRedeployAction(app);
   const failoverState = readAppFailoverState(app);
@@ -2232,6 +2273,7 @@ function buildSharedAppView(
       null,
     deployBehavior: readDeployBehavior(app),
     exposesPublicRoute:
+      hasPublishedRoute ||
       app.spec.networkMode !== "background" &&
       app.spec.networkMode !== "internal",
     failoverAuto: app.spec.failover?.auto ?? false,
@@ -2262,9 +2304,12 @@ function buildSharedAppView(
     redeployQueuedMessage: redeployAction.queuedMessage,
     redeployDisabledReason: redeploy.redeployDisabledReason,
     routeBaseDomain: readAppRouteBaseDomain(app),
+    routeDomainName: app.route.domainName ?? null,
+    routeEntrypointName: app.route.entrypointName ?? null,
     routeHref: route.href,
     routeHostname,
     routeLabel: route.label,
+    routePathPrefix: readAppRoutePathPrefix(app),
     routePublicUrl: app.route.publicUrl?.trim() || null,
     runtimeId: options?.runtimeId ?? app.spec.runtimeId ?? null,
     serviceBadges,

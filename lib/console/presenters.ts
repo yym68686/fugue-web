@@ -208,12 +208,15 @@ function shortId(value?: string | null) {
 }
 
 function readRouteLabel(app: FugueApp) {
+  const pathPrefix = app.route.pathPrefix?.trim();
+  const suffix = pathPrefix && pathPrefix !== "/" ? pathPrefix : "";
+
   if (app.route.publicUrl) {
     try {
       const url = new URL(app.route.publicUrl);
       return {
         href: app.route.publicUrl,
-        label: url.host,
+        label: `${url.host}${suffix || (url.pathname !== "/" ? url.pathname : "")}`,
       };
     } catch {
       return {
@@ -226,7 +229,7 @@ function readRouteLabel(app: FugueApp) {
   if (app.route.hostname) {
     return {
       href: null,
-      label: app.route.hostname,
+      label: `${app.route.hostname}${suffix}`,
     };
   }
 

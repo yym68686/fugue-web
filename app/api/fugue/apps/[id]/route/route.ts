@@ -44,6 +44,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     const appId = await readRouteParam(context, "id");
     const result = await patchFugueAppRoute(workspaceState.workspace.adminKeySecret, appId, {
       hostname: readOptionalString(body, "hostname"),
+      pathPrefix: readOptionalString(body, "path_prefix"),
     });
 
     return NextResponse.json(result);

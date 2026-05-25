@@ -17,6 +17,7 @@ type RouteAvailability = {
   hostname: string | null;
   input: string | null;
   label: string | null;
+  pathPrefix: string | null;
   publicUrl: string | null;
   reason: string | null;
   valid: boolean;
@@ -31,6 +32,7 @@ type RoutePatchResponse = {
   app: {
     route: {
       hostname: string | null;
+      pathPrefix: string | null;
       publicUrl: string | null;
     } | null;
   } | null;
@@ -42,6 +44,7 @@ type RoutePanelProps = {
   appName: string;
   initialBaseDomain: string | null;
   initialHostname: string | null;
+  initialPathPrefix: string | null;
   initialPublicUrl: string | null;
 };
 
@@ -65,9 +68,31 @@ function readStringValue(record: Record<string, unknown> | null, key: string) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
+function readStringValueAny(record: Record<string, unknown> | null, ...keys: string[]) {
+  for (const key of keys) {
+    const value = readStringValue(record, key);
+
+    if (value) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
 function readBooleanValue(record: Record<string, unknown> | null, key: string) {
   const value = record?.[key];
   return typeof value === "boolean" ? value : false;
+}
+
+function readBooleanValueAny(record: Record<string, unknown> | null, ...keys: string[]) {
+  for (const key of keys) {
+    if (typeof record?.[key] === "boolean") {
+      return record[key] as boolean;
+    }
+  }
+
+  return false;
 }
 
 function normalizeHostname(value?: string | null) {
@@ -89,6 +114,66 @@ function readHostnameFromUrl(value?: string | null) {
 
 function resolveRouteHostname(hostname?: string | null, publicUrl?: string | null) {
   return normalizeHostname(hostname) ?? readHostnameFromUrl(publicUrl);
+}
+
+function normalizePathPrefix(value?: string | null) {
+  let normalized = value?.trim() ?? "";
+
+  if (!normalized) {
+    return "/";
+  }
+
+  normalized = normalized.replace(/\\/g, "/");
+  normalized = normalized.split("#")[0]?.split("?")[0]?.trim() ?? "";
+
+  if (!normalized) {
+    return "/";
+  }
+
+  if (!normalized.startsWith("/")) {
+    normalized = `/${normalized}`;
+  }
+
+  normalized = normalized.replace(/\/{2,}/g, "/");
+
+  if (normalized.length > 1) {
+    normalized = normalized.replace(/\/+$/, "");
+  }
+
+  return normalized || "/";
+}
+
+function sanitizePathPrefixInput(value: string) {
+  const next = value.trim().replace(/\\/g, "/");
+
+  if (!next) {
+    return "";
+  }
+
+  return next.startsWith("/") ? next : `/${next}`;
+}
+
+function readPathPrefixFromUrl(value?: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    return normalizePathPrefix(new URL(value).pathname);
+  } catch {
+    return null;
+  }
+}
+
+function buildRoutePublicUrl(hostname?: string | null, pathPrefix?: string | null) {
+  const normalizedHostname = normalizeHostname(hostname);
+
+  if (!normalizedHostname) {
+    return null;
+  }
+
+  const normalizedPathPrefix = normalizePathPrefix(pathPrefix);
+  return `https://${normalizedHostname}${normalizedPathPrefix === "/" ? "" : normalizedPathPrefix}`;
 }
 
 function readRouteLabel(hostname?: string | null, baseDomain?: string | null) {
@@ -195,12 +280,13 @@ function sanitizeRouteAvailability(value: unknown): RouteAvailability | null {
 
   return {
     available: readBooleanValue(record, "available"),
-    baseDomain: readStringValue(record, "base_domain"),
+    baseDomain: readStringValueAny(record, "base_domain", "baseDomain"),
     current: readBooleanValue(record, "current"),
     hostname: readStringValue(record, "hostname"),
     input: readStringValue(record, "input"),
     label: readStringValue(record, "label"),
-    publicUrl: readStringValue(record, "public_url"),
+    pathPrefix: readStringValueAny(record, "path_prefix", "pathPrefix"),
+    publicUrl: readStringValueAny(record, "public_url", "publicUrl"),
     reason: readStringValue(record, "reason"),
     valid: readBooleanValue(record, "valid"),
   };
@@ -220,13 +306,14 @@ function readRoutePatchResponse(value: unknown): RoutePatchResponse {
   const route = asRecord(app?.route);
 
   return {
-    alreadyCurrent: readBooleanValue(record, "already_current"),
+    alreadyCurrent: readBooleanValueAny(record, "already_current", "alreadyCurrent"),
     app: app
       ? {
           route: route
             ? {
                 hostname: readStringValue(route, "hostname"),
-                publicUrl: readStringValue(route, "public_url"),
+                pathPrefix: readStringValueAny(route, "path_prefix", "pathPrefix"),
+                publicUrl: readStringValueAny(route, "public_url", "publicUrl"),
               }
             : null,
         }
@@ -240,6 +327,7 @@ function buildCurrentAvailability(
   hostname: string | null,
   publicUrl: string | null,
   baseDomain: string | null,
+  pathPrefix: string | null,
 ) {
   if (!label && !hostname) {
     return null;
@@ -247,6 +335,7 @@ function buildCurrentAvailability(
 
   const resolvedHostname =
     hostname ?? (label && baseDomain ? `${label}.${baseDomain}` : label || null);
+  const resolvedPathPrefix = normalizePathPrefix(pathPrefix);
 
   return {
     available: true,
@@ -255,7 +344,8 @@ function buildCurrentAvailability(
     hostname: resolvedHostname,
     input: label || resolvedHostname,
     label: label || readRouteLabel(resolvedHostname, baseDomain),
-    publicUrl: publicUrl ?? (resolvedHostname ? `https://${resolvedHostname}` : null),
+    pathPrefix: resolvedPathPrefix,
+    publicUrl: publicUrl ?? buildRoutePublicUrl(resolvedHostname, resolvedPathPrefix),
     reason: null,
     valid: true,
   } satisfies RouteAvailability;
@@ -336,6 +426,7 @@ export function AppRoutePanel({
   appName,
   initialBaseDomain,
   initialHostname,
+  initialPathPrefix,
   initialPublicUrl,
 }: RoutePanelProps) {
   const router = useRouter();
@@ -343,8 +434,11 @@ export function AppRoutePanel({
   const { showToast } = useToast();
   const [checkToken, setCheckToken] = useState(0);
   const [draft, setDraft] = useState("");
+  const [pathDraft, setPathDraft] = useState("/");
   const [baselineLabel, setBaselineLabel] = useState("");
+  const [baselinePathPrefix, setBaselinePathPrefix] = useState("/");
   const [currentHostname, setCurrentHostname] = useState<string | null>(null);
+  const [currentPathPrefix, setCurrentPathPrefix] = useState("/");
   const [currentPublicUrl, setCurrentPublicUrl] = useState<string | null>(null);
   const [baseDomain, setBaseDomain] = useState<string | null>(null);
   const [availability, setAvailability] = useState<RouteAvailability | null>(null);
@@ -357,28 +451,40 @@ export function AppRoutePanel({
     const nextBaseDomain =
       normalizeHostname(initialBaseDomain) ?? readBaseDomainFromHostname(nextHostname);
     const nextLabel = readRouteLabel(nextHostname, nextBaseDomain);
-    const nextPublicUrl = initialPublicUrl?.trim() || (nextHostname ? `https://${nextHostname}` : null);
+    const nextPathPrefix = normalizePathPrefix(
+      initialPathPrefix ?? readPathPrefixFromUrl(initialPublicUrl),
+    );
+    const nextPublicUrl =
+      initialPublicUrl?.trim() || buildRoutePublicUrl(nextHostname, nextPathPrefix);
     const nextAvailability = buildCurrentAvailability(
       nextLabel,
       nextHostname || null,
       nextPublicUrl,
       nextBaseDomain,
+      nextPathPrefix,
     );
 
     setDraft(nextLabel);
+    setPathDraft(nextPathPrefix);
     setBaselineLabel(nextLabel);
+    setBaselinePathPrefix(nextPathPrefix);
     setCurrentHostname(nextHostname || null);
+    setCurrentPathPrefix(nextPathPrefix);
     setCurrentPublicUrl(nextPublicUrl);
     setBaseDomain(nextBaseDomain);
     setAvailability(nextAvailability);
     setAvailabilityError(null);
     setAvailabilityState(nextAvailability ? "ready" : "idle");
     setCheckToken(0);
-  }, [appId, initialBaseDomain, initialHostname, initialPublicUrl]);
+  }, [appId, initialBaseDomain, initialHostname, initialPathPrefix, initialPublicUrl]);
 
   const normalizedDraft = draft.trim().toLowerCase();
   const normalizedBaseline = baselineLabel.trim().toLowerCase();
-  const isDirty = normalizedDraft !== normalizedBaseline;
+  const normalizedPathDraft = normalizePathPrefix(pathDraft);
+  const normalizedBaselinePathPrefix = normalizePathPrefix(baselinePathPrefix);
+  const isDirty =
+    normalizedDraft !== normalizedBaseline ||
+    normalizedPathDraft !== normalizedBaselinePathPrefix;
   const noteId = `route-note-${appId}`;
 
   useEffect(() => {
@@ -396,6 +502,7 @@ export function AppRoutePanel({
           currentHostname,
           currentPublicUrl,
           baseDomain,
+          currentPathPrefix,
         ),
       );
       setAvailabilityError(null);
@@ -413,7 +520,7 @@ export function AppRoutePanel({
         try {
           const payload = readRouteAvailabilityResponse(
             await requestJson(
-              `/api/fugue/apps/${appId}/route/availability?hostname=${encodeURIComponent(normalizedDraft)}`,
+              `/api/fugue/apps/${appId}/route/availability?hostname=${encodeURIComponent(normalizedDraft)}&path_prefix=${encodeURIComponent(normalizedPathDraft)}`,
               {
                 cache: "no-store",
                 signal: controller.signal,
@@ -451,9 +558,12 @@ export function AppRoutePanel({
     checkToken,
     currentHostname,
     currentPublicUrl,
+    currentPathPrefix,
     isDirty,
     normalizedBaseline,
+    normalizedBaselinePathPrefix,
     normalizedDraft,
+    normalizedPathDraft,
   ]);
 
   const fieldState = useMemo(
@@ -484,12 +594,14 @@ export function AppRoutePanel({
 
   function resetDraft() {
     setDraft(baselineLabel);
+    setPathDraft(baselinePathPrefix);
     setAvailability(
       buildCurrentAvailability(
         baselineLabel,
         currentHostname,
         currentPublicUrl,
         baseDomain,
+        currentPathPrefix,
       ),
     );
     setAvailabilityError(null);
@@ -508,6 +620,7 @@ export function AppRoutePanel({
         await requestJson(`/api/fugue/apps/${appId}/route`, {
           body: JSON.stringify({
             hostname: normalizedDraft,
+            path_prefix: normalizedPathDraft,
           }),
           headers: {
             "Content-Type": "application/json",
@@ -519,6 +632,9 @@ export function AppRoutePanel({
         response.app?.route?.hostname ?? availability?.hostname,
         response.app?.route?.publicUrl ?? availability?.publicUrl,
       );
+      const nextPathPrefix = normalizePathPrefix(
+        response.app?.route?.pathPrefix ?? response.availability?.pathPrefix ?? normalizedPathDraft,
+      );
       const nextBaseDomain =
         response.availability?.baseDomain ??
         baseDomain ??
@@ -527,19 +643,23 @@ export function AppRoutePanel({
       const nextPublicUrl =
         response.app?.route?.publicUrl ??
         response.availability?.publicUrl ??
-        (nextHostname ? `https://${nextHostname}` : null);
+        buildRoutePublicUrl(nextHostname, nextPathPrefix);
       const nextAvailability = buildCurrentAvailability(
         nextLabel,
         nextHostname,
         nextPublicUrl,
         nextBaseDomain,
+        nextPathPrefix,
       );
 
       setBaselineLabel(nextLabel);
+      setBaselinePathPrefix(nextPathPrefix);
       setCurrentHostname(nextHostname);
+      setCurrentPathPrefix(nextPathPrefix);
       setCurrentPublicUrl(nextPublicUrl);
       setBaseDomain(nextBaseDomain);
       setDraft(nextLabel);
+      setPathDraft(nextPathPrefix);
       setAvailability(nextAvailability);
       setAvailabilityError(null);
       setAvailabilityState(nextAvailability ? "ready" : "idle");
@@ -637,6 +757,44 @@ export function AppRoutePanel({
                 {helperText}
               </span>
             ) : null}
+          </div>
+
+          <div className="fg-field-stack fg-route-field">
+            <span className="fg-field-label">
+              <span className="fg-field-label__main">
+                <label className="fg-field-label__text" htmlFor={`route-path-${appId}`}>
+                  {t("Path prefix")}
+                </label>
+                {!fieldInvalid ? (
+                  <HintTooltip ariaLabel={t("Path prefix")}>
+                    {t("Use / for the root route, or /api for a path route.")}
+                  </HintTooltip>
+                ) : null}
+              </span>
+            </span>
+            <span className={cx("fg-field-control", fieldInvalid && "is-invalid")}>
+              <div className="fg-route-composer" data-invalid={fieldInvalid ? "true" : undefined}>
+                <div className="fg-route-composer__shell">
+                  <input
+                    aria-describedby={fieldInvalid ? noteId : undefined}
+                    aria-invalid={fieldInvalid ? true : undefined}
+                    autoCapitalize="off"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    className="fg-route-composer__field"
+                    id={`route-path-${appId}`}
+                    inputMode="text"
+                    maxLength={120}
+                    onChange={(event) => {
+                      setPathDraft(sanitizePathPrefixInput(event.target.value));
+                    }}
+                    placeholder="/"
+                    spellCheck={false}
+                    value={pathDraft}
+                  />
+                </div>
+              </div>
+            </span>
           </div>
 
           {isDirty || saving ? (

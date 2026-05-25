@@ -3241,10 +3241,13 @@ export interface components {
         };
         AppRoute: {
             hostname?: string;
+            path_prefix?: string;
             base_domain?: string;
             public_url?: string;
             /** Format: int32 */
             service_port?: number;
+            domain_name?: string;
+            entrypoint_name?: string;
         };
         BundleSignature: {
             schema_version?: string;
@@ -3537,6 +3540,7 @@ export interface components {
             edge_id?: string;
             edge_group_id: string;
             hostname: string;
+            path_prefix?: string;
             client_country?: string;
             client_region?: string;
             client_asn?: string;
@@ -4636,6 +4640,7 @@ export interface components {
             input?: string;
             label?: string;
             hostname?: string;
+            path_prefix?: string;
             base_domain?: string;
             public_url?: string;
             valid: boolean;
@@ -4686,6 +4691,24 @@ export interface components {
             service: string;
             message: string;
         };
+        TopologyDomain: {
+            name?: string;
+            host?: string;
+            tls?: string;
+            owner_service?: string;
+        };
+        TopologyEntrypointRoute: {
+            path?: string;
+            path_prefix?: string;
+            service?: string;
+            strip_prefix?: boolean;
+            rewrite?: string;
+        };
+        TopologyEntrypoint: {
+            name?: string;
+            domain?: string;
+            routes?: components["schemas"]["TopologyEntrypointRoute"][];
+        };
         ImportServiceDetail: {
             service: string;
             kind: string;
@@ -4711,6 +4734,8 @@ export interface components {
         FugueManifestSummary: {
             manifest_path: string;
             primary_service: string;
+            domains?: components["schemas"]["TopologyDomain"][];
+            entrypoints?: components["schemas"]["TopologyEntrypoint"][];
             services: components["schemas"]["ImportServiceDetail"][];
             warnings: string[];
             inference_report: components["schemas"]["TopologyInference"][];
@@ -5653,6 +5678,8 @@ export interface components {
         InspectGitHubTemplateManifest: {
             manifest_path: string;
             primary_service: string;
+            domains?: components["schemas"]["TopologyDomain"][];
+            entrypoints?: components["schemas"]["TopologyEntrypoint"][];
             services: components["schemas"]["InspectGitHubTemplateManifestService"][];
             warnings: string[];
             inference_report: components["schemas"]["TopologyInference"][];
@@ -5909,6 +5936,7 @@ export interface components {
         AppRightSizingMode: "disabled" | "recommend" | "auto";
         PatchAppRouteRequest: {
             hostname: string;
+            path_prefix?: string;
         };
         AppRoutePatchResponse: {
             app: components["schemas"]["App"];
@@ -6516,6 +6544,7 @@ export interface components {
         RuntimeIdPathParam: string;
         TenantIdQueryParam: string;
         HostnameQueryParam: string;
+        PathPrefixQueryParam: string;
         OperationIdQueryParam: string;
         TailLinesQueryParam: number;
         ComponentQueryParam: string;
@@ -9694,6 +9723,7 @@ export interface operations {
         parameters: {
             query?: {
                 hostname?: components["parameters"]["HostnameQueryParam"];
+                path_prefix?: components["parameters"]["PathPrefixQueryParam"];
             };
             header?: never;
             path: {

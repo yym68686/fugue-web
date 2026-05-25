@@ -28,11 +28,14 @@ export async function GET(request: Request, context: RouteContext) {
 
   try {
     const appId = await readRouteParam(context, "id");
-    const hostname = new URL(request.url).searchParams.get("hostname") ?? "";
+    const searchParams = new URL(request.url).searchParams;
+    const hostname = searchParams.get("hostname") ?? "";
+    const pathPrefix = searchParams.get("path_prefix") ?? "";
     const result = await getFugueAppRouteAvailability(
       workspaceState.workspace.adminKeySecret,
       appId,
       hostname,
+      pathPrefix,
     );
 
     return NextResponse.json(result);
