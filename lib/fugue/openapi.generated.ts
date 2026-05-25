@@ -3972,7 +3972,7 @@ export interface components {
         };
         AppPersistentStorageSpec: {
             /** @enum {string} */
-            mode?: "dedicated_pvc" | "movable_rwo" | "shared_project_rwx";
+            mode?: "dedicated_pvc" | "movable_rwo";
             storage_path?: string;
             storage_size?: string;
             storage_class_name?: string;
@@ -4406,6 +4406,21 @@ export interface components {
             evidence: string[];
             warnings: string[];
         };
+        ClusterNodeControlPlaneIncident: {
+            name?: string;
+            path?: string;
+            archive_path?: string;
+            primary_failure_signal?: string;
+            root_cause_status?: string;
+            evidence_counts?: {
+                [key: string]: number;
+            };
+            baseline_first?: string;
+            baseline_last?: string;
+            selected_evidence?: string[];
+            next_checks?: string[];
+            diagnosis_text?: string;
+        };
         ClusterNodeDiagnosis: {
             node?: components["schemas"]["ClusterNode"];
             summary: string;
@@ -4416,6 +4431,7 @@ export interface components {
             journal: components["schemas"]["ClusterNodeJournalEntry"][];
             events: components["schemas"]["ClusterEvent"][];
             metrics?: components["schemas"]["ClusterNodeMetricsDiagnosis"];
+            control_plane_incident?: components["schemas"]["ClusterNodeControlPlaneIncident"];
             warnings: string[];
         };
         Operation: {
