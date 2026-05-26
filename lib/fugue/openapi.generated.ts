@@ -519,6 +519,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/edge/domains/{hostname}/tls-bundle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Edge TLS Certificate Bundle */
+        get: operations["getEdgeTLSCertificateBundle"];
+        /** Put Edge TLS Certificate Bundle */
+        put: operations["putEdgeTLSCertificateBundle"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/edge/domains/tls-report": {
         parameters: {
             query?: never;
@@ -1756,6 +1774,40 @@ export interface paths {
         put?: never;
         /** Verify App Domain */
         post: operations["verifyAppDomain"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/apps/{id}/domains/diagnosis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get App Domain Diagnosis */
+        get: operations["getAppDomainDiagnosis"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/apps/{id}/domains/repair": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Repair App Domain */
+        post: operations["repairAppDomain"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3916,14 +3968,21 @@ export interface components {
             app_id?: string;
             tenant_id?: string;
             status: string;
+            /** @enum {string} */
+            dns_status?: "pending" | "ready" | "error";
+            /** @enum {string} */
+            dns_record_kind?: "none" | "cname" | "flattened";
             tls_status?: string;
             verification_txt_name?: string;
             verification_txt_value?: string;
             route_target?: string;
             last_message?: string;
+            dns_last_message?: string;
             tls_last_message?: string;
             /** Format: date-time */
             last_checked_at?: string;
+            /** Format: date-time */
+            dns_last_checked_at?: string;
             /** Format: date-time */
             verified_at?: string;
             /** Format: date-time */
@@ -5912,11 +5971,99 @@ export interface components {
             domain: components["schemas"]["AppDomain"];
             verified: boolean;
         };
+        AppDomainDiagnosisResponse: {
+            diagnosis: components["schemas"]["AppDomainDiagnosis"];
+        };
+        AppDomainRepairRequest: {
+            hostname: string;
+        };
+        AppDomainRepairResponse: {
+            domain: components["schemas"]["AppDomain"];
+            diagnosis: components["schemas"]["AppDomainDiagnosis"];
+        };
         AppDomainAvailabilityResponse: {
             availability: components["schemas"]["AppDomainAvailability"];
         };
         AppRouteAvailabilityResponse: {
             availability: components["schemas"]["AppRouteAvailability"];
+        };
+        EdgeDomainTLSReportRequest: {
+            hostname: string;
+            /** @enum {string} */
+            tls_status: "pending" | "ready" | "error";
+            tls_last_message?: string;
+            certificate_pem?: string;
+            private_key_pem?: string;
+            metadata_json?: string;
+            issuer_storage?: string;
+        };
+        EdgeDomainTLSReportResponse: {
+            domain: components["schemas"]["AppDomain"];
+        };
+        EdgeTLSCertificateBundleInput: {
+            certificate_pem: string;
+            private_key_pem: string;
+            metadata_json?: string;
+            issuer_storage?: string;
+        };
+        EdgeTLSCertificateBundleResponse: {
+            certificate: components["schemas"]["EdgeTLSCertificate"];
+        };
+        EdgeTLSCertificateBundlePutResponse: {
+            certificate: components["schemas"]["EdgeTLSCertificate"];
+            domain: components["schemas"]["AppDomain"];
+        };
+        EdgeTLSCertificateSummary: {
+            present: boolean;
+            certificate_sha256?: string;
+            /** Format: date-time */
+            not_after?: string;
+            issuer_storage?: string;
+            uploaded_by_edge_id?: string;
+            uploaded_by_edge_group_id?: string;
+            /** Format: date-time */
+            updated_at?: string;
+        };
+        AppDomainDNSObservation: {
+            verified: boolean;
+            record_kind?: string;
+            cname?: string;
+            matched_target?: string;
+            host_ips?: string[];
+            target_ips?: string[];
+            message?: string;
+        };
+        AppDomainDiagnosticCheck: {
+            name: string;
+            status: string;
+            message?: string;
+            repairable?: boolean;
+        };
+        AppDomainDiagnosis: {
+            domain: components["schemas"]["AppDomain"];
+            dns_targets: string[];
+            dns_observation: components["schemas"]["AppDomainDNSObservation"];
+            shared_tls_certificate: components["schemas"]["EdgeTLSCertificateSummary"];
+            checks: components["schemas"]["AppDomainDiagnosticCheck"][];
+            recommended_actions?: string[];
+        };
+        EdgeTLSCertificate: {
+            hostname: string;
+            tenant_id?: string;
+            app_id?: string;
+            certificate_pem: string;
+            private_key_pem: string;
+            metadata_json?: string;
+            issuer_storage?: string;
+            certificate_sha256?: string;
+            /** Format: date-time */
+            not_after?: string;
+            uploaded_by_edge_id?: string;
+            uploaded_by_edge_group_id?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
         };
         /**
          * @description Omit this field to deploy a public service with a managed route.
@@ -6548,6 +6695,7 @@ export interface components {
         RuntimeIdPathParam: string;
         TenantIdQueryParam: string;
         HostnameQueryParam: string;
+        HostnamePathParam: string;
         PathPrefixQueryParam: string;
         OperationIdQueryParam: string;
         TailLinesQueryParam: number;
@@ -7416,18 +7564,41 @@ export interface operations {
             default: components["responses"]["ErrorResponse"];
         };
     };
-    edgeDomainTLSReport: {
+    getEdgeTLSCertificateBundle: {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                hostname: components["parameters"]["HostnamePathParam"];
+            };
             cookie?: never;
         };
-        requestBody?: {
-            content: {
-                "application/json": {
-                    [key: string]: unknown;
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
                 };
+                content: {
+                    "application/json": components["schemas"]["EdgeTLSCertificateBundleResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    putEdgeTLSCertificateBundle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                hostname: components["parameters"]["HostnamePathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EdgeTLSCertificateBundleInput"];
             };
         };
         responses: {
@@ -7437,9 +7608,32 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["EdgeTLSCertificateBundlePutResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    edgeDomainTLSReport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EdgeDomainTLSReportRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EdgeDomainTLSReportResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
@@ -9718,6 +9912,58 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AppDomainVerifyResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getAppDomainDiagnosis: {
+        parameters: {
+            query?: {
+                hostname?: components["parameters"]["HostnameQueryParam"];
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppDomainDiagnosisResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    repairAppDomain: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["AppDomainRepairRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppDomainRepairResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
