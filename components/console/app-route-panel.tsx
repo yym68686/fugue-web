@@ -39,9 +39,64 @@ type RoutePatchResponse = {
   availability: RouteAvailability | null;
 };
 
+type ProjectRouteDomainView = {
+  host?: string | null;
+  hostname?: string | null;
+  name?: string | null;
+  ownerAppId?: string | null;
+  ownerService?: string | null;
+  tls?: string | null;
+};
+
+type ProjectRouteEntrypointRouteView = {
+  appId?: string | null;
+  path?: string | null;
+  pathPrefix?: string | null;
+  rewrite?: string | null;
+  service?: string | null;
+  stripPrefix?: boolean;
+};
+
+type ProjectRouteEntrypointView = {
+  domain?: string | null;
+  name?: string | null;
+  routes?: ProjectRouteEntrypointRouteView[];
+};
+
+type ProjectRouteBindingView = {
+  appId?: string | null;
+  appName?: string | null;
+  domainName?: string | null;
+  entrypointName?: string | null;
+  hostname?: string | null;
+  pathPrefix?: string | null;
+  publicUrl?: string | null;
+  service?: string | null;
+  servicePort?: number | null;
+};
+
+type ProjectRouteTableView = {
+  bindings: ProjectRouteBindingView[];
+  domains: ProjectRouteDomainView[];
+  entrypoints: ProjectRouteEntrypointView[];
+  legacy: boolean;
+  projectId?: string | null;
+  tenantId?: string | null;
+};
+
+type ProjectRouteTableResponse = {
+  routeTable: ProjectRouteTableView | null;
+};
+
+type ProjectRouteTableDraftPayload = {
+  domains: unknown[];
+  entrypoints: unknown[];
+};
+
 type RoutePanelProps = {
   appId: string;
   appName: string;
+  projectId: string;
   initialBaseDomain: string | null;
   initialHostname: string | null;
   initialPathPrefix: string | null;
@@ -93,6 +148,11 @@ function readBooleanValueAny(record: Record<string, unknown> | null, ...keys: st
   }
 
   return false;
+}
+
+function readArrayValue(record: Record<string, unknown> | null, key: string) {
+  const value = record?.[key];
+  return Array.isArray(value) ? value : [];
 }
 
 function normalizeHostname(value?: string | null) {
@@ -322,6 +382,124 @@ function readRoutePatchResponse(value: unknown): RoutePatchResponse {
   };
 }
 
+function sanitizeProjectRouteDomain(value: unknown): ProjectRouteDomainView {
+  const record = asRecord(value);
+
+  return {
+    host: readStringValue(record, "host"),
+    hostname: readStringValue(record, "hostname"),
+    name: readStringValue(record, "name"),
+    ownerAppId: readStringValueAny(record, "owner_app_id", "ownerAppId"),
+    ownerService: readStringValueAny(record, "owner_service", "ownerService"),
+    tls: readStringValue(record, "tls"),
+  };
+}
+
+function sanitizeProjectRouteEntrypointRoute(value: unknown): ProjectRouteEntrypointRouteView {
+  const record = asRecord(value);
+
+  return {
+    appId: readStringValueAny(record, "app_id", "appId"),
+    path: readStringValue(record, "path"),
+    pathPrefix: readStringValueAny(record, "path_prefix", "pathPrefix"),
+    rewrite: readStringValue(record, "rewrite"),
+    service: readStringValue(record, "service"),
+    stripPrefix: readBooleanValueAny(record, "strip_prefix", "stripPrefix"),
+  };
+}
+
+function sanitizeProjectRouteEntrypoint(value: unknown): ProjectRouteEntrypointView {
+  const record = asRecord(value);
+
+  return {
+    domain: readStringValue(record, "domain"),
+    name: readStringValue(record, "name"),
+    routes: readArrayValue(record, "routes").map(sanitizeProjectRouteEntrypointRoute),
+  };
+}
+
+function sanitizeProjectRouteBinding(value: unknown): ProjectRouteBindingView {
+  const record = asRecord(value);
+  const servicePort = record?.service_port ?? record?.servicePort;
+
+  return {
+    appId: readStringValueAny(record, "app_id", "appId"),
+    appName: readStringValueAny(record, "app_name", "appName"),
+    domainName: readStringValueAny(record, "domain_name", "domainName"),
+    entrypointName: readStringValueAny(record, "entrypoint_name", "entrypointName"),
+    hostname: readStringValue(record, "hostname"),
+    pathPrefix: readStringValueAny(record, "path_prefix", "pathPrefix"),
+    publicUrl: readStringValueAny(record, "public_url", "publicUrl"),
+    service: readStringValue(record, "service"),
+    servicePort: typeof servicePort === "number" && Number.isFinite(servicePort) ? servicePort : null,
+  };
+}
+
+function sanitizeProjectRouteTable(value: unknown): ProjectRouteTableView | null {
+  const record = asRecord(value);
+
+  if (!record) {
+    return null;
+  }
+
+  return {
+    bindings: readArrayValue(record, "bindings").map(sanitizeProjectRouteBinding),
+    domains: readArrayValue(record, "domains").map(sanitizeProjectRouteDomain),
+    entrypoints: readArrayValue(record, "entrypoints").map(sanitizeProjectRouteEntrypoint),
+    legacy: readBooleanValue(record, "legacy"),
+    projectId: readStringValueAny(record, "project_id", "projectId"),
+    tenantId: readStringValueAny(record, "tenant_id", "tenantId"),
+  };
+}
+
+function readProjectRouteTableResponse(value: unknown): ProjectRouteTableResponse {
+  const record = asRecord(value);
+
+  return {
+    routeTable: sanitizeProjectRouteTable(record?.routeTable ?? record?.route_table),
+  };
+}
+
+function routeTableDraftValue(table: ProjectRouteTableView | null) {
+  return JSON.stringify(
+    {
+      domains: table?.domains ?? [],
+      entrypoints: table?.entrypoints ?? [],
+    },
+    null,
+    2,
+  );
+}
+
+function readRouteTableDraftPayload(
+  value: unknown,
+  t: Translator,
+): { error: string; payload: null } | { error: null; payload: ProjectRouteTableDraftPayload } {
+  const record = asRecord(value);
+
+  if (!record) {
+    return {
+      error: t("Route table must be a JSON object."),
+      payload: null,
+    };
+  }
+
+  if (!Array.isArray(record.domains) || !Array.isArray(record.entrypoints)) {
+    return {
+      error: t("Route table JSON must include domains and entrypoints arrays."),
+      payload: null,
+    };
+  }
+
+  return {
+    error: null,
+    payload: {
+      domains: record.domains,
+      entrypoints: record.entrypoints,
+    },
+  };
+}
+
 function buildCurrentAvailability(
   label: string,
   hostname: string | null,
@@ -424,6 +602,7 @@ function readRouteFieldState(options: {
 export function AppRoutePanel({
   appId,
   appName,
+  projectId,
   initialBaseDomain,
   initialHostname,
   initialPathPrefix,
@@ -445,6 +624,12 @@ export function AppRoutePanel({
   const [availabilityError, setAvailabilityError] = useState<string | null>(null);
   const [availabilityState, setAvailabilityState] = useState<AvailabilityState>("idle");
   const [saving, setSaving] = useState(false);
+  const [routeTable, setRouteTable] = useState<ProjectRouteTableView | null>(null);
+  const [routeTableDraft, setRouteTableDraft] = useState("");
+  const [routeTableError, setRouteTableError] = useState<string | null>(null);
+  const [routeTableLoading, setRouteTableLoading] = useState(false);
+  const [routeTableSaving, setRouteTableSaving] = useState(false);
+  const [routeTableToken, setRouteTableToken] = useState(0);
 
   useEffect(() => {
     const nextHostname = resolveRouteHostname(initialHostname, initialPublicUrl) ?? "";
@@ -477,6 +662,49 @@ export function AppRoutePanel({
     setAvailabilityState(nextAvailability ? "ready" : "idle");
     setCheckToken(0);
   }, [appId, initialBaseDomain, initialHostname, initialPathPrefix, initialPublicUrl]);
+
+  useEffect(() => {
+    if (!projectId) {
+      setRouteTable(null);
+      setRouteTableDraft("");
+      setRouteTableError(null);
+      setRouteTableLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    setRouteTableLoading(true);
+    setRouteTableError(null);
+
+    void (async () => {
+      try {
+        const payload = readProjectRouteTableResponse(
+          await requestJson(
+            `/api/fugue/projects/${projectId}/routes`,
+            {
+              cache: "no-store",
+              signal: controller.signal,
+            },
+            t,
+          ),
+        );
+        setRouteTable(payload.routeTable);
+        setRouteTableDraft(routeTableDraftValue(payload.routeTable));
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          setRouteTableError(readErrorMessage(error, t));
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setRouteTableLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      controller.abort();
+    };
+  }, [projectId, routeTableToken, t]);
 
   const normalizedDraft = draft.trim().toLowerCase();
   const normalizedBaseline = baselineLabel.trim().toLowerCase();
@@ -684,6 +912,69 @@ export function AppRoutePanel({
     }
   }
 
+  async function saveProjectRouteTable() {
+    if (!projectId || routeTableSaving) {
+      return;
+    }
+
+    let parsed: unknown;
+
+    try {
+      parsed = JSON.parse(routeTableDraft);
+    } catch {
+      showToast({
+        message: t("Route table JSON is invalid."),
+        variant: "error",
+      });
+      return;
+    }
+
+    const { error, payload } = readRouteTableDraftPayload(parsed, t);
+
+    if (error || !payload) {
+      showToast({
+        message: error ?? t("Route table JSON is invalid."),
+        variant: "error",
+      });
+      return;
+    }
+
+    setRouteTableSaving(true);
+    setRouteTableError(null);
+
+    try {
+      const response = readProjectRouteTableResponse(
+        await requestJson(`/api/fugue/projects/${projectId}/routes`, {
+          body: JSON.stringify(payload),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          method: "PUT",
+        }, t),
+      );
+      setRouteTable(response.routeTable);
+      setRouteTableDraft(routeTableDraftValue(response.routeTable));
+      showToast({
+        message: t("Project route table updated."),
+        variant: "success",
+      });
+      startTransition(() => {
+        router.refresh();
+      });
+    } catch (error) {
+      const message = readErrorMessage(error, t);
+      setRouteTableError(message);
+      showToast({
+        message,
+        variant: "error",
+      });
+    } finally {
+      setRouteTableSaving(false);
+    }
+  }
+
+  const routeTableBindings = routeTable?.bindings ?? [];
+
   return (
     <div className="fg-workbench-section fg-route-panel">
       <div className="fg-workbench-section__copy fg-route-panel__copy">
@@ -823,6 +1114,114 @@ export function AppRoutePanel({
               </Button>
             </div>
           ) : null}
+        </div>
+      </section>
+
+      <section aria-label={t("Project route table")} className="fg-route-subsection fg-route-table">
+        <div className="fg-route-subsection__head">
+          <div className="fg-route-subsection__copy">
+            <h3 className="fg-route-subsection__title fg-ui-heading">
+              {t("Project route table")}
+            </h3>
+          </div>
+          <span
+            className={cx(
+              "fg-route-field__status",
+              routeTableError ? "is-error" : routeTableLoading ? "is-info" : "is-success",
+              routeTableLoading && "is-pending",
+            )}
+          >
+            {routeTableError
+              ? t("Unavailable")
+              : routeTableLoading
+                ? t("Loading")
+                : routeTable?.legacy
+                  ? t("Legacy")
+                  : t("Ready")}
+          </span>
+        </div>
+
+        {routeTableError ? (
+          <p className="fg-field-error fg-route-table__error">{routeTableError}</p>
+        ) : null}
+
+        {routeTableLoading && routeTableBindings.length === 0 ? (
+          <p className="fg-route-table__empty" aria-live="polite">
+            {t("Loading route table…")}
+          </p>
+        ) : routeTableError && routeTableBindings.length === 0 ? null : routeTableBindings.length > 0 ? (
+          <div className="fg-route-table__scroll">
+            <table className="fg-route-table__grid">
+              <thead>
+                <tr>
+                  <th>{t("Host")}</th>
+                  <th>{t("Path")}</th>
+                  <th>{t("Service")}</th>
+                  <th>{t("Entrypoint")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {routeTableBindings.map((binding, index) => (
+                  <tr
+                    key={`${binding.hostname ?? "host"}-${binding.pathPrefix ?? "path"}-${binding.appId ?? index}`}
+                  >
+                    <td>{binding.hostname ?? "-"}</td>
+                    <td>{binding.pathPrefix ?? "/"}</td>
+                    <td>{binding.service ?? binding.appName ?? "-"}</td>
+                    <td>{binding.entrypointName ?? "-"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="fg-route-table__empty">{t("No project routes.")}</p>
+        )}
+
+        <div className="fg-field-stack fg-route-table__editor-stack">
+          <span className="fg-field-label">
+            <span className="fg-field-label__main">
+              <label className="fg-field-label__text" htmlFor={`route-table-${appId}`}>
+                {t("Route table")}
+              </label>
+            </span>
+          </span>
+          <textarea
+            className="fg-route-table__editor"
+            id={`route-table-${appId}`}
+            onChange={(event) => {
+              setRouteTableDraft(event.target.value);
+            }}
+            spellCheck={false}
+            value={routeTableDraft}
+          />
+        </div>
+
+        <div className="fg-route-panel__form-action">
+          <Button
+            disabled={routeTableLoading || routeTableSaving}
+            onClick={() => {
+              setRouteTableToken((value) => value + 1);
+            }}
+            size="compact"
+            type="button"
+            variant="secondary"
+          >
+            {t("Refresh")}
+          </Button>
+          <Button
+            disabled={!projectId || routeTableLoading || routeTableSaving || !routeTableDraft.trim()}
+            loading={routeTableSaving}
+            loadingLabel={t("Saving…")}
+            onClick={() => {
+              void saveProjectRouteTable();
+            }}
+            size="compact"
+            type="button"
+            variant="primary"
+          >
+            {t("Apply table")}
+          </Button>
         </div>
       </section>
 

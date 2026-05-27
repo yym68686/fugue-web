@@ -16,8 +16,25 @@
 
 - 本机已安装 `fugue` CLI，并且终端通常已经配置 `FUGUE_API_KEY`；该 key 使用的是 `fugue` 的 `FUGUE_BOOTSTRAP_KEY`，理论上具备最高权限。线上调查时应优先用 `fugue` CLI 和当前环境变量查询控制平面、租户、项目、app、operation、runtime、cluster 状态。
 - 运行 `fugue` 相关排障命令时，默认直接以 `fugue ...` 开头执行；不要把 `[ -f $HOME/Downloads/GitHub/fugue/.env ] && . $HOME/Downloads/GitHub/fugue/.env` 作为常规命令前缀。`fugue` CLI 会读取它需要的本地配置 / 环境入口。
-- 如果 `fugue` CLI 无法满足调查需求，可以到 `$HOME/Downloads/GitHub/fugue/.env` 查看 `FUGUE_BOOTSTRAP_KEY`、`FUGUE_API_URL` 等后端排障入口，再直接请求控制平面 API。输出和记录中不要泄露实际 secret。
-- 如仍需要核对控制平面或集群现场状态，可以通过 `ssh` 登录控制平面相关服务器：`gcp1`、`gcp2`、`gcp3`、`alicehk2`。默认只做只读调查；除非用户明确要求紧急止血、线上恢复或现场调试，不要把 SSH 上手工改文件、重启服务、patch Deployment、同步镜像当作正式修复路径。
+- 如果 `fugue` CLI 无法满足调查需求，可以到 `$HOME/Downloads/GitHub/fugue/.env` 查看 `FUGUE_BOOTSTRAP_KEY`、`FUGUE_API_URL` 等后端排障入口，再直接请求控制平面 API。除用户明确要求查看 / 导出环境变量的场景外，对话总结、诊断归档、issue、PR、日志摘录中不要粘贴实际 secret。
+- 如仍需要核对控制平面或集群现场状态，可以通过 `ssh` 登录相关节点：`ovhvpsuswest`、`ovhuseast`、`netcup`、`alicehk2`、`ovhvps`、`ovhvpseu`。默认只做只读调查；除非用户明确要求紧急止血、线上恢复或现场调试，不要把 SSH 上手工改文件、重启服务、patch Deployment、同步镜像当作正式修复路径。
+
+## Fugue CLI 产品原则
+
+- `fugue` CLI 是用户在自己机器或自己控制的服务器上操作生产系统的主要入口，默认体验要优先保证直接、可见、可复制；不要为了抽象安全感牺牲排障速度。
+- `fugue app env ls/show <app>` 这类“用户主动查看配置”的命令，默认应显示真实环境变量值，方便肉眼确认、复制、迁移和对比。不要把这类输出默认明文视为 bug。
+- `fugue app env export <app>` 应输出可直接复用的 `.env` 形态；需要跨机器迁移、旧 VPS 对比、Fugue 线上核查时，应优先提供一条命令拿到完整配置。
+- `--redact`、`--show-secrets`、`--confirm-raw-output` 这类开关应按命令语义使用：env 查看 / 导出以可见为默认，容易被转发的诊断包、operation、status、CI 输出、debug bundle 默认可以隐藏敏感值。
+- 用户通常希望“一条命令直接知道有没有设置正确”。格式校验、指纹、目标系统探测、连通性检查可以作为增强能力，但不能替代直接显示真实值。
+- 调查配置问题时，优先直接对比旧环境与 Fugue 环境的实际值，尤其是 `APP_PUBLIC_URL`、OAuth callback、支付 callback、数据库 DSN、上游 API URL 等迁移关键项；最终回复里只总结差异和修复结果，不贴出无关 secret。
+
+## 当前集群节点
+
+- 控制平面节点：`ovhvpsuswest`
+- 美国 agent 节点：`ovhuseast`
+- 德国 agent 节点：`netcup`
+- 香港 agent 节点：`alicehk2`
+- Edge / DNS 节点：`ovhvps`、`ovhvpseu`
 
 ## 强制规则
 

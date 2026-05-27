@@ -693,6 +693,25 @@ export interface paths {
         patch: operations["patchProject"];
         trace?: never;
     };
+    "/v1/projects/{id}/routes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Project Route Table */
+        get: operations["getProjectRoutes"];
+        /** Replace Project Route Table */
+        put: operations["putProjectRoutes"];
+        post?: never;
+        /** Delete Project Route Table */
+        delete: operations["deleteProjectRoutes"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/projects/{id}/split-plan": {
         parameters: {
             query?: never;
@@ -2082,6 +2101,93 @@ export interface paths {
         put?: never;
         /** Query App Database */
         post: operations["queryAppDatabase"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/apps/{id}/database/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get App Database Import Status */
+        get: operations["getAppDatabaseImport"];
+        put?: never;
+        /** Import App Database */
+        post: operations["importAppDatabase"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/apps/{id}/database/import/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry App Database Import */
+        post: operations["retryAppDatabaseImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/apps/{id}/database/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List App Database Access Grants */
+        get: operations["listAppDatabaseAccessGrants"];
+        put?: never;
+        /** Create App Database Access Grant */
+        post: operations["createAppDatabaseAccessGrant"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/apps/{id}/database/access/{grant_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke App Database Access Grant */
+        delete: operations["revokeAppDatabaseAccessGrant"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/apps/{id}/database/access/{grant_id}/tunnel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Connect App Database Access Tunnel */
+        get: operations["connectAppDatabaseAccessTunnel"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -4768,6 +4874,54 @@ export interface components {
             domain?: string;
             routes?: components["schemas"]["TopologyEntrypointRoute"][];
         };
+        ProjectRouteDomain: {
+            name?: string;
+            hostname?: string;
+            host?: string;
+            tls?: string;
+            owner_service?: string;
+            owner_app_id?: string;
+        };
+        ProjectRouteEntrypointRoute: {
+            path?: string;
+            path_prefix?: string;
+            service?: string;
+            app_id?: string;
+            strip_prefix?: boolean;
+            rewrite?: string;
+        };
+        ProjectRouteEntrypoint: {
+            name?: string;
+            domain?: string;
+            routes?: components["schemas"]["ProjectRouteEntrypointRoute"][];
+        };
+        ProjectRouteBinding: {
+            hostname?: string;
+            path_prefix?: string;
+            public_url?: string;
+            domain_name?: string;
+            entrypoint_name?: string;
+            service?: string;
+            app_id?: string;
+            app_name?: string;
+            /** Format: int32 */
+            service_port?: number;
+            tls?: string;
+            strip_prefix?: boolean;
+            rewrite?: string;
+        };
+        ProjectRouteTable: {
+            tenant_id: string;
+            project_id: string;
+            domains: components["schemas"]["ProjectRouteDomain"][];
+            entrypoints: components["schemas"]["ProjectRouteEntrypoint"][];
+            bindings: components["schemas"]["ProjectRouteBinding"][];
+            legacy?: boolean;
+            /** Format: date-time */
+            created_at?: string;
+            /** Format: date-time */
+            updated_at?: string;
+        };
         ImportServiceDetail: {
             service: string;
             kind: string;
@@ -4818,6 +4972,19 @@ export interface components {
         };
         ProjectResponse: {
             project: components["schemas"]["Project"];
+        };
+        PutProjectRouteTableRequest: {
+            domains?: components["schemas"]["ProjectRouteDomain"][];
+            entrypoints?: components["schemas"]["ProjectRouteEntrypoint"][];
+        };
+        ProjectRouteTableResponse: {
+            project: components["schemas"]["Project"];
+            route_table: components["schemas"]["ProjectRouteTable"];
+        };
+        ProjectRouteTableDeleteResponse: {
+            project: components["schemas"]["Project"];
+            route_table: components["schemas"]["ProjectRouteTable"];
+            deleted: boolean;
         };
         ProjectMovePlanResponse: {
             plan: components["schemas"]["ProjectMovePlan"];
@@ -6664,6 +6831,99 @@ export interface components {
             status: components["schemas"]["ManagedPostgresStatus"];
             app: components["schemas"]["App"];
         };
+        AppDatabaseImportMultipartRequest: {
+            request: components["schemas"]["AppDatabaseImportRequest"];
+            /**
+             * Format: binary
+             * @description PostgreSQL dump file to import. Fugue accepts plain SQL, custom-format dumps, and gzip-compressed variants.
+             */
+            dump: string;
+        };
+        AppDatabaseImportRequest: {
+            label?: string;
+            clean?: boolean;
+            /** @enum {string} */
+            format?: "auto" | "sql" | "custom";
+        };
+        AppDatabaseImportJobLog: {
+            /** Format: date-time */
+            at: string;
+            message: string;
+        };
+        AppDatabaseImportJob: {
+            id: string;
+            app_id: string;
+            tenant_id: string;
+            source_upload_id: string;
+            source_upload_filename?: string;
+            source_upload_sha256?: string;
+            label?: string;
+            format?: string;
+            clean?: boolean;
+            status: string;
+            result_message?: string;
+            error_message?: string;
+            /** Format: int32 */
+            retry_count: number;
+            retry_of_job_id?: string;
+            requested_by_type?: string;
+            requested_by_id?: string;
+            logs?: components["schemas"]["AppDatabaseImportJobLog"][];
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: date-time */
+            started_at?: string;
+            /** Format: date-time */
+            completed_at?: string;
+        };
+        AppDatabaseImportResponse: {
+            app: components["schemas"]["App"];
+            job?: components["schemas"]["AppDatabaseImportJob"];
+        };
+        AppDatabaseImportRetryRequest: {
+            job_id?: string;
+        };
+        AppDatabaseAccessGrant: {
+            id: string;
+            app_id: string;
+            tenant_id: string;
+            label: string;
+            mode: string;
+            status: string;
+            token_prefix: string;
+            /** Format: date-time */
+            expires_at?: string;
+            /** Format: date-time */
+            revoked_at?: string;
+            /** Format: date-time */
+            last_used_at?: string;
+            requested_by_type?: string;
+            requested_by_id?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        AppDatabaseAccessGrantCreateRequest: {
+            label?: string;
+            /** @enum {string} */
+            mode?: "read-write";
+            /** Format: int32 */
+            expires_in_minutes?: number;
+        };
+        AppDatabaseAccessGrantCreateResponse: {
+            grant: components["schemas"]["AppDatabaseAccessGrant"];
+            secret: string;
+        };
+        AppDatabaseAccessResponse: {
+            app: components["schemas"]["App"];
+            grants: components["schemas"]["AppDatabaseAccessGrant"][];
+        };
+        AppDatabaseAccessRevokeResponse: {
+            removed: boolean;
+        };
         DNSFullZonePreflight: {
             zone?: string;
             pass?: boolean;
@@ -7910,6 +8170,79 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProjectResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getProjectRoutes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectRouteTableResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    putProjectRoutes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PutProjectRouteTableRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectRouteTableResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    deleteProjectRoutes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectRouteTableDeleteResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
@@ -10454,6 +10787,181 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["AppDatabaseQueryResponse"];
                 };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getAppDatabaseImport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppDatabaseImportResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    importAppDatabase: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["AppDatabaseImportMultipartRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppDatabaseImportResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    retryAppDatabaseImport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["AppDatabaseImportRetryRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppDatabaseImportResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    listAppDatabaseAccessGrants: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppDatabaseAccessResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    createAppDatabaseAccessGrant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["AppDatabaseAccessGrantCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppDatabaseAccessGrantCreateResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    revokeAppDatabaseAccessGrant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+                grant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppDatabaseAccessRevokeResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    connectAppDatabaseAccessTunnel: {
+        parameters: {
+            query: {
+                token: string;
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+                grant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Switching Protocols */
+            101: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             default: components["responses"]["ErrorResponse"];
         };

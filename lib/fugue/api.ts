@@ -304,6 +304,76 @@ function buildTopologyEntrypointView(
   };
 }
 
+function buildProjectRouteDomainView(
+  domain: CamelizedSchema<"ProjectRouteDomain">,
+) {
+  return {
+    host: readNullableString(domain.host),
+    hostname: readNullableString(domain.hostname),
+    name: readNullableString(domain.name),
+    ownerAppId: readNullableString(domain.ownerAppId),
+    ownerService: readNullableString(domain.ownerService),
+    tls: readNullableString(domain.tls),
+  };
+}
+
+function buildProjectRouteEntrypointRouteView(
+  route: CamelizedSchema<"ProjectRouteEntrypointRoute">,
+) {
+  return {
+    appId: readNullableString(route.appId),
+    path: readNullableString(route.path),
+    pathPrefix: readNullableString(route.pathPrefix),
+    rewrite: readNullableString(route.rewrite),
+    service: readNullableString(route.service),
+    stripPrefix: route.stripPrefix ?? false,
+  };
+}
+
+function buildProjectRouteEntrypointView(
+  entrypoint: CamelizedSchema<"ProjectRouteEntrypoint">,
+) {
+  return {
+    domain: readNullableString(entrypoint.domain),
+    name: readNullableString(entrypoint.name),
+    routes: (entrypoint.routes ?? []).map(buildProjectRouteEntrypointRouteView),
+  };
+}
+
+function buildProjectRouteBindingView(
+  binding: CamelizedSchema<"ProjectRouteBinding">,
+) {
+  return {
+    appId: readNullableString(binding.appId),
+    appName: readNullableString(binding.appName),
+    domainName: readNullableString(binding.domainName),
+    entrypointName: readNullableString(binding.entrypointName),
+    hostname: readNullableString(binding.hostname),
+    pathPrefix: readNullableString(binding.pathPrefix),
+    publicUrl: readNullableString(binding.publicUrl),
+    rewrite: readNullableString(binding.rewrite),
+    service: readNullableString(binding.service),
+    servicePort: readNullableNumber(binding.servicePort),
+    stripPrefix: binding.stripPrefix ?? false,
+    tls: readNullableString(binding.tls),
+  };
+}
+
+function buildProjectRouteTableView(
+  table: CamelizedSchema<"ProjectRouteTable">,
+) {
+  return {
+    bindings: (table.bindings ?? []).map(buildProjectRouteBindingView),
+    createdAt: readNullableString(table.createdAt),
+    domains: (table.domains ?? []).map(buildProjectRouteDomainView),
+    entrypoints: (table.entrypoints ?? []).map(buildProjectRouteEntrypointView),
+    legacy: table.legacy ?? false,
+    projectId: readNullableString(table.projectId),
+    tenantId: readNullableString(table.tenantId),
+    updatedAt: readNullableString(table.updatedAt),
+  };
+}
+
 function buildImportServiceDetailView(
   service: CamelizedSchema<"ImportServiceDetail">,
 ) {
@@ -1482,6 +1552,29 @@ function buildProjectImageUsageResultView(
   };
 }
 
+function buildProjectRouteTableResultView(
+  response: CamelizedSchema<"ProjectRouteTableResponse">,
+) {
+  return {
+    project: response.project ? buildProjectView(response.project) : null,
+    routeTable: response.routeTable
+      ? buildProjectRouteTableView(response.routeTable)
+      : null,
+  };
+}
+
+function buildProjectRouteTableDeleteResultView(
+  response: CamelizedSchema<"ProjectRouteTableDeleteResponse">,
+) {
+  return {
+    deleted: response.deleted ?? false,
+    project: response.project ? buildProjectView(response.project) : null,
+    routeTable: response.routeTable
+      ? buildProjectRouteTableView(response.routeTable)
+      : null,
+  };
+}
+
 function buildAppRouteAvailabilityResultView(
   response: CamelizedSchema<"AppRouteAvailabilityResponse">,
 ) {
@@ -1951,6 +2044,15 @@ export type FugueProjectImageUsageSummary = ReturnType<
 >;
 export type FugueProjectImageUsageResult = ReturnType<
   typeof buildProjectImageUsageResultView
+>;
+export type FugueProjectRouteTable = ReturnType<
+  typeof buildProjectRouteTableView
+>;
+export type FugueProjectRouteTableResult = ReturnType<
+  typeof buildProjectRouteTableResultView
+>;
+export type FugueProjectRouteTableDeleteResult = ReturnType<
+  typeof buildProjectRouteTableDeleteResultView
 >;
 
 export async function createFugueTenant(
@@ -2627,6 +2729,65 @@ export async function getFugueProjectImageUsage(accessToken: string) {
   );
 
   return buildProjectImageUsageResultView(response);
+}
+
+export async function getFugueProjectRouteTable(
+  accessToken: string,
+  projectId: string,
+) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/projects/${encodeURIComponent(projectId)}/routes`,
+      client.GET("/v1/projects/{id}/routes", {
+        params: {
+          path: { id: projectId },
+        },
+      }),
+    ),
+  );
+
+  return buildProjectRouteTableResultView(response);
+}
+
+export async function putFugueProjectRouteTable(
+  accessToken: string,
+  projectId: string,
+  payload: components["schemas"]["PutProjectRouteTableRequest"],
+) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/projects/${encodeURIComponent(projectId)}/routes`,
+      client.PUT("/v1/projects/{id}/routes", {
+        body: payload,
+        params: {
+          path: { id: projectId },
+        },
+      }),
+    ),
+  );
+
+  return buildProjectRouteTableResultView(response);
+}
+
+export async function deleteFugueProjectRouteTable(
+  accessToken: string,
+  projectId: string,
+) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/projects/${encodeURIComponent(projectId)}/routes`,
+      client.DELETE("/v1/projects/{id}/routes", {
+        params: {
+          path: { id: projectId },
+        },
+      }),
+    ),
+  );
+
+  return buildProjectRouteTableDeleteResultView(response);
 }
 
 export async function getFugueApiKeys(accessToken: string) {

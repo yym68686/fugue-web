@@ -7750,6 +7750,81 @@
   white-space: nowrap;
 }
 
+.fg-route-table {
+  gap: 0.9rem;
+}
+
+.fg-route-table__scroll {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.9rem;
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.fg-route-table__grid {
+  width: 100%;
+  min-width: 42rem;
+  border-collapse: collapse;
+  color: var(--fugue-text-secondary);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.fg-route-table__grid th,
+.fg-route-table__grid td {
+  padding: 0.68rem 0.8rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  text-align: left;
+  vertical-align: top;
+}
+
+.fg-route-table__grid th {
+  color: var(--fugue-text-tertiary);
+  font-family: var(--fugue-font-mono);
+  font-size: 0.66rem;
+  font-weight: 600;
+}
+
+.fg-route-table__grid td {
+  font-family: var(--fugue-font-mono);
+  overflow-wrap: anywhere;
+}
+
+.fg-route-table__grid tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.fg-route-table__empty,
+.fg-route-table__error {
+  margin: 0;
+}
+
+.fg-route-table__editor-stack {
+  gap: 0.42rem;
+  width: min(100%, 52rem);
+}
+
+.fg-route-table__editor {
+  width: 100%;
+  min-height: 15rem;
+  resize: vertical;
+  padding: 0.82rem 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.95rem;
+  background: rgba(7, 10, 14, 0.72);
+  color: var(--fugue-text-primary);
+  font-family: var(--fugue-font-mono);
+  font-size: 0.76rem;
+  line-height: 1.55;
+}
+
+.fg-route-table__editor:focus-visible {
+  outline: 2px solid var(--fugue-focus-ring);
+  outline-offset: 3px;
+  border-color: transparent;
+}
+
 .fg-domain-panel {
   gap: 0.85rem;
 }
