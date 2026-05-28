@@ -72,6 +72,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search Resources */
+        get: operations["searchResources"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/edge/tls/ask": {
         parameters: {
             query?: never;
@@ -3017,6 +3034,440 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/data/backends": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Data Backends */
+        get: operations["listDataBackends"];
+        put?: never;
+        /** Create Data Backend */
+        post: operations["createDataBackend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/data/backends/{backend_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Data Backend */
+        get: operations["getDataBackend"];
+        put?: never;
+        post?: never;
+        /** Delete Data Backend */
+        delete: operations["deleteDataBackend"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/data/backends/{backend_id}/credentials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Rotate Data Backend Credentials */
+        post: operations["rotateDataBackendCredentials"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/data/workspaces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Data Workspaces */
+        get: operations["listDataWorkspaces"];
+        put?: never;
+        /** Create Data Workspace */
+        post: operations["createDataWorkspace"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/data/workspaces/{workspace_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Data Workspace */
+        get: operations["getDataWorkspace"];
+        put?: never;
+        post?: never;
+        /** Delete Data Workspace */
+        delete: operations["deleteDataWorkspace"];
+        options?: never;
+        head?: never;
+        /** Patch Data Workspace */
+        patch: operations["patchDataWorkspace"];
+        trace?: never;
+    };
+    "/v1/data/workspaces/{workspace_id}/snapshots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Data Snapshots */
+        get: operations["listDataSnapshots"];
+        put?: never;
+        /** Create Data Snapshot */
+        post: operations["createDataSnapshot"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/data/workspaces/{workspace_id}/snapshots/{snapshot_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Data Snapshot */
+        get: operations["getDataSnapshot"];
+        put?: never;
+        post?: never;
+        /** Delete Data Snapshot */
+        delete: operations["deleteDataSnapshot"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/data/workspaces/{workspace_id}/transfers/plan-upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Plan Data Upload */
+        post: operations["planDataUpload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/data/workspaces/{workspace_id}/transfers/plan-download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Plan Data Download */
+        post: operations["planDataDownload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/data/workspaces/{workspace_id}/prewarm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Data Prewarm */
+        post: operations["createDataPrewarm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/data/workspaces/{workspace_id}/grants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Data Grants */
+        get: operations["listDataGrants"];
+        put?: never;
+        /** Create Data Grant */
+        post: operations["createDataGrant"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/data/workspaces/{workspace_id}/gc/sweep": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sweep Data Workspace GC */
+        post: operations["sweepDataWorkspaceGC"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/data/workspaces/{workspace_id}/backend-migrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Data Backend Migration */
+        post: operations["createDataBackendMigration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/data/workspaces/{workspace_id}/backend-migrations/{transfer_id}/rollback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Rollback Data Backend Migration */
+        post: operations["rollbackDataBackendMigration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/data/transfers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Data Transfers */
+        get: operations["listDataTransfers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/data/transfers/{transfer_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Data Transfer */
+        get: operations["getDataTransfer"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/data/transfers/{transfer_id}/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Refresh Data Transfer Authorization */
+        post: operations["refreshDataTransferAuthorization"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/data/transfers/{transfer_id}/checkpoint": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Checkpoint Data Transfer */
+        post: operations["checkpointDataTransfer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/data/transfers/{transfer_id}/multipart/parts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Data Multipart Parts */
+        get: operations["listDataMultipartParts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/data/transfers/{transfer_id}/multipart/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Complete Data Multipart Upload */
+        post: operations["completeDataMultipartUpload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/data/transfers/{transfer_id}/multipart/abort": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Abort Data Multipart Upload */
+        post: operations["abortDataMultipartUpload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/data/transfers/{transfer_id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Complete Data Transfer */
+        post: operations["completeDataTransfer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/data/transfers/{transfer_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Data Transfer */
+        post: operations["cancelDataTransfer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/data/grants/{grant_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke Data Grant */
+        delete: operations["revokeDataGrant"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/data/blobs/{sha256}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Data Blob */
+        get: operations["getDataBlob"];
+        /** Put Data Blob */
+        put: operations["putDataBlob"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3029,6 +3480,203 @@ export interface components {
             details?: {
                 [key: string]: unknown;
             };
+        };
+        DataAsset: {
+            name?: string;
+            path?: string;
+            materialize_path?: string;
+            mode?: string;
+            required?: boolean;
+            include?: string[];
+            ignore?: string[];
+        };
+        DataManifestEntry: {
+            asset_name: string;
+            relative_path: string;
+            /** @enum {string} */
+            kind: "file" | "dir" | "symlink";
+            /** Format: int64 */
+            size?: number;
+            /** Format: int64 */
+            mode?: number;
+            /** Format: date-time */
+            mtime?: string;
+            sha256?: string;
+            object_key?: string;
+            etag?: string;
+            link_target?: string;
+        };
+        DataManifest: {
+            workspace_id?: string;
+            snapshot_id?: string;
+            digest?: string;
+            /** Format: int32 */
+            file_count?: number;
+            /** Format: int64 */
+            total_bytes?: number;
+            entries?: components["schemas"]["DataManifestEntry"][];
+        };
+        DataTransferPart: {
+            /** Format: int32 */
+            part_number: number;
+            /** Format: int64 */
+            offset?: number;
+            /** Format: int64 */
+            size?: number;
+            upload_url?: string;
+            download_url?: string;
+            etag?: string;
+            completed?: boolean;
+            /** Format: date-time */
+            expires_at?: string;
+        };
+        DataTransferPlanBlob: {
+            sha256: string;
+            /** Format: int64 */
+            size: number;
+            object_key: string;
+            upload_url?: string;
+            download_url?: string;
+            /** @enum {string} */
+            upload_mode?: "single" | "multipart";
+            upload_id?: string;
+            /** Format: int64 */
+            part_size?: number;
+            parts?: components["schemas"]["DataTransferPart"][];
+            exists: boolean;
+            /** Format: date-time */
+            expires_at?: string;
+        };
+        DataBackendCredentials: {
+            access_key_id?: string;
+            secret_access_key?: string;
+            token?: string;
+        };
+        DataBackendCreateRequest: {
+            tenant_id?: string;
+            name: string;
+            /** @enum {string} */
+            provider: "fugue-managed" | "cloudflare-r2" | "backblaze-b2" | "s3" | "hugging-face" | "minio";
+            bucket?: string;
+            region?: string;
+            endpoint?: string;
+            base_url?: string;
+            prefix?: string;
+            credentials?: components["schemas"]["DataBackendCredentials"];
+        };
+        DataBackendCredentialRotationRequest: {
+            credentials: components["schemas"]["DataBackendCredentials"];
+        };
+        DataWorkspaceCreateRequest: {
+            tenant_id?: string;
+            project_id?: string;
+            name: string;
+            default_region?: string;
+            storage_backend_id?: string;
+            /** Format: int64 */
+            quota_bytes?: number;
+            assets?: components["schemas"]["DataAsset"][];
+        };
+        DataWorkspacePatchRequest: {
+            project_id?: string;
+            name?: string;
+            default_region?: string;
+            storage_backend_id?: string;
+            /** Format: int64 */
+            quota_bytes?: number;
+            assets?: components["schemas"]["DataAsset"][];
+        };
+        DataSnapshotCreateRequest: {
+            version: string;
+            message?: string;
+            manifest: components["schemas"]["DataManifest"];
+        };
+        DataUploadPlanRequest: {
+            version?: string;
+            message?: string;
+            manifest: components["schemas"]["DataManifest"];
+        };
+        DataDownloadPlanRequest: {
+            version?: string;
+            assets?: string[];
+        };
+        DataPrewarmRequest: {
+            version?: string;
+            runtime_id?: string;
+            assets?: string[];
+        };
+        DataTransferCompleteRequest: {
+            snapshot_id?: string;
+            version?: string;
+            message?: string;
+            manifest?: components["schemas"]["DataManifest"];
+            /** Format: int64 */
+            bytes_done?: number;
+            /** Format: int32 */
+            files_done?: number;
+            error_code?: string;
+            error_message?: string;
+        };
+        DataTransferCheckpointRequest: {
+            /** Format: int64 */
+            bytes_done?: number;
+            /** Format: int32 */
+            files_done?: number;
+            blobs?: components["schemas"]["DataTransferPlanBlob"][];
+        };
+        DataMultipartCompleteRequest: {
+            sha256: string;
+            upload_id?: string;
+            parts: components["schemas"]["DataTransferPart"][];
+        };
+        DataMultipartAbortRequest: {
+            sha256: string;
+            upload_id?: string;
+        };
+        DataGrantCreateRequest: {
+            snapshot_id?: string;
+            asset_name?: string;
+            /** @enum {string} */
+            mode?: "read-only" | "read-write";
+            /** Format: int32 */
+            expires_in_minutes?: number;
+        };
+        DataGCSweepRequest: {
+            dry_run?: boolean;
+            confirm?: boolean;
+            /** Format: int32 */
+            retention_days?: number;
+        };
+        DataGCSweepCandidate: {
+            key?: string;
+            /** Format: int64 */
+            size?: number;
+            /** Format: int32 */
+            references?: number;
+            /** Format: date-time */
+            last_modified?: string;
+            reason?: string;
+        };
+        DataGCSweepResult: {
+            workspace_id?: string;
+            backend_id?: string;
+            dry_run?: boolean;
+            /** Format: int32 */
+            retention_days?: number;
+            /** Format: date-time */
+            cutoff?: string;
+            /** Format: int32 */
+            scanned?: number;
+            /** Format: int32 */
+            deleted?: number;
+            /** Format: int64 */
+            deleted_bytes?: number;
+            candidates?: components["schemas"]["DataGCSweepCandidate"][];
+        };
+        DataBackendMigrationRequest: {
+            target_backend_id: string;
+            dry_run?: boolean;
+            cutover?: boolean;
         };
         AuthPrincipalContext: {
             actor_type: string;
@@ -4248,6 +4896,7 @@ export interface components {
             runtime_id?: string;
             files?: components["schemas"]["AppFile"][];
             workspace?: components["schemas"]["AppWorkspaceSpec"];
+            data?: components["schemas"]["AppDataMaterializationSpec"];
             persistent_storage?: components["schemas"]["AppPersistentStorageSpec"];
             volume_replication?: components["schemas"]["AppVolumeReplicationSpec"];
             postgres?: components["schemas"]["AppPostgresSpec"];
@@ -4259,6 +4908,55 @@ export interface components {
         AppNetworkPolicySpec: {
             egress?: components["schemas"]["AppNetworkPolicyDirectionSpec"];
             ingress?: components["schemas"]["AppNetworkPolicyDirectionSpec"];
+        };
+        AppDataMaterializationSpec: {
+            workspaces?: components["schemas"]["AppDataWorkspaceMaterialization"][];
+            prewarm?: boolean;
+            fail_on_missing?: boolean;
+            locality_hint?: string;
+            /** Format: int64 */
+            required_free_bytes?: number;
+            /** Format: int64 */
+            max_egress_bytes?: number;
+            /** Format: int64 */
+            estimated_egress_bytes?: number;
+            egress_estimate?: components["schemas"]["DataEgressEstimate"];
+        };
+        AppDataWorkspaceMaterialization: {
+            workspace_id?: string;
+            workspace?: string;
+            version?: string;
+            assets?: string[];
+            target_path?: string;
+            mode?: string;
+            required?: boolean;
+            locality_hint?: string;
+            /** Format: int64 */
+            estimated_egress_bytes?: number;
+        };
+        DataEgressEstimate: {
+            source_region?: string;
+            target_region?: string;
+            /** Format: int64 */
+            bytes?: number;
+            cross_region?: boolean;
+            /** Format: int64 */
+            estimated_micro_cents?: number;
+            provider_cost_available?: boolean;
+        };
+        DataMaterializationPlan: {
+            workspaces?: components["schemas"]["AppDataWorkspaceMaterialization"][];
+            /** Format: int64 */
+            required_bytes?: number;
+            /** Format: int64 */
+            required_free_bytes?: number;
+            /** Format: int64 */
+            available_bytes?: number;
+            disk_ok?: boolean;
+            locality_hint?: string;
+            /** Format: int64 */
+            estimated_egress_bytes?: number;
+            egress_estimate?: components["schemas"]["DataEgressEstimate"];
         };
         AppNetworkPolicyDirectionSpec: {
             mode?: components["schemas"]["AppNetworkPolicyMode"];
@@ -4330,6 +5028,7 @@ export interface components {
             status: string;
             endpoint?: string;
             labels?: components["schemas"]["StringMap"];
+            data_cache?: components["schemas"]["RuntimeDataCacheSpec"];
             node_key_id?: string;
             cluster_node_name?: string;
             fingerprint_prefix?: string;
@@ -4344,6 +5043,15 @@ export interface components {
             created_at: string;
             /** Format: date-time */
             updated_at: string;
+        };
+        RuntimeDataCacheSpec: {
+            enabled?: boolean;
+            root_path?: string;
+            /** Format: int64 */
+            max_bytes?: number;
+            /** Format: int64 */
+            reserve_free_bytes?: number;
+            locality_hints?: components["schemas"]["StringMap"];
         };
         RuntimeAccessGrant: {
             runtime_id: string;
@@ -4960,6 +5668,37 @@ export interface components {
         };
         TenantListResponse: {
             tenants: components["schemas"]["Tenant"][];
+        };
+        SearchResult: {
+            kind: string;
+            id: string;
+            name?: string;
+            tenant_id?: string;
+            tenant_name?: string;
+            project_id?: string;
+            project_name?: string;
+            app_id?: string;
+            app_name?: string;
+            public_url?: string;
+            status?: string;
+            type?: string;
+            runtime_id?: string;
+            runtime_name?: string;
+            ref?: string;
+            summary?: string;
+            /** Format: int32 */
+            score: number;
+            matched_fields?: string[];
+            labels?: {
+                [key: string]: string;
+            };
+        };
+        SearchResponse: {
+            query: string;
+            types?: string[];
+            results: components["schemas"]["SearchResult"][];
+            /** Format: int32 */
+            limit: number;
         };
         TenantResponse: {
             tenant: components["schemas"]["Tenant"];
@@ -6983,6 +7722,9 @@ export interface components {
         PreviousQueryParam: boolean;
         RecursiveQueryParam: boolean;
         IdempotencyKeyHeader: string;
+        DataWorkspaceIdPathParam: string;
+        DataSnapshotIdPathParam: string;
+        DataTransferIdPathParam: string;
     };
     requestBodies: never;
     headers: never;
@@ -7073,6 +7815,32 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuthContextResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    searchResources: {
+        parameters: {
+            query: {
+                q: string;
+                /** @description Comma-separated resource kinds to search. Defaults to tenant, project, app, domain, service, runtime, operation. */
+                types?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
@@ -9667,6 +10435,11 @@ export interface operations {
     listApps: {
         parameters: {
             query?: {
+                tenant_id?: components["parameters"]["TenantIdQueryParam"];
+                project_id?: string;
+                q?: string;
+                domain?: string;
+                source_ref?: string;
                 /** @description When true, attempt the managed app live status overlay; defaults to false. */
                 include_live_status?: boolean;
                 /** @description When false, skip the current resource usage overlay. */
@@ -12418,6 +13191,927 @@ export interface operations {
                 "application/json": {
                     [key: string]: unknown;
                 };
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    listDataBackends: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    createDataBackend: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DataBackendCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getDataBackend: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                backend_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    deleteDataBackend: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                backend_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    rotateDataBackendCredentials: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                backend_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DataBackendCredentialRotationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    listDataWorkspaces: {
+        parameters: {
+            query?: {
+                tenant_id?: components["parameters"]["TenantIdQueryParam"];
+                project_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    createDataWorkspace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DataWorkspaceCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getDataWorkspace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: components["parameters"]["DataWorkspaceIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    deleteDataWorkspace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: components["parameters"]["DataWorkspaceIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    patchDataWorkspace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: components["parameters"]["DataWorkspaceIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DataWorkspacePatchRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    listDataSnapshots: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: components["parameters"]["DataWorkspaceIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    createDataSnapshot: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: components["parameters"]["DataWorkspaceIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DataSnapshotCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getDataSnapshot: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: components["parameters"]["DataWorkspaceIdPathParam"];
+                snapshot_id: components["parameters"]["DataSnapshotIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    deleteDataSnapshot: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: components["parameters"]["DataWorkspaceIdPathParam"];
+                snapshot_id: components["parameters"]["DataSnapshotIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    planDataUpload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: components["parameters"]["DataWorkspaceIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DataUploadPlanRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    planDataDownload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: components["parameters"]["DataWorkspaceIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DataDownloadPlanRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    createDataPrewarm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: components["parameters"]["DataWorkspaceIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DataPrewarmRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    listDataGrants: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: components["parameters"]["DataWorkspaceIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    createDataGrant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: components["parameters"]["DataWorkspaceIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DataGrantCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    sweepDataWorkspaceGC: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: components["parameters"]["DataWorkspaceIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DataGCSweepRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    createDataBackendMigration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: components["parameters"]["DataWorkspaceIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DataBackendMigrationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    rollbackDataBackendMigration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: components["parameters"]["DataWorkspaceIdPathParam"];
+                transfer_id: components["parameters"]["DataTransferIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    listDataTransfers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getDataTransfer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                transfer_id: components["parameters"]["DataTransferIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    refreshDataTransferAuthorization: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                transfer_id: components["parameters"]["DataTransferIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    checkpointDataTransfer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                transfer_id: components["parameters"]["DataTransferIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DataTransferCheckpointRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    listDataMultipartParts: {
+        parameters: {
+            query: {
+                sha256: string;
+            };
+            header?: never;
+            path: {
+                transfer_id: components["parameters"]["DataTransferIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    completeDataMultipartUpload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                transfer_id: components["parameters"]["DataTransferIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DataMultipartCompleteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    abortDataMultipartUpload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                transfer_id: components["parameters"]["DataTransferIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DataMultipartAbortRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    completeDataTransfer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                transfer_id: components["parameters"]["DataTransferIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DataTransferCompleteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    cancelDataTransfer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                transfer_id: components["parameters"]["DataTransferIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    revokeDataGrant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                grant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getDataBlob: {
+        parameters: {
+            query: {
+                /** @description Planned download transfer that authorizes this blob read. */
+                transfer_id: string;
+            };
+            header?: {
+                /** @description Optional byte range for resumable downloads. */
+                Range?: string;
+            };
+            path: {
+                sha256: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    "Accept-Ranges"?: string;
+                    "X-Fugue-Data-SHA256"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    putDataBlob: {
+        parameters: {
+            query: {
+                /** @description Planned upload transfer that authorizes this blob write. */
+                transfer_id: string;
+            };
+            header?: never;
+            path: {
+                sha256: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
             };
         };
         responses: {
