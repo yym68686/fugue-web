@@ -1504,7 +1504,7 @@ Fugue 在 job 启动前执行：
 - [x] 可跳过的真实 Cloudflare R2 multipart resume 集成测试入口
 - [x] 用真实 Cloudflare R2 凭证跑通集成测试：`FUGUE_DATA_INTEGRATION_R2=1 go test ./internal/api -run TestCloudflareR2MultipartResumeIntegration -count=1`
 - [x] 用真实 Cloudflare R2 凭证跑通 CLI push/pull 端到端集成测试：`FUGUE_DATA_INTEGRATION_R2=1 go test ./internal/cli -run TestCloudflareR2DataWorkspacePushPullIntegration -count=1`
-- [ ] production control plane 发布、tag、GitHub Actions 构建和本地 CLI 更新
+- [x] production control plane 发布、tag、GitHub Actions 构建和本地 CLI 更新
 
 ### 产品和 DX
 
