@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import {
+  createDefaultApiKeyForEmail,
   getApiKeyPageData,
 } from "@/lib/api-keys/service";
 import { getCurrentSession } from "@/lib/auth/session";
@@ -80,10 +81,9 @@ export async function POST() {
 
   try {
     await ensureAppUser(session);
-    return jsonError(
-      403,
-      "Admin access key is provisioned automatically. Create node keys instead.",
-    );
+    const created = await createDefaultApiKeyForEmail(session.email);
+
+    return NextResponse.json(created);
   } catch (error) {
     return jsonError(readErrorStatus(error), readErrorMessage(error));
   }

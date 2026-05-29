@@ -126,6 +126,22 @@ function upsertKey(keys: ApiKeyRecord[], nextKey: ApiKeyRecord) {
   ]);
 }
 
+function applyWorkspaceAdminControls(keys: ApiKeyRecord[], workspaceAdminKeyId: string) {
+  return sortKeys(
+    keys.map((key) => {
+      if (!key.isWorkspaceAdmin) {
+        return key;
+      }
+
+      return {
+        ...key,
+        canDelete: key.id !== workspaceAdminKeyId && key.status !== "deleted",
+        canDisable: false,
+      };
+    }),
+  );
+}
+
 export function ApiKeyManager({
   availableScopes,
   initialKeys,
@@ -144,7 +160,9 @@ export function ApiKeyManager({
   const { showToast } = useToast();
   const copyInFlightRef = useRef<string | null>(null);
   const didRefreshInitialStaleRef = useRef(false);
-  const [keys, setKeys] = useState(initialKeys);
+  const [keys, setKeys] = useState(() =>
+    applyWorkspaceAdminControls(initialKeys, initialWorkspaceAdminKeyId),
+  );
   const [scopeCatalog, setScopeCatalog] = useState(() => sortFugueScopes(availableScopes));
   const [syncError, setSyncError] = useState<string | null>(initialSyncError);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -169,7 +187,7 @@ export function ApiKeyManager({
   }, [initialSyncError, showToast, t]);
 
   useEffect(() => {
-    setKeys(sortKeys(initialKeys));
+    setKeys(applyWorkspaceAdminControls(initialKeys, initialWorkspaceAdminKeyId));
     setScopeCatalog(sortFugueScopes(availableScopes));
     setSyncError(initialSyncError);
     setWorkspaceAdminKeyId(initialWorkspaceAdminKeyId);
@@ -181,7 +199,7 @@ export function ApiKeyManager({
   ]);
 
   function syncLocalState(data: ApiKeyPagePayload) {
-    setKeys(sortKeys(data.keys));
+    setKeys(applyWorkspaceAdminControls(data.keys, data.workspace.adminKeyId));
     setScopeCatalog(sortFugueScopes(data.availableScopes));
     setSyncError(data.syncError);
     setWorkspaceAdminKeyId(data.workspace.adminKeyId);
@@ -278,6 +296,56 @@ export function ApiKeyManager({
     }
   }
 
+  async function handleCreateAdminKey() {
+    if (busyAction || copyInFlightRef.current) {
+      return;
+    }
+
+    setBusyAction("create-admin");
+
+    try {
+      const createRequest = requestJson<{
+        key: ApiKeyRecord;
+        secret: string;
+      }>("/api/fugue/api-keys", {
+        method: "POST",
+      });
+      const copiedPromise = copyText(createRequest.then((data) => data.secret));
+      const created = await createRequest;
+      const copied = await copiedPromise;
+      const nextKeys = applyWorkspaceAdminControls(
+        upsertKey(keys, created.key),
+        created.key.id,
+      );
+
+      setKeys(nextKeys);
+      setWorkspaceAdminKeyId(created.key.id);
+      setScopeCatalog(sortFugueScopes(created.key.scopes));
+      setSyncError(null);
+      setExpandedId(created.key.id);
+      syncApiKeysPageSnapshot({
+        availableScopes: created.key.scopes,
+        keys: nextKeys,
+        syncError: null,
+        workspaceAdminKeyId: created.key.id,
+      });
+
+      showToast({
+        message: copied
+          ? t("Admin key added and secret copied.")
+          : t("Admin key added. Copy the new secret now."),
+        variant: "success",
+      });
+    } catch (error) {
+      showToast({
+        message: readErrorMessage(error, t),
+        variant: "error",
+      });
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
   async function handleCopy(keyId: string) {
     if (busyAction || copyInFlightRef.current) {
       return;
@@ -348,7 +416,10 @@ export function ApiKeyManager({
       const copied = await copiedPromise;
 
       if (rotated.key.isWorkspaceAdmin) {
-        const nextKeys = upsertKey(keys, rotated.key);
+        const nextKeys = applyWorkspaceAdminControls(
+          upsertKey(keys, rotated.key),
+          rotated.key.id,
+        );
 
         setKeys(nextKeys);
         setWorkspaceAdminKeyId(rotated.key.id);
@@ -568,21 +639,38 @@ export function ApiKeyManager({
 
   return (
     <Panel>
-      {syncError ? (
-        <PanelSection>
+      <PanelSection>
+        <div className="fg-credential-section__head">
+          <div className="fg-credential-section__copy">
+            <strong>{t("Admin keys")}</strong>
+            <p>{t("Add a workspace admin key for another environment, or copy a stored secret.")}</p>
+          </div>
+
           <div className="fg-project-actions">
+            {syncError ? (
+              <InlineButton
+                blocked={Boolean(busyAction && busyAction !== "refresh")}
+                busy={busyAction === "refresh"}
+                busyLabel={t("Refreshing…")}
+                label={t("Refresh keys")}
+                onClick={() => {
+                  void handleRefresh();
+                }}
+              />
+            ) : null}
+
             <InlineButton
-              blocked={Boolean(busyAction && busyAction !== "refresh")}
-              busy={busyAction === "refresh"}
-              busyLabel={t("Refreshing…")}
-              label={t("Refresh keys")}
+              blocked={Boolean(busyAction && busyAction !== "create-admin")}
+              busy={busyAction === "create-admin"}
+              busyLabel={t("Creating…")}
+              label={t("Add admin key")}
               onClick={() => {
-                void handleRefresh();
+                void handleCreateAdminKey();
               }}
             />
           </div>
-        </PanelSection>
-      ) : null}
+        </div>
+      </PanelSection>
 
       <PanelSection>
         {keys.length ? (

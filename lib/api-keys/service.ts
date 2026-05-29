@@ -130,12 +130,22 @@ function filterVisibleApiKeysForWorkspace(
   keys: ApiKeyRecord[],
   workspace: NonNullable<Awaited<ReturnType<typeof getWorkspaceAccessByEmail>>>,
 ) {
-  return keys.filter((key) => {
+  return keys.flatMap((key) => {
     if (!key.isWorkspaceAdmin) {
-      return true;
+      return [key];
     }
 
-    return key.id === workspace.adminKeyId || key.secretStored;
+    if (key.id !== workspace.adminKeyId && !key.secretStored) {
+      return [];
+    }
+
+    return [
+      {
+        ...key,
+        canDelete: key.id !== workspace.adminKeyId && key.status !== "deleted",
+        canDisable: false,
+      },
+    ];
   });
 }
 
@@ -559,11 +569,14 @@ export async function deleteApiKeyForEmail(email: string, id: string) {
     throw new Error("Access key not found.");
   }
 
-  if (current.isWorkspaceAdmin) {
-    throw new Error("Workspace admin key cannot be deleted.");
+  if (current.isWorkspaceAdmin && current.id === workspace.adminKeyId) {
+    throw new Error("Current workspace admin key cannot be deleted.");
   }
 
-  await deleteFugueApiKey(workspace.adminKeySecret, id);
+  await deleteFugueApiKey(
+    readMutationAccessToken(current.isWorkspaceAdmin, workspace.adminKeySecret),
+    id,
+  );
   const deleted = await setApiKeyStatus(email, id, "deleted");
 
   if (!deleted) {

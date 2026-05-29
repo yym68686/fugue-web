@@ -513,11 +513,11 @@ export async function setApiKeyStatus(
     `
       UPDATE app_api_keys
       SET
-        status = $3,
-        secret_sealed = CASE WHEN $3 = 'deleted' THEN NULL ELSE secret_sealed END,
-        disabled_at = CASE WHEN $3 = 'disabled' THEN $4 ELSE NULL END,
-        deleted_at = CASE WHEN $3 = 'deleted' THEN $4 ELSE NULL END,
-        updated_at = $4
+        status = $3::text,
+        secret_sealed = CASE WHEN $3::text = 'deleted' THEN NULL ELSE secret_sealed END,
+        disabled_at = CASE WHEN $3::text = 'disabled' THEN $4::timestamptz ELSE NULL END,
+        deleted_at = CASE WHEN $3::text = 'deleted' THEN $4::timestamptz ELSE NULL END,
+        updated_at = $4::timestamptz
       WHERE user_email = $1
         AND fugue_key_id = $2
       RETURNING
