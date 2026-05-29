@@ -852,6 +852,16 @@ const zhCNExtraMessages = {
   "Delete access key?": "删除访问密钥？",
   "Delete apps without broad write access.":
     "在不授予广泛写权限的情况下删除应用。",
+  "Read data workspace metadata, versions, manifests, and download plans.":
+    "读取 data workspace 元数据、版本、manifest 和下载计划。",
+  "Create and update data workspaces, versions, uploads, and transfer checkpoints.":
+    "创建和更新 data workspace、版本、上传和传输检查点。",
+  "Delete data workspaces, versions, and retained objects.":
+    "删除 data workspace、版本和保留对象。",
+  "Create, list, and revoke temporary data workspace grants.":
+    "创建、查看和吊销临时 data workspace 授权。",
+  "Manage data storage backends, backend migrations, and retention sweeps.":
+    "管理数据存储后端、后端迁移和保留清理。",
   "Delete key": "删除密钥",
   "Dedicated VPS": "专用 VPS",
   "Dedicated VPS added.": "专用 VPS 已添加。",
@@ -2466,6 +2476,16 @@ const zhTWExtraMessages = {
   "Delete access key?": "刪除存取金鑰？",
   "Delete apps without broad write access.":
     "在不授予廣泛寫入權限的情況下刪除應用。",
+  "Read data workspace metadata, versions, manifests, and download plans.":
+    "讀取 data workspace 中繼資料、版本、manifest 和下載計畫。",
+  "Create and update data workspaces, versions, uploads, and transfer checkpoints.":
+    "建立和更新 data workspace、版本、上傳和傳輸檢查點。",
+  "Delete data workspaces, versions, and retained objects.":
+    "刪除 data workspace、版本和保留物件。",
+  "Create, list, and revoke temporary data workspace grants.":
+    "建立、查看和吊銷臨時 data workspace 授權。",
+  "Manage data storage backends, backend migrations, and retention sweeps.":
+    "管理資料儲存後端、後端遷移和保留清理。",
   "Delete key": "刪除金鑰",
   "Disabling…": "停用中…",
   "disabled": "已停用",

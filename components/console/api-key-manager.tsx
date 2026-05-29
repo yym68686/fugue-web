@@ -6,6 +6,7 @@ import { useI18n } from "@/components/providers/i18n-provider";
 import { InlineButton } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Panel, PanelSection } from "@/components/ui/panel";
+import { StatusBadge } from "@/components/console/status-badge";
 import { useToast } from "@/components/ui/toast";
 import type { TranslationValues } from "@/lib/i18n/core";
 import type { ApiKeyRecord } from "@/lib/api-keys/types";
@@ -129,17 +130,20 @@ export function ApiKeyManager({
   availableScopes,
   initialKeys,
   initialSyncError,
+  initialStale,
   initialWorkspaceAdminKeyId,
 }: {
   availableScopes: string[];
   initialKeys: ApiKeyRecord[];
   initialSyncError: string | null;
+  initialStale: boolean;
   initialWorkspaceAdminKeyId: string;
 }) {
   const { formatRelativeTime, t } = useI18n();
   const confirm = useConfirmDialog();
   const { showToast } = useToast();
   const copyInFlightRef = useRef<string | null>(null);
+  const didRefreshInitialStaleRef = useRef(false);
   const [keys, setKeys] = useState(initialKeys);
   const [scopeCatalog, setScopeCatalog] = useState(() => sortFugueScopes(availableScopes));
   const [syncError, setSyncError] = useState<string | null>(initialSyncError);
@@ -239,6 +243,15 @@ export function ApiKeyManager({
     return data;
   }
 
+  useEffect(() => {
+    if (!initialStale || didRefreshInitialStaleRef.current) {
+      return;
+    }
+
+    didRefreshInitialStaleRef.current = true;
+    void refreshKeys().catch(() => {});
+  }, [initialStale]);
+
   async function handleRefresh() {
     if (busyAction) {
       return;
@@ -335,10 +348,7 @@ export function ApiKeyManager({
       const copied = await copiedPromise;
 
       if (rotated.key.isWorkspaceAdmin) {
-        const nextKeys = upsertKey(
-          keys.filter((key) => !(key.isWorkspaceAdmin && key.id !== rotated.key.id)),
-          rotated.key,
-        );
+        const nextKeys = upsertKey(keys, rotated.key);
 
         setKeys(nextKeys);
         setWorkspaceAdminKeyId(rotated.key.id);
@@ -519,13 +529,13 @@ export function ApiKeyManager({
       const nextKeys = upsertKey(keys, updated.key);
 
       setKeys(nextKeys);
-      if (updated.key.isWorkspaceAdmin) {
+      if (updated.key.isWorkspaceAdmin && updated.key.id === workspaceAdminKeyId) {
         setScopeCatalog(sortFugueScopes(updated.key.scopes));
       }
       setSyncError(null);
       setExpandedId(updated.key.id);
       syncApiKeysPageSnapshot({
-        availableScopes: updated.key.isWorkspaceAdmin
+        availableScopes: updated.key.isWorkspaceAdmin && updated.key.id === workspaceAdminKeyId
           ? updated.key.scopes
           : scopeCatalog,
         keys: nextKeys,
@@ -579,6 +589,8 @@ export function ApiKeyManager({
           <div className="fg-api-key-list">
             {keys.map((record) => {
               const expanded = expandedId === record.id;
+              const isCurrentWorkspaceAdmin =
+                record.isWorkspaceAdmin && record.id === workspaceAdminKeyId;
               const permissionView =
                 permissionViewsByKeyId.get(record.id) ??
                 ({
@@ -613,6 +625,9 @@ export function ApiKeyManager({
                             ? t("Admin key")
                             : record.label}
                         </strong>
+                        {isCurrentWorkspaceAdmin ? (
+                          <StatusBadge tone="info">{t("Current key")}</StatusBadge>
+                        ) : null}
                       </div>
 
                       <p className="fg-api-key-item__meta">

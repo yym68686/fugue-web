@@ -88,6 +88,7 @@ export function ConsoleApiKeysPageShell({
         availableScopes={data.apiKeys.availableScopes}
         initialKeys={data.apiKeys.keys}
         initialSyncError={data.apiKeys.syncError}
+        initialStale={data.apiKeys.stale}
         initialWorkspaceAdminKeyId={data.apiKeys.workspace.adminKeyId}
       />
 

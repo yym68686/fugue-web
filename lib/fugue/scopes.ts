@@ -10,6 +10,11 @@ export const WORKSPACE_ADMIN_SCOPES = [
   "app.scale",
   "app.migrate",
   "app.delete",
+  "data.read",
+  "data.write",
+  "data.delete",
+  "data.grant",
+  "data.admin",
 ] as const;
 
 export const FUGUE_SCOPE_CATALOG = [
@@ -60,6 +65,26 @@ export const FUGUE_SCOPE_CATALOG = [
   {
     description: "Delete apps without broad write access.",
     value: "app.delete",
+  },
+  {
+    description: "Read data workspace metadata, versions, manifests, and download plans.",
+    value: "data.read",
+  },
+  {
+    description: "Create and update data workspaces, versions, uploads, and transfer checkpoints.",
+    value: "data.write",
+  },
+  {
+    description: "Delete data workspaces, versions, and retained objects.",
+    value: "data.delete",
+  },
+  {
+    description: "Create, list, and revoke temporary data workspace grants.",
+    value: "data.grant",
+  },
+  {
+    description: "Manage data storage backends, backend migrations, and retention sweeps.",
+    value: "data.admin",
   },
 ] as const;
 

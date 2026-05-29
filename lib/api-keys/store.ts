@@ -51,6 +51,8 @@ type SaveApiKeyInput = {
   tenantId: string;
 };
 
+const WORKSPACE_ADMIN_KEY_LABEL = "workspace-admin";
+
 function readOptionalString(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
@@ -92,6 +94,10 @@ function normalizeApiKeyStatus(status: string | null | undefined): ApiKeyStatus 
   return typeof status === "string" && status.trim().toLowerCase() === "disabled"
     ? "disabled"
     : "active";
+}
+
+function isWorkspaceAdminLabel(label: string) {
+  return label.trim().toLowerCase() === WORKSPACE_ADMIN_KEY_LABEL;
 }
 
 function recordFromRow(row: ApiKeyRow): ApiKeyRecord {
@@ -287,7 +293,7 @@ export async function syncApiKeysForWorkspace(input: SyncApiKeysInput) {
       await upsertVisibleApiKey(client, {
         apiKey,
         email: input.email,
-        source: "external",
+        source: isWorkspaceAdminLabel(apiKey.label) ? "workspace-admin" : "external",
         tenantId: input.tenantId,
       });
     }

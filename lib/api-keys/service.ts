@@ -102,6 +102,21 @@ function readAllowedScopesForKey(workspaceAdminScopes: string[], isWorkspaceAdmi
     : normalizeScopes(workspaceAdminScopes);
 }
 
+function readDesiredWorkspaceAdminScopes(
+  workspace: WorkspaceAccessRecord,
+  apiKey?: { scopes: string[] } | null,
+) {
+  return normalizeScopes([
+    ...WORKSPACE_ADMIN_SCOPES,
+    ...workspace.adminKeyScopes,
+    ...(apiKey?.scopes ?? []),
+  ]);
+}
+
+function sameStringArray(left: string[], right: string[]) {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
 function readMutationAccessToken(isWorkspaceAdmin: boolean, workspaceAdminSecret: string) {
   if (isWorkspaceAdmin) {
     return getFugueEnv().bootstrapKey;
@@ -112,23 +127,9 @@ function readMutationAccessToken(isWorkspaceAdmin: boolean, workspaceAdminSecret
 
 function filterVisibleApiKeysForWorkspace(
   keys: ApiKeyRecord[],
-  workspace: NonNullable<Awaited<ReturnType<typeof getWorkspaceAccessByEmail>>>,
+  _workspace: NonNullable<Awaited<ReturnType<typeof getWorkspaceAccessByEmail>>>,
 ) {
-  return keys.filter((key) => {
-    if (key.id === workspace.adminKeyId) {
-      return true;
-    }
-
-    if (key.tenantId !== workspace.tenantId) {
-      return true;
-    }
-
-    if (key.isWorkspaceAdmin || isWorkspaceAdminLabel(key.label)) {
-      return false;
-    }
-
-    return true;
-  });
+  return keys;
 }
 
 async function persistApiKeyMutation(input: {
@@ -151,23 +152,35 @@ async function persistApiKeyMutation(input: {
   const { apiKey, email, isWorkspaceAdmin, secret, source, workspace } = input;
 
   if (isWorkspaceAdmin) {
-    await saveWorkspaceAccess({
-      ...workspace,
-      adminKeyId: apiKey.id,
-      adminKeyLabel: apiKey.label,
-      adminKeyPrefix: apiKey.prefix,
-      adminKeyScopes: normalizeScopes(apiKey.scopes),
-      adminKeySecret: secret ?? workspace.adminKeySecret,
-      updatedAt: new Date().toISOString(),
-    });
+    const shouldUseAsWorkspaceAdmin = Boolean(secret) || apiKey.id === workspace.adminKeyId;
 
-    const record = await getApiKeyRecordById(email, apiKey.id);
+    if (shouldUseAsWorkspaceAdmin) {
+      await saveWorkspaceAccess({
+        ...workspace,
+        adminKeyId: apiKey.id,
+        adminKeyLabel: apiKey.label,
+        adminKeyPrefix: apiKey.prefix,
+        adminKeyScopes: readDesiredWorkspaceAdminScopes(workspace, apiKey),
+        adminKeySecret: secret ?? workspace.adminKeySecret,
+        updatedAt: new Date().toISOString(),
+      });
 
-    if (!record) {
-      throw new Error("Failed to persist access key.");
+      const record = await getApiKeyRecordById(email, apiKey.id);
+
+      if (!record) {
+        throw new Error("Failed to persist access key.");
+      }
+
+      return record;
     }
 
-    return record;
+    return saveApiKeyRecord({
+      apiKey,
+      email,
+      secret,
+      source: "workspace-admin",
+      tenantId: workspace.tenantId,
+    });
   }
 
   return saveApiKeyRecord({
@@ -184,11 +197,7 @@ async function createWorkspaceAdminKeyForWorkspace(
 ) {
   const created = await createFugueApiKey(getFugueEnv().bootstrapKey, {
     label: WORKSPACE_ADMIN_KEY_LABEL,
-    scopes: normalizeScopes(
-      workspace.adminKeyScopes.length
-        ? workspace.adminKeyScopes
-        : [...WORKSPACE_ADMIN_SCOPES],
-    ),
+    scopes: readDesiredWorkspaceAdminScopes(workspace),
     tenantId: workspace.tenantId,
   });
 
@@ -217,7 +226,7 @@ export async function getStoredApiKeyPageDataForWorkspace(
   });
 
   return {
-    availableScopes: normalizeScopes(workspace.adminKeyScopes),
+    availableScopes: readDesiredWorkspaceAdminScopes(workspace),
     keys: filterVisibleApiKeysForWorkspace(keys, workspace),
     stale: true,
     syncError: null,
@@ -231,31 +240,60 @@ export async function getApiKeyPageDataForWorkspace(
   email: string,
   workspace: WorkspaceAccessRecord,
 ) {
-
   let keys: ApiKeyRecord[] = [];
   let syncError: string | null = null;
+  let currentWorkspace = workspace;
 
   try {
-    const visibleKeys = await getFugueApiKeys(workspace.adminKeySecret);
+    let visibleKeys = await getFugueApiKeys(currentWorkspace.adminKeySecret);
+    const currentAdminKey = visibleKeys.find((key) => key.id === currentWorkspace.adminKeyId);
+
+    if (currentAdminKey) {
+      const desiredScopes = readDesiredWorkspaceAdminScopes(currentWorkspace, currentAdminKey);
+
+      if (!sameStringArray(sortFugueScopes(currentAdminKey.scopes), desiredScopes)) {
+        const updatedAdminKey = await updateFugueApiKey(getFugueEnv().bootstrapKey, currentAdminKey.id, {
+          scopes: desiredScopes,
+        });
+        await persistApiKeyMutation({
+          apiKey: updatedAdminKey,
+          email,
+          isWorkspaceAdmin: true,
+          source: "workspace-admin",
+          workspace: currentWorkspace,
+        });
+
+        const refreshedWorkspace = await getWorkspaceAccessByEmail(email);
+
+        if (refreshedWorkspace) {
+          currentWorkspace = refreshedWorkspace;
+        }
+
+        visibleKeys = visibleKeys.map((key) =>
+          key.id === updatedAdminKey.id ? updatedAdminKey : key,
+        );
+      }
+    }
+
     keys = await syncApiKeysForWorkspace({
       email,
-      tenantId: workspace.tenantId,
+      tenantId: currentWorkspace.tenantId,
       visibleKeys,
     });
   } catch (error) {
     keys = await listApiKeysByEmail(email, {
-      tenantId: workspace.tenantId,
+      tenantId: currentWorkspace.tenantId,
     });
     syncError = readErrorMessage(error);
   }
 
   return {
-    availableScopes: normalizeScopes(workspace.adminKeyScopes),
-    keys: filterVisibleApiKeysForWorkspace(keys, workspace),
+    availableScopes: readDesiredWorkspaceAdminScopes(currentWorkspace),
+    keys: filterVisibleApiKeysForWorkspace(keys, currentWorkspace),
     stale: false,
     syncError,
     workspace: {
-      adminKeyId: workspace.adminKeyId,
+      adminKeyId: currentWorkspace.adminKeyId,
     },
   } satisfies ApiKeyPageData;
 }
