@@ -37,6 +37,7 @@ type SyncApiKeysInput = {
   email: string;
   tenantId: string;
   visibleKeys: FugueApiKey[];
+  workspaceAdminKeyId: string;
 };
 
 type SaveApiKeyInput = {
@@ -50,8 +51,6 @@ type SaveApiKeyInput = {
   status?: ApiKeyStatus;
   tenantId: string;
 };
-
-const WORKSPACE_ADMIN_KEY_LABEL = "workspace-admin";
 
 function readOptionalString(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
@@ -94,10 +93,6 @@ function normalizeApiKeyStatus(status: string | null | undefined): ApiKeyStatus 
   return typeof status === "string" && status.trim().toLowerCase() === "disabled"
     ? "disabled"
     : "active";
-}
-
-function isWorkspaceAdminLabel(label: string) {
-  return label.trim().toLowerCase() === WORKSPACE_ADMIN_KEY_LABEL;
 }
 
 function recordFromRow(row: ApiKeyRow): ApiKeyRecord {
@@ -238,7 +233,10 @@ async function upsertVisibleApiKey(
         last_synced_at = EXCLUDED.last_synced_at,
         updated_at = EXCLUDED.updated_at,
         source = CASE
-          WHEN app_api_keys.source IN ('workspace-admin', 'managed') THEN app_api_keys.source
+          WHEN EXCLUDED.source = 'workspace-admin' THEN 'workspace-admin'
+          WHEN app_api_keys.source IN ('workspace-admin', 'managed')
+            AND app_api_keys.secret_sealed IS NOT NULL
+            THEN app_api_keys.source
           ELSE EXCLUDED.source
         END,
         status = CASE
@@ -246,7 +244,13 @@ async function upsertVisibleApiKey(
             THEN 'deleted'
           ELSE EXCLUDED.status
         END,
-        is_workspace_admin = app_api_keys.is_workspace_admin OR EXCLUDED.is_workspace_admin
+        is_workspace_admin = CASE
+          WHEN EXCLUDED.is_workspace_admin THEN TRUE
+          WHEN app_api_keys.is_workspace_admin
+            AND app_api_keys.secret_sealed IS NOT NULL
+            THEN TRUE
+          ELSE FALSE
+        END
     `,
     [
       input.apiKey.id,
@@ -293,7 +297,7 @@ export async function syncApiKeysForWorkspace(input: SyncApiKeysInput) {
       await upsertVisibleApiKey(client, {
         apiKey,
         email: input.email,
-        source: isWorkspaceAdminLabel(apiKey.label) ? "workspace-admin" : "external",
+        source: apiKey.id === input.workspaceAdminKeyId ? "workspace-admin" : "external",
         tenantId: input.tenantId,
       });
     }
@@ -358,6 +362,38 @@ export async function syncApiKeysForWorkspace(input: SyncApiKeysInput) {
 
     return result.rows.map(recordFromRow);
   });
+}
+
+export async function repairWorkspaceAdminApiKeyFlags(input: {
+  email: string;
+  tenantId: string;
+  workspaceAdminKeyId: string;
+}) {
+  await ensureDbSchema();
+
+  await queryDb(
+    `
+      UPDATE app_api_keys
+      SET
+        source = 'external',
+        is_workspace_admin = FALSE,
+        updated_at = $4
+      WHERE user_email = $1
+        AND tenant_id = $2
+        AND fugue_key_id <> $3
+        AND secret_sealed IS NULL
+        AND (
+          source = 'workspace-admin'
+          OR is_workspace_admin = TRUE
+        )
+    `,
+    [
+      normalizeEmail(input.email),
+      input.tenantId,
+      input.workspaceAdminKeyId,
+      new Date().toISOString(),
+    ],
+  );
 }
 
 export async function listApiKeysByEmail(

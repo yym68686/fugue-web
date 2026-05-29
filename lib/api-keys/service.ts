@@ -3,6 +3,7 @@ import "server-only";
 import {
   getApiKeyRecordById,
   listApiKeysByEmail,
+  repairWorkspaceAdminApiKeyFlags,
   saveApiKeyRecord,
   setApiKeyStatus,
   syncApiKeysForWorkspace,
@@ -127,9 +128,15 @@ function readMutationAccessToken(isWorkspaceAdmin: boolean, workspaceAdminSecret
 
 function filterVisibleApiKeysForWorkspace(
   keys: ApiKeyRecord[],
-  _workspace: NonNullable<Awaited<ReturnType<typeof getWorkspaceAccessByEmail>>>,
+  workspace: NonNullable<Awaited<ReturnType<typeof getWorkspaceAccessByEmail>>>,
 ) {
-  return keys;
+  return keys.filter((key) => {
+    if (!key.isWorkspaceAdmin) {
+      return true;
+    }
+
+    return key.id === workspace.adminKeyId || key.secretStored;
+  });
 }
 
 async function persistApiKeyMutation(input: {
@@ -221,6 +228,12 @@ export async function getStoredApiKeyPageDataForWorkspace(
   email: string,
   workspace: WorkspaceAccessRecord,
 ) {
+  await repairWorkspaceAdminApiKeyFlags({
+    email,
+    tenantId: workspace.tenantId,
+    workspaceAdminKeyId: workspace.adminKeyId,
+  });
+
   const keys = await listApiKeysByEmail(email, {
     tenantId: workspace.tenantId,
   });
@@ -243,6 +256,12 @@ export async function getApiKeyPageDataForWorkspace(
   let keys: ApiKeyRecord[] = [];
   let syncError: string | null = null;
   let currentWorkspace = workspace;
+
+  await repairWorkspaceAdminApiKeyFlags({
+    email,
+    tenantId: currentWorkspace.tenantId,
+    workspaceAdminKeyId: currentWorkspace.adminKeyId,
+  });
 
   try {
     let visibleKeys = await getFugueApiKeys(currentWorkspace.adminKeySecret);
@@ -267,6 +286,11 @@ export async function getApiKeyPageDataForWorkspace(
 
         if (refreshedWorkspace) {
           currentWorkspace = refreshedWorkspace;
+          await repairWorkspaceAdminApiKeyFlags({
+            email,
+            tenantId: currentWorkspace.tenantId,
+            workspaceAdminKeyId: currentWorkspace.adminKeyId,
+          });
         }
 
         visibleKeys = visibleKeys.map((key) =>
@@ -279,6 +303,7 @@ export async function getApiKeyPageDataForWorkspace(
       email,
       tenantId: currentWorkspace.tenantId,
       visibleKeys,
+      workspaceAdminKeyId: currentWorkspace.adminKeyId,
     });
   } catch (error) {
     keys = await listApiKeysByEmail(email, {
