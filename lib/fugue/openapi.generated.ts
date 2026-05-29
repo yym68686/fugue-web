@@ -5680,6 +5680,7 @@ export interface components {
             app_id?: string;
             app_name?: string;
             public_url?: string;
+            internal_url?: string;
             status?: string;
             type?: string;
             runtime_id?: string;

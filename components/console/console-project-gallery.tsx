@@ -5834,6 +5834,7 @@ export function ConsoleProjectGallery({
                     projectId={selectedProject?.id ?? ""}
                     initialBaseDomain={selectedService.routeBaseDomain}
                     initialHostname={selectedService.routeHostname}
+                    initialInternalUrl={selectedService.routeInternalUrl}
                     initialPathPrefix={selectedService.routePathPrefix}
                     initialPublicUrl={selectedService.routePublicUrl}
                     key={selectedService.id}
@@ -8811,6 +8812,7 @@ function ConsoleProjectWorkbenchImpl({
                   projectId={detailProject.id}
                   initialBaseDomain={selectedService.routeBaseDomain}
                   initialHostname={selectedService.routeHostname}
+                  initialInternalUrl={selectedService.routeInternalUrl}
                   initialPathPrefix={selectedService.routePathPrefix}
                   initialPublicUrl={selectedService.routePublicUrl}
                   key={selectedService.id}

@@ -1356,6 +1356,7 @@ const zhCNExtraMessages = {
   "Images": "镜像",
   "In progress": "进行中",
   "In use": "使用中",
+  "Internal service URL": "内部服务 URL",
   "Inventory unavailable": "清单不可用",
   "Keep one Fugue subdomain for {appName}, or attach a hostname you control.":
     "为 {appName} 保留一个 Fugue 子域名，或挂接你可控制的主机名。",
@@ -1499,6 +1500,8 @@ const zhCNExtraMessages = {
   "Stored token": "已存储 Token",
   "Subdomain": "子域名",
   "Taken": "已被占用",
+  "This app does not expose an internal HTTP service.":
+    "此应用未暴露内部 HTTP 服务。",
   "This database cannot be configured from the console yet.":
     "这个数据库暂时还不能在控制台中配置。",
   "This database cannot be transferred from the console yet.":
@@ -1508,6 +1511,8 @@ const zhCNExtraMessages = {
   "This file is shown as base64 because it is not valid utf-8 text.":
     "该文件因不是有效的 UTF-8 文本，因此以 base64 形式显示。",
   "This folder is empty": "此文件夹为空",
+  "Use this address from apps running inside the same Fugue cluster.":
+    "同一 Fugue 集群内运行的应用可使用此地址。",
   "This preview was truncated at 1 MB. Save is disabled to avoid overwriting the file with partial content.":
     "此预览已在 1 MB 处截断。为避免用不完整内容覆盖文件，已禁用保存。",
   "Token updates are unavailable.": "当前无法更新 Token。",
@@ -2985,6 +2990,7 @@ const zhTWExtraMessages = {
   "Images": "映像",
   "In progress": "進行中",
   "In use": "使用中",
+  "Internal service URL": "內部服務 URL",
   "Inventory unavailable": "清單不可用",
   "Keep one Fugue subdomain for {appName}, or attach a hostname you control.":
     "為 {appName} 保留一個 Fugue 子網域，或掛接你可控制的主機名稱。",
@@ -3128,6 +3134,8 @@ const zhTWExtraMessages = {
   "Stored token": "已儲存 Token",
   "Subdomain": "子網域",
   "Taken": "已被占用",
+  "This app does not expose an internal HTTP service.":
+    "此應用未暴露內部 HTTP 服務。",
   "This database cannot be configured from the console yet.":
     "這個資料庫暫時還不能在控制台中設定。",
   "This database cannot be transferred from the console yet.":
@@ -3137,6 +3145,8 @@ const zhTWExtraMessages = {
   "This file is shown as base64 because it is not valid utf-8 text.":
     "此檔案因不是有效的 UTF-8 文字，因此以 base64 形式顯示。",
   "This folder is empty": "此資料夾為空",
+  "Use this address from apps running inside the same Fugue cluster.":
+    "同一 Fugue 叢集內執行的應用可使用此地址。",
   "This preview was truncated at 1 MB. Save is disabled to avoid overwriting the file with partial content.":
     "此預覽已在 1 MB 處截斷。為避免用不完整內容覆寫檔案，已停用儲存。",
   "Token updates are unavailable.": "目前無法更新 Token。",

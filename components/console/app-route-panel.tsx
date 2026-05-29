@@ -99,6 +99,7 @@ type RoutePanelProps = {
   projectId: string;
   initialBaseDomain: string | null;
   initialHostname: string | null;
+  initialInternalUrl: string | null;
   initialPathPrefix: string | null;
   initialPublicUrl: string | null;
 };
@@ -605,6 +606,7 @@ export function AppRoutePanel({
   projectId,
   initialBaseDomain,
   initialHostname,
+  initialInternalUrl,
   initialPathPrefix,
   initialPublicUrl,
 }: RoutePanelProps) {
@@ -1115,6 +1117,37 @@ export function AppRoutePanel({
             </div>
           ) : null}
         </div>
+      </section>
+
+      <section aria-label={t("Internal service URL")} className="fg-route-subsection fg-route-internal">
+        <div className="fg-route-subsection__head">
+          <div className="fg-route-subsection__copy">
+            <h3 className="fg-route-subsection__title fg-ui-heading">
+              {t("Internal service URL")}
+            </h3>
+            <p className="fg-route-internal__copy">
+              {t("Use this address from apps running inside the same Fugue cluster.")}
+            </p>
+          </div>
+          <span
+            className={cx(
+              "fg-route-field__status",
+              initialInternalUrl ? "is-success" : "is-neutral",
+            )}
+          >
+            {initialInternalUrl ? t("Ready") : t("Unavailable")}
+          </span>
+        </div>
+
+        {initialInternalUrl ? (
+          <div className="fg-route-internal__value">
+            <code>{initialInternalUrl}</code>
+          </div>
+        ) : (
+          <p className="fg-route-table__empty">
+            {t("This app does not expose an internal HTTP service.")}
+          </p>
+        )}
       </section>
 
       <section aria-label={t("Project route table")} className="fg-route-subsection fg-route-table">

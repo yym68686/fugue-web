@@ -1798,6 +1798,17 @@ function readAppRoutePathPrefix(app: FugueApp) {
   return normalizeRoutePathPrefix(app.route.pathPrefix);
 }
 
+function readAppInternalUrl(app: FugueApp) {
+  const host = app.internalService.host?.trim();
+  const port = app.internalService.port;
+
+  if (!host || !port || port <= 0) {
+    return null;
+  }
+
+  return `http://${host}:${port}`;
+}
+
 function isGitHubAppSource(source?: FugueAppSource | null) {
   return isGitHubSourceType(source?.type);
 }
@@ -2308,6 +2319,7 @@ function buildSharedAppView(
     routeEntrypointName: app.route.entrypointName ?? null,
     routeHref: route.href,
     routeHostname,
+    routeInternalUrl: readAppInternalUrl(app),
     routeLabel: route.label,
     routePathPrefix: readAppRoutePathPrefix(app),
     routePublicUrl: app.route.publicUrl?.trim() || null,

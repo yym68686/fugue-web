@@ -131,6 +131,7 @@ export type ConsoleGalleryAppView = {
   routeEntrypointName: string | null;
   routeHref: string | null;
   routeHostname: string | null;
+  routeInternalUrl: string | null;
   routeLabel: string;
   routePathPrefix: string | null;
   routePublicUrl: string | null;
