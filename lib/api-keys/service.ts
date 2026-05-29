@@ -72,15 +72,7 @@ function isWorkspaceAdminLabel(label: string) {
 function assertAllowedLabel(label: string, options?: { isWorkspaceAdmin?: boolean }) {
   const isWorkspaceAdmin = options?.isWorkspaceAdmin ?? false;
 
-  if (isWorkspaceAdmin) {
-    if (!isWorkspaceAdminLabel(label)) {
-      throw new Error("Workspace admin key name is fixed.");
-    }
-
-    return;
-  }
-
-  if (isWorkspaceAdminLabel(label)) {
+  if (!isWorkspaceAdmin && isWorkspaceAdminLabel(label)) {
     throw new Error("workspace-admin is reserved.");
   }
 }
@@ -211,9 +203,12 @@ async function persistApiKeyMutation(input: {
 
 async function createWorkspaceAdminKeyForWorkspace(
   workspace: NonNullable<Awaited<ReturnType<typeof getWorkspaceAccessByEmail>>>,
+  options?: {
+    label?: string;
+  },
 ) {
   const created = await createFugueApiKey(getFugueEnv().bootstrapKey, {
-    label: WORKSPACE_ADMIN_KEY_LABEL,
+    label: options?.label ?? WORKSPACE_ADMIN_KEY_LABEL,
     scopes: readDesiredWorkspaceAdminScopes(workspace),
     tenantId: workspace.tenantId,
   });
@@ -453,7 +448,9 @@ export async function rotateApiKeyForEmail(email: string, id: string) {
   }
 
   if (current.isWorkspaceAdmin) {
-    const created = await createWorkspaceAdminKeyForWorkspace(workspace);
+    const created = await createWorkspaceAdminKeyForWorkspace(workspace, {
+      label: current.label,
+    });
     const record = await persistApiKeyMutation({
       apiKey: created.apiKey,
       email,

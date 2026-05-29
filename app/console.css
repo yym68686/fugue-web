@@ -3535,8 +3535,10 @@
 
 .fg-api-key-item__title strong {
   display: block;
+  min-width: 0;
   font-size: 1rem;
   letter-spacing: -0.03em;
+  overflow-wrap: anywhere;
 }
 
 .fg-api-key-item__meta {
@@ -3560,6 +3562,20 @@
 
 .fg-api-key-item__action {
   min-inline-size: 6.45rem;
+}
+
+.fg-api-key-rename-dialog-shell {
+  width: min(100%, 32rem);
+}
+
+.fg-api-key-rename-dialog__meta {
+  margin: 0.48rem 0 0;
+  color: var(--fugue-text-muted);
+  font-family: var(--fugue-font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  line-height: 1.45;
+  word-break: break-all;
 }
 
 .fg-api-key-item__panel {

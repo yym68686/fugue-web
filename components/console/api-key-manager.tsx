@@ -1,11 +1,20 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 
 import { useI18n } from "@/components/providers/i18n-provider";
-import { InlineButton } from "@/components/ui/button";
+import { Button, InlineButton } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
-import { Panel, PanelSection } from "@/components/ui/panel";
+import { FormField } from "@/components/ui/form-field";
+import { Panel, PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
 import { StatusBadge } from "@/components/console/status-badge";
 import { useToast } from "@/components/ui/toast";
 import type { TranslationValues } from "@/lib/i18n/core";
@@ -23,6 +32,7 @@ import {
 } from "@/lib/fugue/scopes";
 import { copyText } from "@/lib/ui/clipboard";
 import { cx } from "@/lib/ui/cx";
+import { useTransitionPresence } from "@/lib/ui/transition-presence";
 
 type ApiKeyPagePayload = {
   availableScopes: string[];
@@ -36,12 +46,48 @@ type ApiKeyPagePayload = {
 
 type Translator = (key: string, values?: TranslationValues) => string;
 
+type RenameState = {
+  error: string | null;
+  keyId: string;
+  label: string;
+};
+
+const DEFAULT_WORKSPACE_ADMIN_KEY_LABEL = "workspace-admin";
+const FOCUSABLE_SELECTOR = [
+  "button:not([disabled])",
+  "[href]",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  "[tabindex]:not([tabindex='-1'])",
+].join(", ");
+
 function readErrorMessage(error: unknown, t: Translator = (key) => key) {
   if (error instanceof Error && error.message) {
     return error.message;
   }
 
   return t("Request failed.");
+}
+
+function validateRenameLabel(label: string, t: Translator = (key) => key) {
+  if (!label.trim()) {
+    return t("Access key name is required.");
+  }
+
+  return null;
+}
+
+function isDefaultWorkspaceAdminLabel(label: string) {
+  return label.trim().toLowerCase() === DEFAULT_WORKSPACE_ADMIN_KEY_LABEL;
+}
+
+function readApiKeyDisplayLabel(record: ApiKeyRecord, t: Translator = (key) => key) {
+  if (record.isWorkspaceAdmin && isDefaultWorkspaceAdminLabel(record.label)) {
+    return t("Admin key");
+  }
+
+  return record.label;
 }
 
 async function requestJson<T>(input: RequestInfo, init?: RequestInit) {
@@ -142,6 +188,20 @@ function applyWorkspaceAdminControls(keys: ApiKeyRecord[], workspaceAdminKeyId: 
   );
 }
 
+function readFocusableElements(container: HTMLElement | null) {
+  if (!container) {
+    return [];
+  }
+
+  return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
+    (element) => {
+      const style = window.getComputedStyle(element);
+
+      return style.display !== "none" && style.visibility !== "hidden";
+    },
+  );
+}
+
 export function ApiKeyManager({
   availableScopes,
   initialKeys,
@@ -160,6 +220,11 @@ export function ApiKeyManager({
   const { showToast } = useToast();
   const copyInFlightRef = useRef<string | null>(null);
   const didRefreshInitialStaleRef = useRef(false);
+  const renameDialogRef = useRef<HTMLDivElement | null>(null);
+  const renameBackdropPressStartedRef = useRef(false);
+  const renameReturnFocusRef = useRef<HTMLElement | null>(null);
+  const renameRestoreFocusAfterCloseRef = useRef(false);
+  const renameInputRef = useRef<HTMLInputElement | null>(null);
   const [keys, setKeys] = useState(() =>
     applyWorkspaceAdminControls(initialKeys, initialWorkspaceAdminKeyId),
   );
@@ -170,6 +235,26 @@ export function ApiKeyManager({
   const [workspaceAdminKeyId, setWorkspaceAdminKeyId] = useState(
     initialWorkspaceAdminKeyId,
   );
+  const [renameState, setRenameState] = useState<RenameState | null>(null);
+  const renameDialog = useTransitionPresence({
+    closePropertyName: "--modal-close-dur",
+    fallbackCloseMs: 150,
+  });
+  const renameRecord = renameState
+    ? keys.find((key) => key.id === renameState.keyId) ?? null
+    : null;
+  const renameBusy = renameRecord
+    ? busyAction === `rename:${renameRecord.id}`
+    : false;
+  const renameDialogIdBase = renameRecord?.id ?? "api-key-rename";
+  const renameTitleId = `api-key-rename-title-${renameDialogIdBase}`;
+  const renameDescriptionId = `api-key-rename-description-${renameDialogIdBase}`;
+  const renameFormId = `api-key-rename-form-${renameDialogIdBase}`;
+  const renameFieldId = `api-key-rename-field-${renameDialogIdBase}`;
+  const renameChanged =
+    renameRecord && renameState
+      ? renameState.label.trim() !== renameRecord.label
+      : false;
   const permissionViewsByKeyId = useMemo(
     () => buildPermissionViews(keys, scopeCatalog),
     [keys, scopeCatalog],
@@ -197,6 +282,82 @@ export function ApiKeyManager({
     initialSyncError,
     initialWorkspaceAdminKeyId,
   ]);
+
+  useEffect(() => {
+    if (!renameDialog.present) {
+      return;
+    }
+
+    const body = document.body;
+    const previousOverflow = body.style.overflow;
+    const previousPaddingRight = body.style.paddingRight;
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+
+    body.style.overflow = "hidden";
+
+    if (scrollbarWidth > 0) {
+      body.style.paddingRight = `${scrollbarWidth}px`;
+    }
+
+    return () => {
+      renameBackdropPressStartedRef.current = false;
+      body.style.overflow = previousOverflow;
+      body.style.paddingRight = previousPaddingRight;
+    };
+  }, [renameDialog.present]);
+
+  useEffect(() => {
+    if (!renameDialog.open || !renameRecord) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      const input = renameInputRef.current;
+
+      input?.focus({ preventScroll: true });
+      input?.select();
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
+  }, [renameDialog.open, renameRecord]);
+
+  useEffect(() => {
+    if (renameDialog.present || !renameState) {
+      return;
+    }
+
+    setRenameState(null);
+
+    const returnFocusTarget = renameReturnFocusRef.current;
+    renameReturnFocusRef.current = null;
+
+    if (!renameRestoreFocusAfterCloseRef.current || !returnFocusTarget) {
+      renameRestoreFocusAfterCloseRef.current = false;
+      return;
+    }
+
+    renameRestoreFocusAfterCloseRef.current = false;
+
+    window.requestAnimationFrame(() => {
+      if (returnFocusTarget.isConnected) {
+        returnFocusTarget.focus();
+      }
+    });
+  }, [renameDialog.present, renameState]);
+
+  useEffect(() => {
+    if (!renameState) {
+      return;
+    }
+
+    if (renameRecord) {
+      return;
+    }
+
+    dismissRenameDialog(false);
+  }, [renameRecord, renameState]);
 
   function syncLocalState(data: ApiKeyPagePayload) {
     setKeys(applyWorkspaceAdminControls(data.keys, data.workspace.adminKeyId));
@@ -344,6 +505,219 @@ export function ApiKeyManager({
     } finally {
       setBusyAction(null);
     }
+  }
+
+  function dismissRenameDialog(restoreFocus: boolean) {
+    renameRestoreFocusAfterCloseRef.current = restoreFocus;
+    renameDialog.close();
+  }
+
+  function handleStartRename(record: ApiKeyRecord) {
+    if (busyAction || renameState || record.status === "deleted") {
+      return;
+    }
+
+    renameReturnFocusRef.current =
+      typeof document !== "undefined" && document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    setRenameState({
+      error: null,
+      keyId: record.id,
+      label: record.label,
+    });
+    renameDialog.openPresence();
+  }
+
+  function handleRenameDraftChange(nextLabel: string) {
+    setRenameState((current) => {
+      if (!current) {
+        return current;
+      }
+
+      return {
+        ...current,
+        error: current.error ? validateRenameLabel(nextLabel, t) : null,
+        label: nextLabel,
+      };
+    });
+  }
+
+  function handleRenameBlur() {
+    setRenameState((current) => {
+      if (!current) {
+        return current;
+      }
+
+      return {
+        ...current,
+        error: validateRenameLabel(current.label, t),
+      };
+    });
+  }
+
+  function handleRenameCancel() {
+    if (renameBusy) {
+      return;
+    }
+
+    dismissRenameDialog(true);
+  }
+
+  async function handleRename(record: ApiKeyRecord) {
+    if (busyAction || !renameState || renameState.keyId !== record.id) {
+      return;
+    }
+
+    const error = validateRenameLabel(renameState.label, t);
+
+    if (error) {
+      setRenameState((current) =>
+        current && current.keyId === record.id
+          ? {
+              ...current,
+              error,
+            }
+          : current,
+      );
+      renameInputRef.current?.focus({ preventScroll: true });
+      return;
+    }
+
+    const nextLabel = renameState.label.trim();
+
+    if (nextLabel === record.label) {
+      showToast({
+        message: t("No access key name changes."),
+        variant: "info",
+      });
+      return;
+    }
+
+    setBusyAction(`rename:${record.id}`);
+
+    try {
+      const updated = await requestJson<{
+        key: ApiKeyRecord;
+      }>(`/api/fugue/api-keys/${encodeURIComponent(record.id)}`, {
+        body: JSON.stringify({
+          label: nextLabel,
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "PATCH",
+      });
+
+      const nextKeys = applyWorkspaceAdminControls(
+        upsertKey(keys, updated.key),
+        workspaceAdminKeyId,
+      );
+
+      setKeys(nextKeys);
+      setSyncError(null);
+      setExpandedId(updated.key.id);
+      syncApiKeysPageSnapshot({
+        keys: nextKeys,
+        syncError: null,
+      });
+      dismissRenameDialog(true);
+
+      showToast({
+        message: t("Access key name updated."),
+        variant: "success",
+      });
+    } catch (error) {
+      const message = readErrorMessage(error, t);
+
+      setRenameState((current) =>
+        current && current.keyId === record.id
+          ? {
+              ...current,
+              error: message.includes("required") ? message : current.error,
+            }
+          : current,
+      );
+
+      showToast({
+        message,
+        variant: "error",
+      });
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
+  function handleRenameDialogKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
+    if (!renameRecord) {
+      return;
+    }
+
+    if (event.key === "Escape") {
+      if (renameBusy) {
+        return;
+      }
+
+      event.preventDefault();
+      dismissRenameDialog(true);
+      return;
+    }
+
+    if (event.key !== "Tab") {
+      return;
+    }
+
+    const focusableElements = readFocusableElements(renameDialogRef.current);
+
+    if (!focusableElements.length) {
+      event.preventDefault();
+      return;
+    }
+
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+    const activeElement =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const activeInsideDialog = activeElement
+      ? renameDialogRef.current?.contains(activeElement)
+      : false;
+
+    if (event.shiftKey) {
+      if (!activeInsideDialog || activeElement === firstElement) {
+        event.preventDefault();
+        lastElement.focus();
+      }
+      return;
+    }
+
+    if (!activeInsideDialog || activeElement === lastElement) {
+      event.preventDefault();
+      firstElement.focus();
+    }
+  }
+
+  function handleRenameBackdropPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
+    if (renameBusy) {
+      renameBackdropPressStartedRef.current = false;
+      return;
+    }
+
+    renameBackdropPressStartedRef.current = event.target === event.currentTarget;
+  }
+
+  function handleRenameBackdropClick(event: ReactMouseEvent<HTMLDivElement>) {
+    const shouldClose =
+      !renameBusy &&
+      renameBackdropPressStartedRef.current &&
+      event.target === event.currentTarget;
+
+    renameBackdropPressStartedRef.current = false;
+
+    if (!shouldClose) {
+      return;
+    }
+
+    dismissRenameDialog(true);
   }
 
   async function handleCopy(keyId: string) {
@@ -638,6 +1012,7 @@ export function ApiKeyManager({
   }
 
   return (
+    <>
     <Panel>
       <PanelSection>
         <div className="fg-credential-section__head">
@@ -708,11 +1083,7 @@ export function ApiKeyManager({
 
                     <div className="fg-api-key-item__toggle">
                       <div className="fg-api-key-item__title">
-                        <strong>
-                          {record.isWorkspaceAdmin
-                            ? t("Admin key")
-                            : record.label}
-                        </strong>
+                        <strong>{readApiKeyDisplayLabel(record, t)}</strong>
                         {isCurrentWorkspaceAdmin ? (
                           <StatusBadge tone="info">{t("Current key")}</StatusBadge>
                         ) : null}
@@ -734,8 +1105,18 @@ export function ApiKeyManager({
 
                     <div className="fg-api-key-item__actions">
                       <InlineButton
+                        blocked={Boolean(busyAction) || Boolean(renameState)}
+                        className="fg-api-key-item__action"
+                        label={t("Rename")}
+                        onClick={() => {
+                          handleStartRename(record);
+                        }}
+                      />
+
+                      <InlineButton
                         blocked={Boolean(
-                          busyAction && busyAction !== `rotate:${record.id}`,
+                          renameState ||
+                            (busyAction && busyAction !== `rotate:${record.id}`),
                         )}
                         busy={busyAction === `rotate:${record.id}`}
                         busyLabel={
@@ -749,7 +1130,7 @@ export function ApiKeyManager({
                       />
 
                       <InlineButton
-                        blocked={Boolean(busyAction)}
+                        blocked={Boolean(busyAction) || Boolean(renameState)}
                         className="fg-api-key-item__action"
                         disabled={!record.canCopy}
                         label={t("Copy")}
@@ -761,9 +1142,10 @@ export function ApiKeyManager({
                       {record.canDisable ? (
                         <InlineButton
                           blocked={Boolean(
-                            busyAction &&
+                            renameState ||
+                              (busyAction &&
                               busyAction !== `disable:${record.id}` &&
-                              busyAction !== `enable:${record.id}`,
+                              busyAction !== `enable:${record.id}`),
                           )}
                           busy={
                             busyAction === `disable:${record.id}` ||
@@ -789,7 +1171,8 @@ export function ApiKeyManager({
                       {record.canDelete ? (
                         <InlineButton
                           blocked={Boolean(
-                            busyAction && busyAction !== `delete:${record.id}`,
+                            renameState ||
+                              (busyAction && busyAction !== `delete:${record.id}`),
                           )}
                           busy={busyAction === `delete:${record.id}`}
                           busyLabel={t("Deleting…")}
@@ -896,5 +1279,111 @@ export function ApiKeyManager({
         )}
       </PanelSection>
     </Panel>
+      {renameDialog.present && renameRecord ? (
+        <div
+          className="fg-console-dialog-backdrop"
+          data-state={renameDialog.closing ? "closing" : "open"}
+          onClick={handleRenameBackdropClick}
+          onPointerDown={handleRenameBackdropPointerDown}
+        >
+          <div
+            aria-busy={renameBusy || undefined}
+            aria-describedby={renameDescriptionId}
+            aria-labelledby={renameTitleId}
+            aria-modal="true"
+            className={cx(
+              "fg-console-dialog-shell fg-api-key-rename-dialog-shell",
+              "t-modal",
+              renameDialog.open && "is-open",
+              renameDialog.closing && "is-closing",
+            )}
+            onClick={(event) => event.stopPropagation()}
+            onKeyDown={handleRenameDialogKeyDown}
+            ref={renameDialogRef}
+            role="dialog"
+          >
+            <Panel className="fg-console-dialog-panel">
+              <PanelSection>
+                <p className="fg-label fg-panel__eyebrow">
+                  {renameRecord.isWorkspaceAdmin ? t("Admin key") : t("Access key")}
+                </p>
+                <PanelTitle className="fg-console-dialog__title" id={renameTitleId}>
+                  {t("Rename access key")}
+                </PanelTitle>
+                <PanelCopy id={renameDescriptionId}>
+                  {t(
+                    "Update the display name for this access key. The key ID, secret, prefix, and permissions stay the same.",
+                  )}
+                </PanelCopy>
+                <p
+                  className="fg-api-key-rename-dialog__meta"
+                  title={`${readApiKeyDisplayLabel(renameRecord, t)} / ${renameRecord.id}`}
+                >
+                  {t("Current key")} / {renameRecord.id}
+                </p>
+              </PanelSection>
+
+              <PanelSection className="fg-console-dialog__body">
+                <form
+                  className="fg-console-dialog__form"
+                  id={renameFormId}
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void handleRename(renameRecord);
+                  }}
+                >
+                  <FormField
+                    error={renameState?.error ?? undefined}
+                    hint={t(
+                      "Use a short label that names the environment or workflow this key belongs to.",
+                    )}
+                    htmlFor={renameFieldId}
+                    label={t("Access key name")}
+                  >
+                    <input
+                      autoComplete="off"
+                      className="fg-input"
+                      id={renameFieldId}
+                      name="label"
+                      onBlur={handleRenameBlur}
+                      onChange={(event) => {
+                        handleRenameDraftChange(event.target.value);
+                      }}
+                      placeholder={t("Production deploy key…")}
+                      ref={renameInputRef}
+                      spellCheck={false}
+                      value={renameState?.label ?? renameRecord.label}
+                    />
+                  </FormField>
+                </form>
+              </PanelSection>
+
+              <PanelSection className="fg-console-dialog__footer">
+                <div className="fg-console-dialog__actions">
+                  <Button
+                    disabled={renameBusy}
+                    onClick={handleRenameCancel}
+                    type="button"
+                    variant="secondary"
+                  >
+                    {t("Cancel")}
+                  </Button>
+                  <Button
+                    disabled={Boolean(renameState?.error) || !renameChanged}
+                    form={renameFormId}
+                    loading={renameBusy}
+                    loadingLabel={t("Saving…")}
+                    type="submit"
+                    variant="primary"
+                  >
+                    {t("Save name")}
+                  </Button>
+                </div>
+              </PanelSection>
+            </Panel>
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }

@@ -786,7 +786,11 @@ const zhTWMessages = {
 const zhCNExtraMessages = {
   "{count} permission": "{count} 项权限",
   "{count} permissions": "{count} 项权限",
+  "Access key": "访问密钥",
   "Access key list refreshed.": "访问密钥列表已刷新。",
+  "Access key name": "访问密钥名称",
+  "Access key name is required.": "必须提供访问密钥名称。",
+  "Access key name updated.": "访问密钥名称已更新。",
   "Access key replaced and secret copied. The previous secret no longer works.":
     "访问密钥已替换，并已复制新密钥。旧密钥已失效。",
   "Access key replaced. Copy the new secret now.":
@@ -933,9 +937,11 @@ const zhCNExtraMessages = {
   "Node key revoked and removed from the list.":
     "节点密钥已吊销并已从列表中移除。",
   "Node keys": "节点密钥",
+  "No access key name changes.": "访问密钥名称没有变化。",
   "Open access setup": "打开访问设置",
   "Permissions": "权限",
   "Permissions updated.": "权限已更新。",
+  "Production deploy key…": "生产部署密钥…",
   "Preview based on unsaved capacity changes.":
     "基于未保存的容量变更预估。",
   "Prefix": "前缀",
@@ -944,6 +950,7 @@ const zhCNExtraMessages = {
   "Ready to cover the saved managed envelope.":
     "可用于覆盖已保存的托管额度。",
   "Rename": "重命名",
+  "Rename access key": "重命名访问密钥",
   "Rename node key": "重命名节点密钥",
   "Replace": "替换",
   "Replace admin key": "替换管理员密钥",
@@ -987,7 +994,11 @@ const zhCNExtraMessages = {
     "仅支持整数美元 · {min} 到 {max}",
   "Update the display name used in this workspace. The key ID, secret, prefix, and attached VPS stay the same.":
     "更新此工作区中显示的名称。密钥 ID、密钥内容、前缀和已挂接的 VPS 都不会变化。",
+  "Update the display name for this access key. The key ID, secret, prefix, and permissions stay the same.":
+    "更新此访问密钥的显示名称。密钥 ID、密钥内容、前缀和权限都不会变化。",
   "Use": "使用",
+  "Use a short label that names the environment or workflow this key belongs to.":
+    "使用一个短标签来标明此密钥所属的环境或工作流。",
   "VPS": "VPS",
   "{count} recent events": "{count} 条最近事件",
   "{count} recent events · {updated}": "{count} 条最近事件 · {updated}",
@@ -2412,7 +2423,11 @@ const zhTWExtraMessages = {
   "{state} / {tier}": "{state} / {tier}",
   "{count} permission": "{count} 項權限",
   "{count} permissions": "{count} 項權限",
+  "Access key": "存取金鑰",
   "Access key list refreshed.": "存取金鑰清單已重新整理。",
+  "Access key name": "存取金鑰名稱",
+  "Access key name is required.": "必須提供存取金鑰名稱。",
+  "Access key name updated.": "存取金鑰名稱已更新。",
   "Access key replaced and secret copied. The previous secret no longer works.":
     "存取金鑰已替換，並已複製新密鑰。舊密鑰已失效。",
   "Access key replaced. Copy the new secret now.":
@@ -2529,9 +2544,11 @@ const zhTWExtraMessages = {
   "Node key revoked and removed from the list.":
     "節點金鑰已吊銷並已從清單中移除。",
   "Node keys": "節點金鑰",
+  "No access key name changes.": "存取金鑰名稱沒有變化。",
   "Open access setup": "開啟存取設定",
   "Permissions": "權限",
   "Permissions updated.": "權限已更新。",
+  "Production deploy key…": "生產部署金鑰…",
   "Preview based on unsaved capacity changes.":
     "根據尚未儲存的容量變更預估。",
   "Prefix": "前綴",
@@ -2540,6 +2557,7 @@ const zhTWExtraMessages = {
   "Ready to cover the saved managed envelope.":
     "可用於覆蓋已儲存的託管額度。",
   "Rename": "重新命名",
+  "Rename access key": "重新命名存取金鑰",
   "Rename node key": "重新命名節點金鑰",
   "Replace": "替換",
   "Replace admin key": "替換管理員金鑰",
@@ -2583,7 +2601,11 @@ const zhTWExtraMessages = {
     "僅支援整數美元 · {min} 到 {max}",
   "Update the display name used in this workspace. The key ID, secret, prefix, and attached VPS stay the same.":
     "更新此工作區中顯示的名稱。金鑰 ID、密鑰內容、前綴與已掛接的 VPS 都不會變化。",
+  "Update the display name for this access key. The key ID, secret, prefix, and permissions stay the same.":
+    "更新此存取金鑰的顯示名稱。金鑰 ID、密鑰內容、前綴與權限都不會變化。",
   "Use": "使用",
+  "Use a short label that names the environment or workflow this key belongs to.":
+    "使用一個短標籤來標明此金鑰所屬的環境或工作流程。",
   "VPS": "VPS",
   "{count} recent events": "{count} 則近期事件",
   "{count} recent events · {updated}": "{count} 則近期事件 · {updated}",
