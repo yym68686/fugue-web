@@ -28,13 +28,27 @@ type ProjectImageTrackingGitHubAppStatus = {
   githubRepo: string;
   installed: boolean;
   installationId?: string | null;
-  installationSource?: "binding" | "cached" | "connection-missing" | "error" | "live" | "missing" | "none";
+  installationSource?:
+    | "binding"
+    | "cached"
+    | "connection-missing"
+    | "error"
+    | "live"
+    | "missing"
+    | "none"
+    | "public-repo";
   lastEventName?: string | null;
   lastEventReceivedAt?: string | null;
   lastImageSyncAt?: string | null;
   lastImageSyncError?: string | null;
   repositorySelection: string | null;
-  source?: "cached" | "error" | "live" | "missing" | "connection-missing";
+  source?:
+    | "cached"
+    | "connection-missing"
+    | "error"
+    | "live"
+    | "missing"
+    | "public-repo";
   verified: boolean;
   webhookActive?: boolean;
 };
@@ -250,6 +264,7 @@ export function ProjectImageTrackingPanel({
         )}`
       : null;
   const appInstalled = Boolean(currentGitHubAppStatus?.installed);
+  const publicRepoReady = currentGitHubAppStatus?.source === "public-repo";
   const installationId =
     currentGitHubAppStatus?.installationId ??
     currentGitHubAppStatus?.githubInstallationId ??
@@ -264,7 +279,7 @@ export function ProjectImageTrackingPanel({
     status !== "loading" &&
     repoTouched &&
     !repoError &&
-    appInstalled;
+    (appInstalled || publicRepoReady);
   const linkedCount = response?.linkedCount ?? 0;
   const statusLabel =
     status === "error"
@@ -275,12 +290,16 @@ export function ProjectImageTrackingPanel({
           ? t("Checking…")
           : appInstalled
             ? t("App installed")
+            : publicRepoReady
+              ? t("Public repo ready")
             : t("Install required");
   const statusTone =
     status === "error"
       ? ("warning" as const)
       : appInstalled
         ? ("positive" as const)
+        : publicRepoReady
+          ? ("info" as const)
         : ("neutral" as const);
 
   useEffect(() => {
@@ -531,10 +550,18 @@ export function ProjectImageTrackingPanel({
           <article className="fg-project-image-sync__summary-card">
             <span>{t("App installed")}</span>
             <strong>
-              {currentGitHubAppStatus.installed ? t("Installed") : t("Missing")}
+              {currentGitHubAppStatus.installed
+                ? t("Installed")
+                : publicRepoReady
+                  ? t("Ready")
+                  : t("Missing")}
             </strong>
             <p>
-              {currentGitHubAppStatus.accountLogin
+              {publicRepoReady
+                ? t(
+                    "Registry polling can be enabled now. Install the GitHub App to receive webhook events.",
+                  )
+                : currentGitHubAppStatus.accountLogin
                 ? t("Authorized as @{login}.", {
                     login: currentGitHubAppStatus.accountLogin,
                   })

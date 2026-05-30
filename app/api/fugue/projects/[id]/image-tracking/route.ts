@@ -134,8 +134,10 @@ export async function PUT(request: Request, context: RouteContext) {
       githubRepo,
       userEmail: session.email,
     });
+    const publicRepoReady =
+      githubAppInstallation.status.source === "public-repo";
 
-    if (!githubAppInstallation.status.installed) {
+    if (!githubAppInstallation.status.installed && !publicRepoReady) {
       return NextResponse.json(
         {
           error:
@@ -153,7 +155,7 @@ export async function PUT(request: Request, context: RouteContext) {
     const githubInstallationId =
       githubAppInstallation.status.githubInstallationId?.trim() ?? "";
 
-    if (!githubInstallationId) {
+    if (githubAppInstallation.status.installed && !githubInstallationId) {
       return NextResponse.json(
         {
           error: "GitHub App installation id is missing for this repository.",

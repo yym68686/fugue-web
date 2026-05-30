@@ -614,6 +614,16 @@ function readOperationStartedAt(operation?: FugueOperation | null) {
   return operation?.startedAt?.trim() || operation?.createdAt?.trim() || null;
 }
 
+function readOperationActivityAt(operation?: FugueOperation | null) {
+  return (
+    operation?.completedAt?.trim() ||
+    operation?.updatedAt?.trim() ||
+    operation?.startedAt?.trim() ||
+    operation?.createdAt?.trim() ||
+    null
+  );
+}
+
 function readNormalizedOperationType(operation?: FugueOperation | null) {
   return operation?.type?.trim().toLowerCase() ?? "";
 }
@@ -983,6 +993,14 @@ function readRunningBuildLogsOperation(
     ) ??
     null
   );
+}
+
+function readLatestReleaseActivityAt(commitOperations?: AppCommitOperations) {
+  const releaseOperation = commitOperations?.releases.find(
+    (operation) => !isActiveOperation(operation.status),
+  );
+
+  return readOperationActivityAt(releaseOperation);
 }
 
 function readPendingBuildLogsOperation(
@@ -2308,6 +2326,8 @@ function buildSharedAppView(
     originSource: source,
     primaryBadge,
     replicaCount: app.spec.replicas ?? null,
+    releaseReadyAt: app.status.currentReleaseReadyAt ?? null,
+    releaseStartedAt: app.status.currentReleaseStartedAt ?? null,
     startupCommand: app.spec.startupCommand ?? null,
     redeployActionDescription: redeployAction.description,
     redeployActionLabel: redeployAction.label,
@@ -2384,6 +2404,7 @@ function buildAppView(
     app,
     commitOperations,
   );
+  const latestReleaseActivityAt = readLatestReleaseActivityAt(commitOperations);
   const pendingBuildLogsOperation = activeOperation
     ? readPendingBuildLogsOperation(activeOperation, commitOperations)
     : null;
@@ -2448,6 +2469,7 @@ function buildAppView(
           phase: runningReleaseStatus.phase,
           phaseTone: runningReleaseStatus.tone,
           preferredLogsMode: "runtime",
+          releaseReadyAt: latestReleaseActivityAt ?? sharedView.releaseReadyAt,
           serviceDurationLabel: null,
           serviceRole: "running",
         } satisfies ConsoleGalleryAppView)

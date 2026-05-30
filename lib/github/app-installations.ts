@@ -43,7 +43,13 @@ export type GitHubAppInstallationStatus = {
   githubRepo: string;
   installed: boolean;
   repositorySelection: string | null;
-  source: "cached" | "error" | "live" | "missing" | "connection-missing";
+  source:
+    | "cached"
+    | "connection-missing"
+    | "error"
+    | "live"
+    | "missing"
+    | "public-repo";
   verified: boolean;
 };
 
@@ -67,6 +73,14 @@ type GitHubInstallationRepository = {
 
 type GitHubInstallationRepositoryListResponse = {
   repositories?: GitHubInstallationRepository[];
+};
+
+type GitHubRepositoryResponse = {
+  full_name?: unknown;
+  owner?: {
+    login?: unknown;
+  };
+  private?: unknown;
 };
 
 function readOptionalString(value: unknown) {
@@ -205,6 +219,47 @@ async function fetchGitHubInstallationRepositories(
   }
 
   return repositories;
+}
+
+async function readPublicGitHubRepository(githubRepo: string) {
+  const normalizedRepo = normalizeGitHubRepositoryName(githubRepo);
+  const [owner, repo] = normalizedRepo.split("/");
+
+  if (!owner || !repo) {
+    return null;
+  }
+
+  const response = await fetch(
+    `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`,
+    {
+      headers: {
+        Accept: "application/vnd.github+json",
+        "User-Agent": "fugue-web",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+      next: { revalidate: 120 },
+    },
+  );
+
+  if (!response.ok) {
+    return null;
+  }
+
+  const payload = (await response.json()) as GitHubRepositoryResponse;
+  const fullName = readOptionalString(payload.full_name);
+
+  if (
+    payload.private === true ||
+    !fullName ||
+    normalizeGitHubRepositoryName(fullName) !== normalizedRepo
+  ) {
+    return null;
+  }
+
+  return {
+    accountLogin: readOptionalString(payload.owner?.login),
+    githubRepo: normalizedRepo,
+  };
 }
 
 function normalizeGitHubRepoRepositorySelection(value: unknown) {
@@ -412,6 +467,26 @@ export async function readGitHubAppInstallationStatusForRepo(input: {
     githubRepo,
   );
   const connection = await getGitHubConnectionByEmail(input.userEmail);
+  const readPublicRepoStatus = async () => {
+    const publicRepo = await readPublicGitHubRepository(githubRepo).catch(
+      () => null,
+    );
+
+    if (!publicRepo) {
+      return null;
+    }
+
+    return {
+      accountLogin: publicRepo.accountLogin,
+      checkedAt: new Date().toISOString(),
+      githubInstallationId: null,
+      githubRepo,
+      installed: false,
+      repositorySelection: null,
+      source: "public-repo" as const,
+      verified: false,
+    };
+  };
 
   if (connection?.accessToken) {
     try {
@@ -434,6 +509,16 @@ export async function readGitHubAppInstallationStatusForRepo(input: {
           cachedRecord,
           record,
           status: buildStatusFromRecord(record, "live", githubRepo),
+        } as const;
+      }
+
+      const publicRepoStatus = cachedRecord ? null : await readPublicRepoStatus();
+
+      if (publicRepoStatus) {
+        return {
+          cachedRecord,
+          record: cachedRecord,
+          status: publicRepoStatus,
         } as const;
       }
 
@@ -460,6 +545,16 @@ export async function readGitHubAppInstallationStatusForRepo(input: {
         } as const;
       }
 
+      const publicRepoStatus = await readPublicRepoStatus();
+
+      if (publicRepoStatus) {
+        return {
+          cachedRecord: null,
+          record: null,
+          status: publicRepoStatus,
+        } as const;
+      }
+
       return {
         cachedRecord: null,
         record: null,
@@ -482,6 +577,16 @@ export async function readGitHubAppInstallationStatusForRepo(input: {
       cachedRecord,
       record: cachedRecord,
       status: buildStatusFromRecord(cachedRecord, "cached", githubRepo),
+    } as const;
+  }
+
+  const publicRepoStatus = await readPublicRepoStatus();
+
+  if (publicRepoStatus) {
+    return {
+      cachedRecord: null,
+      record: null,
+      status: publicRepoStatus,
     } as const;
   }
 

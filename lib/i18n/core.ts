@@ -211,6 +211,10 @@ const zhCNMessages = {
   "App installed": "App 已安装",
   "Install required": "需要先安装",
   "Install GitHub App": "安装 GitHub App",
+  "Last deployed": "最近部署",
+  "Public repo ready": "公开仓库可绑定",
+  "Registry polling can be enabled now. Install the GitHub App to receive webhook events.":
+    "现在可以启用镜像仓库轮询。安装 GitHub App 后可接收 Webhook 事件。",
   "Webhook active": "Webhook 已激活",
   "Last event received": "最近收到事件",
   "Last image sync": "最近镜像同步",
@@ -721,6 +725,10 @@ const zhTWMessages = {
   "App installed": "App 已安裝",
   "Install required": "需要先安裝",
   "Install GitHub App": "安裝 GitHub App",
+  "Last deployed": "最近部署",
+  "Public repo ready": "公開儲存庫可綁定",
+  "Registry polling can be enabled now. Install the GitHub App to receive webhook events.":
+    "現在可以啟用映像倉庫輪詢。安裝 GitHub App 後可接收 Webhook 事件。",
   "Webhook active": "Webhook 已啟用",
   "Last event received": "最近收到事件",
   "Last image sync": "最近映像同步",

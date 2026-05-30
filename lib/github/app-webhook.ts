@@ -12,6 +12,7 @@ import {
   recordGitHubAppImageLinkWebhookEvent,
   type GitHubAppImageLink,
 } from "@/lib/github/app-image-links";
+import { recordGitHubAppInstallationCallback } from "@/lib/github/app-installations";
 import {
   recordGitHubProjectImageSyncResult,
   recordGitHubProjectImageWebhookEvent,
@@ -36,6 +37,14 @@ type GitHubImageSyncResult = {
   imageRef: string;
   result?: Awaited<ReturnType<typeof syncFugueAppImage>>;
   userEmail: string;
+};
+
+type GitHubInstallationRepositoryEvent = {
+  action: string | null;
+  deliveryId: string;
+  eventName: string;
+  githubInstallationId: string | null;
+  githubRepos: string[];
 };
 
 function readConfiguredValue(name: string) {
@@ -97,6 +106,16 @@ function extractRepository(payload: GitHubObject) {
 
 function extractInstallationId(payload: GitHubObject) {
   return readNumberOrString(asObject(payload.installation), "id");
+}
+
+function extractRepositories(value: unknown) {
+  return Array.isArray(value)
+    ? value
+        .map(asObject)
+        .map((repository) => readString(repository, "full_name"))
+        .filter((repo): repo is string => Boolean(repo))
+        .map(normalizeGitHubRepositoryName)
+    : [];
 }
 
 function extractWorkflowRunEvent(
@@ -176,6 +195,119 @@ function extractGitHubImageEvent(
     default:
       return null;
   }
+}
+
+function extractGitHubInstallationRepositoryEvent(
+  payload: GitHubObject,
+  eventName: string,
+  deliveryId: string,
+): GitHubInstallationRepositoryEvent | null {
+  if (eventName !== "installation" && eventName !== "installation_repositories") {
+    return null;
+  }
+
+  const action = readString(payload, "action");
+
+  if (
+    action &&
+    !["added", "created", "new_permissions_accepted"].includes(action)
+  ) {
+    return null;
+  }
+
+  const repository = extractRepository(payload);
+  const githubRepos = Array.from(
+    new Set([
+      ...(repository ? [repository] : []),
+      ...extractRepositories(payload.repositories),
+      ...extractRepositories(payload.repositories_added),
+    ]),
+  );
+
+  if (githubRepos.length === 0) {
+    return null;
+  }
+
+  return {
+    action,
+    deliveryId,
+    eventName,
+    githubInstallationId: extractInstallationId(payload),
+    githubRepos,
+  };
+}
+
+async function recordGitHubInstallationForLinks(
+  links: GitHubAppImageLink[],
+  event: Pick<GitHubImageEvent, "githubInstallationId" | "githubRepo">,
+) {
+  const installationId = event.githubInstallationId?.trim() ?? "";
+
+  if (!installationId) {
+    return;
+  }
+
+  const userEmails = Array.from(new Set(links.map((link) => link.userEmail)));
+
+  for (const userEmail of userEmails) {
+    await recordGitHubAppInstallationCallback({
+      githubInstallationId: installationId,
+      githubRepo: event.githubRepo,
+      userEmail,
+    }).catch(() => null);
+  }
+}
+
+async function recordGitHubInstallationRepositoryEvent(
+  event: GitHubInstallationRepositoryEvent,
+) {
+  let matched = 0;
+
+  for (const githubRepo of event.githubRepos) {
+    const links = await listGitHubAppImageLinksForEvent({
+      githubInstallationId: event.githubInstallationId,
+      githubPackage: null,
+      githubRepo,
+      githubWorkflow: null,
+    });
+
+    matched += links.length;
+    await recordGitHubInstallationForLinks(links, {
+      githubInstallationId: event.githubInstallationId,
+      githubRepo,
+    });
+
+    const userEmails = Array.from(new Set(links.map((link) => link.userEmail)));
+
+    for (const userEmail of userEmails) {
+      await recordGitHubProjectImageWebhookEvent({
+        deliveryId: event.deliveryId,
+        eventName: event.eventName,
+        githubInstallationId: event.githubInstallationId,
+        githubRepo,
+        userEmail,
+      }).catch(() => null);
+    }
+
+    for (const link of links) {
+      await recordGitHubAppImageLinkWebhookEvent({
+        deliveryId: event.deliveryId,
+        eventName: event.eventName,
+        fugueAppId: link.fugueAppId,
+        githubInstallationId: event.githubInstallationId,
+      }).catch(() => null);
+    }
+  }
+
+  return NextResponse.json({
+    accepted: true,
+    action: event.action,
+    deliveryId: event.deliveryId,
+    eventName: event.eventName,
+    githubInstallationId: event.githubInstallationId,
+    matched,
+    processed: 0,
+  });
 }
 
 async function syncLinkedImage(link: GitHubAppImageLink, event: GitHubImageEvent) {
@@ -308,6 +440,16 @@ export async function processGitHubWebhookRequest(request: Request) {
   const event = extractGitHubImageEvent(object, eventName, deliveryId);
 
   if (!event) {
+    const installationEvent = extractGitHubInstallationRepositoryEvent(
+      object,
+      eventName,
+      deliveryId,
+    );
+
+    if (installationEvent) {
+      return recordGitHubInstallationRepositoryEvent(installationEvent);
+    }
+
     return NextResponse.json({
       accepted: true,
       deliveryId,
@@ -327,6 +469,7 @@ export async function processGitHubWebhookRequest(request: Request) {
   const results: GitHubImageSyncResult[] = [];
 
   const userEmails = Array.from(new Set(links.map((link) => link.userEmail)));
+  await recordGitHubInstallationForLinks(links, event);
 
   for (const userEmail of userEmails) {
     await recordGitHubProjectImageWebhookEvent({

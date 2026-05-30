@@ -3547,6 +3547,116 @@ export interface components {
             /** Format: date-time */
             expires_at?: string;
         };
+        DataSnapshotSummary: {
+            id: string;
+            tenant_id?: string;
+            project_id?: string;
+            workspace_id: string;
+            version: string;
+            message?: string;
+            manifest_digest: string;
+            /** Format: int32 */
+            asset_count: number;
+            /** Format: int32 */
+            file_count: number;
+            /** Format: int64 */
+            total_bytes: number;
+            created_by?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            deleted_at?: string;
+        };
+        DataTransferSummary: {
+            id: string;
+            tenant_id?: string;
+            workspace_id: string;
+            snapshot_id?: string;
+            version?: string;
+            message?: string;
+            /** @enum {string} */
+            direction: "upload" | "download" | "migrate" | "prewarm";
+            /** @enum {string} */
+            status: "planned" | "running" | "completed" | "failed" | "canceled";
+            source?: string;
+            target?: string;
+            /** Format: int64 */
+            part_size?: number;
+            /** Format: date-time */
+            expires_at?: string;
+            /** Format: int64 */
+            bytes_total: number;
+            /** Format: int64 */
+            bytes_done: number;
+            /** Format: int32 */
+            files_total: number;
+            /** Format: int32 */
+            files_done: number;
+            error_code?: string;
+            error_message?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: date-time */
+            started_at?: string;
+            /** Format: date-time */
+            finished_at?: string;
+        };
+        DataTransferListResponse: {
+            transfers: components["schemas"]["DataTransferSummary"][];
+        };
+        DataUploadPlanResponse: {
+            workspace: {
+                [key: string]: unknown;
+            };
+            transfer: components["schemas"]["DataTransferSummary"];
+            blobs: components["schemas"]["DataTransferPlanBlob"][];
+            blobs_total?: number;
+            blobs_offset?: number;
+            blobs_limit?: number;
+            blobs_next_offset?: number;
+        };
+        DataDownloadPlanResponse: {
+            workspace: {
+                [key: string]: unknown;
+            };
+            snapshot: components["schemas"]["DataSnapshotSummary"];
+            transfer: components["schemas"]["DataTransferSummary"];
+            manifest: components["schemas"]["DataManifest"];
+            blobs: components["schemas"]["DataTransferPlanBlob"][];
+            blobs_total?: number;
+            blobs_offset?: number;
+            blobs_limit?: number;
+            blobs_next_offset?: number;
+        };
+        DataTransferAuthorizationResponse: {
+            workspace: {
+                [key: string]: unknown;
+            };
+            transfer: components["schemas"]["DataTransferSummary"];
+            manifest?: components["schemas"]["DataManifest"];
+            blobs: components["schemas"]["DataTransferPlanBlob"][];
+            blobs_total?: number;
+            blobs_offset?: number;
+            blobs_limit?: number;
+            blobs_next_offset?: number;
+        };
+        DataTransferActionResponse: {
+            workspace?: {
+                [key: string]: unknown;
+            };
+            snapshot?: components["schemas"]["DataSnapshotSummary"];
+            transfer?: components["schemas"]["DataTransferSummary"];
+            checkpointed?: boolean;
+            sha256?: string;
+            completed?: boolean;
+            aborted?: boolean;
+        };
+        DataMultipartPartsResponse: {
+            transfer: components["schemas"]["DataTransferSummary"];
+            parts: components["schemas"]["DataTransferPart"][];
+        };
         DataBackendCredentials: {
             access_key_id?: string;
             secret_access_key?: string;
@@ -7769,9 +7879,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["DataUploadPlanResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
@@ -7792,9 +7900,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["DataDownloadPlanResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
@@ -7862,9 +7968,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["DataTransferActionResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
@@ -13418,7 +13522,10 @@ export interface operations {
     };
     deleteDataWorkspace: {
         parameters: {
-            query?: never;
+            query?: {
+                blob_offset?: number;
+                blob_limit?: number;
+            };
             header?: never;
             path: {
                 workspace_id: components["parameters"]["DataWorkspaceIdPathParam"];
@@ -13433,9 +13540,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["DataDownloadPlanResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
@@ -13443,7 +13548,10 @@ export interface operations {
     };
     patchDataWorkspace: {
         parameters: {
-            query?: never;
+            query?: {
+                blob_offset?: number;
+                blob_limit?: number;
+            };
             header?: never;
             path: {
                 workspace_id: components["parameters"]["DataWorkspaceIdPathParam"];
@@ -13462,9 +13570,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["DataUploadPlanResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
@@ -13655,9 +13761,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["DataTransferActionResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
@@ -13767,9 +13871,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["DataTransferActionResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
@@ -13793,9 +13895,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["DataTransferActionResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
@@ -13816,9 +13916,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["DataTransferListResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
@@ -13826,7 +13924,11 @@ export interface operations {
     };
     getDataTransfer: {
         parameters: {
-            query?: never;
+            query?: {
+                blob_offset?: number;
+                blob_limit?: number;
+                summary?: boolean;
+            };
             header?: never;
             path: {
                 transfer_id: components["parameters"]["DataTransferIdPathParam"];
@@ -13866,9 +13968,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["DataTransferAuthorizationResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
@@ -13895,9 +13995,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["DataTransferActionResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
@@ -13922,9 +14020,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["DataMultipartPartsResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
@@ -13951,9 +14047,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["DataTransferActionResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
@@ -14009,9 +14103,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["DataTransferActionResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
@@ -14034,9 +14126,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["DataTransferActionResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];

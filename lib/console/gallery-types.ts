@@ -120,6 +120,8 @@ export type ConsoleGalleryAppView = {
   preferredLogsMode: "build" | "runtime";
   primaryBadge: ConsoleGalleryBadgeView;
   replicaCount: number | null;
+  releaseReadyAt: string | null;
+  releaseStartedAt: string | null;
   startupCommand: string | null;
   redeployActionDescription: string;
   redeployActionLabel: string;

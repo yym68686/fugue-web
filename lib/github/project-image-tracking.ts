@@ -153,6 +153,17 @@ function normalizeImageForMatch(value: string) {
   return value.trim().toLowerCase().replace(/^docker\.io\//, "");
 }
 
+function isConcreteImageRef(value: string) {
+  const trimmed = value.trim();
+
+  return Boolean(
+    trimmed &&
+      !trimmed.includes("${{") &&
+      !/\s/.test(trimmed) &&
+      !trimmed.endsWith(":"),
+  );
+}
+
 function appendTagIfMissing(imageRef: string, tag: string) {
   const normalized = imageRef.trim();
 
@@ -201,6 +212,11 @@ export function normalizeGitHubRepositoryInput(value: string) {
 
 function readSource(app: FugueApp): FugueAppSource {
   return app.originSource ?? app.source;
+}
+
+function readSourceImageRef(app: FugueApp) {
+  const source = readSource(app);
+  return source.imageRef?.trim() || app.source.imageRef?.trim() || null;
 }
 
 function buildSourceView(
@@ -626,6 +642,11 @@ function parseWorkflowFileCandidates(
       continue;
     }
 
+    const directImages = readStepBlockValues(step.text, "tags")
+      .map((value) => resolveWorkflowExpression(value, env, repo, defaultBranch))
+      .filter((value): value is string => Boolean(value))
+      .filter(isConcreteImageRef)
+      .map((value) => appendTagIfMissing(value, "latest"));
     const tagsValue = readStepScalar(step.text, "tags") ?? "";
     const metadataId = /\$\{\{\s*steps\.([a-zA-Z0-9_-]+)\.outputs\.tags\s*\}\}/.exec(
       tagsValue,
@@ -636,7 +657,9 @@ function parseWorkflowFileCandidates(
         .reverse()
         .find((candidate) => candidate.order < step.order) ??
       null;
-    const images = metadata?.images ?? [];
+    const images = Array.from(
+      new Set([...(metadata?.images ?? []), ...directImages]),
+    );
 
     for (const imageRef of images) {
       candidates.push({
@@ -765,6 +788,7 @@ function scoreCandidate(app: FugueApp, candidate: GitHubWorkflowCandidate) {
     ? normalizePath(candidate.buildContextDir)
     : "";
   const image = normalizeImageForMatch(candidate.imageRef);
+  const sourceImage = readSourceImageRef(app);
   const label = normalizeToken(candidate.label);
   const service = normalizeToken(source.composeService);
   const suffix = normalizeToken(source.imageNameSuffix);
@@ -773,6 +797,11 @@ function scoreCandidate(app: FugueApp, candidate: GitHubWorkflowCandidate) {
   const roleTokens = readRoleTokens(source, app);
   let score = 0;
   const reasons: string[] = [];
+
+  if (sourceImage && image === normalizeImageForMatch(sourceImage)) {
+    score += 120;
+    reasons.push("image ref");
+  }
 
   if (candidateDockerfile && candidateDockerfile === sourceDockerfile) {
     score += 90;

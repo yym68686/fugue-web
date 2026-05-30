@@ -8476,7 +8476,14 @@ function ConsoleProjectWorkbenchImpl({
       ? t("Uploaded")
       : selectedService.kind === "app" &&
           selectedServiceSourceType === "docker-image"
-        ? t("Imported")
+        ? t("Last deployed")
+        : null;
+  const selectedServiceImportTimestamp =
+    selectedService.kind === "app" &&
+    selectedServiceSourceType === "docker-image"
+      ? selectedService.releaseReadyAt ?? selectedService.createdAt
+      : selectedService.kind === "app"
+        ? selectedService.createdAt
         : null;
   const envSectionHint = readEnvironmentSectionHint(
     envFormat,
@@ -8555,8 +8562,10 @@ function ConsoleProjectWorkbenchImpl({
                       <div>
                         <dt>{selectedServiceImportTimestampLabel}</dt>
                         <dd>
-                          {selectedService.createdAt ? (
-                            <LocalDateTimeNote value={selectedService.createdAt} />
+                          {selectedServiceImportTimestamp ? (
+                            <LocalDateTimeNote
+                              value={selectedServiceImportTimestamp}
+                            />
                           ) : (
                             <span>—</span>
                           )}

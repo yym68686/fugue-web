@@ -924,6 +924,10 @@ function buildAppView(app: CamelizedSchema<"App">) {
     status: {
       phase: readNullableString(status?.phase),
       currentRuntimeId: readNullableString(status?.currentRuntimeId),
+      currentReleaseReadyAt: readNullableString(status?.currentReleaseReadyAt),
+      currentReleaseStartedAt: readNullableString(
+        status?.currentReleaseStartedAt,
+      ),
       currentReplicas: readNullableNumber(status?.currentReplicas),
       lastOperationId: readNullableString(status?.lastOperationId),
       lastMessage: readNullableString(status?.lastMessage),
