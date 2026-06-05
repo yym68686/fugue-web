@@ -3211,6 +3211,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/data/workspaces/{workspace_id}/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Data Workspace Access */
+        get: operations["listDataWorkspaceAccess"];
+        put?: never;
+        /** Grant Data Workspace Access */
+        post: operations["grantDataWorkspaceAccess"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/data/workspaces/{workspace_id}/access/{subject_type}/{subject_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke Data Workspace Access */
+        delete: operations["revokeDataWorkspaceAccess"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/data/workspaces/{workspace_id}/grants": {
         parameters: {
             query?: never;
@@ -3750,6 +3785,20 @@ export interface components {
             mode?: "read-only" | "read-write";
             /** Format: int32 */
             expires_in_minutes?: number;
+        };
+        DataWorkspaceAccessGrantRequest: {
+            /** @enum {string} */
+            subject_type?: "tenant" | "api-key";
+            subject_id?: string;
+            /** @description Tenant subject to grant. Equivalent to subject_type=tenant plus subject_id. */
+            tenant_id?: string;
+            /** @description API key subject to grant. Equivalent to subject_type=api-key plus subject_id. */
+            api_key_id?: string;
+            /**
+             * @default reader
+             * @enum {string}
+             */
+            role: "reader" | "writer" | "admin";
         };
         DataGCSweepRequest: {
             dry_run?: boolean;
@@ -13762,6 +13811,87 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataTransferActionResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    listDataWorkspaceAccess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: components["parameters"]["DataWorkspaceIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    grantDataWorkspaceAccess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: components["parameters"]["DataWorkspaceIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DataWorkspaceAccessGrantRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    revokeDataWorkspaceAccess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: components["parameters"]["DataWorkspaceIdPathParam"];
+                subject_type: "tenant" | "api-key";
+                subject_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             default: components["responses"]["ErrorResponse"];
