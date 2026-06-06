@@ -95,7 +95,7 @@ export default async function DocsPage() {
   );
 
   return (
-    <div className="fg-docs-page fg-atmosphere">
+    <div className="fp-design-system fg-docs-page fg-atmosphere fp-docs-page">
       <a className="fg-docs-skip-link" href="#docs-main">
         {content.skipToContent}
       </a>

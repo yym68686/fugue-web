@@ -1,65 +1,75 @@
-# Fugue Design System Baseline
+# Fugue Platform Design System
 
-This directory is the shared UI baseline for the current Fugue website and product shell. It is no longer a deliberately tiny seed. It now mirrors the visual language that is already live across marketing, docs, auth, deploy flows, and console surfaces.
+This directory now contains two layers:
+
+- `tokens.css` and `components.css`: the existing Fugue compatibility layer used by the live app.
+- `platform.css`: the new platform-neutral console design system distilled from the sampled Cloudflare dashboard UI.
+
+`index.css` imports both layers. The old `fg-*` classes remain available so the product does not lose existing styles, while the new system uses the `fp-*` namespace.
 
 ## Files
 
-- `index.css`
-  - single entrypoint for CSS consumers
-- `tokens.css`
-  - `primitive -> semantic -> component` tokens for both dark and light themes
-- `components.css`
-  - shared class implementations for current Fugue primitives and product controls
-- `component-specs.md`
-  - usage rules, anatomy, and extraction boundary for the current baseline
-- `preview.html`
-  - theme-toggleable inspection page for the shared system
+- `index.css`: shared CSS entrypoint.
+- `tokens.css`: existing Fugue token compatibility.
+- `components.css`: existing Fugue component compatibility.
+- `platform.css`: new dense platform UI tokens and components.
+- `component-specs.md`: component rules, anatomy, variants, and states.
+- `cloudflare-design-dna.md`: extraction notes from the sampled dashboard.
+- `preview.html`: standalone inspection page for the new `fp-*` system.
 
-## What the baseline owns now
+## Design Direction
 
-- three-layer tokens for canvas, typography roles, shell surfaces, selection lenses, fields, alerts, status tones, and console surfaces
-- layout primitives for `fg-shell`, `fg-content-shell`, display copy, ui headings, mono labels, and restrained body copy
-- shared controls for buttons, segmented rails, pill nav, utility menus, compact menu buttons, form fields, selects, stepped sliders, hint tooltips, and inline alerts
-- shared surfaces for shell containers, panels, proof shells, route notes, upload surfaces, confirm dialogs, console disclosures, page intros, empty states, and status badges
-- route-language primitives for object belts, route signals, and proof-oriented command blocks
-- a preview page that exercises these patterns under both dark and light tokens
+The new system is a platform UI, not a marketing theme. It uses:
 
-## What stays route-specific
-
-- landing hero scene composition, canvas/WebGL layers, and chapter choreography
-- docs information architecture and longform reading layout
-- auth stage composition and route-specific copy layout
-- page-specific workbenches, galleries, tables, and wizard sequencing
-
-## Current design rules
-
-- `route is the product`: route, shell, and object transitions should stay legible and product-shaped.
-- `Syne` is for display moments only. Product titles use the quieter UI-heading role built on `Manrope`.
-- Shells now read as single hairline surfaces with depth from gradient and shadow, not the older double-bezel story.
-- Selected states across pill nav, segmented controls, file pills, and small utilities reuse the same raised lens language.
-- Product feedback must ship with loading, empty, error, disabled, and focus-visible states.
+- Inter-first typography with 13px navigation text, 14px controls, 30px page titles.
+- Pure black and near-black surfaces in dark mode, clean neutrals in light mode.
+- 8px default radius, 10px choice-card radius, 6px inner menu radius.
+- 32-40px controls, 34px sidebar nav items, 56px card headers, 72px resource rows.
+- Solid overlays and menus, not glass.
+- 1px rings and hairlines instead of decorative shadows.
+- Blue primary actions, neutral raised secondary controls, muted ghost utilities.
+- Green/red metric deltas, compact badges, and low-saturation alert tints.
 
 ## Adoption
 
 1. Import `design-system/index.css`.
-2. Set `data-theme="dark"` or `data-theme="light"` on the root element.
-3. Use `.fg-shell` or `.fg-content-shell` for width control.
-4. Build from shared roles and primitives before inventing page-local variants.
-5. Keep page choreography in route CSS, but keep reusable shell, control, and form patterns here.
-6. When a stable new pattern lands, update `tokens.css`, `components.css`, `component-specs.md`, and `preview.html` together.
+2. Wrap new product surfaces with `.fp-design-system` or use the classes inside an existing root that already imports the CSS.
+3. Prefer `fp-*` components for console/admin/platform surfaces.
+4. Keep legacy `fg-*` only for existing screens until they are migrated.
+5. Do not copy third-party logos, brand names, or account/resource data into Fugue UI. Use the extracted layout, density, token, and component rules.
 
-## Current extraction boundary
+## React Layer
 
-Good candidates for the next pass:
+The reusable implementation layer lives in:
 
-- shared table density rules
-- checklist and stat-list primitives
-- compact topbar chips and profile triggers
-- richer docs-specific content blocks if they become reusable outside docs
+```text
+/Users/yanyuming/Downloads/GitHub/fugue-web/components/platform
+```
 
-Bad candidates for extraction:
+Use these wrappers before adding page-local product UI:
 
-- one-off hero experiments
-- page-specific metric layouts
-- temporary onboarding copy shells
-- speculative variants that are not reused yet
+- `platform-layout.tsx`: shell, sidebar, topbar, breadcrumbs, page, page header, section, grid, stack.
+- `platform-actions.tsx`: buttons, links, icon buttons, button groups.
+- `platform-data.tsx`: cards, metrics, resource rows, badges, status, tables, key-value lists.
+- `platform-form.tsx`: fields, inputs, selects, search, toolbar, segmented controls.
+- `platform-feedback.tsx`: alerts, empty/error/loading states, modal, drawer.
+- `platform-workflow.tsx`: wizard and step primitives.
+- `platform-icon.tsx`: local platform icon layer.
+
+Console/admin pages now enter through `PlatformShell`. Deploy/new uses `PlatformWizard`. Landing and docs keep their own page structures but are scoped with `.fp-landing-page` and `.fp-docs-page` so controls and panels inherit the platform rules without becoming console pages.
+
+Migration status and compatibility boundaries are tracked in:
+
+```text
+/Users/yanyuming/Downloads/GitHub/fugue-web/docs/frontend-platform-migration-inventory.md
+```
+
+## Preview
+
+Open:
+
+```text
+/Users/yanyuming/Downloads/GitHub/fugue-web/design-system/preview.html
+```
+
+The preview shows sidebar, topbar, metrics, lists, forms, menus, tables, empty/loading/error states, wizard, modal, code, tooltip, and toast examples.

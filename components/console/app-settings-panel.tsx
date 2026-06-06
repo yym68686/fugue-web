@@ -426,27 +426,12 @@ function readInitialContinuityTargetRuntimeId(
   return readDefaultImportRuntimeId(continuityTargets);
 }
 
-function hasStatefulMigrationBlockers(app: ConsoleGalleryAppView) {
-  const hasPersistentStorage =
-    app.persistentStorageMounts.length > 0 ||
-    Boolean(
-      app.persistentStorageStorageClassName || app.persistentStorageStorageSize,
-    );
-
-  return app.hasPersistentWorkspace || hasPersistentStorage;
-}
-
-function readTransferRequestMode(app: ConsoleGalleryAppView) {
-  return hasStatefulMigrationBlockers(app) ? "failover" : "migrate";
-}
-
 function readTransferTargets(
   app: ConsoleGalleryAppView,
   runtimeTargets: ConsoleImportRuntimeTargetView[],
 ) {
   const activeRuntimeId = app.currentRuntimeId ?? app.runtimeId;
-  return readTransferRequestMode(app) === "failover" ||
-    app.hasManagedPostgresService
+  return app.hasManagedPostgresService
     ? readManagedRuntimeTargets(runtimeTargets, activeRuntimeId)
     : runtimeTargets.filter((target) => target.id !== activeRuntimeId);
 }
@@ -501,30 +486,9 @@ function readTransferConfirmationDescription(
 ) {
   const transferPreparationNote = readTransferPreparationNote(app, t);
 
-  if (readTransferRequestMode(app) === "migrate") {
-    return transferPreparationNote
-      ? t(
-          "{appName} stays live on {liveRuntimeLabel} while Fugue prepares {selectedTargetLabel}, then cuts over automatically. {transferPreparationNote}",
-          {
-            appName: app.name,
-            liveRuntimeLabel,
-            selectedTargetLabel,
-            transferPreparationNote,
-          },
-        )
-      : t(
-          "{appName} stays live on {liveRuntimeLabel} while Fugue prepares {selectedTargetLabel}, then cuts over automatically.",
-          {
-            appName: app.name,
-            liveRuntimeLabel,
-            selectedTargetLabel,
-          },
-        );
-  }
-
   return transferPreparationNote
     ? t(
-        "{appName} will move from {liveRuntimeLabel} to {selectedTargetLabel}. {transferPreparationNote}",
+        "{appName} stays live on {liveRuntimeLabel} while Fugue prepares {selectedTargetLabel}, then cuts over automatically. {transferPreparationNote}",
         {
           appName: app.name,
           liveRuntimeLabel,
@@ -533,7 +497,7 @@ function readTransferConfirmationDescription(
         },
       )
     : t(
-        "{appName} will move from {liveRuntimeLabel} to {selectedTargetLabel}.",
+        "{appName} stays live on {liveRuntimeLabel} while Fugue prepares {selectedTargetLabel}, then cuts over automatically.",
         {
           appName: app.name,
           liveRuntimeLabel,
@@ -1416,7 +1380,6 @@ function AppTransferSection({
   const confirm = useConfirmDialog();
   const { locale, t } = useI18n();
   const { showToast } = useToast();
-  const transferMode = readTransferRequestMode(app);
   const activeRuntimeId = app.currentRuntimeId ?? app.runtimeId;
   const transferTargets = readTransferTargets(app, runtimeTargets);
   const [targetRuntimeId, setTargetRuntimeId] = useState<string | null>(() =>
@@ -1430,9 +1393,7 @@ function AppTransferSection({
     app.currentRuntimeId,
     app.failoverTargetRuntimeId,
     app.hasManagedPostgresService,
-    app.hasPersistentWorkspace,
     app.id,
-    app.persistentStorageMounts.length,
     app.runtimeId,
     runtimeTargets,
   ]);
@@ -1458,7 +1419,7 @@ function AppTransferSection({
   const targetSelectionHint = runtimeTargetInventoryError
     ? t("Runtime list unavailable.")
     : transferTargets.length === 0
-      ? transferMode === "failover" || app.hasManagedPostgresService
+      ? app.hasManagedPostgresService
         ? t("Add another managed runtime before moving this service.")
         : t("Add another runtime before moving this service.")
       : null;
@@ -1506,7 +1467,7 @@ function AppTransferSection({
 
     try {
       await requestJson<AppOperationResponse>(
-        `/api/fugue/apps/${app.id}/${transferMode}`,
+        `/api/fugue/apps/${app.id}/migrate`,
         {
           body: JSON.stringify({
             targetRuntimeId: selectedTargetRuntimeId,

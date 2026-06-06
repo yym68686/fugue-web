@@ -7,14 +7,20 @@ import {
   useState,
 } from "react";
 
-import { ConsoleEmptyState } from "@/components/console/console-empty-state";
 import { BillingPanel } from "@/components/console/billing-panel";
 import { useI18n } from "@/components/providers/i18n-provider";
 import {
   ConsoleBillingPageSkeleton,
   ConsoleLoadingState,
 } from "@/components/console/console-page-skeleton";
-import { Panel, PanelSection } from "@/components/ui/panel";
+import {
+  PlatformEmptyState,
+  PlatformErrorState,
+} from "@/components/platform/platform-feedback";
+import {
+  PlatformPage,
+  PlatformPageHeader,
+} from "@/components/platform/platform-layout";
 import {
   CONSOLE_BILLING_PAGE_SNAPSHOT_URL,
   CONSOLE_BILLING_PAGE_USAGE_SNAPSHOT_URL,
@@ -191,21 +197,23 @@ export function ConsoleBillingPageShell({
 
   if (!pageData) {
     return (
-      <div className="fg-console-page">
-        <Panel>
-          <PanelSection>
-            <ConsoleEmptyState
-              description={error ?? t("Fugue could not load the billing snapshot right now.")}
-              title={t("Billing snapshot unavailable")}
-            />
-          </PanelSection>
-        </Panel>
-      </div>
+      <PlatformPage className="fg-console-page">
+        <PlatformErrorState
+          copy={error ?? t("Fugue could not load the billing snapshot right now.")}
+          title={t("Billing snapshot unavailable")}
+        />
+      </PlatformPage>
     );
   }
 
   return (
-    <div className="fg-console-page">
+    <PlatformPage className="fg-console-page fg-console-page--billing">
+      <PlatformPageHeader
+        description={t("Review workspace balance, usage envelope, storage, and capacity controls.")}
+        eyebrow={t("Commercial")}
+        title={t("Billing")}
+      />
+
       {pageData.state === "ready" ? (
         <BillingPanel
           initialBilling={pageData.data.billing}
@@ -214,22 +222,13 @@ export function ConsoleBillingPageShell({
           workspaceName={pageData.data.workspace.tenantName}
         />
       ) : (
-        <Panel>
-          <PanelSection>
-            <ConsoleEmptyState
-              action={{
-                href: "/app/api-keys",
-                label: t("Open access setup"),
-                variant: "primary",
-              }}
-              description={t(
-                "Create the workspace admin access first so Fugue can read and update tenant billing.",
-              )}
-              title={t("Billing needs a workspace")}
-            />
-          </PanelSection>
-        </Panel>
+        <PlatformEmptyState
+          copy={t(
+            "Create the workspace admin access first so Fugue can read and update tenant billing.",
+          )}
+          title={t("Billing needs a workspace")}
+        />
       )}
-    </div>
+    </PlatformPage>
   );
 }

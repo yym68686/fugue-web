@@ -215,12 +215,15 @@
 ## 当前设计基线
 
 - 当前视觉与交互基线来源按优先级读取：
-  1. `design-system/tokens.css`
-  2. `design-system/components.css`
-  3. `design-system/component-specs.md`
-  4. `components/landing/`、`components/console/`、`app/` 中的当前正式实现
+  1. `design-system/platform.css`
+  2. `components/platform/`
+  3. `design-system/tokens.css`
+  4. `design-system/components.css`
+  5. `design-system/component-specs.md`
+  6. `components/landing/`、`components/console/`、`components/admin/`、`components/auth/`、`components/deploy/`、`components/docs/`、`app/` 中的当前正式实现
 - 这里要求继承的不是“整站都长得像 landing page”，而是继承颜色纪律、字体配对、版式张力、材质处理、动效克制和信息组织方法。
 - 当前核心命题不是“炫技背景”，而是：`route is the product`。页面结构、auth handoff、docs 叙事、console onboarding 都应围绕这个命题展开。
+- 新的产品平台界面优先使用 `fp-*` 命名空间和 `components/platform/` React wrapper；旧 `fg-*` 类只作为迁移兼容层保留，除非是在维护尚未抽出的既有组件，不要新增新的 `fg-*` 产品组件。
 
 ## Design DNA
 

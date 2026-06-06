@@ -60,7 +60,12 @@ export function ConsoleLoadingState({
   label?: string;
 }) {
   return (
-    <div aria-busy="true" aria-label={label} className="fg-console-loading" role="status">
+    <div
+      aria-busy="true"
+      aria-label={label}
+      className="fg-console-loading fp-console-loading"
+      role="status"
+    >
       {children}
     </div>
   );

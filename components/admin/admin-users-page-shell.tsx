@@ -10,13 +10,20 @@ import {
 
 import { AdminSummaryGrid } from "@/components/admin/admin-summary-grid";
 import { AdminUserManager } from "@/components/admin/admin-user-manager";
-import { ConsoleEmptyState } from "@/components/console/console-empty-state";
 import { useI18n } from "@/components/providers/i18n-provider";
 import {
   ConsoleAdminUsersPageSkeleton,
   ConsoleLoadingState,
 } from "@/components/console/console-page-skeleton";
-import { Panel, PanelSection } from "@/components/ui/panel";
+import {
+  PlatformAlert,
+  PlatformErrorState,
+} from "@/components/platform/platform-feedback";
+import {
+  PlatformPage,
+  PlatformPageHeader,
+  PlatformSection,
+} from "@/components/platform/platform-layout";
 import { ToastOnMount } from "@/components/ui/toast-on-mount";
 import {
   CONSOLE_ADMIN_USERS_PAGE_SNAPSHOT_URL,
@@ -389,16 +396,12 @@ export function AdminUsersPageShell({
 
   if (!pageData) {
     return (
-      <div className="fg-console-page">
-        <Panel>
-          <PanelSection>
-            <ConsoleEmptyState
-              description={t(error ?? "Fugue could not load the admin users snapshot right now.")}
-              title={t("Users unavailable")}
-            />
-          </PanelSection>
-        </Panel>
-      </div>
+      <PlatformPage className="fg-console-page">
+        <PlatformErrorState
+          copy={t(error ?? "Fugue could not load the admin users snapshot right now.")}
+          title={t("Users unavailable")}
+        />
+      </PlatformPage>
     );
   }
 
@@ -408,8 +411,20 @@ export function AdminUsersPageShell({
     : null;
 
   return (
-    <div className="fg-console-page">
+    <PlatformPage className="fg-console-page fg-console-page--admin">
       <ToastOnMount message={errorMessage} variant="error" />
+
+      <PlatformPageHeader
+        description={t("Review users, admin status, quotas, service usage, and account state.")}
+        eyebrow={t("Admin")}
+        title={t("Users")}
+      />
+
+      {errorMessage ? (
+        <PlatformAlert tone="danger" title={t("Partial admin data")}>
+          {errorMessage}
+        </PlatformAlert>
+      ) : null}
 
       <AdminSummaryGrid
         items={[
@@ -420,16 +435,17 @@ export function AdminUsersPageShell({
         ]}
       />
 
-      <Panel>
-        <PanelSection>
-          <AdminUserManager
-            onRefresh={() => {
-              void refresh({ force: true });
-            }}
-            users={pageData.users}
-          />
-        </PanelSection>
-      </Panel>
-    </div>
+      <PlatformSection
+        description={t("Manage account state and quota context from the admin surface.")}
+        title={t("User directory")}
+      >
+        <AdminUserManager
+          onRefresh={() => {
+            void refresh({ force: true });
+          }}
+          users={pageData.users}
+        />
+      </PlatformSection>
+    </PlatformPage>
   );
 }

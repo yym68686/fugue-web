@@ -10,13 +10,20 @@ import {
 
 import { AdminAppManager } from "@/components/admin/admin-app-manager";
 import { AdminSummaryGrid } from "@/components/admin/admin-summary-grid";
-import { ConsoleEmptyState } from "@/components/console/console-empty-state";
 import { useI18n } from "@/components/providers/i18n-provider";
 import {
   ConsoleAdminAppsPageSkeleton,
   ConsoleLoadingState,
 } from "@/components/console/console-page-skeleton";
-import { Panel, PanelSection } from "@/components/ui/panel";
+import {
+  PlatformAlert,
+  PlatformErrorState,
+} from "@/components/platform/platform-feedback";
+import {
+  PlatformPage,
+  PlatformPageHeader,
+  PlatformSection,
+} from "@/components/platform/platform-layout";
 import { ToastOnMount } from "@/components/ui/toast-on-mount";
 import type { ConsoleCompactResourceItemView } from "@/lib/console/gallery-types";
 import {
@@ -244,16 +251,12 @@ export function AdminAppsPageShell({
 
   if (!pageData) {
     return (
-      <div className="fg-console-page">
-        <Panel>
-          <PanelSection>
-            <ConsoleEmptyState
-              description={t(error ?? "Fugue could not load the admin apps snapshot right now.")}
-              title={t("Cluster apps unavailable")}
-            />
-          </PanelSection>
-        </Panel>
-      </div>
+      <PlatformPage className="fg-console-page">
+        <PlatformErrorState
+          copy={t(error ?? "Fugue could not load the admin apps snapshot right now.")}
+          title={t("Cluster apps unavailable")}
+        />
+      </PlatformPage>
     );
   }
 
@@ -262,8 +265,20 @@ export function AdminAppsPageShell({
     : null;
 
   return (
-    <div className="fg-console-page">
+    <PlatformPage className="fg-console-page fg-console-page--admin">
       <ToastOnMount message={errorMessage} variant="error" />
+
+      <PlatformPageHeader
+        description={t("Inspect all cluster apps, tenants, routing state, rebuild controls, and deletes.")}
+        eyebrow={t("Admin")}
+        title={t("Apps")}
+      />
+
+      {errorMessage ? (
+        <PlatformAlert tone="danger" title={t("Partial admin data")}>
+          {errorMessage}
+        </PlatformAlert>
+      ) : null}
 
       <AdminSummaryGrid
         items={[
@@ -274,16 +289,17 @@ export function AdminAppsPageShell({
         ]}
       />
 
-      <Panel>
-        <PanelSection>
-          <AdminAppManager
-            apps={pageData.apps}
-            onRefresh={() => {
-              void refresh({ force: true });
-            }}
-          />
-        </PanelSection>
-      </Panel>
-    </div>
+      <PlatformSection
+        description={t("Operate cluster apps without leaving the admin surface.")}
+        title={t("Cluster apps")}
+      >
+        <AdminAppManager
+          apps={pageData.apps}
+          onRefresh={() => {
+            void refresh({ force: true });
+          }}
+        />
+      </PlatformSection>
+    </PlatformPage>
   );
 }

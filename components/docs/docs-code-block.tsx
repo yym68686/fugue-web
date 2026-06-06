@@ -140,7 +140,7 @@ export function DocsCodeBlock({
         </div>
       </ProofShellRibbon>
 
-      <pre className="fg-docs-code-block__pre">
+      <pre className={cx("fg-docs-code-block__pre", "language-" + readyLanguage)} tabIndex={0}>
         <code
           className={cx("language-" + readyLanguage)}
           dangerouslySetInnerHTML={{ __html: highlightedMarkup }}

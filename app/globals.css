@@ -636,6 +636,56 @@ canvas {
   border-top: 0;
 }
 
+.fp-auth-page {
+  background: var(--fp-surface-canvas);
+  color: var(--fp-text-primary);
+}
+
+.fp-auth-page .fg-auth-grid {
+  width: min(calc(100% - 2rem), 1180px);
+  grid-template-columns: minmax(0, 1fr) minmax(20rem, 0.92fr);
+  gap: clamp(1.5rem, 5vw, 5rem);
+}
+
+.fp-auth-page .fg-auth-stage__copy .fg-display-heading {
+  color: var(--fp-text-primary);
+  font-family: var(--fp-font-ui);
+  font-size: clamp(2rem, 4vw, 3.35rem);
+  font-weight: 700;
+  line-height: 1.04;
+  letter-spacing: 0;
+}
+
+.fp-auth-page .fg-auth-stage__copy .fg-copy,
+.fp-auth-page .fg-auth-stage__footer {
+  color: var(--fp-text-tertiary);
+}
+
+.fp-auth-page .fg-auth-panel-slot {
+  justify-items: center;
+}
+
+.fp-auth-page .fg-auth-panel-slot .fg-panel {
+  width: min(100%, 29rem);
+}
+
+.fp-auth-page .fg-provider-stack,
+.fp-auth-page .fg-field-stack {
+  min-width: 0;
+}
+
+.fp-auth-page .fg-input,
+.fp-auth-page .fg-select__control,
+.fp-auth-page textarea {
+  border-radius: var(--fp-radius-md);
+  background: var(--fp-surface-control);
+  box-shadow: 0 0 0 1px var(--fp-border-default);
+}
+
+.fp-auth-page .fg-button {
+  border-radius: var(--fp-radius-md);
+}
+
 .fg-panel {
   width: 100%;
   min-width: 0;
@@ -1499,6 +1549,10 @@ canvas {
     grid-template-columns: 1fr;
     min-height: auto;
     align-items: start;
+  }
+
+  .fp-auth-page .fg-auth-panel-slot {
+    order: -1;
   }
 
   .fg-auth-page--account .fg-auth-panel-slot .fg-panel {

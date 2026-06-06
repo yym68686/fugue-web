@@ -1,663 +1,377 @@
-# Fugue Product Design System Specs
+# Fugue Platform Component Specs
 
 ## Scope
 
-This spec reflects the current production baseline across marketing, docs, auth, deploy flows, and the console. It is intentionally product-shaped: the shared system captures patterns that are already reused in real routes and leaves page-specific choreography outside the design system.
+This spec defines the new `fp-*` platform UI layer. It is intentionally dense, neutral, and operational. It should be used for console, admin, control-plane, billing, onboarding, resource-management, and docs-adjacent product surfaces.
 
-Included today:
-
-- Typography roles: `DisplayHeading`, `UiHeading`, `SectionLabel`, `Copy`
-- Actions: `Button`
-- Navigation and selection: `ScrollableControlStrip`, `SegmentedControl`, `PillNav`, `ConsolePillSwitch`, `UtilityMenu`, `LocaleMenuButton`
-- Surfaces: `BezelShell`, `Panel`, `ProofShell`, `ConsoleDisclosure`, `LayoutShell`
-- Forms and feedback: `FormField`, `Input`, `SelectField`, `SteppedSlider`, `HintTooltip`, `InlineAlert`, `ConfirmDialog`
-- Product semantics: `RouteNote`, `StatusBadge`, `ConsolePageIntro`, `ConsoleEmptyState`, `UploadSource`, `ObjectBelt`, `RouteSignal`, `CodeTextarea`
-
-Still outside the shared baseline:
-
-- full table system and dense data-view rules
-- page-specific topbar chips and profile surfaces
-- landing scene choreography and route-level atmospheric composition
-- one-off galleries, wizard layouts, and marketing-specific storytelling shells
+The old `fg-*` layer remains available as compatibility, but new shared console components should prefer `fp-*` when the goal is a Cloudflare-like platform UI.
 
 ## System Rules
 
-- `Route is the product.` Shared primitives should reinforce route, object, and control-plane meaning instead of becoming generic SaaS decoration.
-- `Display is not UI heading.` `Syne` is reserved for authored display moments. Serious product headings use the `UiHeading` role.
-- `Shells are single-layer now.` The historical `fg-bezel` class name remains, but the current visual language is a single hairline inner shell with depth from gradient and shadow, not a nested double bezel.
-- `Selection reads as one lens system.` Segmented controls, pill nav, and small active chips should all reuse the same raised active-state language.
-- `Shared controls ship complete states.` Focus-visible, disabled, loading, empty, error, and reduced-motion behavior are part of the component, not optional polish.
+- Use `Inter`/system UI for every product surface. Do not use display fonts in console UI.
+- Use 8px as the default component radius. Choice cards may use 10px.
+- Use 1px rings/hairlines for separation. Avoid decorative glow or glass effects.
+- Default controls are 36px high. Compact icon buttons are 32px.
+- Sidebar nav rows are 34px high and use 13px text.
+- Resource rows are 72px high, clickable, and card-like.
+- Popovers and menus are solid raised panels with 6px inner padding.
+- Primary actions are blue. Secondary actions are neutral raised controls. Ghost is only for low-priority utilities.
+- Every shared control needs hover, focus-visible, disabled, loading or empty/error treatment where applicable.
+- Keep examples platform-neutral. Never embed third-party logos, user account names, domains, secrets, or resource names from sampled dashboards.
 
-## Typography Roles
+## Tokens
 
-### `DisplayHeading`
+### Primitive
 
-Purpose:
+- Neutrals: `--fp-neutral-50` through `--fp-neutral-1000`.
+- Accent: `--fp-blue-600`.
+- Status: `--fp-green-*`, `--fp-amber-*`, `--fp-red-*`, `--fp-teal-*`, `--fp-purple-*`.
+- Typography: `--fp-font-ui`, `--fp-font-mono`, `--fp-type-*`, `--fp-line-*`.
+- Spacing: `--fp-space-*`.
+- Shape: `--fp-radius-xs` through `--fp-radius-xl`.
 
-- Brand, hero, and authored stage copy.
+### Semantic
 
-Class:
+- Surfaces: `--fp-surface-canvas`, `--fp-surface-sidebar`, `--fp-surface-topbar`, `--fp-surface-panel`, `--fp-surface-control`, `--fp-surface-overlay`.
+- Text: `--fp-text-primary`, `--fp-text-secondary`, `--fp-text-tertiary`, `--fp-text-muted`, `--fp-text-disabled`.
+- Borders: `--fp-border-subtle`, `--fp-border-default`, `--fp-border-strong`.
+- Feedback: `--fp-success`, `--fp-warning`, `--fp-danger`, `--fp-info`.
 
-- `.fg-display-heading`
-- `.fg-heading` remains the legacy alias
+### Component
 
-Notes:
+- Shell: `--fp-sidebar-width`, `--fp-topbar-height`.
+- Controls: `--fp-control-height-sm`, `--fp-control-height-md`, `--fp-control-height-lg`.
+- Cards: `--fp-card-padding`, `--fp-card-radius`, `--fp-card-gap`.
+- Rows: `--fp-row-height`, `--fp-row-padding`.
+- Menus: `--fp-menu-padding`, `--fp-menu-item-height`, `--fp-menu-item-radius`.
 
-- Uses `Syne`.
-- Safe for landing hero copy and auth stage display copy.
-- Do not use for panel titles, docs section heads, table objects, or console readouts.
+## Components
 
-### `UiHeading`
+## React Implementation Layer
 
-Purpose:
+Shared product surfaces should use the React wrappers in `components/platform/`
+before adding new page-local markup. The wrappers are intentionally thin: they
+bind semantic structure and state to `fp-*` classes, while `platform.css`
+remains the visual source of truth.
 
-- Serious product titles that need fast scanning and low reading friction.
+Current wrapper files:
 
-Class:
+- `components/platform/platform-actions.tsx`: `PlatformButton`,
+  `PlatformButtonLink`, `PlatformButtonAnchor`, `PlatformIconButton`,
+  `PlatformButtonGroup`.
+- `components/platform/platform-data.tsx`: `PlatformCard`,
+  `PlatformMetric`, `PlatformMetricGrid`, `PlatformResourceList`,
+  `PlatformResourceRow`, `PlatformResourceLink`, `PlatformBadge`,
+  `PlatformStatus`, `PlatformTable`, `PlatformKeyValueList`.
+- `components/platform/platform-feedback.tsx`: `PlatformAlert`,
+  `PlatformEmptyState`, `PlatformErrorState`, `PlatformLoadingState`,
+  `PlatformSkeleton`, `PlatformModal`, `PlatformDrawer`.
+- `components/platform/platform-form.tsx`: `PlatformField`,
+  `PlatformInput`, `PlatformTextarea`, `PlatformSelect`,
+  `PlatformToolbar`, `PlatformSearchField`, `PlatformSegmentedControl`.
+- `components/platform/platform-icon.tsx`: centralized local icon layer.
+- `components/platform/platform-layout.tsx`: `PlatformShell`,
+  `PlatformSidebar`, `PlatformTopbar`, `PlatformBreadcrumbs`,
+  `PlatformPage`, `PlatformPageHeader`, `PlatformSection`,
+  `PlatformStack`, `PlatformGrid`.
+- `components/platform/platform-workflow.tsx`: `PlatformWizard`,
+  `PlatformStepList`, `PlatformStep`.
 
-- `.fg-ui-heading`
+Adoption rules:
 
-Notes:
+- Use `PlatformShell` for authenticated console/admin surfaces.
+- Use `PlatformWizard` for deploy/create flows.
+- Use `PlatformPage` and `PlatformPageHeader` before adding a new page-level
+  layout wrapper.
+- Use `PlatformResourceList` for primary object lists and `PlatformTable` for
+  comparison/audit records.
+- Use `PlatformEmptyState`, `PlatformErrorState`, and `PlatformLoadingState`
+  for production states instead of blank panels or raw spinners.
+- Do not add new `fg-*` product components. Existing `fg-*` code is a migration
+  compatibility layer.
 
-- Uses the `Manrope`-based UI-heading role.
-- Default for panel titles, modal titles, docs section heads, page intros, and empty states.
+Current surface mapping:
 
-### `SectionLabel`
+- Console/admin: `PlatformShell` + grouped sidebar + `PlatformPage`.
+- Project detail: platform shell plus a scoped project workbench compatibility
+  layer until every legacy panel is extracted.
+- Deploy/new: `PlatformWizard` around the existing source/import forms.
+- Auth: `fp-auth-page` scoped form-first shell.
+- Docs: `fp-docs-page` scoped docs rail, section nav, tables, and code blocks.
+- Landing: `fp-landing-page` scoped buttons, route notes, proof shell, and
+  object belt while preserving the full-bleed atmospheric scene.
 
-Purpose:
+Compatibility classes that are intentionally still present are tracked in
+`docs/frontend-platform-migration-inventory.md`.
 
-- Mono overline for chapter labels, object names, and technical metadata.
-
-Class:
-
-- `.fg-label`
-
-Notes:
-
-- Use sentence case or title case.
-- Do not force full-uppercase labels with `text-transform`.
-
-### `Copy`
-
-Purpose:
-
-- Long-form supporting body copy with controlled width and quieter contrast.
-
-Class:
-
-- `.fg-copy`
-
-Notes:
-
-- Prefer this over ad hoc paragraph styling when the text is part of the shared visual rhythm.
-
-## Actions
-
-### `Button`
-
-Purpose:
-
-- Shared action system for route-level actions, product submits, quiet utilities, and destructive workbench controls.
-
-Variants:
-
-| Variant | Class | Use |
-| --- | --- | --- |
-| route | `.fg-button--route` | topbar or route-level CTA |
-| primary | `.fg-button--primary` | main action inside a product section or form |
-| secondary | `.fg-button--secondary` | default visible utility action |
-| ghost | `.fg-button--ghost` | tertiary or dismissive action |
-| danger | `.fg-button--danger` | destructive action |
-
-Size modifiers:
-
-| Size | Class | Use |
-| --- | --- | --- |
-| default | none | standard form and panel actions |
-| compact | `.fg-button--compact` | rails, topbars, and dense control zones |
-| tight | `.fg-button--tight` | dense row actions |
-
-Additional modifiers:
-
-| Modifier | Class | Use |
-| --- | --- | --- |
-| inline | `.fg-button--inline` | mono row action for lists and key-value rows |
-| full width | `.fg-button--full-width` | stretch to container width |
-
-Anatomy:
-
-```html
-<a class="fg-button fg-button--route" href="#">
-  <span class="fg-button__label">Inspect quickstart</span>
-  <span class="fg-button__icon is-island" aria-hidden="true">-&gt;</span>
-</a>
-```
-
-Notes:
-
-- Only `route` keeps the icon island by default.
-- `ghost` is not the default page-intro secondary action inside product UI; use `secondary` unless the action is intentionally quieter.
-- `inline + tight` is the default row-action treatment.
-- Loading state should keep label legibility and disable repeat clicks.
-
-## Navigation And Selection
-
-### `ScrollableControlStrip`
-
-Purpose:
-
-- Shared outer shell for compact rails that should hug their content in roomy layouts and scroll horizontally when space gets tight.
+### App Shell
 
 Classes:
 
-- `.fg-control-strip-shell`
-- `.fg-control-strip__viewport`
+- `.fp-app-shell`
+- `.fp-sidebar`
+- `.fp-main`
+- `.fp-topbar`
+- `.fp-page`
+- `.fp-page-header`
 
-Notes:
+Rules:
 
-- Use this as a wrapper around `PillNav` or `SegmentedControl`, not as a standalone control.
-- Let the shell hug content when possible.
-- When content overflows, keep the shell fixed and move the content inside the viewport instead of wrapping or hiding items in a `More` menu.
+- Desktop shell uses a 260px sidebar and sticky 58px topbar.
+- Main page width defaults to `1172px`; use `.fp-page--wide` for `1400px`.
+- Mobile collapses to a single column and hides the long sidebar nav in the preview pattern.
 
-### `SegmentedControl`
-
-Purpose:
-
-- Shared local view switch for mutually exclusive states such as `Environment / Files / Logs` or `Build / Runtime`.
-
-Anatomy:
-
-```html
-<div class="fg-control-strip-shell fg-control-strip-shell--segmented">
-  <div class="fg-control-strip__viewport">
-    <div class="fg-segmented" aria-label="Workbench views" role="group">
-      <button class="fg-segmented__item is-active" aria-pressed="true" type="button">
-        <span class="fg-segmented__label">Environment</span>
-      </button>
-      <button class="fg-segmented__item" aria-pressed="false" type="button">
-        <span class="fg-segmented__label">Logs</span>
-      </button>
-    </div>
-  </div>
-</div>
-```
-
-Notes:
-
-- Use this for local mode switches, not submit actions.
-- The active state must be visible without hover.
-- Segmented items should share the same active lens language as current pill-nav items and other small selected chips.
-- `variant` is explicit. Never rely on a default visual fallback.
-- Inside `components/console/` and `components/admin/`, prefer `ConsolePillSwitch` instead of wiring raw `SegmentedControl` with console nav classes by hand.
-
-### `PillNav`
-
-Purpose:
-
-- Detached navigation container for top-level marketing/docs rails or small sub-nav clusters.
+### Sidebar Navigation
 
 Classes:
 
-- `.fg-pill-nav`
-- `.fg-pill-nav__button`
-- `.fg-pill-nav__label`
+- `.fp-sidebar__brand`
+- `.fp-command`
+- `.fp-nav`
+- `.fp-nav-section`
+- `.fp-nav-item`
 
-Notes:
+States:
 
-- Mark the current route with `aria-current="page"` or `aria-pressed="true"`.
-- Not for dense app sidebars.
+- Default: transparent row, tertiary text.
+- Hover/current: `--fp-surface-active`, primary text.
+- Command search: 36px raised control with command key on the right.
 
-### `ConsolePillSwitch`
-
-Purpose:
-
-- Console/admin wrapper that keeps local segmented controls on the same pill-nav language as topbar navigation and project-detail panel switches.
-
-React wrapper:
-
-- `components/console/console-pill-switch.tsx`
-
-Notes:
-
-- Console segmented controls must use the same pill-nav language as topbar navigation.
-- Use this inside `components/console/` and `components/admin/` instead of raw `SegmentedControl`.
-- This is the required pattern for project detail panels, runtime access rows, cluster policy controls, and similar console-local switches.
-- Do not hand-write the `variant="pill" + fg-console-nav + fg-console-nav__link + fg-console-nav__title` combination at call sites.
-
-### `UtilityMenu`
-
-Purpose:
-
-- Shared small utility disclosure used by theme and locale controls.
-
-Variants:
-
-| Variant | Class | Use |
-| --- | --- | --- |
-| underline utility | `.fg-locale-utility` | landing and docs mastheads |
-| compact menu button | `.fg-locale-menu` | auth and tighter product chrome |
-
-Anatomy:
-
-```html
-<details class="fg-locale-utility" open>
-  <summary class="fg-locale-utility__trigger">
-    <span class="fg-locale-utility__value">English</span>
-    <span class="fg-locale-utility__chevron" aria-hidden="true">...</span>
-  </summary>
-  <div class="fg-locale-utility__panel">
-    <ul class="fg-locale-utility__list">
-      <li class="fg-locale-utility__list-item">
-        <button class="fg-locale-utility__option is-active" aria-pressed="true" type="button">
-          <span class="fg-locale-utility__option-label">English</span>
-          <span class="fg-locale-utility__option-mark" aria-hidden="true"></span>
-        </button>
-      </li>
-    </ul>
-  </div>
-</details>
-```
-
-Notes:
-
-- Locale and theme share the same shell language even when their content differs.
-- Utility menus should read like quiet masthead tools, not product-primary buttons.
-- The compact `fg-locale-menu` variant reuses the button system and is preferred in auth and constrained topbars.
-
-## Surfaces
-
-### `BezelShell`
-
-Purpose:
-
-- Shared shell surface for panels, proofs, and other high-trust content blocks.
+### Topbar And Breadcrumb
 
 Classes:
 
-- `.fg-bezel`
-- `.fg-bezel__inner`
+- `.fp-topbar`
+- `.fp-breadcrumb`
+- `.fp-topbar__actions`
 
-Notes:
+Rules:
 
-- `fg-bezel` is the historical class name. The current shell is a single inner hairline surface.
-- Use it when a surface needs stronger separation than a plain section, not for every list row.
+- Topbar is a solid surface with a bottom hairline.
+- Breadcrumb is small, muted, and left-aligned.
+- Right actions use small ghost or neutral raised buttons.
 
-### `Panel`
-
-Purpose:
-
-- Default structured product surface for forms, settings groups, and inline modules.
+### Buttons
 
 Classes:
 
-- `.fg-panel`
-- `.fg-panel__section`
-- `.fg-panel__eyebrow`
-- `.fg-panel__title`
-- `.fg-panel__copy`
-- `.fg-panel__divider`
+- `.fp-button`
+- `.fp-button--primary`
+- `.fp-button--ghost`
+- `.fp-button--danger`
+- `.fp-button--sm`
+- `.fp-button--lg`
+- `.fp-icon-button`
 
-Anatomy:
+States:
 
-```html
-<section class="fg-bezel fg-panel">
-  <div class="fg-bezel__inner">
-    <div class="fg-panel__section">
-      <p class="fg-label fg-panel__eyebrow">Workspace route</p>
-      <h2 class="fg-panel__title fg-ui-heading">Create a route from source.</h2>
-      <p class="fg-panel__copy">Source import and runtime choice stay in the same shared shell.</p>
-    </div>
-  </div>
-</section>
-```
+| Variant | Background | Text | Border/Ring | Use |
+| --- | --- | --- | --- | --- |
+| default | `--fp-surface-control` | primary | 1px default | secondary and filter controls |
+| primary | `--fp-accent` | white | none | main submit/create action |
+| ghost | transparent | primary | none | topbar and tertiary utilities |
+| danger | danger muted | white | danger ring | destructive action |
 
-Notes:
-
-- Prefer dividers and section rhythm over nested shell-within-shell chrome.
-- Auth pages may locally flatten panel internals for composition, but they still inherit the same shared typography and section grammar.
-
-### `ProofShell`
-
-Purpose:
-
-- Specialized shell for command blocks and control-plane proof.
+### Cards
 
 Classes:
 
-- `.fg-proof-shell`
-- `.fg-proof-shell__ribbon`
-- `.fg-proof-shell__empty`
+- `.fp-card`
+- `.fp-card--flush`
+- `.fp-card--raised`
+- `.fp-card__header`
+- `.fp-card__body`
+- `.fp-card__footer`
 
-Notes:
+Rules:
 
-- Prefer this over a naked `pre`.
-- Ribbon items should carry real environment or object metadata, not decorative tags.
+- Default cards use `--fp-surface-panel` and a single 1px ring.
+- Headers are 56px and recessed.
+- Do not nest cards inside cards unless the inner object is a true repeated item.
 
-### `ConsoleDisclosure`
-
-Purpose:
-
-- Shared reveal surface for secondary product details that should stay in-band with the surrounding shell language.
-
-Classes:
-
-- `.fg-console-disclosure`
-- `.fg-console-disclosure--section`
-- `.fg-console-disclosure__summary-*`
-- `.fg-console-disclosure__panel`
-
-Notes:
-
-- Use the `--section` variant for product settings and expandable details inside console surfaces.
-- The summary icon should reuse the same active lens language when open.
-- On narrow screens, label and value rows stack instead of forcing right-aligned compression.
-
-### `LayoutShell`
-
-Purpose:
-
-- Shared width control for full-bleed and content-width sections.
+### Metrics
 
 Classes:
 
-| Class | Width |
-| --- | --- |
-| `.fg-shell` | `1400px` max |
-| `.fg-content-shell` | `1180px` max |
+- `.fp-metric-grid`
+- `.fp-metric`
+- `.fp-metric__body`
+- `.fp-metric__label`
+- `.fp-metric__value`
+- `.fp-metric__delta`
+- `.fp-sparkline`
 
-## Forms And Feedback
+Rules:
 
-### `FormField`
+- Metrics split text left and sparkline right on desktop.
+- Values use 30px/700 with no negative tracking.
+- Green/red deltas are text-first and compact.
 
-Purpose:
-
-- Shared label, optional meta, tooltip, control, and error stack.
-
-Classes:
-
-- `.fg-field-stack`
-- `.fg-field-label`
-- `.fg-field-label__main`
-- `.fg-field-label__text`
-- `.fg-field-label__meta`
-- `.fg-field-control`
-- `.fg-field-error`
-
-Notes:
-
-- Labels sit above the control.
-- Helper text belongs in tooltips or nearby copy, not inside placeholders.
-- Error state belongs on both the control and the field copy.
-
-### `Input`
-
-Purpose:
-
-- Shared text input surface for auth, deploy, and console forms.
-
-Class:
-
-- `.fg-input`
-
-Notes:
-
-- Use the field shell for most one-line inputs.
-- Hover and focus lift the surface slightly; focus-visible uses the shared accent outline.
-
-### `SelectField`
-
-Purpose:
-
-- Shared select control with floating chip chevron.
+### Toolbar, Inputs, Selects
 
 Classes:
 
-- `.fg-select`
-- `.fg-select__control`
-- `.fg-select__icon`
+- `.fp-toolbar`
+- `.fp-toolbar__search`
+- `.fp-search-input`
+- `.fp-input`
+- `.fp-select`
+- `.fp-textarea`
+- `.fp-field`
+- `.fp-label`
+- `.fp-help`
 
-Notes:
+Rules:
 
-- The chevron lives inside its own small raised chip, matching the broader hardware language.
+- Filters use 36px controls.
+- Search shell contains icon + borderless input.
+- Focus-visible is a blue 3px outer ring.
 
-### `SteppedSlider`
-
-Purpose:
-
-- Shared numeric slider surface with a readable current-value pill.
-
-Classes:
-
-- `.fg-stepped-slider`
-- `.fg-stepped-slider__value-pill`
-- `.fg-stepped-slider__input`
-- `.fg-stepped-slider__bounds`
-
-Notes:
-
-- Use for bounded numeric choices with a small number of meaningful steps.
-- Keep the value pill visible; do not rely on thumb position alone.
-
-### `HintTooltip`
-
-Purpose:
-
-- Quiet inline help for labels and secondary explanatory details.
+### Resource Rows
 
 Classes:
 
-- `.fg-hint-tooltip`
-- `.fg-hint-tooltip__trigger`
-- `.fg-hint-tooltip__bubble`
-- `.fg-hint-inline`
+- `.fp-resource-list`
+- `.fp-row`
+- `.fp-row__icon`
+- `.fp-row__main`
+- `.fp-row__title`
+- `.fp-row__meta`
+- `.fp-row__side`
 
-Notes:
+Rules:
 
-- Use for targeted clarification, not long-form documentation.
-- Tooltip copy should stay short, concrete, and task-relevant.
+- Use row cards instead of heavy tables for primary resources.
+- Row height defaults to 72px.
+- Primary object, route/source metadata, timestamp, badges, and row menu sit in one scan line.
 
-### `InlineAlert`
-
-Purpose:
-
-- Shared in-band feedback block for info, warning, success, and error states.
-
-Classes:
-
-- `.fg-inline-alert`
-- `.fg-inline-alert--info`
-- `.fg-inline-alert--warning`
-- `.fg-inline-alert--success`
-- `.fg-inline-alert--error`
-
-Notes:
-
-- Error alerts should name the real failure and the next useful action.
-- Do not use inline alerts as decorative highlight cards.
-
-### `ConfirmDialog`
-
-Purpose:
-
-- Shared confirmation surface for destructive or high-impact actions.
+### Tables
 
 Classes:
 
-- `.fg-confirm-dialog-*`
+- `.fp-table-wrap`
+- `.fp-table`
 
-Notes:
+Rules:
 
-- Use `alertdialog` for destructive confirmation, `dialog` for neutral confirmation.
-- Initial focus should land on the least destructive action.
-- For irreversible deletes, require exact-text confirmation when the product risk is high.
+- Tables are for secondary details and audit-like records.
+- Header background is recessed; row hover is subtle.
+- Avoid large border grids.
 
-## Product Semantics
-
-### `RouteNote`
-
-Purpose:
-
-- Right-rail route card language used across landing, docs side notes, and console summaries.
-
-Class:
-
-- `.fg-route-note`
-
-Notes:
-
-- This is route and object language, not a generic marketing feature card.
-
-### `StatusBadge`
-
-Purpose:
-
-- Compact mono status pill for live state, health, and operational tone.
+### Menus
 
 Classes:
 
-- `.fg-status-badge`
-- `.fg-status-badge--positive`
-- `.fg-status-badge--warning`
-- `.fg-status-badge--danger`
-- `.fg-status-badge--info`
-- `.fg-status-badge--neutral`
-- `.fg-status-badge--live`
+- `.fp-menu`
+- `.fp-menu__item`
+- `.fp-menu__copy`
+- `.fp-menu__title`
+- `.fp-menu__description`
 
-Notes:
+Rules:
 
-- Use `live` only when the breathing dot has real meaning.
-- Keep labels short enough to fit inline with other controls.
+- Menu panel uses solid `--fp-surface-overlay`, 8px radius, 6px padding.
+- Items use 52px height, 6px radius, icon + two-line copy.
+- Hover state is a slight surface lift, not a color wash.
 
-### `ConsolePageIntro`
-
-Purpose:
-
-- Standard page-intro block for console and admin routes.
+### Badges And Status
 
 Classes:
 
-- `.fg-console-page-intro`
-- `.fg-console-page-intro__copy`
-- `.fg-console-page-intro__actions`
+- `.fp-badge`
+- `.fp-badge--info`
+- `.fp-badge--success`
+- `.fp-badge--warning`
+- `.fp-badge--danger`
+- `.fp-status`
+- `.fp-status--success`
+- `.fp-status--warning`
+- `.fp-status--danger`
 
-Notes:
+Rules:
 
-- Intro copy stays left-aligned; action rail sits to the right on wide screens and drops below on narrow screens.
+- Badges are 20px pill labels with 12px text.
+- Status rows use a colored dot plus 13px text.
 
-### `ConsoleEmptyState`
-
-Purpose:
-
-- Shared empty-state language for console and admin panels.
-
-Classes:
-
-- `.fg-console-empty-state`
-- `.fg-console-empty-state__actions`
-
-Notes:
-
-- Empty states should explain why the surface is empty and offer the next useful route when one exists.
-
-### `UploadSource`
-
-Purpose:
-
-- Shared upload dropzone pattern for deploy and import flows.
+### Segmented Controls And Tabs
 
 Classes:
 
-- `.fg-upload-source`
-- `.fg-upload-source__dropzone`
-- `.fg-upload-source__head`
-- `.fg-upload-source__meter`
-- `.fg-upload-source__chip`
-- `.fg-upload-source__list`
+- `.fp-segmented`
+- `.fp-segmented__item`
+- `.fp-tabs`
+- `.fp-tab`
 
-Notes:
+Rules:
 
-- This is the shared dropzone shell, not a generic marketing card.
-- Drag-active state should lift slightly and keep the copy readable.
+- Active state is a small raised lens within a neutral rail.
+- Use for local mutually exclusive views, not submit actions.
 
-### `ObjectBelt`
-
-Purpose:
-
-- Compact object-model strip for core product nouns.
-
-Class:
-
-- `.fg-object-belt`
-
-Notes:
-
-- Use this as a semantic map, not a tag cloud.
-
-### `RouteSignal`
-
-Purpose:
-
-- Visual route path for process, migration, and topology.
-
-Class:
-
-- `.fg-route-signal`
-
-Notes:
-
-- Keep it meaningful. It should map to a real product transition or information path.
-- Hide it when it stops being legible on narrow screens.
-
-### `CodeTextarea`
-
-Purpose:
-
-- Syntax-highlighted textarea layer for file editors and technical composition surfaces.
+### Choice Cards
 
 Classes:
 
-- `.fg-code-textarea`
-- `.fg-code-textarea__highlight`
-- `.fg-code-textarea__input`
+- `.fp-choice-grid`
+- `.fp-choice`
+- `.fp-choice__copy`
+- `.fp-choice__title`
+- `.fp-choice__description`
 
-Notes:
+Rules:
 
-- The component owns the syntax overlay behavior and token colors.
-- The surrounding editor shell should own padding, border, background, and overall height.
+- Choice cards are 56px high by default.
+- Selected cards get an accent ring and faint outer halo.
 
-## React Wrappers
+### Feedback States
 
-Current React wrappers live in:
+Classes:
 
-| Pattern | Path |
-| --- | --- |
-| Button | `components/ui/button.tsx` |
-| ScrollableControlStrip | `components/ui/scrollable-control-strip.tsx` |
-| SegmentedControl | `components/ui/segmented-control.tsx` |
-| PillNav | `components/ui/pill-nav.tsx` |
-| ConsolePillSwitch | `components/console/console-pill-switch.tsx` |
-| Panel | `components/ui/panel.tsx` |
-| ProofShell | `components/ui/proof-shell.tsx` |
-| FormField | `components/ui/form-field.tsx` |
-| SelectField | `components/ui/select-field.tsx` |
-| SteppedSlider | `components/ui/stepped-slider-field.tsx` |
-| HintTooltip | `components/ui/hint-tooltip.tsx` |
-| InlineAlert | `components/ui/inline-alert.tsx` |
-| ConfirmDialog | `components/ui/confirm-dialog.tsx` |
-| UtilityMenu | `components/ui/locale-switcher.tsx`, `components/ui/theme-switcher.tsx` |
-| StatusBadge | `components/console/status-badge.tsx` |
-| ConsolePageIntro | `components/console/console-page-intro.tsx` |
-| ConsoleEmptyState | `components/console/console-empty-state.tsx` |
-| ConsoleDisclosure | `components/console/console-disclosure-section.tsx` |
-| CodeTextarea | `components/ui/code-textarea.tsx` |
+- `.fp-alert`
+- `.fp-alert--warning`
+- `.fp-alert--danger`
+- `.fp-empty`
+- `.fp-loading-state`
+- `.fp-error-state`
+- `.fp-skeleton`
+- `.fp-toast`
+- `.fp-tooltip`
 
-## Change Rule
+Rules:
 
-When the visual baseline moves, update all four layers together:
+- Alerts use tinted solid panels with a single semantic ring.
+- Empty/loading/error blocks share a centered card-like treatment.
+- Skeleton shimmer disables under reduced motion.
 
-1. `tokens.css`
-2. `components.css`
-3. `component-specs.md`
-4. `preview.html`
+### Modal And Fullscreen Wizard
 
-If a pattern only exists in one route or one experiment, keep it out of the design system until it proves reusable.
+Classes:
+
+- `.fp-modal-backdrop`
+- `.fp-modal`
+- `.fp-modal__header`
+- `.fp-modal__body`
+- `.fp-modal__footer`
+- `.fp-fullscreen-dialog`
+- `.fp-wizard`
+- `.fp-wizard__rail-title`
+- `.fp-wizard__eyebrow`
+
+Rules:
+
+- Fullscreen creation flows use the whole canvas with a 58px header.
+- Wizard content is centered with an optional left rail title on desktop.
+- Ordinary confirmation dialogs use solid overlays and compact footers.
+
+## Accessibility
+
+- Interactive controls must use native `button`, `a`, `input`, `select`, or ARIA roles only when native elements are not possible.
+- Icon-only buttons need `aria-label`.
+- Current nav items use `aria-current="page"`.
+- Segmented items use `aria-pressed`; tabs use `role="tab"` and `aria-selected`.
+- Choice cards use `aria-checked` when acting like radios.
+- Focus-visible styles are required and are defined in `platform.css`.
+
+## Responsive
+
+- Under 1100px, the sidebar collapses into top shell behavior and long nav is hidden in the preview pattern.
+- Under 760px, grids become single-column, page header stacks, metric charts move below content, and row side metadata hides.

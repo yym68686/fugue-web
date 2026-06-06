@@ -5275,9 +5275,9 @@ export function ConsoleProjectGallery({
     if (project.serviceCount === 0) {
       return (
         <div className="fg-project-card__detail" id={detailId}>
-          <section className="fg-bezel fg-panel fg-project-workbench">
+          <section className="fg-bezel fg-panel fg-project-workbench fp-project-workbench-card">
             <div className="fg-bezel__inner fg-project-workbench__inner">
-              <aside className="fg-project-services fg-project-services--rail fg-project-workbench__rail">
+              <aside className="fg-project-services fg-project-services--rail fg-project-workbench__rail fp-project-workbench-rail">
                 <PanelSection className="fg-project-services__head">
                   <div className="fg-project-services__title-row">
                     <p className="fg-label fg-panel__eyebrow">
@@ -5301,7 +5301,7 @@ export function ConsoleProjectGallery({
                 </PanelSection>
               </aside>
 
-              <div className="fg-project-inspector fg-project-workbench__main">
+              <div className="fg-project-inspector fg-project-workbench__main fp-project-workbench-main">
                 <PanelSection className="fg-project-inspector__head">
                   <div className="fg-project-inspector__header-row">
                     <div className="fg-project-inspector__hero">
@@ -5440,9 +5440,9 @@ export function ConsoleProjectGallery({
 
     return (
       <div className="fg-project-card__detail" id={detailId}>
-        <section className="fg-bezel fg-panel fg-project-workbench">
+        <section className="fg-bezel fg-panel fg-project-workbench fp-project-workbench-card">
           <div className="fg-bezel__inner fg-project-workbench__inner">
-            <aside className="fg-project-services fg-project-services--rail fg-project-workbench__rail">
+            <aside className="fg-project-services fg-project-services--rail fg-project-workbench__rail fp-project-workbench-rail">
               <PanelSection className="fg-project-services__head">
                 <div className="fg-project-services__title-row">
                   <p className="fg-label fg-panel__eyebrow">{t("Services")}</p>
@@ -5560,7 +5560,7 @@ export function ConsoleProjectGallery({
               </PanelSection>
             </aside>
 
-            <div className="fg-project-inspector fg-project-workbench__main">
+            <div className="fg-project-inspector fg-project-workbench__main fp-project-workbench-main">
               <PanelSection className="fg-project-inspector__head">
                 <div className="fg-project-inspector__header-row">
                   <div className="fg-project-inspector__hero">
@@ -5815,7 +5815,7 @@ export function ConsoleProjectGallery({
                     </div>
                   ) : null}
 
-                  <div className="fg-project-toolbar__group fg-project-toolbar__group--tabs">
+                  <div className="fg-project-toolbar__group fg-project-toolbar__group--tabs fp-project-local-nav">
                     <p className="fg-label fg-project-toolbar__label">
                       {t("Panels")}
                     </p>

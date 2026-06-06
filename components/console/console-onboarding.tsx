@@ -12,6 +12,16 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { ImportServiceFields } from "@/components/console/import-service-fields";
 import { useI18n } from "@/components/providers/i18n-provider";
+import {
+  PlatformCard,
+  PlatformCardBody,
+  PlatformKeyValueItem,
+  PlatformKeyValueList,
+} from "@/components/platform/platform-data";
+import {
+  PlatformPage,
+  PlatformPageHeader,
+} from "@/components/platform/platform-layout";
 import { Button } from "@/components/ui/button";
 import { Panel, PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
 import { useToast } from "@/components/ui/toast";
@@ -445,45 +455,46 @@ export function ConsoleOnboarding({
 
   return (
     <>
-      <section className="fg-console-onboarding">
-        <Panel className="fg-console-onboarding__panel">
-          <PanelSection className="fg-console-onboarding__head">
-            <p className="fg-label fg-panel__eyebrow">{eyebrow}</p>
-            <PanelTitle>{title}</PanelTitle>
-            <PanelCopy>{description}</PanelCopy>
-          </PanelSection>
+      <PlatformPage className="fg-console-onboarding fp-console-onboarding-page">
+        <PlatformPageHeader
+          actions={
+            <Button
+              className="fg-console-onboarding__primary-action"
+              loading={isCreating || isImporting}
+              loadingLabel={
+                isWorkspaceStage
+                  ? t("Creating workspace…")
+                  : t("Importing service…")
+              }
+              onClick={isWorkspaceStage ? handleCreateWorkspace : openImport}
+              type="button"
+              variant="primary"
+            >
+              {primaryLabel}
+            </Button>
+          }
+          description={description}
+          eyebrow={eyebrow}
+          title={title}
+        />
 
-          <PanelSection className="fg-console-onboarding__body">
-            <div className="fg-console-onboarding__actions">
-              <Button
-                loading={isCreating || isImporting}
-                loadingLabel={
-                  isWorkspaceStage
-                    ? t("Creating workspace…")
-                    : t("Importing service…")
-                }
-                onClick={isWorkspaceStage ? handleCreateWorkspace : openImport}
-                type="button"
-                variant="primary"
-              >
-                {primaryLabel}
-              </Button>
-            </div>
-
-            <details className="fg-console-disclosure">
+        <PlatformCard className="fp-console-onboarding-card">
+          <PlatformCardBody>
+            <details className="fg-console-disclosure fp-console-onboarding-disclosure">
               <summary>{disclosureTitle}</summary>
-              <dl className="fg-console-disclosure__list">
+              <PlatformKeyValueList>
                 {disclosureItems.map((item) => (
-                  <div className="fg-console-disclosure__item" key={item.label}>
-                    <dt>{item.label}</dt>
-                    <dd>{item.value}</dd>
-                  </div>
+                  <PlatformKeyValueItem
+                    key={item.label}
+                    label={item.label}
+                    value={item.value}
+                  />
                 ))}
-              </dl>
+              </PlatformKeyValueList>
             </details>
-          </PanelSection>
-        </Panel>
-      </section>
+          </PlatformCardBody>
+        </PlatformCard>
+      </PlatformPage>
 
       {importDialog.present ? (
         <div

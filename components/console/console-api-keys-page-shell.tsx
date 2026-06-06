@@ -4,13 +4,21 @@ import { useEffect, useRef } from "react";
 
 import { ApiKeyManager } from "@/components/console/api-key-manager";
 import { ApiKeyEmptyState } from "@/components/console/api-key-empty-state";
-import { ConsoleEmptyState } from "@/components/console/console-empty-state";
 import { NodeKeyManager } from "@/components/console/node-key-manager";
 import {
   ConsoleApiKeysPageSkeleton,
   ConsoleLoadingState,
 } from "@/components/console/console-page-skeleton";
-import { Panel, PanelSection } from "@/components/ui/panel";
+import {
+  PlatformEmptyState,
+  PlatformErrorState,
+} from "@/components/platform/platform-feedback";
+import {
+  PlatformPage,
+  PlatformPageHeader,
+  PlatformSection,
+} from "@/components/platform/platform-layout";
+import { useI18n } from "@/components/providers/i18n-provider";
 import {
   CONSOLE_API_KEYS_PAGE_SNAPSHOT_URL,
   type ConsoleApiKeysPageSnapshot,
@@ -22,6 +30,7 @@ export function ConsoleApiKeysPageShell({
 }: {
   initialSnapshot?: ConsoleApiKeysPageSnapshot | null;
 }) {
+  const { t } = useI18n();
   const { data, error, loading, refresh } =
     useConsolePageSnapshot<ConsoleApiKeysPageSnapshot>(
       CONSOLE_API_KEYS_PAGE_SNAPSHOT_URL,
@@ -61,44 +70,59 @@ export function ConsoleApiKeysPageShell({
 
   if (!data) {
     return (
-      <div className="fg-console-page">
-        <Panel>
-          <PanelSection>
-            <ConsoleEmptyState
-              description={error ?? "Fugue could not load the access key snapshot right now."}
-              title="Access key snapshot unavailable"
-            />
-          </PanelSection>
-        </Panel>
-      </div>
+      <PlatformPage className="fg-console-page">
+        <PlatformErrorState
+          copy={error ?? t("Fugue could not load the access key snapshot right now.")}
+          title={t("Access key snapshot unavailable")}
+        />
+      </PlatformPage>
     );
   }
 
   if (data.state === "workspace-missing") {
     return (
-      <div className="fg-console-page">
+      <PlatformPage className="fg-console-page">
+        <PlatformEmptyState
+          copy={t("Bootstrap the workspace to create the first node key.")}
+          title={t("No workspace keys yet")}
+        />
         <ApiKeyEmptyState />
-      </div>
+      </PlatformPage>
     );
   }
 
   return (
-    <div className="fg-console-page">
-      <ApiKeyManager
-        availableScopes={data.apiKeys.availableScopes}
-        initialKeys={data.apiKeys.keys}
-        initialSyncError={data.apiKeys.syncError}
-        initialStale={data.apiKeys.stale}
-        initialWorkspaceAdminKeyId={data.apiKeys.workspace.adminKeyId}
+    <PlatformPage className="fg-console-page">
+      <PlatformPageHeader
+        description={t("Create scoped API keys and node enrollment keys from one access surface.")}
+        eyebrow={t("Access")}
+        title={t("Access keys")}
       />
 
-      <div id="node-keys">
+      <PlatformSection
+        description={t("Workspace API keys control Fugue API access and automation scopes.")}
+        title={t("API keys")}
+      >
+        <ApiKeyManager
+          availableScopes={data.apiKeys.availableScopes}
+          initialKeys={data.apiKeys.keys}
+          initialSyncError={data.apiKeys.syncError}
+          initialStale={data.apiKeys.stale}
+          initialWorkspaceAdminKeyId={data.apiKeys.workspace.adminKeyId}
+        />
+      </PlatformSection>
+
+      <PlatformSection
+        description={t("Node keys enroll servers into the Fugue runtime plane.")}
+        id="node-keys"
+        title={t("Node keys")}
+      >
         <NodeKeyManager
           apiBaseUrl={data.apiBaseUrl}
           initialKeys={data.nodeKeys.keys}
           initialSyncError={data.nodeKeys.syncError}
         />
-      </div>
-    </div>
+      </PlatformSection>
+    </PlatformPage>
   );
 }

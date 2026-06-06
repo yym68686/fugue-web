@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Suspense,
@@ -18,7 +17,6 @@ import {
 
 import { CompactResourceMeter } from "@/components/console/compact-resource-meter";
 import { ConsolePageIntro } from "@/components/console/console-page-intro";
-import { ConsoleProjectBadge } from "@/components/console/console-project-badge";
 import {
   ConsoleLoadingState,
   ConsoleProjectDetailPageSkeleton,
@@ -27,6 +25,21 @@ import {
 } from "@/components/console/console-page-skeleton";
 import { ImportServiceFields } from "@/components/console/import-service-fields";
 import { useI18n } from "@/components/providers/i18n-provider";
+import { PlatformButton } from "@/components/platform/platform-actions";
+import {
+  PlatformBadge,
+  PlatformResourceLink,
+  PlatformResourceList,
+} from "@/components/platform/platform-data";
+import {
+  PlatformAlert,
+  PlatformEmptyState,
+} from "@/components/platform/platform-feedback";
+import {
+  PlatformPage,
+  PlatformPageHeader,
+  PlatformSection,
+} from "@/components/platform/platform-layout";
 import { StatusBadge } from "@/components/console/status-badge";
 import { Button, ButtonAnchor } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
@@ -962,6 +975,7 @@ const ProjectGalleryShelf = memo(function ProjectGalleryShelf({
   onOpenProjectRoute,
   onRequestCreateService,
   onWarmProjectRoute,
+  partialErrors,
   optimisticProjects,
   pendingIntent,
   pendingIntentFocused,
@@ -976,6 +990,7 @@ const ProjectGalleryShelf = memo(function ProjectGalleryShelf({
   ) => void;
   onRequestCreateService: (target?: ConsoleProjectSummaryView | null) => void;
   onWarmProjectRoute: (projectId: string) => void;
+  partialErrors: readonly string[];
   optimisticProjects: readonly ConsoleProjectSummaryView[];
   pendingIntent: PendingProjectIntent | null;
   pendingIntentFocused: boolean;
@@ -986,31 +1001,56 @@ const ProjectGalleryShelf = memo(function ProjectGalleryShelf({
   const { t } = useI18n();
 
   return (
-    <div className="fg-project-gallery">
-      <section
-        className={cx(
-          "fg-project-gallery__shelf",
-          !optimisticProjects.length &&
-            !pendingProjectVisible &&
-            "fg-project-gallery__shelf--empty",
+    <PlatformPage className="fg-console-page fp-console-home-page">
+      <PlatformPageHeader
+        actions={
+          <PlatformButton
+            onClick={() => onRequestCreateService(null)}
+            type="button"
+            variant="primary"
+          >
+            {t("Create project")}
+          </PlatformButton>
+        }
+        description={t(
+          "Projects collect services, routes, runtime placement, environment, and deployment controls.",
         )}
+        eyebrow={t("Work")}
+        title={t("Projects")}
+      />
+
+      <PlatformSection
+        description={t("Open a project to manage routes, services, files, and runtime state.")}
+        title={t("Project workbench")}
       >
+        {partialErrors.length ? (
+          <PlatformAlert
+            tone={partialErrors.length >= 3 ? "danger" : "info"}
+            title={t("Partial Fugue data")}
+          >
+            {partialErrors.join(" | ")}
+          </PlatformAlert>
+        ) : null}
+
         {workspaceMissing ? (
-          <div className="fg-project-gallery__empty-state">
-            <Panel className="fg-console-dialog-panel">
-              <PanelSection>
-                <p className="fg-label fg-panel__eyebrow">{t("Workspace")}</p>
-                <PanelTitle>{t("No workspace yet")}</PanelTitle>
-                <PanelCopy>
-                  {t(
-                    "Create a workspace first, then return to the console to import your first service.",
-                  )}
-                </PanelCopy>
-              </PanelSection>
-            </Panel>
-          </div>
+          <PlatformEmptyState
+            action={
+              <PlatformButton
+                onClick={() => onRequestCreateService(null)}
+                type="button"
+                variant="primary"
+              >
+                {t("Create project")}
+              </PlatformButton>
+            }
+            copy={t(
+              "Create a workspace first, then return to the console to import your first service.",
+            )}
+            icon="project"
+            title={t("No workspace yet")}
+          />
         ) : optimisticProjects.length || pendingProjectVisible ? (
-          <div className="fg-project-gallery__stack">
+          <PlatformResourceList className="fp-project-resource-list">
             {pendingProjectVisible && pendingIntent ? (
               <PendingProjectCard
                 expanded={pendingIntentFocused}
@@ -1029,100 +1069,63 @@ const ProjectGalleryShelf = memo(function ProjectGalleryShelf({
                   : project.resourceUsage;
 
               return (
-                <article className="fg-project-card" key={project.id}>
-                  <Link
-                    className="fg-project-card__summary"
-                    href={buildProjectHref(project.id)}
-                    onClick={(event) => onOpenProjectRoute(project.id, event)}
-                    onFocus={() => onWarmProjectRoute(project.id)}
-                    onPointerDown={() => onWarmProjectRoute(project.id)}
-                    onPointerEnter={() => onWarmProjectRoute(project.id)}
-                    prefetch={false}
-                  >
-                    <div className="fg-project-card__summary-head">
-                      <div className="fg-project-card__summary-copy">
-                        <div className="fg-project-card__summary-meta">
-                          <strong>{project.name}</strong>
-                          <StatusBadge
-                            live={project.lifecycle.live}
-                            tone={project.lifecycle.tone}
-                          >
-                            {t(project.lifecycle.label)}
-                          </StatusBadge>
-                        </div>
-                        <div className="fg-project-card__summary-meta">
-                          <span className="fg-project-card__summary-kicker">
-                            {projectTitle(project, t)}
-                          </span>
-
-                          {project.serviceBadges.length ? (
-                            <div
-                              aria-hidden="true"
-                              className="fg-project-card__badges fg-project-card__badges--inline"
-                            >
-                              {project.serviceBadges.map((badge) => (
-                                <ConsoleProjectBadge
-                                  key={badge.id}
-                                  kind={badge.kind}
-                                  label={badge.label}
-                                  meta={badge.meta}
-                                />
-                              ))}
-                            </div>
-                          ) : null}
-                        </div>
-                      </div>
-
-                      <div className="fg-project-card__summary-resources">
-                        {projectResourceUsage.map((resource) => (
-                          <CompactResourceMeter item={resource} key={resource.id} />
-                        ))}
-                      </div>
-
-                      <div className="fg-project-card__summary-side">
-                        <span
-                          className="fg-project-card__summary-link-indicator"
-                          aria-hidden="true"
-                        >
-                          <svg viewBox="0 0 24 24">
-                            <path
-                              d="M7 17 17 7"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="1.7"
-                            />
-                            <path
-                              d="M9 7h8v8"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="1.7"
-                            />
-                          </svg>
-                        </span>
-                      </div>
-                    </div>
-                  </Link>
-                </article>
+                <PlatformResourceLink
+                  actions={
+                    <span className="fp-project-row__meters" aria-label={t("Resource usage")}>
+                      {projectResourceUsage.map((resource) => (
+                        <CompactResourceMeter item={resource} key={resource.id} />
+                      ))}
+                    </span>
+                  }
+                  badges={
+                    <span className="fp-project-row__badges">
+                      <StatusBadge
+                        live={project.lifecycle.live}
+                        tone={project.lifecycle.tone}
+                      >
+                        {t(project.lifecycle.label)}
+                      </StatusBadge>
+                      {project.serviceBadges.slice(0, 3).map((badge) => (
+                        <PlatformBadge key={badge.id} tone="info">
+                          {badge.label}
+                        </PlatformBadge>
+                      ))}
+                    </span>
+                  }
+                  href={buildProjectHref(project.id)}
+                  icon="project"
+                  key={project.id}
+                  meta={projectTitle(project, t)}
+                  onClick={(event) => onOpenProjectRoute(project.id, event)}
+                  onFocus={() => onWarmProjectRoute(project.id)}
+                  onPointerDown={() => onWarmProjectRoute(project.id)}
+                  onPointerEnter={() => onWarmProjectRoute(project.id)}
+                  prefetch={false}
+                  title={project.name}
+                />
               );
             })}
-          </div>
+          </PlatformResourceList>
         ) : (
-          <div className="fg-project-gallery__empty-state">
-            <Button
-              onClick={() => onRequestCreateService(null)}
-              type="button"
-              variant="primary"
-            >
-              {t("Create project")}
-            </Button>
-          </div>
+          <PlatformEmptyState
+            action={
+              <PlatformButton
+                onClick={() => onRequestCreateService(null)}
+                type="button"
+                variant="primary"
+              >
+                {t("Create project")}
+              </PlatformButton>
+            }
+            copy={t(
+              "Create the first project, import a service, and Fugue will attach route controls when the first app record is ready.",
+            )}
+            icon="project"
+            title={t("No projects yet")}
+          />
         )}
-      </section>
-    </div>
+      </PlatformSection>
+    </PlatformPage>
   );
 });
 
@@ -2249,6 +2252,7 @@ export function ConsoleProjectGallery({
           onOpenProjectRoute={openProjectRoute}
           onRequestCreateService={openCreateDialog}
           onWarmProjectRoute={warmProjectRoute}
+          partialErrors={data.errors}
           optimisticProjects={optimisticProjects}
           pendingIntent={pendingIntent}
           pendingIntentFocused={pendingIntentFocused}

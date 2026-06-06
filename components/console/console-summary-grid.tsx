@@ -1,3 +1,8 @@
+import {
+  PlatformMetric,
+  PlatformMetricGrid,
+} from "@/components/platform/platform-data";
+
 type ConsoleSummaryItem = {
   label: string;
   value: number | string;
@@ -10,30 +15,15 @@ export function ConsoleSummaryGrid({
   ariaLabel?: string;
   items: ConsoleSummaryItem[];
 }) {
-  const threeUp = items.length === 3;
-
   return (
-    <section
-      className={`fg-console-metric-grid${threeUp ? " is-three-up" : ""}`}
-      aria-label={ariaLabel}
-    >
+    <PlatformMetricGrid aria-label={ariaLabel} className="fg-console-metric-grid">
       {items.map((item) => {
         const value = String(item.value);
-        const compact = value.length > 12;
 
         return (
-          <article className="fg-console-metric-card fg-admin-summary-card" key={item.label}>
-            <span className="fg-admin-summary-card__label">{item.label}</span>
-            <strong
-              className={`fg-console-metric-card__value fg-admin-summary-card__value${
-                compact ? " is-compact" : ""
-              }`}
-            >
-              {value}
-            </strong>
-          </article>
+          <PlatformMetric key={item.label} label={item.label} value={value} />
         );
       })}
-    </section>
+    </PlatformMetricGrid>
   );
 }

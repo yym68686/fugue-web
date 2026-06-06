@@ -3,12 +3,17 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-import { ConsoleEmptyState } from "@/components/console/console-empty-state";
-import { ConsolePageIntro } from "@/components/console/console-page-intro";
 import {
   ConsoleLoadingState,
   ConsoleProfileSettingsPageSkeleton,
 } from "@/components/console/console-page-skeleton";
+import { PlatformButtonLink } from "@/components/platform/platform-actions";
+import { PlatformErrorState } from "@/components/platform/platform-feedback";
+import {
+  PlatformPage,
+  PlatformPageHeader,
+  PlatformSection,
+} from "@/components/platform/platform-layout";
 import { useI18n } from "@/components/providers/i18n-provider";
 import { StatusBadge } from "@/components/console/status-badge";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -1555,36 +1560,38 @@ export function ConsoleProfileSettingsPageShell() {
 
   if (!data) {
     return (
-      <div className="fg-console-page">
-        <ConsolePageIntro
-          actions={[
-            { href: "/app", label: t("Back to projects") },
-          ]}
+      <PlatformPage className="fg-console-page fp-profile-settings-page">
+        <PlatformPageHeader
+          actions={
+            <PlatformButtonLink href="/app">
+              {t("Back to projects")}
+            </PlatformButtonLink>
+          }
           description={t("Display name and every sign-in path linked to this account.")}
           eyebrow={t("Account")}
           title={t("Profile and security")}
         />
 
-        <Panel>
-          <PanelSection>
-            <ConsoleEmptyState
-              description={
-                error ?? t("Fugue could not load the profile settings right now.")
-              }
-              title={t("Profile settings unavailable")}
-            />
-          </PanelSection>
-        </Panel>
-      </div>
+        <PlatformSection>
+          <PlatformErrorState
+            actionHref="/app"
+            actionLabel={t("Back to projects")}
+            copy={error ?? t("Fugue could not load the profile settings right now.")}
+            title={t("Profile settings unavailable")}
+          />
+        </PlatformSection>
+      </PlatformPage>
     );
   }
 
   return (
-    <div className="fg-console-page">
-      <ConsolePageIntro
-        actions={[
-          { href: "/app", label: t("Back to projects") },
-        ]}
+    <PlatformPage className="fg-console-page fp-profile-settings-page">
+      <PlatformPageHeader
+        actions={
+          <PlatformButtonLink href="/app">
+            {t("Back to projects")}
+          </PlatformButtonLink>
+        }
         description={t("Display name and every sign-in path linked to this account.")}
         eyebrow={t("Account")}
         title={t("Profile and security")}
@@ -1597,6 +1604,6 @@ export function ConsoleProfileSettingsPageShell() {
       />
 
       <SignInMethodsPanel data={data} onUpdated={handleRefresh} />
-    </div>
+    </PlatformPage>
   );
 }

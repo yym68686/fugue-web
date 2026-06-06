@@ -233,8 +233,8 @@ const EN_CONTENT: DocsPageContent = {
       {
         index: "03",
         meta:
-          "`migrate` stays stateless. Managed PostgreSQL or persistent workspaces push you to failover instead.",
-        title: "Stateful handoff is not the same as migrate.",
+          "`migrate` handles stateless apps and `movable_rwo` persistent storage; failover is for declared standby recovery.",
+        title: "Move and failover are separate paths.",
       },
     ],
     notesIntro:
@@ -681,7 +681,8 @@ const EN_CONTENT: DocsPageContent = {
         title: "Current boundary",
       },
       paragraphs: [
-        "`fugue app move` and `/v1/apps/{id}/migrate` remain the stateless handoff path. They are intentionally blocked for apps that still own Fugue-managed PostgreSQL or persistent workspace state.",
+        "`fugue app move` and `/v1/apps/{id}/migrate` are the active move path. They can move stateless apps and persistent storage that is explicitly migratable, such as `movable_rwo`.",
+        "Legacy workspace storage or dedicated PVC storage must be converted to a migratable mode before an app move.",
         "Managed failover is controller-orchestrated. It can fence the app, wait for final workspace sync, switch runtimes, and restore replicas when failover targets have been declared.",
       ],
       tables: [
@@ -690,8 +691,8 @@ const EN_CONTENT: DocsPageContent = {
           rows: [
             [
               "Migrate",
-              "The app can move runtimes without managed state attached.",
-              "Blocked for managed PostgreSQL and persistent workspaces.",
+              "You are actively moving the app to another runtime.",
+              "Blocked when persistent storage is still legacy workspace or dedicated PVC.",
             ],
             [
               "Failover",
@@ -829,8 +830,8 @@ const ZH_CN_CONTENT: DocsPageContent = {
       {
         index: "03",
         meta:
-          "`migrate` 依然只适合无状态场景；managed PostgreSQL 或持久化 workspace 会把你推到 failover 路径。",
-        title: "有状态切换和 migrate 不是一回事。",
+          "`migrate` 支持无状态应用和 `movable_rwo` 持久化存储；failover 用于已声明 standby 的恢复路径。",
+        title: "主动迁移和 failover 是两条路径。",
       },
     ],
     notesIntro: "这几条是第一次做真实导入时最容易踩到的边界。",
@@ -1270,7 +1271,8 @@ const ZH_CN_CONTENT: DocsPageContent = {
         title: "当前边界",
       },
       paragraphs: [
-        "`fugue app move` 与 `/v1/apps/{id}/migrate` 依然是 stateless handoff。只要应用还挂着 Fugue-managed PostgreSQL 或 persistent workspace，这条路径就会被故意挡住。",
+        "`fugue app move` 与 `/v1/apps/{id}/migrate` 是主动迁移路径。它可以迁移无状态应用，也可以迁移显式可迁移的持久化存储，例如 `movable_rwo`。",
+        "legacy workspace storage 或 dedicated PVC storage 需要先转换成可迁移模式，才能执行 app move。",
         "managed failover 是 controller 编排路径。声明好 failover target 后，它可以做 fence、等待最后一次 workspace sync、切 runtime，再恢复 replicas。",
       ],
       tables: [
@@ -1279,8 +1281,8 @@ const ZH_CN_CONTENT: DocsPageContent = {
           rows: [
             [
               "Migrate",
-              "应用能在没有托管状态附着的前提下切 runtime。",
-              "managed PostgreSQL 与 persistent workspace 都会阻断这条路径。",
+              "你要主动把应用迁到另一个 runtime。",
+              "persistent storage 仍是 legacy workspace 或 dedicated PVC 时会被阻断。",
             ],
             [
               "Failover",

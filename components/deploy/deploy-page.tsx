@@ -6,6 +6,7 @@ import { Button, ButtonAnchor } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { LocaleMenuButton } from "@/components/ui/locale-switcher";
+import { PlatformWizard } from "@/components/platform/platform-workflow";
 import { PillNav, PillNavAnchor } from "@/components/ui/pill-nav";
 import { ThemeMenuButton } from "@/components/ui/theme-switcher";
 import {
@@ -157,9 +158,11 @@ export async function DeployPage({
     ) : null;
 
   return (
-    <main className="fg-auth-page fg-deploy-page fg-deploy-page--repository">
-      <div className="fg-auth-grid fg-deploy-grid fg-deploy-grid--solo fg-deploy-grid--repository">
-        <section className="fg-auth-panel-slot fg-deploy-panel-slot fg-console-dialog-shell fg-project-dialog-shell fg-deploy-dialog-shell">
+    <PlatformWizard
+      className="fg-deploy-page fg-deploy-page--repository fp-deploy-wizard"
+      eyebrow={t("Create project")}
+      railTitle={routeMode === "template" ? t("Template deploy") : t("New project")}
+    >
           <div className="fg-deploy-page__topbar">
             <div className="fg-auth-stage__utilities">
               <ThemeMenuButton />
@@ -407,8 +410,6 @@ export async function DeployPage({
               </div>
             </PanelSection>
           </Panel>
-        </section>
-      </div>
-    </main>
+    </PlatformWizard>
   );
 }

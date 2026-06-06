@@ -35,7 +35,7 @@ export async function AuthShell({
   const resolvedBrandMeta = brandMeta ?? (eyebrow.startsWith("Auth / ") ? eyebrow.slice("Auth / ".length) : eyebrow);
 
   return (
-    <main className="fg-auth-page fg-auth-page--account">
+    <main className="fp-design-system fg-auth-page fg-auth-page--account fp-auth-page">
       <div className="fg-auth-grid">
         <section className="fg-auth-stage">
           <div className="fg-auth-stage__top fg-auth-stage__topbar">

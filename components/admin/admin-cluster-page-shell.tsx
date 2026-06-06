@@ -12,13 +12,20 @@ import { AdminControlPlanePanel } from "@/components/admin/admin-control-plane-p
 import { AdminClusterNodeManager } from "@/components/admin/admin-cluster-node-manager";
 import { AdminPlatformNodeEnrollmentPanel } from "@/components/admin/admin-platform-node-enrollment-panel";
 import { AdminSummaryGrid } from "@/components/admin/admin-summary-grid";
-import { ConsoleEmptyState } from "@/components/console/console-empty-state";
 import { useI18n } from "@/components/providers/i18n-provider";
 import {
   ConsoleAdminClusterPageSkeleton,
   ConsoleLoadingState,
 } from "@/components/console/console-page-skeleton";
-import { Panel, PanelSection } from "@/components/ui/panel";
+import {
+  PlatformAlert,
+  PlatformErrorState,
+} from "@/components/platform/platform-feedback";
+import {
+  PlatformPage,
+  PlatformPageHeader,
+  PlatformSection,
+} from "@/components/platform/platform-layout";
 import { ToastOnMount } from "@/components/ui/toast-on-mount";
 import {
   CONSOLE_ADMIN_CLUSTER_CONTROL_PLANE_SNAPSHOT_URL,
@@ -166,18 +173,12 @@ export function AdminClusterPageShell({
 
   if (!pageData) {
     return (
-      <div className="fg-console-page">
-        <Panel>
-          <PanelSection>
-            <ConsoleEmptyState
-              description={t(
-                error ?? "Fugue could not load the cluster snapshot right now.",
-              )}
-              title={t("Cluster snapshot unavailable")}
-            />
-          </PanelSection>
-        </Panel>
-      </div>
+      <PlatformPage className="fg-console-page">
+        <PlatformErrorState
+          copy={t(error ?? "Fugue could not load the cluster snapshot right now.")}
+          title={t("Cluster snapshot unavailable")}
+        />
+      </PlatformPage>
     );
   }
 
@@ -215,8 +216,20 @@ export function AdminClusterPageShell({
   }
 
   return (
-    <div className="fg-console-page">
+    <PlatformPage className="fg-console-page fg-console-page--admin">
       <ToastOnMount message={errorMessage} variant="error" />
+
+      <PlatformPageHeader
+        description={t("Inspect control-plane state, runtime pressure, workloads, and enrollment.")}
+        eyebrow={t("Admin")}
+        title={t("Cluster")}
+      />
+
+      {errorMessage ? (
+        <PlatformAlert tone="danger" title={t("Partial admin data")}>
+          {errorMessage}
+        </PlatformAlert>
+      ) : null}
 
       <AdminControlPlanePanel controlPlane={pageData.controlPlane} />
 
@@ -231,10 +244,15 @@ export function AdminClusterPageShell({
 
       <AdminPlatformNodeEnrollmentPanel />
 
-      <AdminClusterNodeManager
-        nodes={nodes}
-        onNodeUpdated={handleNodeUpdated}
-      />
-    </div>
+      <PlatformSection
+        description={t("Review node capacity, status, and workload pressure.")}
+        title={t("Runtime nodes")}
+      >
+        <AdminClusterNodeManager
+          nodes={nodes}
+          onNodeUpdated={handleNodeUpdated}
+        />
+      </PlatformSection>
+    </PlatformPage>
   );
 }

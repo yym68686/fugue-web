@@ -168,7 +168,7 @@ export async function LandingPage({ authenticatedAppPath }: LandingPageProps) {
   const heroHeadingLines = [t("Start shared."), t("Move cleanly.")];
 
   return (
-    <div className="fg-landing-page" data-landing-root="">
+    <div className="fp-design-system fg-landing-page fp-landing-page" data-landing-root="">
       <a className="fg-landing-skip-link" href="#main">
         {t("Skip to content")}
       </a>
