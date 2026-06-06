@@ -1085,7 +1085,10 @@ const ProjectGalleryShelf = memo(function ProjectGalleryShelf({
                 <span className="fg-visually-hidden">{t("Search projects")}</span>
                 <input
                   autoComplete="off"
+                  aria-label={t("Search projects")}
+                  id="console-project-search"
                   inputMode="search"
+                  name="projectSearch"
                   onChange={(event) => setProjectSearch(event.target.value)}
                   placeholder={t("Search projects...")}
                   type="search"
@@ -1095,6 +1098,9 @@ const ProjectGalleryShelf = memo(function ProjectGalleryShelf({
               <label className="fp-project-select">
                 <span className="fg-visually-hidden">{t("Project state")}</span>
                 <select
+                  aria-label={t("Project state")}
+                  id="console-project-state"
+                  name="projectState"
                   onChange={(event) =>
                     setProjectStateFilter(
                       event.target.value as "all" | "live" | "not-live",
