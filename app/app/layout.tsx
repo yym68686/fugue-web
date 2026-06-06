@@ -11,6 +11,7 @@ import {
 } from "@/lib/server/request-context";
 
 import "../console.css";
+import "../cloudflare-runtime.css";
 
 async function ResolvedConsoleShell({
   children,

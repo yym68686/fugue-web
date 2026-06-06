@@ -13,6 +13,7 @@ import {
   resolveThemePreference,
 } from "@/lib/theme";
 import "./globals.css";
+import "./cloudflare-runtime.css";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getRequestI18n();

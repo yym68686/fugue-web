@@ -999,6 +999,38 @@ const ProjectGalleryShelf = memo(function ProjectGalleryShelf({
   workspaceMissing: boolean;
 }) {
   const { t } = useI18n();
+  const [projectSearch, setProjectSearch] = useState("");
+  const [projectStateFilter, setProjectStateFilter] = useState<
+    "all" | "live" | "not-live"
+  >("all");
+  const visibleProjects = useMemo(() => {
+    const query = projectSearch.trim().toLowerCase();
+
+    return optimisticProjects.filter((project) => {
+      if (projectStateFilter === "live" && !project.lifecycle.live) {
+        return false;
+      }
+
+      if (projectStateFilter === "not-live" && project.lifecycle.live) {
+        return false;
+      }
+
+      if (!query) {
+        return true;
+      }
+
+      const searchableText = [
+        project.name,
+        projectTitle(project, t),
+        t(project.lifecycle.label),
+        ...project.serviceBadges.map((badge) => badge.label),
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return searchableText.includes(query);
+    });
+  }, [optimisticProjects, projectSearch, projectStateFilter, t]);
 
   return (
     <PlatformPage className="fg-console-page fp-console-home-page">
@@ -1019,10 +1051,7 @@ const ProjectGalleryShelf = memo(function ProjectGalleryShelf({
         title={t("Projects")}
       />
 
-      <PlatformSection
-        description={t("Open a project to manage routes, services, files, and runtime state.")}
-        title={t("Project workbench")}
-      >
+      <PlatformSection>
         {partialErrors.length ? (
           <PlatformAlert
             tone={partialErrors.length >= 3 ? "danger" : "info"}
@@ -1050,62 +1079,112 @@ const ProjectGalleryShelf = memo(function ProjectGalleryShelf({
             title={t("No workspace yet")}
           />
         ) : optimisticProjects.length || pendingProjectVisible ? (
-          <PlatformResourceList className="fp-project-resource-list">
-            {pendingProjectVisible && pendingIntent ? (
-              <PendingProjectCard
-                expanded={pendingIntentFocused}
-                intent={pendingIntent}
-                onOpen={onFocusPendingIntentCard}
-              />
-            ) : null}
-
-            {optimisticProjects.map((project) => {
-              const projectResourceUsage =
-                projectImageUsageByProjectId[project.id]
-                  ? buildProjectResourceUsageView(
-                      project.resourceUsageSnapshot,
-                      projectImageUsageByProjectId[project.id],
-                    )
-                  : project.resourceUsage;
-
-              return (
-                <PlatformResourceLink
-                  actions={
-                    <span className="fp-project-row__meters" aria-label={t("Resource usage")}>
-                      {projectResourceUsage.map((resource) => (
-                        <CompactResourceMeter item={resource} key={resource.id} />
-                      ))}
-                    </span>
-                  }
-                  badges={
-                    <span className="fp-project-row__badges">
-                      <StatusBadge
-                        live={project.lifecycle.live}
-                        tone={project.lifecycle.tone}
-                      >
-                        {t(project.lifecycle.label)}
-                      </StatusBadge>
-                      {project.serviceBadges.slice(0, 3).map((badge) => (
-                        <PlatformBadge key={badge.id} tone="info">
-                          {badge.label}
-                        </PlatformBadge>
-                      ))}
-                    </span>
-                  }
-                  href={buildProjectHref(project.id)}
-                  icon="project"
-                  key={project.id}
-                  meta={projectTitle(project, t)}
-                  onClick={(event) => onOpenProjectRoute(project.id, event)}
-                  onFocus={() => onWarmProjectRoute(project.id)}
-                  onPointerDown={() => onWarmProjectRoute(project.id)}
-                  onPointerEnter={() => onWarmProjectRoute(project.id)}
-                  prefetch={false}
-                  title={project.name}
+          <>
+            <div className="fp-project-toolbar" aria-label={t("Project filters")}>
+              <label className="fp-project-search">
+                <span className="fg-visually-hidden">{t("Search projects")}</span>
+                <input
+                  autoComplete="off"
+                  inputMode="search"
+                  onChange={(event) => setProjectSearch(event.target.value)}
+                  placeholder={t("Search projects...")}
+                  type="search"
+                  value={projectSearch}
                 />
-              );
-            })}
-          </PlatformResourceList>
+              </label>
+              <label className="fp-project-select">
+                <span className="fg-visually-hidden">{t("Project state")}</span>
+                <select
+                  onChange={(event) =>
+                    setProjectStateFilter(
+                      event.target.value as "all" | "live" | "not-live",
+                    )
+                  }
+                  value={projectStateFilter}
+                >
+                  <option value="all">{t("All projects")}</option>
+                  <option value="live">{t("Live")}</option>
+                  <option value="not-live">{t("Not live")}</option>
+                </select>
+              </label>
+              <span className="fp-project-toolbar__meta">
+                {visibleProjects.length} {t("projects")}
+              </span>
+            </div>
+
+            <PlatformResourceList className="fp-project-resource-list">
+              {pendingProjectVisible && pendingIntent ? (
+                <PendingProjectCard
+                  expanded={pendingIntentFocused}
+                  intent={pendingIntent}
+                  onOpen={onFocusPendingIntentCard}
+                />
+              ) : null}
+
+              {visibleProjects.map((project) => {
+                const projectResourceUsage =
+                  projectImageUsageByProjectId[project.id]
+                    ? buildProjectResourceUsageView(
+                        project.resourceUsageSnapshot,
+                        projectImageUsageByProjectId[project.id],
+                      )
+                    : project.resourceUsage;
+
+                return (
+                  <PlatformResourceLink
+                    actions={
+                      <span className="fp-project-row__meters" aria-label={t("Resource usage")}>
+                        {projectResourceUsage.map((resource) => (
+                          <CompactResourceMeter item={resource} key={resource.id} />
+                        ))}
+                      </span>
+                    }
+                    badges={
+                      <span className="fp-project-row__badges">
+                        <StatusBadge
+                          live={project.lifecycle.live}
+                          tone={project.lifecycle.tone}
+                        >
+                          {t(project.lifecycle.label)}
+                        </StatusBadge>
+                        {project.serviceBadges.slice(0, 3).map((badge) => (
+                          <PlatformBadge key={badge.id} tone="info">
+                            {badge.label}
+                          </PlatformBadge>
+                        ))}
+                      </span>
+                    }
+                    href={buildProjectHref(project.id)}
+                    icon="project"
+                    key={project.id}
+                    meta={projectTitle(project, t)}
+                    onClick={(event) => onOpenProjectRoute(project.id, event)}
+                    onFocus={() => onWarmProjectRoute(project.id)}
+                    onPointerDown={() => onWarmProjectRoute(project.id)}
+                    onPointerEnter={() => onWarmProjectRoute(project.id)}
+                    prefetch={false}
+                    title={project.name}
+                  />
+                );
+              })}
+
+              {!visibleProjects.length && !pendingProjectVisible ? (
+                <div className="fp-project-filter-empty">
+                  <span>{t("No projects match the current filters.")}</span>
+                  <PlatformButton
+                    onClick={() => {
+                      setProjectSearch("");
+                      setProjectStateFilter("all");
+                    }}
+                    size="sm"
+                    type="button"
+                  >
+                    {t("Clear filters")}
+                  </PlatformButton>
+                </div>
+              ) : null}
+            </PlatformResourceList>
+          </>
         ) : (
           <PlatformEmptyState
             action={
