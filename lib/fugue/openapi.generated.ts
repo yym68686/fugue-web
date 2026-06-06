@@ -2089,6 +2089,125 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/apps/{id}/observability/metrics/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get App Observability Metrics Summary */
+        get: operations["getAppObservabilityMetricsSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/apps/{id}/observability/metrics/query": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Query App Observability Metrics */
+        get: operations["queryAppObservabilityMetrics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/apps/{id}/observability/logs/query": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Query App Observability Logs */
+        get: operations["queryAppObservabilityLogs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/apps/{id}/observability/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List App Observability Requests */
+        get: operations["listAppObservabilityRequests"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/apps/{id}/observability/requests/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Stream App Observability Requests */
+        get: operations["streamAppObservabilityRequests"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/apps/{id}/observability/traces/{trace_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get App Observability Trace */
+        get: operations["getAppObservabilityTrace"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/apps/{id}/observability/diagnosis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get App Observability Diagnosis */
+        get: operations["getAppObservabilityDiagnosis"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/apps/{id}/env": {
         parameters: {
             query?: never;
@@ -7215,6 +7334,111 @@ export interface components {
             groups: components["schemas"]["AppRuntimePodGroup"][];
             warnings: string[];
         };
+        ObservabilitySourceStatus: {
+            available: boolean;
+            /** @enum {string} */
+            status: "disabled" | "degraded" | "available";
+            mode: string;
+            retention: string;
+            active_exporters: string[];
+            reason: string;
+            freshness?: string;
+        };
+        ObservabilityWindow: {
+            since: string;
+            until: string;
+        };
+        ObservabilityMetricSample: {
+            name: string;
+            /** Format: double */
+            value: number;
+            unit?: string;
+            labels?: {
+                [key: string]: string;
+            };
+        };
+        ObservabilityLogEntry: {
+            timestamp: string;
+            pod?: string;
+            container?: string;
+            level?: string;
+            trace_id?: string;
+            message: string;
+            attributes?: {
+                [key: string]: unknown;
+            };
+        };
+        ObservabilityRequestSummary: {
+            timestamp: string;
+            trace_id?: string;
+            request_id?: string;
+            route?: string;
+            method?: string;
+            /** Format: int32 */
+            status_code?: number;
+            /** Format: int64 */
+            duration_ms?: number;
+            /** Format: int64 */
+            ttft_ms?: number;
+            summary?: {
+                [key: string]: unknown;
+            };
+        };
+        ObservabilityTraceSpan: {
+            timestamp: string;
+            service?: string;
+            trace_id: string;
+            span_id?: string;
+            parent_span_id?: string;
+            request_id?: string;
+            stage: string;
+            /** Format: int64 */
+            stage_ms?: number;
+            /** Format: int32 */
+            status_code?: number;
+            error_type?: string;
+            attributes?: {
+                [key: string]: unknown;
+            };
+        };
+        ObservabilityDiagnosis: {
+            bottleneck: string;
+            /** Format: double */
+            confidence: number;
+            evidence: string[];
+            next_actions: string[];
+        };
+        AppObservabilityMetricsSummaryResponse: {
+            source: components["schemas"]["ObservabilitySourceStatus"];
+            window: components["schemas"]["ObservabilityWindow"];
+            metrics: components["schemas"]["ObservabilityMetricSample"][];
+        };
+        AppObservabilityMetricsQueryResponse: {
+            source: components["schemas"]["ObservabilitySourceStatus"];
+            window: components["schemas"]["ObservabilityWindow"];
+            query: string;
+            metrics: components["schemas"]["ObservabilityMetricSample"][];
+        };
+        AppObservabilityLogsQueryResponse: {
+            source: components["schemas"]["ObservabilitySourceStatus"];
+            window: components["schemas"]["ObservabilityWindow"];
+            logs: components["schemas"]["ObservabilityLogEntry"][];
+        };
+        AppObservabilityRequestsResponse: {
+            source: components["schemas"]["ObservabilitySourceStatus"];
+            window: components["schemas"]["ObservabilityWindow"];
+            requests: components["schemas"]["ObservabilityRequestSummary"][];
+        };
+        AppObservabilityTraceResponse: {
+            source: components["schemas"]["ObservabilitySourceStatus"];
+            trace_id: string;
+            spans: components["schemas"]["ObservabilityTraceSpan"][];
+        };
+        AppObservabilityDiagnosisResponse: {
+            source: components["schemas"]["ObservabilitySourceStatus"];
+            window: components["schemas"]["ObservabilityWindow"];
+            diagnosis: components["schemas"]["ObservabilityDiagnosis"];
+        };
         AppDiagnosisResponse: {
             diagnosis: components["schemas"]["AppDiagnosis"];
         };
@@ -7860,6 +8084,10 @@ export interface components {
         TailLinesQueryParam: number;
         ComponentQueryParam: string;
         PodQueryParam: string;
+        SinceQueryParam: string;
+        UntilQueryParam: string;
+        TraceIdQueryParam: string;
+        TraceIdPathParam: string;
         NamespaceQueryParam: string;
         ContainerQueryParam: string;
         NodeQueryParam: string;
@@ -11636,6 +11864,203 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AppRuntimePodInventoryResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getAppObservabilityMetricsSummary: {
+        parameters: {
+            query?: {
+                since?: components["parameters"]["SinceQueryParam"];
+                until?: components["parameters"]["UntilQueryParam"];
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppObservabilityMetricsSummaryResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    queryAppObservabilityMetrics: {
+        parameters: {
+            query: {
+                since?: components["parameters"]["SinceQueryParam"];
+                until?: components["parameters"]["UntilQueryParam"];
+                /** @description Supported Fugue metrics query or alias, such as rpm, error_rate, p95_ttfb_ms, or p95 latency. */
+                query: string;
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppObservabilityMetricsQueryResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    queryAppObservabilityLogs: {
+        parameters: {
+            query?: {
+                since?: components["parameters"]["SinceQueryParam"];
+                until?: components["parameters"]["UntilQueryParam"];
+                limit?: components["parameters"]["LimitQueryParam"];
+                trace_id?: components["parameters"]["TraceIdQueryParam"];
+                grep?: string;
+                level?: string;
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppObservabilityLogsQueryResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    listAppObservabilityRequests: {
+        parameters: {
+            query?: {
+                since?: components["parameters"]["SinceQueryParam"];
+                until?: components["parameters"]["UntilQueryParam"];
+                limit?: components["parameters"]["LimitQueryParam"];
+                trace_id?: components["parameters"]["TraceIdQueryParam"];
+                status_class?: string;
+                slow?: boolean;
+                errors?: boolean;
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppObservabilityRequestsResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    streamAppObservabilityRequests: {
+        parameters: {
+            query?: {
+                since?: components["parameters"]["SinceQueryParam"];
+                until?: components["parameters"]["UntilQueryParam"];
+                limit?: components["parameters"]["LimitQueryParam"];
+                trace_id?: components["parameters"]["TraceIdQueryParam"];
+                status_class?: string;
+                slow?: boolean;
+                errors?: boolean;
+                follow?: boolean;
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Server-sent request summary stream. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": string;
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getAppObservabilityTrace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+                trace_id: components["parameters"]["TraceIdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppObservabilityTraceResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getAppObservabilityDiagnosis: {
+        parameters: {
+            query?: {
+                since?: components["parameters"]["SinceQueryParam"];
+                until?: components["parameters"]["UntilQueryParam"];
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppObservabilityDiagnosisResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];

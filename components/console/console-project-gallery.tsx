@@ -18,6 +18,7 @@ import {
   ConsolePillSwitch,
   type ConsolePillSwitchOption,
 } from "@/components/console/console-pill-switch";
+import { AppObservabilityPanel } from "@/components/console/app-observability-panel";
 import { CompactResourceMeter } from "@/components/console/compact-resource-meter";
 import { ImportServiceFields } from "@/components/console/import-service-fields";
 import { ConsoleProjectWorkbenchSkeleton } from "@/components/console/console-page-skeleton";
@@ -260,7 +261,14 @@ type AppAction =
   | "start";
 type ProjectAction = "delete";
 type ProjectWorkbenchScope = "project-settings" | "service";
-type WorkbenchView = "env" | "files" | "images" | "logs" | "route" | "settings";
+type WorkbenchView =
+  | "env"
+  | "files"
+  | "images"
+  | "logs"
+  | "observability"
+  | "route"
+  | "settings";
 type EnvironmentFormat = "raw" | "table";
 type LogsView = "build" | "runtime";
 
@@ -333,6 +341,7 @@ const WORKBENCH_VIEW_OPTIONS: readonly ConsolePillSwitchOption<WorkbenchView>[] 
     { value: "route", label: "Route" },
     { value: "files", label: "Files" },
     { value: "logs", label: "Logs" },
+    { value: "observability", label: "Observe" },
     { value: "images", label: "Images" },
     { value: "settings", label: "Settings" },
   ];
@@ -342,6 +351,7 @@ const ENV_ROUTE_AND_LOGS_WORKBENCH_OPTIONS: readonly ConsolePillSwitchOption<Wor
     { value: "env", label: "Environment" },
     { value: "route", label: "Route" },
     { value: "logs", label: "Logs" },
+    { value: "observability", label: "Observe" },
     { value: "images", label: "Images" },
     { value: "settings", label: "Settings" },
   ];
@@ -6009,6 +6019,15 @@ export function ConsoleProjectGallery({
                   />
                 ) : null}
 
+                {selectedService.kind === "app" &&
+                activeTab === "observability" ? (
+                  <AppObservabilityPanel
+                    appId={selectedService.id}
+                    appName={selectedService.name}
+                    key={selectedService.id}
+                  />
+                ) : null}
+
                 {selectedService.kind === "app" && activeTab === "settings" ? (
                   <AppSettingsPanel
                     app={selectedService}
@@ -8987,6 +9006,15 @@ function ConsoleProjectWorkbenchImpl({
                   selectedService={selectedService}
                   selectedServiceApp={selectedServiceApp}
                   selectedServiceLogViewOptions={selectedServiceLogViewOptions}
+                />
+              ) : null}
+
+              {selectedService.kind === "app" &&
+              activeTab === "observability" ? (
+                <AppObservabilityPanel
+                  appId={selectedService.id}
+                  appName={selectedService.name}
+                  key={selectedService.id}
                 />
               ) : null}
 

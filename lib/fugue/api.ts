@@ -34,10 +34,12 @@ type CamelizedSchema<Name extends keyof Schemas> = Simplify<
 >;
 
 const PRESERVE_DICTIONARY_KEYS = new Set([
+  "attributes",
   "conditions",
   "env",
   "labels",
   "metadata",
+  "summary",
 ]);
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -1743,6 +1745,42 @@ function buildRuntimeLogsResultView(
   };
 }
 
+function buildAppObservabilityMetricsSummaryView(
+  response: CamelizedSchema<"AppObservabilityMetricsSummaryResponse">,
+) {
+  return response;
+}
+
+function buildAppObservabilityMetricsQueryView(
+  response: CamelizedSchema<"AppObservabilityMetricsQueryResponse">,
+) {
+  return response;
+}
+
+function buildAppObservabilityLogsQueryView(
+  response: CamelizedSchema<"AppObservabilityLogsQueryResponse">,
+) {
+  return response;
+}
+
+function buildAppObservabilityRequestsView(
+  response: CamelizedSchema<"AppObservabilityRequestsResponse">,
+) {
+  return response;
+}
+
+function buildAppObservabilityTraceView(
+  response: CamelizedSchema<"AppObservabilityTraceResponse">,
+) {
+  return response;
+}
+
+function buildAppObservabilityDiagnosisView(
+  response: CamelizedSchema<"AppObservabilityDiagnosisResponse">,
+) {
+  return response;
+}
+
 function buildRuntimeSharingResultView(
   response: CamelizedSchema<"RuntimeSharingResponse">,
 ) {
@@ -2019,6 +2057,24 @@ export type FugueAppFilesystemMutationResult = ReturnType<
 export type FugueBuildLogsResult = ReturnType<typeof buildBuildLogsResultView>;
 export type FugueRuntimeLogsResult = ReturnType<
   typeof buildRuntimeLogsResultView
+>;
+export type FugueAppObservabilityMetricsSummary = ReturnType<
+  typeof buildAppObservabilityMetricsSummaryView
+>;
+export type FugueAppObservabilityMetricsQuery = ReturnType<
+  typeof buildAppObservabilityMetricsQueryView
+>;
+export type FugueAppObservabilityLogsQuery = ReturnType<
+  typeof buildAppObservabilityLogsQueryView
+>;
+export type FugueAppObservabilityRequests = ReturnType<
+  typeof buildAppObservabilityRequestsView
+>;
+export type FugueAppObservabilityTrace = ReturnType<
+  typeof buildAppObservabilityTraceView
+>;
+export type FugueAppObservabilityDiagnosis = ReturnType<
+  typeof buildAppObservabilityDiagnosisView
 >;
 export type FugueAppImageSummary = ReturnType<typeof buildAppImageSummaryView>;
 export type FugueAppImageVersion = ReturnType<typeof buildAppImageVersionView>;
@@ -3834,6 +3890,193 @@ export async function getFugueAppRuntimeLogs(
   );
 
   return buildRuntimeLogsResultView(response);
+}
+
+export async function getFugueAppObservabilityMetricsSummary(
+  accessToken: string,
+  appId: string,
+  options?: {
+    since?: string;
+    until?: string;
+  },
+) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}/observability/metrics/summary`,
+      client.GET("/v1/apps/{id}/observability/metrics/summary", {
+        params: {
+          path: { id: appId },
+          query: {
+            ...(options?.since ? { since: options.since } : {}),
+            ...(options?.until ? { until: options.until } : {}),
+          },
+        },
+      }),
+    ),
+  );
+
+  return buildAppObservabilityMetricsSummaryView(response);
+}
+
+export async function queryFugueAppObservabilityMetrics(
+  accessToken: string,
+  appId: string,
+  options: {
+    query: string;
+    since?: string;
+    until?: string;
+  },
+) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}/observability/metrics/query`,
+      client.GET("/v1/apps/{id}/observability/metrics/query", {
+        params: {
+          path: { id: appId },
+          query: {
+            query: options.query,
+            ...(options.since ? { since: options.since } : {}),
+            ...(options.until ? { until: options.until } : {}),
+          },
+        },
+      }),
+    ),
+  );
+
+  return buildAppObservabilityMetricsQueryView(response);
+}
+
+export async function queryFugueAppObservabilityLogs(
+  accessToken: string,
+  appId: string,
+  options?: {
+    grep?: string;
+    level?: string;
+    limit?: number;
+    since?: string;
+    traceId?: string;
+    until?: string;
+  },
+) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}/observability/logs/query`,
+      client.GET("/v1/apps/{id}/observability/logs/query", {
+        params: {
+          path: { id: appId },
+          query: {
+            ...(options?.since ? { since: options.since } : {}),
+            ...(options?.until ? { until: options.until } : {}),
+            ...(typeof options?.limit === "number" &&
+            Number.isFinite(options.limit)
+              ? { limit: options.limit }
+              : {}),
+            ...(options?.traceId ? { trace_id: options.traceId } : {}),
+            ...(options?.grep ? { grep: options.grep } : {}),
+            ...(options?.level ? { level: options.level } : {}),
+          },
+        },
+      }),
+    ),
+  );
+
+  return buildAppObservabilityLogsQueryView(response);
+}
+
+export async function listFugueAppObservabilityRequests(
+  accessToken: string,
+  appId: string,
+  options?: {
+    errors?: boolean;
+    limit?: number;
+    since?: string;
+    slow?: boolean;
+    statusClass?: string;
+    traceId?: string;
+    until?: string;
+  },
+) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}/observability/requests`,
+      client.GET("/v1/apps/{id}/observability/requests", {
+        params: {
+          path: { id: appId },
+          query: {
+            ...(options?.since ? { since: options.since } : {}),
+            ...(options?.until ? { until: options.until } : {}),
+            ...(typeof options?.limit === "number" &&
+            Number.isFinite(options.limit)
+              ? { limit: options.limit }
+              : {}),
+            ...(options?.traceId ? { trace_id: options.traceId } : {}),
+            ...(options?.statusClass
+              ? { status_class: options.statusClass }
+              : {}),
+            ...(typeof options?.slow === "boolean"
+              ? { slow: options.slow }
+              : {}),
+            ...(typeof options?.errors === "boolean"
+              ? { errors: options.errors }
+              : {}),
+          },
+        },
+      }),
+    ),
+  );
+
+  return buildAppObservabilityRequestsView(response);
+}
+
+export async function getFugueAppObservabilityTrace(
+  accessToken: string,
+  appId: string,
+  traceId: string,
+) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}/observability/traces/${encodeURIComponent(traceId)}`,
+      client.GET("/v1/apps/{id}/observability/traces/{trace_id}", {
+        params: {
+          path: { id: appId, trace_id: traceId },
+        },
+      }),
+    ),
+  );
+
+  return buildAppObservabilityTraceView(response);
+}
+
+export async function getFugueAppObservabilityDiagnosis(
+  accessToken: string,
+  appId: string,
+  options?: {
+    since?: string;
+    until?: string;
+  },
+) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/apps/${encodeURIComponent(appId)}/observability/diagnosis`,
+      client.GET("/v1/apps/{id}/observability/diagnosis", {
+        params: {
+          path: { id: appId },
+          query: {
+            ...(options?.since ? { since: options.since } : {}),
+            ...(options?.until ? { until: options.until } : {}),
+          },
+        },
+      }),
+    ),
+  );
+
+  return buildAppObservabilityDiagnosisView(response);
 }
 
 export async function restartFugueApp(accessToken: string, appId: string) {
