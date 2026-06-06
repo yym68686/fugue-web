@@ -343,6 +343,10 @@ textarea {
   gap: 8px;
 }
 
+.fp-topbar .fg-console-topbar__primary-action {
+  display: none;
+}
+
 .fp-page,
 .fp-app-shell--console .fg-console-page,
 .fp-app-shell--console .fp-console-loading,
@@ -355,6 +359,12 @@ textarea {
 .fp-page--wide,
 .fp-app-shell--console .fg-console-page--project-detail {
   width: min(100% - 80px, 1400px);
+}
+
+.fp-app-shell--console .fp-console-home-page {
+  width: min(760px, calc(100% - 80px));
+  margin-right: auto;
+  margin-left: 40px;
 }
 
 .fp-page-header {
@@ -780,6 +790,10 @@ textarea:focus-visible,
 
 .fp-project-row__meters {
   max-width: min(38vw, 420px);
+}
+
+.fp-console-home-page .fp-project-row__meters {
+  display: none;
 }
 
 .fp-badge,
