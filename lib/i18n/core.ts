@@ -193,6 +193,7 @@ const zhCNMessages = {
   "GitHub": "GitHub",
   "GitHub provider": "GitHub 提供方",
   "GitHub repository": "GitHub 仓库",
+  "Google provider": "Google 提供方",
   "GitHub repository links must use https://github.com/owner/repo.":
     "GitHub 仓库链接必须使用 https://github.com/owner/repo。",
   "GitHub source": "GitHub 来源",
