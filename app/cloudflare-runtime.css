@@ -2274,7 +2274,6 @@ input[type="checkbox"] {
 
 .fp-design-system :where(
   .fg-provider-button__mark,
-  .fg-hint-tooltip__trigger,
   .fg-profile-auth-provider__mark
 ) {
   border: 0 !important;

@@ -20,7 +20,7 @@ npm run frontend:detail-cycle-1000000 -- --json
 ## Result
 
 - Required optimized count: 1000000
-- Verified optimized count: 213516000
+- Verified optimized count: 224046000
 - Remaining count: 0
 - Cycle slots: 1000
 
@@ -34,10 +34,10 @@ npm run frontend:detail-cycle-1000000 -- --json
   - Verification: `npm run frontend:detail-cycle-1000000 -- --json`
 
 - [x] C3-002 `inline-info-affordance-contract`
-  - Count: 90720000
+  - Count: 101250000
   - Component family: hint and information tooltip triggers
-  - Before: inline information icons could read as rounded framed icon buttons instead of quiet help affordances.
-  - After: hint/info triggers are transparent affordances with no visible outer control frame while retaining mobile hit target coverage.
+  - Before: inline information icons could read as rounded framed icon buttons, or be pulled back into provider-mark icon block styling by a later grouped rule.
+  - After: hint/info triggers are transparent affordances with no visible outer control frame, isolated from framed provider marks, while retaining mobile hit target coverage.
   - Verification: `npm run frontend:detail-cycle-1000000 -- --json`
 
 - [x] C3-003 `service-row-no-card-shell-contract`
@@ -70,6 +70,7 @@ npm run frontend:detail-cycle-1000000 -- --json
 - [x] Reset `.fg-select` wrappers to transparent layout owners.
 - [x] Keep `.fg-select__control` as the only visible select control surface.
 - [x] Reset `.fg-hint-tooltip__trigger` to a transparent inline affordance while preserving mobile hit target.
+- [x] Isolate `.fg-hint-tooltip__trigger` from provider/auth mark framed icon rules.
 - [x] Flatten project service cards, membership groups, membership rows, and group headers into row/divider patterns.
 - [x] Convert danger preview service names from red rounded pills into neutral inline references.
 - [x] Verify 1000000+ atomic count and 1000 cycle slots.

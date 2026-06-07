@@ -34,6 +34,7 @@ const hintTriggerProperties = [
   "trigger-background",
   "trigger-shadow",
   "trigger-radius",
+  "provider-mark-isolation",
   "desktop-target",
   "mobile-target",
   "hover-state",
@@ -150,7 +151,8 @@ function collectEvidence() {
       "@media (max-width: 640px)",
       "width: 44px !important",
     ]) &&
-    /border-radius:\s*0\s*!important/.test(runtimeCss);
+    /border-radius:\s*0\s*!important/.test(runtimeCss) &&
+    !/\.fg-provider-button__mark,\s*\n\s*\.fg-hint-tooltip__trigger/.test(runtimeCss);
 
   const hasServiceRowFlattening =
     includesAll(runtimeCss, [
@@ -272,7 +274,9 @@ function buildLedger(files) {
       id: "C3-002",
       remainingIssues: evidence.hasHintTriggerOwnership
         ? []
-        : ["Hint tooltip trigger surface ownership reset is missing."],
+        : [
+            "Hint tooltip trigger surface ownership reset is missing or is still grouped with framed provider marks.",
+          ],
       rule: "inline-info-affordance-contract",
     },
     {
