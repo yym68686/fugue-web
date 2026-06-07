@@ -283,17 +283,6 @@ html body.fp-design-system {
   font-weight: 500;
 }
 
-.fp-brand-mark {
-  display: grid;
-  width: 2rem;
-  height: 1.25rem;
-  place-items: center;
-  border-radius: var(--fp-radius-pill);
-  background:
-    radial-gradient(circle at 32% 42%, var(--fp-orange-500) 0 36%, transparent 37%),
-    linear-gradient(90deg, var(--fp-orange-500), var(--fp-amber-500));
-}
-
 .fp-sidebar__footer {
   display: grid;
   gap: var(--fp-space-2);
@@ -1807,15 +1796,6 @@ html body.fp-design-system {
   border-radius: var(--fp-radius-md);
   background-image: none;
   box-shadow: 0 0 0 1px var(--fp-border-default);
-}
-
-.fp-design-system :where(.fp-brand-mark) {
-  width: 1.375rem;
-  height: 1.375rem;
-  border-radius: var(--fp-radius-md);
-  background: var(--fp-orange-500);
-  background-image: none;
-  box-shadow: none;
 }
 
 .fp-design-system :where(.fp-button--primary) {

@@ -151,8 +151,7 @@ textarea {
 .fp-sidebar-brand strong,
 .fg-brand-wordmark,
 .fg-logo,
-[data-fugue-logo],
-.fp-brand-mark + .fp-sidebar-brand__copy strong {
+[data-fugue-logo] {
   font-family: var(--font-fugue-heading, var(--fugue-font-heading, var(--cf-font)));
 }
 
@@ -177,14 +176,6 @@ textarea {
   min-height: 40px;
   gap: 10px;
   color: var(--cf-text-0);
-}
-
-.fp-brand-mark {
-  width: 22px;
-  height: 22px;
-  border-radius: 6px;
-  background: var(--cf-orange);
-  box-shadow: none;
 }
 
 .fp-sidebar-brand__copy {

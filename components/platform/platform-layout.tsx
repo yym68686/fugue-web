@@ -69,7 +69,6 @@ export function PlatformSidebarBrand({
 }) {
   return (
     <div className="fp-sidebar-brand">
-      <span className="fp-brand-mark" aria-hidden="true" />
       <span className="fp-sidebar-brand__copy">
         <strong>{title}</strong>
         {meta ? <span>{meta}</span> : null}
@@ -211,4 +210,3 @@ export function PlatformGrid({
 }) {
   return <div className={cx("fp-grid", className)}>{children}</div>;
 }
-
