@@ -5,8 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { FormField } from "@/components/ui/form-field";
 
 type DeployRepositoryLinkFieldProps = {
-  autoFocus?: boolean;
   defaultValue: string;
+  desktopAutoFocus?: boolean;
   id: string;
   name: string;
 };
@@ -23,8 +23,8 @@ function looksReadyForSubmission(value: string) {
 }
 
 export function DeployRepositoryLinkField({
-  autoFocus = false,
   defaultValue,
+  desktopAutoFocus = false,
   id,
   name,
 }: DeployRepositoryLinkFieldProps) {
@@ -42,6 +42,18 @@ export function DeployRepositoryLinkField({
     setValue(defaultValue);
     lastSubmittedValueRef.current = defaultValue.trim();
   }, [defaultValue]);
+
+  useEffect(() => {
+    if (!desktopAutoFocus) {
+      return;
+    }
+
+    if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+      return;
+    }
+
+    inputRef.current?.focus();
+  }, [desktopAutoFocus]);
 
   useEffect(() => {
     const nextValue = value.trim();
@@ -99,7 +111,6 @@ export function DeployRepositoryLinkField({
       <input
         autoCapitalize="none"
         autoComplete="url"
-        autoFocus={autoFocus}
         className="fg-input"
         id={id}
         inputMode="url"

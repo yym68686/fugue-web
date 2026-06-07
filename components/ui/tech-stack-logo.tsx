@@ -28,6 +28,7 @@ export function TechStackLogo({ kind }: { kind: TechStackBadgeKind }) {
           decoding="async"
           draggable="false"
           height={96}
+          loading="lazy"
           src={imageSrc}
           width={96}
         />

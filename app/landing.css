@@ -223,7 +223,8 @@ body.is-ready .fg-landing-masthead {
   display: inline-flex;
   align-items: center;
   gap: 0.24rem;
-  padding: 0.3rem 0 0.34rem;
+  min-height: var(--fugue-button-height-tight);
+  padding: 0.3rem 0.2rem 0.34rem;
   border-bottom: 1px solid transparent;
   color: var(--fugue-text-secondary);
   cursor: pointer;

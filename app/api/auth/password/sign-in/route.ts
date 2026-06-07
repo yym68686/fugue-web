@@ -113,7 +113,21 @@ export async function POST(request: Request) {
     });
   }
 
-  const passwordHash = await getPasswordHashByEmail(email);
+  let passwordHash: string | null;
+
+  try {
+    passwordHash = await getPasswordHashByEmail(email);
+  } catch (error) {
+    console.error("Password sign-in credential lookup failed.", error);
+    return respondAuthError({
+      code: AUTH_ERROR_SESSION_OPEN_FAILED,
+      expectsJson,
+      message: "Fugue could not open the workspace session. Try again.",
+      request,
+      returnTo,
+      status: 500,
+    });
+  }
 
   if (!passwordHash || !(await verifyPassword(password, passwordHash))) {
     return respondAuthError({
@@ -126,7 +140,21 @@ export async function POST(request: Request) {
     });
   }
 
-  const user = await getAppUserByEmail(email);
+  let user: Awaited<ReturnType<typeof getAppUserByEmail>>;
+
+  try {
+    user = await getAppUserByEmail(email);
+  } catch (error) {
+    console.error("Password sign-in user lookup failed.", error);
+    return respondAuthError({
+      code: AUTH_ERROR_SESSION_OPEN_FAILED,
+      expectsJson,
+      message: "Fugue could not open the workspace session. Try again.",
+      request,
+      returnTo,
+      status: 500,
+    });
+  }
 
   if (!user) {
     return respondAuthError({

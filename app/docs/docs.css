@@ -187,7 +187,8 @@
   display: inline-flex;
   align-items: center;
   gap: 0.24rem;
-  padding: 0.3rem 0 0.34rem;
+  min-height: var(--fugue-button-height-tight);
+  padding: 0.3rem 0.2rem 0.34rem;
   border-bottom: 1px solid transparent;
   color: var(--fugue-text-secondary);
   cursor: pointer;
@@ -802,6 +803,9 @@
 }
 
 .fg-docs-note-card {
+  inline-size: 100%;
+  max-inline-size: 100%;
+  min-width: 0;
   display: grid;
   gap: 0.65rem;
   padding: 1rem 1.2rem 1.15rem;
@@ -1349,6 +1353,10 @@
 
   .fg-docs-section-strip__nav {
     width: max-content;
+  }
+
+  .fg-docs-section-strip__nav .fg-docs-section-strip__link {
+    min-height: 2.75rem;
   }
 }
 

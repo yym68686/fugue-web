@@ -9,6 +9,7 @@
     "build": "next build",
     "start": "next start",
     "console:pill-switch:check": "node ./scripts/check-console-pill-switch.mjs",
+    "frontend:details:audit": "node ./scripts/audit-frontend-details.mjs",
     "typecheck": "tsc --noEmit && npm run console:pill-switch:check",
     "openapi:sync": "node ./scripts/sync-fugue-openapi.mjs",
     "openapi:sync:check": "node ./scripts/sync-fugue-openapi.mjs --check",

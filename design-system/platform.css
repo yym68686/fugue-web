@@ -779,6 +779,12 @@ html body.fp-design-system {
   box-shadow: 0 0 0 1px var(--fp-border-default);
 }
 
+.fp-toolbar__search:focus-within {
+  box-shadow:
+    0 0 0 1px var(--fp-border-default),
+    0 0 0 3px color-mix(in oklch, var(--fp-focus-ring) 40%, transparent);
+}
+
 .fp-input,
 .fp-select,
 .fp-textarea {

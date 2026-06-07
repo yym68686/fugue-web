@@ -338,8 +338,8 @@ export async function DeployPage({
                       method="GET"
                     >
                       <DeployRepositoryLinkField
-                        autoFocus
                         defaultValue={search.repositoryUrl}
+                        desktopAutoFocus
                         id="deploy-entry-repository"
                         name="repository-url"
                       />

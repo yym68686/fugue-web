@@ -3,6 +3,7 @@
 import {
   useEffect,
   useEffectEvent,
+  useRef,
   useState,
   type CSSProperties,
 } from "react";
@@ -884,6 +885,7 @@ export function ConsoleFilesWorkbench({
   const [composer, setComposer] = useState<ComposerState | null>(
     () => (canRestoreInitialState ? cachedWorkbench!.composer : null),
   );
+  const composerPathInputRef = useRef<HTMLInputElement | null>(null);
   const [rootStatus, setRootStatus] = useState<
     "error" | "idle" | "loading" | "ready"
   >(() =>
@@ -900,6 +902,18 @@ export function ConsoleFilesWorkbench({
   const requestedRootPath = isStorageMode
     ? PERSISTENT_STORAGE_COLLECTION_ROOT
     : "/";
+
+  useEffect(() => {
+    if (!composer) {
+      return;
+    }
+
+    if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+      return;
+    }
+
+    composerPathInputRef.current?.focus();
+  }, [composer?.kind]);
 
   function readExactStorageMount(targetPath: string) {
     const cleanTarget = trimTrailingSlash(targetPath);
@@ -2030,12 +2044,12 @@ export function ConsoleFilesWorkbench({
                     autoCapitalize="off"
                     autoComplete="off"
                     autoCorrect="off"
-                    autoFocus
                     className="fg-route-composer__field"
                     inputMode="text"
                     onChange={(event) => {
                       updateComposerPath(event.target.value);
                     }}
+                    ref={composerPathInputRef}
                     spellCheck={false}
                     value={composer.path}
                   />

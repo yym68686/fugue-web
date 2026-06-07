@@ -12,6 +12,7 @@ type PasswordSignInFormProps = {
 
 export function PasswordSignInForm({ returnTo }: PasswordSignInFormProps) {
   const { t } = useI18n();
+  const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -31,7 +32,7 @@ export function PasswordSignInForm({ returnTo }: PasswordSignInFormProps) {
       className="fg-form-grid"
       action="/api/auth/password/sign-in"
       method="post"
-      onSubmit={(event) => {
+      onSubmit={async (event) => {
         if (isSubmitting) {
           event.preventDefault();
           return;
@@ -39,11 +40,36 @@ export function PasswordSignInForm({ returnTo }: PasswordSignInFormProps) {
 
         event.preventDefault();
         setIsSubmitting(true);
-        const form = event.currentTarget;
+        setError(null);
 
-        requestAnimationFrame(() => {
-          HTMLFormElement.prototype.submit.call(form);
-        });
+        const formData = new FormData(event.currentTarget);
+        const email = String(formData.get("email") ?? "");
+        const password = String(formData.get("password") ?? "");
+
+        try {
+          const response = await fetch("/api/auth/password/sign-in", {
+            body: JSON.stringify({ email, password, returnTo }),
+            headers: {
+              "Content-Type": "application/json",
+            },
+            method: "post",
+          });
+          const payload = (await response.json().catch(() => null)) as {
+            error?: string;
+            redirectTo?: string;
+          } | null;
+
+          if (!response.ok) {
+            setError(payload?.error ?? t("Fugue could not open the workspace session. Try again."));
+            setIsSubmitting(false);
+            return;
+          }
+
+          window.location.assign(payload?.redirectTo ?? returnTo);
+        } catch {
+          setError(t("Fugue could not open the workspace session. Try again."));
+          setIsSubmitting(false);
+        }
       }}
     >
       <input name="returnTo" type="hidden" value={returnTo} />
@@ -87,6 +113,11 @@ export function PasswordSignInForm({ returnTo }: PasswordSignInFormProps) {
         />
         <span>{t("Show password")}</span>
       </label>
+      {error ? (
+        <p className="fg-form-status is-error" role="alert">
+          {error}
+        </p>
+      ) : null}
 
       <Button loading={isSubmitting} loadingLabel={t("Signing in")} type="submit" variant="primary">
         {t("Sign in with password")}

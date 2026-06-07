@@ -554,6 +554,20 @@ textarea,
   padding: 1px 12px;
 }
 
+.fg-brand {
+  min-height: 36px;
+}
+
+.fg-locale-menu__trigger,
+.fg-locale-utility__trigger {
+  min-height: var(--cf-control-sm);
+}
+
+.fg-hint-tooltip__trigger {
+  width: 32px;
+  height: 32px;
+}
+
 select,
 .fg-select,
 .fp-project-select select {
@@ -1583,7 +1597,7 @@ input[type="checkbox"] {
   .fp-segmented__item,
   .fg-tab
 ) {
-  min-height: 28px !important;
+  min-height: var(--cf-control-sm) !important;
   border: 0 !important;
   border-radius: 6px !important;
   background: transparent !important;
@@ -1612,6 +1626,45 @@ input[type="checkbox"] {
   background: var(--cf-surface-3) !important;
   background-image: none !important;
   box-shadow: none !important;
+}
+
+@media (max-width: 1024px) {
+  .fg-locale-menu__panel,
+  .fg-locale-utility__panel {
+    position: fixed !important;
+    top: 4.25rem !important;
+    right: 1rem !important;
+    left: 1rem !important;
+    width: auto !important;
+    max-width: none !important;
+    max-height: calc(100dvh - 5rem);
+    overflow: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .fg-brand,
+  .fg-button,
+  .fg-button--compact,
+  .fg-button--tight,
+  .fg-input,
+  .fg-select__control,
+  .fg-provider-button,
+  .fg-toast__action,
+  .fg-toast__dismiss,
+  .fg-locale-menu__trigger,
+  .fg-locale-utility__trigger,
+  .fg-segmented__item,
+  .fg-locale-switcher__item,
+  .fg-pill-nav__button {
+    min-height: 44px !important;
+  }
+
+  .fg-hint-tooltip__trigger {
+    width: 44px !important;
+    height: 44px !important;
+  }
+
 }
 
 .fp-design-system :where(input, select, textarea, .fg-input, .fg-select__control, .fp-input, .fp-select, .fp-textarea, .fg-code-textarea__input, .fg-code-textarea__highlight, .fg-route-composer__shell) {
@@ -1923,6 +1976,18 @@ input[type="checkbox"] {
   background: var(--cf-surface-1) !important;
   background-image: none !important;
   box-shadow: var(--cf-shadow-inset) !important;
+}
+
+.fp-design-system :where(.fg-toast__dismiss) {
+  width: 36px !important;
+  height: 36px !important;
+}
+
+.fp-design-system :where(.fg-toast__action) {
+  min-width: 36px !important;
+  min-height: 32px !important;
+  padding: 1px 8px !important;
+  text-decoration: none !important;
 }
 
 .fp-design-system :where(.fg-auth-panel-slot .fg-panel__eyebrow) {

@@ -319,8 +319,8 @@ canvas {
   position: absolute;
   top: 0.48rem;
   right: 0.48rem;
-  width: 2.15rem;
-  height: 2.15rem;
+  width: 2.25rem;
+  height: 2.25rem;
   padding: 0;
   border: 1px solid
     color-mix(
@@ -391,9 +391,9 @@ canvas {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: auto;
-  min-height: 1.6rem;
-  padding: 0.08rem 0;
+  min-width: 2.25rem;
+  min-height: 2rem;
+  padding: 0.08rem 0.5rem;
   border: 0;
   background: transparent;
   color: var(--fugue-text-secondary);
@@ -416,6 +416,19 @@ canvas {
     text-decoration-color var(--fugue-duration-fast) var(--fugue-ease-out-expo),
     opacity var(--fugue-duration-fast) var(--fugue-ease-out-expo),
     transform var(--fugue-duration-fast) var(--fugue-ease-out-expo);
+}
+
+@media (max-width: 640px) {
+  .fg-toast__dismiss,
+  .fg-toast__action {
+    min-width: 48px;
+    min-height: 48px;
+  }
+
+  .fg-toast__dismiss {
+    width: 48px;
+    height: 48px;
+  }
 }
 
 .fg-toast__action:hover,
@@ -1396,6 +1409,23 @@ canvas {
 }
 
 .fg-field-error {
+  color: var(--fugue-field-error-text);
+}
+
+.fg-form-status {
+  margin: 0;
+  padding: 0.62rem 0.72rem;
+  border: 1px solid var(--fugue-border-default);
+  border-radius: var(--fp-radius-md);
+  background: var(--fp-surface-control);
+  color: var(--fugue-text-secondary);
+  font-size: 0.82rem;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.fg-form-status.is-error {
+  border-color: var(--fugue-field-error-border);
   color: var(--fugue-field-error-text);
 }
 
