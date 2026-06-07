@@ -89,7 +89,9 @@ npm run frontend:detail-cycle-20000 -- --json
 - [x] Run typecheck and production build.
 - [x] Attempt local browser-check after build/dev server.
   - Result: local project detail route redirected to `/auth/sign-in?error=auth-required`, so the project detail DOM could not be inspected locally without sending credentials.
-  - Follow-up: after deployment, inspect the production logged-in project detail route for toolbar label, action group, danger button, and panel surface computed styles.
+- [x] Browser-check the production logged-in project detail route after deployment.
+  - Result: production commit `24a1427` shows toolbar labels as plain text (`padding: 0`, `border-radius: 0`, `background: transparent`, `box-shadow: none`), action groups as transparent flex layout, danger buttons as neutral surfaces with danger text/ring, and project metadata cells without rounded card frames.
+  - Result: the Docker-image action button is visible as `重新拉取镜像`; `Repull image` remains only inside the hidden Next hydration script and not as visible text, `title`, or `aria-label`.
 
 ## Follow-Up Scan Rule
 
