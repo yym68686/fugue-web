@@ -1728,6 +1728,25 @@ input[type="checkbox"] {
   box-shadow: none !important;
 }
 
+.fp-design-system :where(.fg-panel__eyebrow, .fg-label.fg-panel__eyebrow) {
+  display: block !important;
+  width: auto !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  color: var(--cf-text-3) !important;
+  font-family: var(--cf-font) !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  line-height: 20px !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
 .fp-design-system :where(.fg-console-profile__menu) {
   width: min(18rem, calc(100vw - 2rem)) !important;
   gap: 12px !important;
