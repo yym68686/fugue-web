@@ -2061,7 +2061,7 @@ input[type="checkbox"] {
   letter-spacing: 0 !important;
 }
 
-.fp-design-system :where(.fg-status-badge) {
+.fp-design-system :where(.fg-status-badge, .fg-route-field__status) {
   min-height: 20px !important;
   padding: 0 !important;
   border: 0 !important;
@@ -2077,20 +2077,40 @@ input[type="checkbox"] {
   letter-spacing: 0 !important;
 }
 
-.fp-design-system :where(.fg-status-badge--positive, .fg-status-badge--success) {
+.fp-design-system :where(
+  .fg-status-badge--positive,
+  .fg-status-badge--success,
+  .fg-route-field__status.is-success
+) {
   color: var(--cf-status-positive-text) !important;
 }
 
-.fp-design-system :where(.fg-status-badge--warning) {
+.fp-design-system :where(.fg-status-badge--warning, .fg-route-field__status.is-warning) {
   color: var(--cf-orange) !important;
 }
 
-.fp-design-system :where(.fg-status-badge--danger, .fg-status-badge--error) {
+.fp-design-system :where(
+  .fg-status-badge--danger,
+  .fg-status-badge--error,
+  .fg-route-field__status.is-error
+) {
   color: var(--cf-red) !important;
+}
+
+.fp-design-system :where(.fg-route-field__status.is-info) {
+  color: var(--cf-status-info-text) !important;
 }
 
 .fp-design-system :where(.fg-status-badge__dot, .fg-status-badge__dot::after) {
   animation: none !important;
+  box-shadow: none !important;
+}
+
+.fp-design-system .fg-route-field__status::before {
+  width: 8px !important;
+  height: 8px !important;
+  border-radius: 999px !important;
+  background: currentColor !important;
   box-shadow: none !important;
 }
 

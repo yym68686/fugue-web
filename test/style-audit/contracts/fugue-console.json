@@ -22,7 +22,7 @@
     },
     {
       "id": "color.status-positive.cf-token",
-      "rootSelector": ".fg-status-badge--positive",
+      "rootSelector": ".fg-status-badge--positive, .fg-route-field__status.is-success, .fg-inline-alert--success, .fg-app-images__card.is-current, .fg-control-plane-card--positive",
       "surfaceOwner": null
     },
     {

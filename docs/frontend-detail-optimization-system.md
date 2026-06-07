@@ -210,6 +210,34 @@ and source. Minimum contracts:
 The backlog must group findings by this matrix so a systemic bug is fixed at
 the component/token layer, not repeated as one-off page patches.
 
+### 4.1 Semantic Color Contract Scan
+
+Color drift must be audited by semantic role, not by a sample component. When a
+user asks for color unification, every rendered and source-level color that
+maps to `success`, `positive`, `ready`, `running`, `available`, `current`,
+`verified`, `healthy`, or `enabled` belongs to the same semantic-positive
+inventory unless it is explicitly classified as syntax highlighting, ANSI log
+color, a brand mark, or an image asset.
+
+Required checks:
+
+- **Source inventory**: scan all CSS and component class names for semantic
+  terms and all green-ish hard-coded values. Each match must be assigned to
+  `semantic-positive`, `syntax/log`, `brand/asset`, or `false-positive`.
+- **Token contract**: `semantic-positive` UI must resolve through
+  `--cf-status-positive-*` or a Fugue alias that directly points to those
+  tokens. No standalone legacy green literal is allowed in product UI.
+- **Computed-style contract**: Playwright or Chrome MCP must sample every
+  rendered success/ready/running/current state and compare text, dot, border,
+  fill, and halo colors against the shared token. A different visual green is
+  a failing contract even when the selector name differs.
+- **Shape coupling**: status color checks also inspect shape. A ready/running
+  state must not silently reintroduce a pill frame, rounded badge, glow, or
+  background when the target status language is inline text plus a dot.
+- **Failure rule**: a new green-ish source value, a new success-like selector,
+  or a rendered positive state without a contract blocks the audit until it is
+  tokenized or explicitly classified as syntax/log/brand.
+
 ### 5. Atomic Detail Count Rules
 
 Use atomic counts to satisfy the 1000-detail requirement without inventing fake

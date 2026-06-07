@@ -107,6 +107,75 @@ function isNotZero(value) {
   return !/^0(?:\s*!important)?$/i.test(value);
 }
 
+function sourceLine(source, index) {
+  return source.split("\n")[lineOf(source, index) - 1] ?? "";
+}
+
+function parseHexColor(value) {
+  let hex = value.slice(1);
+  if (hex.length === 3 || hex.length === 4) {
+    hex = hex
+      .slice(0, 3)
+      .split("")
+      .map((part) => part + part)
+      .join("");
+  }
+  if (hex.length < 6) return null;
+  return [
+    Number.parseInt(hex.slice(0, 2), 16),
+    Number.parseInt(hex.slice(2, 4), 16),
+    Number.parseInt(hex.slice(4, 6), 16),
+  ];
+}
+
+function parseRgbColor(value) {
+  const channels =
+    value
+      .match(/-?\d+(?:\.\d+)?/g)
+      ?.slice(0, 3)
+      .map(Number) ?? [];
+  return channels.length === 3 ? channels : null;
+}
+
+function isGreenishLiteral(value) {
+  const rgb = value.startsWith("#")
+    ? parseHexColor(value)
+    : value.startsWith("rgb")
+      ? parseRgbColor(value)
+      : null;
+  if (!rgb) return false;
+  const [r, g, b] = rgb;
+  return g > r + 18 && g > b + 5 && g > 70;
+}
+
+function isAllowedGreenLiteralContext(line) {
+  return /--fg-log-|--fugue-code-textarea-token-/i.test(line);
+}
+
+function flagUnclassifiedGreenLiterals({ issues, sources }) {
+  const colorPattern = /#[0-9a-fA-F]{3,8}|rgba?\([^)]*\)/g;
+
+  for (const { file, source } of sources) {
+    for (const match of source.matchAll(colorPattern)) {
+      const value = match[0];
+      if (!isGreenishLiteral(value)) continue;
+
+      const line = sourceLine(source, match.index);
+      if (isAllowedGreenLiteralContext(line)) continue;
+
+      addIssue(issues, {
+        contract: "color.status-positive.cf-token",
+        file,
+        line: lineOf(source, match.index),
+        message:
+          "Green-like product UI literals must be tokenized through --cf-status-positive-* or classified as syntax/log color.",
+        rule: "unclassified-green-literal",
+        selector: null,
+      });
+    }
+  }
+}
+
 function flagForbiddenInRules({
   excludeSelectorFragments,
   issues,
@@ -322,6 +391,12 @@ function verifyRuntimeContracts({
     "#9be0b9",
     "#284f39",
     "#508765",
+    "rgba(36, 68, 56",
+    "rgba(38, 55, 45",
+    "rgba(91, 138, 108",
+    "rgba(92, 184, 122",
+    "rgba(95, 154, 116",
+    "rgba(129, 188, 158",
     "rgba(137, 205, 168",
     "rgba(111, 160, 128",
     "rgba(86, 132, 103",
@@ -334,13 +409,26 @@ function verifyRuntimeContracts({
     ),
   );
 
+  flagUnclassifiedGreenLiterals({
+    issues,
+    sources: [
+      { file: "app/console.css", source: consoleCss },
+      { file: "design-system/tokens.css", source: designTokensCss },
+      { file: "app/globals.css", source: globalsCss },
+      { file: "app/cloudflare-runtime.css", source: runtimeCss },
+    ],
+  });
+
   if (
     !hasAll(runtimeCss, [
       "--cf-green: oklch(0.696 0.17 162.48)",
       "--cf-status-positive-rgb: 0 188 125",
       "--cf-status-positive-text: var(--cf-green)",
       "--fugue-status-badge-text-positive: var(--cf-status-positive-text)",
-      ".fp-design-system :where(.fg-status-badge--positive, .fg-status-badge--success)",
+      ".fg-status-badge--positive",
+      ".fg-status-badge--success",
+      ".fg-route-field__status.is-success",
+      ".fp-design-system .fg-route-field__status::before",
       "color: var(--cf-status-positive-text) !important",
     ]) ||
     !hasAll(designTokensCss, [
@@ -361,9 +449,9 @@ function verifyRuntimeContracts({
       file: "app/cloudflare-runtime.css",
       line: 1,
       message:
-        "Positive/success green must use the shared Cloudflare status token across badges, dots, resource fills, and toasts.",
+        "Positive/success green must use the shared Cloudflare status token across badges, route/domain field states, alerts, cards, resource fills, and toasts.",
       rule: "positive-green-token-required",
-      selector: ".fg-status-badge--positive",
+      selector: ".fg-status-badge--positive, .fg-route-field__status.is-success",
     });
   }
 }

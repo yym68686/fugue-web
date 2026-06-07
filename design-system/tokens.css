@@ -62,9 +62,20 @@
   --fugue-alert-warning-bg: rgba(78, 58, 22, 0.28);
   --fugue-alert-warning-border: rgba(201, 170, 108, 0.3);
   --fugue-alert-warning-text: var(--fugue-text-secondary);
-  --fugue-alert-success-bg: rgba(36, 68, 56, 0.32);
-  --fugue-alert-success-border: rgba(129, 188, 158, 0.34);
-  --fugue-alert-success-text: var(--fugue-text-primary);
+  --fugue-alert-success-bg: color-mix(
+    in oklch,
+    var(--cf-status-positive-fill, oklch(0.696 0.17 162.48)) 13%,
+    transparent
+  );
+  --fugue-alert-success-border: color-mix(
+    in oklch,
+    var(--cf-status-positive-fill, oklch(0.696 0.17 162.48)) 24%,
+    transparent
+  );
+  --fugue-alert-success-text: var(
+    --cf-status-positive-text,
+    oklch(0.696 0.17 162.48)
+  );
   --fugue-alert-error-bg: rgba(92, 26, 26, 0.3);
   --fugue-alert-error-border: rgba(229, 134, 134, 0.34);
   --fugue-alert-error-text: #f8d0d0;
