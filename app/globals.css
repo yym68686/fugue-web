@@ -139,7 +139,7 @@ canvas {
 }
 
 .fg-toast--success {
-  --fg-toast-accent: 139 193 164;
+  --fg-toast-accent: var(--cf-status-positive-rgb, 0 188 125);
   --fg-toast-signal-bg: var(--fugue-status-badge-bg-positive);
   --fg-toast-signal-border: var(--fugue-status-badge-border-positive);
   --fg-toast-signal-text: var(--fugue-status-badge-text-positive);

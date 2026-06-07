@@ -16,6 +16,16 @@
       "surfaceOwner": ".fg-project-membership-group"
     },
     {
+      "id": "surface.project-service.selection-gutter",
+      "rootSelector": ".fg-project-service-card",
+      "surfaceOwner": ".fg-project-service-card"
+    },
+    {
+      "id": "color.status-positive.cf-token",
+      "rootSelector": ".fg-status-badge--positive",
+      "surfaceOwner": null
+    },
+    {
       "id": "danger.project-preview.neutral-token",
       "rootSelector": ".fg-project-danger-preview__token",
       "surfaceOwner": null

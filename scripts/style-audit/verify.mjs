@@ -10,6 +10,8 @@ const writeReport = args.has("--write-report");
 
 const files = {
   consoleCss: path.join(root, "app/console.css"),
+  designTokensCss: path.join(root, "design-system/tokens.css"),
+  globalsCss: path.join(root, "app/globals.css"),
   runtimeCss: path.join(root, "app/cloudflare-runtime.css"),
   routes: path.join(root, "test/style-audit/routes.json"),
   states: path.join(root, "test/style-audit/states.json"),
@@ -156,6 +158,8 @@ function verifyInventory({ contracts, issues, routes, states }) {
     "control.select.single-surface",
     "control.tooltip.inline-help",
     "surface.project-membership.row-like",
+    "surface.project-service.selection-gutter",
+    "color.status-positive.cf-token",
     "danger.project-preview.neutral-token",
     "feedback.console-skeleton.cf-bars",
     "control.segmented.single-track",
@@ -201,7 +205,14 @@ function verifyInventory({ contracts, issues, routes, states }) {
   }
 }
 
-function verifyRuntimeContracts({ issues, runtimeCss, runtimeRules }) {
+function verifyRuntimeContracts({
+  consoleCss,
+  designTokensCss,
+  globalsCss,
+  issues,
+  runtimeCss,
+  runtimeRules,
+}) {
   if (
     !hasAll(runtimeCss, [
       ".fp-design-system :where(.fg-select)",
@@ -276,6 +287,83 @@ function verifyRuntimeContracts({ issues, runtimeCss, runtimeRules }) {
         "Control-strip viewport must be transparent so only the shell owns the track surface.",
       rule: "control-strip-viewport-transparent",
       selector: ".fg-control-strip__viewport",
+    });
+  }
+
+  if (
+    !hasAll(runtimeCss, [
+      "--cf-service-row-selection-gutter: 20px",
+      "--cf-service-row-inline-end: 16px",
+    ]) ||
+    !ruleContains(
+      runtimeRules,
+      ".fg-project-service-card",
+      /padding:\s*12px\s+var\(--cf-service-row-inline-end\)\s+12px\s+var\(--cf-service-row-selection-gutter\)\s*!important/,
+    ) ||
+    !ruleContains(
+      runtimeRules,
+      ".fg-project-service-card.is-active",
+      /box-shadow:\s*inset\s+3px\s+0\s+0\s+var\(--cf-blue\)\s*!important/,
+    )
+  ) {
+    addIssue(issues, {
+      contract: "surface.project-service.selection-gutter",
+      file: "app/cloudflare-runtime.css",
+      line: 1,
+      message:
+        "Project service row selection must reserve a left gutter and right padding so the active bar is not hidden by the logo and status text is not edge-tight.",
+      rule: "service-row-gutter-runtime-required",
+      selector: ".fg-project-service-card",
+    });
+  }
+
+  const legacyPositiveGreenTokens = [
+    "#e4f4e9",
+    "#9be0b9",
+    "#284f39",
+    "#508765",
+    "rgba(137, 205, 168",
+    "rgba(111, 160, 128",
+    "rgba(86, 132, 103",
+    "rgba(80, 135, 101",
+    "rgba(155, 224, 185",
+  ];
+  const hasLegacyPositiveGreen = legacyPositiveGreenTokens.some((token) =>
+    [consoleCss, designTokensCss, globalsCss, runtimeCss].some((source) =>
+      source.includes(token),
+    ),
+  );
+
+  if (
+    !hasAll(runtimeCss, [
+      "--cf-green: oklch(0.696 0.17 162.48)",
+      "--cf-status-positive-rgb: 0 188 125",
+      "--cf-status-positive-text: var(--cf-green)",
+      "--fugue-status-badge-text-positive: var(--cf-status-positive-text)",
+      ".fp-design-system :where(.fg-status-badge--positive, .fg-status-badge--success)",
+      "color: var(--cf-status-positive-text) !important",
+    ]) ||
+    !hasAll(designTokensCss, [
+      "--fugue-status-badge-bg-positive: var(--cf-status-positive-bg, transparent)",
+      "--fugue-status-badge-border-positive: var(--cf-status-positive-border, transparent)",
+      "--fugue-status-badge-text-positive: var(",
+      "--cf-status-positive-text,",
+      "oklch(0.696 0.17 162.48)",
+    ]) ||
+    !hasAll(globalsCss, [
+      ".fg-toast--success",
+      "--fg-toast-accent: var(--cf-status-positive-rgb, 0 188 125)",
+    ]) ||
+    hasLegacyPositiveGreen
+  ) {
+    addIssue(issues, {
+      contract: "color.status-positive.cf-token",
+      file: "app/cloudflare-runtime.css",
+      line: 1,
+      message:
+        "Positive/success green must use the shared Cloudflare status token across badges, dots, resource fills, and toasts.",
+      rule: "positive-green-token-required",
+      selector: ".fg-status-badge--positive",
     });
   }
 }
@@ -375,6 +463,32 @@ function verifyProjectSourceContracts({ consoleRules, issues }) {
     rules: consoleRules,
     selector: ".fg-project-danger-card",
   });
+
+  flagForbiddenInRules({
+    contract: "surface.project-service.selection-gutter",
+    forbidden: [
+      { label: "full border", pattern: /border:\s*1px/, rule: "service-row-no-card-border" },
+      { label: "rounded card radius", pattern: /border-radius:\s*(1\.12rem|var\(--f[pu]-radius)/, rule: "service-row-no-card-radius" },
+      { label: "gradient background", pattern: /linear-gradient\(/, rule: "service-row-no-gradient-surface" },
+      {
+        label: "outer shadow",
+        matches: (body) =>
+          hasDeclarationValue(
+            body,
+            "box-shadow",
+            (value) => isNotNone(value) && !/^inset\s+3px\s+0\s+0\s+var\(--(?:fugue-focus-ring|fp-focus-ring|cf-blue)\)/i.test(value),
+          ),
+        rule: "service-row-no-outer-shadow",
+      },
+      { label: "layout transform", pattern: /transform:/, rule: "service-row-no-transform" },
+    ],
+    issues,
+    message:
+      "Project service rows must be single-surface rows with an unobstructed left selection gutter, not rounded cards.",
+    rules: consoleRules,
+    selector: ".fg-project-service-card",
+    excludeSelectorFragments: ["__"],
+  });
 }
 
 function verifySkeletonContracts({ consoleRules, issues }) {
@@ -459,6 +573,8 @@ function buildReport(result) {
 }
 
 const consoleCss = read(files.consoleCss);
+const designTokensCss = read(files.designTokensCss);
+const globalsCss = read(files.globalsCss);
 const runtimeCss = read(files.runtimeCss);
 const routes = readJson(files.routes);
 const states = readJson(files.states);
@@ -469,7 +585,14 @@ const runtimeRules = collectCssRules(runtimeCss, "app/cloudflare-runtime.css");
 const issues = [];
 
 verifyInventory({ contracts, issues, routes, states });
-verifyRuntimeContracts({ issues, runtimeCss, runtimeRules });
+verifyRuntimeContracts({
+  consoleCss,
+  designTokensCss,
+  globalsCss,
+  issues,
+  runtimeCss,
+  runtimeRules,
+});
 verifyProjectSourceContracts({ consoleRules, issues });
 verifySkeletonContracts({ consoleRules, issues });
 

@@ -215,17 +215,20 @@
 
   /* component */
   --fugue-dialog-footer-bg: var(--fugue-proof-shell-inner-bg);
-  --fugue-status-badge-bg-positive:
-    linear-gradient(
-      180deg,
-      rgba(137, 205, 168, 0.22),
-      rgba(54, 82, 64, 0.14)
-    ),
-    rgba(14, 24, 19, 0.94);
-  --fugue-status-badge-border-positive: rgba(137, 205, 168, 0.42);
-  --fugue-status-badge-text-positive: #e4f4e9;
-  --fugue-status-badge-dot-positive: #9be0b9;
-  --fugue-status-badge-halo-positive: rgba(155, 224, 185, 0.26);
+  --fugue-status-badge-bg-positive: var(--cf-status-positive-bg, transparent);
+  --fugue-status-badge-border-positive: var(--cf-status-positive-border, transparent);
+  --fugue-status-badge-text-positive: var(
+    --cf-status-positive-text,
+    oklch(0.696 0.17 162.48)
+  );
+  --fugue-status-badge-dot-positive: var(
+    --cf-status-positive-dot,
+    oklch(0.696 0.17 162.48)
+  );
+  --fugue-status-badge-halo-positive: var(
+    --cf-status-positive-halo,
+    color-mix(in oklch, oklch(0.696 0.17 162.48) 28%, transparent)
+  );
   --fugue-status-badge-bg-warning:
     linear-gradient(180deg, rgba(225, 182, 105, 0.14), rgba(92, 68, 34, 0.08)),
     rgba(18, 13, 8, 0.82);
@@ -747,9 +750,20 @@
   --fugue-alert-warning-bg: rgba(201, 160, 83, 0.14);
   --fugue-alert-warning-border: rgba(177, 136, 62, 0.26);
   --fugue-alert-warning-text: #6d541f;
-  --fugue-alert-success-bg: rgba(111, 160, 128, 0.13);
-  --fugue-alert-success-border: rgba(91, 138, 108, 0.24);
-  --fugue-alert-success-text: #2d5840;
+  --fugue-alert-success-bg: color-mix(
+    in oklch,
+    var(--cf-status-positive-fill, oklch(0.696 0.17 162.48)) 13%,
+    transparent
+  );
+  --fugue-alert-success-border: color-mix(
+    in oklch,
+    var(--cf-status-positive-fill, oklch(0.696 0.17 162.48)) 24%,
+    transparent
+  );
+  --fugue-alert-success-text: var(
+    --cf-status-positive-text,
+    oklch(0.696 0.17 162.48)
+  );
   --fugue-alert-error-bg: rgba(191, 109, 109, 0.12);
   --fugue-alert-error-border: rgba(176, 90, 90, 0.22);
   --fugue-alert-error-text: #8f4444;
@@ -782,17 +796,20 @@
   --fugue-code-textarea-token-deleted: #b35d4c;
   --fugue-code-textarea-token-selection: rgba(95, 124, 155, 0.18);
 
-  --fugue-status-badge-bg-positive:
-    linear-gradient(
-      180deg,
-      rgba(111, 160, 128, 0.22),
-      rgba(111, 160, 128, 0.08)
-    ),
-    rgba(247, 252, 248, 0.98);
-  --fugue-status-badge-border-positive: rgba(86, 132, 103, 0.3);
-  --fugue-status-badge-text-positive: #284f39;
-  --fugue-status-badge-dot-positive: #508765;
-  --fugue-status-badge-halo-positive: rgba(80, 135, 101, 0.18);
+  --fugue-status-badge-bg-positive: var(--cf-status-positive-bg, transparent);
+  --fugue-status-badge-border-positive: var(--cf-status-positive-border, transparent);
+  --fugue-status-badge-text-positive: var(
+    --cf-status-positive-text,
+    oklch(0.696 0.17 162.48)
+  );
+  --fugue-status-badge-dot-positive: var(
+    --cf-status-positive-dot,
+    oklch(0.696 0.17 162.48)
+  );
+  --fugue-status-badge-halo-positive: var(
+    --cf-status-positive-halo,
+    color-mix(in oklch, oklch(0.696 0.17 162.48) 28%, transparent)
+  );
   --fugue-status-badge-bg-warning:
     linear-gradient(180deg, rgba(201, 160, 83, 0.16), rgba(201, 160, 83, 0.06)),
     rgba(249, 245, 239, 0.96);

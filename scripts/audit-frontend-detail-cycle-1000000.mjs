@@ -164,7 +164,7 @@ function collectEvidence() {
       "background: transparent !important",
       "box-shadow: none !important",
       "border-top: 1px solid var(--cf-line) !important",
-      "box-shadow: inset 2px 0 0 var(--cf-blue) !important",
+      "box-shadow: inset 3px 0 0 var(--cf-blue) !important",
     ]);
 
   const hasDangerPreviewNeutralization =
