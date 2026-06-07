@@ -1960,6 +1960,20 @@ input[type="checkbox"] {
   box-shadow: none !important;
 }
 
+.fp-design-system :where(.fg-console-disclosure__summary-hint) {
+  display: inline-flex !important;
+  width: 18px !important;
+  height: 18px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: var(--cf-text-2) !important;
+}
+
+.fp-design-system :where(.fg-console-disclosure__summary-hint-icon) {
+  width: 16px !important;
+  height: 16px !important;
+}
+
 .fp-design-system :where(
   .fg-profile-auth-summary,
   .fg-profile-auth-provider,

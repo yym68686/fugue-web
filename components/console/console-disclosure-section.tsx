@@ -2,7 +2,6 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 
-import { HintInline } from "@/components/ui/hint-tooltip";
 import { cx } from "@/lib/ui/cx";
 
 function DisclosureChevronIcon() {
@@ -26,6 +25,27 @@ function DisclosureChevronIcon() {
   );
 }
 
+function DisclosureHintIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="fg-console-disclosure__summary-hint-icon"
+      fill="none"
+      viewBox="0 0 20 20"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <circle cx="10" cy="10" r="7.35" stroke="currentColor" strokeWidth="1.35" />
+      <path
+        d="M10 8.65V13.15"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.6"
+      />
+      <circle cx="10" cy="6.2" fill="currentColor" r="0.95" />
+    </svg>
+  );
+}
+
 export function ConsoleDisclosureSection({
   children,
   className,
@@ -40,8 +60,6 @@ export function ConsoleDisclosureSection({
   summary: ReactNode;
 }) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
-  const tooltipAriaLabel =
-    typeof summary === "string" && summary.trim() ? summary.trim() : "Section details";
 
   useEffect(() => {
     if (defaultOpen) {
@@ -61,14 +79,17 @@ export function ConsoleDisclosureSection({
     >
       <summary>
         <span className="fg-console-disclosure__summary-copy">
-          <HintInline
-            ariaLabel={tooltipAriaLabel}
-            as="span"
-            className="fg-console-disclosure__summary-label-row"
-            hint={description}
-          >
+          <span className="fg-hint-inline fg-console-disclosure__summary-label-row">
             <span className="fg-console-disclosure__summary-label">{summary}</span>
-          </HintInline>
+            {description ? (
+              <>
+                <span aria-hidden="true" className="fg-console-disclosure__summary-hint">
+                  <DisclosureHintIcon />
+                </span>
+                <span className="fg-visually-hidden">{description}</span>
+              </>
+            ) : null}
+          </span>
         </span>
         <span aria-hidden="true" className="fg-console-disclosure__summary-icon">
           <DisclosureChevronIcon />
