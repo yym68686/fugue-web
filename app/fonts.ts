@@ -2,7 +2,7 @@ import { IBM_Plex_Mono, Manrope, Syne } from "next/font/google";
 
 export const fugueBodyFont = Manrope({
   display: "swap",
-  preload: true,
+  preload: false,
   subsets: ["latin"],
   variable: "--font-fugue-body",
   weight: ["400", "500", "600", "700", "800"],

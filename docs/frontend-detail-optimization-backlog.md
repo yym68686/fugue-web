@@ -45,6 +45,7 @@ This file is generated and maintained from the loop in `docs/frontend-detail-opt
 ## Production Verification Findings
 
 - [x] Increase platform breadcrumb links to a 24px minimum hit target after production console smoke testing found the topbar `Console` crumb rendered as a 20px-tall interactive link.
+- [x] Disable global Manrope preload after production console smoke testing found a Next/font unused-preload warning on routes that now use the Cloudflare runtime UI font stack.
 
 ## Non-Actionable Notes
 
