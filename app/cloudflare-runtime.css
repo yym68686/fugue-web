@@ -20,6 +20,7 @@ body.fg-theme-light {
   --cf-text-3: oklch(0.556 0 0);
   --cf-text-disabled: oklch(0.439 0 0);
   --cf-blue: rgb(70, 147, 255);
+  --cf-primary: oklch(0.5772 0.2324 260);
   --cf-orange: oklch(0.705 0.213 47.604);
   --cf-red: oklch(0.637 0.237 25.331);
   --cf-green: oklch(0.696 0.17 162.48);
@@ -37,9 +38,9 @@ body.fg-theme-light {
   --cf-topbar: 58px;
   --cf-sidebar: 260px;
   --cf-shadow-control:
-    0 0 0 1px var(--cf-line),
-    0 1px 2px rgb(0 0 0 / 0.05);
-  --cf-shadow-row: 0 0 0 1px var(--cf-line);
+    0 0 0 1px var(--cf-line);
+  --cf-shadow-row: none;
+  --cf-shadow-inset: inset 0 0 0 1px var(--cf-line);
 
   --fp-surface-canvas: var(--cf-bg);
   --fp-surface-sidebar: var(--cf-bg-rail);
@@ -57,7 +58,7 @@ body.fg-theme-light {
   --fp-text-muted: var(--cf-text-3);
   --fp-text-disabled: var(--cf-text-disabled);
   --fp-link: var(--cf-blue);
-  --fp-accent: var(--cf-blue);
+  --fp-accent: var(--cf-primary);
   --fp-border-subtle: var(--cf-line);
   --fp-border-default: var(--cf-line);
   --fp-border-strong: var(--cf-line-strong);
@@ -91,7 +92,7 @@ body.fg-theme-light {
   --fugue-border-subtle: var(--cf-line);
   --fugue-border-default: var(--cf-line);
   --fugue-border-strong: var(--cf-line-strong);
-  --fugue-accent-signal: var(--cf-blue);
+  --fugue-accent-signal: var(--cf-primary);
   --fugue-focus-ring: var(--cf-blue);
   --fugue-font-body: var(--cf-font);
   --fugue-font-ui-heading: var(--cf-font);
@@ -1384,5 +1385,525 @@ input[type="checkbox"] {
   .fp-skeleton::after {
     animation: none;
     transition: none;
+  }
+}
+
+/* Strict Cloudflare product normalization pass.
+   Keep structure intact, but remove the remaining Fugue bevel/pill/gradient
+   language from app, auth, admin, deploy, and console surfaces. */
+
+.fp-design-system :where(
+  .fp-card,
+  .fp-card--raised,
+  .fp-table-wrap,
+  .fg-panel,
+  .fg-bezel,
+  .fg-bezel > .fg-bezel__inner,
+  .fg-proof-shell,
+  .fg-proof-shell > .fg-bezel__inner,
+  .fg-workbench-section,
+  .fg-project-workbench,
+  .fg-project-workbench > .fg-bezel__inner,
+  .fg-console-disclosure,
+  .fg-console-disclosure--section,
+  .fg-console-dialog-panel,
+  .fg-console-dialog-panel > .fg-bezel__inner,
+  .fg-runtime-target-card__surface,
+  .fg-route-subsection,
+  .fg-route-block,
+  .fg-route-internal,
+  .fg-route-table,
+  .fg-settings-section,
+  .fg-settings-block,
+  .fg-settings-meta,
+  .fg-settings-summary-row,
+  .fg-profile-auth-workbench,
+  .fg-profile-auth-card,
+  .fg-profile-capability-card,
+  .fg-billing-surface,
+  .fg-billing-health-metric,
+  .fg-billing-capacity-control-card,
+  .fg-billing-capacity-summary__item,
+  .fg-billing-balance__figure,
+  .fg-billing-top-up-form__entry,
+  .fg-billing-top-up-presets,
+  .fg-billing-top-up-status,
+  .fg-billing-ledger-table,
+  .fg-api-key-item,
+  .fg-api-key-permission,
+  .fg-api-key-details,
+  .fg-api-key-permissions,
+  .fg-api-key-empty,
+  .fg-node-key-rename-dialog-shell,
+  .fg-deploy-variable-card,
+  .fg-deploy-variable-pill,
+  .fg-empty-state,
+  .fp-empty
+) {
+  background-image: none !important;
+  filter: none;
+  backdrop-filter: none;
+}
+
+.fp-design-system :where(.fg-bezel, .fg-proof-shell, .fg-project-workbench) {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.fp-design-system :where(
+  .fp-card,
+  .fg-panel,
+  .fg-bezel > .fg-bezel__inner,
+  .fg-proof-shell > .fg-bezel__inner,
+  .fg-workbench-section,
+  .fg-project-workbench > .fg-bezel__inner,
+  .fg-console-disclosure,
+  .fg-console-disclosure--section,
+  .fg-console-dialog-panel,
+  .fg-console-dialog-panel > .fg-bezel__inner,
+  .fg-route-subsection,
+  .fg-route-table,
+  .fg-settings-section,
+  .fg-profile-auth-workbench,
+  .fg-billing-surface,
+  .fg-api-key-item,
+  .fg-empty-state,
+  .fp-empty
+) {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.fp-design-system :where(
+  .fp-card__header,
+  .fp-card__footer,
+  .fg-panel__section,
+  .fg-console-disclosure--section[open] > summary,
+  .fg-console-profile__section,
+  .fg-billing-ledger-table__head,
+  .fg-billing-ledger-row,
+  .fg-api-key-item + .fg-api-key-item,
+  .fg-settings-summary-row + .fg-settings-summary-row
+) {
+  border-color: var(--cf-line) !important;
+}
+
+.fp-design-system :where(.fp-card__header, .fp-card__footer) {
+  margin: 0 !important;
+  padding: 0 0 12px !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+.fp-design-system :where(.fp-metric-grid) {
+  gap: 0 !important;
+  border-top: 1px solid var(--cf-line);
+  border-bottom: 1px solid var(--cf-line);
+}
+
+.fp-design-system :where(.fp-metric) {
+  min-height: 92px !important;
+  padding: 0 !important;
+  border-right: 1px solid var(--cf-line) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.fp-design-system :where(.fp-metric:last-child) {
+  border-right: 0 !important;
+}
+
+.fp-design-system :where(.fp-metric__body) {
+  padding: 18px 20px !important;
+}
+
+.fp-design-system :where(.fp-metric__value) {
+  font-size: 24px !important;
+  font-weight: 600 !important;
+  line-height: 32px !important;
+}
+
+.fp-design-system :where(.fp-button, .fg-button, .fg-inline-button, .fg-control-button) {
+  border: 0 !important;
+  border-radius: var(--cf-radius) !important;
+  background-image: none !important;
+  box-shadow: var(--cf-shadow-control) !important;
+  font-family: var(--cf-font) !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0 !important;
+  transform: none !important;
+}
+
+.fp-design-system :where(.fp-button--primary, .fg-button--primary, .fg-button--route) {
+  color: #fff !important;
+  background: var(--cf-primary) !important;
+  box-shadow: none !important;
+}
+
+.fp-design-system :where(.fp-button--primary:hover, .fg-button--primary:hover, .fg-button--route:hover) {
+  background: color-mix(in oklch, var(--cf-primary) 88%, white) !important;
+}
+
+.fp-design-system :where(.fg-button--inline) {
+  font-family: var(--cf-font) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0 !important;
+}
+
+.fp-design-system :where(.fg-button__icon.is-island, .fg-button--route .fg-button__icon) {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.fp-design-system :where(
+  .fg-control-strip-shell,
+  .fg-control-strip__viewport,
+  .fg-segmented,
+  .fg-pill-nav,
+  .fp-segmented,
+  .fg-tabs
+) {
+  border: 0 !important;
+  border-radius: var(--cf-radius) !important;
+  background: var(--cf-surface-1) !important;
+  background-image: none !important;
+  box-shadow: var(--cf-shadow-inset) !important;
+  backdrop-filter: none !important;
+}
+
+.fp-design-system :where(
+  .fg-segmented__item,
+  .fg-pill-nav__button,
+  .fg-locale-switcher__item,
+  .fg-locale-switcher__item--pill,
+  .fp-segmented__item,
+  .fg-tab
+) {
+  min-height: 28px !important;
+  border: 0 !important;
+  border-radius: 6px !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  color: var(--cf-text-2) !important;
+  font-family: var(--cf-font) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0 !important;
+  transform: none !important;
+}
+
+.fp-design-system :where(
+  .fg-segmented__item.is-active,
+  .fg-segmented__item[aria-selected="true"],
+  .fg-pill-nav__button.is-active,
+  .fg-pill-nav__button[aria-current="page"],
+  .fg-pill-nav__button[aria-pressed="true"],
+  .fg-locale-switcher__item.is-active,
+  .fp-segmented__item.is-active,
+  .fp-segmented__item[aria-pressed="true"],
+  .fg-tab[aria-selected="true"]
+) {
+  color: var(--cf-text-0) !important;
+  background: var(--cf-surface-3) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+.fp-design-system :where(input, select, textarea, .fg-input, .fg-select__control, .fp-input, .fp-select, .fp-textarea, .fg-code-textarea__input, .fg-code-textarea__highlight, .fg-route-composer__shell) {
+  border: 0 !important;
+  border-radius: var(--cf-radius) !important;
+  background: var(--cf-surface-1) !important;
+  background-image: none !important;
+  box-shadow: var(--cf-shadow-inset) !important;
+  color: var(--cf-text-0) !important;
+  font-family: var(--cf-font) !important;
+  font-size: 14px !important;
+  line-height: 20px !important;
+}
+
+.fp-design-system :where(.fg-route-composer__field, .fg-route-composer__suffix) {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.fp-design-system :where(.fp-row, .fg-project-card, .fg-cluster-node-card, .fg-billing-ledger-row, .fg-api-key-item__summary) {
+  min-height: 53px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+.fp-design-system :where(.fp-row, .fg-billing-ledger-row, .fg-api-key-item__summary) {
+  border-bottom: 1px solid var(--cf-line) !important;
+}
+
+.fp-design-system :where(.fp-row:hover, .fg-project-card:hover, .fg-cluster-node-card:hover, .fg-api-key-item__summary:hover) {
+  background: var(--cf-surface-1) !important;
+  box-shadow: none !important;
+}
+
+.fp-design-system :where(.fp-row__icon, .fg-project-badge, .fg-project-card__badges--inline .fg-project-badge) {
+  width: 32px !important;
+  height: 32px !important;
+  border: 0 !important;
+  border-radius: var(--cf-radius) !important;
+  background: var(--cf-surface-1) !important;
+  background-image: none !important;
+  box-shadow: var(--cf-shadow-inset) !important;
+  color: var(--cf-text-2) !important;
+}
+
+.fp-design-system :where(.fg-project-badge[data-kind]) {
+  border-color: transparent !important;
+  background-color: var(--cf-surface-1) !important;
+}
+
+.fp-design-system :where(.fg-console-tech-pill, .fg-deploy-variable-pill, .fp-badge, .fg-badge) {
+  min-height: 20px !important;
+  padding: 1px 7px !important;
+  border: 1px solid var(--cf-line-strong) !important;
+  border-radius: 6px !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  color: var(--cf-text-2) !important;
+  font-family: var(--cf-font) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  line-height: 18px !important;
+  letter-spacing: 0 !important;
+}
+
+.fp-design-system :where(.fg-console-tech-pill__label, .fg-console-tech-pill__meta) {
+  color: inherit !important;
+  font-family: var(--cf-font) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0 !important;
+}
+
+.fp-design-system :where(.fg-status-badge) {
+  min-height: 20px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  color: var(--cf-text-2) !important;
+  font-family: var(--cf-font) !important;
+  font-size: 14px !important;
+  font-weight: 400 !important;
+  line-height: 20px !important;
+  letter-spacing: 0 !important;
+}
+
+.fp-design-system :where(.fg-status-badge--positive, .fg-status-badge--success) {
+  color: var(--cf-green) !important;
+}
+
+.fp-design-system :where(.fg-status-badge--warning) {
+  color: var(--cf-orange) !important;
+}
+
+.fp-design-system :where(.fg-status-badge--danger, .fg-status-badge--error) {
+  color: var(--cf-red) !important;
+}
+
+.fp-design-system :where(.fg-status-badge__dot, .fg-status-badge__dot::after) {
+  animation: none !important;
+  box-shadow: none !important;
+}
+
+.fp-design-system :where(.fg-console-profile__menu) {
+  width: min(18rem, calc(100vw - 2rem)) !important;
+  gap: 12px !important;
+  padding: 8px !important;
+  border: 0 !important;
+  border-radius: var(--cf-radius) !important;
+  background: var(--cf-surface-1) !important;
+  background-image: none !important;
+  box-shadow: var(--cf-shadow-inset) !important;
+  backdrop-filter: none !important;
+}
+
+.fp-design-system :where(.fg-console-profile__trigger) {
+  width: 40px !important;
+  min-width: 40px !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: var(--cf-radius) !important;
+  background: var(--cf-surface-1) !important;
+  background-image: none !important;
+  box-shadow: var(--cf-shadow-inset) !important;
+  transform: none !important;
+}
+
+.fp-design-system :where(.fg-console-profile__avatar) {
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: var(--cf-radius) !important;
+  background: var(--cf-surface-2) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  font-family: var(--cf-font) !important;
+  font-size: 12px !important;
+  letter-spacing: 0 !important;
+}
+
+.fp-design-system :where(.fg-console-profile__summary) {
+  display: none !important;
+}
+
+.fp-design-system :where(.fg-locale-menu__panel, .fg-locale-utility__panel) {
+  border: 0 !important;
+  border-radius: var(--cf-radius) !important;
+  background: var(--cf-surface-1) !important;
+  background-image: none !important;
+  box-shadow: var(--cf-shadow-inset) !important;
+  backdrop-filter: none !important;
+}
+
+.fp-design-system :where(.fg-locale-menu__item, .fg-locale-utility__option) {
+  border-radius: 6px !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+.fp-design-system :where(.fg-console-disclosure > summary, .fg-console-disclosure--section > summary) {
+  min-height: 40px !important;
+  padding: 10px 0 !important;
+  border-bottom: 1px solid var(--cf-line) !important;
+  color: var(--cf-text-0) !important;
+}
+
+.fp-design-system :where(.fg-console-disclosure__summary-icon) {
+  width: 32px !important;
+  height: 32px !important;
+  border: 0 !important;
+  border-radius: var(--cf-radius) !important;
+  background: var(--cf-surface-1) !important;
+  background-image: none !important;
+  box-shadow: var(--cf-shadow-inset) !important;
+}
+
+.fp-design-system :where(.fg-console-disclosure__panel) {
+  padding: 12px 0 0 !important;
+}
+
+.fp-design-system :where(.fg-runtime-target-list, .fg-api-key-permission-grid, .fg-billing-capacity-grid) {
+  gap: 8px !important;
+}
+
+.fp-design-system :where(.fg-runtime-target-card__surface, .fg-api-key-permission, .fg-billing-capacity-control-card, .fg-deploy-variable-card) {
+  border: 0 !important;
+  border-radius: var(--cf-radius) !important;
+  background: var(--cf-surface-0) !important;
+  background-image: none !important;
+  box-shadow: var(--cf-shadow-inset) !important;
+  transform: none !important;
+}
+
+.fp-design-system :where(.fg-runtime-target-card__input:checked + .fg-runtime-target-card__surface, .fg-api-key-permission.is-selected) {
+  background: var(--cf-surface-2) !important;
+  box-shadow: inset 0 0 0 1px var(--cf-line-strong) !important;
+}
+
+.fp-design-system :where(.fg-cluster-resource, .fg-cluster-resource--compact) {
+  border-left: 0 !important;
+  padding-left: 0 !important;
+}
+
+.fp-design-system :where(.fg-cluster-resource__meter, .fg-stepped-slider__input::-webkit-slider-runnable-track, .fg-stepped-slider__input::-moz-range-track, .fp-skeleton, .fg-console-skeleton__block) {
+  border: 0 !important;
+  border-radius: 4px !important;
+  background: var(--cf-surface-2) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+.fp-design-system :where(.fg-stepped-slider__value-pill) {
+  border: 0 !important;
+  border-radius: 6px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--cf-text-1) !important;
+  font-family: var(--cf-font) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0 !important;
+}
+
+.fp-design-system :where(.fg-billing-ledger-table, .fp-table-wrap, .fp-table, .fg-console-table, .fg-console-table__table) {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: var(--cf-bg) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+.fp-design-system :where(.fp-table th, .fp-table td, .fg-console-table__table th, .fg-console-table__table td, .fg-billing-ledger-table__head, .fg-billing-ledger-row) {
+  border-color: var(--cf-line) !important;
+  background: transparent !important;
+  color: var(--cf-text-1) !important;
+}
+
+.fp-design-system :where(.fg-toast__shell, .fg-toast__signal, .fg-toast__action, .fg-toast__dismiss) {
+  border: 0 !important;
+  border-radius: var(--cf-radius) !important;
+  background: var(--cf-surface-1) !important;
+  background-image: none !important;
+  box-shadow: var(--cf-shadow-inset) !important;
+}
+
+.fp-design-system :where(.fg-auth-panel-slot .fg-panel__eyebrow) {
+  display: none !important;
+}
+
+.fp-design-system :where(.fg-provider-button__mark, .fg-hint-tooltip__trigger) {
+  border: 0 !important;
+  border-radius: var(--cf-radius) !important;
+  background: var(--cf-surface-1) !important;
+  background-image: none !important;
+  box-shadow: var(--cf-shadow-inset) !important;
+  color: var(--cf-text-2) !important;
+  font-family: var(--cf-font) !important;
+  letter-spacing: 0 !important;
+}
+
+.fg-deploy-page {
+  --fg-deploy-variable-card-border: var(--cf-line);
+  --fg-deploy-variable-card-bg: var(--cf-surface-0);
+  --fg-deploy-variable-card-shadow: var(--cf-shadow-inset);
+  --fg-deploy-variable-pill-border: var(--cf-line-strong);
+  --fg-deploy-variable-pill-bg: transparent;
+  --fg-deploy-variable-pill-shadow: none;
+}
+
+@media (max-width: 860px) {
+  .fp-design-system :where(.fp-metric-grid) {
+    border: 0;
+    gap: 1px !important;
+  }
+
+  .fp-design-system :where(.fp-metric) {
+    border-right: 0 !important;
+    border-bottom: 1px solid var(--cf-line) !important;
   }
 }

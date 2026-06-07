@@ -23,12 +23,13 @@ The new system is a platform UI, not a marketing theme. It uses:
 
 - Inter-first typography with 13px navigation text, 14px controls, 30px page titles.
 - Pure black and near-black surfaces in dark mode, clean neutrals in light mode.
-- 8px default radius, 10px choice-card radius, 6px inner menu radius.
+- 8px control radius, 6px inner menu/segment radius, and unframed product sections by default.
 - 32-40px controls, 34px sidebar nav items, 56px card headers, 72px resource rows.
 - Solid overlays and menus, not glass.
 - 1px rings and hairlines instead of decorative shadows.
-- Blue primary actions, neutral raised secondary controls, muted ghost utilities.
-- Green/red metric deltas, compact badges, and low-saturation alert tints.
+- Cloudflare-blue primary actions, neutral raised secondary controls, muted ghost utilities.
+- Table/row dividers carry most separation; large rounded card frames are not a default product pattern.
+- Compact 6px badges and low-saturation alert tints, without halo, glow, or gradient fills.
 
 ## Adoption
 
@@ -50,7 +51,7 @@ Use these wrappers before adding page-local product UI:
 
 - `platform-layout.tsx`: shell, sidebar, topbar, breadcrumbs, page, page header, section, grid, stack.
 - `platform-actions.tsx`: buttons, links, icon buttons, button groups.
-- `platform-data.tsx`: cards, metrics, resource rows, badges, status, tables, key-value lists.
+- `platform-data.tsx`: unframed sections, metrics, resource rows, badges, status, tables, key-value lists.
 - `platform-form.tsx`: fields, inputs, selects, search, toolbar, segmented controls.
 - `platform-feedback.tsx`: alerts, empty/error/loading states, modal, drawer.
 - `platform-workflow.tsx`: wizard and step primitives.

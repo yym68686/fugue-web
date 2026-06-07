@@ -9,13 +9,13 @@ The old `fg-*` layer remains available as compatibility, but new shared console 
 ## System Rules
 
 - Use `Inter`/system UI for every product surface. Do not use display fonts in console UI.
-- Use 8px as the default component radius. Choice cards may use 10px.
-- Use 1px rings/hairlines for separation. Avoid decorative glow or glass effects.
+- Use 8px as the default control radius and 6px for menu/segment inner items.
+- Use unframed product sections by default. Put 1px hairlines on controls, menus, tables, and true resource rows instead of wrapping whole areas in rounded frames.
 - Default controls are 36px high. Compact icon buttons are 32px.
 - Sidebar nav rows are 34px high and use 13px text.
-- Resource rows are 72px high, clickable, and card-like.
+- Resource rows are 53-72px high, clickable, and table/list-like rather than framed as standalone cards.
 - Popovers and menus are solid raised panels with 6px inner padding.
-- Primary actions are blue. Secondary actions are neutral raised controls. Ghost is only for low-priority utilities.
+- Primary actions use Cloudflare blue. Secondary actions are neutral raised controls. Ghost is only for low-priority utilities.
 - Every shared control needs hover, focus-visible, disabled, loading or empty/error treatment where applicable.
 - Keep examples platform-neutral. Never embed third-party logos, user account names, domains, secrets, or resource names from sampled dashboards.
 
@@ -41,7 +41,7 @@ The old `fg-*` layer remains available as compatibility, but new shared console 
 
 - Shell: `--fp-sidebar-width`, `--fp-topbar-height`.
 - Controls: `--fp-control-height-sm`, `--fp-control-height-md`, `--fp-control-height-lg`.
-- Cards: `--fp-card-padding`, `--fp-card-radius`, `--fp-card-gap`.
+- Cards: `--fp-card-padding`, `--fp-card-radius`, `--fp-card-gap`; default product sections have no frame.
 - Rows: `--fp-row-height`, `--fp-row-padding`.
 - Menus: `--fp-menu-padding`, `--fp-menu-item-height`, `--fp-menu-item-radius`.
 
@@ -88,7 +88,8 @@ Adoption rules:
 - Use `PlatformEmptyState`, `PlatformErrorState`, and `PlatformLoadingState`
   for production states instead of blank panels or raw spinners.
 - Do not add new `fg-*` product components. Existing `fg-*` code is a migration
-  compatibility layer.
+  compatibility layer and must be visually normalized to the Cloudflare product
+  UI when it appears in app/admin/auth/deploy surfaces.
 
 Current surface mapping:
 
@@ -172,7 +173,7 @@ States:
 | ghost | transparent | primary | none | topbar and tertiary utilities |
 | danger | danger muted | white | danger ring | destructive action |
 
-### Cards
+### Sections And Cards
 
 Classes:
 
@@ -185,8 +186,8 @@ Classes:
 
 Rules:
 
-- Default cards use `--fp-surface-panel` and a single 1px ring.
-- Headers are 56px and recessed.
+- Default product sections are transparent and unframed.
+- Use a 1px ring only for true repeated objects, menus, controls, modals, and empty states that need containment.
 - Do not nest cards inside cards unless the inner object is a true repeated item.
 
 ### Metrics
@@ -203,8 +204,8 @@ Classes:
 
 Rules:
 
-- Metrics split text left and sparkline right on desktop.
-- Values use 30px/700 with no negative tracking.
+- Metrics sit in an unframed grid with internal dividers.
+- Values use 24-30px/600 with no negative tracking.
 - Green/red deltas are text-first and compact.
 
 ### Toolbar, Inputs, Selects
@@ -241,9 +242,9 @@ Classes:
 
 Rules:
 
-- Use row cards instead of heavy tables for primary resources.
-- Row height defaults to 72px.
-- Primary object, route/source metadata, timestamp, badges, and row menu sit in one scan line.
+- Use table/list rows instead of heavy cards for primary resources.
+- Row height defaults to 53-72px depending on density.
+- Primary object, route/source metadata, timestamp, badges, and row menu sit in one scan line without nested cardlets.
 
 ### Tables
 
@@ -255,7 +256,7 @@ Classes:
 Rules:
 
 - Tables are for secondary details and audit-like records.
-- Header background is recessed; row hover is subtle.
+- Header background is transparent; row hover is subtle.
 - Avoid large border grids.
 
 ### Menus
@@ -290,8 +291,8 @@ Classes:
 
 Rules:
 
-- Badges are 20px pill labels with 12px text.
-- Status rows use a colored dot plus 13px text.
+- Badges are 20px compact labels with 6px radius and 12px text.
+- Status rows use plain colored text or a tiny colored dot plus 13-14px text; no halo or animated badge glow.
 
 ### Segmented Controls And Tabs
 
@@ -339,7 +340,7 @@ Classes:
 Rules:
 
 - Alerts use tinted solid panels with a single semantic ring.
-- Empty/loading/error blocks share a centered card-like treatment.
+- Empty/loading/error blocks are quiet and unframed unless containment is required.
 - Skeleton shimmer disables under reduced motion.
 
 ### Modal And Fullscreen Wizard
