@@ -6,10 +6,10 @@ This document defines the repeatable loop for finding and fixing Fugue frontend 
 
 Continuously discover, document, prioritize, fix, and re-check frontend details until the current audit system can no longer find actionable issues.
 
-For this cycle, completion also requires at least **1000 verified atomic detail
-optimizations**. A broad system-level CSS or component fix can count more than
-once only when the affected detail is concrete, inspectable, and separately
-verifiable across one of these axes:
+For detail cycles, completion can require a stated minimum number of verified
+atomic detail optimizations. A broad system-level CSS or component fix can
+count more than once only when the affected detail is concrete, inspectable,
+and separately verifiable across one of these axes:
 
 - component instance
 - route
@@ -234,10 +234,63 @@ work:
   - count
   - verification command or browser evidence
 
-The loop is not complete until the optimization ledger reaches 1000 and all
-listed todo items are checked.
+When the user sets a new numeric floor, create a new backlog document for that
+cycle and keep its count separate from earlier completed ledgers. The loop is
+not complete until the active optimization ledger reaches the requested count
+and all listed todo items are checked.
 
-### 6. Human Polish Pass
+### 6. Action Bar, Panel, And I18n Scan
+
+This scan catches the class of defects where a screenshot looks wrong even
+after tab controls are normalized: a toolbar label is drawn as a rounded badge,
+an action cluster is inside a visual frame, a destructive action uses a loud
+alert fill, a product panel is still a rounded card, or a visible string skips
+the locale system.
+
+Every product action / panel screenshot must be checked for:
+
+- **Plain label contract**
+  - Section, toolbar, panel, and action labels are text labels, not badges.
+  - Product labels must not carry pill padding, rounded backgrounds, shadows,
+    gradients, or mono styling unless the content is a true machine token.
+  - Labels use product UI type: 13px / 500-600 / normal tracking.
+- **Action bar contract**
+  - An action group is layout, not a framed component.
+  - The action group itself contributes no background, border, radius, shadow,
+    or clipping layer.
+  - Primary, secondary, and destructive actions must share height, radius,
+    label weight, and focus behavior.
+  - Button order must read primary -> secondary -> destructive; destructive
+    actions must not become the visual primary by color weight.
+- **Danger command contract**
+  - Destructive commands are restrained command buttons, not alert panels.
+  - Use danger text/ring only; avoid a filled red button except inside a modal
+    confirmation where the user is already in a destructive flow.
+  - Disabled/loading destructive buttons keep their footprint and text contrast
+    without becoming red alerts.
+- **Information panel contract**
+  - Summary metadata, version cells, image sync summaries, and settings panes
+    use rows, local dividers, or spacing instead of repeated rounded cards.
+  - A workbench body should not contain a framed outer panel, inner panel,
+    summary cards, and action card at the same time.
+  - Product panels use at most one section surface plus local dividers.
+- **Literal UI string contract**
+  - Visible product UI strings inside client components must go through `t()`
+    or an already-localized view model field.
+  - Audit direct JSX text nodes in console/admin/auth/deploy surfaces, starting
+    with action labels, panel labels, button labels, empty-state titles, error
+    copy, and aria labels.
+  - Count one visible literal per locale, viewport, and theme when the fix is
+    verified by source inventory or browser text.
+- **Dense screenshot pass**
+  - For any screenshot with more than five visible component families, run a
+    component-family inventory instead of fixing only the highlighted element.
+  - In one pass, classify every visible detail into: label, action, panel,
+    row, status, form, nav, tab, destructive, loading, empty, or copy.
+  - If a defect appears in one family member, query for every same-family
+    instance in source and DOM before writing the backlog item.
+
+### 7. Human Polish Pass
 
 Use screenshots and interaction:
 
@@ -261,15 +314,16 @@ Use screenshots and interaction:
 1. Run static scan.
 2. Run rendered DOM scan across the route/viewport matrix.
 3. Run screenshot-level visual structure scan and component contract matrix scan.
-4. Write all actionable findings to a dedicated backlog document.
-5. Add atomic optimization counts for every finding group.
-6. Fix only items listed in the backlog.
-7. Check off each item immediately after the fix is implemented and verified.
-8. Run `npm run typecheck` and `npm run build`.
-9. Re-run static, rendered, visual-structure, and contract scans.
-10. If new actionable findings appear, append them to the backlog and repeat.
-11. Stop only when the current audit system returns no actionable issues and the
-    verified optimization ledger is at least 1000.
+4. Run action bar, panel, danger, and literal UI string scans.
+5. Write all actionable findings to a dedicated backlog document.
+6. Add atomic optimization counts for every finding group.
+7. Fix only items listed in the backlog.
+8. Check off each item immediately after the fix is implemented and verified.
+9. Run `npm run typecheck` and `npm run build`.
+10. Re-run static, rendered, visual-structure, action/panel, and contract scans.
+11. If new actionable findings appear, append them to the backlog and repeat.
+12. Stop only when the current audit system returns no actionable issues and the
+    verified optimization ledger meets the active cycle's required count.
 
 ## Todo
 
@@ -285,6 +339,7 @@ Use screenshots and interaction:
 - [x] Add screenshot-level visual structure audit rules.
 - [x] Add component contract matrix.
 - [x] Add atomic 1000-detail count rules.
+- [x] Add action bar, panel, danger command, and literal UI string scan rules.
 
 ## Current Loop Result
 

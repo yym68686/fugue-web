@@ -1574,6 +1574,134 @@ input[type="checkbox"] {
 }
 
 .fp-design-system :where(
+  .fp-app-shell--console .fg-label,
+  .fp-deploy-page .fg-label,
+  .fp-docs-page .fg-label,
+  .fg-project-toolbar__label
+) {
+  min-height: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  color: var(--cf-text-3) !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  font-family: var(--cf-font) !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  line-height: 20px !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+.fp-design-system :where(
+  .fg-project-actions,
+  .fg-workbench-section__actions
+) {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+.fp-design-system :where(
+  .fg-project-actions > .fg-button,
+  .fg-workbench-section__actions > .fg-button
+) {
+  min-height: 32px !important;
+  border-radius: var(--cf-radius) !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  line-height: 20px !important;
+  letter-spacing: 0 !important;
+}
+
+.fp-design-system :where(.fg-button--danger, .fp-button--danger) {
+  color: color-mix(in oklch, var(--cf-red) 74%, var(--cf-text-0)) !important;
+  background: var(--cf-surface-1) !important;
+  box-shadow: 0 0 0 1px color-mix(in oklch, var(--cf-red) 38%, var(--cf-line)) !important;
+}
+
+.fp-design-system :where(.fg-button--danger:hover, .fp-button--danger:hover) {
+  color: color-mix(in oklch, var(--cf-red) 82%, var(--cf-text-0)) !important;
+  background: color-mix(in oklch, var(--cf-red) 8%, var(--cf-surface-1)) !important;
+  box-shadow: 0 0 0 1px color-mix(in oklch, var(--cf-red) 44%, var(--cf-line)) !important;
+}
+
+.fp-design-system :where(
+  .fg-button--danger:focus-visible,
+  .fp-button--danger:focus-visible
+) {
+  box-shadow:
+    0 0 0 1px color-mix(in oklch, var(--cf-red) 42%, var(--cf-line)),
+    0 0 0 3px color-mix(in oklch, var(--cf-red) 18%, transparent) !important;
+}
+
+.fp-design-system :where(
+  .fg-button--danger:disabled,
+  .fp-button--danger:disabled,
+  .fg-button--danger[aria-disabled="true"],
+  .fp-button--danger[aria-disabled="true"]
+) {
+  color: color-mix(in oklch, var(--cf-red) 52%, var(--cf-text-3)) !important;
+  background: var(--cf-surface-1) !important;
+  box-shadow: 0 0 0 1px color-mix(in oklch, var(--cf-red) 24%, var(--cf-line)) !important;
+}
+
+.fp-design-system :where(
+  .fg-project-inspector__meta-grid > div,
+  .fg-project-image-sync__summary-card,
+  .fg-project-danger-card,
+  .fg-project-service-card,
+  .fg-project-pane > .fg-panel,
+  .fg-project-pane > .fg-bezel,
+  .fg-project-pane .fg-workbench-section,
+  .fg-project-pane .fg-proof-shell
+) {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+.fp-design-system :where(
+  .fg-project-inspector__meta-grid,
+  .fg-project-image-sync__summary-grid
+) {
+  gap: 0 !important;
+  border-top: 1px solid var(--cf-line) !important;
+  border-bottom: 1px solid var(--cf-line) !important;
+}
+
+.fp-design-system :where(
+  .fg-project-inspector__meta-grid > div,
+  .fg-project-image-sync__summary-card
+) {
+  padding: 12px 0 !important;
+  border-bottom: 1px solid var(--cf-line) !important;
+}
+
+.fp-design-system :where(
+  .fg-project-inspector__meta-grid > div:nth-last-child(-n + 2),
+  .fg-project-image-sync__summary-card:last-child
+) {
+  border-bottom: 0 !important;
+}
+
+.fp-design-system :where(.fg-project-danger-card) {
+  padding: 16px 0 0 !important;
+  border-top: 1px solid color-mix(in oklch, var(--cf-red) 32%, var(--cf-line)) !important;
+}
+
+.fp-design-system :where(
   .fg-control-strip-shell,
   .fg-segmented,
   .fg-pill-nav,

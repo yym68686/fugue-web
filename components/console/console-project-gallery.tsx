@@ -8689,7 +8689,7 @@ function ConsoleProjectWorkbenchImpl({
                   selectedServiceCanForceDelete) ? (
                   <div className="fg-project-toolbar__group">
                     <p className="fg-label fg-project-toolbar__label">
-                      Actions
+                      {t("Actions")}
                     </p>
                     <div className="fg-project-actions">
                       {selectedService.serviceRole === "running" ? (
