@@ -42,6 +42,10 @@ This file is generated and maintained from the loop in `docs/frontend-detail-opt
 - [x] Re-ran rendered route/viewport audit: no actionable issues after 2px DOMRect tolerance.
 - [x] Re-ran typecheck: passed.
 
+## Production Verification Findings
+
+- [x] Increase platform breadcrumb links to a 24px minimum hit target after production console smoke testing found the topbar `Console` crumb rendered as a 20px-tall interactive link.
+
 ## Non-Actionable Notes
 
 - DOMRect measurements can report 43.x px for controls with computed `44px` height under browser viewport overrides. This is not treated as a visual defect unless the measured size misses the target by more than 2px or the computed style also misses the target.
