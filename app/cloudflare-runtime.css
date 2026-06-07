@@ -1701,6 +1701,116 @@ input[type="checkbox"] {
   border-top: 1px solid color-mix(in oklch, var(--cf-red) 32%, var(--cf-line)) !important;
 }
 
+.fp-design-system :where(.fg-select) {
+  min-height: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+.fp-design-system :where(.fg-settings-form .fg-select__control) {
+  min-height: 36px !important;
+  padding: 1px 34px 1px 12px !important;
+}
+
+.fp-design-system :where(.fg-hint-tooltip__trigger) {
+  width: 20px !important;
+  min-width: 20px !important;
+  height: 20px !important;
+  min-height: 20px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  color: var(--cf-text-3) !important;
+  transform: none !important;
+}
+
+.fp-design-system :where(
+  .fg-hint-tooltip__trigger:hover,
+  .fg-hint-tooltip:focus-within .fg-hint-tooltip__trigger
+) {
+  color: var(--cf-text-2) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+@media (max-width: 640px) {
+  .fp-design-system :where(.fg-hint-tooltip__trigger) {
+    width: 44px !important;
+    min-width: 44px !important;
+    height: 44px !important;
+    min-height: 44px !important;
+  }
+}
+
+.fp-design-system :where(
+  .fg-project-membership-group,
+  .fg-project-membership-group__head,
+  .fg-project-membership-row,
+  .fg-project-service-card
+) {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+.fp-design-system :where(.fg-project-membership-group) {
+  gap: 0 !important;
+  border-top: 1px solid var(--cf-line) !important;
+  border-bottom: 1px solid var(--cf-line) !important;
+  overflow: visible !important;
+}
+
+.fp-design-system :where(.fg-project-membership-group__head) {
+  padding: 10px 0 !important;
+  border-bottom: 1px solid var(--cf-line) !important;
+}
+
+.fp-design-system :where(.fg-project-membership-group__list li + li) {
+  border-top: 1px solid var(--cf-line) !important;
+}
+
+.fp-design-system :where(.fg-project-membership-row, .fg-project-service-card) {
+  padding: 12px 0 !important;
+}
+
+.fp-design-system :where(
+  .fg-project-membership-row:hover,
+  .fg-project-membership-row:focus-visible,
+  .fg-project-service-card:hover,
+  .fg-project-service-card:focus-visible,
+  .fg-project-service-card.is-active
+) {
+  background: color-mix(in oklch, var(--cf-surface-2) 54%, transparent) !important;
+  box-shadow: inset 2px 0 0 var(--cf-blue) !important;
+  color: inherit !important;
+  transform: none !important;
+}
+
+.fp-design-system :where(.fg-project-danger-preview__token) {
+  min-height: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  color: var(--cf-text-2) !important;
+  font-family: var(--cf-font-mono) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  line-height: 20px !important;
+}
+
 .fp-design-system :where(
   .fg-control-strip-shell,
   .fg-segmented,

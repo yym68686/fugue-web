@@ -12,6 +12,7 @@
     "frontend:details:audit": "node ./scripts/audit-frontend-details.mjs",
     "frontend:visual-ledger": "node ./scripts/audit-visual-detail-ledger.mjs",
     "frontend:detail-cycle-20000": "node ./scripts/audit-frontend-detail-cycle-20000.mjs",
+    "frontend:detail-cycle-1000000": "node ./scripts/audit-frontend-detail-cycle-1000000.mjs",
     "typecheck": "tsc --noEmit && npm run console:pill-switch:check",
     "openapi:sync": "node ./scripts/sync-fugue-openapi.mjs",
     "openapi:sync:check": "node ./scripts/sync-fugue-openapi.mjs --check",

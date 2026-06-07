@@ -295,7 +295,70 @@ Every product action / panel screenshot must be checked for:
   - If a defect appears in one family member, query for every same-family
     instance in source and DOM before writing the backlog item.
 
-### 7. Human Polish Pass
+### 7. Component Microscopy And Surface Ownership Scan
+
+This scan exists because screenshot-level defects often hide in a small
+component's ancestor chain. A control can look wrong even when the page shell is
+correct: the wrapper draws one surface, the native control draws another, the
+icon trigger is promoted to a framed button, or a list row still uses the old
+card language.
+
+Every repeated component family must be inspected under a **surface ownership**
+contract:
+
+- **Single owner rule**
+  - Each visible frame/fill/shadow/radius must belong to exactly one DOM node.
+  - Wrappers are allowed to position icons, reserve layout, or hold state, but
+    they must not draw a second surface when the child control already owns the
+    control surface.
+  - Native controls such as `select`, `input`, `textarea`, and composite
+    wrappers such as `.fg-select` must be checked as parent-child pairs, not as
+    isolated selectors.
+- **Icon affordance rule**
+  - Information, hint, help, and status icons are inline affordances, not
+    framed icon buttons.
+  - The trigger may have a large invisible hit target, but it must not draw a
+    visible border, background, shadow, pill radius, or button-like control
+    surface.
+  - The icon glyph itself may be a circled info symbol; the outer trigger must
+    stay visually transparent.
+- **List and service row rule**
+  - Project service lists, membership lists, and settings service rows use rows
+    and local dividers, not rounded cards inside rounded groups.
+  - Group headers may separate categories with a subtle divider, but the group
+    shell must not add a second card surface.
+  - Row hover/active states use a quiet line or subtle fill; they must not
+    restore the old gradient card appearance.
+- **Danger preview rule**
+  - Objects named inside a destructive flow are references, not alert badges.
+  - Service-name previews should not be red filled pills or rounded warning
+    chips. Use neutral text or a minimal inline token; reserve red for the
+    destructive command and section semantics.
+- **Computed-style gate**
+  - For every suspicious family, record parent and child computed styles:
+    background, border, border-radius, box-shadow, padding, display, overflow,
+    min-height, color, and pointer target size.
+  - A finding is not closed until the browser reports the offending wrapper or
+    child as transparent/unframed in the active route.
+
+This scan must be run across the component family, not only the visible
+instance. At minimum, query source for these tokens when one instance is wrong:
+
+- `SelectField`, `.fg-select`, `.fg-select__control`, `.fg-select__icon`
+- `HintInline`, `HintTooltip`, `.fg-hint-tooltip__trigger`
+- `.fg-project-service-card`, `.fg-project-membership-group`,
+  `.fg-project-membership-row`
+- `.fg-project-danger-preview__token`
+- `StatusBadge`, `ProjectBadge`, `variant="danger"`
+
+For very high numeric cycles, the loop must use an executable cycle ledger. A
+1000-cycle request is represented as 1000 auditable cycle slots in the backlog,
+with each slot tied to the same component-family contracts and verification
+command. Do not pretend that repeatedly editing a markdown file is product
+quality work; count only the verified component/property/state/route/cycle
+matrix.
+
+### 8. Human Polish Pass
 
 Use screenshots and interaction:
 
@@ -319,13 +382,13 @@ Use screenshots and interaction:
 1. Run static scan.
 2. Run rendered DOM scan across the route/viewport matrix.
 3. Run screenshot-level visual structure scan and component contract matrix scan.
-4. Run action bar, panel, danger, and literal UI string scans.
+4. Run action bar, panel, danger, literal UI string, and component microscopy scans.
 5. Write all actionable findings to a dedicated backlog document.
 6. Add atomic optimization counts for every finding group.
 7. Fix only items listed in the backlog.
 8. Check off each item immediately after the fix is implemented and verified.
 9. Run `npm run typecheck` and `npm run build`.
-10. Re-run static, rendered, visual-structure, action/panel, and contract scans.
+10. Re-run static, rendered, visual-structure, action/panel, component microscopy, and contract scans.
 11. If new actionable findings appear, append them to the backlog and repeat.
 12. Stop only when the current audit system returns no actionable issues and the
     verified optimization ledger meets the active cycle's required count.
