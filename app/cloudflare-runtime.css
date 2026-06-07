@@ -1659,6 +1659,14 @@ input[type="checkbox"] {
   box-shadow: none !important;
 }
 
+.fp-design-system :where(.fg-project-card__summary, .fg-cluster-node-card__summary) {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
 .fp-design-system :where(.fp-row__icon, .fg-project-badge, .fg-project-card__badges--inline .fg-project-badge) {
   width: 32px !important;
   height: 32px !important;
@@ -1945,6 +1953,13 @@ input[type="checkbox"] {
   letter-spacing: 0 !important;
 }
 
+.fp-design-system :where(.fg-console-skeleton__block.fg-profile-auth-provider__mark) {
+  border-radius: 4px !important;
+  background: var(--cf-surface-2) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
 .fp-design-system :where(
   .fg-profile-auth-summary,
   .fg-profile-auth-provider,
@@ -1975,6 +1990,14 @@ input[type="checkbox"] {
 .fp-design-system :where(.fg-admin-platform-enroll__surface) {
   border: 0 !important;
   border-radius: 0 !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+.fp-design-system :where(.fg-console-disclosure__summary-icon, .fg-select__icon) {
+  border: 0 !important;
+  border-radius: 4px !important;
   background: transparent !important;
   background-image: none !important;
   box-shadow: none !important;
