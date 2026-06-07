@@ -21,7 +21,7 @@ defined in `docs/frontend-detail-optimization-system.md`.
 - [x] Verify the ledger reaches at least 1000 atomic optimizations.
 - [x] Verify the affected tab strip in browser with a DOM layer trace.
 - [x] Run static audit, visual ledger, typecheck, and production build.
-- [ ] Push and monitor deployment after verification.
+- [x] Push and monitor deployment after verification.
 
 ## Finding VDL-001: Control Strip Layer Budget
 
@@ -122,6 +122,26 @@ npm run frontend:visual-ledger -- --json
   - active lens border/shadow: none
   - label typography: 13px / 500 / normal letter spacing
   - horizontal overflow: 0
+- [x] Production project tabs:
+  `https://web.fugue.pro/app/projects/project_1780014428_a8a1ae74e2d9?verify=da70ee2`
+  - component: `.fg-project-toolbar__panels-switch`
+  - visible layer count: 2
+  - control-strip viewport: transparent
+  - inner pill nav: transparent
+  - active lens radius: 6px
+  - active lens border/shadow: none
+  - all tab labels: 13px / 500 / normal letter spacing
+  - horizontal overflow: 0
+- [x] Production deployment monitor:
+  - GitHub `contract-drift` run for commit `da70ee2c959911a4bec3d530de04a7e65255b895`: success
+  - Fugue import operation `op_1780835606_ec29d0d91948`: completed
+  - Fugue deploy operation `op_1780835851_1c754e364d51`: completed
+  - app source commit: `da70ee2c959911a4bec3d530de04a7e65255b895`
+  - app phase: deployed
+  - replicas: 2/2 ready
+  - public route probes: `/`, `/docs`, `/auth/sign-in`, `/auth/sign-up`,
+    `/new/repository`, `/app`, and `/healthz` returned expected 200 or
+    auth-required redirect responses
 - [x] Local mobile emulation, 390px wide:
   - visible layer count: 2
   - control-strip viewport: transparent
