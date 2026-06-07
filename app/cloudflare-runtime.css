@@ -1575,7 +1575,6 @@ input[type="checkbox"] {
 
 .fp-design-system :where(
   .fg-control-strip-shell,
-  .fg-control-strip__viewport,
   .fg-segmented,
   .fg-pill-nav,
   .fp-segmented,
@@ -1589,8 +1588,34 @@ input[type="checkbox"] {
   backdrop-filter: none !important;
 }
 
+.fp-design-system
+  :where(.fg-control-strip-shell > .fg-control-strip__viewport) {
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+.fp-design-system
+  :where(
+    .fg-control-strip-shell > .fg-control-strip__viewport > .fg-segmented,
+    .fg-control-strip-shell > .fg-control-strip__viewport > .fg-pill-nav
+  ) {
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
 .fp-design-system :where(
   .fg-segmented__item,
+  .fg-control-strip-shell .fg-pill-nav :is(a, .fg-pill-nav__button),
   .fg-pill-nav__button,
   .fg-locale-switcher__item,
   .fg-locale-switcher__item--pill,
@@ -1614,6 +1639,9 @@ input[type="checkbox"] {
 .fp-design-system :where(
   .fg-segmented__item.is-active,
   .fg-segmented__item[aria-selected="true"],
+  .fg-control-strip-shell .fg-pill-nav a.is-active,
+  .fg-control-strip-shell .fg-pill-nav a[aria-current="page"],
+  .fg-control-strip-shell .fg-pill-nav a[data-state="active"],
   .fg-pill-nav__button.is-active,
   .fg-pill-nav__button[aria-current="page"],
   .fg-pill-nav__button[aria-pressed="true"],
@@ -1626,6 +1654,18 @@ input[type="checkbox"] {
   background: var(--cf-surface-3) !important;
   background-image: none !important;
   box-shadow: none !important;
+}
+
+.fp-design-system :where(
+  .fg-control-strip-shell .fg-pill-nav__label,
+  .fg-control-strip-shell .fg-segmented__label,
+  .fg-control-strip-shell .fg-console-nav__title
+) {
+  font-family: var(--cf-font) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0 !important;
+  line-height: 18px !important;
 }
 
 @media (max-width: 1024px) {

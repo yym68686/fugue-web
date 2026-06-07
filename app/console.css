@@ -4791,11 +4791,6 @@
   min-width: 0;
 }
 
-.fp-app-shell--console .fp-project-local-nav .fg-pill-switch {
-  background: var(--fp-surface-control);
-  box-shadow: 0 0 0 1px var(--fp-border-default);
-}
-
 .fp-app-shell--console .fg-project-pane > .fg-panel,
 .fp-app-shell--console .fg-project-pane > .fg-bezel,
 .fp-app-shell--console .fg-project-pane .fg-workbench-section,
