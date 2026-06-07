@@ -75,7 +75,17 @@ npm run frontend:detail-cycle-1000000 -- --json
 - [x] Convert danger preview service names from red rounded pills into neutral inline references.
 - [x] Verify 1000000+ atomic count and 1000 cycle slots.
 - [x] Run existing audits, typecheck, and production build.
-- [ ] Browser-check production project settings after deployment.
+- [x] Browser-check production project settings after deployment.
+
+## Production Browser Verification
+
+- Commit verified: `350af3c2082a4e38f76ed5b9bb6cb5739850611a`
+- URL verified: `https://web.fugue.pro/app/projects/project_1780014428_a8a1ae74e2d9?verify=350af3c`
+- DOM computed-style result:
+  - [x] `.fg-settings-form .fg-select` is a transparent layout wrapper with no padding, radius, or shadow.
+  - [x] `.fg-settings-form .fg-hint-tooltip__trigger` is a transparent inline affordance with no padding, radius, or shadow.
+  - [x] `.fg-project-membership-group`, `.fg-project-membership-row`, and `.fg-project-service-card` are row/divider surfaces, not rounded cards.
+  - [x] `.fg-project-danger-preview__token` is neutral inline mono text, not a red rounded pill.
 
 ## 1000 Cycle Slots
 
