@@ -1,0 +1,48 @@
+{
+  "routes": [
+    {
+      "auth": "user",
+      "category": "console",
+      "id": "console.home",
+      "locales": ["en", "zh-CN"],
+      "readySelector": ".fp-console-home-page",
+      "states": ["default", "loading", "empty", "with-projects"],
+      "themes": ["dark", "light"],
+      "url": "/app",
+      "viewports": ["desktop", "mobile"]
+    },
+    {
+      "auth": "user",
+      "category": "console",
+      "id": "console.project.detail",
+      "locales": ["en", "zh-CN"],
+      "readySelector": ".fg-project-workbench",
+      "states": ["service-detail", "project-settings", "danger-preview", "loading"],
+      "themes": ["dark", "light"],
+      "url": "/app/projects/:projectId",
+      "viewports": ["desktop", "mobile"]
+    },
+    {
+      "auth": "user",
+      "category": "console",
+      "id": "console.billing",
+      "locales": ["en", "zh-CN"],
+      "readySelector": ".fg-billing-panel",
+      "states": ["default", "loading", "empty", "error"],
+      "themes": ["dark", "light"],
+      "url": "/app/billing",
+      "viewports": ["desktop", "mobile"]
+    },
+    {
+      "auth": "user",
+      "category": "console",
+      "id": "console.cluster-nodes",
+      "locales": ["en", "zh-CN"],
+      "readySelector": ".fg-cluster-node-gallery",
+      "states": ["default", "loading", "empty", "error"],
+      "themes": ["dark", "light"],
+      "url": "/app/cluster-nodes",
+      "viewports": ["desktop", "mobile"]
+    }
+  ]
+}

@@ -769,28 +769,9 @@
   position: relative;
   overflow: hidden;
   isolation: isolate;
-  border-radius: 999px;
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(
-        in srgb,
-        var(--fugue-console-skeleton-block-highlight) 40%,
-        transparent
-      ),
-      transparent 46%
-    ),
-    linear-gradient(
-      180deg,
-      var(--fugue-console-skeleton-block-base),
-      var(--fugue-console-skeleton-block-edge)
-    );
-  box-shadow: inset 0 1px 0
-    color-mix(
-      in srgb,
-      var(--fugue-console-skeleton-block-highlight) 42%,
-      transparent
-    );
+  border-radius: var(--fugue-radius-sm);
+  background: var(--fugue-console-skeleton-block-base);
+  box-shadow: none;
 }
 
 .fg-console-skeleton__block::after {
@@ -920,9 +901,9 @@
   gap: 0.9rem;
   align-items: center;
   padding: 0.9rem 0.95rem;
-  border: 1px solid var(--fugue-console-skeleton-surface-border);
-  border-radius: 1rem;
-  background: var(--fugue-console-skeleton-surface-bg);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .fg-console-skeleton__list-copy,
@@ -970,9 +951,9 @@
   display: grid;
   gap: 0.7rem;
   padding: 0.9rem;
-  border: 1px solid var(--fugue-console-skeleton-surface-border);
-  border-radius: 1rem;
-  background: var(--fugue-console-skeleton-surface-bg);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .fg-console-skeleton__code-line {
@@ -5152,23 +5133,20 @@
 
 .fg-project-membership-groups {
   display: grid;
-  gap: 1rem;
+  gap: 0;
 }
 
 .fg-project-membership-group {
   min-width: 0;
   display: grid;
   gap: 0;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 1.18rem;
-  background:
-    linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.024),
-      rgba(255, 255, 255, 0.008)
-    ),
-    rgba(8, 10, 14, 0.38);
-  overflow: hidden;
+  border: 0;
+  border-top: 1px solid var(--fugue-border-subtle);
+  border-bottom: 1px solid var(--fugue-border-subtle);
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+  box-shadow: none;
 }
 
 .fg-project-membership-group__head {
@@ -5177,15 +5155,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.8rem;
-  padding: 0.88rem 0.96rem;
+  padding: 0.625rem 0;
   border-bottom: 1px solid var(--fugue-border-subtle);
-  background:
-    linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.03),
-      rgba(255, 255, 255, 0.01)
-    ),
-    rgba(8, 10, 14, 0.44);
+  background: transparent;
 }
 
 .fg-project-membership-group__head-copy {
@@ -5230,8 +5202,8 @@
   touch-action: manipulation;
   transition:
     background var(--fugue-duration-fast) var(--fugue-ease-out-expo),
-    color var(--fugue-duration-fast) var(--fugue-ease-out-expo),
-    transform var(--fugue-duration-fast) var(--fugue-ease-out-expo);
+    box-shadow var(--fugue-duration-fast) var(--fugue-ease-out-expo),
+    color var(--fugue-duration-fast) var(--fugue-ease-out-expo);
 }
 
 .fg-project-membership-row--static {
@@ -5240,13 +5212,8 @@
 
 .fg-project-membership-row:hover,
 .fg-project-membership-row:focus-visible {
-  background:
-    linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.034),
-      rgba(255, 255, 255, 0.012)
-    ),
-    rgba(10, 13, 18, 0.4);
+  background: rgba(255, 255, 255, 0.025);
+  box-shadow: inset 2px 0 0 var(--fugue-accent-signal);
 }
 
 .fg-project-membership-row--static:hover,
@@ -5260,7 +5227,7 @@
 }
 
 .fg-project-membership-row:active {
-  transform: scale(0.995);
+  background: rgba(255, 255, 255, 0.035);
 }
 
 .fg-project-membership-row__summary {
@@ -5321,17 +5288,12 @@
 .fg-project-danger-card {
   display: grid;
   gap: 0.5rem;
-  padding: 1rem 1.04rem 1.05rem;
-  border-radius: 1.18rem;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background:
-    linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.03),
-      rgba(255, 255, 255, 0.01)
-    ),
-    rgba(7, 10, 14, 0.5);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+  padding: 1rem 0 0;
+  border: 0;
+  border-top: 1px solid rgba(204, 112, 92, 0.42);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .fg-project-danger-card__copy p {
@@ -5364,17 +5326,11 @@
   display: inline-flex;
   align-items: center;
   min-width: 0;
-  padding: 0.34rem 0.62rem;
-  border: 1px solid rgba(204, 112, 92, 0.24);
-  border-radius: var(--fugue-radius-pill);
-  background:
-    linear-gradient(
-      180deg,
-      rgba(204, 112, 92, 0.12),
-      rgba(255, 255, 255, 0.012)
-    ),
-    rgba(16, 11, 10, 0.5);
-  color: var(--fugue-danger-emphasis);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--fugue-text-muted);
   font-family: var(--fugue-font-mono);
   font-size: 0.72rem;
   line-height: 1.4;
@@ -5383,13 +5339,8 @@
 .fg-project-danger-card {
   gap: 0.9rem;
   border-color: rgba(204, 112, 92, 0.28);
-  background:
-    linear-gradient(
-      180deg,
-      rgba(204, 112, 92, 0.08),
-      rgba(255, 255, 255, 0.012)
-    ),
-    rgba(16, 11, 10, 0.56);
+  background: transparent;
+  box-shadow: none;
 }
 
 .fg-project-danger-card__actions {
@@ -10262,9 +10213,9 @@
 
 :root[data-theme="light"] .fg-console-skeleton__list-item,
 :root[data-theme="light"] .fg-console-skeleton__workbench-main {
-  border-color: var(--fugue-console-skeleton-surface-border);
-  background: var(--fugue-console-skeleton-surface-bg);
-  box-shadow: var(--fugue-console-utility-shadow);
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
 }
 
 :root[data-theme="light"] .fg-console-profile__trigger {
@@ -10368,7 +10319,6 @@
 :root[data-theme="light"] .fg-console-disclosure--section,
 :root[data-theme="light"] .fg-control-plane-card,
 :root[data-theme="light"] .fg-project-service-card,
-:root[data-theme="light"] .fg-project-danger-card,
 :root[data-theme="light"] .fg-project-membership-item,
 :root[data-theme="light"] .fg-profile-auth-summary,
 :root[data-theme="light"] .fg-profile-auth-provider,
@@ -10385,41 +10335,24 @@
 }
 
 :root[data-theme="light"] .fg-project-membership-group {
-  border-color: var(--fugue-console-surface-border);
-  background: var(--fugue-console-surface-bg);
-  box-shadow: var(--fugue-console-surface-shadow);
+  border-color: var(--fugue-border-subtle);
+  background: transparent;
+  box-shadow: none;
 }
 
 :root[data-theme="light"] .fg-project-membership-group__head {
-  background:
-    linear-gradient(
-      180deg,
-      rgba(95, 124, 155, 0.08),
-      rgba(255, 255, 255, 0.68)
-    ),
-    rgba(255, 255, 255, 0.86);
+  background: transparent;
 }
 
 :root[data-theme="light"] .fg-project-membership-row:hover,
 :root[data-theme="light"] .fg-project-membership-row:focus-visible {
-  background:
-    linear-gradient(
-      180deg,
-      rgba(95, 124, 155, 0.08),
-      rgba(255, 255, 255, 0.54)
-    ),
-    rgba(255, 255, 255, 0.74);
+  background: rgba(22, 26, 31, 0.035);
+  box-shadow: inset 2px 0 0 var(--fugue-accent-signal);
 }
 
 :root[data-theme="light"] .fg-project-danger-preview__token {
-  border-color: rgba(153, 82, 63, 0.22);
-  background:
-    linear-gradient(
-      180deg,
-      rgba(204, 112, 92, 0.14),
-      rgba(255, 255, 255, 0.82)
-    ),
-    rgba(255, 247, 243, 0.92);
+  border-color: transparent;
+  background: transparent;
 }
 
 :root[data-theme="light"] .fg-control-plane-card--positive {

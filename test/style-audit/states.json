@@ -1,0 +1,44 @@
+{
+  "states": [
+    {
+      "category": "interaction",
+      "id": "default"
+    },
+    {
+      "category": "interaction",
+      "id": "hover"
+    },
+    {
+      "category": "interaction",
+      "id": "focus-visible"
+    },
+    {
+      "category": "interaction",
+      "id": "disabled"
+    },
+    {
+      "category": "data",
+      "id": "loading"
+    },
+    {
+      "category": "data",
+      "id": "empty"
+    },
+    {
+      "category": "data",
+      "id": "error"
+    },
+    {
+      "category": "data",
+      "id": "long-text"
+    },
+    {
+      "category": "console",
+      "id": "project-settings"
+    },
+    {
+      "category": "console",
+      "id": "danger-preview"
+    }
+  ]
+}

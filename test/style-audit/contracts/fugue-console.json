@@ -1,0 +1,34 @@
+{
+  "contracts": [
+    {
+      "id": "control.select.single-surface",
+      "rootSelector": ".fg-select",
+      "surfaceOwner": ".fg-select__control"
+    },
+    {
+      "id": "control.tooltip.inline-help",
+      "rootSelector": ".fg-hint-tooltip__trigger",
+      "surfaceOwner": null
+    },
+    {
+      "id": "surface.project-membership.row-like",
+      "rootSelector": ".fg-project-membership-group",
+      "surfaceOwner": ".fg-project-membership-group"
+    },
+    {
+      "id": "danger.project-preview.neutral-token",
+      "rootSelector": ".fg-project-danger-preview__token",
+      "surfaceOwner": null
+    },
+    {
+      "id": "feedback.console-skeleton.cf-bars",
+      "rootSelector": ".fg-console-skeleton__block",
+      "surfaceOwner": ".fg-console-skeleton__block"
+    },
+    {
+      "id": "control.segmented.single-track",
+      "rootSelector": ".fg-control-strip-shell",
+      "surfaceOwner": ".fg-control-strip-shell"
+    }
+  ]
+}
