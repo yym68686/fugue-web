@@ -322,6 +322,11 @@ const zhCNMessages = {
   "Redeploy is not available for this app.": "此应用暂不支持重新部署。",
   "Redeploy queued.": "重新部署已加入队列。",
   "Redeploying…": "正在重新部署…",
+  "Image repull queued.": "镜像重新拉取已加入队列。",
+  "Pull the saved image reference again, mirror it into Fugue’s internal registry, and roll out a new release. Persistent storage is preserved when configured.":
+    "重新拉取已保存的镜像引用，同步到 Fugue 内部镜像仓库，并发布新版本。已配置的持久化存储会保留。",
+  "Repull image": "重新拉取镜像",
+  "Repulling image…": "正在重新拉取镜像…",
   "Refreshing recent logs…": "正在刷新最近日志…",
   "Region unavailable": "区域不可用",
   "Request canceled.": "请求已取消。",
@@ -769,6 +774,11 @@ const zhTWMessages = {
   "Redeploy": "重新部署",
   "Redeploy queued.": "重新部署已加入佇列。",
   "Redeploying…": "重新部署中…",
+  "Image repull queued.": "映像重新拉取已加入佇列。",
+  "Pull the saved image reference again, mirror it into Fugue’s internal registry, and roll out a new release. Persistent storage is preserved when configured.":
+    "重新拉取已儲存的映像參照，同步到 Fugue 內部映像倉庫，並發布新版本。已設定的持久化儲存會保留。",
+  "Repull image": "重新拉取映像",
+  "Repulling image…": "正在重新拉取映像…",
   "Request queued.": "請求已加入佇列。",
   "Save": "儲存",
   "Saving…": "儲存中…",

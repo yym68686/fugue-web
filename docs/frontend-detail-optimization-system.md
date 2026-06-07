@@ -277,6 +277,11 @@ Every product action / panel screenshot must be checked for:
 - **Literal UI string contract**
   - Visible product UI strings inside client components must go through `t()`
     or an already-localized view model field.
+  - A string wrapped in `t()` is not automatically complete; every visible
+    action, state, tooltip, toast, loading, empty, and error key must have
+    catalog coverage for every supported non-English locale.
+  - Catalog fallback to the English key counts as a visible i18n defect, even
+    when the component source itself is using the translation function.
   - Audit direct JSX text nodes in console/admin/auth/deploy surfaces, starting
     with action labels, panel labels, button labels, empty-state titles, error
     copy, and aria labels.

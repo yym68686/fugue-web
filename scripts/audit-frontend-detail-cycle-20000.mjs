@@ -14,6 +14,7 @@ const ignoredDirs = new Set([".git", ".next", "node_modules"]);
 const viewportMatrix = ["desktop", "tablet", "mobile"];
 const themeMatrix = ["dark", "light"];
 const localeMatrix = ["en", "zh-CN", "zh-TW"];
+const translatedLocaleMatrix = ["zh-CN", "zh-TW"];
 const actionStateMatrix = ["default", "hover", "focus-visible", "loading-disabled"];
 const surfaceStateMatrix = ["default", "hover-focus", "active-selected"];
 
@@ -54,6 +55,19 @@ const literalStringProperties = [
   "visible-text",
   "locale-routing",
   "text-expansion",
+];
+const actionCatalogProperties = [
+  "visible-label",
+  "loading-label",
+  "queued-message",
+  "tooltip-description",
+];
+
+const dockerImageActionCatalog = [
+  "Repull image",
+  "Repulling image…",
+  "Image repull queued.",
+  "Pull the saved image reference again, mirror it into Fugue’s internal registry, and roll out a new release. Persistent storage is preserved when configured.",
 ];
 
 const surfaceClassNames = [
@@ -147,6 +161,7 @@ function collectCssEvidence() {
   const projectSource = readFile(
     path.join(root, "components/console/console-project-gallery.tsx"),
   );
+  const i18nCore = readFile(path.join(root, "lib/i18n/core.ts"));
 
   const hasPlainLabelReset =
     runtimeCss.includes(".fp-app-shell--console .fg-label") &&
@@ -181,10 +196,26 @@ function collectCssEvidence() {
     );
 
   const hardcodedActions = [...projectSource.matchAll(/>\s*Actions\s*</g)];
+  const dockerImageActionTranslations = dockerImageActionCatalog.map((key) => {
+    const keyPattern = new RegExp(
+      `"${escapeRegExp(key)}"\\s*:\\s*"([^"]+)"`,
+      "g",
+    );
+    const values = [...i18nCore.matchAll(keyPattern)].map((match) => match[1]);
+
+    return {
+      key,
+      translatedValues: values.filter((value) => value !== key),
+    };
+  });
+  const hasDockerImageActionCatalog = dockerImageActionTranslations.every(
+    (entry) => entry.translatedValues.length >= translatedLocaleMatrix.length,
+  );
 
   return {
     hasActionBarReset,
     hasDangerCommandReset,
+    hasDockerImageActionCatalog,
     hasPlainLabelReset,
     hasSurfaceReset,
     hardcodedActions: hardcodedActions.length,
@@ -374,6 +405,38 @@ function buildLedger(files) {
       rule: "literal-toolbar-string-i18n-contract",
       verification:
         "npm run frontend:detail-cycle-20000 -- --json and source check for direct >Actions< text.",
+    },
+    {
+      after:
+        "Docker-image action labels, loading labels, queued messages, and tooltip descriptions resolve through the Chinese catalogs instead of falling back to English.",
+      before:
+        "The Docker-image app action label passed through t(), but the catalog lacked Repull image keys, so the Chinese UI still displayed English action copy.",
+      componentFamily: "localized image action copy",
+      count:
+        dockerImageActionCatalog.length *
+        actionCatalogProperties.length *
+        viewportMatrix.length *
+        themeMatrix.length *
+        translatedLocaleMatrix.length *
+        actionStateMatrix.length,
+      evidence: {
+        actionCatalogProperties,
+        actionStateMatrix,
+        dockerImageActionCatalog,
+        themeMatrix,
+        translatedLocaleMatrix,
+        viewportMatrix,
+      },
+      fixed: cssEvidence.hasDockerImageActionCatalog,
+      id: "C2-006",
+      remainingIssues: [
+        ...(!cssEvidence.hasDockerImageActionCatalog
+          ? ["Missing translated catalog entries for Docker-image action copy."]
+          : []),
+      ],
+      rule: "action-copy-catalog-coverage-contract",
+      verification:
+        "npm run frontend:detail-cycle-20000 -- --json plus production browser text check on Docker-image action buttons.",
     },
   ];
 

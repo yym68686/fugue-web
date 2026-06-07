@@ -26,7 +26,7 @@ npm run frontend:detail-cycle-20000 -- --json
 ## Result
 
 - Required optimized count: 20000
-- Verified optimized count: 26316
+- Verified optimized count: 27084
 - Remaining count: 0
 
 ## Component Todo
@@ -66,12 +66,20 @@ npm run frontend:detail-cycle-20000 -- --json
   - After: visible project toolbar labels use the translation system instead of direct JSX text.
   - Verification: `npm run frontend:detail-cycle-20000 -- --json`
 
+- [x] C2-006 `action-copy-catalog-coverage-contract`
+  - Count: 768
+  - Component family: localized image action copy
+  - Before: the Docker-image app action label passed through `t()`, but the catalog lacked `Repull image` keys, so the Chinese UI still displayed English action copy.
+  - After: Docker-image action labels, loading labels, queued messages, and tooltip descriptions resolve through the Chinese catalogs instead of falling back to English.
+  - Verification: `npm run frontend:detail-cycle-20000 -- --json`
+
 ## Implementation Todo
 
 - [x] Add screenshot-grade action bar, panel, danger command, and literal string detection to `docs/frontend-detail-optimization-system.md`.
 - [x] Add executable cycle audit in `scripts/audit-frontend-detail-cycle-20000.mjs`.
 - [x] Add `frontend:detail-cycle-20000` npm script.
 - [x] Convert the hardcoded project-detail `Actions` label to `t("Actions")`.
+- [x] Add catalog coverage for Docker-image action copy in `zh-CN` and `zh-TW`.
 - [x] Reset product toolbar labels so they are plain labels, not rounded badges.
 - [x] Reset project and workbench action bars so they are layout groups, not framed components.
 - [x] Flatten project metadata, image summary, service, danger, pane, proof-shell, and workbench section surfaces.
