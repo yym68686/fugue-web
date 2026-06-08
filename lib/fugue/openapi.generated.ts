@@ -5761,6 +5761,8 @@ export interface components {
         LocalizeAppDatabaseRequest: {
             target_node_name?: string;
             target_runtime_id?: string;
+            storage_size?: string;
+            storage_class_name?: string;
         };
         AppContinuityAppFailoverRequest: {
             enabled: boolean;
