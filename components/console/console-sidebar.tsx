@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { useMemo } from "react";
 
+import { ConsoleCommandSearch } from "@/components/console/console-command-search";
 import { useConsoleRouteTransition } from "@/components/console/console-route-transition";
 import { useI18n } from "@/components/providers/i18n-provider";
-import { PlatformCommand, PlatformSidebar, PlatformSidebarBrand } from "@/components/platform/platform-layout";
+import { PlatformSidebar, PlatformSidebarBrand } from "@/components/platform/platform-layout";
 import { PlatformIcon, type PlatformIconName } from "@/components/platform/platform-icon";
 import { getConsoleNavGroups, isConsoleNavHrefActive } from "@/lib/console/nav";
-import type { ConsoleNavIcon } from "@/lib/console/types";
+import type { ConsoleNavGroup, ConsoleNavIcon } from "@/lib/console/types";
 import { cx } from "@/lib/ui/cx";
 
 function toPlatformIcon(icon: ConsoleNavIcon): PlatformIconName {
@@ -17,18 +18,12 @@ function toPlatformIcon(icon: ConsoleNavIcon): PlatformIconName {
 
 function ConsoleSidebarNav({
   displayPathname,
-  isAdmin,
-  locale,
+  groups,
 }: {
   displayPathname: string;
-  isAdmin: boolean;
-  locale: ReturnType<typeof useI18n>["locale"];
+  groups: ConsoleNavGroup[];
 }) {
   const { beginRouteTransition } = useConsoleRouteTransition();
-  const groups = useMemo(
-    () => getConsoleNavGroups({ isAdmin, locale }),
-    [displayPathname, isAdmin, locale],
-  );
 
   return (
     <>
@@ -64,14 +59,36 @@ function ConsoleSidebarNav({
   );
 }
 
-export function ConsoleSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
+export function ConsoleSidebar({
+  enableCommandShortcut = true,
+  isAdmin = false,
+}: {
+  enableCommandShortcut?: boolean;
+  isAdmin?: boolean;
+}) {
   const { locale, t } = useI18n();
   const { displayPathname } = useConsoleRouteTransition();
+  const groups = useMemo(
+    () => getConsoleNavGroups({ isAdmin, locale }),
+    [isAdmin, locale],
+  );
 
   return (
     <PlatformSidebar
       brand={<PlatformSidebarBrand meta={t("Console")} title="Fugue" />}
-      command={<PlatformCommand>{t("Search commands")}</PlatformCommand>}
+      command={
+        <ConsoleCommandSearch
+          enableShortcut={enableCommandShortcut}
+          groups={groups}
+          labels={{
+            close: t("Close command search"),
+            dialog: t("Search commands"),
+            empty: t("No commands found"),
+            placeholder: t("Search commands..."),
+            trigger: t("Search commands"),
+          }}
+        />
+      }
       footer={
         <div className="fp-sidebar-utility">
           <span>{t("Route is the product")}</span>
@@ -80,10 +97,8 @@ export function ConsoleSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
     >
       <ConsoleSidebarNav
         displayPathname={displayPathname}
-        isAdmin={isAdmin}
-        locale={locale}
+        groups={groups}
       />
     </PlatformSidebar>
   );
 }
-

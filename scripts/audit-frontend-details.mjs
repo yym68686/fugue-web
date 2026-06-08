@@ -116,9 +116,13 @@ function scanCss(file, source, issues) {
     const body = ruleBodyAt(source, match.index);
     const selectorHasCompanionFocus =
       selector.includes(".fp-search-input") && /\.fp-toolbar__search:focus-within/.test(source);
+    const selectorHasCommandSearchFocus =
+      selector.includes(".fp-command-search__input") &&
+      /\.fp-command-search__field:focus-within/.test(source);
     const hasReplacement =
       /focus-visible|focus-within/.test(selector) ||
       selectorHasCompanionFocus ||
+      selectorHasCommandSearchFocus ||
       /box-shadow\s*:|outline\s*:\s*(?!none|0)/i.test(body.replace(match[0], ""));
     if (!hasReplacement) {
       add(

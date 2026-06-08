@@ -24,7 +24,9 @@ export async function ConsoleShell({
     <ConsoleRouteTransitionProvider>
       <PlatformShell
         className="fp-app-shell--console"
-        mobileNavigation={<ConsoleSidebar isAdmin={isAdmin} />}
+        mobileNavigation={
+          <ConsoleSidebar enableCommandShortcut={false} isAdmin={isAdmin} />
+        }
         sidebar={<ConsoleSidebar isAdmin={isAdmin} />}
         topbar={
           <ConsoleTopbar

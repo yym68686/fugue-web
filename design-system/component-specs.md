@@ -128,6 +128,7 @@ Classes:
 
 - `.fp-sidebar__brand`
 - `.fp-command`
+- `.fp-command-search`
 - `.fp-nav`
 - `.fp-nav-section`
 - `.fp-nav-item`
@@ -136,7 +137,10 @@ States:
 
 - Default: transparent row, tertiary text.
 - Hover/current: `--fp-surface-active`, primary text.
-- Command search: 36px raised control with command key on the right.
+- Command search trigger: 36px raised control with command key on the right.
+- Command search behavior: trigger opens a modal search surface, supports `/` and `Cmd/Ctrl+K`, filters sidebar commands, and navigates with click or keyboard.
+- Sidebar rhythm: brand, command, group label, and nav row spacing must use sidebar tokens; do not add ad hoc margins between adjacent controls.
+- Nav groups: related rows stay tight; section separation comes from `--fp-sidebar-section-gap`, not per-item wrappers or nested cards.
 
 ### Topbar And Breadcrumb
 

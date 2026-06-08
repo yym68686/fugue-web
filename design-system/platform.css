@@ -141,6 +141,10 @@
   --fp-sidebar-item-padding: 0 0.75rem;
   --fp-sidebar-item-gap: 0.625rem;
   --fp-sidebar-item-radius: var(--fp-radius-md);
+  --fp-sidebar-command-margin: 0.5rem 1rem 0.875rem;
+  --fp-sidebar-nav-padding: 0 0.875rem 1rem;
+  --fp-sidebar-section-gap: 1rem;
+  --fp-sidebar-label-height: 1.25rem;
   --fp-card-padding: 1rem;
   --fp-card-gap: 0.875rem;
   --fp-card-radius: 0;
@@ -296,7 +300,7 @@ html body.fp-design-system {
   min-height: var(--fp-control-height-md);
   align-items: center;
   gap: var(--fp-space-2);
-  margin: var(--fp-space-4) var(--fp-space-4) var(--fp-space-3);
+  margin: var(--fp-sidebar-command-margin);
   padding: 0 var(--fp-space-3);
   border: 0;
   border-radius: var(--fp-radius-md);
@@ -311,6 +315,128 @@ html body.fp-design-system {
   color: var(--fp-text-muted);
   font-family: var(--fp-font-mono);
   font-size: var(--fp-type-xs);
+}
+
+.fp-command-search {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: start center;
+  padding: max(5rem, 12vh) 1rem 1rem;
+}
+
+.fp-command-search__backdrop {
+  position: fixed;
+  inset: 0;
+  border: 0;
+  background: rgb(0 0 0 / 0.56);
+}
+
+.fp-command-search__dialog {
+  position: relative;
+  display: grid;
+  width: min(34rem, 100%);
+  gap: var(--fp-space-2);
+  padding: var(--fp-space-2);
+  border: 1px solid var(--fp-border-default);
+  border-radius: var(--fp-radius-lg);
+  background: var(--fp-surface-overlay);
+  box-shadow: var(--fp-shadow-menu);
+}
+
+.fp-command-search__field {
+  display: flex;
+  min-height: var(--fp-control-height-lg);
+  align-items: center;
+  gap: var(--fp-space-2);
+  padding: 0 var(--fp-space-3);
+  border-radius: var(--fp-radius-md);
+  background: var(--fp-surface-control);
+  color: var(--fp-text-muted);
+}
+
+.fp-command-search__field:focus-within {
+  box-shadow: 0 0 0 1px var(--fp-focus-ring);
+}
+
+.fp-command-search__input {
+  min-width: 0;
+  flex: 1 1 auto;
+  border: 0;
+  outline: 0;
+  color: var(--fp-text-primary);
+  background: transparent;
+  font-size: var(--fp-type-sm);
+}
+
+.fp-command-search__input::placeholder {
+  color: var(--fp-text-muted);
+}
+
+.fp-command-search__kbd {
+  color: var(--fp-text-muted);
+  font-family: var(--fp-font-mono);
+  font-size: var(--fp-type-xs);
+}
+
+.fp-command-search__list {
+  display: grid;
+  max-height: min(22rem, 52vh);
+  overflow: auto;
+  padding: var(--fp-space-1);
+}
+
+.fp-command-search__item {
+  display: flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: var(--fp-space-3);
+  padding: var(--fp-space-2) var(--fp-space-3);
+  border-radius: var(--fp-radius-md);
+  color: var(--fp-text-secondary);
+  text-decoration: none;
+}
+
+.fp-command-search__item:hover,
+.fp-command-search__item.is-active {
+  color: var(--fp-text-primary);
+  background: var(--fp-surface-active);
+}
+
+.fp-command-search__item-icon {
+  color: var(--fp-text-tertiary);
+}
+
+.fp-command-search__item-copy {
+  display: grid;
+  min-width: 0;
+  gap: 0.0625rem;
+}
+
+.fp-command-search__item-copy strong,
+.fp-command-search__item-copy span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fp-command-search__item-copy strong {
+  color: inherit;
+  font-size: var(--fp-type-sm);
+  line-height: var(--fp-line-xs);
+}
+
+.fp-command-search__item-copy span,
+.fp-command-search__empty {
+  color: var(--fp-text-muted);
+  font-size: var(--fp-type-xs);
+  line-height: var(--fp-line-xs);
+}
+
+.fp-command-search__empty {
+  margin: 0;
+  padding: var(--fp-space-4) var(--fp-space-3);
 }
 
 .fp-mobile-nav {
@@ -333,7 +459,7 @@ html body.fp-design-system {
 .fp-nav {
   min-height: 0;
   overflow: auto;
-  padding: 0 var(--fp-space-3) var(--fp-space-4);
+  padding: var(--fp-sidebar-nav-padding);
   scrollbar-width: thin;
   scrollbar-color: var(--fp-border-strong) transparent;
 }
@@ -341,11 +467,16 @@ html body.fp-design-system {
 .fp-nav-section {
   display: grid;
   gap: var(--fp-space-1);
-  margin-top: var(--fp-space-5);
+  margin-top: 0;
+}
+
+.fp-nav-section + .fp-nav-section {
+  margin-top: var(--fp-sidebar-section-gap);
 }
 
 .fp-nav-section__label {
-  margin: 0 0 var(--fp-space-1);
+  min-height: var(--fp-sidebar-label-height);
+  margin: 0;
   padding: 0 var(--fp-space-2);
   color: var(--fp-text-tertiary);
   font-size: var(--fp-type-sm);

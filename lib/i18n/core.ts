@@ -204,6 +204,8 @@ const zhCNMessages = {
   "Public repositories can be read anonymously. Private repositories need saved GitHub access or a token.":
     "公开仓库可匿名读取。私有仓库需要已保存的 GitHub 访问或 Token。",
   "Save source": "保存来源",
+  "Search commands": "搜索命令",
+  "Search commands...": "搜索命令...",
   "Saving this changes the source Fugue uses for future redeploys. The current release keeps running until you redeploy.":
     "保存后，Fugue 未来重新部署会使用这个来源。当前版本会继续运行，直到你重新部署。",
   "This source is already linked or cannot be changed here.":
@@ -782,6 +784,8 @@ const zhTWMessages = {
   "Request queued.": "請求已加入佇列。",
   "Save": "儲存",
   "Saving…": "儲存中…",
+  "Search commands": "搜尋命令",
+  "Search commands...": "搜尋命令...",
   "Service deleted.": "服務已刪除。",
   "Service import queued.": "服務匯入已加入佇列。",
   "Service name": "服務名稱",
@@ -1187,6 +1191,7 @@ const zhCNExtraMessages = {
   "Back to top": "返回顶部",
   "Build / Deploy / Route": "构建 / 部署 / 路由",
   "Build / Runtime / Operations": "构建 / 运行时 / 操作",
+  "Close command search": "关闭命令搜索",
   "Copied": "已复制",
   "Copy command": "复制命令",
   "Copy manually": "请手动复制",
@@ -1231,6 +1236,7 @@ const zhCNExtraMessages = {
   "Optional": "可选",
   "Post-auth": "认证后",
   "Primary": "主导航",
+  "No commands found": "没有匹配命令",
   "Private GitHub repositories require GitHub authorization or a GitHub token with repository read access.":
     "私有 GitHub 仓库需要 GitHub 授权，或提供具备仓库读取权限的 GitHub Token。",
   "Provider callback": "提供方回调",
@@ -2790,6 +2796,7 @@ const zhTWExtraMessages = {
   "Back to top": "返回頂部",
   "Build / Deploy / Route": "建置 / 部署 / 路由",
   "Build / Runtime / Operations": "建置 / 執行環境 / 操作",
+  "Close command search": "關閉命令搜尋",
   "Copied": "已複製",
   "Continue with {label}": "使用 {label} 繼續",
   "Copy command": "複製命令",
@@ -2841,6 +2848,7 @@ const zhTWExtraMessages = {
   "Node key / Heartbeat / Migrate / Same control model":
     "節點金鑰 / 心跳 / 遷移 / 同一控制模型",
   "Node key setup": "節點金鑰設定",
+  "No commands found": "沒有符合的命令",
   "Nodes / Pressure / Workloads": "節點 / 壓力 / 工作負載",
   "OAuth / Profile / Verified email": "OAuth / 個人資料 / 已驗證電子郵件",
   "OAuth / Verified email": "OAuth / 已驗證電子郵件",

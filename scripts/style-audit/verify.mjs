@@ -9,6 +9,7 @@ const json = args.has("--json");
 const writeReport = args.has("--write-report");
 
 const files = {
+  consoleCommandSearch: path.join(root, "components/console/console-command-search.tsx"),
   consoleCss: path.join(root, "app/console.css"),
   designTokensCss: path.join(root, "design-system/tokens.css"),
   globalsCss: path.join(root, "app/globals.css"),
@@ -232,6 +233,8 @@ function verifyInventory({ contracts, issues, routes, states }) {
     "danger.project-preview.neutral-token",
     "feedback.console-skeleton.cf-bars",
     "control.segmented.single-track",
+    "control.command-search.interactive",
+    "layout.console-spacing.tokenized",
   ];
 
   for (const id of requiredRoutes) {
@@ -275,6 +278,7 @@ function verifyInventory({ contracts, issues, routes, states }) {
 }
 
 function verifyRuntimeContracts({
+  consoleCommandSearch,
   consoleCss,
   designTokensCss,
   globalsCss,
@@ -452,6 +456,77 @@ function verifyRuntimeContracts({
         "Positive/success green must use the shared Cloudflare status token across badges, route/domain field states, alerts, cards, resource fills, and toasts.",
       rule: "positive-green-token-required",
       selector: ".fg-status-badge--positive, .fg-route-field__status.is-success",
+    });
+  }
+
+  if (
+    !hasAll(consoleCommandSearch, [
+      "useRouter",
+      "router.push(command.href)",
+      "visibleCommands",
+      "window.addEventListener(\"keydown\"",
+      "event.key === \"ArrowDown\"",
+      "event.key === \"ArrowUp\"",
+      "event.key === \"Enter\"",
+      "role=\"dialog\"",
+      "role=\"listbox\"",
+    ])
+  ) {
+    addIssue(issues, {
+      contract: "control.command-search.interactive",
+      file: "components/console/console-command-search.tsx",
+      line: 1,
+      message:
+        "Console command search must be an interactive searchable command palette with keyboard navigation and route navigation, not a decorative button.",
+      rule: "command-search-interaction-required",
+      selector: ".fp-command",
+    });
+  }
+
+  if (
+    !hasAll(runtimeCss, [
+      ".fp-command-search__dialog",
+      ".fp-command-search__field",
+      ".fp-command-search__item",
+      "background: var(--cf-surface-0)",
+      "background: var(--cf-surface-1)",
+      "background: var(--cf-surface-2)",
+    ])
+  ) {
+    addIssue(issues, {
+      contract: "control.command-search.interactive",
+      file: "app/cloudflare-runtime.css",
+      line: 1,
+      message:
+        "Command search must have Cloudflare-aligned modal, field, and item surfaces in the runtime cascade.",
+      rule: "command-search-runtime-surface-required",
+      selector: ".fp-command-search",
+    });
+  }
+
+  if (
+    !hasAll(runtimeCss, [
+      "--cf-sidebar-command-margin: 8px 16px 14px",
+      "--cf-sidebar-nav-padding: 0 14px 16px",
+      "--cf-sidebar-section-gap: 14px",
+      "--cf-page-inline-gutter: 40px",
+      "--cf-page-block-start: 40px",
+      "--cf-page-block-end: 64px",
+      "margin: var(--cf-sidebar-command-margin)",
+      "padding: var(--cf-sidebar-nav-padding)",
+      "margin-top: var(--cf-sidebar-section-gap)",
+      "calc(var(--cf-page-inline-gutter) * 2)",
+      "padding: var(--cf-page-block-start) 0 var(--cf-page-block-end)",
+    ])
+  ) {
+    addIssue(issues, {
+      contract: "layout.console-spacing.tokenized",
+      file: "app/cloudflare-runtime.css",
+      line: 1,
+      message:
+        "Console spacing must be governed by sidebar/page rhythm tokens instead of scattered one-off margins.",
+      rule: "console-spacing-token-contract-required",
+      selector: ".fp-sidebar, .fp-page",
     });
   }
 }
@@ -660,6 +735,7 @@ function buildReport(result) {
   return `${lines.join("\n")}\n`;
 }
 
+const consoleCommandSearch = read(files.consoleCommandSearch);
 const consoleCss = read(files.consoleCss);
 const designTokensCss = read(files.designTokensCss);
 const globalsCss = read(files.globalsCss);
@@ -674,6 +750,7 @@ const issues = [];
 
 verifyInventory({ contracts, issues, routes, states });
 verifyRuntimeContracts({
+  consoleCommandSearch,
   consoleCss,
   designTokensCss,
   globalsCss,

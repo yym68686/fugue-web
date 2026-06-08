@@ -25,6 +25,7 @@ The new system is a platform UI, not a marketing theme. It uses:
 - Pure black and near-black surfaces in dark mode, clean neutrals in light mode.
 - 8px control radius, 6px inner menu/segment radius, and unframed product sections by default.
 - 32-40px controls, 34px sidebar nav items, 56px card headers, 72px resource rows.
+- Sidebar command, nav labels, section gaps, and page gutters are tokenized; avoid one-off margins between adjacent components.
 - Solid overlays and menus, not glass.
 - 1px rings and hairlines instead of decorative shadows.
 - Cloudflare-blue primary actions, neutral raised secondary controls, muted ghost utilities.

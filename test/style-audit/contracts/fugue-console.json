@@ -39,6 +39,16 @@
       "id": "control.segmented.single-track",
       "rootSelector": ".fg-control-strip-shell",
       "surfaceOwner": ".fg-control-strip-shell"
+    },
+    {
+      "id": "control.command-search.interactive",
+      "rootSelector": ".fp-command, .fp-command-search",
+      "surfaceOwner": ".fp-command-search__dialog"
+    },
+    {
+      "id": "layout.console-spacing.tokenized",
+      "rootSelector": ".fp-sidebar, .fp-page, .fg-console-page",
+      "surfaceOwner": null
     }
   ]
 }
