@@ -12,6 +12,7 @@ pnpm-debug.log*
 .data
 .fugue-edit
 .codex/
+.codex_tmp/
 *.tsbuildinfo
 .eslintcache
 .vercel/

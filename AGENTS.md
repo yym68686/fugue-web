@@ -214,165 +214,104 @@
 
 ## 当前设计基线
 
-- 当前视觉与交互基线来源按优先级读取：
-  1. `design-system/platform.css`
-  2. `components/platform/`
-  3. `design-system/tokens.css`
-  4. `design-system/components.css`
-  5. `design-system/component-specs.md`
-  6. `components/landing/`、`components/console/`、`components/admin/`、`components/auth/`、`components/deploy/`、`components/docs/`、`app/` 中的当前正式实现
-- 这里要求继承的不是“整站都长得像 landing page”，而是继承颜色纪律、字体配对、版式张力、材质处理、动效克制和信息组织方法。
-- 当前核心命题不是“炫技背景”，而是：`route is the product`。页面结构、auth handoff、docs 叙事、console onboarding 都应围绕这个命题展开。
-- 新的产品平台界面优先使用 `fp-*` 命名空间和 `components/platform/` React wrapper；旧 `fg-*` 类只作为迁移兼容层保留，除非是在维护尚未抽出的既有组件，不要新增新的 `fg-*` 产品组件。
+- 当前视觉与交互唯一基线是 `$HOME/Downloads/GitHub/morlane`。本仓库现有样式、组件外观、布局和视觉风格不再作为参考；只把现有页面里的真实信息、状态、表单字段、操作和业务约束迁移进 Morlane 的界面语言。
+- 当前设计系统入口是 `design-system/morlane.css`，并由 `design-system/index.css` 统一导入。`design-system/tokens.css`、`design-system/components.css`、`design-system/platform.css` 只保留为历史路径占位，不允许继续承载旧 Fugue 视觉。
+- `components/platform/`、`components/ui/`、`components/console/` 等 React 组件可以继续作为行为和语义封装使用，但最终视觉必须由 Morlane token、Morlane 布局密度和 Morlane 组件材质覆盖。
+- `fg-*`、`fp-*` 类名只允许作为迁移期 DOM class 或历史 API 名称存在；不得把它们当作旧视觉基线，也不得新增依赖旧 Fugue / Cloudflare / cinematic 风格的样式规则。
 
-## Design DNA
+## Morlane Design DNA
 
 ### 设计系统层
 
 - 色彩基线：
-  - 画布底色使用近黑而不是纯黑：`#040506`、`#0a0c10`、`#10161d`
-  - 文本使用暖象牙而不是冷白：`#f4efe7`、`#c9c1b4`、`#8f8a82`、`#6c6761`
-  - 单一强调色使用去饱和蓝灰：`#a5bfdc`
-  - 线框依赖低对比 hairline：`rgba(255,255,255,0.16)`、`0.10`、`0.06`
+  - 画布底色：`#f6f7f8`
+  - 主表面：`#ffffff`
+  - 次级表面：`#f1f3f5`
+  - 主文本：`#17191c`
+  - 次文本：`#646b73`
+  - 弱文本：`#8b929a`
+  - 主边框：`#d8dde3`
+  - 强调色：`#1463ff`
 - 字体基线：
-  - 标题字体：`Syne`
-  - 正文字体：`Manrope`
-  - 系统注释、对象名、命令、标签：`IBM Plex Mono`
-  - 标题必须压缩字距、低行高；正文要克制；mono 只用于元信息和技术对象，不要大面积正文滥用
-  - 文案大小写默认使用 `sentence case` 或 `title case`；禁止整词全大写，禁止依赖 `text-transform: uppercase` 把 UI 文案强转成全大写，也不要把普通 UI 标签、按钮、状态、导航项写成整词全小写
-  - 缩写优先改写成完整词或常规大小写。只有命令、环境变量、协议字面量、代码示例、技术单位，以及 URL / 域名 / 邮箱 / branch / slug 这类必须保真的技术内容可以保留原始大小写
-- `Syne` 只用于 display / brand / marketing 级标题，不用于 panel、modal、table、console、docs 这类严肃产品界面的主标题
-- 严肃产品场景的标题默认使用基于 `Manrope` 的 `ui heading` 语义，追求更高识别度、更稳的字腔和更低的阅读摩擦
-- 在产品层尤其是 console 内，不允许把 `--fugue-font-heading` / `Syne` 直接用于 summary metric 数值、workspace 名、表格主对象、topbar brand wordmark 或任何数据读数；这些都必须回到 `--fugue-font-ui-heading` 或 `--fugue-font-body`
+  - 主字体使用 `Inter`，代码、对象标识、命令和技术值使用 `IBM Plex Mono`
+  - 只有左上角 / sidebar 的 `Fugue` wordmark 保留原品牌字体 `Syne`
+  - 其他标题、面板、表格、按钮、表单和正文不使用 `Syne`、`Manrope` 或其他旧 Fugue 展示字体
+  - 标题、按钮、表格对象名和表单标签都应紧凑、清晰、低装饰
 - 布局基线：
-  - Hero 默认使用非对称 split composition，不做居中 SaaS hero
-  - 内容宽度参考 `--max-width: 1400px`、`--content-width: 1180px`
-  - 重要段落采用大区块节奏和明显的上下文切换，不做碎片化小卡片拼盘
+  - Console / admin 使用左侧导航 + 顶部栏 + 内容工作区的密集产品布局
+  - Marketing 使用简洁顶部导航 + split hero + 产品面板，不使用沉浸式暗场或动态背景秀场
+  - Auth 使用居中表单卡片，不使用左右叙事 stage
+  - Docs 使用左侧目录 + 内容正文 + 小型 note / table / code 组件
 - 形状与材质：
-  - 默认使用大圆角、胶囊按钮、低对比边线、带内高光的硬件感表面
-  - 共享 panel、proof shell、disclosure、workbench surface 默认收敛为单层 hairline 边框；不要再做 outer shell + inner shell 的双层 bezel。需要强调层级时，优先用背景深度、分区和状态色，不额外再加第二道边框
-  - 玻璃 / 半透明表面只用于真正需要悬浮感的区域；一旦影响可读性，优先改成高不透明度表面
-  - 不靠夸张外发光营造高级感，优先使用边线、内阴影、分层渐变和背景深度
+  - 默认圆角为 `6px`，卡片和弹窗可到 `8px`
+  - 表面以白底、浅灰边框、轻阴影和明确分隔为主
+  - 禁止玻璃拟态、霓虹发光、CRT、扫描线、噪点、巨型装饰字和背景特效
 - 动效基线：
-  - 默认 easing 使用 `ease-out-expo`、`ease-out-quint`、`ease-out-quart`
-  - 进入动效以 `opacity + translate + blur` 为主，不动画布局属性
-  - 整页只允许一个主角级效果，不要多个抢戏特效同时竞争注意力
-
-### 风格层
-
-- 气质关键词：`cinematic`、`authored`、`controlled`、`atmospheric`、`technical`、`premium`
-- 视觉比喻：不是抽象 AI 平台，而是“在电流/气流中保持路由不变的控制平面”
-- 构图方法：
-  - 用左侧或左下的文字锚点建立叙事重心
-  - 用右侧 rail、path、object belt、proof shell 提供技术语义
-  - 用完整背景场而不是一个被框住的小模块建立气氛
-- 信息风格：
-  - 文案必须具体、克制、可验证，避免空泛的“下一代”“无缝”“智能化”套话
-  - 只展示今天真实存在的产品边界；未实现能力只能作为 next shell，不准伪装成已上线
-- 明确禁止：
-  - 通用 AI 套板式首页
-  - 居中大标题压死整个背景
-  - 默认三栏等宽功能卡片
-  - 紫色 / 霓虹 / 赛博蓝发光污染
-  - 纯透明面板导致内容漂浮
-  - 为了“极客”而加入无产品语义的噪音元素
-
-### 效果层
-
-- Landing 的特效重点不是单个 logo，而是“full-bleed live field + CRT / scan / noise / glare 分层”。
-- Hero 效果必须铺满开场区域，不能被框进右侧卡片或局部容器。
-- 推荐的背景层顺序：
-  1. 实时场景层：Canvas / WebGL / shader
-  2. 径向补光层：radial light
-  3. 方向性压光层：gradient veil
-  4. 颗粒层：noise
-  5. 扫描线层：scanline
-  6. 高光层：glare
-- 噪点、扫描线、高光都是附属层，只能增强氛围，不能破坏可读性。
-- 必须保留 graceful fallback：
-  - 动态场景失败时，退回静态 gradient scene
-  - `prefers-reduced-motion` 时保留层次但降运动
-  - 任何情况下都不允许出现空白 hero 或突然断层
+  - 只保留必要的 hover、focus、loading、dialog transition
+  - 不为装饰效果引入 Canvas / WebGL / shader
+  - `prefers-reduced-motion` 下必须降低或移除非必要 motion
 
 ## Token 种子
 
-- 扩展设计系统时，必须按 `primitive -> semantic -> component` 三层 token 架构拆分，不要长期依赖散落的硬编码值。
-- 推荐维持以下种子：
+- 扩展设计系统时，按 `primitive -> semantic -> component` 三层 token 架构拆分，不要散落硬编码值。
+- 当前 Morlane 种子：
 
 ```css
 /* primitive */
---bg-0: #040506;
---bg-1: #0a0c10;
---bg-2: #10161d;
---text-0: #f4efe7;
---text-1: #c9c1b4;
---text-2: #8f8a82;
---text-3: #6c6761;
---accent-0: #a5bfdc;
---line-0: rgba(255, 255, 255, 0.16);
---line-1: rgba(255, 255, 255, 0.10);
---line-2: rgba(255, 255, 255, 0.06);
+--ml-bg: #f6f7f8;
+--ml-surface: #ffffff;
+--ml-surface-2: #f1f3f5;
+--ml-text: #17191c;
+--ml-muted: #646b73;
+--ml-faint: #8b929a;
+--ml-border: #d8dde3;
+--ml-accent: #1463ff;
 
 /* semantic */
---surface-canvas: var(--bg-0);
---surface-subtle: var(--bg-1);
---surface-raised: var(--bg-2);
---text-primary: var(--text-0);
---text-secondary: var(--text-1);
---text-tertiary: var(--text-2);
---text-muted: var(--text-3);
---accent-signal: var(--accent-0);
---border-strong: var(--line-0);
---border-default: var(--line-1);
---border-subtle: var(--line-2);
+--fugue-color-surface-canvas: var(--ml-bg);
+--fugue-color-surface-raised: var(--ml-surface);
+--fugue-color-text-primary: var(--ml-text);
+--fugue-color-text-secondary: var(--ml-muted);
+--fugue-color-border-default: var(--ml-border);
+--fugue-color-accent: var(--ml-accent);
 ```
 
 ## 可复用界面模式
 
-- `floating-pill masthead`
-- `button-in-button CTA`
-- `segmented view switch`
-- `stage-note rail`
-- `runway-strip`
-- `route-signal`
-- `proof-shell`
-- `object-belt`
-- `project-gallery workbench`
+- `ml-app-shell`: sidebar + topbar + page work area
+- `ml-card`: compact panel / section container
+- `ml-table`: dense product table
+- `ml-button`: primary / secondary / danger / ghost controls
+- `ml-segmented`: view switch
+- `ml-form`: stacked field + validation + helper text
+- `ml-auth-panel`: centered auth card
+- `ml-docs-shell`: docs rail + content layout
+- `ml-terminal`: lightweight command / log preview panel
 
-这些模式优先从 `design-system/` 和当前正式实现抽取，不要重新发明。
+这些模式优先从 `design-system/morlane.css` 和 morlane 仓库继续抽取，不从本仓库旧实现重新发明。
 
 ## 跨页面适配边界
 
 ### Marketing
 
-- 可以使用完整的开场氛围、背景场和章节级戏剧张力。
-- 但即便在 marketing，也要坚持“只说当前真实能力”的边界。
+- 使用 Morlane 的 light-first split hero、白色产品面板、浅灰背景和克制 CTA。
+- 只迁移当前真实存在的信息和链接，不新增营销层级或虚构能力。
 
 ### Auth
 
-- 必须继承颜色、字体配对、按钮结构、mono 标签和面板材质。
-- 桌面 auth 双栏默认按 `1:1` 分配宽度；左侧 stage 是叙事辅助，不得挤压右侧主表单。
-- 桌面 auth 表单列默认是右半边里的窄列居中，不把登录表单直接拉满整个右半屏。
-- 窄屏 auth 第一屏必须先看到表单主体；左侧 stage 在窄屏只保留必要品牌锚点，不保留大段介绍。
-- auth 主表单容器默认直接融入画布，不使用独立背景、table-like 外框或分段边线；信息分隔优先靠留白和局部 divider。
-- submit CTA 默认使用 product primary；provider、cancel、secondary action 默认不带 icon island。
-- 背景效果强度降到 marketing 的 `25% - 35%`；表单才是主角。
-- Google 登录、邮箱注册、验证码 / 邮件发送、表单校验、加载、失败、回跳失败、空状态都必须明确设计，不准只做成功态。
+- 使用居中 `ml-auth-panel`，表单主体优先。
+- Google 登录、邮箱注册、验证码 / 邮件发送、表单校验、加载、失败、回跳失败、空状态都必须有明确状态。
 
 ### Docs
 
-- 继承 mono 标签、proof shell、route / path 图示、object belt 和线框纪律。
-- 以可读性、导航清晰度和信息层级为先；动态背景只能弱化为静态或极低频效果。
-- 高密度阅读区域优先使用 `ui heading`。
+- 使用 `ml-docs-shell`，优先保证目录、正文、表格、code block 和 note 的可读性。
+- 禁止引入动态背景或 marketing 级视觉效果。
 
 ### App Console
 
-- 可以继承调色、面板语言、按钮体系、路径隐喻和对象命名语法。
-- 按钮默认使用 `primary / secondary / danger / inline` 分层；`ghost` 只用于三级或 dismissive action。
-- 局部视图切换默认使用 segmented control。
-- current page、segmented 当前项、file pill 当前文件应使用同一套 raised lens 状态语言。
-- Console 不能直接搬用 landing hero、超大 ghost wordmark、整屏动态秀场或长篇 thesis copy。
-- page intro、panel title、dialog title、empty-state title 默认都使用 `ui heading`。
+- 使用 Morlane 的密集后台产品布局：sidebar、topbar、page header、metric、table、resource row、dialog、drawer、empty/error/loading。
+- 按钮默认使用 `primary / secondary / danger / ghost` 分层；局部视图切换默认使用 segmented control。
+- Console 不使用 landing hero、叙事 stage、旧 route-signal / proof-shell / object-belt 视觉。
 
 ## 前端架构立场
 

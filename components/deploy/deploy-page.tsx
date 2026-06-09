@@ -163,8 +163,8 @@ export async function DeployPage({
       eyebrow={t("Create project")}
       railTitle={routeMode === "template" ? t("Template deploy") : t("New project")}
     >
-          <div className="fg-deploy-page__topbar">
-            <div className="fg-auth-stage__utilities">
+            <div className="fg-deploy-page__topbar">
+            <div className="fg-deploy-topbar__utilities">
               <ThemeMenuButton />
               <LocaleMenuButton />
             </div>

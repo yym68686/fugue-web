@@ -5275,8 +5275,8 @@ export function ConsoleProjectGallery({
     if (project.serviceCount === 0) {
       return (
         <div className="fg-project-card__detail" id={detailId}>
-          <section className="fg-bezel fg-panel fg-project-workbench fp-project-workbench-card">
-            <div className="fg-bezel__inner fg-project-workbench__inner">
+          <section className="ml-card-shell fg-panel fg-project-workbench fp-project-workbench-card">
+            <div className="ml-card-shell__inner fg-project-workbench__inner">
               <aside className="fg-project-services fg-project-services--rail fg-project-workbench__rail fp-project-workbench-rail">
                 <PanelSection className="fg-project-services__head">
                   <div className="fg-project-services__title-row">
@@ -5440,8 +5440,8 @@ export function ConsoleProjectGallery({
 
     return (
       <div className="fg-project-card__detail" id={detailId}>
-        <section className="fg-bezel fg-panel fg-project-workbench fp-project-workbench-card">
-          <div className="fg-bezel__inner fg-project-workbench__inner">
+        <section className="ml-card-shell fg-panel fg-project-workbench fp-project-workbench-card">
+          <div className="ml-card-shell__inner fg-project-workbench__inner">
             <aside className="fg-project-services fg-project-services--rail fg-project-workbench__rail fp-project-workbench-rail">
               <PanelSection className="fg-project-services__head">
                 <div className="fg-project-services__title-row">
@@ -7785,8 +7785,8 @@ function ConsoleProjectWorkbenchImpl({
   if (detailStatus === "error" || !detailProject) {
     return (
       <div className="fg-project-card__detail" id={detailId}>
-        <section className="fg-bezel fg-panel fg-project-workbench">
-          <div className="fg-bezel__inner fg-project-workbench__inner">
+        <section className="ml-card-shell fg-panel fg-project-workbench">
+          <div className="ml-card-shell__inner fg-project-workbench__inner">
             <div className="fg-workbench-section">
               <p className="fg-console-note">
                 {detailError ?? t("Unable to load this project right now.")}
@@ -7861,8 +7861,8 @@ function ConsoleProjectWorkbenchImpl({
 
     return (
       <div className="fg-project-card__detail" id={detailId}>
-        <section className="fg-bezel fg-panel fg-project-workbench">
-          <div className="fg-bezel__inner fg-project-workbench__inner fg-project-workbench__inner--project-settings">
+        <section className="ml-card-shell fg-panel fg-project-workbench">
+          <div className="ml-card-shell__inner fg-project-workbench__inner fg-project-workbench__inner--project-settings">
             <aside className="fg-project-services fg-project-services--rail fg-project-workbench__rail">
               {projectRailHead}
 
@@ -8512,8 +8512,8 @@ function ConsoleProjectWorkbenchImpl({
 
   return (
     <div className="fg-project-card__detail" id={detailId}>
-      <section className="fg-bezel fg-panel fg-project-workbench">
-        <div className="fg-bezel__inner fg-project-workbench__inner">
+      <section className="ml-card-shell fg-panel fg-project-workbench">
+        <div className="ml-card-shell__inner fg-project-workbench__inner">
           <aside className="fg-project-services fg-project-services--rail fg-project-workbench__rail">
             {projectRailHead}
 

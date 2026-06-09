@@ -8,12 +8,10 @@ import { ThemeProvider } from "@/components/providers/theme-provider";
 import { getRequestI18n } from "@/lib/i18n/server";
 import {
   THEME_COOKIE_NAME,
-  buildThemeBootstrapScript,
   parseThemePreference,
   resolveThemePreference,
 } from "@/lib/theme";
 import "./globals.css";
-import "./cloudflare-runtime.css";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getRequestI18n();
@@ -45,13 +43,6 @@ export default async function RootLayout({
       lang={locale}
       suppressHydrationWarning
     >
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: buildThemeBootstrapScript(themePreference),
-          }}
-        />
-      </head>
       <body
         className={`${fugueFontVariables} ${initialTheme === "light" ? "fg-theme-light" : "fg-theme-dark"}`}
       >

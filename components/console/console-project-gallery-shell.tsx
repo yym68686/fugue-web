@@ -836,8 +836,8 @@ function PendingProjectCard({
 
       {expanded ? (
         <div className="fg-project-card__detail" id={detailId}>
-          <section className="fg-bezel fg-panel fg-project-workbench fg-project-workbench--pending-shell">
-            <div className="fg-bezel__inner fg-project-pending-shell-panel">
+          <section className="ml-card-shell fg-panel fg-project-workbench fg-project-workbench--pending-shell">
+            <div className="ml-card-shell__inner fg-project-pending-shell-panel">
               <PanelSection className="fg-project-pending-shell__hero">
                 <div className="fg-project-pending-shell__status-row">
                   <p className="fg-label fg-panel__eyebrow">{status.eyebrow}</p>

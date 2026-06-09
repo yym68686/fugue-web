@@ -1,22 +1,12 @@
 import { Brand } from "@/components/brand";
-import { Button, ButtonLink } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button";
 import { LocaleUtilityMenu } from "@/components/ui/locale-switcher";
-import { PillNav, PillNavAnchor } from "@/components/ui/pill-nav";
-import { ProofShell, ProofShellRibbon } from "@/components/ui/proof-shell";
-import { RouteNote } from "@/components/ui/route-note";
 import { ThemeUtilityMenu } from "@/components/ui/theme-switcher";
 import { getRequestI18n } from "@/lib/i18n/server";
 import { marketingPrimaryNav } from "@/lib/site/navigation";
 
 type LandingPageProps = {
   authenticatedAppPath: string | null;
-};
-
-type LandingRouteNote = {
-  index: string;
-  title: string;
-  meta: string;
-  toneClassName?: string;
 };
 
 type RouteChapter = {
@@ -34,27 +24,6 @@ type SurfaceColumn = {
     meta: string;
   }>;
 };
-
-const heroRouteNotes: LandingRouteNote[] = [
-  {
-    index: "01",
-    title: "Source intake",
-    meta: "Repository / Image / Upload",
-    toneClassName: "fg-landing-route-note--repo",
-  },
-  {
-    index: "02",
-    title: "Shared runtime",
-    meta: "Build / Deploy / Route",
-    toneClassName: "fg-landing-route-note--shared",
-  },
-  {
-    index: "03",
-    title: "Attached machine",
-    meta: "Node key / Heartbeat / Migrate",
-    toneClassName: "fg-landing-route-note--attached",
-  },
-];
 
 const routeChapters: RouteChapter[] = [
   {
@@ -106,14 +75,6 @@ const surfaceColumns: SurfaceColumn[] = [
   },
 ];
 
-const runwayStops = [
-  "Start from a repository, image, or uploaded bundle.",
-  "Go live on shared infrastructure first.",
-  "Move to your own machine without changing the route.",
-];
-
-const objectBeltItems = ["Workspace", "Project", "App", "Runtime", "Operation"];
-
 const quickstartCode = `export FUGUE_BASE_URL="https://api.fugue.pro"
 
 curl -sS "\${FUGUE_BASE_URL}/healthz"
@@ -126,19 +87,7 @@ curl -sS "\${FUGUE_BASE_URL}/v1/apps/import-github" \\
     "runtime_id":"runtime_managed_shared"
   }'`;
 
-function RouteSignal() {
-  return (
-    <svg className="fg-route-signal fg-landing-route-signal" viewBox="0 0 1200 170" aria-hidden="true">
-      <path className="fg-route-signal__base" d="M40 118 C232 26, 372 32, 538 96 S860 180, 1160 36" />
-      <path className="fg-route-signal__active" d="M40 118 C232 26, 372 32, 538 96 S860 180, 1160 36" />
-      <circle className="fg-route-signal__dot" cx="40" cy="118" r="7" />
-      <circle className="fg-route-signal__dot" cx="538" cy="96" r="7" />
-      <circle className="fg-route-signal__dot" cx="1160" cy="36" r="7" />
-    </svg>
-  );
-}
-
-function GhostAnchorButton({
+function TextLink({
   children,
   href,
 }: {
@@ -146,304 +95,182 @@ function GhostAnchorButton({
   href: string;
 }) {
   return (
-    <a className="fg-button fg-button--ghost" href={href}>
-      <span className="fg-button__label">{children}</span>
-      <span aria-hidden="true" className="fg-button__icon is-plain is-trailing">
-        -&gt;
-      </span>
+    <a className="ml-text-link" href={href}>
+      {children}
     </a>
   );
 }
 
 export async function LandingPage({ authenticatedAppPath }: LandingPageProps) {
-  const { locale, t } = await getRequestI18n();
-  const isCjkLocale = locale.startsWith("zh");
+  const { t } = await getRequestI18n();
   const primaryHref = authenticatedAppPath ?? "/auth/sign-up";
   const primaryLabel = t(authenticatedAppPath ? "Open app" : "Get started");
-  const proofHeading = t(
-    authenticatedAppPath
-      ? "Verify the public route, then open the app."
-      : "Verify the public route, then continue to sign in.",
-  );
-  const heroHeadingLines = [t("Start shared."), t("Move cleanly.")];
 
   return (
-    <div className="fp-design-system fg-landing-page fp-landing-page" data-landing-root="">
-      <a className="fg-landing-skip-link" href="#main">
+    <div className="ml-page ml-marketing">
+      <a className="ml-skip-link" href="#main">
         {t("Skip to content")}
       </a>
 
-      <header className="fg-landing-masthead">
-        <div className="fg-shell fg-landing-masthead__shell">
-          <Brand meta={t("Deploy apps from source")} />
+      <header className="ml-marketing-nav">
+        <Brand meta={t("Deploy apps from source")} />
 
-          <PillNav ariaLabel={t("Primary")} className="fg-landing-nav">
-            {marketingPrimaryNav.map((item) => (
-              <PillNavAnchor href={item.href} key={item.href}>
-                {t(item.label)}
-              </PillNavAnchor>
-            ))}
-          </PillNav>
+        <nav aria-label={t("Primary")} className="ml-marketing-nav__links">
+          {marketingPrimaryNav.map((item) => (
+            <a href={item.href} key={item.href}>
+              {t(item.label)}
+            </a>
+          ))}
+        </nav>
 
-          <div className="fg-landing-masthead__actions">
-            <ThemeUtilityMenu className="fg-landing-theme-switcher" />
-            <LocaleUtilityMenu className="fg-landing-locale-switcher" />
-            <ButtonLink className="fg-landing-topbar-action" href={primaryHref} size="compact" variant="route">
-              {primaryLabel}
-            </ButtonLink>
-          </div>
-
-          <button
-            aria-controls="fg-landing-mobile-menu"
-            aria-expanded="false"
-            aria-label={t("Open menu")}
-            className="fg-landing-menu-toggle"
-            type="button"
-          >
-            <span />
-            <span />
-          </button>
-        </div>
-
-        <div className="fg-landing-mobile-sheet" id="fg-landing-mobile-menu" hidden>
-          <nav aria-label={t("Mobile")} className="fg-landing-mobile-nav">
-            {marketingPrimaryNav.map((item) => (
-              <a href={item.href} key={item.href}>
-                {t(item.label)}
-              </a>
-            ))}
-          </nav>
+        <div className="ml-marketing-nav__actions">
+          <ThemeUtilityMenu className="ml-utility-menu" />
+          <LocaleUtilityMenu className="ml-utility-menu" />
+          <ButtonLink href={primaryHref} size="compact" variant="primary">
+            {primaryLabel}
+          </ButtonLink>
         </div>
       </header>
 
-      <main className="fg-landing-main" id="main">
-        <section className="fg-landing-hero" data-landing-hero="" data-tilt-root="" id="top">
-          <div aria-hidden="true" className="fg-landing-hero-media">
-            <div
-              className="fg-landing-scene-container"
-              data-us-project="9QSqoDWkMs8NffWH18AF"
-              id="fg-landing-scene"
-            />
-            <div aria-hidden="true" className="fg-landing-overlay-radial" />
-            <div aria-hidden="true" className="fg-landing-overlay-gradient" />
-            <div aria-hidden="true" className="fg-landing-overlay-noise" />
-            <div aria-hidden="true" className="fg-landing-overlay-scan" />
-            <div aria-hidden="true" className="fg-landing-stage-glare" />
-          </div>
-
-          <div className="fg-shell fg-landing-hero-shell">
-            <p aria-hidden="true" className="fg-landing-hero-ghost">
-              Fugue
+      <main className="ml-marketing-main" id="main">
+        <section className="ml-marketing-hero" id="top">
+          <div className="ml-marketing-hero__copy">
+            <p className="ml-eyebrow">{t("Deploy from source, shared first")}</p>
+            <h1>{t("Start shared. Move cleanly.")}</h1>
+            <p>
+              {t(
+                "Start from a GitHub repository, a published Docker image, or a local upload on managed shared k3s first. The same app can move onto your own machine later without rebuilding the route or changing the workflow.",
+              )}
             </p>
-
-            <div className={`fg-landing-hero-copy${isCjkLocale ? " is-cjk" : ""}`}>
-              <p className="fg-label fg-mono" data-stagger="1">
-                {t("Deploy from source, shared first")}
-              </p>
-              <h1 className="fg-display-heading" data-stagger="2">
-                {heroHeadingLines.map((line) => (
-                  <span className="fg-landing-hero-title-line" key={line}>
-                    {line}
-                  </span>
-                ))}
-              </h1>
-              <p className="fg-copy fg-landing-hero-lead" data-stagger="3">
-                {t(
-                  "Start from a GitHub repository, a published Docker image, or a local upload on managed shared k3s first. The same app can move onto your own machine later without rebuilding the route or changing the workflow.",
-                )}
-              </p>
-
-              <div className="fg-landing-hero-actions" data-stagger="4">
-                <ButtonLink href={primaryHref} variant="route">
-                  {primaryLabel}
-                </ButtonLink>
-                <GhostAnchorButton href="#route">{t("See the route")}</GhostAnchorButton>
-              </div>
-            </div>
-
-            <div className="fg-landing-hero-rail" data-stagger="5">
-              <p className="fg-label fg-mono fg-landing-hero-rail__kicker">{t("One route, two runtimes")}</p>
-
-              {heroRouteNotes.map((note) => (
-                <RouteNote
-                  className={note.toneClassName}
-                  index={note.index}
-                  key={note.index}
-                  meta={t(note.meta)}
-                  title={t(note.title)}
-                />
-              ))}
+            <div className="ml-action-row">
+              <ButtonLink href={primaryHref} variant="primary">
+                {primaryLabel}
+              </ButtonLink>
+              <TextLink href="#route">{t("See the route")}</TextLink>
             </div>
           </div>
 
-          <div className="fg-shell fg-landing-runway">
-            {runwayStops.map((title, index) => (
-              <article className="fg-landing-runway-stop" key={title}>
-                <p className="fg-label fg-mono">
-                  {String(index + 1).padStart(2, "0")} / {t(index === 0 ? "source" : index === 1 ? "shared" : "attached")}
-                </p>
-                <h2>{t(title)}</h2>
+          <aside className="ml-terminal" aria-label={t("Route summary")}>
+            <div className="ml-terminal__bar">
+              <span>{t("One route, two runtimes")}</span>
+              <code>api.fugue.pro</code>
+            </div>
+            <ol className="ml-route-list">
+              {routeChapters.map((chapter) => (
+                <li key={chapter.index}>
+                  <span>{chapter.index}</span>
+                  <strong>{t(chapter.label)}</strong>
+                  <code>{t(chapter.meta)}</code>
+                </li>
+              ))}
+            </ol>
+          </aside>
+        </section>
+
+        <section className="ml-section" id="route">
+          <div className="ml-section__head">
+            <p className="ml-eyebrow">{t("Route model")}</p>
+            <h2>{t("The route is the product.")}</h2>
+            <p>
+              {t(
+                "The fastest path to a public URL should not trap the app in a throwaway setup. In Fugue, the route stays stable while the runtime changes: import the source, go live on shared infrastructure, then migrate onto your own machine when you are ready.",
+              )}
+            </p>
+          </div>
+
+          <div className="ml-chapter-grid">
+            {routeChapters.map((chapter) => (
+              <article className="ml-card" key={chapter.index}>
+                <span className="ml-card__index">{chapter.index}</span>
+                <h3>{t(chapter.title)}</h3>
+                <p>{t(chapter.description)}</p>
+                <code>{t(chapter.meta)}</code>
               </article>
             ))}
           </div>
         </section>
 
-        <section className="fg-landing-section fg-landing-section--route" data-landing-section="" id="route">
-          <div className="fg-content-shell fg-landing-section-shell">
-            <div className="fg-landing-section-head">
-              <p className="fg-label fg-mono">{t("Route model")}</p>
-              <h2 className="fg-display-heading">{t("The route is the product.")}</h2>
-              <p className="fg-copy fg-landing-section-copy">
-                {t(
-                  "The fastest path to a public URL should not trap the app in a throwaway setup. In Fugue, the route stays stable while the runtime changes: import the source, go live on shared infrastructure, then migrate onto your own machine when you are ready.",
-                )}
-              </p>
-            </div>
+        <section className="ml-section" id="surface">
+          <div className="ml-section__head">
+            <p className="ml-eyebrow">{t("Available now")}</p>
+            <h2>{t("Route, sign-in, and the app already share one system.")}</h2>
+          </div>
 
-            <RouteSignal />
-
-            <div className="fg-landing-chapter-stack">
-              {routeChapters.map((chapter) => (
-                <article className="fg-landing-chapter" key={chapter.index}>
-                  <p className="fg-landing-chapter__number">{chapter.index}</p>
-
-                  <div className="fg-landing-chapter__body">
-                    <p className="fg-label fg-mono">{t(chapter.label)}</p>
-                    <h3>{t(chapter.title)}</h3>
-                    <p className="fg-copy">{t(chapter.description)}</p>
-                  </div>
-
-                  <p className="fg-landing-chapter__meta fg-mono">{t(chapter.meta)}</p>
-                </article>
-              ))}
-            </div>
+          <div className="ml-surface-grid">
+            {surfaceColumns.map((column) => (
+              <article className="ml-card" key={column.label}>
+                <h3>{t(column.label)}</h3>
+                <ul className="ml-key-list">
+                  {column.items.map((item) => (
+                    <li key={item.label}>
+                      <span>{t(item.label)}</span>
+                      <code>{t(item.meta)}</code>
+                    </li>
+                  ))}
+                </ul>
+              </article>
+            ))}
           </div>
         </section>
 
-        <section className="fg-landing-section" data-landing-section="" id="surface">
-          <div className="fg-content-shell fg-landing-section-shell">
-            <div className="fg-landing-surface-intro">
-              <p className="fg-label fg-mono">{t("Available now")}</p>
-              <h2 className="fg-display-heading">
-                {t("Route, sign-in, and the app already share one system.")}
-              </h2>
-            </div>
-
-            <div className="fg-landing-surface-grid">
-              {surfaceColumns.map((column) => (
-                <article className="fg-landing-surface-column" key={column.label}>
-                  <p className="fg-label fg-mono">{t(column.label)}</p>
-
-                  <ul className="fg-landing-surface-list">
-                    {column.items.map((item) => (
-                      <li key={item.label}>
-                        <span>{t(item.label)}</span>
-                        <span className="fg-mono">{t(item.meta)}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </article>
-              ))}
-            </div>
-
-            <div aria-label={t("Core objects")} className="fg-object-belt">
-              {objectBeltItems.map((item) => (
-                <span key={item}>{t(item)}</span>
-              ))}
-            </div>
+        <section className="ml-section" id="quickstart">
+          <div className="ml-section__head">
+            <p className="ml-eyebrow">{t("Quickstart")}</p>
+            <h2>
+              {t(
+                authenticatedAppPath
+                  ? "Verify the public route, then open the app."
+                  : "Verify the public route, then continue to sign in.",
+              )}
+            </h2>
           </div>
+
+          <pre className="ml-code-block" id="quickstart-code">
+            <code>{quickstartCode}</code>
+          </pre>
         </section>
 
-        <section className="fg-landing-section" data-landing-section="" id="quickstart">
-          <div className="fg-content-shell fg-landing-section-shell">
-            <div className="fg-landing-proof-head">
-              <div>
-                <p className="fg-label fg-mono">{t("Quickstart")}</p>
-                <h2 className="fg-display-heading">{proofHeading}</h2>
-              </div>
-
-              <Button
-                className="fg-landing-copy-button"
-                data-copy-target="quickstart-code"
-                size="compact"
-                type="button"
-                variant="ghost"
-              >
-                {t("Copy command")}
-              </Button>
-            </div>
-
-            <ProofShell className="fg-landing-proof-shell">
-              <ProofShellRibbon>
-                <span>{t("GitHub import example")}</span>
-                <span>{t("Docker image import also available")}</span>
-                <span>{t("Managed shared runtime")}</span>
-                <span>api.fugue.pro</span>
-              </ProofShellRibbon>
-
-              <pre id="quickstart-code">
-                <code>{quickstartCode}</code>
-              </pre>
-            </ProofShell>
+        <section className="ml-section ml-section--split" id="launch">
+          <div className="ml-section__head">
+            <p className="ml-eyebrow">{t("Sign-in handoff")}</p>
+            <h2>{t("Sign in without breaking the product flow.")}</h2>
           </div>
-        </section>
 
-        <section className="fg-landing-section" data-landing-section="" id="launch">
-          <div className="fg-content-shell fg-landing-section-shell">
-            <div className="fg-landing-launch-layout">
-              <div className="fg-landing-launch-copy">
-                <p className="fg-label fg-mono">{t("Sign-in handoff")}</p>
-                <h2 className="fg-display-heading">{t("Sign in without breaking the product flow.")}</h2>
-              </div>
-
-              <div className="fg-landing-launch-meta">
-                <p className="fg-copy">
-                  {t(
-                    "Google sign-in and email sign-up run as full routes with loading, validation, retry, and failure states. The public page hands off directly into the app instead of restarting the journey in a different shell.",
-                  )}
-                </p>
-
-                <div className="fg-landing-hero-actions fg-landing-hero-actions--left">
-                  <ButtonLink href={primaryHref} variant="route">
-                    {primaryLabel}
-                  </ButtonLink>
-                  {authenticatedAppPath ? (
-                    <GhostAnchorButton href="#top">{t("Back to top")}</GhostAnchorButton>
-                  ) : (
-                    <ButtonLink href="/auth/sign-in" variant="secondary">
-                      {t("Sign in")}
-                    </ButtonLink>
-                  )}
-                </div>
-
-                <p className="fg-landing-compare-links fg-mono">
-                  Routes /
-                  <a href="/auth/sign-up">{t("Sign up")}</a> /
-                  <a href="/auth/sign-in">{t("Sign in")}</a> /
-                  <a href="/app">{t("App")}</a>
-                </p>
-              </div>
+          <div className="ml-card">
+            <p>
+              {t(
+                "Google sign-in and email sign-up run as full routes with loading, validation, retry, and failure states. The public page hands off directly into the app instead of restarting the journey in a different shell.",
+              )}
+            </p>
+            <div className="ml-action-row">
+              <ButtonLink href={primaryHref} variant="primary">
+                {primaryLabel}
+              </ButtonLink>
+              {authenticatedAppPath ? (
+                <TextLink href="#top">{t("Back to top")}</TextLink>
+              ) : (
+                <ButtonLink href="/auth/sign-in" variant="secondary">
+                  {t("Sign in")}
+                </ButtonLink>
+              )}
             </div>
           </div>
         </section>
       </main>
 
-      <footer className="fg-landing-footer">
-        <div className="fg-content-shell fg-landing-footer__shell">
-          <p className="fg-copy fg-landing-footer__copy">
-            {t(
-              "Fugue keeps the public route, sign-in handoff, and app shell inside one product. The same route and workflow continue from the first deploy to the signed-in workspace.",
-            )}
-          </p>
-
-          <nav aria-label={t("Footer")} className="fg-landing-footer__nav">
-            {marketingPrimaryNav.map((item) => (
-              <a href={item.href} key={item.href}>
-                {t(item.label)}
-              </a>
-            ))}
-          </nav>
-        </div>
+      <footer className="ml-marketing-footer">
+        <p>
+          {t(
+            "Fugue keeps the public route, sign-in handoff, and app shell inside one product. The same route and workflow continue from the first deploy to the signed-in workspace.",
+          )}
+        </p>
+        <nav aria-label={t("Footer")}>
+          {marketingPrimaryNav.map((item) => (
+            <a href={item.href} key={item.href}>
+              {t(item.label)}
+            </a>
+          ))}
+        </nav>
       </footer>
     </div>
   );

@@ -867,8 +867,8 @@ export function ConsoleProjectWorkbenchSkeleton({
 }) {
   return (
     <div className="fg-project-card__detail" id={detailId}>
-      <section className="fg-bezel fg-panel fg-project-workbench">
-        <div className="fg-bezel__inner fg-project-workbench__inner">
+      <section className="ml-card-shell fg-panel fg-project-workbench">
+        <div className="ml-card-shell__inner fg-project-workbench__inner">
           <aside className="fg-project-services fg-project-services--rail fg-project-workbench__rail">
             <PanelSection className="fg-project-services__head">
               <div className="fg-project-services__title-row">

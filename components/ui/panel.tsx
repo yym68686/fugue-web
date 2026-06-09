@@ -10,8 +10,8 @@ export function Panel({
   className?: string;
 }) {
   return (
-    <section className={cx("fg-bezel fg-panel", className)}>
-      <div className="fg-bezel__inner">{children}</div>
+    <section className={cx("ml-card-shell fg-panel", className)}>
+      <div className="ml-card-shell__inner">{children}</div>
     </section>
   );
 }

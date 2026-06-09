@@ -5,7 +5,7 @@ export type Theme = Exclude<ThemePreference, "auto">;
 
 export const THEME_COOKIE_NAME = "fg_theme";
 export const THEME_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
-export const DEFAULT_THEME: Theme = "dark";
+export const DEFAULT_THEME: Theme = "light";
 
 const THEME_PREFERENCE_SET = new Set<ThemePreference>(THEME_PREFERENCE_VALUES);
 
@@ -27,22 +27,16 @@ export function parseThemePreference(
 
 export function resolveThemePreference(
   preference: ThemePreference,
-  systemTheme: Theme = DEFAULT_THEME,
+  _systemTheme: Theme = DEFAULT_THEME,
 ): Theme {
-  return preference === "auto" ? systemTheme : preference;
+  return preference === "auto" ? DEFAULT_THEME : preference;
 }
 
 export function buildThemeBootstrapScript(preference: ThemePreference): string {
   return `(() => {
     const preference = ${JSON.stringify(preference)};
     const root = document.documentElement;
-    const mediaQuery =
-      typeof window.matchMedia === "function"
-        ? window.matchMedia("(prefers-color-scheme: light)")
-        : null;
-    const systemTheme =
-      mediaQuery && mediaQuery.matches ? "light" : ${JSON.stringify(DEFAULT_THEME)};
-    const resolved = preference === "auto" ? systemTheme : preference;
+    const resolved = preference === "auto" ? ${JSON.stringify(DEFAULT_THEME)} : preference;
     root.dataset.themePreference = preference;
     root.dataset.theme = resolved;
     root.style.colorScheme = resolved;

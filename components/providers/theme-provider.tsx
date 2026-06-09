@@ -22,16 +22,7 @@ type ThemeContextValue = {
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 function readSystemTheme(): Theme {
-  if (
-    typeof window === "undefined" ||
-    typeof window.matchMedia !== "function"
-  ) {
-    return DEFAULT_THEME;
-  }
-
-  return window.matchMedia("(prefers-color-scheme: light)").matches
-    ? "light"
-    : "dark";
+  return DEFAULT_THEME;
 }
 
 function applyThemePreference(preference: ThemePreference): Theme {
@@ -114,7 +105,7 @@ export function ThemeProvider({
       return;
     }
 
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: light)");
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     const handleChange = () => {
       setResolvedTheme(applyThemePreference("auto"));
     };

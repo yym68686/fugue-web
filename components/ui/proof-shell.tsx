@@ -14,8 +14,8 @@ type ProofShellEmptyProps = Omit<HTMLAttributes<HTMLDivElement>, "children"> & {
 
 export function ProofShell({ children, className, ...rest }: ProofShellProps) {
   return (
-    <div {...rest} className={cx("fg-bezel fg-proof-shell", className)}>
-      <div className="fg-bezel__inner">{children}</div>
+    <div {...rest} className={cx("ml-card-shell", className)}>
+      <div className="ml-card-shell__inner">{children}</div>
     </div>
   );
 }
@@ -26,7 +26,7 @@ export function ProofShellRibbon({
   ...rest
 }: HTMLAttributes<HTMLDivElement>) {
   return (
-    <div {...rest} className={cx("fg-proof-shell__ribbon", className)}>
+    <div {...rest} className={cx("ml-card-shell__ribbon", className)}>
       {children}
     </div>
   );
@@ -40,7 +40,7 @@ export function ProofShellEmpty({
   ...rest
 }: ProofShellEmptyProps) {
   return (
-    <div {...rest} className={cx("fg-proof-shell__empty", className)}>
+    <div {...rest} className={cx("ml-empty-state", className)}>
       <strong>{title}</strong>
       {description ? <p>{description}</p> : null}
       {children}
