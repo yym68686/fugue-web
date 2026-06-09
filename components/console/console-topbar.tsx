@@ -67,7 +67,7 @@ export function ConsoleTopbar({
           ]}
         />
       }
+      title={currentLabel}
     />
   );
 }
-

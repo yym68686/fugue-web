@@ -17,10 +17,10 @@ export function PlatformShell({
   topbar: ReactNode;
 }) {
   return (
-    <main className={cx("fp-design-system fp-app-shell", className)}>
-      <aside className="fp-sidebar fp-sidebar--desktop">{sidebar}</aside>
-      <section className="fp-main">
-        <header className="fp-topbar">
+    <main className={cx("app-shell fp-app-shell", className)}>
+      <aside className="sidebar fp-sidebar fp-sidebar--desktop">{sidebar}</aside>
+      <section className="main-pane fp-main">
+        <header className="topbar fp-topbar">
           {mobileNavigation ? (
             <details className="fp-mobile-nav">
               <summary className="fp-button fp-icon-button fp-icon-button--sm fp-mobile-nav__trigger">
@@ -52,9 +52,9 @@ export function PlatformSidebar({
 }) {
   return (
     <>
-      <div className="fp-sidebar__brand">{brand}</div>
+      <div className="sidebar-top fp-sidebar__brand">{brand}</div>
       {command}
-      <nav className="fp-nav">{children}</nav>
+      <nav className="nav-links fp-nav">{children}</nav>
       {footer ? <div className="fp-sidebar__footer">{footer}</div> : null}
     </>
   );
@@ -68,7 +68,7 @@ export function PlatformSidebarBrand({
   title: ReactNode;
 }) {
   return (
-    <div className="fp-sidebar-brand">
+    <div className="brand fp-sidebar-brand">
       <span className="fp-sidebar-brand__copy">
         <strong>{title}</strong>
         {meta ? <span>{meta}</span> : null}
@@ -91,16 +91,21 @@ export function PlatformTopbar({
   actions,
   breadcrumbs,
   className,
+  title,
 }: {
   actions?: ReactNode;
   breadcrumbs: ReactNode;
   className?: string;
+  title?: ReactNode;
 }) {
   return (
-    <div className={cx("fp-topbar__inner", className)}>
-      <div className="fp-breadcrumb">{breadcrumbs}</div>
+    <>
+      <div className={cx("topbar-heading fp-topbar__inner", className)}>
+        <div className="fp-breadcrumb breadcrumbs">{breadcrumbs}</div>
+        {title ? <strong className="topbar-title">{title}</strong> : null}
+      </div>
       {actions ? <div className="fp-topbar__actions">{actions}</div> : null}
-    </div>
+    </>
   );
 }
 
@@ -153,7 +158,7 @@ export function PlatformPageHeader({
   title: ReactNode;
 }) {
   return (
-    <section className="fp-page-header">
+    <section className="page-header fp-page-header">
       <div className="fp-page-header__copy">
         {eyebrow ? <p className="fp-eyebrow">{eyebrow}</p> : null}
         <h1 className="fp-page-title">{title}</h1>
@@ -177,9 +182,9 @@ export function PlatformSection({
   title?: ReactNode;
 } & HTMLAttributes<HTMLElement>) {
   return (
-    <section {...rest} className={cx("fp-section", className)}>
+    <section {...rest} className={cx("section fp-section", className)}>
       {title || description ? (
-        <div className="fp-section__header">
+        <div className="section-header fp-section__header">
           {title ? <h2 className="fp-section-heading">{title}</h2> : null}
           {description ? <p className="fp-section-copy">{description}</p> : null}
         </div>

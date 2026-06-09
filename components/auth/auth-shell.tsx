@@ -34,9 +34,9 @@ export function AuthShell({
     (eyebrow.startsWith("Auth / ") ? eyebrow.slice("Auth / ".length) : eyebrow);
 
   return (
-    <main className="ml-auth-shell">
-      <section className="ml-auth-panel" aria-labelledby="auth-title">
-        <div className="ml-auth-topline">
+    <main className="auth-shell ml-auth-shell">
+      <section className="auth-panel ml-auth-panel" aria-labelledby="auth-title">
+        <div className="auth-topline ml-auth-topline">
           <Brand meta={resolvedBrandMeta} />
           <div className="ml-auth-utilities">
             <ThemeMenuButton />
@@ -44,7 +44,7 @@ export function AuthShell({
           </div>
         </div>
 
-        <header className="ml-auth-header">
+        <header className="page-header ml-auth-header">
           <p className="ml-eyebrow">{eyebrow}</p>
           <h1 id="auth-title">{title}</h1>
           <p>{description}</p>
