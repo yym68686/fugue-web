@@ -131,27 +131,24 @@ export async function DeployPage({
         variant="pill"
         watchKey={effectiveSourceMode}
       >
-        <PillNav ariaLabel="Deploy source mode" className="fg-console-nav">
+        <PillNav ariaLabel="Deploy source mode">
           <PillNavAnchor
             active={!isLocalUploadMode && !isImageMode}
-            className="fg-console-nav__link"
             href={repositoryModeHref ?? "/new/repository"}
           >
-            <span className="fg-console-nav__title">{t("GitHub repository")}</span>
+            <span>{t("GitHub repository")}</span>
           </PillNavAnchor>
           <PillNavAnchor
             active={isLocalUploadMode}
-            className="fg-console-nav__link"
             href={localUploadModeHref ?? "/new/repository?source-mode=local-upload"}
           >
-            <span className="fg-console-nav__title">{t("Local upload")}</span>
+            <span>{t("Local upload")}</span>
           </PillNavAnchor>
           <PillNavAnchor
             active={isImageMode}
-            className="fg-console-nav__link"
             href={dockerImageModeHref ?? "/new/repository?source-mode=docker-image"}
           >
-            <span className="fg-console-nav__title">{t("Docker image")}</span>
+            <span>{t("Docker image")}</span>
           </PillNavAnchor>
         </PillNav>
       </ScrollableControlStrip>
@@ -165,8 +162,8 @@ export async function DeployPage({
     >
             <div className="fg-deploy-page__topbar">
             <div className="fg-deploy-topbar__utilities">
-              <ThemeMenuButton />
               <LocaleMenuButton />
+              <ThemeMenuButton />
             </div>
           </div>
 

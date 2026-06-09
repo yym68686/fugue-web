@@ -5,8 +5,6 @@ import { useEffect, useRef } from "react";
 import { StatusBadge } from "@/components/console/status-badge";
 import { useI18n } from "@/components/providers/i18n-provider";
 import { Button, ButtonLink } from "@/components/ui/button";
-import { LocaleSwitcher } from "@/components/ui/locale-switcher";
-import { ThemeSwitcher } from "@/components/ui/theme-switcher";
 import {
   readAuthMethodLabel,
   readSessionLabel,
@@ -140,30 +138,12 @@ export function ConsoleProfileMenu({
           </StatusBadge>
         </div>
 
-        <div className="fg-console-profile__section">
-          <p className="fg-console-profile__section-label fg-mono">{t("Theme")}</p>
-          <ThemeSwitcher
-            className="fg-console-profile__theme-switcher"
-            onChangeComplete={() => closeProfileMenu()}
-            variant="pill"
-          />
-        </div>
-
-        <div className="fg-console-profile__section">
-          <p className="fg-console-profile__section-label fg-mono">{t("Interface language")}</p>
-          <LocaleSwitcher
-            className="fg-console-profile__locale-switcher"
-            onChangeComplete={() => closeProfileMenu()}
-            variant="pill"
-          />
-        </div>
-
-        <ButtonLink className="fg-button--full-width" href="/app/settings/profile" size="compact" variant="secondary">
+        <ButtonLink className="button-full" href="/app/settings/profile" size="compact" variant="secondary">
           {t("Profile and security")}
         </ButtonLink>
 
         <form action="/api/auth/sign-out" className="fg-signout-form" method="post">
-          <Button className="fg-button--full-width" size="compact" type="submit" variant="secondary">
+          <Button className="button-full" size="compact" type="submit" variant="secondary">
             {t("Sign out")}
           </Button>
         </form>

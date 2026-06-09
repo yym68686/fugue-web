@@ -104,8 +104,8 @@ export default async function DocsPage() {
           </nav>
 
           <div className="ml-docs-topbar__actions">
-            <ThemeUtilityMenu className="ml-utility-menu" />
             <LocaleUtilityMenu className="ml-utility-menu" />
+            <ThemeUtilityMenu className="ml-utility-menu" />
             <ButtonLink href={primaryHref} size="compact" variant="primary">
               {primaryLabel}
             </ButtonLink>

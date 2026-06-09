@@ -1,4 +1,3 @@
-import { ScrollableControlStrip } from "@/components/ui/scrollable-control-strip";
 import type { KeyboardEvent, ReactNode } from "react";
 
 import { cx } from "@/lib/ui/cx";
@@ -18,7 +17,6 @@ export function SegmentedControl<Value extends string>({
   onChange,
   options,
   value,
-  variant,
 }: {
   ariaLabel: string;
   className?: string;
@@ -30,14 +28,7 @@ export function SegmentedControl<Value extends string>({
   value: Value;
   variant: "pill" | "segmented";
 }) {
-  const controlBaseClassName =
-    variant === "pill" ? "fg-pill-nav" : "fg-segmented";
-  const itemBaseClassName =
-    variant === "pill" ? "fg-pill-nav__button" : "fg-segmented__item";
-  const labelBaseClassName =
-    variant === "pill" ? "fg-pill-nav__label" : "fg-segmented__label";
-  const itemSelector =
-    variant === "pill" ? ".fg-pill-nav__button" : ".fg-segmented__item";
+  const itemSelector = ".segmented-control__button";
 
   function moveSelection(index: number, direction: 1 | -1) {
     const total = options.length;
@@ -107,44 +98,39 @@ export function SegmentedControl<Value extends string>({
   }
 
   return (
-    <ScrollableControlStrip
-      activeSelector='[aria-pressed="true"]'
-      className={className}
-      variant={variant}
-      watchKey={value}
+    <div
+      aria-label={ariaLabel}
+      className={cx("segmented-control", className, controlClassName)}
+      role="group"
     >
-      <div
-        aria-label={ariaLabel}
-        className={cx(controlBaseClassName, controlClassName)}
-        role="group"
-      >
-        {options.map((option, index) => {
-          const isActive = option.value === value;
+      {options.map((option, index) => {
+        const isActive = option.value === value;
 
-          return (
-            <button
-              aria-pressed={isActive}
-              className={cx(itemBaseClassName, itemClassName, isActive && "is-active")}
-              data-state={isActive ? "active" : "inactive"}
-              disabled={option.disabled}
-              key={option.value}
-              onClick={() => {
-                if (option.disabled || isActive) {
-                  return;
-                }
+        return (
+          <button
+            aria-pressed={isActive}
+            className={cx(
+              "segmented-control__button",
+              itemClassName,
+              isActive && "active",
+            )}
+            data-state={isActive ? "active" : "inactive"}
+            disabled={option.disabled}
+            key={option.value}
+            onClick={() => {
+              if (option.disabled || isActive) {
+                return;
+              }
 
-                onChange(option.value);
-              }}
-              onKeyDown={(event) => handleKeyDown(event, index)}
-              type="button"
-            >
-              <span className={cx(labelBaseClassName, labelClassName)}>
-                {option.label}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    </ScrollableControlStrip>
+              onChange(option.value);
+            }}
+            onKeyDown={(event) => handleKeyDown(event, index)}
+            type="button"
+          >
+            <span className={labelClassName}>{option.label}</span>
+          </button>
+        );
+      })}
+    </div>
   );
 }

@@ -23,12 +23,12 @@ type PillNavAnchorProps = PillNavItemSharedProps &
   };
 
 function buildItemClassName(active: boolean, className?: string) {
-  return cx(className, active && "is-active");
+  return cx("segmented-control__button", className, active && "active");
 }
 
 export function PillNav({ ariaLabel, children, className, ...rest }: PillNavProps) {
   return (
-    <nav {...rest} aria-label={ariaLabel} className={cx("fg-pill-nav", className)}>
+    <nav {...rest} aria-label={ariaLabel} className={cx("segmented-control", className)}>
       {children}
     </nav>
   );

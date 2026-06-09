@@ -126,19 +126,18 @@ export function DocsSectionNav({
     return (
       <ScrollableControlStrip
         activeSelector='[aria-current="page"]'
-        className={cx("fg-docs-section-strip__shell", className)}
+        className={cx("docs-section-strip", className)}
         variant="pill"
         watchKey={watchKey}
       >
-        <PillNav ariaLabel={ariaLabel} className="fg-docs-section-strip__nav">
+        <PillNav ariaLabel={ariaLabel}>
           {sections.map((section) => (
             <PillNavAnchor
               active={activeId === section.id}
-              className="fg-docs-section-strip__link"
               href={`#${section.id}`}
               key={section.id}
             >
-              <span className="fg-docs-section-strip__label">{section.label}</span>
+              <span>{section.label}</span>
             </PillNavAnchor>
           ))}
         </PillNav>

@@ -186,11 +186,11 @@ export function ScrollableControlStrip({
 
   return (
     <div
-      className={cx("fg-control-strip-shell", `fg-control-strip-shell--${variant}`, className)}
+      className={cx("control-strip-shell", `control-strip-shell--${variant}`, className)}
       ref={shellRef}
     >
       <div
-        className={cx("fg-control-strip__viewport", viewportClassName)}
+        className={cx("control-strip__viewport", viewportClassName)}
         onClickCapture={handleClickCapture}
         onPointerCancel={handlePointerEnd}
         onPointerDown={handlePointerDown}

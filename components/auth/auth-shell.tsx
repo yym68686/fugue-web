@@ -39,8 +39,8 @@ export function AuthShell({
         <div className="auth-topline ml-auth-topline">
           <Brand meta={resolvedBrandMeta} />
           <div className="ml-auth-utilities">
-            <ThemeMenuButton />
             <LocaleMenuButton />
+            <ThemeMenuButton />
           </div>
         </div>
 

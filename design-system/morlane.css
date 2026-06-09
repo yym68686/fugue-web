@@ -3568,9 +3568,27 @@ textarea {
   background: var(--surface-2);
 }
 
+.control-strip-shell {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.control-strip__viewport {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.control-strip__viewport::-webkit-scrollbar {
+  display: none;
+}
+
 .fg-segmented__item,
 .fg-pill-nav__button,
-.segmented-control button {
+.segmented-control button,
+.segmented-control a,
+.segmented-control__button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -3588,7 +3606,9 @@ textarea {
 
 .fg-segmented__item.is-active,
 .fg-pill-nav__button.is-active,
-.segmented-control button.active {
+.segmented-control button.active,
+.segmented-control a.active,
+.segmented-control__button.active {
   background: var(--surface);
   color: var(--text);
   box-shadow: 0 1px 2px color-mix(in srgb, var(--text) 8%, transparent);
@@ -4113,4 +4133,496 @@ textarea {
   background: transparent;
   color: inherit;
   font-weight: inherit;
+}
+
+/* Morlane form-control contract for Fugue runtime components. */
+.fg-form-grid,
+.fg-settings-form,
+.fg-console-dialog__form,
+.fg-project-create-dialog__form,
+.fg-deploy-form {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.fg-form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 780px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.auth-panel .fg-form-grid,
+.ml-auth-panel .fg-form-grid {
+  grid-template-columns: 1fr;
+  max-width: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.fg-field-stack,
+.fp-field,
+.fg-env-row__field {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.fg-field-label,
+.fg-field-label__main,
+.fg-env-row__field-label,
+.fp-label,
+.fg-hint-inline {
+  min-width: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.fg-field-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.fg-field-label__main,
+.fg-hint-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fg-field-label__text,
+.fg-field-label__meta {
+  min-width: 0;
+}
+
+.fg-field-label__meta {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.fg-field-control {
+  display: block;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.fg-field-control input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]),
+.fg-field-control select,
+.fg-field-control textarea,
+.fg-input,
+.fg-form-input,
+.fg-select__control,
+.fg-textarea,
+.fg-project-textarea,
+.fp-input,
+.fp-select,
+.fp-textarea,
+.form-grid input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]),
+.form-grid select,
+.form-grid textarea,
+.settings-form input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]),
+.settings-form select,
+.settings-form textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 36px;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  outline: 0;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  line-height: 1.35;
+}
+
+.fg-field-control textarea,
+.fg-textarea,
+.fg-project-textarea,
+.fp-textarea,
+.form-grid textarea,
+.settings-form textarea {
+  min-height: 92px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.fg-field-control input::placeholder,
+.fg-field-control textarea::placeholder,
+.fg-input::placeholder,
+.fg-form-input::placeholder,
+.fg-textarea::placeholder,
+.fg-project-textarea::placeholder,
+.fp-input::placeholder,
+.fp-textarea::placeholder {
+  color: color-mix(in srgb, var(--muted) 78%, transparent);
+}
+
+.fg-field-control input:focus,
+.fg-field-control select:focus,
+.fg-field-control textarea:focus,
+.fg-input:focus,
+.fg-form-input:focus,
+.fg-select__control:focus,
+.fg-textarea:focus,
+.fg-project-textarea:focus,
+.fp-input:focus,
+.fp-select:focus,
+.fp-textarea:focus,
+.form-grid input:focus,
+.form-grid select:focus,
+.form-grid textarea:focus,
+.settings-form input:focus,
+.settings-form select:focus,
+.settings-form textarea:focus {
+  border-color: var(--focus);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--focus) 20%, transparent);
+}
+
+.fg-field-control.is-invalid input,
+.fg-field-control.is-invalid select,
+.fg-field-control.is-invalid textarea,
+.fg-field-control input[aria-invalid="true"],
+.fg-field-control textarea[aria-invalid="true"],
+.fg-input[aria-invalid="true"],
+.fg-form-input[aria-invalid="true"],
+.fg-textarea[aria-invalid="true"],
+.fg-project-textarea[aria-invalid="true"],
+.fp-input[aria-invalid="true"],
+.fp-select[aria-invalid="true"],
+.fp-textarea[aria-invalid="true"] {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--danger) 14%, transparent);
+}
+
+.fg-field-control input:disabled,
+.fg-field-control select:disabled,
+.fg-field-control textarea:disabled,
+.fg-input:disabled,
+.fg-form-input:disabled,
+.fg-select__control:disabled,
+.fg-textarea:disabled,
+.fg-project-textarea:disabled,
+.fp-input:disabled,
+.fp-select:disabled,
+.fp-textarea:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.fg-select {
+  position: relative;
+  display: block;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.fg-select__control,
+.fp-select {
+  appearance: none;
+  padding-right: 30px;
+}
+
+.fg-select__icon {
+  position: absolute;
+  top: 50%;
+  right: 9px;
+  display: inline-grid;
+  width: 14px;
+  height: 14px;
+  place-items: center;
+  color: var(--muted);
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.fg-select__icon svg {
+  width: 12px;
+  height: 12px;
+}
+
+.fg-select.is-disabled {
+  opacity: 0.58;
+}
+
+.fg-field-error,
+.fg-form-status,
+.fp-field-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.fg-form-status.is-success {
+  color: var(--success);
+}
+
+.fg-form-status.is-info {
+  color: var(--info);
+}
+
+.fp-help {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.fg-password-toggle,
+.fg-project-toggle,
+.checkbox-row,
+.form-grid .checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.fg-password-toggle input[type="checkbox"],
+.fg-project-toggle input[type="checkbox"],
+.checkbox-row input[type="checkbox"],
+.form-grid .checkbox-row input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  min-height: 0;
+  margin: 0;
+  accent-color: var(--focus);
+  flex: 0 0 auto;
+}
+
+.fg-route-composer,
+.fg-billing-top-up-form__entry,
+.input-with-button {
+  min-width: 0;
+}
+
+.fg-route-composer__shell,
+.fg-billing-top-up-form__entry,
+.input-with-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 36px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.fg-route-composer__shell:focus-within,
+.fg-billing-top-up-form__entry:focus-within,
+.input-with-button:focus-within {
+  border-color: var(--focus);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--focus) 20%, transparent);
+}
+
+.fg-route-composer[data-invalid="true"] .fg-route-composer__shell {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--danger) 14%, transparent);
+}
+
+.fg-route-composer__field,
+.fg-billing-top-up-form__entry .fg-input,
+.input-with-button input {
+  min-height: 34px;
+  padding: 6px 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.fg-route-composer__field:focus,
+.fg-billing-top-up-form__entry .fg-input:focus,
+.input-with-button input:focus {
+  border: 0;
+  box-shadow: none;
+}
+
+.fg-route-composer__suffix,
+.fg-billing-top-up-form__suffix,
+.input-with-button .fg-button,
+.input-with-button .button {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.fg-code-textarea {
+  position: relative;
+  min-height: 220px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #101418;
+}
+
+.fg-code-textarea__highlight,
+.fg-code-textarea__input {
+  width: 100%;
+  min-height: 220px;
+  margin: 0;
+  padding: 14px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #edf4fa;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.55;
+  tab-size: 2;
+  white-space: pre;
+}
+
+.fg-code-textarea__highlight {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  pointer-events: none;
+}
+
+.fg-code-textarea__input {
+  position: relative;
+  z-index: 1;
+  min-height: 220px;
+  resize: vertical;
+  caret-color: #edf4fa;
+  color: transparent;
+  overflow: auto;
+}
+
+.fg-code-textarea__input::selection {
+  background: color-mix(in srgb, var(--focus) 30%, transparent);
+}
+
+.fg-code-textarea__input:focus {
+  outline: 0;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--focus) 34%, transparent);
+}
+
+.fg-stepped-slider {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.fg-stepped-slider__value-pill {
+  justify-self: start;
+  min-height: 24px;
+  padding: 3px 7px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.fg-stepped-slider__input {
+  width: 100%;
+  accent-color: var(--focus);
+}
+
+.fg-stepped-slider__bounds {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.fg-inline-alert {
+  padding: 9px 10px;
+  border: 1px solid var(--info);
+  border-radius: var(--radius);
+  background: var(--info-soft);
+  color: var(--info);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.fg-inline-alert--success {
+  border-color: var(--success);
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.fg-inline-alert--error {
+  border-color: var(--danger);
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.fg-inline-alert--warning {
+  border-color: var(--warning);
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.button-full {
+  width: 100%;
+}
+
+.button-inline {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--info);
+  box-shadow: none;
+}
+
+.button-icon,
+.button-status {
+  display: inline-grid;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  place-items: center;
+}
+
+.button-status {
+  border: 2px solid color-mix(in srgb, currentColor 24%, transparent);
+  border-top-color: currentColor;
+  border-radius: 999px;
+  animation: ml-spin 800ms linear infinite;
+}
+
+@keyframes ml-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }

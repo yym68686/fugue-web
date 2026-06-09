@@ -7,6 +7,8 @@ import { ConsoleProfileMenu } from "@/components/console/console-profile-menu";
 import { useConsoleRouteTransition } from "@/components/console/console-route-transition";
 import { useI18n } from "@/components/providers/i18n-provider";
 import { PlatformBreadcrumbs, PlatformTopbar } from "@/components/platform/platform-layout";
+import { LocaleMenuButton } from "@/components/ui/locale-switcher";
+import { ThemeMenuButton } from "@/components/ui/theme-switcher";
 import { getConsoleNavGroups, isConsoleNavHrefActive } from "@/lib/console/nav";
 import type { SessionUser } from "@/lib/auth/session";
 
@@ -56,6 +58,8 @@ export function ConsoleTopbar({
       actions={
         <>
           <ConsolePrimaryAction hasProjects={hasProjects} />
+          <LocaleMenuButton />
+          <ThemeMenuButton />
           <ConsoleProfileMenu isAdmin={isAdmin} session={session} />
         </>
       }

@@ -124,8 +124,8 @@ export async function LandingPage({ authenticatedAppPath }: LandingPageProps) {
         </nav>
 
         <div className="ml-marketing-nav__actions">
-          <ThemeUtilityMenu className="ml-utility-menu" />
           <LocaleUtilityMenu className="ml-utility-menu" />
+          <ThemeUtilityMenu className="ml-utility-menu" />
           <ButtonLink href={primaryHref} size="compact" variant="primary">
             {primaryLabel}
           </ButtonLink>

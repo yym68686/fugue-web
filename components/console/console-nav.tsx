@@ -19,19 +19,18 @@ export function ConsoleNav({ isAdmin = false }: { isAdmin?: boolean }) {
   return (
     <ScrollableControlStrip
       activeSelector='[aria-current="page"]'
-      className="fg-console-nav-shell"
+      className="console-nav-shell"
       variant="pill"
-      viewportClassName="fg-console-nav__viewport"
+      viewportClassName="console-nav-viewport"
       watchKey={displayPathname}
     >
-      <PillNav ariaLabel={t("Console")} className="fg-console-nav">
+      <PillNav ariaLabel={t("Console")}>
         {items.map((item) => {
           const active = isConsoleNavHrefActive(displayPathname, item.href);
 
           return (
             <PillNavLink
               active={active}
-              className="fg-console-nav__link"
               href={item.href}
               key={item.href}
               onNavigate={() => {
@@ -39,7 +38,7 @@ export function ConsoleNav({ isAdmin = false }: { isAdmin?: boolean }) {
               }}
               prefetch={false}
             >
-              <span className="fg-console-nav__title">{item.label}</span>
+              <span>{item.label}</span>
             </PillNavLink>
           );
         })}

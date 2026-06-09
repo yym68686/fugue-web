@@ -736,9 +736,6 @@ export function DeployWizard({
             <div className="fg-field-control">
               <SegmentedControl
                 ariaLabel="Template deploy network mode"
-                controlClassName="fg-console-nav"
-                itemClassName="fg-console-nav__link"
-                labelClassName="fg-console-nav__title"
                 onChange={setNetworkMode}
                 options={IMPORT_NETWORK_MODE_OPTIONS}
                 value={networkModeSupported ? networkMode : "public"}

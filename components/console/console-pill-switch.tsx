@@ -4,7 +4,6 @@ import {
   SegmentedControl,
   type SegmentedControlOption,
 } from "@/components/ui/segmented-control";
-import { cx } from "@/lib/ui/cx";
 
 export type ConsolePillSwitchOption<Value extends string> =
   SegmentedControlOption<Value>;
@@ -28,9 +27,7 @@ export function ConsolePillSwitch<Value extends string>({
     <SegmentedControl
       ariaLabel={ariaLabel}
       className={className}
-      controlClassName={cx("fg-console-nav", controlClassName)}
-      itemClassName="fg-console-nav__link"
-      labelClassName="fg-console-nav__title"
+      controlClassName={controlClassName}
       onChange={onChange}
       options={options}
       value={value}

@@ -50,11 +50,13 @@ function buildClassName(
   size: ButtonSize = "default",
   className?: string,
 ) {
+  const morlaneVariant = variant === "route" ? "primary" : variant;
+  const morlaneSize = size === "compact" || size === "tight" ? "sm" : null;
+
   return cx(
-    "fg-button",
-    `fg-button--${variant}`,
-    size === "compact" && "fg-button--compact",
-    size === "tight" && "fg-button--tight",
+    "button",
+    morlaneVariant,
+    morlaneSize,
     className,
   );
 }
@@ -75,11 +77,10 @@ function buildAccessory(
   return (
     <span
       className={cx(
-        "fg-button__icon",
-        style === "island" && "is-island",
-        style === "plain" && "is-plain",
-        placement === "leading" && "is-leading",
-        placement === "trailing" && "is-trailing",
+        "button-icon",
+        style === "island" && "island",
+        style === "plain" && "plain",
+        placement,
       )}
     >
       {icon}
@@ -128,8 +129,8 @@ export function Button(props: ButtonProps) {
       type={type}
     >
       {leadingIcon}
-      {isBusy ? <span aria-hidden="true" className="fg-button__status" /> : null}
-      <span className="fg-button__label">{label}</span>
+      {isBusy ? <span aria-hidden="true" className="button-status" /> : null}
+      <span>{label}</span>
       {trailingIcon}
     </button>
   );
@@ -165,7 +166,7 @@ export function ButtonLink(props: ButtonLinkProps) {
   return (
     <Link {...rest} className={classes} href={href} prefetch={prefetch}>
       {leadingIcon}
-      <span className="fg-button__label">{children}</span>
+      <span>{children}</span>
       {trailingIcon}
     </Link>
   );
@@ -200,7 +201,7 @@ export function ButtonAnchor(props: ButtonAnchorProps) {
   return (
     <a {...rest} className={classes} href={href}>
       {leadingIcon}
-      <span className="fg-button__label">{children}</span>
+      <span>{children}</span>
       {trailingIcon}
     </a>
   );
@@ -219,7 +220,7 @@ export function InlineButton({
   return (
     <Button
       aria-disabled={blocked || disabled || undefined}
-      className={cx("fg-button--inline", className)}
+      className={cx("button-inline", className)}
       disabled={blocked || disabled}
       loading={busy}
       loadingLabel={busyLabel}

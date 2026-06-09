@@ -343,7 +343,7 @@ function ExternalProviderSurface({
 
         {linked ? (
           <Button
-            className="fg-button--full-width"
+            className="button-full"
             loading={busy}
             loadingLabel={t("Disconnecting")}
             onClick={onDisconnect}
@@ -355,7 +355,7 @@ function ExternalProviderSurface({
           </Button>
         ) : available && actionHref ? (
           <ButtonAnchor
-            className="fg-button--full-width"
+            className="button-full"
             href={actionHref}
             icon={
               <span
@@ -1223,7 +1223,7 @@ function EmailMethodItem({
             <p className="fg-profile-auth-capability__meta">{data.user.email}</p>
 
             <Button
-              className="fg-button--full-width"
+              className="button-full"
               disabled={(emailLinkEnabled && !canDisableEmailLink) || passwordDialogBusy}
               loading={busyEmailLink}
               loadingLabel={emailLinkEnabled ? t("Updating") : t("Enabling")}
@@ -1284,7 +1284,7 @@ function EmailMethodItem({
               aria-controls={passwordDialogOpen ? passwordDialogId : undefined}
               aria-expanded={passwordDialogOpen}
               aria-haspopup="dialog"
-              className="fg-button--full-width"
+              className="button-full"
               disabled={busyEmailLink || passwordDialogBusy}
               onClick={(event) => {
                 openPasswordDialog(event.currentTarget);
