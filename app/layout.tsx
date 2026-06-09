@@ -38,14 +38,12 @@ export default async function RootLayout({
 
   return (
     <html
-      data-theme={initialTheme}
+      data-theme={themePreference === "auto" ? undefined : initialTheme}
       data-theme-preference={themePreference}
       lang={locale}
       suppressHydrationWarning
     >
-      <body
-        className={`${fugueFontVariables} ${initialTheme === "light" ? "fg-theme-light" : "fg-theme-dark"}`}
-      >
+      <body className={fugueFontVariables}>
         <ThemeProvider
           initialPreference={themePreference}
           initialTheme={initialTheme}

@@ -27,18 +27,22 @@ export function parseThemePreference(
 
 export function resolveThemePreference(
   preference: ThemePreference,
-  _systemTheme: Theme = DEFAULT_THEME,
+  systemTheme: Theme = DEFAULT_THEME,
 ): Theme {
-  return preference === "auto" ? DEFAULT_THEME : preference;
+  return preference === "auto" ? systemTheme : preference;
 }
 
 export function buildThemeBootstrapScript(preference: ThemePreference): string {
   return `(() => {
     const preference = ${JSON.stringify(preference)};
     const root = document.documentElement;
-    const resolved = preference === "auto" ? ${JSON.stringify(DEFAULT_THEME)} : preference;
     root.dataset.themePreference = preference;
-    root.dataset.theme = resolved;
-    root.style.colorScheme = resolved;
+    if (preference === "auto") {
+      delete root.dataset.theme;
+      root.style.removeProperty("color-scheme");
+      return;
+    }
+    root.dataset.theme = preference;
+    root.style.removeProperty("color-scheme");
   })();`;
 }

@@ -22,7 +22,16 @@ type ThemeContextValue = {
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 function readSystemTheme(): Theme {
-  return DEFAULT_THEME;
+  if (
+    typeof window === "undefined" ||
+    typeof window.matchMedia !== "function"
+  ) {
+    return DEFAULT_THEME;
+  }
+
+  return window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
 }
 
 function applyThemePreference(preference: ThemePreference): Theme {
@@ -30,17 +39,14 @@ function applyThemePreference(preference: ThemePreference): Theme {
   const root = document.documentElement;
 
   root.dataset.themePreference = preference;
-  root.dataset.theme = resolvedTheme;
-  root.style.colorScheme = resolvedTheme;
 
-  const body = document.body;
-
-  if (body) {
-    body.classList.remove("fg-theme-dark", "fg-theme-light");
-    body.classList.add(
-      resolvedTheme === "light" ? "fg-theme-light" : "fg-theme-dark",
-    );
+  if (preference === "auto") {
+    delete root.dataset.theme;
+  } else {
+    root.dataset.theme = preference;
   }
+
+  root.style.removeProperty("color-scheme");
 
   return resolvedTheme;
 }
@@ -79,21 +85,10 @@ export function ThemeProvider({
     const nextPreference = parseThemePreference(
       root.dataset.themePreference || initialPreference,
     );
-    const nextTheme =
-      parseTheme(root.dataset.theme) ??
-      resolveThemePreference(nextPreference, readSystemTheme());
+    const nextTheme = applyThemePreference(nextPreference);
 
     setPreferenceState(nextPreference);
     setResolvedTheme(nextTheme);
-
-    const body = document.body;
-
-    if (body) {
-      body.classList.remove("fg-theme-dark", "fg-theme-light");
-      body.classList.add(
-        nextTheme === "light" ? "fg-theme-light" : "fg-theme-dark",
-      );
-    }
   }, [initialPreference, initialTheme]);
 
   useEffect(() => {

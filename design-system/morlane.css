@@ -2637,9 +2637,7 @@ label span {
 
 /* Fugue runtime bridge: keep Morlane's visual contract while carrying Fugue data. */
 :root,
-[data-theme="light"],
-.fg-theme-light,
-.fp-theme-light {
+[data-theme="light"] {
   --font-sans: var(--font-fugue-body), Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-heading: var(--font-sans);
   --font-mono: var(--font-fugue-mono), "SFMono-Regular", "Cascadia Code", Consolas, monospace;
@@ -2655,9 +2653,7 @@ label span {
   --fugue-selection-bg: color-mix(in srgb, var(--focus) 18%, transparent);
 }
 
-[data-theme="dark"],
-.fg-theme-dark,
-.fp-theme-dark {
+[data-theme="dark"] {
   color-scheme: dark;
   --bg: #111315;
   --surface: #181b1f;
@@ -3759,131 +3755,6 @@ textarea {
   font-family: var(--font-mono);
   font-size: 12px;
   white-space: normal;
-}
-
-.fg-locale-utility,
-.fg-locale-menu {
-  position: relative;
-  display: inline-flex;
-  min-width: 0;
-}
-
-.fg-locale-utility__trigger,
-.fg-locale-menu__trigger {
-  list-style: none;
-}
-
-.fg-locale-utility__trigger::-webkit-details-marker,
-.fg-locale-menu__trigger::-webkit-details-marker {
-  display: none;
-}
-
-.fg-locale-utility__trigger {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 36px;
-  max-width: 180px;
-  padding: 8px 10px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
-  background: var(--surface);
-  color: var(--text);
-  font-size: 14px;
-  font-weight: 650;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.fg-locale-utility__value,
-.fg-locale-menu__trigger .fg-button__label {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.fg-locale-utility__chevron,
-.fg-locale-utility__option-mark {
-  display: inline-grid;
-  width: 14px;
-  height: 14px;
-  flex: 0 0 14px;
-  place-items: center;
-  color: var(--muted);
-}
-
-.fg-locale-utility__chevron svg {
-  width: 12px;
-  height: 12px;
-}
-
-.fg-locale-utility__panel,
-.fg-locale-menu__panel {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  z-index: 80;
-  width: min(260px, calc(100vw - 24px));
-  padding: 8px;
-  border: 1px solid var(--border);
-  border-radius: calc(var(--radius) + 2px);
-  background: var(--surface);
-  box-shadow: var(--shadow);
-}
-
-.fg-locale-utility:not([open]) .fg-locale-utility__panel,
-.fg-locale-menu:not([open]) .fg-locale-menu__panel {
-  display: none;
-}
-
-.fg-locale-utility__list {
-  display: grid;
-  gap: 4px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.fg-locale-utility__option {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  width: 100%;
-  min-height: 34px;
-  padding: 7px 9px;
-  border-radius: var(--radius);
-  color: var(--muted);
-  font-size: 14px;
-  text-align: left;
-}
-
-.fg-locale-utility__option:hover,
-.fg-locale-utility__option.is-active {
-  background: var(--surface-2);
-  color: var(--text);
-}
-
-.fg-locale-utility__option.is-active .fg-locale-utility__option-mark::before {
-  content: "";
-  display: block;
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  background: var(--text);
-}
-
-.fg-locale-menu__title {
-  margin: 0 0 8px;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.fg-locale-switcher,
-.fg-locale-switcher__control {
-  min-width: 0;
 }
 
 .fg-auth-method-switcher__control,
