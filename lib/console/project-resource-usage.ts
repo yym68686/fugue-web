@@ -9,6 +9,11 @@ type ProjectImageUsageSummaryLike = {
   versionCount: number;
 };
 
+type ProjectResourceUsageTranslator = (
+  key: string,
+  values?: Record<string, string | number>,
+) => string;
+
 function formatCompactNumber(value: number, digits = 1) {
   const formatter = new Intl.NumberFormat("en-US", {
     maximumFractionDigits: digits,
@@ -18,14 +23,17 @@ function formatCompactNumber(value: number, digits = 1) {
   return formatter.format(value);
 }
 
-function formatBytesLabel(value?: number | null) {
+function formatBytesLabel(
+  value?: number | null,
+  t?: ProjectResourceUsageTranslator,
+) {
   if (
     value === null ||
     value === undefined ||
     !Number.isFinite(value) ||
     value < 0
   ) {
-    return "No stats";
+    return t ? t("No stats") : "No stats";
   }
 
   const units = ["bytes", "KB", "MB", "GB", "TB", "PB"];
@@ -41,87 +49,124 @@ function formatBytesLabel(value?: number | null) {
 
   if (unitIndex === 0) {
     const rounded = Math.round(amount);
+    if (t) {
+      return t(rounded === 1 ? "{count} byte" : "{count} bytes", {
+        count: rounded,
+      });
+    }
     return `${rounded} ${rounded === 1 ? "byte" : "bytes"}`;
   }
 
   return `${formatCompactNumber(amount, digits)} ${units[unitIndex]}`;
 }
 
-function formatCPUMillicoresLabel(value?: number | null) {
+function formatCPUMillicoresLabel(
+  value?: number | null,
+  t?: ProjectResourceUsageTranslator,
+) {
   if (
     value === null ||
     value === undefined ||
     !Number.isFinite(value) ||
     value < 0
   ) {
-    return "No stats";
+    return t ? t("No stats") : "No stats";
   }
 
   if (Math.abs(value) >= 1000) {
     const cores = value / 1000;
-    return `${formatCompactNumber(cores, 1)} ${cores === 1 ? "core" : "cores"}`;
+    const count = formatCompactNumber(cores, 1);
+    if (t) {
+      return t(cores === 1 ? "{count} core" : "{count} cores", { count });
+    }
+    return `${count} ${cores === 1 ? "core" : "cores"}`;
   }
 
-  return `${Math.round(value)} millicores`;
+  const count = Math.round(value);
+  return t ? t("{count} millicores", { count }) : `${count} millicores`;
 }
 
-function formatVersionCountLabel(value: number) {
+function formatVersionCountLabel(
+  value: number,
+  t?: ProjectResourceUsageTranslator,
+) {
+  if (t) {
+    return t(value === 1 ? "{count} version" : "{count} versions", {
+      count: value,
+    });
+  }
   return `${value} version${value === 1 ? "" : "s"}`;
 }
 
 export function buildProjectResourceUsageView(
   usage: ConsoleProjectResourceUsageSnapshot,
   imageUsage?: ProjectImageUsageSummaryLike | null,
+  t?: ProjectResourceUsageTranslator,
 ): ConsoleCompactResourceItemView[] {
   const imageTotalBytes =
     imageUsage && imageUsage.versionCount > 0 ? imageUsage.totalSizeBytes : null;
   const hasImageUsage = imageTotalBytes !== null;
   const imageSecondaryLabel =
     hasImageUsage && imageUsage
-      ? formatVersionCountLabel(imageUsage.versionCount)
+      ? formatVersionCountLabel(imageUsage.versionCount, t)
       : null;
+  const computeLabel = t ? t("Compute") : "Compute";
+  const memoryLabel = t ? t("Memory") : "Memory";
+  const diskLabel = t ? t("Disk") : "Disk";
+  const imagesLabel = t ? t("Images") : "Images";
+  const currentProjectTotalLabel = t
+    ? t("Current project total")
+    : "Current project total";
+  const liveRuntimeOnlyLabel = t
+    ? t("Live service runtime only")
+    : "Live service runtime only";
   const imageTitleParts = hasImageUsage
     ? [
-        `Image storage / ${formatBytesLabel(imageTotalBytes)} / Stored project images`,
-        imageUsage ? formatVersionCountLabel(imageUsage.versionCount) : null,
+        `${t ? t("Image storage") : "Image storage"} / ${formatBytesLabel(imageTotalBytes, t)} / ${
+          t ? t("Stored project images") : "Stored project images"
+        }`,
+        imageUsage ? formatVersionCountLabel(imageUsage.versionCount, t) : null,
       ].filter((value): value is string => Boolean(value))
     : [];
+  const cpuPrimaryLabel = formatCPUMillicoresLabel(usage.cpuMillicores, t);
+  const memoryPrimaryLabel = formatBytesLabel(usage.memoryBytes, t);
+  const diskPrimaryLabel = formatBytesLabel(usage.ephemeralStorageBytes, t);
 
   return [
     {
       id: "cpu",
-      label: "Compute",
+      label: computeLabel,
       meterValue: null,
-      primaryLabel: formatCPUMillicoresLabel(usage.cpuMillicores),
+      primaryLabel: cpuPrimaryLabel,
       secondaryLabel: null,
-      title: `Compute / ${formatCPUMillicoresLabel(usage.cpuMillicores)} / Current project total`,
+      title: `${computeLabel} / ${cpuPrimaryLabel} / ${currentProjectTotalLabel}`,
       tone: usage.cpuMillicores !== null ? "info" : "neutral",
     },
     {
       id: "memory",
-      label: "Memory",
+      label: memoryLabel,
       meterValue: null,
-      primaryLabel: formatBytesLabel(usage.memoryBytes),
+      primaryLabel: memoryPrimaryLabel,
       secondaryLabel: null,
-      title: `Memory / ${formatBytesLabel(usage.memoryBytes)} / Current project total`,
+      title: `${memoryLabel} / ${memoryPrimaryLabel} / ${currentProjectTotalLabel}`,
       tone: usage.memoryBytes !== null ? "info" : "neutral",
     },
     {
       id: "storage",
-      label: "Disk",
+      label: diskLabel,
       meterValue: null,
-      primaryLabel: formatBytesLabel(usage.ephemeralStorageBytes),
+      primaryLabel: diskPrimaryLabel,
       secondaryLabel: null,
-      title: `Disk / ${formatBytesLabel(usage.ephemeralStorageBytes)} / Live service runtime only`,
+      title: `${diskLabel} / ${diskPrimaryLabel} / ${liveRuntimeOnlyLabel}`,
       tone: usage.ephemeralStorageBytes !== null ? "info" : "neutral",
     },
     ...(hasImageUsage
       ? [
           {
             id: "images",
-            label: "Images",
+            label: imagesLabel,
             meterValue: null,
-            primaryLabel: formatBytesLabel(imageTotalBytes),
+            primaryLabel: formatBytesLabel(imageTotalBytes, t),
             secondaryLabel: imageSecondaryLabel,
             title: imageTitleParts.join(" / "),
             tone: "info" as const,

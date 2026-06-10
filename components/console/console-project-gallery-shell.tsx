@@ -66,7 +66,6 @@ import {
 import {
   buildProjectImageUsageMap,
   fetchCachedProjectImageUsage,
-  readCachedProjectImageUsage,
   type ProjectImageUsageSummary,
 } from "@/lib/console/project-image-usage-client";
 import {
@@ -234,6 +233,7 @@ function readProjectUsageSnapshotResponse() {
 function applyProjectUsageToProjectSummaries(
   projects: ConsoleProjectSummaryView[],
   usageByProjectId: Record<string, ConsoleProjectResourceUsageSnapshot>,
+  t: (key: string, values?: Record<string, string | number>) => string,
 ) {
   if (!Object.keys(usageByProjectId).length) {
     return projects;
@@ -248,7 +248,11 @@ function applyProjectUsageToProjectSummaries(
 
     return {
       ...project,
-      resourceUsage: buildProjectResourceUsageView(resourceUsageSnapshot),
+      resourceUsage: buildProjectResourceUsageView(
+        resourceUsageSnapshot,
+        null,
+        t,
+      ),
       resourceUsageSnapshot,
     } satisfies ConsoleProjectSummaryView;
   });
@@ -1133,6 +1137,7 @@ const ProjectGalleryShelf = memo(function ProjectGalleryShelf({
                     ? buildProjectResourceUsageView(
                         project.resourceUsageSnapshot,
                         projectImageUsageByProjectId[project.id],
+                        t,
                       )
                     : project.resourceUsage;
 
@@ -1384,15 +1389,9 @@ export function ConsoleProjectGallery({
   });
   const [projectUsageByProjectId, setProjectUsageByProjectId] = useState<
     Record<string, ConsoleProjectResourceUsageSnapshot>
-  >(() =>
-    buildProjectUsageSnapshotMap(
-      readProjectUsageSnapshotResponse()?.projects ?? [],
-    ),
-  );
+  >({});
   const [projectImageUsageByProjectId, setProjectImageUsageByProjectId] =
-    useState<Record<string, ProjectImageUsageSummary>>(() =>
-      buildProjectImageUsageMap(readCachedProjectImageUsage() ?? []),
-    );
+    useState<Record<string, ProjectImageUsageSummary>>({});
   const [instantRouteFeedback, setInstantRouteFeedback] =
     useState<InstantRouteFeedback | null>(null);
 
@@ -1410,8 +1409,12 @@ export function ConsoleProjectGallery({
   const runtimeInventory = useConsoleRuntimeTargetInventory(createOpen);
   const projects = useMemo(
     () =>
-      applyProjectUsageToProjectSummaries(data.projects, projectUsageByProjectId),
-    [data.projects, projectUsageByProjectId],
+      applyProjectUsageToProjectSummaries(
+        data.projects,
+        projectUsageByProjectId,
+        t,
+      ),
+    [data.projects, projectUsageByProjectId, t],
   );
   const projectUsageKey = data.projects
     .map((project) => project.id.trim())

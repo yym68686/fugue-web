@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useId, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { useI18n } from "@/components/providers/i18n-provider";
@@ -88,13 +88,20 @@ function LanguageSelect({
   onChangeComplete?: (preference: LocalePreference) => void;
 }) {
   const control = useLanguageSelectControl();
+  const selectId = useId();
 
   return (
-    <label className={cx("language-select", className)} title={control.label}>
+    <label
+      className={cx("language-select", className)}
+      htmlFor={selectId}
+      title={control.label}
+    >
       <span>{control.label}</span>
       <select
         aria-label={control.label}
         disabled={control.isPending}
+        id={selectId}
+        name="locale"
         onChange={(event) => {
           const nextPreference = event.target.value as LocalePreference;
           const changed = control.setPreference(nextPreference);

@@ -3894,9 +3894,7 @@ export function ConsoleProjectGallery({
   const [flash, setFlash] = useState<FlashState | null>(null);
   const [data, setData] = useState(initialData);
   const [projectImageUsageByProjectId, setProjectImageUsageByProjectId] =
-    useState<Record<string, ProjectImageUsageSummary>>(() =>
-      buildProjectImageUsageMap(readCachedProjectImageUsage() ?? []),
-    );
+    useState<Record<string, ProjectImageUsageSummary>>({});
   const projectImageUsageKey = data.projects
     .map((project) => project.id.trim())
     .filter(Boolean)
@@ -6082,6 +6080,7 @@ export function ConsoleProjectGallery({
                   ? buildProjectResourceUsageView(
                       project.resourceUsageSnapshot,
                       projectImageUsageByProjectId[project.id],
+                      t,
                     )
                   : project.resourceUsage;
 
