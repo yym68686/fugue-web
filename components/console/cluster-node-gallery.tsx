@@ -12,6 +12,7 @@ import { HintInline } from "@/components/ui/hint-tooltip";
 import { PanelSection } from "@/components/ui/panel";
 import type { ConsoleCompactResourceItemView } from "@/lib/console/gallery-types";
 import type { ConsoleTone } from "@/lib/console/types";
+import { readCountryLabel } from "@/lib/geo/country";
 import type {
   RuntimeOwnership,
   RuntimePublicOfferView,
@@ -370,7 +371,7 @@ function ClusterResourceMeter({
 }
 
 function ClusterFactValue({ fact }: { fact: ClusterNodeGalleryFact }) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const value = fact.translateValue ? t(fact.value) : fact.value;
 
   if (fact.valueTone) {
@@ -378,8 +379,14 @@ function ClusterFactValue({ fact }: { fact: ClusterNodeGalleryFact }) {
   }
 
   if (fact.countryCode || fact.id === "location") {
+    const locationLabel =
+      readCountryLabel(fact.countryCode, locale) ?? value;
+
     return (
-      <CountryFlagLabel countryCode={fact.countryCode} label={value} />
+      <CountryFlagLabel
+        countryCode={fact.countryCode}
+        label={locationLabel}
+      />
     );
   }
 
