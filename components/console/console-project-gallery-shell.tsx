@@ -1144,11 +1144,11 @@ const ProjectGalleryShelf = memo(function ProjectGalleryShelf({
                 return (
                   <PlatformResourceLink
                     actions={
-                      <span className="fp-project-row__meters" aria-label={t("Resource usage")}>
+                      <div className="fp-project-row__meters" aria-label={t("Resource usage")}>
                         {projectResourceUsage.map((resource) => (
                           <CompactResourceMeter item={resource} key={resource.id} />
                         ))}
-                      </span>
+                      </div>
                     }
                     badges={
                       <span className="fp-project-row__badges">

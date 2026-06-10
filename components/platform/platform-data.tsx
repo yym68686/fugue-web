@@ -142,10 +142,10 @@ function resourceRowContent({
         {description ? <span className="fp-row__description">{description}</span> : null}
       </span>
       {badges || actions ? (
-        <span className="fp-row__side">
+        <div className="fp-row__side">
           {badges}
           {actions}
-        </span>
+        </div>
       ) : null}
     </>
   );
