@@ -2255,6 +2255,11 @@ const zhCNExtraMessages = {
   "Nodes": "节点",
   "Not detected": "未检测到",
   "Observed": "观测时间",
+  "Observe": "可观测性",
+  "Overview": "概览",
+  "Requests": "请求",
+  "Alerts": "告警",
+  "Deleting": "正在删除",
   "One or more control plane deployments are missing or below the desired rollout state.":
     "一个或多个控制平面部署缺失，或尚未达到目标发布状态。",
   "Owned": "专有",
@@ -3914,6 +3919,11 @@ const zhTWExtraMessages = {
   "Nodes": "節點",
   "Not detected": "未偵測到",
   "Observed": "觀測時間",
+  "Observe": "可觀測性",
+  "Overview": "概覽",
+  "Requests": "請求",
+  "Alerts": "告警",
+  "Deleting": "正在刪除",
   "Partial admin data: {details}.": "管理員資料部分可用：{details}。",
   "One or more control plane deployments are missing or below the desired rollout state.":
     "一個或多個控制平面部署缺失，或尚未達到目標發布狀態。",
