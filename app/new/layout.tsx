@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { ToastProvider } from "@/components/ui/toast";
 
 import "../console.css";
+import "../console-components.css";
 import "../deploy.css";
 
 export default function NewLayout({

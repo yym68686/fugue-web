@@ -10,6 +10,7 @@ import {
 } from "@/lib/server/request-context";
 
 import "../console.css";
+import "../console-components.css";
 
 export default async function AppLayout({
   children,

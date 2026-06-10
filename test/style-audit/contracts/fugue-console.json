@@ -1,54 +1,54 @@
 {
   "contracts": [
     {
-      "id": "control.select.single-surface",
-      "rootSelector": ".fg-select",
-      "surfaceOwner": ".fg-select__control"
+      "id": "design.morlane-token-bridge",
+      "rootSelector": ":root",
+      "surfaceOwner": "design-system/morlane.css"
     },
     {
-      "id": "control.tooltip.inline-help",
-      "rootSelector": ".fg-hint-tooltip__trigger",
+      "id": "layout.console-shell",
+      "rootSelector": ".fp-shell",
+      "surfaceOwner": ".fp-main"
+    },
+    {
+      "id": "layout.project-workbench",
+      "rootSelector": ".fg-project-workbench",
+      "surfaceOwner": ".fg-project-workbench__main"
+    },
+    {
+      "id": "layout.resource-density",
+      "rootSelector": ".fp-project-resource-list, .fg-cluster-node-gallery, .fg-console-table-wrap",
       "surfaceOwner": null
     },
     {
-      "id": "surface.project-membership.row-like",
-      "rootSelector": ".fg-project-membership-group",
-      "surfaceOwner": ".fg-project-membership-group"
+      "id": "control.input-single-surface",
+      "rootSelector": ".fp-project-search, .fp-project-select, .fg-field-control",
+      "surfaceOwner": ".fp-project-search, .fp-project-select, input, select, textarea"
     },
     {
-      "id": "surface.project-service.selection-gutter",
-      "rootSelector": ".fg-project-service-card",
-      "surfaceOwner": ".fg-project-service-card"
+      "id": "control.locale-theme-morlane",
+      "rootSelector": ".language-select, .theme-toggle",
+      "surfaceOwner": ".language-select, .theme-toggle"
     },
     {
-      "id": "color.status-positive.cf-token",
-      "rootSelector": ".fg-status-badge--positive, .fg-route-field__status.is-success, .fg-inline-alert--success, .fg-app-images__card.is-current, .fg-control-plane-card--positive",
+      "id": "surface.profile-auth",
+      "rootSelector": ".fg-profile-auth-workbench",
+      "surfaceOwner": ".fg-profile-auth-provider, .fg-profile-auth-capability"
+    },
+    {
+      "id": "surface.docs-density",
+      "rootSelector": ".ml-docs-page",
+      "surfaceOwner": ".ml-docs-nav, .ml-docs-card, .ml-docs-table-card"
+    },
+    {
+      "id": "state.complete-coverage",
+      "rootSelector": ":focus-visible, [aria-disabled='true'], .is-loading, .is-empty, .is-error",
       "surfaceOwner": null
     },
     {
-      "id": "danger.project-preview.neutral-token",
-      "rootSelector": ".fg-project-danger-preview__token",
-      "surfaceOwner": null
-    },
-    {
-      "id": "feedback.console-skeleton.cf-bars",
-      "rootSelector": ".fg-console-skeleton__block",
-      "surfaceOwner": ".fg-console-skeleton__block"
-    },
-    {
-      "id": "control.segmented.single-track",
-      "rootSelector": ".fg-control-strip-shell",
-      "surfaceOwner": ".fg-control-strip-shell"
-    },
-    {
-      "id": "control.command-search.interactive",
-      "rootSelector": ".fp-command, .fp-command-search",
-      "surfaceOwner": ".fp-command-search__dialog"
-    },
-    {
-      "id": "layout.console-spacing.tokenized",
-      "rootSelector": ".fp-sidebar, .fp-page, .fg-console-page",
-      "surfaceOwner": null
+      "id": "legacy.visual-runtime-detached",
+      "rootSelector": ".fp-shell",
+      "surfaceOwner": "design-system/morlane.css, app/console-components.css"
     }
   ]
 }

@@ -1,10 +1,65 @@
 {
   "routes": [
     {
+      "auth": "public",
+      "category": "marketing",
+      "id": "marketing.home",
+      "locales": ["en", "zh-CN", "zh-TW"],
+      "readySelector": ".ml-marketing-page",
+      "states": ["default"],
+      "themes": ["dark", "light"],
+      "url": "/",
+      "viewports": ["desktop", "mobile"]
+    },
+    {
+      "auth": "public",
+      "category": "docs",
+      "id": "docs.home",
+      "locales": ["en", "zh-CN", "zh-TW"],
+      "readySelector": ".ml-docs-page",
+      "states": ["default", "long-text"],
+      "themes": ["dark", "light"],
+      "url": "/docs",
+      "viewports": ["desktop", "mobile"]
+    },
+    {
+      "auth": "guest",
+      "category": "auth",
+      "id": "auth.sign-in",
+      "locales": ["en", "zh-CN", "zh-TW"],
+      "readySelector": ".ml-auth-panel",
+      "states": ["default", "loading", "error", "disabled"],
+      "themes": ["dark", "light"],
+      "url": "/auth/sign-in",
+      "viewports": ["desktop", "mobile"]
+    },
+    {
+      "auth": "guest",
+      "category": "auth",
+      "id": "auth.sign-up",
+      "locales": ["en", "zh-CN", "zh-TW"],
+      "readySelector": ".ml-auth-panel",
+      "states": ["default", "loading", "error", "disabled"],
+      "themes": ["dark", "light"],
+      "url": "/auth/sign-up",
+      "viewports": ["desktop", "mobile"]
+    },
+    {
+      "auth": "guest",
+      "category": "auth",
+      "id": "auth.finalize",
+      "locales": ["en", "zh-CN", "zh-TW"],
+      "readySelector": ".ml-auth-panel",
+      "states": ["loading", "error"],
+      "themes": ["dark", "light"],
+      "url": "/auth/finalize",
+      "viewports": ["desktop", "mobile"]
+    },
+    {
       "auth": "user",
       "category": "console",
       "id": "console.home",
-      "locales": ["en", "zh-CN"],
+      "locales": ["en", "zh-CN", "zh-TW"],
       "readySelector": ".fp-console-home-page",
       "states": ["default", "loading", "empty", "with-projects"],
       "themes": ["dark", "light"],
@@ -15,7 +70,7 @@
       "auth": "user",
       "category": "console",
       "id": "console.project.detail",
-      "locales": ["en", "zh-CN"],
+      "locales": ["en", "zh-CN", "zh-TW"],
       "readySelector": ".fg-project-workbench",
       "states": ["service-detail", "project-settings", "danger-preview", "loading"],
       "themes": ["dark", "light"],
@@ -25,8 +80,30 @@
     {
       "auth": "user",
       "category": "console",
+      "id": "console.cluster-nodes",
+      "locales": ["en", "zh-CN", "zh-TW"],
+      "readySelector": ".fg-cluster-node-gallery",
+      "states": ["default", "loading", "empty", "error"],
+      "themes": ["dark", "light"],
+      "url": "/app/cluster-nodes",
+      "viewports": ["desktop", "mobile"]
+    },
+    {
+      "auth": "user",
+      "category": "console",
+      "id": "console.api-keys",
+      "locales": ["en", "zh-CN", "zh-TW"],
+      "readySelector": ".fg-api-key-list",
+      "states": ["default", "loading", "empty", "error"],
+      "themes": ["dark", "light"],
+      "url": "/app/api-keys",
+      "viewports": ["desktop", "mobile"]
+    },
+    {
+      "auth": "user",
+      "category": "console",
       "id": "console.billing",
-      "locales": ["en", "zh-CN"],
+      "locales": ["en", "zh-CN", "zh-TW"],
       "readySelector": ".fg-billing-panel",
       "states": ["default", "loading", "empty", "error"],
       "themes": ["dark", "light"],
@@ -36,12 +113,67 @@
     {
       "auth": "user",
       "category": "console",
-      "id": "console.cluster-nodes",
-      "locales": ["en", "zh-CN"],
-      "readySelector": ".fg-cluster-node-gallery",
+      "id": "console.profile",
+      "locales": ["en", "zh-CN", "zh-TW"],
+      "readySelector": ".fg-profile-auth-workbench",
+      "states": ["default", "loading", "error", "disabled"],
+      "themes": ["dark", "light"],
+      "url": "/app/settings/profile",
+      "viewports": ["desktop", "mobile"]
+    },
+    {
+      "auth": "admin",
+      "category": "console",
+      "id": "console.cluster",
+      "locales": ["en", "zh-CN", "zh-TW"],
+      "readySelector": ".fg-admin-cluster-manager",
       "states": ["default", "loading", "empty", "error"],
       "themes": ["dark", "light"],
-      "url": "/app/cluster-nodes",
+      "url": "/app/cluster",
+      "viewports": ["desktop", "mobile"]
+    },
+    {
+      "auth": "admin",
+      "category": "console",
+      "id": "console.apps",
+      "locales": ["en", "zh-CN", "zh-TW"],
+      "readySelector": ".fg-console-table--apps",
+      "states": ["default", "loading", "empty", "error", "long-text"],
+      "themes": ["dark", "light"],
+      "url": "/app/apps",
+      "viewports": ["desktop", "mobile"]
+    },
+    {
+      "auth": "admin",
+      "category": "console",
+      "id": "console.users",
+      "locales": ["en", "zh-CN", "zh-TW"],
+      "readySelector": ".fg-console-table--users",
+      "states": ["default", "loading", "empty", "error", "long-text"],
+      "themes": ["dark", "light"],
+      "url": "/app/users",
+      "viewports": ["desktop", "mobile"]
+    },
+    {
+      "auth": "user",
+      "category": "deploy",
+      "id": "deploy.repository",
+      "locales": ["en", "zh-CN", "zh-TW"],
+      "readySelector": ".fg-deploy-shell",
+      "states": ["default", "loading", "error", "disabled"],
+      "themes": ["dark", "light"],
+      "url": "/new/repository",
+      "viewports": ["desktop", "mobile"]
+    },
+    {
+      "auth": "user",
+      "category": "deploy",
+      "id": "deploy.template",
+      "locales": ["en", "zh-CN", "zh-TW"],
+      "readySelector": ".fg-deploy-shell",
+      "states": ["default", "loading", "error", "disabled"],
+      "themes": ["dark", "light"],
+      "url": "/new/template/:slug",
       "viewports": ["desktop", "mobile"]
     }
   ]

@@ -1,10 +1,10 @@
 # Frontend Style Audit Report
 
-Generated: 2026-06-08T08:28:24.132Z
+Generated: 2026-06-10T23:13:06.723Z
 
 ## Coverage
 
-- Routes inventoried: 4
+- Routes inventoried: 16
 - States inventoried: 10
 - Contracts inventoried: 10
 - Issues: 0

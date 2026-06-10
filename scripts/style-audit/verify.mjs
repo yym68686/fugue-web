@@ -9,695 +9,307 @@ const json = args.has("--json");
 const writeReport = args.has("--write-report");
 
 const files = {
-  consoleCommandSearch: path.join(root, "components/console/console-command-search.tsx"),
-  consoleCss: path.join(root, "app/console.css"),
-  designTokensCss: path.join(root, "design-system/tokens.css"),
-  globalsCss: path.join(root, "app/globals.css"),
-  runtimeCss: path.join(root, "app/cloudflare-runtime.css"),
-  routes: path.join(root, "test/style-audit/routes.json"),
-  states: path.join(root, "test/style-audit/states.json"),
-  contracts: path.join(root, "test/style-audit/contracts/fugue-console.json"),
+  appLayout: "app/app/layout.tsx",
+  consoleComponents: "app/console-components.css",
+  docsCss: "app/docs/docs.css",
+  morlaneCss: "design-system/morlane.css",
+  newLayout: "app/new/layout.tsx",
+  routes: "test/style-audit/routes.json",
+  states: "test/style-audit/states.json",
+  contracts: "test/style-audit/contracts/fugue-console.json",
 };
 
-function read(file) {
-  return readFileSync(file, "utf8");
+function read(relativePath) {
+  return readFileSync(path.join(root, relativePath), "utf8");
 }
 
-function readJson(file) {
-  return JSON.parse(read(file));
+function readJson(relativePath) {
+  return JSON.parse(read(relativePath));
 }
 
-function lineOf(source, index) {
-  return source.slice(0, index).split("\n").length;
+function lineOf(source, token) {
+  const index = source.indexOf(token);
+  return index < 0 ? 1 : source.slice(0, index).split("\n").length;
 }
 
-function collectCssRules(source, file) {
-  const rules = [];
-  const pattern = /([^{}]+)\{([^{}]*)\}/g;
-
-  for (const match of source.matchAll(pattern)) {
-    const selector = match[1].trim().replace(/\s+/g, " ");
-    const body = match[2].trim();
-    rules.push({
-      body,
-      file,
-      index: match.index,
-      line: lineOf(source, match.index),
-      selector,
-    });
-  }
-
-  return rules;
-}
-
-function hasAll(source, tokens) {
-  return tokens.every((token) => source.includes(token));
-}
-
-function addIssue(issues, issue) {
+function addIssue(issues, {
+  contract,
+  file,
+  message,
+  rule,
+  selector = null,
+  token = "",
+}) {
+  const source = read(file);
   issues.push({
     category: "style-contract",
     severity: "blocker",
-    ...issue,
+    contract,
+    file,
+    line: lineOf(source, token),
+    message,
+    rule,
+    selector,
   });
 }
 
-function ruleContains(rules, selectorFragment, bodyPattern) {
-  return rules.some(
-    (rule) =>
-      rule.selector.includes(selectorFragment) &&
-      (typeof bodyPattern === "string"
-        ? rule.body.includes(bodyPattern)
-        : bodyPattern.test(rule.body)),
-  );
-}
-
-function rulesFor(rules, selectorFragment, options = {}) {
-  const excludes = options.excludeSelectorFragments ?? [];
-  return rules.filter(
-    (rule) =>
-      rule.selector.includes(selectorFragment) &&
-      !excludes.some((fragment) => rule.selector.includes(fragment)),
-  );
-}
-
-function escapeRegExp(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function declarationValues(body, property) {
-  const pattern = new RegExp(`${escapeRegExp(property)}\\s*:\\s*([^;]+)`, "gi");
-  return Array.from(body.matchAll(pattern), (match) =>
-    match[1].trim().replace(/\s+/g, " "),
-  );
-}
-
-function hasDeclarationValue(body, property, predicate) {
-  return declarationValues(body, property).some((value) => predicate(value));
-}
-
-function isNotNone(value) {
-  return !/^none(?:\s*!important)?$/i.test(value);
-}
-
-function isNotTransparent(value) {
-  return !/^transparent(?:\s*!important)?$/i.test(value);
-}
-
-function isNotZero(value) {
-  return !/^0(?:\s*!important)?$/i.test(value);
-}
-
-function sourceLine(source, index) {
-  return source.split("\n")[lineOf(source, index) - 1] ?? "";
-}
-
-function parseHexColor(value) {
-  let hex = value.slice(1);
-  if (hex.length === 3 || hex.length === 4) {
-    hex = hex
-      .slice(0, 3)
-      .split("")
-      .map((part) => part + part)
-      .join("");
-  }
-  if (hex.length < 6) return null;
-  return [
-    Number.parseInt(hex.slice(0, 2), 16),
-    Number.parseInt(hex.slice(2, 4), 16),
-    Number.parseInt(hex.slice(4, 6), 16),
-  ];
-}
-
-function parseRgbColor(value) {
-  const channels =
-    value
-      .match(/-?\d+(?:\.\d+)?/g)
-      ?.slice(0, 3)
-      .map(Number) ?? [];
-  return channels.length === 3 ? channels : null;
-}
-
-function isGreenishLiteral(value) {
-  const rgb = value.startsWith("#")
-    ? parseHexColor(value)
-    : value.startsWith("rgb")
-      ? parseRgbColor(value)
-      : null;
-  if (!rgb) return false;
-  const [r, g, b] = rgb;
-  return g > r + 18 && g > b + 5 && g > 70;
-}
-
-function isAllowedGreenLiteralContext(line) {
-  return /--fg-log-|--fugue-code-textarea-token-/i.test(line);
-}
-
-function flagUnclassifiedGreenLiterals({ issues, sources }) {
-  const colorPattern = /#[0-9a-fA-F]{3,8}|rgba?\([^)]*\)/g;
-
-  for (const { file, source } of sources) {
-    for (const match of source.matchAll(colorPattern)) {
-      const value = match[0];
-      if (!isGreenishLiteral(value)) continue;
-
-      const line = sourceLine(source, match.index);
-      if (isAllowedGreenLiteralContext(line)) continue;
-
-      addIssue(issues, {
-        contract: "color.status-positive.cf-token",
-        file,
-        line: lineOf(source, match.index),
-        message:
-          "Green-like product UI literals must be tokenized through --cf-status-positive-* or classified as syntax/log color.",
-        rule: "unclassified-green-literal",
-        selector: null,
-      });
-    }
-  }
-}
-
-function flagForbiddenInRules({
-  excludeSelectorFragments,
-  issues,
-  rules,
-  selector,
+function requireTokens(issues, {
   contract,
-  forbidden,
+  file,
   message,
+  rule,
+  selector = null,
+  tokens,
 }) {
-  for (const rule of rulesFor(rules, selector, { excludeSelectorFragments })) {
-    for (const item of forbidden) {
-      const matched =
-        typeof item.matches === "function"
-          ? item.matches(rule.body)
-          : typeof item.pattern === "string"
-          ? rule.body.includes(item.pattern)
-          : item.pattern.test(rule.body);
-      if (!matched) continue;
-      addIssue(issues, {
-        contract,
-        file: rule.file,
-        line: rule.line,
-        message: `${message} Found ${item.label}.`,
-        rule: item.rule,
-        selector: rule.selector,
-      });
-    }
+  const source = read(file);
+  const missing = tokens.filter((token) => !source.includes(token));
+  if (!missing.length) return;
+
+  addIssue(issues, {
+    contract,
+    file,
+    message: `${message} Missing: ${missing.join(", ")}`,
+    rule,
+    selector,
+    token: missing[0],
+  });
+}
+
+function forbidTokens(issues, {
+  contract,
+  file,
+  message,
+  rule,
+  tokens,
+}) {
+  const source = read(file);
+  for (const token of tokens) {
+    if (!source.includes(token)) continue;
+    addIssue(issues, {
+      contract,
+      file,
+      message: `${message} Found: ${token}`,
+      rule,
+      token,
+    });
   }
 }
 
 function verifyInventory({ contracts, issues, routes, states }) {
   const requiredRoutes = [
+    "marketing.home",
+    "docs.home",
+    "auth.sign-in",
+    "auth.sign-up",
+    "auth.finalize",
     "console.home",
     "console.project.detail",
-    "console.billing",
     "console.cluster-nodes",
+    "console.api-keys",
+    "console.billing",
+    "console.profile",
+    "console.cluster",
+    "console.apps",
+    "console.users",
+    "deploy.repository",
+    "deploy.template",
   ];
   const requiredStates = [
     "default",
     "hover",
     "focus-visible",
+    "disabled",
     "loading",
     "empty",
     "error",
+    "long-text",
     "project-settings",
     "danger-preview",
   ];
   const requiredContracts = [
-    "control.select.single-surface",
-    "control.tooltip.inline-help",
-    "surface.project-membership.row-like",
-    "surface.project-service.selection-gutter",
-    "color.status-positive.cf-token",
-    "danger.project-preview.neutral-token",
-    "feedback.console-skeleton.cf-bars",
-    "control.segmented.single-track",
-    "control.command-search.interactive",
-    "layout.console-spacing.tokenized",
+    "design.morlane-token-bridge",
+    "layout.console-shell",
+    "layout.project-workbench",
+    "layout.resource-density",
+    "control.input-single-surface",
+    "control.locale-theme-morlane",
+    "surface.profile-auth",
+    "surface.docs-density",
+    "state.complete-coverage",
+    "legacy.visual-runtime-detached",
   ];
 
   for (const id of requiredRoutes) {
-    if (!routes.routes.some((route) => route.id === id)) {
-      addIssue(issues, {
-        contract: "inventory.route-coverage",
-        file: "test/style-audit/routes.json",
-        line: 1,
-        message: `Missing route inventory entry ${id}.`,
-        rule: "missing-route-inventory",
-        selector: null,
-      });
-    }
+    if (routes.routes.some((route) => route.id === id)) continue;
+    addIssue(issues, {
+      contract: "inventory.route-coverage",
+      file: files.routes,
+      message: `Missing route inventory entry ${id}.`,
+      rule: "missing-route-inventory",
+    });
   }
 
   for (const id of requiredStates) {
-    if (!states.states.some((state) => state.id === id)) {
-      addIssue(issues, {
-        contract: "inventory.state-coverage",
-        file: "test/style-audit/states.json",
-        line: 1,
-        message: `Missing state inventory entry ${id}.`,
-        rule: "missing-state-inventory",
-        selector: null,
-      });
-    }
+    if (states.states.some((state) => state.id === id)) continue;
+    addIssue(issues, {
+      contract: "state.complete-coverage",
+      file: files.states,
+      message: `Missing state inventory entry ${id}.`,
+      rule: "missing-state-inventory",
+    });
   }
 
   for (const id of requiredContracts) {
-    if (!contracts.contracts.some((contract) => contract.id === id)) {
-      addIssue(issues, {
-        contract: "inventory.contract-coverage",
-        file: "test/style-audit/contracts/fugue-console.json",
-        line: 1,
-        message: `Missing style contract ${id}.`,
-        rule: "missing-style-contract",
-        selector: null,
-      });
-    }
+    if (contracts.contracts.some((contract) => contract.id === id)) continue;
+    addIssue(issues, {
+      contract: "inventory.contract-coverage",
+      file: files.contracts,
+      message: `Missing Morlane style contract ${id}.`,
+      rule: "missing-style-contract",
+    });
   }
 }
 
-function verifyRuntimeContracts({
-  consoleCommandSearch,
-  consoleCss,
-  designTokensCss,
-  globalsCss,
-  issues,
-  runtimeCss,
-  runtimeRules,
-}) {
-  if (
-    !hasAll(runtimeCss, [
-      ".fp-design-system :where(.fg-select)",
-      "padding: 0 !important",
-      "background: transparent !important",
-      "box-shadow: none !important",
-      ".fp-design-system :where(.fg-settings-form .fg-select__control)",
-      "min-height: 36px !important",
-    ])
-  ) {
-    addIssue(issues, {
-      contract: "control.select.single-surface",
-      file: "app/cloudflare-runtime.css",
-      line: 1,
-      message:
-        "Select wrapper/control contract is missing its rendered cascade reset.",
-      rule: "select-rendered-reset-required",
-      selector: ".fg-select",
+function verifyMorlaneContracts(issues) {
+  requireTokens(issues, {
+    contract: "design.morlane-token-bridge",
+    file: files.morlaneCss,
+    message: "The canonical Morlane primitives and compatibility bridge must remain defined.",
+    rule: "morlane-token-bridge-required",
+    selector: ":root",
+    tokens: [
+      "--bg: #f6f7f8",
+      "--surface: #ffffff",
+      "--text: #17191c",
+      "--border: #d8dde3",
+      "--info: #1769aa",
+      "--ml-bg: var(--bg)",
+      "--ml-surface: var(--surface)",
+      "--ml-text: var(--text)",
+      "--ml-border: var(--border)",
+      "--ml-accent: var(--accent)",
+    ],
+  });
+
+  for (const file of [files.appLayout, files.newLayout]) {
+    requireTokens(issues, {
+      contract: "layout.console-shell",
+      file,
+      message: "Product routes must load the Morlane component contract layer.",
+      rule: "console-component-layer-import-required",
+      tokens: ['import "../console-components.css";'],
     });
   }
 
-  if (
-    !hasAll(runtimeCss, [
-      ".fp-design-system :where(.fg-hint-tooltip__trigger)",
-      "width: 20px !important",
-      "background: transparent !important",
-      "border-radius: 0 !important",
-      "box-shadow: none !important",
-      "@media (max-width: 640px)",
-      "width: 44px !important",
-    ])
-  ) {
-    addIssue(issues, {
-      contract: "control.tooltip.inline-help",
-      file: "app/cloudflare-runtime.css",
-      line: 1,
-      message:
-        "Tooltip trigger contract is missing transparent desktop/mobile rendered reset.",
-      rule: "tooltip-rendered-reset-required",
-      selector: ".fg-hint-tooltip__trigger",
-    });
-  }
-
-  for (const rule of runtimeRules) {
-    const hasProvider = rule.selector.includes(".fg-provider-button__mark");
-    const hasTooltip = rule.selector.includes(".fg-hint-tooltip__trigger");
-    if (hasProvider && hasTooltip) {
-      addIssue(issues, {
-        contract: "control.tooltip.inline-help",
-        file: rule.file,
-        line: rule.line,
-        message:
-          "Tooltip trigger is grouped with framed provider/auth icon mark styling.",
-        rule: "tooltip-provider-mark-isolation",
-        selector: rule.selector,
-      });
-    }
-  }
-
-  if (
-    !ruleContains(
-      runtimeRules,
-      ".fg-control-strip-shell > .fg-control-strip__viewport",
-      /background:\s*transparent\s*!important[\s\S]*box-shadow:\s*none\s*!important/,
-    )
-  ) {
-    addIssue(issues, {
-      contract: "control.segmented.single-track",
-      file: "app/cloudflare-runtime.css",
-      line: 1,
-      message:
-        "Control-strip viewport must be transparent so only the shell owns the track surface.",
-      rule: "control-strip-viewport-transparent",
-      selector: ".fg-control-strip__viewport",
-    });
-  }
-
-  if (
-    !hasAll(runtimeCss, [
-      "--cf-service-row-selection-gutter: 20px",
-      "--cf-service-row-inline-end: 16px",
-    ]) ||
-    !ruleContains(
-      runtimeRules,
-      ".fg-project-service-card",
-      /padding:\s*12px\s+var\(--cf-service-row-inline-end\)\s+12px\s+var\(--cf-service-row-selection-gutter\)\s*!important/,
-    ) ||
-    !ruleContains(
-      runtimeRules,
+  requireTokens(issues, {
+    contract: "layout.project-workbench",
+    file: files.consoleComponents,
+    message: "Project detail must retain the compact Morlane rail and inspector layout.",
+    rule: "project-workbench-grid-required",
+    selector: ".fg-project-workbench__inner",
+    tokens: [
+      ".fg-project-workbench__inner",
+      "grid-template-columns: minmax(220px, 260px) minmax(0, 1fr)",
+      ".fg-project-workbench__rail",
+      ".fg-project-workbench__main",
       ".fg-project-service-card.is-active",
-      /box-shadow:\s*inset\s+3px\s+0\s+0\s+var\(--cf-blue\)\s*!important/,
-    )
-  ) {
-    addIssue(issues, {
-      contract: "surface.project-service.selection-gutter",
-      file: "app/cloudflare-runtime.css",
-      line: 1,
-      message:
-        "Project service row selection must reserve a left gutter and right padding so the active bar is not hidden by the logo and status text is not edge-tight.",
-      rule: "service-row-gutter-runtime-required",
-      selector: ".fg-project-service-card",
+    ],
+  });
+
+  requireTokens(issues, {
+    contract: "layout.resource-density",
+    file: files.consoleComponents,
+    message: "Console resource pages must retain compact Morlane rows and grids.",
+    rule: "resource-density-contract-required",
+    tokens: [
+      ".fp-project-resource-list .fp-row",
+      "min-height: 76px",
+      ".fg-cluster-node-card",
+      ".fg-api-key-item",
+      ".fg-billing-workbench",
+      ".fg-console-table-wrap",
+    ],
+  });
+
+  requireTokens(issues, {
+    contract: "control.input-single-surface",
+    file: files.consoleComponents,
+    message: "Project search and select controls must have one Morlane surface owner.",
+    rule: "project-filter-single-surface-required",
+    selector: ".fp-project-search input, .fp-project-select select",
+    tokens: [
+      ".fp-project-search input,",
+      ".fp-project-select select",
+      "border: 0",
+      "background: transparent",
+    ],
+  });
+
+  requireTokens(issues, {
+    contract: "control.locale-theme-morlane",
+    file: files.morlaneCss,
+    message: "Locale and theme controls must use the shared Morlane utility controls.",
+    rule: "locale-theme-control-contract-required",
+    tokens: [
+      ".language-select",
+      ".language-select select",
+      ".icon-button",
+      "border-radius: var(--radius)",
+    ],
+  });
+
+  requireTokens(issues, {
+    contract: "surface.profile-auth",
+    file: files.consoleComponents,
+    message: "Profile auth providers must use a responsive Morlane workbench without compressed details.",
+    rule: "profile-auth-workbench-required",
+    selector: ".fg-profile-auth-workbench",
+    tokens: [
+      ".fg-profile-auth-workbench",
+      "grid-template-columns: minmax(260px, 0.72fr) minmax(0, 1.28fr)",
+      ".fg-profile-auth-provider__footer",
+      "grid-template-columns: minmax(0, 1fr)",
+    ],
+  });
+
+  requireTokens(issues, {
+    contract: "surface.docs-density",
+    file: files.docsCss,
+    message: "Documentation must use the dense Morlane docs shell and restrained heading scale.",
+    rule: "docs-density-contract-required",
+    selector: ".ml-docs-page",
+    tokens: [
+      "grid-template-columns: 250px minmax(0, 1fr)",
+      ".ml-docs-hero h1",
+      "font-size: 38px",
+      ".ml-docs-section__head h2",
+      "font-size: 26px",
+    ],
+  });
+
+  requireTokens(issues, {
+    contract: "state.complete-coverage",
+    file: files.consoleComponents,
+    message: "The Morlane component layer must preserve focus and responsive states.",
+    rule: "interactive-responsive-state-required",
+    tokens: [
+      ":focus-visible",
+      "@media (max-width: 1180px)",
+      "@media (max-width: 920px)",
+      "@media (max-width: 680px)",
+      "@media (prefers-reduced-motion: reduce)",
+    ],
+  });
+
+  for (const file of [files.appLayout, files.newLayout]) {
+    forbidTokens(issues, {
+      contract: "legacy.visual-runtime-detached",
+      file,
+      message: "Legacy visual runtime styles must not be imported by product routes.",
+      rule: "legacy-runtime-import-forbidden",
+      tokens: ["cloudflare-runtime.css", "cinematic", "legacy-console"],
     });
   }
-
-  const legacyPositiveGreenTokens = [
-    "#e4f4e9",
-    "#9be0b9",
-    "#284f39",
-    "#508765",
-    "rgba(36, 68, 56",
-    "rgba(38, 55, 45",
-    "rgba(91, 138, 108",
-    "rgba(92, 184, 122",
-    "rgba(95, 154, 116",
-    "rgba(129, 188, 158",
-    "rgba(137, 205, 168",
-    "rgba(111, 160, 128",
-    "rgba(86, 132, 103",
-    "rgba(80, 135, 101",
-    "rgba(155, 224, 185",
-  ];
-  const hasLegacyPositiveGreen = legacyPositiveGreenTokens.some((token) =>
-    [consoleCss, designTokensCss, globalsCss, runtimeCss].some((source) =>
-      source.includes(token),
-    ),
-  );
-
-  flagUnclassifiedGreenLiterals({
-    issues,
-    sources: [
-      { file: "app/console.css", source: consoleCss },
-      { file: "design-system/tokens.css", source: designTokensCss },
-      { file: "app/globals.css", source: globalsCss },
-      { file: "app/cloudflare-runtime.css", source: runtimeCss },
-    ],
-  });
-
-  if (
-    !hasAll(runtimeCss, [
-      "--cf-green: oklch(0.696 0.17 162.48)",
-      "--cf-status-positive-rgb: 0 188 125",
-      "--cf-status-positive-text: var(--cf-green)",
-      "--fugue-status-badge-text-positive: var(--cf-status-positive-text)",
-      ".fg-status-badge--positive",
-      ".fg-status-badge--success",
-      ".fg-route-field__status.is-success",
-      ".fp-design-system .fg-route-field__status::before",
-      "color: var(--cf-status-positive-text) !important",
-    ]) ||
-    !hasAll(designTokensCss, [
-      "--fugue-status-badge-bg-positive: var(--cf-status-positive-bg, transparent)",
-      "--fugue-status-badge-border-positive: var(--cf-status-positive-border, transparent)",
-      "--fugue-status-badge-text-positive: var(",
-      "--cf-status-positive-text,",
-      "oklch(0.696 0.17 162.48)",
-    ]) ||
-    !hasAll(globalsCss, [
-      ".fg-toast--success",
-      "--fg-toast-accent: var(--cf-status-positive-rgb, 0 188 125)",
-    ]) ||
-    hasLegacyPositiveGreen
-  ) {
-    addIssue(issues, {
-      contract: "color.status-positive.cf-token",
-      file: "app/cloudflare-runtime.css",
-      line: 1,
-      message:
-        "Positive/success green must use the shared Cloudflare status token across badges, route/domain field states, alerts, cards, resource fills, and toasts.",
-      rule: "positive-green-token-required",
-      selector: ".fg-status-badge--positive, .fg-route-field__status.is-success",
-    });
-  }
-
-  if (
-    !hasAll(consoleCommandSearch, [
-      "useRouter",
-      "router.push(command.href)",
-      "visibleCommands",
-      "window.addEventListener(\"keydown\"",
-      "event.key === \"ArrowDown\"",
-      "event.key === \"ArrowUp\"",
-      "event.key === \"Enter\"",
-      "role=\"dialog\"",
-      "role=\"listbox\"",
-    ])
-  ) {
-    addIssue(issues, {
-      contract: "control.command-search.interactive",
-      file: "components/console/console-command-search.tsx",
-      line: 1,
-      message:
-        "Console command search must be an interactive searchable command palette with keyboard navigation and route navigation, not a decorative button.",
-      rule: "command-search-interaction-required",
-      selector: ".fp-command",
-    });
-  }
-
-  if (
-    !hasAll(runtimeCss, [
-      ".fp-command-search__dialog",
-      ".fp-command-search__field",
-      ".fp-command-search__item",
-      "background: var(--cf-surface-0)",
-      "background: var(--cf-surface-1)",
-      "background: var(--cf-surface-2)",
-    ])
-  ) {
-    addIssue(issues, {
-      contract: "control.command-search.interactive",
-      file: "app/cloudflare-runtime.css",
-      line: 1,
-      message:
-        "Command search must have Cloudflare-aligned modal, field, and item surfaces in the runtime cascade.",
-      rule: "command-search-runtime-surface-required",
-      selector: ".fp-command-search",
-    });
-  }
-
-  if (
-    !hasAll(runtimeCss, [
-      "--cf-sidebar-command-margin: 8px 16px 14px",
-      "--cf-sidebar-nav-padding: 0 14px 16px",
-      "--cf-sidebar-section-gap: 14px",
-      "--cf-page-inline-gutter: 40px",
-      "--cf-page-block-start: 40px",
-      "--cf-page-block-end: 64px",
-      "margin: var(--cf-sidebar-command-margin)",
-      "padding: var(--cf-sidebar-nav-padding)",
-      "margin-top: var(--cf-sidebar-section-gap)",
-      "calc(var(--cf-page-inline-gutter) * 2)",
-      "padding: var(--cf-page-block-start) 0 var(--cf-page-block-end)",
-    ])
-  ) {
-    addIssue(issues, {
-      contract: "layout.console-spacing.tokenized",
-      file: "app/cloudflare-runtime.css",
-      line: 1,
-      message:
-        "Console spacing must be governed by sidebar/page rhythm tokens instead of scattered one-off margins.",
-      rule: "console-spacing-token-contract-required",
-      selector: ".fp-sidebar, .fp-page",
-    });
-  }
-}
-
-function verifyProjectSourceContracts({ consoleRules, issues }) {
-  flagForbiddenInRules({
-    contract: "surface.project-membership.row-like",
-    forbidden: [
-      { label: "full border", pattern: /border:\s*1px/, rule: "membership-no-card-border" },
-      { label: "rounded card radius", pattern: /border-radius:\s*(1\.18rem|var\(--fugue-radius)/, rule: "membership-no-card-radius" },
-      { label: "gradient background", pattern: /linear-gradient\(/, rule: "membership-no-gradient-surface" },
-      { label: "hidden shell overflow", pattern: /overflow:\s*hidden/, rule: "membership-no-shell-clip" },
-      {
-        label: "legacy shadow",
-        matches: (body) => hasDeclarationValue(body, "box-shadow", isNotNone),
-        rule: "membership-no-shadow",
-      },
-    ],
-    issues,
-    message: "Project membership group must be a row/divider surface, not a rounded card shell.",
-    rules: consoleRules,
-    selector: ".fg-project-membership-group",
-  });
-
-  flagForbiddenInRules({
-    contract: "surface.project-membership.row-like",
-    forbidden: [
-      { label: "gradient header background", pattern: /linear-gradient\(/, rule: "membership-head-no-gradient" },
-      {
-        label: "filled header surface",
-        matches: (body) =>
-          hasDeclarationValue(body, "background", isNotTransparent),
-        rule: "membership-head-no-fill",
-      },
-    ],
-    issues,
-    message: "Project membership group header must not own a separate card-like surface.",
-    rules: consoleRules,
-    selector: ".fg-project-membership-group__head",
-  });
-
-  flagForbiddenInRules({
-    contract: "surface.project-membership.row-like",
-    forbidden: [
-      { label: "gradient hover fill", pattern: /linear-gradient\(/, rule: "membership-row-hover-no-gradient" },
-      { label: "layout transform", pattern: /transform:/, rule: "membership-row-no-transform" },
-    ],
-    issues,
-    message: "Project membership rows must behave like table rows, not elevated cards.",
-    rules: consoleRules,
-    selector: ".fg-project-membership-row",
-    excludeSelectorFragments: ["__"],
-  });
-
-  flagForbiddenInRules({
-    contract: "danger.project-preview.neutral-token",
-    forbidden: [
-      {
-        label: "pill padding",
-        matches: (body) => hasDeclarationValue(body, "padding", isNotZero),
-        rule: "danger-token-no-pill-padding",
-      },
-      { label: "visible border", pattern: /border:\s*1px/, rule: "danger-token-no-border" },
-      {
-        label: "rounded pill radius",
-        matches: (body) =>
-          hasDeclarationValue(body, "border-radius", isNotZero),
-        rule: "danger-token-no-radius",
-      },
-      {
-        label: "filled background",
-        matches: (body) =>
-          hasDeclarationValue(body, "background", isNotTransparent),
-        rule: "danger-token-no-fill",
-      },
-      { label: "danger text color", pattern: /color:\s*var\(--fugue-danger|color:\s*var\(--cf-red/, rule: "danger-token-neutral-color" },
-    ],
-    issues,
-    message: "Danger preview token must be neutral inline object text, not a red warning pill.",
-    rules: consoleRules,
-    selector: ".fg-project-danger-preview__token",
-  });
-
-  flagForbiddenInRules({
-    contract: "danger.project-preview.neutral-token",
-    forbidden: [
-      { label: "rounded card radius", pattern: /border-radius:\s*(1\.18rem|var\(--fugue-radius)/, rule: "danger-card-no-rounded-shell" },
-      { label: "gradient danger surface", pattern: /linear-gradient\(/, rule: "danger-card-no-gradient" },
-      {
-        label: "legacy inset shadow",
-        matches: (body) => hasDeclarationValue(body, "box-shadow", isNotNone),
-        rule: "danger-card-no-shadow",
-      },
-    ],
-    issues,
-    message: "Project danger region should be a section divider, not a tinted card shell.",
-    rules: consoleRules,
-    selector: ".fg-project-danger-card",
-  });
-
-  flagForbiddenInRules({
-    contract: "surface.project-service.selection-gutter",
-    forbidden: [
-      { label: "full border", pattern: /border:\s*1px/, rule: "service-row-no-card-border" },
-      { label: "rounded card radius", pattern: /border-radius:\s*(1\.12rem|var\(--f[pu]-radius)/, rule: "service-row-no-card-radius" },
-      { label: "gradient background", pattern: /linear-gradient\(/, rule: "service-row-no-gradient-surface" },
-      {
-        label: "outer shadow",
-        matches: (body) =>
-          hasDeclarationValue(
-            body,
-            "box-shadow",
-            (value) => isNotNone(value) && !/^inset\s+3px\s+0\s+0\s+var\(--(?:fugue-focus-ring|fp-focus-ring|cf-blue)\)/i.test(value),
-          ),
-        rule: "service-row-no-outer-shadow",
-      },
-      { label: "layout transform", pattern: /transform:/, rule: "service-row-no-transform" },
-    ],
-    issues,
-    message:
-      "Project service rows must be single-surface rows with an unobstructed left selection gutter, not rounded cards.",
-    rules: consoleRules,
-    selector: ".fg-project-service-card",
-    excludeSelectorFragments: ["__"],
-  });
-}
-
-function verifySkeletonContracts({ consoleRules, issues }) {
-  flagForbiddenInRules({
-    contract: "feedback.console-skeleton.cf-bars",
-    forbidden: [
-      { label: "999px skeleton capsule", pattern: /border-radius:\s*999px/, rule: "skeleton-no-legacy-pill-radius" },
-      { label: "gradient block fill", pattern: /background:\s*linear-gradient|background:[\s\S]*linear-gradient\(/, rule: "skeleton-no-gradient-block" },
-      {
-        label: "legacy inset highlight",
-        matches: (body) => hasDeclarationValue(body, "box-shadow", isNotNone),
-        rule: "skeleton-no-inset-highlight",
-      },
-    ],
-    issues,
-    message: "Console skeleton blocks must use the Cloudflare bar surface instead of legacy glossy pills.",
-    rules: consoleRules,
-    selector: ".fg-console-skeleton__block",
-    excludeSelectorFragments: ["::after"],
-  });
-
-  flagForbiddenInRules({
-    contract: "feedback.console-skeleton.cf-bars",
-    forbidden: [
-      { label: "card border", pattern: /border:\s*1px/, rule: "skeleton-container-no-card-border" },
-      { label: "card radius", pattern: /border-radius:\s*1rem/, rule: "skeleton-container-no-card-radius" },
-      { label: "card background", pattern: /background:\s*var\(--fugue-console-skeleton-surface-bg\)/, rule: "skeleton-container-no-card-bg" },
-    ],
-    issues,
-    message: "Skeleton list/workbench containers must not preserve old card shells.",
-    rules: consoleRules,
-    selector: ".fg-console-skeleton__list-item",
-  });
-
-  flagForbiddenInRules({
-    contract: "feedback.console-skeleton.cf-bars",
-    forbidden: [
-      { label: "card border", pattern: /border:\s*1px/, rule: "skeleton-workbench-no-card-border" },
-      { label: "card radius", pattern: /border-radius:\s*1rem/, rule: "skeleton-workbench-no-card-radius" },
-      { label: "card background", pattern: /background:\s*var\(--fugue-console-skeleton-surface-bg\)/, rule: "skeleton-workbench-no-card-bg" },
-    ],
-    issues,
-    message: "Skeleton workbench main must not preserve old card shell.",
-    rules: consoleRules,
-    selector: ".fg-console-skeleton__workbench-main",
-  });
 }
 
 function buildReport(result) {
@@ -715,7 +327,7 @@ function buildReport(result) {
     "",
   ];
 
-  if (result.issues.length === 0) {
+  if (!result.issues.length) {
     lines.push("## Findings", "", "No blocker findings remain.", "");
     return `${lines.join("\n")}\n`;
   }
@@ -731,35 +343,16 @@ function buildReport(result) {
       "",
     );
   }
-
   return `${lines.join("\n")}\n`;
 }
 
-const consoleCommandSearch = read(files.consoleCommandSearch);
-const consoleCss = read(files.consoleCss);
-const designTokensCss = read(files.designTokensCss);
-const globalsCss = read(files.globalsCss);
-const runtimeCss = read(files.runtimeCss);
 const routes = readJson(files.routes);
 const states = readJson(files.states);
 const contracts = readJson(files.contracts);
-const consoleRules = collectCssRules(consoleCss, "app/console.css");
-const runtimeRules = collectCssRules(runtimeCss, "app/cloudflare-runtime.css");
-
 const issues = [];
 
 verifyInventory({ contracts, issues, routes, states });
-verifyRuntimeContracts({
-  consoleCommandSearch,
-  consoleCss,
-  designTokensCss,
-  globalsCss,
-  issues,
-  runtimeCss,
-  runtimeRules,
-});
-verifyProjectSourceContracts({ consoleRules, issues });
-verifySkeletonContracts({ consoleRules, issues });
+verifyMorlaneContracts(issues);
 
 const result = {
   coverage: {
