@@ -37,15 +37,16 @@ export async function GET(request: Request) {
   }
 
   try {
+    const locale = await getRequestLocale();
+
     if (readIncludeControlPlane(request)) {
-      return NextResponse.json(await getAdminControlPlaneData(), {
+      return NextResponse.json(await getAdminControlPlaneData(locale), {
         headers: {
           "Cache-Control": "no-store",
         },
       });
     }
 
-    const locale = await getRequestLocale();
     return jsonSnapshot(await getAdminClusterPageData(locale));
   } catch (error) {
     return jsonError(readErrorStatus(error), readErrorMessage(error));

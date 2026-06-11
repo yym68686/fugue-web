@@ -47,6 +47,10 @@ type AdminAppsUsageSnapshot = {
   pending?: boolean;
 };
 
+function isEmptyUsageLabel(label: string | null | undefined) {
+  return !label || label === "No stats" || label === "-";
+}
+
 function buildAdminAppUsageMap(
   snapshot: AdminAppsUsageSnapshot | null,
 ) {
@@ -67,8 +71,7 @@ function hasAdminAppUsageImageData(
   const imageUsage = resourceUsage?.find((item) => item.id === "images");
   return Boolean(
     imageUsage &&
-      imageUsage.primaryLabel &&
-      imageUsage.primaryLabel !== "No stats",
+      !isEmptyUsageLabel(imageUsage.primaryLabel),
   );
 }
 
@@ -77,14 +80,19 @@ function hasLoadedAdminAppUsage(
 ) {
   return Boolean(
     resourceUsage?.some(
-      (item) => item.primaryLabel && item.primaryLabel !== "No stats",
+      (item) => !isEmptyUsageLabel(item.primaryLabel),
     ),
   );
 }
 
-function readAdminAppsUsageSnapshot() {
+function withLocaleSnapshotUrl(url: string, locale: string) {
+  const separator = url.includes("?") ? "&" : "?";
+  return `${url}${separator}locale=${encodeURIComponent(locale)}`;
+}
+
+function readAdminAppsUsageSnapshot(snapshotUrl: string) {
   return readConsolePageSnapshot<AdminAppsUsageSnapshot>(
-    CONSOLE_ADMIN_APPS_PAGE_USAGE_SNAPSHOT_URL,
+    snapshotUrl,
     {
       allowStale: true,
       ttlMs: ADMIN_APPS_USAGE_SNAPSHOT_TTL_MS,
@@ -97,10 +105,22 @@ export function AdminAppsPageShell({
 }: {
   initialSnapshot?: ConsoleAdminAppsPageSnapshot | null;
 }) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
+  const pageSnapshotUrl = useMemo(
+    () => withLocaleSnapshotUrl(CONSOLE_ADMIN_APPS_PAGE_SNAPSHOT_URL, locale),
+    [locale],
+  );
+  const usageSnapshotUrl = useMemo(
+    () =>
+      withLocaleSnapshotUrl(
+        CONSOLE_ADMIN_APPS_PAGE_USAGE_SNAPSHOT_URL,
+        locale,
+      ),
+    [locale],
+  );
   const { data, error, loading, refresh } =
     useConsolePageSnapshot<ConsoleAdminAppsPageSnapshot>(
-      CONSOLE_ADMIN_APPS_PAGE_SNAPSHOT_URL,
+      pageSnapshotUrl,
       {
         initialData: initialSnapshot,
       },
@@ -108,7 +128,7 @@ export function AdminAppsPageShell({
   const [usageByAppId, setUsageByAppId] = useState<
     Record<string, ConsoleCompactResourceItemView[]>
   >(() =>
-    buildAdminAppUsageMap(readAdminAppsUsageSnapshot()),
+    buildAdminAppUsageMap(readAdminAppsUsageSnapshot(usageSnapshotUrl)),
   );
 
   useEffect(() => {
@@ -117,14 +137,16 @@ export function AdminAppsPageShell({
       return;
     }
 
-    const cachedUsage = buildAdminAppUsageMap(readAdminAppsUsageSnapshot());
+    const cachedUsage = buildAdminAppUsageMap(
+      readAdminAppsUsageSnapshot(usageSnapshotUrl),
+    );
 
     if (Object.keys(cachedUsage).length > 0) {
       startTransition(() => {
         setUsageByAppId(cachedUsage);
       });
     }
-  }, [data]);
+  }, [data, usageSnapshotUrl]);
 
   const appUsageWarmupKey = useMemo(
     () => (data?.apps ?? []).map((app) => app.id).join("||"),
@@ -135,7 +157,9 @@ export function AdminAppsPageShell({
       return;
     }
 
-    const cachedUsage = buildAdminAppUsageMap(readAdminAppsUsageSnapshot());
+    const cachedUsage = buildAdminAppUsageMap(
+      readAdminAppsUsageSnapshot(usageSnapshotUrl),
+    );
 
     if (Object.keys(cachedUsage).length > 0) {
       startTransition(() => {
@@ -175,7 +199,7 @@ export function AdminAppsPageShell({
         }
 
         void fetchConsolePageSnapshot<AdminAppsUsageSnapshot>(
-          CONSOLE_ADMIN_APPS_PAGE_USAGE_SNAPSHOT_URL,
+          usageSnapshotUrl,
           {
             force: true,
             signal,
@@ -198,7 +222,7 @@ export function AdminAppsPageShell({
     };
 
     void fetchConsolePageSnapshot<AdminAppsUsageSnapshot>(
-      CONSOLE_ADMIN_APPS_PAGE_USAGE_SNAPSHOT_URL,
+      usageSnapshotUrl,
       {
         signal,
         ttlMs: ADMIN_APPS_USAGE_SNAPSHOT_TTL_MS,
@@ -220,7 +244,7 @@ export function AdminAppsPageShell({
 
   useAnticipatoryWarmup(
     data?.apps.length ? warmAdminAppUsage : null,
-    [appUsageWarmupKey],
+    [appUsageWarmupKey, usageSnapshotUrl],
     {
       mode: "idle",
       timeoutMs: 3_000,

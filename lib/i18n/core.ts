@@ -15,15 +15,29 @@ const TRADITIONAL_SCRIPTS = new Set(["HANT"]);
 
 const enMessages = {
   "Auto": "Auto",
+  "Completed": "Completed",
+  "Current live sample": "Current live sample",
   "Dark": "Dark",
+  "Deleting": "Deleting",
+  "Deployed": "Deployed",
+  "Disabled": "Disabled",
   "Docs": "Docs",
+  "Failed": "Failed",
+  "Failed Over": "Failed Over",
+  "Failing Over": "Failing Over",
+  "Healthy": "Healthy",
   "Interface language": "Interface language",
   "Language": "Language",
   "Light": "Light",
   "Live and reserved CPU, memory, and disk capacity.":
     "Live and reserved CPU, memory, and disk capacity.",
+  "Loading billing…": "Loading billing…",
+  "Migrated": "Migrated",
+  "Migrating": "Migrating",
   "No images": "-",
   "No stats": "-",
+  "Stopped": "Stopped",
+  "Stored app images": "Stored app images",
   "Allocatable": "Allocatable",
   "Free to schedule": "Free to schedule",
   "Req {percent}": "Req {percent}",
@@ -36,6 +50,10 @@ const enMessages = {
   "Use": "Use",
   "Use {percent}": "Use {percent}",
   "{amount} schedulable": "{amount} schedulable",
+  "{signals} signal": "{signals} signal",
+  "{signals} signals": "{signals} signals",
+  "Waiting for complete node health telemetry.":
+    "Waiting for complete node health telemetry.",
   "{label} / {usage} / {total} / {request}":
     "{label} / {usage} / {total} / {request}",
   "{label} / {usage} / {total} / {request} / {free}":
@@ -124,6 +142,7 @@ const zhCNMessages = {
   "Clear": "正常",
   "Cluster": "集群",
   "Cluster apps unavailable": "集群应用暂不可用",
+  "Completed": "已完成",
   "Completing sign-in. If the browser stays here, continue manually once.":
     "正在完成登录。如果浏览器一直停留在此，请手动继续一次。",
   "Console": "控制台",
@@ -138,6 +157,7 @@ const zhCNMessages = {
   "Create an account.": "创建账号。",
   "Create project": "创建项目",
   "Creating…": "正在创建…",
+  "Current live sample": "当前实时样本",
   "Current primary": "当前主节点",
   "Current release": "当前版本",
   "Delete empty project?": "删除空项目？",
@@ -160,6 +180,8 @@ const zhCNMessages = {
   "Deploy onto this machine.": "部署到这台机器上。",
   "Deploy onto this machine. It also contributes to the internal cluster.":
     "部署到这台机器上。它也会为内部集群提供容量。",
+  "Deployed": "已部署",
+  "Disabled": "已禁用",
   "Docker image": "Docker 镜像",
   "Docs": "文档",
   "Done": "完成",
@@ -174,6 +196,9 @@ const zhCNMessages = {
   "Environment changes queued.": "环境变量更改已加入队列。",
   "Environment formats": "环境变量格式",
   "Environment variable names cannot be empty.": "环境变量名称不能为空。",
+  "Failed": "失败",
+  "Failed Over": "已故障转移",
+  "Failing Over": "故障转移中",
   "Files": "文件",
   "Finalizing your access.": "正在完成你的访问。",
   "Finish DNS setup and Fugue will verify this hostname automatically.":
@@ -186,6 +211,7 @@ const zhCNMessages = {
   "Force delete service?": "强制删除服务？",
   "Force delete this pending service.": "强制删除这个待处理服务。",
   "Fugue": "Fugue",
+  "Healthy": "健康",
   "Fugue could not load the admin apps snapshot right now.":
     "Fugue 当前无法加载管理员应用快照。",
   "Fugue could not load the admin users snapshot right now.":
@@ -716,6 +742,8 @@ const zhTWMessages = {
   "Create an account.": "建立帳號。",
   "Create project": "建立專案",
   "Creating…": "建立中…",
+  "Completed": "已完成",
+  "Current live sample": "目前即時樣本",
   "Delete empty project?": "刪除空專案？",
   "Delete project": "刪除專案",
   "Delete queued.": "刪除已加入佇列。",
@@ -725,6 +753,8 @@ const zhTWMessages = {
   "Disk": "磁碟",
   "Deploy from source, shared first": "原始碼部署 更快起步",
   "Deploy apps from source": "從原始碼部署應用",
+  "Deployed": "已部署",
+  "Disabled": "已停用",
   "Email": "電子郵件",
   "Email link": "電子郵件連結",
   "Email or password is incorrect.": "電子郵件或密碼不正確。",
@@ -732,9 +762,13 @@ const zhTWMessages = {
   "Environment changes queued.": "環境變數變更已加入佇列。",
   "Environment formats": "環境變數格式",
   "Environment variable names cannot be empty.": "環境變數名稱不能為空。",
+  "Failed": "失敗",
+  "Failed Over": "已容錯移轉",
+  "Failing Over": "容錯移轉中",
   "Finalizing your access.": "正在完成你的存取。",
   "Force delete": "強制刪除",
   "Force delete queued.": "強制刪除已加入佇列。",
+  "Healthy": "健康",
   "Fugue deploys GitHub repositories, Docker images, and local uploads on shared infrastructure first, then lets teams move the same app onto their own machine without losing the route.":
     "Fugue 支援 GitHub 儲存庫、Docker 映像和本地上傳，直接部署到託管共享環境，幫你更快上線，也省掉首輪機器和維運成本",
   "Get started": "開始使用",
@@ -1873,6 +1907,8 @@ const zhCNExtraMessages = {
   "State": "状态",
   "Streaming response body is unavailable.":
     "流式响应正文不可用。",
+  "Stopped": "已停止",
+  "Stored app images": "已存储应用镜像",
   "Suggested top-up amounts": "建议充值金额",
   "Syncing": "同步中",
   "That GitHub account is already linked to another Fugue account.":
@@ -1895,6 +1931,8 @@ const zhCNExtraMessages = {
     "当前无法加载这个项目。",
   "Update password": "更新密码",
   "Updated {time}": "更新于 {time}",
+  "Waiting for complete node health telemetry.":
+    "正在等待完整节点健康遥测。",
   "{amount} / hour": "{amount} / 小时",
   "{amount} / hour at the current live rate.":
     "按当前实时费率计算为 {amount} / 小时。",
@@ -1910,6 +1948,8 @@ const zhCNExtraMessages = {
     "{name} 为空，会从工作区中移除。",
   "{name} will be queued for deletion from this project.":
     "{name} 将在这个项目中加入删除队列。",
+  "{signals} signal": "{signals} 信号",
+  "{signals} signals": "{signals} 信号",
   "app.example.com or example.com": "app.example.com 或 example.com",
   "25": "25",
   "Action": "操作",
@@ -2224,11 +2264,14 @@ const zhCNExtraMessages = {
   "Live and reserved CPU, memory, and disk capacity.":
     "实时与已预留的 CPU、内存、磁盘容量。",
   "Live CPU, memory, and disk usage.": "实时 CPU、内存和磁盘用量。",
+  "Loading billing…": "正在加载账单…",
   "Make admin": "设为管理员",
   "Managed limit": "托管上限",
   "Managed limit updated.": "托管上限已更新。",
   "Memory {value}": "内存 {value}",
   "Memory limit": "内存上限",
+  "Migrated": "已迁移",
+  "Migrating": "迁移中",
   "Mixed": "混合",
   "Mixed release": "混合版本",
   "Monthly": "月度",
@@ -3534,6 +3577,8 @@ const zhTWExtraMessages = {
   "State": "狀態",
   "Streaming response body is unavailable.":
     "串流回應本文不可用。",
+  "Stopped": "已停止",
+  "Stored app images": "已儲存應用映像",
   "Suggested top-up amounts": "建議儲值金額",
   "Syncing": "同步中",
   "That GitHub account is already linked to another Fugue account.":
@@ -3571,6 +3616,8 @@ const zhTWExtraMessages = {
     "{name} 為空，會從工作區中移除。",
   "{name} will be queued for deletion from this project.":
     "{name} 會在此專案中加入刪除佇列。",
+  "{signals} signal": "{signals} 訊號",
+  "{signals} signals": "{signals} 訊號",
   "app.example.com or example.com": "app.example.com 或 example.com",
   "25": "25",
   "Action": "操作",
@@ -3887,10 +3934,13 @@ const zhTWExtraMessages = {
   "Live and reserved CPU, memory, and disk capacity.":
     "即時與已預留的 CPU、記憶體、磁碟容量。",
   "Live CPU, memory, and disk usage.": "即時 CPU、記憶體與磁碟用量。",
+  "Loading billing…": "正在載入帳務…",
   "Make admin": "設為管理員",
   "Managed limit": "託管上限",
   "Managed limit updated.": "託管上限已更新。",
   "Memory {value}": "記憶體 {value}",
+  "Migrated": "已遷移",
+  "Migrating": "遷移中",
   "Memory limit": "記憶體上限",
   "Mixed": "混合",
   "Mixed release": "混合版本",

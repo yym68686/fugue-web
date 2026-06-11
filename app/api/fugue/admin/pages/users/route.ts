@@ -13,6 +13,8 @@ import {
   readErrorMessage,
   readErrorStatus,
 } from "@/lib/fugue/product-route";
+import type { Locale } from "@/lib/i18n/core";
+import { getRequestLocale } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +38,7 @@ function readIncludeUsage(request: Request) {
 
 function scheduleAdminUsersBackgroundSync(options: {
   enrichment?: boolean;
+  locale: Locale;
   page?: boolean;
   usage?: boolean;
 }) {
@@ -46,7 +49,7 @@ function scheduleAdminUsersBackgroundSync(options: {
     nextAdminUsersPageSyncAt = now + ADMIN_USERS_BACKGROUND_SYNC_INTERVAL_MS;
     tasks.push({
       label: "page",
-      run: refreshAdminUsersPageData,
+      run: () => refreshAdminUsersPageData(options.locale),
     });
   }
 
@@ -54,7 +57,7 @@ function scheduleAdminUsersBackgroundSync(options: {
     nextAdminUsersUsageSyncAt = now + ADMIN_USERS_BACKGROUND_SYNC_INTERVAL_MS;
     tasks.push({
       label: "usage",
-      run: refreshAdminUsersUsageData,
+      run: () => refreshAdminUsersUsageData(options.locale),
     });
   }
 
@@ -63,7 +66,7 @@ function scheduleAdminUsersBackgroundSync(options: {
       now + ADMIN_USERS_BACKGROUND_SYNC_INTERVAL_MS;
     tasks.push({
       label: "enrichment",
-      run: getAdminUsersPageEnrichmentData,
+      run: () => getAdminUsersPageEnrichmentData(options.locale),
     });
   }
 
@@ -94,19 +97,22 @@ export async function GET(request: Request) {
   }
 
   try {
-    if (readIncludeUsage(request)) {
-      scheduleAdminUsersBackgroundSync({ usage: true });
+    const locale = await getRequestLocale();
 
-      return jsonSnapshot(await getAdminUsersUsageDataFast());
+    if (readIncludeUsage(request)) {
+      scheduleAdminUsersBackgroundSync({ locale, usage: true });
+
+      return jsonSnapshot(await getAdminUsersUsageDataFast(locale));
     }
 
     scheduleAdminUsersBackgroundSync({
       enrichment: true,
+      locale,
       page: true,
       usage: true,
     });
 
-    return jsonSnapshot(await getAdminUsersPageData());
+    return jsonSnapshot(await getAdminUsersPageData(locale));
   } catch (error) {
     return jsonError(readErrorStatus(error), readErrorMessage(error));
   }

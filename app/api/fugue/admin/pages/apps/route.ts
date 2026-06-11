@@ -12,6 +12,8 @@ import {
   readErrorMessage,
   readErrorStatus,
 } from "@/lib/fugue/product-route";
+import { getRequestLocale } from "@/lib/i18n/server";
+import type { Locale } from "@/lib/i18n/core";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +35,7 @@ function readIncludeUsage(request: Request) {
 }
 
 function scheduleAdminAppsBackgroundSync(options: {
+  locale: Locale;
   page?: boolean;
   usage?: boolean;
 }) {
@@ -43,7 +46,7 @@ function scheduleAdminAppsBackgroundSync(options: {
     nextAdminAppsPageSyncAt = now + ADMIN_APPS_BACKGROUND_SYNC_INTERVAL_MS;
     tasks.push({
       label: "page",
-      run: refreshAdminAppsPageData,
+      run: () => refreshAdminAppsPageData(options.locale),
     });
   }
 
@@ -51,7 +54,7 @@ function scheduleAdminAppsBackgroundSync(options: {
     nextAdminAppsUsageSyncAt = now + ADMIN_APPS_BACKGROUND_SYNC_INTERVAL_MS;
     tasks.push({
       label: "usage",
-      run: refreshAdminAppsUsageData,
+      run: () => refreshAdminAppsUsageData(options.locale),
     });
   }
 
@@ -82,15 +85,17 @@ export async function GET(request: Request) {
   }
 
   try {
-    if (readIncludeUsage(request)) {
-      scheduleAdminAppsBackgroundSync({ usage: true });
+    const locale = await getRequestLocale();
 
-      return jsonSnapshot(await getAdminAppsUsageDataFast());
+    if (readIncludeUsage(request)) {
+      scheduleAdminAppsBackgroundSync({ locale, usage: true });
+
+      return jsonSnapshot(await getAdminAppsUsageDataFast(locale));
     }
 
-    scheduleAdminAppsBackgroundSync({ page: true, usage: true });
+    scheduleAdminAppsBackgroundSync({ locale, page: true, usage: true });
 
-    return jsonSnapshot(await getAdminAppsPageData());
+    return jsonSnapshot(await getAdminAppsPageData(locale));
   } catch (error) {
     return jsonError(readErrorStatus(error), readErrorMessage(error));
   }

@@ -53,7 +53,14 @@ import {
   readCountryLocation,
   readLocalizedLocationLabel,
 } from "@/lib/geo/country";
-import { translate, type Locale } from "@/lib/i18n/core";
+import {
+  SUPPORTED_LOCALES,
+  formatDateTime as formatLocalizedDateTime,
+  formatNumber as formatLocalizedNumber,
+  formatRelativeTime as formatLocalizedRelativeTime,
+  translate,
+  type Locale,
+} from "@/lib/i18n/core";
 import { createExpiringAsyncCache } from "@/lib/server/expiring-async-cache";
 import {
   getWorkspaceSnapshotByEmail,
@@ -207,13 +214,28 @@ const ADMIN_APPS_USAGE_DATA_CACHE_KEY = "admin-apps-usage-data";
 const ADMIN_USERS_PAGE_DATA_CACHE_KEY = "admin-users-page-data";
 const ADMIN_USERS_USAGE_DATA_CACHE_KEY = "admin-users-usage-data";
 
-let cachedAdminUsersEnrichmentData: AdminUsersPageData | null = null;
-let cachedAdminUsersEnrichmentAt = 0;
-let adminUsersEnrichmentRequest: Promise<AdminUsersPageData> | null = null;
-let adminAppsPageRefreshRequest: Promise<AdminAppsPageData> | null = null;
-let adminAppsUsageRefreshRequest: Promise<AdminAppsUsageData> | null = null;
-let adminUsersPageRefreshRequest: Promise<AdminUsersPageData> | null = null;
-let adminUsersUsageRefreshRequest: Promise<AdminUsersUsageData> | null = null;
+const cachedAdminUsersEnrichmentData = new Map<Locale, AdminUsersPageData>();
+const cachedAdminUsersEnrichmentAt = new Map<Locale, number>();
+const adminUsersEnrichmentRequests = new Map<
+  Locale,
+  Promise<AdminUsersPageData>
+>();
+const adminAppsPageRefreshRequests = new Map<
+  Locale,
+  Promise<AdminAppsPageData>
+>();
+const adminAppsUsageRefreshRequests = new Map<
+  Locale,
+  Promise<AdminAppsUsageData>
+>();
+const adminUsersPageRefreshRequests = new Map<
+  Locale,
+  Promise<AdminUsersPageData>
+>();
+const adminUsersUsageRefreshRequests = new Map<
+  Locale,
+  Promise<AdminUsersUsageData>
+>();
 const adminAppsPageDataCache =
   createExpiringAsyncCache<AdminAppsPageData>(ADMIN_USAGE_CACHE_TTL_MS);
 const adminAppsUsageCache = createExpiringAsyncCache<FugueApp[]>(
@@ -233,6 +255,10 @@ const adminControlPlaneViewCache =
   createExpiringAsyncCache<AdminControlPlaneView>(
     ADMIN_CONTROL_PLANE_CACHE_TTL_MS,
   );
+
+function readLocalizedAdminCacheKey(key: string, locale: Locale) {
+  return `${key}:${locale}`;
+}
 
 export type AdminClusterConditionView = {
   detailLabel: string;
@@ -513,59 +539,17 @@ function parseTimestamp(value?: string | null) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function formatRelativeTime(value?: string | null) {
-  if (!value) {
-    return "Not yet";
-  }
-
-  const timestamp = parseTimestamp(value);
-
-  if (!timestamp) {
-    return "Not yet";
-  }
-
-  const deltaSeconds = Math.round((timestamp - Date.now()) / 1000);
-  const units = [
-    { amount: 60, unit: "second" as const },
-    { amount: 60, unit: "minute" as const },
-    { amount: 24, unit: "hour" as const },
-    { amount: 7, unit: "day" as const },
-    { amount: 4.34524, unit: "week" as const },
-    { amount: 12, unit: "month" as const },
-    { amount: Number.POSITIVE_INFINITY, unit: "year" as const },
-  ];
-
-  let valueForUnit = deltaSeconds;
-
-  for (const { amount, unit } of units) {
-    if (Math.abs(valueForUnit) < amount) {
-      return new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(
-        Math.trunc(valueForUnit),
-        unit,
-      );
-    }
-
-    valueForUnit /= amount;
-  }
-
-  return "Just now";
+function formatRelativeTime(value?: string | null, locale: Locale = "en") {
+  return formatLocalizedRelativeTime(locale, value);
 }
 
-function formatExactTime(value?: string | null) {
-  if (!value) {
-    return "Not yet";
-  }
-
-  const timestamp = parseTimestamp(value);
-
-  if (!timestamp) {
-    return "Not yet";
-  }
-
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(timestamp);
+function formatExactTime(value?: string | null, locale: Locale = "en") {
+  return formatLocalizedDateTime(locale, value, {
+    formatOptions: {
+      dateStyle: "medium",
+      timeStyle: "short",
+    },
+  });
 }
 
 function humanize(value?: string | null) {
@@ -619,14 +603,14 @@ function shortImageRepository(value?: string | null) {
   return segments.at(-1) ?? normalized;
 }
 
-function readProviderLabel(value?: string | null) {
+function readProviderLabel(value?: string | null, locale: Locale = "en") {
   switch (value?.trim().toLowerCase()) {
     case "google":
       return "Google";
     case "github":
       return "GitHub";
     case "email":
-      return "Email";
+      return translate(locale, "Email");
     default:
       return readTechnologyLabel(value);
   }
@@ -907,6 +891,7 @@ function mapAdminApps(
   tenants: FugueTenant[],
   appImageUsage: AdminAppImageUsageLookup,
   runtimes: FugueRuntime[],
+  locale: Locale = "en",
 ) {
   const projectNames = new Map(
     projects.map((project) => [project.id, project.name] as const),
@@ -952,26 +937,26 @@ function mapAdminApps(
 
       return {
         canRebuild: canRebuildApp(app),
-        createdExact: formatExactTime(createdAt),
-        createdLabel: formatRelativeTime(createdAt),
+        createdExact: formatExactTime(createdAt, locale),
+        createdLabel: formatRelativeTime(createdAt, locale),
         id: app.id,
         name: app.name,
         ownerLabel: app.tenantId
           ? (workspaceEmailsByTenant.get(app.tenantId) ??
             tenantNames.get(app.tenantId) ??
             shortId(app.tenantId))
-          : "Unknown",
+          : translate(locale, "Unknown"),
         phase: humanize(phase),
         phaseTone: toneForAppPhase(phase),
         projectLabel: app.projectId
           ? (projectNames.get(app.projectId) ?? shortId(app.projectId))
-          : "Unassigned",
-        resourceUsage: buildAdminAppResourceUsage(app, appImageUsage),
+          : translate(locale, "Unassigned"),
+        resourceUsage: buildAdminAppResourceUsage(app, appImageUsage, locale),
         routeHref: route.href,
         routeLabel: route.label,
         serverLabel: runtimeId
           ? (serverNamesByRuntime.get(runtimeId) ?? shortId(runtimeId))
-          : "Unassigned",
+          : translate(locale, "Unassigned"),
         sourceHref: readFugueSourceHref(app.source),
         sourceLabel: readFugueSourceLabel(app.source),
         stack: buildAppStack(app),
@@ -1061,6 +1046,7 @@ function buildUserViews(
   users: AppUserRecord[],
   workspaces: WorkspaceSnapshot[],
   enrichment: AdminUsersEnrichmentLookup,
+  locale: Locale = "en",
 ) {
   let bootstrapAdminEmail: string | null = null;
   let bootstrapAdminCreatedAt = Number.POSITIVE_INFINITY;
@@ -1108,7 +1094,12 @@ function buildUserViews(
     const hasWorkspace = Boolean(workspace?.tenantId);
 
     return {
-      billing: buildAdminUserBillingView(workspace, billing, enrichment.loaded),
+      billing: buildAdminUserBillingView(
+        workspace,
+        billing,
+        enrichment.loaded,
+        locale,
+      ),
       canBlock: !user.isAdmin && user.status === "active",
       canDemoteAdmin:
         user.isAdmin &&
@@ -1119,10 +1110,11 @@ function buildUserViews(
       canUnblock: !user.isAdmin && user.status === "blocked",
       email: user.email,
       isAdmin: user.isAdmin,
-      lastLoginExact: formatExactTime(user.lastLoginAt),
-      lastLoginLabel: formatRelativeTime(user.lastLoginAt),
+      lastLoginExact: formatExactTime(user.lastLoginAt, locale),
+      lastLoginLabel: formatRelativeTime(user.lastLoginAt, locale),
       name: user.name ?? user.email.split("@")[0] ?? user.email,
-      provider: readProviderLabel(user.provider) ?? humanize(user.provider),
+      provider:
+        readProviderLabel(user.provider, locale) ?? humanize(user.provider),
       serviceCount,
       status: humanize(user.status),
       statusTone: toneForStatus(user.status),
@@ -1130,6 +1122,7 @@ function buildUserViews(
         tenantServiceUsage,
         enrichment.appImageUsage.loaded,
         hasWorkspace && !enrichment.loaded,
+        locale,
       ),
       verified: user.verified,
       workspace: buildAdminUserWorkspaceView(workspace),
@@ -1156,11 +1149,12 @@ function formatLocalizedCountLabel(
   });
 }
 
-function hasFreshAdminUsersEnrichmentData() {
+function hasFreshAdminUsersEnrichmentData(locale: Locale) {
+  const cachedAt = cachedAdminUsersEnrichmentAt.get(locale) ?? 0;
+
   return (
-    cachedAdminUsersEnrichmentData !== null &&
-    Date.now() - cachedAdminUsersEnrichmentAt <
-      ADMIN_USERS_ENRICHMENT_CACHE_TTL_MS
+    cachedAdminUsersEnrichmentData.has(locale) &&
+    Date.now() - cachedAt < ADMIN_USERS_ENRICHMENT_CACHE_TTL_MS
   );
 }
 
@@ -1223,8 +1217,9 @@ function buildAdminUsersPageData(
   enrichment: AdminUsersEnrichmentLookup,
   errors: string[],
   enrichmentState: AdminUsersPageData["enrichmentState"],
+  locale: Locale = "en",
 ): AdminUsersPageData {
-  const users = buildUserViews(base.users, base.workspaces, enrichment);
+  const users = buildUserViews(base.users, base.workspaces, enrichment, locale);
 
   return {
     enrichmentState,
@@ -1267,17 +1262,23 @@ type AdminTenantBillingLookup = {
   error: string | null;
 };
 
-function formatCompactNumber(value: number, digits = 1) {
-  const formatter = new Intl.NumberFormat("en-US", {
+function formatCompactNumber(
+  value: number,
+  digits = 1,
+  locale: Locale = "en",
+) {
+  return formatLocalizedNumber(locale, value, {
     maximumFractionDigits: digits,
     minimumFractionDigits: Number.isInteger(value) ? 0 : Math.min(1, digits),
   });
-
-  return formatter.format(value);
 }
 
-function formatCurrencyFromMicroCents(value: number, currency: string) {
-  return new Intl.NumberFormat("en-US", {
+function formatCurrencyFromMicroCents(
+  value: number,
+  currency: string,
+  locale: Locale = "en",
+) {
+  return new Intl.NumberFormat(locale, {
     currency,
     maximumFractionDigits: 2,
     minimumFractionDigits: 2,
@@ -1285,34 +1286,37 @@ function formatCurrencyFromMicroCents(value: number, currency: string) {
   }).format(value / MICRO_CENTS_PER_DOLLAR);
 }
 
-function formatBillingCPU(cpuMillicores: number) {
+function formatBillingCPU(cpuMillicores: number, locale: Locale = "en") {
   const cores = cpuMillicores / 1000;
 
   if (cpuMillicores === 0) {
-    return "0 cpu";
+    return "0 CPU";
   }
 
   const digits = Number.isInteger(cores) ? 0 : cores >= 10 ? 1 : 2;
-  return `${formatCompactNumber(cores, digits)} cpu`;
+  return `${formatCompactNumber(cores, digits, locale)} CPU`;
 }
 
-function formatBillingMemory(memoryMebibytes: number) {
+function formatBillingMemory(memoryMebibytes: number, locale: Locale = "en") {
   const gib = memoryMebibytes / 1024;
-  return `${formatCompactNumber(gib, Number.isInteger(gib) ? 0 : 2)} GiB`;
+  return `${formatCompactNumber(gib, Number.isInteger(gib) ? 0 : 2, locale)} GiB`;
 }
 
-function formatBillingStorage(storageGibibytes: number) {
-  return `${formatCompactNumber(storageGibibytes, Number.isInteger(storageGibibytes) ? 0 : 2)} GiB`;
+function formatBillingStorage(storageGibibytes: number, locale: Locale = "en") {
+  return `${formatCompactNumber(storageGibibytes, Number.isInteger(storageGibibytes) ? 0 : 2, locale)} GiB`;
 }
 
-function formatBillingResourceSpec(spec: FugueResourceSpec) {
+function formatBillingResourceSpec(
+  spec: FugueResourceSpec,
+  locale: Locale = "en",
+) {
   const parts = [
-    formatBillingCPU(spec.cpuMillicores),
-    formatBillingMemory(spec.memoryMebibytes),
+    formatBillingCPU(spec.cpuMillicores, locale),
+    formatBillingMemory(spec.memoryMebibytes, locale),
   ];
 
   if (spec.storageGibibytes !== undefined) {
-    parts.push(formatBillingStorage(spec.storageGibibytes));
+    parts.push(formatBillingStorage(spec.storageGibibytes, locale));
   }
 
   return parts.join(" / ");
@@ -1338,6 +1342,7 @@ function buildAdminUserBillingView(
   workspace: WorkspaceSnapshot | undefined,
   billingLookup: AdminTenantBillingLookup | undefined,
   loaded: boolean,
+  locale: Locale = "en",
 ): AdminUserBillingView {
   if (!workspace?.tenantId) {
     return {
@@ -1345,7 +1350,7 @@ function buildAdminUserBillingView(
       balanceMicroCents: null,
       committedStorageGibibytes: null,
       cpuMillicores: null,
-      limitLabel: "No workspace",
+      limitLabel: translate(locale, "No workspace"),
       loadError: null,
       loading: false,
       memoryMebibytes: null,
@@ -1365,7 +1370,7 @@ function buildAdminUserBillingView(
       balanceMicroCents: null,
       committedStorageGibibytes: null,
       cpuMillicores: null,
-      limitLabel: "Loading billing…",
+      limitLabel: translate(locale, "Loading billing…"),
       loadError: null,
       loading: true,
       memoryMebibytes: null,
@@ -1385,7 +1390,7 @@ function buildAdminUserBillingView(
       balanceMicroCents: null,
       committedStorageGibibytes: null,
       cpuMillicores: null,
-      limitLabel: "Billing unavailable",
+      limitLabel: translate(locale, "Billing unavailable"),
       loadError:
         billingLookup?.error ??
         "Fugue billing is unavailable for this workspace.",
@@ -1407,17 +1412,19 @@ function buildAdminUserBillingView(
     balanceLabel: formatCurrencyFromMicroCents(
       billing.balanceMicroCents,
       billing.priceBook.currency,
+      locale,
     ),
     balanceMicroCents: billing.balanceMicroCents,
     committedStorageGibibytes: billing.managedCommitted.storageGibibytes,
     cpuMillicores: billing.managedCap.cpuMillicores,
-    limitLabel: formatBillingResourceSpec(billing.managedCap),
+    limitLabel: formatBillingResourceSpec(billing.managedCap, locale),
     loadError: null,
     loading: false,
     memoryMebibytes: billing.managedCap.memoryMebibytes,
     monthlyEstimateLabel: formatCurrencyFromMicroCents(
       billing.monthlyEstimateMicroCents,
       billing.priceBook.currency,
+      locale,
     ),
     priceBook: billing.priceBook,
     storageGibibytes: billing.managedCap.storageGibibytes,
@@ -1444,22 +1451,22 @@ function buildAdminUserWorkspaceView(
   };
 }
 
-function formatPercentLabel(value?: number | null) {
+function formatPercentLabel(value?: number | null, locale: Locale = "en") {
   if (value === null || value === undefined || !Number.isFinite(value)) {
-    return "No stats";
+    return translate(locale, "No stats");
   }
 
-  return `${formatCompactNumber(value, 1)}%`;
+  return `${formatCompactNumber(value, 1, locale)}%`;
 }
 
-function formatBytesLabel(value?: number | null) {
+function formatBytesLabel(value?: number | null, locale: Locale = "en") {
   if (
     value === null ||
     value === undefined ||
     !Number.isFinite(value) ||
     value < 0
   ) {
-    return "No stats";
+    return translate(locale, "No stats");
   }
 
   const units = ["bytes", "KB", "MB", "GB", "TB", "PB"];
@@ -1474,28 +1481,36 @@ function formatBytesLabel(value?: number | null) {
   const digits = amount >= 100 || unitIndex === 0 ? 0 : 1;
   if (unitIndex === 0) {
     const rounded = Math.round(amount);
-    return `${rounded} ${rounded === 1 ? "byte" : "bytes"}`;
+    return translate(locale, rounded === 1 ? "{count} byte" : "{count} bytes", {
+      count: rounded,
+    });
   }
 
-  return `${formatCompactNumber(amount, digits)} ${units[unitIndex]}`;
+  return translate(locale, `{value} ${units[unitIndex]}`, {
+    value: formatCompactNumber(amount, digits, locale),
+  });
 }
 
-function formatCPUCapacityLabel(value?: number | null) {
+function formatCPUCapacityLabel(value?: number | null, locale: Locale = "en") {
   if (
     value === null ||
     value === undefined ||
     !Number.isFinite(value) ||
     value < 0
   ) {
-    return "No stats";
+    return translate(locale, "No stats");
   }
 
   if (Math.abs(value) >= 1000) {
     const cores = value / 1000;
-    return `${formatCompactNumber(cores, 1)} ${cores === 1 ? "core" : "cores"}`;
+    return translate(locale, cores === 1 ? "{count} core" : "{count} cores", {
+      count: formatCompactNumber(cores, 1, locale),
+    });
   }
 
-  return `${Math.round(value)} millicores`;
+  return translate(locale, "{count} millicores", {
+    count: formatCompactNumber(Math.round(value), 0, locale),
+  });
 }
 
 function isFiniteResourceValue(value?: number | null): value is number {
@@ -1520,23 +1535,30 @@ function buildRequestLabel(
   percent: number | null | undefined,
   percentLabel: string,
   amountLabel: string,
+  locale: Locale = "en",
 ) {
   if (!isFiniteResourceValue(percent)) {
     return null;
   }
 
-  return `Reserved ${percentLabel} (${amountLabel})`;
+  return translate(locale, "Reserved {percent} ({amount})", {
+    amount: amountLabel,
+    percent: percentLabel,
+  });
 }
 
 function buildSchedulableFreeLabel(
   value: number | null | undefined,
   amountLabel: string,
+  locale: Locale = "en",
 ) {
   if (!isFiniteResourceValue(value)) {
     return null;
   }
 
-  return `${amountLabel} schedulable`;
+  return translate(locale, "{amount} schedulable", {
+    amount: amountLabel,
+  });
 }
 
 type AdminAppImageUsageLookup = {
@@ -1571,9 +1593,10 @@ function createAdminAppImageUsageLookup(
 function formatAdminImageUsageLabel(
   imageUsage: FugueProjectImageUsageAppSummary | null | undefined,
   loaded: boolean,
+  locale: Locale = "en",
 ) {
   if (!loaded) {
-    return "No stats";
+    return translate(locale, "No stats");
   }
 
   if (
@@ -1581,15 +1604,16 @@ function formatAdminImageUsageLabel(
     imageUsage.versionCount <= 0 ||
     imageUsage.totalSizeBytes <= 0
   ) {
-    return "No images";
+    return translate(locale, "No images");
   }
 
-  return formatBytesLabel(imageUsage.totalSizeBytes);
+  return formatBytesLabel(imageUsage.totalSizeBytes, locale);
 }
 
 function buildAdminImageUsageSecondaryLabel(
   imageUsage: FugueProjectImageUsageAppSummary | null | undefined,
   loaded: boolean,
+  locale: Locale = "en",
 ) {
   if (
     !loaded ||
@@ -1600,7 +1624,7 @@ function buildAdminImageUsageSecondaryLabel(
     return null;
   }
 
-  return formatCountLabel(imageUsage.versionCount, "version");
+  return formatLocalizedCountLabel(locale, imageUsage.versionCount, "version");
 }
 
 type AdminTenantServiceUsageSummary = {
@@ -1699,33 +1723,34 @@ function buildAdminUserServiceUsageView(
   summary: AdminTenantServiceUsageSummary | undefined,
   imageUsageLoaded: boolean,
   loading: boolean,
+  locale: Locale = "en",
 ): AdminUserServiceUsageView {
   if (loading) {
     return {
-      cpuLabel: "Loading…",
-      diskLabel: "Loading…",
-      imageLabel: "Loading…",
+      cpuLabel: translate(locale, "Loading…"),
+      diskLabel: translate(locale, "Loading…"),
+      imageLabel: translate(locale, "Loading…"),
       loading: true,
-      memoryLabel: "Loading…",
+      memoryLabel: translate(locale, "Loading…"),
       serviceCount: 0,
-      serviceCountLabel: "Loading…",
+      serviceCountLabel: translate(locale, "Loading…"),
     };
   }
 
   const serviceCount = summary?.serviceCount ?? 0;
 
   return {
-    cpuLabel: formatCPUCapacityLabel(summary?.cpuMillicores),
-    diskLabel: formatBytesLabel(summary?.ephemeralStorageBytes),
+    cpuLabel: formatCPUCapacityLabel(summary?.cpuMillicores, locale),
+    diskLabel: formatBytesLabel(summary?.ephemeralStorageBytes, locale),
     imageLabel: imageUsageLoaded
       ? summary?.imageBytes && summary.imageBytes > 0
-        ? formatBytesLabel(summary.imageBytes)
-        : "No images"
-      : "No stats",
+        ? formatBytesLabel(summary.imageBytes, locale)
+        : translate(locale, "No images")
+      : translate(locale, "No stats"),
     loading: false,
-    memoryLabel: formatBytesLabel(summary?.memoryBytes),
+    memoryLabel: formatBytesLabel(summary?.memoryBytes, locale),
     serviceCount,
-    serviceCountLabel: formatCountLabel(serviceCount, "service"),
+    serviceCountLabel: formatLocalizedCountLabel(locale, serviceCount, "service"),
   };
 }
 
@@ -1733,28 +1758,42 @@ function buildResourceTitle(
   label: string,
   primaryLabel: string,
   secondaryLabel?: string | null,
+  locale: Locale = "en",
 ) {
   return secondaryLabel
-    ? `${label} / ${primaryLabel} / ${secondaryLabel}`
-    : `${label} / ${primaryLabel}`;
+    ? translate(locale, "{label} / {primary} / {secondary}", {
+        label,
+        primary: primaryLabel,
+        secondary: secondaryLabel,
+      })
+    : translate(locale, "{label} / {primary}", {
+        label,
+        primary: primaryLabel,
+      });
 }
 
 function buildAdminAppResourceUsage(
   app: FugueApp,
   appImageUsage: AdminAppImageUsageLookup,
+  locale: Locale = "en",
 ): ConsoleCompactResourceItemView[] {
   const usage = app.currentResourceUsage;
   const imageUsage = appImageUsage.byAppId.get(app.id);
-  const cpuPrimaryLabel = formatCPUCapacityLabel(usage?.cpuMillicores);
-  const memoryPrimaryLabel = formatBytesLabel(usage?.memoryBytes);
-  const diskPrimaryLabel = formatBytesLabel(usage?.ephemeralStorageBytes);
+  const cpuPrimaryLabel = formatCPUCapacityLabel(usage?.cpuMillicores, locale);
+  const memoryPrimaryLabel = formatBytesLabel(usage?.memoryBytes, locale);
+  const diskPrimaryLabel = formatBytesLabel(
+    usage?.ephemeralStorageBytes,
+    locale,
+  );
   const imagePrimaryLabel = formatAdminImageUsageLabel(
     imageUsage,
     appImageUsage.loaded,
+    locale,
   );
   const imageSecondaryLabel = buildAdminImageUsageSecondaryLabel(
     imageUsage,
     appImageUsage.loaded,
+    locale,
   );
   const hasCpuUsage =
     usage?.cpuMillicores !== null && usage?.cpuMillicores !== undefined;
@@ -1779,50 +1818,54 @@ function buildAdminAppResourceUsage(
       primaryLabel: cpuPrimaryLabel,
       secondaryLabel: null,
       title: buildResourceTitle(
-        "CPU",
+        translate(locale, "CPU"),
         cpuPrimaryLabel,
-        hasCpuUsage ? "Current live sample" : null,
+        hasCpuUsage ? translate(locale, "Current live sample") : null,
+        locale,
       ),
       tone: hasCpuUsage ? "info" : "neutral",
     },
     {
       id: "memory",
-      label: "Memory",
+      label: translate(locale, "Memory"),
       meterValue: null,
       primaryLabel: memoryPrimaryLabel,
       secondaryLabel: null,
       title: buildResourceTitle(
-        "Memory",
+        translate(locale, "Memory"),
         memoryPrimaryLabel,
-        hasMemoryUsage ? "Current live sample" : null,
+        hasMemoryUsage ? translate(locale, "Current live sample") : null,
+        locale,
       ),
       tone: hasMemoryUsage ? "info" : "neutral",
     },
     {
       id: "storage",
-      label: "Disk",
+      label: translate(locale, "Disk"),
       meterValue: null,
       primaryLabel: diskPrimaryLabel,
       secondaryLabel: null,
       title: buildResourceTitle(
-        "Disk",
+        translate(locale, "Disk"),
         diskPrimaryLabel,
-        hasDiskUsage ? "Current live sample" : null,
+        hasDiskUsage ? translate(locale, "Current live sample") : null,
+        locale,
       ),
       tone: hasDiskUsage ? "info" : "neutral",
     },
     {
       id: "images",
-      label: "Images",
+      label: translate(locale, "Images"),
       meterValue: null,
       primaryLabel: imagePrimaryLabel,
       secondaryLabel: imageSecondaryLabel,
       title: buildResourceTitle(
-        "Images",
+        translate(locale, "Images"),
         imagePrimaryLabel,
         appImageUsage.loaded
-          ? (imageSecondaryLabel ?? "Stored app images")
+          ? (imageSecondaryLabel ?? translate(locale, "Stored app images"))
           : null,
+        locale,
       ),
       tone: hasImageUsage ? "info" : "neutral",
     },
@@ -1959,34 +2002,39 @@ function isConditionActive(status?: string | null) {
 
 function buildCPUResourceView(
   stats: FugueClusterNodeCPUStats | null,
+  locale: Locale = "en",
 ): AdminClusterResourceView {
   const percent = stats?.usagePercent ?? null;
   const requestPercent = stats?.requestPercent ?? null;
-  const requestedLabel = formatCPUCapacityLabel(stats?.requestedMilliCores);
-  const requestPercentLabel = formatPercentLabel(requestPercent);
+  const requestedLabel = formatCPUCapacityLabel(
+    stats?.requestedMilliCores,
+    locale,
+  );
+  const requestPercentLabel = formatPercentLabel(requestPercent, locale);
   const capacityMilliCores = stats?.capacityMilliCores ?? null;
   const capacityAmountLabel = isFiniteResourceValue(capacityMilliCores)
-    ? formatCPUCapacityLabel(capacityMilliCores)
+    ? formatCPUCapacityLabel(capacityMilliCores, locale)
     : null;
   const schedulableFreeLabel = formatCPUCapacityLabel(
     stats?.schedulableFreeMilliCores,
+    locale,
   );
   const statusPercent = maxFinitePercent(percent, requestPercent);
   const total =
     stats?.allocatableMilliCores ?? stats?.capacityMilliCores ?? null;
   const totalAmountLabel = isFiniteResourceValue(total)
-    ? formatCPUCapacityLabel(total)
+    ? formatCPUCapacityLabel(total, locale)
     : null;
 
   return {
     capacityAmountLabel,
     detailLabel:
       capacityAmountLabel !== null
-        ? `${capacityAmountLabel} capacity`
-        : "Capacity unknown",
+        ? translate(locale, "{amount} capacity", { amount: capacityAmountLabel })
+        : translate(locale, "Capacity unknown"),
     id: "cpu",
-    label: "Compute",
-    percentLabel: formatPercentLabel(percent),
+    label: translate(locale, "Compute"),
+    percentLabel: formatPercentLabel(percent, locale),
     percentValue: percent,
     requestAmountLabel: isFiniteResourceValue(requestPercent)
       ? requestedLabel
@@ -1995,6 +2043,7 @@ function buildCPUResourceView(
       requestPercent,
       requestPercentLabel,
       requestedLabel,
+      locale,
     ),
     requestPercentLabel,
     requestPercentValue: requestPercent,
@@ -2007,47 +2056,52 @@ function buildCPUResourceView(
     schedulableFreeLabel: buildSchedulableFreeLabel(
       stats?.schedulableFreeMilliCores,
       schedulableFreeLabel,
+      locale,
     ),
     statusLabel: readResourceStatusLabel(statusPercent),
     statusTone: readResourceTone(statusPercent),
     totalAmountLabel,
     totalLabel:
       totalAmountLabel !== null
-        ? `${totalAmountLabel} allocatable`
-        : "Allocatable unknown",
+        ? translate(locale, "{amount} allocatable", { amount: totalAmountLabel })
+        : translate(locale, "Allocatable unknown"),
     usageTone: readResourceTone(percent),
-    usageLabel: formatCPUCapacityLabel(stats?.usedMilliCores),
+    usageLabel: formatCPUCapacityLabel(stats?.usedMilliCores, locale),
   };
 }
 
 function buildMemoryResourceView(
   stats: FugueClusterNodeMemoryStats | null,
   hasPressure: boolean,
+  locale: Locale = "en",
 ): AdminClusterResourceView {
   const percent = stats?.usagePercent ?? null;
   const requestPercent = stats?.requestPercent ?? null;
-  const requestedLabel = formatBytesLabel(stats?.requestedBytes);
-  const requestPercentLabel = formatPercentLabel(requestPercent);
+  const requestedLabel = formatBytesLabel(stats?.requestedBytes, locale);
+  const requestPercentLabel = formatPercentLabel(requestPercent, locale);
   const capacityBytes = stats?.capacityBytes ?? null;
   const capacityAmountLabel = isFiniteResourceValue(capacityBytes)
-    ? formatBytesLabel(capacityBytes)
+    ? formatBytesLabel(capacityBytes, locale)
     : null;
-  const schedulableFreeLabel = formatBytesLabel(stats?.schedulableFreeBytes);
+  const schedulableFreeLabel = formatBytesLabel(
+    stats?.schedulableFreeBytes,
+    locale,
+  );
   const statusPercent = maxFinitePercent(percent, requestPercent);
   const total = stats?.allocatableBytes ?? stats?.capacityBytes ?? null;
   const totalAmountLabel = isFiniteResourceValue(total)
-    ? formatBytesLabel(total)
+    ? formatBytesLabel(total, locale)
     : null;
 
   return {
     capacityAmountLabel,
     detailLabel:
       capacityAmountLabel !== null
-        ? `${capacityAmountLabel} capacity`
-        : "Capacity unknown",
+        ? translate(locale, "{amount} capacity", { amount: capacityAmountLabel })
+        : translate(locale, "Capacity unknown"),
     id: "memory",
-    label: "Memory",
-    percentLabel: formatPercentLabel(percent),
+    label: translate(locale, "Memory"),
+    percentLabel: formatPercentLabel(percent, locale),
     percentValue: percent,
     requestAmountLabel: isFiniteResourceValue(requestPercent)
       ? requestedLabel
@@ -2056,6 +2110,7 @@ function buildMemoryResourceView(
       requestPercent,
       requestPercentLabel,
       requestedLabel,
+      locale,
     ),
     requestPercentLabel,
     requestPercentValue: requestPercent,
@@ -2068,47 +2123,52 @@ function buildMemoryResourceView(
     schedulableFreeLabel: buildSchedulableFreeLabel(
       stats?.schedulableFreeBytes,
       schedulableFreeLabel,
+      locale,
     ),
     statusLabel: readResourceStatusLabel(statusPercent, hasPressure),
     statusTone: readResourceTone(statusPercent, hasPressure),
     totalAmountLabel,
     totalLabel:
       totalAmountLabel !== null
-        ? `${totalAmountLabel} allocatable`
-        : "Allocatable unknown",
+        ? translate(locale, "{amount} allocatable", { amount: totalAmountLabel })
+        : translate(locale, "Allocatable unknown"),
     usageTone: readResourceTone(percent, hasPressure),
-    usageLabel: formatBytesLabel(stats?.usedBytes),
+    usageLabel: formatBytesLabel(stats?.usedBytes, locale),
   };
 }
 
 function buildStorageResourceView(
   stats: FugueClusterNodeStorageStats | null,
   hasPressure: boolean,
+  locale: Locale = "en",
 ): AdminClusterResourceView {
   const percent = stats?.usagePercent ?? null;
   const requestPercent = stats?.requestPercent ?? null;
-  const requestedLabel = formatBytesLabel(stats?.requestedBytes);
-  const requestPercentLabel = formatPercentLabel(requestPercent);
+  const requestedLabel = formatBytesLabel(stats?.requestedBytes, locale);
+  const requestPercentLabel = formatPercentLabel(requestPercent, locale);
   const capacityBytes = stats?.capacityBytes ?? null;
   const capacityAmountLabel = isFiniteResourceValue(capacityBytes)
-    ? formatBytesLabel(capacityBytes)
+    ? formatBytesLabel(capacityBytes, locale)
     : null;
-  const schedulableFreeLabel = formatBytesLabel(stats?.schedulableFreeBytes);
+  const schedulableFreeLabel = formatBytesLabel(
+    stats?.schedulableFreeBytes,
+    locale,
+  );
   const statusPercent = maxFinitePercent(percent, requestPercent);
   const total = stats?.allocatableBytes ?? stats?.capacityBytes ?? null;
   const totalAmountLabel = isFiniteResourceValue(total)
-    ? formatBytesLabel(total)
+    ? formatBytesLabel(total, locale)
     : null;
 
   return {
     capacityAmountLabel,
     detailLabel:
       capacityAmountLabel !== null
-        ? `${capacityAmountLabel} capacity`
-        : "Capacity unknown",
+        ? translate(locale, "{amount} capacity", { amount: capacityAmountLabel })
+        : translate(locale, "Capacity unknown"),
     id: "storage",
-    label: "Disk",
-    percentLabel: formatPercentLabel(percent),
+    label: translate(locale, "Disk"),
+    percentLabel: formatPercentLabel(percent, locale),
     percentValue: percent,
     requestAmountLabel: isFiniteResourceValue(requestPercent)
       ? requestedLabel
@@ -2117,6 +2177,7 @@ function buildStorageResourceView(
       requestPercent,
       requestPercentLabel,
       requestedLabel,
+      locale,
     ),
     requestPercentLabel,
     requestPercentValue: requestPercent,
@@ -2129,21 +2190,23 @@ function buildStorageResourceView(
     schedulableFreeLabel: buildSchedulableFreeLabel(
       stats?.schedulableFreeBytes,
       schedulableFreeLabel,
+      locale,
     ),
     statusLabel: readResourceStatusLabel(statusPercent, hasPressure),
     statusTone: readResourceTone(statusPercent, hasPressure),
     totalAmountLabel,
     totalLabel:
       totalAmountLabel !== null
-        ? `${totalAmountLabel} allocatable`
-        : "Allocatable unknown",
+        ? translate(locale, "{amount} allocatable", { amount: totalAmountLabel })
+        : translate(locale, "Allocatable unknown"),
     usageTone: readResourceTone(percent, hasPressure),
-    usageLabel: formatBytesLabel(stats?.usedBytes),
+    usageLabel: formatBytesLabel(stats?.usedBytes, locale),
   };
 }
 
 function buildClusterConditionViews(
   node: FugueClusterNode,
+  locale: Locale = "en",
 ): AdminClusterConditionView[] {
   const definitions = [
     { id: CLUSTER_READY_CONDITION, label: "Ready" },
@@ -2161,12 +2224,14 @@ function buildClusterConditionViews(
       detailLabel:
         detail ||
         (transitionedAt
-          ? `Updated ${formatRelativeTime(transitionedAt)}`
-          : "No signal reported"),
+          ? translate(locale, "Updated {time}", {
+              time: formatRelativeTime(transitionedAt, locale),
+            })
+          : translate(locale, "No signal reported")),
       id: definition.id,
       label: definition.label,
-      lastTransitionExact: formatExactTime(transitionedAt),
-      lastTransitionLabel: formatRelativeTime(transitionedAt),
+      lastTransitionExact: formatExactTime(transitionedAt, locale),
+      lastTransitionLabel: formatRelativeTime(transitionedAt, locale),
       statusLabel: readConditionStatusLabel(definition.id, condition?.status),
       tone: readConditionTone(definition.id, condition?.status),
     } satisfies AdminClusterConditionView;
@@ -2322,7 +2387,7 @@ function buildClusterNodeViewItem(
   tenantNames: Map<string, string>,
   locale: Locale = "en",
 ) {
-  const conditionViews = buildClusterConditionViews(node);
+  const conditionViews = buildClusterConditionViews(node, locale);
   const memoryPressure = isConditionActive(
     node.conditions[CLUSTER_MEMORY_PRESSURE_CONDITION]?.status,
   );
@@ -2368,9 +2433,15 @@ function buildClusterNodeViewItem(
   const statusFragments = [
     locationLabel !== translate(locale, "Unassigned") ? locationLabel : null,
     pressureSignals.length
-      ? `${pressureSignals.map((condition) => condition.label.toLowerCase()).join(" + ")} signal${
-          pressureSignals.length === 1 ? "" : "s"
-        }`
+      ? translate(
+          locale,
+          pressureSignals.length === 1 ? "{signals} signal" : "{signals} signals",
+          {
+            signals: pressureSignals
+              .map((condition) => translate(locale, condition.label).toLowerCase())
+              .join(" + "),
+          },
+        )
       : null,
     formatLocalizedCountLabel(locale, workloadCount, "workload"),
   ].filter((value): value is string => Boolean(value));
@@ -2379,8 +2450,8 @@ function buildClusterNodeViewItem(
     appCount,
     canManagePolicy: Boolean(node.machine),
     conditions: conditionViews,
-    createdExact: formatExactTime(node.createdAt),
-    createdLabel: formatRelativeTime(node.createdAt),
+    createdExact: formatExactTime(node.createdAt, locale),
+    createdLabel: formatRelativeTime(node.createdAt, locale),
     headerMeta: statusFragments.join(" · "),
     internalIpLabel: node.internalIp?.trim() || "Unavailable",
     locationCountryCode: location.locationCountryCode,
@@ -2391,20 +2462,24 @@ function buildClusterNodeViewItem(
     publicIpLabel: node.publicIp?.trim() || "Unavailable",
     roleLabels: node.roles.length ? node.roles : [],
     resources: [
-      buildCPUResourceView(node.cpu),
-      buildMemoryResourceView(node.memory, memoryPressure),
-      buildStorageResourceView(node.ephemeralStorage, diskPressure),
+      buildCPUResourceView(node.cpu, locale),
+      buildMemoryResourceView(node.memory, memoryPressure, locale),
+      buildStorageResourceView(node.ephemeralStorage, diskPressure, locale),
     ],
     runtimeLabel: node.runtimeId ? shortId(node.runtimeId) : "Unassigned",
     serviceCount,
     statusDetail:
       pressureSignals.length > 0
-        ? `${joinConditionLabels(
-            pressureSignals.map((condition) => condition.label.toLowerCase()),
-          )} pressure reported.`
+        ? translate(locale, "{signals} pressure reported.", {
+            signals: joinConditionLabels(
+              pressureSignals.map((condition) =>
+                translate(locale, condition.label).toLowerCase(),
+              ),
+            ),
+          })
         : node.status?.trim().toLowerCase() === "ready"
           ? null
-          : "Waiting for complete node health telemetry.",
+          : translate(locale, "Waiting for complete node health telemetry."),
     statusLabel,
     statusTone,
     tenantLabel: node.tenantId
@@ -2453,7 +2528,9 @@ function buildClusterNodeViews(
   });
 }
 
-async function loadAdminAppsPageData(): Promise<AdminAppsPageData> {
+async function loadAdminAppsPageData(
+  locale: Locale = "en",
+): Promise<AdminAppsPageData> {
   let bootstrapKey: string;
 
   try {
@@ -2515,9 +2592,13 @@ async function loadAdminAppsPageData(): Promise<AdminAppsPageData> {
   const runtimes =
     runtimesResult.status === "fulfilled" ? runtimesResult.value : [];
   const appImageUsage = createAdminAppImageUsageLookup(null);
+  const usageCacheKey = readLocalizedAdminCacheKey(
+    ADMIN_APPS_USAGE_DATA_CACHE_KEY,
+    locale,
+  );
   const usageData =
-    adminAppsUsageDataCache.read(ADMIN_APPS_USAGE_DATA_CACHE_KEY) ??
-    (await readPersistedAdminAppsUsageData());
+    adminAppsUsageDataCache.read(usageCacheKey) ??
+    (await readPersistedAdminAppsUsageData(locale));
   const projectDataResult =
     tenantsResult.status === "fulfilled"
       ? await settleWithSoftTimeout(
@@ -2545,6 +2626,7 @@ async function loadAdminAppsPageData(): Promise<AdminAppsPageData> {
       tenants,
       appImageUsage,
       runtimes,
+      locale,
     ),
     usageData,
   );
@@ -2560,9 +2642,10 @@ async function loadAdminAppsPageData(): Promise<AdminAppsPageData> {
     errors,
     summary: {
       appCount: views.length,
-      latestUpdateLabel: formatRelativeTime(latestUpdateAt),
-      routedCount: views.filter((app) => app.routeLabel !== "Unassigned")
-        .length,
+      latestUpdateLabel: formatRelativeTime(latestUpdateAt, locale),
+      routedCount: views.filter(
+        (app) => app.routeLabel !== translate(locale, "Unassigned"),
+      ).length,
       tenantCount: new Set(apps.map((app) => app.tenantId).filter(Boolean))
         .size,
     },
@@ -2589,69 +2672,99 @@ function rejectCriticalAdminUsersBaseData(data: AdminUsersBaseData) {
   throw new Error(data.errors.join("; "));
 }
 
-async function readPersistedAdminAppsPageData() {
-  const entry = await readAdminSnapshotCache<AdminAppsPageData>(
+async function readPersistedAdminAppsPageData(locale: Locale = "en") {
+  const cacheKey = readLocalizedAdminCacheKey(
     ADMIN_APPS_PAGE_DATA_CACHE_KEY,
+    locale,
+  );
+  const entry = await readAdminSnapshotCache<AdminAppsPageData>(
+    cacheKey,
   ).catch(() => null);
 
   if (!entry || entry.ageMs > ADMIN_USAGE_PERSISTED_STALE_MS) {
     return null;
   }
 
-  adminAppsPageDataCache.set(ADMIN_APPS_PAGE_DATA_CACHE_KEY, entry.payload);
+  adminAppsPageDataCache.set(cacheKey, entry.payload);
   return entry.payload;
 }
 
-export async function refreshAdminAppsPageData(): Promise<AdminAppsPageData> {
-  if (adminAppsPageRefreshRequest) {
-    return adminAppsPageRefreshRequest;
+export async function refreshAdminAppsPageData(
+  locale: Locale = "en",
+): Promise<AdminAppsPageData> {
+  const existing = adminAppsPageRefreshRequests.get(locale);
+
+  if (existing) {
+    return existing;
   }
 
-  const request = loadAdminAppsPageData()
+  const cacheKey = readLocalizedAdminCacheKey(
+    ADMIN_APPS_PAGE_DATA_CACHE_KEY,
+    locale,
+  );
+  const request = loadAdminAppsPageData(locale)
     .then(async (data) => {
       rejectCriticalAdminAppsPageData(data);
-      adminAppsPageDataCache.set(ADMIN_APPS_PAGE_DATA_CACHE_KEY, data);
-      await writeAdminSnapshotCache(ADMIN_APPS_PAGE_DATA_CACHE_KEY, data).catch(
-        () => undefined,
-      );
+      adminAppsPageDataCache.set(cacheKey, data);
+      await writeAdminSnapshotCache(cacheKey, data).catch(() => undefined);
       return data;
     })
     .finally(() => {
-      if (adminAppsPageRefreshRequest === request) {
-        adminAppsPageRefreshRequest = null;
+      if (adminAppsPageRefreshRequests.get(locale) === request) {
+        adminAppsPageRefreshRequests.delete(locale);
       }
     });
 
-  adminAppsPageRefreshRequest = request;
+  adminAppsPageRefreshRequests.set(locale, request);
   return request;
 }
 
-export async function getAdminAppsPageData(): Promise<AdminAppsPageData> {
-  const cached = adminAppsPageDataCache.read(ADMIN_APPS_PAGE_DATA_CACHE_KEY);
+export async function getAdminAppsPageData(
+  locale: Locale = "en",
+): Promise<AdminAppsPageData> {
+  const cacheKey = readLocalizedAdminCacheKey(
+    ADMIN_APPS_PAGE_DATA_CACHE_KEY,
+    locale,
+  );
+  const cached = adminAppsPageDataCache.read(cacheKey);
 
   if (cached) {
     return cached;
   }
 
-  const persisted = await readPersistedAdminAppsPageData();
+  const persisted = await readPersistedAdminAppsPageData(locale);
 
   if (persisted) {
     return persisted;
   }
 
-  return refreshAdminAppsPageData();
+  return refreshAdminAppsPageData(locale);
 }
 
 export function invalidateAdminAppsPageData() {
-  adminAppsPageRefreshRequest = null;
-  adminAppsUsageRefreshRequest = null;
-  adminAppsPageDataCache.clear(ADMIN_APPS_PAGE_DATA_CACHE_KEY);
-  adminAppsUsageDataCache.clear(ADMIN_APPS_USAGE_DATA_CACHE_KEY);
+  adminAppsPageRefreshRequests.clear();
+  adminAppsUsageRefreshRequests.clear();
+  for (const locale of SUPPORTED_LOCALES) {
+    adminAppsPageDataCache.clear(
+      readLocalizedAdminCacheKey(ADMIN_APPS_PAGE_DATA_CACHE_KEY, locale),
+    );
+    adminAppsUsageDataCache.clear(
+      readLocalizedAdminCacheKey(ADMIN_APPS_USAGE_DATA_CACHE_KEY, locale),
+    );
+  }
   adminAppsUsageCache.clear("apps-with-resource-usage");
   adminAppImageUsageCache.clear("project-image-usage");
   void Promise.allSettled([
-    deleteAdminSnapshotCache(ADMIN_APPS_PAGE_DATA_CACHE_KEY),
-    deleteAdminSnapshotCache(ADMIN_APPS_USAGE_DATA_CACHE_KEY),
+    ...SUPPORTED_LOCALES.map((locale) =>
+      deleteAdminSnapshotCache(
+        readLocalizedAdminCacheKey(ADMIN_APPS_PAGE_DATA_CACHE_KEY, locale),
+      ),
+    ),
+    ...SUPPORTED_LOCALES.map((locale) =>
+      deleteAdminSnapshotCache(
+        readLocalizedAdminCacheKey(ADMIN_APPS_USAGE_DATA_CACHE_KEY, locale),
+      ),
+    ),
   ]);
 }
 
@@ -2670,7 +2783,9 @@ async function getCachedAdminAppImageUsage(bootstrapKey: string) {
   );
 }
 
-async function loadAdminAppsUsageData(): Promise<AdminAppsUsageData> {
+async function loadAdminAppsUsageData(
+  locale: Locale = "en",
+): Promise<AdminAppsUsageData> {
   const bootstrapKey = getFugueEnv().bootstrapKey;
   const [apps, imageUsageResult] = await Promise.all([
     getCachedAdminAppsWithResourceUsage(bootstrapKey),
@@ -2681,14 +2796,18 @@ async function loadAdminAppsUsageData(): Promise<AdminAppsUsageData> {
   return {
     apps: apps.map((app) => ({
       id: app.id,
-      resourceUsage: buildAdminAppResourceUsage(app, appImageUsage),
+      resourceUsage: buildAdminAppResourceUsage(app, appImageUsage, locale),
     })),
   };
 }
 
-async function readPersistedAdminAppsUsageData() {
-  const entry = await readAdminSnapshotCache<AdminAppsUsageData>(
+async function readPersistedAdminAppsUsageData(locale: Locale = "en") {
+  const cacheKey = readLocalizedAdminCacheKey(
     ADMIN_APPS_USAGE_DATA_CACHE_KEY,
+    locale,
+  );
+  const entry = await readAdminSnapshotCache<AdminAppsUsageData>(
+    cacheKey,
   ).catch(() => null);
 
   if (!entry || entry.ageMs > ADMIN_USAGE_PERSISTED_STALE_MS) {
@@ -2700,66 +2819,83 @@ async function readPersistedAdminAppsUsageData() {
     pending: false,
   } satisfies AdminAppsUsageData;
 
-  adminAppsUsageDataCache.set(ADMIN_APPS_USAGE_DATA_CACHE_KEY, data);
+  adminAppsUsageDataCache.set(cacheKey, data);
   return data;
 }
 
-export async function refreshAdminAppsUsageData(): Promise<AdminAppsUsageData> {
-  if (adminAppsUsageRefreshRequest) {
-    return adminAppsUsageRefreshRequest;
+export async function refreshAdminAppsUsageData(
+  locale: Locale = "en",
+): Promise<AdminAppsUsageData> {
+  const existing = adminAppsUsageRefreshRequests.get(locale);
+
+  if (existing) {
+    return existing;
   }
 
-  const request = loadAdminAppsUsageData()
+  const cacheKey = readLocalizedAdminCacheKey(
+    ADMIN_APPS_USAGE_DATA_CACHE_KEY,
+    locale,
+  );
+  const request = loadAdminAppsUsageData(locale)
     .then(async (data) => {
-      adminAppsUsageDataCache.set(ADMIN_APPS_USAGE_DATA_CACHE_KEY, data);
-      await writeAdminSnapshotCache(ADMIN_APPS_USAGE_DATA_CACHE_KEY, data).catch(
-        () => undefined,
-      );
+      adminAppsUsageDataCache.set(cacheKey, data);
+      await writeAdminSnapshotCache(cacheKey, data).catch(() => undefined);
       return data;
     })
     .finally(() => {
-      if (adminAppsUsageRefreshRequest === request) {
-        adminAppsUsageRefreshRequest = null;
+      if (adminAppsUsageRefreshRequests.get(locale) === request) {
+        adminAppsUsageRefreshRequests.delete(locale);
       }
     });
 
-  adminAppsUsageRefreshRequest = request;
+  adminAppsUsageRefreshRequests.set(locale, request);
   return request;
 }
 
-export async function getAdminAppsUsageData(): Promise<AdminAppsUsageData> {
-  const cached = adminAppsUsageDataCache.read(ADMIN_APPS_USAGE_DATA_CACHE_KEY);
+export async function getAdminAppsUsageData(
+  locale: Locale = "en",
+): Promise<AdminAppsUsageData> {
+  const cacheKey = readLocalizedAdminCacheKey(
+    ADMIN_APPS_USAGE_DATA_CACHE_KEY,
+    locale,
+  );
+  const cached = adminAppsUsageDataCache.read(cacheKey);
 
   if (cached) {
     return cached;
   }
 
-  const persisted = await readPersistedAdminAppsUsageData();
+  const persisted = await readPersistedAdminAppsUsageData(locale);
 
   if (persisted) {
     return persisted;
   }
 
-  return refreshAdminAppsUsageData();
+  return refreshAdminAppsUsageData(locale);
 }
 
 export async function getAdminAppsUsageDataFast(
+  locale: Locale = "en",
   waitMs = 800,
 ): Promise<AdminAppsUsageData> {
-  const cached = adminAppsUsageDataCache.read(ADMIN_APPS_USAGE_DATA_CACHE_KEY);
+  const cacheKey = readLocalizedAdminCacheKey(
+    ADMIN_APPS_USAGE_DATA_CACHE_KEY,
+    locale,
+  );
+  const cached = adminAppsUsageDataCache.read(cacheKey);
 
   if (cached) {
     return cached;
   }
 
-  const persisted = await readPersistedAdminAppsUsageData();
+  const persisted = await readPersistedAdminAppsUsageData(locale);
 
   if (persisted) {
     return persisted;
   }
 
   const result = await settleWithSoftTimeout(
-    refreshAdminAppsUsageData(),
+    refreshAdminAppsUsageData(locale),
     waitMs,
   );
 
@@ -2773,7 +2909,9 @@ export async function getAdminAppsUsageDataFast(
   };
 }
 
-async function loadAdminUsersUsageData(): Promise<AdminUsersUsageData> {
+async function loadAdminUsersUsageData(
+  locale: Locale = "en",
+): Promise<AdminUsersUsageData> {
   const bootstrapKey = getFugueEnv().bootstrapKey;
   const [base, apps, imageUsageResult] = await Promise.all([
     loadAdminUsersBaseData({
@@ -2808,15 +2946,20 @@ async function loadAdminUsersUsageData(): Promise<AdminUsersUsageData> {
           tenantServiceUsage,
           appImageUsage.loaded,
           false,
+          locale,
         ),
       };
     }),
   };
 }
 
-async function readPersistedAdminUsersUsageData() {
-  const entry = await readAdminSnapshotCache<AdminUsersUsageData>(
+async function readPersistedAdminUsersUsageData(locale: Locale = "en") {
+  const cacheKey = readLocalizedAdminCacheKey(
     ADMIN_USERS_USAGE_DATA_CACHE_KEY,
+    locale,
+  );
+  const entry = await readAdminSnapshotCache<AdminUsersUsageData>(
+    cacheKey,
   ).catch(() => null);
 
   if (!entry || entry.ageMs > ADMIN_USAGE_PERSISTED_STALE_MS) {
@@ -2828,67 +2971,83 @@ async function readPersistedAdminUsersUsageData() {
     pending: false,
   } satisfies AdminUsersUsageData;
 
-  adminUsersUsageDataCache.set(ADMIN_USERS_USAGE_DATA_CACHE_KEY, data);
+  adminUsersUsageDataCache.set(cacheKey, data);
   return data;
 }
 
-export async function refreshAdminUsersUsageData(): Promise<AdminUsersUsageData> {
-  if (adminUsersUsageRefreshRequest) {
-    return adminUsersUsageRefreshRequest;
+export async function refreshAdminUsersUsageData(
+  locale: Locale = "en",
+): Promise<AdminUsersUsageData> {
+  const existing = adminUsersUsageRefreshRequests.get(locale);
+
+  if (existing) {
+    return existing;
   }
 
-  const request = loadAdminUsersUsageData()
+  const cacheKey = readLocalizedAdminCacheKey(
+    ADMIN_USERS_USAGE_DATA_CACHE_KEY,
+    locale,
+  );
+  const request = loadAdminUsersUsageData(locale)
     .then(async (data) => {
-      adminUsersUsageDataCache.set(ADMIN_USERS_USAGE_DATA_CACHE_KEY, data);
-      await writeAdminSnapshotCache(
-        ADMIN_USERS_USAGE_DATA_CACHE_KEY,
-        data,
-      ).catch(() => undefined);
+      adminUsersUsageDataCache.set(cacheKey, data);
+      await writeAdminSnapshotCache(cacheKey, data).catch(() => undefined);
       return data;
     })
     .finally(() => {
-      if (adminUsersUsageRefreshRequest === request) {
-        adminUsersUsageRefreshRequest = null;
+      if (adminUsersUsageRefreshRequests.get(locale) === request) {
+        adminUsersUsageRefreshRequests.delete(locale);
       }
     });
 
-  adminUsersUsageRefreshRequest = request;
+  adminUsersUsageRefreshRequests.set(locale, request);
   return request;
 }
 
-export async function getAdminUsersUsageData(): Promise<AdminUsersUsageData> {
-  const cached = adminUsersUsageDataCache.read(ADMIN_USERS_USAGE_DATA_CACHE_KEY);
+export async function getAdminUsersUsageData(
+  locale: Locale = "en",
+): Promise<AdminUsersUsageData> {
+  const cacheKey = readLocalizedAdminCacheKey(
+    ADMIN_USERS_USAGE_DATA_CACHE_KEY,
+    locale,
+  );
+  const cached = adminUsersUsageDataCache.read(cacheKey);
 
   if (cached) {
     return cached;
   }
 
-  const persisted = await readPersistedAdminUsersUsageData();
+  const persisted = await readPersistedAdminUsersUsageData(locale);
 
   if (persisted) {
     return persisted;
   }
 
-  return refreshAdminUsersUsageData();
+  return refreshAdminUsersUsageData(locale);
 }
 
 export async function getAdminUsersUsageDataFast(
+  locale: Locale = "en",
   waitMs = 800,
 ): Promise<AdminUsersUsageData> {
-  const cached = adminUsersUsageDataCache.read(ADMIN_USERS_USAGE_DATA_CACHE_KEY);
+  const cacheKey = readLocalizedAdminCacheKey(
+    ADMIN_USERS_USAGE_DATA_CACHE_KEY,
+    locale,
+  );
+  const cached = adminUsersUsageDataCache.read(cacheKey);
 
   if (cached) {
     return cached;
   }
 
-  const persisted = await readPersistedAdminUsersUsageData();
+  const persisted = await readPersistedAdminUsersUsageData(locale);
 
   if (persisted) {
     return persisted;
   }
 
   const result = await settleWithSoftTimeout(
-    refreshAdminUsersUsageData(),
+    refreshAdminUsersUsageData(locale),
     waitMs,
   );
 
@@ -2991,14 +3150,20 @@ async function getAdminUserBillingSummaryWithRetry(
   throw lastError;
 }
 
-async function loadAdminUsersPageData(): Promise<AdminUsersPageData> {
+async function loadAdminUsersPageData(
+  locale: Locale = "en",
+): Promise<AdminUsersPageData> {
   const base = await loadAdminUsersBaseData({
     includeWorkspaces: false,
   });
   rejectCriticalAdminUsersBaseData(base);
+  const usageCacheKey = readLocalizedAdminCacheKey(
+    ADMIN_USERS_USAGE_DATA_CACHE_KEY,
+    locale,
+  );
   const usageData =
-    adminUsersUsageDataCache.read(ADMIN_USERS_USAGE_DATA_CACHE_KEY) ??
-    (await readPersistedAdminUsersUsageData());
+    adminUsersUsageDataCache.read(usageCacheKey) ??
+    (await readPersistedAdminUsersUsageData(locale));
 
   return applyAdminUsersUsageData(
     buildAdminUsersPageData(
@@ -3006,61 +3171,78 @@ async function loadAdminUsersPageData(): Promise<AdminUsersPageData> {
       createPendingAdminUsersEnrichmentLookup(),
       base.errors,
       "pending",
+      locale,
     ),
     usageData,
   );
 }
 
-async function readPersistedAdminUsersPageData() {
-  const entry = await readAdminSnapshotCache<AdminUsersPageData>(
+async function readPersistedAdminUsersPageData(locale: Locale = "en") {
+  const cacheKey = readLocalizedAdminCacheKey(
     ADMIN_USERS_PAGE_DATA_CACHE_KEY,
+    locale,
+  );
+  const entry = await readAdminSnapshotCache<AdminUsersPageData>(
+    cacheKey,
   ).catch(() => null);
 
   if (!entry || entry.ageMs > ADMIN_USAGE_PERSISTED_STALE_MS) {
     return null;
   }
 
-  adminUsersPageDataCache.set(ADMIN_USERS_PAGE_DATA_CACHE_KEY, entry.payload);
+  adminUsersPageDataCache.set(cacheKey, entry.payload);
   return entry.payload;
 }
 
-export async function refreshAdminUsersPageData(): Promise<AdminUsersPageData> {
-  if (adminUsersPageRefreshRequest) {
-    return adminUsersPageRefreshRequest;
+export async function refreshAdminUsersPageData(
+  locale: Locale = "en",
+): Promise<AdminUsersPageData> {
+  const existing = adminUsersPageRefreshRequests.get(locale);
+
+  if (existing) {
+    return existing;
   }
 
-  const request = loadAdminUsersPageData()
+  const cacheKey = readLocalizedAdminCacheKey(
+    ADMIN_USERS_PAGE_DATA_CACHE_KEY,
+    locale,
+  );
+  const request = loadAdminUsersPageData(locale)
     .then(async (data) => {
-      adminUsersPageDataCache.set(ADMIN_USERS_PAGE_DATA_CACHE_KEY, data);
-      await writeAdminSnapshotCache(ADMIN_USERS_PAGE_DATA_CACHE_KEY, data).catch(
-        () => undefined,
-      );
+      adminUsersPageDataCache.set(cacheKey, data);
+      await writeAdminSnapshotCache(cacheKey, data).catch(() => undefined);
       return data;
     })
     .finally(() => {
-      if (adminUsersPageRefreshRequest === request) {
-        adminUsersPageRefreshRequest = null;
+      if (adminUsersPageRefreshRequests.get(locale) === request) {
+        adminUsersPageRefreshRequests.delete(locale);
       }
     });
 
-  adminUsersPageRefreshRequest = request;
+  adminUsersPageRefreshRequests.set(locale, request);
   return request;
 }
 
-export async function getAdminUsersPageData(): Promise<AdminUsersPageData> {
-  const cached = adminUsersPageDataCache.read(ADMIN_USERS_PAGE_DATA_CACHE_KEY);
+export async function getAdminUsersPageData(
+  locale: Locale = "en",
+): Promise<AdminUsersPageData> {
+  const cacheKey = readLocalizedAdminCacheKey(
+    ADMIN_USERS_PAGE_DATA_CACHE_KEY,
+    locale,
+  );
+  const cached = adminUsersPageDataCache.read(cacheKey);
 
   if (cached) {
     return cached;
   }
 
-  const persisted = await readPersistedAdminUsersPageData();
+  const persisted = await readPersistedAdminUsersPageData(locale);
 
   if (persisted) {
     return persisted;
   }
 
-  return refreshAdminUsersPageData();
+  return refreshAdminUsersPageData(locale);
 }
 
 async function loadAdminUsersEnrichmentLookup(
@@ -3131,13 +3313,19 @@ async function loadAdminUsersEnrichmentLookup(
   };
 }
 
-export async function getAdminUsersPageEnrichmentData(): Promise<AdminUsersPageData> {
-  if (hasFreshAdminUsersEnrichmentData() && cachedAdminUsersEnrichmentData) {
-    return cachedAdminUsersEnrichmentData;
+export async function getAdminUsersPageEnrichmentData(
+  locale: Locale = "en",
+): Promise<AdminUsersPageData> {
+  const cachedEnrichment = cachedAdminUsersEnrichmentData.get(locale) ?? null;
+
+  if (hasFreshAdminUsersEnrichmentData(locale) && cachedEnrichment) {
+    return cachedEnrichment;
   }
 
-  if (adminUsersEnrichmentRequest) {
-    return adminUsersEnrichmentRequest;
+  const existing = adminUsersEnrichmentRequests.get(locale);
+
+  if (existing) {
+    return existing;
   }
 
   let request: Promise<AdminUsersPageData>;
@@ -3154,31 +3342,46 @@ export async function getAdminUsersPageEnrichmentData(): Promise<AdminUsersPageD
       enrichment.lookup,
       [...base.errors, ...enrichment.errors],
       "ready",
+      locale,
     );
 
-    cachedAdminUsersEnrichmentData = data;
-    cachedAdminUsersEnrichmentAt = Date.now();
+    cachedAdminUsersEnrichmentData.set(locale, data);
+    cachedAdminUsersEnrichmentAt.set(locale, Date.now());
     return data;
   })().finally(() => {
-    if (adminUsersEnrichmentRequest === request) {
-      adminUsersEnrichmentRequest = null;
+    if (adminUsersEnrichmentRequests.get(locale) === request) {
+      adminUsersEnrichmentRequests.delete(locale);
     }
   });
 
-  adminUsersEnrichmentRequest = request;
+  adminUsersEnrichmentRequests.set(locale, request);
   return request;
 }
 
 export function invalidateAdminUsersPageEnrichmentData() {
-  cachedAdminUsersEnrichmentData = null;
-  cachedAdminUsersEnrichmentAt = 0;
-  adminUsersEnrichmentRequest = null;
-  adminUsersPageRefreshRequest = null;
-  adminUsersPageDataCache.clear(ADMIN_USERS_PAGE_DATA_CACHE_KEY);
-  adminUsersUsageDataCache.clear(ADMIN_USERS_USAGE_DATA_CACHE_KEY);
+  cachedAdminUsersEnrichmentData.clear();
+  cachedAdminUsersEnrichmentAt.clear();
+  adminUsersEnrichmentRequests.clear();
+  adminUsersPageRefreshRequests.clear();
+  for (const locale of SUPPORTED_LOCALES) {
+    adminUsersPageDataCache.clear(
+      readLocalizedAdminCacheKey(ADMIN_USERS_PAGE_DATA_CACHE_KEY, locale),
+    );
+    adminUsersUsageDataCache.clear(
+      readLocalizedAdminCacheKey(ADMIN_USERS_USAGE_DATA_CACHE_KEY, locale),
+    );
+  }
   void Promise.allSettled([
-    deleteAdminSnapshotCache(ADMIN_USERS_PAGE_DATA_CACHE_KEY),
-    deleteAdminSnapshotCache(ADMIN_USERS_USAGE_DATA_CACHE_KEY),
+    ...SUPPORTED_LOCALES.map((locale) =>
+      deleteAdminSnapshotCache(
+        readLocalizedAdminCacheKey(ADMIN_USERS_PAGE_DATA_CACHE_KEY, locale),
+      ),
+    ),
+    ...SUPPORTED_LOCALES.map((locale) =>
+      deleteAdminSnapshotCache(
+        readLocalizedAdminCacheKey(ADMIN_USERS_USAGE_DATA_CACHE_KEY, locale),
+      ),
+    ),
   ]);
 }
 
@@ -3240,19 +3443,27 @@ export async function setAdminUserBillingBalanceForEmail(
 
 function buildControlPlaneComponentView(
   component: FugueControlPlaneComponent,
+  locale: Locale = "en",
 ): AdminControlPlaneComponentView {
   return {
     component: component.component,
     componentLabel: readControlPlaneComponentLabel(component.component),
-    deploymentName: component.deploymentName || "Unresolved deployment",
-    imageExact: component.image || "Unknown image",
+    deploymentName:
+      component.deploymentName || translate(locale, "Unresolved deployment"),
+    imageExact: component.image || translate(locale, "Unknown image"),
     imageRepositoryLabel: shortImageRepository(component.imageRepository),
     imageTagExact: component.imageTag ?? "",
     imageTagLabel: component.imageTag
       ? shortControlPlaneVersion(component.imageTag)
-      : "No tag",
-    replicaLabel: `${component.readyReplicas}/${component.desiredReplicas} ready`,
-    rolloutLabel: `${component.updatedReplicas} updated / ${component.availableReplicas} available`,
+      : translate(locale, "No tag"),
+    replicaLabel: translate(locale, "{ready}/{desired} ready", {
+      desired: component.desiredReplicas,
+      ready: component.readyReplicas,
+    }),
+    rolloutLabel: translate(locale, "{updated} updated / {available} available", {
+      available: component.availableReplicas,
+      updated: component.updatedReplicas,
+    }),
     statusLabel: readControlPlaneComponentStatusLabel(component.status),
     statusTone: readControlPlaneTone(component.status),
   };
@@ -3260,6 +3471,7 @@ function buildControlPlaneComponentView(
 
 function buildControlPlaneView(
   controlPlane: FugueControlPlaneStatus,
+  locale: Locale = "en",
 ): AdminControlPlaneView {
   const components = [...(controlPlane.components ?? [])]
     .sort((left, right) => {
@@ -3276,14 +3488,15 @@ function buildControlPlaneView(
 
       return (left.component ?? "").localeCompare(right.component ?? "");
     })
-    .map(buildControlPlaneComponentView);
+    .map((component) => buildControlPlaneComponentView(component, locale));
 
   return {
     components,
-    namespaceLabel: controlPlane.namespace || "Unknown namespace",
-    observedExact: formatExactTime(controlPlane.observedAt),
-    observedLabel: formatRelativeTime(controlPlane.observedAt),
-    releaseInstanceLabel: controlPlane.releaseInstance || "Unknown release",
+    namespaceLabel: controlPlane.namespace || translate(locale, "Unknown namespace"),
+    observedExact: formatExactTime(controlPlane.observedAt, locale),
+    observedLabel: formatRelativeTime(controlPlane.observedAt, locale),
+    releaseInstanceLabel:
+      controlPlane.releaseInstance || translate(locale, "Unknown release"),
     statusLabel: readControlPlaneOverviewStatusLabel(controlPlane.status),
     statusTone: readControlPlaneTone(controlPlane.status),
     summaryLabel: readControlPlaneSummaryLabel(controlPlane.status),
@@ -3295,13 +3508,18 @@ function buildControlPlaneView(
   };
 }
 
-async function getCachedAdminControlPlaneView(bootstrapKey: string) {
-  return adminControlPlaneViewCache.getOrLoad("control-plane", async () =>
-    buildControlPlaneView(await getFugueControlPlaneStatus(bootstrapKey)),
+async function getCachedAdminControlPlaneView(
+  bootstrapKey: string,
+  locale: Locale = "en",
+) {
+  return adminControlPlaneViewCache.getOrLoad(`control-plane:${locale}`, async () =>
+    buildControlPlaneView(await getFugueControlPlaneStatus(bootstrapKey), locale),
   );
 }
 
-export async function getAdminControlPlaneData(): Promise<{
+export async function getAdminControlPlaneData(
+  locale: Locale = "en",
+): Promise<{
   controlPlane: AdminControlPlaneView | null;
   errors: string[];
 }> {
@@ -3318,7 +3536,7 @@ export async function getAdminControlPlaneData(): Promise<{
 
   try {
     return {
-      controlPlane: await getCachedAdminControlPlaneView(bootstrapKey),
+      controlPlane: await getCachedAdminControlPlaneView(bootstrapKey, locale),
       errors: [],
     };
   } catch (error) {
@@ -3361,7 +3579,7 @@ export async function getAdminClusterPageData(
       ADMIN_OPTIONAL_FETCH_TIMEOUT_MS,
     ),
     settleWithSoftTimeout(
-      getCachedAdminControlPlaneView(bootstrapKey),
+      getCachedAdminControlPlaneView(bootstrapKey, locale),
       ADMIN_OPTIONAL_FETCH_TIMEOUT_MS,
     ),
   ]);

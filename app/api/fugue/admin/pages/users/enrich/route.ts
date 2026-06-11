@@ -8,6 +8,7 @@ import {
   readErrorMessage,
   readErrorStatus,
 } from "@/lib/fugue/product-route";
+import { getRequestLocale } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +28,9 @@ export async function GET() {
   }
 
   try {
-    return jsonSnapshot(await getAdminUsersPageEnrichmentData());
+    return jsonSnapshot(
+      await getAdminUsersPageEnrichmentData(await getRequestLocale()),
+    );
   } catch (error) {
     return jsonError(readErrorStatus(error), readErrorMessage(error));
   }

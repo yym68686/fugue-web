@@ -681,7 +681,7 @@ export function AdminClusterNodeManager({
   nodes: AdminClusterNodeView[];
   onNodeUpdated: (node: AdminClusterNodeView) => void;
 }) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const { showToast } = useToast();
   const [drafts, setDrafts] = useState<Record<string, NodePolicyDraft>>({});
   const [busyNodeName, setBusyNodeName] = useState<string | null>(null);
@@ -737,11 +737,11 @@ export function AdminClusterNodeManager({
         const needsReconcile = policyNeedsReconcile(node.policy);
 
         return {
-          ...buildAdminClusterGalleryItem(node),
+          ...buildAdminClusterGalleryItem(node, locale),
           summaryBadges: readSummaryBadges(node, dirty, needsReconcile),
         } satisfies ClusterNodeGalleryItem;
       }),
-    [drafts, nodes],
+    [drafts, locale, nodes],
   );
 
   if (!nodes.length) {

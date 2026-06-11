@@ -57,6 +57,10 @@ type AdminUsersUsageSnapshot = {
   }>;
 };
 
+function isEmptyUsageLabel(label: string | null | undefined) {
+  return !label || label === "No stats" || label === "-";
+}
+
 function buildAdminUserUsageMap(
   snapshot: AdminUsersUsageSnapshot | null,
 ) {
@@ -83,7 +87,7 @@ function buildAdminUserUsageMap(
 function hasAdminUserUsageImageData(
   usage: AdminUsersUsageSnapshot["users"][number]["usage"] | undefined,
 ) {
-  return Boolean(usage && usage.imageLabel && usage.imageLabel !== "No stats");
+  return Boolean(usage && !isEmptyUsageLabel(usage.imageLabel));
 }
 
 function hasLoadedAdminUserUsage(
@@ -93,7 +97,7 @@ function hasLoadedAdminUserUsage(
     usage &&
       !usage.loading &&
       [usage.cpuLabel, usage.memoryLabel, usage.diskLabel, usage.imageLabel].some(
-        (label) => label && label !== "No stats",
+        (label) => !isEmptyUsageLabel(label),
       ),
   );
 }
@@ -112,9 +116,14 @@ function buildAdminUsersEnrichmentMap(
   }, {});
 }
 
-function readAdminUsersUsageSnapshot() {
+function withLocaleSnapshotUrl(url: string, locale: string) {
+  const separator = url.includes("?") ? "&" : "?";
+  return `${url}${separator}locale=${encodeURIComponent(locale)}`;
+}
+
+function readAdminUsersUsageSnapshot(snapshotUrl: string) {
   return readConsolePageSnapshot<AdminUsersUsageSnapshot>(
-    CONSOLE_ADMIN_USERS_PAGE_USAGE_SNAPSHOT_URL,
+    snapshotUrl,
     {
       allowStale: true,
       ttlMs: ADMIN_USERS_USAGE_SNAPSHOT_TTL_MS,
@@ -122,9 +131,9 @@ function readAdminUsersUsageSnapshot() {
   );
 }
 
-function readAdminUsersEnrichmentSnapshot() {
+function readAdminUsersEnrichmentSnapshot(snapshotUrl: string) {
   return readConsolePageSnapshot<ConsoleAdminUsersPageSnapshot>(
-    CONSOLE_ADMIN_USERS_PAGE_ENRICHMENT_SNAPSHOT_URL,
+    snapshotUrl,
     {
       allowStale: true,
       ttlMs: ADMIN_USERS_ENRICHMENT_SNAPSHOT_TTL_MS,
@@ -137,10 +146,30 @@ export function AdminUsersPageShell({
 }: {
   initialSnapshot?: ConsoleAdminUsersPageSnapshot | null;
 }) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
+  const pageSnapshotUrl = useMemo(
+    () => withLocaleSnapshotUrl(CONSOLE_ADMIN_USERS_PAGE_SNAPSHOT_URL, locale),
+    [locale],
+  );
+  const usageSnapshotUrl = useMemo(
+    () =>
+      withLocaleSnapshotUrl(
+        CONSOLE_ADMIN_USERS_PAGE_USAGE_SNAPSHOT_URL,
+        locale,
+      ),
+    [locale],
+  );
+  const enrichmentSnapshotUrl = useMemo(
+    () =>
+      withLocaleSnapshotUrl(
+        CONSOLE_ADMIN_USERS_PAGE_ENRICHMENT_SNAPSHOT_URL,
+        locale,
+      ),
+    [locale],
+  );
   const { data, error, loading, refresh } =
     useConsolePageSnapshot<ConsoleAdminUsersPageSnapshot>(
-      CONSOLE_ADMIN_USERS_PAGE_SNAPSHOT_URL,
+      pageSnapshotUrl,
       {
         initialData: initialSnapshot,
       },
@@ -154,12 +183,14 @@ export function AdminUsersPageShell({
       }
     >
   >(() =>
-    buildAdminUserUsageMap(readAdminUsersUsageSnapshot()),
+    buildAdminUserUsageMap(readAdminUsersUsageSnapshot(usageSnapshotUrl)),
   );
   const [enrichedUsersByEmail, setEnrichedUsersByEmail] = useState<
     Record<string, ConsoleAdminUsersPageSnapshot["users"][number]>
   >(() =>
-    buildAdminUsersEnrichmentMap(readAdminUsersEnrichmentSnapshot()),
+    buildAdminUsersEnrichmentMap(
+      readAdminUsersEnrichmentSnapshot(enrichmentSnapshotUrl),
+    ),
   );
 
   useEffect(() => {
@@ -169,9 +200,11 @@ export function AdminUsersPageShell({
       return;
     }
 
-    const cachedUsage = buildAdminUserUsageMap(readAdminUsersUsageSnapshot());
+    const cachedUsage = buildAdminUserUsageMap(
+      readAdminUsersUsageSnapshot(usageSnapshotUrl),
+    );
     const cachedEnrichment = buildAdminUsersEnrichmentMap(
-      readAdminUsersEnrichmentSnapshot(),
+      readAdminUsersEnrichmentSnapshot(enrichmentSnapshotUrl),
     );
 
     if (Object.keys(cachedUsage).length > 0) {
@@ -185,7 +218,7 @@ export function AdminUsersPageShell({
         setEnrichedUsersByEmail(cachedEnrichment);
       });
     }
-  }, [data]);
+  }, [data, enrichmentSnapshotUrl, usageSnapshotUrl]);
 
   const userUsageWarmupKey = useMemo(
     () => (data?.users ?? []).map((user) => user.email).join("||"),
@@ -196,7 +229,9 @@ export function AdminUsersPageShell({
       return;
     }
 
-    const cachedUsage = buildAdminUserUsageMap(readAdminUsersUsageSnapshot());
+    const cachedUsage = buildAdminUserUsageMap(
+      readAdminUsersUsageSnapshot(usageSnapshotUrl),
+    );
 
     if (Object.keys(cachedUsage).length > 0) {
       startTransition(() => {
@@ -236,7 +271,7 @@ export function AdminUsersPageShell({
         }
 
         void fetchConsolePageSnapshot<AdminUsersUsageSnapshot>(
-          CONSOLE_ADMIN_USERS_PAGE_USAGE_SNAPSHOT_URL,
+          usageSnapshotUrl,
           {
             force: true,
             signal,
@@ -259,7 +294,7 @@ export function AdminUsersPageShell({
     };
 
     void fetchConsolePageSnapshot<AdminUsersUsageSnapshot>(
-      CONSOLE_ADMIN_USERS_PAGE_USAGE_SNAPSHOT_URL,
+      usageSnapshotUrl,
       {
         signal,
         ttlMs: ADMIN_USERS_USAGE_SNAPSHOT_TTL_MS,
@@ -292,7 +327,7 @@ export function AdminUsersPageShell({
     }
 
     const cachedEnrichment = buildAdminUsersEnrichmentMap(
-      readAdminUsersEnrichmentSnapshot(),
+      readAdminUsersEnrichmentSnapshot(enrichmentSnapshotUrl),
     );
 
     if (Object.keys(cachedEnrichment).length > 0) {
@@ -314,7 +349,7 @@ export function AdminUsersPageShell({
     }
 
     void fetchConsolePageSnapshot<ConsoleAdminUsersPageSnapshot>(
-      CONSOLE_ADMIN_USERS_PAGE_ENRICHMENT_SNAPSHOT_URL,
+      enrichmentSnapshotUrl,
       {
         force: true,
         signal,
@@ -339,7 +374,7 @@ export function AdminUsersPageShell({
 
   useAnticipatoryWarmup(
     data?.users.length ? warmAdminUserUsage : null,
-    [userUsageWarmupKey],
+    [userUsageWarmupKey, usageSnapshotUrl],
     {
       mode: "idle",
       timeoutMs: 3_000,
@@ -347,7 +382,7 @@ export function AdminUsersPageShell({
   );
   useAnticipatoryWarmup(
     data?.users.length ? warmAdminUserEnrichment : null,
-    [userEnrichmentWarmupKey],
+    [enrichmentSnapshotUrl, userEnrichmentWarmupKey],
     {
       mode: "idle",
       timeoutMs: 3_000,
