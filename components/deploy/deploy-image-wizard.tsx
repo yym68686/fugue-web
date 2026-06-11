@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { SelectField } from "@/components/ui/select-field";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { useToast } from "@/components/ui/toast";
@@ -62,20 +63,24 @@ type SubmitResponse = {
   requestInProgress?: boolean;
 };
 
-function readErrorMessage(error: unknown) {
+type Translator = ReturnType<typeof useI18n>["t"];
+
+function readErrorMessage(error: unknown, t: Translator) {
   if (error instanceof Error && error.message.trim()) {
-    return error.message;
+    return t(error.message);
   }
 
-  return "Deploy request failed.";
+  return t("Deploy request failed.");
 }
 
 function buildProjectOptions(
   projects: FugueProject[],
   defaultProjectId?: string | null,
   defaultProjectName?: string | null,
+  t?: Translator,
 ) {
   const deduped = new Map<string, string>();
+  const translate: Translator = t ?? ((key: string) => key);
 
   for (const project of projects) {
     deduped.set(project.id, project.name);
@@ -84,11 +89,18 @@ function buildProjectOptions(
   return [
     ...Array.from(deduped.entries()).map(([id, name]) => ({
       id,
-      label: defaultProjectId === id ? `${name} · Default project` : name,
+      label:
+        defaultProjectId === id
+          ? translate("{name} · Default project", { name })
+          : name,
     })),
     {
       id: NEW_PROJECT_VALUE,
-      label: `Create new project${defaultProjectName ? ` · ${defaultProjectName}` : ""}`,
+      label: defaultProjectName
+        ? translate("Create new project · {name}", {
+            name: defaultProjectName,
+          })
+        : translate("Create new project"),
     },
   ];
 }
@@ -124,6 +136,7 @@ export function DeployImageWizard({
   workspaceDefaultProjectName = null,
 }: DeployImageWizardProps) {
   const router = useRouter();
+  const { locale, t } = useI18n();
   const { showToast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [selectedProjectId, setSelectedProjectId] = useState(
@@ -141,7 +154,7 @@ export function DeployImageWizard({
     serializeEnvRecord(initialEnv),
   );
   const [envFeedback, setEnvFeedback] = useState(() =>
-    buildRawEnvFeedback(serializeEnvRecord(initialEnv), "deploy"),
+    buildRawEnvFeedback(serializeEnvRecord(initialEnv), "deploy", locale),
   );
   const [startupCommand, setStartupCommand] = useState("");
   const [persistentStorage, setPersistentStorage] = useState(() =>
@@ -156,8 +169,17 @@ export function DeployImageWizard({
         projects,
         workspaceDefaultProjectId,
         workspaceDefaultProjectName,
+        t,
       ),
-    [projects, workspaceDefaultProjectId, workspaceDefaultProjectName],
+    [projects, t, workspaceDefaultProjectId, workspaceDefaultProjectName],
+  );
+  const networkModeOptions = useMemo(
+    () =>
+      IMPORT_NETWORK_MODE_OPTIONS.map((option) => ({
+        ...option,
+        label: t(option.label),
+      })),
+    [t],
   );
 
   useEffect(() => {
@@ -183,8 +205,8 @@ export function DeployImageWizard({
   useEffect(() => {
     const nextEnvRaw = serializeEnvRecord(initialEnv);
     setEnvRawDraft(nextEnvRaw);
-    setEnvFeedback(buildRawEnvFeedback(nextEnvRaw, "deploy"));
-  }, [initialEnv]);
+    setEnvFeedback(buildRawEnvFeedback(nextEnvRaw, "deploy", locale));
+  }, [initialEnv, locale]);
 
   function updateEnvRaw(nextValue: string) {
     setEnvRawDraft(nextValue);
@@ -192,18 +214,18 @@ export function DeployImageWizard({
 
   function validate() {
     if (!imageRef.trim()) {
-      return "Image reference is required.";
+      return t("Image reference is required.");
     }
 
     if (selectedProjectId === NEW_PROJECT_VALUE) {
       const normalizedProjectName = projectName.trim();
 
       if (!normalizedProjectName) {
-        return "Project name is required when creating a new project.";
+        return t("Project name is required when creating a new project.");
       }
 
       if (findProjectByName(projects, normalizedProjectName)) {
-        return DUPLICATE_PROJECT_NAME_MESSAGE;
+        return t(DUPLICATE_PROJECT_NAME_MESSAGE);
       }
     }
 
@@ -214,7 +236,7 @@ export function DeployImageWizard({
       normalizedServicePort &&
       (!/^\d+$/.test(normalizedServicePort) || Number(normalizedServicePort) <= 0)
     ) {
-      return "Service port must be a positive integer.";
+      return t("Service port must be a positive integer.");
     }
 
     const persistentStorageError =
@@ -248,7 +270,7 @@ export function DeployImageWizard({
         ? projectName.trim()
         : (projects.find((project) => project.id === selectedProjectId)?.name ??
           workspaceDefaultProjectName ??
-          "Project");
+          t("Project"));
     const intent = createPendingProjectIntent({
       appName: normalizedName,
       projectId:
@@ -313,7 +335,7 @@ export function DeployImageWizard({
           requestInProgress: Boolean(payload?.requestInProgress),
         });
       } catch (error) {
-        failPendingProjectIntent(intent.id, readErrorMessage(error));
+        failPendingProjectIntent(intent.id, readErrorMessage(error, t));
       }
     })();
 
@@ -329,7 +351,7 @@ export function DeployImageWizard({
         startTransition(() => {
           void submit().catch((error) => {
             showToast({
-              message: readErrorMessage(error),
+              message: readErrorMessage(error, t),
               variant: "error",
             });
           });
@@ -337,25 +359,23 @@ export function DeployImageWizard({
       }}
     >
       <PanelSection>
-        <p className="fg-label fg-panel__eyebrow">Deploy</p>
-        <PanelTitle>Deploy from a Docker image.</PanelTitle>
+        <p className="fg-label fg-panel__eyebrow">{t("Deploy")}</p>
+        <PanelTitle>{t("Deploy from a Docker image.")}</PanelTitle>
         <PanelCopy>
-          Fugue mirrors the published image into the internal registry, creates
-          the app, and queues the first rollout onto the selected runtime.
+          {t("Fugue mirrors the published image into the internal registry, creates the app, and queues the first rollout onto the selected runtime.")}
         </PanelCopy>
 
         {projectInventoryError ? (
           <InlineAlert variant="info">
-            Project inventory is unavailable right now. You can still deploy
-            into a new project.
+            {t("Project inventory is unavailable right now. You can still deploy into a new project.")}
           </InlineAlert>
         ) : null}
 
         <div className="fg-deploy-form-grid">
           <FormField
-            hint="Reuse an existing project or create a new one for this deploy."
+            hint={t("Reuse an existing project or create a new one for this deploy.")}
             htmlFor="deploy-image-project"
-            label="Project"
+            label={t("Project")}
           >
             <SelectField
               id="deploy-image-project"
@@ -371,10 +391,10 @@ export function DeployImageWizard({
           </FormField>
 
           <FormField
-            hint="Leave blank to reuse the image name."
+            hint={t("Leave blank to reuse the image name.")}
             htmlFor="deploy-image-name"
-            label="App name"
-            optionalLabel="Optional"
+            label={t("App name")}
+            optionalLabel={t("Optional")}
           >
             <input
               className="fg-input"
@@ -388,9 +408,9 @@ export function DeployImageWizard({
 
         {selectedProjectId === NEW_PROJECT_VALUE ? (
           <FormField
-            hint="This project will be created before the deploy is queued."
+            hint={t("This project will be created before the deploy is queued.")}
             htmlFor="deploy-image-project-name"
-            label="New project name"
+            label={t("New project name")}
           >
             <input
               className="fg-input"
@@ -403,9 +423,9 @@ export function DeployImageWizard({
         ) : null}
 
         <FormField
-          hint="Use a pullable public image reference such as ghcr.io/example/api:1.2.3."
+          hint={t("Use a pullable public image reference such as ghcr.io/example/api:1.2.3.")}
           htmlFor="deploy-image-ref"
-          label="Image reference"
+          label={t("Image reference")}
         >
           <input
             autoCapitalize="none"
@@ -420,15 +440,15 @@ export function DeployImageWizard({
         </FormField>
 
         <FormField
-          hint="Choose whether Fugue should expose this app publicly, keep it cluster-internal, or run it as a background worker."
+          hint={t("Choose whether Fugue should expose this app publicly, keep it cluster-internal, or run it as a background worker.")}
           htmlFor="deploy-image-network-mode"
-          label="Network mode"
+          label={t("Network mode")}
         >
           <div id="deploy-image-network-mode">
             <SegmentedControl
-              ariaLabel="Image deploy network mode"
+              ariaLabel={t("Image deploy network mode")}
               onChange={setNetworkMode}
-              options={IMPORT_NETWORK_MODE_OPTIONS}
+              options={networkModeOptions}
               value={networkMode}
               variant="pill"
             />
@@ -437,10 +457,10 @@ export function DeployImageWizard({
 
         {networkMode !== "background" ? (
           <FormField
-            hint="Set this when the container listens on a known port."
+            hint={t("Set this when the container listens on a known port.")}
             htmlFor="deploy-image-service-port"
-            label="Service port"
-            optionalLabel="Optional"
+            label={t("Service port")}
+            optionalLabel={t("Optional")}
           >
             <input
               className="fg-input"
@@ -453,28 +473,25 @@ export function DeployImageWizard({
           </FormField>
         ) : (
           <InlineAlert variant="info">
-            Background workers run without a managed route, Kubernetes Service,
-            or readiness port.
+            {t("Background workers run without a managed route, Kubernetes Service, or readiness port.")}
           </InlineAlert>
         )}
 
         {networkMode === "internal" ? (
           <InlineAlert variant="info">
-            Internal services keep a cluster-only Service and readiness checks,
-            but Fugue does not publish a public route for them.
+            {t("Internal services keep a cluster-only Service and readiness checks, but Fugue does not publish a public route for them.")}
           </InlineAlert>
         ) : null}
 
         <InlineAlert variant="info">
-          Public image references work best for one-click deploy links because
-          this flow does not collect registry credentials.
+          {t("Public image references work best for one-click deploy links because this flow does not collect registry credentials.")}
         </InlineAlert>
       </PanelSection>
 
       <PanelSection>
-        <PanelTitle>Target</PanelTitle>
+        <PanelTitle>{t("Target")}</PanelTitle>
         <PanelCopy>
-          Choose where the mirrored image should land for the first rollout.
+          {t("Choose where the mirrored image should land for the first rollout.")}
         </PanelCopy>
 
         <DeploymentTargetField
@@ -487,7 +504,7 @@ export function DeployImageWizard({
       </PanelSection>
 
       <PanelSection>
-        <PanelTitle>Environment</PanelTitle>
+        <PanelTitle>{t("Environment")}</PanelTitle>
         <EnvironmentEditor
           fieldId="deploy-image-env-raw"
           onChange={updateEnvRaw}
@@ -498,17 +515,16 @@ export function DeployImageWizard({
       </PanelSection>
 
       <PanelSection>
-        <PanelTitle>Advanced settings</PanelTitle>
+        <PanelTitle>{t("Advanced settings")}</PanelTitle>
         <PanelCopy>
-          Override the image default entrypoint only when this service needs a
-          different launch command.
+          {t("Override the image default entrypoint only when this service needs a different launch command.")}
         </PanelCopy>
 
         <FormField
-          hint="Runs as `sh -lc <command>`. Leave blank to use the image default entrypoint."
+          hint={t("Runs as `sh -lc <command>`. Leave blank to use the image default entrypoint.")}
           htmlFor="deploy-image-startup-command"
-          label="Startup command"
-          optionalLabel="Optional"
+          label={t("Startup command")}
+          optionalLabel={t("Optional")}
         >
           <input
             autoCapitalize="none"
@@ -524,11 +540,9 @@ export function DeployImageWizard({
       </PanelSection>
 
       <PanelSection>
-        <PanelTitle>Persistent storage</PanelTitle>
+        <PanelTitle>{t("Persistent storage")}</PanelTitle>
         <PanelCopy>
-          Add directories or files that should stay attached after redeploys,
-          restarts, and runtime moves. File contents are only used the first
-          time Fugue creates that file.
+          {t("Add directories or files that should stay attached after redeploys, restarts, and runtime moves. File contents are only used the first time Fugue creates that file.")}
         </PanelCopy>
 
         <PersistentStorageEditor
@@ -543,16 +557,15 @@ export function DeployImageWizard({
         <div className="fg-deploy-inline-actions">
           <Button
             loading={isPending}
-            loadingLabel="Queueing image deploy…"
+            loadingLabel={t("Queueing image deploy…")}
             type="submit"
             variant="route"
           >
-            Queue image deploy
+            {t("Queue image deploy")}
           </Button>
         </div>
         <p className="fg-deploy-inline-copy">
-          After submission, Fugue creates the app and starts the import
-          operation immediately.
+          {t("After submission, Fugue creates the app and starts the import operation immediately.")}
         </p>
       </PanelSection>
     </form>

@@ -9,6 +9,7 @@ import {
 } from "react";
 
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/components/providers/i18n-provider";
 import {
   createLocalUploadState,
   inspectLocalUploadState,
@@ -130,18 +131,26 @@ export function LocalUploadSourceField({
   onChange,
   value,
 }: LocalUploadSourceFieldProps) {
+  const { t } = useI18n();
   const archiveInputRef = useRef<HTMLInputElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const folderInputRef = useRef<HTMLInputElement | null>(null);
   const [isDragActive, setIsDragActive] = useState(false);
   const inspection = inspectLocalUploadState(value);
   const archiveReady = inspection.mode === "archive";
+  const remainingFileCount =
+    inspection.itemCount - inspection.previewPaths.length;
 
   const meterLabel = archiveReady
-    ? `${inspection.archiveFormat === "zip" ? "ZIP" : "TGZ"} archive · ${formatBytes(inspection.totalBytes)}`
+    ? `${inspection.archiveFormat === "zip" ? "ZIP" : "TGZ"} ${t("archive")} · ${formatBytes(inspection.totalBytes)}`
     : inspection.itemCount > 0
-      ? `${inspection.itemCount} file${inspection.itemCount === 1 ? "" : "s"} · ${formatBytes(inspection.totalBytes)}`
-      : "Folder / ZIP / compose";
+      ? `${t(
+          inspection.itemCount === 1
+            ? "{count} file"
+            : "{count} files",
+          { count: inspection.itemCount },
+        )} · ${formatBytes(inspection.totalBytes)}`
+      : t("Folder / ZIP / compose");
 
   async function applyEntries(entries: Array<{ file: File; path: string }>) {
     onChange(normalizeLocalUploadItems(entries));
@@ -225,13 +234,13 @@ export function LocalUploadSourceField({
       >
         <div className="fg-upload-source__head">
           <div>
-            <p className="fg-upload-source__eyebrow">Local upload</p>
+            <p className="fg-upload-source__eyebrow">{t("Local upload")}</p>
             <strong className="fg-upload-source__title">
               {archiveReady
-                ? value.label || "Archive ready"
+                ? value.label || t("Archive ready")
                 : inspection.itemCount > 0
-                  ? value.label || "Upload ready"
-                  : "Drop a folder, archive, or source files"}
+                  ? value.label || t("Upload ready")
+                  : t("Drop a folder, archive, or source files")}
             </strong>
           </div>
           <span className="fg-upload-source__meter">{meterLabel}</span>
@@ -239,38 +248,40 @@ export function LocalUploadSourceField({
 
         <p className="fg-upload-source__copy">
           {archiveReady
-            ? "Fugue will import this archive directly. GitHub download ZIP files work as-is, without repackaging them in the browser."
+            ? t("Fugue will import this archive directly. GitHub download ZIP files work as-is, without repackaging them in the browser.")
             : inspection.itemCount > 0
-              ? "Fugue will package these files on the server, then import them through the same upload route used by local deploys."
-              : "Drag a local folder, a .zip or .tgz archive, docker-compose.yml, fugue.yaml, Dockerfile, or multiple source files. Folder drop works when the browser exposes directory entries."}
+              ? t("Fugue will package these files on the server, then import them through the same upload route used by local deploys.")
+              : t("Drag a local folder, a .zip or .tgz archive, docker-compose.yml, fugue.yaml, Dockerfile, or multiple source files. Folder drop works when the browser exposes directory entries.")}
         </p>
 
         <div className="fg-upload-source__chips">
           {archiveReady ? (
             <>
               <span className="fg-upload-source__chip">
-                {inspection.archiveFormat === "zip" ? "ZIP archive" : "TGZ archive"}
+                {inspection.archiveFormat === "zip"
+                  ? t("ZIP archive")
+                  : t("TGZ archive")}
               </span>
-              <span className="fg-upload-source__chip">Direct import</span>
-              <span className="fg-upload-source__chip">GitHub download ready</span>
+              <span className="fg-upload-source__chip">{t("Direct import")}</span>
+              <span className="fg-upload-source__chip">{t("GitHub download ready")}</span>
             </>
           ) : null}
           {inspection.hasCompose ? (
-            <span className="fg-upload-source__chip">Compose detected</span>
+            <span className="fg-upload-source__chip">{t("Compose detected")}</span>
           ) : null}
           {inspection.hasFugueManifest ? (
-            <span className="fg-upload-source__chip">fugue.yaml detected</span>
+            <span className="fg-upload-source__chip">{t("fugue.yaml detected")}</span>
           ) : null}
           {inspection.hasDockerfile ? (
-            <span className="fg-upload-source__chip">Dockerfile detected</span>
+            <span className="fg-upload-source__chip">{t("Dockerfile detected")}</span>
           ) : null}
           {inspection.itemCount === 0 ? (
             <>
-              <span className="fg-upload-source__chip">Folder drag</span>
-              <span className="fg-upload-source__chip">ZIP or TGZ</span>
-              <span className="fg-upload-source__chip">Single file import</span>
+              <span className="fg-upload-source__chip">{t("Folder drag")}</span>
+              <span className="fg-upload-source__chip">{t("ZIP or TGZ")}</span>
+              <span className="fg-upload-source__chip">{t("Single file import")}</span>
               <span className="fg-upload-source__chip">
-                Multi-service ready
+                {t("Multi-service ready")}
               </span>
             </>
           ) : null}
@@ -283,11 +294,12 @@ export function LocalUploadSourceField({
             ))}
             {inspection.itemCount > inspection.previewPaths.length ? (
               <li>
-                +{inspection.itemCount - inspection.previewPaths.length} more
-                file
-                {inspection.itemCount - inspection.previewPaths.length === 1
-                  ? ""
-                  : "s"}
+                {t(
+                  remainingFileCount === 1
+                    ? "+{count} more file"
+                    : "+{count} more files",
+                  { count: remainingFileCount },
+                )}
               </li>
             ) : null}
           </ul>
@@ -299,21 +311,21 @@ export function LocalUploadSourceField({
             size="compact"
             variant="secondary"
           >
-            Choose folder
+            {t("Choose folder")}
           </Button>
           <Button
             onClick={() => fileInputRef.current?.click()}
             size="compact"
             variant="ghost"
           >
-            Choose files
+            {t("Choose files")}
           </Button>
           <Button
             onClick={() => archiveInputRef.current?.click()}
             size="compact"
             variant="ghost"
           >
-            Choose archive
+            {t("Choose archive")}
           </Button>
           {inspection.itemCount > 0 ? (
             <Button
@@ -321,7 +333,7 @@ export function LocalUploadSourceField({
               size="compact"
               variant="ghost"
             >
-              Clear
+              {t("Clear")}
             </Button>
           ) : null}
         </div>

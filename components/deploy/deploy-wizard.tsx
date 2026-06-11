@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { HintTooltip } from "@/components/ui/hint-tooltip";
 import { InlineAlert } from "@/components/ui/inline-alert";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { SelectField } from "@/components/ui/select-field";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { useToast } from "@/components/ui/toast";
@@ -96,12 +97,14 @@ type PersistentStorageSeedField = {
   service: string;
 };
 
-function readErrorMessage(error: unknown) {
+type Translator = ReturnType<typeof useI18n>["t"];
+
+function readErrorMessage(error: unknown, t: Translator) {
   if (error instanceof Error && error.message.trim()) {
-    return error.message;
+    return t(error.message);
   }
 
-  return "Deploy request failed.";
+  return t("Deploy request failed.");
 }
 
 function resolveInitialRuntimeId(
@@ -124,8 +127,10 @@ function buildProjectOptions(
   projects: FugueProject[],
   defaultProjectId?: string | null,
   defaultProjectName?: string | null,
+  t?: Translator,
 ) {
   const deduped = new Map<string, string>();
+  const translate: Translator = t ?? ((key: string) => key);
 
   for (const project of projects) {
     deduped.set(project.id, project.name);
@@ -134,11 +139,18 @@ function buildProjectOptions(
   return [
     ...Array.from(deduped.entries()).map(([id, name]) => ({
       id,
-      label: defaultProjectId === id ? `${name} · Default project` : name,
+      label:
+        defaultProjectId === id
+          ? translate("{name} · Default project", { name })
+          : name,
     })),
     {
       id: NEW_PROJECT_VALUE,
-      label: `Create new project${defaultProjectName ? ` · ${defaultProjectName}` : ""}`,
+      label: defaultProjectName
+        ? translate("Create new project · {name}", {
+            name: defaultProjectName,
+          })
+        : translate("Create new project"),
     },
   ];
 }
@@ -201,6 +213,7 @@ export function DeployWizard({
   workspaceDefaultProjectName = null,
 }: DeployWizardProps) {
   const router = useRouter();
+  const { locale, t } = useI18n();
   const { showToast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [repoVisibility, setRepoVisibility] = useState<GitHubRepoVisibility>(
@@ -236,7 +249,7 @@ export function DeployWizard({
     serializeEnvRecord(initialEnv),
   );
   const [envFeedback, setEnvFeedback] = useState(() =>
-    buildRawEnvFeedback(serializeEnvRecord(initialEnv), "deploy"),
+    buildRawEnvFeedback(serializeEnvRecord(initialEnv), "deploy", locale),
   );
   const [variableValues, setVariableValues] = useState<Record<string, string>>(
     readInitialVariableValues(inspection),
@@ -250,18 +263,35 @@ export function DeployWizard({
   const manifestSummary = summarizeInspectManifest(manifest);
   const manifestRouteSummaryParts = [
     manifestSummary.domainCount > 0
-      ? pluralize(manifestSummary.domainCount, "domain")
+      ? t(
+          manifestSummary.domainCount === 1
+            ? "{count} domain"
+            : "{count} domains",
+          { count: manifestSummary.domainCount },
+        )
       : null,
     manifestSummary.entrypointCount > 0
-      ? pluralize(manifestSummary.entrypointCount, "entrypoint")
+      ? t(
+          manifestSummary.entrypointCount === 1
+            ? "{count} entrypoint"
+            : "{count} entrypoints",
+          { count: manifestSummary.entrypointCount },
+        )
       : null,
     manifestSummary.routeCount > 0
-      ? pluralize(manifestSummary.routeCount, "path route")
+      ? t(
+          manifestSummary.routeCount === 1
+            ? "{count} path route"
+            : "{count} path routes",
+          { count: manifestSummary.routeCount },
+        )
       : null,
   ].filter((part): part is string => Boolean(part));
   const manifestRouteSummaryCopy =
     manifestRouteSummaryParts.length > 0
-      ? ` Includes ${manifestRouteSummaryParts.join(", ")}.`
+      ? ` ${t("Includes {items}.", {
+          items: manifestRouteSummaryParts.join(", "),
+        })}`
       : "";
   const hasFugueManifest = Boolean(manifest);
   const preservesTopologyImport =
@@ -288,27 +318,44 @@ export function DeployWizard({
   );
   const supportsSourceDir = supportsGitHubSourceDir(buildStrategy);
   const supportsDockerInputs = supportsGitHubDockerInputs(buildStrategy);
-  const deploymentSummaryCopy = `${repoVisibility === "private" ? "Private repo" : "Public repo"} · ${hasFugueManifest ? "Manifest import" : "Repository build"} · ${networkMode === "background" ? "Background worker" : networkMode === "internal" ? "Internal service" : "Public service"}`;
+  const deploymentSummaryCopy = `${repoVisibility === "private" ? t("Private repo") : t("Public repo")} · ${hasFugueManifest ? t("Manifest import") : t("Repository build")} · ${networkMode === "background" ? t("Background worker") : networkMode === "internal" ? t("Internal service") : t("Public service")}`;
   const advancedSummaryParts = [
-    name.trim() ? `Name ${name.trim()}` : null,
-    startupCommandSupported && startupCommand.trim() ? "Startup command" : null,
+    name.trim() ? t("Name {name}", { name: name.trim() }) : null,
+    startupCommandSupported && startupCommand.trim()
+      ? t("Startup command")
+      : null,
     persistentStorageSupported && hasPersistentStorageDraft(persistentStorage)
-      ? "Persistent storage"
+      ? t("Persistent storage")
       : null,
     !hasFugueManifest && buildStrategy !== "auto"
-      ? (BUILD_STRATEGY_OPTIONS.find((option) => option.value === buildStrategy)
-          ?.label ?? "Custom build")
+      ? t(
+          BUILD_STRATEGY_OPTIONS.find((option) => option.value === buildStrategy)
+            ?.label ?? "Custom build",
+        )
       : null,
   ].filter((part): part is string => Boolean(part));
   const advancedSummaryCopy =
     advancedSummaryParts.length > 0
       ? advancedSummaryParts.join(" · ")
       : hasFugueManifest
-        ? `Imports ${pluralize(manifestSummary.serviceCount, "service")} from ${manifest?.manifestPath ?? "fugue.yaml"}`
-        : "App name, startup command, and optional build overrides.";
+        ? t(
+            manifestSummary.serviceCount === 1
+              ? "Imports {count} service from {path}"
+              : "Imports {count} services from {path}",
+            {
+              count: manifestSummary.serviceCount,
+              path: manifest?.manifestPath ?? "fugue.yaml",
+            },
+          )
+        : t("App name, startup command, and optional build overrides.");
   const templateVariablesSummaryCopy =
     templateVariables.length > 0
-      ? `${pluralize(templateVariables.length, "variable")} before first deploy`
+      ? t(
+          templateVariables.length === 1
+            ? "{count} variable before first deploy"
+            : "{count} variables before first deploy",
+          { count: templateVariables.length },
+        )
       : null;
   const appNamePlaceholder = resolveDeployAppName(
     [
@@ -322,26 +369,50 @@ export function DeployWizard({
   const environmentSummaryCopy = !envFeedback.valid
     ? envFeedback.message
     : Object.keys(envFeedback.env).length > 0
-      ? `${pluralize(
-          Object.keys(envFeedback.env).length,
-          "variable",
-        )} before first deploy`
-      : "Optional for first deploy";
+      ? t(
+          Object.keys(envFeedback.env).length === 1
+            ? "{count} variable before first deploy"
+            : "{count} variables before first deploy",
+          { count: Object.keys(envFeedback.env).length },
+        )
+      : t("Optional for first deploy");
   const persistentStorageSeedSummaryCopy =
     persistentStorageSeedFiles.length > 0
-      ? `${pluralize(persistentStorageSeedFiles.length, "missing file")} before first deploy`
+      ? t(
+          persistentStorageSeedFiles.length === 1
+            ? "{count} missing file before first deploy"
+            : "{count} missing files before first deploy",
+          { count: persistentStorageSeedFiles.length },
+        )
       : null;
   const persistentStorageSummaryCopy =
     summarizePersistentStorageDraft(persistentStorage) ??
-    "Add directories or files that must stay attached after deploys and restarts.";
+    t("Add directories or files that must stay attached after deploys and restarts.");
+  const buildStrategyOptions = useMemo(
+    () =>
+      BUILD_STRATEGY_OPTIONS.map((option) => ({
+        ...option,
+        label: t(option.label),
+      })),
+    [t],
+  );
+  const networkModeOptions = useMemo(
+    () =>
+      IMPORT_NETWORK_MODE_OPTIONS.map((option) => ({
+        ...option,
+        label: t(option.label),
+      })),
+    [t],
+  );
   const projectOptions = useMemo(
     () =>
       buildProjectOptions(
         projects,
         workspaceDefaultProjectId,
         workspaceDefaultProjectName,
+        t,
       ),
-    [projects, workspaceDefaultProjectId, workspaceDefaultProjectName],
+    [projects, t, workspaceDefaultProjectId, workspaceDefaultProjectName],
   );
 
   useEffect(() => {
@@ -367,8 +438,8 @@ export function DeployWizard({
   useEffect(() => {
     const nextEnvRaw = serializeEnvRecord(initialEnv);
     setEnvRawDraft(nextEnvRaw);
-    setEnvFeedback(buildRawEnvFeedback(nextEnvRaw, "deploy"));
-  }, [initialEnv]);
+    setEnvFeedback(buildRawEnvFeedback(nextEnvRaw, "deploy", locale));
+  }, [initialEnv, locale]);
 
   useEffect(() => {
     setPersistentStorageSeedValues(
@@ -390,11 +461,11 @@ export function DeployWizard({
 
   function validate() {
     if (!repositoryUrl.trim()) {
-      return "Repository link is required.";
+      return t("Repository link is required.");
     }
 
     if (!isGitHubRepoUrl(repositoryUrl)) {
-      return "GitHub repository links must use https://github.com/owner/repo.";
+      return t("GitHub repository links must use https://github.com/owner/repo.");
     }
 
     if (
@@ -403,18 +474,18 @@ export function DeployWizard({
       !githubConnection?.connected &&
       !githubConnectionLoading
     ) {
-      return PRIVATE_GITHUB_AUTH_REQUIRED_MESSAGE;
+      return t(PRIVATE_GITHUB_AUTH_REQUIRED_MESSAGE);
     }
 
     if (selectedProjectId === NEW_PROJECT_VALUE) {
       const normalizedProjectName = projectName.trim();
 
       if (!normalizedProjectName) {
-        return "Project name is required when creating a new project.";
+        return t("Project name is required when creating a new project.");
       }
 
       if (findProjectByName(projects, normalizedProjectName)) {
-        return DUPLICATE_PROJECT_NAME_MESSAGE;
+        return t(DUPLICATE_PROJECT_NAME_MESSAGE);
       }
     }
 
@@ -427,7 +498,9 @@ export function DeployWizard({
         !variable.generate &&
         variable.required
       ) {
-        return `${variable.label || variable.key} is required.`;
+        return t("{label} is required.", {
+          label: variable.label || variable.key,
+        });
       }
     }
 
@@ -478,7 +551,7 @@ export function DeployWizard({
         ? projectName.trim()
         : (projects.find((project) => project.id === selectedProjectId)?.name ??
           workspaceDefaultProjectName ??
-          "Project");
+          t("Project"));
     const serializedPersistentStorage =
       persistentStorageSupported
         ? serializePersistentStorageDraft(persistentStorage)
@@ -562,7 +635,7 @@ export function DeployWizard({
           requestInProgress: Boolean(payload?.requestInProgress),
         });
       } catch (error) {
-        failPendingProjectIntent(intent.id, readErrorMessage(error));
+        failPendingProjectIntent(intent.id, readErrorMessage(error, t));
       }
     })();
 
@@ -578,7 +651,7 @@ export function DeployWizard({
         startTransition(() => {
           void submit().catch((error) => {
             showToast({
-              message: readErrorMessage(error),
+              message: readErrorMessage(error, t),
               variant: "error",
             });
           });
@@ -588,15 +661,14 @@ export function DeployWizard({
       <div className="fg-console-dialog__grid">
         {projectInventoryError ? (
           <InlineAlert variant="info">
-            Project inventory is unavailable right now. You can still deploy
-            into a new project.
+            {t("Project inventory is unavailable right now. You can still deploy into a new project.")}
           </InlineAlert>
         ) : null}
 
         <FormField
-          hint="Reuse an existing project or create a new one for this deploy."
+          hint={t("Reuse an existing project or create a new one for this deploy.")}
           htmlFor="deploy-project"
-          label="Project"
+          label={t("Project")}
         >
           <SelectField
             id="deploy-project"
@@ -613,15 +685,15 @@ export function DeployWizard({
 
         {selectedProjectId === NEW_PROJECT_VALUE ? (
           <FormField
-            hint="This project will be created before the deploy is queued."
+            hint={t("This project will be created before the deploy is queued.")}
             htmlFor="deploy-project-name"
-            label="Project name"
+            label={t("Project name")}
           >
             <input
               className="fg-input"
               id="deploy-project-name"
               onChange={(event) => setProjectName(event.target.value)}
-              placeholder="Project 1"
+              placeholder={t("Project 1")}
               value={projectName}
             />
           </FormField>
@@ -632,7 +704,7 @@ export function DeployWizard({
           className="fg-console-dialog__advanced"
           defaultOpen
           description={persistentStorageSeedSummaryCopy ?? undefined}
-          summary="Persistent files"
+          summary={t("Persistent files")}
         >
             <div className="fg-console-dialog__advanced-grid">
               {persistentStorageSeedFiles.map((file) => {
@@ -640,11 +712,13 @@ export function DeployWizard({
 
                 return (
                   <FormField
-                    hint={`Service ${file.service}. Leave blank to create an empty file on first deploy.`}
+                    hint={t("Service {service}. Leave blank to create an empty file on first deploy.", {
+                      service: file.service,
+                    })}
                     htmlFor={fieldId}
                     key={file.key}
                     label={file.path}
-                    optionalLabel="Optional"
+                    optionalLabel={t("Optional")}
                   >
                     <textarea
                       autoCapitalize="off"
@@ -657,7 +731,7 @@ export function DeployWizard({
                           event.target.value,
                         )
                       }
-                      placeholder="Leave blank to create an empty file."
+                      placeholder={t("Leave blank to create an empty file.")}
                       spellCheck={false}
                       value={persistentStorageSeedValues[file.key] ?? ""}
                     />
@@ -671,9 +745,7 @@ export function DeployWizard({
         {!persistentStorageSupported &&
         hasPersistentStorageDraft(persistentStorage) ? (
           <InlineAlert variant="info">
-            Manual persistent storage mounts stay in this draft, but Fugue
-            skips them while this deploy preserves a whole topology. Switch
-            back to a single-app deploy to reuse them.
+            {t("Manual persistent storage mounts stay in this draft, but Fugue skips them while this deploy preserves a whole topology. Switch back to a single-app deploy to reuse them.")}
           </InlineAlert>
         ) : null}
 
@@ -681,7 +753,7 @@ export function DeployWizard({
           <ConsoleDisclosureSection
             className="fg-console-dialog__advanced"
             description={persistentStorageSummaryCopy}
-            summary="Persistent storage"
+            summary={t("Persistent storage")}
           >
             <PersistentStorageEditor
               idPrefix="deploy-persistent-storage"
@@ -695,7 +767,7 @@ export function DeployWizard({
         <ConsoleDisclosureSection
           className="fg-console-dialog__advanced"
           description={deploymentSummaryCopy}
-          summary="Access & deployment"
+          summary={t("Access & deployment")}
         >
           <GitHubRepositoryAccessFields
             githubConnectHref={githubConnectHref}
@@ -721,23 +793,23 @@ export function DeployWizard({
           <div className="fg-field-stack">
             <div className="fg-field-label">
               <span className="fg-field-label__main">
-                <span className="fg-field-label__text">Network mode</span>
-                <HintTooltip ariaLabel="Network mode">
+                <span className="fg-field-label__text">{t("Network mode")}</span>
+                <HintTooltip ariaLabel={t("Network mode")}>
                   {networkModeSupported
                     ? networkMode === "background"
-                      ? "Background workers skip the managed route, Kubernetes Service, and readiness port."
+                      ? t("Background workers skip the managed route, Kubernetes Service, and readiness port.")
                       : networkMode === "internal"
-                        ? "Internal services get a cluster-only Service and readiness checks, without a public route."
-                        : "Public services get a managed route and readiness checks."
-                    : "Whole-topology imports keep per-service networking from fugue.yaml or docker-compose, so manual network mode is unavailable here."}
+                        ? t("Internal services get a cluster-only Service and readiness checks, without a public route.")
+                        : t("Public services get a managed route and readiness checks.")
+                    : t("Whole-topology imports keep per-service networking from fugue.yaml or docker-compose, so manual network mode is unavailable here.")}
                 </HintTooltip>
               </span>
             </div>
             <div className="fg-field-control">
               <SegmentedControl
-                ariaLabel="Template deploy network mode"
+                ariaLabel={t("Template deploy network mode")}
                 onChange={setNetworkMode}
-                options={IMPORT_NETWORK_MODE_OPTIONS}
+                options={networkModeOptions}
                 value={networkModeSupported ? networkMode : "public"}
                 variant="pill"
               />
@@ -749,7 +821,7 @@ export function DeployWizard({
           className="fg-console-dialog__advanced"
           defaultOpen={!envFeedback.valid || Boolean(envRawDraft.trim())}
           description={environmentSummaryCopy}
-          summary="Environment"
+          summary={t("Environment")}
         >
           <EnvironmentEditor
             fieldId="deploy-env-raw"
@@ -763,14 +835,14 @@ export function DeployWizard({
         <ConsoleDisclosureSection
           className="fg-console-dialog__advanced"
           description={advancedSummaryCopy}
-          summary="Advanced settings"
+          summary={t("Advanced settings")}
         >
           <div className="fg-console-dialog__advanced-grid">
             <FormField
-              hint="Leave blank to reuse the repository name."
+              hint={t("Leave blank to reuse the repository name.")}
               htmlFor="deploy-name"
-              label="App name"
-              optionalLabel="Optional"
+              label={t("App name")}
+              optionalLabel={t("Optional")}
             >
               <input
                 className="fg-input"
@@ -783,10 +855,10 @@ export function DeployWizard({
 
             {startupCommandSupported ? (
               <FormField
-                hint="Runs as `sh -lc <command>`. Leave blank to use the image default entrypoint."
+                hint={t("Runs as `sh -lc <command>`. Leave blank to use the image default entrypoint.")}
                 htmlFor="deploy-startup-command"
-                label="Startup command"
-                optionalLabel="Optional"
+                label={t("Startup command")}
+                optionalLabel={t("Optional")}
               >
                 <input
                   autoCapitalize="none"
@@ -803,9 +875,9 @@ export function DeployWizard({
 
             {!hasFugueManifest ? (
               <FormField
-                hint="Auto detect works for most repositories."
+                hint={t("Auto detect works for most repositories.")}
                 htmlFor="deploy-build-strategy"
-                label="Build strategy"
+                label={t("Build strategy")}
               >
                 <SelectField
                   id="deploy-build-strategy"
@@ -814,7 +886,7 @@ export function DeployWizard({
                   }
                   value={buildStrategy}
                 >
-                  {BUILD_STRATEGY_OPTIONS.map((option) => (
+                  {buildStrategyOptions.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
                     </option>
@@ -825,10 +897,10 @@ export function DeployWizard({
 
             {!hasFugueManifest && supportsSourceDir ? (
               <FormField
-                hint="Use when the app lives below the repo root."
+                hint={t("Use when the app lives below the repo root.")}
                 htmlFor="deploy-source-dir"
-                label="Source directory"
-                optionalLabel="Optional"
+                label={t("Source directory")}
+                optionalLabel={t("Optional")}
               >
                 <input
                   autoCapitalize="none"
@@ -844,10 +916,10 @@ export function DeployWizard({
 
             {!hasFugueManifest && supportsDockerInputs ? (
               <FormField
-                hint="Required when the Dockerfile is outside the repo root."
+                hint={t("Required when the Dockerfile is outside the repo root.")}
                 htmlFor="deploy-dockerfile-path"
-                label="Dockerfile path"
-                optionalLabel="Optional"
+                label={t("Dockerfile path")}
+                optionalLabel={t("Optional")}
               >
                 <input
                   autoCapitalize="none"
@@ -863,10 +935,10 @@ export function DeployWizard({
 
             {!hasFugueManifest && supportsDockerInputs ? (
               <FormField
-                hint="Defaults to the repository root when omitted."
+                hint={t("Defaults to the repository root when omitted.")}
                 htmlFor="deploy-build-context-dir"
-                label="Build context"
-                optionalLabel="Optional"
+                label={t("Build context")}
+                optionalLabel={t("Optional")}
               >
                 <input
                   autoCapitalize="none"
@@ -886,8 +958,26 @@ export function DeployWizard({
               variant={manifestSummary.warnings.length ? "warning" : "info"}
             >
               {manifestSummary.warnings.length
-                ? `${pluralize(manifestSummary.warnings.length, "warning")} found in ${manifest?.manifestPath ?? "fugue.yaml"}. Review before deploying.`
-                : `Imports ${pluralize(manifestSummary.serviceCount, "service")} from ${manifest?.manifestPath ?? "fugue.yaml"}. Primary service: ${manifest?.primaryService ?? "not declared"}.${manifestRouteSummaryCopy}`}
+                ? t(
+                    manifestSummary.warnings.length === 1
+                      ? "{count} warning found in {path}. Review before deploying."
+                      : "{count} warnings found in {path}. Review before deploying.",
+                    {
+                      count: manifestSummary.warnings.length,
+                      path: manifest?.manifestPath ?? "fugue.yaml",
+                    },
+                  )
+                : `${t(
+                    manifestSummary.serviceCount === 1
+                      ? "Imports {count} service from {path}."
+                      : "Imports {count} services from {path}.",
+                    {
+                      count: manifestSummary.serviceCount,
+                      path: manifest?.manifestPath ?? "fugue.yaml",
+                    },
+                  )} ${t("Primary service: {service}.", {
+                    service: manifest?.primaryService ?? t("not declared"),
+                  })}${manifestRouteSummaryCopy}`}
             </InlineAlert>
           ) : null}
         </ConsoleDisclosureSection>
@@ -896,19 +986,19 @@ export function DeployWizard({
           <ConsoleDisclosureSection
             className="fg-console-dialog__advanced"
             description={templateVariablesSummaryCopy ?? undefined}
-            summary="Template variables"
+            summary={t("Template variables")}
           >
             <div className="fg-console-dialog__advanced-grid">
               {templateVariables.map((variable) => (
                 <FormField
                   hint={
                     variable.description
-                      ? `${variable.description}${variable.generate ? " Leave blank to auto-generate it." : variable.defaultValue ? " Leave blank to use the default." : ""}`
+                      ? `${variable.description}${variable.generate ? ` ${t("Leave blank to auto-generate it.")}` : variable.defaultValue ? ` ${t("Leave blank to use the default.")}` : ""}`
                       : variable.generate
-                        ? "Leave blank to auto-generate this value when the deploy is queued."
+                        ? t("Leave blank to auto-generate this value when the deploy is queued.")
                         : variable.defaultValue
-                          ? "Leave blank to use the default value."
-                          : "Enter the value that should exist before the first deploy."
+                          ? t("Leave blank to use the default value.")
+                          : t("Enter the value that should exist before the first deploy.")
                   }
                   htmlFor={`template-variable-${variable.key}`}
                   key={variable.key}
@@ -918,7 +1008,7 @@ export function DeployWizard({
                     !variable.generate &&
                     !variable.defaultValue
                       ? undefined
-                      : "Optional"
+                      : t("Optional")
                   }
                 >
                   <input
@@ -931,8 +1021,8 @@ export function DeployWizard({
                     }
                     placeholder={
                       variable.generate
-                        ? "Auto-generate on deploy"
-                        : variable.defaultValue || "Enter value"
+                        ? t("Auto-generate on deploy")
+                        : variable.defaultValue || t("Enter value")
                     }
                     required={
                       variable.required &&
@@ -952,11 +1042,11 @@ export function DeployWizard({
         <div className="fg-console-dialog__actions fg-deploy-form__actions">
           <Button
             loading={isPending}
-            loadingLabel="Queuing deploy"
+            loadingLabel={t("Queuing deploy")}
             type="submit"
             variant="primary"
           >
-            Queue deployment
+            {t("Queue deployment")}
           </Button>
         </div>
       </div>

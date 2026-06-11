@@ -19,6 +19,7 @@ import {
 } from "@/lib/console/pending-project-intents";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { useToast } from "@/components/ui/toast";
 import type {
   FugueGitHubTemplateInspection,
@@ -67,12 +68,14 @@ type SubmitResponse = {
   requestInProgress?: boolean;
 };
 
-function readErrorMessage(error: unknown) {
+type Translator = ReturnType<typeof useI18n>["t"];
+
+function readErrorMessage(error: unknown, t: Translator) {
   if (error instanceof Error && error.message.trim()) {
-    return error.message;
+    return t(error.message);
   }
 
-  return "Create project failed.";
+  return t("Create project failed.");
 }
 
 function readInspectionRepositoryUrl(
@@ -139,6 +142,7 @@ export function DeployCreateProjectForm({
   search,
 }: DeployCreateProjectFormProps) {
   const router = useRouter();
+  const { locale, t } = useI18n();
   const { showToast } = useToast();
   const [isPending, startTransition] = useTransition();
   const {
@@ -161,7 +165,7 @@ export function DeployCreateProjectForm({
     startupCommandSupported: true,
   });
   const [importEnvFeedback, setImportEnvFeedback] = useState<RawEnvFeedback>(
-    () => buildRawEnvFeedback(importDraft.envRaw, "console"),
+    () => buildRawEnvFeedback(importDraft.envRaw, "console", locale),
   );
   const [githubInspection, setGitHubInspection] =
     useState<FugueGitHubTemplateInspection | null>(initialInspection);
@@ -171,8 +175,8 @@ export function DeployCreateProjectForm({
   const templateVariables = githubInspection?.template?.variables ?? [];
 
   useEffect(() => {
-    setImportEnvFeedback(buildRawEnvFeedback(importDraft.envRaw, "console"));
-  }, [importDraft.envRaw]);
+    setImportEnvFeedback(buildRawEnvFeedback(importDraft.envRaw, "console", locale));
+  }, [importDraft.envRaw, locale]);
 
   useEffect(() => {
     setImportDraft((current) => ({
@@ -219,15 +223,16 @@ export function DeployCreateProjectForm({
     const normalizedProjectName = projectName.trim();
 
     if (!normalizedProjectName) {
-      return "Project name is required when creating a new project.";
+      return t("Project name is required when creating a new project.");
     }
 
     if (findProjectByName(projects, normalizedProjectName)) {
-      return DUPLICATE_PROJECT_NAME_MESSAGE;
+      return t(DUPLICATE_PROJECT_NAME_MESSAGE);
     }
 
     const validationError = validateImportServiceDraft(importDraft, {
       environmentFeedback: importEnvFeedback,
+      locale,
       localUpload,
       persistentStorageSupported:
         importCapabilities.persistentStorageSupported,
@@ -248,7 +253,9 @@ export function DeployCreateProjectForm({
         !variable.generate &&
         variable.required
       ) {
-        return `${variable.label || variable.key} is required.`;
+        return t("{label} is required.", {
+          label: variable.label || variable.key,
+        });
       }
     }
 
@@ -284,7 +291,7 @@ export function DeployCreateProjectForm({
           ? importDraft.repoUrl
           : importDraft.sourceMode === "docker-image"
             ? importDraft.imageRef
-            : "Local source",
+            : t("Local source"),
       sourceMode: importDraft.sourceMode,
     });
 
@@ -324,7 +331,7 @@ export function DeployCreateProjectForm({
           requestInProgress: Boolean(responseBody?.requestInProgress),
         });
       } catch (error) {
-        failPendingProjectIntent(intent.id, readErrorMessage(error));
+        failPendingProjectIntent(intent.id, readErrorMessage(error, t));
       }
     })();
 
@@ -340,7 +347,7 @@ export function DeployCreateProjectForm({
         startTransition(() => {
           void submit().catch((error) => {
             showToast({
-              message: readErrorMessage(error),
+              message: readErrorMessage(error, t),
               variant: "error",
             });
           });
@@ -349,16 +356,16 @@ export function DeployCreateProjectForm({
     >
       <div className="fg-console-dialog__grid fg-project-create-dialog__grid">
         <FormField
-          hint="Shown in the project list."
+          hint={t("Shown in the project list.")}
           htmlFor="deploy-project-name"
-          label="Project name"
+          label={t("Project name")}
         >
           <input
             className="fg-input"
             id="deploy-project-name"
             name="projectName"
             onChange={(event) => setProjectName(event.target.value)}
-            placeholder="Project 1"
+            placeholder={t("Project 1")}
             required
             value={projectName}
           />
@@ -393,20 +400,25 @@ export function DeployCreateProjectForm({
         {importDraft.sourceMode === "github" && templateVariables.length > 0 ? (
           <ConsoleDisclosureSection
             className="fg-console-dialog__advanced"
-            description={`${templateVariables.length} variable${templateVariables.length === 1 ? "" : "s"} before first deploy`}
-            summary="Template variables"
+            description={t(
+              templateVariables.length === 1
+                ? "{count} variable before first deploy"
+                : "{count} variables before first deploy",
+              { count: templateVariables.length },
+            )}
+            summary={t("Template variables")}
           >
             <div className="fg-console-dialog__advanced-grid">
               {templateVariables.map((variable) => (
                 <FormField
                   hint={
                     variable.description
-                      ? `${variable.description}${variable.generate ? " Leave blank to auto-generate it." : variable.defaultValue ? " Leave blank to use the default." : ""}`
+                      ? `${variable.description}${variable.generate ? ` ${t("Leave blank to auto-generate it.")}` : variable.defaultValue ? ` ${t("Leave blank to use the default.")}` : ""}`
                       : variable.generate
-                        ? "Leave blank to auto-generate this value when the deploy is queued."
+                        ? t("Leave blank to auto-generate this value when the deploy is queued.")
                         : variable.defaultValue
-                          ? "Leave blank to use the default value."
-                          : "Enter the value that should exist before the first deploy."
+                          ? t("Leave blank to use the default value.")
+                          : t("Enter the value that should exist before the first deploy.")
                   }
                   htmlFor={`deploy-template-variable-${variable.key}`}
                   key={variable.key}
@@ -416,7 +428,7 @@ export function DeployCreateProjectForm({
                     !variable.generate &&
                     !variable.defaultValue
                       ? undefined
-                      : "Optional"
+                      : t("Optional")
                   }
                 >
                   <input
@@ -429,8 +441,8 @@ export function DeployCreateProjectForm({
                     }
                     placeholder={
                       variable.generate
-                        ? "Auto-generate on deploy"
-                        : variable.defaultValue || "Enter value"
+                        ? t("Auto-generate on deploy")
+                        : variable.defaultValue || t("Enter value")
                     }
                     required={
                       variable.required &&
@@ -451,11 +463,11 @@ export function DeployCreateProjectForm({
       <div className="fg-console-dialog__actions fg-deploy-form__actions">
         <Button
           loading={isPending}
-          loadingLabel="Creating…"
+          loadingLabel={t("Creating…")}
           type="submit"
           variant="primary"
         >
-          Create project
+          {t("Create project")}
         </Button>
       </div>
     </form>

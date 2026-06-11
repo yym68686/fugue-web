@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { PanelCopy, PanelSection, PanelTitle } from "@/components/ui/panel";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { SelectField } from "@/components/ui/select-field";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { useToast } from "@/components/ui/toast";
@@ -73,20 +74,24 @@ type SubmitResponse = {
   requestInProgress?: boolean;
 };
 
-function readErrorMessage(error: unknown) {
+type Translator = ReturnType<typeof useI18n>["t"];
+
+function readErrorMessage(error: unknown, t: Translator) {
   if (error instanceof Error && error.message.trim()) {
-    return error.message;
+    return t(error.message);
   }
 
-  return "Deploy request failed.";
+  return t("Deploy request failed.");
 }
 
 function buildProjectOptions(
   projects: FugueProject[],
   defaultProjectId?: string | null,
   defaultProjectName?: string | null,
+  t?: Translator,
 ) {
   const deduped = new Map<string, string>();
+  const translate: Translator = t ?? ((key: string) => key);
 
   for (const project of projects) {
     deduped.set(project.id, project.name);
@@ -95,11 +100,18 @@ function buildProjectOptions(
   return [
     ...Array.from(deduped.entries()).map(([id, name]) => ({
       id,
-      label: defaultProjectId === id ? `${name} · Default project` : name,
+      label:
+        defaultProjectId === id
+          ? translate("{name} · Default project", { name })
+          : name,
     })),
     {
       id: NEW_PROJECT_VALUE,
-      label: `Create new project${defaultProjectName ? ` · ${defaultProjectName}` : ""}`,
+      label: defaultProjectName
+        ? translate("Create new project · {name}", {
+            name: defaultProjectName,
+          })
+        : translate("Create new project"),
     },
   ];
 }
@@ -132,6 +144,7 @@ export function DeployUploadWizard({
   workspaceDefaultProjectName = null,
 }: DeployUploadWizardProps) {
   const router = useRouter();
+  const { locale, t } = useI18n();
   const { showToast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [selectedProjectId, setSelectedProjectId] = useState(
@@ -159,7 +172,7 @@ export function DeployUploadWizard({
     serializeEnvRecord(initialEnv),
   );
   const [envFeedback, setEnvFeedback] = useState(() =>
-    buildRawEnvFeedback(serializeEnvRecord(initialEnv), "deploy"),
+    buildRawEnvFeedback(serializeEnvRecord(initialEnv), "deploy", locale),
   );
   const [localUpload, setLocalUpload] = useState<LocalUploadState>(() =>
     createLocalUploadState(),
@@ -174,8 +187,25 @@ export function DeployUploadWizard({
         projects,
         workspaceDefaultProjectId,
         workspaceDefaultProjectName,
+        t,
       ),
-    [projects, workspaceDefaultProjectId, workspaceDefaultProjectName],
+    [projects, t, workspaceDefaultProjectId, workspaceDefaultProjectName],
+  );
+  const buildStrategyOptions = useMemo(
+    () =>
+      BUILD_STRATEGY_OPTIONS.map((option) => ({
+        ...option,
+        label: t(option.label),
+      })),
+    [t],
+  );
+  const networkModeOptions = useMemo(
+    () =>
+      IMPORT_NETWORK_MODE_OPTIONS.map((option) => ({
+        ...option,
+        label: t(option.label),
+      })),
+    [t],
   );
 
   useEffect(() => {
@@ -189,8 +219,8 @@ export function DeployUploadWizard({
   useEffect(() => {
     const nextEnvRaw = serializeEnvRecord(initialEnv);
     setEnvRawDraft(nextEnvRaw);
-    setEnvFeedback(buildRawEnvFeedback(nextEnvRaw, "deploy"));
-  }, [initialEnv]);
+    setEnvFeedback(buildRawEnvFeedback(nextEnvRaw, "deploy", locale));
+  }, [initialEnv, locale]);
 
   function updateEnvRaw(nextValue: string) {
     setEnvRawDraft(nextValue);
@@ -243,16 +273,17 @@ export function DeployUploadWizard({
       const normalizedProjectName = projectName.trim();
 
       if (!normalizedProjectName) {
-        return "Project name is required when creating a new project.";
+        return t("Project name is required when creating a new project.");
       }
 
       if (findProjectByName(projects, normalizedProjectName)) {
-        return DUPLICATE_PROJECT_NAME_MESSAGE;
+        return t(DUPLICATE_PROJECT_NAME_MESSAGE);
       }
     }
 
     return validateImportServiceDraft(uploadDraft, {
       environmentFeedback: envFeedback,
+      locale,
       localUpload,
       persistentStorageSupported,
     });
@@ -270,7 +301,7 @@ export function DeployUploadWizard({
         ? projectName.trim()
         : (projects.find((project) => project.id === selectedProjectId)?.name ??
           workspaceDefaultProjectName ??
-          "Project");
+          t("Project"));
     const intent = createPendingProjectIntent({
       appName: name.trim(),
       projectId:
@@ -280,7 +311,7 @@ export function DeployUploadWizard({
         typeof window === "undefined"
           ? null
           : `${window.location.pathname}${window.location.search}`,
-      sourceLabel: "Local source",
+      sourceLabel: t("Local source"),
       sourceMode: "local-upload",
     });
     const requestBody = buildLocalUploadFormData(
@@ -323,7 +354,7 @@ export function DeployUploadWizard({
           requestInProgress: Boolean(payload?.requestInProgress),
         });
       } catch (error) {
-        failPendingProjectIntent(intent.id, readErrorMessage(error));
+        failPendingProjectIntent(intent.id, readErrorMessage(error, t));
       }
     })();
 
@@ -339,7 +370,7 @@ export function DeployUploadWizard({
         startTransition(() => {
           void submit().catch((error) => {
             showToast({
-              message: readErrorMessage(error),
+              message: readErrorMessage(error, t),
               variant: "error",
             });
           });
@@ -347,28 +378,23 @@ export function DeployUploadWizard({
       }}
     >
       <PanelSection>
-        <p className="fg-label fg-panel__eyebrow">Deploy</p>
-        <PanelTitle>Deploy from a local source.</PanelTitle>
+        <p className="fg-label fg-panel__eyebrow">{t("Deploy")}</p>
+        <PanelTitle>{t("Deploy from a local source.")}</PanelTitle>
         <PanelCopy>
-          Drag a local folder, <code>.zip</code>, <code>.tgz</code>,{" "}
-          <code>docker-compose.yml</code>, <code>fugue.yaml</code>,{" "}
-          <code>Dockerfile</code>, or multiple source files. Fugue packages
-          file uploads on the server, then imports the detected topology when
-          present.
+          {t("Drag a local folder, .zip, .tgz, docker-compose.yml, fugue.yaml, Dockerfile, or multiple source files. Fugue packages file uploads on the server, then imports the detected topology when present.")}
         </PanelCopy>
 
         {projectInventoryError ? (
           <InlineAlert variant="info">
-            Project inventory is unavailable right now. You can still deploy
-            into a new project.
+            {t("Project inventory is unavailable right now. You can still deploy into a new project.")}
           </InlineAlert>
         ) : null}
 
         <div className="fg-deploy-form-grid">
           <FormField
-            hint="Reuse an existing project or create a new one for this deploy."
+            hint={t("Reuse an existing project or create a new one for this deploy.")}
             htmlFor="deploy-upload-project"
-            label="Project"
+            label={t("Project")}
           >
             <SelectField
               id="deploy-upload-project"
@@ -384,10 +410,10 @@ export function DeployUploadWizard({
           </FormField>
 
           <FormField
-            hint="Leave blank to reuse the uploaded folder or primary service name."
+            hint={t("Leave blank to reuse the uploaded folder or primary service name.")}
             htmlFor="deploy-upload-name"
-            label="App name"
-            optionalLabel="Optional"
+            label={t("App name")}
+            optionalLabel={t("Optional")}
           >
             <input
               className="fg-input"
@@ -401,9 +427,9 @@ export function DeployUploadWizard({
 
         {selectedProjectId === NEW_PROJECT_VALUE ? (
           <FormField
-            hint="This project will be created before the deploy is queued."
+            hint={t("This project will be created before the deploy is queued.")}
             htmlFor="deploy-upload-project-name"
-            label="New project name"
+            label={t("New project name")}
           >
             <input
               className="fg-input"
@@ -416,9 +442,9 @@ export function DeployUploadWizard({
         ) : null}
 
         <FormField
-          hint="The browser keeps files local until you submit the deploy."
+          hint={t("The browser keeps files local until you submit the deploy.")}
           htmlFor="deploy-upload-upload-folder"
-          label="Local source"
+          label={t("Local source")}
         >
           <LocalUploadSourceField
             idPrefix="deploy-upload"
@@ -432,27 +458,23 @@ export function DeployUploadWizard({
             variant={localUploadKeepsTopologyImport ? "info" : "warning"}
           >
             {localUploadKeepsTopologyImport
-              ? "Whole-topology import is ready. Leave build strategy on Auto detect and keep manual path overrides blank to import every service from fugue.yaml or docker-compose."
-              : "Manual build overrides are active. Clear build strategy and path overrides if you want Fugue to import every service from fugue.yaml or docker-compose."}
+              ? t("Whole-topology import is ready. Leave build strategy on Auto detect and keep manual path overrides blank to import every service from fugue.yaml or docker-compose.")
+              : t("Manual build overrides are active. Clear build strategy and path overrides if you want Fugue to import every service from fugue.yaml or docker-compose.")}
           </InlineAlert>
       ) : null}
 
       {!persistentStorageSupported &&
       hasPersistentStorageDraft(persistentStorage) ? (
         <InlineAlert variant="info">
-          Manual persistent storage mounts stay in this draft, but Fugue skips
-          them while the upload imports a whole topology. Switch back to a
-          single-app upload to reuse them.
+          {t("Manual persistent storage mounts stay in this draft, but Fugue skips them while the upload imports a whole topology. Switch back to a single-app upload to reuse them.")}
         </InlineAlert>
       ) : null}
       </PanelSection>
 
       <PanelSection>
-        <PanelTitle>Target and build</PanelTitle>
+        <PanelTitle>{t("Target and build")}</PanelTitle>
         <PanelCopy>
-          Choose where the upload should land. Only add manual build settings
-          when the upload is meant to deploy as a single app instead of a full
-          manifest or compose topology.
+          {t("Choose where the upload should land. Only add manual build settings when the upload is meant to deploy as a single app instead of a full manifest or compose topology.")}
         </PanelCopy>
 
         <DeploymentTargetField
@@ -464,15 +486,15 @@ export function DeployUploadWizard({
         />
 
         <FormField
-          hint="Public services get a managed route. Internal services stay cluster-only. Background workers skip route and readiness setup."
+          hint={t("Public services get a managed route. Internal services stay cluster-only. Background workers skip route and readiness setup.")}
           htmlFor="deploy-upload-network-mode"
-          label="Network mode"
+          label={t("Network mode")}
         >
           <div id="deploy-upload-network-mode">
             <SegmentedControl
-              ariaLabel="Upload deploy network mode"
+              ariaLabel={t("Upload deploy network mode")}
               onChange={setNetworkMode}
-              options={IMPORT_NETWORK_MODE_OPTIONS}
+              options={networkModeOptions}
               value={networkModeSupported ? networkMode : "public"}
               variant="pill"
             />
@@ -481,29 +503,23 @@ export function DeployUploadWizard({
 
         {!networkModeSupported ? (
           <InlineAlert variant="info">
-            Whole-topology uploads keep per-service networking from
-            <code> fugue.yaml </code>
-            or
-            <code> docker-compose.yml</code>, so manual network mode is only
-            available for single-app uploads.
+            {t("Whole-topology uploads keep per-service networking from fugue.yaml or docker-compose.yml, so manual network mode is only available for single-app uploads.")}
           </InlineAlert>
         ) : networkMode === "internal" ? (
           <InlineAlert variant="info">
-            Internal services keep a cluster-only Service and readiness checks,
-            but Fugue does not publish a public route for them.
+            {t("Internal services keep a cluster-only Service and readiness checks, but Fugue does not publish a public route for them.")}
           </InlineAlert>
         ) : networkMode === "background" ? (
           <InlineAlert variant="info">
-            Background workers run without a managed route, Kubernetes Service,
-            or readiness port.
+            {t("Background workers run without a managed route, Kubernetes Service, or readiness port.")}
           </InlineAlert>
         ) : null}
 
         <div className="fg-deploy-form-grid">
           <FormField
-            hint="Auto detect keeps compose and fugue manifest imports intact."
+            hint={t("Auto detect keeps compose and fugue manifest imports intact.")}
             htmlFor="deploy-upload-build-strategy"
-            label="Build strategy"
+            label={t("Build strategy")}
           >
             <SelectField
               id="deploy-upload-build-strategy"
@@ -512,7 +528,7 @@ export function DeployUploadWizard({
               }
               value={buildStrategy}
             >
-              {BUILD_STRATEGY_OPTIONS.map((option) => (
+              {buildStrategyOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
@@ -522,10 +538,10 @@ export function DeployUploadWizard({
 
           {supportsSourceDir ? (
             <FormField
-              hint="Use when the app lives below the uploaded root."
+              hint={t("Use when the app lives below the uploaded root.")}
               htmlFor="deploy-upload-source-dir"
-              label="Source directory"
-              optionalLabel="Optional"
+              label={t("Source directory")}
+              optionalLabel={t("Optional")}
             >
               <input
                 autoCapitalize="none"
@@ -541,10 +557,10 @@ export function DeployUploadWizard({
 
           {supportsDockerInputs ? (
             <FormField
-              hint="Required when the Dockerfile is outside the uploaded root."
+              hint={t("Required when the Dockerfile is outside the uploaded root.")}
               htmlFor="deploy-upload-dockerfile-path"
-              label="Dockerfile path"
-              optionalLabel="Optional"
+              label={t("Dockerfile path")}
+              optionalLabel={t("Optional")}
             >
               <input
                 autoCapitalize="none"
@@ -560,10 +576,10 @@ export function DeployUploadWizard({
 
           {supportsDockerInputs ? (
             <FormField
-              hint="Defaults to the uploaded root when omitted."
+              hint={t("Defaults to the uploaded root when omitted.")}
               htmlFor="deploy-upload-build-context-dir"
-              label="Build context"
-              optionalLabel="Optional"
+              label={t("Build context")}
+              optionalLabel={t("Optional")}
             >
               <input
                 autoCapitalize="none"
@@ -580,7 +596,7 @@ export function DeployUploadWizard({
       </PanelSection>
 
       <PanelSection>
-        <PanelTitle>Environment</PanelTitle>
+        <PanelTitle>{t("Environment")}</PanelTitle>
         <EnvironmentEditor
           fieldId="deploy-upload-env-raw"
           onChange={updateEnvRaw}
@@ -592,17 +608,16 @@ export function DeployUploadWizard({
 
       {startupCommandSupported ? (
         <PanelSection>
-          <PanelTitle>Advanced settings</PanelTitle>
+          <PanelTitle>{t("Advanced settings")}</PanelTitle>
           <PanelCopy>
-            Override the default entrypoint only when this upload should start
-            with a custom shell command.
+            {t("Override the default entrypoint only when this upload should start with a custom shell command.")}
           </PanelCopy>
 
           <FormField
-            hint="Runs as `sh -lc <command>`. Leave blank to use the image default entrypoint."
+            hint={t("Runs as `sh -lc <command>`. Leave blank to use the image default entrypoint.")}
             htmlFor="deploy-upload-startup-command"
-            label="Startup command"
-            optionalLabel="Optional"
+            label={t("Startup command")}
+            optionalLabel={t("Optional")}
           >
             <input
               autoCapitalize="none"
@@ -620,11 +635,9 @@ export function DeployUploadWizard({
 
       {persistentStorageSupported ? (
         <PanelSection>
-          <PanelTitle>Persistent storage</PanelTitle>
+          <PanelTitle>{t("Persistent storage")}</PanelTitle>
           <PanelCopy>
-            Add directories or files that should stay attached after redeploys,
-            restarts, and runtime moves. File contents only apply when Fugue
-            creates the file for the first time.
+            {t("Add directories or files that should stay attached after redeploys, restarts, and runtime moves. File contents only apply when Fugue creates the file for the first time.")}
           </PanelCopy>
 
           <PersistentStorageEditor
@@ -640,16 +653,15 @@ export function DeployUploadWizard({
         <div className="fg-deploy-inline-actions">
           <Button
             loading={isPending}
-            loadingLabel="Uploading deploy"
+            loadingLabel={t("Uploading deploy")}
             type="submit"
             variant="route"
           >
-            Upload and deploy
+            {t("Upload and deploy")}
           </Button>
         </div>
         <p className="fg-deploy-inline-copy">
-          Fugue creates the project if needed, packages the selected files, and
-          then sends you back to the console.
+          {t("Fugue creates the project if needed, packages the selected files, and then sends you back to the console.")}
         </p>
       </PanelSection>
     </form>

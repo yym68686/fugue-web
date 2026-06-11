@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { useI18n } from "@/components/providers/i18n-provider";
 import { FormField } from "@/components/ui/form-field";
 
 type DeployRepositoryLinkFieldProps = {
@@ -28,6 +29,7 @@ export function DeployRepositoryLinkField({
   id,
   name,
 }: DeployRepositoryLinkFieldProps) {
+  const { t } = useI18n();
   const autoSubmitTimeoutRef = useRef<number | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [value, setValue] = useState(defaultValue);
@@ -107,7 +109,7 @@ export function DeployRepositoryLinkField({
   }
 
   return (
-    <FormField htmlFor={id} label="Repository link">
+    <FormField htmlFor={id} label={t("Repository link")}>
       <input
         autoCapitalize="none"
         autoComplete="url"
