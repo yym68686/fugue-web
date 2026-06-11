@@ -125,31 +125,33 @@
 
 .fp-project-toolbar {
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) minmax(170px, auto) auto;
+  grid-template-columns: minmax(220px, 360px) minmax(150px, 190px) 1fr;
   align-items: center;
-  gap: 10px;
-  padding: 10px;
-  border-bottom: 1px solid var(--ml-border);
-  background: var(--ml-surface-2);
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--ml-border);
+  border-bottom: 0;
+  border-radius: var(--ml-radius) var(--ml-radius) 0 0;
+  background: var(--ml-surface);
 }
 
 .fp-project-search,
 .fp-project-select {
   width: 100%;
   min-width: 0;
-  min-height: 36px;
 }
 
 .fp-project-search input,
 .fp-project-select select {
   width: 100%;
-  min-height: 34px;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--ml-border);
+  border-radius: var(--ml-radius);
   outline: 0;
-  background: transparent;
+  background: var(--ml-surface-2);
   color: var(--ml-text);
+  font-size: 13px;
 }
 
 .fp-project-toolbar__meta {
@@ -159,39 +161,111 @@
   white-space: nowrap;
 }
 
+.fp-project-resource-head,
 .fp-project-resource-list {
-  border: 0;
-  border-radius: 0;
+  --fp-project-resource-count: 3;
+  --fp-project-grid: 34px minmax(170px, 1.5fr) minmax(86px, 0.45fr) minmax(170px, 1.05fr) repeat(var(--fp-project-resource-count), minmax(82px, 0.45fr));
+}
+
+.fp-project-resource-head {
+  display: grid;
+  grid-template-columns: var(--fp-project-grid);
+  align-items: center;
+  gap: 12px;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--ml-border);
+  border-bottom: 0;
+  background: var(--ml-surface-2);
+  color: var(--ml-muted);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.fp-project-resource-head span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fp-project-resource-head span:nth-child(n + 5) {
+  text-align: end;
+}
+
+.fp-project-resource-list {
+  border: 1px solid var(--ml-border);
+  border-radius: 0 0 var(--ml-radius) var(--ml-radius);
   box-shadow: none;
 }
 
 .fp-project-resource-list .fp-row {
-  grid-template-columns: 34px minmax(170px, 1fr) minmax(430px, auto);
+  grid-template-columns: var(--fp-project-grid);
+  align-items: center;
+  gap: 12px;
   min-height: 76px;
-  padding: 10px 12px;
+  padding: 9px 12px;
 }
 
 .fp-project-resource-list .fp-row__side {
-  display: grid;
-  grid-template-columns: minmax(150px, auto) minmax(310px, auto);
-  align-items: center;
-  gap: 10px;
+  display: contents;
 }
 
-.fp-project-row__badges,
+.fp-project-row__state,
+.fp-project-row__stack,
 .fp-project-row__meters {
   min-width: 0;
 }
 
-.fp-project-row__badges {
-  justify-content: flex-end;
+.fp-project-row__state {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.fp-project-row__stack {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.fp-project-row__stack .fp-badge {
+  max-width: 112px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .fp-project-row__meters {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(62px, auto));
-  align-items: center;
-  gap: 10px;
+  display: contents;
+}
+
+.fp-project-resource-list .fg-cluster-resource--compact {
+  justify-self: stretch;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: end;
+  gap: 2px;
+}
+
+.fp-project-resource-list .fg-cluster-resource--compact .fg-cluster-resource__label {
+  display: none;
+}
+
+.fp-project-resource-list .fg-cluster-resource__compact-values {
+  justify-content: flex-end;
+  max-width: 100%;
+}
+
+.fp-project-resource-list .fg-cluster-resource__compact-values strong {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.fp-project-resource-list .fg-cluster-resource__meter {
+  width: 100%;
+  min-width: 44px;
 }
 
 .fp-project-filter-empty {
@@ -1770,17 +1844,17 @@
 /* Responsive contracts */
 
 @media (max-width: 1180px) {
+  .fp-project-resource-head,
+  .fp-project-resource-list {
+    --fp-project-grid: 34px minmax(150px, 1.4fr) minmax(78px, 0.4fr) minmax(128px, 0.8fr) repeat(var(--fp-project-resource-count), minmax(68px, 0.42fr));
+  }
+
   .fp-project-resource-list .fp-row {
-    grid-template-columns: 34px minmax(150px, 1fr) minmax(330px, auto);
+    min-height: 56px;
   }
 
-  .fp-project-resource-list .fp-row__side {
-    grid-template-columns: 1fr;
-  }
-
-  .fp-project-row__badges,
-  .fp-project-row__meters {
-    justify-content: flex-end;
+  .fp-project-row__stack .fp-badge {
+    max-width: 96px;
   }
 
   .fg-project-inspector__meta-grid,
@@ -1815,8 +1889,6 @@
 
 @media (max-width: 920px) {
   .fp-project-toolbar,
-  .fp-project-resource-list .fp-row,
-  .fp-project-resource-list .fp-row__side,
   .fg-project-workbench__inner,
   .fg-api-key-item__panel,
   .fg-profile-panel__body,
@@ -1826,17 +1898,56 @@
     grid-template-columns: 1fr;
   }
 
+  .fp-project-resource-head {
+    display: none;
+  }
+
   .fp-project-toolbar__meta {
     text-align: start;
   }
 
+  .fp-project-resource-list {
+    border-radius: 0 0 var(--ml-radius) var(--ml-radius);
+  }
+
+  .fp-project-resource-list .fp-row {
+    grid-template-columns: 34px minmax(0, 1fr);
+    align-items: start;
+    gap: 8px 12px;
+    min-height: 0;
+    padding: 12px;
+  }
+
   .fp-project-resource-list .fp-row__side {
+    display: grid;
     grid-column: 1 / -1;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding-left: 46px;
+  }
+
+  .fp-project-row__state,
+  .fp-project-row__stack,
+  .fp-project-row__meters {
     justify-content: flex-start;
   }
 
-  .fp-project-row__badges,
   .fp-project-row__meters {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 12px;
+  }
+
+  .fp-project-resource-list .fg-cluster-resource--compact {
+    grid-template-columns: minmax(38px, auto) minmax(0, 1fr);
+    justify-items: stretch;
+  }
+
+  .fp-project-resource-list .fg-cluster-resource--compact .fg-cluster-resource__label {
+    display: inline;
+  }
+
+  .fp-project-resource-list .fg-cluster-resource__compact-values {
     justify-content: flex-start;
   }
 

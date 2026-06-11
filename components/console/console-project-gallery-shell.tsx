@@ -11,6 +11,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
   type FormEvent,
   type MouseEvent,
 } from "react";
@@ -1035,6 +1036,49 @@ const ProjectGalleryShelf = memo(function ProjectGalleryShelf({
       return searchableText.includes(query);
     });
   }, [optimisticProjects, projectSearch, projectStateFilter, t]);
+  const visibleProjectRows = useMemo(
+    () =>
+      visibleProjects.map((project) => ({
+        project,
+        resourceUsage: projectImageUsageByProjectId[project.id]
+          ? buildProjectResourceUsageView(
+              project.resourceUsageSnapshot,
+              projectImageUsageByProjectId[project.id],
+              t,
+            )
+          : project.resourceUsage,
+      })),
+    [projectImageUsageByProjectId, t, visibleProjects],
+  );
+  const resourceColumns = useMemo(() => {
+    const seen = new Set<string>();
+    const columns: Array<{ id: string; label: string }> = [];
+
+    for (const row of visibleProjectRows) {
+      for (const resource of row.resourceUsage) {
+        if (seen.has(resource.id)) {
+          continue;
+        }
+
+        seen.add(resource.id);
+        columns.push({
+          id: resource.id,
+          label: resource.id === "cpu" ? t("CPU") : t(resource.label),
+        });
+      }
+    }
+
+    return columns.length
+      ? columns
+      : [
+          { id: "cpu", label: t("CPU") },
+          { id: "memory", label: t("Memory") },
+          { id: "storage", label: t("Disk") },
+        ];
+  }, [t, visibleProjectRows]);
+  const projectResourceGridStyle = {
+    "--fp-project-resource-count": resourceColumns.length,
+  } as CSSProperties;
 
   return (
     <PlatformPage className="fg-console-page fp-console-home-page">
@@ -1122,7 +1166,23 @@ const ProjectGalleryShelf = memo(function ProjectGalleryShelf({
               </span>
             </div>
 
-            <PlatformResourceList className="fp-project-resource-list">
+            <div
+              className="fp-project-resource-head"
+              aria-hidden="true"
+              style={projectResourceGridStyle}
+            >
+              <span />
+              <span>{t("Project")}</span>
+              <span>{t("Project state")}</span>
+              <span>{t("Services")}</span>
+              {resourceColumns.map((resource) => (
+                <span key={resource.id}>{resource.label}</span>
+              ))}
+            </div>
+            <PlatformResourceList
+              className="fp-project-resource-list"
+              style={projectResourceGridStyle}
+            >
               {pendingProjectVisible && pendingIntent ? (
                 <PendingProjectCard
                   expanded={pendingIntentFocused}
@@ -1131,39 +1191,34 @@ const ProjectGalleryShelf = memo(function ProjectGalleryShelf({
                 />
               ) : null}
 
-              {visibleProjects.map((project) => {
-                const projectResourceUsage =
-                  projectImageUsageByProjectId[project.id]
-                    ? buildProjectResourceUsageView(
-                        project.resourceUsageSnapshot,
-                        projectImageUsageByProjectId[project.id],
-                        t,
-                      )
-                    : project.resourceUsage;
-
+              {visibleProjectRows.map(({ project, resourceUsage }) => {
                 return (
                   <PlatformResourceLink
                     actions={
                       <div className="fp-project-row__meters" aria-label={t("Resource usage")}>
-                        {projectResourceUsage.map((resource) => (
+                        {resourceUsage.map((resource) => (
                           <CompactResourceMeter item={resource} key={resource.id} />
                         ))}
                       </div>
                     }
                     badges={
-                      <span className="fp-project-row__badges">
-                        <StatusBadge
-                          live={project.lifecycle.live}
-                          tone={project.lifecycle.tone}
-                        >
-                          {t(project.lifecycle.label)}
-                        </StatusBadge>
-                        {project.serviceBadges.slice(0, 3).map((badge) => (
-                          <PlatformBadge key={badge.id} tone="info">
-                            {badge.label}
-                          </PlatformBadge>
-                        ))}
-                      </span>
+                      <>
+                        <span className="fp-project-row__state">
+                          <StatusBadge
+                            live={project.lifecycle.live}
+                            tone={project.lifecycle.tone}
+                          >
+                            {t(project.lifecycle.label)}
+                          </StatusBadge>
+                        </span>
+                        <span className="fp-project-row__stack">
+                          {project.serviceBadges.slice(0, 3).map((badge) => (
+                            <PlatformBadge key={badge.id} tone="info">
+                              {badge.label}
+                            </PlatformBadge>
+                          ))}
+                        </span>
+                      </>
                     }
                     href={buildProjectHref(project.id)}
                     icon="project"

@@ -104,11 +104,16 @@ export function PlatformMetricGrid({
 export function PlatformResourceList({
   children,
   className,
+  ...props
 }: {
   children: ReactNode;
   className?: string;
-}) {
-  return <div className={cx("fp-resource-list", className)}>{children}</div>;
+} & HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div {...props} className={cx("fp-resource-list", className)}>
+      {children}
+    </div>
+  );
 }
 
 type PlatformResourceRowSharedProps = {

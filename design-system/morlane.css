@@ -3321,9 +3321,7 @@ textarea {
   white-space: nowrap;
 }
 
-.fp-row__side,
-.fp-project-row__badges,
-.fp-project-row__meters {
+.fp-row__side {
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
