@@ -2770,6 +2770,10 @@ textarea {
   grid-template-columns: 1fr;
 }
 
+.app-shell.fp-app-shell.sidebar-collapsed .fp-sidebar--desktop {
+  display: none;
+}
+
 .sidebar .fp-sidebar__brand,
 .sidebar .fp-nav,
 .sidebar .fp-sidebar__footer {
@@ -2780,6 +2784,30 @@ textarea {
   display: inline-flex;
   align-items: center;
   min-height: 36px;
+  padding-right: 40px;
+}
+
+.fp-sidebar-toggle {
+  color: var(--muted);
+}
+
+.fp-sidebar-toggle:hover,
+.fp-sidebar-toggle:focus-visible {
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.fp-sidebar-toggle--collapse {
+  position: absolute;
+  top: 18px;
+  right: 16px;
+  z-index: 2;
+}
+
+.fp-sidebar-toggle--expand {
+  flex: 0 0 auto;
+  margin-right: 2px;
 }
 
 .fp-sidebar-brand__copy {
@@ -3961,6 +3989,11 @@ textarea {
 
   .fp-mobile-nav {
     display: block;
+  }
+
+  .fp-sidebar-toggle--collapse,
+  .fp-sidebar-toggle--expand {
+    display: none;
   }
 
   .fp-metric-grid,

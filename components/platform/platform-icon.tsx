@@ -6,6 +6,7 @@ export type PlatformIconName =
   | "access"
   | "apps"
   | "billing"
+  | "chevron-left"
   | "chevron-right"
   | "cluster"
   | "command"
@@ -46,6 +47,7 @@ const ICON_PATHS: Record<PlatformIconName, string[]> = {
     "M4 10h16",
     "M8 15h5",
   ],
+  "chevron-left": ["M15 6l-6 6 6 6"],
   "chevron-right": ["M9 6l6 6-6 6"],
   cluster: [
     "M12 4v5",
@@ -177,4 +179,3 @@ export function PlatformIcon({
     </svg>
   );
 }
-

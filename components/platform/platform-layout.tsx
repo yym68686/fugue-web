@@ -1,11 +1,14 @@
 import type { HTMLAttributes, ReactNode } from "react";
 
 import { PlatformIcon } from "@/components/platform/platform-icon";
+import { PlatformShellFrame } from "@/components/platform/platform-shell-frame";
 import { cx } from "@/lib/ui/cx";
 
 export function PlatformShell({
   children,
   className,
+  collapseSidebarLabel = "Collapse sidebar",
+  expandSidebarLabel = "Expand sidebar",
   mobileNavigation,
   mobileNavigationLabel = "Open menu",
   sidebar,
@@ -13,31 +16,25 @@ export function PlatformShell({
 }: {
   children: ReactNode;
   className?: string;
+  collapseSidebarLabel?: string;
+  expandSidebarLabel?: string;
   mobileNavigation?: ReactNode;
   mobileNavigationLabel?: string;
   sidebar: ReactNode;
   topbar: ReactNode;
 }) {
   return (
-    <main className={cx("app-shell fp-app-shell", className)}>
-      <aside className="sidebar fp-sidebar fp-sidebar--desktop">{sidebar}</aside>
-      <section className="main-pane fp-main">
-        <header className="topbar fp-topbar">
-          {mobileNavigation ? (
-            <details className="fp-mobile-nav">
-              <summary className="fp-button fp-icon-button fp-icon-button--sm fp-mobile-nav__trigger">
-                <PlatformIcon name="menu" />
-                <span className="fg-visually-hidden">{mobileNavigationLabel}</span>
-              </summary>
-              <div className="fp-mobile-nav__backdrop" />
-              <div className="fp-mobile-nav__panel">{mobileNavigation}</div>
-            </details>
-          ) : null}
-          {topbar}
-        </header>
-        {children}
-      </section>
-    </main>
+    <PlatformShellFrame
+      className={className}
+      collapseSidebarLabel={collapseSidebarLabel}
+      expandSidebarLabel={expandSidebarLabel}
+      mobileNavigation={mobileNavigation}
+      mobileNavigationLabel={mobileNavigationLabel}
+      sidebar={sidebar}
+      topbar={topbar}
+    >
+      {children}
+    </PlatformShellFrame>
   );
 }
 

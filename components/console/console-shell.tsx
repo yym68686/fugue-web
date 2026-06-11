@@ -27,6 +27,8 @@ export async function ConsoleShell({
     <ConsoleRouteTransitionProvider>
       <PlatformShell
         className="fp-app-shell--console"
+        collapseSidebarLabel={t("Collapse sidebar")}
+        expandSidebarLabel={t("Expand sidebar")}
         mobileNavigationLabel={t("Open menu")}
         mobileNavigation={
           <ConsoleSidebar isAdmin={isAdmin} />

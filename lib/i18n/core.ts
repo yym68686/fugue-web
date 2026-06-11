@@ -15,6 +15,7 @@ const TRADITIONAL_SCRIPTS = new Set(["HANT"]);
 
 const enMessages = {
   "Auto": "Auto",
+  "Collapse sidebar": "Collapse sidebar",
   "Completed": "Completed",
   "Current live sample": "Current live sample",
   "Dark": "Dark",
@@ -25,6 +26,7 @@ const enMessages = {
   "Failed": "Failed",
   "Failed Over": "Failed Over",
   "Failing Over": "Failing Over",
+  "Expand sidebar": "Expand sidebar",
   "Healthy": "Healthy",
   "Interface language": "Interface language",
   "Language": "Language",
@@ -145,6 +147,7 @@ const zhCNMessages = {
   "Completed": "已完成",
   "Completing sign-in. If the browser stays here, continue manually once.":
     "正在完成登录。如果浏览器一直停留在此，请手动继续一次。",
+  "Collapse sidebar": "折叠侧边栏",
   "Console": "控制台",
   "Continue manually once": "手动继续一次",
   "Continue to the console": "继续前往控制台",
@@ -158,6 +161,7 @@ const zhCNMessages = {
   "Create project": "创建项目",
   "Creating…": "正在创建…",
   "Current live sample": "当前实时样本",
+  "Expand sidebar": "展开侧边栏",
   "Current primary": "当前主节点",
   "Current release": "当前版本",
   "Delete empty project?": "删除空项目？",
@@ -735,6 +739,7 @@ const zhTWMessages = {
   "Choose a sign-up method.": "選擇註冊方式。",
   "Completing sign-in. If the browser stays here, continue manually once.":
     "正在完成登入。如果瀏覽器一直停留在此，請手動繼續一次。",
+  "Collapse sidebar": "收合側邊欄",
   "Continue to the console": "繼續前往控制台",
   "Continue with email": "使用電子郵件繼續",
   "Create account": "建立帳號",
@@ -749,6 +754,7 @@ const zhTWMessages = {
   "Delete queued.": "刪除已加入佇列。",
   "Delete service": "刪除服務",
   "Delete service?": "刪除服務？",
+  "Expand sidebar": "展開側邊欄",
   "Deleting…": "刪除中…",
   "Disk": "磁碟",
   "Deploy from source, shared first": "原始碼部署 更快起步",
@@ -4631,7 +4637,6 @@ const zhCNMorlanePatchMessages = {
   "Review users, admin status, quotas, service usage, and account state.": "查看用户、管理员状态、配额、服务使用情况和账号状态。",
   "Review workspace balance, usage envelope, storage, and capacity controls.": "查看工作区平衡、使用范围、存储和容量控制。",
   "Route availability response was malformed.": "路由可用性响应格式不正确。",
-  "Route is the product": "路由就是产品",
   "Route summary": "路由摘要",
   "Route table": "路由表",
   "Route table JSON is invalid.": "路由表JSON无效。",
@@ -5186,7 +5191,6 @@ const zhTWMorlanePatchMessages = {
   "Review users, admin status, quotas, service usage, and account state.": "查看用户、管理员狀態、配额、服務使用情况和帳號狀態。",
   "Review workspace balance, usage envelope, storage, and capacity controls.": "查看工作區平衡、使用範圍、儲存和容量控制。",
   "Route availability response was malformed.": "路由可用性响应格式不正确。",
-  "Route is the product": "路由就是产品",
   "Route summary": "路由摘要",
   "Route table": "路由表",
   "Route table JSON is invalid.": "路由表JSON無效。",

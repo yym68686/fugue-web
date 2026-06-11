@@ -80,11 +80,6 @@ export function ConsoleSidebar({
   return (
     <PlatformSidebar
       brand={<PlatformSidebarBrand meta={t("Console")} title="Fugue" />}
-      footer={
-        <div className="fp-sidebar-utility">
-          <span>{t("Route is the product")}</span>
-        </div>
-      }
     >
       <ConsoleSidebarNav
         displayPathname={displayPathname}
