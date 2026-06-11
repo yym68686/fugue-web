@@ -49,7 +49,11 @@ import {
   readTechnologyLabel,
   type TechStackBadgeKind,
 } from "@/lib/tech-stack";
-import { readCountryLocation } from "@/lib/geo/country";
+import {
+  readCountryLocation,
+  readLocalizedLocationLabel,
+} from "@/lib/geo/country";
+import { translate, type Locale } from "@/lib/i18n/core";
 import { createExpiringAsyncCache } from "@/lib/server/expiring-async-cache";
 import {
   getWorkspaceSnapshotByEmail,
@@ -1139,6 +1143,17 @@ function formatCountLabel(
   plural = `${singular}s`,
 ) {
   return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function formatLocalizedCountLabel(
+  locale: Locale,
+  count: number,
+  singular: string,
+  plural = `${singular}s`,
+) {
+  return translate(locale, `{count} ${count === 1 ? singular : plural}`, {
+    count,
+  });
 }
 
 function hasFreshAdminUsersEnrichmentData() {
@@ -2305,6 +2320,7 @@ function buildClusterWorkloadViews(
 function buildClusterNodeViewItem(
   node: FugueClusterNode,
   tenantNames: Map<string, string>,
+  locale: Locale = "en",
 ) {
   const conditionViews = buildClusterConditionViews(node);
   const memoryPressure = isConditionActive(
@@ -2341,16 +2357,22 @@ function buildClusterNodeViewItem(
         : node.status?.trim().toLowerCase() === "ready"
           ? "positive"
           : toneForStatus(node.status);
-  const location = readCountryLocation(node.region, node.zone);
-  const locationLabel = location.locationLabel;
+  const location = readCountryLocation(node.region, node.zone, locale);
+  const locationLabel =
+    readLocalizedLocationLabel({
+      countryCode: location.locationCountryCode,
+      fallback: translate(locale, "Unassigned"),
+      label: location.locationLabel,
+      locale,
+    }) ?? translate(locale, "Unassigned");
   const statusFragments = [
-    locationLabel !== "Unassigned" ? locationLabel : null,
+    locationLabel !== translate(locale, "Unassigned") ? locationLabel : null,
     pressureSignals.length
       ? `${pressureSignals.map((condition) => condition.label.toLowerCase()).join(" + ")} signal${
           pressureSignals.length === 1 ? "" : "s"
         }`
       : null,
-    formatCountLabel(workloadCount, "workload"),
+    formatLocalizedCountLabel(locale, workloadCount, "workload"),
   ].filter((value): value is string => Boolean(value));
 
   return {
@@ -2399,13 +2421,14 @@ function buildClusterNodeViewItem(
 function buildClusterNodeViews(
   nodes: FugueClusterNode[],
   tenants: FugueTenant[],
+  locale: Locale = "en",
 ) {
   const tenantNames = new Map(
     tenants.map((tenant) => [tenant.id, tenant.name] as const),
   );
 
   const views = nodes.map((node) =>
-    buildClusterNodeViewItem(node, tenantNames),
+    buildClusterNodeViewItem(node, tenantNames, locale),
   );
 
   return views.sort((left, right) => {
@@ -3306,7 +3329,9 @@ export async function getAdminControlPlaneData(): Promise<{
   }
 }
 
-export async function getAdminClusterPageData(): Promise<AdminClusterPageData> {
+export async function getAdminClusterPageData(
+  locale: Locale = "en",
+): Promise<AdminClusterPageData> {
   let bootstrapKey: string;
 
   try {
@@ -3358,7 +3383,7 @@ export async function getAdminClusterPageData(): Promise<AdminClusterPageData> {
   const nodes = nodesResult.status === "fulfilled" ? nodesResult.value : [];
   const controlPlane =
     controlPlaneResult.status === "fulfilled" ? controlPlaneResult.value : null;
-  const views = buildClusterNodeViews(nodes, tenants);
+  const views = buildClusterNodeViews(nodes, tenants, locale);
 
   return {
     controlPlane,

@@ -11,6 +11,7 @@ import {
   readErrorMessage,
   readErrorStatus,
 } from "@/lib/fugue/product-route";
+import { getRequestLocale } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -44,7 +45,8 @@ export async function GET(request: Request) {
       });
     }
 
-    return jsonSnapshot(await getAdminClusterPageData());
+    const locale = await getRequestLocale();
+    return jsonSnapshot(await getAdminClusterPageData(locale));
   } catch (error) {
     return jsonError(readErrorStatus(error), readErrorMessage(error));
   }
