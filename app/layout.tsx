@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { cookies } from "next/headers";
 
@@ -12,6 +12,11 @@ import {
   resolveThemePreference,
 } from "@/lib/theme";
 import "./globals.css";
+
+export const viewport: Viewport = {
+  initialScale: 1,
+  width: "device-width",
+};
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getRequestI18n();
