@@ -5181,6 +5181,8 @@ export interface components {
             failover?: components["schemas"]["AppFailoverSpec"];
             /** Format: int32 */
             image_mirror_limit?: number;
+            /** Format: int64 */
+            termination_grace_period_seconds?: number;
             restart_token?: string;
         };
         AppNetworkPolicySpec: {
@@ -6231,6 +6233,8 @@ export interface components {
             persistent_storage?: components["schemas"]["AppPersistentStorageSpec"];
             volume_replication?: components["schemas"]["AppVolumeReplicationSpec"];
             right_sizing?: components["schemas"]["AppRightSizingSpec"];
+            /** Format: int64 */
+            termination_grace_period_seconds?: number;
         };
         ApplyAppResourceRecommendationRequest: {
             /** Format: int32 */
