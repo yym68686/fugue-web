@@ -1937,6 +1937,8 @@ const zhCNExtraMessages = {
   "{amount} / hour at the current live rate.":
     "按当前实时费率计算为 {amount} / 小时。",
   "{count} months": "{count} 个月",
+  "{count} mount": "{count} 个挂载",
+  "{count} mounts": "{count} 个挂载",
   "{count} weeks": "{count} 周",
   "{duration} elapsed": "已耗时 {duration}",
   "{label} logs are not ready yet.": "{label} 日志尚未就绪。",
@@ -3605,6 +3607,8 @@ const zhTWExtraMessages = {
   "{amount} / hour at the current live rate.":
     "依目前即時費率為 {amount} / 小時。",
   "{count} months": "{count} 個月",
+  "{count} mount": "{count} 個掛載",
+  "{count} mounts": "{count} 個掛載",
   "{count} weeks": "{count} 週",
   "{duration} elapsed": "已耗時 {duration}",
   "{label} logs are not ready yet.": "{label} 日誌尚未就緒。",
