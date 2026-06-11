@@ -1315,8 +1315,8 @@ export function AdminUserManager({
                   <td>
                     <span title={user.lastLoginExact}>{user.lastLoginLabel}</span>
                   </td>
-                  <td>
-                    <div className="fg-console-toolbar">
+                  <td className="fg-console-table__cell--actions">
+                    <div className="fg-console-table__actions">
                       {isQuotaEditable ? (
                         <InlineButton
                           blocked={billingActionBlocked}

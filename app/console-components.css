@@ -1689,8 +1689,35 @@
   min-width: 1280px;
 }
 
+.fg-console-table--users {
+  min-width: 1480px;
+}
+
 .fg-console-table__cell--usage {
   min-width: 260px;
+}
+
+.fg-console-table__col--user-actions {
+  width: 286px;
+}
+
+.fg-console-table__cell--actions {
+  text-align: right;
+}
+
+.fg-console-table__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+  gap: 6px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.fg-console-table__actions .button {
+  min-height: 30px;
+  padding-inline: 9px;
 }
 
 /* Dialogs and confirmation */
