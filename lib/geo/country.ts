@@ -384,6 +384,56 @@ export function readCountryLabel(value?: string | null, locale: Locale = "en") {
   return readCountryDisplayLabel(countryCode, locale) ?? trimmed;
 }
 
+function splitLocationLabel(value: string) {
+  return value
+    .split(/\s*\/\s*/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+export function readLocalizedLocationLabel({
+  countryCode,
+  fallback,
+  label,
+  locale = "en",
+}: {
+  countryCode?: string | null;
+  fallback?: string | null;
+  label?: string | null;
+  locale?: Locale;
+}) {
+  const trimmedLabel = label?.trim() || null;
+  const trimmedFallback = fallback?.trim() || null;
+  const normalizedCountryCode = readCountryCode(countryCode);
+  const localizedCountryLabel = normalizedCountryCode
+    ? readCountryLabel(normalizedCountryCode, locale)
+    : null;
+
+  if (localizedCountryLabel) {
+    const labelParts = trimmedLabel ? splitLocationLabel(trimmedLabel) : [];
+    const labelCountryCode = readCountryCode(labelParts[0]);
+    const tail =
+      labelCountryCode && labelCountryCode === normalizedCountryCode
+        ? labelParts.slice(1)
+        : [];
+
+    return [localizedCountryLabel, ...tail].join(" / ");
+  }
+
+  if (trimmedLabel) {
+    const labelParts = splitLocationLabel(trimmedLabel);
+    const localizedLeadingLabel = readCountryLabel(labelParts[0], locale);
+
+    if (localizedLeadingLabel) {
+      return [localizedLeadingLabel, ...labelParts.slice(1)].join(" / ");
+    }
+
+    return trimmedLabel;
+  }
+
+  return trimmedFallback;
+}
+
 export function readCountryLocation(
   region?: string | null,
   zone?: string | null,

@@ -7,6 +7,7 @@ import {
   readRuntimeLocation,
 } from "@/lib/fugue/runtime-location";
 import { isRuntimeSelectableForDeployment } from "@/lib/fugue/runtime-status";
+import { readLocalizedLocationLabel } from "@/lib/geo/country";
 import { translate, type Locale } from "@/lib/i18n/core";
 import { readRuntimePublicOfferDescription } from "@/lib/runtimes/public-offer";
 
@@ -66,6 +67,16 @@ function buildDeployRuntimeTarget(
   locale: Locale = "en",
 ): ConsoleImportRuntimeTargetView {
   const location = readRuntimeLocation(runtime.labels, locale);
+  const localizedLocationCountryLabel = readLocalizedLocationLabel({
+    countryCode: location.locationCountryCode,
+    label: location.locationCountryLabel,
+    locale,
+  });
+  const localizedLocationLabel = readLocalizedLocationLabel({
+    countryCode: location.locationCountryCode,
+    label: location.locationLabel,
+    locale,
+  });
   const statusLabel = runtime.status ? translate(locale, humanize(runtime.status)) : null;
   const statusTone = toneForRuntimeStatus(runtime.status);
 
@@ -75,8 +86,8 @@ function buildDeployRuntimeTarget(
       !hasInternalClusterLocationTarget(runtime.labels);
     const primaryLabel = isGenericInternalCluster
       ? translate(locale, "Any available region")
-      : (location.locationCountryLabel ??
-        location.locationLabel ??
+      : (localizedLocationCountryLabel ??
+        localizedLocationLabel ??
         translate(locale, "Region unavailable"));
 
     return {
@@ -88,8 +99,8 @@ function buildDeployRuntimeTarget(
       id: runtime.id,
       kindLabel: translate(locale, "Internal cluster"),
       locationCountryCode: location.locationCountryCode,
-      locationCountryLabel: location.locationCountryLabel,
-      locationLabel: isGenericInternalCluster ? null : location.locationLabel,
+      locationCountryLabel: localizedLocationCountryLabel,
+      locationLabel: isGenericInternalCluster ? null : localizedLocationLabel,
       primaryLabel,
       runtimeType: runtime.type ?? null,
       statusLabel,
@@ -110,8 +121,8 @@ function buildDeployRuntimeTarget(
     runtime.type === "managed-owned" &&
     runtime.poolMode === "internal-shared" &&
     !isSharedMachine;
-  const machineSummaryLabel = location.locationLabel
-    ? `${primaryLabel} / ${location.locationLabel}`
+  const machineSummaryLabel = localizedLocationLabel
+    ? `${primaryLabel} / ${localizedLocationLabel}`
     : primaryLabel;
 
   return {
@@ -135,8 +146,8 @@ function buildDeployRuntimeTarget(
         ? translate(locale, "Shared machine")
         : translate(locale, "Machine"),
     locationCountryCode: location.locationCountryCode,
-    locationCountryLabel: location.locationCountryLabel,
-    locationLabel: location.locationLabel,
+    locationCountryLabel: localizedLocationCountryLabel,
+    locationLabel: localizedLocationLabel,
     primaryLabel,
     runtimeType: runtime.type ?? null,
     statusLabel,

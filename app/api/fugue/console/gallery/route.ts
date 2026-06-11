@@ -10,6 +10,7 @@ import {
   readErrorStatus,
   requireSession,
 } from "@/lib/fugue/product-route";
+import { getRequestLocale } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +42,8 @@ export async function GET(request: Request) {
       }
     });
 
-    const data = await getConsoleProjectGallerySummaryData();
+    const locale = await getRequestLocale();
+    const data = await getConsoleProjectGallerySummaryData(locale);
 
     return NextResponse.json(data, {
       headers: {

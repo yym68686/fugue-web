@@ -9,6 +9,8 @@ import { useI18n } from "@/components/providers/i18n-provider";
 import { Panel, PanelSection } from "@/components/ui/panel";
 import type { AdminClusterNodeView } from "@/lib/admin/service";
 import type { ConsoleTone } from "@/lib/console/types";
+import { readLocalizedLocationLabel } from "@/lib/geo/country";
+import type { Locale } from "@/lib/i18n/core";
 
 function readOnOffTone(enabled: boolean): ConsoleTone {
   return enabled ? "positive" : "neutral";
@@ -59,7 +61,18 @@ function readPolicyModeLabel(value?: string | null) {
 
 export function buildAdminClusterGalleryItem(
   node: AdminClusterNodeView,
+  locale: Locale = "en",
 ): ClusterNodeGalleryItem {
+  const localizedLocationLabel = readLocalizedLocationLabel({
+    countryCode: node.locationCountryCode,
+    label: node.locationLabel,
+    locale,
+  });
+  const headerMeta =
+    localizedLocationLabel && node.locationLabel
+      ? node.headerMeta.replace(node.locationLabel, localizedLocationLabel)
+      : node.headerMeta;
+
   return {
     appCount: node.appCount,
     conditions: node.conditions,
@@ -149,7 +162,7 @@ export function buildAdminClusterGalleryItem(
         value: node.createdLabel,
       },
     ],
-    headerMeta: node.headerMeta,
+    headerMeta,
     id: node.name,
     name: node.name,
     resources: node.resources,
@@ -172,7 +185,7 @@ export function AdminClusterOverview({
 }: {
   nodes: AdminClusterNodeView[];
 }) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
 
   if (!nodes.length) {
     return (
@@ -190,7 +203,7 @@ export function AdminClusterOverview({
   return (
     <ClusterNodeGallery
       ariaLabel={t("Cluster nodes")}
-      items={nodes.map(buildAdminClusterGalleryItem)}
+      items={nodes.map((node) => buildAdminClusterGalleryItem(node, locale))}
     />
   );
 }

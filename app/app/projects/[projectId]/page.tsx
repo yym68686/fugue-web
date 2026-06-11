@@ -2,6 +2,7 @@ import { ConsoleProjectGallery } from "@/components/console/console-project-gall
 import { getConsoleProjectDetailData } from "@/lib/console/gallery-data";
 import type { ConsoleProjectGallerySummaryData } from "@/lib/console/gallery-types";
 import { readConsoleProjectLifecycle } from "@/lib/console/project-lifecycle";
+import { getRequestLocale } from "@/lib/i18n/server";
 
 type Params = Promise<{ projectId: string }> | { projectId: string };
 
@@ -11,7 +12,11 @@ export default async function ProjectDetailPage({
   params: Params;
 }) {
   const { projectId } = await Promise.resolve(params);
-  const initialProjectDetail = await getConsoleProjectDetailData(projectId);
+  const locale = await getRequestLocale();
+  const initialProjectDetail = await getConsoleProjectDetailData(
+    projectId,
+    locale,
+  );
   const project = initialProjectDetail.project;
   const data = {
     errors: [],

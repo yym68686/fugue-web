@@ -10,6 +10,7 @@ import {
   requireWorkspaceForSession,
   type RouteContextWithParams,
 } from "@/lib/fugue/product-route";
+import { getRequestLocale } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -29,10 +30,12 @@ export async function GET(_request: Request, context: RouteContext) {
   }
 
   try {
+    const locale = await getRequestLocale();
     const projectId = await readRouteParam(context, "id");
     const data = await getConsoleProjectDetailDataForWorkspace(
       workspaceState.workspace,
       projectId,
+      locale,
     );
 
     return NextResponse.json(data, {

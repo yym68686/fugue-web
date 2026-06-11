@@ -53,7 +53,10 @@ import {
   readRuntimeLocation,
 } from "@/lib/fugue/runtime-location";
 import { isRuntimeSelectableForDeployment } from "@/lib/fugue/runtime-status";
-import { readCountryLocation } from "@/lib/geo/country";
+import {
+  readCountryLocation,
+  readLocalizedLocationLabel,
+} from "@/lib/geo/country";
 import {
   readGitHubBranchHref,
   readGitHubCommitHref,
@@ -211,16 +214,22 @@ function sumCurrentResourceUsage(
   } satisfies FugueResourceUsage;
 }
 
-function buildWorkloadLocationMap(nodes: FugueClusterNode[]) {
+function buildWorkloadLocationMap(
+  nodes: FugueClusterNode[],
+  locale: Locale = "en",
+) {
   const locations = new Map<string, WorkloadLocationView>();
 
   for (const node of nodes) {
-    const location = readCountryLocation(node.region, node.zone);
+    const location = readCountryLocation(node.region, node.zone, locale);
     const locationLabel =
-      location.locationCountryLabel ??
-      (location.locationLabel !== "Unassigned" ? location.locationLabel : null);
+      readLocalizedLocationLabel({
+        countryCode: location.locationCountryCode,
+        label: location.locationLabel,
+        locale,
+      }) ?? null;
 
-    if (!locationLabel) {
+    if (!locationLabel || locationLabel === translate(locale, "Unassigned")) {
       continue;
     }
 
@@ -251,20 +260,30 @@ function normalizeRuntimeTargetLocation(
   },
   locale: Locale,
 ): RuntimeTargetLocationView | null {
+  const locationCountryLabel = readLocalizedLocationLabel({
+    countryCode: location.locationCountryCode,
+    label: location.locationCountryLabel,
+    locale,
+  });
   const locationLabel =
-    location.locationCountryLabel ??
-    (location.locationLabel !== translate(locale, "Unassigned")
-      ? location.locationLabel
-      : null);
+    readLocalizedLocationLabel({
+      countryCode: location.locationCountryCode,
+      label: location.locationLabel,
+      locale,
+    }) ?? null;
 
-  if (!locationLabel && !location.locationCountryCode) {
+  if (
+    (!locationLabel || locationLabel === translate(locale, "Unassigned")) &&
+    !location.locationCountryCode
+  ) {
     return null;
   }
 
   return {
     locationCountryCode: location.locationCountryCode,
-    locationCountryLabel: location.locationCountryLabel,
-    locationLabel,
+    locationCountryLabel,
+    locationLabel:
+      locationLabel !== translate(locale, "Unassigned") ? locationLabel : null,
   };
 }
 
@@ -2684,6 +2703,16 @@ function buildImportRuntimeTargetView(
       (shouldUseFallbackLocation ? fallbackLocation?.locationLabel : null) ??
       null,
   };
+  const localizedLocationCountryLabel = readLocalizedLocationLabel({
+    countryCode: location.locationCountryCode,
+    label: location.locationCountryLabel,
+    locale,
+  });
+  const localizedLocationLabel = readLocalizedLocationLabel({
+    countryCode: location.locationCountryCode,
+    label: location.locationLabel,
+    locale,
+  });
   const statusLabel = runtime.status ? translate(locale, humanize(runtime.status)) : null;
   const statusTone = runtime.status ? toneForStatus(runtime.status) : null;
 
@@ -2693,8 +2722,8 @@ function buildImportRuntimeTargetView(
       !hasInternalClusterLocationTarget(runtime.labels);
     const primaryLabel = isGenericInternalCluster
       ? translate(locale, "Any available region")
-      : (location.locationCountryLabel ??
-        location.locationLabel ??
+      : (localizedLocationCountryLabel ??
+        localizedLocationLabel ??
         translate(locale, "Region unavailable"));
 
     return {
@@ -2706,8 +2735,8 @@ function buildImportRuntimeTargetView(
       id: runtime.id,
       kindLabel: translate(locale, "Internal cluster"),
       locationCountryCode: location.locationCountryCode,
-      locationCountryLabel: location.locationCountryLabel,
-      locationLabel: isGenericInternalCluster ? null : location.locationLabel,
+      locationCountryLabel: localizedLocationCountryLabel,
+      locationLabel: isGenericInternalCluster ? null : localizedLocationLabel,
       primaryLabel,
       runtimeType: runtime.type ?? null,
       statusLabel,
@@ -2742,14 +2771,14 @@ function buildImportRuntimeTargetView(
       ? translate(locale, "Shared machine")
       : translate(locale, "Machine"),
     locationCountryCode: location.locationCountryCode,
-    locationCountryLabel: location.locationCountryLabel,
-    locationLabel: location.locationLabel,
+    locationCountryLabel: localizedLocationCountryLabel,
+    locationLabel: localizedLocationLabel,
     primaryLabel,
     runtimeType: runtime.type ?? null,
     statusLabel,
     statusTone,
-    summaryLabel: location.locationLabel
-      ? `${primaryLabel} / ${location.locationLabel}`
+    summaryLabel: localizedLocationLabel
+      ? `${primaryLabel} / ${localizedLocationLabel}`
       : primaryLabel,
   };
 }
@@ -2858,6 +2887,7 @@ function buildConsoleProjectSummaryView(
 
 function buildConsoleProjectViewFromDetail(
   detail: FugueConsoleProjectDetail,
+  locale: Locale = "en",
 ): ConsoleGalleryProjectView {
   const sortedApps = sortByTimestampDesc(detail.apps, readAppTimestamp);
   const appNames = new Map(
@@ -2882,8 +2912,14 @@ function buildConsoleProjectViewFromDetail(
     databaseContinuityOperationsByAppId,
     databaseTransferOperationsByAppId,
   } = collectOperationLookupsByAppId(detail.operations);
-  const workloadLocationsById = buildWorkloadLocationMap(detail.clusterNodes);
-  const runtimeLocationsById = buildRuntimeTargetLocationMap(detail.clusterNodes);
+  const workloadLocationsById = buildWorkloadLocationMap(
+    detail.clusterNodes,
+    locale,
+  );
+  const runtimeLocationsById = buildRuntimeTargetLocationMap(
+    detail.clusterNodes,
+    locale,
+  );
   const backingServicesById = new Map<string, FugueBackingService>();
 
   for (const app of sortedApps) {
@@ -2982,7 +3018,9 @@ async function requestWithWorkspaceRefresh<T>(
   }
 }
 
-const getConsoleProjectGallerySummaryDataCached = cache(async () => {
+const getConsoleProjectGallerySummaryDataCached = cache(async (
+  locale: Locale = "en",
+) => {
   const workspace = await getCurrentWorkspaceAccess();
 
   if (!workspace) {
@@ -2996,11 +3034,12 @@ const getConsoleProjectGallerySummaryDataCached = cache(async () => {
     } satisfies ConsoleProjectGallerySummaryData;
   }
 
-  return getConsoleProjectGallerySummaryDataForWorkspace(workspace);
+  return getConsoleProjectGallerySummaryDataForWorkspace(workspace, locale);
 });
 
 export async function getConsoleProjectGallerySummaryDataForWorkspace(
   workspace: WorkspaceAccess,
+  locale: Locale = "en",
 ) {
   try {
     const gallery = await requestWithWorkspaceRefresh(workspace, (active) =>
@@ -3091,7 +3130,11 @@ async function loadRuntimeInventoryData(
 }
 
 const getConsoleProjectGalleryDataCached = cache(
-  async (includeProjectImageUsage: boolean, includeRuntimeTargets: boolean) => {
+  async (
+    includeProjectImageUsage: boolean,
+    includeRuntimeTargets: boolean,
+    locale: Locale = "en",
+  ) => {
     const initialWorkspace = await getCurrentWorkspaceAccess();
 
     if (!initialWorkspace) {
@@ -3216,7 +3259,7 @@ const getConsoleProjectGalleryDataCached = cache(
       ),
     );
     const runtimeTargetLocationsByRuntimeId =
-      buildRuntimeTargetLocationMap(clusterNodes);
+      buildRuntimeTargetLocationMap(clusterNodes, locale);
     const runtimeTargetInventoryError =
       includeRuntimeTargets && runtimesResult.status === "rejected"
         ? readErrorMessage(runtimesResult.reason)
@@ -3232,6 +3275,7 @@ const getConsoleProjectGalleryDataCached = cache(
                 runtime,
                 workspace.tenantId,
                 runtimeTargetLocationsByRuntimeId.get(runtime.id) ?? null,
+                locale,
               ),
             )
             .sort(compareImportRuntimeTargets)
@@ -3246,9 +3290,12 @@ const getConsoleProjectGalleryDataCached = cache(
       databaseContinuityOperationsByAppId,
       databaseTransferOperationsByAppId,
     } = collectOperationLookupsByAppId(operations);
-    const workloadLocationsById = buildWorkloadLocationMap(clusterNodes);
+    const workloadLocationsById = buildWorkloadLocationMap(
+      clusterNodes,
+      locale,
+    );
     const runtimeTargetLocationsById =
-      buildRuntimeTargetLocationMap(clusterNodes);
+      buildRuntimeTargetLocationMap(clusterNodes, locale);
     const appsByProjectId = new Map<string, FugueApp[]>();
 
     for (const app of apps) {
@@ -3405,15 +3452,19 @@ const getConsoleProjectGalleryDataCached = cache(
 export async function getConsoleProjectGalleryData(options?: {
   includeProjectImageUsage?: boolean;
   includeRuntimeTargets?: boolean;
+  locale?: Locale;
 }) {
   return getConsoleProjectGalleryDataCached(
     options?.includeProjectImageUsage ?? true,
     options?.includeRuntimeTargets ?? true,
+    options?.locale ?? "en",
   );
 }
 
-export async function getConsoleProjectGallerySummaryData() {
-  return getConsoleProjectGallerySummaryDataCached();
+export async function getConsoleProjectGallerySummaryData(
+  locale: Locale = "en",
+) {
+  return getConsoleProjectGallerySummaryDataCached(locale);
 }
 
 function buildConsoleProjectGalleryUsageData(
@@ -3489,6 +3540,7 @@ export async function getConsoleProjectImageUsageDataForWorkspace(
 
 export async function getConsoleProjectDetailData(
   projectId: string,
+  locale: Locale = "en",
 ): Promise<ConsoleProjectDetailData> {
   const workspace = await getCurrentWorkspaceAccess();
 
@@ -3498,19 +3550,20 @@ export async function getConsoleProjectDetailData(
     };
   }
 
-  return getConsoleProjectDetailDataForWorkspace(workspace, projectId);
+  return getConsoleProjectDetailDataForWorkspace(workspace, projectId, locale);
 }
 
 export async function getConsoleProjectDetailDataForWorkspace(
   workspace: WorkspaceAccess,
   projectId: string,
+  locale: Locale = "en",
 ): Promise<ConsoleProjectDetailData> {
   const detail = await requestWithWorkspaceRefresh(workspace, (active) =>
     getFugueConsoleProject(active.adminKeySecret, projectId),
   );
 
   return {
-    project: buildConsoleProjectViewFromDetail(detail),
+    project: buildConsoleProjectViewFromDetail(detail, locale),
   };
 }
 

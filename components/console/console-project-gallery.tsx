@@ -77,7 +77,7 @@ import {
   readDefaultImportRuntimeId,
   readRuntimeTargetOptionLabel,
 } from "@/lib/console/runtime-targets";
-import { readCountryLabel } from "@/lib/geo/country";
+import { readLocalizedLocationLabel } from "@/lib/geo/country";
 import type { Locale } from "@/lib/i18n/core";
 import {
   buildImportServicePayload,
@@ -5430,8 +5430,11 @@ export function ConsoleProjectGallery({
         : null;
     const selectedServiceUrl = readServicePublicUrl(selectedService);
     const selectedServiceLocationLabel =
-      readCountryLabel(selectedService.locationCountryCode, locale) ??
-      selectedService.locationLabel ??
+      readLocalizedLocationLabel({
+        countryCode: selectedService.locationCountryCode,
+        label: selectedService.locationLabel,
+        locale,
+      }) ??
       t("Unavailable");
     const envSectionHint = readEnvironmentSectionHint(
       envFormat,
@@ -8487,8 +8490,11 @@ function ConsoleProjectWorkbenchImpl({
       : null;
   const selectedServiceUrl = readServicePublicUrl(selectedService);
   const selectedServiceLocationLabel =
-    readCountryLabel(selectedService.locationCountryCode, locale) ??
-    selectedService.locationLabel ??
+    readLocalizedLocationLabel({
+      countryCode: selectedService.locationCountryCode,
+      label: selectedService.locationLabel,
+      locale,
+    }) ??
     t("Unavailable");
   const selectedServiceSourceType =
     selectedService.kind === "app"

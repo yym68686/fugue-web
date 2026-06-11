@@ -19,11 +19,13 @@ function readValue(value: string | string[] | undefined) {
 async function AppConsolePageContent({
   defaultCreateOpen,
   initialPendingIntentId,
+  locale,
 }: {
   defaultCreateOpen: boolean;
   initialPendingIntentId: string | null;
+  locale: Awaited<ReturnType<typeof getRequestI18n>>["locale"];
 }) {
-  const data = await getConsoleProjectGallerySummaryData();
+  const data = await getConsoleProjectGallerySummaryData(locale);
 
   return (
     <ConsoleProjectGallery
@@ -42,7 +44,7 @@ export default async function AppConsolePage({
   const resolved = await Promise.resolve(searchParams);
   const dialog = readValue(resolved.dialog);
   const initialPendingIntentId = readValue(resolved.intent) ?? null;
-  const { t } = await getRequestI18n();
+  const { locale, t } = await getRequestI18n();
 
   return (
     <Suspense
@@ -55,6 +57,7 @@ export default async function AppConsolePage({
       <AppConsolePageContent
         defaultCreateOpen={dialog === "create"}
         initialPendingIntentId={initialPendingIntentId}
+        locale={locale}
       />
     </Suspense>
   );

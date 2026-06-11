@@ -11,7 +11,10 @@ import {
   type FugueClusterNodeWorkload,
   type FugueRuntime,
 } from "@/lib/fugue/api";
-import { readCountryLocation } from "@/lib/geo/country";
+import {
+  readCountryLocation,
+  readLocalizedLocationLabel,
+} from "@/lib/geo/country";
 import {
   readManagedSharedRuntimeLabel,
   readRuntimeLocation,
@@ -996,7 +999,13 @@ function buildClusterNodeViews(
             ? "positive"
             : toneForStatus(node.status);
     const location = readCountryLocation(node.region, node.zone, locale);
-    const locationLabel = location.locationLabel;
+    const locationLabel =
+      readLocalizedLocationLabel({
+        countryCode: location.locationCountryCode,
+        fallback: t("Unassigned"),
+        label: location.locationLabel,
+        locale,
+      }) ?? t("Unassigned");
     const heartbeatAt = runtime?.lastHeartbeatAt ?? runtime?.lastSeenAt ?? null;
     const isPublicRuntime =
       runtime?.accessMode?.trim().toLowerCase() === "public";
@@ -1193,6 +1202,12 @@ function buildOfflineServerViews(
   return {
     views: offlineOwnedRuntimes.map((runtime) => {
       const location = readRuntimeLocation(runtime.labels, locale);
+      const locationLabel = readLocalizedLocationLabel({
+        countryCode: location.locationCountryCode,
+        fallback: t("Unassigned"),
+        label: location.locationLabel,
+        locale,
+      });
       const lastContactAt =
         runtime.lastHeartbeatAt ??
         runtime.lastSeenAt ??
@@ -1205,7 +1220,7 @@ function buildOfflineServerViews(
         ? readRuntimePublicOfferDescription(runtime.publicOffer, locale)
         : null;
       const statusFragments = [
-        location.locationLabel ?? null,
+        locationLabel,
         lastContactAt
           ? t("Last contact {time}", {
               time: formatRelativeTime(locale, t, lastContactAt),
@@ -1230,7 +1245,7 @@ function buildOfflineServerViews(
         lastContactExact: formatExactTime(locale, t, lastContactAt),
         lastContactLabel: formatRelativeTime(locale, t, lastContactAt),
         locationCountryCode: location.locationCountryCode,
-        locationLabel: location.locationLabel ?? t("Unassigned"),
+        locationLabel: locationLabel ?? t("Unassigned"),
         machineLabel:
           runtime.machineName?.trim() ||
           clusterNodeName ||
