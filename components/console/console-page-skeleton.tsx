@@ -1265,7 +1265,7 @@ export function ConsoleBillingPageSkeleton() {
                   </div>
 
                   <div className="fg-field-control fg-billing-top-up-form__control">
-                    <div className="fg-billing-top-up-form__entry">
+                    <div className="fg-control-group fg-billing-top-up-form__entry">
                       <SkeletonBlock className="fg-console-skeleton__field" />
 
                       <div className="fg-settings-form__actions fg-billing-top-up-form__actions">

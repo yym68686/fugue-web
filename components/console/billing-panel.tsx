@@ -1748,7 +1748,7 @@ export function BillingPanel({
                       topUpError ? " is-invalid" : ""
                     }`}
                   >
-                    <div className="fg-billing-top-up-form__entry">
+                    <div className="fg-control-group fg-billing-top-up-form__entry">
                       <div className="fg-billing-top-up-form__input-wrap">
                         <input
                           className="fg-input"

@@ -246,6 +246,40 @@ function verifyMorlaneContracts(issues) {
   });
 
   requireTokens(issues, {
+    contract: "control.input-single-surface",
+    file: files.morlaneCss,
+    message: "Composite input groups must keep the wrapper as the only framed surface across default, focus, and invalid states.",
+    rule: "composite-input-single-surface-design-system-required",
+    selector: ".fg-control-group, .fg-billing-top-up-form__entry, .input-with-button",
+    tokens: [
+      ".fg-control-group",
+      ".fg-field-control:has(",
+      ".fg-billing-top-up-form__entry .fg-input",
+      ":is(:focus, :focus-visible, [aria-invalid=\"true\"])",
+      "outline: 0",
+      "box-shadow: none",
+    ],
+  });
+
+  requireTokens(issues, {
+    contract: "control.input-single-surface",
+    file: files.consoleComponents,
+    message: "The final console CSS layer must preserve single-surface composite inputs after page-level overrides.",
+    rule: "composite-input-single-surface-console-guard-required",
+    selector: ".fg-console-page .fg-control-group",
+    tokens: [
+      "Final Morlane single-surface guard",
+      ".fg-console-page :is(.fp-project-search, .fp-project-select, .fg-control-group",
+      ".fg-billing-top-up-form__entry",
+      ".fg-field-control:has(",
+      ":is(:focus, :focus-visible, [aria-invalid=\"true\"])",
+      "border: 0",
+      "outline: 0",
+      "box-shadow: none",
+    ],
+  });
+
+  requireTokens(issues, {
     contract: "control.locale-theme-morlane",
     file: files.morlaneCss,
     message: "Locale and theme controls must use the shared Morlane utility controls.",

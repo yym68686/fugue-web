@@ -22,8 +22,8 @@
     },
     {
       "id": "control.input-single-surface",
-      "rootSelector": ".fp-project-search, .fp-project-select, .fg-field-control",
-      "surfaceOwner": ".fp-project-search, .fp-project-select, input, select, textarea"
+      "rootSelector": ".fp-project-search, .fp-project-select, .fg-field-control, .fg-control-group",
+      "surfaceOwner": ".fp-project-search, .fp-project-select, .fg-control-group, .fg-route-composer__shell, .fg-billing-top-up-form__entry, .input-with-button"
     },
     {
       "id": "control.locale-theme-morlane",

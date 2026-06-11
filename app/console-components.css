@@ -144,12 +144,12 @@
 .fp-project-search input,
 .fp-project-select select {
   width: 100%;
-  min-height: 32px;
-  padding: 0 10px;
-  border: 1px solid var(--ml-border);
-  border-radius: var(--ml-radius);
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
   outline: 0;
-  background: var(--ml-surface-2);
+  background: transparent;
   color: var(--ml-text);
   font-size: 13px;
 }
@@ -2136,4 +2136,139 @@
   .fg-admin-cluster-manager__policy-switch-thumb {
     transition: none;
   }
+}
+
+/* Final Morlane single-surface guard for composite controls.
+   The console layer loads after the design system, so this repeats the
+   contract here to prevent page-level rules from reintroducing inner frames. */
+.fg-console-page :is(.fp-project-search, .fp-project-select, .fg-control-group, .fg-route-composer__shell, .fg-billing-top-up-form__entry, .input-with-button):focus-within,
+.fg-console-page
+  .fg-field-control:has(
+    > :is(
+        input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]),
+        select,
+        textarea,
+        .fg-input,
+        .fg-form-input,
+        .fg-select__control,
+        .fg-textarea,
+        .fp-input,
+        .fp-select,
+        .fp-textarea
+      )
+      + :is(button, .button, .fg-button, .fg-settings-form__actions)
+  ):focus-within {
+  border-color: var(--ml-focus);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ml-focus) 20%, transparent);
+}
+
+.fg-console-page .fg-route-composer[data-invalid="true"] .fg-route-composer__shell,
+.fg-console-page
+  .fg-field-control.is-invalid
+  :is(.fg-control-group, .fg-billing-top-up-form__entry, .input-with-button),
+.fg-console-page
+  :is(.fg-control-group, .fg-billing-top-up-form__entry, .input-with-button):has(
+    :is(input, select, textarea, .fg-input, .fp-input, .fp-select, .fp-textarea)[aria-invalid="true"]
+  ) {
+  border-color: var(--ml-danger);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ml-danger) 14%, transparent);
+}
+
+.fg-console-page
+  :is(.fp-project-search, .fp-project-select, .fg-control-group, .fg-route-composer__shell, .fg-billing-top-up-form__entry, .input-with-button)
+  :is(
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]),
+    select,
+    textarea,
+    .fg-input,
+    .fg-form-input,
+    .fg-select__control,
+    .fg-textarea,
+    .fp-input,
+    .fp-select,
+    .fp-textarea
+  ),
+.fg-console-page
+  .fg-field-control:has(
+    > :is(
+        input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]),
+        select,
+        textarea,
+        .fg-input,
+        .fg-form-input,
+        .fg-select__control,
+        .fg-textarea,
+        .fp-input,
+        .fp-select,
+        .fp-textarea
+      )
+      + :is(button, .button, .fg-button, .fg-settings-form__actions)
+  )
+  > :is(
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]),
+    select,
+    textarea,
+    .fg-input,
+    .fg-form-input,
+    .fg-select__control,
+    .fg-textarea,
+    .fp-input,
+    .fp-select,
+    .fp-textarea
+  ) {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  outline: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.fg-console-page
+  :is(.fp-project-search, .fp-project-select, .fg-control-group, .fg-route-composer__shell, .fg-billing-top-up-form__entry, .input-with-button)
+  :is(
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]),
+    select,
+    textarea,
+    .fg-input,
+    .fg-form-input,
+    .fg-select__control,
+    .fg-textarea,
+    .fp-input,
+    .fp-select,
+    .fp-textarea
+  ):is(:focus, :focus-visible, [aria-invalid="true"]),
+.fg-console-page
+  .fg-field-control:has(
+    > :is(
+        input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]),
+        select,
+        textarea,
+        .fg-input,
+        .fg-form-input,
+        .fg-select__control,
+        .fg-textarea,
+        .fp-input,
+        .fp-select,
+        .fp-textarea
+      )
+      + :is(button, .button, .fg-button, .fg-settings-form__actions)
+  )
+  > :is(
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]),
+    select,
+    textarea,
+    .fg-input,
+    .fg-form-input,
+    .fg-select__control,
+    .fg-textarea,
+    .fp-input,
+    .fp-select,
+    .fp-textarea
+  ):is(:focus, :focus-visible, [aria-invalid="true"]) {
+  border: 0;
+  outline: 0;
+  background: transparent;
+  box-shadow: none;
 }

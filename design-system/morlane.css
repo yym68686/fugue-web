@@ -4339,15 +4339,32 @@ textarea {
   flex: 0 0 auto;
 }
 
+.fg-control-group,
 .fg-route-composer,
 .fg-billing-top-up-form__entry,
 .input-with-button {
   min-width: 0;
 }
 
+.fg-control-group,
 .fg-route-composer__shell,
 .fg-billing-top-up-form__entry,
-.input-with-button {
+.input-with-button,
+.fg-field-control:has(
+    > :is(
+        input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]),
+        select,
+        textarea,
+        .fg-input,
+        .fg-form-input,
+        .fg-select__control,
+        .fg-textarea,
+        .fp-input,
+        .fp-select,
+        .fp-textarea
+      )
+      + :is(button, .button, .fg-button, .fg-settings-form__actions)
+  ) {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -4359,21 +4376,82 @@ textarea {
   background: var(--surface);
 }
 
+.fg-control-group:focus-within,
 .fg-route-composer__shell:focus-within,
 .fg-billing-top-up-form__entry:focus-within,
-.input-with-button:focus-within {
+.input-with-button:focus-within,
+.fg-field-control:has(
+    > :is(
+        input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]),
+        select,
+        textarea,
+        .fg-input,
+        .fg-form-input,
+        .fg-select__control,
+        .fg-textarea,
+        .fp-input,
+        .fp-select,
+        .fp-textarea
+      )
+      + :is(button, .button, .fg-button, .fg-settings-form__actions)
+  ):focus-within {
   border-color: var(--focus);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--focus) 20%, transparent);
 }
 
-.fg-route-composer[data-invalid="true"] .fg-route-composer__shell {
+.fg-route-composer[data-invalid="true"] .fg-route-composer__shell,
+.fg-field-control.is-invalid
+  :is(.fg-control-group, .fg-billing-top-up-form__entry, .input-with-button),
+:is(.fg-control-group, .fg-billing-top-up-form__entry, .input-with-button):has(
+    :is(input, select, textarea, .fg-input, .fp-input, .fp-select, .fp-textarea)[aria-invalid="true"]
+  ) {
   border-color: var(--danger);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--danger) 14%, transparent);
 }
 
+.fg-control-group
+  :is(
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]),
+    select,
+    textarea,
+    .fg-input,
+    .fg-form-input,
+    .fg-select__control,
+    .fg-textarea,
+    .fp-input,
+    .fp-select,
+    .fp-textarea
+  ),
 .fg-route-composer__field,
 .fg-billing-top-up-form__entry .fg-input,
-.input-with-button input {
+.input-with-button input,
+.fg-field-control:has(
+    > :is(
+        input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]),
+        select,
+        textarea,
+        .fg-input,
+        .fg-form-input,
+        .fg-select__control,
+        .fg-textarea,
+        .fp-input,
+        .fp-select,
+        .fp-textarea
+      )
+      + :is(button, .button, .fg-button, .fg-settings-form__actions)
+  )
+  > :is(
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]),
+    select,
+    textarea,
+    .fg-input,
+    .fg-form-input,
+    .fg-select__control,
+    .fg-textarea,
+    .fp-input,
+    .fp-select,
+    .fp-textarea
+  ) {
   min-height: 34px;
   padding: 6px 0;
   border: 0;
@@ -4381,10 +4459,57 @@ textarea {
   box-shadow: none;
 }
 
+.fg-control-group
+  :is(
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]),
+    select,
+    textarea,
+    .fg-input,
+    .fg-form-input,
+    .fg-select__control,
+    .fg-textarea,
+    .fp-input,
+    .fp-select,
+    .fp-textarea
+  ):is(:focus, :focus-visible, [aria-invalid="true"]),
 .fg-route-composer__field:focus,
+.fg-route-composer__field:focus-visible,
 .fg-billing-top-up-form__entry .fg-input:focus,
-.input-with-button input:focus {
+.fg-billing-top-up-form__entry .fg-input:focus-visible,
+.fg-billing-top-up-form__entry .fg-input[aria-invalid="true"],
+.input-with-button input:focus,
+.input-with-button input:focus-visible,
+.input-with-button input[aria-invalid="true"],
+.fg-field-control:has(
+    > :is(
+        input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]),
+        select,
+        textarea,
+        .fg-input,
+        .fg-form-input,
+        .fg-select__control,
+        .fg-textarea,
+        .fp-input,
+        .fp-select,
+        .fp-textarea
+      )
+      + :is(button, .button, .fg-button, .fg-settings-form__actions)
+  )
+  > :is(
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]),
+    select,
+    textarea,
+    .fg-input,
+    .fg-form-input,
+    .fg-select__control,
+    .fg-textarea,
+    .fp-input,
+    .fp-select,
+    .fp-textarea
+  ):is(:focus, :focus-visible, [aria-invalid="true"]) {
   border: 0;
+  outline: 0;
+  background: transparent;
   box-shadow: none;
 }
 
