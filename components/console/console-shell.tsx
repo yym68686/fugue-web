@@ -29,7 +29,7 @@ export async function ConsoleShell({
         className="fp-app-shell--console"
         mobileNavigationLabel={t("Open menu")}
         mobileNavigation={
-          <ConsoleSidebar enableCommandShortcut={false} isAdmin={isAdmin} />
+          <ConsoleSidebar isAdmin={isAdmin} />
         }
         sidebar={<ConsoleSidebar isAdmin={isAdmin} />}
         topbar={
