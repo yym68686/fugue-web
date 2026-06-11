@@ -261,9 +261,17 @@ export type CountryLocationView = {
 };
 
 const COUNTRY_CODE_SET = new Set<string>(COUNTRY_CODES);
-const COUNTRY_LABEL_OVERRIDES: Partial<Record<CountryCode, string>> = {
-  HK: "Hong Kong",
-  MO: "Macao",
+const COUNTRY_LABEL_OVERRIDES: Partial<Record<CountryCode, Partial<Record<Locale, string>>>> = {
+  HK: {
+    en: "Hong Kong",
+    "zh-CN": "中国香港",
+    "zh-TW": "中國香港",
+  },
+  MO: {
+    en: "Macao",
+    "zh-CN": "中国澳门",
+    "zh-TW": "中國澳門",
+  },
 };
 const COUNTRY_NAME_ALIASES = {
   "czech republic": "CZ",
@@ -315,7 +323,11 @@ function readCountryDisplayLabel(value?: string | null, locale: Locale = "en") {
   }
 
   const countryCode = upper as CountryCode;
-  return COUNTRY_LABEL_OVERRIDES[countryCode] ?? readRegionDisplayName(locale, countryCode) ?? null;
+  return (
+    COUNTRY_LABEL_OVERRIDES[countryCode]?.[locale] ??
+    readRegionDisplayName(locale, countryCode) ??
+    null
+  );
 }
 
 const COUNTRY_NAME_TO_CODE = (() => {
