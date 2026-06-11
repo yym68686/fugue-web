@@ -256,6 +256,16 @@ function humanizeLabel(value?: string | null) {
     .replace(/\b\w/g, (match) => match.toUpperCase());
 }
 
+function readAdminUserDisplayName(user: AdminUserView, t: Translator) {
+  const name = user.name.trim();
+
+  if (name) {
+    return name.toLowerCase() === "unknown" ? t("Unknown") : name;
+  }
+
+  return user.email.split("@")[0] ?? user.email;
+}
+
 function readBillingStatusTone(billing: FugueBillingSummary): ConsoleTone {
   if (billing.overCap || billing.status === "over-cap") {
     return "warning";
@@ -481,6 +491,9 @@ export function AdminUserManager({
   });
   const editingQuotaUser = editingQuotaEmail
     ? userRows.find((candidate) => candidate.email === editingQuotaEmail) ?? null
+    : null;
+  const editingQuotaUserDisplayName = editingQuotaUser
+    ? readAdminUserDisplayName(editingQuotaUser, t)
     : null;
   const quotaCpuCores = quotaCpu / MILLICORES_PER_VCPU;
   const quotaMemoryGib = quotaMemory / MEBIBYTES_PER_GIB;
@@ -1246,15 +1259,16 @@ export function AdminUserManager({
                   tone: "neutral",
                 },
               ] satisfies ConsoleCompactResourceItemView[];
+              const displayName = readAdminUserDisplayName(user, t);
 
               return (
                 <tr key={user.email}>
                   <td>
                     <div
                       className="fg-console-table__pair"
-                      title={`${user.name} / ${user.email}`}
+                      title={`${displayName} / ${user.email}`}
                     >
-                      <strong>{user.name}</strong>
+                      <strong>{displayName}</strong>
                       <span>/ {user.email}</span>
                     </div>
                   </td>
@@ -1423,9 +1437,9 @@ export function AdminUserManager({
                     <p
                       className="fg-admin-user-billing-dialog__meta"
                       id={quotaDialogDescriptionId}
-                      title={`${editingQuotaUser.name} / ${editingQuotaUser.email}`}
+                      title={`${editingQuotaUserDisplayName} / ${editingQuotaUser.email}`}
                     >
-                      {editingQuotaUser.name} / {editingQuotaUser.email}
+                      {editingQuotaUserDisplayName} / {editingQuotaUser.email}
                     </p>
                   </div>
 
