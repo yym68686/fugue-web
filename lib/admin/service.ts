@@ -616,6 +616,16 @@ function readProviderLabel(value?: string | null, locale: Locale = "en") {
   }
 }
 
+function readAdminUserDisplayName(user: AppUserRecord, locale: Locale) {
+  const name = user.name?.trim();
+
+  if (name) {
+    return name.toLowerCase() === "unknown" ? translate(locale, "Unknown") : name;
+  }
+
+  return user.email.split("@")[0] ?? user.email;
+}
+
 function normalizeTechKind(value?: string | null) {
   return value?.trim().toLowerCase() || "stack";
 }
@@ -1112,7 +1122,7 @@ function buildUserViews(
       isAdmin: user.isAdmin,
       lastLoginExact: formatExactTime(user.lastLoginAt, locale),
       lastLoginLabel: formatRelativeTime(user.lastLoginAt, locale),
-      name: user.name ?? user.email.split("@")[0] ?? user.email,
+      name: readAdminUserDisplayName(user, locale),
       provider:
         readProviderLabel(user.provider, locale) ?? humanize(user.provider),
       serviceCount,
