@@ -7,12 +7,14 @@ export function PlatformShell({
   children,
   className,
   mobileNavigation,
+  mobileNavigationLabel = "Open menu",
   sidebar,
   topbar,
 }: {
   children: ReactNode;
   className?: string;
   mobileNavigation?: ReactNode;
+  mobileNavigationLabel?: string;
   sidebar: ReactNode;
   topbar: ReactNode;
 }) {
@@ -25,7 +27,7 @@ export function PlatformShell({
             <details className="fp-mobile-nav">
               <summary className="fp-button fp-icon-button fp-icon-button--sm fp-mobile-nav__trigger">
                 <PlatformIcon name="menu" />
-                <span className="fg-visually-hidden">Open navigation</span>
+                <span className="fg-visually-hidden">{mobileNavigationLabel}</span>
               </summary>
               <div className="fp-mobile-nav__backdrop" />
               <div className="fp-mobile-nav__panel">{mobileNavigation}</div>

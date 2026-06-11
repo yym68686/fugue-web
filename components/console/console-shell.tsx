@@ -8,6 +8,7 @@ import {
 } from "@/components/console/console-route-transition";
 import { PlatformShell } from "@/components/platform/platform-layout";
 import type { SessionUser } from "@/lib/auth/session";
+import { getRequestI18n } from "@/lib/i18n/server";
 
 export async function ConsoleShell({
   children,
@@ -20,10 +21,13 @@ export async function ConsoleShell({
   isAdmin?: boolean;
   session: SessionUser;
 }) {
+  const { t } = await getRequestI18n();
+
   return (
     <ConsoleRouteTransitionProvider>
       <PlatformShell
         className="fp-app-shell--console"
+        mobileNavigationLabel={t("Open menu")}
         mobileNavigation={
           <ConsoleSidebar enableCommandShortcut={false} isAdmin={isAdmin} />
         }
