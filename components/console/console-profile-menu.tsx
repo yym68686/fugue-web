@@ -90,6 +90,9 @@ export function ConsoleProfileMenu({
     };
   }, [closeProfileMenu, profileMenuOpen]);
 
+  const profileTitle =
+    sessionLabel === session.email ? sessionLabel : `${sessionLabel} (${session.email})`;
+
   return (
     <details
       className="fg-console-profile"
@@ -97,6 +100,7 @@ export function ConsoleProfileMenu({
       ref={detailsRef}
     >
       <summary
+        aria-label={`${t("Account")}: ${profileTitle}`}
         aria-expanded={profileMenuOpen}
         className="fg-console-profile__trigger"
         onClick={(event) => {
@@ -104,14 +108,12 @@ export function ConsoleProfileMenu({
           toggleProfileMenu();
         }}
         ref={triggerRef}
+        title={profileTitle}
       >
         <span className="fg-console-profile__avatar" aria-hidden="true">
           {readSessionMonogram(sessionLabel)}
         </span>
-        <span className="fg-console-profile__summary">
-          <strong>{sessionLabel}</strong>
-          <span>{session.email}</span>
-        </span>
+        <span className="fg-console-profile__name">{sessionLabel}</span>
       </summary>
 
       <div
@@ -123,7 +125,7 @@ export function ConsoleProfileMenu({
         )}
         data-origin="top-right"
       >
-        <div className="fg-console-profile__menu-head">
+        <div className="fg-console-profile__menu-head" title={profileTitle}>
           <strong>{sessionLabel}</strong>
           <span>{session.email}</span>
         </div>

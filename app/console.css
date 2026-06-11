@@ -408,6 +408,7 @@
 }
 
 .fg-console-profile {
+  min-width: 0;
   position: relative;
 }
 
@@ -415,20 +416,36 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
   min-height: 36px;
+  max-width: min(180px, 22vw);
+  overflow: hidden;
   padding: 6px 9px;
   border: 1px solid var(--ml-border);
   border-radius: var(--ml-radius);
   background: var(--ml-surface);
   color: var(--ml-text);
+  cursor: pointer;
+  list-style: none;
+  white-space: nowrap;
 }
 
 .fg-console-profile__trigger:hover {
   background: var(--ml-surface-2);
 }
 
+.fg-console-profile__trigger:focus-visible {
+  outline: 2px solid var(--ml-focus);
+  outline-offset: 2px;
+}
+
+.fg-console-profile__trigger::-webkit-details-marker {
+  display: none;
+}
+
 .fg-console-profile__avatar {
   display: inline-grid;
+  flex: 0 0 auto;
   width: 24px;
   height: 24px;
   place-items: center;
@@ -437,6 +454,18 @@
   color: var(--ml-surface);
   font-size: 12px;
   font-weight: 800;
+}
+
+.fg-console-profile__name {
+  min-width: 0;
+  max-width: 14ch;
+  overflow: hidden;
+  color: var(--ml-text);
+  font-size: 13px;
+  font-weight: 720;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .fg-console-profile__menu {
@@ -457,6 +486,19 @@
   display: grid;
   gap: 8px;
   padding: 10px;
+}
+
+.fg-console-profile__menu-head strong,
+.fg-console-profile__menu-head span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fg-console-profile__menu-head span {
+  color: var(--ml-muted);
+  font-size: 12px;
 }
 
 .fg-console-profile__section + .fg-console-profile__section {
