@@ -38,6 +38,17 @@ const enMessages = {
   "Migrating": "Migrating",
   "No images": "-",
   "No stats": "-",
+  "Current release is serving traffic.": "Current release is serving traffic.",
+  "Serving the current release while the next release builds.":
+    "Serving the current release while the next release builds.",
+  "Serving the current release while the next release deploys.":
+    "Serving the current release while the next release deploys.",
+  "Serving the current release while the next release waits to start.":
+    "Serving the current release while the next release waits to start.",
+  "Serving the current runtime while the transfer prepares the destination.":
+    "Serving the current runtime while the transfer prepares the destination.",
+  "Serving the current runtime while the transfer waits to start.":
+    "Serving the current runtime while the transfer waits to start.",
   "Stopped": "Stopped",
   "Stored app images": "Stored app images",
   "Allocatable": "Allocatable",
@@ -88,6 +99,17 @@ const zhCNMessages = {
   "{count} variable": "{count} 个变量",
   "{count} variables": "{count} 个变量",
   "{count} version": "{count} 个版本",
+  "Current release is serving traffic.": "当前版本正在服务流量。",
+  "Serving the current release while the next release builds.":
+    "下个版本构建期间，当前版本继续服务流量。",
+  "Serving the current release while the next release deploys.":
+    "下个版本部署期间，当前版本继续服务流量。",
+  "Serving the current release while the next release waits to start.":
+    "下个版本等待启动期间，当前版本继续服务流量。",
+  "Serving the current runtime while the transfer prepares the destination.":
+    "迁移目标准备期间，当前运行时继续服务流量。",
+  "Serving the current runtime while the transfer waits to start.":
+    "迁移等待启动期间，当前运行时继续服务流量。",
   "{count} versions": "{count} 个版本",
   "{value} KB": "{value} KB",
   "{value} MB": "{value} MB",
@@ -722,6 +744,17 @@ const zhTWMessages = {
   "{count} bytes": "{count} 位元組",
   "{count} version": "{count} 個版本",
   "{count} versions": "{count} 個版本",
+  "Current release is serving traffic.": "目前版本正在服務流量。",
+  "Serving the current release while the next release builds.":
+    "下個版本建置期間，目前版本繼續服務流量。",
+  "Serving the current release while the next release deploys.":
+    "下個版本部署期間，目前版本繼續服務流量。",
+  "Serving the current release while the next release waits to start.":
+    "下個版本等待啟動期間，目前版本繼續服務流量。",
+  "Serving the current runtime while the transfer prepares the destination.":
+    "轉移目標準備期間，目前執行環境繼續服務流量。",
+  "Serving the current runtime while the transfer waits to start.":
+    "轉移等待啟動期間，目前執行環境繼續服務流量。",
   "Access keys": "存取金鑰",
   "Add service": "新增服務",
   "Adding…": "新增中…",

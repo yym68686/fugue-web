@@ -2149,6 +2149,16 @@ function readDistinctText(
   return duplicate ? null : trimmedValue;
 }
 
+function readLocalizedDistinctText(
+  value: string | null | undefined,
+  comparisons: Array<string | null | undefined>,
+  t: Translator,
+) {
+  const distinctText = readDistinctText(value, comparisons);
+
+  return distinctText ? t(distinctText) : null;
+}
+
 function readPersistentStorageLabel(
   mounts: ConsoleGalleryPersistentStorageMountView[],
   t: Translator = (key) => key,
@@ -5400,7 +5410,11 @@ export function ConsoleProjectGallery({
 
     const selectedServiceSummary =
       selectedService.kind === "app"
-        ? readDistinctText(selectedService.lastMessage, [selectedService.name])
+        ? readLocalizedDistinctText(
+            selectedService.lastMessage,
+            [selectedService.name],
+            t,
+          )
         : readDistinctText(selectedService.description, [
             selectedService.name,
             selectedService.ownerAppLabel,
@@ -8462,7 +8476,11 @@ function ConsoleProjectWorkbenchImpl({
 
   const selectedServiceSummary =
     selectedService.kind === "app"
-      ? readDistinctText(selectedService.lastMessage, [selectedService.name])
+      ? readLocalizedDistinctText(
+          selectedService.lastMessage,
+          [selectedService.name],
+          t,
+        )
       : readDistinctText(selectedService.description, [
           selectedService.name,
           selectedService.ownerAppLabel,
