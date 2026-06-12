@@ -118,9 +118,7 @@ export function ConsoleBillingPageShell({
       },
     );
   const [liveUsageSnapshot, setLiveUsageSnapshot] =
-    useState<ConsoleBillingPageSnapshot | null>(() =>
-      readBillingUsageSnapshot(),
-    );
+    useState<ConsoleBillingPageSnapshot | null>(null);
 
   useEffect(() => {
     if (data?.state !== "ready") {

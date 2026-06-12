@@ -413,6 +413,16 @@ function formatExactTime(
   });
 }
 
+function formatStableUtcTime(value: string | null | undefined, t: Translator) {
+  const timestamp = parseTimestamp(value);
+
+  if (!timestamp) {
+    return t("Not yet");
+  }
+
+  return `${new Date(timestamp).toISOString().slice(0, 16).replace("T", " ")} UTC`;
+}
+
 function formatRunwayDurationHours(
   value: number | null | undefined,
   formatNumber: NumberFormatter,
@@ -860,6 +870,11 @@ export function BillingPanel({
   const [topUpBlocking, setTopUpBlocking] = useState(false);
   const [checkingTopUpStatus, setCheckingTopUpStatus] = useState(false);
   const [trackedTopUpRequestId, setTrackedTopUpRequestId] = useState<string | null>(null);
+  const [hasHydrated, setHasHydrated] = useState(false);
+
+  useEffect(() => {
+    setHasHydrated(true);
+  }, []);
 
   useEffect(() => {
     setBilling(initialBilling);
@@ -938,9 +953,17 @@ export function BillingPanel({
     : t("Runway updates after live billing data is available.");
   const topUpHintText = readTopUpHint(parsedTopUpUnits, billing, formatNumber, t);
   const topUpButtonLabel = readTopUpButtonLabel(parsedTopUpUnits, t);
+  const formatDisplayRelativeTime = (value: string | null | undefined) =>
+    hasHydrated
+      ? formatRelativeTime(value, formatRelativeTimeValue, t)
+      : formatStableUtcTime(value, t);
+  const formatDisplayExactTime = (value: string | null | undefined) =>
+    hasHydrated
+      ? formatExactTime(value, formatDateTime, t)
+      : formatStableUtcTime(value, t);
   const billingUpdatedLabel = billing?.updatedAt
     ? t("Updated {time}", {
-        time: formatRelativeTime(billing.updatedAt, formatRelativeTimeValue, t),
+        time: formatDisplayRelativeTime(billing.updatedAt),
       })
     : t("Billing snapshot ready");
   const billingHealthHint = (
@@ -1884,11 +1907,7 @@ export function BillingPanel({
                         <div className="fg-billing-ledger-row__event-head">
                           <strong>{readEventTitle(event, t)}</strong>
                           <StatusBadge tone={readEventTone(event)}>
-                            {formatRelativeTime(
-                              event.createdAt,
-                              formatRelativeTimeValue,
-                              t,
-                            )}
+                            {formatDisplayRelativeTime(event.createdAt)}
                           </StatusBadge>
                         </div>
                         <p>{readEventDetail(event, currency, locale, formatNumber, t)}</p>
@@ -1930,14 +1949,8 @@ export function BillingPanel({
                         data-label={t("Created")}
                         role="cell"
                       >
-                        <strong>{formatExactTime(event.createdAt, formatDateTime, t)}</strong>
-                        <span>
-                          {formatRelativeTime(
-                            event.createdAt,
-                            formatRelativeTimeValue,
-                            t,
-                          )}
-                        </span>
+                        <strong>{formatDisplayExactTime(event.createdAt)}</strong>
+                        <span>{formatDisplayRelativeTime(event.createdAt)}</span>
                       </div>
                     </li>
                   ))}
