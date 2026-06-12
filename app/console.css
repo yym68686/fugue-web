@@ -546,7 +546,6 @@
 .fp-command-search__input {
   min-height: 38px;
   border: 0;
-  outline: 0;
   background: transparent;
   color: var(--ml-text);
   font-size: 16px;

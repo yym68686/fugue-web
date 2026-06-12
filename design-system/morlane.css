@@ -515,7 +515,6 @@ pre {
   min-height: 38px;
   padding: 0;
   border: 0;
-  outline: 0;
   background: transparent;
   color: var(--text);
   font-size: 16px;
@@ -887,7 +886,6 @@ label select {
   min-height: 0;
   padding: 0;
   border: 0;
-  outline: none;
 }
 
 .table-scroll {
@@ -1279,7 +1277,6 @@ label select {
   min-height: 44px;
   padding: 0;
   border: 0;
-  outline: none;
   background: transparent;
   color: var(--text);
 }
@@ -1747,10 +1744,6 @@ label span {
   letter-spacing: 0;
 }
 
-.amount-control input:focus {
-  outline: 0;
-}
-
 .amount-control:focus-within {
   border-color: var(--focus);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--focus) 20%, transparent);
@@ -1883,7 +1876,6 @@ label span {
   min-height: 30px;
   padding: 0 22px 0 0;
   border: 0;
-  outline: 0;
   background: transparent;
   color: var(--text);
   font-weight: 700;
@@ -2957,7 +2949,6 @@ textarea {
   min-height: 38px;
   padding: 0;
   border: 0;
-  outline: 0;
   background: transparent;
   color: var(--text);
   font-size: 16px;
@@ -3411,7 +3402,6 @@ textarea {
   min-height: 0;
   padding: 0;
   border: 0;
-  outline: none;
   background: transparent;
   color: var(--text);
 }
@@ -4164,7 +4154,6 @@ textarea {
   padding: 7px 9px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  outline: 0;
   background: var(--surface);
   color: var(--text);
   font: inherit;

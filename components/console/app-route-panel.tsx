@@ -979,67 +979,121 @@ export function AppRoutePanel({
 
   return (
     <div className="fg-workbench-section fg-route-panel">
-      <div className="fg-workbench-section__copy fg-route-panel__copy">
-        <HintInline
-          ariaLabel={t("Domains")}
-          hint={t("Keep one Fugue subdomain for {appName}, or attach a hostname you control.", {
-            appName,
-          })}
-        >
-          <p className="fg-label fg-panel__eyebrow">{t("Domains")}</p>
-        </HintInline>
+      <div className="fg-workbench-section__head fg-route-panel__head">
+        <div className="fg-workbench-section__copy fg-route-panel__copy">
+          <HintInline
+            ariaLabel={t("Domains")}
+            hint={t("Keep one Fugue subdomain for {appName}, or attach a hostname you control.", {
+              appName,
+            })}
+          >
+            <p className="fg-label fg-panel__eyebrow">{t("Domains")}</p>
+          </HintInline>
+        </div>
       </div>
 
-      <section aria-label={t("Fugue subdomain")} className="fg-route-subsection fg-route-block">
-        <div className="fg-route-panel__form">
-          <div className="fg-field-stack fg-route-field">
-            <span className="fg-field-label">
-              <span className="fg-field-label__main">
-                <label className="fg-field-label__text" htmlFor={`route-hostname-${appId}`}>
-                  {t("Subdomain")}
-                </label>
-                {!fieldInvalid ? (
-                  <HintTooltip ariaLabel={t("Subdomain")}>{helperText}</HintTooltip>
-                ) : null}
-              </span>
-              {fieldState?.label ? (
-                <span
-                  className={cx(
-                    "fg-route-field__status",
-                    `is-${fieldState.variant}`,
-                    availabilityState === "checking" && "is-pending",
-                  )}
-                >
-                  {fieldState.label}
-                </span>
+      <div className="fg-route-panel__grid">
+        <section aria-label={t("Fugue subdomain")} className="fg-route-subsection fg-route-card fg-route-block">
+          <div className="fg-route-card__head">
+            <div>
+              <h3 className="fg-route-subsection__title fg-ui-heading">
+                {t("Fugue subdomain")}
+              </h3>
+              {currentPublicUrl ? (
+                <p className="fg-route-card__meta">{currentPublicUrl}</p>
               ) : null}
-            </span>
-            <span className={cx("fg-field-control", fieldInvalid && "is-invalid")}>
-              <div className="fg-route-composer" data-invalid={fieldInvalid ? "true" : undefined}>
-                <div className="fg-route-composer__shell">
-                  <input
-                    aria-describedby={fieldInvalid ? noteId : undefined}
-                    aria-invalid={fieldInvalid ? true : undefined}
-                    autoCapitalize="off"
-                    autoComplete="off"
-                    autoCorrect="off"
-                    className="fg-route-composer__field"
-                    id={`route-hostname-${appId}`}
-                    inputMode="text"
-                    maxLength={63}
-                    onChange={(event) => {
-                      setDraft(sanitizeRouteLabelInput(event.target.value, baseDomain));
-                    }}
-                    placeholder={t("my-app")}
-                    spellCheck={false}
-                    value={draft}
-                  />
-                  {baseDomain ? (
-                    <span className="fg-route-composer__suffix">.{baseDomain}</span>
+            </div>
+            {fieldState?.label ? (
+              <span
+                className={cx(
+                  "fg-route-field__status",
+                  `is-${fieldState.variant}`,
+                  availabilityState === "checking" && "is-pending",
+                )}
+              >
+                {fieldState.label}
+              </span>
+            ) : null}
+          </div>
+
+          <div className="fg-route-panel__form">
+            <div className="fg-field-stack fg-route-field">
+              <span className="fg-field-label">
+                <span className="fg-field-label__main">
+                  <label className="fg-field-label__text" htmlFor={`route-hostname-${appId}`}>
+                    {t("Subdomain")}
+                  </label>
+                  {!fieldInvalid ? (
+                    <HintTooltip ariaLabel={t("Subdomain")}>{helperText}</HintTooltip>
                   ) : null}
+                </span>
+              </span>
+              <span className={cx("fg-field-control", fieldInvalid && "is-invalid")}>
+                <div className="fg-route-composer" data-invalid={fieldInvalid ? "true" : undefined}>
+                  <div className="fg-route-composer__shell">
+                    <input
+                      aria-describedby={fieldInvalid ? noteId : undefined}
+                      aria-invalid={fieldInvalid ? true : undefined}
+                      autoCapitalize="off"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      className="fg-route-composer__field"
+                      id={`route-hostname-${appId}`}
+                      inputMode="text"
+                      maxLength={63}
+                      onChange={(event) => {
+                        setDraft(sanitizeRouteLabelInput(event.target.value, baseDomain));
+                      }}
+                      placeholder={t("my-app")}
+                      spellCheck={false}
+                      value={draft}
+                    />
+                    {baseDomain ? (
+                      <span className="fg-route-composer__suffix">.{baseDomain}</span>
+                    ) : null}
+                  </div>
                 </div>
-              </div>
-            </span>
+              </span>
+            </div>
+
+            <div className="fg-field-stack fg-route-field">
+              <span className="fg-field-label">
+                <span className="fg-field-label__main">
+                  <label className="fg-field-label__text" htmlFor={`route-path-${appId}`}>
+                    {t("Path prefix")}
+                  </label>
+                  {!fieldInvalid ? (
+                    <HintTooltip ariaLabel={t("Path prefix")}>
+                      {t("Use / for the root route, or /api for a path route.")}
+                    </HintTooltip>
+                  ) : null}
+                </span>
+              </span>
+              <span className={cx("fg-field-control", fieldInvalid && "is-invalid")}>
+                <div className="fg-route-composer" data-invalid={fieldInvalid ? "true" : undefined}>
+                  <div className="fg-route-composer__shell">
+                    <input
+                      aria-describedby={fieldInvalid ? noteId : undefined}
+                      aria-invalid={fieldInvalid ? true : undefined}
+                      autoCapitalize="off"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      className="fg-route-composer__field"
+                      id={`route-path-${appId}`}
+                      inputMode="text"
+                      maxLength={120}
+                      onChange={(event) => {
+                        setPathDraft(sanitizePathPrefixInput(event.target.value));
+                      }}
+                      placeholder="/"
+                      spellCheck={false}
+                      value={pathDraft}
+                    />
+                  </div>
+                </div>
+              </span>
+            </div>
+
             {fieldInvalid ? (
               <span
                 aria-live="assertive"
@@ -1050,128 +1104,116 @@ export function AppRoutePanel({
                 {helperText}
               </span>
             ) : null}
-          </div>
 
-          <div className="fg-field-stack fg-route-field">
-            <span className="fg-field-label">
-              <span className="fg-field-label__main">
-                <label className="fg-field-label__text" htmlFor={`route-path-${appId}`}>
-                  {t("Path prefix")}
-                </label>
-                {!fieldInvalid ? (
-                  <HintTooltip ariaLabel={t("Path prefix")}>
-                    {t("Use / for the root route, or /api for a path route.")}
-                  </HintTooltip>
-                ) : null}
-              </span>
-            </span>
-            <span className={cx("fg-field-control", fieldInvalid && "is-invalid")}>
-              <div className="fg-route-composer" data-invalid={fieldInvalid ? "true" : undefined}>
-                <div className="fg-route-composer__shell">
-                  <input
-                    aria-describedby={fieldInvalid ? noteId : undefined}
-                    aria-invalid={fieldInvalid ? true : undefined}
-                    autoCapitalize="off"
-                    autoComplete="off"
-                    autoCorrect="off"
-                    className="fg-route-composer__field"
-                    id={`route-path-${appId}`}
-                    inputMode="text"
-                    maxLength={120}
-                    onChange={(event) => {
-                      setPathDraft(sanitizePathPrefixInput(event.target.value));
-                    }}
-                    placeholder="/"
-                    spellCheck={false}
-                    value={pathDraft}
-                  />
-                </div>
+            {isDirty || saving ? (
+              <div className="fg-route-panel__form-action">
+                <Button
+                  disabled={!isDirty || saving}
+                  onClick={resetDraft}
+                  size="compact"
+                  type="button"
+                  variant="secondary"
+                >
+                  {t("Reset")}
+                </Button>
+                <Button
+                  disabled={!canSave}
+                  loading={saving}
+                  loadingLabel={t("Saving…")}
+                  onClick={() => {
+                    void saveRoute();
+                  }}
+                  size="compact"
+                  type="button"
+                  variant="primary"
+                >
+                  {t("Save route")}
+                </Button>
               </div>
+            ) : null}
+          </div>
+        </section>
+
+        <section aria-label={t("Internal service URL")} className="fg-route-subsection fg-route-card fg-route-internal">
+          <div className="fg-route-card__head">
+            <div>
+              <h3 className="fg-route-subsection__title fg-ui-heading">
+                {t("Internal service URL")}
+              </h3>
+              <p className="fg-route-internal__copy">
+                {t("Use this address from apps running inside the same Fugue cluster.")}
+              </p>
+            </div>
+            <span
+              className={cx(
+                "fg-route-field__status",
+                initialInternalUrl ? "is-success" : "is-neutral",
+              )}
+            >
+              {initialInternalUrl ? t("Ready") : t("Unavailable")}
             </span>
           </div>
 
-          {isDirty || saving ? (
-            <div className="fg-route-panel__form-action">
-              <Button
-                disabled={!isDirty || saving}
-                onClick={resetDraft}
-                size="compact"
-                type="button"
-                variant="secondary"
-              >
-                {t("Reset")}
-              </Button>
-              <Button
-                disabled={!canSave}
-                loading={saving}
-                loadingLabel={t("Saving…")}
-                onClick={() => {
-                  void saveRoute();
-                }}
-                size="compact"
-                type="button"
-                variant="primary"
-              >
-                {t("Save route")}
-              </Button>
+          {initialInternalUrl ? (
+            <div className="fg-route-internal__value">
+              <code>{initialInternalUrl}</code>
             </div>
-          ) : null}
-        </div>
-      </section>
-
-      <section aria-label={t("Internal service URL")} className="fg-route-subsection fg-route-internal">
-        <div className="fg-route-subsection__head">
-          <div className="fg-route-subsection__copy">
-            <h3 className="fg-route-subsection__title fg-ui-heading">
-              {t("Internal service URL")}
-            </h3>
-            <p className="fg-route-internal__copy">
-              {t("Use this address from apps running inside the same Fugue cluster.")}
+          ) : (
+            <p className="fg-route-table__empty">
+              {t("This app does not expose an internal HTTP service.")}
             </p>
-          </div>
-          <span
-            className={cx(
-              "fg-route-field__status",
-              initialInternalUrl ? "is-success" : "is-neutral",
-            )}
-          >
-            {initialInternalUrl ? t("Ready") : t("Unavailable")}
-          </span>
-        </div>
+          )}
+        </section>
+      </div>
 
-        {initialInternalUrl ? (
-          <div className="fg-route-internal__value">
-            <code>{initialInternalUrl}</code>
-          </div>
-        ) : (
-          <p className="fg-route-table__empty">
-            {t("This app does not expose an internal HTTP service.")}
-          </p>
-        )}
-      </section>
-
-      <section aria-label={t("Project route table")} className="fg-route-subsection fg-route-table">
+      <section aria-label={t("Project route table")} className="fg-route-subsection fg-route-card fg-route-table">
         <div className="fg-route-subsection__head">
           <div className="fg-route-subsection__copy">
             <h3 className="fg-route-subsection__title fg-ui-heading">
               {t("Project route table")}
             </h3>
           </div>
-          <span
-            className={cx(
-              "fg-route-field__status",
-              routeTableError ? "is-error" : routeTableLoading ? "is-info" : "is-success",
-              routeTableLoading && "is-pending",
-            )}
-          >
-            {routeTableError
-              ? t("Unavailable")
-              : routeTableLoading
-                ? t("Loading")
-                : routeTable?.legacy
-                  ? t("Legacy")
-                  : t("Ready")}
-          </span>
+          <div className="fg-route-subsection__actions">
+            <span
+              className={cx(
+                "fg-route-field__status",
+                routeTableError ? "is-error" : routeTableLoading ? "is-info" : "is-success",
+                routeTableLoading && "is-pending",
+              )}
+            >
+              {routeTableError
+                ? t("Unavailable")
+                : routeTableLoading
+                  ? t("Loading")
+                  : routeTable?.legacy
+                    ? t("Legacy")
+                    : t("Ready")}
+            </span>
+            <Button
+              disabled={routeTableLoading || routeTableSaving}
+              onClick={() => {
+                setRouteTableToken((value) => value + 1);
+              }}
+              size="compact"
+              type="button"
+              variant="secondary"
+            >
+              {t("Refresh")}
+            </Button>
+            <Button
+              disabled={!projectId || routeTableLoading || routeTableSaving || !routeTableDraft.trim()}
+              loading={routeTableSaving}
+              loadingLabel={t("Saving…")}
+              onClick={() => {
+                void saveProjectRouteTable();
+              }}
+              size="compact"
+              type="button"
+              variant="primary"
+            >
+              {t("Apply table")}
+            </Button>
+          </div>
         </div>
 
         {routeTableError ? (
@@ -1219,42 +1261,17 @@ export function AppRoutePanel({
               </label>
             </span>
           </span>
-          <textarea
-            className="fg-route-table__editor"
-            id={`route-table-${appId}`}
-            onChange={(event) => {
-              setRouteTableDraft(event.target.value);
-            }}
-            spellCheck={false}
-            value={routeTableDraft}
-          />
-        </div>
-
-        <div className="fg-route-panel__form-action">
-          <Button
-            disabled={routeTableLoading || routeTableSaving}
-            onClick={() => {
-              setRouteTableToken((value) => value + 1);
-            }}
-            size="compact"
-            type="button"
-            variant="secondary"
-          >
-            {t("Refresh")}
-          </Button>
-          <Button
-            disabled={!projectId || routeTableLoading || routeTableSaving || !routeTableDraft.trim()}
-            loading={routeTableSaving}
-            loadingLabel={t("Saving…")}
-            onClick={() => {
-              void saveProjectRouteTable();
-            }}
-            size="compact"
-            type="button"
-            variant="primary"
-          >
-            {t("Apply table")}
-          </Button>
+          <div className="fg-route-code-editor">
+            <textarea
+              className="fg-route-table__editor"
+              id={`route-table-${appId}`}
+              onChange={(event) => {
+                setRouteTableDraft(event.target.value);
+              }}
+              spellCheck={false}
+              value={routeTableDraft}
+            />
+          </div>
         </div>
       </section>
 
