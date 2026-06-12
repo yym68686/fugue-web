@@ -69,7 +69,6 @@ function buildProxyHeaders(upstream: Response) {
 
   headers.set("Cache-Control", buildCacheControlHeader(upstream.headers.get("Cache-Control")));
   headers.set("Content-Type", upstream.headers.get("Content-Type") || "text/event-stream");
-  headers.set("Connection", "keep-alive");
 
   const xAccelBuffering = upstream.headers.get("X-Accel-Buffering");
 
