@@ -1348,6 +1348,8 @@
 }
 
 .fg-billing-capacity-control-card .fg-stepped-slider {
+  grid-template-columns: minmax(70px, auto) minmax(0, 1fr);
+  align-items: center;
   gap: 6px;
   padding: 0;
   border: 0;
@@ -1356,11 +1358,19 @@
 }
 
 .fg-billing-capacity-control-card .fg-stepped-slider__value-pill {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  justify-self: start;
   min-height: 24px;
   padding: 3px 7px;
 }
 
+.fg-billing-capacity-control-card .fg-stepped-slider__input {
+  grid-column: 2;
+}
+
 .fg-billing-capacity-control-card .fg-stepped-slider__bounds {
+  grid-column: 2;
   font-size: 11px;
 }
 
@@ -2268,6 +2278,17 @@
   .fg-billing-capacity-control-card .fg-field-stack,
   .fg-billing-funding-facts div {
     grid-template-columns: 1fr;
+  }
+
+  .fg-billing-capacity-control-card .fg-stepped-slider {
+    grid-template-columns: 1fr;
+  }
+
+  .fg-billing-capacity-control-card .fg-stepped-slider__value-pill,
+  .fg-billing-capacity-control-card .fg-stepped-slider__input,
+  .fg-billing-capacity-control-card .fg-stepped-slider__bounds {
+    grid-column: auto;
+    grid-row: auto;
   }
 
   .fg-billing-funding-facts dd {
