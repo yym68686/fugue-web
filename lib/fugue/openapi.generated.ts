@@ -6579,6 +6579,7 @@ export interface components {
         ClusterPodContainer: {
             name: string;
             image: string;
+            image_id?: string;
             ready: boolean;
             /** Format: int32 */
             restart_count: number;
