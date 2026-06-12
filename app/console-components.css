@@ -1173,8 +1173,7 @@
   background: var(--ml-surface-2);
 }
 
-.fg-billing-health__facts,
-.fg-billing-balance__figures {
+.fg-billing-health__facts {
   display: grid;
   gap: 8px;
 }
@@ -1184,8 +1183,6 @@
 }
 
 .fg-billing-health__facts dt,
-.fg-billing-balance__figure span,
-.fg-billing-capacity-summary__label,
 .fg-billing-health-metric__label {
   color: var(--ml-muted);
   font-size: 11px;
@@ -1209,9 +1206,7 @@
   gap: 10px;
 }
 
-.fg-billing-health-metric,
-.fg-billing-capacity-summary__item,
-.fg-billing-balance__figure {
+.fg-billing-health-metric {
   display: grid;
   align-content: start;
   gap: 6px;
@@ -1229,16 +1224,13 @@
 }
 
 .fg-billing-health-metric__value-row strong,
-.fg-billing-capacity-summary__item strong,
-.fg-billing-balance__figure strong {
+.fg-billing-health-metric strong {
   color: var(--ml-text);
   font-size: 20px;
   font-variant-numeric: tabular-nums;
 }
 
 .fg-billing-health-metric p,
-.fg-billing-capacity-summary__item p,
-.fg-billing-balance__figure p,
 .fg-billing-capacity-footer__note,
 .fg-billing-top-up-form__meta {
   color: var(--ml-muted);
@@ -1250,40 +1242,197 @@
   align-items: stretch;
 }
 
-.fg-billing-workbench > .fg-panel {
-  height: 100%;
-}
-
-.fg-billing-workbench .fg-panel__section {
+.fg-billing-surface--workbench .fg-panel__section {
   display: grid;
   gap: 14px;
 }
 
-.fg-billing-capacity-summary {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+.fg-billing-workbench__header {
+  grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.2fr);
+  align-items: start;
 }
 
-.fg-billing-capacity-grid {
+.fg-billing-workbench__summary {
   display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
+  min-width: 0;
 }
 
-.fg-billing-capacity-control-card {
-  padding: 10px;
+.fg-billing-workbench__summary-item {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  min-width: 0;
+  padding: 9px 10px;
   border: 1px solid var(--ml-border);
   border-radius: var(--ml-radius);
   background: var(--ml-surface-2);
 }
 
+.fg-billing-workbench__summary-item.is-primary {
+  background: var(--ml-surface);
+}
+
+.fg-billing-workbench__summary-item span,
+.fg-billing-funding-facts dt {
+  color: var(--ml-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.fg-billing-workbench__summary-item strong,
+.fg-billing-funding-pane__head strong,
+.fg-billing-funding-facts dd {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--ml-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.fg-billing-workbench__summary-item strong {
+  font-size: 17px;
+}
+
+.fg-billing-workbench__summary-item p {
+  margin: 0;
+  color: var(--ml-muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.fg-billing-workbench__body {
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+  align-items: start;
+  gap: 0;
+  padding-top: 0;
+}
+
+.fg-billing-capacity-pane {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  padding-right: 16px;
+}
+
+.fg-billing-capacity-grid {
+  display: grid;
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--ml-border);
+  border-radius: var(--ml-radius);
+  background: var(--ml-surface);
+}
+
+.fg-billing-capacity-control-card {
+  padding: 12px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--ml-border);
+  border-radius: 0;
+  background: transparent;
+}
+
+.fg-billing-capacity-control-card:last-child {
+  border-bottom: 0;
+}
+
+.fg-billing-capacity-control-card .fg-field-stack {
+  grid-template-columns: minmax(86px, 0.26fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 10px 14px;
+}
+
+.fg-billing-capacity-control-card .fg-field-label {
+  align-items: start;
+  justify-content: flex-start;
+}
+
+.fg-billing-capacity-control-card .fg-stepped-slider {
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.fg-billing-capacity-control-card .fg-stepped-slider__value-pill {
+  min-height: 24px;
+  padding: 3px 7px;
+}
+
+.fg-billing-capacity-control-card .fg-stepped-slider__bounds {
+  font-size: 11px;
+}
+
 .fg-billing-capacity-footer,
-.fg-billing-top-up-form__footer,
 .fg-billing-top-up-status__row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+}
+
+.fg-billing-funding-pane {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  padding-left: 16px;
+  border-left: 1px solid var(--ml-border);
+}
+
+.fg-billing-funding-pane__head {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.fg-billing-funding-pane__title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fg-billing-funding-pane__head strong {
+  font-size: 24px;
+  line-height: 1.15;
+}
+
+.fg-billing-funding-pane__head p {
+  margin: 0;
+  color: var(--ml-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.fg-billing-funding-facts {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--ml-border);
+  border-radius: var(--ml-radius);
+}
+
+.fg-billing-funding-facts div {
+  display: grid;
+  grid-template-columns: minmax(88px, auto) minmax(0, 1fr);
+  gap: 10px;
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--ml-border);
+}
+
+.fg-billing-funding-facts div:last-child {
+  border-bottom: 0;
+}
+
+.fg-billing-funding-facts dt,
+.fg-billing-funding-facts dd {
+  margin: 0;
+}
+
+.fg-billing-funding-facts dd {
+  text-align: end;
+  font-size: 12px;
 }
 
 .fg-billing-top-up-form__entry {
@@ -1293,6 +1442,11 @@
   border: 1px solid var(--ml-border);
   border-radius: var(--ml-radius);
   background: var(--ml-surface);
+}
+
+.fg-billing-top-up-form {
+  display: grid;
+  gap: 12px;
 }
 
 .fg-billing-top-up-form__input-wrap {
@@ -1309,13 +1463,12 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 5px;
+  gap: 6px;
 }
 
 .fg-billing-top-up-form__meta {
   display: grid;
   gap: 2px;
-  text-align: end;
 }
 
 .fg-billing-ledger-table {
@@ -1885,6 +2038,14 @@
     grid-template-columns: minmax(160px, 0.35fr) minmax(220px, 1fr) auto;
     align-items: end;
   }
+
+  .fg-billing-workbench__body {
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 320px);
+  }
+
+  .fg-billing-capacity-control-card .fg-field-stack {
+    grid-template-columns: minmax(74px, 0.22fr) minmax(0, 1fr);
+  }
 }
 
 @media (max-width: 920px) {
@@ -1893,6 +2054,8 @@
   .fg-api-key-item__panel,
   .fg-profile-panel__body,
   .fg-profile-auth-workbench,
+  .fg-billing-workbench__header,
+  .fg-billing-workbench__body,
   .fg-admin-platform-enroll__grid,
   .fg-admin-cluster-manager__policy-grid {
     grid-template-columns: 1fr;
@@ -1978,6 +2141,17 @@
     grid-template-columns: 1fr;
   }
 
+  .fg-billing-capacity-pane {
+    padding-right: 0;
+  }
+
+  .fg-billing-funding-pane {
+    padding-top: 14px;
+    padding-left: 0;
+    border-top: 1px solid var(--ml-border);
+    border-left: 0;
+  }
+
   .fg-billing-ledger-table {
     overflow-x: auto;
   }
@@ -2058,13 +2232,13 @@
   .fg-cluster-node-card__section-head,
   .fg-billing-section-head,
   .fg-billing-health__head,
+  .fg-billing-workbench__header,
   .fg-admin-platform-enroll__head,
   .fg-api-key-permissions__head,
   .fg-profile-auth-provider__header,
   .fg-profile-auth-provider__footer,
   .fg-profile-auth-capability__head,
   .fg-billing-capacity-footer,
-  .fg-billing-top-up-form__footer,
   .fg-admin-cluster-manager__subhead,
   .fg-admin-cluster-manager__actions,
   .fg-admin-cluster-manager__policy-row {
@@ -2085,10 +2259,19 @@
   .fg-api-key-permission-grid,
   .fg-billing-health__facts,
   .fg-billing-health-metrics,
-  .fg-billing-capacity-summary,
+  .fg-billing-workbench__summary,
   .fg-profile-auth-summary__metrics,
   .fg-profile-auth-capabilities {
     grid-template-columns: 1fr;
+  }
+
+  .fg-billing-capacity-control-card .fg-field-stack,
+  .fg-billing-funding-facts div {
+    grid-template-columns: 1fr;
+  }
+
+  .fg-billing-funding-facts dd {
+    text-align: start;
   }
 
   .fg-api-key-item__summary {

@@ -1526,53 +1526,40 @@ export function BillingPanel({
       </Panel>
 
       <section className="fg-billing-stack">
-        <div className="fg-console-two-up fg-billing-workbench">
-          <Panel className="fg-billing-surface fg-billing-surface--envelope">
-            <PanelSection>
-              <div className="fg-billing-section-head">
-                <div className="fg-billing-section-copy">
-                  <p className="fg-label fg-panel__eyebrow">{t("Capacity")}</p>
-                  <BillingSectionTitle
-                    ariaLabel={t("Capacity cap details")}
-                    hint={capacitySectionHint}
-                    title={t("Set the managed capacity cap")}
-                  />
-                </div>
-              </div>
+        <Panel className="fg-billing-surface fg-billing-surface--workbench fg-billing-workbench">
+          <PanelSection className="fg-billing-workbench__header">
+            <div className="fg-billing-section-copy">
+              <p className="fg-label fg-panel__eyebrow">{t("Capacity")}</p>
+              <BillingSectionTitle
+                ariaLabel={t("Capacity cap details")}
+                hint={capacitySectionHint}
+                title={t("Set the managed capacity cap")}
+              />
+            </div>
 
-              <div className="fg-billing-capacity-summary">
-                <article className="fg-billing-capacity-summary__item">
-                  <span className="fg-billing-capacity-summary__label">
-                    {t("Charged at")}
-                  </span>
-                  <strong>{formatResourceSpec(previewSpec, formatNumber)}</strong>
-                  <p>{projectedSpendCopy}</p>
-                </article>
+            <div className="fg-billing-workbench__summary" role="list" aria-label={t("Billing health")}>
+              <article className="fg-billing-workbench__summary-item is-primary" role="listitem">
+                <span>{t("Available credits")}</span>
+                <strong>{availableCreditsLabel}</strong>
+              </article>
+              <article className="fg-billing-workbench__summary-item" role="listitem">
+                <span>{projectedSpendLabel}</span>
+                <strong>{previewMonthlyEstimateLabel}</strong>
+                <p>{projectedSpendCopy}</p>
+              </article>
+              <article className="fg-billing-workbench__summary-item" role="listitem">
+                <span>{t("Estimated runway")}</span>
+                <strong>{runwayLabel}</strong>
+              </article>
+            </div>
+          </PanelSection>
 
-                <article className="fg-billing-capacity-summary__item">
-                  <div className="fg-billing-signal-card__label-row">
-                    <span className="fg-billing-capacity-summary__label">
-                      {projectedSpendLabel}
-                    </span>
-                    <HintTooltip
-                      ariaLabel={t("{label} details", {
-                        label: projectedSpendLabel,
-                      })}
-                    >
-                      {projectedSpendCopy}
-                    </HintTooltip>
-                  </div>
-                  <strong>{previewMonthlyEstimateLabel}</strong>
-                  <p>
-                    {hasEnvelopeChanges
-                      ? t("Preview based on unsaved capacity changes.")
-                      : t("Based on the saved managed envelope.")}
-                  </p>
-                </article>
-              </div>
-            </PanelSection>
-
-            <PanelSection>
+          <PanelSection className="fg-billing-workbench__body">
+            <form
+              className="fg-settings-form fg-billing-form fg-billing-capacity-pane"
+              noValidate
+              onSubmit={handleEnvelopeSubmit}
+            >
               {callout ? <InlineAlert variant={callout.variant}>{callout.message}</InlineAlert> : null}
               {envelopeExceedsUiCap ? (
                 <InlineAlert variant="warning">
@@ -1582,142 +1569,137 @@ export function BillingPanel({
                 </InlineAlert>
               ) : null}
 
-              <form className="fg-settings-form fg-billing-form" noValidate onSubmit={handleEnvelopeSubmit}>
-                <div className="fg-billing-capacity-grid">
-                  <div className="fg-billing-capacity-control-card">
-                    <SteppedSliderField
-                      disabled={isSavingEnvelope}
-                      id="billing-envelope-cpu"
-                      label={t("CPU")}
-                      max={CPU_SLIDER_MAX_CORES}
-                      maxLabel={formatCPU(
-                        Math.round(CPU_SLIDER_MAX_CORES * MILLICORES_PER_VCPU),
-                        formatNumber,
-                      )}
-                      minLabel={formatCPU(0, formatNumber)}
-                      onChange={(nextValue) => {
-                        setEnvelopeCpu(
-                          clampEnvelopeCpuMillicores(nextValue * MILLICORES_PER_VCPU),
-                        );
-                        if (envelopeError) {
-                          setEnvelopeError(null);
-                        }
-                      }}
-                      step={CPU_STEP_CORES}
-                      value={envelopeCpuCores}
-                      valueLabel={formatCPU(envelopeCpu, formatNumber)}
-                    />
-                  </div>
-
-                  <div className="fg-billing-capacity-control-card">
-                    <SteppedSliderField
-                      disabled={isSavingEnvelope}
-                      id="billing-envelope-memory"
-                      label={t("Memory")}
-                      max={MEMORY_SLIDER_MAX_GIB}
-                      maxLabel={formatMemoryMebibytes(
-                        Math.round(MEMORY_SLIDER_MAX_GIB * MEBIBYTES_PER_GIB),
-                        formatNumber,
-                      )}
-                      minLabel={formatMemoryMebibytes(0, formatNumber)}
-                      onChange={(nextValue) => {
-                        setEnvelopeMemory(
-                          clampEnvelopeMemoryMebibytes(nextValue * MEBIBYTES_PER_GIB),
-                        );
-                        if (envelopeError) {
-                          setEnvelopeError(null);
-                        }
-                      }}
-                      step={MEMORY_STEP_GIB}
-                      value={envelopeMemoryGib}
-                      valueLabel={formatMemoryMebibytes(envelopeMemory, formatNumber)}
-                    />
-                  </div>
-
-                  <div className="fg-billing-capacity-control-card">
-                    <SteppedSliderField
-                      disabled={isSavingEnvelope}
-                      id="billing-envelope-storage"
-                      label={t("Storage")}
-                      max={STORAGE_SLIDER_MAX_GIB}
-                      maxLabel={formatStorageGibibytes(STORAGE_SLIDER_MAX_GIB, formatNumber)}
-                      minLabel={formatStorageGibibytes(0, formatNumber)}
-                      onChange={(nextValue) => {
-                        setEnvelopeStorage(clampEnvelopeStorageGibibytes(nextValue));
-                        if (envelopeError) {
-                          setEnvelopeError(null);
-                        }
-                      }}
-                      step={STORAGE_STEP_GIB}
-                      value={envelopeStorage}
-                      valueLabel={formatStorageGibibytes(envelopeStorage, formatNumber)}
-                    />
-                  </div>
+              <div className="fg-billing-capacity-grid">
+                <div className="fg-billing-capacity-control-card">
+                  <SteppedSliderField
+                    disabled={isSavingEnvelope}
+                    id="billing-envelope-cpu"
+                    label={t("CPU")}
+                    max={CPU_SLIDER_MAX_CORES}
+                    maxLabel={formatCPU(
+                      Math.round(CPU_SLIDER_MAX_CORES * MILLICORES_PER_VCPU),
+                      formatNumber,
+                    )}
+                    minLabel={formatCPU(0, formatNumber)}
+                    onChange={(nextValue) => {
+                      setEnvelopeCpu(
+                        clampEnvelopeCpuMillicores(nextValue * MILLICORES_PER_VCPU),
+                      );
+                      if (envelopeError) {
+                        setEnvelopeError(null);
+                      }
+                    }}
+                    step={CPU_STEP_CORES}
+                    value={envelopeCpuCores}
+                    valueLabel={formatCPU(envelopeCpu, formatNumber)}
+                  />
                 </div>
 
-                {envelopeError ? <InlineAlert variant="error">{envelopeError}</InlineAlert> : null}
-
-                <div className="fg-billing-capacity-footer">
-                  <p className="fg-billing-capacity-footer__note">{chargedAtCopy}</p>
-
-                  <div className="fg-settings-form__actions">
-                    <Button
-                      disabled={isSavingEnvelope || isToppingUp}
-                      loading={isRefreshing}
-                      loadingLabel={t("Refreshing…")}
-                      onClick={() => {
-                        void handleRefresh();
-                      }}
-                      type="button"
-                      variant="secondary"
-                    >
-                      {t("Refresh billing")}
-                    </Button>
-
-                    <Button
-                      disabled={!hasEnvelopeChanges}
-                      loading={isSavingEnvelope}
-                      loadingLabel={t("Saving cap…")}
-                      type="submit"
-                      variant="primary"
-                    >
-                      {t("Save capacity cap")}
-                    </Button>
-                  </div>
+                <div className="fg-billing-capacity-control-card">
+                  <SteppedSliderField
+                    disabled={isSavingEnvelope}
+                    id="billing-envelope-memory"
+                    label={t("Memory")}
+                    max={MEMORY_SLIDER_MAX_GIB}
+                    maxLabel={formatMemoryMebibytes(
+                      Math.round(MEMORY_SLIDER_MAX_GIB * MEBIBYTES_PER_GIB),
+                      formatNumber,
+                    )}
+                    minLabel={formatMemoryMebibytes(0, formatNumber)}
+                    onChange={(nextValue) => {
+                      setEnvelopeMemory(
+                        clampEnvelopeMemoryMebibytes(nextValue * MEBIBYTES_PER_GIB),
+                      );
+                      if (envelopeError) {
+                        setEnvelopeError(null);
+                      }
+                    }}
+                    step={MEMORY_STEP_GIB}
+                    value={envelopeMemoryGib}
+                    valueLabel={formatMemoryMebibytes(envelopeMemory, formatNumber)}
+                  />
                 </div>
-              </form>
-            </PanelSection>
-          </Panel>
 
-          <Panel className="fg-billing-surface fg-billing-surface--balance">
-            <PanelSection>
-              <div className="fg-billing-section-head">
-                <div className="fg-billing-section-copy">
-                  <p className="fg-label fg-panel__eyebrow">{t("Credits")}</p>
-                  <BillingSectionTitle
-                    ariaLabel={t("Credits details")}
-                    hint={creditsSectionHint}
-                    title={t("Keep the workspace funded")}
+                <div className="fg-billing-capacity-control-card">
+                  <SteppedSliderField
+                    disabled={isSavingEnvelope}
+                    id="billing-envelope-storage"
+                    label={t("Storage")}
+                    max={STORAGE_SLIDER_MAX_GIB}
+                    maxLabel={formatStorageGibibytes(STORAGE_SLIDER_MAX_GIB, formatNumber)}
+                    minLabel={formatStorageGibibytes(0, formatNumber)}
+                    onChange={(nextValue) => {
+                      setEnvelopeStorage(clampEnvelopeStorageGibibytes(nextValue));
+                      if (envelopeError) {
+                        setEnvelopeError(null);
+                      }
+                    }}
+                    step={STORAGE_STEP_GIB}
+                    value={envelopeStorage}
+                    valueLabel={formatStorageGibibytes(envelopeStorage, formatNumber)}
                   />
                 </div>
               </div>
 
-              <div className="fg-billing-balance__figures">
-                <article className="fg-billing-balance__figure is-primary">
-                  <span>{t("Available credits")}</span>
-                  <strong>{availableCreditsLabel}</strong>
-                  <p>{t("Ready to cover the saved managed envelope.")}</p>
-                </article>
+              {envelopeError ? <InlineAlert variant="error">{envelopeError}</InlineAlert> : null}
 
-                <article className="fg-billing-balance__figure">
-                  <span>{t("Estimated runway")}</span>
-                  <strong>{runwayLabel}</strong>
-                  <p>{runwaySupportCopy}</p>
-                </article>
+              <div className="fg-billing-capacity-footer">
+                <p className="fg-billing-capacity-footer__note">{chargedAtCopy}</p>
+
+                <div className="fg-settings-form__actions">
+                  <Button
+                    disabled={isSavingEnvelope || isToppingUp}
+                    loading={isRefreshing}
+                    loadingLabel={t("Refreshing…")}
+                    onClick={() => {
+                      void handleRefresh();
+                    }}
+                    type="button"
+                    variant="secondary"
+                  >
+                    {t("Refresh billing")}
+                  </Button>
+
+                  <Button
+                    disabled={!hasEnvelopeChanges}
+                    loading={isSavingEnvelope}
+                    loadingLabel={t("Saving cap…")}
+                    type="submit"
+                    variant="primary"
+                  >
+                    {t("Save capacity cap")}
+                  </Button>
+                </div>
               </div>
-            </PanelSection>
+            </form>
 
-            <PanelSection>
+            <aside className="fg-billing-funding-pane" aria-label={t("Credits")}>
+              <div className="fg-billing-funding-pane__head">
+                <div className="fg-billing-funding-pane__title-row">
+                  <span className="fg-label fg-panel__eyebrow">{t("Credits")}</span>
+                  <HintTooltip ariaLabel={t("Credits details")}>
+                    {creditsSectionHint}
+                  </HintTooltip>
+                </div>
+                <strong>{availableCreditsLabel}</strong>
+                <p>{runwaySupportCopy}</p>
+              </div>
+
+              <dl className="fg-billing-funding-facts">
+                <div>
+                  <dt>{t("Saved cap")}</dt>
+                  <dd>{savedCapLabel}</dd>
+                </div>
+                <div>
+                  <dt>{t("Current rate")}</dt>
+                  <dd>{currentRateLabel}</dd>
+                </div>
+                <div>
+                  <dt>{t("Charged at")}</dt>
+                  <dd>{formatResourceSpec(previewSpec, formatNumber)}</dd>
+                </div>
+              </dl>
+
               <form
                 className="fg-settings-form fg-billing-form fg-billing-top-up-form"
                 onSubmit={handleTopUpSubmit}
@@ -1799,35 +1781,33 @@ export function BillingPanel({
                   ) : null}
                 </div>
 
-                <div className="fg-billing-top-up-form__footer">
-                  <div
-                    className="fg-billing-top-up-presets"
-                    role="group"
-                    aria-label={t("Suggested top-up amounts")}
-                  >
-                    {BILLING_TOP_UP_PRESET_AMOUNTS.map((amount) => (
-                      <Button
-                        key={amount}
-                        disabled={isToppingUp || hasUnresolvedTopUp}
-                        onClick={() => {
-                          setTopUpAmount(String(amount));
-                          if (topUpError) {
-                            setTopUpError(null);
-                          }
-                        }}
-                        size="tight"
-                        type="button"
-                        variant="secondary"
-                      >
-                        ${amount}
-                      </Button>
-                    ))}
-                  </div>
+                <div
+                  className="fg-billing-top-up-presets"
+                  role="group"
+                  aria-label={t("Suggested top-up amounts")}
+                >
+                  {BILLING_TOP_UP_PRESET_AMOUNTS.map((amount) => (
+                    <Button
+                      key={amount}
+                      disabled={isToppingUp || hasUnresolvedTopUp}
+                      onClick={() => {
+                        setTopUpAmount(String(amount));
+                        if (topUpError) {
+                          setTopUpError(null);
+                        }
+                      }}
+                      size="tight"
+                      type="button"
+                      variant="secondary"
+                    >
+                      ${amount}
+                    </Button>
+                  ))}
+                </div>
 
-                  <div className="fg-billing-top-up-form__meta">
-                    <span>{topUpMetaLabel}</span>
-                    <span>{t("Secure checkout")}</span>
-                  </div>
+                <div className="fg-billing-top-up-form__meta">
+                  <span>{topUpMetaLabel}</span>
+                  <span>{t("Secure checkout")}</span>
                 </div>
               </form>
 
@@ -1863,9 +1843,9 @@ export function BillingPanel({
                   </div>
                 </div>
               ) : null}
-            </PanelSection>
-          </Panel>
-        </div>
+            </aside>
+          </PanelSection>
+        </Panel>
 
         <Panel>
           <PanelSection className="fg-billing-ledger__intro">
