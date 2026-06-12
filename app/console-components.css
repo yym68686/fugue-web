@@ -1144,7 +1144,10 @@
 }
 
 .fg-billing-health__head {
-  align-items: stretch;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(420px, 0.48fr);
+  align-items: start;
+  gap: 18px;
 }
 
 .fg-billing-section-copy {
@@ -1162,12 +1165,13 @@
   max-width: 680px;
 }
 
-.fg-billing-health__rail {
+.fg-billing-health__status-strip {
   display: grid;
-  align-content: start;
-  gap: 10px;
-  min-width: min(100%, 330px);
-  padding: 10px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 9px 10px;
   border: 1px solid var(--ml-border);
   border-radius: var(--ml-radius);
   background: var(--ml-surface-2);
@@ -1175,15 +1179,14 @@
 
 .fg-billing-health__facts {
   display: grid;
-  gap: 8px;
-}
-
-.fg-billing-health__facts {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, auto));
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
 }
 
 .fg-billing-health__facts dt,
-.fg-billing-health-metric__label {
+.fg-billing-health-metrics__head {
   color: var(--ml-muted);
   font-size: 11px;
   font-weight: 700;
@@ -1193,28 +1196,67 @@
   margin-top: 3px;
   color: var(--ml-text);
   font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }
 
 .fg-billing-health__stamp {
+  justify-self: end;
+  white-space: nowrap;
   color: var(--ml-muted);
   font-size: 11px;
 }
 
 .fg-billing-health-metrics {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.fg-billing-health-metric {
-  display: grid;
-  align-content: start;
-  gap: 6px;
-  min-width: 0;
-  padding: 10px;
+  overflow: hidden;
   border: 1px solid var(--ml-border);
   border-radius: var(--ml-radius);
   background: var(--ml-surface);
+}
+
+.fg-billing-health-metrics__head,
+.fg-billing-health-metric {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) minmax(110px, 0.65fr) minmax(150px, 0.8fr) minmax(130px, 0.75fr);
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  padding: 9px 12px;
+}
+
+.fg-billing-health-metrics__head {
+  background: var(--ml-surface-2);
+  border-bottom: 1px solid var(--ml-border);
+}
+
+.fg-billing-health-metric {
+  min-height: 58px;
+}
+
+.fg-billing-health-metric + .fg-billing-health-metric {
+  border-top: 1px solid var(--ml-border);
+}
+
+.fg-billing-health-metric__resource {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.fg-billing-health-metric__resource strong {
+  color: var(--ml-text);
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.fg-billing-health-metric__resource span,
+.fg-billing-health-metric__cap {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--ml-muted);
+  font-size: 12px;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
 }
 
 .fg-billing-health-metric__value-row {
@@ -1226,11 +1268,38 @@
 .fg-billing-health-metric__value-row strong,
 .fg-billing-health-metric strong {
   color: var(--ml-text);
-  font-size: 20px;
   font-variant-numeric: tabular-nums;
 }
 
-.fg-billing-health-metric p,
+.fg-billing-health-metric__value-row strong {
+  font-size: 18px;
+}
+
+.fg-billing-health-metric__meter {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.fg-billing-health-metric__meter span {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ml-border) 72%, transparent);
+}
+
+.fg-billing-health-metric__meter span::after {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--fg-meter-percent, 0%);
+  border-radius: inherit;
+  background: var(--ml-accent);
+  content: "";
+}
+
 .fg-billing-capacity-footer__note,
 .fg-billing-top-up-form__meta {
   color: var(--ml-muted);
@@ -2056,6 +2125,11 @@
   .fg-billing-capacity-control-card .fg-field-stack {
     grid-template-columns: minmax(74px, 0.22fr) minmax(0, 1fr);
   }
+
+  .fg-billing-health-metrics__head,
+  .fg-billing-health-metric {
+    grid-template-columns: minmax(130px, 1fr) minmax(98px, 0.65fr) minmax(132px, 0.8fr) minmax(104px, 0.7fr);
+  }
 }
 
 @media (max-width: 920px) {
@@ -2064,6 +2138,7 @@
   .fg-api-key-item__panel,
   .fg-profile-panel__body,
   .fg-profile-auth-workbench,
+  .fg-billing-health__head,
   .fg-billing-workbench__header,
   .fg-billing-workbench__body,
   .fg-admin-platform-enroll__grid,
@@ -2141,9 +2216,13 @@
   .fg-project-card__summary-resources,
   .fg-cluster-node-card__summary-resources,
   .fg-cluster-resource-grid,
-  .fg-cluster-condition-grid,
-  .fg-billing-health-metrics {
+  .fg-cluster-condition-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .fg-billing-health-metrics__head,
+  .fg-billing-health-metric {
+    grid-template-columns: minmax(120px, 1fr) minmax(92px, 0.65fr) minmax(120px, 0.8fr) minmax(88px, 0.7fr);
   }
 
   .fg-profile-editor {
@@ -2268,11 +2347,29 @@
   .fg-cluster-condition-grid,
   .fg-api-key-permission-grid,
   .fg-billing-health__facts,
-  .fg-billing-health-metrics,
   .fg-billing-workbench__summary,
   .fg-profile-auth-summary__metrics,
   .fg-profile-auth-capabilities {
     grid-template-columns: 1fr;
+  }
+
+  .fg-billing-health__status-strip {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .fg-billing-health__stamp {
+    justify-self: start;
+  }
+
+  .fg-billing-health-metrics__head {
+    display: none;
+  }
+
+  .fg-billing-health-metric {
+    grid-template-columns: 1fr;
+    gap: 7px;
+    padding: 12px;
   }
 
   .fg-billing-capacity-control-card .fg-field-stack,

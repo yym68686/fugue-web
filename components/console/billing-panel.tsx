@@ -4,6 +4,7 @@ import {
   startTransition,
   useEffect,
   useState,
+  type CSSProperties,
   type FormEvent,
   type ReactNode,
 } from "react";
@@ -272,6 +273,36 @@ function formatMetricMagnitude(value: number, formatNumber: NumberFormatter) {
     formatNumber,
     Number.isInteger(value) ? 0 : value >= 10 ? 1 : 2,
   );
+}
+
+function formatUsageShare(
+  value: number,
+  cap: number,
+  formatNumber: NumberFormatter,
+  t: Translator,
+) {
+  if (!Number.isFinite(value) || !Number.isFinite(cap) || cap <= 0) {
+    return t("Capacity unknown");
+  }
+
+  const percent = Math.max(0, (value / cap) * 100);
+  const percentLabel = `${formatCompactNumber(
+    percent,
+    formatNumber,
+    percent > 0 && percent < 10 ? 1 : 0,
+  )}%`;
+
+  return t("Use {percent}", {
+    percent: percentLabel,
+  });
+}
+
+function formatMeterPercent(value: number, cap: number) {
+  if (!Number.isFinite(value) || !Number.isFinite(cap) || cap <= 0) {
+    return "0%";
+  }
+
+  return `${Math.max(0, Math.min(100, (value / cap) * 100))}%`;
 }
 
 function readNonNegativeMetric(value: number | null | undefined) {
@@ -1022,36 +1053,38 @@ export function BillingPanel({
     (readNonNegativeMetric(billing?.currentUsage?.ephemeralStorageBytes) +
       readNonNegativeMetric(imageStorageBytes)) /
     BYTES_PER_GIBIBYTE;
+  const savedCpuCores =
+    readNonNegativeMetric(billing?.managedCap.cpuMillicores) / MILLICORES_PER_VCPU;
+  const savedMemoryGib =
+    readNonNegativeMetric(billing?.managedCap.memoryMebibytes) / MEBIBYTES_PER_GIB;
+  const savedStorageGibibytes = readNonNegativeMetric(billing?.managedCap.storageGibibytes);
   const healthMetrics = [
     {
-      detail: t("Saved cap {cap}", {
-        cap: formatCPU(billing?.managedCap.cpuMillicores ?? 0, formatNumber),
-      }),
-      label: t("Current CPU"),
+      cap: formatCPU(billing?.managedCap.cpuMillicores ?? 0, formatNumber),
+      label: t("CPU"),
+      meterPercent: formatMeterPercent(currentCpuCores, savedCpuCores),
+      share: formatUsageShare(currentCpuCores, savedCpuCores, formatNumber, t),
       unit: "CPU",
       value: formatMetricMagnitude(currentCpuCores, formatNumber),
     },
     {
-      detail: t("Saved cap {cap}", {
-        cap: formatMemoryMebibytes(billing?.managedCap.memoryMebibytes ?? 0, formatNumber),
-      }),
-      label: t("Current memory"),
+      cap: formatMemoryMebibytes(billing?.managedCap.memoryMebibytes ?? 0, formatNumber),
+      label: t("Memory"),
+      meterPercent: formatMeterPercent(currentMemoryGib, savedMemoryGib),
+      share: formatUsageShare(currentMemoryGib, savedMemoryGib, formatNumber, t),
       unit: "GiB",
       value: formatMetricMagnitude(currentMemoryGib, formatNumber),
     },
     {
-      detail:
-        imageStorageGibibytes > 0
-          ? t("Includes {storage} of retained images", {
-              storage: formatStorageGibibytes(imageStorageGibibytes, formatNumber),
-            })
-          : t("Saved cap {cap}", {
-              cap: formatStorageGibibytes(
-                billing?.managedCap.storageGibibytes ?? 0,
-                formatNumber,
-              ),
-            }),
-      label: t("Current storage"),
+      cap: formatStorageGibibytes(billing?.managedCap.storageGibibytes ?? 0, formatNumber),
+      label: t("Storage"),
+      meterPercent: formatMeterPercent(currentStorageGibibytes, savedStorageGibibytes),
+      share: formatUsageShare(
+        currentStorageGibibytes,
+        savedStorageGibibytes,
+        formatNumber,
+        t,
+      ),
       unit: "GiB",
       value: formatMetricMagnitude(currentStorageGibibytes, formatNumber),
     },
@@ -1499,7 +1532,7 @@ export function BillingPanel({
               </PanelCopy>
             </div>
 
-            <div className="fg-billing-health__rail">
+            <div className="fg-billing-health__status-strip">
               <div className="fg-billing-status-row">
                 <StatusBadge tone={readStatusTone(billing)}>
                   {humanizeStatus(billing.status, t)}
@@ -1533,16 +1566,36 @@ export function BillingPanel({
         </PanelSection>
 
         <PanelSection className="fg-billing-health__metrics-shell">
-          <div className="fg-billing-health-metrics" role="list" aria-label={t("Billing health")}>
+          <div className="fg-billing-health-metrics" role="table" aria-label={t("Billing health")}>
+            <div className="fg-billing-health-metrics__head" role="row">
+              <span role="columnheader">{t("Resource")}</span>
+              <span role="columnheader">{t("Current")}</span>
+              <span role="columnheader">{t("Saved cap")}</span>
+              <span role="columnheader">{t("Usage")}</span>
+            </div>
             {healthMetrics.map((metric) => (
-              <article className="fg-billing-health-metric" key={metric.label} role="listitem">
-                <span className="fg-billing-health-metric__label">{metric.label}</span>
-                <div className="fg-billing-health-metric__value-row">
+              <div className="fg-billing-health-metric" key={metric.label} role="row">
+                <div className="fg-billing-health-metric__resource" role="cell">
+                  <strong>{metric.label}</strong>
+                  <span>{metric.share}</span>
+                </div>
+                <div className="fg-billing-health-metric__value-row" role="cell">
                   <strong>{metric.value}</strong>
                   <span>{metric.unit}</span>
                 </div>
-                <p>{metric.detail}</p>
-              </article>
+                <div className="fg-billing-health-metric__cap" role="cell">
+                  {metric.cap}
+                </div>
+                <div className="fg-billing-health-metric__meter" role="cell">
+                  <span
+                    style={
+                      {
+                        "--fg-meter-percent": metric.meterPercent,
+                      } as CSSProperties
+                    }
+                  />
+                </div>
+              </div>
             ))}
           </div>
         </PanelSection>

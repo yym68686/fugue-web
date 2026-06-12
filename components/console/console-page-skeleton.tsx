@@ -1128,15 +1128,14 @@ export function ConsoleBillingPageSkeleton() {
               <SkeletonBlock className="fg-console-skeleton__copy is-wide" width="24rem" />
             </div>
 
-            <div className="fg-billing-health__rail">
+            <div className="fg-billing-health__status-strip">
               <div className="fg-billing-status-row">
                 <SkeletonBlock className="fg-console-skeleton__badge" width="4.75rem" />
                 <SkeletonBlock className="fg-console-skeleton__badge" width="6rem" />
-                <SkeletonBlock className="fg-console-skeleton__badge" width="5.5rem" />
               </div>
 
               <div className="fg-billing-health__facts">
-                {[0, 1, 2].map((item) => (
+                {[0, 1].map((item) => (
                   <div key={`billing-health-fact-${item}`}>
                     <SkeletonBlock className="fg-console-skeleton__section-label" width="4.75rem" />
                     <SkeletonBlock
@@ -1154,9 +1153,21 @@ export function ConsoleBillingPageSkeleton() {
 
         <PanelSection className="fg-billing-health__metrics-shell">
           <div aria-hidden="true" className="fg-billing-health-metrics">
+            <div className="fg-billing-health-metrics__head">
+              {["4rem", "5rem", "6rem", "5rem"].map((width, index) => (
+                <SkeletonBlock
+                  className="fg-console-skeleton__section-label"
+                  key={`billing-health-head-${index}`}
+                  width={width}
+                />
+              ))}
+            </div>
             {["7rem", "7rem", "8rem"].map((width, index) => (
-              <article className="fg-billing-health-metric" key={`billing-health-metric-${index}`}>
-                <SkeletonBlock className="fg-console-skeleton__metric-label" width={width} />
+              <div className="fg-billing-health-metric" key={`billing-health-metric-${index}`}>
+                <div className="fg-billing-health-metric__resource">
+                  <SkeletonBlock className="fg-console-skeleton__metric-label" width={width} />
+                  <SkeletonBlock className="fg-console-skeleton__copy" width="5rem" />
+                </div>
                 <div className="fg-billing-health-metric__value-row">
                   <SkeletonBlock
                     className="fg-console-skeleton__metric-value"
@@ -1164,11 +1175,9 @@ export function ConsoleBillingPageSkeleton() {
                   />
                   <SkeletonBlock className="fg-console-skeleton__section-label" width="2.5rem" />
                 </div>
-                <SkeletonBlock
-                  className="fg-console-skeleton__copy"
-                  width={index === 2 ? "12rem" : "10rem"}
-                />
-              </article>
+                <SkeletonBlock className="fg-console-skeleton__copy" width="8rem" />
+                <SkeletonBlock className="fg-console-skeleton__copy" width="100%" />
+              </div>
             ))}
           </div>
         </PanelSection>
