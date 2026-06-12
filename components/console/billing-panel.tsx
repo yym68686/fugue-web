@@ -33,7 +33,6 @@ import type {
   FugueBillingPriceBook,
   FugueBillingSummary,
   FugueResourceSpec,
-  FugueResourceUsage,
 } from "@/lib/fugue/api";
 import type { ConsoleTone } from "@/lib/console/types";
 
@@ -307,35 +306,6 @@ function formatMeterPercent(value: number, cap: number) {
 
 function readNonNegativeMetric(value: number | null | undefined) {
   return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : 0;
-}
-
-function formatCurrentUsageSpec(
-  usage: FugueResourceUsage | null,
-  imageStorageBytes: number | null,
-  formatNumber: NumberFormatter,
-  t: Translator,
-) {
-  const imageBytes = readNonNegativeMetric(imageStorageBytes);
-
-  if (!usage) {
-    if (imageBytes <= 0) {
-      return t("No live stats");
-    }
-
-    return formatResourceSpec({
-      cpuMillicores: 0,
-      memoryMebibytes: 0,
-      storageGibibytes: imageBytes / BYTES_PER_GIBIBYTE,
-    }, formatNumber);
-  }
-
-  return formatResourceSpec({
-    cpuMillicores: readNonNegativeMetric(usage.cpuMillicores),
-    memoryMebibytes: readNonNegativeMetric(usage.memoryBytes) / BYTES_PER_MEBIBYTE,
-    storageGibibytes:
-      (readNonNegativeMetric(usage.ephemeralStorageBytes) + imageBytes) /
-      BYTES_PER_GIBIBYTE,
-  }, formatNumber);
 }
 
 function readRetainedImageStorageBytes(
@@ -646,22 +616,6 @@ function humanizeStatus(value: string, t: Translator) {
   }
 }
 
-function readStatusTone(billing: FugueBillingSummary): ConsoleTone {
-  if (billing.overCap || billing.status === "over-cap") {
-    return "warning";
-  }
-
-  if (billing.balanceRestricted || billing.status === "restricted") {
-    return "warning";
-  }
-
-  if (billing.status === "active") {
-    return "positive";
-  }
-
-  return "neutral";
-}
-
 function readCallout(billing: FugueBillingSummary, t: Translator) {
   if (billing.overCap || billing.status === "over-cap") {
     return {
@@ -970,12 +924,6 @@ export function BillingPanel({
     currency,
     locale,
   );
-  const currentUsageLabel = formatCurrentUsageSpec(
-    billing?.currentUsage ?? null,
-    imageStorageBytes,
-    formatNumber,
-    t,
-  );
   const runwayLabel = billing
     ? readRunwayLabel(billing, formatNumber, t)
     : t("No live estimate");
@@ -992,11 +940,6 @@ export function BillingPanel({
     hasHydrated
       ? formatExactTime(value, formatDateTime, t)
       : formatStableUtcTime(value, t);
-  const billingUpdatedLabel = billing?.updatedAt
-    ? t("Updated {time}", {
-        time: formatDisplayRelativeTime(billing.updatedAt),
-      })
-    : t("Billing snapshot ready");
   const billingHealthHint = (
     <span className="fg-hint-tooltip__stack">
       <span>
@@ -1520,49 +1463,12 @@ export function BillingPanel({
           <div className="fg-billing-health__head">
             <div className="fg-billing-section-copy">
               <p className="fg-label fg-panel__eyebrow">{t("Billing health")}</p>
-              <div className="fg-billing-health__title-row">
-                <BillingSectionTitle
-                  ariaLabel={t("Billing and capacity details")}
-                  hint={billingHealthHint}
-                  title={t("Credits and capacity stay aligned")}
-                />
-                <div className="fg-billing-status-row fg-billing-status-row--inline">
-                  <StatusBadge tone={readStatusTone(billing)}>
-                    {humanizeStatus(billing.status, t)}
-                  </StatusBadge>
-                  {billing.overCap ? (
-                    <StatusBadge tone="warning">{t("Save higher cap")}</StatusBadge>
-                  ) : null}
-                  {billing.balanceRestricted ? (
-                    <StatusBadge tone="warning">{t("Top up required")}</StatusBadge>
-                  ) : null}
-                  {billing.byoVpsFree ? (
-                    <StatusBadge tone="info">{t("BYO VPS free")}</StatusBadge>
-                  ) : null}
-                </div>
-              </div>
-              <PanelCopy className="fg-billing-health__summary">
-                {t("Current managed usage is {usage}.", {
-                  usage: currentUsageLabel,
-                })}
-              </PanelCopy>
+              <BillingSectionTitle
+                ariaLabel={t("Billing and capacity details")}
+                hint={billingHealthHint}
+                title={t("Credits and capacity stay aligned")}
+              />
             </div>
-          </div>
-
-          <div className="fg-billing-health__meta-strip">
-            <dl className="fg-billing-health__facts">
-              <div>
-                <dt>{t("Saved cap")}</dt>
-                <dd>{savedCapLabel}</dd>
-              </div>
-
-              <div>
-                <dt>{t("Current rate")}</dt>
-                <dd>{currentRateLabel}</dd>
-              </div>
-            </dl>
-
-            <p className="fg-billing-health__stamp">{billingUpdatedLabel}</p>
           </div>
         </PanelSection>
 

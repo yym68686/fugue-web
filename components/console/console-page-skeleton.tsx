@@ -1124,31 +1124,8 @@ export function ConsoleBillingPageSkeleton() {
           <div className="fg-billing-health__head">
             <div className="fg-billing-section-copy">
               <SkeletonBlock className="fg-console-skeleton__eyebrow" width="7rem" />
-              <div className="fg-billing-health__title-row">
-                <SkeletonBlock className="fg-console-skeleton__section-title" width="18rem" />
-                <div className="fg-billing-status-row fg-billing-status-row--inline">
-                  <SkeletonBlock className="fg-console-skeleton__badge" width="4.75rem" />
-                  <SkeletonBlock className="fg-console-skeleton__badge" width="6rem" />
-                </div>
-              </div>
-              <SkeletonBlock className="fg-console-skeleton__copy is-wide" width="24rem" />
+              <SkeletonBlock className="fg-console-skeleton__section-title" width="18rem" />
             </div>
-          </div>
-
-          <div className="fg-billing-health__meta-strip">
-            <div className="fg-billing-health__facts">
-              {[0, 1].map((item) => (
-                <div key={`billing-health-fact-${item}`}>
-                  <SkeletonBlock className="fg-console-skeleton__section-label" width="4.75rem" />
-                  <SkeletonBlock
-                    className="fg-console-skeleton__item-title"
-                    width={item === 1 ? "12rem" : "7rem"}
-                  />
-                </div>
-              ))}
-            </div>
-
-            <SkeletonBlock className="fg-console-skeleton__item-meta" width="8rem" />
           </div>
         </PanelSection>
 
