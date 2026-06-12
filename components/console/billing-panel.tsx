@@ -1520,48 +1520,49 @@ export function BillingPanel({
           <div className="fg-billing-health__head">
             <div className="fg-billing-section-copy">
               <p className="fg-label fg-panel__eyebrow">{t("Billing health")}</p>
-              <BillingSectionTitle
-                ariaLabel={t("Billing and capacity details")}
-                hint={billingHealthHint}
-                title={t("Credits and capacity stay aligned")}
-              />
+              <div className="fg-billing-health__title-row">
+                <BillingSectionTitle
+                  ariaLabel={t("Billing and capacity details")}
+                  hint={billingHealthHint}
+                  title={t("Credits and capacity stay aligned")}
+                />
+                <div className="fg-billing-status-row fg-billing-status-row--inline">
+                  <StatusBadge tone={readStatusTone(billing)}>
+                    {humanizeStatus(billing.status, t)}
+                  </StatusBadge>
+                  {billing.overCap ? (
+                    <StatusBadge tone="warning">{t("Save higher cap")}</StatusBadge>
+                  ) : null}
+                  {billing.balanceRestricted ? (
+                    <StatusBadge tone="warning">{t("Top up required")}</StatusBadge>
+                  ) : null}
+                  {billing.byoVpsFree ? (
+                    <StatusBadge tone="info">{t("BYO VPS free")}</StatusBadge>
+                  ) : null}
+                </div>
+              </div>
               <PanelCopy className="fg-billing-health__summary">
                 {t("Current managed usage is {usage}.", {
                   usage: currentUsageLabel,
                 })}
               </PanelCopy>
             </div>
+          </div>
 
-            <div className="fg-billing-health__status-strip">
-              <div className="fg-billing-status-row">
-                <StatusBadge tone={readStatusTone(billing)}>
-                  {humanizeStatus(billing.status, t)}
-                </StatusBadge>
-                {billing.overCap ? (
-                  <StatusBadge tone="warning">{t("Save higher cap")}</StatusBadge>
-                ) : null}
-                {billing.balanceRestricted ? (
-                  <StatusBadge tone="warning">{t("Top up required")}</StatusBadge>
-                ) : null}
-                {billing.byoVpsFree ? (
-                  <StatusBadge tone="info">{t("BYO VPS free")}</StatusBadge>
-                ) : null}
+          <div className="fg-billing-health__meta-strip">
+            <dl className="fg-billing-health__facts">
+              <div>
+                <dt>{t("Saved cap")}</dt>
+                <dd>{savedCapLabel}</dd>
               </div>
 
-              <dl className="fg-billing-health__facts">
-                <div>
-                  <dt>{t("Saved cap")}</dt>
-                  <dd>{savedCapLabel}</dd>
-                </div>
+              <div>
+                <dt>{t("Current rate")}</dt>
+                <dd>{currentRateLabel}</dd>
+              </div>
+            </dl>
 
-                <div>
-                  <dt>{t("Current rate")}</dt>
-                  <dd>{currentRateLabel}</dd>
-                </div>
-              </dl>
-
-              <p className="fg-billing-health__stamp">{billingUpdatedLabel}</p>
-            </div>
+            <p className="fg-billing-health__stamp">{billingUpdatedLabel}</p>
           </div>
         </PanelSection>
 
