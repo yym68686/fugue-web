@@ -1,15 +1,16 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
 import { useI18n } from "@/components/providers/i18n-provider";
 import { StatusBadge } from "@/components/console/status-badge";
-import { Button, ButtonAnchor } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { HintInline } from "@/components/ui/hint-tooltip";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { useToast } from "@/components/ui/toast";
+import { useGitHubConnection } from "@/lib/github/connection-client";
 import type { ConsoleTone } from "@/lib/console/types";
 
 type ProjectImageTrackingBinding = {
@@ -268,7 +269,19 @@ function readStrategyTone(scope: ProjectImageTrackingStrategyScope): ConsoleTone
 function buildInstallReturnTo(returnTo: string, githubRepo: string) {
   const url = new URL(returnTo, "https://fugue.local");
   url.searchParams.set("githubImageRepo", githubRepo);
+  url.searchParams.set("githubImageFlow", "1");
   return `${url.pathname}${url.search}`;
+}
+
+function clearImageFlowSearchParams() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const url = new URL(window.location.href);
+  url.searchParams.delete("githubImageFlow");
+  url.searchParams.delete("githubApp");
+  window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
 }
 
 export function ProjectImageTrackingPanel({
@@ -282,6 +295,9 @@ export function ProjectImageTrackingPanel({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const currentSearch = searchParams.toString();
+  const githubImageFlowActive = searchParams.get("githubImageFlow") === "1";
+  const githubAppCallbackState = searchParams.get("githubApp");
+  const autoFlowRef = useRef<string | null>(null);
   const [response, setResponse] = useState<ProjectImageTrackingResponse | null>(
     null,
   );
@@ -294,7 +310,6 @@ export function ProjectImageTrackingPanel({
   const [repoInstallationLoading, setRepoInstallationLoading] = useState(false);
   const [status, setStatus] = useState<LoadState>("idle");
   const [repoDraft, setRepoDraft] = useState("");
-  const [repoTouched, setRepoTouched] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [saving, setSaving] = useState(false);
   const repoError = readGitHubRepoError(repoDraft);
@@ -304,6 +319,19 @@ export function ProjectImageTrackingPanel({
   const currentReturnTo = currentSearch
     ? `${pathname}?${currentSearch}`
     : pathname;
+  const githubFlowReturnTo =
+    normalizedRepo && !repoError
+      ? buildInstallReturnTo(currentReturnTo, normalizedRepo)
+      : currentReturnTo;
+  const {
+    connectHref: githubConnectHref,
+    connection: githubConnection,
+    error: githubConnectionError,
+    loading: githubConnectionLoading,
+  } = useGitHubConnection({
+    enabled: true,
+    returnTo: githubFlowReturnTo,
+  });
   const boundRepo = response?.binding?.githubRepo ?? "";
   const hasRepoCandidate = Boolean(normalizedRepo && !repoError);
   const currentGitHubAppStatus = hasRepoCandidate
@@ -326,6 +354,16 @@ export function ProjectImageTrackingPanel({
   const appInstalled = Boolean(currentGitHubAppStatus?.installed);
   const publicRepoReady = currentGitHubAppStatus?.source === "public-repo";
   const repoReadyForProjectDefault = Boolean(appInstalled || publicRepoReady);
+  const githubOAuthEnabled = Boolean(githubConnection?.authEnabled);
+  const githubAccountConnected = Boolean(githubConnection?.connected);
+  const shouldConnectGitHubFirst = Boolean(
+    hasRepoCandidate &&
+      githubOAuthEnabled &&
+      !githubAccountConnected,
+  );
+  const installationCheckPending = Boolean(
+    hasRepoCandidate && !currentGitHubAppStatus && !repoInstallationError,
+  );
   const serviceSummary = response?.serviceSummary ?? {
     projectLinkedCount:
       response?.services.filter((service) => readServiceScope(service) === "project")
@@ -343,6 +381,11 @@ export function ProjectImageTrackingPanel({
     projectDefaultConfigured && normalizedRepo && normalizedRepo === boundRepo,
   );
   const hasServiceOverrides = serviceSummary.serviceOverrideCount > 0;
+  const canUpdateProjectDefault = Boolean(
+    hasRepoCandidate &&
+      repoReadyForProjectDefault &&
+      (!projectDefaultConfigured || normalizedRepo !== boundRepo),
+  );
   const installationId =
     currentGitHubAppStatus?.installationId ??
     currentGitHubAppStatus?.githubInstallationId ??
@@ -355,9 +398,43 @@ export function ProjectImageTrackingPanel({
     !disabled &&
     !saving &&
     status !== "loading" &&
-    repoTouched &&
+    canUpdateProjectDefault &&
     !repoError &&
     repoReadyForProjectDefault;
+  const repositoryAction =
+    !hasRepoCandidate || repoError
+      ? "none"
+      : status === "loading" ||
+          repoInstallationLoading ||
+          githubConnectionLoading ||
+          installationCheckPending
+        ? "wait"
+        : shouldConnectGitHubFirst
+          ? "connect-github"
+          : repoReadyForProjectDefault
+            ? "bind"
+            : installHref
+              ? "install-app"
+              : "none";
+  const primaryActionDisabled = Boolean(
+    disabled ||
+      saving ||
+      repositoryAction === "none" ||
+      repositoryAction === "wait" ||
+      (repositoryAction === "bind" && !canSubmit),
+  );
+  const primaryActionLabel =
+    repositoryAction === "connect-github"
+      ? t("Connect GitHub repository")
+      : repositoryAction === "install-app"
+        ? t("Authorize repository")
+        : draftIsProjectDefault
+          ? t("Automatic updates enabled")
+          : response?.binding
+          ? t("Update automatic updates")
+          : t("Enable automatic updates");
+  const primaryActionLoadingLabel =
+    repositoryAction === "wait" ? t("Checking GitHub access…") : t("Binding…");
   const statusLabel =
     status === "error"
       ? t("Unavailable")
@@ -405,7 +482,6 @@ export function ProjectImageTrackingPanel({
         const query = new URLSearchParams(currentSearch);
         const queryRepo = normalizeGitHubRepoInput(query.get("githubImageRepo") ?? "");
         setRepoDraft(nextResponse.binding?.githubRepo ?? queryRepo);
-        setRepoTouched(Boolean(!nextResponse.binding && queryRepo));
         setStatus("ready");
       })
       .catch((error) => {
@@ -479,12 +555,11 @@ export function ProjectImageTrackingPanel({
     };
   }, [normalizedRepo, repoError, t]);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  const bindProjectDefault = useCallback(async () => {
     setSubmitAttempted(true);
 
     if (!canSubmit) {
-      return;
+      return false;
     }
 
     setSaving(true);
@@ -509,7 +584,6 @@ export function ProjectImageTrackingPanel({
       setRepoInstallation(nextResponse.githubApp);
       setRepoInstallationRepo(nextResponse.binding?.githubRepo ?? normalizedRepo);
       setRepoInstallationError(null);
-      setRepoTouched(false);
       setSubmitAttempted(false);
       setStatus("ready");
       showToast({
@@ -519,6 +593,7 @@ export function ProjectImageTrackingPanel({
         variant: "success",
       });
       onLinked?.();
+      return true;
     } catch (error) {
       if (
         isRequestError(error) &&
@@ -540,10 +615,105 @@ export function ProjectImageTrackingPanel({
         message: error instanceof Error ? error.message : t("Request failed."),
         variant: "error",
       });
+      return false;
     } finally {
       setSaving(false);
     }
+  }, [canSubmit, normalizedRepo, onLinked, projectId, showToast, t]);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await handlePrimaryAction();
   }
+
+  async function handlePrimaryAction() {
+    setSubmitAttempted(true);
+
+    if (primaryActionDisabled) {
+      return;
+    }
+
+    if (repositoryAction === "connect-github") {
+      return;
+    }
+
+    if (
+      repositoryAction === "install-app" &&
+      installHref &&
+      githubAppCallbackState !== "github-app-install-failed"
+    ) {
+      window.location.assign(installHref);
+      return;
+    }
+
+    if (repositoryAction === "bind") {
+      const saved = await bindProjectDefault();
+
+      if (saved && githubImageFlowActive) {
+        clearImageFlowSearchParams();
+      }
+    }
+  }
+
+  useEffect(() => {
+    if (!githubImageFlowActive || !hasRepoCandidate || repoError) {
+      return;
+    }
+
+    if (
+      status !== "ready" ||
+      repoInstallationLoading ||
+      githubConnectionLoading ||
+      saving
+    ) {
+      return;
+    }
+
+    const flowKey = `${repositoryAction}:${normalizedRepo}:${githubConnection?.connected ? "connected" : "anonymous"}:${currentGitHubAppStatus?.installed ? "installed" : currentGitHubAppStatus?.source ?? "unknown"}`;
+
+    if (autoFlowRef.current === flowKey) {
+      return;
+    }
+
+    autoFlowRef.current = flowKey;
+
+    if (repositoryAction === "connect-github") {
+      window.location.assign(githubConnectHref);
+      return;
+    }
+
+    if (repositoryAction === "install-app" && installHref) {
+      window.location.assign(installHref);
+      return;
+    }
+
+    if (repositoryAction === "bind" && canSubmit) {
+      void bindProjectDefault().then((saved) => {
+        if (saved) {
+          clearImageFlowSearchParams();
+        }
+      });
+    }
+  }, [
+    bindProjectDefault,
+    canSubmit,
+    currentGitHubAppStatus?.installed,
+    currentGitHubAppStatus?.source,
+    githubAppCallbackState,
+    githubConnectHref,
+    githubConnection?.connected,
+    githubConnectionLoading,
+    githubImageFlowActive,
+    installationCheckPending,
+    hasRepoCandidate,
+    installHref,
+    normalizedRepo,
+    repoError,
+    repoInstallationLoading,
+    repositoryAction,
+    saving,
+    status,
+  ]);
 
   const githubStatusRows: GitHubImageStatusRow[] = [];
 
@@ -589,6 +759,30 @@ export function ProjectImageTrackingPanel({
   if (currentGitHubAppStatus && hasRepoCandidate) {
     githubStatusRows.push(
       {
+        detail: githubAccountConnected
+          ? githubConnection?.login
+            ? t("Signed in as @{login}.", {
+                login: githubConnection.login,
+              })
+            : t("GitHub connection is ready.")
+          : githubOAuthEnabled
+            ? t("Fugue will connect GitHub first, then continue repository authorization.")
+            : t("GitHub connection is not configured. Public repositories can still use polling."),
+        key: "github-connection",
+        label: t("GitHub account"),
+        live: githubAccountConnected,
+        tone: githubAccountConnected
+          ? "positive"
+          : githubOAuthEnabled
+            ? "info"
+            : "neutral",
+        value: githubAccountConnected
+          ? t("Connected")
+          : githubOAuthEnabled
+            ? t("Ready to connect")
+            : t("Not configured"),
+      },
+      {
         detail: currentGitHubAppStatus.installed
           ? currentGitHubAppStatus.accountLogin
             ? t("Authorized as @{login}.", {
@@ -605,10 +799,10 @@ export function ProjectImageTrackingPanel({
                 : t("Installed")
           : publicRepoReady
             ? t(
-                "Public repositories can be set as the project default without installing the GitHub App.",
+                "Public repositories can use automatic polling without installing the GitHub App.",
               )
             : t(
-                "Install the GitHub App to verify private access and receive webhook events.",
+                "Fugue will open GitHub only if this repository still needs App access.",
               ),
         key: "repository-access",
         label: t("Repository access"),
@@ -619,10 +813,10 @@ export function ProjectImageTrackingPanel({
             ? "info"
             : "neutral",
         value: currentGitHubAppStatus.installed
-          ? t("GitHub App installed")
+          ? t("Authorized")
           : publicRepoReady
             ? t("Public repository")
-            : t("Not verified"),
+            : t("Needs authorization"),
       },
       {
         detail: draftIsProjectDefault
@@ -659,16 +853,18 @@ export function ProjectImageTrackingPanel({
               : t("Active")
           : currentGitHubAppStatus.installed
             ? t("No events yet")
-            : t("Install the GitHub App to receive webhook events."),
+            : publicRepoReady
+              ? t("Polling is available. Webhook events require GitHub App access.")
+              : t("Available after repository authorization."),
         key: "webhook",
-        label: t("Event notifications"),
+        label: t("Update signal"),
         live: webhookActive,
         tone: webhookActive ? "positive" : "neutral",
         value: webhookActive
-          ? t("Active")
+          ? t("Webhook active")
           : currentGitHubAppStatus.installed
-            ? t("Inactive")
-            : t("Not enabled"),
+            ? t("Waiting for events")
+            : t("Polling fallback"),
       },
     );
 
@@ -763,7 +959,6 @@ export function ProjectImageTrackingPanel({
             }}
             onChange={(event) => {
               setRepoDraft(event.target.value);
-              setRepoTouched(true);
             }}
             placeholder="yym68686/uni-api…"
             spellCheck={false}
@@ -772,34 +967,37 @@ export function ProjectImageTrackingPanel({
         </FormField>
 
         <div className="fg-settings-form__actions fg-project-image-sync__actions">
-          {!appInstalled && installHref ? (
-            <ButtonAnchor
-              href={installHref}
-              size="compact"
-              variant="secondary"
-            >
-              {publicRepoReady
-                ? t("Enable event notifications")
-                : t("Install GitHub App")}
-            </ButtonAnchor>
-          ) : null}
           <Button
-            disabled={!canSubmit}
-            loading={saving}
-            loadingLabel={t("Binding…")}
+            disabled={primaryActionDisabled}
+            loading={saving || repositoryAction === "wait"}
+            loadingLabel={primaryActionLoadingLabel}
+            onClick={handlePrimaryAction}
             size="compact"
-            type="submit"
-          variant="primary"
-        >
-          {response?.binding
-            ? t("Update project default")
-            : t("Set as project default")}
-        </Button>
+            type="button"
+            variant="primary"
+          >
+            {primaryActionLabel}
+          </Button>
+          {projectDefaultConfigured && hasServiceOverrides ? (
+            <span className="fg-project-image-sync__action-note">
+              {t("Service overrides stay unchanged.")}
+            </span>
+          ) : null}
         </div>
       </form>
 
       {repoInstallationError ? (
         <InlineAlert variant="warning">{repoInstallationError}</InlineAlert>
+      ) : null}
+
+      {githubConnectionError ? (
+        <InlineAlert variant="warning">{githubConnectionError}</InlineAlert>
+      ) : null}
+
+      {githubAppCallbackState === "github-app-install-failed" ? (
+        <InlineAlert variant="warning">
+          {t("GitHub authorization did not complete. Try connecting the repository again.")}
+        </InlineAlert>
       ) : null}
 
       {githubStatusRows.length ? (

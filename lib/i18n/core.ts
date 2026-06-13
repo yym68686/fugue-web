@@ -4554,11 +4554,30 @@ const zhCNMorlanePatchMessages = {
   "Fugue subdomain": "Fugue 子域",
   "Access required": "需要访问权限",
   "Automatic image updates": "自动镜像更新",
+  "Automatic updates enabled": "自动更新已启用",
   "Automatic updates off": "未启用自动更新",
+  "Authorize repository": "授权仓库",
+  "Available after repository authorization.": "仓库授权后可用。",
   "GitHub image updates": "GitHub 镜像更新",
+  "GitHub account": "GitHub 账号",
   "GitHub App installed": "GitHub App 已安装",
+  "GitHub authorization did not complete. Try connecting the repository again.":
+    "GitHub 授权未完成。请重新连接仓库。",
+  "GitHub connection is not configured. Public repositories can still use polling.":
+    "GitHub 连接尚未配置。公开仓库仍可使用轮询。",
+  "GitHub connection is ready.": "GitHub 连接已就绪。",
   "GitHub repositories, local uploads, or Docker images": "GitHub 仓库、本地上传或 Docker 镜像",
   "GitHub repository linked to {count} services.": "GitHub 仓库已关联到 {count} 个服务。",
+  "Connect GitHub repository": "连接 GitHub 仓库",
+  "Enable automatic updates": "启用自动更新",
+  "Fugue will connect GitHub first, then continue repository authorization.":
+    "Fugue 会先连接 GitHub，然后继续仓库授权。",
+  "Fugue will open GitHub only if this repository still needs App access.":
+    "只有该仓库仍需要 App 访问时，Fugue 才会打开 GitHub。",
+  "Needs authorization": "需要授权",
+  "Polling fallback": "轮询兜底",
+  "Polling is available. Webhook events require GitHub App access.":
+    "轮询可用。Webhook 事件需要 GitHub App 访问。",
   "Bind a repository after GitHub access is available.":
     "GitHub 访问可用后再绑定仓库。",
   "Binding this repository enables registry polling. Install the GitHub App only if you also need webhook events.":
@@ -4592,7 +4611,10 @@ const zhCNMorlanePatchMessages = {
     "公开仓库无需安装 GitHub App 也可以绑定并启用镜像轮询。",
   "Public repositories can be set as the project default without installing the GitHub App.":
     "公开仓库无需安装 GitHub App 也可以设为项目默认来源。",
+  "Public repositories can use automatic polling without installing the GitHub App.":
+    "公开仓库无需安装 GitHub App 也可以使用自动轮询。",
   "Public repository": "公开仓库",
+  "Ready to connect": "可连接",
   "Ready to set": "可设置",
   "Ready to bind": "可绑定",
   "Registry polling": "镜像轮询",
@@ -4602,10 +4624,12 @@ const zhCNMorlanePatchMessages = {
   "Repository is bound. No matching image service has been linked yet.":
     "仓库已绑定，但还没有匹配到可关联的镜像服务。",
   "Service overrides": "服务覆盖",
+  "Service overrides stay unchanged.": "服务覆盖保持不变。",
   "Service-level tracking": "服务单独跟踪",
   "Service-level tracking active": "服务单独跟踪已启用",
   "Services without their own strategy follow this project default.":
     "没有单独策略的服务会跟随这个项目默认来源。",
+  "Signed in as @{login}.": "已作为 @{login} 连接。",
   "Set a project default after repository access is available.":
     "仓库访问可用后再设置项目默认来源。",
   "Set a project default repository for automatic image updates. Services can follow the default or keep their own strategy.":
@@ -4619,9 +4643,12 @@ const zhCNMorlanePatchMessages = {
     "此服务不会自动更新镜像。",
   "This service keeps its own image tracking.":
     "此服务保留自己的镜像跟踪。",
+  "Update automatic updates": "更新自动更新",
   "Update registry polling": "更新镜像轮询",
   "Update project default": "更新项目默认",
+  "Update signal": "更新信号",
   "Update strategy": "更新策略",
+  "Waiting for events": "等待事件",
   "Webhook event": "Webhook 事件",
   "Webhook events": "Webhook 事件",
   "Historical image queued for deploy.": "历史镜像已排队部署。",
@@ -5138,13 +5165,32 @@ const zhTWMorlanePatchMessages = {
   "Fugue subdomain": "Fugue子域",
   "Access required": "需要存取權限",
   "Automatic image updates": "自動映像更新",
+  "Automatic updates enabled": "自動更新已啟用",
   "Automatic updates off": "未啟用自動更新",
+  "Authorize repository": "授權儲存庫",
+  "Available after repository authorization.": "儲存庫授權後可用。",
   "GitHub": "GitHub",
+  "GitHub account": "GitHub 帳號",
   "GitHub image updates": "GitHub映像更新",
   "GitHub App installed": "GitHub App 已安裝",
+  "GitHub authorization did not complete. Try connecting the repository again.":
+    "GitHub 授權未完成。請重新連接儲存庫。",
+  "GitHub connection is not configured. Public repositories can still use polling.":
+    "GitHub 連接尚未配置。公開儲存庫仍可使用輪詢。",
+  "GitHub connection is ready.": "GitHub 連接已就緒。",
   "GitHub repositories, local uploads, or Docker images": "GitHub 儲存庫、本地上传或Docker 映像",
   "GitHub repository": "GitHub 儲存庫",
   "GitHub repository linked to {count} services.": "GitHub 儲存庫已关联到 {count} 个服務。",
+  "Connect GitHub repository": "連接 GitHub 儲存庫",
+  "Enable automatic updates": "啟用自動更新",
+  "Fugue will connect GitHub first, then continue repository authorization.":
+    "Fugue 會先連接 GitHub，然後繼續儲存庫授權。",
+  "Fugue will open GitHub only if this repository still needs App access.":
+    "只有該儲存庫仍需要 App 存取時，Fugue 才會開啟 GitHub。",
+  "Needs authorization": "需要授權",
+  "Polling fallback": "輪詢備援",
+  "Polling is available. Webhook events require GitHub App access.":
+    "輪詢可用。Webhook 事件需要 GitHub App 存取。",
   "Bind a repository after GitHub access is available.":
     "GitHub 存取可用後再綁定儲存庫。",
   "Binding this repository enables registry polling. Install the GitHub App only if you also need webhook events.":
@@ -5178,7 +5224,10 @@ const zhTWMorlanePatchMessages = {
     "公開儲存庫無需安裝 GitHub App 也可以綁定並啟用映像輪詢。",
   "Public repositories can be set as the project default without installing the GitHub App.":
     "公開儲存庫無需安裝 GitHub App 也可以設為專案預設來源。",
+  "Public repositories can use automatic polling without installing the GitHub App.":
+    "公開儲存庫無需安裝 GitHub App 也可以使用自動輪詢。",
   "Public repository": "公開儲存庫",
+  "Ready to connect": "可連接",
   "Ready to set": "可設定",
   "Ready to bind": "可綁定",
   "Registry polling": "映像輪詢",
@@ -5188,10 +5237,12 @@ const zhTWMorlanePatchMessages = {
   "Repository is bound. No matching image service has been linked yet.":
     "儲存庫已綁定，但還沒有匹配到可連結的映像服務。",
   "Service overrides": "服務覆寫",
+  "Service overrides stay unchanged.": "服務覆寫保持不變。",
   "Service-level tracking": "服務單獨追蹤",
   "Service-level tracking active": "服務單獨追蹤已啟用",
   "Services without their own strategy follow this project default.":
     "沒有單獨策略的服務會跟隨這個專案預設來源。",
+  "Signed in as @{login}.": "已作為 @{login} 連接。",
   "Set a project default after repository access is available.":
     "儲存庫存取可用後再設定專案預設來源。",
   "Set a project default repository for automatic image updates. Services can follow the default or keep their own strategy.":
@@ -5205,9 +5256,12 @@ const zhTWMorlanePatchMessages = {
     "此服務不會自動更新映像。",
   "This service keeps its own image tracking.":
     "此服務保留自己的映像追蹤。",
+  "Update automatic updates": "更新自動更新",
   "Update registry polling": "更新映像輪詢",
   "Update project default": "更新專案預設",
+  "Update signal": "更新訊號",
   "Update strategy": "更新策略",
+  "Waiting for events": "等待事件",
   "Webhook event": "Webhook 事件",
   "Webhook events": "Webhook 事件",
   "GitHub repository links must use https://github.com/owner/repo.": "GitHub 儲存庫連結必須使用 https://github.com/owner/repo。",

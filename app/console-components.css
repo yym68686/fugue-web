@@ -823,8 +823,18 @@
 }
 
 .fg-project-image-sync__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
   align-self: end;
   margin: 0;
+}
+
+.fg-project-image-sync__action-note {
+  color: var(--ml-muted);
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 .fg-project-image-sync__status-list,
