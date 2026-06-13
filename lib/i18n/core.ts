@@ -4552,6 +4552,9 @@ const zhCNMorlanePatchMessages = {
   "Fugue is waiting for DNS to resolve for this hostname.": "Fugue 正在等待此主机名完成 DNS 解析。",
   "Fugue keeps {primaryRuntimeLabel} serving writes while it prepares {selectedTransferTargetLabel}, then promotes the new primary and keeps {primaryRuntimeLabel} as the standby.": "Fugue 会让 {primaryRuntimeLabel} 继续处理写入，同时准备 {selectedTransferTargetLabel}，随后提升新的主实例，并将 {primaryRuntimeLabel} 保留为备用实例。",
   "Fugue subdomain": "Fugue 子域",
+  "Access required": "需要访问权限",
+  "Automatic image updates": "自动镜像更新",
+  "Automatic updates off": "未启用自动更新",
   "GitHub image updates": "GitHub 镜像更新",
   "GitHub App installed": "GitHub App 已安装",
   "GitHub repositories, local uploads, or Docker images": "GitHub 仓库、本地上传或 Docker 镜像",
@@ -4562,23 +4565,64 @@ const zhCNMorlanePatchMessages = {
     "绑定此仓库会启用镜像仓库轮询。只有同时需要 Webhook 事件时才需要安装 GitHub App。",
   "Enable registry polling": "启用镜像轮询",
   "Enable webhooks": "启用 Webhook",
+  "Enable event notifications": "启用事件通知",
+  "Event notifications": "事件通知",
+  "Existing service-level tracking stays unchanged unless a service is changed later.":
+    "已有的服务单独跟踪会保持不变，除非之后单独调整该服务。",
+  "Follows project default": "跟随项目默认",
   "Install the GitHub App to receive webhook events.":
     "安装 GitHub App 后可接收 Webhook 事件。",
   "Install the GitHub App to verify private access and receive webhook events.":
     "安装 GitHub App 以验证私有仓库访问权限并接收 Webhook 事件。",
+  "Last activity": "最近活动",
+  "Last checked": "最近检查",
+  "Last triggered": "最近触发",
+  "Managed by the project default.": "由项目默认来源管理。",
+  "No activity yet": "暂无活动",
   "No events yet": "还没有事件",
   "No sync has run yet.": "还没有执行过同步。",
   "Not verified": "未验证",
+  "Project default": "项目默认",
+  "Project default + service overrides": "项目默认 + 服务覆盖",
+  "Project default enabled": "项目默认已启用",
+  "Project default repository": "项目默认仓库",
+  "Project default source saved. {count} services follow it.":
+    "项目默认来源已保存，{count} 个服务跟随它。",
   "Public repositories can be bound for registry polling without installing the GitHub App.":
     "公开仓库无需安装 GitHub App 也可以绑定并启用镜像轮询。",
+  "Public repositories can be set as the project default without installing the GitHub App.":
+    "公开仓库无需安装 GitHub App 也可以设为项目默认来源。",
   "Public repository": "公开仓库",
+  "Ready to set": "可设置",
   "Ready to bind": "可绑定",
   "Registry polling": "镜像轮询",
   "Registry polling enabled": "镜像轮询已启用",
   "Repository bound": "仓库已绑定",
+  "Repository ready": "仓库就绪",
   "Repository is bound. No matching image service has been linked yet.":
     "仓库已绑定，但还没有匹配到可关联的镜像服务。",
+  "Service overrides": "服务覆盖",
+  "Service-level tracking": "服务单独跟踪",
+  "Service-level tracking active": "服务单独跟踪已启用",
+  "Services without their own strategy follow this project default.":
+    "没有单独策略的服务会跟随这个项目默认来源。",
+  "Set a project default after repository access is available.":
+    "仓库访问可用后再设置项目默认来源。",
+  "Set a project default repository for automatic image updates. Services can follow the default or keep their own strategy.":
+    "设置用于自动镜像更新的项目默认仓库。服务可以跟随默认来源，也可以保留自己的策略。",
+  "Set as project default": "设为项目默认",
+  "Set this repository as the project default source.": "将此仓库设为项目默认来源。",
+  "Sync error": "同步错误",
+  "These services keep their existing service-level tracking.":
+    "这些服务会保留现有的服务单独跟踪。",
+  "This service does not update images automatically.":
+    "此服务不会自动更新镜像。",
+  "This service keeps its own image tracking.":
+    "此服务保留自己的镜像跟踪。",
   "Update registry polling": "更新镜像轮询",
+  "Update project default": "更新项目默认",
+  "Update strategy": "更新策略",
+  "Webhook event": "Webhook 事件",
   "Webhook events": "Webhook 事件",
   "Historical image queued for deploy.": "历史镜像已排队部署。",
   "Historical image selected for deploy.": "已选择历史镜像进行部署。",
@@ -5092,6 +5136,9 @@ const zhTWMorlanePatchMessages = {
   "Fugue is waiting for DNS to resolve for this hostname.": "Fugue正在等待DNS 解析此主機名。",
   "Fugue keeps {primaryRuntimeLabel} serving writes while it prepares {selectedTransferTargetLabel}, then promotes the new primary and keeps {primaryRuntimeLabel} as the standby.": "Fugue 会让 {primaryRuntimeLabel} 继续处理寫入，同时準備 {selectedTransferTargetLabel}，随后提升新的主實例，并将 {primaryRuntimeLabel} 保留为備用实例。",
   "Fugue subdomain": "Fugue子域",
+  "Access required": "需要存取權限",
+  "Automatic image updates": "自動映像更新",
+  "Automatic updates off": "未啟用自動更新",
   "GitHub": "GitHub",
   "GitHub image updates": "GitHub映像更新",
   "GitHub App installed": "GitHub App 已安裝",
@@ -5104,23 +5151,64 @@ const zhTWMorlanePatchMessages = {
     "綁定此儲存庫會啟用映像倉庫輪詢。只有同時需要 Webhook 事件時才需要安裝 GitHub App。",
   "Enable registry polling": "啟用映像輪詢",
   "Enable webhooks": "啟用 Webhook",
+  "Enable event notifications": "啟用事件通知",
+  "Event notifications": "事件通知",
+  "Existing service-level tracking stays unchanged unless a service is changed later.":
+    "已有的服務單獨追蹤會保持不變，除非之後單獨調整該服務。",
+  "Follows project default": "跟隨專案預設",
   "Install the GitHub App to receive webhook events.":
     "安裝 GitHub App 後可接收 Webhook 事件。",
   "Install the GitHub App to verify private access and receive webhook events.":
     "安裝 GitHub App 以驗證私有儲存庫存取權限並接收 Webhook 事件。",
+  "Last activity": "最近活動",
+  "Last checked": "最近檢查",
+  "Last triggered": "最近觸發",
+  "Managed by the project default.": "由專案預設來源管理。",
+  "No activity yet": "暫無活動",
   "No events yet": "還沒有事件",
   "No sync has run yet.": "還沒有執行過同步。",
   "Not verified": "未驗證",
+  "Project default": "專案預設",
+  "Project default + service overrides": "專案預設 + 服務覆寫",
+  "Project default enabled": "專案預設已啟用",
+  "Project default repository": "專案預設儲存庫",
+  "Project default source saved. {count} services follow it.":
+    "專案預設來源已儲存，{count} 個服務跟隨它。",
   "Public repositories can be bound for registry polling without installing the GitHub App.":
     "公開儲存庫無需安裝 GitHub App 也可以綁定並啟用映像輪詢。",
+  "Public repositories can be set as the project default without installing the GitHub App.":
+    "公開儲存庫無需安裝 GitHub App 也可以設為專案預設來源。",
   "Public repository": "公開儲存庫",
+  "Ready to set": "可設定",
   "Ready to bind": "可綁定",
   "Registry polling": "映像輪詢",
   "Registry polling enabled": "映像輪詢已啟用",
   "Repository bound": "儲存庫已綁定",
+  "Repository ready": "儲存庫就緒",
   "Repository is bound. No matching image service has been linked yet.":
     "儲存庫已綁定，但還沒有匹配到可連結的映像服務。",
+  "Service overrides": "服務覆寫",
+  "Service-level tracking": "服務單獨追蹤",
+  "Service-level tracking active": "服務單獨追蹤已啟用",
+  "Services without their own strategy follow this project default.":
+    "沒有單獨策略的服務會跟隨這個專案預設來源。",
+  "Set a project default after repository access is available.":
+    "儲存庫存取可用後再設定專案預設來源。",
+  "Set a project default repository for automatic image updates. Services can follow the default or keep their own strategy.":
+    "設定用於自動映像更新的專案預設儲存庫。服務可以跟隨預設來源，也可以保留自己的策略。",
+  "Set as project default": "設為專案預設",
+  "Set this repository as the project default source.": "將此儲存庫設為專案預設來源。",
+  "Sync error": "同步錯誤",
+  "These services keep their existing service-level tracking.":
+    "這些服務會保留現有的服務單獨追蹤。",
+  "This service does not update images automatically.":
+    "此服務不會自動更新映像。",
+  "This service keeps its own image tracking.":
+    "此服務保留自己的映像追蹤。",
   "Update registry polling": "更新映像輪詢",
+  "Update project default": "更新專案預設",
+  "Update strategy": "更新策略",
+  "Webhook event": "Webhook 事件",
   "Webhook events": "Webhook 事件",
   "GitHub repository links must use https://github.com/owner/repo.": "GitHub 儲存庫連結必須使用 https://github.com/owner/repo。",
   "GitHub source": "GitHub 來源",

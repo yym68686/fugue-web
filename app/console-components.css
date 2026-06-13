@@ -894,10 +894,10 @@
 .fg-project-image-sync__service-row {
   display: grid;
   grid-template-columns:
-    minmax(150px, 1fr)
-    minmax(160px, 1fr)
-    minmax(180px, 1.3fr)
-    minmax(140px, 0.7fr);
+    minmax(150px, 0.95fr)
+    minmax(180px, 1.2fr)
+    minmax(180px, 1.15fr)
+    minmax(132px, 0.75fr);
   align-items: center;
   gap: 12px;
   min-width: 0;
@@ -920,9 +920,9 @@
 }
 
 .fg-project-image-sync__service-name,
-.fg-project-image-sync__service-meta,
 .fg-project-image-sync__service-image,
-.fg-project-image-sync__service-status {
+.fg-project-image-sync__service-strategy,
+.fg-project-image-sync__service-activity {
   min-width: 0;
 }
 
@@ -940,8 +940,7 @@
   white-space: nowrap;
 }
 
-.fg-project-image-sync__service-name span,
-.fg-project-image-sync__service-meta span {
+.fg-project-image-sync__service-name span {
   overflow: hidden;
   color: var(--ml-muted);
   font-size: 12px;
@@ -959,21 +958,27 @@
   white-space: nowrap;
 }
 
-.fg-project-image-sync__service-status {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+.fg-project-image-sync__service-strategy,
+.fg-project-image-sync__service-activity {
+  display: grid;
   gap: 6px;
   color: var(--ml-muted);
   font-size: 12px;
 }
 
-.fg-project-image-sync__service-status > span:not(.fg-status-badge) {
+.fg-project-image-sync__service-strategy > span:not(.fg-status-badge),
+.fg-project-image-sync__service-activity > span:not(.fg-status-badge),
+.fg-project-image-sync__service-activity > strong {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.fg-project-image-sync__service-activity > strong {
+  color: var(--ml-text);
+  font-size: 12px;
+  font-weight: 720;
 }
 
 /* Environment, routes, files, and logs */
@@ -2934,8 +2939,8 @@
   .fg-project-image-sync__service-row {
     grid-template-columns:
       minmax(132px, 0.9fr)
-      minmax(132px, 0.9fr)
       minmax(150px, 1.1fr)
+      minmax(150px, 1fr)
       minmax(112px, 0.7fr);
   }
 }
@@ -3092,8 +3097,9 @@
     display: none;
   }
 
-  .fg-project-image-sync__service-status {
-    justify-content: flex-start;
+  .fg-project-image-sync__service-strategy,
+  .fg-project-image-sync__service-activity {
+    justify-items: start;
   }
 }
 
@@ -3281,9 +3287,9 @@
   .fg-project-image-sync__service-row:not(.fg-project-image-sync__service-row--head)
     > :is(
       .fg-project-image-sync__service-name,
-      .fg-project-image-sync__service-meta,
       .fg-project-image-sync__service-image,
-      .fg-project-image-sync__service-status
+      .fg-project-image-sync__service-strategy,
+      .fg-project-image-sync__service-activity
     ) {
     display: grid;
     grid-template-columns: minmax(90px, 0.35fr) minmax(0, 1fr);
@@ -3294,9 +3300,9 @@
   .fg-project-image-sync__service-row:not(.fg-project-image-sync__service-row--head)
     > :is(
       .fg-project-image-sync__service-name,
-      .fg-project-image-sync__service-meta,
       .fg-project-image-sync__service-image,
-      .fg-project-image-sync__service-status
+      .fg-project-image-sync__service-strategy,
+      .fg-project-image-sync__service-activity
     )::before {
     content: attr(data-label);
     color: var(--ml-muted);
@@ -3306,20 +3312,22 @@
   }
 
   .fg-project-image-sync__service-name > :not(:first-child),
-  .fg-project-image-sync__service-meta > span,
   .fg-project-image-sync__service-image > code,
-  .fg-project-image-sync__service-status .fg-status-badge {
+  .fg-project-image-sync__service-strategy .fg-status-badge,
+  .fg-project-image-sync__service-activity .fg-status-badge,
+  .fg-project-image-sync__service-activity > strong {
     grid-column: 2;
   }
 
-  .fg-project-image-sync__service-status > span:not(.fg-status-badge) {
+  .fg-project-image-sync__service-strategy > span:not(.fg-status-badge),
+  .fg-project-image-sync__service-activity > span:not(.fg-status-badge) {
     grid-column: 2;
   }
 
   .fg-project-image-sync__service-name span,
-  .fg-project-image-sync__service-meta span,
   .fg-project-image-sync__service-image code,
-  .fg-project-image-sync__service-status > span:not(.fg-status-badge) {
+  .fg-project-image-sync__service-strategy > span:not(.fg-status-badge),
+  .fg-project-image-sync__service-activity > span:not(.fg-status-badge) {
     white-space: normal;
   }
 

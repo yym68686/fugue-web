@@ -1,6 +1,10 @@
 import "server-only";
 
-import type { FugueApp, FugueAppSource } from "@/lib/fugue/api";
+import type {
+  FugueApp,
+  FugueAppImageTracking,
+  FugueAppSource,
+} from "@/lib/fugue/api";
 import {
   normalizeGitHubRepositoryName,
   type GitHubAppImageLink,
@@ -43,6 +47,22 @@ export type ProjectImageTrackingServiceSourceView = {
   imageNameSuffix: string | null;
 };
 
+export type ProjectImageTrackingStrategyScope = "none" | "project" | "service";
+
+export type ProjectImageTrackingTriggerView = "none" | "polling" | "webhook";
+
+export type ProjectImageTrackingServiceTrackingView = {
+  enabled: boolean;
+  githubRepo: string | null;
+  imageRef: string | null;
+  lastCheckedAt: string | null;
+  lastError: string | null;
+  lastTriggeredAt: string | null;
+  scope: ProjectImageTrackingStrategyScope;
+  trigger: ProjectImageTrackingTriggerView;
+  updatedAt: string | null;
+};
+
 export type ProjectImageTrackingServiceView = {
   appId: string;
   appName: string;
@@ -52,7 +72,15 @@ export type ProjectImageTrackingServiceView = {
   linked: boolean;
   matchReason: string | null;
   source: ProjectImageTrackingServiceSourceView;
+  tracking: ProjectImageTrackingServiceTrackingView;
   updatedAt: string | null;
+};
+
+export type ProjectImageTrackingServiceSummaryView = {
+  projectLinkedCount: number;
+  serviceOverrideCount: number;
+  totalCount: number;
+  trackedCount: number;
 };
 
 export type ProjectImageTrackingResponseView = {
@@ -61,6 +89,7 @@ export type ProjectImageTrackingResponseView = {
   linkedCount: number;
   projectId: string;
   services: ProjectImageTrackingServiceView[];
+  serviceSummary: ProjectImageTrackingServiceSummaryView;
 };
 
 export type ProjectImageTrackingGitHubAppView = {
@@ -233,18 +262,78 @@ function buildSourceView(
 
 function buildServiceView(
   app: FugueApp,
-  link: GitHubAppImageLink | null,
+  projectLink: GitHubAppImageLink | null,
+  appLink: GitHubAppImageLink | null,
+  appTracking: FugueAppImageTracking | null,
+  projectId: string,
 ): ProjectImageTrackingServiceView {
+  const projectLinked = Boolean(
+    projectLink?.enabled && projectLink.fugueProjectId === projectId,
+  );
+  const serviceLinkEnabled = Boolean(
+    appLink?.enabled && appLink.fugueProjectId !== projectId,
+  );
+  const serviceTrackingEnabled = Boolean(appTracking?.enabled);
+  const scope: ProjectImageTrackingStrategyScope = projectLinked
+    ? "project"
+    : serviceTrackingEnabled || serviceLinkEnabled
+      ? "service"
+      : "none";
+  const effectiveLink = projectLinked ? projectLink : appLink;
+  const imageRef =
+    (projectLinked ? projectLink?.imageRef : null) ??
+    appTracking?.imageRef ??
+    appLink?.imageRef ??
+    readSourceImageRef(app);
+  const trigger: ProjectImageTrackingTriggerView =
+    scope === "none"
+      ? "none"
+      : effectiveLink?.lastWebhookReceivedAt
+        ? "webhook"
+        : "polling";
+  const lastTriggeredAt =
+    appTracking?.lastTriggeredAt ?? effectiveLink?.lastImageSyncAt ?? null;
+  const lastError =
+    appTracking?.lastError ?? effectiveLink?.lastImageSyncError ?? null;
+  const updatedAt =
+    projectLink?.updatedAt ?? appTracking?.updatedAt ?? appLink?.updatedAt ?? null;
+
   return {
     appId: app.id,
     appName: app.name,
-    enabled: link?.enabled ?? false,
-    githubRepo: link?.githubRepo ?? null,
-    imageRef: link?.imageRef ?? null,
-    linked: Boolean(link?.enabled),
+    enabled: scope !== "none",
+    githubRepo: effectiveLink?.githubRepo ?? null,
+    imageRef,
+    linked: projectLinked,
     matchReason: null,
     source: buildSourceView(readSource(app)),
-    updatedAt: link?.updatedAt ?? null,
+    tracking: {
+      enabled: scope !== "none",
+      githubRepo: effectiveLink?.githubRepo ?? null,
+      imageRef,
+      lastCheckedAt: appTracking?.lastCheckedAt ?? null,
+      lastError,
+      lastTriggeredAt,
+      scope,
+      trigger,
+      updatedAt,
+    },
+    updatedAt,
+  };
+}
+
+function buildServiceSummary(
+  services: ProjectImageTrackingServiceView[],
+): ProjectImageTrackingServiceSummaryView {
+  return {
+    projectLinkedCount: services.filter(
+      (service) => service.tracking.scope === "project",
+    ).length,
+    serviceOverrideCount: services.filter(
+      (service) => service.tracking.scope === "service",
+    ).length,
+    totalCount: services.length,
+    trackedCount: services.filter((service) => service.tracking.enabled).length,
   };
 }
 
@@ -277,18 +366,48 @@ function buildGitHubAppView(
 }
 
 export function buildProjectImageTrackingResponseView(input: {
+  appLinks?: GitHubAppImageLink[];
+  appTrackings?: FugueAppImageTracking[];
   apps: FugueApp[];
   binding: GitHubProjectImageLink | null;
   githubAppInstallation?: GitHubAppInstallationStatus | null;
   links: GitHubAppImageLink[];
+  matches?: ProjectImageTrackingMatch[];
   projectId: string;
 }): ProjectImageTrackingResponseView {
   const linksByAppId = new Map(
     input.links.map((link) => [link.fugueAppId, link]),
   );
-  const services = input.apps.map((app) =>
-    buildServiceView(app, linksByAppId.get(app.id) ?? null),
+  const appLinksByAppId = new Map(
+    (input.appLinks ?? input.links).map((link) => [link.fugueAppId, link]),
   );
+  const trackingByAppId = new Map(
+    (input.appTrackings ?? []).map((tracking) => [tracking.appId, tracking]),
+  );
+  const matchesByAppId = new Map(
+    (input.matches ?? []).map((match) => [match.app.id, match]),
+  );
+  const services = input.apps.map((app) => {
+    const match = matchesByAppId.get(app.id);
+    const service = buildServiceView(
+      app,
+      linksByAppId.get(app.id) ?? null,
+      appLinksByAppId.get(app.id) ?? null,
+      trackingByAppId.get(app.id) ?? null,
+      input.projectId,
+    );
+
+    return {
+      ...service,
+      imageRef: service.imageRef ?? match?.candidate.imageRef ?? null,
+      matchReason: match?.reason ?? service.matchReason,
+      tracking: {
+        ...service.tracking,
+        imageRef: service.tracking.imageRef ?? match?.candidate.imageRef ?? null,
+      },
+    } satisfies ProjectImageTrackingServiceView;
+  });
+  const serviceSummary = buildServiceSummary(services);
 
   return {
     binding: input.binding,
@@ -296,43 +415,33 @@ export function buildProjectImageTrackingResponseView(input: {
       input.binding,
       input.githubAppInstallation ?? null,
     ),
-    linkedCount: services.filter((service) => service.linked).length,
+    linkedCount: serviceSummary.projectLinkedCount,
     projectId: input.projectId,
     services,
+    serviceSummary,
   };
 }
 
 export function buildProjectImageTrackingBoundResponseView(input: {
+  appLinks?: GitHubAppImageLink[];
+  appTrackings?: FugueAppImageTracking[];
+  apps: FugueApp[];
   binding: GitHubProjectImageLink;
   githubAppInstallation?: GitHubAppInstallationStatus | null;
   links: GitHubAppImageLink[];
   matches: ProjectImageTrackingMatch[];
   projectId: string;
 }): ProjectImageTrackingResponseView {
-  const linksByAppId = new Map(
-    input.links.map((link) => [link.fugueAppId, link]),
-  );
-  const services = input.matches.map(({ app, candidate, reason }) => {
-    const link = linksByAppId.get(app.id) ?? null;
-
-    return {
-      ...buildServiceView(app, link),
-      imageRef: link?.imageRef ?? candidate.imageRef,
-      linked: Boolean(link?.enabled),
-      matchReason: reason,
-    } satisfies ProjectImageTrackingServiceView;
-  });
-
-  return {
+  return buildProjectImageTrackingResponseView({
+    appLinks: input.appLinks,
+    appTrackings: input.appTrackings,
+    apps: input.apps,
     binding: input.binding,
-    githubApp: buildGitHubAppView(
-      input.binding,
-      input.githubAppInstallation ?? null,
-    ),
-    linkedCount: services.filter((service) => service.linked).length,
+    githubAppInstallation: input.githubAppInstallation ?? null,
+    links: input.links,
+    matches: input.matches,
     projectId: input.projectId,
-    services,
-  };
+  });
 }
 
 function buildGitHubHeaders(token?: string | null) {

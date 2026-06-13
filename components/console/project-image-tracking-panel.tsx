@@ -54,6 +54,22 @@ type ProjectImageTrackingGitHubAppStatus = {
   webhookActive?: boolean;
 };
 
+type ProjectImageTrackingStrategyScope = "none" | "project" | "service";
+
+type ProjectImageTrackingTrigger = "none" | "polling" | "webhook";
+
+type ProjectImageTrackingServiceTracking = {
+  enabled: boolean;
+  githubRepo: string | null;
+  imageRef: string | null;
+  lastCheckedAt: string | null;
+  lastError: string | null;
+  lastTriggeredAt: string | null;
+  scope: ProjectImageTrackingStrategyScope;
+  trigger: ProjectImageTrackingTrigger;
+  updatedAt: string | null;
+};
+
 type ProjectImageTrackingService = {
   appId: string;
   appName: string;
@@ -69,7 +85,15 @@ type ProjectImageTrackingService = {
     dockerfilePath: string | null;
     imageNameSuffix: string | null;
   };
+  tracking: ProjectImageTrackingServiceTracking;
   updatedAt: string | null;
+};
+
+type ProjectImageTrackingServiceSummary = {
+  projectLinkedCount: number;
+  serviceOverrideCount: number;
+  totalCount: number;
+  trackedCount: number;
 };
 
 type ProjectImageTrackingResponse = {
@@ -78,6 +102,7 @@ type ProjectImageTrackingResponse = {
   linkedCount: number;
   projectId: string;
   services: ProjectImageTrackingService[];
+  serviceSummary: ProjectImageTrackingServiceSummary;
 };
 
 type ProjectImageTrackingInstallResponse = {
@@ -101,27 +126,6 @@ type GitHubImageStatusRow = {
   tone?: ConsoleTone;
   value: string;
 };
-
-async function readResponseError(response: Response) {
-  const body = await response.text().catch(() => "");
-  const trimmed = body.trim();
-
-  if (!trimmed) {
-    return `Request failed with status ${response.status}.`;
-  }
-
-  try {
-    const payload = JSON.parse(trimmed) as { error?: unknown };
-
-    if (typeof payload.error === "string" && payload.error.trim()) {
-      return payload.error.trim();
-    }
-  } catch {
-    // Fall through to the raw body.
-  }
-
-  return trimmed;
-}
 
 interface RequestError extends Error {
   payload?: unknown;
@@ -218,6 +222,49 @@ function readServiceMeta(service: ProjectImageTrackingService) {
     .join(" / ");
 }
 
+function readServiceScope(service: ProjectImageTrackingService) {
+  return (
+    service.tracking?.scope ??
+    (service.linked ? "project" : service.enabled ? "service" : "none")
+  );
+}
+
+function readStrategyLabel(scope: ProjectImageTrackingStrategyScope) {
+  if (scope === "project") {
+    return "Follows project default";
+  }
+
+  if (scope === "service") {
+    return "Service-level tracking";
+  }
+
+  return "Automatic updates off";
+}
+
+function readStrategyDetail(scope: ProjectImageTrackingStrategyScope) {
+  if (scope === "project") {
+    return "Managed by the project default.";
+  }
+
+  if (scope === "service") {
+    return "This service keeps its own image tracking.";
+  }
+
+  return "This service does not update images automatically.";
+}
+
+function readStrategyTone(scope: ProjectImageTrackingStrategyScope): ConsoleTone {
+  if (scope === "project") {
+    return "positive";
+  }
+
+  if (scope === "service") {
+    return "info";
+  }
+
+  return "neutral";
+}
+
 function buildInstallReturnTo(returnTo: string, githubRepo: string) {
   const url = new URL(returnTo, "https://fugue.local");
   url.searchParams.set("githubImageRepo", githubRepo);
@@ -278,13 +325,24 @@ export function ProjectImageTrackingPanel({
       : null;
   const appInstalled = Boolean(currentGitHubAppStatus?.installed);
   const publicRepoReady = currentGitHubAppStatus?.source === "public-repo";
-  const currentRepoBound = Boolean(
-    response?.binding?.enabled &&
-      boundRepo &&
-      normalizedRepo &&
-      normalizedRepo === boundRepo,
+  const repoReadyForProjectDefault = Boolean(appInstalled || publicRepoReady);
+  const serviceSummary = response?.serviceSummary ?? {
+    projectLinkedCount:
+      response?.services.filter((service) => readServiceScope(service) === "project")
+        .length ?? 0,
+    serviceOverrideCount:
+      response?.services.filter((service) => readServiceScope(service) === "service")
+        .length ?? 0,
+    totalCount: response?.services.length ?? 0,
+    trackedCount:
+      response?.services.filter((service) => readServiceScope(service) !== "none")
+        .length ?? 0,
+  };
+  const projectDefaultConfigured = Boolean(response?.binding?.enabled && boundRepo);
+  const draftIsProjectDefault = Boolean(
+    projectDefaultConfigured && normalizedRepo && normalizedRepo === boundRepo,
   );
-  const repoReadyForPolling = Boolean(appInstalled || publicRepoReady);
+  const hasServiceOverrides = serviceSummary.serviceOverrideCount > 0;
   const installationId =
     currentGitHubAppStatus?.installationId ??
     currentGitHubAppStatus?.githubInstallationId ??
@@ -299,8 +357,7 @@ export function ProjectImageTrackingPanel({
     status !== "loading" &&
     repoTouched &&
     !repoError &&
-    repoReadyForPolling;
-  const linkedCount = response?.linkedCount ?? 0;
+    repoReadyForProjectDefault;
   const statusLabel =
     status === "error"
       ? t("Unavailable")
@@ -308,24 +365,24 @@ export function ProjectImageTrackingPanel({
         ? t("Loading")
         : repoInstallationLoading
           ? t("Checking…")
-          : currentRepoBound && linkedCount > 0
-            ? t("Registry polling enabled")
-          : currentRepoBound
-            ? t("Repository bound")
-          : appInstalled
-            ? t("GitHub App installed")
-            : publicRepoReady
-              ? t("Public repository")
-              : hasRepoCandidate
-                ? t("Install required")
-                : t("Not configured");
+          : projectDefaultConfigured && hasServiceOverrides
+            ? t("Project default + service overrides")
+            : projectDefaultConfigured
+              ? t("Project default enabled")
+              : hasServiceOverrides
+                ? t("Service-level tracking active")
+                : appInstalled || publicRepoReady
+                  ? t("Repository ready")
+                  : hasRepoCandidate
+                    ? t("Access required")
+                    : t("Not configured");
   const statusTone =
     status === "error"
       ? ("warning" as const)
-      : currentRepoBound
+      : projectDefaultConfigured
         ? ("positive" as const)
-      : appInstalled
-        ? ("positive" as const)
+      : hasServiceOverrides || appInstalled
+        ? ("info" as const)
         : publicRepoReady
           ? ("info" as const)
           : ("neutral" as const);
@@ -436,7 +493,10 @@ export function ProjectImageTrackingPanel({
       const nextResponse = await requestJson<ProjectImageTrackingResponse>(
         `/api/fugue/projects/${projectId}/image-tracking`,
         {
-          body: JSON.stringify({ githubRepo: normalizedRepo }),
+          body: JSON.stringify({
+            githubRepo: normalizedRepo,
+            preserveServiceOverrides: true,
+          }),
           headers: {
             "Content-Type": "application/json",
           },
@@ -453,7 +513,7 @@ export function ProjectImageTrackingPanel({
       setSubmitAttempted(false);
       setStatus("ready");
       showToast({
-        message: t("GitHub repository linked to {count} services.", {
+        message: t("Project default source saved. {count} services follow it.", {
           count: nextResponse.linkedCount,
         }),
         variant: "success",
@@ -487,6 +547,45 @@ export function ProjectImageTrackingPanel({
 
   const githubStatusRows: GitHubImageStatusRow[] = [];
 
+  function readServiceActivity(service: ProjectImageTrackingService) {
+    if (service.tracking.lastError) {
+      return {
+        detail: service.tracking.lastError,
+        tone: "warning" as const,
+        value: t("Sync error"),
+      };
+    }
+
+    if (service.tracking.lastTriggeredAt) {
+      return {
+        detail:
+          service.tracking.trigger === "webhook"
+            ? t("Webhook event")
+            : t("Last triggered"),
+        value: formatDateTime(service.tracking.lastTriggeredAt),
+      };
+    }
+
+    if (service.tracking.lastCheckedAt) {
+      return {
+        detail: t("Last checked"),
+        value: formatDateTime(service.tracking.lastCheckedAt),
+      };
+    }
+
+    if (service.tracking.updatedAt) {
+      return {
+        detail: t("Updated"),
+        value: formatDateTime(service.tracking.updatedAt),
+      };
+    }
+
+    return {
+      detail: t("No activity yet"),
+      value: "—",
+    };
+  }
+
   if (currentGitHubAppStatus && hasRepoCandidate) {
     githubStatusRows.push(
       {
@@ -506,7 +605,7 @@ export function ProjectImageTrackingPanel({
                 : t("Installed")
           : publicRepoReady
             ? t(
-                "Public repositories can be bound for registry polling without installing the GitHub App.",
+                "Public repositories can be set as the project default without installing the GitHub App.",
               )
             : t(
                 "Install the GitHub App to verify private access and receive webhook events.",
@@ -526,30 +625,28 @@ export function ProjectImageTrackingPanel({
             : t("Not verified"),
       },
       {
-        detail: currentRepoBound
-          ? linkedCount > 0
-            ? t("GitHub repository linked to {count} services.", {
-                count: linkedCount,
-              })
-            : t("Repository is bound. No matching image service has been linked yet.")
-          : repoReadyForPolling
+        detail: draftIsProjectDefault
+          ? hasServiceOverrides
             ? t(
-                "Binding this repository enables registry polling. Install the GitHub App only if you also need webhook events.",
+                "Existing service-level tracking stays unchanged unless a service is changed later.",
               )
-            : t("Bind a repository after GitHub access is available."),
-        key: "registry-polling",
-        label: t("Registry polling"),
-        live: currentRepoBound,
-        tone: currentRepoBound
+            : t("Services without their own strategy follow this project default.")
+          : repoReadyForProjectDefault
+            ? t("Set this repository as the project default source.")
+            : t("Set a project default after repository access is available."),
+        key: "project-default",
+        label: t("Project default"),
+        live: draftIsProjectDefault,
+        tone: draftIsProjectDefault
           ? "positive"
-          : repoReadyForPolling
+          : repoReadyForProjectDefault
             ? "info"
             : "neutral",
-        value: currentRepoBound
+        value: draftIsProjectDefault
           ? t("Enabled")
-          : repoReadyForPolling
-            ? t("Ready to bind")
-            : t("Not enabled"),
+          : repoReadyForProjectDefault
+            ? t("Ready to set")
+            : t("Not configured"),
       },
       {
         detail: webhookActive
@@ -564,7 +661,7 @@ export function ProjectImageTrackingPanel({
             ? t("No events yet")
             : t("Install the GitHub App to receive webhook events."),
         key: "webhook",
-        label: t("Webhook events"),
+        label: t("Event notifications"),
         live: webhookActive,
         tone: webhookActive ? "positive" : "neutral",
         value: webhookActive
@@ -575,8 +672,21 @@ export function ProjectImageTrackingPanel({
       },
     );
 
+    if (hasServiceOverrides) {
+      githubStatusRows.push({
+        detail: t("These services keep their existing service-level tracking."),
+        key: "service-overrides",
+        label: t("Service overrides"),
+        live: true,
+        tone: "info",
+        value: t("{count} services", {
+          count: serviceSummary.serviceOverrideCount,
+        }),
+      });
+    }
+
     if (
-      currentRepoBound ||
+      projectDefaultConfigured ||
       currentGitHubAppStatus.lastImageSyncAt ||
       currentGitHubAppStatus.lastImageSyncError
     ) {
@@ -604,18 +714,21 @@ export function ProjectImageTrackingPanel({
         <div className="fg-route-subsection__copy fg-settings-section__copy">
           <p className="fg-label fg-panel__eyebrow">{t("Image updates")}</p>
           <HintInline
-            ariaLabel={t("GitHub repository")}
+            ariaLabel={t("Automatic image updates")}
             hint={t(
-              "Bind one repository for this project. Fugue reads the repository workflow image outputs and maps them to app services automatically.",
+              "Set a project default repository for automatic image updates. Services can follow the default or keep their own strategy.",
             )}
           >
             <h3 className="fg-route-subsection__title fg-ui-heading">
-              {t("GitHub repository")}
+              {t("Automatic image updates")}
             </h3>
           </HintInline>
         </div>
 
-        <StatusBadge live={currentRepoBound || appInstalled} tone={statusTone}>
+        <StatusBadge
+          live={projectDefaultConfigured || serviceSummary.trackedCount > 0}
+          tone={statusTone}
+        >
           {statusLabel}
         </StatusBadge>
       </div>
@@ -630,7 +743,7 @@ export function ProjectImageTrackingPanel({
         <FormField
           error={repoFieldError}
           htmlFor={`project-image-repo-${projectId}`}
-          label={t("Repository")}
+          label={t("Project default repository")}
         >
           <input
             autoCapitalize="off"
@@ -665,7 +778,9 @@ export function ProjectImageTrackingPanel({
               size="compact"
               variant="secondary"
             >
-              {publicRepoReady ? t("Enable webhooks") : t("Install GitHub App")}
+              {publicRepoReady
+                ? t("Enable event notifications")
+                : t("Install GitHub App")}
             </ButtonAnchor>
           ) : null}
           <Button
@@ -674,12 +789,12 @@ export function ProjectImageTrackingPanel({
             loadingLabel={t("Binding…")}
             size="compact"
             type="submit"
-            variant="primary"
-          >
-            {response?.binding
-              ? t("Update registry polling")
-              : t("Enable registry polling")}
-          </Button>
+          variant="primary"
+        >
+          {response?.binding
+            ? t("Update project default")
+            : t("Set as project default")}
+        </Button>
         </div>
       </form>
 
@@ -724,57 +839,65 @@ export function ProjectImageTrackingPanel({
             role="row"
           >
             <span role="columnheader">{t("Service")}</span>
-            <span role="columnheader">{t("Source")}</span>
             <span role="columnheader">{t("Image")}</span>
-            <span role="columnheader">{t("Status")}</span>
+            <span role="columnheader">{t("Update strategy")}</span>
+            <span role="columnheader">{t("Last activity")}</span>
           </div>
-          {response.services.map((service) => (
-            <div
-              className="fg-project-image-sync__service-row"
-              key={service.appId}
-              role="row"
-            >
+          {response.services.map((service) => {
+            const scope = readServiceScope(service);
+            const activity = readServiceActivity(service);
+
+            return (
               <div
-                className="fg-project-image-sync__service-name"
-                data-label={t("Service")}
-                role="cell"
+                className="fg-project-image-sync__service-row"
+                key={service.appId}
+                role="row"
               >
-                <strong>{service.appName}</strong>
-                <span>{t("App service")}</span>
-              </div>
-              <div
-                className="fg-project-image-sync__service-meta"
-                data-label={t("Source")}
-                role="cell"
-              >
-                <span>{readServiceMeta(service) || "—"}</span>
-              </div>
-              <div
-                className="fg-project-image-sync__service-image"
-                data-label={t("Image")}
-                role="cell"
-              >
-                <code title={service.imageRef ?? undefined}>
-                  {service.imageRef || "—"}
-                </code>
-              </div>
-              <div
-                className="fg-project-image-sync__service-status"
-                data-label={t("Status")}
-                role="cell"
-              >
-                <StatusBadge
-                  live={service.linked}
-                  tone={service.linked ? "positive" : "neutral"}
+                <div
+                  className="fg-project-image-sync__service-name"
+                  data-label={t("Service")}
+                  role="cell"
                 >
-                  {service.linked ? t("Linked") : t("Waiting")}
-                </StatusBadge>
-                {service.matchReason ? (
-                  <span>{t(service.matchReason)}</span>
-                ) : null}
+                  <strong>{service.appName}</strong>
+                  <span>{readServiceMeta(service) || t("App service")}</span>
+                </div>
+                <div
+                  className="fg-project-image-sync__service-image"
+                  data-label={t("Image")}
+                  role="cell"
+                >
+                  <code title={service.imageRef ?? undefined}>
+                    {service.imageRef || "—"}
+                  </code>
+                </div>
+                <div
+                  className="fg-project-image-sync__service-strategy"
+                  data-label={t("Update strategy")}
+                  role="cell"
+                >
+                  <StatusBadge
+                    live={scope !== "none"}
+                    tone={readStrategyTone(scope)}
+                  >
+                    {t(readStrategyLabel(scope))}
+                  </StatusBadge>
+                  <span>{t(readStrategyDetail(scope))}</span>
+                </div>
+                <div
+                  className="fg-project-image-sync__service-activity"
+                  data-label={t("Last activity")}
+                  role="cell"
+                >
+                  {activity.tone ? (
+                    <StatusBadge tone={activity.tone}>{activity.value}</StatusBadge>
+                  ) : (
+                    <strong>{activity.value}</strong>
+                  )}
+                  <span>{activity.detail}</span>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : null}
     </section>

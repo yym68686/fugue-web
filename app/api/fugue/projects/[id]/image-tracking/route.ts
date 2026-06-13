@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 
 import {
   getFugueConsoleProject,
+  getFugueAppImageTracking,
   putFugueAppImageTracking,
   syncFugueAppImage,
+  type FugueAppImageTracking,
 } from "@/lib/fugue/api";
 import {
   isObject,
@@ -19,9 +21,11 @@ import {
 } from "@/lib/fugue/product-route";
 import {
   deleteGitHubAppImageLinksForProject,
+  getGitHubAppImageLinkForApp,
   listGitHubAppImageLinksForProject,
   recordGitHubAppImageLinkSyncResult,
   upsertGitHubAppImageLink,
+  type GitHubAppImageLink,
 } from "@/lib/github/app-image-links";
 import { readGitHubAppInstallationStatusForRepo } from "@/lib/github/app-installations";
 import { getGitHubConnectionByEmail } from "@/lib/github/connection-store";
@@ -44,6 +48,29 @@ function readOptionalBoolean(record: Record<string, unknown>, key: string) {
   return typeof value === "boolean" ? value : undefined;
 }
 
+async function readAppImageTrackings(accessToken: string, appIds: string[]) {
+  const results = await Promise.allSettled(
+    appIds.map(async (appId) => {
+      const result = await getFugueAppImageTracking(accessToken, appId);
+      return result.tracking;
+    }),
+  );
+
+  return results.flatMap((result): FugueAppImageTracking[] =>
+    result.status === "fulfilled" && result.value ? [result.value] : [],
+  );
+}
+
+async function readAppImageLinks(userEmail: string, appIds: string[]) {
+  const results = await Promise.allSettled(
+    appIds.map((appId) => getGitHubAppImageLinkForApp(userEmail, appId)),
+  );
+
+  return results.flatMap((result): GitHubAppImageLink[] =>
+    result.status === "fulfilled" && result.value ? [result.value] : [],
+  );
+}
+
 export async function GET(_request: Request, context: RouteContext) {
   const { response, session } = await requireSession();
 
@@ -64,6 +91,11 @@ export async function GET(_request: Request, context: RouteContext) {
       getGitHubProjectImageLink(session.email, projectId),
       listGitHubAppImageLinksForProject(session.email, projectId),
     ]);
+    const appIds = projectDetail.apps.map((app) => app.id);
+    const [appTrackings, appLinks] = await Promise.all([
+      readAppImageTrackings(workspaceState.workspace.adminKeySecret, appIds),
+      readAppImageLinks(session.email, appIds),
+    ]);
     const githubAppInstallation = binding?.githubRepo
       ? (await readGitHubAppInstallationStatusForRepo({
           githubRepo: binding.githubRepo,
@@ -73,6 +105,8 @@ export async function GET(_request: Request, context: RouteContext) {
 
     return NextResponse.json(
       buildProjectImageTrackingResponseView({
+        appLinks,
+        appTrackings,
         apps: projectDetail.apps,
         binding,
         githubAppInstallation,
@@ -126,10 +160,27 @@ export async function PUT(request: Request, context: RouteContext) {
   try {
     const projectId = await readRouteParam(context, "id");
     const enabled = readOptionalBoolean(body, "enabled") ?? true;
+    const preserveServiceOverrides =
+      readOptionalBoolean(body, "preserveServiceOverrides") ?? true;
     const [projectDetail, githubConnection] = await Promise.all([
       getFugueConsoleProject(workspaceState.workspace.adminKeySecret, projectId),
       getGitHubConnectionByEmail(session.email),
     ]);
+    const appIds = projectDetail.apps.map((app) => app.id);
+    const [appTrackingsBefore, existingProjectLinks] = await Promise.all([
+      readAppImageTrackings(workspaceState.workspace.adminKeySecret, appIds),
+      listGitHubAppImageLinksForProject(session.email, projectId),
+    ]);
+    const projectManagedApps = new Set(
+      existingProjectLinks.map((link) => link.fugueAppId),
+    );
+    const serviceOverrides = new Set(
+      appTrackingsBefore
+        .filter(
+          (tracking) => tracking.enabled && !projectManagedApps.has(tracking.appId),
+        )
+        .map((tracking) => tracking.appId),
+    );
     const githubAppInstallation = await readGitHubAppInstallationStatusForRepo({
       githubRepo,
       userEmail: session.email,
@@ -190,6 +241,10 @@ export async function PUT(request: Request, context: RouteContext) {
     });
     const links = await Promise.all(
       inference.matches.map(async ({ app, candidate }) => {
+        if (preserveServiceOverrides && serviceOverrides.has(app.id)) {
+          return null;
+        }
+
         await putFugueAppImageTracking(
           workspaceState.workspace.adminKeySecret,
           app.id,
@@ -258,16 +313,26 @@ export async function PUT(request: Request, context: RouteContext) {
         return link;
       }),
     );
+    const savedLinks = links.filter((link): link is GitHubAppImageLink =>
+      Boolean(link),
+    );
     const [nextBinding, nextLinks] = await Promise.all([
       getGitHubProjectImageLink(session.email, projectId),
       listGitHubAppImageLinksForProject(session.email, projectId),
     ]);
+    const [appTrackings, appLinks] = await Promise.all([
+      readAppImageTrackings(workspaceState.workspace.adminKeySecret, appIds),
+      readAppImageLinks(session.email, appIds),
+    ]);
 
     return NextResponse.json(
       buildProjectImageTrackingBoundResponseView({
+        appLinks,
+        appTrackings,
+        apps: projectDetail.apps,
         binding: nextBinding ?? binding,
         githubAppInstallation: githubAppInstallation.status,
-        links: nextLinks.length ? nextLinks : links,
+        links: nextLinks.length ? nextLinks : savedLinks,
         matches: inference.matches,
         projectId,
       }),
