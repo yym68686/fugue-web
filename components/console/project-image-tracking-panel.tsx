@@ -421,6 +421,7 @@ export function ProjectImageTrackingPanel({
       saving ||
       repositoryAction === "none" ||
       repositoryAction === "wait" ||
+      (repositoryAction === "connect-github" && !githubConnectHref) ||
       (repositoryAction === "bind" && !canSubmit),
   );
   const primaryActionLabel =
@@ -634,6 +635,7 @@ export function ProjectImageTrackingPanel({
     }
 
     if (repositoryAction === "connect-github") {
+      window.location.assign(githubConnectHref);
       return;
     }
 
