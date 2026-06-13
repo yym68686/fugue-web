@@ -3153,6 +3153,286 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/backups/backends": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Backup Backends */
+        get: operations["listBackupBackends"];
+        put?: never;
+        /** Create Backup Backend */
+        post: operations["createBackupBackend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backups/backends/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Backup Backend */
+        get: operations["getBackupBackend"];
+        put?: never;
+        post?: never;
+        /** Delete Backup Backend */
+        delete: operations["deleteBackupBackend"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backups/backends/{id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Test Backup Backend */
+        post: operations["testBackupBackend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backups/policies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Backup Policies */
+        get: operations["listBackupPolicies"];
+        put?: never;
+        /** Upsert Backup Policy */
+        post: operations["upsertBackupPolicy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backups/policies/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Backup Policy */
+        get: operations["getBackupPolicy"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Patch Backup Policy */
+        patch: operations["patchBackupPolicy"];
+        trace?: never;
+    };
+    "/v1/backups/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Backup Runs */
+        get: operations["listBackupRuns"];
+        put?: never;
+        /** Create Backup Run */
+        post: operations["createBackupRun"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backups/runs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Backup Run */
+        get: operations["getBackupRun"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backups/artifacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Backup Artifacts */
+        get: operations["listBackupArtifacts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backups/artifacts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Backup Artifact */
+        get: operations["getBackupArtifact"];
+        put?: never;
+        post?: never;
+        /** Delete Backup Artifact */
+        delete: operations["deleteBackupArtifact"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backups/restore-plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Backup Restore Plans */
+        get: operations["listBackupRestorePlans"];
+        put?: never;
+        /** Create Backup Restore Plan */
+        post: operations["createBackupRestorePlan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backups/restore-runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Backup Restore Runs */
+        get: operations["listBackupRestoreRuns"];
+        put?: never;
+        /** Create Backup Restore Run */
+        post: operations["createBackupRestoreRun"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backups/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Backup Usage */
+        get: operations["getBackupUsage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/backups/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Admin Backup Status */
+        get: operations["getAdminBackupStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/apps/{id}/backups/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get App Backup Status */
+        get: operations["getAppBackupStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/apps/{id}/backups/policies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create App Backup Policy */
+        post: operations["createAppBackupPolicy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/apps/{id}/backups/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create App Backup Run */
+        post: operations["createAppBackupRun"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/data/backends": {
         parameters: {
             query?: never;
@@ -3634,6 +3914,324 @@ export interface components {
             details?: {
                 [key: string]: unknown;
             };
+        };
+        BackupCredentials: {
+            access_key_id?: string;
+            secret_access_key?: string;
+            token?: string;
+        };
+        BackupBackend: {
+            id?: string;
+            tenant_id?: string;
+            name?: string;
+            slug?: string;
+            /** @enum {string} */
+            provider?: "fugue-managed" | "cloudflare-r2" | "backblaze-b2" | "s3" | "hugging-face" | "minio";
+            bucket?: string;
+            region?: string;
+            endpoint?: string;
+            base_url?: string;
+            prefix?: string;
+            status?: string;
+            capabilities?: {
+                [key: string]: unknown;
+            };
+            credentials?: components["schemas"]["BackupCredentials"];
+            fugue_managed?: boolean;
+            billable?: boolean;
+            /** Format: date-time */
+            last_tested_at?: string;
+            last_test_result?: string;
+            error_message?: string;
+            /** Format: date-time */
+            created_at?: string;
+            /** Format: date-time */
+            updated_at?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        BackupBackendRequest: {
+            tenant_id?: string;
+            name?: string;
+            provider?: string;
+            bucket?: string;
+            region?: string;
+            endpoint?: string;
+            base_url?: string;
+            prefix?: string;
+            credentials?: components["schemas"]["BackupCredentials"];
+            fugue_managed?: boolean;
+            billable?: boolean;
+            rotate_only?: boolean;
+        };
+        BackupTarget: {
+            /** @enum {string} */
+            type?: "control-plane-db" | "app-database" | "persistent-storage" | "data-workspace" | "registry" | "platform-component";
+            tenant_id?: string;
+            project_id?: string;
+            app_id?: string;
+            workspace_id?: string;
+            runtime_id?: string;
+            name?: string;
+            service_name?: string;
+            database?: string;
+            component?: string;
+        };
+        BackupRetentionPolicy: {
+            retain_count?: number;
+            retain_days?: number;
+            protect_latest?: number;
+        };
+        BackupPolicy: {
+            id?: string;
+            tenant_id?: string;
+            project_id?: string;
+            app_id?: string;
+            name?: string;
+            slug?: string;
+            /** @enum {string} */
+            scope?: "platform" | "tenant" | "project" | "app";
+            target?: components["schemas"]["BackupTarget"];
+            backend_id?: string;
+            enabled?: boolean;
+            /** @enum {string} */
+            status?: "active" | "disabled" | "blocked_no_backend" | "error";
+            disabled_reason?: string;
+            schedule?: string;
+            retain_count?: number;
+            retention?: components["schemas"]["BackupRetentionPolicy"];
+            version?: string;
+            last_run_id?: string;
+            last_successful_run_id?: string;
+            /** Format: date-time */
+            last_run_at?: string;
+            /** Format: date-time */
+            last_successful_at?: string;
+            /** Format: date-time */
+            next_run_at?: string;
+            created_by?: string;
+            /** Format: date-time */
+            created_at?: string;
+            /** Format: date-time */
+            updated_at?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        BackupPolicyRequest: {
+            id?: string;
+            tenant_id?: string;
+            project_id?: string;
+            app_id?: string;
+            name?: string;
+            target?: components["schemas"]["BackupTarget"];
+            backend_id?: string;
+            enabled?: boolean;
+            schedule?: string;
+            retain_count?: number;
+            retention?: components["schemas"]["BackupRetentionPolicy"];
+            version?: string;
+        };
+        BackupRun: {
+            id?: string;
+            policy_id?: string;
+            target?: components["schemas"]["BackupTarget"];
+            backend_id?: string;
+            /** @enum {string} */
+            trigger?: "manual" | "scheduled" | "retry";
+            version?: string;
+            /** @enum {string} */
+            status?: "pending" | "running" | "succeeded" | "failed" | "canceled" | "blocked";
+            /** Format: int64 */
+            bytes_written?: number;
+            /** Format: int64 */
+            logical_bytes?: number;
+            artifact_count?: number;
+            error_code?: string;
+            error_message?: string;
+            /** Format: date-time */
+            created_at?: string;
+            /** Format: date-time */
+            updated_at?: string;
+            /** Format: date-time */
+            started_at?: string;
+            /** Format: date-time */
+            finished_at?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        BackupRunRequest: {
+            policy_id?: string;
+            target?: components["schemas"]["BackupTarget"];
+            backend_id?: string;
+            trigger?: string;
+            version?: string;
+            wait?: boolean;
+        };
+        BackupManifest: {
+            [key: string]: unknown;
+        };
+        BackupArtifact: {
+            id?: string;
+            run_id?: string;
+            policy_id?: string;
+            target?: components["schemas"]["BackupTarget"];
+            backend_id?: string;
+            kind?: string;
+            version?: string;
+            object_key?: string;
+            manifest_object_key?: string;
+            sha256?: string;
+            /** Format: int64 */
+            size_bytes?: number;
+            /** Format: int64 */
+            logical_bytes?: number;
+            status?: string;
+            protected?: boolean;
+            billable?: boolean;
+            billing_class?: string;
+            manifest_digest?: string;
+            manifest?: components["schemas"]["BackupManifest"];
+            /** Format: date-time */
+            created_at?: string;
+            /** Format: date-time */
+            deleted_at?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        BackupRestorePlan: {
+            id?: string;
+            artifact_id?: string;
+            target?: components["schemas"]["BackupTarget"];
+            mode?: string;
+            status?: string;
+            warnings?: string[];
+            phases?: {
+                [key: string]: unknown;
+            }[];
+            /** Format: date-time */
+            created_at?: string;
+            /** Format: date-time */
+            updated_at?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        BackupRestorePlanRequest: {
+            artifact_id: string;
+            target?: components["schemas"]["BackupTarget"];
+            mode?: string;
+        };
+        BackupRestoreRun: {
+            id?: string;
+            plan_id?: string;
+            artifact_id?: string;
+            mode?: string;
+            status?: string;
+            phases?: {
+                [key: string]: unknown;
+            }[];
+            error_code?: string;
+            error_message?: string;
+            /** Format: date-time */
+            created_at?: string;
+            /** Format: date-time */
+            updated_at?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        BackupRestoreRunRequest: {
+            plan_id: string;
+            mode?: string;
+        };
+        BackupUsage: {
+            tenant_id?: string;
+            backend_id?: string;
+            provider?: string;
+            /** Format: int64 */
+            billable_bytes?: number;
+            cloudflare_r2_price_code?: string;
+            markup_percent?: number;
+            effective_multiplier?: number;
+            currency?: string;
+            /** Format: date-time */
+            updated_at?: string;
+        };
+        BackupPosture: {
+            target?: components["schemas"]["BackupTarget"];
+            status?: string;
+            message?: string;
+            policy_id?: string;
+            last_successful_run_id?: string;
+            /** Format: date-time */
+            last_successful_at?: string;
+            /** Format: int64 */
+            billable_bytes?: number;
+            externalized?: boolean;
+            externally_backed_up?: boolean;
+            cnpg_backup_integrated?: boolean;
+            restore_drill_status?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        BackupBackendResponse: {
+            backend?: components["schemas"]["BackupBackend"];
+        };
+        BackupBackendListResponse: {
+            backends?: components["schemas"]["BackupBackend"][];
+        };
+        BackupBackendTestResponse: {
+            status?: string;
+            message?: string;
+            backend?: components["schemas"]["BackupBackend"];
+        };
+        BackupPolicyResponse: {
+            policy?: components["schemas"]["BackupPolicy"];
+        };
+        BackupPolicyListResponse: {
+            policies?: components["schemas"]["BackupPolicy"][];
+        };
+        BackupRunResponse: {
+            run?: components["schemas"]["BackupRun"];
+            artifacts?: components["schemas"]["BackupArtifact"][];
+        };
+        BackupRunListResponse: {
+            runs?: components["schemas"]["BackupRun"][];
+        };
+        BackupArtifactResponse: {
+            artifact?: components["schemas"]["BackupArtifact"];
+        };
+        BackupArtifactListResponse: {
+            artifacts?: components["schemas"]["BackupArtifact"][];
+        };
+        BackupRestorePlanResponse: {
+            plan?: components["schemas"]["BackupRestorePlan"];
+        };
+        BackupRestorePlanListResponse: {
+            plans?: components["schemas"]["BackupRestorePlan"][];
+        };
+        BackupRestoreRunResponse: {
+            run?: components["schemas"]["BackupRestoreRun"];
+        };
+        BackupRestoreRunListResponse: {
+            runs?: components["schemas"]["BackupRestoreRun"][];
+        };
+        BackupUsageResponse: {
+            usage?: components["schemas"]["BackupUsage"];
+        };
+        AdminBackupStatusResponse: {
+            policies?: components["schemas"]["BackupPolicy"][];
+            runs?: components["schemas"]["BackupRun"][];
+            usage?: components["schemas"]["BackupUsage"];
+            posture?: components["schemas"]["BackupPosture"][];
+        };
+        AppBackupStatusResponse: {
+            app?: {
+                [key: string]: unknown;
+            };
+            policies?: components["schemas"]["BackupPolicy"][];
+            artifacts?: components["schemas"]["BackupArtifact"][];
+            posture?: components["schemas"]["BackupPosture"][];
+        } & {
+            [key: string]: unknown;
         };
         DataAsset: {
             name?: string;
@@ -13789,6 +14387,589 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    listBackupBackends: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupBackendListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    createBackupBackend: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BackupBackendRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupBackendResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getBackupBackend: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupBackendResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    deleteBackupBackend: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupBackendResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    testBackupBackend: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupBackendTestResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    listBackupPolicies: {
+        parameters: {
+            query?: {
+                project_id?: string;
+                app_id?: string;
+                target_type?: string;
+                include_disabled?: boolean;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupPolicyListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    upsertBackupPolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BackupPolicyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupPolicyResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getBackupPolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupPolicyResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    patchBackupPolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BackupPolicyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupPolicyResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    listBackupRuns: {
+        parameters: {
+            query?: {
+                project_id?: string;
+                app_id?: string;
+                policy_id?: string;
+                target_type?: string;
+                status?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupRunListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    createBackupRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["BackupRunRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupRunResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getBackupRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupRunResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    listBackupArtifacts: {
+        parameters: {
+            query?: {
+                project_id?: string;
+                app_id?: string;
+                policy_id?: string;
+                run_id?: string;
+                target_type?: string;
+                include_deleted?: boolean;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupArtifactListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getBackupArtifact: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupArtifactResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    deleteBackupArtifact: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupArtifactResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    listBackupRestorePlans: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupRestorePlanListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    createBackupRestorePlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BackupRestorePlanRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupRestorePlanResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    listBackupRestoreRuns: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupRestoreRunListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    createBackupRestoreRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BackupRestoreRunRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupRestoreRunResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getBackupUsage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupUsageResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getAdminBackupStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminBackupStatusResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getAppBackupStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppBackupStatusResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    createAppBackupPolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BackupPolicyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupPolicyResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    createAppBackupRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["BackupRunRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupRunResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
