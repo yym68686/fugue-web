@@ -10,6 +10,7 @@ import { FormField } from "@/components/ui/form-field";
 import { HintInline } from "@/components/ui/hint-tooltip";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { useToast } from "@/components/ui/toast";
+import type { ConsoleTone } from "@/lib/console/types";
 
 type ProjectImageTrackingBinding = {
   enabled: boolean;
@@ -91,6 +92,15 @@ export interface ProjectImageTrackingPanelProps {
 }
 
 type LoadState = "error" | "idle" | "loading" | "ready";
+
+type GitHubImageStatusRow = {
+  detail: string;
+  key: string;
+  label: string;
+  live?: boolean;
+  tone?: ConsoleTone;
+  value: string;
+};
 
 async function readResponseError(response: Response) {
   const body = await response.text().catch(() => "");
@@ -457,6 +467,75 @@ export function ProjectImageTrackingPanel({
     }
   }
 
+  const githubStatusRows: GitHubImageStatusRow[] = currentGitHubAppStatus
+    ? [
+        {
+          detail: publicRepoReady
+            ? t(
+                "Registry polling can be enabled now. Install the GitHub App to receive webhook events.",
+              )
+            : currentGitHubAppStatus.accountLogin
+              ? t("Authorized as @{login}.", {
+                  login: currentGitHubAppStatus.accountLogin,
+                })
+              : currentGitHubAppStatus.checkedAt
+                ? t("Checked {value}", {
+                    value: formatDateTime(currentGitHubAppStatus.checkedAt),
+                  })
+                : t("Not yet"),
+          key: "app",
+          label: t("App installed"),
+          live: currentGitHubAppStatus.installed || publicRepoReady,
+          tone: currentGitHubAppStatus.installed
+            ? "positive"
+            : publicRepoReady
+              ? "info"
+              : "neutral",
+          value: currentGitHubAppStatus.installed
+            ? t("Installed")
+            : publicRepoReady
+              ? t("Ready")
+              : t("Missing"),
+        },
+        {
+          detail: currentGitHubAppStatus.lastEventName
+            ? t("Last event: {name}", {
+                name: currentGitHubAppStatus.lastEventName,
+              })
+            : t("Not yet"),
+          key: "webhook",
+          label: t("Webhook active"),
+          live: webhookActive,
+          tone: webhookActive ? "positive" : "neutral",
+          value: webhookActive ? t("Active") : t("Inactive"),
+        },
+        {
+          detail: installationId
+            ? t("Installation #{id}", {
+                id: installationId,
+              })
+            : t("Not yet"),
+          key: "last-event",
+          label: t("Last event received"),
+          value: currentGitHubAppStatus.lastEventReceivedAt
+            ? formatDateTime(currentGitHubAppStatus.lastEventReceivedAt)
+            : t("Not yet"),
+        },
+        {
+          detail: currentGitHubAppStatus.lastImageSyncError
+            ? currentGitHubAppStatus.lastImageSyncError
+            : currentGitHubAppStatus.lastImageSyncAt
+              ? t("Ready")
+              : t("Not yet"),
+          key: "last-sync",
+          label: t("Last image sync"),
+          value: currentGitHubAppStatus.lastImageSyncAt
+            ? formatDateTime(currentGitHubAppStatus.lastImageSyncAt)
+            : t("Not yet"),
+        },
+      ]
+    : [];
+
   return (
     <section
       aria-label={t("GitHub image updates")}
@@ -545,75 +624,24 @@ export function ProjectImageTrackingPanel({
         <InlineAlert variant="warning">{repoInstallationError}</InlineAlert>
       ) : null}
 
-      {currentGitHubAppStatus ? (
-        <div className="fg-project-image-sync__summary-grid">
-          <article className="fg-project-image-sync__summary-card">
-            <span>{t("App installed")}</span>
-            <strong>
-              {currentGitHubAppStatus.installed
-                ? t("Installed")
-                : publicRepoReady
-                  ? t("Ready")
-                  : t("Missing")}
-            </strong>
-            <p>
-              {publicRepoReady
-                ? t(
-                    "Registry polling can be enabled now. Install the GitHub App to receive webhook events.",
-                  )
-                : currentGitHubAppStatus.accountLogin
-                ? t("Authorized as @{login}.", {
-                    login: currentGitHubAppStatus.accountLogin,
-                  })
-                : currentGitHubAppStatus.checkedAt
-                  ? t("Checked {value}", {
-                      value: formatDateTime(currentGitHubAppStatus.checkedAt),
-                    })
-                  : t("Not yet")}
-            </p>
-          </article>
-          <article className="fg-project-image-sync__summary-card">
-            <span>{t("Webhook active")}</span>
-            <strong>{webhookActive ? t("Active") : t("Inactive")}</strong>
-            <p>
-              {currentGitHubAppStatus.lastEventName
-                ? t("Last event: {name}", {
-                    name: currentGitHubAppStatus.lastEventName,
-                  })
-                : t("Not yet")}
-            </p>
-          </article>
-          <article className="fg-project-image-sync__summary-card">
-            <span>{t("Last event received")}</span>
-            <strong>
-              {currentGitHubAppStatus.lastEventReceivedAt
-                ? formatDateTime(currentGitHubAppStatus.lastEventReceivedAt)
-                : t("Not yet")}
-            </strong>
-            <p>
-              {installationId
-                ? t("Installation #{id}", {
-                    id: installationId,
-                  })
-                : t("Not yet")}
-            </p>
-          </article>
-          <article className="fg-project-image-sync__summary-card">
-            <span>{t("Last image sync")}</span>
-            <strong>
-              {currentGitHubAppStatus.lastImageSyncAt
-                ? formatDateTime(currentGitHubAppStatus.lastImageSyncAt)
-                : t("Not yet")}
-            </strong>
-            <p>
-              {currentGitHubAppStatus.lastImageSyncError
-                ? currentGitHubAppStatus.lastImageSyncError
-                : currentGitHubAppStatus.lastImageSyncAt
-                  ? t("Ready")
-                  : t("Not yet")}
-            </p>
-          </article>
-        </div>
+      {githubStatusRows.length ? (
+        <dl className="fg-project-image-sync__status-list">
+          {githubStatusRows.map((row) => (
+            <div className="fg-project-image-sync__status-row" key={row.key}>
+              <dt>{row.label}</dt>
+              <dd>
+                {row.tone ? (
+                  <StatusBadge live={row.live} tone={row.tone}>
+                    {row.value}
+                  </StatusBadge>
+                ) : (
+                  <strong>{row.value}</strong>
+                )}
+              </dd>
+              <p>{row.detail}</p>
+            </div>
+          ))}
+        </dl>
       ) : null}
 
       {status === "loading" ? (
@@ -621,22 +649,57 @@ export function ProjectImageTrackingPanel({
       ) : null}
 
       {response?.services.length ? (
-        <ul
+        <div
           aria-label={t("Detected image services for {projectName}", {
             projectName,
           })}
           className="fg-project-image-sync__services"
+          role="table"
         >
+          <div
+            className="fg-project-image-sync__service-row fg-project-image-sync__service-row--head"
+            role="row"
+          >
+            <span role="columnheader">{t("Service")}</span>
+            <span role="columnheader">{t("Source")}</span>
+            <span role="columnheader">{t("Image")}</span>
+            <span role="columnheader">{t("Status")}</span>
+          </div>
           {response.services.map((service) => (
-            <li className="fg-project-image-sync__service" key={service.appId}>
-              <div className="fg-project-image-sync__service-copy">
+            <div
+              className="fg-project-image-sync__service-row"
+              key={service.appId}
+              role="row"
+            >
+              <div
+                className="fg-project-image-sync__service-name"
+                data-label={t("Service")}
+                role="cell"
+              >
                 <strong>{service.appName}</strong>
-                <span>{readServiceMeta(service) || t("App service")}</span>
-                {service.imageRef ? (
-                  <code title={service.imageRef}>{service.imageRef}</code>
-                ) : null}
+                <span>{t("App service")}</span>
               </div>
-              <div className="fg-project-image-sync__service-status">
+              <div
+                className="fg-project-image-sync__service-meta"
+                data-label={t("Source")}
+                role="cell"
+              >
+                <span>{readServiceMeta(service) || "—"}</span>
+              </div>
+              <div
+                className="fg-project-image-sync__service-image"
+                data-label={t("Image")}
+                role="cell"
+              >
+                <code title={service.imageRef ?? undefined}>
+                  {service.imageRef || "—"}
+                </code>
+              </div>
+              <div
+                className="fg-project-image-sync__service-status"
+                data-label={t("Status")}
+                role="cell"
+              >
                 <StatusBadge
                   live={service.linked}
                   tone={service.linked ? "positive" : "neutral"}
@@ -647,9 +710,9 @@ export function ProjectImageTrackingPanel({
                   <span>{t(service.matchReason)}</span>
                 ) : null}
               </div>
-            </li>
+            </div>
           ))}
-        </ul>
+        </div>
       ) : null}
     </section>
   );

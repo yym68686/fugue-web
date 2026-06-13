@@ -810,6 +810,172 @@
   font-size: 11px;
 }
 
+.fg-project-image-sync {
+  display: grid;
+  gap: 12px;
+}
+
+.fg-project-image-sync__form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 10px;
+}
+
+.fg-project-image-sync__actions {
+  align-self: end;
+  margin: 0;
+}
+
+.fg-project-image-sync__status-list,
+.fg-project-image-sync__services {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--ml-border);
+  border-radius: var(--ml-radius);
+  background: var(--ml-surface);
+}
+
+.fg-project-image-sync__status-list {
+  display: grid;
+  margin: 0;
+}
+
+.fg-project-image-sync__status-row {
+  display: grid;
+  grid-template-columns: minmax(132px, 0.7fr) minmax(120px, auto) minmax(0, 1.7fr);
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 9px 10px;
+  border-top: 1px solid var(--ml-border);
+}
+
+.fg-project-image-sync__status-row:first-child {
+  border-top: 0;
+}
+
+.fg-project-image-sync__status-row dt {
+  color: var(--ml-muted);
+  font-size: 12px;
+  font-weight: 720;
+}
+
+.fg-project-image-sync__status-row dd {
+  min-width: 0;
+  margin: 0;
+}
+
+.fg-project-image-sync__status-row dd strong {
+  display: block;
+  overflow: hidden;
+  color: var(--ml-text);
+  font-size: 13px;
+  font-weight: 760;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fg-project-image-sync__status-row p {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--ml-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.fg-project-image-sync__services {
+  display: grid;
+  margin: 0;
+}
+
+.fg-project-image-sync__service-row {
+  display: grid;
+  grid-template-columns:
+    minmax(150px, 1fr)
+    minmax(160px, 1fr)
+    minmax(180px, 1.3fr)
+    minmax(140px, 0.7fr);
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  min-height: 46px;
+  padding: 9px 10px;
+  border-top: 1px solid var(--ml-border);
+}
+
+.fg-project-image-sync__service-row:first-child {
+  border-top: 0;
+}
+
+.fg-project-image-sync__service-row--head {
+  min-height: 36px;
+  background: var(--ml-surface-2);
+  color: var(--ml-muted);
+  font-size: 11px;
+  font-weight: 760;
+  text-transform: none;
+}
+
+.fg-project-image-sync__service-name,
+.fg-project-image-sync__service-meta,
+.fg-project-image-sync__service-image,
+.fg-project-image-sync__service-status {
+  min-width: 0;
+}
+
+.fg-project-image-sync__service-name {
+  display: grid;
+  gap: 2px;
+}
+
+.fg-project-image-sync__service-name strong {
+  overflow: hidden;
+  color: var(--ml-text);
+  font-size: 13px;
+  font-weight: 760;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fg-project-image-sync__service-name span,
+.fg-project-image-sync__service-meta span {
+  overflow: hidden;
+  color: var(--ml-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fg-project-image-sync__service-image code {
+  display: block;
+  overflow: hidden;
+  color: var(--ml-text);
+  font-family: var(--fugue-font-mono);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fg-project-image-sync__service-status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  color: var(--ml-muted);
+  font-size: 12px;
+}
+
+.fg-project-image-sync__service-status > span:not(.fg-status-badge) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Environment, routes, files, and logs */
 
 .fg-env-table {
@@ -2764,6 +2930,14 @@
   .fg-billing-health-metric {
     grid-template-columns: minmax(130px, 1fr) minmax(98px, 0.65fr) minmax(132px, 0.8fr) minmax(104px, 0.7fr);
   }
+
+  .fg-project-image-sync__service-row {
+    grid-template-columns:
+      minmax(132px, 0.9fr)
+      minmax(132px, 0.9fr)
+      minmax(150px, 1.1fr)
+      minmax(112px, 0.7fr);
+  }
 }
 
 @media (max-width: 920px) {
@@ -2895,6 +3069,31 @@
   .fg-billing-ledger-table__head,
   .fg-billing-ledger-row {
     min-width: 760px;
+  }
+
+  .fg-project-image-sync__form {
+    grid-template-columns: 1fr;
+  }
+
+  .fg-project-image-sync__actions {
+    justify-content: flex-start;
+  }
+
+  .fg-project-image-sync__status-row {
+    grid-template-columns: minmax(116px, 0.6fr) minmax(108px, auto) minmax(0, 1.4fr);
+  }
+
+  .fg-project-image-sync__service-row {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .fg-project-image-sync__service-row--head {
+    display: none;
+  }
+
+  .fg-project-image-sync__service-status {
+    justify-content: flex-start;
   }
 }
 
@@ -3065,6 +3264,63 @@
 
   .fg-project-danger-card {
     grid-template-columns: 1fr;
+  }
+
+  .fg-project-image-sync__status-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+    padding: 10px;
+  }
+
+  .fg-project-image-sync__service-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .fg-project-image-sync__service-row:not(.fg-project-image-sync__service-row--head)
+    > :is(
+      .fg-project-image-sync__service-name,
+      .fg-project-image-sync__service-meta,
+      .fg-project-image-sync__service-image,
+      .fg-project-image-sync__service-status
+    ) {
+    display: grid;
+    grid-template-columns: minmax(90px, 0.35fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+  }
+
+  .fg-project-image-sync__service-row:not(.fg-project-image-sync__service-row--head)
+    > :is(
+      .fg-project-image-sync__service-name,
+      .fg-project-image-sync__service-meta,
+      .fg-project-image-sync__service-image,
+      .fg-project-image-sync__service-status
+    )::before {
+    content: attr(data-label);
+    color: var(--ml-muted);
+    font-family: var(--fugue-font-sans);
+    font-size: 11px;
+    font-weight: 720;
+  }
+
+  .fg-project-image-sync__service-name > :not(:first-child),
+  .fg-project-image-sync__service-meta > span,
+  .fg-project-image-sync__service-image > code,
+  .fg-project-image-sync__service-status .fg-status-badge {
+    grid-column: 2;
+  }
+
+  .fg-project-image-sync__service-status > span:not(.fg-status-badge) {
+    grid-column: 2;
+  }
+
+  .fg-project-image-sync__service-name span,
+  .fg-project-image-sync__service-meta span,
+  .fg-project-image-sync__service-image code,
+  .fg-project-image-sync__service-status > span:not(.fg-status-badge) {
+    white-space: normal;
   }
 
   .fg-env-table__head {
