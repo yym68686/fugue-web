@@ -4553,8 +4553,33 @@ const zhCNMorlanePatchMessages = {
   "Fugue keeps {primaryRuntimeLabel} serving writes while it prepares {selectedTransferTargetLabel}, then promotes the new primary and keeps {primaryRuntimeLabel} as the standby.": "Fugue 会让 {primaryRuntimeLabel} 继续处理写入，同时准备 {selectedTransferTargetLabel}，随后提升新的主实例，并将 {primaryRuntimeLabel} 保留为备用实例。",
   "Fugue subdomain": "Fugue 子域",
   "GitHub image updates": "GitHub 镜像更新",
+  "GitHub App installed": "GitHub App 已安装",
   "GitHub repositories, local uploads, or Docker images": "GitHub 仓库、本地上传或 Docker 镜像",
   "GitHub repository linked to {count} services.": "GitHub 仓库已关联到 {count} 个服务。",
+  "Bind a repository after GitHub access is available.":
+    "GitHub 访问可用后再绑定仓库。",
+  "Binding this repository enables registry polling. Install the GitHub App only if you also need webhook events.":
+    "绑定此仓库会启用镜像仓库轮询。只有同时需要 Webhook 事件时才需要安装 GitHub App。",
+  "Enable registry polling": "启用镜像轮询",
+  "Enable webhooks": "启用 Webhook",
+  "Install the GitHub App to receive webhook events.":
+    "安装 GitHub App 后可接收 Webhook 事件。",
+  "Install the GitHub App to verify private access and receive webhook events.":
+    "安装 GitHub App 以验证私有仓库访问权限并接收 Webhook 事件。",
+  "No events yet": "还没有事件",
+  "No sync has run yet.": "还没有执行过同步。",
+  "Not verified": "未验证",
+  "Public repositories can be bound for registry polling without installing the GitHub App.":
+    "公开仓库无需安装 GitHub App 也可以绑定并启用镜像轮询。",
+  "Public repository": "公开仓库",
+  "Ready to bind": "可绑定",
+  "Registry polling": "镜像轮询",
+  "Registry polling enabled": "镜像轮询已启用",
+  "Repository bound": "仓库已绑定",
+  "Repository is bound. No matching image service has been linked yet.":
+    "仓库已绑定，但还没有匹配到可关联的镜像服务。",
+  "Update registry polling": "更新镜像轮询",
+  "Webhook events": "Webhook 事件",
   "Historical image queued for deploy.": "历史镜像已排队部署。",
   "Historical image selected for deploy.": "已选择历史镜像进行部署。",
   "Historical versions appear here after the app has been imported or redeployed through Fugue.": "应用通过 Fugue 导入或重新部署后，历史版本会显示在这里。",
@@ -5069,9 +5094,34 @@ const zhTWMorlanePatchMessages = {
   "Fugue subdomain": "Fugue子域",
   "GitHub": "GitHub",
   "GitHub image updates": "GitHub映像更新",
+  "GitHub App installed": "GitHub App 已安裝",
   "GitHub repositories, local uploads, or Docker images": "GitHub 儲存庫、本地上传或Docker 映像",
   "GitHub repository": "GitHub 儲存庫",
   "GitHub repository linked to {count} services.": "GitHub 儲存庫已关联到 {count} 个服務。",
+  "Bind a repository after GitHub access is available.":
+    "GitHub 存取可用後再綁定儲存庫。",
+  "Binding this repository enables registry polling. Install the GitHub App only if you also need webhook events.":
+    "綁定此儲存庫會啟用映像倉庫輪詢。只有同時需要 Webhook 事件時才需要安裝 GitHub App。",
+  "Enable registry polling": "啟用映像輪詢",
+  "Enable webhooks": "啟用 Webhook",
+  "Install the GitHub App to receive webhook events.":
+    "安裝 GitHub App 後可接收 Webhook 事件。",
+  "Install the GitHub App to verify private access and receive webhook events.":
+    "安裝 GitHub App 以驗證私有儲存庫存取權限並接收 Webhook 事件。",
+  "No events yet": "還沒有事件",
+  "No sync has run yet.": "還沒有執行過同步。",
+  "Not verified": "未驗證",
+  "Public repositories can be bound for registry polling without installing the GitHub App.":
+    "公開儲存庫無需安裝 GitHub App 也可以綁定並啟用映像輪詢。",
+  "Public repository": "公開儲存庫",
+  "Ready to bind": "可綁定",
+  "Registry polling": "映像輪詢",
+  "Registry polling enabled": "映像輪詢已啟用",
+  "Repository bound": "儲存庫已綁定",
+  "Repository is bound. No matching image service has been linked yet.":
+    "儲存庫已綁定，但還沒有匹配到可連結的映像服務。",
+  "Update registry polling": "更新映像輪詢",
+  "Webhook events": "Webhook 事件",
   "GitHub repository links must use https://github.com/owner/repo.": "GitHub 儲存庫連結必須使用 https://github.com/owner/repo。",
   "GitHub source": "GitHub 來源",
   "GitHub source saved. Redeploy when you are ready.": "GitHub 來源已儲存。準備好後可重新部署。",

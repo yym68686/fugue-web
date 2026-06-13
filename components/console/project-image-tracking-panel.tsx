@@ -258,13 +258,16 @@ export function ProjectImageTrackingPanel({
     ? `${pathname}?${currentSearch}`
     : pathname;
   const boundRepo = response?.binding?.githubRepo ?? "";
-  const currentGitHubAppStatus = normalizedRepo
+  const hasRepoCandidate = Boolean(normalizedRepo && !repoError);
+  const currentGitHubAppStatus = hasRepoCandidate
     ? normalizedRepo === boundRepo
       ? response?.githubApp ?? repoInstallation
       : repoInstallationRepo === normalizedRepo
         ? repoInstallation
         : null
-    : response?.githubApp ?? null;
+    : boundRepo
+      ? response?.githubApp ?? null
+      : null;
   const installHref =
     normalizedRepo && !repoError
       ? `/api/github/app/install/start?githubRepo=${encodeURIComponent(
@@ -275,6 +278,13 @@ export function ProjectImageTrackingPanel({
       : null;
   const appInstalled = Boolean(currentGitHubAppStatus?.installed);
   const publicRepoReady = currentGitHubAppStatus?.source === "public-repo";
+  const currentRepoBound = Boolean(
+    response?.binding?.enabled &&
+      boundRepo &&
+      normalizedRepo &&
+      normalizedRepo === boundRepo,
+  );
+  const repoReadyForPolling = Boolean(appInstalled || publicRepoReady);
   const installationId =
     currentGitHubAppStatus?.installationId ??
     currentGitHubAppStatus?.githubInstallationId ??
@@ -289,7 +299,7 @@ export function ProjectImageTrackingPanel({
     status !== "loading" &&
     repoTouched &&
     !repoError &&
-    (appInstalled || publicRepoReady);
+    repoReadyForPolling;
   const linkedCount = response?.linkedCount ?? 0;
   const statusLabel =
     status === "error"
@@ -298,19 +308,27 @@ export function ProjectImageTrackingPanel({
         ? t("Loading")
         : repoInstallationLoading
           ? t("Checking…")
+          : currentRepoBound && linkedCount > 0
+            ? t("Registry polling enabled")
+          : currentRepoBound
+            ? t("Repository bound")
           : appInstalled
-            ? t("App installed")
+            ? t("GitHub App installed")
             : publicRepoReady
-              ? t("Public repo ready")
-            : t("Install required");
+              ? t("Public repository")
+              : hasRepoCandidate
+                ? t("Install required")
+                : t("Not configured");
   const statusTone =
     status === "error"
       ? ("warning" as const)
+      : currentRepoBound
+        ? ("positive" as const)
       : appInstalled
         ? ("positive" as const)
         : publicRepoReady
           ? ("info" as const)
-        : ("neutral" as const);
+          : ("neutral" as const);
 
   useEffect(() => {
     let cancelled = false;
@@ -467,74 +485,115 @@ export function ProjectImageTrackingPanel({
     }
   }
 
-  const githubStatusRows: GitHubImageStatusRow[] = currentGitHubAppStatus
-    ? [
-        {
-          detail: publicRepoReady
-            ? t(
-                "Registry polling can be enabled now. Install the GitHub App to receive webhook events.",
-              )
-            : currentGitHubAppStatus.accountLogin
-              ? t("Authorized as @{login}.", {
-                  login: currentGitHubAppStatus.accountLogin,
+  const githubStatusRows: GitHubImageStatusRow[] = [];
+
+  if (currentGitHubAppStatus && hasRepoCandidate) {
+    githubStatusRows.push(
+      {
+        detail: currentGitHubAppStatus.installed
+          ? currentGitHubAppStatus.accountLogin
+            ? t("Authorized as @{login}.", {
+                login: currentGitHubAppStatus.accountLogin,
+              })
+            : currentGitHubAppStatus.checkedAt
+              ? t("Checked {value}", {
+                  value: formatDateTime(currentGitHubAppStatus.checkedAt),
                 })
-              : currentGitHubAppStatus.checkedAt
-                ? t("Checked {value}", {
-                    value: formatDateTime(currentGitHubAppStatus.checkedAt),
+              : installationId
+                ? t("Installation #{id}", {
+                    id: installationId,
                   })
-                : t("Not yet"),
-          key: "app",
-          label: t("App installed"),
-          live: currentGitHubAppStatus.installed || publicRepoReady,
-          tone: currentGitHubAppStatus.installed
-            ? "positive"
-            : publicRepoReady
-              ? "info"
-              : "neutral",
-          value: currentGitHubAppStatus.installed
-            ? t("Installed")
-            : publicRepoReady
-              ? t("Ready")
-              : t("Missing"),
-        },
-        {
-          detail: currentGitHubAppStatus.lastEventName
+                : t("Installed")
+          : publicRepoReady
+            ? t(
+                "Public repositories can be bound for registry polling without installing the GitHub App.",
+              )
+            : t(
+                "Install the GitHub App to verify private access and receive webhook events.",
+              ),
+        key: "repository-access",
+        label: t("Repository access"),
+        live: currentGitHubAppStatus.installed,
+        tone: currentGitHubAppStatus.installed
+          ? "positive"
+          : publicRepoReady
+            ? "info"
+            : "neutral",
+        value: currentGitHubAppStatus.installed
+          ? t("GitHub App installed")
+          : publicRepoReady
+            ? t("Public repository")
+            : t("Not verified"),
+      },
+      {
+        detail: currentRepoBound
+          ? linkedCount > 0
+            ? t("GitHub repository linked to {count} services.", {
+                count: linkedCount,
+              })
+            : t("Repository is bound. No matching image service has been linked yet.")
+          : repoReadyForPolling
+            ? t(
+                "Binding this repository enables registry polling. Install the GitHub App only if you also need webhook events.",
+              )
+            : t("Bind a repository after GitHub access is available."),
+        key: "registry-polling",
+        label: t("Registry polling"),
+        live: currentRepoBound,
+        tone: currentRepoBound
+          ? "positive"
+          : repoReadyForPolling
+            ? "info"
+            : "neutral",
+        value: currentRepoBound
+          ? t("Enabled")
+          : repoReadyForPolling
+            ? t("Ready to bind")
+            : t("Not enabled"),
+      },
+      {
+        detail: webhookActive
+          ? currentGitHubAppStatus.lastEventName
             ? t("Last event: {name}", {
                 name: currentGitHubAppStatus.lastEventName,
               })
-            : t("Not yet"),
-          key: "webhook",
-          label: t("Webhook active"),
-          live: webhookActive,
-          tone: webhookActive ? "positive" : "neutral",
-          value: webhookActive ? t("Active") : t("Inactive"),
-        },
-        {
-          detail: installationId
-            ? t("Installation #{id}", {
-                id: installationId,
-              })
-            : t("Not yet"),
-          key: "last-event",
-          label: t("Last event received"),
-          value: currentGitHubAppStatus.lastEventReceivedAt
-            ? formatDateTime(currentGitHubAppStatus.lastEventReceivedAt)
-            : t("Not yet"),
-        },
-        {
-          detail: currentGitHubAppStatus.lastImageSyncError
-            ? currentGitHubAppStatus.lastImageSyncError
-            : currentGitHubAppStatus.lastImageSyncAt
-              ? t("Ready")
-              : t("Not yet"),
-          key: "last-sync",
-          label: t("Last image sync"),
-          value: currentGitHubAppStatus.lastImageSyncAt
-            ? formatDateTime(currentGitHubAppStatus.lastImageSyncAt)
-            : t("Not yet"),
-        },
-      ]
-    : [];
+            : currentGitHubAppStatus.lastEventReceivedAt
+              ? formatDateTime(currentGitHubAppStatus.lastEventReceivedAt)
+              : t("Active")
+          : currentGitHubAppStatus.installed
+            ? t("No events yet")
+            : t("Install the GitHub App to receive webhook events."),
+        key: "webhook",
+        label: t("Webhook events"),
+        live: webhookActive,
+        tone: webhookActive ? "positive" : "neutral",
+        value: webhookActive
+          ? t("Active")
+          : currentGitHubAppStatus.installed
+            ? t("Inactive")
+            : t("Not enabled"),
+      },
+    );
+
+    if (
+      currentRepoBound ||
+      currentGitHubAppStatus.lastImageSyncAt ||
+      currentGitHubAppStatus.lastImageSyncError
+    ) {
+      githubStatusRows.push({
+        detail: currentGitHubAppStatus.lastImageSyncError
+          ? currentGitHubAppStatus.lastImageSyncError
+          : currentGitHubAppStatus.lastImageSyncAt
+            ? t("Ready")
+            : t("No sync has run yet."),
+        key: "last-sync",
+        label: t("Last image sync"),
+        value: currentGitHubAppStatus.lastImageSyncAt
+          ? formatDateTime(currentGitHubAppStatus.lastImageSyncAt)
+          : t("Not yet"),
+      });
+    }
+  }
 
   return (
     <section
@@ -556,7 +615,7 @@ export function ProjectImageTrackingPanel({
           </HintInline>
         </div>
 
-        <StatusBadge live={appInstalled} tone={statusTone}>
+        <StatusBadge live={currentRepoBound || appInstalled} tone={statusTone}>
           {statusLabel}
         </StatusBadge>
       </div>
@@ -577,9 +636,11 @@ export function ProjectImageTrackingPanel({
             autoCapitalize="off"
             autoComplete="off"
             autoCorrect="off"
+            aria-invalid={repoFieldError ? "true" : undefined}
             className="fg-input"
             disabled={disabled || saving}
             id={`project-image-repo-${projectId}`}
+            name="githubRepo"
             onBlur={() => {
               const normalized = normalizeGitHubRepoInput(repoDraft);
 
@@ -591,7 +652,7 @@ export function ProjectImageTrackingPanel({
               setRepoDraft(event.target.value);
               setRepoTouched(true);
             }}
-            placeholder="yym68686/uni-api-web"
+            placeholder="yym68686/uni-api…"
             spellCheck={false}
             value={repoDraft}
           />
@@ -604,7 +665,7 @@ export function ProjectImageTrackingPanel({
               size="compact"
               variant="secondary"
             >
-              {t("Install GitHub App")}
+              {publicRepoReady ? t("Enable webhooks") : t("Install GitHub App")}
             </ButtonAnchor>
           ) : null}
           <Button
@@ -615,7 +676,9 @@ export function ProjectImageTrackingPanel({
             type="submit"
             variant="primary"
           >
-            {response?.binding ? t("Update repository") : t("Bind project")}
+            {response?.binding
+              ? t("Update registry polling")
+              : t("Enable registry polling")}
           </Button>
         </div>
       </form>
@@ -625,7 +688,7 @@ export function ProjectImageTrackingPanel({
       ) : null}
 
       {githubStatusRows.length ? (
-        <dl className="fg-project-image-sync__status-list">
+        <dl aria-live="polite" className="fg-project-image-sync__status-list">
           {githubStatusRows.map((row) => (
             <div className="fg-project-image-sync__status-row" key={row.key}>
               <dt>{row.label}</dt>
