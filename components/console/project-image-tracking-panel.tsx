@@ -59,6 +59,8 @@ type ProjectImageTrackingStrategyScope = "none" | "project" | "service";
 
 type ProjectImageTrackingTrigger = "none" | "polling" | "webhook";
 
+type ProjectDefaultSaveMode = "preserve-overrides" | "apply-to-matching";
+
 type ProjectImageTrackingServiceTracking = {
   enabled: boolean;
   githubRepo: string | null;
@@ -232,23 +234,41 @@ function readServiceScope(service: ProjectImageTrackingService) {
 
 function readStrategyLabel(scope: ProjectImageTrackingStrategyScope) {
   if (scope === "project") {
-    return "Follows project default";
+    return "Project default";
   }
 
   if (scope === "service") {
-    return "Service-level tracking";
+    return "Service override";
   }
 
-  return "Automatic updates off";
+  return "Off";
 }
 
-function readStrategyDetail(scope: ProjectImageTrackingStrategyScope) {
+function readTriggerLabel(trigger: ProjectImageTrackingTrigger) {
+  if (trigger === "webhook") {
+    return "Webhook events";
+  }
+
+  if (trigger === "polling") {
+    return "Registry polling";
+  }
+
+  return "No update signal";
+}
+
+function readStrategyDetail(service: ProjectImageTrackingService) {
+  const scope = readServiceScope(service);
+
   if (scope === "project") {
-    return "Managed by the project default.";
+    return service.tracking.trigger === "webhook"
+      ? "Following the project default from webhook events."
+      : "Following the project default by registry polling.";
   }
 
   if (scope === "service") {
-    return "This service keeps its own image tracking.";
+    return service.tracking.trigger === "webhook"
+      ? "This service keeps its own webhook tracking."
+      : "This service keeps its own registry polling.";
   }
 
   return "This service does not update images automatically.";
@@ -312,6 +332,9 @@ export function ProjectImageTrackingPanel({
   const [repoDraft, setRepoDraft] = useState("");
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [savingMode, setSavingMode] = useState<ProjectDefaultSaveMode | null>(
+    null,
+  );
   const repoError = readGitHubRepoError(repoDraft);
   const repoFieldError =
     (submitAttempted || repoDraft) && repoError ? t(repoError) : undefined;
@@ -333,6 +356,7 @@ export function ProjectImageTrackingPanel({
     returnTo: githubFlowReturnTo,
   });
   const boundRepo = response?.binding?.githubRepo ?? "";
+  const normalizedBoundRepo = normalizeGitHubRepoInput(boundRepo);
   const hasRepoCandidate = Boolean(normalizedRepo && !repoError);
   const currentGitHubAppStatus = hasRepoCandidate
     ? normalizedRepo === boundRepo
@@ -378,13 +402,30 @@ export function ProjectImageTrackingPanel({
   };
   const projectDefaultConfigured = Boolean(response?.binding?.enabled && boundRepo);
   const draftIsProjectDefault = Boolean(
-    projectDefaultConfigured && normalizedRepo && normalizedRepo === boundRepo,
+    projectDefaultConfigured && normalizedRepo && normalizedRepo === normalizedBoundRepo,
   );
   const hasServiceOverrides = serviceSummary.serviceOverrideCount > 0;
-  const canUpdateProjectDefault = Boolean(
+  const serviceOverrideCountLabel = t(
+    serviceSummary.serviceOverrideCount === 1
+      ? "{count} service"
+      : "{count} services",
+    { count: serviceSummary.serviceOverrideCount },
+  );
+  const draftChanged = Boolean(
+    normalizedRepo && normalizedRepo !== normalizedBoundRepo,
+  );
+  const canSaveProjectDefault = Boolean(
     hasRepoCandidate &&
       repoReadyForProjectDefault &&
-      (!projectDefaultConfigured || normalizedRepo !== boundRepo),
+      normalizedRepo &&
+      (!projectDefaultConfigured || draftChanged),
+  );
+  const canApplyProjectDefault = Boolean(
+    hasRepoCandidate &&
+      repoReadyForProjectDefault &&
+      projectDefaultConfigured &&
+      draftIsProjectDefault &&
+      hasServiceOverrides,
   );
   const installationId =
     currentGitHubAppStatus?.installationId ??
@@ -398,7 +439,7 @@ export function ProjectImageTrackingPanel({
     !disabled &&
     !saving &&
     status !== "loading" &&
-    canUpdateProjectDefault &&
+    canSaveProjectDefault &&
     !repoError &&
     repoReadyForProjectDefault;
   const repositoryAction =
@@ -429,13 +470,19 @@ export function ProjectImageTrackingPanel({
       ? t("Connect GitHub repository")
       : repositoryAction === "install-app"
         ? t("Authorize repository")
-        : draftIsProjectDefault
-          ? t("Automatic updates enabled")
+        : projectDefaultConfigured
+          ? draftChanged
+            ? t("Update project default")
+            : t("Project default saved")
           : response?.binding
-          ? t("Update automatic updates")
-          : t("Enable automatic updates");
+          ? t("Save project default")
+          : t("Save project default");
   const primaryActionLoadingLabel =
-    repositoryAction === "wait" ? t("Checking GitHub access…") : t("Binding…");
+    repositoryAction === "wait"
+      ? t("Checking GitHub access…")
+      : savingMode === "apply-to-matching"
+        ? t("Applying to matching services…")
+        : t("Saving project default…");
   const statusLabel =
     status === "error"
       ? t("Unavailable")
@@ -443,17 +490,15 @@ export function ProjectImageTrackingPanel({
         ? t("Loading")
         : repoInstallationLoading
           ? t("Checking…")
-          : projectDefaultConfigured && hasServiceOverrides
-            ? t("Project default + service overrides")
-            : projectDefaultConfigured
-              ? t("Project default enabled")
-              : hasServiceOverrides
-                ? t("Service-level tracking active")
-                : appInstalled || publicRepoReady
-                  ? t("Repository ready")
-                  : hasRepoCandidate
-                    ? t("Access required")
-                    : t("Not configured");
+          : projectDefaultConfigured
+            ? t("Project default saved")
+            : hasServiceOverrides
+              ? t("Service overrides active")
+              : appInstalled || publicRepoReady
+                ? t("Repository ready")
+                : hasRepoCandidate
+                  ? t("Access required")
+                  : t("Not configured");
   const statusTone =
     status === "error"
       ? ("warning" as const)
@@ -556,14 +601,17 @@ export function ProjectImageTrackingPanel({
     };
   }, [normalizedRepo, repoError, t]);
 
-  const bindProjectDefault = useCallback(async () => {
+  const saveProjectDefault = useCallback(async (preserveServiceOverrides: boolean) => {
     setSubmitAttempted(true);
 
-    if (!canSubmit) {
+    const canRun = preserveServiceOverrides ? canSubmit : canApplyProjectDefault;
+
+    if (!canRun || saving || status === "loading") {
       return false;
     }
 
     setSaving(true);
+    setSavingMode(preserveServiceOverrides ? "preserve-overrides" : "apply-to-matching");
 
     try {
       const nextResponse = await requestJson<ProjectImageTrackingResponse>(
@@ -571,7 +619,7 @@ export function ProjectImageTrackingPanel({
         {
           body: JSON.stringify({
             githubRepo: normalizedRepo,
-            preserveServiceOverrides: true,
+            preserveServiceOverrides,
           }),
           headers: {
             "Content-Type": "application/json",
@@ -587,10 +635,18 @@ export function ProjectImageTrackingPanel({
       setRepoInstallationError(null);
       setSubmitAttempted(false);
       setStatus("ready");
+      const linkedCountLabel = t(
+        nextResponse.linkedCount === 1 ? "{count} service" : "{count} services",
+        { count: nextResponse.linkedCount },
+      );
       showToast({
-        message: t("Project default source saved. {count} services follow it.", {
-          count: nextResponse.linkedCount,
-        }),
+        message: preserveServiceOverrides
+          ? t("Project default source saved for {countLabel}.", {
+              countLabel: linkedCountLabel,
+            })
+          : t("Project default source applied to {countLabel}.", {
+              countLabel: linkedCountLabel,
+            }),
         variant: "success",
       });
       onLinked?.();
@@ -618,9 +674,10 @@ export function ProjectImageTrackingPanel({
       });
       return false;
     } finally {
+      setSavingMode(null);
       setSaving(false);
     }
-  }, [canSubmit, normalizedRepo, onLinked, projectId, showToast, t]);
+  }, [canApplyProjectDefault, canSubmit, normalizedRepo, onLinked, projectId, saving, showToast, status, t]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -649,13 +706,25 @@ export function ProjectImageTrackingPanel({
     }
 
     if (repositoryAction === "bind") {
-      const saved = await bindProjectDefault();
+      const saved = await saveProjectDefault(true);
 
       if (saved && githubImageFlowActive) {
         clearImageFlowSearchParams();
       }
     }
   }
+
+  const applyProjectDefaultToMatchingServices = useCallback(async () => {
+    if (!canApplyProjectDefault || saving || status !== "ready") {
+      return;
+    }
+
+    const saved = await saveProjectDefault(false);
+
+    if (saved && githubImageFlowActive) {
+      clearImageFlowSearchParams();
+    }
+  }, [canApplyProjectDefault, githubImageFlowActive, saveProjectDefault, saving, status]);
 
   useEffect(() => {
     if (!githubImageFlowActive || !hasRepoCandidate || repoError) {
@@ -689,19 +758,17 @@ export function ProjectImageTrackingPanel({
       return;
     }
 
-    if (repositoryAction === "bind" && canSubmit) {
-      void bindProjectDefault().then((saved) => {
+    if (repositoryAction === "bind" && canSaveProjectDefault) {
+      void saveProjectDefault(true).then((saved) => {
         if (saved) {
           clearImageFlowSearchParams();
         }
       });
     }
   }, [
-    bindProjectDefault,
-    canSubmit,
+    canSaveProjectDefault,
     currentGitHubAppStatus?.installed,
     currentGitHubAppStatus?.source,
-    githubAppCallbackState,
     githubConnectHref,
     githubConnection?.connected,
     githubConnectionLoading,
@@ -713,6 +780,7 @@ export function ProjectImageTrackingPanel({
     repoError,
     repoInstallationLoading,
     repositoryAction,
+    saveProjectDefault,
     saving,
     status,
   ]);
@@ -877,9 +945,7 @@ export function ProjectImageTrackingPanel({
         label: t("Service overrides"),
         live: true,
         tone: "info",
-        value: t("{count} services", {
-          count: serviceSummary.serviceOverrideCount,
-        }),
+        value: serviceOverrideCountLabel,
       });
     }
 
@@ -971,7 +1037,10 @@ export function ProjectImageTrackingPanel({
         <div className="fg-settings-form__actions fg-project-image-sync__actions">
           <Button
             disabled={primaryActionDisabled}
-            loading={saving || repositoryAction === "wait"}
+            loading={
+              (saving && savingMode === "preserve-overrides") ||
+              repositoryAction === "wait"
+            }
             loadingLabel={primaryActionLoadingLabel}
             onClick={handlePrimaryAction}
             size="compact"
@@ -980,13 +1049,33 @@ export function ProjectImageTrackingPanel({
           >
             {primaryActionLabel}
           </Button>
-          {projectDefaultConfigured && hasServiceOverrides ? (
-            <span className="fg-project-image-sync__action-note">
-              {t("Service overrides stay unchanged.")}
-            </span>
+          {canApplyProjectDefault ? (
+            <Button
+              disabled={disabled || saving || status !== "ready"}
+              loading={savingMode === "apply-to-matching"}
+              loadingLabel={t("Applying to matching services…")}
+              onClick={applyProjectDefaultToMatchingServices}
+              size="compact"
+              type="button"
+              variant="secondary"
+            >
+              {t("Apply project default to matching services")}
+            </Button>
           ) : null}
         </div>
       </form>
+
+      {draftIsProjectDefault && hasServiceOverrides ? (
+        <InlineAlert variant="info">
+          {t(
+            "Service overrides are still active for {countLabel}. Apply the project default when you want them to use {repo}.",
+            {
+              countLabel: serviceOverrideCountLabel,
+              repo: boundRepo,
+            },
+          )}
+        </InlineAlert>
+      ) : null}
 
       {repoInstallationError ? (
         <InlineAlert variant="warning">{repoInstallationError}</InlineAlert>
@@ -1081,7 +1170,11 @@ export function ProjectImageTrackingPanel({
                   >
                     {t(readStrategyLabel(scope))}
                   </StatusBadge>
-                  <span>{t(readStrategyDetail(scope))}</span>
+                  <span>
+                    {t(readTriggerLabel(service.tracking.trigger))}
+                    {" / "}
+                    {t(readStrategyDetail(service))}
+                  </span>
                 </div>
                 <div
                   className="fg-project-image-sync__service-activity"

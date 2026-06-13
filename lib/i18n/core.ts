@@ -4555,6 +4555,7 @@ const zhCNMorlanePatchMessages = {
   "Access required": "需要访问权限",
   "Automatic image updates": "自动镜像更新",
   "Automatic updates enabled": "自动更新已启用",
+  "Authorized": "已授权",
   "Automatic updates off": "未启用自动更新",
   "Authorize repository": "授权仓库",
   "Available after repository authorization.": "仓库授权后可用。",
@@ -4589,6 +4590,8 @@ const zhCNMorlanePatchMessages = {
   "Existing service-level tracking stays unchanged unless a service is changed later.":
     "已有的服务单独跟踪会保持不变，除非之后单独调整该服务。",
   "Follows project default": "跟随项目默认",
+  "Following the project default by registry polling.": "通过镜像轮询跟随项目默认。",
+  "Following the project default from webhook events.": "通过 Webhook 事件跟随项目默认。",
   "Install the GitHub App to receive webhook events.":
     "安装 GitHub App 后可接收 Webhook 事件。",
   "Install the GitHub App to verify private access and receive webhook events.":
@@ -4600,13 +4603,19 @@ const zhCNMorlanePatchMessages = {
   "No activity yet": "暂无活动",
   "No events yet": "还没有事件",
   "No sync has run yet.": "还没有执行过同步。",
+  "No update signal": "无更新信号",
   "Not verified": "未验证",
   "Project default": "项目默认",
   "Project default + service overrides": "项目默认 + 服务覆盖",
   "Project default enabled": "项目默认已启用",
   "Project default repository": "项目默认仓库",
+  "Project default saved": "项目默认已保存",
+  "Project default source applied to {countLabel}.":
+    "项目默认来源已应用到 {countLabel}。",
   "Project default source saved. {count} services follow it.":
     "项目默认来源已保存，{count} 个服务跟随它。",
+  "Project default source saved for {countLabel}.":
+    "项目默认来源已保存到 {countLabel}。",
   "Public repositories can be bound for registry polling without installing the GitHub App.":
     "公开仓库无需安装 GitHub App 也可以绑定并启用镜像轮询。",
   "Public repositories can be set as the project default without installing the GitHub App.":
@@ -4623,7 +4632,14 @@ const zhCNMorlanePatchMessages = {
   "Repository ready": "仓库就绪",
   "Repository is bound. No matching image service has been linked yet.":
     "仓库已绑定，但还没有匹配到可关联的镜像服务。",
+  "Save project default": "保存项目默认",
+  "Apply project default to matching services": "让匹配服务跟随项目默认",
+  "Applying to matching services…": "正在应用到匹配服务…",
+  "Service override": "服务覆盖",
   "Service overrides": "服务覆盖",
+  "Service overrides active": "服务覆盖已启用",
+  "Service overrides are still active for {countLabel}. Apply the project default when you want them to use {repo}.":
+    "{countLabel}仍在使用服务覆盖。需要它们使用 {repo} 时，请应用项目默认。",
   "Service overrides stay unchanged.": "服务覆盖保持不变。",
   "Service-level tracking": "服务单独跟踪",
   "Service-level tracking active": "服务单独跟踪已启用",
@@ -4643,6 +4659,10 @@ const zhCNMorlanePatchMessages = {
     "此服务不会自动更新镜像。",
   "This service keeps its own image tracking.":
     "此服务保留自己的镜像跟踪。",
+  "This service keeps its own registry polling.":
+    "此服务保留自己的镜像轮询。",
+  "This service keeps its own webhook tracking.":
+    "此服务保留自己的 Webhook 跟踪。",
   "Update automatic updates": "更新自动更新",
   "Update registry polling": "更新镜像轮询",
   "Update project default": "更新项目默认",
@@ -5166,6 +5186,7 @@ const zhTWMorlanePatchMessages = {
   "Access required": "需要存取權限",
   "Automatic image updates": "自動映像更新",
   "Automatic updates enabled": "自動更新已啟用",
+  "Authorized": "已授權",
   "Automatic updates off": "未啟用自動更新",
   "Authorize repository": "授權儲存庫",
   "Available after repository authorization.": "儲存庫授權後可用。",
@@ -5202,6 +5223,8 @@ const zhTWMorlanePatchMessages = {
   "Existing service-level tracking stays unchanged unless a service is changed later.":
     "已有的服務單獨追蹤會保持不變，除非之後單獨調整該服務。",
   "Follows project default": "跟隨專案預設",
+  "Following the project default by registry polling.": "透過映像輪詢跟隨專案預設。",
+  "Following the project default from webhook events.": "透過 Webhook 事件跟隨專案預設。",
   "Install the GitHub App to receive webhook events.":
     "安裝 GitHub App 後可接收 Webhook 事件。",
   "Install the GitHub App to verify private access and receive webhook events.":
@@ -5213,13 +5236,19 @@ const zhTWMorlanePatchMessages = {
   "No activity yet": "暫無活動",
   "No events yet": "還沒有事件",
   "No sync has run yet.": "還沒有執行過同步。",
+  "No update signal": "無更新訊號",
   "Not verified": "未驗證",
   "Project default": "專案預設",
   "Project default + service overrides": "專案預設 + 服務覆寫",
   "Project default enabled": "專案預設已啟用",
   "Project default repository": "專案預設儲存庫",
+  "Project default saved": "專案預設已儲存",
+  "Project default source applied to {countLabel}.":
+    "專案預設來源已套用到 {countLabel}。",
   "Project default source saved. {count} services follow it.":
     "專案預設來源已儲存，{count} 個服務跟隨它。",
+  "Project default source saved for {countLabel}.":
+    "專案預設來源已儲存到 {countLabel}。",
   "Public repositories can be bound for registry polling without installing the GitHub App.":
     "公開儲存庫無需安裝 GitHub App 也可以綁定並啟用映像輪詢。",
   "Public repositories can be set as the project default without installing the GitHub App.":
@@ -5236,7 +5265,14 @@ const zhTWMorlanePatchMessages = {
   "Repository ready": "儲存庫就緒",
   "Repository is bound. No matching image service has been linked yet.":
     "儲存庫已綁定，但還沒有匹配到可連結的映像服務。",
+  "Save project default": "儲存專案預設",
+  "Apply project default to matching services": "讓匹配服務跟隨專案預設",
+  "Applying to matching services…": "正在套用到匹配服務…",
+  "Service override": "服務覆寫",
   "Service overrides": "服務覆寫",
+  "Service overrides active": "服務覆寫已啟用",
+  "Service overrides are still active for {countLabel}. Apply the project default when you want them to use {repo}.":
+    "{countLabel}仍在使用服務覆寫。需要它們使用 {repo} 時，請套用專案預設。",
   "Service overrides stay unchanged.": "服務覆寫保持不變。",
   "Service-level tracking": "服務單獨追蹤",
   "Service-level tracking active": "服務單獨追蹤已啟用",
@@ -5256,6 +5292,10 @@ const zhTWMorlanePatchMessages = {
     "此服務不會自動更新映像。",
   "This service keeps its own image tracking.":
     "此服務保留自己的映像追蹤。",
+  "This service keeps its own registry polling.":
+    "此服務保留自己的映像輪詢。",
+  "This service keeps its own webhook tracking.":
+    "此服務保留自己的 Webhook 追蹤。",
   "Update automatic updates": "更新自動更新",
   "Update registry polling": "更新映像輪詢",
   "Update project default": "更新專案預設",
