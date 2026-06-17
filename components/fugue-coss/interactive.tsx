@@ -1437,19 +1437,21 @@ export function AdminClusterConsole() {
           <CardFrame>
             <CardHeader title="Runtime node policy" description="Control plane role, build allowance, workload placement." />
             <CardContent className="coss-stack">
-              <DataTable
-                columns={["Node", "Role", "Placement", "Reconcile", "Actions"]}
-                rows={servers}
-                renderRow={(server) => (
-                  <tr key={server.id}>
-                    <td className="coss-mono">{server.id}</td>
-                    <td>{server.role}</td>
-                    <td><Badge tone="info">allowed</Badge></td>
-                    <td><Badge tone="success">ready</Badge></td>
-                    <td className="coss-table__actions"><Button variant="outline" size="sm" aria-label={`Edit policy ${server.id}`} onClick={() => setDrawer(server.id)}>Edit policy</Button></td>
-                  </tr>
-                )}
-              />
+              <div className="coss-policy-list">
+                {servers.map((server) => (
+                  <div className="coss-policy-row" key={server.id}>
+                    <div className="coss-policy-row__main">
+                      <strong className="coss-mono">{server.id}</strong>
+                      <span>{server.role}</span>
+                    </div>
+                    <div className="coss-policy-row__meta">
+                      <Badge tone="info">allowed</Badge>
+                      <Badge tone="success">ready</Badge>
+                    </div>
+                    <Button variant="outline" size="sm" aria-label={`Edit policy ${server.id}`} onClick={() => setDrawer(server.id)}>Edit policy</Button>
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </CardFrame>
         </div>

@@ -881,6 +881,48 @@ select:disabled {
   box-shadow: 0 0 0 3px rgb(17 17 17 / 0.08);
 }
 
+.coss-policy-list {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.coss-policy-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  padding: 10px;
+}
+
+.coss-policy-row__main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.coss-policy-row__main strong,
+.coss-policy-row__main span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.coss-policy-row__main span {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+
+.coss-policy-row__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+  grid-column: 1 / -1;
+}
+
 .coss-skeleton {
   overflow: hidden;
   position: relative;
