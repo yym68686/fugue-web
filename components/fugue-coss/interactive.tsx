@@ -758,14 +758,6 @@ function pluralize(count: number, singular: string, plural = `${singular}s`) {
   return `${count} ${count === 1 ? singular : plural}`;
 }
 
-function hasResourceStats(project: ConsoleGalleryProjectView) {
-  return (
-    project.resourceUsageSnapshot.cpuMillicores !== null ||
-    project.resourceUsageSnapshot.memoryBytes !== null ||
-    project.resourceUsageSnapshot.ephemeralStorageBytes !== null
-  );
-}
-
 export function ProjectGallery() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("all");
@@ -822,16 +814,10 @@ export function ProjectGallery() {
     }));
   }, [projects]);
 
-  const summary = useMemo(() => {
-    return {
-      attention: items.filter((item) => item.lifecycle.filter === "attention").length,
-      deploying: items.filter((item) => item.lifecycle.filter === "deploying").length,
-      projects: items.length,
-      running: items.filter((item) => item.lifecycle.filter === "running").length,
-      services: items.reduce((total, item) => total + item.project.serviceCount, 0),
-      trackedUsage: items.filter((item) => hasResourceStats(item.project)).length,
-    };
-  }, [items]);
+  const deployingCount = useMemo(
+    () => items.filter((item) => item.lifecycle.filter === "deploying").length,
+    [items],
+  );
 
   const filtered = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -856,14 +842,53 @@ export function ProjectGallery() {
     <>
       <CardFrame className="coss-projects-panel">
         <CardContent className="coss-projects-content">
-          <header className="coss-projects-header">
-            <div>
-              <h2 className="coss-card-title">Project inventory</h2>
-              <p className="coss-card-description">
-                Live workspace projects, workloads, runtime placement, and resource totals.
-              </p>
+          <div className="coss-projects-toolbar" aria-label="Project controls">
+            <div className="coss-projects-filterset">
+              <input
+                className="coss-input coss-projects-search"
+                aria-label="Search projects"
+                placeholder="Search projects"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+              />
+              <select
+                className="coss-select coss-projects-select"
+                aria-label="Filter lifecycle"
+                value={status}
+                onChange={(event) => setStatus(event.target.value)}
+              >
+                <option value="all">All lifecycle</option>
+                <option value="running">Running</option>
+                <option value="deploying">Deploying</option>
+                <option value="attention">Attention</option>
+                <option value="empty">Empty</option>
+                <option value="idle">Idle</option>
+              </select>
+              <div className="coss-tabs" role="tablist" aria-label="Project view">
+                <button
+                  className="coss-tab"
+                  type="button"
+                  role="tab"
+                  aria-selected={view === "table"}
+                  onClick={() => setView("table")}
+                >
+                  Table
+                </button>
+                <button
+                  className="coss-tab"
+                  type="button"
+                  role="tab"
+                  aria-selected={view === "cards"}
+                  onClick={() => setView("cards")}
+                >
+                  Cards
+                </button>
+              </div>
             </div>
             <div className="coss-projects-actions">
+              <span className="coss-projects-count">
+                {loading ? "Loading" : `${pluralize(filtered.length, "project")} shown`}
+              </span>
               <Button
                 variant="outline"
                 size="sm"
@@ -878,76 +903,6 @@ export function ProjectGallery() {
                 New project
               </Button>
             </div>
-          </header>
-
-          <div className="coss-projects-summary" aria-label="Project summary">
-            {loading ? (
-              <>
-                <SkeletonBlock height={54} />
-                <SkeletonBlock height={54} />
-                <SkeletonBlock height={54} />
-                <SkeletonBlock height={54} />
-              </>
-            ) : (
-              [
-                { detail: `${filtered.length} shown`, label: "Projects", value: String(summary.projects) },
-                { detail: `${summary.trackedUsage} reporting usage`, label: "Services", value: String(summary.services) },
-                { detail: "live projects", label: "Running", tone: "success" as const, value: String(summary.running) },
-                { detail: "needs review", label: "Attention", tone: summary.attention > 0 ? "warning" as const : "default" as const, value: String(summary.attention) },
-              ].map((metric) => (
-                <div className="coss-projects-summary__item" data-tone={metric.tone ?? "default"} key={metric.label}>
-                  <span>{metric.label}</span>
-                  <strong>{metric.value}</strong>
-                  <small>{metric.detail}</small>
-                </div>
-              ))
-            )}
-          </div>
-
-          <div className="coss-projects-toolbar" aria-label="Project filters">
-            <input
-              className="coss-input coss-projects-search"
-              aria-label="Search projects"
-              placeholder="Search projects"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-            />
-            <select
-              className="coss-select coss-projects-select"
-              aria-label="Filter lifecycle"
-              value={status}
-              onChange={(event) => setStatus(event.target.value)}
-            >
-              <option value="all">All lifecycle</option>
-              <option value="running">Running</option>
-              <option value="deploying">Deploying</option>
-              <option value="attention">Attention</option>
-              <option value="empty">Empty</option>
-              <option value="idle">Idle</option>
-            </select>
-            <div className="coss-tabs" role="tablist" aria-label="Project view">
-              <button
-                className="coss-tab"
-                type="button"
-                role="tab"
-                aria-selected={view === "table"}
-                onClick={() => setView("table")}
-              >
-                Table
-              </button>
-              <button
-                className="coss-tab"
-                type="button"
-                role="tab"
-                aria-selected={view === "cards"}
-                onClick={() => setView("cards")}
-              >
-                Cards
-              </button>
-            </div>
-            <span className="coss-projects-count">
-              {loading ? "Loading" : `${pluralize(filtered.length, "project")} shown`}
-            </span>
           </div>
 
           {apiErrors.length ? (
@@ -956,15 +911,15 @@ export function ProjectGallery() {
             </Alert>
           ) : null}
 
-          {summary.deploying > 0 ? (
+          {deployingCount > 0 ? (
             <div className="coss-projects-notice" role="status">
               <Badge tone="info">In progress</Badge>
-              <span>{pluralize(summary.deploying, "project")} currently importing, building, or deploying.</span>
+              <span>{pluralize(deployingCount, "project")} currently importing, building, or deploying.</span>
             </div>
           ) : null}
 
           {loadError ? (
-            <Alert tone="destructive" title="Project inventory unavailable">
+            <Alert tone="destructive" title="Projects unavailable">
               {loadError}
             </Alert>
           ) : null}
@@ -1054,17 +1009,26 @@ function ProjectBadges({ project }: { project: ConsoleGalleryProjectView }) {
   );
 }
 
-function ProjectUsage({ project }: { project: ConsoleGalleryProjectView }) {
+function ProjectUsage({
+  compact = false,
+  project,
+}: {
+  compact?: boolean;
+  project: ConsoleGalleryProjectView;
+}) {
   const items = project.resourceUsage
     .filter((item) => item.primaryLabel !== "No stats")
-    .slice(0, 3);
+    .slice(0, compact ? 2 : 3);
 
   if (items.length === 0) {
     return <span className="coss-muted">No usage stats</span>;
   }
 
   return (
-    <div className="coss-project-usage" aria-label="Project resource usage">
+    <div
+      className={`coss-project-usage${compact ? " coss-project-usage--compact" : ""}`}
+      aria-label="Project resource usage"
+    >
       {items.map((item) => (
         <span key={item.id} title={item.title}>
           <span>{item.label}</span>
@@ -1082,19 +1046,21 @@ function ProjectRow({ item }: { item: ProjectListItem }) {
     <tr>
       <td>
         <div className="coss-project-cell">
-          <ButtonLink href={`/app/projects/${project.id}`} variant="ghost" size="sm" className="coss-project-name">
-            {project.name}
-          </ButtonLink>
+          <div className="coss-project-primary">
+            <ButtonLink href={`/app/projects/${project.id}`} variant="ghost" size="sm" className="coss-project-name">
+              {project.name}
+            </ButtonLink>
+            <ProjectBadges project={project} />
+          </div>
           <span className="coss-project-meta">
             {project.id} · {pluralize(project.appCount, "app")}
           </span>
-          <ProjectBadges project={project} />
         </div>
       </td>
       <td><Badge tone={badgeToneFromConsoleTone(lifecycle.tone)}>{lifecycle.label}</Badge></td>
       <td>{pluralize(project.serviceCount, "service")}</td>
       <td className="coss-mono">{runtimeLabel}</td>
-      <td><ProjectUsage project={project} /></td>
+      <td><ProjectUsage project={project} compact /></td>
       <td className="coss-table__actions">
         <ButtonLink href={`/app/projects/${project.id}`} variant="outline" size="sm">
           Open

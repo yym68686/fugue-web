@@ -158,16 +158,7 @@ export function ConsoleShell({
   return (
     <div className="coss-root coss-console-shell">
       <aside className="coss-sidebar">
-        <div className="coss-stack-sm">
-          <BrandMark />
-          <Card muted>
-            <CardContent className="coss-stack-sm">
-              <span className="coss-help">Workspace</span>
-              <strong>Fugue production</strong>
-              <Badge tone="success">Ready</Badge>
-            </CardContent>
-          </Card>
-        </div>
+        <BrandMark />
         <SidebarGroup label="Workspace" links={workspaceLinks} />
         <SidebarGroup label="Account" links={accountLinks} />
         <SidebarGroup label="Admin" links={adminLinks} />
