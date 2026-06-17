@@ -43,12 +43,14 @@ import {
   CONSOLE_ADMIN_APPS_PAGE_SNAPSHOT_URL,
   CONSOLE_ADMIN_CLUSTER_PAGE_SNAPSHOT_URL,
   CONSOLE_ADMIN_USERS_PAGE_SNAPSHOT_URL,
+  CONSOLE_PROFILE_SETTINGS_PAGE_SNAPSHOT_URL,
   invalidateConsolePageSnapshot,
   type ConsoleAdminAppsPageSnapshot,
   type ConsoleAdminClusterPageSnapshot,
   type ConsoleAdminUsersPageSnapshot,
   useConsolePageSnapshot,
 } from "@/lib/console/page-snapshot-client";
+import type { ConsoleProfileSettingsPageSnapshot } from "@/lib/console/page-snapshot-types";
 import type { ConsoleTone } from "@/lib/console/types";
 import {
   apiKeys,
@@ -197,8 +199,11 @@ function copyText(value: string, notify: (message: string) => void) {
 }
 
 export function AuthPanel({ mode }: { mode: "sign-in" | "sign-up" }) {
-  const [method, setMethod] = useState<"password" | "email">("password");
-  const [email, setEmail] = useState("ops@fugue.dev");
+  const [method, setMethod] = useState<"password" | "email">(
+    mode === "sign-up" ? "email" : "password",
+  );
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -206,13 +211,83 @@ export function AuthPanel({ mode }: { mode: "sign-in" | "sign-up" }) {
   const returnTo = typeof window === "undefined" ? "/app" : new URLSearchParams(window.location.search).get("returnTo") ?? "/app";
   const emailInvalid = Boolean(email) && !email.includes("@");
 
-  function simulate(label: string, success: string) {
+  function startOAuth(provider: "google" | "github") {
     setError(null);
-    setLoading(label);
-    window.setTimeout(() => {
+    setNotice(null);
+    setLoading(provider);
+    window.location.href = `/api/auth/${provider}/start?returnTo=${encodeURIComponent(returnTo)}`;
+  }
+
+  async function submitAuth() {
+    setError(null);
+    setNotice(null);
+
+    if (!email || emailInvalid) {
+      setError("Enter a valid email address.");
+      return;
+    }
+
+    if (method === "password" && mode === "sign-in") {
+      if (password.length < 8) {
+        setError("Password must be at least 8 characters.");
+        return;
+      }
+
+      setLoading("password");
+
+      try {
+        const result = await requestJson<{ ok: boolean; redirectTo?: string }>(
+          "/api/auth/password/sign-in",
+          {
+            body: JSON.stringify({ email, password, returnTo }),
+            cache: "no-store",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            method: "POST",
+          },
+        );
+        window.location.href = result.redirectTo ?? returnTo;
+      } catch (nextError) {
+        setError(readRequestError(nextError));
+        setLoading(null);
+      }
+
+      return;
+    }
+
+    setLoading("email");
+
+    try {
+      const result = await requestJson<{
+        message?: string;
+        ok: boolean;
+        redirectTo?: string;
+      }>("/api/auth/email/start", {
+        body: JSON.stringify({
+          email,
+          mode,
+          name,
+          returnTo,
+        }),
+        cache: "no-store",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+      });
+
+      if (result.redirectTo) {
+        window.location.href = result.redirectTo;
+        return;
+      }
+
+      setNotice(result.message ?? `Verification link sent to ${email}.`);
+    } catch (nextError) {
+      setError(readRequestError(nextError));
+    } finally {
       setLoading(null);
-      setNotice(success);
-    }, 600);
+    }
   }
 
   return (
@@ -227,19 +302,18 @@ export function AuthPanel({ mode }: { mode: "sign-in" | "sign-up" }) {
           <Button
             variant="outline"
             loading={loading === "google"}
-            onClick={() => simulate("google", "Google session handoff started")}
+            onClick={() => startOAuth("google")}
           >
             Continue with Google
           </Button>
           <Button
             variant="outline"
             loading={loading === "github"}
-            onClick={() => simulate("github", "GitHub provider is available")}
+            onClick={() => startOAuth("github")}
           >
             Continue with GitHub
           </Button>
         </div>
-        <p className="coss-help">GitHub login appears only when the provider is configured; this COSS surface keeps the availability state visible.</p>
         <div className="coss-tabs" role="tablist" aria-label="Authentication method">
           <button className="coss-tab" aria-selected={method === "password"} onClick={() => setMethod("password")}>
             Password
@@ -249,12 +323,17 @@ export function AuthPanel({ mode }: { mode: "sign-in" | "sign-up" }) {
           </button>
         </div>
         <div className="coss-form">
+          {mode === "sign-up" ? (
+            <Field label="Display name">
+              <input className="coss-input" value={name} onChange={(event) => setName(event.target.value)} />
+            </Field>
+          ) : null}
           <Field label="Email">
             <input className="coss-input" aria-invalid={emailInvalid} value={email} onChange={(event) => setEmail(event.target.value)} />
           </Field>
           {emailInvalid ? <span className="coss-help" role="alert">Enter a valid email address.</span> : null}
-          {method === "password" ? (
-            <Field label="Password" help={mode === "sign-up" ? "Password can be added later in profile security." : "Use an existing password for this account."}>
+          {method === "password" && mode === "sign-in" ? (
+            <Field label="Password" help="Use an existing password for this account.">
               <input
                 className="coss-input"
                 type="password"
@@ -268,20 +347,10 @@ export function AuthPanel({ mode }: { mode: "sign-in" | "sign-up" }) {
             </Alert>
           )}
           <Button
-            loading={loading === "email"}
-            onClick={() => {
-              if (method === "password" && password.length < 8) {
-                setNotice(null);
-                setError("Password must be at least 8 characters.");
-                return;
-              }
-              simulate(
-                "email",
-                method === "email" ? `Verification link sent to ${email}` : "Password accepted; session created",
-              );
-            }}
+            loading={loading === "email" || loading === "password"}
+            onClick={submitAuth}
           >
-            {method === "email" ? "Send link" : mode === "sign-up" ? "Create account" : "Sign in"}
+            {method === "password" && mode === "sign-in" ? "Sign in" : "Send link"}
           </Button>
         </div>
       </CardContent>
@@ -1670,49 +1739,350 @@ export function ServersConsole() {
   );
 }
 
+type ProfileAuthMethod = ConsoleProfileSettingsPageSnapshot["methods"][number];
+type ProfileAuthMethodKind = ProfileAuthMethod["method"];
+
+const PROFILE_AUTH_METHODS: ProfileAuthMethodKind[] = [
+  "google",
+  "github",
+  "email_link",
+  "password",
+];
+
+function profileMethodLabel(method: ProfileAuthMethodKind) {
+  switch (method) {
+    case "google":
+      return "Google";
+    case "github":
+      return "GitHub";
+    case "email_link":
+      return "Email link";
+    case "password":
+      return "Password";
+  }
+}
+
+function profileMethodSlug(method: ProfileAuthMethodKind) {
+  return method === "email_link" ? "email-link" : method;
+}
+
+function displayNameFromProfile(
+  snapshot: ConsoleProfileSettingsPageSnapshot | null,
+) {
+  return (
+    snapshot?.user.name?.trim() ||
+    snapshot?.session.name?.trim() ||
+    snapshot?.session.email?.split("@")[0] ||
+    ""
+  );
+}
+
 export function ProfileSecurity() {
-  const [name, setName] = useState("Ops Admin");
-  const [methods, setMethods] = useState(["Google", "GitHub", "Email link", "Password"]);
-  const [dialog, setDialog] = useState<"security" | "privacy" | null>(null);
+  const { data, error, loading, refresh } =
+    useConsolePageSnapshot<ConsoleProfileSettingsPageSnapshot>(
+      CONSOLE_PROFILE_SETTINGS_PAGE_SNAPSHOT_URL,
+    );
+  const toast = useToast();
+  const [name, setName] = useState("");
+  const [dirty, setDirty] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [methodAction, setMethodAction] = useState<ProfileAuthMethodKind | null>(null);
+  const [methodError, setMethodError] = useState<string | null>(null);
+  const [passwordDrawer, setPasswordDrawer] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!data || dirty) {
+      return;
+    }
+
+    setName(displayNameFromProfile(data));
+  }, [data, dirty]);
+
+  const activeMethods = data?.methods ?? [];
+  const activeMethodSet = useMemo(
+    () => new Set(activeMethods.map((method) => method.method)),
+    [activeMethods],
+  );
+  const hasPassword = activeMethods.some(
+    (method) => method.method === "password" && method.hasSecret,
+  );
+  const email = data?.session.email ?? "";
+  const initialProfileLoading = loading && !data;
+
+  async function saveProfile() {
+    setSavingProfile(true);
+    setProfileError(null);
+
+    try {
+      await requestJson<{ ok: boolean; user: ConsoleProfileSettingsPageSnapshot["user"] }>(
+        "/api/auth/profile",
+        {
+          body: JSON.stringify({ name }),
+          cache: "no-store",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          method: "PATCH",
+        },
+      );
+      setDirty(false);
+      await refresh({ force: true });
+      toast.notify("Profile saved.");
+    } catch (nextError) {
+      setProfileError(readRequestError(nextError));
+    } finally {
+      setSavingProfile(false);
+    }
+  }
+
+  async function disconnectMethod(method: ProfileAuthMethodKind) {
+    setMethodAction(method);
+    setMethodError(null);
+
+    try {
+      await requestJson<{ ok: boolean; methods: ProfileAuthMethod[] }>(
+        `/api/auth/methods/${profileMethodSlug(method)}`,
+        {
+          cache: "no-store",
+          method: "DELETE",
+        },
+      );
+      await refresh({ force: true });
+      toast.notify(`${profileMethodLabel(method)} disconnected.`);
+    } catch (nextError) {
+      setMethodError(readRequestError(nextError));
+    } finally {
+      setMethodAction(null);
+    }
+  }
+
+  async function enableEmailLink() {
+    setMethodAction("email_link");
+    setMethodError(null);
+
+    try {
+      await requestJson<{ ok: boolean; methods: ProfileAuthMethod[] }>(
+        "/api/auth/methods/email-link",
+        {
+          cache: "no-store",
+          method: "POST",
+        },
+      );
+      await refresh({ force: true });
+      toast.notify("Email link enabled.");
+    } catch (nextError) {
+      setMethodError(readRequestError(nextError));
+    } finally {
+      setMethodAction(null);
+    }
+  }
+
+  async function savePassword() {
+    setMethodAction("password");
+    setPasswordError(null);
+
+    try {
+      await requestJson<{ ok: boolean; methods: ProfileAuthMethod[] }>(
+        "/api/auth/methods/password",
+        {
+          body: JSON.stringify({
+            currentPassword,
+            newPassword,
+          }),
+          cache: "no-store",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          method: "POST",
+        },
+      );
+      setCurrentPassword("");
+      setNewPassword("");
+      setPasswordDrawer(false);
+      await refresh({ force: true });
+      toast.notify(hasPassword ? "Password updated." : "Password added.");
+    } catch (nextError) {
+      setPasswordError(readRequestError(nextError));
+    } finally {
+      setMethodAction(null);
+    }
+  }
+
+  function connectMethod(method: ProfileAuthMethodKind) {
+    if (method === "google" || method === "github") {
+      window.location.href = `/api/auth/${method}/link/start?returnTo=${encodeURIComponent("/app/settings/profile")}`;
+      return;
+    }
+
+    if (method === "email_link") {
+      void enableEmailLink();
+      return;
+    }
+
+    setPasswordDrawer(true);
+  }
+
   return (
     <>
+      <Toast message={toast.message} />
       <div className="coss-split">
         <CardFrame>
           <CardHeader title="Profile" description="Display name, account email, and active session." />
           <CardContent className="coss-form">
-            <Field label="Display name"><input className="coss-input" value={name} onChange={(event) => setName(event.target.value)} /></Field>
-            <Field label="Email"><input className="coss-input" value="ops@fugue.dev" disabled /></Field>
-            <Button><Save aria-hidden="true" /> Save profile</Button>
+            {error ? (
+              <Alert tone="destructive" title="Fugue could not load the profile settings right now.">
+                {error}
+              </Alert>
+            ) : null}
+            {profileError ? (
+              <Alert tone="destructive" title="Could not update your profile.">
+                {profileError}
+              </Alert>
+            ) : null}
+            {initialProfileLoading ? (
+              <div className="coss-stack-sm" aria-label="Loading profile settings">
+                <SkeletonBlock height={42} />
+                <SkeletonBlock height={42} />
+                <SkeletonBlock height={42} />
+              </div>
+            ) : data ? (
+              <>
+                <Field label="Display name">
+                  <input
+                    className="coss-input"
+                    value={name}
+                    onChange={(event) => {
+                      setDirty(true);
+                      setName(event.target.value);
+                    }}
+                    placeholder={email ? email.split("@")[0] : "Display name"}
+                  />
+                </Field>
+                <Field label="Email">
+                  <input className="coss-input" value={email} disabled />
+                </Field>
+                <Button
+                  disabled={!data || name.trim().length > 80}
+                  loading={savingProfile}
+                  onClick={saveProfile}
+                >
+                  {savingProfile ? null : <Save aria-hidden="true" />}
+                  Save profile
+                </Button>
+              </>
+            ) : null}
           </CardContent>
         </CardFrame>
         <CardFrame>
           <CardHeader title="Sign-in methods" description="At least one method must remain active." />
           <CardContent className="coss-stack">
-            {methods.map((method) => (
-              <div key={method} className="coss-row" style={{ justifyContent: "space-between" }}>
-                <span>{method}</span>
-                <Button variant="outline" size="sm" disabled={methods.length === 1} onClick={() => setMethods((items) => items.filter((item) => item !== method))}>Disconnect</Button>
+            {methodError ? (
+              <Alert tone="destructive" title="Could not update sign-in methods.">
+                {methodError}
+              </Alert>
+            ) : null}
+            {initialProfileLoading ? (
+              <div className="coss-stack-sm" aria-label="Loading sign-in methods">
+                <SkeletonBlock height={38} />
+                <SkeletonBlock height={38} />
+                <SkeletonBlock height={38} />
               </div>
-            ))}
-            <div className="coss-grid-2">
-              {["Google", "GitHub", "Email link", "Password"].map((method) => (
-                <Button key={method} variant="outline" onClick={() => setMethods((items) => Array.from(new Set([...items, method])))}>
-                  Connect / enable {method}
-                </Button>
-              ))}
-            </div>
+            ) : data && activeMethods.length ? (
+              activeMethods.map((method) => (
+                <div key={method.method} className="coss-row" style={{ justifyContent: "space-between" }}>
+                  <span>{profileMethodLabel(method.method)}</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={activeMethods.length === 1}
+                    loading={methodAction === method.method}
+                    onClick={() => disconnectMethod(method.method)}
+                  >
+                    Disconnect
+                  </Button>
+                </div>
+              ))
+            ) : data ? (
+              <Alert tone="warning" title="No sign-in method is recorded.">
+                Enable email link or connect an OAuth provider before leaving this page.
+              </Alert>
+            ) : null}
+            {data ? (
+              <div className="coss-grid-2">
+                {PROFILE_AUTH_METHODS.filter((method) => !activeMethodSet.has(method)).map((method) => (
+                  <Button
+                    key={method}
+                    variant="outline"
+                    disabled={
+                      (method === "google" && !data.availableMethods.google) ||
+                      (method === "github" && !data.availableMethods.github)
+                    }
+                    loading={methodAction === method}
+                    onClick={() => connectMethod(method)}
+                  >
+                    Connect / enable {profileMethodLabel(method)}
+                  </Button>
+                ))}
+                {activeMethodSet.has("password") ? (
+                  <Button variant="outline" onClick={() => setPasswordDrawer(true)}>
+                    Update password
+                  </Button>
+                ) : null}
+              </div>
+            ) : null}
           </CardContent>
         </CardFrame>
       </div>
-      <CardFrame>
-        <CardHeader title="Account controls" description="Recovery email rotation and privacy record cleanup." />
-        <CardContent className="coss-row">
-          <Button variant="outline" onClick={() => setDialog("security")}>Rotate recovery email</Button>
-          <Button variant="destructive" onClick={() => setDialog("privacy")}>Clear record</Button>
-        </CardContent>
-      </CardFrame>
-      <Dialog title="Security operation" description="Rotate the recovery email and keep at least one verified sign-in method active." open={dialog === "security"} onConfirm={() => setDialog(null)} onClose={() => setDialog(null)} />
-      <Dialog title="Privacy record" description="Clear the local account record after confirmation." open={dialog === "privacy"} onConfirm={() => setDialog(null)} onClose={() => setDialog(null)} />
+      <Drawer
+        title={hasPassword ? "Update password" : "Add password"}
+        description="Password access is stored on this account and protected by the active session."
+        open={passwordDrawer}
+        onClose={() => setPasswordDrawer(false)}
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setPasswordDrawer(false)}>
+              Cancel
+            </Button>
+            <Button
+              loading={methodAction === "password"}
+              disabled={!newPassword}
+              onClick={savePassword}
+            >
+              {hasPassword ? "Update password" : "Add password"}
+            </Button>
+          </>
+        }
+      >
+        <div className="coss-form">
+          {passwordError ? (
+            <Alert tone="destructive" title="Could not save password.">
+              {passwordError}
+            </Alert>
+          ) : null}
+          {hasPassword ? (
+            <Field label="Current password">
+              <input
+                className="coss-input"
+                type="password"
+                value={currentPassword}
+                onChange={(event) => setCurrentPassword(event.target.value)}
+              />
+            </Field>
+          ) : null}
+          <Field label="New password">
+            <input
+              className="coss-input"
+              type="password"
+              value={newPassword}
+              onChange={(event) => setNewPassword(event.target.value)}
+            />
+          </Field>
+        </div>
+      </Drawer>
     </>
   );
 }

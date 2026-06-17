@@ -133,18 +133,6 @@ export const servers = [
   { id: "alicehk2", role: "runtime", ready: "ready", cpu: 28, memory: 39, disk: 25, workloads: 4 },
 ];
 
-export const adminApps = [
-  { id: "pulseboard", owner: "ops@fugue.dev", phase: "running", route: "pulseboard.fugue.dev", runtime: "shared-us-west" },
-  { id: "atlas-api", owner: "builder@fugue.dev", phase: "building", route: "atlas-api.fugue.dev", runtime: "alicehk2" },
-  { id: "billing-lab", owner: "billing@fugue.dev", phase: "attention", route: "internal", runtime: "netcup" },
-];
-
-export const adminUsers = [
-  { id: "usr-01", email: "ops@fugue.dev", name: "Ops Admin", status: "active", admin: true, balance: "$128.40" },
-  { id: "usr-02", email: "builder@fugue.dev", name: "Builder", status: "active", admin: false, balance: "$42.10" },
-  { id: "usr-03", email: "blocked@example.com", name: "Blocked User", status: "blocked", admin: false, balance: "$0.00" },
-];
-
 export const docsSections = [
   {
     id: "quickstart",
