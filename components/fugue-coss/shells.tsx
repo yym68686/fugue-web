@@ -170,14 +170,14 @@ export function ConsoleShell({
         </div>
         <SidebarGroup label="Workspace" links={workspaceLinks} />
         <SidebarGroup label="Account" links={accountLinks} />
-        {admin ? <SidebarGroup label="Admin" links={adminLinks} /> : null}
+        <SidebarGroup label="Admin" links={adminLinks} />
       </aside>
       <div className="coss-console-content">
         <details className="coss-mobile-nav">
           <summary>Console navigation</summary>
           <SidebarGroup label="Workspace" links={workspaceLinks} />
           <SidebarGroup label="Account" links={accountLinks} />
-          {admin ? <SidebarGroup label="Admin" links={adminLinks} /> : null}
+          <SidebarGroup label="Admin" links={adminLinks} />
         </details>
         <header className="coss-topbar">
           <div className="coss-row">

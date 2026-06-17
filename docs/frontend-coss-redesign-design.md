@@ -228,7 +228,7 @@ Console 使用 COSS `Sidebar`：
   - Users
   - Cluster
 
-Admin 分组只在用户具备管理员权限时出现。
+Admin 分组在 Console 中保持可发现；页面内容和 mutation 仍由 server/API 做管理员权限校验。
 
 ### 3.5 项目详情区
 
@@ -1426,7 +1426,7 @@ Admin 分组只在用户具备管理员权限时出现。
 - [x] 实现 `ConsoleShell`。
 - [x] 实现 `AdminShell`。
 - [x] 实现 Console sidebar 分组。
-- [x] 实现 Admin 权限下才显示 Admin 导航。
+- [x] 实现 Admin 导航可发现，并由页面/API 执行管理员权限边界。
 - [x] 实现移动端 sidebar sheet。
 - [x] 实现通用 `PageHeader` 封装。
 

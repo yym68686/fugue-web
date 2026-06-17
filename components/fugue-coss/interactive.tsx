@@ -35,11 +35,22 @@ import {
   MetricStrip,
   SkeletonBlock,
 } from "@/components/coss/ui";
-import type { ConsoleGalleryProjectView } from "@/lib/console/gallery-types";
+import type {
+  ConsoleCompactResourceItemView,
+  ConsoleGalleryProjectView,
+} from "@/lib/console/gallery-types";
+import {
+  CONSOLE_ADMIN_APPS_PAGE_SNAPSHOT_URL,
+  CONSOLE_ADMIN_CLUSTER_PAGE_SNAPSHOT_URL,
+  CONSOLE_ADMIN_USERS_PAGE_SNAPSHOT_URL,
+  invalidateConsolePageSnapshot,
+  type ConsoleAdminAppsPageSnapshot,
+  type ConsoleAdminClusterPageSnapshot,
+  type ConsoleAdminUsersPageSnapshot,
+  useConsolePageSnapshot,
+} from "@/lib/console/page-snapshot-client";
 import type { ConsoleTone } from "@/lib/console/types";
 import {
-  adminApps,
-  adminUsers,
   apiKeys,
   envRows,
   fileTree,
@@ -100,14 +111,18 @@ function Dialog({
   title,
   description,
   open,
+  confirmDisabled = false,
   confirmLabel = "Confirm",
+  confirmLoading = false,
   onConfirm,
   onClose,
 }: {
   title: string;
   description: string;
   open: boolean;
+  confirmDisabled?: boolean;
   confirmLabel?: string;
+  confirmLoading?: boolean;
   onConfirm: () => void;
   onClose: () => void;
 }) {
@@ -129,7 +144,12 @@ function Dialog({
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button variant="destructive" onClick={onConfirm}>
+          <Button
+            variant="destructive"
+            disabled={confirmDisabled || confirmLoading}
+            loading={confirmLoading}
+            onClick={onConfirm}
+          >
             {confirmLabel}
           </Button>
         </footer>
@@ -1731,136 +1751,1230 @@ export function ProfileSecurity() {
   );
 }
 
+type AdminConfirmOperation = {
+  body?: unknown;
+  confirmLabel?: string;
+  description: string;
+  endpoint: string;
+  method: "DELETE" | "PATCH" | "POST";
+  successMessage: string;
+  title: string;
+};
+
+type AdminAppView = ConsoleAdminAppsPageSnapshot["apps"][number];
+type AdminUserView = ConsoleAdminUsersPageSnapshot["users"][number];
+type AdminClusterNodeView = ConsoleAdminClusterPageSnapshot["nodes"][number];
+type AdminClusterNodeRow = AdminClusterNodeView & { id: string };
+type ClusterPolicyDraft = {
+  allowBuilds: boolean;
+  allowDns: boolean;
+  allowEdge: boolean;
+  allowSharedPool: boolean;
+};
+
+function adminValue(value: string | null | undefined, fallback = "Unavailable") {
+  return value?.trim() ? value : fallback;
+}
+
+function matchesAdminQuery(
+  query: string,
+  values: Array<boolean | number | string | null | undefined>,
+) {
+  const normalized = query.trim().toLowerCase();
+
+  if (!normalized) {
+    return true;
+  }
+
+  return values
+    .filter((value) => value !== null && value !== undefined)
+    .some((value) => String(value).toLowerCase().includes(normalized));
+}
+
+function requestAdminOperation(operation: AdminConfirmOperation) {
+  const init: RequestInit = {
+    cache: "no-store",
+    method: operation.method,
+  };
+
+  if (operation.body !== undefined) {
+    init.body = JSON.stringify(operation.body);
+    init.headers = {
+      "Content-Type": "application/json",
+    };
+  }
+
+  return requestJson<unknown>(operation.endpoint, init);
+}
+
+function AdminSnapshotErrors({ errors }: { errors?: string[] }) {
+  if (!errors?.length) {
+    return null;
+  }
+
+  return (
+    <Alert tone="warning" title="Snapshot partially loaded">
+      {errors.join(" · ")}
+    </Alert>
+  );
+}
+
+function DetailMetric({
+  label,
+  value,
+  mono = false,
+}: {
+  label: string;
+  value: ReactNode;
+  mono?: boolean;
+}) {
+  return (
+    <Card muted>
+      <CardContent className="coss-stack-sm">
+        <span className="coss-help">{label}</span>
+        <strong className={mono ? "coss-mono" : undefined}>{value}</strong>
+      </CardContent>
+    </Card>
+  );
+}
+
+function CompactResourceUsage({
+  items,
+  emptyLabel = "No usage stats",
+}: {
+  items: ConsoleCompactResourceItemView[];
+  emptyLabel?: string;
+}) {
+  const visibleItems = items
+    .filter((item) => item.primaryLabel.trim())
+    .slice(0, 3);
+
+  if (visibleItems.length === 0) {
+    return <span className="coss-muted">{emptyLabel}</span>;
+  }
+
+  return (
+    <div className="coss-project-usage" aria-label="Resource usage">
+      {visibleItems.map((item) => (
+        <span key={item.id} title={item.title}>
+          <span>{item.label}</span>
+          <strong>{item.primaryLabel}</strong>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function ClusterResourceMeters({ node }: { node: AdminClusterNodeView }) {
+  if (node.resources.length === 0) {
+    return <span className="coss-muted">No telemetry</span>;
+  }
+
+  return (
+    <div className="coss-stack-sm">
+      {node.resources.slice(0, 3).map((resource) => (
+        <Meter
+          key={resource.id}
+          label={`${resource.label} ${resource.percentLabel}`}
+          value={resource.percentValue ?? 0}
+        />
+      ))}
+    </div>
+  );
+}
+
 export function AdminAppsConsole() {
+  const { data, error, loading, refresh } =
+    useConsolePageSnapshot<ConsoleAdminAppsPageSnapshot>(
+      CONSOLE_ADMIN_APPS_PAGE_SNAPSHOT_URL,
+    );
   const [query, setQuery] = useState("");
   const [phase, setPhase] = useState("all");
-  const [confirm, setConfirm] = useState<string | null>(null);
-  const [drawer, setDrawer] = useState<typeof adminApps[number] | null>(null);
-  const rows = adminApps.filter((app) => (app.id.includes(query) || app.owner.includes(query)) && (phase === "all" || app.phase === phase));
+  const [drawer, setDrawer] = useState<AdminAppView | null>(null);
+  const [operation, setOperation] = useState<AdminConfirmOperation | null>(null);
+  const [operationError, setOperationError] = useState<string | null>(null);
+  const [operating, setOperating] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const toast = useToast();
+  const apps = data?.apps ?? [];
+  const summary = data?.summary;
+  const phases = useMemo(
+    () => Array.from(new Set(apps.map((app) => app.phase).filter(Boolean))).sort(),
+    [apps],
+  );
+  const rows = useMemo(
+    () =>
+      apps.filter((app) => {
+        const matchesPhase = phase === "all" || app.phase === phase;
+        return (
+          matchesPhase &&
+          matchesAdminQuery(query, [
+            app.id,
+            app.name,
+            app.ownerLabel,
+            app.phase,
+            app.projectLabel,
+            app.routeLabel,
+            app.serverLabel,
+            app.sourceLabel,
+            ...app.stack.map((item) => `${item.label} ${item.meta}`),
+          ])
+        );
+      }),
+    [apps, phase, query],
+  );
+
+  async function refreshApps() {
+    setRefreshing(true);
+    setOperationError(null);
+    invalidateConsolePageSnapshot(CONSOLE_ADMIN_APPS_PAGE_SNAPSHOT_URL);
+
+    try {
+      await refresh({ force: true });
+    } catch (error) {
+      setOperationError(readRequestError(error));
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
+  async function confirmOperation() {
+    if (!operation) {
+      return;
+    }
+
+    setOperating(true);
+    setOperationError(null);
+
+    try {
+      await requestAdminOperation(operation);
+      invalidateConsolePageSnapshot(CONSOLE_ADMIN_APPS_PAGE_SNAPSHOT_URL);
+      await refresh({ force: true });
+      toast.notify(operation.successMessage);
+      setOperation(null);
+      setDrawer(null);
+    } catch (error) {
+      setOperationError(readRequestError(error));
+    } finally {
+      setOperating(false);
+    }
+  }
+
+  function queueAppOperation(app: AdminAppView, kind: "delete" | "rebuild") {
+    const encodedId = encodeURIComponent(app.id);
+
+    if (kind === "rebuild") {
+      setOperation({
+        confirmLabel: "Rebuild",
+        description: `${app.name} will be queued for a new build through Fugue.`,
+        endpoint: `/api/admin/apps/${encodedId}/rebuild`,
+        method: "POST",
+        successMessage: `Rebuild queued for ${app.name}`,
+        title: `Rebuild ${app.name}`,
+      });
+      return;
+    }
+
+    setOperation({
+      confirmLabel: "Delete",
+      description: `${app.name} will be deleted from Fugue. This cannot be undone from the console.`,
+      endpoint: `/api/admin/apps/${encodedId}`,
+      method: "DELETE",
+      successMessage: `${app.name} deleted`,
+      title: `Delete ${app.name}`,
+    });
+  }
+
   return (
     <>
+      <Toast message={toast.message} />
       <div className="coss-stack">
-        <MetricStrip items={[{ label: "Apps", value: "3" }, { label: "Routed", value: "2", tone: "success" }, { label: "Tenants", value: "3" }, { label: "Attention", value: "1", tone: "warning" }]} />
+        <MetricStrip
+          items={[
+            { label: "Apps", value: String(summary?.appCount ?? apps.length) },
+            {
+              label: "Routed",
+              tone: "success",
+              value: String(
+                summary?.routedCount ??
+                  apps.filter((app) => Boolean(app.routeHref)).length,
+              ),
+            },
+            {
+              label: "Tenants",
+              value: String(
+                summary?.tenantCount ??
+                  new Set(apps.map((app) => app.ownerLabel)).size,
+              ),
+            },
+            {
+              label: "Latest update",
+              tone: summary?.latestUpdateLabel ? "info" : undefined,
+              value: summary?.latestUpdateLabel ?? (loading ? "Loading" : "None"),
+            },
+          ]}
+        />
         <CardFrame>
-          <CardHeader title="Applications" description="Cluster-wide app inventory and rebuild/delete operations." />
+          <CardHeader
+            title="Applications"
+            description="Live cluster-wide app inventory, route placement, resource usage, rebuild, and deletion."
+            action={
+              <Button
+                variant="outline"
+                size="sm"
+                loading={refreshing}
+                onClick={() => {
+                  void refreshApps();
+                }}
+              >
+                {refreshing ? null : <RotateCcw aria-hidden="true" />}
+                Refresh
+              </Button>
+            }
+          />
           <CardContent className="coss-stack">
             <div className="coss-row">
-              <input className="coss-input" placeholder="Search app or owner" value={query} onChange={(event) => setQuery(event.target.value)} style={{ width: 260 }} />
-              <select className="coss-select" value={phase} onChange={(event) => setPhase(event.target.value)} style={{ width: 160 }}>
-                <option value="all">All phase</option>
-                <option value="running">running</option>
-                <option value="building">building</option>
-                <option value="attention">attention</option>
+              <input
+                aria-label="Search apps"
+                className="coss-input"
+                placeholder="Search app, owner, route, runtime"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                style={{ width: 300 }}
+              />
+              <select
+                aria-label="Filter app phase"
+                className="coss-select"
+                value={phase}
+                onChange={(event) => setPhase(event.target.value)}
+                style={{ width: 180 }}
+              >
+                <option value="all">All phases</option>
+                {phases.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
               </select>
             </div>
-            <DataTable
-              columns={["App", "Owner", "Phase", "Route", "Runtime", "Actions"]}
-              rows={rows}
-              renderRow={(row) => <tr key={row.id}><td className="coss-mono">{row.id}</td><td>{row.owner}</td><td><Badge tone={row.phase === "running" ? "success" : row.phase === "attention" ? "warning" : "info"}>{row.phase}</Badge></td><td>{row.route}</td><td>{row.runtime}</td><td className="coss-table__actions"><Button variant="outline" size="sm" aria-label={`App details ${row.id}`} onClick={() => setDrawer(row)}>Details</Button><Button variant="outline" size="sm" aria-label={`Rebuild ${row.id}`} onClick={() => setConfirm(`Rebuild ${row.id}`)}>Rebuild</Button><Button variant="destructive" size="sm" aria-label={`Delete ${row.id}`} onClick={() => setConfirm(`Delete ${row.id}`)}>Delete</Button></td></tr>}
-            />
+
+            {operationError ? (
+              <Alert tone="destructive" title="Admin operation failed">
+                {operationError}
+              </Alert>
+            ) : null}
+            {error ? (
+              <Alert tone="destructive" title="Applications unavailable">
+                {error}
+              </Alert>
+            ) : null}
+            <AdminSnapshotErrors errors={data?.errors} />
+
+            {loading && !data ? (
+              <div className="coss-stack-sm" aria-label="Loading applications">
+                <SkeletonBlock height={44} />
+                <SkeletonBlock height={48} />
+                <SkeletonBlock height={48} />
+              </div>
+            ) : null}
+
+            {!loading && !error && rows.length === 0 ? (
+              <Empty
+                title={apps.length === 0 ? "No applications found" : "No applications match this filter"}
+                description={apps.length === 0 ? "Fugue returned an empty cluster application inventory." : "Clear search or change the phase filter."}
+              />
+            ) : null}
+
+            {rows.length > 0 ? (
+              <DataTable
+                columns={["App", "Owner", "Phase", "Route", "Runtime", "Usage", "Actions"]}
+                rows={rows}
+                renderRow={(row) => (
+                  <tr key={row.id}>
+                    <td>
+                      <div className="coss-stack-sm">
+                        <strong>{row.name}</strong>
+                        <span className="coss-help coss-mono">{row.id}</span>
+                        <span className="coss-help">{row.projectLabel} · {row.createdLabel}</span>
+                      </div>
+                    </td>
+                    <td>{row.ownerLabel}</td>
+                    <td>
+                      <Badge tone={badgeToneFromConsoleTone(row.phaseTone)}>
+                        {row.phase}
+                      </Badge>
+                    </td>
+                    <td>
+                      {row.routeHref ? (
+                        <ButtonLink href={row.routeHref} variant="ghost" size="sm" target="_blank">
+                          {row.routeLabel}
+                        </ButtonLink>
+                      ) : (
+                        <span className="coss-muted">{row.routeLabel}</span>
+                      )}
+                    </td>
+                    <td className="coss-mono">{row.serverLabel}</td>
+                    <td>
+                      <CompactResourceUsage items={row.resourceUsage} />
+                    </td>
+                    <td className="coss-table__actions">
+                      <Button variant="outline" size="sm" onClick={() => setDrawer(row)}>
+                        Details
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={!row.canRebuild || operating}
+                        onClick={() => queueAppOperation(row, "rebuild")}
+                      >
+                        Rebuild
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        disabled={operating}
+                        onClick={() => queueAppOperation(row, "delete")}
+                      >
+                        Delete
+                      </Button>
+                    </td>
+                  </tr>
+                )}
+              />
+            ) : null}
           </CardContent>
         </CardFrame>
       </div>
-      <Drawer title={drawer?.id ?? ""} description="App detail" open={Boolean(drawer)} onClose={() => setDrawer(null)}>
-        {drawer ? <CodeBlock>{JSON.stringify(drawer, null, 2)}</CodeBlock> : null}
+      <Drawer
+        title={drawer?.name ?? ""}
+        description={drawer?.id}
+        open={Boolean(drawer)}
+        onClose={() => setDrawer(null)}
+      >
+        {drawer ? (
+          <div className="coss-stack">
+            <div className="coss-grid-2">
+              <DetailMetric label="Owner" value={drawer.ownerLabel} />
+              <DetailMetric label="Project" value={drawer.projectLabel} />
+              <DetailMetric label="Runtime" value={drawer.serverLabel} mono />
+              <DetailMetric label="Created" value={drawer.createdLabel} />
+            </div>
+            <Card muted>
+              <CardContent className="coss-stack-sm">
+                <span className="coss-help">Source</span>
+                {drawer.sourceHref ? (
+                  <ButtonLink href={drawer.sourceHref} variant="outline" size="sm" target="_blank">
+                    {drawer.sourceLabel}
+                  </ButtonLink>
+                ) : (
+                  <strong>{drawer.sourceLabel}</strong>
+                )}
+              </CardContent>
+            </Card>
+            <CompactResourceUsage items={drawer.resourceUsage} />
+            {drawer.stack.length ? (
+              <div className="coss-row" aria-label="Tech stack">
+                {drawer.stack.map((item) => (
+                  <Badge key={item.id} tone="info">
+                    {item.label}
+                  </Badge>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </Drawer>
-      <Dialog title={confirm ?? ""} description="Admin operation requires confirmation." open={Boolean(confirm)} onConfirm={() => setConfirm(null)} onClose={() => setConfirm(null)} />
+      <Dialog
+        title={operation?.title ?? ""}
+        description={operation?.description ?? ""}
+        open={Boolean(operation)}
+        confirmDisabled={operating}
+        confirmLabel={operation?.confirmLabel ?? "Confirm"}
+        confirmLoading={operating}
+        onConfirm={() => {
+          void confirmOperation();
+        }}
+        onClose={() => {
+          if (!operating) {
+            setOperation(null);
+          }
+        }}
+      />
     </>
   );
 }
 
 export function AdminUsersConsole() {
-  const [drawer, setDrawer] = useState<typeof adminUsers[number] | null>(null);
+  const { data, error, loading, refresh } =
+    useConsolePageSnapshot<ConsoleAdminUsersPageSnapshot>(
+      CONSOLE_ADMIN_USERS_PAGE_SNAPSHOT_URL,
+    );
+  const [drawer, setDrawer] = useState<AdminUserView | null>(null);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("all");
-  const [confirm, setConfirm] = useState<string | null>(null);
-  const rows = adminUsers.filter((user) => (user.email.includes(query) || user.name.includes(query)) && (status === "all" || user.status === status || (status === "admin" && user.admin)));
+  const [operation, setOperation] = useState<AdminConfirmOperation | null>(null);
+  const [operationError, setOperationError] = useState<string | null>(null);
+  const [operating, setOperating] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const toast = useToast();
+  const users = data?.users ?? [];
+  const rows = useMemo(
+    () =>
+      users
+        .filter((user) => {
+          const normalizedStatus = user.status.trim().toLowerCase();
+          const matchesStatus =
+            status === "all" ||
+            (status === "admin" && user.isAdmin) ||
+            normalizedStatus === status;
+          return (
+            matchesStatus &&
+            matchesAdminQuery(query, [
+              user.email,
+              user.name,
+              user.provider,
+              user.status,
+              user.workspace?.tenantName,
+              user.workspace?.defaultProjectName,
+              user.billing.statusLabel,
+              user.billing.limitLabel,
+            ])
+          );
+        })
+        .map((user) => ({
+          ...user,
+          id: user.email,
+        })),
+    [query, status, users],
+  );
+
+  async function refreshUsers() {
+    setRefreshing(true);
+    setOperationError(null);
+    invalidateConsolePageSnapshot(CONSOLE_ADMIN_USERS_PAGE_SNAPSHOT_URL);
+
+    try {
+      await refresh({ force: true });
+    } catch (error) {
+      setOperationError(readRequestError(error));
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
+  async function confirmOperation() {
+    if (!operation) {
+      return;
+    }
+
+    setOperating(true);
+    setOperationError(null);
+
+    try {
+      await requestAdminOperation(operation);
+      invalidateConsolePageSnapshot(CONSOLE_ADMIN_USERS_PAGE_SNAPSHOT_URL);
+      await refresh({ force: true });
+      toast.notify(operation.successMessage);
+      setOperation(null);
+      setDrawer(null);
+    } catch (error) {
+      setOperationError(readRequestError(error));
+    } finally {
+      setOperating(false);
+    }
+  }
+
+  function queueUserOperation(user: AdminUserView, kind: "block" | "delete" | "demote" | "promote" | "unblock") {
+    const encodedEmail = encodeURIComponent(user.email);
+    const baseEndpoint = `/api/admin/users/${encodedEmail}`;
+    const titleName = user.name || user.email;
+
+    if (kind === "promote") {
+      setOperation({
+        confirmLabel: "Promote",
+        description: `${user.email} will receive administrator permissions.`,
+        endpoint: `${baseEndpoint}/admin`,
+        method: "POST",
+        successMessage: `${titleName} promoted to admin`,
+        title: `Promote ${titleName}`,
+      });
+      return;
+    }
+
+    if (kind === "demote") {
+      setOperation({
+        confirmLabel: "Demote",
+        description: `${user.email} will lose administrator permissions. Last-admin protection is enforced by the server.`,
+        endpoint: `${baseEndpoint}/admin`,
+        method: "DELETE",
+        successMessage: `${titleName} demoted`,
+        title: `Demote ${titleName}`,
+      });
+      return;
+    }
+
+    if (kind === "block") {
+      setOperation({
+        confirmLabel: "Block",
+        description: `${user.email} will be blocked from the product.`,
+        endpoint: `${baseEndpoint}/block`,
+        method: "POST",
+        successMessage: `${titleName} blocked`,
+        title: `Block ${titleName}`,
+      });
+      return;
+    }
+
+    if (kind === "unblock") {
+      setOperation({
+        confirmLabel: "Unblock",
+        description: `${user.email} will be restored to active status.`,
+        endpoint: `${baseEndpoint}/unblock`,
+        method: "POST",
+        successMessage: `${titleName} unblocked`,
+        title: `Unblock ${titleName}`,
+      });
+      return;
+    }
+
+    setOperation({
+      confirmLabel: "Delete",
+      description: `${user.email} will be marked deleted. This action is destructive.`,
+      endpoint: baseEndpoint,
+      method: "DELETE",
+      successMessage: `${titleName} deleted`,
+      title: `Delete ${titleName}`,
+    });
+  }
+
   return (
     <>
+      <Toast message={toast.message} />
       <div className="coss-stack">
-        <MetricStrip items={[{ label: "Users", value: "3" }, { label: "Admins", value: "1", tone: "warning" }, { label: "Blocked", value: "1", tone: "destructive" }, { label: "Deleted", value: "0" }]} />
+        <MetricStrip
+          items={[
+            { label: "Users", value: String(data?.summary.userCount ?? users.length) },
+            { label: "Admins", tone: "warning", value: String(data?.summary.adminCount ?? users.filter((user) => user.isAdmin).length) },
+            { label: "Blocked", tone: "destructive", value: String(data?.summary.blockedCount ?? users.filter((user) => user.status === "blocked").length) },
+            { label: "Deleted", value: String(data?.summary.deletedCount ?? users.filter((user) => user.status === "deleted").length) },
+          ]}
+        />
         <CardFrame>
-          <CardHeader title="Users" description="Directory, billing limits, admin state, block/unblock, and deletion." />
+          <CardHeader
+            title="Users"
+            description="Live user directory, workspace ownership, billing state, admin permissions, blocking, and deletion."
+            action={
+              <Button
+                variant="outline"
+                size="sm"
+                loading={refreshing}
+                onClick={() => {
+                  void refreshUsers();
+                }}
+              >
+                {refreshing ? null : <RotateCcw aria-hidden="true" />}
+                Refresh
+              </Button>
+            }
+          />
           <CardContent className="coss-stack">
             <div className="coss-row">
-              <input className="coss-input" placeholder="Search users" value={query} onChange={(event) => setQuery(event.target.value)} style={{ width: 260 }} />
-              <select className="coss-select" value={status} onChange={(event) => setStatus(event.target.value)} style={{ width: 160 }}>
+              <input
+                aria-label="Search users"
+                className="coss-input"
+                placeholder="Search users, workspace, billing"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                style={{ width: 300 }}
+              />
+              <select
+                aria-label="Filter users"
+                className="coss-select"
+                value={status}
+                onChange={(event) => setStatus(event.target.value)}
+                style={{ width: 180 }}
+              >
                 <option value="all">All users</option>
-                <option value="active">active</option>
-                <option value="blocked">blocked</option>
-                <option value="admin">admin</option>
+                <option value="active">Active</option>
+                <option value="blocked">Blocked</option>
+                <option value="deleted">Deleted</option>
+                <option value="admin">Admins</option>
               </select>
             </div>
-            <DataTable
-              columns={["Email", "Name", "Status", "Admin", "Balance", "Actions"]}
-              rows={rows}
-              renderRow={(row) => <tr key={row.id}><td>{row.email}</td><td>{row.name}</td><td><Badge tone={row.status === "blocked" ? "destructive" : "success"}>{row.status}</Badge></td><td>{row.admin ? "yes" : "no"}</td><td>{row.balance}</td><td className="coss-table__actions"><Button variant="outline" size="sm" aria-label={`Edit user ${row.email}`} onClick={() => setDrawer(row)}>Edit</Button><Button variant="outline" size="sm" aria-label={`Toggle admin ${row.email}`} onClick={() => setConfirm(`Toggle admin ${row.email}`)}>Admin</Button><Button variant="destructive" size="sm" aria-label={`Block or delete ${row.email}`} onClick={() => setConfirm(`Block/delete ${row.email}`)}>Block / delete</Button></td></tr>}
-            />
+
+            {data?.enrichmentState === "pending" ? (
+              <Alert tone="info" title="Usage enrichment in progress">
+                User billing and service usage may update after the background snapshot finishes.
+              </Alert>
+            ) : null}
+            {operationError ? (
+              <Alert tone="destructive" title="Admin operation failed">
+                {operationError}
+              </Alert>
+            ) : null}
+            {error ? (
+              <Alert tone="destructive" title="Users unavailable">
+                {error}
+              </Alert>
+            ) : null}
+            <AdminSnapshotErrors errors={data?.errors} />
+
+            {loading && !data ? (
+              <div className="coss-stack-sm" aria-label="Loading users">
+                <SkeletonBlock height={44} />
+                <SkeletonBlock height={48} />
+                <SkeletonBlock height={48} />
+              </div>
+            ) : null}
+
+            {!loading && !error && rows.length === 0 ? (
+              <Empty
+                title={users.length === 0 ? "No users found" : "No users match this filter"}
+                description={users.length === 0 ? "Fugue returned an empty user directory." : "Clear search or change the user filter."}
+              />
+            ) : null}
+
+            {rows.length > 0 ? (
+              <DataTable
+                columns={["User", "Status", "Admin", "Usage", "Billing", "Actions"]}
+                rows={rows}
+                renderRow={(row) => (
+                  <tr key={row.email}>
+                    <td>
+                      <div className="coss-stack-sm">
+                        <strong>{row.name || row.email}</strong>
+                        <span className="coss-help">{row.email}</span>
+                        <span className="coss-help">{row.provider} · {row.verified ? "verified" : "unverified"}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <Badge tone={badgeToneFromConsoleTone(row.statusTone)}>
+                        {row.status}
+                      </Badge>
+                    </td>
+                    <td>
+                      <Badge tone={row.isAdmin ? "warning" : "default"}>
+                        {row.isAdmin ? "admin" : "member"}
+                      </Badge>
+                    </td>
+                    <td>
+                      <div className="coss-stack-sm">
+                        <strong>{row.usage.serviceCountLabel}</strong>
+                        <span className="coss-help">{row.usage.cpuLabel} · {row.usage.memoryLabel}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="coss-stack-sm">
+                        <strong>{row.billing.limitLabel}</strong>
+                        <span className="coss-help">{adminValue(row.billing.balanceLabel ?? row.billing.statusLabel, "No balance data")}</span>
+                      </div>
+                    </td>
+                    <td className="coss-table__actions">
+                      <Button variant="outline" size="sm" onClick={() => setDrawer(row)}>
+                        Details
+                      </Button>
+                      {row.isAdmin ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={!row.canDemoteAdmin || operating}
+                          onClick={() => queueUserOperation(row, "demote")}
+                        >
+                          Demote
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={!row.canPromoteToAdmin || operating}
+                          onClick={() => queueUserOperation(row, "promote")}
+                        >
+                          Promote
+                        </Button>
+                      )}
+                      {row.status === "blocked" ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={!row.canUnblock || operating}
+                          onClick={() => queueUserOperation(row, "unblock")}
+                        >
+                          Unblock
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={!row.canBlock || operating}
+                          onClick={() => queueUserOperation(row, "block")}
+                        >
+                          Block
+                        </Button>
+                      )}
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        disabled={!row.canDelete || operating}
+                        onClick={() => queueUserOperation(row, "delete")}
+                      >
+                        Delete
+                      </Button>
+                    </td>
+                  </tr>
+                )}
+              />
+            ) : null}
           </CardContent>
         </CardFrame>
       </div>
-      <Drawer title={drawer?.email ?? ""} description="Billing and account controls." open={Boolean(drawer)} onClose={() => setDrawer(null)}>
-        <div className="coss-form">
-          <Field label="Prepaid balance"><input className="coss-input" defaultValue={drawer?.balance} /></Field>
-          <Field label="Managed limit"><input className="coss-input" defaultValue="$300.00" /></Field>
-          <Button>Save billing</Button>
-          <Button variant="destructive">Block / delete</Button>
-          <Alert tone="warning" title="Last-admin protection">The current administrator cannot remove the final admin path.</Alert>
-        </div>
+      <Drawer
+        title={drawer?.name || drawer?.email || ""}
+        description="User, workspace, billing, and usage detail"
+        open={Boolean(drawer)}
+        onClose={() => setDrawer(null)}
+      >
+        {drawer ? (
+          <div className="coss-stack">
+            <div className="coss-grid-2">
+              <DetailMetric label="Email" value={drawer.email} />
+              <DetailMetric label="Provider" value={drawer.provider} />
+              <DetailMetric label="Last login" value={drawer.lastLoginLabel} />
+              <DetailMetric label="Services" value={drawer.usage.serviceCountLabel} />
+              <DetailMetric label="Workspace" value={adminValue(drawer.workspace?.tenantName)} />
+              <DetailMetric label="Default project" value={adminValue(drawer.workspace?.defaultProjectName)} />
+            </div>
+            <Card muted>
+              <CardContent className="coss-stack-sm">
+                <span className="coss-help">Billing</span>
+                <strong>{drawer.billing.limitLabel}</strong>
+                <span className="coss-help">
+                  {adminValue(drawer.billing.balanceLabel ?? drawer.billing.statusLabel, "No balance data")}
+                </span>
+                {drawer.billing.loadError ? (
+                  <Alert tone="warning" title="Billing sync error">
+                    {drawer.billing.loadError}
+                  </Alert>
+                ) : null}
+              </CardContent>
+            </Card>
+          </div>
+        ) : null}
       </Drawer>
-      <Dialog title={confirm ?? ""} description="User administration changes require confirmation." open={Boolean(confirm)} onConfirm={() => setConfirm(null)} onClose={() => setConfirm(null)} />
+      <Dialog
+        title={operation?.title ?? ""}
+        description={operation?.description ?? ""}
+        open={Boolean(operation)}
+        confirmDisabled={operating}
+        confirmLabel={operation?.confirmLabel ?? "Confirm"}
+        confirmLoading={operating}
+        onConfirm={() => {
+          void confirmOperation();
+        }}
+        onClose={() => {
+          if (!operating) {
+            setOperation(null);
+          }
+        }}
+      />
     </>
   );
 }
 
 export function AdminClusterConsole() {
-  const [drawer, setDrawer] = useState<string | null>(null);
+  const { data, error, loading, refresh } =
+    useConsolePageSnapshot<ConsoleAdminClusterPageSnapshot>(
+      CONSOLE_ADMIN_CLUSTER_PAGE_SNAPSHOT_URL,
+    );
+  const [query, setQuery] = useState("");
+  const [drawer, setDrawer] = useState<AdminClusterNodeView | null>(null);
+  const [policyDraft, setPolicyDraft] = useState<ClusterPolicyDraft | null>(null);
   const [secret, setSecret] = useState<string | null>(null);
-  const [confirm, setConfirm] = useState(false);
+  const [operationError, setOperationError] = useState<string | null>(null);
+  const [issuingKey, setIssuingKey] = useState(false);
+  const [savingPolicy, setSavingPolicy] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const toast = useToast();
+  const nodes = data?.nodes ?? [];
+  const rows = useMemo<AdminClusterNodeRow[]>(
+    () =>
+      nodes
+        .filter((node) =>
+          matchesAdminQuery(query, [
+            node.name,
+            node.statusLabel,
+            node.runtimeLabel,
+            node.tenantLabel,
+            node.locationLabel,
+            node.zoneLabel,
+            node.internalIpLabel,
+            node.publicIpLabel,
+            ...node.roleLabels,
+            ...node.workloads.map((workload) => `${workload.title} ${workload.metaLabel}`),
+          ]),
+        )
+        .map((node) => ({
+          ...node,
+          id: node.name,
+        })),
+    [nodes, query],
+  );
+
+  async function refreshCluster() {
+    setRefreshing(true);
+    setOperationError(null);
+    invalidateConsolePageSnapshot(CONSOLE_ADMIN_CLUSTER_PAGE_SNAPSHOT_URL);
+
+    try {
+      await refresh({ force: true });
+    } catch (error) {
+      setOperationError(readRequestError(error));
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
+  async function issueJoinKey() {
+    setIssuingKey(true);
+    setOperationError(null);
+
+    try {
+      const result = await requestJson<{ joinCommand: string }>(
+        "/api/admin/cluster/node-keys",
+        {
+          body: JSON.stringify({ label: "platform-node" }),
+          cache: "no-store",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          method: "POST",
+        },
+      );
+      setSecret(result.joinCommand);
+    } catch (error) {
+      setOperationError(readRequestError(error));
+    } finally {
+      setIssuingKey(false);
+    }
+  }
+
+  function openPolicyEditor(node: AdminClusterNodeView) {
+    setDrawer(node);
+    setPolicyDraft(
+      node.policy
+        ? {
+            allowBuilds: node.policy.allowBuilds,
+            allowDns: node.policy.allowDns,
+            allowEdge: node.policy.allowEdge,
+            allowSharedPool: node.policy.allowSharedPool,
+          }
+        : null,
+    );
+  }
+
+  async function savePolicy() {
+    if (!drawer || !policyDraft) {
+      return;
+    }
+
+    setSavingPolicy(true);
+    setOperationError(null);
+
+    try {
+      await requestAdminOperation({
+        body: policyDraft,
+        description: "",
+        endpoint: `/api/admin/cluster/nodes/${encodeURIComponent(drawer.name)}/policy`,
+        method: "PATCH",
+        successMessage: "",
+        title: "",
+      });
+      invalidateConsolePageSnapshot(CONSOLE_ADMIN_CLUSTER_PAGE_SNAPSHOT_URL);
+      await refresh({ force: true });
+      toast.notify(`Policy saved for ${drawer.name}`);
+      setDrawer(null);
+      setPolicyDraft(null);
+    } catch (error) {
+      setOperationError(readRequestError(error));
+    } finally {
+      setSavingPolicy(false);
+    }
+  }
+
+  function setPolicyBoolean(key: keyof ClusterPolicyDraft, value: string) {
+    setPolicyDraft((draft) =>
+      draft
+        ? {
+            ...draft,
+            [key]: value === "true",
+          }
+        : draft,
+    );
+  }
+
   return (
     <>
       <Toast message={toast.message} />
       <div className="coss-stack">
-        <MetricStrip items={[{ label: "Control plane", value: "healthy", tone: "success" }, { label: "Nodes", value: "6" }, { label: "Ready", value: "5", tone: "success" }, { label: "Attention", value: "1", tone: "warning" }]} />
+        <MetricStrip
+          items={[
+            { label: "Nodes", value: String(data?.summary.nodeCount ?? nodes.length) },
+            { label: "Ready", tone: "success", value: String(data?.summary.readyCount ?? nodes.filter((node) => node.statusLabel === "Ready").length) },
+            { label: "Attention", tone: data?.summary.pressuredCount ? "warning" : undefined, value: String(data?.summary.pressuredCount ?? nodes.filter((node) => node.statusTone === "warning" || node.statusTone === "danger").length) },
+            { label: "Workloads", value: String(data?.summary.workloadCount ?? nodes.reduce((total, node) => total + node.workloadCount, 0)) },
+          ]}
+        />
+
         <div className="coss-split">
           <CardFrame>
-            <CardHeader title="Platform node join" description="Issue a platform-scoped join key once." />
+            <CardHeader
+              title="Control plane"
+              description="Deployment status, release instance, version, and component rollout state."
+              action={
+                <Badge tone={badgeToneFromConsoleTone(data?.controlPlane?.statusTone ?? "neutral")}>
+                  {data?.controlPlane?.statusLabel ?? "Unavailable"}
+                </Badge>
+              }
+            />
             <CardContent className="coss-stack">
-              <Button onClick={() => setSecret("fugue node join --platform --key fgp_once_123")}>Issue join key</Button>
-              <CodeBlock>fugue node join --platform --key &lt;visible-once&gt;</CodeBlock>
-            </CardContent>
-          </CardFrame>
-          <CardFrame>
-            <CardHeader title="Runtime node policy" description="Control plane role, build allowance, workload placement." />
-            <CardContent className="coss-stack">
-              <div className="coss-policy-list">
-                {servers.map((server) => (
-                  <div className="coss-policy-row" key={server.id}>
-                    <div className="coss-policy-row__main">
-                      <strong className="coss-mono">{server.id}</strong>
-                      <span>{server.role}</span>
-                    </div>
-                    <div className="coss-policy-row__meta">
-                      <Badge tone="info">allowed</Badge>
-                      <Badge tone="success">ready</Badge>
-                    </div>
-                    <Button variant="outline" size="sm" aria-label={`Edit policy ${server.id}`} onClick={() => setDrawer(server.id)}>Edit policy</Button>
+              {data?.controlPlane ? (
+                <>
+                  <div className="coss-grid-2">
+                    <DetailMetric label="Namespace" value={data.controlPlane.namespaceLabel} mono />
+                    <DetailMetric label="Version" value={data.controlPlane.versionLabel} mono />
+                    <DetailMetric label="Release" value={data.controlPlane.releaseInstanceLabel} />
+                    <DetailMetric label="Observed" value={data.controlPlane.observedLabel} />
                   </div>
-                ))}
-              </div>
+                  <DataTable
+                    columns={["Component", "Replicas", "Rollout", "Image"]}
+                    rows={data.controlPlane.components.map((component) => ({
+                      ...component,
+                      id: component.component,
+                    }))}
+                    renderRow={(row) => (
+                      <tr key={row.component}>
+                        <td>
+                          <div className="coss-stack-sm">
+                            <strong>{row.componentLabel}</strong>
+                            <span className="coss-help coss-mono">{row.deploymentName}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <Badge tone={badgeToneFromConsoleTone(row.statusTone)}>
+                            {row.replicaLabel}
+                          </Badge>
+                        </td>
+                        <td>{row.rolloutLabel}</td>
+                        <td className="coss-mono">{row.imageTagLabel || row.imageRepositoryLabel}</td>
+                      </tr>
+                    )}
+                  />
+                </>
+              ) : (
+                <Empty title="Control plane status unavailable" description="The admin snapshot did not include control plane telemetry." />
+              )}
+            </CardContent>
+          </CardFrame>
+
+          <CardFrame>
+            <CardHeader title="Platform node join" description="Issue a platform-scoped node enrollment key once." />
+            <CardContent className="coss-stack">
+              <Button
+                disabled={Boolean(error)}
+                loading={issuingKey}
+                onClick={() => {
+                  void issueJoinKey();
+                }}
+              >
+                Issue join key
+              </Button>
+              <CodeBlock>fugue node join --api-url &lt;api-url&gt; --token &lt;visible-once&gt;</CodeBlock>
             </CardContent>
           </CardFrame>
         </div>
+
+        <CardFrame>
+          <CardHeader
+            title="Cluster nodes"
+            description="Live node status, runtime assignment, resource pressure, workloads, and policy controls."
+            action={
+              <Button
+                variant="outline"
+                size="sm"
+                loading={refreshing}
+                onClick={() => {
+                  void refreshCluster();
+                }}
+              >
+                {refreshing ? null : <RotateCcw aria-hidden="true" />}
+                Refresh
+              </Button>
+            }
+          />
+          <CardContent className="coss-stack">
+            <input
+              aria-label="Search cluster nodes"
+              className="coss-input"
+              placeholder="Search nodes, runtime, tenant, role, workload"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              style={{ width: 340 }}
+            />
+            {operationError ? (
+              <Alert tone="destructive" title="Cluster operation failed">
+                {operationError}
+              </Alert>
+            ) : null}
+            {error ? (
+              <Alert tone="destructive" title="Cluster unavailable">
+                {error}
+              </Alert>
+            ) : null}
+            <AdminSnapshotErrors errors={data?.errors} />
+
+            {loading && !data ? (
+              <div className="coss-stack-sm" aria-label="Loading cluster nodes">
+                <SkeletonBlock height={44} />
+                <SkeletonBlock height={56} />
+                <SkeletonBlock height={56} />
+              </div>
+            ) : null}
+
+            {!loading && !error && rows.length === 0 ? (
+              <Empty
+                title={nodes.length === 0 ? "No cluster nodes found" : "No cluster nodes match this filter"}
+                description={nodes.length === 0 ? "Fugue returned an empty cluster node inventory." : "Clear the node search."}
+              />
+            ) : null}
+
+            {rows.length > 0 ? (
+              <DataTable
+                columns={["Node", "Status", "Runtime", "Resources", "Workloads", "Policy"]}
+                rows={rows}
+                renderRow={(row) => (
+                  <tr key={row.name}>
+                    <td>
+                      <div className="coss-stack-sm">
+                        <strong className="coss-mono">{row.name}</strong>
+                        <span className="coss-help">{row.locationLabel} · {row.zoneLabel}</span>
+                        <span className="coss-help">{row.roleLabels.join(", ") || "No role labels"}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="coss-stack-sm">
+                        <Badge tone={badgeToneFromConsoleTone(row.statusTone)}>
+                          {row.statusLabel}
+                        </Badge>
+                        {row.statusDetail ? <span className="coss-help">{row.statusDetail}</span> : null}
+                      </div>
+                    </td>
+                    <td>
+                      <div className="coss-stack-sm">
+                        <span className="coss-mono">{row.runtimeLabel}</span>
+                        <span className="coss-help">{row.tenantLabel}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <ClusterResourceMeters node={row} />
+                    </td>
+                    <td>
+                      <div className="coss-stack-sm">
+                        <strong>{pluralize(row.workloadCount, "workload")}</strong>
+                        <span className="coss-help">{pluralize(row.appCount, "app")} · {pluralize(row.serviceCount, "service")}</span>
+                      </div>
+                    </td>
+                    <td className="coss-table__actions">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={!row.canManagePolicy || !row.policy || savingPolicy}
+                        onClick={() => openPolicyEditor(row)}
+                      >
+                        Edit policy
+                      </Button>
+                    </td>
+                  </tr>
+                )}
+              />
+            ) : null}
+          </CardContent>
+        </CardFrame>
       </div>
-      <Drawer title={drawer ?? ""} description="Policy editor" open={Boolean(drawer)} onClose={() => setDrawer(null)}>
-        <div className="coss-form">
-          <Field label="Control plane role"><select className="coss-select"><option>none</option><option>candidate</option></select></Field>
-          <Field label="Build allowed"><select className="coss-select"><option>enabled</option><option>disabled</option></select></Field>
-          <Field label="Workload placement"><select className="coss-select"><option>allowed</option><option>drain</option></select></Field>
-          <Alert tone="info" title="Policy diff">build allowed: enabled → disabled; placement: allowed → drain.</Alert>
-          <Button onClick={() => setConfirm(true)}>Save policy</Button>
-        </div>
+      <Drawer
+        title={drawer?.name ?? ""}
+        description="Runtime node policy"
+        open={Boolean(drawer)}
+        onClose={() => {
+          setDrawer(null);
+          setPolicyDraft(null);
+        }}
+      >
+        {drawer ? (
+          <div className="coss-stack">
+            <div className="coss-grid-2">
+              <DetailMetric label="Internal IP" value={drawer.internalIpLabel} mono />
+              <DetailMetric label="Public IP" value={drawer.publicIpLabel} mono />
+              <DetailMetric label="Runtime" value={drawer.runtimeLabel} mono />
+              <DetailMetric label="Machine" value={adminValue(drawer.machine?.nodeKeyLabel)} />
+            </div>
+            {drawer.policy && policyDraft ? (
+              <div className="coss-form">
+                <Field label="Build workloads">
+                  <select
+                    className="coss-select"
+                    value={String(policyDraft.allowBuilds)}
+                    onChange={(event) => setPolicyBoolean("allowBuilds", event.target.value)}
+                  >
+                    <option value="true">Allowed</option>
+                    <option value="false">Disabled</option>
+                  </select>
+                </Field>
+                <Field label="DNS traffic">
+                  <select
+                    className="coss-select"
+                    value={String(policyDraft.allowDns)}
+                    onChange={(event) => setPolicyBoolean("allowDns", event.target.value)}
+                  >
+                    <option value="true">Allowed</option>
+                    <option value="false">Disabled</option>
+                  </select>
+                </Field>
+                <Field label="Edge traffic">
+                  <select
+                    className="coss-select"
+                    value={String(policyDraft.allowEdge)}
+                    onChange={(event) => setPolicyBoolean("allowEdge", event.target.value)}
+                  >
+                    <option value="true">Allowed</option>
+                    <option value="false">Disabled</option>
+                  </select>
+                </Field>
+                <Field label="Shared pool">
+                  <select
+                    className="coss-select"
+                    value={String(policyDraft.allowSharedPool)}
+                    onChange={(event) => setPolicyBoolean("allowSharedPool", event.target.value)}
+                  >
+                    <option value="true">Allowed</option>
+                    <option value="false">Disabled</option>
+                  </select>
+                </Field>
+                <Alert tone="info" title="Effective policy">
+                  Control plane role: {drawer.policy.effectiveControlPlaneRoleLabel}; schedulable: {drawer.policy.effectiveSchedulable ? "yes" : "no"}.
+                </Alert>
+                <Button
+                  loading={savingPolicy}
+                  onClick={() => {
+                    void savePolicy();
+                  }}
+                >
+                  Save policy
+                </Button>
+              </div>
+            ) : (
+              <Empty title="Policy unavailable" description="This node cannot be managed through the admin policy endpoint." />
+            )}
+          </div>
+        ) : null}
       </Drawer>
       <Dialog
         title="Platform join command"
@@ -1873,10 +2987,6 @@ export function AdminClusterConsole() {
         }}
         onClose={() => setSecret(null)}
       />
-      <Dialog title="Confirm policy diff" description="Apply the pending runtime node policy diff and wait for reconcile." open={confirm} onConfirm={() => {
-        setConfirm(false);
-        setDrawer(null);
-      }} onClose={() => setConfirm(false)} />
     </>
   );
 }
