@@ -36,34 +36,44 @@ import {
   SkeletonBlock,
 } from "@/components/coss/ui";
 import type {
+  ConsoleImportRuntimeTargetView,
   ConsoleCompactResourceItemView,
   ConsoleGalleryProjectView,
 } from "@/lib/console/gallery-types";
+import { useConsoleRuntimeTargetInventory } from "@/lib/console/runtime-target-inventory-client";
+import { readRuntimeTargetOptionLabel } from "@/lib/console/runtime-targets";
 import {
   CONSOLE_API_KEYS_PAGE_SNAPSHOT_URL,
   CONSOLE_ADMIN_APPS_PAGE_SNAPSHOT_URL,
   CONSOLE_ADMIN_CLUSTER_PAGE_SNAPSHOT_URL,
   CONSOLE_ADMIN_USERS_PAGE_SNAPSHOT_URL,
+  CONSOLE_BILLING_PAGE_USAGE_SNAPSHOT_URL,
+  CONSOLE_CLUSTER_NODES_PAGE_SNAPSHOT_URL,
   CONSOLE_PROFILE_SETTINGS_PAGE_SNAPSHOT_URL,
   invalidateConsolePageSnapshot,
   type ConsoleAdminAppsPageSnapshot,
   type ConsoleAdminClusterPageSnapshot,
   type ConsoleAdminUsersPageSnapshot,
   type ConsoleApiKeysPageSnapshot,
+  type ConsoleClusterNodesPageSnapshot,
   useConsolePageSnapshot,
 } from "@/lib/console/page-snapshot-client";
-import type { ConsoleProfileSettingsPageSnapshot } from "@/lib/console/page-snapshot-types";
+import type {
+  ConsoleBillingPageSnapshot,
+  ConsoleProfileSettingsPageSnapshot,
+} from "@/lib/console/page-snapshot-types";
 import type { ConsoleTone } from "@/lib/console/types";
-import {
-  envRows,
-  fileTree,
-  imageVersions,
-  logLines,
-  requests,
-  servers,
-  services,
-  type Service,
-} from "@/lib/fugue-coss/demo-data";
+import { fetchConsoleProjectDetail } from "@/lib/console/project-detail-client";
+import type { ConsoleProjectDetailData } from "@/lib/console/gallery-types";
+import type {
+  FugueAppEnvResult,
+  FugueAppFilesystemTreeResult,
+  FugueAppImageInventoryResult,
+  FugueAppObservabilityMetricsSummary,
+  FugueAppObservabilityRequests,
+  FugueBuildLogsResult,
+  FugueRuntimeLogsResult,
+} from "@/lib/fugue/api";
 import {
   isAbortRequestError,
   readRequestError,
@@ -379,71 +389,289 @@ export function CopyButton({
 }
 
 export function FinalizePanel() {
-  const [state, setState] = useState<"ready" | "validating" | "done" | "expired">("ready");
+  const [token, setToken] = useState("");
+  const [validating, setValidating] = useState(false);
+
+  useEffect(() => {
+    setToken(window.location.hash.replace(/^#/, "").trim());
+  }, []);
 
   return (
     <CardFrame>
       <CardContent className="coss-stack">
-        {state === "done" ? (
-          <Alert tone="success" title="Session finalized">
-            You can now continue to the requested console destination.
-          </Alert>
-        ) : null}
-        {state === "expired" ? (
-          <Alert tone="warning" title="Handoff token expired">
-            Start a fresh sign-in flow to receive a new handoff token.
+        {!token ? (
+          <Alert tone="warning" title="Handoff token missing">
+            Start a fresh sign-in flow to receive a new browser session token.
           </Alert>
         ) : null}
         <div className="coss-stack-sm">
-          <Badge tone={state === "done" ? "success" : "info"}>{state}</Badge>
+          <Badge tone={token ? "info" : "warning"}>{validating ? "validating" : token ? "ready" : "missing token"}</Badge>
           <p className="coss-card-description">
             Fugue validates the provider handoff token, creates a first-party session, and redirects to returnTo.
           </p>
         </div>
-        <div className="coss-row">
+        <form
+          action="/auth/finalize/complete"
+          className="coss-row"
+          method="post"
+          onSubmit={() => setValidating(true)}
+        >
+          <input type="hidden" name="token" value={token} />
           <Button
-            loading={state === "validating"}
-            onClick={() => {
-              setState("validating");
-            window.setTimeout(() => setState("done"), 700);
-              window.setTimeout(() => {
-                window.location.href = "/app";
-              }, 1100);
-            }}
+            disabled={!token}
+            loading={validating}
+            type="submit"
           >
             Complete session
-          </Button>
-          <Button variant="outline" onClick={() => setState("expired")}>
-            Simulate expired token
           </Button>
           <ButtonLink href="/auth/sign-in" variant="ghost">
             Restart sign in
           </ButtonLink>
-        </div>
+        </form>
       </CardContent>
     </CardFrame>
   );
 }
 
+type NewProjectSource = "GitHub" | "Docker image" | "Upload";
+
+type CreateAndImportResponse = {
+  app?: { id?: string | null; projectId?: string | null } | null;
+  project?: { id: string; name: string } | null;
+  requestInProgress?: boolean;
+};
+
+function sourceModeForProjectSource(source: NewProjectSource) {
+  if (source === "Docker image") return "docker-image";
+  if (source === "Upload") return "local-upload";
+  return "github";
+}
+
+function parseEnvRows(rows: EnvDraftRow[]) {
+  return rows.reduce<Record<string, string>>((env, row) => {
+    const key = row.key.trim();
+
+    if (key) {
+      env[key] = row.value;
+    }
+
+    return env;
+  }, {});
+}
+
+function isArchiveUpload(file: File) {
+  const name = file.name.trim().toLowerCase();
+  return name.endsWith(".zip") || name.endsWith(".tgz") || name.endsWith(".tar.gz");
+}
+
+function buildImportPayload(input: {
+  appName: string;
+  branch: string;
+  envRows: EnvDraftRow[];
+  imageRef: string;
+  projectName: string;
+  repoUrl: string;
+  runtime: string;
+  servicePort: string;
+  source: NewProjectSource;
+}) {
+  const servicePort = input.servicePort.trim() ? Number(input.servicePort.trim()) : undefined;
+
+  return {
+    ...(input.appName.trim() ? { name: input.appName.trim() } : {}),
+    ...(Object.keys(parseEnvRows(input.envRows)).length ? { env: parseEnvRows(input.envRows) } : {}),
+    ...(input.runtime ? { runtimeId: input.runtime } : {}),
+    ...(servicePort ? { servicePort } : {}),
+    networkMode: "public",
+    projectMode: "create",
+    projectName: input.projectName.trim(),
+    sourceMode: sourceModeForProjectSource(input.source),
+    ...(input.source === "GitHub"
+      ? {
+          branch: input.branch.trim() || undefined,
+          repoUrl: input.repoUrl.trim(),
+        }
+      : {}),
+    ...(input.source === "Docker image"
+      ? {
+          imageRef: input.imageRef.trim(),
+        }
+      : {}),
+  };
+}
+
+function readRuntimeTargetDescription(target: ConsoleImportRuntimeTargetView) {
+  return [
+    target.kindLabel,
+    readRuntimeTargetOptionLabel(target),
+    target.statusLabel,
+  ].filter(Boolean).join(" · ");
+}
+
 export function NewProjectWizard({ template }: { template?: string }) {
-  const [source, setSource] = useState<"GitHub" | "Docker image" | "Upload">(template ? "GitHub" : "GitHub");
-  const [projectName, setProjectName] = useState(template ?? "pulseboard");
-  const [runtime, setRuntime] = useState("shared-us-west");
+  const [source, setSource] = useState<NewProjectSource>("GitHub");
+  const [projectName, setProjectName] = useState(template ?? "");
+  const [appName, setAppName] = useState("");
+  const [repoUrl, setRepoUrl] = useState("");
+  const [imageRef, setImageRef] = useState("");
+  const [branch, setBranch] = useState("main");
+  const [servicePort, setServicePort] = useState("");
+  const [runtime, setRuntime] = useState("");
+  const [envRows, setEnvRows] = useState<EnvDraftRow[]>([]);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [drawer, setDrawer] = useState<"runtime" | "env" | "summary" | null>(null);
   const [deploying, setDeploying] = useState(false);
+  const [deployError, setDeployError] = useState<string | null>(null);
+  const runtimeInventory = useConsoleRuntimeTargetInventory(true);
+  const runtimeTargets = runtimeInventory.runtimeTargets;
   const toast = useToast();
+
   useEffect(() => {
     const saved = window.sessionStorage.getItem("fugue.pendingDeployIntent");
     if (!saved) return;
     try {
-      const parsed = JSON.parse(saved) as { projectName?: string; runtime?: string; source?: "GitHub" | "Docker image" | "Upload" };
+      const parsed = JSON.parse(saved) as {
+        appName?: string;
+        branch?: string;
+        imageRef?: string;
+        projectName?: string;
+        repoUrl?: string;
+        runtime?: string;
+        servicePort?: string;
+        source?: NewProjectSource;
+      };
+      if (parsed.appName) setAppName(parsed.appName);
+      if (parsed.branch) setBranch(parsed.branch);
+      if (parsed.imageRef) setImageRef(parsed.imageRef);
       if (parsed.projectName) setProjectName(parsed.projectName);
+      if (parsed.repoUrl) setRepoUrl(parsed.repoUrl);
       if (parsed.runtime) setRuntime(parsed.runtime);
+      if (parsed.servicePort) setServicePort(parsed.servicePort);
       if (parsed.source) setSource(parsed.source);
     } catch {
       window.sessionStorage.removeItem("fugue.pendingDeployIntent");
     }
   }, []);
+
+  useEffect(() => {
+    if (!runtime && runtimeTargets[0]?.id) {
+      setRuntime(runtimeTargets[0].id);
+    }
+  }, [runtime, runtimeTargets]);
+
+  async function deployProject() {
+    const trimmedProjectName = projectName.trim();
+    const trimmedRepoUrl = repoUrl.trim();
+    const trimmedImageRef = imageRef.trim();
+
+    if (!trimmedProjectName) {
+      setDeployError("Project name is required.");
+      return;
+    }
+
+    if (source === "GitHub" && !trimmedRepoUrl) {
+      setDeployError("Repository link is required.");
+      return;
+    }
+
+    if (source === "Docker image" && !trimmedImageRef) {
+      setDeployError("Image reference is required.");
+      return;
+    }
+
+    if (source === "Upload" && !uploadFile) {
+      setDeployError("Choose a source archive or source file first.");
+      return;
+    }
+
+    const parsedPort = servicePort.trim() ? Number(servicePort.trim()) : null;
+    if (parsedPort !== null && (!Number.isInteger(parsedPort) || parsedPort <= 0)) {
+      setDeployError("Service port must be a positive integer.");
+      return;
+    }
+
+    const payload = buildImportPayload({
+      appName,
+      branch,
+      envRows,
+      imageRef,
+      projectName,
+      repoUrl,
+      runtime,
+      servicePort,
+      source,
+    });
+
+    setDeploying(true);
+    setDeployError(null);
+    window.sessionStorage.setItem(
+      "fugue.pendingDeployIntent",
+      JSON.stringify({
+        appName,
+        branch,
+        imageRef,
+        projectName,
+        repoUrl,
+        runtime,
+        servicePort,
+        source,
+      }),
+    );
+
+    try {
+      const result =
+        source === "Upload" && uploadFile
+          ? await requestUploadImport(payload, uploadFile)
+          : await requestJson<CreateAndImportResponse>(
+              "/api/fugue/projects/create-and-import",
+              {
+                body: JSON.stringify(payload),
+                cache: "no-store",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                method: "POST",
+              },
+            );
+
+      window.sessionStorage.removeItem("fugue.pendingDeployIntent");
+      toast.notify(result.requestInProgress ? "Import request is already running." : "Project import started.");
+
+      if (result.project?.id) {
+        window.location.assign(`/app/projects/${encodeURIComponent(result.project.id)}`);
+      } else {
+        window.location.assign("/app");
+      }
+    } catch (error) {
+      setDeployError(readRequestError(error));
+    } finally {
+      setDeploying(false);
+    }
+  }
+
+  async function requestUploadImport(payload: ReturnType<typeof buildImportPayload>, file: File) {
+    const formData = new FormData();
+    formData.append("payload", JSON.stringify(payload));
+    formData.append("label", appName.trim() || projectName.trim() || file.name);
+
+    if (isArchiveUpload(file)) {
+      formData.append("archive", file, file.name);
+    } else {
+      formData.append("files", file, file.name);
+      formData.append("paths", file.name);
+    }
+
+    return requestJson<CreateAndImportResponse>(
+      "/api/fugue/projects/create-and-import-upload",
+      {
+        body: formData,
+        cache: "no-store",
+        method: "POST",
+      },
+    );
+  }
+
+  const selectedRuntime = runtimeTargets.find((target) => target.id === runtime) ?? null;
 
   return (
     <>
@@ -465,19 +693,19 @@ export function NewProjectWizard({ template }: { template?: string }) {
             </div>
             <div className="coss-form">
               <Field label="Project name">
-                <input className="coss-input" value={projectName} onChange={(event) => setProjectName(event.target.value)} />
+                <input className="coss-input" placeholder="my-project" value={projectName} onChange={(event) => setProjectName(event.target.value)} />
               </Field>
               <Field label="App name">
-                <input className="coss-input" defaultValue={source === "Upload" ? "static-site" : "web"} />
+                <input className="coss-input" placeholder="web" value={appName} onChange={(event) => setAppName(event.target.value)} />
               </Field>
               {source === "GitHub" ? (
                 <Field label="Repository">
-                  <input className="coss-input" defaultValue="yym68686/fugue-demo" />
+                  <input className="coss-input" placeholder="https://github.com/owner/repo" value={repoUrl} onChange={(event) => setRepoUrl(event.target.value)} />
                 </Field>
               ) : null}
               {source === "Docker image" ? (
                 <Field label="Image">
-                  <input className="coss-input" defaultValue="ghcr.io/acme/web:latest" />
+                  <input className="coss-input" placeholder="ghcr.io/org/image:tag" value={imageRef} onChange={(event) => setImageRef(event.target.value)} />
                 </Field>
               ) : null}
               {source === "Upload" ? (
@@ -485,9 +713,15 @@ export function NewProjectWizard({ template }: { template?: string }) {
                   <CardContent className="coss-row">
                     <Upload aria-hidden="true" />
                     <div>
-                      <strong>Drop build artifact</strong>
-                      <p className="coss-card-description">Upload state is preserved before authentication.</p>
+                      <strong>Source upload</strong>
+                      <p className="coss-card-description">{uploadFile ? `${uploadFile.name} · ${formatBytes(uploadFile.size)}` : "Choose a .zip, .tgz, Dockerfile, compose file, or source file."}</p>
                     </div>
+                    <input
+                      aria-label="Choose source upload"
+                      className="coss-input"
+                      type="file"
+                      onChange={(event) => setUploadFile(event.target.files?.[0] ?? null)}
+                    />
                   </CardContent>
                 </Card>
               ) : null}
@@ -503,10 +737,10 @@ export function NewProjectWizard({ template }: { template?: string }) {
               ) : null}
               <div className="coss-grid-2">
                 <Field label="Branch">
-                  <input className="coss-input" defaultValue="main" />
+                  <input className="coss-input" value={branch} onChange={(event) => setBranch(event.target.value)} />
                 </Field>
                 <Field label="Service port">
-                  <input className="coss-input" defaultValue="3000" />
+                  <input className="coss-input" inputMode="numeric" placeholder="3000" value={servicePort} onChange={(event) => setServicePort(event.target.value)} />
                 </Field>
               </div>
               <Field label="Runtime target">
@@ -517,7 +751,7 @@ export function NewProjectWizard({ template }: { template?: string }) {
                   aria-label="Open runtime target picker"
                   onClick={() => setDrawer("runtime")}
                 >
-                  {runtime}
+                  {selectedRuntime?.summaryLabel ?? (runtime || (runtimeInventory.loading ? "Loading runtime targets" : "Default placement"))}
                 </button>
               </Field>
               <div className="coss-row">
@@ -528,19 +762,22 @@ export function NewProjectWizard({ template }: { template?: string }) {
                   Deploy preview
                 </Button>
               </div>
+              {runtimeInventory.runtimeTargetInventoryError ? (
+                <Alert tone="warning" title="Runtime targets unavailable">
+                  {runtimeInventory.runtimeTargetInventoryError}
+                </Alert>
+              ) : null}
+              {deployError ? (
+                <Alert tone="destructive" title="Deploy failed">
+                  {deployError}
+                </Alert>
+              ) : null}
               <Alert tone="warning" title="Advanced settings">
                 Network mode and persistent storage are available after source validation.
               </Alert>
               <Button
                 loading={deploying}
-                onClick={() => {
-                  window.sessionStorage.setItem("fugue.pendingDeployIntent", JSON.stringify({ projectName, runtime, source }));
-                  setDeploying(true);
-                  window.setTimeout(() => {
-                    setDeploying(false);
-                    toast.notify("Project creation queued");
-                  }, 900);
-                }}
+                onClick={() => void deployProject()}
               >
                 Deploy project
               </Button>
@@ -553,12 +790,22 @@ export function NewProjectWizard({ template }: { template?: string }) {
             <MetricStrip
               items={[
                 { label: "Source", value: source },
-                { label: "Runtime", value: runtime },
+                { label: "Runtime", value: selectedRuntime?.summaryLabel ?? (runtime || "Default placement") },
                 { label: "Route", value: "public" },
-                { label: "Storage", value: "optional" },
+                { label: "Env", value: `${envRows.length} variables` },
               ]}
             />
-            <CodeBlock>{`project: ${projectName}\nsource: ${source}\nruntime: ${runtime}\nroute: public\nstorage: /data optional`}</CodeBlock>
+            <CodeBlock>{JSON.stringify(buildImportPayload({
+              appName,
+              branch,
+              envRows,
+              imageRef,
+              projectName,
+              repoUrl,
+              runtime,
+              servicePort,
+              source,
+            }), null, 2)}</CodeBlock>
           </CardContent>
         </CardFrame>
       </div>
@@ -570,63 +817,93 @@ export function NewProjectWizard({ template }: { template?: string }) {
         footer={<Button onClick={() => setDrawer(null)}>Use {runtime}</Button>}
       >
         <div className="coss-stack">
-          {["shared-us-west", "alicehk2", "netcup"].map((item) => (
+          {runtimeInventory.loading && runtimeTargets.length === 0 ? (
+            <SkeletonBlock height={64} />
+          ) : null}
+          {runtimeTargets.map((item) => (
             <button
-              key={item}
+              key={item.id}
               className="coss-service-button"
-              aria-label={`Select runtime ${item}`}
-              aria-selected={runtime === item}
-              onClick={() => setRuntime(item)}
+              aria-label={`Select runtime ${item.summaryLabel}`}
+              aria-selected={runtime === item.id}
+              onClick={() => setRuntime(item.id)}
             >
-              <strong>{item}</strong>
-              <p className="coss-card-description">Ready runtime target with managed route reconciliation.</p>
+              <span className="coss-row">
+                <strong>{item.summaryLabel}</strong>
+                {item.statusTone ? <Badge tone={badgeToneFromConsoleTone(item.statusTone)}>{item.statusLabel ?? item.statusTone}</Badge> : null}
+              </span>
+              <p className="coss-card-description">{readRuntimeTargetDescription(item) || item.description}</p>
             </button>
           ))}
+          {!runtimeInventory.loading && runtimeTargets.length === 0 ? (
+            <Empty title="No runtime targets" description="Fugue did not return a selectable runtime target. Leaving this blank lets the control plane choose the default placement." />
+          ) : null}
         </div>
       </Drawer>
       <Drawer title="Environment variables" open={drawer === "env"} onClose={() => setDrawer(null)}>
-        <EnvironmentEditor />
+        <EnvironmentEditor rows={envRows} onRowsChange={setEnvRows} />
       </Drawer>
       <Drawer title="Deploy preview" open={drawer === "summary"} onClose={() => setDrawer(null)}>
-        <CodeBlock>{`createProject({\n  projectName: "${projectName}",\n  source: "${source}",\n  runtime: "${runtime}",\n  env: ${envRows.length} variables\n})`}</CodeBlock>
+        <CodeBlock>{JSON.stringify(buildImportPayload({
+          appName,
+          branch,
+          envRows,
+          imageRef,
+          projectName,
+          repoUrl,
+          runtime,
+          servicePort,
+          source,
+        }), null, 2)}</CodeBlock>
       </Drawer>
     </>
   );
 }
 
-function EnvironmentEditor() {
-  const [rows, setRows] = useState(envRows);
-  const [raw, setRaw] = useState(envRows.map((row) => `${row.key}=${row.value}`).join("\n"));
+type EnvDraftRow = {
+  key: string;
+  value: string;
+};
+
+function EnvironmentEditor({
+  rows,
+  onRowsChange,
+}: {
+  rows: EnvDraftRow[];
+  onRowsChange: (rows: EnvDraftRow[]) => void;
+}) {
+  const [raw, setRaw] = useState("");
   const [revealed, setRevealed] = useState(false);
-  const duplicate = new Set(rows.map((row) => row.key)).size !== rows.length;
+  const nonEmptyKeys = rows.map((row) => row.key.trim()).filter(Boolean);
+  const duplicate = nonEmptyKeys.length > 0 && new Set(nonEmptyKeys).size !== nonEmptyKeys.length;
 
   return (
     <div className="coss-stack">
       {duplicate ? <Alert tone="destructive" title="Duplicate key">Environment keys must be unique before save.</Alert> : null}
       <DataTable
         columns={["Key", "Value", "Actions"]}
-        rows={rows.map((row, index) => ({ ...row, id: `${row.key}-${index}` }))}
+        rows={rows.map((row, index) => ({ ...row, id: `${row.key}-${index}`, index }))}
         renderRow={(row) => (
           <tr key={row.id}>
             <td>
               <input
                 className="coss-input coss-mono"
                 value={row.key}
-                onChange={(event) => setRows((items) => items.map((item) => item.key === row.key ? { ...item, key: event.target.value } : item))}
+                onChange={(event) => onRowsChange(rows.map((item, index) => index === row.index ? { ...item, key: event.target.value } : item))}
               />
             </td>
             <td>
               <input
                 className="coss-input coss-mono"
                 value={row.value.includes("•") && !revealed ? "••••••••••" : row.value}
-                onChange={(event) => setRows((items) => items.map((item) => item.key === row.key ? { ...item, value: event.target.value } : item))}
+                onChange={(event) => onRowsChange(rows.map((item, index) => index === row.index ? { ...item, value: event.target.value } : item))}
               />
             </td>
             <td className="coss-table__actions">
-              <Button variant="outline" size="sm" aria-label={`Reveal ${row.key}`} onClick={() => setRevealed((value) => !value)}>
+              <Button variant="outline" size="sm" aria-label={`Reveal ${row.key || row.id}`} onClick={() => setRevealed((value) => !value)}>
                 Reveal
               </Button>
-              <Button variant="ghost" size="sm" aria-label={`Delete ${row.key}`} onClick={() => setRows((items) => items.filter((item) => item.key !== row.key))}>
+              <Button variant="ghost" size="sm" aria-label={`Delete ${row.key || row.id}`} onClick={() => onRowsChange(rows.filter((_, index) => index !== row.index))}>
                 Delete
               </Button>
             </td>
@@ -635,7 +912,7 @@ function EnvironmentEditor() {
       />
       <Button
         variant="outline"
-        onClick={() => setRows((items) => [...items, { key: `NEW_KEY_${items.length + 1}`, value: "pending" }])}
+        onClick={() => onRowsChange([...rows, { key: "", value: "" }])}
       >
         <Plus aria-hidden="true" />
         Add variable
@@ -646,7 +923,7 @@ function EnvironmentEditor() {
       <Button
         variant="outline"
         onClick={() =>
-          setRows(
+          onRowsChange(
             raw
               .split("\n")
               .filter(Boolean)
@@ -1139,476 +1416,1136 @@ function ProjectRow({ item }: { item: ProjectListItem }) {
   );
 }
 
-export function ProjectWorkbench() {
-  const [service, setService] = useState<Service>(services[0]);
-  const [tab, setTab] = useState("Route");
-  const [drawer, setDrawer] = useState<string | null>(null);
-  const [confirm, setConfirm] = useState<string | null>(null);
-  const toast = useToast();
-  const tabs = service.kind === "app"
-    ? ["Route", "Environment", "Logs", "Files", "Images", "Observability", "Settings"]
-    : ["Overview", "Logs", "Failover", "Settings"];
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const serviceId = params.get("service");
-    const tabName = params.get("tab");
-    const matched = services.find((item) => item.id === serviceId);
-    if (matched) setService(matched);
-    if (tabName) setTab(tabName);
-  }, []);
+type WorkbenchProject = NonNullable<ConsoleProjectDetailData["project"]>;
+type WorkbenchService = WorkbenchProject["services"][number];
+type WorkbenchAppService = Extract<WorkbenchService, { kind: "app" }>;
+type WorkbenchBackingService = Extract<WorkbenchService, { kind: "backing-service" }>;
 
-  function writeWorkbenchUrl(nextService: Service, nextTab: string) {
+function isWorkbenchAppService(
+  service: WorkbenchService,
+): service is WorkbenchAppService {
+  return service.kind === "app";
+}
+
+function serviceTone(service: WorkbenchService): CossBadgeTone {
+  if (isWorkbenchAppService(service)) {
+    return badgeToneFromConsoleTone(service.phaseTone);
+  }
+
+  return badgeToneFromConsoleTone(service.statusTone);
+}
+
+function serviceStatusLabel(service: WorkbenchService) {
+  return isWorkbenchAppService(service) ? service.phase : service.status;
+}
+
+function serviceRouteLabel(service: WorkbenchService) {
+  if (!isWorkbenchAppService(service)) {
+    return `${service.type} · ${service.ownerAppLabel}`;
+  }
+
+  return (
+    service.routePublicUrl ||
+    service.routeInternalUrl ||
+    service.routeLabel ||
+    "No route configured"
+  );
+}
+
+function serviceRuntimeLabel(service: WorkbenchService) {
+  if (isWorkbenchAppService(service)) {
+    return service.locationLabel || service.runtimeId || "No runtime";
+  }
+
+  return service.locationLabel || service.databaseRuntimeId || "No runtime";
+}
+
+function workbenchTabs(service: WorkbenchService) {
+  return isWorkbenchAppService(service)
+    ? ["Route", "Environment", "Logs", "Files", "Images", "Observability", "Settings"]
+    : ["Overview", "Failover", "Settings"];
+}
+
+function formatBytes(value?: number | null) {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    return "Unknown";
+  }
+
+  if (value === 0) {
+    return "0 bytes";
+  }
+
+  const units = ["bytes", "KB", "MB", "GB", "TB"];
+  const index = Math.min(
+    units.length - 1,
+    Math.floor(Math.log(value) / Math.log(1024)),
+  );
+  const amount = value / 1024 ** index;
+
+  return `${new Intl.NumberFormat("en-US", {
+    maximumFractionDigits: index === 0 ? 0 : 1,
+  }).format(amount)} ${units[index]}`;
+}
+
+function formatRelativeOrExact(value?: string | null) {
+  if (!value) {
+    return "Unknown";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
+
+function useEndpointData<T>(url: string | null) {
+  const [data, setData] = useState<T | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(Boolean(url));
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  useEffect(() => {
+    if (!url) {
+      setData(null);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    setLoading(true);
+    setError(null);
+
+    requestJson<T>(url, {
+      cache: "no-store",
+      signal: controller.signal,
+    })
+      .then((value) => {
+        setData(value);
+      })
+      .catch((nextError) => {
+        if (isAbortRequestError(nextError)) {
+          return;
+        }
+
+        setData(null);
+        setError(readRequestError(nextError));
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [url, refreshKey]);
+
+  return {
+    data,
+    error,
+    loading,
+    refresh: () => setRefreshKey((value) => value + 1),
+  };
+}
+
+export function ProjectWorkbench({ projectId }: { projectId: string }) {
+  const [detail, setDetail] = useState<ConsoleProjectDetailData | null>(null);
+  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
+  const [tab, setTab] = useState("Route");
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const project = detail?.project ?? null;
+  const services = project?.services ?? [];
+  const service =
+    services.find((item) => item.id === selectedServiceId) ?? services[0] ?? null;
+  const tabs = service ? workbenchTabs(service) : [];
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setLoading(true);
+    setLoadError(null);
+
+    fetchConsoleProjectDetail(projectId, {
+      force: refreshKey > 0,
+      signal: controller.signal,
+    })
+      .then((nextDetail) => {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        setDetail(nextDetail);
+        const params = new URLSearchParams(window.location.search);
+        const requestedServiceId = params.get("service");
+        const nextServices = nextDetail.project?.services ?? [];
+        const nextService =
+          nextServices.find((item) => item.id === requestedServiceId) ??
+          nextServices[0] ??
+          null;
+        const requestedTab = params.get("tab");
+        const nextTabs = nextService ? workbenchTabs(nextService) : [];
+        setSelectedServiceId(nextService?.id ?? null);
+        setTab(requestedTab && nextTabs.includes(requestedTab) ? requestedTab : nextTabs[0] ?? "Route");
+      })
+      .catch((nextError) => {
+        if (isAbortRequestError(nextError)) {
+          return;
+        }
+
+        setDetail(null);
+        setLoadError(readRequestError(nextError));
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [projectId, refreshKey]);
+
+  function writeWorkbenchUrl(nextService: WorkbenchService, nextTab: string) {
     const params = new URLSearchParams(window.location.search);
     params.set("service", nextService.id);
     params.set("tab", nextTab);
     window.history.replaceState(null, "", `${window.location.pathname}?${params.toString()}`);
   }
 
-  return (
-    <>
-      <Toast message={toast.message} />
-      <div className="coss-workbench">
-        <aside className="coss-service-rail">
-          {services.map((item) => (
-            <button key={item.id} className="coss-service-button" aria-label={`Select service ${item.name}`} aria-selected={service.id === item.id} onClick={() => {
-              setService(item);
-              const nextTab = item.kind === "app" ? "Route" : "Overview";
-              setTab(nextTab);
-              writeWorkbenchUrl(item, nextTab);
-            }}>
-              <strong>{item.name}</strong>
-              <p className="coss-card-description">{item.kind} · {item.phase}</p>
-            </button>
-          ))}
-          <Button variant="outline" onClick={() => setDrawer("Add service")}>
-            <Plus aria-hidden="true" />
-            Add service
+  if (loading) {
+    return (
+      <div className="coss-stack-sm" aria-label="Loading project detail">
+        <SkeletonBlock height={52} />
+        <SkeletonBlock height={52} />
+        <SkeletonBlock height={260} />
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <Alert tone="destructive" title="Project details unavailable">
+        {loadError}
+      </Alert>
+    );
+  }
+
+  if (!project) {
+    return (
+      <Empty
+        title="Project not found"
+        description="The requested project does not exist in this workspace, or the current account cannot view it."
+        action={<ButtonLink href="/app">Back to projects</ButtonLink>}
+      />
+    );
+  }
+
+  if (!service) {
+    return (
+      <Empty
+        title="No services yet"
+        description="This project exists, but Fugue is not reporting any app or backing service for it yet."
+        action={
+          <Button variant="outline" onClick={() => setRefreshKey((value) => value + 1)}>
+            <RotateCcw aria-hidden="true" />
+            Refresh
           </Button>
-        </aside>
-        <div className="coss-stack">
-          <CardFrame>
-            <CardContent className="coss-row" style={{ justifyContent: "space-between" }}>
-              <div>
-                <h2 className="coss-page-title">{service.name}</h2>
-                <p className="coss-card-description">{service.route}</p>
-              </div>
-              <div className="coss-actions">
-                <Badge tone={service.phase === "Running" || service.phase === "Primary" ? "success" : "info"}>{service.phase}</Badge>
-                <Button variant="outline" onClick={() => toast.notify("Redeploy queued")}>
-                  <RotateCcw aria-hidden="true" />
-                  Redeploy
-                </Button>
-              </div>
-            </CardContent>
-          </CardFrame>
-          <div className="coss-tabs" role="tablist" aria-label="Service sections">
-            {tabs.map((item) => (
-              <button key={item} className="coss-tab" aria-selected={tab === item} onClick={() => {
+        }
+      />
+    );
+  }
+
+  return (
+    <div className="coss-workbench">
+      <aside className="coss-service-rail">
+        {services.map((item) => {
+          const nextTabs = workbenchTabs(item);
+          const nextTab = nextTabs[0] ?? "Overview";
+
+          return (
+            <button
+              key={item.id}
+              className="coss-service-button"
+              aria-label={`Select service ${item.name}`}
+              aria-selected={service.id === item.id}
+              onClick={() => {
+                setSelectedServiceId(item.id);
+                setTab(nextTab);
+                writeWorkbenchUrl(item, nextTab);
+              }}
+            >
+              <strong>{item.name}</strong>
+              <p className="coss-card-description">
+                {item.kind === "app" ? "app" : item.type} · {serviceStatusLabel(item)}
+              </p>
+            </button>
+          );
+        })}
+        <Button variant="outline" onClick={() => setRefreshKey((value) => value + 1)}>
+          <RotateCcw aria-hidden="true" />
+          Refresh project
+        </Button>
+      </aside>
+      <div className="coss-stack">
+        <CardFrame>
+          <CardContent className="coss-row" style={{ justifyContent: "space-between" }}>
+            <div>
+              <h2 className="coss-page-title">{service.name}</h2>
+              <p className="coss-card-description">{serviceRouteLabel(service)}</p>
+            </div>
+            <div className="coss-actions">
+              <Badge tone={serviceTone(service)}>{serviceStatusLabel(service)}</Badge>
+              <Badge tone="info">{serviceRuntimeLabel(service)}</Badge>
+            </div>
+          </CardContent>
+        </CardFrame>
+        <div className="coss-tabs" role="tablist" aria-label="Service sections">
+          {tabs.map((item) => (
+            <button
+              key={item}
+              className="coss-tab"
+              aria-selected={tab === item}
+              onClick={() => {
                 setTab(item);
                 writeWorkbenchUrl(service, item);
-              }}>
-                {item}
-              </button>
-            ))}
-          </div>
-          {tab === "Route" ? <RouteTab onOpen={setDrawer} onConfirm={setConfirm} /> : null}
-          {tab === "Environment" ? <EnvironmentTab /> : null}
-          {tab === "Logs" ? <LogsTab /> : null}
-          {tab === "Files" ? <FilesTab /> : null}
-          {tab === "Images" ? <ImagesTab onConfirm={setConfirm} /> : null}
-          {tab === "Observability" ? <ObservabilityTab onOpen={setDrawer} /> : null}
-          {tab === "Settings" ? <SettingsTab onOpen={setDrawer} onConfirm={setConfirm} /> : null}
-          {tab === "Overview" ? <BackingOverview service={service} /> : null}
-          {tab === "Failover" ? <FailoverTab onConfirm={setConfirm} /> : null}
+              }}
+            >
+              {item}
+            </button>
+          ))}
         </div>
+        {tab === "Route" && isWorkbenchAppService(service) ? <RouteTab service={service} /> : null}
+        {tab === "Environment" && isWorkbenchAppService(service) ? <EnvironmentTab service={service} /> : null}
+        {tab === "Logs" && isWorkbenchAppService(service) ? <LogsTab service={service} /> : null}
+        {tab === "Files" && isWorkbenchAppService(service) ? <FilesTab service={service} /> : null}
+        {tab === "Images" && isWorkbenchAppService(service) ? <ImagesTab service={service} /> : null}
+        {tab === "Observability" && isWorkbenchAppService(service) ? <ObservabilityTab service={service} /> : null}
+        {tab === "Settings" ? <SettingsTab service={service} /> : null}
+        {tab === "Overview" && !isWorkbenchAppService(service) ? <BackingOverview service={service} /> : null}
+        {tab === "Failover" && !isWorkbenchAppService(service) ? <FailoverTab service={service} /> : null}
       </div>
-      <Drawer title={drawer ?? ""} open={Boolean(drawer)} onClose={() => setDrawer(null)}>
-        <div className="coss-stack">
-          <Alert tone="info" title="Side editor">
-            This drawer preserves context while editing advanced project settings.
-          </Alert>
-          <CodeBlock>{`target: ${drawer}\nservice: ${service.name}\nruntime: ${service.runtime}`}</CodeBlock>
-          <Button onClick={() => setDrawer(null)}>
-            <Save aria-hidden="true" />
-            Save changes
-          </Button>
-        </div>
-      </Drawer>
-      <Dialog
-        title={confirm ?? ""}
-        description="This action changes a running service. Confirm the object name before continuing in production."
-        open={Boolean(confirm)}
-        confirmLabel="Confirm"
-        onConfirm={() => {
-          toast.notify(`${confirm} confirmed`);
-          setConfirm(null);
-        }}
-        onClose={() => setConfirm(null)}
-      />
-    </>
+    </div>
   );
 }
 
-function RouteTab({ onOpen, onConfirm }: { onOpen: (value: string) => void; onConfirm: (value: string) => void }) {
+function RouteTab({ service }: { service: WorkbenchAppService }) {
+  const rows = service.routeHostname
+    ? [
+        {
+          host: service.routeHostname,
+          href: service.routeHref || service.routePublicUrl || "",
+          id: `${service.id}:primary-route`,
+          pathPrefix: service.routePathPrefix ?? "/",
+          port: service.routeBaseDomain ?? "public",
+          status: "active",
+        },
+      ]
+    : [];
+
   return (
     <CardFrame>
-      <CardHeader title="Routes" description="Public routes, route table, and custom domains." action={<Button onClick={() => onOpen("Add route")}>Add route</Button>} />
+      <CardHeader title="Routes" description="Public route and internal service placement from Fugue." />
       <CardContent className="coss-stack">
-        <MetricStrip items={[{ label: "Active route", value: "1" }, { label: "Custom domains", value: "2" }, { label: "Service port", value: "3000" }, { label: "Mode", value: "public" }]} />
-        <Alert tone="destructive" title="Route conflict guard">
-          Conflicting hosts are blocked before the route table is saved.
-        </Alert>
-        <DataTable
-          columns={["Host", "Target", "Status", "Actions"]}
-          rows={[
-            { id: "route-1", host: "pulseboard.fugue.dev", target: "web:3000", status: "active" },
-            { id: "route-2", host: "app.example.com", target: "web:3000", status: "verifying" },
+        <MetricStrip
+          items={[
+            { label: "Public route", value: rows.length ? "1" : "0" },
+            { label: "Service port", value: service.routeLabel },
+            { label: "Network", value: service.networkMode ?? "default" },
+            { label: "Replicas", value: service.replicaCount === null ? "Unknown" : String(service.replicaCount) },
           ]}
-          renderRow={(row) => (
-            <tr key={row.id}>
-              <td className="coss-mono">{row.host}</td>
-              <td className="coss-mono">{row.target}</td>
-              <td><Badge tone={row.status === "active" ? "success" : "warning"}>{row.status}</Badge></td>
-              <td className="coss-table__actions">
-                <Button variant="outline" size="sm" aria-label={`Edit route ${row.host}`} onClick={() => onOpen("Route table editor")}>Edit</Button>
-                <Button variant="destructive" size="sm" aria-label={`Delete route ${row.host}`} onClick={() => onConfirm(`Delete route ${row.host}`)}>Delete</Button>
-              </td>
-            </tr>
-          )}
         />
+        {rows.length ? (
+          <DataTable
+            columns={["Host", "Path", "Target", "Status"]}
+            rows={rows}
+            renderRow={(row) => (
+              <tr key={row.id}>
+                <td className="coss-mono">{row.href ? <a href={row.href}>{row.host}</a> : row.host}</td>
+                <td className="coss-mono">{row.pathPrefix}</td>
+                <td className="coss-mono">{service.routeLabel}</td>
+                <td><Badge tone="success">{row.status}</Badge></td>
+              </tr>
+            )}
+          />
+        ) : (
+          <Empty title="No public route" description="This app does not currently expose a public route." />
+        )}
         <Card muted>
           <CardContent className="coss-stack-sm">
-            <strong>Custom domains</strong>
-            <div className="coss-row"><span className="coss-mono">app.example.com</span><Badge tone="warning">DNS verifying</Badge></div>
-            <div className="coss-row"><span className="coss-mono">www.example.com</span><Badge tone="success">verified</Badge></div>
+            <strong>Internal service</strong>
+            <p className="coss-card-description">
+              {service.routeInternalUrl || "Internal service URL is not reported for this app."}
+            </p>
           </CardContent>
         </Card>
-        <Button variant="outline" onClick={() => onOpen("Advanced route table")}>Open advanced route table</Button>
       </CardContent>
     </CardFrame>
   );
 }
 
-function EnvironmentTab() {
+function EnvironmentTab({ service }: { service: WorkbenchAppService }) {
   const [mode, setMode] = useState<"Variables" | "Raw .env">("Variables");
+  const { data, error, loading, refresh } = useEndpointData<FugueAppEnvResult>(
+    `/api/fugue/apps/${encodeURIComponent(service.id)}/env`,
+  );
+  const rows = Object.entries(data?.env ?? {}).map(([key, value]) => ({
+    id: key,
+    key,
+    value,
+  }));
+  const rawEnv = rows.map((row) => `${row.key}=${row.value}`).join("\n");
+
   return (
     <CardFrame>
-      <CardHeader title="Environment" description="Variables are validated before save and can be pasted as raw .env." />
+      <CardHeader
+        title="Environment"
+        description="Live app environment from Fugue."
+        action={<Button variant="outline" size="sm" loading={loading} onClick={refresh}>Refresh</Button>}
+      />
       <CardContent className="coss-stack">
+        {error ? <Alert tone="destructive" title="Environment unavailable">{error}</Alert> : null}
         <div className="coss-tabs">
           {(["Variables", "Raw .env"] as const).map((item) => (
             <button key={item} className="coss-tab" aria-selected={mode === item} onClick={() => setMode(item)}>{item}</button>
           ))}
         </div>
-        {mode === "Variables" ? <EnvironmentEditor /> : <textarea className="coss-textarea" defaultValue={envRows.map((row) => `${row.key}=${row.value}`).join("\n")} />}
-        <Alert tone="warning" title="Redeploy required">Saved environment changes are applied on the next rebuild.</Alert>
+        {loading ? (
+          <div className="coss-stack-sm">
+            <SkeletonBlock height={40} />
+            <SkeletonBlock height={40} />
+          </div>
+        ) : rows.length ? (
+          mode === "Variables" ? (
+            <DataTable
+              columns={["Key", "Value"]}
+              rows={rows}
+              renderRow={(row) => (
+                <tr key={row.id}>
+                  <td className="coss-mono">{row.key}</td>
+                  <td className="coss-mono">{row.value}</td>
+                </tr>
+              )}
+            />
+          ) : (
+            <textarea className="coss-textarea coss-mono" readOnly value={rawEnv} />
+          )
+        ) : (
+          <Empty title="No environment variables" description="Fugue returned an empty environment for this app." />
+        )}
       </CardContent>
     </CardFrame>
   );
 }
 
-function LogsTab() {
-  const [kind, setKind] = useState("Runtime");
-  const [follow, setFollow] = useState(true);
-  const [connected, setConnected] = useState(true);
-  const [empty, setEmpty] = useState(false);
+function LogsTab({ service }: { service: WorkbenchAppService }) {
+  const [kind, setKind] = useState<"Runtime" | "Build">(
+    service.preferredLogsMode === "build" ? "Build" : "Runtime",
+  );
   const toast = useToast();
-  const renderedLogs = empty ? [] : logLines.map((line) => `[${kind.toLowerCase()}] ${line}`);
+  const query =
+    kind === "Build"
+      ? `tail_lines=160${service.buildLogsOperationId ? `&operation_id=${encodeURIComponent(service.buildLogsOperationId)}` : ""}`
+      : "tail_lines=160";
+  const endpoint =
+    kind === "Build"
+      ? `/api/fugue/apps/${encodeURIComponent(service.id)}/build-logs?${query}`
+      : `/api/fugue/apps/${encodeURIComponent(service.id)}/runtime-logs?${query}`;
+  const { data, error, loading, refresh } = useEndpointData<
+    FugueBuildLogsResult | FugueRuntimeLogsResult
+  >(endpoint);
+  const logs = data && "logs" in data ? data.logs : "";
+
   return (
     <>
       <Toast message={toast.message} />
       <CardFrame>
-        <CardHeader title="Logs" description="Build and runtime streams share a dense terminal panel." />
+        <CardHeader
+          title="Logs"
+          description="Recent logs from Fugue for the selected app."
+          action={<Button variant="outline" size="sm" loading={loading} onClick={refresh}>Refresh</Button>}
+        />
         <CardContent className="coss-stack">
-          {!connected ? <Alert tone="warning" title="Log stream disconnected">Reconnect to resume following runtime output.</Alert> : null}
-          {empty ? <Empty title="No logs in this window" description="Choose a different build or reconnect the stream." /> : null}
+          {error ? <Alert tone="destructive" title="Logs unavailable">{error}</Alert> : null}
           <div className="coss-row" style={{ justifyContent: "space-between" }}>
             <div className="coss-tabs">
-              {["Build", "Runtime"].map((item) => (
+              {(["Runtime", "Build"] as const).map((item) => (
                 <button key={item} className="coss-tab" aria-selected={kind === item} onClick={() => setKind(item)}>{item}</button>
               ))}
             </div>
-            <select className="coss-select" aria-label="Recent build" defaultValue="build-82c1" style={{ width: 160 }}>
-              <option value="build-82c1">build-82c1</option>
-              <option value="build-71aa">build-71aa</option>
-            </select>
-            <Button
-              variant="outline"
-              size="sm"
-              role="checkbox"
-              aria-checked={follow}
-              aria-label="Follow logs"
-              onClick={() => setFollow((value) => !value)}
-            >
-              {follow ? "Pause follow" : "Follow"}
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => copyText(renderedLogs.join("\n"), toast.notify)}>Copy logs</Button>
-            <Button variant="outline" size="sm" onClick={() => setConnected((value) => !value)}>{connected ? "Disconnect" : "Reconnect"}</Button>
-            <Button variant="ghost" size="sm" onClick={() => setEmpty((value) => !value)}>Toggle empty</Button>
+            <Button variant="outline" size="sm" disabled={!logs} onClick={() => copyText(logs, toast.notify)}>Copy logs</Button>
           </div>
-          <CodeBlock>{renderedLogs.join("\n") || "# no log lines"}</CodeBlock>
+          {loading ? <SkeletonBlock height={220} /> : logs ? <CodeBlock>{logs}</CodeBlock> : <Empty title="No logs returned" description="Fugue did not return log lines for this app and mode." />}
         </CardContent>
       </CardFrame>
     </>
   );
 }
 
-function FilesTab() {
-  const [file, setFile] = useState(fileTree[0]);
-  const [content, setContent] = useState(fileTree[0].content);
-  const [rootMode, setRootMode] = useState<"Live filesystem" | "Persistent storage">("Live filesystem");
-  const [conflict, setConflict] = useState(false);
-  const [mobileDrawer, setMobileDrawer] = useState(false);
-  return (
-    <>
-      <CardFrame>
-      <CardHeader title="Files" description="Live filesystem and persistent storage share a split editor." action={<Button variant="outline" size="sm"><FilePlus2 aria-hidden="true" /> New file</Button>} />
-      <CardContent className="coss-stack">
-        <div className="coss-tabs" aria-label="Filesystem root">
-          {(["Live filesystem", "Persistent storage"] as const).map((item) => (
-            <button key={item} className="coss-tab" aria-selected={rootMode === item} onClick={() => setRootMode(item)}>{item}</button>
-          ))}
-        </div>
-        {conflict ? <Alert tone="warning" title="Save conflict">The file changed on the runtime. Reload or overwrite before continuing.</Alert> : null}
-        {file.path.endsWith(".keep") ? <Alert tone="info" title="Read-only preview">Some runtime files are not editable through the browser editor.</Alert> : null}
-        <div className="coss-split">
-          <div className="coss-stack-sm">
-            {fileTree.map((item) => (
-              <button key={item.path} className="coss-service-button" aria-label={`Open file ${item.path}`} aria-selected={file.path === item.path} onClick={() => {
-                setFile(item);
-                setContent(item.content);
-              }}>
-                <span className="coss-mono">{item.path}</span>
-              </button>
-            ))}
-          </div>
-          <div className="coss-stack">
-            <Badge tone="info">{rootMode}</Badge>
-            <textarea className="coss-textarea coss-mono" value={content} onChange={(event) => setContent(event.target.value)} />
-            <div className="coss-row">
-              <Button onClick={() => setConflict((value) => !value)}><Save aria-hidden="true" /> Save</Button>
-              <Button variant="outline" onClick={() => setMobileDrawer(true)}>Open mobile editor</Button>
-              <Button variant="outline"><FilePlus2 aria-hidden="true" /> New folder</Button>
-              <Button variant="destructive"><Trash2 aria-hidden="true" /> Delete</Button>
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </CardFrame>
-      <Drawer title="Mobile file editor" description={file.path} open={mobileDrawer} onClose={() => setMobileDrawer(false)}>
-        <textarea className="coss-textarea coss-mono" value={content} onChange={(event) => setContent(event.target.value)} />
-      </Drawer>
-    </>
-  );
-}
+function FilesTab({ service }: { service: WorkbenchAppService }) {
+  const { data, error, loading, refresh } =
+    useEndpointData<FugueAppFilesystemTreeResult>(
+      `/api/fugue/apps/${encodeURIComponent(service.id)}/filesystem/tree?depth=2`,
+    );
+  const entries = data?.entries ?? [];
+  const rows = entries.map((entry) => ({
+    ...entry,
+    id: entry.path,
+  }));
 
-function ImagesTab({ onConfirm }: { onConfirm: (value: string) => void }) {
-  const [drawer, setDrawer] = useState<string | null>(null);
   return (
-    <>
-      <CardFrame>
-        <CardHeader title="Images" description="Current image and retained versions." />
-        <CardContent className="coss-stack">
-          <Alert tone="success" title="Current image">
-            {imageVersions.find((image) => image.current)?.tag}
-          </Alert>
+    <CardFrame>
+      <CardHeader
+        title="Files"
+        description="Live filesystem tree from the current runtime container."
+        action={<Button variant="outline" size="sm" loading={loading} onClick={refresh}>Refresh</Button>}
+      />
+      <CardContent className="coss-stack">
+        {error ? <Alert tone="destructive" title="Filesystem unavailable">{error}</Alert> : null}
+        <div className="coss-row">
+          <Badge tone="info">{data?.component ?? "app"}</Badge>
+          <span className="coss-help coss-mono">{data?.pod ?? "No pod selected"}</span>
+          <span className="coss-help coss-mono">{data?.workspaceRoot ?? "/"}</span>
+        </div>
+        {loading ? (
+          <div className="coss-stack-sm">
+            <SkeletonBlock height={38} />
+            <SkeletonBlock height={38} />
+            <SkeletonBlock height={38} />
+          </div>
+        ) : rows.length ? (
           <DataTable
-            columns={["Image", "Created", "State", "Actions"]}
-            rows={imageVersions}
+            columns={["Path", "Kind", "Size", "Modified"]}
+            rows={rows}
             renderRow={(row) => (
               <tr key={row.id}>
-                <td className="coss-mono">{row.tag}</td>
-                <td>{row.created}</td>
-                <td><Badge tone={row.current ? "success" : "default"}>{row.current ? "current" : "saved"}</Badge></td>
-                <td className="coss-table__actions">
-                  <Button variant="outline" size="sm" aria-label={`Image details ${row.id}`} onClick={() => setDrawer(row.id)}>Details</Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    aria-label={row.current ? `Redeploy image ${row.id}` : `Delete image ${row.id}`}
-                    onClick={() => onConfirm(row.current ? "Redeploy current image" : "Delete image")}
-                    disabled={row.current && false}
-                  >
-                    {row.current ? "Redeploy" : "Delete"}
-                  </Button>
-                </td>
+                <td className="coss-mono">{row.path}</td>
+                <td>{row.kind}</td>
+                <td>{formatBytes(row.size)}</td>
+                <td>{formatRelativeOrExact(row.modifiedAt)}</td>
               </tr>
             )}
           />
+        ) : (
+          <Empty title="No files returned" description="Fugue did not return filesystem entries for this app." />
+        )}
+      </CardContent>
+    </CardFrame>
+  );
+}
+
+function ImagesTab({ service }: { service: WorkbenchAppService }) {
+  const [drawer, setDrawer] = useState<FugueAppImageInventoryResult["versions"][number] | null>(null);
+  const { data, error, loading, refresh } =
+    useEndpointData<FugueAppImageInventoryResult>(
+      `/api/fugue/apps/${encodeURIComponent(service.id)}/images`,
+    );
+  const versions = data?.versions ?? [];
+  const rows = versions.map((version) => ({
+    ...version,
+    id: version.imageRef,
+  }));
+  const current = versions.find((version) => version.current);
+
+  return (
+    <>
+      <CardFrame>
+        <CardHeader
+          title="Images"
+          description="Image inventory reported by Fugue registry metadata."
+          action={<Button variant="outline" size="sm" loading={loading} onClick={refresh}>Refresh</Button>}
+        />
+        <CardContent className="coss-stack">
+          {error ? <Alert tone="destructive" title="Images unavailable">{error}</Alert> : null}
+          {current ? (
+            <Alert tone="success" title="Current image">
+              {current.runtimeImageRef ?? current.imageRef}
+            </Alert>
+          ) : null}
+          {loading ? (
+            <div className="coss-stack-sm">
+              <SkeletonBlock height={40} />
+              <SkeletonBlock height={40} />
+            </div>
+          ) : rows.length ? (
+            <DataTable
+              columns={["Image", "Size", "State", "Deployed", "Actions"]}
+              rows={rows}
+              renderRow={(row) => (
+                <tr key={row.id}>
+                  <td className="coss-mono">{row.runtimeImageRef ?? row.imageRef}</td>
+                  <td>{formatBytes(row.sizeBytes)}</td>
+                  <td><Badge tone={row.current ? "success" : "default"}>{row.current ? "current" : row.status ?? "saved"}</Badge></td>
+                  <td>{formatRelativeOrExact(row.lastDeployedAt)}</td>
+                  <td className="coss-table__actions">
+                    <Button variant="outline" size="sm" onClick={() => setDrawer(row)}>Details</Button>
+                  </td>
+                </tr>
+              )}
+            />
+          ) : (
+            <Empty title="No image versions" description="Fugue did not return retained image versions for this app." />
+          )}
         </CardContent>
       </CardFrame>
-      <Drawer title={drawer ?? ""} description="Image digest, source, and redeploy context." open={Boolean(drawer)} onClose={() => setDrawer(null)}>
-        <CodeBlock>{`image: ${drawer}\ndigest: sha256:82c1...\nsource: github image tracking`}</CodeBlock>
+      <Drawer title="Image details" description={drawer?.runtimeImageRef ?? drawer?.imageRef} open={Boolean(drawer)} onClose={() => setDrawer(null)}>
+        {drawer ? (
+          <CodeBlock>{JSON.stringify({
+            current: drawer.current,
+            digest: drawer.digest,
+            imageRef: drawer.imageRef,
+            lastDeployedAt: drawer.lastDeployedAt,
+            runtimeImageRef: drawer.runtimeImageRef,
+            status: drawer.status,
+          }, null, 2)}</CodeBlock>
+        ) : null}
       </Drawer>
     </>
   );
 }
 
-function ObservabilityTab({ onOpen }: { onOpen: (value: string) => void }) {
-  const [view, setView] = useState("Overview");
+function ObservabilityTab({ service }: { service: WorkbenchAppService }) {
   const [windowSize, setWindowSize] = useState("1h");
-  const [trace, setTrace] = useState("");
+  const since = encodeURIComponent(windowSize);
+  const metrics = useEndpointData<FugueAppObservabilityMetricsSummary>(
+    `/api/fugue/apps/${encodeURIComponent(service.id)}/observability/metrics/summary?since=${since}`,
+  );
+  const requests = useEndpointData<FugueAppObservabilityRequests>(
+    `/api/fugue/apps/${encodeURIComponent(service.id)}/observability/requests?since=${since}&limit=20`,
+  );
+  const requestRows = (requests.data?.requests ?? []).map((request) => ({
+    ...request,
+    id: request.requestId ?? request.traceId ?? request.timestamp,
+  }));
+
   return (
     <CardFrame>
-      <CardHeader title="Observability" description="Requests, traces, runtime health, and alert surface." />
+      <CardHeader
+        title="Observability"
+        description="Metrics and request summaries from Fugue observability."
+        action={
+          <Button
+            variant="outline"
+            size="sm"
+            loading={metrics.loading || requests.loading}
+            onClick={() => {
+              metrics.refresh();
+              requests.refresh();
+            }}
+          >
+            Refresh
+          </Button>
+        }
+      />
       <CardContent className="coss-stack">
         <div className="coss-row" style={{ justifyContent: "space-between" }}>
-          <div className="coss-tabs">
-            {["Overview", "Logs", "Requests", "Trace", "Alerts"].map((item) => (
-              <button key={item} className="coss-tab" aria-selected={view === item} onClick={() => setView(item)}>{item}</button>
-            ))}
-          </div>
           <select className="coss-select" aria-label="Time window" value={windowSize} onChange={(event) => setWindowSize(event.target.value)} style={{ width: 120 }}>
             <option value="15m">15m</option>
             <option value="1h">1h</option>
             <option value="24h">24h</option>
           </select>
+          <Badge tone={metrics.data?.source.available ? "success" : "warning"}>
+            {metrics.data?.source.status ?? "loading"}
+          </Badge>
         </div>
-        <Alert tone="warning" title="Metrics availability">
-          If the runtime cannot provide metrics for {windowSize}, this panel keeps the rest of the workbench available.
-        </Alert>
-        <MetricStrip items={[{ label: "RPS", value: "84" }, { label: "Error rate", value: "0.2%", tone: "success" }, { label: "p95", value: "118ms" }, { label: "Alerts", value: "1", tone: "warning" }]} />
-        {view === "Logs" ? <CodeBlock>{logLines.join("\n")}</CodeBlock> : null}
-        {view === "Alerts" ? <Alert tone="warning" title="Latency alert">p95 latency crossed the configured warning threshold.</Alert> : null}
-        {view === "Trace" ? (
-          <div className="coss-form">
-            <Field label="Trace id"><input className="coss-input" value={trace} onChange={(event) => setTrace(event.target.value)} placeholder="trace-123" /></Field>
-            {trace && trace !== "trace-123" ? <Empty title="Trace not found" description="Try a trace id from the requests table." /> : null}
-            {trace === "trace-123" ? <CodeBlock>edge → route → web:3000 → postgres</CodeBlock> : null}
-          </div>
-        ) : null}
-        {view === "Requests" || view === "Overview" ? (
+        {metrics.error ? <Alert tone="destructive" title="Metrics unavailable">{metrics.error}</Alert> : null}
+        {requests.error ? <Alert tone="destructive" title="Requests unavailable">{requests.error}</Alert> : null}
+        {metrics.loading ? (
+          <SkeletonBlock height={72} />
+        ) : metrics.data?.metrics.length ? (
+          <MetricStrip
+            items={metrics.data.metrics.slice(0, 4).map((metric) => ({
+              label: metric.name,
+              value: `${metric.value}${metric.unit ? ` ${metric.unit}` : ""}`,
+            }))}
+          />
+        ) : (
+          <Empty title="No metrics returned" description="Fugue observability returned no metric samples for this window." />
+        )}
+        {requests.loading ? (
+          <SkeletonBlock height={140} />
+        ) : requestRows.length ? (
           <DataTable
-            columns={["Request", "Status", "Latency", "Actions"]}
-            rows={requests}
+            columns={["Request", "Status", "Duration", "Trace"]}
+            rows={requestRows}
             renderRow={(row) => (
               <tr key={row.id}>
-                <td className="coss-mono">{row.path}</td>
-                <td><Badge tone={row.status < 300 ? "success" : "destructive"}>{row.status}</Badge></td>
-                <td>{row.latency}</td>
-                <td className="coss-table__actions"><Button variant="outline" size="sm" aria-label={`Open trace ${row.id}`} onClick={() => onOpen(`Request ${row.id}`)}>Open trace</Button></td>
+                <td className="coss-mono">{[row.method, row.route].filter(Boolean).join(" ") || "request"}</td>
+                <td>{row.statusCode ? <Badge tone={row.statusCode < 500 ? "success" : "destructive"}>{row.statusCode}</Badge> : "Unknown"}</td>
+                <td>{row.durationMs === undefined ? "Unknown" : `${row.durationMs} ms`}</td>
+                <td className="coss-mono">{row.traceId ?? "No trace"}</td>
               </tr>
             )}
           />
-        ) : null}
+        ) : (
+          <Empty title="No requests returned" description="Fugue observability returned no request summaries for this window." />
+        )}
       </CardContent>
     </CardFrame>
   );
 }
 
-function SettingsTab({ onOpen, onConfirm }: { onOpen: (value: string) => void; onConfirm: (value: string) => void }) {
+function SettingsTab({ service }: { service: WorkbenchService }) {
+  if (!isWorkbenchAppService(service)) {
+    return (
+      <BackingOverview service={service} />
+    );
+  }
+
   return (
     <div className="coss-stack">
       <CardFrame>
-        <CardHeader title="Runtime settings" description="Startup command, retention, mounts, failover, and migration." />
+        <CardHeader title="Runtime settings" description="Current app runtime settings reported by Fugue." />
         <CardContent className="coss-grid-2">
-          <Field label="Startup command"><input className="coss-input" defaultValue="npm start" /></Field>
-          <Field label="Image retention"><input className="coss-input" defaultValue="5" /></Field>
-          <Field label="Automatic failover"><select className="coss-select" defaultValue="managed"><option value="managed">managed</option><option value="off">off</option></select></Field>
-          <Button variant="outline" onClick={() => onOpen("Runtime migration")}>Runtime migration</Button>
-          <Button variant="outline" onClick={() => onOpen("Persistent mounts")}>Persistent mounts</Button>
-          <Button variant="outline" onClick={() => onConfirm("Start service")}>Start</Button>
-          <Button variant="outline" onClick={() => onConfirm("Restart service")}>Restart</Button>
+          <Field label="Startup command"><input className="coss-input" readOnly value={service.startupCommand ?? ""} placeholder="Not configured" /></Field>
+          <Field label="Image retention"><input className="coss-input" readOnly value={String(service.imageMirrorLimit)} /></Field>
+          <Field label="Network mode"><input className="coss-input" readOnly value={service.networkMode ?? "default"} /></Field>
+          <Field label="Runtime"><input className="coss-input" readOnly value={service.runtimeId ?? ""} placeholder="No runtime" /></Field>
+          <Field label="Replicas"><input className="coss-input" readOnly value={service.replicaCount === null ? "" : String(service.replicaCount)} placeholder="Unknown" /></Field>
+          <Field label="Deploy behavior"><input className="coss-input" readOnly value={service.deployBehavior} /></Field>
         </CardContent>
       </CardFrame>
       <CardFrame>
-        <CardHeader title="Danger zone" description="Destructive operations require confirmation." />
-        <CardContent className="coss-row">
-          <Button variant="destructive" onClick={() => onConfirm("Delete service")}>Delete service</Button>
-          <Button variant="destructive" onClick={() => onConfirm("Force delete service")}>Force delete</Button>
+        <CardHeader title="Source" description="Current build source and commit metadata." />
+        <CardContent className="coss-stack-sm">
+          <div className="coss-row"><span>Source</span><span className="coss-mono">{service.sourceLabel}</span></div>
+          <div className="coss-row"><span>Branch</span><span className="coss-mono">{service.sourceBranchLabel ?? "Unknown"}</span></div>
+          <div className="coss-row"><span>Commit</span><span className="coss-mono">{service.currentCommitLabel ?? "Unknown"}</span></div>
         </CardContent>
       </CardFrame>
     </div>
   );
 }
 
-function BackingOverview({ service }: { service: Service }) {
+function BackingOverview({ service }: { service: WorkbenchBackingService }) {
   return (
     <CardFrame>
-      <CardHeader title="Backing service overview" description="Runtime location, managed endpoint, and resource pressure." />
+      <CardHeader title="Backing service overview" description="Runtime location, owner app, continuity, and resource state from Fugue." />
       <CardContent className="coss-stack">
-        <MetricStrip items={[{ label: "Runtime", value: service.runtime }, { label: "Role", value: "Primary" }, { label: "Failover", value: "managed" }, { label: "Usage", value: `${service.usage}%` }]} />
-        <CodeBlock>{`psql ${service.route}\n# credentials are visible only through active workspace access`}</CodeBlock>
-        <Alert tone="info" title="Backing service settings">
-          Runtime, retention, and deletion controls are available from the Settings tab.
-        </Alert>
+        <MetricStrip
+          items={[
+            { label: "Runtime", value: service.locationLabel ?? service.databaseRuntimeId ?? "Unknown" },
+            { label: "Owner app", value: service.ownerAppLabel },
+            { label: "Status", value: service.status, tone: badgeToneFromConsoleTone(service.statusTone) },
+            { label: "Continuity", value: service.databaseContinuity.label, tone: badgeToneFromConsoleTone(service.databaseContinuity.tone) },
+          ]}
+        />
+        <CodeBlock>{JSON.stringify({
+          databaseInstances: service.databaseInstances,
+          databaseRuntimeId: service.databaseRuntimeId,
+          failoverConfigured: service.databaseFailoverConfigured,
+          transferTargetRuntimeId: service.databaseTransferTargetRuntimeId,
+          type: service.type,
+        }, null, 2)}</CodeBlock>
       </CardContent>
     </CardFrame>
   );
 }
 
-function FailoverTab({ onConfirm }: { onConfirm: (value: string) => void }) {
+function FailoverTab({ service }: { service: WorkbenchBackingService }) {
   return (
     <CardFrame>
-      <CardHeader title="Managed failover" description="Primary/standby state and controlled switchover." />
+      <CardHeader title="Managed failover" description="Current database continuity state from Fugue." />
       <CardContent className="coss-stack">
-        <Alert tone="info" title="Primary is healthy">Standby can be promoted through a confirmed switchover.</Alert>
-        <Button variant="destructive" onClick={() => onConfirm("Promote replica")}>Promote replica</Button>
+        <Alert tone={badgeToneFromConsoleTone(service.databaseContinuity.tone)} title={service.databaseContinuity.label}>
+          {service.databaseContinuity.live
+            ? "A database continuity operation is currently in progress."
+            : "No live database continuity operation is reported for this backing service."}
+        </Alert>
+        <CodeBlock>{JSON.stringify({
+          failoverConfigured: service.databaseFailoverConfigured,
+          failoverTargetRuntimeId: service.databaseFailoverTargetRuntimeId,
+          pendingTargetRuntimeId: service.databaseContinuity.pendingTargetRuntimeId,
+          placementPendingRebalance: service.databaseContinuity.placementPendingRebalance,
+          state: service.databaseContinuity.state,
+        }, null, 2)}</CodeBlock>
       </CardContent>
     </CardFrame>
   );
+}
+
+type ReadyBillingSnapshot = Extract<ConsoleBillingPageSnapshot, { state: "ready" }>;
+type BillingSummary = NonNullable<ReadyBillingSnapshot["data"]["billing"]>;
+type BillingEventRow = BillingSummary["events"][number] & {
+  id: string;
+};
+
+const MICRO_CENTS_PER_DOLLAR = 100_000_000;
+
+function formatCurrencyMicroCents(value: number, currency: string, maximumFractionDigits = 2) {
+  return new Intl.NumberFormat("en-US", {
+    currency,
+    maximumFractionDigits,
+    minimumFractionDigits: Math.min(2, maximumFractionDigits),
+    style: "currency",
+  }).format(value / MICRO_CENTS_PER_DOLLAR);
+}
+
+function formatBillingRate(value: number, currency: string) {
+  const amount = value / MICRO_CENTS_PER_DOLLAR;
+
+  return new Intl.NumberFormat("en-US", {
+    currency,
+    maximumFractionDigits: amount < 0.01 ? 6 : 4,
+    minimumFractionDigits: 0,
+    style: "currency",
+  }).format(amount);
+}
+
+function formatBillingCpu(cpuMillicores: number) {
+  const cores = cpuMillicores / 1000;
+  return `${Number.isInteger(cores) ? cores : cores.toFixed(2)} CPU`;
+}
+
+function formatBillingMemory(memoryMebibytes: number) {
+  const gib = memoryMebibytes / 1024;
+  return `${Number.isInteger(gib) ? gib : gib.toFixed(2)} GiB`;
+}
+
+function formatBillingSpec(spec: BillingSummary["managedCap"]) {
+  return [
+    formatBillingCpu(spec.cpuMillicores),
+    formatBillingMemory(spec.memoryMebibytes),
+    `${spec.storageGibibytes} GiB storage`,
+  ].join(" / ");
+}
+
+function formatRunwayHours(value: number | null) {
+  if (value === null) {
+    return "Unavailable";
+  }
+
+  if (value < 1) {
+    return `${Math.round(value * 60)} min`;
+  }
+
+  if (value < 48) {
+    return `${Math.round(value)} hr`;
+  }
+
+  return `${Math.round(value / 24)} days`;
+}
+
+function formatBillingDate(value: string | null) {
+  if (!value) {
+    return "Unknown";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Unknown";
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
+
+function billingStatusTone(billing: BillingSummary): CossBadgeTone {
+  if (billing.overCap || billing.status === "over-cap") return "warning";
+  if (billing.balanceRestricted || billing.status === "restricted") return "warning";
+  if (billing.status === "active") return "success";
+  if (billing.status === "paused") return "info";
+  return "default";
+}
+
+function billingEventTone(event: BillingSummary["events"][number]): CossBadgeTone {
+  return event.amountMicroCents >= 0 ? "success" : "warning";
 }
 
 export function BillingConsole() {
-  const [cpu, setCpu] = useState(4);
-  const [memory, setMemory] = useState(8);
-  const [checkout, setCheckout] = useState("idle");
-  const [dialog, setDialog] = useState<"payment" | "export" | null>(null);
+  const { data, error, loading, refresh } =
+    useConsolePageSnapshot<ConsoleBillingPageSnapshot>(
+      CONSOLE_BILLING_PAGE_USAGE_SNAPSHOT_URL,
+      {
+        ttlMs: 30_000,
+      },
+    );
+  const ready = data?.state === "ready" ? data : null;
+  const billing = ready?.data.billing ?? null;
+  const [cpuCores, setCpuCores] = useState(0);
+  const [memoryGiB, setMemoryGiB] = useState(0);
+  const [storageGiB, setStorageGiB] = useState(0);
+  const [topUpAmount, setTopUpAmount] = useState(50);
+  const [dirty, setDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const toast = useToast();
+
+  useEffect(() => {
+    if (!billing || dirty) {
+      return;
+    }
+
+    setCpuCores(billing.managedCap.cpuMillicores / 1000);
+    setMemoryGiB(billing.managedCap.memoryMebibytes / 1024);
+    setStorageGiB(billing.managedCap.storageGibibytes);
+  }, [billing, dirty]);
+
+  async function refreshBilling() {
+    setActionError(null);
+    invalidateConsolePageSnapshot(CONSOLE_BILLING_PAGE_USAGE_SNAPSHOT_URL);
+    await refresh({ force: true });
+  }
+
+  async function saveBillingCap() {
+    setSaving(true);
+    setActionError(null);
+
+    try {
+      await requestJson<{ billing: BillingSummary }>("/api/fugue/billing", {
+        body: JSON.stringify({
+          managedCap: {
+            cpuMillicores: Math.round(cpuCores * 1000),
+            memoryMebibytes: Math.round(memoryGiB * 1024),
+            storageGibibytes: Math.round(storageGiB),
+          },
+        }),
+        cache: "no-store",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "PATCH",
+      });
+      setDirty(false);
+      await refreshBilling();
+      toast.notify("Billing cap saved.");
+    } catch (nextError) {
+      setActionError(readRequestError(nextError));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function startCheckout() {
+    setCheckoutLoading(true);
+    setActionError(null);
+
+    try {
+      const checkout = await requestJson<{ checkoutUrl: string; requestId: string }>(
+        "/api/fugue/billing/top-ups/checkout",
+        {
+          body: JSON.stringify({ amountUsd: topUpAmount }),
+          cache: "no-store",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          method: "POST",
+        },
+      );
+      window.location.assign(checkout.checkoutUrl);
+    } catch (nextError) {
+      setActionError(readRequestError(nextError));
+      setCheckoutLoading(false);
+    }
+  }
+
+  const currency = billing?.priceBook.currency ?? "USD";
+  const billingSyncError = ready?.data.syncError ?? null;
+  const imageStorageLabel =
+    ready?.data.imageStorageBytes === null || ready?.data.imageStorageBytes === undefined
+      ? "Syncing"
+      : formatBytes(ready.data.imageStorageBytes);
+  const eventRows: BillingEventRow[] = (billing?.events ?? []).map((event) => ({
+    ...event,
+    id: event.id,
+  }));
+
   return (
     <>
+      <Toast message={toast.message} />
       <div className="coss-stack">
-        <MetricStrip items={[{ label: "Prepaid balance", value: "$128.40" }, { label: "Runway", value: "21 days", tone: "success" }, { label: "Current usage", value: "$6.11/day" }, { label: "Image storage", value: "14.2GB" }]} />
-        {checkout !== "idle" ? <Alert tone="success" title="Checkout status updated">{checkout}</Alert> : null}
-        <div className="coss-split">
-          <CardFrame>
-            <CardHeader title="Managed capacity envelope" description="Adjust capacity and preview monthly cost." />
-            <CardContent className="coss-form">
-              <Field label={`CPU cores: ${cpu}`}>
-                <input className="coss-input" type="range" min="1" max="16" value={cpu} onChange={(event) => setCpu(Number(event.target.value))} />
-              </Field>
-              <Field label={`Memory GB: ${memory}`}>
-                <input className="coss-input" type="range" min="2" max="64" value={memory} onChange={(event) => setMemory(Number(event.target.value))} />
-              </Field>
-              <Alert tone="info" title="Estimated monthly cost">${(cpu * 18 + memory * 7).toFixed(2)}</Alert>
-              <Button><Save aria-hidden="true" /> Save envelope</Button>
-            </CardContent>
-          </CardFrame>
-          <CardFrame>
-            <CardHeader title="Top up" description="Recharge workspace prepaid balance." />
-            <CardContent className="coss-stack">
-              <Field label="Amount"><input className="coss-input" defaultValue="50" /></Field>
-              <Button onClick={() => setDialog("payment")}>Add payment method</Button>
-              <Button variant="outline" onClick={() => setCheckout("Top-up checkout started")}>Start checkout</Button>
-              <Button variant="outline" onClick={() => setDialog("export")}>Export invoices</Button>
-            </CardContent>
-          </CardFrame>
-        </div>
-        <CardFrame>
-          <CardHeader title="Billing events" description="Usage, top-ups, and managed capacity changes." />
-          <CardContent>
-            <DataTable
-              columns={["Event", "Amount", "Status"]}
-              rows={[{ id: "evt-1", event: "Top-up", amount: "$50.00", status: "posted" }, { id: "evt-2", event: "Runtime usage", amount: "-$6.11", status: "pending" }]}
-              renderRow={(row) => <tr key={row.id}><td>{row.event}</td><td>{row.amount}</td><td><Badge tone={row.status === "posted" ? "success" : "info"}>{row.status}</Badge></td></tr>}
+        {error ? (
+          <Alert tone="destructive" title="Billing unavailable">
+            {error}
+          </Alert>
+        ) : null}
+        {actionError ? (
+          <Alert tone="destructive" title="Billing action failed">
+            {actionError}
+          </Alert>
+        ) : null}
+        {data?.state === "workspace-missing" ? (
+          <Empty title="Billing needs a workspace" description="Create or open a Fugue workspace before changing tenant billing." />
+        ) : null}
+        {loading && !ready ? (
+          <div className="coss-stack-sm">
+            <SkeletonBlock height={72} />
+            <SkeletonBlock height={220} />
+          </div>
+        ) : null}
+        {ready && !billing ? (
+          <Alert tone="warning" title="Billing snapshot unavailable">
+            {ready.data.syncError ?? "Fugue could not load the billing snapshot right now."}
+          </Alert>
+        ) : null}
+        {billing ? (
+          <>
+            <MetricStrip
+              items={[
+                {
+                  label: "Prepaid balance",
+                  value: formatCurrencyMicroCents(billing.balanceMicroCents, currency),
+                  tone: billingStatusTone(billing),
+                },
+                {
+                  label: "Runway",
+                  value: formatRunwayHours(billing.runwayHours),
+                  tone: billing.runwayHours === null ? undefined : billing.runwayHours < 72 ? "warning" : "success",
+                },
+                {
+                  label: "Current usage",
+                  value: `${formatCurrencyMicroCents(billing.hourlyRateMicroCents, currency)}/hr`,
+                },
+                {
+                  label: "Image storage",
+                  value: imageStorageLabel,
+                },
+              ]}
             />
-          </CardContent>
-        </CardFrame>
-        <CardFrame>
-          <CardHeader title="Price book" description="Reference rates used by the estimate." />
-          <CardContent>
-            <DataTable
-              columns={["Resource", "Rate", "Boundary"]}
-              rows={[{ id: "cpu", resource: "CPU core", rate: "$18/mo", boundary: "managed envelope" }, { id: "memory", resource: "Memory GB", rate: "$7/mo", boundary: "managed envelope" }, { id: "image", resource: "Image storage", rate: "$0.08/GB", boundary: "retained images" }]}
-              renderRow={(row) => <tr key={row.id}><td>{row.resource}</td><td>{row.rate}</td><td>{row.boundary}</td></tr>}
-            />
-          </CardContent>
-        </CardFrame>
-        <Alert tone="warning" title="Low balance guard">
-          Workspaces receive a warning before prepaid balance can no longer cover the active envelope.
-        </Alert>
+            {billingSyncError ? (
+              <Alert tone="warning" title="Billing snapshot refreshed with partial live data">
+                {billingSyncError}
+              </Alert>
+            ) : null}
+            <div className="coss-split">
+              <CardFrame>
+                <CardHeader title="Managed capacity envelope" description="Saved CPU, memory, and storage cap for this Fugue tenant." />
+                <CardContent className="coss-form">
+                  <Field label="CPU cores">
+                    <input
+                      className="coss-input"
+                      min={0}
+                      step={0.1}
+                      type="number"
+                      value={cpuCores}
+                      onChange={(event) => {
+                        setDirty(true);
+                        setCpuCores(Number(event.target.value));
+                      }}
+                    />
+                  </Field>
+                  <Field label="Memory GiB">
+                    <input
+                      className="coss-input"
+                      min={0}
+                      step={0.5}
+                      type="number"
+                      value={memoryGiB}
+                      onChange={(event) => {
+                        setDirty(true);
+                        setMemoryGiB(Number(event.target.value));
+                      }}
+                    />
+                  </Field>
+                  <Field label="Storage GiB">
+                    <input
+                      className="coss-input"
+                      min={0}
+                      step={1}
+                      type="number"
+                      value={storageGiB}
+                      onChange={(event) => {
+                        setDirty(true);
+                        setStorageGiB(Number(event.target.value));
+                      }}
+                    />
+                  </Field>
+                  <Alert tone="info" title="Current saved cap">
+                    {formatBillingSpec(billing.managedCap)} · monthly estimate {formatCurrencyMicroCents(billing.monthlyEstimateMicroCents, currency)}
+                  </Alert>
+                  <Button loading={saving} onClick={() => void saveBillingCap()}>
+                    {saving ? null : <Save aria-hidden="true" />}
+                    Save envelope
+                  </Button>
+                </CardContent>
+              </CardFrame>
+              <CardFrame>
+                <CardHeader title="Top up" description="Start a checkout for prepaid balance." />
+                <CardContent className="coss-stack">
+                  <Field label="Amount USD">
+                    <input
+                      className="coss-input"
+                      min={5}
+                      step={1}
+                      type="number"
+                      value={topUpAmount}
+                      onChange={(event) => setTopUpAmount(Number(event.target.value))}
+                    />
+                  </Field>
+                  <Button loading={checkoutLoading} onClick={() => void startCheckout()}>
+                    Start checkout
+                  </Button>
+                  <div className="coss-grid-2">
+                    <DetailMetric label="Status" value={billing.status} />
+                    <DetailMetric label="Updated" value={formatBillingDate(billing.updatedAt)} />
+                  </div>
+                </CardContent>
+              </CardFrame>
+            </div>
+            <CardFrame>
+              <CardHeader title="Billing events" description="Usage, top-ups, and managed capacity changes from Fugue." />
+              <CardContent>
+                {eventRows.length ? (
+                  <DataTable
+                    columns={["Event", "Amount", "Balance", "Created"]}
+                    rows={eventRows}
+                    renderRow={(row) => (
+                      <tr key={row.id}>
+                        <td>
+                          <Badge tone={billingEventTone(row)}>{row.type}</Badge>
+                        </td>
+                        <td>{formatCurrencyMicroCents(row.amountMicroCents, currency)}</td>
+                        <td>{formatCurrencyMicroCents(row.balanceAfterMicroCents, currency)}</td>
+                        <td>{formatBillingDate(row.createdAt)}</td>
+                      </tr>
+                    )}
+                  />
+                ) : (
+                  <Empty title="No billing events yet" description="Fugue returned no tenant billing events for this workspace." />
+                )}
+              </CardContent>
+            </CardFrame>
+            <CardFrame>
+              <CardHeader title="Price book" description="Rates from the current Fugue billing summary." />
+              <CardContent>
+                <DataTable
+                  columns={["Resource", "Rate", "Boundary"]}
+                  rows={[
+                    {
+                      boundary: "Managed CPU usage",
+                      id: "cpu",
+                      rate: `${formatBillingRate(billing.priceBook.cpuMicroCentsPerMillicoreHour * 1000, currency)}/core-hour`,
+                      resource: "CPU core",
+                    },
+                    {
+                      boundary: "Managed memory usage",
+                      id: "memory",
+                      rate: `${formatBillingRate(billing.priceBook.memoryMicroCentsPerMibHour * 1024, currency)}/GiB-hour`,
+                      resource: "Memory GiB",
+                    },
+                    {
+                      boundary: "Managed storage usage",
+                      id: "storage",
+                      rate: `${formatBillingRate(billing.priceBook.storageMicroCentsPerGibHour, currency)}/GiB-hour`,
+                      resource: "Storage GiB",
+                    },
+                  ]}
+                  renderRow={(row) => <tr key={row.id}><td>{row.resource}</td><td>{row.rate}</td><td>{row.boundary}</td></tr>}
+                />
+              </CardContent>
+            </CardFrame>
+          </>
+        ) : null}
       </div>
-      <Dialog title="Payment method" description="Attach a payment method before starting checkout." open={dialog === "payment"} onConfirm={() => setDialog(null)} onClose={() => setDialog(null)} />
-      <Dialog title="Export invoices" description="Download invoice CSV for the selected workspace billing period." open={dialog === "export"} onConfirm={() => setDialog(null)} onClose={() => setDialog(null)} />
     </>
   );
 }
@@ -2324,21 +3261,101 @@ function NodeEnrollmentKeyTable({
   );
 }
 
+type ClusterNodesReadySnapshot = Extract<
+  ConsoleClusterNodesPageSnapshot,
+  { state: "ready" }
+>;
+type ClusterNodeRow = ClusterNodesReadySnapshot["data"]["nodes"][number] & {
+  id: string;
+};
+type OfflineServerRow = ClusterNodesReadySnapshot["data"]["offlineServers"][number] & {
+  id: string;
+};
+
+function findNodeResource(
+  node: ClusterNodesReadySnapshot["data"]["nodes"][number],
+  id: "cpu" | "memory" | "storage",
+) {
+  return node.resources.find((resource) => resource.id === id) ?? null;
+}
+
 export function ServersConsole() {
-  const [drawer, setDrawer] = useState<typeof servers[number] | null>(null);
-  const [confirm, setConfirm] = useState(false);
+  const { data, error, loading, refresh } =
+    useConsolePageSnapshot<ConsoleClusterNodesPageSnapshot>(
+      CONSOLE_CLUSTER_NODES_PAGE_SNAPSHOT_URL,
+      {
+        ttlMs: 15_000,
+      },
+    );
+  const [drawer, setDrawer] = useState<ClusterNodeRow | null>(null);
   const [query, setQuery] = useState("");
-  const [attachCommand, setAttachCommand] = useState(false);
-  const rows = servers.filter((server) => server.id.includes(query) || server.role.includes(query));
+  const ready = data?.state === "ready" ? data : null;
+  const normalizedQuery = query.trim().toLowerCase();
+  const rows: ClusterNodeRow[] = (ready?.data.nodes ?? [])
+    .map((node) => ({
+      ...node,
+      id: node.name,
+    }))
+    .filter((node) => {
+      if (!normalizedQuery) {
+        return true;
+      }
+
+      return [
+        node.name,
+        node.runtimeLabel,
+        node.ownerLabel,
+        node.locationLabel,
+        ...node.roleLabels,
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(normalizedQuery);
+    });
+  const offlineRows: OfflineServerRow[] = (ready?.data.offlineServers ?? []).map((server) => ({
+    ...server,
+    id: server.runtimeId,
+  }));
+
   return (
     <>
       <div className="coss-stack">
-        <MetricStrip items={[{ label: "Servers", value: String(servers.length) }, { label: "Ready", value: "2", tone: "success" }, { label: "Attention", value: "1", tone: "warning" }, { label: "Workloads", value: "27" }]} />
+        {error ? (
+          <Alert tone="destructive" title="Servers unavailable">
+            {error}
+          </Alert>
+        ) : null}
+        {data?.state === "workspace-missing" ? (
+          <Empty title="Workspace is not ready" description="Create or open a Fugue workspace before viewing runtime servers." />
+        ) : null}
+        {loading && !ready ? (
+          <div className="coss-stack-sm">
+            <SkeletonBlock height={72} />
+            <SkeletonBlock height={220} />
+          </div>
+        ) : null}
+        {ready ? (
+          <>
+        <MetricStrip items={[
+          { label: "Servers", value: String(ready.data.summary.nodeCount) },
+          { label: "Ready", value: String(ready.data.summary.readyCount), tone: "success" },
+          { label: "Offline", value: String(ready.data.summary.offlineCount), tone: ready.data.summary.offlineCount ? "warning" : undefined },
+          { label: "Workloads", value: String(ready.data.summary.workloadCount) },
+        ]} />
+        {ready.data.errors.length ? (
+          <Alert tone="warning" title="Server inventory partially loaded">
+            {ready.data.errors.join(" · ")}
+          </Alert>
+        ) : null}
         <CardFrame>
           <CardHeader
             title="Runtime servers"
             description="Heartbeat, roles, pressure signals, capacity, workloads, and runtime access."
-            action={<Button onClick={() => setAttachCommand(true)}>Generate attach command</Button>}
+            action={
+              <ButtonLink href="/app/api-keys" variant="outline" size="sm">
+                Open node keys
+              </ButtonLink>
+            }
           />
           <CardContent className="coss-stack">
             <input className="coss-input" placeholder="Search node" value={query} onChange={(event) => setQuery(event.target.value)} style={{ maxWidth: 260 }} />
@@ -2346,12 +3363,31 @@ export function ServersConsole() {
               <DataTable
                 columns={["Server", "Role", "Ready", "CPU", "Memory", "Actions"]}
                 rows={rows}
-                renderRow={(row) => (
+                renderRow={(row) => {
+                  const cpu = findNodeResource(row, "cpu");
+                  const memory = findNodeResource(row, "memory");
+
+                  return (
                   <tr key={row.id}>
-                    <td className="coss-mono">{row.id}</td><td>{row.role}</td><td><Badge tone={row.ready === "ready" ? "success" : "warning"}>{row.ready}</Badge> <Badge tone="info">pool shared</Badge></td><td><Meter label="cpu" value={row.cpu} /></td><td><Meter label="memory" value={row.memory} /></td>
-                    <td className="coss-table__actions"><Button variant="outline" size="sm" aria-label={`Server details ${row.id}`} onClick={() => setDrawer(row)}>Details</Button></td>
+                    <td>
+                      <strong className="coss-mono">{row.name}</strong>
+                      <div className="coss-help">{row.locationLabel} · {row.runtimeLabel}</div>
+                    </td>
+                    <td>{row.roleLabels.join(", ") || "runtime"}</td>
+                    <td>
+                      <span className="coss-row">
+                        <Badge tone={badgeToneFromConsoleTone(row.statusTone)}>{row.statusLabel}</Badge>
+                        <Badge tone="info">{row.poolMode ?? row.ownership}</Badge>
+                      </span>
+                    </td>
+                    <td><Meter label="cpu" value={cpu?.percentValue ?? 0} /></td>
+                    <td><Meter label="memory" value={memory?.percentValue ?? 0} /></td>
+                    <td className="coss-table__actions">
+                      <Button variant="outline" size="sm" aria-label={`Server details ${row.name}`} onClick={() => setDrawer(row)}>Details</Button>
+                    </td>
                   </tr>
-                )}
+                );
+                }}
               />
             ) : (
               <Empty title="No servers found" description="Clear the search query or attach a new runtime node." />
@@ -2359,19 +3395,61 @@ export function ServersConsole() {
           </CardContent>
         </CardFrame>
         <CardFrame>
-          <CardHeader title="Offline servers" description="Stale runtime records can be cleaned after confirmation." />
-          <CardContent className="coss-row" style={{ justifyContent: "space-between" }}>
-            <span className="coss-mono">old-vps-01</span>
-            <Badge tone="destructive">offline</Badge>
-            <Button variant="destructive" size="sm" onClick={() => setConfirm(true)}>Clear record</Button>
+          <CardHeader title="Offline servers" description="Runtime records that Fugue reports as offline." />
+          <CardContent className="coss-stack">
+            {offlineRows.length ? (
+              <DataTable
+                columns={["Server", "Runtime", "Last contact", "Status"]}
+                rows={offlineRows}
+                renderRow={(row) => (
+                  <tr key={row.id}>
+                    <td className="coss-mono">{row.name}</td>
+                    <td>{row.runtimeLabel}</td>
+                    <td>{row.lastContactLabel}</td>
+                    <td><Badge tone={badgeToneFromConsoleTone(row.statusTone)}>{row.statusLabel}</Badge></td>
+                  </tr>
+                )}
+              />
+            ) : (
+              <Empty title="No offline servers" description="Fugue is not reporting stale runtime server records for this workspace." />
+            )}
           </CardContent>
         </CardFrame>
+          </>
+        ) : null}
       </div>
       <Drawer title={drawer?.id ?? ""} description="Runtime access and pressure details." open={Boolean(drawer)} onClose={() => setDrawer(null)}>
-        {drawer ? <div className="coss-stack"><Meter label="disk" value={drawer.disk} /><CodeBlock>{`fugue node inspect ${drawer.id}\nworkloads: ${drawer.workloads}\nrole: ${drawer.role}`}</CodeBlock><Button variant="destructive">Clear offline record</Button></div> : null}
+        {drawer ? (
+          <div className="coss-stack">
+            <MetricStrip items={[
+              { label: "Apps", value: String(drawer.appCount) },
+              { label: "Services", value: String(drawer.serviceCount) },
+              { label: "Workloads", value: String(drawer.workloadCount) },
+              { label: "Heartbeat", value: drawer.heartbeatLabel },
+            ]} />
+            {drawer.resources.map((resource) => (
+              <Card key={resource.id} muted>
+                <CardContent className="coss-stack-sm">
+                  <strong>{resource.label}</strong>
+                  <Meter label={resource.label} value={resource.percentValue ?? 0} />
+                  <p className="coss-card-description">{resource.detailLabel}</p>
+                  <p className="coss-help">{resource.requestLabel}</p>
+                </CardContent>
+              </Card>
+            ))}
+            <CodeBlock>{JSON.stringify({
+              accessMode: drawer.accessMode,
+              internalIp: drawer.internalIpLabel,
+              machine: drawer.machineLabel,
+              owner: drawer.ownerLabel,
+              publicIp: drawer.publicIpLabel,
+              runtimeId: drawer.runtimeId,
+              runtimeStatus: drawer.runtimeStatusLabel,
+              zone: drawer.zoneLabel,
+            }, null, 2)}</CodeBlock>
+          </div>
+        ) : null}
       </Drawer>
-      <Dialog title="Clear offline server" description="This removes only the stale server record, not a running machine." open={confirm} onConfirm={() => setConfirm(false)} onClose={() => setConfirm(false)} />
-      <Dialog title="Attach runtime server" description="fugue node attach --workspace fugue-production --token fgn_visible_once" open={attachCommand} onConfirm={() => setAttachCommand(false)} onClose={() => setAttachCommand(false)} />
     </>
   );
 }

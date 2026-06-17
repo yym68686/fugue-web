@@ -48,7 +48,7 @@ export default async function HomePage() {
                 { label: "Migration", value: "ready" },
               ]}
             />
-            <CodeBlock>{`fugue import github yym68686/fugue-demo --port 3000\nfugue app logs web --follow\nfugue runtime migrate web --target alicehk2`}</CodeBlock>
+            <CodeBlock>{`fugue import github owner/repo --port 3000\nfugue app logs web --follow\nfugue runtime migrate web --target <runtime-id>`}</CodeBlock>
           </CardContent>
         </CardFrame>
       </section>

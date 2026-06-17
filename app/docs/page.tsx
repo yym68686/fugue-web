@@ -12,7 +12,7 @@ import {
 } from "@/components/coss/ui";
 import { CopyButton } from "@/components/fugue-coss/interactive";
 import { PublicShell } from "@/components/fugue-coss/shells";
-import { docsSections } from "@/lib/fugue-coss/demo-data";
+import { docsSections } from "@/lib/fugue-coss/docs-sections";
 
 export default function DocsPage() {
   return (
