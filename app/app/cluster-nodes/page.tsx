@@ -1,28 +1,15 @@
-import { ConsoleClusterNodesPageShell } from "@/components/console/console-cluster-nodes-page-shell";
-import { getClusterNodesPageData } from "@/lib/cluster-nodes/service";
-import type { ConsoleClusterNodesPageSnapshot } from "@/lib/console/page-snapshot-types";
-import { requireSessionUser } from "@/lib/fugue/product-route";
-import { getRequestLocale } from "@/lib/i18n/server";
+import { PageHeader } from "@/components/coss/ui";
+import { ServersConsole } from "@/components/fugue-coss/interactive";
+import { ConsoleShell } from "@/components/fugue-coss/shells";
 
-export default async function ClusterNodesPage() {
-  let initialSnapshot: ConsoleClusterNodesPageSnapshot | null = null;
-  const { session, user } = await requireSessionUser();
-
-  if (session) {
-    const data = await getClusterNodesPageData(
-      session.email,
-      await getRequestLocale(),
-    );
-    initialSnapshot = data
-      ? {
-          data,
-          isAdmin: user?.isAdmin ?? false,
-          state: "ready",
-        }
-      : {
-          state: "workspace-missing",
-        };
-  }
-
-  return <ConsoleClusterNodesPageShell initialSnapshot={initialSnapshot} />;
+export default function ClusterNodesPage() {
+  return (
+    <ConsoleShell>
+      <PageHeader
+        title="Servers"
+        description="Runtime servers, heartbeat, roles, pressure signals, capacity, workloads, runtime access, sharing, pool state, and offline cleanup."
+      />
+      <ServersConsole />
+    </ConsoleShell>
+  );
 }

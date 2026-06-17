@@ -1,15 +1,5 @@
 import type { ReactNode } from "react";
 
-import { ToastProvider } from "@/components/ui/toast";
-
-import "../console.css";
-import "../console-components.css";
-import "../deploy.css";
-
-export default function NewLayout({
-  children,
-}: {
-  children: ReactNode;
-}) {
-  return <ToastProvider>{children}</ToastProvider>;
+export default function NewProjectLayout({ children }: { children: ReactNode }) {
+  return children;
 }

@@ -5335,6 +5335,7 @@ export interface components {
             record_generation: string;
             answer_policy?: components["schemas"]["DNSAnswerPolicy"];
             candidates?: components["schemas"]["EdgeDNSAnswerCandidate"][];
+            scoped_candidates?: components["schemas"]["EdgeDNSScopedAnswerCandidates"][];
         };
         DNSAnswerPolicy: {
             /** @enum {string} */
@@ -5347,6 +5348,10 @@ export interface components {
             ecs_enabled?: boolean;
             health_required?: boolean;
             route_ready_required?: boolean;
+            /** Format: int32 */
+            exploration_percent?: number;
+            /** Format: int32 */
+            switch_cooldown_seconds?: number;
             region?: string;
             country?: string;
             /** Format: int32 */
@@ -5368,6 +5373,19 @@ export interface components {
             healthy?: boolean;
             route_ready?: boolean;
             tls_ready?: boolean;
+        };
+        EdgeDNSScopedAnswerCandidates: {
+            scope_key: string;
+            country?: string;
+            region?: string;
+            asn?: string;
+            /** @enum {string} */
+            policy_kind?: "global" | "geo" | "weighted" | "latency_aware" | "pinned" | "disabled";
+            reason?: string;
+            selected_edge_group_id?: string;
+            /** Format: date-time */
+            cooldown_until?: string;
+            candidates?: components["schemas"]["EdgeDNSAnswerCandidate"][];
         };
         DNSACMEChallenge: {
             id: string;

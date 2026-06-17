@@ -1,12 +1,5 @@
-import {
-  ConsoleLoadingState,
-  ConsoleProjectGalleryTransitionSkeleton,
-} from "@/components/console/console-page-skeleton";
+import { LoadingPage } from "@/components/fugue-coss/shells";
 
-export default function AppLoading() {
-  return (
-    <ConsoleLoadingState>
-      <ConsoleProjectGalleryTransitionSkeleton />
-    </ConsoleLoadingState>
-  );
+export default function ConsoleLoading() {
+  return <LoadingPage label="Loading console" />;
 }

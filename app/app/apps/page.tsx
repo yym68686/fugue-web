@@ -1,11 +1,15 @@
-import { AdminAppsPageShell } from "@/components/admin/admin-apps-page-shell";
-import { requireAdminPageAccess } from "@/lib/admin/auth";
-import { getAdminAppsPageData } from "@/lib/admin/service";
-import { getRequestLocale } from "@/lib/i18n/server";
+import { PageHeader } from "@/components/coss/ui";
+import { AdminAppsConsole } from "@/components/fugue-coss/interactive";
+import { AdminShell } from "@/components/fugue-coss/shells";
 
-export default async function AppsPage() {
-  await requireAdminPageAccess();
-  const initialSnapshot = await getAdminAppsPageData(await getRequestLocale());
-
-  return <AdminAppsPageShell initialSnapshot={initialSnapshot} />;
+export default function AdminAppsPage() {
+  return (
+    <AdminShell>
+      <PageHeader
+        title="Admin apps"
+        description="Cluster-wide applications, owners, resource usage, routes, phase, runtime, source, tech stack, rebuild, and delete."
+      />
+      <AdminAppsConsole />
+    </AdminShell>
+  );
 }

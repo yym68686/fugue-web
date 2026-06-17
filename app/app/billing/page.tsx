@@ -1,25 +1,15 @@
-import { ConsoleBillingPageShell } from "@/components/console/console-billing-page-shell";
-import { getCurrentSession } from "@/lib/auth/session";
-import { getBillingPageData } from "@/lib/billing/service";
-import type { ConsoleBillingPageSnapshot } from "@/lib/console/page-snapshot-types";
+import { PageHeader } from "@/components/coss/ui";
+import { BillingConsole } from "@/components/fugue-coss/interactive";
+import { ConsoleShell } from "@/components/fugue-coss/shells";
 
-export default async function BillingPage() {
-  let initialSnapshot: ConsoleBillingPageSnapshot | null = null;
-  const session = await getCurrentSession();
-
-  if (session) {
-    const data = await getBillingPageData(session.email, {
-      includeCurrentUsage: false,
-    });
-    initialSnapshot = data
-      ? {
-          data,
-          state: "ready",
-        }
-      : {
-          state: "workspace-missing",
-        };
-  }
-
-  return <ConsoleBillingPageShell initialSnapshot={initialSnapshot} />;
+export default function BillingPage() {
+  return (
+    <ConsoleShell>
+      <PageHeader
+        title="Billing"
+        description="Prepaid balance, managed capacity envelope, image storage, price book, checkout status, and billing events."
+      />
+      <BillingConsole />
+    </ConsoleShell>
+  );
 }

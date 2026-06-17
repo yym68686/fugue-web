@@ -1,11 +1,15 @@
-import { AdminUsersPageShell } from "@/components/admin/admin-users-page-shell";
-import { requireAdminPageAccess } from "@/lib/admin/auth";
-import { getAdminUsersPageData } from "@/lib/admin/service";
-import { getRequestLocale } from "@/lib/i18n/server";
+import { PageHeader } from "@/components/coss/ui";
+import { AdminUsersConsole } from "@/components/fugue-coss/interactive";
+import { AdminShell } from "@/components/fugue-coss/shells";
 
-export default async function UsersPage() {
-  await requireAdminPageAccess();
-  const initialSnapshot = await getAdminUsersPageData(await getRequestLocale());
-
-  return <AdminUsersPageShell initialSnapshot={initialSnapshot} />;
+export default function AdminUsersPage() {
+  return (
+    <AdminShell>
+      <PageHeader
+        title="Admin users"
+        description="User directory, account status, admin state, providers, verification, balance, billing limit, service usage, block, unblock, and delete."
+      />
+      <AdminUsersConsole />
+    </AdminShell>
+  );
 }

@@ -1,44 +1,33 @@
 import { redirect } from "next/navigation";
 
-import { DeployPage } from "@/components/deploy/deploy-page";
-import {
-  getCurrentDeployWorkspaceInventory,
-  getDeployPageShellData,
-} from "@/lib/deploy/page-data";
-import { buildDeployHref, readDeploySearchState } from "@/lib/deploy/query";
+import { Alert, CodeBlock, PageHeader } from "@/components/coss/ui";
+import { NewProjectWizard } from "@/components/fugue-coss/interactive";
+import { NewProjectShell } from "@/components/fugue-coss/shells";
 
-type SearchParams =
-  | Promise<Record<string, string | string[] | undefined>>
-  | Record<string, string | string[] | undefined>;
-
-export default async function NewTemplatePage({
-  params,
-  searchParams,
-}: {
+type TemplatePageProps = {
   params: Promise<{ slug: string }> | { slug: string };
-  searchParams: SearchParams;
-}) {
-  const resolvedParams = await Promise.resolve(params);
-  const resolvedSearchParams = await Promise.resolve(searchParams);
-  const search = readDeploySearchState(resolvedSearchParams);
-  const currentPath = buildDeployHref(`/new/template/${resolvedParams.slug}`, search);
-  const data = await getDeployPageShellData(search);
-  const canonicalSlug = data.inspection?.template?.slug ?? null;
+};
 
-  if (canonicalSlug && canonicalSlug !== resolvedParams.slug) {
-    redirect(buildDeployHref(`/new/template/${canonicalSlug}`, search));
+export default async function TemplateDeployPage({ params }: TemplatePageProps) {
+  const { slug } = await Promise.resolve(params);
+  const canonicalSlug = slug.trim().toLowerCase();
+
+  if (slug !== canonicalSlug) {
+    redirect(`/new/template/${canonicalSlug}`);
   }
 
   return (
-    <DeployPage
-      currentPath={currentPath}
-      requestedTemplateSlug={resolvedParams.slug}
-      routeMode="template"
-      search={search}
-      workspaceInventoryPromise={
-        data.sessionPresent ? getCurrentDeployWorkspaceInventory() : null
-      }
-      {...data}
-    />
+    <NewProjectShell activeStep="Configure">
+      <PageHeader
+        eyebrow="Template deploy"
+        title={`Deploy ${canonicalSlug}`}
+        description="Template metadata, variables, default runtime, and fugue.yaml topology are reviewed before project creation."
+      />
+      <Alert tone="info" title="Canonical template checked">
+        The template slug is resolved before rendering. Missing metadata falls back to the standard repository import path.
+      </Alert>
+      <CodeBlock>{`template: ${canonicalSlug}\nservices:\n  web:\n    port: 3000\n    route: public\n  db:\n    type: postgres\n    failover: managed`}</CodeBlock>
+      <NewProjectWizard template={canonicalSlug} />
+    </NewProjectShell>
   );
 }

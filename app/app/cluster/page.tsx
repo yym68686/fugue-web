@@ -1,12 +1,15 @@
-import { AdminClusterPageShell } from "@/components/admin/admin-cluster-page-shell";
-import { requireAdminPageAccess } from "@/lib/admin/auth";
-import { getAdminClusterPageData } from "@/lib/admin/service";
-import { getRequestLocale } from "@/lib/i18n/server";
+import { PageHeader } from "@/components/coss/ui";
+import { AdminClusterConsole } from "@/components/fugue-coss/interactive";
+import { AdminShell } from "@/components/fugue-coss/shells";
 
-export default async function ClusterPage() {
-  await requireAdminPageAccess();
-  const locale = await getRequestLocale();
-  const initialSnapshot = await getAdminClusterPageData(locale);
-
-  return <AdminClusterPageShell initialSnapshot={initialSnapshot} />;
+export default function AdminClusterPage() {
+  return (
+    <AdminShell>
+      <PageHeader
+        title="Admin cluster"
+        description="Control plane status, runtime nodes, platform join keys, runtime node policy, build allowance, workload placement, and reconcile state."
+      />
+      <AdminClusterConsole />
+    </AdminShell>
+  );
 }

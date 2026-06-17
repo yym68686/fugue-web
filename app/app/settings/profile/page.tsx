@@ -1,5 +1,15 @@
-import { ConsoleProfileSettingsPageShell } from "@/components/console/console-profile-settings-page-shell";
+import { PageHeader } from "@/components/coss/ui";
+import { ProfileSecurity } from "@/components/fugue-coss/interactive";
+import { ConsoleShell } from "@/components/fugue-coss/shells";
 
 export default function ProfileSettingsPage() {
-  return <ConsoleProfileSettingsPageShell />;
+  return (
+    <ConsoleShell>
+      <PageHeader
+        title="Profile and security"
+        description="Display name, account email, active session, connected providers, email links, password, and at-least-one-method protection."
+      />
+      <ProfileSecurity />
+    </ConsoleShell>
+  );
 }
