@@ -7,7 +7,7 @@ export default function ConsoleProjectsPage() {
     <ConsoleShell>
       <PageHeader
         title="Projects"
-        description="Workspace projects, lifecycle state, service count, resource usage, and creation progress."
+        description="Track project lifecycle, workload placement, and resource usage from the live Fugue workspace."
       />
       <ProjectGallery />
     </ConsoleShell>

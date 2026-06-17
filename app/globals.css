@@ -302,6 +302,20 @@ select:disabled {
   line-height: 1.05;
 }
 
+.coss-console-page .coss-page-header {
+  margin-bottom: 14px;
+}
+
+.coss-console-page .coss-page-title {
+  font-size: clamp(24px, 2.2vw, 32px);
+  line-height: 1.1;
+}
+
+.coss-console-page .coss-page-description {
+  max-width: 680px;
+  font-size: 14px;
+}
+
 .coss-page-description {
   max-width: 720px;
   margin: 0;
@@ -740,6 +754,186 @@ select:disabled {
   color: var(--primary-foreground);
 }
 
+.coss-projects-panel {
+  border-radius: 14px;
+}
+
+.coss-projects-content {
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+}
+
+.coss-projects-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.coss-projects-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.coss-projects-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.coss-projects-summary__item {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--muted);
+  padding: 10px 12px;
+}
+
+.coss-projects-summary__item span,
+.coss-projects-summary__item small {
+  overflow: hidden;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.coss-projects-summary__item strong {
+  color: var(--foreground);
+  font-size: 22px;
+  line-height: 1;
+}
+
+.coss-projects-summary__item[data-tone="success"] strong {
+  color: var(--success);
+}
+
+.coss-projects-summary__item[data-tone="warning"] strong {
+  color: var(--warning-strong);
+}
+
+.coss-projects-toolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(160px, 220px) auto minmax(110px, auto);
+  align-items: center;
+  gap: 8px;
+}
+
+.coss-projects-search,
+.coss-projects-select {
+  width: 100%;
+}
+
+.coss-projects-count {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 650;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.coss-projects-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid color-mix(in srgb, var(--info) 24%, var(--status-mix-base));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--info) 7%, var(--status-mix-base));
+  color: var(--muted-foreground);
+  font-size: 12px;
+  padding: 9px 10px;
+}
+
+.coss-project-cell {
+  display: grid;
+  min-width: 180px;
+  gap: 5px;
+}
+
+.coss-project-name {
+  justify-self: start;
+  min-height: 28px;
+  padding-inline: 0;
+}
+
+.coss-project-meta {
+  overflow: hidden;
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.coss-project-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.coss-project-badges span {
+  max-width: 140px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1;
+  padding: 4px 7px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.coss-project-usage {
+  display: flex;
+  min-width: 220px;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.coss-project-usage > span {
+  display: grid;
+  min-width: 70px;
+  gap: 2px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--muted);
+  padding: 6px 8px;
+}
+
+.coss-project-usage span span {
+  color: var(--muted-foreground);
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1;
+}
+
+.coss-project-usage strong {
+  color: var(--foreground);
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.coss-project-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.coss-project-card {
+  display: grid;
+  gap: 12px;
+}
+
 .coss-console-shell {
   display: grid;
   min-height: 100svh;
@@ -1051,6 +1245,23 @@ select:disabled {
   .coss-grid-4 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .coss-projects-summary,
+  .coss-project-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .coss-projects-toolbar {
+    grid-template-columns: minmax(0, 1fr) minmax(150px, 220px);
+  }
+
+  .coss-projects-toolbar .coss-tabs {
+    justify-content: flex-start;
+  }
+
+  .coss-projects-count {
+    text-align: left;
+  }
 }
 
 @media (max-width: 640px) {
@@ -1114,5 +1325,38 @@ select:disabled {
 
   .coss-table__actions {
     white-space: normal;
+  }
+
+  .coss-projects-content {
+    padding: 12px;
+  }
+
+  .coss-projects-header,
+  .coss-projects-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .coss-projects-actions .coss-button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .coss-projects-summary,
+  .coss-projects-toolbar,
+  .coss-project-card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .coss-projects-count {
+    text-align: left;
+  }
+
+  .coss-project-usage {
+    min-width: 0;
+  }
+
+  .coss-project-cell {
+    min-width: 150px;
   }
 }

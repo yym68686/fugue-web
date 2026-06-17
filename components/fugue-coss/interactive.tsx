@@ -33,7 +33,10 @@ import {
   Field,
   Meter,
   MetricStrip,
+  SkeletonBlock,
 } from "@/components/coss/ui";
+import type { ConsoleGalleryProjectView } from "@/lib/console/gallery-types";
+import type { ConsoleTone } from "@/lib/console/types";
 import {
   adminApps,
   adminUsers,
@@ -43,13 +46,16 @@ import {
   imageVersions,
   logLines,
   nodeKeys,
-  projects,
   requests,
   servers,
   services,
-  type Project,
   type Service,
 } from "@/lib/fugue-coss/demo-data";
+import {
+  isAbortRequestError,
+  readRequestError,
+  requestJson,
+} from "@/lib/ui/request-json";
 
 function Drawer({
   title,
@@ -568,92 +574,433 @@ function EnvironmentEditor() {
   );
 }
 
+type ProjectGalleryApiResponse = {
+  errors?: string[];
+  projects?: ConsoleGalleryProjectView[];
+};
+
+type ProjectLifecycleFilter = "running" | "deploying" | "attention" | "empty" | "idle";
+
+type CossBadgeTone = "default" | "success" | "warning" | "destructive" | "info";
+
+type ProjectLifecycleState = {
+  filter: ProjectLifecycleFilter;
+  label: string;
+  tone: ConsoleTone;
+};
+
+type ProjectListItem = {
+  id: string;
+  lifecycle: ProjectLifecycleState;
+  runtimeLabel: string;
+  project: ConsoleGalleryProjectView;
+};
+
+function badgeToneFromConsoleTone(tone: ConsoleTone): CossBadgeTone {
+  if (tone === "positive") return "success";
+  if (tone === "danger") return "destructive";
+  if (tone === "warning") return "warning";
+  if (tone === "info") return "info";
+  return "default";
+}
+
+function statusTextIncludes(value: string, keywords: readonly string[]) {
+  return keywords.some((keyword) => value.includes(keyword));
+}
+
+function readProjectLifecycle(project: ConsoleGalleryProjectView): ProjectLifecycleState {
+  const services = project.services ?? [];
+
+  if (services.length === 0) {
+    return {
+      filter: "empty",
+      label: "Empty",
+      tone: "neutral",
+    };
+  }
+
+  let hasDanger = false;
+  let hasWarning = false;
+  let hasDeploying = false;
+  let hasRunning = false;
+
+  for (const service of services) {
+    const tone = service.kind === "app" ? service.phaseTone : service.statusTone;
+    const status = service.kind === "app" ? service.phase : service.status;
+    const normalized = status.trim().toLowerCase();
+
+    if (tone === "danger") {
+      hasDanger = true;
+    }
+
+    if (tone === "warning") {
+      hasWarning = true;
+    }
+
+    if (
+      tone === "info" ||
+      service.serviceRole === "pending" ||
+      (service.kind === "backing-service" && service.databaseContinuity.live) ||
+      statusTextIncludes(normalized, [
+        "building",
+        "deploying",
+        "importing",
+        "provisioning",
+        "starting",
+        "transferring",
+        "creating",
+      ])
+    ) {
+      hasDeploying = true;
+    }
+
+    if (
+      tone === "positive" ||
+      service.serviceRole === "running" ||
+      statusTextIncludes(normalized, [
+        "active",
+        "completed",
+        "deployed",
+        "healthy",
+        "live",
+        "ready",
+        "running",
+      ])
+    ) {
+      hasRunning = true;
+    }
+  }
+
+  if (hasDanger || hasWarning) {
+    return {
+      filter: "attention",
+      label: "Attention",
+      tone: hasDanger ? "danger" : "warning",
+    };
+  }
+
+  if (hasDeploying) {
+    return {
+      filter: "deploying",
+      label: "Deploying",
+      tone: "info",
+    };
+  }
+
+  if (hasRunning) {
+    return {
+      filter: "running",
+      label: "Running",
+      tone: "positive",
+    };
+  }
+
+  return {
+    filter: "idle",
+    label: "Idle",
+    tone: "neutral",
+  };
+}
+
+function readProjectRuntimeLabel(project: ConsoleGalleryProjectView) {
+  const runtimeLabels = new Set<string>();
+
+  for (const service of project.services ?? []) {
+    const runtimeLabel =
+      service.locationLabel ??
+      (service.kind === "app"
+        ? service.currentRuntimeId ?? service.runtimeId
+        : service.databaseRuntimeId);
+
+    if (runtimeLabel?.trim()) {
+      runtimeLabels.add(runtimeLabel.trim());
+    }
+  }
+
+  if (runtimeLabels.size === 0 && project.defaultRuntimeId?.trim()) {
+    runtimeLabels.add(project.defaultRuntimeId.trim());
+  }
+
+  const labels = [...runtimeLabels];
+
+  if (labels.length === 0) {
+    return "No runtime";
+  }
+
+  if (labels.length === 1) {
+    return labels[0];
+  }
+
+  return `${labels[0]} +${labels.length - 1}`;
+}
+
+function pluralize(count: number, singular: string, plural = `${singular}s`) {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function hasResourceStats(project: ConsoleGalleryProjectView) {
+  return (
+    project.resourceUsageSnapshot.cpuMillicores !== null ||
+    project.resourceUsageSnapshot.memoryBytes !== null ||
+    project.resourceUsageSnapshot.ephemeralStorageBytes !== null
+  );
+}
+
 export function ProjectGallery() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("all");
   const [view, setView] = useState<"table" | "cards">("table");
   const [drawer, setDrawer] = useState(false);
+  const [projects, setProjects] = useState<ConsoleGalleryProjectView[]>([]);
+  const [apiErrors, setApiErrors] = useState<string[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const isRefresh = refreshKey > 0;
+
+    setLoadError(null);
+    setLoading(!isRefresh);
+    setRefreshing(isRefresh);
+
+    requestJson<ProjectGalleryApiResponse>("/api/fugue/console/projects", {
+      cache: "no-store",
+      signal: controller.signal,
+    })
+      .then((data) => {
+        setProjects(data.projects ?? []);
+        setApiErrors(data.errors ?? []);
+      })
+      .catch((error) => {
+        if (isAbortRequestError(error)) {
+          return;
+        }
+
+        setLoadError(readRequestError(error));
+        setProjects([]);
+        setApiErrors([]);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+          setRefreshing(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [refreshKey]);
+
+  const items = useMemo<ProjectListItem[]>(() => {
+    return projects.map((project) => ({
+      id: project.id,
+      lifecycle: readProjectLifecycle(project),
+      project,
+      runtimeLabel: readProjectRuntimeLabel(project),
+    }));
+  }, [projects]);
+
+  const summary = useMemo(() => {
+    return {
+      attention: items.filter((item) => item.lifecycle.filter === "attention").length,
+      deploying: items.filter((item) => item.lifecycle.filter === "deploying").length,
+      projects: items.length,
+      running: items.filter((item) => item.lifecycle.filter === "running").length,
+      services: items.reduce((total, item) => total + item.project.serviceCount, 0),
+      trackedUsage: items.filter((item) => hasResourceStats(item.project)).length,
+    };
+  }, [items]);
+
   const filtered = useMemo(() => {
-    return projects.filter((project) => {
-      const matchesQuery = project.name.toLowerCase().includes(query.toLowerCase());
-      const matchesStatus = status === "all" || project.lifecycle.toLowerCase() === status;
+    const normalizedQuery = query.trim().toLowerCase();
+
+    return items.filter((item) => {
+      const searchable = [
+        item.project.name,
+        item.project.id,
+        item.runtimeLabel,
+        ...item.project.services.map((service) => service.name),
+        ...item.project.serviceBadges.map((badge) => badge.label),
+      ]
+        .join(" ")
+        .toLowerCase();
+      const matchesQuery = !normalizedQuery || searchable.includes(normalizedQuery);
+      const matchesStatus = status === "all" || item.lifecycle.filter === status;
       return matchesQuery && matchesStatus;
     });
-  }, [query, status]);
+  }, [items, query, status]);
 
   return (
     <>
-      <div className="coss-stack">
-        <MetricStrip
-          items={[
-            { label: "Projects", value: String(projects.length) },
-            { label: "Running", value: "2", tone: "success" },
-            { label: "Attention", value: "1", tone: "warning" },
-            { label: "Managed usage", value: "64%" },
-          ]}
-        />
-        <CardFrame>
-          <CardContent className="coss-stack">
-            <div className="coss-row" style={{ justifyContent: "space-between" }}>
-              <div className="coss-row">
-                <input
-                  className="coss-input"
-                  aria-label="Search projects"
-                  placeholder="Search projects"
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  style={{ width: 240 }}
-                />
-                <select className="coss-select" aria-label="Filter lifecycle" value={status} onChange={(event) => setStatus(event.target.value)}>
-                  <option value="all">All lifecycle</option>
-                  <option value="running">Running</option>
-                  <option value="deploying">Deploying</option>
-                  <option value="attention">Attention</option>
-                </select>
-                <div className="coss-tabs" aria-label="View switch">
-                  <button className="coss-tab" aria-selected={view === "table"} onClick={() => setView("table")}>
-                    Table
-                  </button>
-                  <button className="coss-tab" aria-selected={view === "cards"} onClick={() => setView("cards")}>
-                    Cards
-                  </button>
-                </div>
-              </div>
-              <Button onClick={() => setDrawer(true)}>
+      <CardFrame className="coss-projects-panel">
+        <CardContent className="coss-projects-content">
+          <header className="coss-projects-header">
+            <div>
+              <h2 className="coss-card-title">Project inventory</h2>
+              <p className="coss-card-description">
+                Live workspace projects, workloads, runtime placement, and resource totals.
+              </p>
+            </div>
+            <div className="coss-projects-actions">
+              <Button
+                variant="outline"
+                size="sm"
+                loading={refreshing}
+                onClick={() => setRefreshKey((value) => value + 1)}
+              >
+                {refreshing ? null : <RotateCcw aria-hidden="true" />}
+                Refresh
+              </Button>
+              <Button size="sm" onClick={() => setDrawer(true)}>
                 <Plus aria-hidden="true" />
                 New project
               </Button>
             </div>
-            <Alert tone="info" title="Project creation in progress">
-              `atlas-api` is importing its first service and will move into the table when the operation finishes.
-            </Alert>
-            {filtered.length && view === "table" ? (
-              <DataTable
-                columns={["Project", "Lifecycle", "Runtime", "Usage", "Actions"]}
-                rows={filtered}
-                renderRow={(project) => <ProjectRow key={project.id} project={project} />}
-              />
-            ) : null}
-            {filtered.length && view === "cards" ? (
-              <div className="coss-grid-3">
-                {filtered.map((project) => (
-                  <Card key={project.id}>
-                    <CardContent className="coss-stack-sm">
-                      <Badge tone={project.lifecycle === "Running" ? "success" : project.lifecycle === "Attention" ? "warning" : "info"}>{project.lifecycle}</Badge>
-                      <strong>{project.name}</strong>
-                      <p className="coss-card-description">{project.runtime} · {project.services} services</p>
-                      <Meter label="resource" value={project.usage} />
-                      <ButtonLink href={`/app/projects/${project.id}`} variant="outline" size="sm">Open</ButtonLink>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+          </header>
+
+          <div className="coss-projects-summary" aria-label="Project summary">
+            {loading ? (
+              <>
+                <SkeletonBlock height={54} />
+                <SkeletonBlock height={54} />
+                <SkeletonBlock height={54} />
+                <SkeletonBlock height={54} />
+              </>
             ) : (
-              filtered.length ? null : <Empty title="No projects match this filter" description="Clear search or create a new project." />
+              [
+                { detail: `${filtered.length} shown`, label: "Projects", value: String(summary.projects) },
+                { detail: `${summary.trackedUsage} reporting usage`, label: "Services", value: String(summary.services) },
+                { detail: "live projects", label: "Running", tone: "success" as const, value: String(summary.running) },
+                { detail: "needs review", label: "Attention", tone: summary.attention > 0 ? "warning" as const : "default" as const, value: String(summary.attention) },
+              ].map((metric) => (
+                <div className="coss-projects-summary__item" data-tone={metric.tone ?? "default"} key={metric.label}>
+                  <span>{metric.label}</span>
+                  <strong>{metric.value}</strong>
+                  <small>{metric.detail}</small>
+                </div>
+              ))
             )}
-          </CardContent>
-        </CardFrame>
-      </div>
+          </div>
+
+          <div className="coss-projects-toolbar" aria-label="Project filters">
+            <input
+              className="coss-input coss-projects-search"
+              aria-label="Search projects"
+              placeholder="Search projects"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+            <select
+              className="coss-select coss-projects-select"
+              aria-label="Filter lifecycle"
+              value={status}
+              onChange={(event) => setStatus(event.target.value)}
+            >
+              <option value="all">All lifecycle</option>
+              <option value="running">Running</option>
+              <option value="deploying">Deploying</option>
+              <option value="attention">Attention</option>
+              <option value="empty">Empty</option>
+              <option value="idle">Idle</option>
+            </select>
+            <div className="coss-tabs" role="tablist" aria-label="Project view">
+              <button
+                className="coss-tab"
+                type="button"
+                role="tab"
+                aria-selected={view === "table"}
+                onClick={() => setView("table")}
+              >
+                Table
+              </button>
+              <button
+                className="coss-tab"
+                type="button"
+                role="tab"
+                aria-selected={view === "cards"}
+                onClick={() => setView("cards")}
+              >
+                Cards
+              </button>
+            </div>
+            <span className="coss-projects-count">
+              {loading ? "Loading" : `${pluralize(filtered.length, "project")} shown`}
+            </span>
+          </div>
+
+          {apiErrors.length ? (
+            <Alert tone="warning" title="Inventory partially loaded">
+              {apiErrors.join(" · ")}
+            </Alert>
+          ) : null}
+
+          {summary.deploying > 0 ? (
+            <div className="coss-projects-notice" role="status">
+              <Badge tone="info">In progress</Badge>
+              <span>{pluralize(summary.deploying, "project")} currently importing, building, or deploying.</span>
+            </div>
+          ) : null}
+
+          {loadError ? (
+            <Alert tone="destructive" title="Project inventory unavailable">
+              {loadError}
+            </Alert>
+          ) : null}
+
+          {loading ? (
+            <div className="coss-stack-sm" aria-label="Loading projects">
+              <SkeletonBlock height={40} />
+              <SkeletonBlock height={48} />
+              <SkeletonBlock height={48} />
+              <SkeletonBlock height={48} />
+            </div>
+          ) : null}
+
+          {!loading && !loadError && filtered.length && view === "table" ? (
+            <DataTable
+              columns={["Project", "Lifecycle", "Workloads", "Runtime", "Usage", "Actions"]}
+              rows={filtered}
+              renderRow={(item) => <ProjectRow key={item.project.id} item={item} />}
+            />
+          ) : null}
+
+          {!loading && !loadError && filtered.length && view === "cards" ? (
+            <div className="coss-project-card-grid">
+              {filtered.map((item) => (
+                <Card key={item.project.id}>
+                  <CardContent className="coss-project-card">
+                    <div className="coss-row" style={{ justifyContent: "space-between" }}>
+                      <Badge tone={badgeToneFromConsoleTone(item.lifecycle.tone)}>{item.lifecycle.label}</Badge>
+                      <span className="coss-help">{pluralize(item.project.serviceCount, "service")}</span>
+                    </div>
+                    <div>
+                      <strong>{item.project.name}</strong>
+                      <p className="coss-card-description">
+                        {pluralize(item.project.appCount, "app")} · {item.runtimeLabel}
+                      </p>
+                    </div>
+                    <ProjectUsage project={item.project} />
+                    <ProjectBadges project={item.project} />
+                    <ButtonLink href={`/app/projects/${item.project.id}`} variant="outline" size="sm">
+                      Open
+                    </ButtonLink>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : null}
+
+          {!loading && !loadError && filtered.length === 0 ? (
+            <Empty
+              title={projects.length === 0 ? "No projects yet" : "No projects match this filter"}
+              description={projects.length === 0 ? "Create a project from a repository, image, or upload." : "Clear search or adjust the lifecycle filter."}
+              action={<Button onClick={() => setDrawer(true)}>New project</Button>}
+            />
+          ) : null}
+        </CardContent>
+      </CardFrame>
       <Drawer title="Create project" open={drawer} onClose={() => setDrawer(false)}>
         <div className="coss-stack">
           <Alert tone="info" title="Full creation flow">
@@ -666,18 +1013,68 @@ export function ProjectGallery() {
   );
 }
 
-function ProjectRow({ project }: { project: Project }) {
-  const tone = project.lifecycle === "Running" ? "success" : project.lifecycle === "Attention" ? "warning" : "info";
+function ProjectBadges({ project }: { project: ConsoleGalleryProjectView }) {
+  const badges = project.serviceBadges.slice(0, 4);
+
+  if (badges.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="coss-project-badges" aria-label="Service badges">
+      {badges.map((badge) => (
+        <span key={badge.id} title={badge.meta}>
+          {badge.label}
+        </span>
+      ))}
+      {project.serviceBadges.length > badges.length ? (
+        <span>+{project.serviceBadges.length - badges.length}</span>
+      ) : null}
+    </div>
+  );
+}
+
+function ProjectUsage({ project }: { project: ConsoleGalleryProjectView }) {
+  const items = project.resourceUsage
+    .filter((item) => item.primaryLabel !== "No stats")
+    .slice(0, 3);
+
+  if (items.length === 0) {
+    return <span className="coss-muted">No usage stats</span>;
+  }
+
+  return (
+    <div className="coss-project-usage" aria-label="Project resource usage">
+      {items.map((item) => (
+        <span key={item.id} title={item.title}>
+          <span>{item.label}</span>
+          <strong>{item.primaryLabel}</strong>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function ProjectRow({ item }: { item: ProjectListItem }) {
+  const { lifecycle, project, runtimeLabel } = item;
+
   return (
     <tr>
       <td>
-        <ButtonLink href={`/app/projects/${project.id}`} variant="ghost" size="sm">
-          {project.name}
-        </ButtonLink>
+        <div className="coss-project-cell">
+          <ButtonLink href={`/app/projects/${project.id}`} variant="ghost" size="sm" className="coss-project-name">
+            {project.name}
+          </ButtonLink>
+          <span className="coss-project-meta">
+            {project.id} · {pluralize(project.appCount, "app")}
+          </span>
+          <ProjectBadges project={project} />
+        </div>
       </td>
-      <td><Badge tone={tone}>{project.lifecycle}</Badge></td>
-      <td className="coss-mono">{project.runtime}</td>
-      <td><Meter label="resource" value={project.usage} /></td>
+      <td><Badge tone={badgeToneFromConsoleTone(lifecycle.tone)}>{lifecycle.label}</Badge></td>
+      <td>{pluralize(project.serviceCount, "service")}</td>
+      <td className="coss-mono">{runtimeLabel}</td>
+      <td><ProjectUsage project={project} /></td>
       <td className="coss-table__actions">
         <ButtonLink href={`/app/projects/${project.id}`} variant="outline" size="sm">
           Open
