@@ -116,16 +116,6 @@ export const requests = [
   { id: "req-03", path: "GET /dashboard", status: 200, latency: "65 ms" },
 ];
 
-export const apiKeys = [
-  { id: "key-admin", name: "workspace-admin", scopes: "workspace:*", status: "active", lastUsed: "2 min ago" },
-  { id: "key-ci", name: "github-actions", scopes: "apps:deploy", status: "active", lastUsed: "1 hour ago" },
-];
-
-export const nodeKeys = [
-  { id: "node-us-west", name: "us-west-enroll", status: "active", servers: 2, created: "Jun 12" },
-  { id: "node-eu", name: "eu-enroll", status: "revoked", servers: 0, created: "May 28" },
-];
-
 export const servers = [
   { id: "ovhvpsuswest", role: "control-plane", ready: "ready", cpu: 31, memory: 47, disk: 52, workloads: 5 },
   { id: "ovhuseast", role: "runtime", ready: "ready", cpu: 44, memory: 61, disk: 33, workloads: 9 },

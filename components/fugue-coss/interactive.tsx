@@ -40,6 +40,7 @@ import type {
   ConsoleGalleryProjectView,
 } from "@/lib/console/gallery-types";
 import {
+  CONSOLE_API_KEYS_PAGE_SNAPSHOT_URL,
   CONSOLE_ADMIN_APPS_PAGE_SNAPSHOT_URL,
   CONSOLE_ADMIN_CLUSTER_PAGE_SNAPSHOT_URL,
   CONSOLE_ADMIN_USERS_PAGE_SNAPSHOT_URL,
@@ -48,17 +49,16 @@ import {
   type ConsoleAdminAppsPageSnapshot,
   type ConsoleAdminClusterPageSnapshot,
   type ConsoleAdminUsersPageSnapshot,
+  type ConsoleApiKeysPageSnapshot,
   useConsolePageSnapshot,
 } from "@/lib/console/page-snapshot-client";
 import type { ConsoleProfileSettingsPageSnapshot } from "@/lib/console/page-snapshot-types";
 import type { ConsoleTone } from "@/lib/console/types";
 import {
-  apiKeys,
   envRows,
   fileTree,
   imageVersions,
   logLines,
-  nodeKeys,
   requests,
   servers,
   services,
@@ -1613,71 +1613,708 @@ export function BillingConsole() {
   );
 }
 
+type ReadyAccessKeysSnapshot = Extract<
+  ConsoleApiKeysPageSnapshot,
+  { state: "ready" }
+>;
+type WorkspaceApiKey = ReadyAccessKeysSnapshot["apiKeys"]["keys"][number];
+type NodeEnrollmentKey = ReadyAccessKeysSnapshot["nodeKeys"]["keys"][number];
+type SecretPanelState = {
+  description: string;
+  title: string;
+  value: string;
+};
+type AccessKeyConfirmState = {
+  action: () => Promise<void>;
+  confirmLabel: string;
+  description: string;
+  title: string;
+};
+
+function formatKeyTimestamp(value?: string | null, fallback = "Never") {
+  if (!value) {
+    return fallback;
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return fallback;
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
+
+function formatKeyScopes(scopes: string[]) {
+  return scopes.length ? scopes.join(", ") : "No scopes";
+}
+
+function formatAttachedVpsCount(value: number | null) {
+  if (value === null) {
+    return "Syncing";
+  }
+
+  return `${value} VPS`;
+}
+
+function keyStatusTone(status: string): CossBadgeTone {
+  if (status === "active") return "success";
+  if (status === "disabled") return "warning";
+  return "destructive";
+}
+
+function buildNodeJoinCommand(apiBaseUrl: string, secret: string) {
+  const baseUrl = apiBaseUrl.replace(/\/$/, "");
+
+  return [
+    `curl -fsSL ${baseUrl}/install/join-cluster.sh | \\`,
+    `  sudo FUGUE_NODE_KEY='${secret}' \\`,
+    "  bash",
+  ].join("\n");
+}
+
 export function AccessKeysConsole() {
-  const [drawer, setDrawer] = useState<string | null>(null);
-  const [secret, setSecret] = useState<string | null>(null);
+  const { data, error, loading, refresh } =
+    useConsolePageSnapshot<ConsoleApiKeysPageSnapshot>(
+      CONSOLE_API_KEYS_PAGE_SNAPSHOT_URL,
+      {
+        ttlMs: 15_000,
+      },
+    );
+  const [createNodeOpen, setCreateNodeOpen] = useState(false);
+  const [nodeLabel, setNodeLabel] = useState("");
+  const [renameNode, setRenameNode] = useState<NodeEnrollmentKey | null>(null);
+  const [renameLabel, setRenameLabel] = useState("");
+  const [secretPanel, setSecretPanel] = useState<SecretPanelState | null>(null);
+  const [confirm, setConfirm] = useState<AccessKeyConfirmState | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const toast = useToast();
+  const ready = data?.state === "ready" ? data : null;
+  const initialLoading = loading && !data;
+
+  async function refreshAccessKeys() {
+    invalidateConsolePageSnapshot(CONSOLE_API_KEYS_PAGE_SNAPSHOT_URL);
+    await refresh({ force: true });
+  }
+
+  async function runKeyAction<T>(
+    key: string,
+    action: () => Promise<T>,
+  ) {
+    setBusy(key);
+    setActionError(null);
+
+    try {
+      return await action();
+    } catch (nextError) {
+      setActionError(readRequestError(nextError));
+      return null;
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function revealApiKeySecret(row: WorkspaceApiKey) {
+    const result = await runKeyAction(
+      `api-secret:${row.id}`,
+      () =>
+        requestJson<{ secret: string }>(
+          `/api/fugue/api-keys/${encodeURIComponent(row.id)}/secret`,
+          {
+            cache: "no-store",
+          },
+        ),
+    );
+
+    if (!result) {
+      return;
+    }
+
+    setSecretPanel({
+      description: "Copy this API key into your local Fugue CLI or CI secret store.",
+      title: `${row.label} secret`,
+      value: result.secret,
+    });
+  }
+
+  async function rotateApiKey(row: WorkspaceApiKey) {
+    const result = await runKeyAction(
+      `api-rotate:${row.id}`,
+      () =>
+        requestJson<{ key: WorkspaceApiKey; secret?: string }>(
+          `/api/fugue/api-keys/${encodeURIComponent(row.id)}/rotate`,
+          {
+            cache: "no-store",
+            method: "POST",
+          },
+        ),
+    );
+
+    if (!result) {
+      return;
+    }
+
+    if (result.secret) {
+      setSecretPanel({
+        description: "Copy this rotated API key before closing the panel.",
+        title: `${result.key.label} rotated secret`,
+        value: result.secret,
+      });
+    }
+
+    await refreshAccessKeys();
+    toast.notify("API key rotated.");
+  }
+
+  async function toggleApiKey(row: WorkspaceApiKey) {
+    const endpoint = row.status === "disabled" ? "enable" : "disable";
+    const result = await runKeyAction(
+      `api-toggle:${row.id}`,
+      () =>
+        requestJson<{ key: WorkspaceApiKey }>(
+          `/api/fugue/api-keys/${encodeURIComponent(row.id)}/${endpoint}`,
+          {
+            cache: "no-store",
+            method: "POST",
+          },
+        ),
+    );
+
+    if (!result) {
+      return;
+    }
+
+    await refreshAccessKeys();
+    toast.notify(row.status === "disabled" ? "API key enabled." : "API key disabled.");
+  }
+
+  async function deleteApiKey(row: WorkspaceApiKey) {
+    const result = await runKeyAction(
+      `api-delete:${row.id}`,
+      () =>
+        requestJson<{ key: WorkspaceApiKey }>(
+          `/api/fugue/api-keys/${encodeURIComponent(row.id)}`,
+          {
+            cache: "no-store",
+            method: "DELETE",
+          },
+        ),
+    );
+
+    if (!result) {
+      return;
+    }
+
+    await refreshAccessKeys();
+    toast.notify("API key deleted.");
+  }
+
+  async function provisionWorkspaceKey() {
+    const result = await runKeyAction(
+      "api-create",
+      () =>
+        requestJson<{ key: WorkspaceApiKey; secret: string }>("/api/fugue/api-keys", {
+          cache: "no-store",
+          method: "POST",
+        }),
+    );
+
+    if (!result) {
+      return;
+    }
+
+    setSecretPanel({
+      description: "Copy this workspace API key before closing the panel.",
+      title: `${result.key.label} secret`,
+      value: result.secret,
+    });
+    await refreshAccessKeys();
+  }
+
+  async function revealNodeJoinCommand(row: NodeEnrollmentKey) {
+    const result = await runKeyAction(
+      `node-secret:${row.id}`,
+      () =>
+        requestJson<{ secret: string }>(
+          `/api/fugue/node-keys/${encodeURIComponent(row.id)}/secret`,
+          {
+            cache: "no-store",
+          },
+        ),
+    );
+
+    if (!result || !ready) {
+      return;
+    }
+
+    setSecretPanel({
+      description: "Run this command on the VPS you want to attach to this workspace.",
+      title: `${row.label} join command`,
+      value: buildNodeJoinCommand(ready.apiBaseUrl, result.secret),
+    });
+  }
+
+  async function createNodeKey() {
+    const label = nodeLabel.trim();
+    const result = await runKeyAction(
+      "node-create",
+      () =>
+        requestJson<{ key: NodeEnrollmentKey; secret: string }>("/api/fugue/node-keys", {
+          body: JSON.stringify(label ? { label } : {}),
+          cache: "no-store",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          method: "POST",
+        }),
+    );
+
+    if (!result || !ready) {
+      return;
+    }
+
+    setCreateNodeOpen(false);
+    setNodeLabel("");
+    setSecretPanel({
+      description: "Run this command on the VPS you want to attach to this workspace.",
+      title: `${result.key.label} join command`,
+      value: buildNodeJoinCommand(ready.apiBaseUrl, result.secret),
+    });
+    await refreshAccessKeys();
+  }
+
+  async function saveNodeRename() {
+    if (!renameNode) {
+      return;
+    }
+
+    const result = await runKeyAction(
+      `node-rename:${renameNode.id}`,
+      () =>
+        requestJson<{ key: NodeEnrollmentKey }>(
+          `/api/fugue/node-keys/${encodeURIComponent(renameNode.id)}`,
+          {
+            body: JSON.stringify({ label: renameLabel }),
+            cache: "no-store",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            method: "PATCH",
+          },
+        ),
+    );
+
+    if (!result) {
+      return;
+    }
+
+    setRenameNode(null);
+    setRenameLabel("");
+    await refreshAccessKeys();
+    toast.notify("Node key renamed.");
+  }
+
+  async function revokeNodeKey(row: NodeEnrollmentKey) {
+    const result = await runKeyAction(
+      `node-revoke:${row.id}`,
+      () =>
+        requestJson<{ key: NodeEnrollmentKey }>(
+          `/api/fugue/node-keys/${encodeURIComponent(row.id)}/revoke`,
+          {
+            cache: "no-store",
+            method: "POST",
+          },
+        ),
+    );
+
+    if (!result) {
+      return;
+    }
+
+    await refreshAccessKeys();
+    toast.notify("Node key revoked.");
+  }
+
+  async function runConfirm() {
+    const nextConfirm = confirm;
+
+    if (!nextConfirm) {
+      return;
+    }
+
+    await nextConfirm.action();
+    setConfirm(null);
+  }
 
   return (
     <>
       <Toast message={toast.message} />
       <div className="coss-stack">
-        <KeyTable title="Workspace API keys" createLabel="Create workspace API key" rows={apiKeys} onCreate={() => setDrawer("Create API key")} onSecret={() => setSecret("fgw_live_••••_copy_once")} />
-        <KeyTable title="Node enrollment keys" createLabel="Create node enrollment key" rows={nodeKeys.map((item) => ({ id: item.id, name: item.name, scopes: `${item.servers} servers`, status: item.status, lastUsed: item.created }))} onCreate={() => setDrawer("Create node key")} onSecret={() => setSecret("fgn_join_••••_copy_once")} />
+        {error ? (
+          <Alert tone="destructive" title="Fugue could not load access keys right now.">
+            {error}
+          </Alert>
+        ) : null}
+        {actionError ? (
+          <Alert tone="destructive" title="The access key operation failed.">
+            {actionError}
+          </Alert>
+        ) : null}
+        {initialLoading ? (
+          <>
+            <CardFrame>
+              <CardHeader title="Workspace API keys" description="Loading workspace access keys." />
+              <CardContent className="coss-stack-sm">
+                <SkeletonBlock height={42} />
+                <SkeletonBlock height={42} />
+                <SkeletonBlock height={42} />
+              </CardContent>
+            </CardFrame>
+            <CardFrame>
+              <CardHeader title="Node enrollment keys" description="Loading reusable VPS enrollment keys." />
+              <CardContent className="coss-stack-sm">
+                <SkeletonBlock height={42} />
+                <SkeletonBlock height={42} />
+                <SkeletonBlock height={42} />
+              </CardContent>
+            </CardFrame>
+          </>
+        ) : data?.state === "workspace-missing" ? (
+          <CardFrame>
+            <CardContent>
+              <Empty
+                title="Workspace is not ready"
+                description="Create or open a Fugue workspace before managing API keys and node enrollment keys."
+              />
+            </CardContent>
+          </CardFrame>
+        ) : ready ? (
+          <>
+            {ready.apiKeys.syncError ? (
+              <Alert tone="warning" title="Showing stored API key metadata while live sync is unavailable.">
+                {ready.apiKeys.syncError}
+              </Alert>
+            ) : null}
+            {ready.nodeKeys.syncError ? (
+              <Alert tone="warning" title="Showing stored node key metadata while live sync is unavailable.">
+                {ready.nodeKeys.syncError}
+              </Alert>
+            ) : null}
+            <WorkspaceApiKeyTable
+              keys={ready.apiKeys.keys}
+              busy={busy}
+              onDelete={(row) =>
+                setConfirm({
+                  action: () => deleteApiKey(row),
+                  confirmLabel: "Delete key",
+                  description: `${row.label} will stop working for API and CLI calls.`,
+                  title: "Delete API key?",
+                })
+              }
+              onProvision={provisionWorkspaceKey}
+              onReveal={revealApiKeySecret}
+              onRotate={rotateApiKey}
+              onToggle={toggleApiKey}
+            />
+            <NodeEnrollmentKeyTable
+              keys={ready.nodeKeys.keys}
+              busy={busy}
+              onCreate={() => setCreateNodeOpen(true)}
+              onReveal={revealNodeJoinCommand}
+              onRename={(row) => {
+                setRenameNode(row);
+                setRenameLabel(row.label);
+              }}
+              onRevoke={(row) =>
+                setConfirm({
+                  action: () => revokeNodeKey(row),
+                  confirmLabel: "Revoke key",
+                  description: `${row.label} will no longer enroll new VPS nodes. Existing attached nodes are not renamed here.`,
+                  title: "Revoke node key?",
+                })
+              }
+            />
+          </>
+        ) : null}
       </div>
-      <Drawer title={drawer ?? ""} open={Boolean(drawer)} onClose={() => setDrawer(null)}>
+      <Drawer
+        title="Create node enrollment key"
+        description="Create a reusable key for attaching a VPS to this workspace."
+        open={createNodeOpen}
+        onClose={() => setCreateNodeOpen(false)}
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setCreateNodeOpen(false)}>
+              Cancel
+            </Button>
+            <Button loading={busy === "node-create"} onClick={createNodeKey}>
+              Create node key
+            </Button>
+          </>
+        }
+      >
         <div className="coss-form">
-          <Field label="Name"><input className="coss-input" defaultValue={drawer?.includes("node") ? "new-server" : "workspace-admin"} /></Field>
-          <Field label="Scopes"><input className="coss-input" defaultValue={drawer?.includes("node") ? "server:enroll" : "workspace:*"} /></Field>
-          <Button onClick={() => {
-            setSecret(drawer?.includes("node") ? "fugue node enroll --key fgn_join_123" : "fgp_live_visible_once");
-            setDrawer(null);
-          }}>Create key</Button>
+          <Field label="Name" help="Leave blank to let Fugue generate the node key label.">
+            <input
+              className="coss-input"
+              value={nodeLabel}
+              onChange={(event) => setNodeLabel(event.target.value)}
+              placeholder="node"
+            />
+          </Field>
         </div>
       </Drawer>
+      <Drawer
+        title="Rename node key"
+        description={renameNode ? `Update the display name for ${renameNode.id}.` : undefined}
+        open={Boolean(renameNode)}
+        onClose={() => setRenameNode(null)}
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setRenameNode(null)}>
+              Cancel
+            </Button>
+            <Button
+              loading={renameNode ? busy === `node-rename:${renameNode.id}` : false}
+              disabled={!renameLabel.trim()}
+              onClick={saveNodeRename}
+            >
+              Save name
+            </Button>
+          </>
+        }
+      >
+        <div className="coss-form">
+          <Field label="Name">
+            <input
+              className="coss-input"
+              value={renameLabel}
+              onChange={(event) => setRenameLabel(event.target.value)}
+            />
+          </Field>
+        </div>
+      </Drawer>
+      <Drawer
+        title={secretPanel?.title ?? ""}
+        description={secretPanel?.description}
+        open={Boolean(secretPanel)}
+        onClose={() => setSecretPanel(null)}
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setSecretPanel(null)}>
+              Close
+            </Button>
+            <Button
+              onClick={() => {
+                if (secretPanel) {
+                  copyText(secretPanel.value, toast.notify);
+                }
+              }}
+            >
+              <Copy aria-hidden="true" />
+              Copy
+            </Button>
+          </>
+        }
+      >
+        {secretPanel ? <CodeBlock>{secretPanel.value}</CodeBlock> : null}
+      </Drawer>
       <Dialog
-        title="Reveal / rotate key"
-        description={secret ?? ""}
-        open={Boolean(secret)}
-        confirmLabel="Copy and close"
-        onConfirm={() => {
-          if (secret) copyText(secret, toast.notify);
-          setSecret(null);
-        }}
-        onClose={() => setSecret(null)}
+        title={confirm?.title ?? ""}
+        description={confirm?.description ?? ""}
+        open={Boolean(confirm)}
+        confirmLabel={confirm?.confirmLabel ?? "Confirm"}
+        confirmLoading={Boolean(confirm && busy !== null)}
+        onConfirm={() => void runConfirm()}
+        onClose={() => setConfirm(null)}
       />
     </>
   );
 }
 
-function KeyTable({
-  title,
-  createLabel,
-  rows,
-  onCreate,
-  onSecret,
+function WorkspaceApiKeyTable({
+  keys,
+  busy,
+  onDelete,
+  onProvision,
+  onReveal,
+  onRotate,
+  onToggle,
 }: {
-  title: string;
-  createLabel: string;
-  rows: Array<{ id: string; name: string; scopes: string; status: string; lastUsed: string }>;
-  onCreate: () => void;
-  onSecret: () => void;
+  keys: WorkspaceApiKey[];
+  busy: string | null;
+  onDelete: (row: WorkspaceApiKey) => void;
+  onProvision: () => void;
+  onReveal: (row: WorkspaceApiKey) => void;
+  onRotate: (row: WorkspaceApiKey) => void;
+  onToggle: (row: WorkspaceApiKey) => void;
 }) {
   return (
     <CardFrame>
-      <CardHeader title={title} description="Create, rotate, disable, revoke, and copy join commands." action={<Button onClick={onCreate}>{createLabel}</Button>} />
+      <CardHeader
+        title="Workspace API keys"
+        description="Real Fugue API keys for this workspace. Workspace admin keys are protected from disable/delete."
+        action={
+          !keys.length ? (
+            <Button loading={busy === "api-create"} onClick={onProvision}>
+              Provision workspace key
+            </Button>
+          ) : null
+        }
+      />
       <CardContent>
-        {!rows.length ? <Empty title="No keys" description="Create a key to enable API or server enrollment access." /> : null}
+        {!keys.length ? (
+          <Empty
+            title="No API keys"
+            description="Provision the workspace admin key before using the Fugue CLI or API from this account."
+          />
+        ) : null}
         <DataTable
           columns={["Name", "Scopes", "Status", "Last used", "Actions"]}
-          rows={rows}
+          rows={keys}
           renderRow={(row) => (
             <tr key={row.id}>
-              <td>{row.name}</td><td className="coss-mono">{row.scopes}</td><td><Badge tone={row.status === "active" ? "success" : "destructive"}>{row.status}</Badge></td><td>{row.lastUsed}</td>
+              <td>
+                <strong>{row.label}</strong>
+                <div className="coss-help coss-mono">
+                  {row.prefix ? `${row.prefix}...` : row.id}
+                </div>
+              </td>
+              <td className="coss-mono">{formatKeyScopes(row.scopes)}</td>
+              <td>
+                <span className="coss-row">
+                  <Badge tone={keyStatusTone(row.status)}>{row.status}</Badge>
+                  {row.isWorkspaceAdmin ? <Badge tone="info">workspace admin</Badge> : null}
+                </span>
+              </td>
+              <td>{formatKeyTimestamp(row.lastUsedAt)}</td>
               <td className="coss-table__actions">
-                <Button variant="outline" size="sm" aria-label={`Reveal or rotate ${row.name}`} onClick={onSecret}>Reveal / rotate</Button>
-                <Button variant="outline" size="sm" aria-label={`Enable or disable ${row.name}`}>Enable / disable</Button>
-                <Button variant="destructive" size="sm" aria-label={`Delete or revoke ${row.name}`}>Delete / revoke</Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!row.canCopy}
+                  loading={busy === `api-secret:${row.id}`}
+                  aria-label={`Copy secret for ${row.label}`}
+                  onClick={() => onReveal(row)}
+                >
+                  Copy secret
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  loading={busy === `api-rotate:${row.id}`}
+                  aria-label={`Rotate ${row.label}`}
+                  onClick={() => onRotate(row)}
+                >
+                  Rotate
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!row.canDisable}
+                  loading={busy === `api-toggle:${row.id}`}
+                  aria-label={`${row.status === "disabled" ? "Enable" : "Disable"} ${row.label}`}
+                  onClick={() => onToggle(row)}
+                >
+                  {row.status === "disabled" ? "Enable" : "Disable"}
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  disabled={!row.canDelete}
+                  loading={busy === `api-delete:${row.id}`}
+                  aria-label={`Delete ${row.label}`}
+                  onClick={() => onDelete(row)}
+                >
+                  Delete
+                </Button>
+              </td>
+            </tr>
+          )}
+        />
+      </CardContent>
+    </CardFrame>
+  );
+}
+
+function NodeEnrollmentKeyTable({
+  keys,
+  busy,
+  onCreate,
+  onReveal,
+  onRename,
+  onRevoke,
+}: {
+  keys: NodeEnrollmentKey[];
+  busy: string | null;
+  onCreate: () => void;
+  onReveal: (row: NodeEnrollmentKey) => void;
+  onRename: (row: NodeEnrollmentKey) => void;
+  onRevoke: (row: NodeEnrollmentKey) => void;
+}) {
+  return (
+    <CardFrame>
+      <CardHeader
+        title="Node enrollment keys"
+        description="Reusable tenant runtime keys used by VPS nodes attached to this workspace."
+        action={<Button onClick={onCreate}>Create node key</Button>}
+      />
+      <CardContent>
+        {!keys.length ? (
+          <Empty
+            title="No node keys"
+            description="Create a node key, copy the join command, and run it on a VPS."
+            action={<Button onClick={onCreate}>Create node key</Button>}
+          />
+        ) : null}
+        <DataTable
+          columns={["Name", "Prefix", "Attached VPS", "Status", "Last used", "Actions"]}
+          rows={keys}
+          renderRow={(row) => (
+            <tr key={row.id}>
+              <td>
+                <strong>{row.label}</strong>
+                <div className="coss-help coss-mono">{row.id}</div>
+              </td>
+              <td className="coss-mono">{row.prefix ? `${row.prefix}...` : "Unavailable"}</td>
+              <td>{formatAttachedVpsCount(row.attachedVpsCount)}</td>
+              <td><Badge tone={keyStatusTone(row.status)}>{row.status}</Badge></td>
+              <td>{formatKeyTimestamp(row.lastUsedAt)}</td>
+              <td className="coss-table__actions">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!row.canCopy}
+                  loading={busy === `node-secret:${row.id}`}
+                  aria-label={`Copy join command for ${row.label}`}
+                  onClick={() => onReveal(row)}
+                >
+                  Copy join command
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={row.status !== "active"}
+                  loading={busy === `node-rename:${row.id}`}
+                  aria-label={`Rename ${row.label}`}
+                  onClick={() => onRename(row)}
+                >
+                  Rename
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  disabled={!row.canRevoke}
+                  loading={busy === `node-revoke:${row.id}`}
+                  aria-label={`Revoke ${row.label}`}
+                  onClick={() => onRevoke(row)}
+                >
+                  Revoke
+                </Button>
               </td>
             </tr>
           )}
