@@ -174,6 +174,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/edge/nodes/{edge_id}/quality": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Edge Node Quality */
+        get: operations["getEdgeNodeQuality"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/edge/nodes/{edge_id}/token": {
         parameters: {
             query?: never;
@@ -1706,6 +1723,110 @@ export interface paths {
         /** Put App Image Tracking */
         put: operations["putAppImageTracking"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/apps/{id}/releases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List App Releases */
+        get: operations["listAppReleases"];
+        put?: never;
+        /** Create App Release */
+        post: operations["createAppRelease"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/apps/{id}/traffic": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get App Traffic Policy */
+        get: operations["getAppTrafficPolicy"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Patch App Traffic Policy */
+        patch: operations["patchAppTrafficPolicy"];
+        trace?: never;
+    };
+    "/v1/apps/{id}/releases/{release_id}/probe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Probe App Release */
+        post: operations["probeAppRelease"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/apps/{id}/releases/{release_id}/gate/evaluate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Evaluate App Release Gate */
+        post: operations["evaluateAppReleaseGate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/apps/{id}/releases/{release_id}/promote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Promote App Release */
+        post: operations["promoteAppRelease"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/apps/{id}/releases/{release_id}/abort": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Abort App Release */
+        post: operations["abortAppRelease"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5045,8 +5166,9 @@ export interface components {
             /** @enum {string} */
             upstream_kind: "kubernetes-service" | "mesh";
             /** @enum {string} */
-            upstream_scope?: "local-service" | "mesh";
+            upstream_scope?: "local-service" | "cluster" | "mesh";
             upstream_url?: string;
+            upstreams?: components["schemas"]["EdgeRouteUpstream"][];
             /** Format: int32 */
             service_port: number;
             /** @enum {string} */
@@ -5063,6 +5185,24 @@ export interface components {
             created_at: string;
             /** Format: date-time */
             updated_at: string;
+        };
+        EdgeRouteUpstream: {
+            role?: string;
+            release_id?: string;
+            /** Format: int32 */
+            weight: number;
+            /** @enum {string} */
+            upstream_kind?: "kubernetes-service" | "mesh";
+            /** @enum {string} */
+            upstream_scope?: "local-service" | "cluster" | "mesh";
+            upstream_url: string;
+            /** Format: int32 */
+            service_port?: number;
+            runtime_id?: string;
+            deployment_generation?: string;
+            /** @enum {string} */
+            status?: "active" | "disabled" | "unavailable" | "runtime-missing";
+            status_reason?: string;
         };
         EdgeRoutePolicy: {
             id: string;
@@ -5170,6 +5310,147 @@ export interface components {
             node: components["schemas"]["EdgeNode"];
             group: components["schemas"]["EdgeGroup"];
         };
+        EdgeNodeQualitySummary: {
+            edge_id: string;
+            edge_group_id: string;
+            /** Format: date-time */
+            since: string;
+            /** Format: int32 */
+            sample_record_count: number;
+            /** Format: int32 */
+            request_count: number;
+            /** Format: int32 */
+            error_count: number;
+            /** Format: double */
+            error_rate: number;
+            /** Format: double */
+            avg_tls_handshake_ms: number;
+            /** Format: double */
+            avg_ttfb_ms: number;
+            /** Format: double */
+            avg_upstream_ms: number;
+            /** Format: double */
+            avg_total_ms: number;
+            /** Format: double */
+            avg_upload_bps: number;
+            /** Format: int64 */
+            min_upload_bps?: number;
+            /** Format: double */
+            avg_body_read_ms: number;
+            /** Format: double */
+            avg_max_read_gap_ms: number;
+            /** Format: int32 */
+            body_incomplete_count: number;
+            /** Format: int32 */
+            body_read_error_count: number;
+            /** Format: double */
+            avg_response_egress_bps: number;
+            /** Format: double */
+            avg_response_write_ms: number;
+            /** Format: double */
+            avg_origin_dns_ms: number;
+            /** Format: double */
+            avg_origin_connect_ms: number;
+            /** Format: double */
+            avg_origin_write_ms: number;
+            /** Format: double */
+            avg_origin_wait_ms: number;
+            /** Format: double */
+            avg_origin_ttfb_ms: number;
+            /** Format: double */
+            avg_origin_total_ms: number;
+            /** Format: double */
+            avg_active_requests: number;
+            /** Format: double */
+            avg_active_body_buffers: number;
+            /** Format: int32 */
+            cache_hit_count: number;
+            /** Format: int32 */
+            cache_observation_count: number;
+            /** Format: double */
+            cache_hit_rate: number;
+            tls_status?: string;
+            tls_last_message?: string;
+            /** Format: date-time */
+            tls_ready_at?: string;
+            cache_status?: string;
+            /** Format: int32 */
+            caddy_route_count: number;
+            route_bundle_version?: string;
+            dns_bundle_version?: string;
+            /** Format: date-time */
+            last_sampled_at?: string;
+        };
+        EdgeNodeQualityRoute: {
+            hostname: string;
+            path_prefix?: string;
+            method?: string;
+            traffic_class?: string;
+            /** Format: int32 */
+            sample_record_count: number;
+            /** Format: int32 */
+            request_count: number;
+            /** Format: int32 */
+            error_count: number;
+            /** Format: double */
+            error_rate: number;
+            /** Format: double */
+            avg_tls_handshake_ms: number;
+            /** Format: double */
+            avg_ttfb_ms: number;
+            /** Format: double */
+            avg_upstream_ms: number;
+            /** Format: double */
+            avg_total_ms: number;
+            /** Format: double */
+            avg_upload_bps: number;
+            /** Format: int64 */
+            min_upload_bps?: number;
+            /** Format: double */
+            avg_body_read_ms: number;
+            /** Format: double */
+            avg_max_read_gap_ms: number;
+            /** Format: int32 */
+            body_incomplete_count: number;
+            /** Format: int32 */
+            body_read_error_count: number;
+            /** Format: double */
+            avg_response_egress_bps: number;
+            /** Format: double */
+            avg_response_write_ms: number;
+            /** Format: double */
+            avg_origin_dns_ms: number;
+            /** Format: double */
+            avg_origin_connect_ms: number;
+            /** Format: double */
+            avg_origin_write_ms: number;
+            /** Format: double */
+            avg_origin_wait_ms: number;
+            /** Format: double */
+            avg_origin_ttfb_ms: number;
+            /** Format: double */
+            avg_origin_total_ms: number;
+            /** Format: double */
+            avg_active_requests: number;
+            /** Format: double */
+            avg_active_body_buffers: number;
+            /** Format: int32 */
+            cache_hit_count: number;
+            /** Format: int32 */
+            cache_observation_count: number;
+            /** Format: double */
+            cache_hit_rate: number;
+            /** Format: date-time */
+            last_sampled_at?: string;
+        };
+        EdgeNodeQualityResponse: {
+            node: components["schemas"]["EdgeNode"];
+            group: components["schemas"]["EdgeGroup"];
+            summary: components["schemas"]["EdgeNodeQualitySummary"];
+            routes?: components["schemas"]["EdgeNodeQualityRoute"][];
+            /** Format: date-time */
+            generated_at: string;
+        };
         CreateEdgeNodeTokenRequest: {
             edge_group_id: string;
             region?: string;
@@ -5223,6 +5504,8 @@ export interface components {
             edge_group_id: string;
             hostname: string;
             path_prefix?: string;
+            method?: string;
+            traffic_class?: string;
             client_country?: string;
             client_region?: string;
             client_asn?: string;
@@ -5248,6 +5531,62 @@ export interface components {
             cache_observation_count?: number;
             /** Format: int32 */
             error_count?: number;
+            /** Format: int32 */
+            upload_request_count?: number;
+            /** Format: int32 */
+            body_buffer_count?: number;
+            /** Format: int64 */
+            body_read_block_ms?: number;
+            /** Format: int64 */
+            file_write_ms?: number;
+            /** Format: int64 */
+            upload_effective_bps?: number;
+            /** Format: int64 */
+            min_window_bps?: number;
+            /** Format: int64 */
+            max_read_gap_ms?: number;
+            /** Format: int64 */
+            request_body_bytes?: number;
+            /** Format: int64 */
+            request_body_read_bytes?: number;
+            /** Format: int32 */
+            body_incomplete_count?: number;
+            /** Format: int32 */
+            body_read_error_count?: number;
+            /** Format: int64 */
+            response_write_ms?: number;
+            /** Format: int64 */
+            response_bytes?: number;
+            /** Format: int64 */
+            response_egress_bps?: number;
+            /** Format: int64 */
+            origin_dns_ms?: number;
+            /** Format: int64 */
+            origin_connect_ms?: number;
+            /** Format: int64 */
+            origin_request_write_ms?: number;
+            /** Format: int64 */
+            origin_response_wait_ms?: number;
+            /** Format: int64 */
+            origin_ttfb_ms?: number;
+            /** Format: int64 */
+            origin_total_ms?: number;
+            /** Format: int32 */
+            streaming_request_count?: number;
+            /** Format: int32 */
+            websocket_request_count?: number;
+            /** Format: int32 */
+            sse_request_count?: number;
+            /** Format: int32 */
+            client_cancel_count?: number;
+            /** Format: int32 */
+            active_requests?: number;
+            /** Format: int32 */
+            active_body_buffers?: number;
+            /** Format: int32 */
+            goroutine_count?: number;
+            /** Format: int64 */
+            memory_alloc_bytes?: number;
             /** Format: date-time */
             sampled_at: string;
         };
@@ -5359,9 +5698,13 @@ export interface components {
             /** Format: int32 */
             weight?: number;
             reason?: string;
+            selected_edge_group_id?: string;
+            shadow_selected_edge_group_id?: string;
+            shadow_reason?: string;
         };
         EdgeDNSAnswerCandidate: {
             ip: string;
+            edge_id?: string;
             edge_group_id?: string;
             region?: string;
             country?: string;
@@ -5370,6 +5713,12 @@ export interface components {
             /** Format: int32 */
             weight?: number;
             reason?: string;
+            traffic_class?: string;
+            /** Format: double */
+            score?: number;
+            score_breakdown?: {
+                [key: string]: number;
+            };
             healthy?: boolean;
             route_ready?: boolean;
             tls_ready?: boolean;
@@ -6746,6 +7095,185 @@ export interface components {
         AppImageTrackingResponse: {
             app_id: string;
             tracking?: components["schemas"]["AppImageTracking"];
+        };
+        AppRelease: {
+            id: string;
+            tenant_id: string;
+            app_id: string;
+            /** @enum {string} */
+            role: "stable" | "candidate" | "previous" | "retired";
+            source_ref?: string;
+            resolved_image_ref?: string;
+            upstream_url?: string;
+            runtime_id?: string;
+            deployment_name?: string;
+            service_name?: string;
+            /** @enum {string} */
+            status: "creating" | "ready" | "serving" | "failed" | "retired";
+            status_reason?: string;
+            spec_snapshot?: components["schemas"]["AppSpec"];
+            /** Format: date-time */
+            ready_at?: string;
+            /** Format: date-time */
+            promoted_at?: string;
+            /** Format: date-time */
+            retired_at?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        AppTrafficPolicy: {
+            id: string;
+            tenant_id: string;
+            app_id: string;
+            /** @enum {string} */
+            mode: "single" | "canary" | "weighted" | "paused";
+            stable_release_id?: string;
+            candidate_release_id?: string;
+            /** Format: int32 */
+            stable_weight: number;
+            /** Format: int32 */
+            candidate_weight: number;
+            sticky_header?: string;
+            sticky_cookie?: string;
+            updated_by_type?: string;
+            updated_by_id?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        AppReleaseCreateRequest: {
+            role?: string;
+            source_ref?: string;
+            resolved_image_ref?: string;
+            upstream_url?: string;
+            runtime_id?: string;
+            deployment_name?: string;
+            service_name?: string;
+            status?: string;
+            status_reason?: string;
+            spec_snapshot?: components["schemas"]["AppSpec"];
+        };
+        AppReleaseResponse: {
+            app_id: string;
+            release: components["schemas"]["AppRelease"];
+        };
+        AppReleaseListResponse: {
+            app_id: string;
+            releases: components["schemas"]["AppRelease"][];
+            traffic?: components["schemas"]["AppTrafficPolicy"];
+        };
+        AppTrafficPatchRequest: {
+            mode?: string;
+            stable_release_id?: string;
+            candidate_release_id?: string;
+            /** Format: int32 */
+            stable_weight?: number;
+            /** Format: int32 */
+            candidate_weight?: number;
+            sticky_header?: string;
+            sticky_cookie?: string;
+        };
+        AppTrafficResponse: {
+            app_id: string;
+            traffic: components["schemas"]["AppTrafficPolicy"];
+            releases?: components["schemas"]["AppRelease"][];
+        };
+        AppReleaseProbe: {
+            name?: string;
+            /** @enum {string} */
+            kind?: "http" | "http_stream";
+            method?: string;
+            path: string;
+            headers?: {
+                [key: string]: string;
+            };
+            body?: string;
+            /** Format: int32 */
+            expected_status?: number;
+            expected_content_type?: string;
+            expected_body_contains?: string;
+            /** Format: int32 */
+            expect_stream_event_before_ms?: number;
+            /** Format: int32 */
+            timeout_ms?: number;
+            /** Format: int32 */
+            max_ttfb_ms?: number;
+            /** Format: int32 */
+            max_duration_ms?: number;
+        };
+        AppReleaseProbeResult: {
+            name?: string;
+            path?: string;
+            /** @enum {string} */
+            status: "pass" | "warn" | "fail";
+            /** Format: int32 */
+            status_code?: number;
+            /** Format: int64 */
+            duration_ms?: number;
+            /** Format: int64 */
+            ttfb_ms?: number;
+            error?: string;
+            evidence?: string;
+        };
+        AppReleaseProbeRequest: {
+            probes?: components["schemas"]["AppReleaseProbe"][];
+        };
+        AppReleaseProbeResponse: {
+            app_id: string;
+            release: components["schemas"]["AppRelease"];
+            results: components["schemas"]["AppReleaseProbeResult"][];
+            /** @enum {string} */
+            status: "pass" | "warn" | "fail";
+        };
+        AppReleaseGatePolicy: {
+            /** Format: int32 */
+            window_seconds?: number;
+            /** Format: int32 */
+            min_candidate_requests?: number;
+            /** Format: double */
+            max_5xx_rate?: number;
+            /** Format: double */
+            max_edge_upstream_error_rate?: number;
+            /** Format: int32 */
+            max_p95_ttfb_ms?: number;
+            /** Format: int32 */
+            max_p99_duration_ms?: number;
+            probes?: components["schemas"]["AppReleaseProbe"][];
+        };
+        AppReleaseGateResult: {
+            /** @enum {string} */
+            status: "pass" | "warn" | "fail";
+            release_id?: string;
+            role?: string;
+            window?: string;
+            evidence?: string[];
+            warnings?: string[];
+            failures?: string[];
+            probe_results?: components["schemas"]["AppReleaseProbeResult"][];
+            metrics?: {
+                [key: string]: unknown;
+            };
+            /** Format: date-time */
+            evaluated_at: string;
+        };
+        AppReleaseGateRequest: {
+            policy?: components["schemas"]["AppReleaseGatePolicy"];
+        };
+        AppReleaseGateResponse: {
+            app_id: string;
+            gate: components["schemas"]["AppReleaseGateResult"];
+            policy: components["schemas"]["AppReleaseGatePolicy"];
+        };
+        AppReleasePromoteRequest: {
+            /** Format: int32 */
+            candidate_weight?: number;
+        };
+        AppReleaseAbortRequest: {
+            mark_failed?: boolean;
+            reason?: string;
         };
         AppImageSyncRequest: {
             image_ref?: string;
@@ -8964,6 +9492,32 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EdgeNodeResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getEdgeNodeQuality: {
+        parameters: {
+            query?: {
+                /** @description Lower bound as a positive duration such as 24h or an RFC3339 timestamp. Defaults to 24h. */
+                since?: string;
+            };
+            header?: never;
+            path: {
+                edge_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EdgeNodeQualityResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
@@ -11806,6 +12360,218 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AppImageTrackingResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    listAppReleases: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppReleaseListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    createAppRelease: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AppReleaseCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppReleaseResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getAppTrafficPolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppTrafficResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    patchAppTrafficPolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AppTrafficPatchRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppTrafficResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    probeAppRelease: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+                release_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["AppReleaseProbeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppReleaseProbeResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    evaluateAppReleaseGate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+                release_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["AppReleaseGateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppReleaseGateResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    promoteAppRelease: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+                release_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["AppReleasePromoteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppTrafficResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    abortAppRelease: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+                release_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["AppReleaseAbortRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppTrafficResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];

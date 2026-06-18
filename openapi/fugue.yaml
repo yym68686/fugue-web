@@ -270,6 +270,35 @@ paths:
                 $ref: "#/components/schemas/EdgeNodeResponse"
         default:
           $ref: "#/components/responses/ErrorResponse"
+  /v1/edge/nodes/{edge_id}/quality:
+    get:
+      operationId: getEdgeNodeQuality
+      summary: Get Edge Node Quality
+      tags: [Edge]
+      x-fugue-handler: handleGetEdgeNodeQuality
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: edge_id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: since
+          required: false
+          description: Lower bound as a positive duration such as 24h or an RFC3339 timestamp. Defaults to 24h.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EdgeNodeQualityResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
   /v1/edge/nodes/{edge_id}/token:
     post:
       operationId: createEdgeNodeToken
@@ -2970,6 +2999,212 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AppImageTrackingResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/apps/{id}/releases:
+    get:
+      operationId: listAppReleases
+      summary: List App Releases
+      tags: [Apps]
+      x-fugue-handler: handleListAppReleases
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPathParam"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppReleaseListResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+    post:
+      operationId: createAppRelease
+      summary: Create App Release
+      tags: [Apps]
+      x-fugue-handler: handleCreateAppRelease
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPathParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AppReleaseCreateRequest"
+      responses:
+        '201':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppReleaseResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/apps/{id}/traffic:
+    get:
+      operationId: getAppTrafficPolicy
+      summary: Get App Traffic Policy
+      tags: [Apps]
+      x-fugue-handler: handleGetAppTrafficPolicy
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPathParam"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppTrafficResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+    patch:
+      operationId: patchAppTrafficPolicy
+      summary: Patch App Traffic Policy
+      tags: [Apps]
+      x-fugue-handler: handlePatchAppTrafficPolicy
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPathParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AppTrafficPatchRequest"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppTrafficResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/apps/{id}/releases/{release_id}/probe:
+    post:
+      operationId: probeAppRelease
+      summary: Probe App Release
+      tags: [Apps]
+      x-fugue-handler: handleProbeAppRelease
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPathParam"
+        - in: path
+          name: release_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AppReleaseProbeRequest"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppReleaseProbeResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/apps/{id}/releases/{release_id}/gate/evaluate:
+    post:
+      operationId: evaluateAppReleaseGate
+      summary: Evaluate App Release Gate
+      tags: [Apps]
+      x-fugue-handler: handleEvaluateAppReleaseGate
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPathParam"
+        - in: path
+          name: release_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AppReleaseGateRequest"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppReleaseGateResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/apps/{id}/releases/{release_id}/promote:
+    post:
+      operationId: promoteAppRelease
+      summary: Promote App Release
+      tags: [Apps]
+      x-fugue-handler: handlePromoteAppRelease
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPathParam"
+        - in: path
+          name: release_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AppReleasePromoteRequest"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppTrafficResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/apps/{id}/releases/{release_id}/abort:
+    post:
+      operationId: abortAppRelease
+      summary: Abort App Release
+      tags: [Apps]
+      x-fugue-handler: handleAbortAppRelease
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPathParam"
+        - in: path
+          name: release_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AppReleaseAbortRequest"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppTrafficResponse"
         default:
           $ref: "#/components/responses/ErrorResponse"
   /v1/apps/{id}/image-sync:
@@ -9483,9 +9718,13 @@ components:
           enum: [kubernetes-service, mesh]
         upstream_scope:
           type: string
-          enum: [local-service, mesh]
+          enum: [local-service, cluster, mesh]
         upstream_url:
           type: string
+        upstreams:
+          type: array
+          items:
+            $ref: "#/components/schemas/EdgeRouteUpstream"
         service_port:
           type: integer
           format: int32
@@ -9513,6 +9752,38 @@ components:
         updated_at:
           type: string
           format: date-time
+    EdgeRouteUpstream:
+      type: object
+      additionalProperties: false
+      required: [weight, upstream_url]
+      properties:
+        role:
+          type: string
+        release_id:
+          type: string
+        weight:
+          type: integer
+          format: int32
+        upstream_kind:
+          type: string
+          enum: [kubernetes-service, mesh]
+        upstream_scope:
+          type: string
+          enum: [local-service, cluster, mesh]
+        upstream_url:
+          type: string
+        service_port:
+          type: integer
+          format: int32
+        runtime_id:
+          type: string
+        deployment_generation:
+          type: string
+        status:
+          type: string
+          enum: [active, disabled, unavailable, runtime-missing]
+        status_reason:
+          type: string
     EdgeRoutePolicy:
       type: object
       additionalProperties: false
@@ -9739,6 +10010,294 @@ components:
           $ref: "#/components/schemas/EdgeNode"
         group:
           $ref: "#/components/schemas/EdgeGroup"
+    EdgeNodeQualitySummary:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          edge_id,
+          edge_group_id,
+          since,
+          sample_record_count,
+          request_count,
+          error_count,
+          error_rate,
+          avg_tls_handshake_ms,
+          avg_ttfb_ms,
+          avg_upstream_ms,
+          avg_total_ms,
+          avg_upload_bps,
+          avg_body_read_ms,
+          avg_max_read_gap_ms,
+          body_incomplete_count,
+          body_read_error_count,
+          avg_response_egress_bps,
+          avg_response_write_ms,
+          avg_origin_dns_ms,
+          avg_origin_connect_ms,
+          avg_origin_write_ms,
+          avg_origin_wait_ms,
+          avg_origin_ttfb_ms,
+          avg_origin_total_ms,
+          avg_active_requests,
+          avg_active_body_buffers,
+          cache_hit_count,
+          cache_observation_count,
+          cache_hit_rate,
+          caddy_route_count
+        ]
+      properties:
+        edge_id:
+          type: string
+        edge_group_id:
+          type: string
+        since:
+          type: string
+          format: date-time
+        sample_record_count:
+          type: integer
+          format: int32
+        request_count:
+          type: integer
+          format: int32
+        error_count:
+          type: integer
+          format: int32
+        error_rate:
+          type: number
+          format: double
+        avg_tls_handshake_ms:
+          type: number
+          format: double
+        avg_ttfb_ms:
+          type: number
+          format: double
+        avg_upstream_ms:
+          type: number
+          format: double
+        avg_total_ms:
+          type: number
+          format: double
+        avg_upload_bps:
+          type: number
+          format: double
+        min_upload_bps:
+          type: integer
+          format: int64
+        avg_body_read_ms:
+          type: number
+          format: double
+        avg_max_read_gap_ms:
+          type: number
+          format: double
+        body_incomplete_count:
+          type: integer
+          format: int32
+        body_read_error_count:
+          type: integer
+          format: int32
+        avg_response_egress_bps:
+          type: number
+          format: double
+        avg_response_write_ms:
+          type: number
+          format: double
+        avg_origin_dns_ms:
+          type: number
+          format: double
+        avg_origin_connect_ms:
+          type: number
+          format: double
+        avg_origin_write_ms:
+          type: number
+          format: double
+        avg_origin_wait_ms:
+          type: number
+          format: double
+        avg_origin_ttfb_ms:
+          type: number
+          format: double
+        avg_origin_total_ms:
+          type: number
+          format: double
+        avg_active_requests:
+          type: number
+          format: double
+        avg_active_body_buffers:
+          type: number
+          format: double
+        cache_hit_count:
+          type: integer
+          format: int32
+        cache_observation_count:
+          type: integer
+          format: int32
+        cache_hit_rate:
+          type: number
+          format: double
+        tls_status:
+          type: string
+        tls_last_message:
+          type: string
+        tls_ready_at:
+          type: string
+          format: date-time
+        cache_status:
+          type: string
+        caddy_route_count:
+          type: integer
+          format: int32
+        route_bundle_version:
+          type: string
+        dns_bundle_version:
+          type: string
+        last_sampled_at:
+          type: string
+          format: date-time
+    EdgeNodeQualityRoute:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          hostname,
+          sample_record_count,
+          request_count,
+          error_count,
+          error_rate,
+          avg_tls_handshake_ms,
+          avg_ttfb_ms,
+          avg_upstream_ms,
+          avg_total_ms,
+          avg_upload_bps,
+          avg_body_read_ms,
+          avg_max_read_gap_ms,
+          body_incomplete_count,
+          body_read_error_count,
+          avg_response_egress_bps,
+          avg_response_write_ms,
+          avg_origin_dns_ms,
+          avg_origin_connect_ms,
+          avg_origin_write_ms,
+          avg_origin_wait_ms,
+          avg_origin_ttfb_ms,
+          avg_origin_total_ms,
+          avg_active_requests,
+          avg_active_body_buffers,
+          cache_hit_count,
+          cache_observation_count,
+          cache_hit_rate
+        ]
+      properties:
+        hostname:
+          type: string
+        path_prefix:
+          type: string
+        method:
+          type: string
+        traffic_class:
+          type: string
+        sample_record_count:
+          type: integer
+          format: int32
+        request_count:
+          type: integer
+          format: int32
+        error_count:
+          type: integer
+          format: int32
+        error_rate:
+          type: number
+          format: double
+        avg_tls_handshake_ms:
+          type: number
+          format: double
+        avg_ttfb_ms:
+          type: number
+          format: double
+        avg_upstream_ms:
+          type: number
+          format: double
+        avg_total_ms:
+          type: number
+          format: double
+        avg_upload_bps:
+          type: number
+          format: double
+        min_upload_bps:
+          type: integer
+          format: int64
+        avg_body_read_ms:
+          type: number
+          format: double
+        avg_max_read_gap_ms:
+          type: number
+          format: double
+        body_incomplete_count:
+          type: integer
+          format: int32
+        body_read_error_count:
+          type: integer
+          format: int32
+        avg_response_egress_bps:
+          type: number
+          format: double
+        avg_response_write_ms:
+          type: number
+          format: double
+        avg_origin_dns_ms:
+          type: number
+          format: double
+        avg_origin_connect_ms:
+          type: number
+          format: double
+        avg_origin_write_ms:
+          type: number
+          format: double
+        avg_origin_wait_ms:
+          type: number
+          format: double
+        avg_origin_ttfb_ms:
+          type: number
+          format: double
+        avg_origin_total_ms:
+          type: number
+          format: double
+        avg_active_requests:
+          type: number
+          format: double
+        avg_active_body_buffers:
+          type: number
+          format: double
+        cache_hit_count:
+          type: integer
+          format: int32
+        cache_observation_count:
+          type: integer
+          format: int32
+        cache_hit_rate:
+          type: number
+          format: double
+        last_sampled_at:
+          type: string
+          format: date-time
+    EdgeNodeQualityResponse:
+      type: object
+      additionalProperties: false
+      required: [node, group, summary, generated_at]
+      properties:
+        node:
+          $ref: "#/components/schemas/EdgeNode"
+        group:
+          $ref: "#/components/schemas/EdgeGroup"
+        summary:
+          $ref: "#/components/schemas/EdgeNodeQualitySummary"
+        routes:
+          type: array
+          items:
+            $ref: "#/components/schemas/EdgeNodeQualityRoute"
+        generated_at:
+          type: string
+          format: date-time
     CreateEdgeNodeTokenRequest:
       type: object
       additionalProperties: false
@@ -9851,6 +10410,10 @@ components:
           type: string
         path_prefix:
           type: string
+        method:
+          type: string
+        traffic_class:
+          type: string
         client_country:
           type: string
         client_region:
@@ -9892,6 +10455,90 @@ components:
         error_count:
           type: integer
           format: int32
+        upload_request_count:
+          type: integer
+          format: int32
+        body_buffer_count:
+          type: integer
+          format: int32
+        body_read_block_ms:
+          type: integer
+          format: int64
+        file_write_ms:
+          type: integer
+          format: int64
+        upload_effective_bps:
+          type: integer
+          format: int64
+        min_window_bps:
+          type: integer
+          format: int64
+        max_read_gap_ms:
+          type: integer
+          format: int64
+        request_body_bytes:
+          type: integer
+          format: int64
+        request_body_read_bytes:
+          type: integer
+          format: int64
+        body_incomplete_count:
+          type: integer
+          format: int32
+        body_read_error_count:
+          type: integer
+          format: int32
+        response_write_ms:
+          type: integer
+          format: int64
+        response_bytes:
+          type: integer
+          format: int64
+        response_egress_bps:
+          type: integer
+          format: int64
+        origin_dns_ms:
+          type: integer
+          format: int64
+        origin_connect_ms:
+          type: integer
+          format: int64
+        origin_request_write_ms:
+          type: integer
+          format: int64
+        origin_response_wait_ms:
+          type: integer
+          format: int64
+        origin_ttfb_ms:
+          type: integer
+          format: int64
+        origin_total_ms:
+          type: integer
+          format: int64
+        streaming_request_count:
+          type: integer
+          format: int32
+        websocket_request_count:
+          type: integer
+          format: int32
+        sse_request_count:
+          type: integer
+          format: int32
+        client_cancel_count:
+          type: integer
+          format: int32
+        active_requests:
+          type: integer
+          format: int32
+        active_body_buffers:
+          type: integer
+          format: int32
+        goroutine_count:
+          type: integer
+          format: int32
+        memory_alloc_bytes:
+          type: integer
+          format: int64
         sampled_at:
           type: string
           format: date-time
@@ -10136,12 +10783,20 @@ components:
           format: int32
         reason:
           type: string
+        selected_edge_group_id:
+          type: string
+        shadow_selected_edge_group_id:
+          type: string
+        shadow_reason:
+          type: string
     EdgeDNSAnswerCandidate:
       type: object
       additionalProperties: false
       required: [ip]
       properties:
         ip:
+          type: string
+        edge_id:
           type: string
         edge_group_id:
           type: string
@@ -10157,6 +10812,16 @@ components:
           format: int32
         reason:
           type: string
+        traffic_class:
+          type: string
+        score:
+          type: number
+          format: double
+        score_breakdown:
+          type: object
+          additionalProperties:
+            type: number
+            format: double
         healthy:
           type: boolean
         route_ready:
@@ -13009,6 +13674,354 @@ components:
           type: string
         tracking:
           $ref: "#/components/schemas/AppImageTracking"
+    AppRelease:
+      type: object
+      additionalProperties: false
+      required: [id, tenant_id, app_id, role, status, created_at, updated_at]
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        app_id:
+          type: string
+        role:
+          type: string
+          enum: [stable, candidate, previous, retired]
+        source_ref:
+          type: string
+        resolved_image_ref:
+          type: string
+        upstream_url:
+          type: string
+        runtime_id:
+          type: string
+        deployment_name:
+          type: string
+        service_name:
+          type: string
+        status:
+          type: string
+          enum: [creating, ready, serving, failed, retired]
+        status_reason:
+          type: string
+        spec_snapshot:
+          $ref: "#/components/schemas/AppSpec"
+        ready_at:
+          type: string
+          format: date-time
+        promoted_at:
+          type: string
+          format: date-time
+        retired_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    AppTrafficPolicy:
+      type: object
+      additionalProperties: false
+      required:
+        [id, tenant_id, app_id, mode, stable_weight, candidate_weight, created_at, updated_at]
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        app_id:
+          type: string
+        mode:
+          type: string
+          enum: [single, canary, weighted, paused]
+        stable_release_id:
+          type: string
+        candidate_release_id:
+          type: string
+        stable_weight:
+          type: integer
+          format: int32
+        candidate_weight:
+          type: integer
+          format: int32
+        sticky_header:
+          type: string
+        sticky_cookie:
+          type: string
+        updated_by_type:
+          type: string
+        updated_by_id:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    AppReleaseCreateRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        role:
+          type: string
+        source_ref:
+          type: string
+        resolved_image_ref:
+          type: string
+        upstream_url:
+          type: string
+        runtime_id:
+          type: string
+        deployment_name:
+          type: string
+        service_name:
+          type: string
+        status:
+          type: string
+        status_reason:
+          type: string
+        spec_snapshot:
+          $ref: "#/components/schemas/AppSpec"
+    AppReleaseResponse:
+      type: object
+      additionalProperties: false
+      required: [app_id, release]
+      properties:
+        app_id:
+          type: string
+        release:
+          $ref: "#/components/schemas/AppRelease"
+    AppReleaseListResponse:
+      type: object
+      additionalProperties: false
+      required: [app_id, releases]
+      properties:
+        app_id:
+          type: string
+        releases:
+          type: array
+          items:
+            $ref: "#/components/schemas/AppRelease"
+        traffic:
+          $ref: "#/components/schemas/AppTrafficPolicy"
+    AppTrafficPatchRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        mode:
+          type: string
+        stable_release_id:
+          type: string
+        candidate_release_id:
+          type: string
+        stable_weight:
+          type: integer
+          format: int32
+        candidate_weight:
+          type: integer
+          format: int32
+        sticky_header:
+          type: string
+        sticky_cookie:
+          type: string
+    AppTrafficResponse:
+      type: object
+      additionalProperties: false
+      required: [app_id, traffic]
+      properties:
+        app_id:
+          type: string
+        traffic:
+          $ref: "#/components/schemas/AppTrafficPolicy"
+        releases:
+          type: array
+          items:
+            $ref: "#/components/schemas/AppRelease"
+    AppReleaseProbe:
+      type: object
+      additionalProperties: false
+      required: [path]
+      properties:
+        name:
+          type: string
+        kind:
+          type: string
+          enum: [http, http_stream]
+        method:
+          type: string
+        path:
+          type: string
+        headers:
+          type: object
+          additionalProperties:
+            type: string
+        body:
+          type: string
+        expected_status:
+          type: integer
+          format: int32
+        expected_content_type:
+          type: string
+        expected_body_contains:
+          type: string
+        expect_stream_event_before_ms:
+          type: integer
+          format: int32
+        timeout_ms:
+          type: integer
+          format: int32
+        max_ttfb_ms:
+          type: integer
+          format: int32
+        max_duration_ms:
+          type: integer
+          format: int32
+    AppReleaseProbeResult:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        name:
+          type: string
+        path:
+          type: string
+        status:
+          type: string
+          enum: [pass, warn, fail]
+        status_code:
+          type: integer
+          format: int32
+        duration_ms:
+          type: integer
+          format: int64
+        ttfb_ms:
+          type: integer
+          format: int64
+        error:
+          type: string
+        evidence:
+          type: string
+    AppReleaseProbeRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        probes:
+          type: array
+          items:
+            $ref: "#/components/schemas/AppReleaseProbe"
+    AppReleaseProbeResponse:
+      type: object
+      additionalProperties: false
+      required: [app_id, release, results, status]
+      properties:
+        app_id:
+          type: string
+        release:
+          $ref: "#/components/schemas/AppRelease"
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/AppReleaseProbeResult"
+        status:
+          type: string
+          enum: [pass, warn, fail]
+    AppReleaseGatePolicy:
+      type: object
+      additionalProperties: false
+      properties:
+        window_seconds:
+          type: integer
+          format: int32
+        min_candidate_requests:
+          type: integer
+          format: int32
+        max_5xx_rate:
+          type: number
+          format: double
+        max_edge_upstream_error_rate:
+          type: number
+          format: double
+        max_p95_ttfb_ms:
+          type: integer
+          format: int32
+        max_p99_duration_ms:
+          type: integer
+          format: int32
+        probes:
+          type: array
+          items:
+            $ref: "#/components/schemas/AppReleaseProbe"
+    AppReleaseGateResult:
+      type: object
+      additionalProperties: false
+      required: [status, evaluated_at]
+      properties:
+        status:
+          type: string
+          enum: [pass, warn, fail]
+        release_id:
+          type: string
+        role:
+          type: string
+        window:
+          type: string
+        evidence:
+          type: array
+          items:
+            type: string
+        warnings:
+          type: array
+          items:
+            type: string
+        failures:
+          type: array
+          items:
+            type: string
+        probe_results:
+          type: array
+          items:
+            $ref: "#/components/schemas/AppReleaseProbeResult"
+        metrics:
+          type: object
+          additionalProperties: true
+        evaluated_at:
+          type: string
+          format: date-time
+    AppReleaseGateRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        policy:
+          $ref: "#/components/schemas/AppReleaseGatePolicy"
+    AppReleaseGateResponse:
+      type: object
+      additionalProperties: false
+      required: [app_id, gate, policy]
+      properties:
+        app_id:
+          type: string
+        gate:
+          $ref: "#/components/schemas/AppReleaseGateResult"
+        policy:
+          $ref: "#/components/schemas/AppReleaseGatePolicy"
+    AppReleasePromoteRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        candidate_weight:
+          type: integer
+          format: int32
+    AppReleaseAbortRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        mark_failed:
+          type: boolean
+        reason:
+          type: string
     AppImageSyncRequest:
       type: object
       additionalProperties: false
