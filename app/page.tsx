@@ -96,7 +96,7 @@ export default async function HomePage() {
           </Card>
         </div>
         <CardFrame>
-          <CardContent className="coss-row" style={{ justifyContent: "space-between" }}>
+          <CardContent className="coss-row coss-row--between">
             <div>
               <Badge tone="success">Console ready</Badge>
               <h2 className="coss-page-title">Open the operational surface first.</h2>

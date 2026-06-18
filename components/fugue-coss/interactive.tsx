@@ -28,12 +28,24 @@ import {
   CardFrame,
   CardHeader,
   CodeBlock,
+  ConfirmDialog,
   DataTable,
+  Drawer,
   Empty,
   Field,
+  HiddenInput,
+  Inline,
+  Input,
+  InputButton,
   Meter,
   MetricStrip,
+  NativeSelect,
   SkeletonBlock,
+  Stack,
+  TabsList,
+  TabsTrigger,
+  Textarea,
+  Toast,
 } from "@/components/coss/ui";
 import type {
   ConsoleImportRuntimeTargetView,
@@ -80,96 +92,6 @@ import {
   requestJson,
 } from "@/lib/ui/request-json";
 
-function Drawer({
-  title,
-  description,
-  open,
-  onClose,
-  children,
-  footer,
-}: {
-  title: string;
-  description?: string;
-  open: boolean;
-  onClose: () => void;
-  children: ReactNode;
-  footer?: ReactNode;
-}) {
-  if (!open) return null;
-
-  return (
-    <>
-      <div className="coss-drawer-backdrop" onClick={onClose} />
-      <aside className="coss-drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
-        <header className="coss-overlay-header">
-          <div>
-            <h2 id="drawer-title" className="coss-card-title">
-              {title}
-            </h2>
-            {description ? <p className="coss-card-description">{description}</p> : null}
-          </div>
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            Close
-          </Button>
-        </header>
-        <div className="coss-overlay-body">{children}</div>
-        {footer ? <footer className="coss-overlay-footer">{footer}</footer> : null}
-      </aside>
-    </>
-  );
-}
-
-function Dialog({
-  title,
-  description,
-  open,
-  confirmDisabled = false,
-  confirmLabel = "Confirm",
-  confirmLoading = false,
-  onConfirm,
-  onClose,
-}: {
-  title: string;
-  description: string;
-  open: boolean;
-  confirmDisabled?: boolean;
-  confirmLabel?: string;
-  confirmLoading?: boolean;
-  onConfirm: () => void;
-  onClose: () => void;
-}) {
-  if (!open) return null;
-
-  return (
-    <>
-      <div className="coss-dialog-backdrop" onClick={onClose} />
-      <section className="coss-dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
-        <header className="coss-overlay-header">
-          <div>
-            <h2 id="dialog-title" className="coss-card-title">
-              {title}
-            </h2>
-            <p className="coss-card-description">{description}</p>
-          </div>
-        </header>
-        <footer className="coss-overlay-footer">
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button
-            variant="destructive"
-            disabled={confirmDisabled || confirmLoading}
-            loading={confirmLoading}
-            onClick={onConfirm}
-          >
-            {confirmLabel}
-          </Button>
-        </footer>
-      </section>
-    </>
-  );
-}
-
 function useToast() {
   const [message, setMessage] = useState<string | null>(null);
   return {
@@ -179,28 +101,6 @@ function useToast() {
       window.setTimeout(() => setMessage(null), 1800);
     },
   };
-}
-
-function Toast({ message }: { message: string | null }) {
-  if (!message) return null;
-  return (
-    <div
-      role="status"
-      style={{
-        position: "fixed",
-        right: 18,
-        bottom: 18,
-        zIndex: 80,
-        border: "1px solid var(--border)",
-        borderRadius: 12,
-        background: "var(--popover)",
-        boxShadow: "var(--shadow-sm)",
-        padding: "10px 12px",
-      }}
-    >
-      {message}
-    </div>
-  );
 }
 
 function copyText(value: string, notify: (message: string) => void) {
@@ -324,28 +224,27 @@ export function AuthPanel({ mode }: { mode: "sign-in" | "sign-up" }) {
             Continue with GitHub
           </Button>
         </div>
-        <div className="coss-tabs" role="tablist" aria-label="Authentication method">
-          <button className="coss-tab" aria-selected={method === "password"} onClick={() => setMethod("password")}>
+        <TabsList label="Authentication method">
+          <TabsTrigger selected={method === "password"} onClick={() => setMethod("password")}>
             Password
-          </button>
-          <button className="coss-tab" aria-selected={method === "email"} onClick={() => setMethod("email")}>
+          </TabsTrigger>
+          <TabsTrigger selected={method === "email"} onClick={() => setMethod("email")}>
             Email link
-          </button>
-        </div>
+          </TabsTrigger>
+        </TabsList>
         <div className="coss-form">
           {mode === "sign-up" ? (
             <Field label="Display name">
-              <input className="coss-input" value={name} onChange={(event) => setName(event.target.value)} />
+              <Input value={name} onChange={(event) => setName(event.target.value)} />
             </Field>
           ) : null}
           <Field label="Email">
-            <input className="coss-input" aria-invalid={emailInvalid} value={email} onChange={(event) => setEmail(event.target.value)} />
+            <Input aria-invalid={emailInvalid} value={email} onChange={(event) => setEmail(event.target.value)} />
           </Field>
           {emailInvalid ? <span className="coss-help" role="alert">Enter a valid email address.</span> : null}
           {method === "password" && mode === "sign-in" ? (
             <Field label="Password" help="Use an existing password for this account.">
-              <input
-                className="coss-input"
+              <Input
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
@@ -416,7 +315,7 @@ export function FinalizePanel() {
           method="post"
           onSubmit={() => setValidating(true)}
         >
-          <input type="hidden" name="token" value={token} />
+          <HiddenInput name="token" value={token} />
           <Button
             disabled={!token}
             loading={validating}
@@ -684,28 +583,28 @@ export function NewProjectWizard({ template }: { template?: string }) {
                 Template variables and topology preview are included in the deploy payload.
               </Alert>
             ) : null}
-            <div className="coss-tabs" role="tablist" aria-label="Source mode">
+            <TabsList label="Source mode">
               {(["GitHub", "Docker image", "Upload"] as const).map((item) => (
-                <button key={item} className="coss-tab" aria-selected={source === item} onClick={() => setSource(item)}>
+                <TabsTrigger key={item} selected={source === item} onClick={() => setSource(item)}>
                   {item}
-                </button>
+                </TabsTrigger>
               ))}
-            </div>
+            </TabsList>
             <div className="coss-form">
               <Field label="Project name">
-                <input className="coss-input" placeholder="my-project" value={projectName} onChange={(event) => setProjectName(event.target.value)} />
+                <Input placeholder="my-project" value={projectName} onChange={(event) => setProjectName(event.target.value)} />
               </Field>
               <Field label="App name">
-                <input className="coss-input" placeholder="web" value={appName} onChange={(event) => setAppName(event.target.value)} />
+                <Input placeholder="web" value={appName} onChange={(event) => setAppName(event.target.value)} />
               </Field>
               {source === "GitHub" ? (
                 <Field label="Repository">
-                  <input className="coss-input" placeholder="https://github.com/owner/repo" value={repoUrl} onChange={(event) => setRepoUrl(event.target.value)} />
+                  <Input placeholder="https://github.com/owner/repo" value={repoUrl} onChange={(event) => setRepoUrl(event.target.value)} />
                 </Field>
               ) : null}
               {source === "Docker image" ? (
                 <Field label="Image">
-                  <input className="coss-input" placeholder="ghcr.io/org/image:tag" value={imageRef} onChange={(event) => setImageRef(event.target.value)} />
+                  <Input placeholder="ghcr.io/org/image:tag" value={imageRef} onChange={(event) => setImageRef(event.target.value)} />
                 </Field>
               ) : null}
               {source === "Upload" ? (
@@ -716,9 +615,8 @@ export function NewProjectWizard({ template }: { template?: string }) {
                       <strong>Source upload</strong>
                       <p className="coss-card-description">{uploadFile ? `${uploadFile.name} · ${formatBytes(uploadFile.size)}` : "Choose a .zip, .tgz, Dockerfile, compose file, or source file."}</p>
                     </div>
-                    <input
+                    <Input
                       aria-label="Choose source upload"
-                      className="coss-input"
                       type="file"
                       onChange={(event) => setUploadFile(event.target.files?.[0] ?? null)}
                     />
@@ -728,31 +626,29 @@ export function NewProjectWizard({ template }: { template?: string }) {
               {template ? (
                 <div className="coss-grid-2">
                   <Field label="DATABASE_URL">
-                    <input className="coss-input" placeholder="postgres://..." />
+                    <Input placeholder="postgres://..." />
                   </Field>
                   <Field label="APP_SECRET">
-                    <input className="coss-input" placeholder="generated on deploy" />
+                    <Input placeholder="generated on deploy" />
                   </Field>
                 </div>
               ) : null}
               <div className="coss-grid-2">
                 <Field label="Branch">
-                  <input className="coss-input" value={branch} onChange={(event) => setBranch(event.target.value)} />
+                  <Input value={branch} onChange={(event) => setBranch(event.target.value)} />
                 </Field>
                 <Field label="Service port">
-                  <input className="coss-input" inputMode="numeric" placeholder="3000" value={servicePort} onChange={(event) => setServicePort(event.target.value)} />
+                  <Input inputMode="numeric" placeholder="3000" value={servicePort} onChange={(event) => setServicePort(event.target.value)} />
                 </Field>
               </div>
               <Field label="Runtime target">
-                <button
-                  type="button"
-                  className="coss-input"
-                  style={{ textAlign: "left" }}
+                <InputButton
+                  className="coss-input-button--left"
                   aria-label="Open runtime target picker"
                   onClick={() => setDrawer("runtime")}
                 >
                   {selectedRuntime?.summaryLabel ?? (runtime || (runtimeInventory.loading ? "Loading runtime targets" : "Default placement"))}
-                </button>
+                </InputButton>
               </Field>
               <div className="coss-row">
                 <Button variant="outline" onClick={() => setDrawer("env")}>
@@ -821,8 +717,9 @@ export function NewProjectWizard({ template }: { template?: string }) {
             <SkeletonBlock height={64} />
           ) : null}
           {runtimeTargets.map((item) => (
-            <button
+            <Button
               key={item.id}
+              variant="outline"
               className="coss-service-button"
               aria-label={`Select runtime ${item.summaryLabel}`}
               aria-selected={runtime === item.id}
@@ -833,7 +730,7 @@ export function NewProjectWizard({ template }: { template?: string }) {
                 {item.statusTone ? <Badge tone={badgeToneFromConsoleTone(item.statusTone)}>{item.statusLabel ?? item.statusTone}</Badge> : null}
               </span>
               <p className="coss-card-description">{readRuntimeTargetDescription(item) || item.description}</p>
-            </button>
+            </Button>
           ))}
           {!runtimeInventory.loading && runtimeTargets.length === 0 ? (
             <Empty title="No runtime targets" description="Fugue did not return a selectable runtime target. Leaving this blank lets the control plane choose the default placement." />
@@ -886,15 +783,15 @@ function EnvironmentEditor({
         renderRow={(row) => (
           <tr key={row.id}>
             <td>
-              <input
-                className="coss-input coss-mono"
+              <Input
+                className="coss-mono"
                 value={row.key}
                 onChange={(event) => onRowsChange(rows.map((item, index) => index === row.index ? { ...item, key: event.target.value } : item))}
               />
             </td>
             <td>
-              <input
-                className="coss-input coss-mono"
+              <Input
+                className="coss-mono"
                 value={row.value.includes("•") && !revealed ? "••••••••••" : row.value}
                 onChange={(event) => onRowsChange(rows.map((item, index) => index === row.index ? { ...item, value: event.target.value } : item))}
               />
@@ -918,7 +815,7 @@ function EnvironmentEditor({
         Add variable
       </Button>
       <Field label="Paste .env">
-        <textarea className="coss-textarea coss-mono" value={raw} onChange={(event) => setRaw(event.target.value)} />
+        <Textarea className="coss-mono" value={raw} onChange={(event) => setRaw(event.target.value)} />
       </Field>
       <Button
         variant="outline"
@@ -1190,15 +1087,15 @@ export function ProjectGallery() {
         <CardContent className="coss-projects-content">
           <div className="coss-projects-toolbar" aria-label="Project controls">
             <div className="coss-projects-filterset">
-              <input
-                className="coss-input coss-projects-search"
+              <Input
+                className="coss-projects-search"
                 aria-label="Search projects"
                 placeholder="Search projects"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />
-              <select
-                className="coss-select coss-projects-select"
+              <NativeSelect
+                className="coss-projects-select"
                 aria-label="Filter lifecycle"
                 value={status}
                 onChange={(event) => setStatus(event.target.value)}
@@ -1209,27 +1106,15 @@ export function ProjectGallery() {
                 <option value="attention">Attention</option>
                 <option value="empty">Empty</option>
                 <option value="idle">Idle</option>
-              </select>
-              <div className="coss-tabs" role="tablist" aria-label="Project view">
-                <button
-                  className="coss-tab"
-                  type="button"
-                  role="tab"
-                  aria-selected={view === "table"}
-                  onClick={() => setView("table")}
-                >
+              </NativeSelect>
+              <TabsList label="Project view">
+                <TabsTrigger selected={view === "table"} onClick={() => setView("table")}>
                   Table
-                </button>
-                <button
-                  className="coss-tab"
-                  type="button"
-                  role="tab"
-                  aria-selected={view === "cards"}
-                  onClick={() => setView("cards")}
-                >
+                </TabsTrigger>
+                <TabsTrigger selected={view === "cards"} onClick={() => setView("cards")}>
                   Cards
-                </button>
-              </div>
+                </TabsTrigger>
+              </TabsList>
             </div>
             <div className="coss-projects-actions">
               <span className="coss-projects-count">
@@ -1292,7 +1177,7 @@ export function ProjectGallery() {
               {filtered.map((item) => (
                 <Card key={item.project.id}>
                   <CardContent className="coss-project-card">
-                    <div className="coss-row" style={{ justifyContent: "space-between" }}>
+                    <div className="coss-row coss-row--between">
                       <Badge tone={badgeToneFromConsoleTone(item.lifecycle.tone)}>{item.lifecycle.label}</Badge>
                       <span className="coss-help">{pluralize(item.project.serviceCount, "service")}</span>
                     </div>
@@ -1669,8 +1554,9 @@ export function ProjectWorkbench({ projectId }: { projectId: string }) {
           const nextTab = nextTabs[0] ?? "Overview";
 
           return (
-            <button
+            <Button
               key={item.id}
+              variant="outline"
               className="coss-service-button"
               aria-label={`Select service ${item.name}`}
               aria-selected={service.id === item.id}
@@ -1684,7 +1570,7 @@ export function ProjectWorkbench({ projectId }: { projectId: string }) {
               <p className="coss-card-description">
                 {item.kind === "app" ? "app" : item.type} · {serviceStatusLabel(item)}
               </p>
-            </button>
+            </Button>
           );
         })}
         <Button variant="outline" onClick={() => setRefreshKey((value) => value + 1)}>
@@ -1694,7 +1580,7 @@ export function ProjectWorkbench({ projectId }: { projectId: string }) {
       </aside>
       <div className="coss-stack">
         <CardFrame>
-          <CardContent className="coss-row" style={{ justifyContent: "space-between" }}>
+          <CardContent className="coss-row coss-row--between">
             <div>
               <h2 className="coss-page-title">{service.name}</h2>
               <p className="coss-card-description">{serviceRouteLabel(service)}</p>
@@ -1705,21 +1591,20 @@ export function ProjectWorkbench({ projectId }: { projectId: string }) {
             </div>
           </CardContent>
         </CardFrame>
-        <div className="coss-tabs" role="tablist" aria-label="Service sections">
+        <TabsList label="Service sections">
           {tabs.map((item) => (
-            <button
+            <TabsTrigger
               key={item}
-              className="coss-tab"
-              aria-selected={tab === item}
+              selected={tab === item}
               onClick={() => {
                 setTab(item);
                 writeWorkbenchUrl(service, item);
               }}
             >
               {item}
-            </button>
+            </TabsTrigger>
           ))}
-        </div>
+        </TabsList>
         {tab === "Route" && isWorkbenchAppService(service) ? <RouteTab service={service} /> : null}
         {tab === "Environment" && isWorkbenchAppService(service) ? <EnvironmentTab service={service} /> : null}
         {tab === "Logs" && isWorkbenchAppService(service) ? <LogsTab service={service} /> : null}
@@ -1810,11 +1695,13 @@ function EnvironmentTab({ service }: { service: WorkbenchAppService }) {
       />
       <CardContent className="coss-stack">
         {error ? <Alert tone="destructive" title="Environment unavailable">{error}</Alert> : null}
-        <div className="coss-tabs">
+        <TabsList label="Environment display">
           {(["Variables", "Raw .env"] as const).map((item) => (
-            <button key={item} className="coss-tab" aria-selected={mode === item} onClick={() => setMode(item)}>{item}</button>
+            <TabsTrigger key={item} selected={mode === item} onClick={() => setMode(item)}>
+              {item}
+            </TabsTrigger>
           ))}
-        </div>
+        </TabsList>
         {loading ? (
           <div className="coss-stack-sm">
             <SkeletonBlock height={40} />
@@ -1833,7 +1720,7 @@ function EnvironmentTab({ service }: { service: WorkbenchAppService }) {
               )}
             />
           ) : (
-            <textarea className="coss-textarea coss-mono" readOnly value={rawEnv} />
+            <Textarea className="coss-mono" readOnly value={rawEnv} />
           )
         ) : (
           <Empty title="No environment variables" description="Fugue returned an empty environment for this app." />
@@ -1872,12 +1759,14 @@ function LogsTab({ service }: { service: WorkbenchAppService }) {
         />
         <CardContent className="coss-stack">
           {error ? <Alert tone="destructive" title="Logs unavailable">{error}</Alert> : null}
-          <div className="coss-row" style={{ justifyContent: "space-between" }}>
-            <div className="coss-tabs">
+          <div className="coss-row coss-row--between">
+            <TabsList label="Log source">
               {(["Runtime", "Build"] as const).map((item) => (
-                <button key={item} className="coss-tab" aria-selected={kind === item} onClick={() => setKind(item)}>{item}</button>
+                <TabsTrigger key={item} selected={kind === item} onClick={() => setKind(item)}>
+                  {item}
+                </TabsTrigger>
               ))}
-            </div>
+            </TabsList>
             <Button variant="outline" size="sm" disabled={!logs} onClick={() => copyText(logs, toast.notify)}>Copy logs</Button>
           </div>
           {loading ? <SkeletonBlock height={220} /> : logs ? <CodeBlock>{logs}</CodeBlock> : <Empty title="No logs returned" description="Fugue did not return log lines for this app and mode." />}
@@ -2043,12 +1932,17 @@ function ObservabilityTab({ service }: { service: WorkbenchAppService }) {
         }
       />
       <CardContent className="coss-stack">
-        <div className="coss-row" style={{ justifyContent: "space-between" }}>
-          <select className="coss-select" aria-label="Time window" value={windowSize} onChange={(event) => setWindowSize(event.target.value)} style={{ width: 120 }}>
+        <div className="coss-row coss-row--between">
+          <NativeSelect
+            className="coss-select--short"
+            aria-label="Time window"
+            value={windowSize}
+            onChange={(event) => setWindowSize(event.target.value)}
+          >
             <option value="15m">15m</option>
             <option value="1h">1h</option>
             <option value="24h">24h</option>
-          </select>
+          </NativeSelect>
           <Badge tone={metrics.data?.source.available ? "success" : "warning"}>
             {metrics.data?.source.status ?? "loading"}
           </Badge>
@@ -2102,12 +1996,12 @@ function SettingsTab({ service }: { service: WorkbenchService }) {
       <CardFrame>
         <CardHeader title="Runtime settings" description="Current app runtime settings reported by Fugue." />
         <CardContent className="coss-grid-2">
-          <Field label="Startup command"><input className="coss-input" readOnly value={service.startupCommand ?? ""} placeholder="Not configured" /></Field>
-          <Field label="Image retention"><input className="coss-input" readOnly value={String(service.imageMirrorLimit)} /></Field>
-          <Field label="Network mode"><input className="coss-input" readOnly value={service.networkMode ?? "default"} /></Field>
-          <Field label="Runtime"><input className="coss-input" readOnly value={service.runtimeId ?? ""} placeholder="No runtime" /></Field>
-          <Field label="Replicas"><input className="coss-input" readOnly value={service.replicaCount === null ? "" : String(service.replicaCount)} placeholder="Unknown" /></Field>
-          <Field label="Deploy behavior"><input className="coss-input" readOnly value={service.deployBehavior} /></Field>
+          <Field label="Startup command"><Input readOnly value={service.startupCommand ?? ""} placeholder="Not configured" /></Field>
+          <Field label="Image retention"><Input readOnly value={String(service.imageMirrorLimit)} /></Field>
+          <Field label="Network mode"><Input readOnly value={service.networkMode ?? "default"} /></Field>
+          <Field label="Runtime"><Input readOnly value={service.runtimeId ?? ""} placeholder="No runtime" /></Field>
+          <Field label="Replicas"><Input readOnly value={service.replicaCount === null ? "" : String(service.replicaCount)} placeholder="Unknown" /></Field>
+          <Field label="Deploy behavior"><Input readOnly value={service.deployBehavior} /></Field>
         </CardContent>
       </CardFrame>
       <CardFrame>
@@ -2421,8 +2315,8 @@ export function BillingConsole() {
                 <CardHeader title="Managed capacity envelope" description="Saved CPU, memory, and storage cap for this Fugue tenant." />
                 <CardContent className="coss-form">
                   <Field label="CPU cores">
-                    <input
-                      className="coss-input"
+                    <Input
+
                       min={0}
                       step={0.1}
                       type="number"
@@ -2434,8 +2328,8 @@ export function BillingConsole() {
                     />
                   </Field>
                   <Field label="Memory GiB">
-                    <input
-                      className="coss-input"
+                    <Input
+
                       min={0}
                       step={0.5}
                       type="number"
@@ -2447,8 +2341,8 @@ export function BillingConsole() {
                     />
                   </Field>
                   <Field label="Storage GiB">
-                    <input
-                      className="coss-input"
+                    <Input
+
                       min={0}
                       step={1}
                       type="number"
@@ -2472,8 +2366,8 @@ export function BillingConsole() {
                 <CardHeader title="Top up" description="Start a checkout for prepaid balance." />
                 <CardContent className="coss-stack">
                   <Field label="Amount USD">
-                    <input
-                      className="coss-input"
+                    <Input
+
                       min={5}
                       step={1}
                       type="number"
@@ -2996,8 +2890,8 @@ export function AccessKeysConsole() {
       >
         <div className="coss-form">
           <Field label="Name" help="Leave blank to let Fugue generate the node key label.">
-            <input
-              className="coss-input"
+            <Input
+
               value={nodeLabel}
               onChange={(event) => setNodeLabel(event.target.value)}
               placeholder="node"
@@ -3027,8 +2921,8 @@ export function AccessKeysConsole() {
       >
         <div className="coss-form">
           <Field label="Name">
-            <input
-              className="coss-input"
+            <Input
+
               value={renameLabel}
               onChange={(event) => setRenameLabel(event.target.value)}
             />
@@ -3060,7 +2954,7 @@ export function AccessKeysConsole() {
       >
         {secretPanel ? <CodeBlock>{secretPanel.value}</CodeBlock> : null}
       </Drawer>
-      <Dialog
+      <ConfirmDialog
         title={confirm?.title ?? ""}
         description={confirm?.description ?? ""}
         open={Boolean(confirm)}
@@ -3358,7 +3252,12 @@ export function ServersConsole() {
             }
           />
           <CardContent className="coss-stack">
-            <input className="coss-input" placeholder="Search node" value={query} onChange={(event) => setQuery(event.target.value)} style={{ maxWidth: 260 }} />
+            <Input
+              className="coss-input--narrow"
+              placeholder="Search node"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
             {rows.length ? (
               <DataTable
                 columns={["Server", "Role", "Ready", "CPU", "Memory", "Actions"]}
@@ -3667,8 +3566,8 @@ export function ProfileSecurity() {
             ) : data ? (
               <>
                 <Field label="Display name">
-                  <input
-                    className="coss-input"
+                  <Input
+
                     value={name}
                     onChange={(event) => {
                       setDirty(true);
@@ -3678,7 +3577,7 @@ export function ProfileSecurity() {
                   />
                 </Field>
                 <Field label="Email">
-                  <input className="coss-input" value={email} disabled />
+                  <Input value={email} disabled />
                 </Field>
                 <Button
                   disabled={!data || name.trim().length > 80}
@@ -3708,7 +3607,7 @@ export function ProfileSecurity() {
               </div>
             ) : data && activeMethods.length ? (
               activeMethods.map((method) => (
-                <div key={method.method} className="coss-row" style={{ justifyContent: "space-between" }}>
+                <div key={method.method} className="coss-row coss-row--between">
                   <span>{profileMethodLabel(method.method)}</span>
                   <Button
                     variant="outline"
@@ -3780,8 +3679,8 @@ export function ProfileSecurity() {
           ) : null}
           {hasPassword ? (
             <Field label="Current password">
-              <input
-                className="coss-input"
+              <Input
+
                 type="password"
                 value={currentPassword}
                 onChange={(event) => setCurrentPassword(event.target.value)}
@@ -3789,8 +3688,8 @@ export function ProfileSecurity() {
             </Field>
           ) : null}
           <Field label="New password">
-            <input
-              className="coss-input"
+            <Input
+
               type="password"
               value={newPassword}
               onChange={(event) => setNewPassword(event.target.value)}
@@ -4085,20 +3984,18 @@ export function AdminAppsConsole() {
           />
           <CardContent className="coss-stack">
             <div className="coss-row">
-              <input
+              <Input
                 aria-label="Search apps"
-                className="coss-input"
+                className="coss-input--medium"
                 placeholder="Search app, owner, route, runtime"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                style={{ width: 300 }}
               />
-              <select
+              <NativeSelect
                 aria-label="Filter app phase"
-                className="coss-select"
+                className="coss-select--narrow"
                 value={phase}
                 onChange={(event) => setPhase(event.target.value)}
-                style={{ width: 180 }}
               >
                 <option value="all">All phases</option>
                 {phases.map((item) => (
@@ -4106,7 +4003,7 @@ export function AdminAppsConsole() {
                     {item}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </div>
 
             {operationError ? (
@@ -4235,7 +4132,7 @@ export function AdminAppsConsole() {
           </div>
         ) : null}
       </Drawer>
-      <Dialog
+      <ConfirmDialog
         title={operation?.title ?? ""}
         description={operation?.description ?? ""}
         open={Boolean(operation)}
@@ -4430,27 +4327,25 @@ export function AdminUsersConsole() {
           />
           <CardContent className="coss-stack">
             <div className="coss-row">
-              <input
+              <Input
                 aria-label="Search users"
-                className="coss-input"
+                className="coss-input--medium"
                 placeholder="Search users, workspace, billing"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                style={{ width: 300 }}
               />
-              <select
+              <NativeSelect
                 aria-label="Filter users"
-                className="coss-select"
+                className="coss-select--narrow"
                 value={status}
                 onChange={(event) => setStatus(event.target.value)}
-                style={{ width: 180 }}
               >
                 <option value="all">All users</option>
                 <option value="active">Active</option>
                 <option value="blocked">Blocked</option>
                 <option value="deleted">Deleted</option>
                 <option value="admin">Admins</option>
-              </select>
+              </NativeSelect>
             </div>
 
             {data?.enrichmentState === "pending" ? (
@@ -4611,7 +4506,7 @@ export function AdminUsersConsole() {
           </div>
         ) : null}
       </Drawer>
-      <Dialog
+      <ConfirmDialog
         title={operation?.title ?? ""}
         description={operation?.description ?? ""}
         open={Boolean(operation)}
@@ -4862,13 +4757,12 @@ export function AdminClusterConsole() {
             }
           />
           <CardContent className="coss-stack">
-            <input
+            <Input
               aria-label="Search cluster nodes"
-              className="coss-input"
+              className="coss-input--wide"
               placeholder="Search nodes, runtime, tenant, role, workload"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              style={{ width: 340 }}
             />
             {operationError ? (
               <Alert tone="destructive" title="Cluster operation failed">
@@ -4970,44 +4864,44 @@ export function AdminClusterConsole() {
             {drawer.policy && policyDraft ? (
               <div className="coss-form">
                 <Field label="Build workloads">
-                  <select
-                    className="coss-select"
+                  <NativeSelect
+
                     value={String(policyDraft.allowBuilds)}
                     onChange={(event) => setPolicyBoolean("allowBuilds", event.target.value)}
                   >
                     <option value="true">Allowed</option>
                     <option value="false">Disabled</option>
-                  </select>
+                  </NativeSelect>
                 </Field>
                 <Field label="DNS traffic">
-                  <select
-                    className="coss-select"
+                  <NativeSelect
+
                     value={String(policyDraft.allowDns)}
                     onChange={(event) => setPolicyBoolean("allowDns", event.target.value)}
                   >
                     <option value="true">Allowed</option>
                     <option value="false">Disabled</option>
-                  </select>
+                  </NativeSelect>
                 </Field>
                 <Field label="Edge traffic">
-                  <select
-                    className="coss-select"
+                  <NativeSelect
+
                     value={String(policyDraft.allowEdge)}
                     onChange={(event) => setPolicyBoolean("allowEdge", event.target.value)}
                   >
                     <option value="true">Allowed</option>
                     <option value="false">Disabled</option>
-                  </select>
+                  </NativeSelect>
                 </Field>
                 <Field label="Shared pool">
-                  <select
-                    className="coss-select"
+                  <NativeSelect
+
                     value={String(policyDraft.allowSharedPool)}
                     onChange={(event) => setPolicyBoolean("allowSharedPool", event.target.value)}
                   >
                     <option value="true">Allowed</option>
                     <option value="false">Disabled</option>
-                  </select>
+                  </NativeSelect>
                 </Field>
                 <Alert tone="info" title="Effective policy">
                   Control plane role: {drawer.policy.effectiveControlPlaneRoleLabel}; schedulable: {drawer.policy.effectiveSchedulable ? "yes" : "no"}.
@@ -5027,7 +4921,7 @@ export function AdminClusterConsole() {
           </div>
         ) : null}
       </Drawer>
-      <Dialog
+      <ConfirmDialog
         title="Platform join command"
         description={secret ?? ""}
         open={Boolean(secret)}

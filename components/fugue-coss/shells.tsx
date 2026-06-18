@@ -71,7 +71,7 @@ export function AuthShell({
   return (
     <div className="coss-root coss-auth-shell">
       <main className="coss-auth-panel coss-stack">
-        <div className="coss-stack-sm" style={{ alignItems: "center" }}>
+        <div className="coss-stack-sm coss-stack--center">
           <BrandMark />
           <PageHeader title={title} description={description} center />
         </div>
@@ -199,7 +199,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
     <ConsoleShell admin>
       <div className="coss-stack">
         <CardFrame>
-          <CardContent className="coss-row" style={{ justifyContent: "space-between" }}>
+          <CardContent className="coss-row coss-row--between">
             <div className="coss-row">
               <Shield aria-hidden="true" />
               <div>
