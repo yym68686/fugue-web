@@ -106,6 +106,11 @@ export function NewProjectShell({
   );
 }
 
+type BreadcrumbItem = {
+  href?: string;
+  label: string;
+};
+
 const workspaceLinks = [
   { href: "/app", label: "Projects", icon: Gauge },
   { href: "/app/cluster-nodes", label: "Servers", icon: Server },
@@ -122,6 +127,31 @@ const adminLinks = [
   { href: "/app/users", label: "Users", icon: Users },
   { href: "/app/cluster", label: "Cluster", icon: Network },
 ];
+
+function TopbarBreadcrumbs({
+  items,
+}: {
+  items: BreadcrumbItem[];
+}) {
+  return (
+    <nav className="coss-breadcrumbs" aria-label="Breadcrumb">
+      <ol>
+        {items.map((item, index) => {
+          const current = index === items.length - 1;
+          return (
+            <li key={`${item.href ?? "current"}-${item.label}`}>
+              {item.href && !current ? (
+                <Link href={item.href}>{item.label}</Link>
+              ) : (
+                <span aria-current={current ? "page" : undefined}>{item.label}</span>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
+  );
+}
 
 function SidebarGroup({
   label,
@@ -151,10 +181,16 @@ function SidebarGroup({
 export function ConsoleShell({
   children,
   admin = false,
+  breadcrumbs,
 }: {
   children: ReactNode;
   admin?: boolean;
+  breadcrumbs?: BreadcrumbItem[];
 }) {
+  const defaultBreadcrumbs = admin
+    ? [{ href: "/app/apps", label: "Admin" }, { label: "Apps" }]
+    : [{ href: "/app", label: "Workspace" }, { label: "Projects" }];
+
   return (
     <div className="coss-root coss-console-shell">
       <aside className="coss-sidebar">
@@ -171,12 +207,7 @@ export function ConsoleShell({
           <SidebarGroup label="Admin" links={adminLinks} />
         </details>
         <header className="coss-topbar">
-          <div className="coss-row">
-            <Badge tone={admin ? "warning" : "info"}>
-              {admin ? "Admin surface" : "Workspace console"}
-            </Badge>
-            <span className="coss-help">Search projects, apps, keys, servers</span>
-          </div>
+          <TopbarBreadcrumbs items={breadcrumbs ?? defaultBreadcrumbs} />
           <div className="coss-actions">
             <ButtonLink href="/docs" variant="outline">
               <FileText aria-hidden="true" />
@@ -194,9 +225,18 @@ export function ConsoleShell({
   );
 }
 
-export function AdminShell({ children }: { children: ReactNode }) {
+export function AdminShell({
+  children,
+  breadcrumbs,
+}: {
+  children: ReactNode;
+  breadcrumbs?: BreadcrumbItem[];
+}) {
   return (
-    <ConsoleShell admin>
+    <ConsoleShell
+      admin
+      breadcrumbs={breadcrumbs ?? [{ href: "/app/apps", label: "Admin" }, { label: "Apps" }]}
+    >
       <div className="coss-stack">
         <CardFrame>
           <CardContent className="coss-row coss-row--between">

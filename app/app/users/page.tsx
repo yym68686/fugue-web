@@ -4,7 +4,7 @@ import { AdminShell } from "@/components/fugue-coss/shells";
 
 export default function AdminUsersPage() {
   return (
-    <AdminShell>
+    <AdminShell breadcrumbs={[{ href: "/app/apps", label: "Admin" }, { label: "Users" }]}>
       <PageHeader
         title="Admin users"
         description="User directory, account status, admin state, providers, verification, balance, billing limit, service usage, block, unblock, and delete."

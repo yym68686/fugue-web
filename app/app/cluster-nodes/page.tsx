@@ -4,7 +4,7 @@ import { ConsoleShell } from "@/components/fugue-coss/shells";
 
 export default function ClusterNodesPage() {
   return (
-    <ConsoleShell>
+    <ConsoleShell breadcrumbs={[{ href: "/app", label: "Workspace" }, { label: "Servers" }]}>
       <PageHeader
         title="Servers"
         description="Runtime servers, heartbeat, roles, pressure signals, capacity, workloads, runtime access, sharing, pool state, and offline cleanup."

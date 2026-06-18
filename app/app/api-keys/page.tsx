@@ -4,7 +4,7 @@ import { ConsoleShell } from "@/components/fugue-coss/shells";
 
 export default function ApiKeysPage() {
   return (
-    <ConsoleShell>
+    <ConsoleShell breadcrumbs={[{ href: "/app", label: "Workspace" }, { label: "Access keys" }]}>
       <PageHeader
         title="Access keys"
         description="Workspace API keys and node enrollment keys with scopes, one-time secrets, join commands, rotation, and revoke actions."

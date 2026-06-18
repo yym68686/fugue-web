@@ -1122,6 +1122,64 @@ select:disabled {
   backdrop-filter: blur(12px);
 }
 
+.coss-breadcrumbs {
+  min-width: 0;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.coss-breadcrumbs ol {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.coss-breadcrumbs li {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+}
+
+.coss-breadcrumbs li:not(:last-child)::after {
+  color: var(--muted-foreground);
+  content: "/";
+  opacity: 0.6;
+}
+
+.coss-breadcrumbs a {
+  overflow: hidden;
+  max-width: 220px;
+  border-radius: 6px;
+  color: var(--muted-foreground);
+  line-height: 1.2;
+  padding: 4px 5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.coss-breadcrumbs a:hover,
+.coss-breadcrumbs a:focus-visible {
+  background: var(--accent);
+  color: var(--foreground);
+  outline: 0;
+}
+
+.coss-breadcrumbs span[aria-current="page"] {
+  overflow: hidden;
+  max-width: 280px;
+  color: var(--foreground);
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .coss-console-page {
   padding: 22px;
 }

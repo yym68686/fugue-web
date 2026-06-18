@@ -5,7 +5,7 @@ import { ConsoleShell } from "@/components/fugue-coss/shells";
 
 export default function ConsoleError({ reset }: { reset: () => void }) {
   return (
-    <ConsoleShell>
+    <ConsoleShell breadcrumbs={[{ href: "/app", label: "Workspace" }, { label: "Error" }]}>
       <CardFrame>
         <CardContent className="coss-stack">
           <Alert tone="destructive" title="Console surface failed">

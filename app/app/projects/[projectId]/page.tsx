@@ -10,7 +10,13 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
   const { projectId } = await Promise.resolve(params);
 
   return (
-    <ConsoleShell>
+    <ConsoleShell
+      breadcrumbs={[
+        { href: "/app", label: "Workspace" },
+        { href: "/app", label: "Projects" },
+        { label: projectId },
+      ]}
+    >
       <PageHeader
         eyebrow="Projects"
         title={projectId}
