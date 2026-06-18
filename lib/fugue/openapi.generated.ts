@@ -6207,6 +6207,7 @@ export interface components {
             mode?: components["schemas"]["AppNetworkPolicyMode"];
             allow_dns?: boolean;
             allow_public_internet?: boolean;
+            allow_backing_services?: boolean;
             allow_apps?: components["schemas"]["AppNetworkPolicyAppPeer"][];
         };
         AppNetworkPolicyAppPeer: {
