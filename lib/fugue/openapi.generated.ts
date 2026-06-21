@@ -5210,6 +5210,11 @@ export interface components {
             app_id: string;
             tenant_id: string;
             edge_group_id?: string;
+            excluded_edge_ids?: string[];
+            excluded_edge_group_ids?: string[];
+            exclusion_reason?: string;
+            /** Format: date-time */
+            exclusion_expires_at?: string | null;
             /** @enum {string} */
             route_policy: "route_a_only" | "edge_canary" | "edge_enabled";
             enabled: boolean;
@@ -5596,6 +5601,11 @@ export interface components {
         };
         PutEdgeRoutePolicyRequest: {
             edge_group_id?: string;
+            excluded_edge_ids?: string[];
+            excluded_edge_group_ids?: string[];
+            exclusion_reason?: string;
+            /** Format: date-time */
+            exclusion_expires_at?: string | null;
             /** @enum {string} */
             route_policy: "route_a_only" | "edge_canary" | "edge_enabled";
             enabled?: boolean;
