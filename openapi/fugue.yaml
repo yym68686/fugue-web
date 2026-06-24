@@ -224,6 +224,41 @@ paths:
                 $ref: "#/components/schemas/EdgeRouteBundle"
         default:
           $ref: "#/components/responses/ErrorResponse"
+  /v1/edge/ssh/routes:
+    get:
+      operationId: edgeSSHRoutes
+      summary: Edge SSH Routes
+      tags: [Edge]
+      x-fugue-handler: handleEdgeSSHRoutes
+      security:
+        - EdgeToken: []
+      parameters:
+        - in: query
+          name: edge_id
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: edge_group_id
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          headers:
+            ETag:
+              schema:
+                type: string
+            X-Fugue-SSH-Route-Bundle-Version:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EdgeSSHRouteBundle"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
   /v1/edge/nodes:
     get:
       operationId: listEdgeNodes
@@ -297,6 +332,62 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/EdgeNodeQualityResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/edge/quality-rank/{hostname}:
+    get:
+      operationId: getEdgeQualityRank
+      summary: Get Edge Quality Rank
+      tags: [Edge]
+      x-fugue-handler: handleGetEdgeQualityRank
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: hostname
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: traffic_class
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: method
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: path_prefix
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: scope
+          required: false
+          description: "Scope selector: global, country:<country>, region:<country>:<region>, or asn:<asn>."
+          schema:
+            type: string
+        - in: query
+          name: window
+          required: false
+          description: Positive duration such as 30m, 6h, or 24h. Defaults to 30m.
+          schema:
+            type: string
+        - in: query
+          name: since
+          required: false
+          description: Lower bound as a positive duration or RFC3339 timestamp. Overrides window.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EdgeQualityRankResponse"
         default:
           $ref: "#/components/responses/ErrorResponse"
   /v1/edge/nodes/{edge_id}/token:
@@ -581,6 +672,182 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PlatformFailureDrillResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/admin/robustness/status:
+    get:
+      operationId: getRobustnessStatus
+      summary: Get Robustness Status
+      tags: [Admin]
+      x-fugue-handler: handleGetRobustnessStatus
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: subject
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: zone
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: min_healthy_nodes
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RobustnessStatusResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/admin/robustness/check/{subject}:
+    get:
+      operationId: checkRobustnessSubject
+      summary: Check Robustness Subject
+      tags: [Admin]
+      x-fugue-handler: handleCheckRobustnessSubject
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: subject
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: zone
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RobustnessStatusResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/admin/robustness/incidents:
+    get:
+      operationId: listRobustnessIncidents
+      summary: List Robustness Incidents
+      tags: [Admin]
+      x-fugue-handler: handleListRobustnessIncidents
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: subject
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RobustnessIncidentListResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/admin/robustness/incidents/{id}:
+    get:
+      operationId: getRobustnessIncident
+      summary: Get Robustness Incident
+      tags: [Admin]
+      x-fugue-handler: handleGetRobustnessIncident
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: subject
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RobustnessIncidentResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/admin/robustness/incidents/{id}/repair-plan:
+    post:
+      operationId: planRobustnessRepair
+      summary: Plan Robustness Repair
+      tags: [Admin]
+      x-fugue-handler: handlePlanRobustnessRepair
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: subject
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RobustnessRepairPlanResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/admin/robustness/incidents/{id}/repair:
+    post:
+      operationId: runRobustnessRepair
+      summary: Run Robustness Repair
+      tags: [Admin]
+      x-fugue-handler: handleRunRobustnessRepair
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: subject
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RobustnessRepairRequest"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RobustnessRepairPlanResponse"
         default:
           $ref: "#/components/responses/ErrorResponse"
   /v1/admin/security/key-rotation:
@@ -1692,6 +1959,64 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/APIKeyResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/ssh/keys:
+    get:
+      operationId: listSSHKeys
+      summary: List SSH Keys
+      tags: [SSH]
+      x-fugue-handler: handleListSSHKeys
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SSHKeyListResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+    post:
+      operationId: createSSHKey
+      summary: Create SSH Key
+      tags: [SSH]
+      x-fugue-handler: handleCreateSSHKey
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSSHKeyRequest"
+      responses:
+        '201':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SSHKeyResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/ssh/keys/{id}:
+    delete:
+      operationId: deleteSSHKey
+      summary: Delete SSH Key
+      tags: [SSH]
+      x-fugue-handler: handleDeleteSSHKey
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPathParam"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteSSHKeyResponse"
         default:
           $ref: "#/components/responses/ErrorResponse"
   /v1/node-keys:
@@ -4073,6 +4398,93 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AppEnvResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/apps/{id}/ssh:
+    get:
+      operationId: getAppSSH
+      summary: Get App SSH
+      tags: [Apps, SSH]
+      x-fugue-handler: handleGetAppSSH
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPathParam"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppSSHResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+    patch:
+      operationId: patchAppSSH
+      summary: Patch App SSH
+      tags: [Apps, SSH]
+      x-fugue-handler: handlePatchAppSSH
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPathParam"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatchAppSSHRequest"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppSSHResponse"
+        '202':
+          description: Accepted response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppSSHResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/apps/{id}/ssh/rotate-port:
+    post:
+      operationId: rotateAppSSHPort
+      summary: Rotate App SSH Port
+      tags: [Apps, SSH]
+      x-fugue-handler: handleRotateAppSSHPort
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPathParam"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppSSHResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/apps/{id}/ssh/diagnose:
+    get:
+      operationId: diagnoseAppSSH
+      summary: Diagnose App SSH
+      tags: [Apps, SSH]
+      x-fugue-handler: handleDiagnoseAppSSH
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPathParam"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppSSHDiagnosisResponse"
         default:
           $ref: "#/components/responses/ErrorResponse"
   /v1/apps/{id}/database/query:
@@ -8939,6 +9351,70 @@ components:
         disabled_at:
           type: string
           format: date-time
+    SSHKey:
+      type: object
+      additionalProperties: false
+      required: [id, tenant_id, label, fingerprint, status, created_at, updated_at]
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        label:
+          type: string
+        public_key:
+          type: string
+        fingerprint:
+          type: string
+        status:
+          type: string
+        comment:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        last_used_at:
+          type: string
+          format: date-time
+    SSHKeyListResponse:
+      type: object
+      additionalProperties: false
+      required: [ssh_keys]
+      properties:
+        ssh_keys:
+          type: array
+          items:
+            $ref: "#/components/schemas/SSHKey"
+    SSHKeyResponse:
+      type: object
+      additionalProperties: false
+      required: [ssh_key]
+      properties:
+        ssh_key:
+          $ref: "#/components/schemas/SSHKey"
+    CreateSSHKeyRequest:
+      type: object
+      additionalProperties: false
+      required: [public_key]
+      properties:
+        tenant_id:
+          type: string
+        label:
+          type: string
+        public_key:
+          type: string
+    DeleteSSHKeyResponse:
+      type: object
+      additionalProperties: false
+      required: [deleted, ssh_key]
+      properties:
+        deleted:
+          type: boolean
+        ssh_key:
+          $ref: "#/components/schemas/SSHKey"
     NodeKey:
       type: object
       additionalProperties: false
@@ -9659,6 +10135,72 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/CachePolicy"
+    EdgeSSHRouteBundle:
+      type: object
+      additionalProperties: false
+      required: [version, generated_at, routes]
+      properties:
+        schema_version:
+          type: string
+        version:
+          type: string
+        generated_at:
+          type: string
+          format: date-time
+        valid_until:
+          type: string
+          format: date-time
+        issuer:
+          type: string
+        key_id:
+          type: string
+        signature:
+          type: string
+        signatures:
+          type: array
+          items:
+            $ref: "#/components/schemas/BundleSignature"
+        edge_id:
+          type: string
+        edge_group_id:
+          type: string
+        routes:
+          type: array
+          items:
+            $ref: "#/components/schemas/EdgeSSHRoute"
+    EdgeSSHRoute:
+      type: object
+      additionalProperties: false
+      required: [app_id, tenant_id, hostname, public_port, target_host, target_port, user, status]
+      properties:
+        app_id:
+          type: string
+        tenant_id:
+          type: string
+        runtime_id:
+          type: string
+        runtime_type:
+          type: string
+        edge_group_id:
+          type: string
+        hostname:
+          type: string
+        public_port:
+          type: integer
+          format: int32
+        target_host:
+          type: string
+        target_port:
+          type: integer
+          format: int32
+        user:
+          type: string
+        status:
+          type: string
+        status_reason:
+          type: string
+        route_generation:
+          type: string
     EdgeRouteBinding:
       type: object
       additionalProperties: false
@@ -10140,6 +10682,27 @@ components:
         avg_active_body_buffers:
           type: number
           format: double
+        avg_client_tcp_rtt_ms:
+          type: number
+          format: double
+        avg_client_tcp_min_rtt_ms:
+          type: number
+          format: double
+        avg_client_tcp_rttvar_ms:
+          type: number
+          format: double
+        client_tcp_retrans_rate:
+          type: number
+          format: double
+        client_tcp_bytes_retrans_rate:
+          type: number
+          format: double
+        client_tcp_rto_rate:
+          type: number
+          format: double
+        avg_client_tcp_delivery_rate_bps:
+          type: number
+          format: double
         cache_hit_count:
           type: integer
           format: int32
@@ -10282,6 +10845,27 @@ components:
         avg_active_body_buffers:
           type: number
           format: double
+        avg_client_tcp_rtt_ms:
+          type: number
+          format: double
+        avg_client_tcp_min_rtt_ms:
+          type: number
+          format: double
+        avg_client_tcp_rttvar_ms:
+          type: number
+          format: double
+        client_tcp_retrans_rate:
+          type: number
+          format: double
+        client_tcp_bytes_retrans_rate:
+          type: number
+          format: double
+        client_tcp_rto_rate:
+          type: number
+          format: double
+        avg_client_tcp_delivery_rate_bps:
+          type: number
+          format: double
         cache_hit_count:
           type: integer
           format: int32
@@ -10312,6 +10896,126 @@ components:
         generated_at:
           type: string
           format: date-time
+    EdgeQualityRankResponse:
+      type: object
+      additionalProperties: false
+      required: [hostname, requested_scope, selected_scope, fallback_level, window, since, generated_at]
+      properties:
+        hostname:
+          type: string
+        traffic_class:
+          type: string
+        method:
+          type: string
+        path_prefix_bucket:
+          type: string
+        requested_scope:
+          type: string
+        selected_scope:
+          type: string
+        fallback_level:
+          type: integer
+          format: int32
+        fallback_reason:
+          type: string
+        window:
+          type: string
+        since:
+          type: string
+          format: date-time
+        generated_at:
+          type: string
+          format: date-time
+        candidates:
+          type: array
+          items:
+            $ref: "#/components/schemas/EdgeQualityRankCandidate"
+        hard_gated:
+          type: array
+          items:
+            $ref: "#/components/schemas/EdgeQualityRankCandidate"
+    EdgeQualityRankCandidate:
+      type: object
+      additionalProperties: false
+      properties:
+        rank:
+          type: integer
+          format: int32
+        edge_id:
+          type: string
+        edge_group_id:
+          type: string
+        region:
+          type: string
+        country:
+          type: string
+        healthy:
+          type: boolean
+        draining:
+          type: boolean
+        route_ready:
+          type: boolean
+        tls_ready:
+          type: boolean
+        excluded:
+          type: boolean
+        exclusion_reason:
+          type: string
+        score:
+          type: number
+          format: double
+        score_breakdown:
+          type: object
+          additionalProperties:
+            type: number
+            format: double
+        confidence:
+          type: number
+          format: double
+        confidence_penalty:
+          type: number
+          format: double
+        sample_record_count:
+          type: integer
+          format: int32
+        request_count:
+          type: integer
+          format: int32
+        error_rate:
+          type: number
+          format: double
+        cache_hit_rate:
+          type: number
+          format: double
+        avg_ttfb_ms:
+          type: number
+          format: double
+        avg_total_ms:
+          type: number
+          format: double
+        avg_upload_bps:
+          type: number
+          format: double
+        min_upload_bps:
+          type: integer
+          format: int64
+        avg_response_egress_bps:
+          type: number
+          format: double
+        client_tcp_retrans_rate:
+          type: number
+          format: double
+        client_tcp_bytes_retrans_rate:
+          type: number
+          format: double
+        client_tcp_rto_rate:
+          type: number
+          format: double
+        last_sampled_at:
+          type: string
+          format: date-time
+        reason:
+          type: string
     CreateEdgeNodeTokenRequest:
       type: object
       additionalProperties: false
@@ -10551,6 +11255,36 @@ components:
           type: integer
           format: int32
         memory_alloc_bytes:
+          type: integer
+          format: int64
+        client_tcp_rtt_ms:
+          type: number
+          format: double
+        client_tcp_min_rtt_ms:
+          type: number
+          format: double
+        client_tcp_rttvar_ms:
+          type: number
+          format: double
+        client_tcp_total_retrans:
+          type: integer
+          format: int64
+        client_tcp_retrans_rate:
+          type: number
+          format: double
+        client_tcp_bytes_retrans:
+          type: integer
+          format: int64
+        client_tcp_bytes_retrans_rate:
+          type: number
+          format: double
+        client_tcp_total_rto:
+          type: integer
+          format: int64
+        client_tcp_rto_rate:
+          type: number
+          format: double
+        client_tcp_delivery_rate_bps:
           type: integer
           format: int64
         sampled_at:
@@ -11668,6 +12402,8 @@ components:
           $ref: "#/components/schemas/StringMap"
         generated_env:
           $ref: "#/components/schemas/AppGeneratedEnvMap"
+        ssh:
+          $ref: "#/components/schemas/AppSSHSpec"
         network_mode:
           $ref: "#/components/schemas/AppNetworkMode"
         network_policy:
@@ -11713,6 +12449,170 @@ components:
           minimum: 0
           maximum: 86400
         restart_token:
+          type: string
+    AppSSHSpec:
+      type: object
+      additionalProperties: false
+      properties:
+        enabled:
+          type: boolean
+        target_port:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 65535
+        user:
+          type: string
+        authorized_key_ids:
+          type: array
+          items:
+            type: string
+        authorized_keys:
+          type: array
+          items:
+            type: string
+        authorized_keys_path:
+          type: string
+        host_keys_path:
+          type: string
+        allow_tcp_forwarding:
+          type: boolean
+    AppSSHEndpoint:
+      type: object
+      additionalProperties: false
+      required: [id, tenant_id, app_id, hostname, public_port, target_port, user, status, created_at, updated_at]
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        project_id:
+          type: string
+        app_id:
+          type: string
+        runtime_id:
+          type: string
+        runtime_type:
+          type: string
+        edge_group_id:
+          type: string
+        hostname:
+          type: string
+        public_port:
+          type: integer
+          format: int32
+        target_namespace:
+          type: string
+        target_service:
+          type: string
+        target_host:
+          type: string
+        target_port:
+          type: integer
+          format: int32
+        user:
+          type: string
+        status:
+          type: string
+        status_reason:
+          type: string
+        host_key_fingerprint:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        released_at:
+          type: string
+          format: date-time
+    AppSSHStatus:
+      type: object
+      additionalProperties: false
+      required: [supported, ready]
+      properties:
+        supported:
+          type: boolean
+        ready:
+          type: boolean
+        hostname:
+          type: string
+        public_port:
+          type: integer
+          format: int32
+        target_port:
+          type: integer
+          format: int32
+        user:
+          type: string
+        host_key_fingerprint:
+          type: string
+        message:
+          type: string
+    AppSSHResponse:
+      type: object
+      additionalProperties: false
+      required: [app, ssh]
+      properties:
+        app:
+          $ref: "#/components/schemas/App"
+        endpoint:
+          $ref: "#/components/schemas/AppSSHEndpoint"
+        ssh:
+          $ref: "#/components/schemas/AppSSHStatus"
+        operation:
+          $ref: "#/components/schemas/Operation"
+        already_current:
+          type: boolean
+    PatchAppSSHRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        enabled:
+          type: boolean
+        target_port:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 65535
+        user:
+          type: string
+        authorized_key_ids:
+          type: array
+          items:
+            type: string
+        authorized_keys:
+          type: array
+          items:
+            type: string
+        allow_tcp_forwarding:
+          type: boolean
+    AppSSHDiagnosisResponse:
+      type: object
+      additionalProperties: false
+      required: [app, ssh, checks]
+      properties:
+        app:
+          $ref: "#/components/schemas/App"
+        endpoint:
+          $ref: "#/components/schemas/AppSSHEndpoint"
+        ssh:
+          $ref: "#/components/schemas/AppSSHStatus"
+        checks:
+          type: array
+          items:
+            $ref: "#/components/schemas/AppSSHDiagnosisCheck"
+    AppSSHDiagnosisCheck:
+      type: object
+      additionalProperties: false
+      required: [name, pass, message]
+      properties:
+        name:
+          type: string
+        pass:
+          type: boolean
+        message:
           type: string
     AppNetworkPolicySpec:
       type: object
@@ -17856,6 +18756,184 @@ components:
       properties:
         report:
           $ref: "#/components/schemas/PlatformFailureDrillReport"
+    RobustnessCheck:
+      type: object
+      additionalProperties: false
+      required: [name, pass, severity]
+      properties:
+        name:
+          type: string
+        pass:
+          type: boolean
+        severity:
+          type: string
+          enum: [block_publish, degraded, warning, info]
+        subject:
+          type: string
+        expected:
+          type: string
+        observed:
+          type: string
+        evidence:
+          type: object
+          additionalProperties:
+            type: string
+        repair_hint:
+          type: string
+        message:
+          type: string
+    RobustnessIncident:
+      type: object
+      additionalProperties: false
+      required: [id, status, severity, subject, check_name, title, created_at, updated_at]
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+        severity:
+          type: string
+          enum: [block_publish, degraded, warning, info]
+        subject:
+          type: string
+        check_name:
+          type: string
+        title:
+          type: string
+        message:
+          type: string
+        expected:
+          type: string
+        observed:
+          type: string
+        evidence:
+          type: object
+          additionalProperties:
+            type: string
+        repair_hint:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    RobustnessStatus:
+      type: object
+      additionalProperties: false
+      required: [generated_at, pass, block_rollout, checks, incidents]
+      properties:
+        generated_at:
+          type: string
+          format: date-time
+        pass:
+          type: boolean
+        block_rollout:
+          type: boolean
+        subject:
+          type: string
+        summary:
+          type: object
+          additionalProperties:
+            type: string
+        checks:
+          type: array
+          items:
+            $ref: "#/components/schemas/RobustnessCheck"
+        incidents:
+          type: array
+          items:
+            $ref: "#/components/schemas/RobustnessIncident"
+        autonomy:
+          $ref: "#/components/schemas/PlatformAutonomyStatus"
+        dns:
+          $ref: "#/components/schemas/DNSDelegationPreflightResponse"
+        route_explain:
+          $ref: "#/components/schemas/RouteExplainResponse"
+        generated_sources:
+          type: array
+          items:
+            type: string
+    RobustnessStatusResponse:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status:
+          $ref: "#/components/schemas/RobustnessStatus"
+    RobustnessIncidentListResponse:
+      type: object
+      additionalProperties: false
+      required: [incidents, generated_at]
+      properties:
+        incidents:
+          type: array
+          items:
+            $ref: "#/components/schemas/RobustnessIncident"
+        generated_at:
+          type: string
+          format: date-time
+    RobustnessIncidentResponse:
+      type: object
+      additionalProperties: false
+      required: [incident, status]
+      properties:
+        incident:
+          $ref: "#/components/schemas/RobustnessIncident"
+        status:
+          $ref: "#/components/schemas/RobustnessStatus"
+    RobustnessRepairAction:
+      type: object
+      additionalProperties: false
+      required: [kind, description, automatic]
+      properties:
+        kind:
+          type: string
+        subject:
+          type: string
+        description:
+          type: string
+        command:
+          type: string
+        automatic:
+          type: boolean
+        risk:
+          type: string
+    RobustnessRepairRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        dry_run:
+          type: boolean
+    RobustnessRepairPlan:
+      type: object
+      additionalProperties: false
+      required: [incident_id, status, safe, dry_run, actions, generated_at]
+      properties:
+        incident_id:
+          type: string
+        status:
+          type: string
+        safe:
+          type: boolean
+        dry_run:
+          type: boolean
+        message:
+          type: string
+        actions:
+          type: array
+          items:
+            $ref: "#/components/schemas/RobustnessRepairAction"
+        generated_at:
+          type: string
+          format: date-time
+    RobustnessRepairPlanResponse:
+      type: object
+      additionalProperties: false
+      required: [plan]
+      properties:
+        plan:
+          $ref: "#/components/schemas/RobustnessRepairPlan"
     KeyRotationPreflightRequest:
       type: object
       additionalProperties: false
@@ -17950,6 +19028,16 @@ components:
         runtime_id:
           type: string
         failover_runtime_id:
+          type: string
+        storage_size:
+          type: string
+        storage_class_name:
+          type: string
+        instances:
+          type: integer
+        synchronous_replicas:
+          type: integer
+        primary_node_name:
           type: string
         last_backup:
           type: string

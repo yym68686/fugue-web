@@ -140,6 +140,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/edge/ssh/routes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Edge SSH Routes */
+        get: operations["edgeSSHRoutes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/edge/nodes": {
         parameters: {
             query?: never;
@@ -183,6 +200,23 @@ export interface paths {
         };
         /** Get Edge Node Quality */
         get: operations["getEdgeNodeQuality"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/edge/quality-rank/{hostname}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Edge Quality Rank */
+        get: operations["getEdgeQualityRank"];
         put?: never;
         post?: never;
         delete?: never;
@@ -374,6 +408,108 @@ export interface paths {
         put?: never;
         /** Run Platform Failure Drill */
         post: operations["runPlatformFailureDrill"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/robustness/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Robustness Status */
+        get: operations["getRobustnessStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/robustness/check/{subject}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Check Robustness Subject */
+        get: operations["checkRobustnessSubject"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/robustness/incidents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Robustness Incidents */
+        get: operations["listRobustnessIncidents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/robustness/incidents/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Robustness Incident */
+        get: operations["getRobustnessIncident"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/robustness/incidents/{id}/repair-plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Plan Robustness Repair */
+        post: operations["planRobustnessRepair"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/robustness/incidents/{id}/repair": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Run Robustness Repair */
+        post: operations["runRobustnessRepair"];
         delete?: never;
         options?: never;
         head?: never;
@@ -949,6 +1085,41 @@ export interface paths {
         /** Enable API Key */
         post: operations["enableAPIKey"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ssh/keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List SSH Keys */
+        get: operations["listSSHKeys"];
+        put?: never;
+        /** Create SSH Key */
+        post: operations["createSSHKey"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ssh/keys/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete SSH Key */
+        delete: operations["deleteSSHKey"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2345,6 +2516,58 @@ export interface paths {
         head?: never;
         /** Patch App Env */
         patch: operations["patchAppEnv"];
+        trace?: never;
+    };
+    "/v1/apps/{id}/ssh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get App SSH */
+        get: operations["getAppSSH"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Patch App SSH */
+        patch: operations["patchAppSSH"];
+        trace?: never;
+    };
+    "/v1/apps/{id}/ssh/rotate-port": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Rotate App SSH Port */
+        post: operations["rotateAppSSHPort"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/apps/{id}/ssh/diagnose": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Diagnose App SSH */
+        get: operations["diagnoseAppSSH"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/v1/apps/{id}/database/query": {
@@ -4797,6 +5020,36 @@ export interface components {
             /** Format: date-time */
             disabled_at?: string;
         };
+        SSHKey: {
+            id: string;
+            tenant_id: string;
+            label: string;
+            public_key?: string;
+            fingerprint: string;
+            status: string;
+            comment?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: date-time */
+            last_used_at?: string;
+        };
+        SSHKeyListResponse: {
+            ssh_keys: components["schemas"]["SSHKey"][];
+        };
+        SSHKeyResponse: {
+            ssh_key: components["schemas"]["SSHKey"];
+        };
+        CreateSSHKeyRequest: {
+            tenant_id?: string;
+            label?: string;
+            public_key: string;
+        };
+        DeleteSSHKeyResponse: {
+            deleted: boolean;
+            ssh_key: components["schemas"]["SSHKey"];
+        };
         NodeKey: {
             id: string;
             tenant_id: string;
@@ -5144,6 +5397,38 @@ export interface components {
             tls_allowlist: components["schemas"]["EdgeTLSAllowlistEntry"][];
             cache_policies?: components["schemas"]["CachePolicy"][];
         };
+        EdgeSSHRouteBundle: {
+            schema_version?: string;
+            version: string;
+            /** Format: date-time */
+            generated_at: string;
+            /** Format: date-time */
+            valid_until?: string;
+            issuer?: string;
+            key_id?: string;
+            signature?: string;
+            signatures?: components["schemas"]["BundleSignature"][];
+            edge_id?: string;
+            edge_group_id?: string;
+            routes: components["schemas"]["EdgeSSHRoute"][];
+        };
+        EdgeSSHRoute: {
+            app_id: string;
+            tenant_id: string;
+            runtime_id?: string;
+            runtime_type?: string;
+            edge_group_id?: string;
+            hostname: string;
+            /** Format: int32 */
+            public_port: number;
+            target_host: string;
+            /** Format: int32 */
+            target_port: number;
+            user: string;
+            status: string;
+            status_reason?: string;
+            route_generation?: string;
+        };
         EdgeRouteBinding: {
             hostname: string;
             /** @enum {string} */
@@ -5368,6 +5653,20 @@ export interface components {
             avg_active_requests: number;
             /** Format: double */
             avg_active_body_buffers: number;
+            /** Format: double */
+            avg_client_tcp_rtt_ms?: number;
+            /** Format: double */
+            avg_client_tcp_min_rtt_ms?: number;
+            /** Format: double */
+            avg_client_tcp_rttvar_ms?: number;
+            /** Format: double */
+            client_tcp_retrans_rate?: number;
+            /** Format: double */
+            client_tcp_bytes_retrans_rate?: number;
+            /** Format: double */
+            client_tcp_rto_rate?: number;
+            /** Format: double */
+            avg_client_tcp_delivery_rate_bps?: number;
             /** Format: int32 */
             cache_hit_count: number;
             /** Format: int32 */
@@ -5439,6 +5738,20 @@ export interface components {
             avg_active_requests: number;
             /** Format: double */
             avg_active_body_buffers: number;
+            /** Format: double */
+            avg_client_tcp_rtt_ms?: number;
+            /** Format: double */
+            avg_client_tcp_min_rtt_ms?: number;
+            /** Format: double */
+            avg_client_tcp_rttvar_ms?: number;
+            /** Format: double */
+            client_tcp_retrans_rate?: number;
+            /** Format: double */
+            client_tcp_bytes_retrans_rate?: number;
+            /** Format: double */
+            client_tcp_rto_rate?: number;
+            /** Format: double */
+            avg_client_tcp_delivery_rate_bps?: number;
             /** Format: int32 */
             cache_hit_count: number;
             /** Format: int32 */
@@ -5455,6 +5768,74 @@ export interface components {
             routes?: components["schemas"]["EdgeNodeQualityRoute"][];
             /** Format: date-time */
             generated_at: string;
+        };
+        EdgeQualityRankResponse: {
+            hostname: string;
+            traffic_class?: string;
+            method?: string;
+            path_prefix_bucket?: string;
+            requested_scope: string;
+            selected_scope: string;
+            /** Format: int32 */
+            fallback_level: number;
+            fallback_reason?: string;
+            window: string;
+            /** Format: date-time */
+            since: string;
+            /** Format: date-time */
+            generated_at: string;
+            candidates?: components["schemas"]["EdgeQualityRankCandidate"][];
+            hard_gated?: components["schemas"]["EdgeQualityRankCandidate"][];
+        };
+        EdgeQualityRankCandidate: {
+            /** Format: int32 */
+            rank?: number;
+            edge_id?: string;
+            edge_group_id?: string;
+            region?: string;
+            country?: string;
+            healthy?: boolean;
+            draining?: boolean;
+            route_ready?: boolean;
+            tls_ready?: boolean;
+            excluded?: boolean;
+            exclusion_reason?: string;
+            /** Format: double */
+            score?: number;
+            score_breakdown?: {
+                [key: string]: number;
+            };
+            /** Format: double */
+            confidence?: number;
+            /** Format: double */
+            confidence_penalty?: number;
+            /** Format: int32 */
+            sample_record_count?: number;
+            /** Format: int32 */
+            request_count?: number;
+            /** Format: double */
+            error_rate?: number;
+            /** Format: double */
+            cache_hit_rate?: number;
+            /** Format: double */
+            avg_ttfb_ms?: number;
+            /** Format: double */
+            avg_total_ms?: number;
+            /** Format: double */
+            avg_upload_bps?: number;
+            /** Format: int64 */
+            min_upload_bps?: number;
+            /** Format: double */
+            avg_response_egress_bps?: number;
+            /** Format: double */
+            client_tcp_retrans_rate?: number;
+            /** Format: double */
+            client_tcp_bytes_retrans_rate?: number;
+            /** Format: double */
+            client_tcp_rto_rate?: number;
+            /** Format: date-time */
+            last_sampled_at?: string;
+            reason?: string;
         };
         CreateEdgeNodeTokenRequest: {
             edge_group_id: string;
@@ -5592,6 +5973,26 @@ export interface components {
             goroutine_count?: number;
             /** Format: int64 */
             memory_alloc_bytes?: number;
+            /** Format: double */
+            client_tcp_rtt_ms?: number;
+            /** Format: double */
+            client_tcp_min_rtt_ms?: number;
+            /** Format: double */
+            client_tcp_rttvar_ms?: number;
+            /** Format: int64 */
+            client_tcp_total_retrans?: number;
+            /** Format: double */
+            client_tcp_retrans_rate?: number;
+            /** Format: int64 */
+            client_tcp_bytes_retrans?: number;
+            /** Format: double */
+            client_tcp_bytes_retrans_rate?: number;
+            /** Format: int64 */
+            client_tcp_total_rto?: number;
+            /** Format: double */
+            client_tcp_rto_rate?: number;
+            /** Format: int64 */
+            client_tcp_delivery_rate_bps?: number;
             /** Format: date-time */
             sampled_at: string;
         };
@@ -6138,6 +6539,7 @@ export interface components {
             args?: string[];
             env?: components["schemas"]["StringMap"];
             generated_env?: components["schemas"]["AppGeneratedEnvMap"];
+            ssh?: components["schemas"]["AppSSHSpec"];
             network_mode?: components["schemas"]["AppNetworkMode"];
             network_policy?: components["schemas"]["AppNetworkPolicySpec"];
             workload_class?: components["schemas"]["WorkloadClass"];
@@ -6159,6 +6561,83 @@ export interface components {
             /** Format: int64 */
             termination_grace_period_seconds?: number;
             restart_token?: string;
+        };
+        AppSSHSpec: {
+            enabled?: boolean;
+            /** Format: int32 */
+            target_port?: number;
+            user?: string;
+            authorized_key_ids?: string[];
+            authorized_keys?: string[];
+            authorized_keys_path?: string;
+            host_keys_path?: string;
+            allow_tcp_forwarding?: boolean;
+        };
+        AppSSHEndpoint: {
+            id: string;
+            tenant_id: string;
+            project_id?: string;
+            app_id: string;
+            runtime_id?: string;
+            runtime_type?: string;
+            edge_group_id?: string;
+            hostname: string;
+            /** Format: int32 */
+            public_port: number;
+            target_namespace?: string;
+            target_service?: string;
+            target_host?: string;
+            /** Format: int32 */
+            target_port: number;
+            user: string;
+            status: string;
+            status_reason?: string;
+            host_key_fingerprint?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: date-time */
+            released_at?: string;
+        };
+        AppSSHStatus: {
+            supported: boolean;
+            ready: boolean;
+            hostname?: string;
+            /** Format: int32 */
+            public_port?: number;
+            /** Format: int32 */
+            target_port?: number;
+            user?: string;
+            host_key_fingerprint?: string;
+            message?: string;
+        };
+        AppSSHResponse: {
+            app: components["schemas"]["App"];
+            endpoint?: components["schemas"]["AppSSHEndpoint"];
+            ssh: components["schemas"]["AppSSHStatus"];
+            operation?: components["schemas"]["Operation"];
+            already_current?: boolean;
+        };
+        PatchAppSSHRequest: {
+            enabled?: boolean;
+            /** Format: int32 */
+            target_port?: number;
+            user?: string;
+            authorized_key_ids?: string[];
+            authorized_keys?: string[];
+            allow_tcp_forwarding?: boolean;
+        };
+        AppSSHDiagnosisResponse: {
+            app: components["schemas"]["App"];
+            endpoint?: components["schemas"]["AppSSHEndpoint"];
+            ssh: components["schemas"]["AppSSHStatus"];
+            checks: components["schemas"]["AppSSHDiagnosisCheck"][];
+        };
+        AppSSHDiagnosisCheck: {
+            name: string;
+            pass: boolean;
+            message: string;
         };
         AppNetworkPolicySpec: {
             egress?: components["schemas"]["AppNetworkPolicyDirectionSpec"];
@@ -9062,6 +9541,92 @@ export interface components {
         PlatformFailureDrillResponse: {
             report: components["schemas"]["PlatformFailureDrillReport"];
         };
+        RobustnessCheck: {
+            name: string;
+            pass: boolean;
+            /** @enum {string} */
+            severity: "block_publish" | "degraded" | "warning" | "info";
+            subject?: string;
+            expected?: string;
+            observed?: string;
+            evidence?: {
+                [key: string]: string;
+            };
+            repair_hint?: string;
+            message?: string;
+        };
+        RobustnessIncident: {
+            id: string;
+            status: string;
+            /** @enum {string} */
+            severity: "block_publish" | "degraded" | "warning" | "info";
+            subject: string;
+            check_name: string;
+            title: string;
+            message?: string;
+            expected?: string;
+            observed?: string;
+            evidence?: {
+                [key: string]: string;
+            };
+            repair_hint?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        RobustnessStatus: {
+            /** Format: date-time */
+            generated_at: string;
+            pass: boolean;
+            block_rollout: boolean;
+            subject?: string;
+            summary?: {
+                [key: string]: string;
+            };
+            checks: components["schemas"]["RobustnessCheck"][];
+            incidents: components["schemas"]["RobustnessIncident"][];
+            autonomy?: components["schemas"]["PlatformAutonomyStatus"];
+            dns?: components["schemas"]["DNSDelegationPreflightResponse"];
+            route_explain?: components["schemas"]["RouteExplainResponse"];
+            generated_sources?: string[];
+        };
+        RobustnessStatusResponse: {
+            status: components["schemas"]["RobustnessStatus"];
+        };
+        RobustnessIncidentListResponse: {
+            incidents: components["schemas"]["RobustnessIncident"][];
+            /** Format: date-time */
+            generated_at: string;
+        };
+        RobustnessIncidentResponse: {
+            incident: components["schemas"]["RobustnessIncident"];
+            status: components["schemas"]["RobustnessStatus"];
+        };
+        RobustnessRepairAction: {
+            kind: string;
+            subject?: string;
+            description: string;
+            command?: string;
+            automatic: boolean;
+            risk?: string;
+        };
+        RobustnessRepairRequest: {
+            dry_run?: boolean;
+        };
+        RobustnessRepairPlan: {
+            incident_id: string;
+            status: string;
+            safe: boolean;
+            dry_run: boolean;
+            message?: string;
+            actions: components["schemas"]["RobustnessRepairAction"][];
+            /** Format: date-time */
+            generated_at: string;
+        };
+        RobustnessRepairPlanResponse: {
+            plan: components["schemas"]["RobustnessRepairPlan"];
+        };
         KeyRotationPreflightRequest: {
             dry_run?: boolean;
             stage?: boolean;
@@ -9104,6 +9669,11 @@ export interface components {
             owner?: string;
             runtime_id?: string;
             failover_runtime_id?: string;
+            storage_size?: string;
+            storage_class_name?: string;
+            instances?: number;
+            synchronous_replicas?: number;
+            primary_node_name?: string;
             last_backup?: string;
             last_restore?: string;
             backup_status: string;
@@ -9462,6 +10032,32 @@ export interface operations {
             default: components["responses"]["ErrorResponse"];
         };
     };
+    edgeSSHRoutes: {
+        parameters: {
+            query?: {
+                edge_id?: string;
+                edge_group_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    ETag?: string;
+                    "X-Fugue-SSH-Route-Bundle-Version"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EdgeSSHRouteBundle"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
     listEdgeNodes: {
         parameters: {
             query?: {
@@ -9529,6 +10125,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EdgeNodeQualityResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getEdgeQualityRank: {
+        parameters: {
+            query?: {
+                traffic_class?: string;
+                method?: string;
+                path_prefix?: string;
+                /** @description Scope selector: global, country:<country>, region:<country>:<region>, or asn:<asn>. */
+                scope?: string;
+                /** @description Positive duration such as 30m, 6h, or 24h. Defaults to 30m. */
+                window?: string;
+                /** @description Lower bound as a positive duration or RFC3339 timestamp. Overrides window. */
+                since?: string;
+            };
+            header?: never;
+            path: {
+                hostname: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EdgeQualityRankResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
@@ -9834,6 +10463,158 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PlatformFailureDrillResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getRobustnessStatus: {
+        parameters: {
+            query?: {
+                subject?: string;
+                zone?: string;
+                min_healthy_nodes?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RobustnessStatusResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    checkRobustnessSubject: {
+        parameters: {
+            query?: {
+                zone?: string;
+            };
+            header?: never;
+            path: {
+                subject: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RobustnessStatusResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    listRobustnessIncidents: {
+        parameters: {
+            query?: {
+                subject?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RobustnessIncidentListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getRobustnessIncident: {
+        parameters: {
+            query?: {
+                subject?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RobustnessIncidentResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    planRobustnessRepair: {
+        parameters: {
+            query?: {
+                subject?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RobustnessRepairPlanResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    runRobustnessRepair: {
+        parameters: {
+            query?: {
+                subject?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RobustnessRepairRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RobustnessRepairPlanResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
@@ -10978,6 +11759,75 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["APIKeyResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    listSSHKeys: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SSHKeyListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    createSSHKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSSHKeyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SSHKeyResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    deleteSSHKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteSSHKeyResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
@@ -13511,6 +14361,111 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AppEnvResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getAppSSH: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppSSHResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    patchAppSSH: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchAppSSHRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppSSHResponse"];
+                };
+            };
+            /** @description Accepted response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppSSHResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    rotateAppSSHPort: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppSSHResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    diagnoseAppSSH: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppSSHDiagnosisResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
