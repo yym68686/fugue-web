@@ -3035,6 +3035,143 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Images */
+        get: operations["listImages"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/images/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Image */
+        get: operations["getImage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/images/{id}/replicas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Image Replicas */
+        get: operations["listImageReplicas"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/images/{id}/replicas/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Report Image Replica */
+        post: operations["reportImageReplica"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/images/{id}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verify Image */
+        post: operations["verifyImage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/images/{id}/pins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Image Pin */
+        post: operations["createImagePin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/images/{id}/pins/{pin_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Image Pin */
+        delete: operations["deleteImagePin"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/image-replication-tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Image Replication Tasks */
+        get: operations["listImageReplicationTasks"];
+        put?: never;
+        /** Create Image Replication Task */
+        post: operations["createImageReplicationTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/operations": {
         parameters: {
             query?: never;
@@ -3235,6 +3372,40 @@ export interface paths {
         put?: never;
         /** Node Updater Report Image Location */
         post: operations["nodeUpdaterReportImageLocation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/node-updater/image-replicas/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Node Updater Report Image Replica */
+        post: operations["nodeUpdaterReportImageReplica"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/node-updater/image-replication-tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Node Updater Image Replication Tasks */
+        get: operations["nodeUpdaterImageReplicationTasks"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -7998,6 +8169,164 @@ export interface components {
         };
         ImageLocationListResponse: {
             image_locations: components["schemas"]["ImageLocation"][];
+        };
+        Image: {
+            id: string;
+            tenant_id?: string;
+            app_id?: string;
+            image_ref: string;
+            canonical_digest?: string;
+            media_type?: string;
+            manifest_json?: string;
+            /** Format: int64 */
+            manifest_size_bytes?: number;
+            /** Format: int64 */
+            blob_bytes?: number;
+            source_operation_id?: string;
+            /** @enum {string} */
+            lifecycle_state: "importing" | "available" | "deleting" | "deleted" | "lost";
+            /** Format: int32 */
+            required_replica_count?: number;
+            /** Format: int32 */
+            min_available_replica_count?: number;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        ImageResponse: {
+            image: components["schemas"]["Image"];
+        };
+        ImageListResponse: {
+            images: components["schemas"]["Image"][];
+        };
+        ImageReplica: {
+            id: string;
+            image_id: string;
+            tenant_id?: string;
+            app_id?: string;
+            digest?: string;
+            node_id?: string;
+            runtime_id?: string;
+            cluster_node_name?: string;
+            cache_endpoint?: string;
+            failure_domain?: string;
+            /** @enum {string} */
+            status: "planned" | "copying" | "verifying" | "present" | "stale" | "draining" | "deleting" | "missing" | "failed";
+            source_replica_id?: string;
+            /** Format: date-time */
+            last_verified_at?: string;
+            /** Format: date-time */
+            lease_expires_at?: string;
+            /** Format: int64 */
+            size_bytes?: number;
+            last_error?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        ImageReplicaReportRequest: {
+            image_id?: string;
+            app_id?: string;
+            digest?: string;
+            node_id?: string;
+            runtime_id?: string;
+            cluster_node_name?: string;
+            cache_endpoint?: string;
+            failure_domain?: string;
+            /** @enum {string} */
+            status?: "planned" | "copying" | "verifying" | "present" | "stale" | "draining" | "deleting" | "missing" | "failed";
+            /** Format: date-time */
+            last_verified_at?: string;
+            /** Format: date-time */
+            lease_expires_at?: string;
+            /** Format: int64 */
+            size_bytes?: number;
+            last_error?: string;
+        };
+        ImageReplicaResponse: {
+            replica: components["schemas"]["ImageReplica"];
+        };
+        ImageReplicaListResponse: {
+            replicas: components["schemas"]["ImageReplica"][];
+        };
+        ImagePin: {
+            id: string;
+            image_id: string;
+            tenant_id?: string;
+            app_id?: string;
+            operation_id?: string;
+            /** @enum {string} */
+            reason: "current_deploy" | "rollback_window" | "import_result" | "user_pin" | "retention" | "replication_seed";
+            /** Format: int32 */
+            min_replicas?: number;
+            /** Format: date-time */
+            expires_at?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        CreateImagePinRequest: {
+            app_id?: string;
+            operation_id?: string;
+            reason?: string;
+            /** Format: int32 */
+            min_replicas?: number;
+            /** Format: date-time */
+            expires_at?: string;
+        };
+        ImagePinResponse: {
+            pin: components["schemas"]["ImagePin"];
+        };
+        ImageVerifyResponse: {
+            image: components["schemas"]["Image"];
+            healthy_replicas: components["schemas"]["ImageReplica"][];
+            /** Format: int32 */
+            healthy_count: number;
+        };
+        ImageReplicationTask: {
+            id: string;
+            image_id: string;
+            tenant_id?: string;
+            app_id?: string;
+            source_replica_id?: string;
+            source_cache_endpoint?: string;
+            target_node_id?: string;
+            target_runtime_id?: string;
+            target_cluster_node_name?: string;
+            /** @enum {string} */
+            priority: "deploy_blocking" | "repair" | "warmup" | "rebalance";
+            /** @enum {string} */
+            status: "pending" | "running" | "completed" | "failed" | "canceled";
+            /** Format: int32 */
+            attempts?: number;
+            last_error?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: date-time */
+            started_at?: string;
+            /** Format: date-time */
+            completed_at?: string;
+        };
+        CreateImageReplicationTaskRequest: {
+            image_id: string;
+            app_id?: string;
+            source_replica_id?: string;
+            source_cache_endpoint?: string;
+            target_node_id?: string;
+            target_runtime_id?: string;
+            target_cluster_node_name?: string;
+            priority?: string;
+        };
+        ImageReplicationTaskResponse: {
+            task: components["schemas"]["ImageReplicationTask"];
+        };
+        ImageReplicationTaskListResponse: {
+            tasks: components["schemas"]["ImageReplicationTask"][];
         };
         NodeUpdaterListResponse: {
             node_updaters: components["schemas"]["NodeUpdater"][];
@@ -15359,6 +15688,237 @@ export interface operations {
             default: components["responses"]["ErrorResponse"];
         };
     };
+    listImages: {
+        parameters: {
+            query?: {
+                tenant_id?: string;
+                app_id?: string;
+                image_ref?: string;
+                digest?: string;
+                lifecycle_state?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getImage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    listImageReplicas: {
+        parameters: {
+            query?: {
+                status?: string;
+                node_id?: string;
+                runtime_id?: string;
+                cluster_node_name?: string;
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageReplicaListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    reportImageReplica: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImageReplicaReportRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageReplicaResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    verifyImage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageVerifyResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    createImagePin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateImagePinRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImagePinResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    deleteImagePin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+                pin_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    listImageReplicationTasks: {
+        parameters: {
+            query?: {
+                image_id?: string;
+                app_id?: string;
+                status?: string;
+                priority?: string;
+                target_node_id?: string;
+                target_runtime_id?: string;
+                target_cluster_node_name?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageReplicationTaskListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    createImageReplicationTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateImageReplicationTaskRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageReplicationTaskResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
     listOperations: {
         parameters: {
             query?: {
@@ -15705,6 +16265,56 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ImageLocationResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    nodeUpdaterReportImageReplica: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImageReplicaReportRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageReplicaResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    nodeUpdaterImageReplicationTasks: {
+        parameters: {
+            query?: {
+                image_id?: string;
+                status?: string;
+                priority?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageReplicationTaskListResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
