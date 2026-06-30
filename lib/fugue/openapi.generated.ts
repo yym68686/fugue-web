@@ -6690,6 +6690,27 @@ export interface components {
             /** Format: date-time */
             updated_at: string;
         };
+        AppSourceSyncStatus: {
+            /** @enum {string} */
+            provider?: "github";
+            /** @enum {string} */
+            phase?: "ok" | "degraded" | "suspended";
+            /** Format: int32 */
+            consecutive_failures?: number;
+            /** Format: date-time */
+            last_checked_at?: string;
+            /** Format: date-time */
+            last_success_at?: string;
+            /** Format: date-time */
+            last_error_at?: string;
+            last_error_code?: string;
+            last_error_message?: string;
+            /** Format: date-time */
+            next_check_at?: string;
+            /** Format: date-time */
+            suspended_at?: string;
+            needs_user_action?: boolean;
+        };
         AppStatus: {
             phase: string;
             current_runtime_id?: string;
@@ -6703,6 +6724,7 @@ export interface components {
             last_message?: string;
             /** Format: date-time */
             updated_at: string;
+            source_sync?: components["schemas"]["AppSourceSyncStatus"];
         };
         AppSpec: {
             image?: string;
