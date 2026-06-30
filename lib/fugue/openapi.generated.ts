@@ -2500,6 +2500,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/apps/{id}/rollout/timeline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get App Rollout Timeline */
+        get: operations["getAppRolloutTimeline"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/apps/{id}/env": {
         parameters: {
             query?: never;
@@ -9431,6 +9448,31 @@ export interface components {
             window: components["schemas"]["ObservabilityWindow"];
             diagnosis: components["schemas"]["ObservabilityDiagnosis"];
         };
+        AppRolloutTimelineResponse: {
+            source: components["schemas"]["ObservabilitySourceStatus"];
+            app: {
+                [key: string]: unknown;
+            };
+            around: {
+                [key: string]: unknown;
+            };
+            window: components["schemas"]["ObservabilityWindow"];
+            operations: {
+                [key: string]: unknown;
+            }[];
+            events: {
+                [key: string]: unknown;
+            }[];
+            requests_5xx: {
+                [key: string]: unknown;
+            }[];
+            kubernetes: {
+                [key: string]: unknown;
+            };
+            warnings?: string[];
+        } & {
+            [key: string]: unknown;
+        };
         AppDiagnosisResponse: {
             diagnosis: components["schemas"]["AppDiagnosis"];
         };
@@ -14662,6 +14704,34 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AppObservabilityDiagnosisResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getAppRolloutTimeline: {
+        parameters: {
+            query: {
+                /** @description RFC3339 timestamp, request id, or trace id used as the center of the rollout timeline. */
+                around: string;
+                /** @description Duration on each side of the around point, such as 10m. */
+                window?: string;
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppRolloutTimelineResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
