@@ -312,6 +312,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/image-cache/inventory": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Image Cache Inventory */
+        get: operations["adminListImageCacheInventory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/image-cache/prune-plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Image Cache Prune Plan */
+        get: operations["adminGetImageCachePrunePlan"];
+        put?: never;
+        /** Create Image Cache Prune Plan Task */
+        post: operations["adminCreateImageCachePrunePlanTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/localpv/inventory": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List LVM LocalPV Inventory */
+        get: operations["adminListLocalPVInventory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/control-plane/store/status": {
         parameters: {
             query?: never;
@@ -3406,6 +3458,40 @@ export interface paths {
         put?: never;
         /** Node Updater Report Image Replica */
         post: operations["nodeUpdaterReportImageReplica"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/node-updater/image-cache/inventory": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Node Updater Report Image Cache Inventory */
+        post: operations["nodeUpdaterReportImageCacheInventory"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/node-updater/localpv/inventory": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Node Updater Report LVM LocalPV Inventory */
+        post: operations["nodeUpdaterReportLocalPVInventory"];
         delete?: never;
         options?: never;
         head?: never;
@@ -8375,6 +8461,182 @@ export interface components {
         ImageReplicationTaskListResponse: {
             tasks: components["schemas"]["ImageReplicationTask"][];
         };
+        ImageCacheNodeInventory: {
+            id: string;
+            node_id?: string;
+            cluster_node_name?: string;
+            runtime_id?: string;
+            cache_endpoint?: string;
+            store_path?: string;
+            /** Format: int64 */
+            filesystem_total_bytes?: number;
+            /** Format: int64 */
+            filesystem_free_bytes?: number;
+            /** Format: double */
+            filesystem_used_percent?: number;
+            /** Format: int64 */
+            cache_bytes?: number;
+            /** Format: int32 */
+            manifest_count?: number;
+            /** Format: int32 */
+            blob_count?: number;
+            /** Format: int32 */
+            pin_count?: number;
+            /** Format: date-time */
+            observed_at: string;
+            reported_by_node_updater_id?: string;
+            status?: string;
+            last_error?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        ImageCacheManifest: {
+            id: string;
+            node_id?: string;
+            cluster_node_name?: string;
+            runtime_id?: string;
+            image_ref?: string;
+            repo: string;
+            target: string;
+            digest?: string;
+            media_type?: string;
+            /** Format: int64 */
+            manifest_size_bytes?: number;
+            /** Format: int64 */
+            total_blob_bytes?: number;
+            referenced_blobs?: string[];
+            /** Format: date-time */
+            created_at_observed?: string;
+            /** Format: date-time */
+            last_seen_at: string;
+            pinned_locally?: boolean;
+            present: boolean;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        ImageCacheInventoryReportRequest: {
+            node?: components["schemas"]["ImageCacheNodeInventory"];
+            manifests?: components["schemas"]["ImageCacheManifest"][];
+            /** Format: date-time */
+            observed_at?: string;
+        };
+        ImageCacheInventoryResponse: {
+            node: components["schemas"]["ImageCacheNodeInventory"];
+        };
+        ImageCacheInventoryListResponse: {
+            nodes: components["schemas"]["ImageCacheNodeInventory"][];
+            manifests: components["schemas"]["ImageCacheManifest"][];
+        };
+        ImageCachePruneCandidate: {
+            image_ref?: string;
+            repo: string;
+            target: string;
+            digest?: string;
+            reason?: string;
+            skip_reason?: string;
+            protected: boolean;
+            /** Format: int64 */
+            planned_delete_bytes?: number;
+            referenced_blobs?: string[];
+            last_seen_at?: string;
+            created_at_observed?: string;
+        };
+        ImageCachePrunePlan: {
+            id: string;
+            node_id?: string;
+            cluster_node_name?: string;
+            runtime_id?: string;
+            /** @enum {string} */
+            mode: "observe" | "dry-run" | "delete";
+            /** Format: int32 */
+            candidate_manifest_count: number;
+            /** Format: int32 */
+            protected_manifest_count: number;
+            /** Format: int64 */
+            planned_delete_bytes?: number;
+            /** Format: int64 */
+            max_delete_bytes?: number;
+            min_manifest_age?: string;
+            protection_summary?: {
+                [key: string]: number;
+            };
+            candidate_summary?: {
+                [key: string]: number;
+            };
+            candidates?: components["schemas"]["ImageCachePruneCandidate"][];
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            executed_at?: string;
+            /** @enum {string} */
+            status: "planned" | "scheduled" | "completed" | "failed";
+            error?: string;
+        };
+        ImageCachePrunePlanResponse: {
+            plan: components["schemas"]["ImageCachePrunePlan"];
+        };
+        CreateImageCachePrunePlanTaskRequest: {
+            node_id?: string;
+            cluster_node_name?: string;
+            runtime_id?: string;
+            /** @enum {string} */
+            mode?: "observe" | "dry-run" | "delete";
+            allow_delete?: boolean;
+            /** Format: int64 */
+            max_delete_bytes?: number;
+            dry_run?: boolean;
+        };
+        ImageCachePrunePlanTaskResponse: {
+            plan: components["schemas"]["ImageCachePrunePlan"];
+            task?: components["schemas"]["NodeUpdateTask"];
+        };
+        LocalPVInventory: {
+            id: string;
+            node_id?: string;
+            cluster_node_name?: string;
+            runtime_id?: string;
+            node_roles?: string[];
+            vg_name?: string;
+            image_path?: string;
+            /** Format: int64 */
+            image_size_bytes?: number;
+            loop_device?: string;
+            loop_backing_file?: string;
+            /** Format: int64 */
+            pv_size_bytes?: number;
+            /** Format: int64 */
+            pv_free_bytes?: number;
+            /** Format: int32 */
+            lv_count: number;
+            lv_names?: string[];
+            /** Format: int32 */
+            active_lv_count: number;
+            /** Format: int32 */
+            bound_pv_count: number;
+            bound_pvc_refs?: string[];
+            safe_to_decommission: boolean;
+            unsafe_reasons?: string[];
+            /** Format: date-time */
+            observed_at: string;
+            reported_by_node_updater_id?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        LocalPVInventoryReportRequest: {
+            inventory?: components["schemas"]["LocalPVInventory"];
+        };
+        LocalPVInventoryResponse: {
+            inventory: components["schemas"]["LocalPVInventory"];
+        };
+        LocalPVInventoryListResponse: {
+            inventories: components["schemas"]["LocalPVInventory"][];
+        };
         NodeUpdaterListResponse: {
             node_updaters: components["schemas"]["NodeUpdater"][];
         };
@@ -10728,6 +10990,108 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PlatformDomainBindingListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    adminListImageCacheInventory: {
+        parameters: {
+            query?: {
+                node_id?: string;
+                cluster_node_name?: string;
+                runtime_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageCacheInventoryListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    adminGetImageCachePrunePlan: {
+        parameters: {
+            query?: {
+                node_id?: string;
+                cluster_node_name?: string;
+                runtime_id?: string;
+                mode?: "observe" | "dry-run" | "delete";
+                persist?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageCachePrunePlanResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    adminCreateImageCachePrunePlanTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CreateImageCachePrunePlanTaskRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageCachePrunePlanTaskResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    adminListLocalPVInventory: {
+        parameters: {
+            query?: {
+                node_id?: string;
+                cluster_node_name?: string;
+                runtime_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocalPVInventoryListResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
@@ -16390,6 +16754,56 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ImageReplicaResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    nodeUpdaterReportImageCacheInventory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImageCacheInventoryReportRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageCacheInventoryResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    nodeUpdaterReportLocalPVInventory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LocalPVInventoryReportRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocalPVInventoryResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
