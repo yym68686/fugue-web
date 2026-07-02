@@ -7110,6 +7110,7 @@ export interface components {
             cpu?: components["schemas"]["ClusterNodeCPUStats"];
             memory?: components["schemas"]["ClusterNodeMemoryStats"];
             ephemeral_storage?: components["schemas"]["ClusterNodeStorageStats"];
+            image_filesystem?: components["schemas"]["ClusterNodeStorageStats"];
             runtime_id?: string;
             tenant_id?: string;
             machine?: components["schemas"]["ClusterNodeMachine"];
@@ -7168,6 +7169,9 @@ export interface components {
             };
             ready: boolean;
             disk_pressure: boolean;
+            filesystem_pressure: boolean;
+            filesystem_usage_percent?: number;
+            filesystem_pressure_reason?: string;
             node_schedulable: boolean;
             reconciled: boolean;
             reconcile_reasons?: string[];
@@ -7187,6 +7191,8 @@ export interface components {
             ready: number;
             /** Format: int32 */
             disk_pressure: number;
+            /** Format: int32 */
+            filesystem_pressure: number;
             /** Format: int32 */
             blocked_by_health: number;
         };
@@ -7987,6 +7993,8 @@ export interface components {
             digest?: string;
             changed: boolean;
             already_current: boolean;
+            rollout_pending?: boolean;
+            app_phase?: string;
             message?: string;
         };
         AppImageInventoryResponse: {
