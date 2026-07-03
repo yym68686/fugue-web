@@ -1952,6 +1952,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/apps/{id}/image-tracking/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get App Image Tracking History */
+        get: operations["getAppImageTrackingHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/apps/{id}/image-tracking/diagnosis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get App Image Tracking Diagnosis */
+        get: operations["getAppImageTrackingDiagnosis"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/apps/{id}/releases": {
         parameters: {
             query?: never;
@@ -7880,6 +7914,31 @@ export interface components {
             /** Format: date-time */
             updated_at: string;
         };
+        AppImageTrackingCheck: {
+            id: string;
+            tenant_id: string;
+            app_id: string;
+            tracking_id: string;
+            image_ref: string;
+            observed_digest?: string;
+            current_app_digest?: string;
+            last_queued_digest?: string;
+            last_deployed_digest?: string;
+            /** @enum {string} */
+            decision: "queued" | "already_deployed" | "no_change" | "replicas_zero" | "active_operation" | "retry_suppressed" | "resolver_error" | "queue_conflict" | "queue_error";
+            skip_reason?: string;
+            operation_id?: string;
+            active_operation_id?: string;
+            resolver_error?: string;
+            delivery_id?: string;
+            event?: string;
+            /** Format: int64 */
+            duration_ms: number;
+            controller_pod?: string;
+            controller_leader_identity?: string;
+            /** Format: date-time */
+            checked_at: string;
+        };
         AppImageTrackingRequest: {
             image_ref: string;
             enabled?: boolean;
@@ -7887,6 +7946,29 @@ export interface components {
         AppImageTrackingResponse: {
             app_id: string;
             tracking?: components["schemas"]["AppImageTracking"];
+        };
+        AppImageTrackingHistoryResponse: {
+            app_id: string;
+            tracking?: components["schemas"]["AppImageTracking"];
+            checks: components["schemas"]["AppImageTrackingCheck"][];
+        };
+        AppImageTrackingDiagnosis: {
+            category: string;
+            summary: string;
+            hint?: string;
+            app_id: string;
+            tracking?: components["schemas"]["AppImageTracking"];
+            latest_check?: components["schemas"]["AppImageTrackingCheck"];
+            recent_checks: components["schemas"]["AppImageTrackingCheck"][];
+            remote_digest?: string;
+            current_app_digest?: string;
+            active_operation?: components["schemas"]["Operation"];
+            evidence: string[];
+            warnings: string[];
+        };
+        AppImageTrackingDiagnosisResponse: {
+            app_id: string;
+            diagnosis: components["schemas"]["AppImageTrackingDiagnosis"];
         };
         AppRelease: {
             id: string;
@@ -9903,6 +9985,7 @@ export interface components {
             evidence: string[];
             warnings: string[];
             events: components["schemas"]["ClusterEvent"][];
+            image_tracking?: components["schemas"]["AppImageTrackingDiagnosis"];
         };
         AppFilesResponse: {
             files: components["schemas"]["AppFile"][];
@@ -13986,6 +14069,54 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AppImageTrackingResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getAppImageTrackingHistory: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppImageTrackingHistoryResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getAppImageTrackingDiagnosis: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppImageTrackingDiagnosisResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
