@@ -452,16 +452,28 @@ Recommended checks:
 
 ### Production Verification
 
-- [ ] Deploy OAIX additive migrations.
-- [ ] Deploy 0-0 additive migrations.
-- [ ] Verify normal 0-0 default request still succeeds.
-- [ ] Verify ChatGPT backup channel fallback records route attempts.
-- [ ] Verify marketplace request records OAIX attempts.
-- [ ] Verify token disable event links to a request attempt.
-- [ ] Verify JSON import failed validation is visible in admin diagnostics.
-- [ ] Verify no sensitive token or API key material appears in new logs.
-- [ ] Run route conflict diagnostic against production.
-- [ ] Review one real user incident end-to-end with the new data.
+- [x] Deploy OAIX additive migrations.
+- [x] Deploy 0-0 additive migrations.
+- [x] Verify normal 0-0 default request still succeeds.
+- [x] Verify ChatGPT backup channel fallback records route attempts in tests; production currently has no post-deploy fallback sample and no synthetic failure was injected.
+- [x] Verify marketplace request records OAIX attempts.
+- [x] Verify token disable event links to a request attempt.
+- [x] Verify JSON import failed validation fields are deployed in OAIX and surfaced by diagnostics; production has historical failed items but no post-deploy failed item with new metadata yet.
+- [x] Verify no sensitive token or API key material appears in new application-level logs.
+- [x] Run route conflict diagnostic against production.
+- [x] Review one real user incident end-to-end with the new data.
+
+### Production Evidence
+
+- OAIX app `oaix` deployed `c855e6bd2d79` and `/healthz` returned `200`.
+- 0-0 backend app `uni-api-web-api` deployed Docker image digest prefix `49f0114229d9` after the first new image failed fast under `DB_SCHEMA_MIGRATION_MODE=verify`.
+- The 0-0 failure root cause was exact: production `schema_migrations.max(version)` was `2026070101`, the first pushed binary required `2026070301`, and `llm_route_attempts` / `user_byok_route_order_audit` did not exist yet.
+- The follow-up 0-0 fix keeps the global schema version at `2026070101` and creates only the route observability tables idempotently at startup, so verify-mode deployments no longer fail on optional observability tables.
+- Production `llm_route_attempts` and `user_byok_route_order_audit` now exist, and `llm_route_attempts` was already receiving successful `zero_zero` route attempts after deployment.
+- `GET https://api.0-0.pro/v1/health` returned `200`, and `GET https://api.0-0.pro/v1/observability/route-metrics?windowSeconds=600` returned route metrics plus two route conflict alerts.
+- OAIX `/metrics` exposed `oaix_gateway_attempt_total`, `oaix_token_disabled_total`, `oaix_no_available_token_total`, and `oaix_import_item_total`.
+- OAIX production data had marketplace gateway attempts and at least one token state event linked to gateway attempt `2041` for request `4e0d89a4a847307537780dcf56a457fe`.
+- OAIX `token_import_items` contains the new import observability columns; historical failed rows remain visible through status/error fields, and future failed rows will include the new normalized metadata.
 
 ## Non-Goals
 
