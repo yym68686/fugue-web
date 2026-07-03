@@ -2004,6 +2004,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/apps/{id}/release-attempts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List App Release Attempts */
+        get: operations["listAppReleaseAttempts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/apps/{id}/release-attempts/{attempt_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get App Release Attempt */
+        get: operations["getAppReleaseAttempt"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/apps/{id}/release-attempts/{attempt_id}/timeline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get App Release Attempt Timeline */
+        get: operations["getAppReleaseAttemptTimeline"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/apps/{id}/release-attempts/{attempt_id}/evidence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get App Release Attempt Evidence */
+        get: operations["getAppReleaseAttemptEvidence"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/apps/{id}/release-attempts/{attempt_id}/debug-bundle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get App Release Attempt Debug Bundle */
+        get: operations["getAppReleaseAttemptDebugBundle"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/apps/{id}/traffic": {
         parameters: {
             query?: never;
@@ -3318,6 +3403,57 @@ export interface paths {
         };
         /** Get Operation Diagnosis */
         get: operations["getOperationDiagnosis"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/operations/{id}/evidence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Operation Evidence */
+        get: operations["getOperationEvidence"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/operations/{id}/timeline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Operation Timeline */
+        get: operations["getOperationTimeline"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/operations/{id}/debug-bundle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Operation Debug Bundle */
+        get: operations["getOperationDebugBundle"];
         put?: never;
         post?: never;
         delete?: never;
@@ -7520,6 +7656,159 @@ export interface components {
             dependency_chain?: string[];
             blocked_by?: components["schemas"]["OperationDiagnosisBlocker"][];
             controller_lane?: components["schemas"]["OperationControllerLane"];
+            confidence?: string;
+            primary_evidence_id?: string;
+            missing_evidence?: string[];
+            confirmed_cause?: components["schemas"]["OperationDiagnosisCause"];
+            probable_cause?: components["schemas"]["OperationDiagnosisCause"];
+            recommended_next_actions?: string[];
+        };
+        OperationDiagnosisCause: {
+            category?: string;
+            source?: string;
+            message?: string;
+            reason?: string;
+        };
+        OperationEvidence: {
+            id: string;
+            tenant_id: string;
+            project_id?: string;
+            app_id?: string;
+            operation_id: string;
+            release_attempt_id?: string;
+            type: string;
+            source: string;
+            severity: string;
+            confidence: string;
+            subject_kind?: string;
+            subject_name?: string;
+            subject_namespace?: string;
+            subject_uid?: string;
+            /** Format: date-time */
+            observed_at: string;
+            /** Format: date-time */
+            collected_at: string;
+            summary: string;
+            message?: string;
+            reason?: string;
+            /** Format: int32 */
+            exit_code?: number;
+            /** Format: date-time */
+            started_at?: string;
+            /** Format: date-time */
+            finished_at?: string;
+            container_name?: string;
+            pod_name?: string;
+            deployment_name?: string;
+            replica_set_name?: string;
+            node_name?: string;
+            redaction_status: string;
+            payload?: {
+                [key: string]: unknown;
+            };
+            /** Format: int32 */
+            payload_version: number;
+            /** Format: date-time */
+            created_at: string;
+        };
+        OperationTimelineEntry: {
+            id: string;
+            operation_id: string;
+            release_attempt_id?: string;
+            type: string;
+            source?: string;
+            severity?: string;
+            confidence?: string;
+            summary: string;
+            message?: string;
+            reason?: string;
+            evidence_id?: string;
+            /** Format: date-time */
+            at: string;
+            payload?: {
+                [key: string]: unknown;
+            };
+        };
+        ReleaseAttempt: {
+            id: string;
+            tenant_id: string;
+            project_id: string;
+            app_id: string;
+            trigger_type: string;
+            trigger_actor_type: string;
+            trigger_actor_id?: string;
+            source_operation_id?: string;
+            root_operation_id?: string;
+            image_ref?: string;
+            target_digest?: string;
+            previous_digest?: string;
+            desired_source?: {
+                [key: string]: unknown;
+            };
+            status: string;
+            confidence: string;
+            failure_operation_id?: string;
+            failure_evidence_id?: string;
+            summary?: string;
+            /** Format: date-time */
+            started_at: string;
+            /** Format: date-time */
+            finished_at?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        ReleaseTimelineEntry: {
+            id: string;
+            release_attempt_id: string;
+            operation_id?: string;
+            type: string;
+            status?: string;
+            summary: string;
+            evidence_id?: string;
+            /** Format: date-time */
+            at: string;
+            payload?: {
+                [key: string]: unknown;
+            };
+        };
+        OperationDebugBundle: {
+            metadata: {
+                [key: string]: unknown;
+            };
+            operation: components["schemas"]["Operation"];
+            app?: components["schemas"]["App"];
+            image_tracking?: components["schemas"]["AppImageTracking"];
+            image_tracking_checks?: components["schemas"]["AppImageTrackingCheck"][];
+            metrics_summary?: {
+                [key: string]: unknown;
+            };
+            diagnosis?: components["schemas"]["OperationDiagnosis"];
+            timeline: components["schemas"]["OperationTimelineEntry"][];
+            evidence: components["schemas"]["OperationEvidence"][];
+            release_attempt?: components["schemas"]["ReleaseAttempt"];
+            release_timeline?: components["schemas"]["ReleaseTimelineEntry"][];
+            redaction_report?: {
+                [key: string]: unknown;
+            }[];
+        };
+        ReleaseDebugBundle: {
+            metadata: {
+                [key: string]: unknown;
+            };
+            release_attempt: components["schemas"]["ReleaseAttempt"];
+            app?: components["schemas"]["App"];
+            image_tracking?: components["schemas"]["AppImageTracking"];
+            image_tracking_checks?: components["schemas"]["AppImageTrackingCheck"][];
+            metrics_summary?: {
+                [key: string]: unknown;
+            };
+            release_timeline: components["schemas"]["ReleaseTimelineEntry"][];
+            evidence: components["schemas"]["OperationEvidence"][];
+            redaction_report?: {
+                [key: string]: unknown;
+            }[];
         };
         OperationControllerLaneOccupant: {
             operation_id: string;
@@ -8158,6 +8447,7 @@ export interface components {
             app_id: string;
             tracking?: components["schemas"]["AppImageTracking"];
             operation?: components["schemas"]["Operation"];
+            release_attempt?: components["schemas"]["ReleaseAttempt"];
             digest?: string;
             changed: boolean;
             already_current: boolean;
@@ -9833,6 +10123,7 @@ export interface components {
             entries?: components["schemas"]["AppEnvEntry"][];
             already_current?: boolean;
             operation?: components["schemas"]["Operation"];
+            release_attempt?: components["schemas"]["ReleaseAttempt"];
         };
         AppEnvEntry: {
             key: string;
@@ -10128,6 +10419,27 @@ export interface components {
         };
         OperationDiagnosisResponse: {
             diagnosis: components["schemas"]["OperationDiagnosis"];
+        };
+        OperationEvidenceListResponse: {
+            evidence: components["schemas"]["OperationEvidence"][];
+        };
+        OperationTimelineResponse: {
+            timeline: components["schemas"]["OperationTimelineEntry"][];
+        };
+        OperationDebugBundleResponse: {
+            bundle: components["schemas"]["OperationDebugBundle"];
+        };
+        ReleaseAttemptResponse: {
+            release_attempt: components["schemas"]["ReleaseAttempt"];
+        };
+        ReleaseAttemptListResponse: {
+            release_attempts: components["schemas"]["ReleaseAttempt"][];
+        };
+        ReleaseTimelineResponse: {
+            timeline: components["schemas"]["ReleaseTimelineEntry"][];
+        };
+        ReleaseDebugBundleResponse: {
+            bundle: components["schemas"]["ReleaseDebugBundle"];
         };
         AppDisableResponse: {
             app?: components["schemas"]["App"];
@@ -14172,6 +14484,134 @@ export interface operations {
             default: components["responses"]["ErrorResponse"];
         };
     };
+    listAppReleaseAttempts: {
+        parameters: {
+            query?: {
+                status?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReleaseAttemptListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getAppReleaseAttempt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReleaseAttemptResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getAppReleaseAttemptTimeline: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReleaseTimelineResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getAppReleaseAttemptEvidence: {
+        parameters: {
+            query?: {
+                include_payload?: boolean;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperationEvidenceListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getAppReleaseAttemptDebugBundle: {
+        parameters: {
+            query?: {
+                format?: "json" | "zip";
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReleaseDebugBundleResponse"];
+                    "application/zip": string;
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
     getAppTrafficPolicy: {
         parameters: {
             query?: never;
@@ -16591,6 +17031,86 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OperationDiagnosisResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getOperationEvidence: {
+        parameters: {
+            query?: {
+                type?: string[];
+                severity?: string[];
+                since?: string;
+                include_payload?: boolean;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperationEvidenceListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getOperationTimeline: {
+        parameters: {
+            query?: {
+                include_payload?: boolean;
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperationTimelineResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getOperationDebugBundle: {
+        parameters: {
+            query?: {
+                format?: "json" | "zip";
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperationDebugBundleResponse"];
+                    "application/zip": string;
                 };
             };
             default: components["responses"]["ErrorResponse"];
