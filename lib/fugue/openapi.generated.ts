@@ -347,6 +347,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/image-retention/plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Distributed Image Retention Plan */
+        get: operations["adminGetImageRetentionPlan"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/localpv/inventory": {
         parameters: {
             query?: never;
@@ -8833,6 +8850,41 @@ export interface components {
         ImageReplicationTaskListResponse: {
             tasks: components["schemas"]["ImageReplicationTask"][];
         };
+        ImageRetentionDecision: {
+            image_id: string;
+            image_ref: string;
+            source_operation_id?: string;
+            lifecycle_state?: string;
+            /** Format: date-time */
+            last_deployed_at?: string;
+            current_workload: boolean;
+            active_operation: boolean;
+            user_pinned: boolean;
+            /** Format: int32 */
+            rank: number;
+            keep: boolean;
+            reason: string;
+        };
+        DistributedImageRetentionPlan: {
+            tenant_id?: string;
+            app_id: string;
+            app_name?: string;
+            /** Format: int32 */
+            effective_limit: number;
+            keep_image_ids: string[];
+            drop_image_ids: string[];
+            image_decisions: components["schemas"]["ImageRetentionDecision"][];
+            /** Format: int32 */
+            would_delete_pins?: number;
+            /** Format: int32 */
+            would_cancel_tasks?: number;
+            /** Format: int32 */
+            would_normalize_images?: number;
+        };
+        ImageRetentionPlanResponse: {
+            plan?: components["schemas"]["DistributedImageRetentionPlan"];
+            plans: components["schemas"]["DistributedImageRetentionPlan"][];
+        };
         ImageCacheNodeInventory: {
             id: string;
             node_id?: string;
@@ -8854,6 +8906,11 @@ export interface components {
             blob_count?: number;
             /** Format: int32 */
             pin_count?: number;
+            /** Format: int32 */
+            unreferenced_blob_count?: number;
+            /** Format: int64 */
+            unreferenced_blob_bytes?: number;
+            unreferenced_blobs?: components["schemas"]["ImageCachePruneBlobCandidate"][];
             /** Format: date-time */
             observed_at: string;
             reported_by_node_updater_id?: string;
@@ -8893,8 +8950,15 @@ export interface components {
         ImageCacheInventoryReportRequest: {
             node?: components["schemas"]["ImageCacheNodeInventory"];
             manifests?: components["schemas"]["ImageCacheManifest"][];
+            unreferenced_blobs?: components["schemas"]["ImageCacheInventoryBlobReport"][];
             /** Format: date-time */
             observed_at?: string;
+        };
+        ImageCacheInventoryBlobReport: {
+            digest: string;
+            /** Format: int64 */
+            size_bytes?: number;
+            modified_at?: string;
         };
         ImageCacheInventoryResponse: {
             node: components["schemas"]["ImageCacheNodeInventory"];
@@ -8905,17 +8969,38 @@ export interface components {
         };
         ImageCachePruneCandidate: {
             image_ref?: string;
+            node_name?: string;
             repo: string;
             target: string;
             digest?: string;
             reason?: string;
             skip_reason?: string;
+            skip_details?: string[];
             protected: boolean;
             /** Format: int64 */
             planned_delete_bytes?: number;
             referenced_blobs?: string[];
+            /** Format: int32 */
+            referenced_blob_count?: number;
+            /** Format: int64 */
+            referenced_blob_bytes?: number;
+            matched_image_ids?: string[];
+            matched_pin_ids?: string[];
+            matched_task_ids?: string[];
+            matched_workload_refs?: string[];
+            matched_replica_ids?: string[];
             last_seen_at?: string;
             created_at_observed?: string;
+        };
+        ImageCachePruneBlobCandidate: {
+            node_name?: string;
+            digest: string;
+            /** Format: int64 */
+            size_bytes?: number;
+            reason?: string;
+            /** Format: int64 */
+            planned_delete_bytes?: number;
+            last_seen_at?: string;
         };
         ImageCachePrunePlan: {
             id: string;
@@ -8928,6 +9013,12 @@ export interface components {
             candidate_manifest_count: number;
             /** Format: int32 */
             protected_manifest_count: number;
+            /** Format: int32 */
+            candidate_blob_count?: number;
+            /** Format: int64 */
+            candidate_blob_bytes?: number;
+            /** Format: int32 */
+            protected_blob_count?: number;
             /** Format: int64 */
             planned_delete_bytes?: number;
             /** Format: int64 */
@@ -8940,6 +9031,11 @@ export interface components {
                 [key: string]: number;
             };
             candidates?: components["schemas"]["ImageCachePruneCandidate"][];
+            protected_manifests?: components["schemas"]["ImageCachePruneCandidate"][];
+            skipped_manifests?: components["schemas"]["ImageCachePruneCandidate"][];
+            unreferenced_blobs?: components["schemas"]["ImageCachePruneBlobCandidate"][];
+            node_pressure?: boolean;
+            budget_exhausted?: boolean;
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
@@ -11462,6 +11558,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ImageCachePrunePlanTaskResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    adminGetImageRetentionPlan: {
+        parameters: {
+            query?: {
+                app?: string;
+                all?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageRetentionPlanResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
