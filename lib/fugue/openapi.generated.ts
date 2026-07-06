@@ -55,6 +55,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/metadata/geoip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get GeoIP Metadata */
+        get: operations["getGeoIPMetadata"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/auth/context": {
         parameters: {
             query?: never;
@@ -219,6 +236,108 @@ export interface paths {
         get: operations["getEdgeQualityRank"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/edge/nodes/{edge_id}/desired-state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Edge Node Desired State */
+        get: operations["getEdgeNodeDesiredState"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/edge/nodes/{edge_id}/desired-state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin Get Edge Node Desired State */
+        get: operations["adminGetEdgeNodeDesiredState"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/edge/nodes/{edge_id}/probe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Admin Probe Edge Node */
+        post: operations["adminProbeEdgeNode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/edge/nodes/{edge_id}/canary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Admin Set Edge Node Canary */
+        post: operations["adminSetEdgeNodeCanary"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/edge/nodes/{edge_id}/drain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Admin Drain Edge Node */
+        post: operations["adminDrainEdgeNode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/edge/nodes/{edge_id}/undrain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Admin Undrain Edge Node */
+        post: operations["adminUndrainEdgeNode"];
         delete?: never;
         options?: never;
         head?: never;
@@ -6002,6 +6121,17 @@ export interface components {
         EdgeNode: {
             id: string;
             edge_group_id: string;
+            /** @enum {string} */
+            workload_mode?: "static" | "dynamic";
+            /** @enum {string} */
+            canary_state?: "joined" | "warming" | "probing" | "canary" | "active" | "drained";
+            /** Format: int32 */
+            canary_weight?: number;
+            /** @enum {string} */
+            public_probe_status?: "unknown" | "passing" | "failing";
+            public_probe_last_error?: string;
+            /** Format: date-time */
+            public_probe_last_at?: string;
             region?: string;
             country?: string;
             public_hostname?: string;
@@ -6052,6 +6182,36 @@ export interface components {
             created_at: string;
             /** Format: date-time */
             updated_at: string;
+        };
+        EdgeNodeDesiredState: {
+            edge_id: string;
+            edge_group_id: string;
+            workload_mode: string;
+            canary_state: string;
+            /** Format: int32 */
+            canary_weight: number;
+            public_probe_status: string;
+            dns_eligible: boolean;
+            draining: boolean;
+            route_ready: boolean;
+            tls_ready: boolean;
+            token_prefix?: string;
+            /** Format: date-time */
+            last_heartbeat_at?: string;
+        };
+        EdgeNodeDesiredStateEnvelope: {
+            desired_state: components["schemas"]["EdgeNodeDesiredState"];
+        };
+        SetEdgeNodeCanaryRequest: {
+            /** @enum {string} */
+            state?: "canary" | "active" | "drained";
+            /** Format: int32 */
+            weight?: number;
+        };
+        EdgeNodeControlResponse: {
+            node: components["schemas"]["EdgeNode"];
+            group: components["schemas"]["EdgeGroup"];
+            desired_state: components["schemas"]["EdgeNodeDesiredState"];
         };
         EdgeNodeListResponse: {
             nodes: components["schemas"]["EdgeNode"][];
@@ -6253,6 +6413,12 @@ export interface components {
             rank?: number;
             edge_id?: string;
             edge_group_id?: string;
+            /** @enum {string} */
+            workload_mode?: "static" | "dynamic";
+            /** @enum {string} */
+            canary_state?: "joined" | "warming" | "probing" | "canary" | "active" | "drained";
+            /** Format: int32 */
+            canary_weight?: number;
             region?: string;
             country?: string;
             healthy?: boolean;
@@ -6298,8 +6464,20 @@ export interface components {
             last_sampled_at?: string;
             reason?: string;
         };
+        GeoIPMetadataResponse: {
+            public_ip: string;
+            country_code?: string;
+            source?: string;
+            error?: string;
+        };
         CreateEdgeNodeTokenRequest: {
             edge_group_id: string;
+            /** @enum {string} */
+            workload_mode?: "static" | "dynamic";
+            /** @enum {string} */
+            canary_state?: "joined" | "warming" | "probing" | "canary" | "active" | "drained";
+            /** Format: int32 */
+            canary_weight?: number;
             region?: string;
             country?: string;
             public_hostname?: string;
@@ -6315,6 +6493,8 @@ export interface components {
         EdgeHeartbeatRequest: {
             edge_id: string;
             edge_group_id: string;
+            /** @enum {string} */
+            workload_mode?: "static" | "dynamic";
             region?: string;
             country?: string;
             public_hostname?: string;
@@ -6594,6 +6774,12 @@ export interface components {
             healthy?: boolean;
             route_ready?: boolean;
             tls_ready?: boolean;
+            workload_mode?: string;
+            canary_state?: string;
+            /** Format: int32 */
+            canary_weight?: number;
+            public_probe_status?: string;
+            dns_eligible?: boolean;
         };
         EdgeDNSScopedAnswerCandidates: {
             scope_key: string;
@@ -9117,7 +9303,21 @@ export interface components {
             node_updater: components["schemas"]["NodeUpdater"];
             discovery_bundle: components["schemas"]["DiscoveryBundle"];
             node_policy?: components["schemas"]["ClusterNodePolicyStatus"];
+            edge_credential?: components["schemas"]["NodeUpdaterEdgeCredential"];
             warnings?: string[];
+        };
+        NodeUpdaterEdgeCredential: {
+            edge_id: string;
+            edge_group_id: string;
+            /** @enum {string} */
+            workload_mode?: "static" | "dynamic";
+            country?: string;
+            region?: string;
+            public_ipv4?: string;
+            public_ipv6?: string;
+            token?: string;
+            token_prefix?: string;
+            desired_state_url?: string;
         };
         NodeUpdaterDesiredStateResponse: {
             desired_state: components["schemas"]["NodeUpdaterDesiredState"];
@@ -11069,6 +11269,30 @@ export interface operations {
             default: components["responses"]["ErrorResponse"];
         };
     };
+    getGeoIPMetadata: {
+        parameters: {
+            query?: {
+                /** @description Optional public IP to resolve. If omitted, the control plane uses forwarded request metadata. */
+                ip?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GeoIPMetadataResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
     getAuthContext: {
         parameters: {
             query?: never;
@@ -11312,6 +11536,148 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EdgeQualityRankResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getEdgeNodeDesiredState: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                edge_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EdgeNodeDesiredStateEnvelope"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    adminGetEdgeNodeDesiredState: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                edge_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EdgeNodeDesiredStateEnvelope"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    adminProbeEdgeNode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                edge_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EdgeNodeControlResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    adminSetEdgeNodeCanary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                edge_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetEdgeNodeCanaryRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EdgeNodeControlResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    adminDrainEdgeNode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                edge_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EdgeNodeControlResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    adminUndrainEdgeNode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                edge_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EdgeNodeControlResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
