@@ -11240,11 +11240,32 @@ export interface components {
             platform_artifact_validation_failures: number;
             /** Format: int32 */
             platform_consumer_drift: number;
+            release_signals?: components["schemas"]["ReleaseSignal"][];
             blocked_reasons?: string[];
             recommended_operator_steps?: string[];
         };
         ReleaseGuardStatusResponse: {
             status: components["schemas"]["ReleaseGuardStatus"];
+        };
+        ReleaseSignal: {
+            id: string;
+            name?: string;
+            enabled: boolean;
+            /** @enum {string} */
+            owner_scope: "platform" | "first_party_service" | "tenant_workload";
+            /** @enum {string} */
+            gate_scope: "control_plane" | "edge_rollout" | "runtime_rollout" | "tenant_traffic" | "report_only";
+            /** @enum {string} */
+            mode: "report_only" | "soft_gate" | "canary_gate" | "rollback_gate" | "hard_gate";
+            subject: string;
+            check_name?: string;
+            reason?: string;
+            created_at?: string;
+            updated_at?: string;
+        };
+        ReleaseSignalPolicy: {
+            version: string;
+            signals?: components["schemas"]["ReleaseSignal"][];
         };
         ServiceTrafficSafetyState: {
             hostname: string;
@@ -11469,6 +11490,7 @@ export interface components {
             dns?: components["schemas"]["DNSDelegationPreflightResponse"];
             route_explain?: components["schemas"]["RouteExplainResponse"];
             failure_contracts?: components["schemas"]["SubsystemFailureContract"][];
+            release_signals?: components["schemas"]["ReleaseSignal"][];
             generated_sources?: string[];
         };
         RobustnessStatusResponse: {
