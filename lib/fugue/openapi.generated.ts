@@ -602,6 +602,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/release-guard/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Release Guard Status */
+        get: operations["getReleaseGuardStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/traffic-safety/explain/{hostname}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Explain Traffic Safety */
+        get: operations["explainTrafficSafety"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/requests/{request_id}/explain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Explain Request */
+        get: operations["explainRequest"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/robustness/status": {
         parameters: {
             query?: never;
@@ -698,6 +749,194 @@ export interface paths {
         put?: never;
         /** Run Robustness Repair */
         post: operations["runRobustnessRepair"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/artifacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Platform Artifacts */
+        get: operations["listPlatformArtifacts"];
+        put?: never;
+        /** Create Platform Artifact Draft */
+        post: operations["createPlatformArtifact"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/artifacts/{artifact_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Platform Artifact */
+        get: operations["getPlatformArtifact"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/artifacts/{artifact_id}/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Validate Platform Artifact */
+        post: operations["validatePlatformArtifact"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/artifacts/{artifact_id}/release": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Release Platform Artifact */
+        post: operations["releasePlatformArtifact"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/artifacts/{artifact_id}/rollback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Roll Back Platform Artifact */
+        post: operations["rollbackPlatformArtifact"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/artifacts/{artifact_id}/consumers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Platform Artifact Consumers */
+        get: operations["listPlatformArtifactConsumers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/artifacts/{artifact_id}/lkg": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Platform Artifact LKG */
+        get: operations["getPlatformArtifactLKG"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/platform-state/artifacts/{artifact_kind}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Pull Platform State Artifact */
+        get: operations["getPlatformStateArtifact"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/platform-state/consumers/heartbeat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Report Platform State Consumer Heartbeat */
+        post: operations["platformConsumerHeartbeat"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/failure-contracts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Subsystem Failure Contracts */
+        get: operations["listSubsystemFailureContracts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/failure-contracts/{subsystem}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Subsystem Failure Contract */
+        get: operations["getSubsystemFailureContract"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3666,6 +3905,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/node-health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Node Deep Health Results */
+        get: operations["listNodeDeepHealth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/node-health/{node_updater_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Node Deep Health Result */
+        get: operations["getNodeDeepHealth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/node-update-tasks": {
         parameters: {
             query?: never;
@@ -6393,6 +6666,7 @@ export interface components {
         EdgeQualityRankResponse: {
             hostname: string;
             traffic_class?: string;
+            request_size_class?: string;
             method?: string;
             path_prefix_bucket?: string;
             requested_scope: string;
@@ -6407,6 +6681,7 @@ export interface components {
             generated_at: string;
             candidates?: components["schemas"]["EdgeQualityRankCandidate"][];
             hard_gated?: components["schemas"]["EdgeQualityRankCandidate"][];
+            shadow_comparison?: components["schemas"]["EdgeQualityShadowComparison"];
         };
         EdgeQualityRankCandidate: {
             /** Format: int32 */
@@ -6462,6 +6737,12 @@ export interface components {
             client_tcp_rto_rate?: number;
             /** Format: date-time */
             last_sampled_at?: string;
+            reason?: string;
+        };
+        EdgeQualityShadowComparison: {
+            legacy_selected_edge_group_id?: string;
+            quality_selected_edge_group_id?: string;
+            changed: boolean;
             reason?: string;
         };
         GeoIPMetadataResponse: {
@@ -6743,6 +7024,10 @@ export interface components {
             exploration_percent?: number;
             /** Format: int32 */
             switch_cooldown_seconds?: number;
+            /** @description Edge quality ranking algorithm version considered for this answer. */
+            ranking_version?: string;
+            /** @description Scope key used by the quality ranking decision, such as global, country:cn, region:cn:sh, or asn:as4134. */
+            ranking_scope?: string;
             region?: string;
             country?: string;
             /** Format: int32 */
@@ -9296,6 +9581,51 @@ export interface components {
         };
         NodeUpdaterResponse: {
             node_updater: components["schemas"]["NodeUpdater"];
+            deep_health?: components["schemas"]["NodeDeepHealthResult"];
+        };
+        NodeDeepHealthCheck: {
+            name: string;
+            category?: string;
+            /** @enum {string} */
+            status: "pass" | "warning" | "fail";
+            expected?: string;
+            observed?: string;
+            message?: string;
+            hard_fail?: boolean;
+            repair_action?: string;
+            evidence?: {
+                [key: string]: string;
+            };
+            /** Format: date-time */
+            checked_at?: string;
+        };
+        NodeDeepHealthResult: {
+            node_updater_id?: string;
+            cluster_node_name?: string;
+            runtime_id?: string;
+            machine_id?: string;
+            observed_only: boolean;
+            /** @enum {string} */
+            overall_status: "pass" | "warning" | "fail";
+            /** @enum {string} */
+            quarantine_state: "clear" | "degraded" | "quarantined";
+            quarantine_reason?: string;
+            /** Format: date-time */
+            quarantine_expires_at?: string;
+            recovery_conditions?: string[];
+            checks: components["schemas"]["NodeDeepHealthCheck"][];
+            /** Format: date-time */
+            reported_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        NodeDeepHealthListResponse: {
+            results: components["schemas"]["NodeDeepHealthResult"][];
+            /** Format: date-time */
+            generated_at: string;
+        };
+        NodeDeepHealthResponse: {
+            result: components["schemas"]["NodeDeepHealthResult"];
         };
         NodeUpdaterDesiredState: {
             /** Format: date-time */
@@ -9360,6 +9690,7 @@ export interface components {
             os?: string;
             arch?: string;
             last_error?: string;
+            deep_health?: components["schemas"]["NodeDeepHealthResult"];
         };
         CreateNodeUpdateTaskRequest: {
             node_updater_id?: string;
@@ -10895,6 +11226,114 @@ export interface components {
         PlatformFailureDrillResponse: {
             report: components["schemas"]["PlatformFailureDrillReport"];
         };
+        ReleaseGuardStatus: {
+            /** Format: date-time */
+            generated_at: string;
+            pass: boolean;
+            block_rollout: boolean;
+            mode: string;
+            robustness_baseline: components["schemas"]["RobustnessStatus"];
+            /** Format: int32 */
+            failure_contract_count: number;
+            platform_artifact_kinds?: string[];
+            /** Format: int32 */
+            platform_artifact_validation_failures: number;
+            /** Format: int32 */
+            platform_consumer_drift: number;
+            blocked_reasons?: string[];
+            recommended_operator_steps?: string[];
+        };
+        ReleaseGuardStatusResponse: {
+            status: components["schemas"]["ReleaseGuardStatus"];
+        };
+        ServiceTrafficSafetyState: {
+            hostname: string;
+            pass: boolean;
+            /** Format: int32 */
+            min_healthy_edge_count: number;
+            /** Format: int32 */
+            healthy_edge_count: number;
+            eligible_edge_groups?: string[];
+            hard_gated_edge_groups?: string[];
+            hard_gate_reasons?: {
+                [key: string]: string;
+            };
+            blockers?: string[];
+            failure_contracts?: string[];
+            gray_release_scope?: string;
+            strict_protection: boolean;
+            exploration_paused: boolean;
+            route_explain: components["schemas"]["RouteExplainResponse"];
+            /** Format: date-time */
+            generated_at: string;
+        };
+        TrafficSafetyExplainResponse: {
+            state: components["schemas"]["ServiceTrafficSafetyState"];
+        };
+        RequestExplainResponse: {
+            request_id: string;
+            found: boolean;
+            error_class?: string;
+            edge_id?: string;
+            edge_group_id?: string;
+            runtime_node?: string;
+            hostname?: string;
+            path_prefix?: string;
+            method?: string;
+            traffic_class?: string;
+            route_generation?: string;
+            /** Format: int32 */
+            status_code?: number;
+            /** Format: int64 */
+            body_read_block_ms?: number;
+            /** Format: int64 */
+            upload_effective_bps?: number;
+            /** Format: int64 */
+            min_window_bps?: number;
+            /** Format: int64 */
+            max_read_gap_ms?: number;
+            /** Format: int64 */
+            request_body_bytes?: number;
+            /** Format: int64 */
+            request_body_read_bytes?: number;
+            /** Format: int32 */
+            body_incomplete_count?: number;
+            /** Format: int32 */
+            body_read_error_count?: number;
+            /** Format: int64 */
+            origin_dns_ms?: number;
+            /** Format: int64 */
+            origin_connect_ms?: number;
+            /** Format: int64 */
+            origin_request_write_ms?: number;
+            /** Format: int64 */
+            origin_response_wait_ms?: number;
+            /** Format: int64 */
+            origin_ttfb_ms?: number;
+            /** Format: int64 */
+            origin_total_ms?: number;
+            /** Format: double */
+            client_tcp_rtt_ms?: number;
+            /** Format: double */
+            client_tcp_retrans_rate?: number;
+            /** Format: double */
+            client_tcp_rto_rate?: number;
+            /** Format: int64 */
+            client_tcp_delivery_rate_bps?: number;
+            attribution?: string[];
+            failure_contracts?: string[];
+            evidence?: {
+                [key: string]: string;
+            };
+            secret_safe: boolean;
+            /** Format: date-time */
+            sampled_at?: string;
+            /** Format: date-time */
+            generated_at: string;
+        };
+        RequestExplainResponseEnvelope: {
+            explain: components["schemas"]["RequestExplainResponse"];
+        };
         RobustnessCheck: {
             name: string;
             pass: boolean;
@@ -10929,6 +11368,84 @@ export interface components {
             /** Format: date-time */
             updated_at: string;
         };
+        ResilienceInvariant: {
+            id: string;
+            category: string;
+            subject?: string;
+            description: string;
+            hard_gate: boolean;
+            evidence_source?: string;
+            runbook_ref?: string;
+        };
+        ResilienceInventoryItem: {
+            category: string;
+            subject: string;
+            status: string;
+            summary?: string;
+            evidence?: {
+                [key: string]: string;
+            };
+            /** Format: date-time */
+            updated_at?: string;
+        };
+        ResilienceGap: {
+            id: string;
+            category: string;
+            severity: string;
+            description: string;
+            implementation_path?: string;
+        };
+        ResilienceDashboard: {
+            name: string;
+            scope: string;
+            metrics?: string[];
+            command?: string;
+            description?: string;
+        };
+        ResilienceAlertRule: {
+            name: string;
+            severity: string;
+            expression: string;
+            incident_class: string;
+            explain_command: string;
+            runbook_ref?: string;
+        };
+        RuntimeContinuityStatus: {
+            app_id?: string;
+            app_name?: string;
+            hostname?: string;
+            state: string;
+            strategy: string;
+            /** Format: int32 */
+            desired_replicas: number;
+            /** Format: int32 */
+            ready_replicas: number;
+            runtime_id?: string;
+            runtime_node?: string;
+            node_quarantine?: string;
+            blockers?: string[];
+            replacement_plan?: string;
+            stateful_preflight?: string[];
+            attribution?: string[];
+            evidence?: {
+                [key: string]: string;
+            };
+        };
+        ResilienceChaosDrill: {
+            id: string;
+            failure_mode: string;
+            detection: string;
+            quarantine: string;
+            repair_or_rollback: string;
+            explain_command: string;
+            release_readiness: boolean;
+            runbook_ref?: string;
+        };
+        RunbookReference: {
+            name: string;
+            path: string;
+            incident_class?: string;
+        };
         RobustnessStatus: {
             /** Format: date-time */
             generated_at: string;
@@ -10940,9 +11457,18 @@ export interface components {
             };
             checks: components["schemas"]["RobustnessCheck"][];
             incidents: components["schemas"]["RobustnessIncident"][];
+            invariants?: components["schemas"]["ResilienceInvariant"][];
+            inventory?: components["schemas"]["ResilienceInventoryItem"][];
+            gaps?: components["schemas"]["ResilienceGap"][];
+            dashboards?: components["schemas"]["ResilienceDashboard"][];
+            alert_rules?: components["schemas"]["ResilienceAlertRule"][];
+            runtime_continuity?: components["schemas"]["RuntimeContinuityStatus"][];
+            chaos_drills?: components["schemas"]["ResilienceChaosDrill"][];
+            runbooks?: components["schemas"]["RunbookReference"][];
             autonomy?: components["schemas"]["PlatformAutonomyStatus"];
             dns?: components["schemas"]["DNSDelegationPreflightResponse"];
             route_explain?: components["schemas"]["RouteExplainResponse"];
+            failure_contracts?: components["schemas"]["SubsystemFailureContract"][];
             generated_sources?: string[];
         };
         RobustnessStatusResponse: {
@@ -10980,6 +11506,280 @@ export interface components {
         };
         RobustnessRepairPlanResponse: {
             plan: components["schemas"]["RobustnessRepairPlan"];
+        };
+        PlatformArtifactScope: {
+            scope_type?: string;
+            key?: string;
+            tenant_id?: string;
+            project_id?: string;
+            app_id?: string;
+            hostname?: string;
+            edge_group_id?: string;
+            edge_id?: string;
+            node_id?: string;
+            region?: string;
+            country?: string;
+            traffic_class?: string;
+        };
+        PlatformArtifactValidationResult: {
+            name: string;
+            pass: boolean;
+            /** @enum {string} */
+            severity: "block_publish" | "degraded" | "warning" | "info";
+            message?: string;
+            evidence?: {
+                [key: string]: string;
+            };
+        };
+        PlatformArtifact: {
+            id: string;
+            /** @enum {string} */
+            artifact_kind: "edge_route_bundle" | "dns_answer_bundle" | "caddy_route_config" | "discovery_bundle" | "node_desired_state" | "runtime_placement_plan" | "runtime_continuity_plan" | "node_guardian_policy" | "release_guard_policy" | "edge_ranking_policy" | "traffic_safety_policy" | "subsystem_failure_contracts";
+            scope: components["schemas"]["PlatformArtifactScope"];
+            scope_key: string;
+            generation: string;
+            /** @enum {string} */
+            status: "draft" | "validated" | "rejected";
+            content_hash: string;
+            content?: {
+                [key: string]: unknown;
+            };
+            validation_results?: components["schemas"]["PlatformArtifactValidationResult"][];
+            compatibility_floor?: string;
+            metadata?: {
+                [key: string]: string;
+            };
+            created_by_type?: string;
+            created_by_id?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        PlatformArtifactRelease: {
+            id: string;
+            artifact_id: string;
+            artifact_kind: string;
+            scope: components["schemas"]["PlatformArtifactScope"];
+            scope_key: string;
+            generation: string;
+            /** @enum {string} */
+            release_channel: "shadow" | "gray" | "full";
+            /** @enum {string} */
+            status: "active" | "superseded" | "rolled_back";
+            rollback_target_generation?: string;
+            canary_rule_ref?: string;
+            reason?: string;
+            released_by_type?: string;
+            released_by_id?: string;
+            /** Format: date-time */
+            released_at: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        PlatformReleaseMessage: {
+            id: string;
+            release_id: string;
+            artifact_id: string;
+            artifact_kind: string;
+            scope: components["schemas"]["PlatformArtifactScope"];
+            scope_key: string;
+            generation: string;
+            /** @enum {string} */
+            release_channel: "shadow" | "gray" | "full";
+            /** @enum {string} */
+            message_type: "release" | "rollback";
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            expires_at?: string;
+            ack_count: number;
+        };
+        PlatformConsumerInstance: {
+            id: string;
+            consumer_id: string;
+            component?: string;
+            node_id?: string;
+            artifact_kind: string;
+            scope_key: string;
+            supported_artifact_kinds?: string[];
+            desired_generation?: string;
+            actual_generation?: string;
+            lkg_generation?: string;
+            apply_status?: string;
+            probe_status?: string;
+            serving_lkg?: boolean;
+            lkg_expired?: boolean;
+            last_error?: string;
+            /** Format: date-time */
+            last_heartbeat_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        PlatformLKGSnapshot: {
+            id: string;
+            artifact_id: string;
+            artifact_kind: string;
+            scope: components["schemas"]["PlatformArtifactScope"];
+            scope_key: string;
+            generation: string;
+            content_hash: string;
+            /** Format: date-time */
+            expires_at: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        PlatformArtifactCreateRequest: {
+            artifact_kind: string;
+            scope?: components["schemas"]["PlatformArtifactScope"];
+            generation?: string;
+            content: {
+                [key: string]: unknown;
+            };
+            compatibility_floor?: string;
+            metadata?: {
+                [key: string]: string;
+            };
+        };
+        PlatformArtifactValidateRequest: {
+            dry_run?: boolean;
+        };
+        PlatformArtifactReleaseRequest: {
+            /** @enum {string} */
+            release_channel: "shadow" | "gray" | "full";
+            canary_rule_ref?: string;
+            force_publish?: boolean;
+            reason?: string;
+        };
+        PlatformArtifactRollbackRequest: {
+            /** @enum {string} */
+            release_channel?: "shadow" | "gray" | "full";
+            to_generation: string;
+            reason: string;
+            force_publish?: boolean;
+            canary_rule_ref?: string;
+        };
+        PlatformConsumerHeartbeatRequest: {
+            consumer_id: string;
+            component?: string;
+            node_id?: string;
+            artifact_kind: string;
+            scope_key?: string;
+            supported_artifact_kinds?: string[];
+            desired_generation?: string;
+            actual_generation?: string;
+            lkg_generation?: string;
+            apply_status?: string;
+            probe_status?: string;
+            serving_lkg?: boolean;
+            lkg_expired?: boolean;
+            last_error?: string;
+        };
+        PlatformArtifactListResponse: {
+            artifacts: components["schemas"]["PlatformArtifact"][];
+            /** Format: date-time */
+            generated_at: string;
+        };
+        PlatformArtifactResponse: {
+            artifact: components["schemas"]["PlatformArtifact"];
+        };
+        PlatformArtifactValidationResponse: {
+            artifact: components["schemas"]["PlatformArtifact"];
+            results: components["schemas"]["PlatformArtifactValidationResult"][];
+            pass: boolean;
+            dry_run: boolean;
+        };
+        PlatformArtifactReleaseResponse: {
+            artifact: components["schemas"]["PlatformArtifact"];
+            release: components["schemas"]["PlatformArtifactRelease"];
+            message: components["schemas"]["PlatformReleaseMessage"];
+            lkg?: components["schemas"]["PlatformLKGSnapshot"];
+        };
+        PlatformArtifactConsumersResponse: {
+            consumers: components["schemas"]["PlatformConsumerInstance"][];
+            /** Format: date-time */
+            generated_at: string;
+        };
+        PlatformArtifactLKGResponse: {
+            lkg?: components["schemas"]["PlatformLKGSnapshot"];
+        };
+        PlatformStateArtifactResponse: {
+            artifact?: components["schemas"]["PlatformArtifact"];
+            release?: components["schemas"]["PlatformArtifactRelease"];
+            messages: components["schemas"]["PlatformReleaseMessage"][];
+            lkg?: components["schemas"]["PlatformLKGSnapshot"];
+            generation?: string;
+            waited: boolean;
+        };
+        PlatformConsumerHeartbeatResponse: {
+            consumer: components["schemas"]["PlatformConsumerInstance"];
+            drift: boolean;
+        };
+        FailureMode: {
+            id: string;
+            description: string;
+            severity?: string;
+        };
+        DetectionSignal: {
+            name: string;
+            description: string;
+            required?: boolean;
+        };
+        IsolationAction: {
+            name: string;
+            description: string;
+            automatic?: boolean;
+        };
+        FallbackBehavior: {
+            name: string;
+            description: string;
+        };
+        RepairAction: {
+            name: string;
+            description: string;
+            safety_class?: string;
+            automatic?: boolean;
+        };
+        RollbackPath: {
+            name: string;
+            description: string;
+        };
+        HumanApprovalBoundary: {
+            action: string;
+            description: string;
+            required: boolean;
+        };
+        SubsystemFailureContract: {
+            subsystem: string;
+            owner?: string;
+            summary?: string;
+            failure_modes: components["schemas"]["FailureMode"][];
+            detection_signals: components["schemas"]["DetectionSignal"][];
+            isolation_actions: components["schemas"]["IsolationAction"][];
+            fallback_behaviors: components["schemas"]["FallbackBehavior"][];
+            repair_actions: components["schemas"]["RepairAction"][];
+            rollback_paths: components["schemas"]["RollbackPath"][];
+            attribution_classes: string[];
+            human_approval_boundaries: components["schemas"]["HumanApprovalBoundary"][];
+            observe_only_allowed: boolean;
+            automatic_quarantine_allowed: boolean;
+            automatic_repair_allowed: boolean;
+            human_approval_required: boolean;
+            runbook_ref?: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        SubsystemFailureContractListResponse: {
+            contracts: components["schemas"]["SubsystemFailureContract"][];
+            /** Format: date-time */
+            generated_at: string;
+        };
+        SubsystemFailureContractResponse: {
+            contract: components["schemas"]["SubsystemFailureContract"];
         };
         KeyRotationPreflightRequest: {
             dry_run?: boolean;
@@ -11512,6 +12312,8 @@ export interface operations {
         parameters: {
             query?: {
                 traffic_class?: string;
+                /** @description Request body size class used for body-read quality ranking. Accepted values include no_body, body_le_64k, body_64k_1m, body_1m_16m, and body_gt_16m. */
+                request_size_class?: string;
                 method?: string;
                 path_prefix?: string;
                 /** @description Scope selector: global, country:<country>, region:<country>:<region>, or asn:<asn>. */
@@ -12114,6 +12916,80 @@ export interface operations {
             default: components["responses"]["ErrorResponse"];
         };
     };
+    getReleaseGuardStatus: {
+        parameters: {
+            query?: {
+                subject?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReleaseGuardStatusResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    explainTrafficSafety: {
+        parameters: {
+            query?: {
+                min_healthy_edges?: number;
+            };
+            header?: never;
+            path: {
+                hostname: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrafficSafetyExplainResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    explainRequest: {
+        parameters: {
+            query?: {
+                /** @description Lower bound as a positive duration such as 24h or an RFC3339 timestamp. Defaults to 24h. */
+                since?: string;
+            };
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequestExplainResponseEnvelope"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
     getRobustnessStatus: {
         parameters: {
             query?: {
@@ -12261,6 +13137,304 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RobustnessRepairPlanResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    listPlatformArtifacts: {
+        parameters: {
+            query?: {
+                kind?: string;
+                scope?: string;
+                status?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformArtifactListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    createPlatformArtifact: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlatformArtifactCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformArtifactResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getPlatformArtifact: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                artifact_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformArtifactResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    validatePlatformArtifact: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                artifact_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PlatformArtifactValidateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformArtifactValidationResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    releasePlatformArtifact: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                artifact_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlatformArtifactReleaseRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformArtifactReleaseResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    rollbackPlatformArtifact: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                artifact_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlatformArtifactRollbackRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformArtifactReleaseResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    listPlatformArtifactConsumers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                artifact_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformArtifactConsumersResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getPlatformArtifactLKG: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                artifact_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformArtifactLKGResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getPlatformStateArtifact: {
+        parameters: {
+            query?: {
+                scope_key?: string;
+                channel?: "shadow" | "gray" | "full";
+                current_generation?: string;
+                wait_seconds?: number;
+            };
+            header?: never;
+            path: {
+                artifact_kind: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformStateArtifactResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    platformConsumerHeartbeat: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlatformConsumerHeartbeatRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformConsumerHeartbeatResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    listSubsystemFailureContracts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubsystemFailureContractListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getSubsystemFailureContract: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subsystem: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubsystemFailureContractResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
@@ -17684,6 +18858,50 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NodeUpdaterListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    listNodeDeepHealth: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NodeDeepHealthListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getNodeDeepHealth: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                node_updater_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NodeDeepHealthResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
