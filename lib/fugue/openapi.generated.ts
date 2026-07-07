@@ -7397,6 +7397,32 @@ export interface components {
             target_runtime_id?: string;
             auto?: boolean;
         };
+        AppContinuityPolicy: {
+            zero_downtime?: components["schemas"]["AppZeroDowntimePolicy"];
+        };
+        AppZeroDowntimePolicy: {
+            enabled: boolean;
+            /** @enum {string} */
+            mode?: "drain_only" | "safe";
+            /** @enum {string} */
+            strategy?: "stable_candidate";
+            canary?: components["schemas"]["AppRolloutCanarySpec"];
+            gate?: components["schemas"]["AppReleaseGatePolicy"];
+            /** Format: int32 */
+            rollback_window_seconds?: number;
+            /** Format: int32 */
+            retire_grace_seconds?: number;
+        };
+        AppRolloutCanarySpec: {
+            enabled?: boolean;
+            /** Format: int32 */
+            initial_weight?: number;
+            /** Format: int32 */
+            max_weight?: number;
+            step_weights?: number[];
+            /** Format: int32 */
+            min_observation_seconds?: number;
+        };
         AppPostgresSpec: {
             image?: string;
             database?: string;
@@ -7510,6 +7536,7 @@ export interface components {
             volume_replication?: components["schemas"]["AppVolumeReplicationSpec"];
             postgres?: components["schemas"]["AppPostgresSpec"];
             failover?: components["schemas"]["AppFailoverSpec"];
+            continuity?: components["schemas"]["AppContinuityPolicy"];
             /** Format: int32 */
             image_mirror_limit?: number;
             /** Format: int64 */
@@ -8277,6 +8304,12 @@ export interface components {
             evidence: components["schemas"]["OperationEvidence"][];
             release_attempt?: components["schemas"]["ReleaseAttempt"];
             release_timeline?: components["schemas"]["ReleaseTimelineEntry"][];
+            app_releases?: components["schemas"]["AppRelease"][];
+            traffic_policies?: components["schemas"]["AppTrafficPolicy"][];
+            gate_results?: components["schemas"]["AppReleaseGateResult"][];
+            drain_metrics_summary?: {
+                [key: string]: unknown;
+            };
             redaction_report?: {
                 [key: string]: unknown;
             }[];
@@ -8294,6 +8327,12 @@ export interface components {
             };
             release_timeline: components["schemas"]["ReleaseTimelineEntry"][];
             evidence: components["schemas"]["OperationEvidence"][];
+            app_releases?: components["schemas"]["AppRelease"][];
+            traffic_policies?: components["schemas"]["AppTrafficPolicy"][];
+            gate_results?: components["schemas"]["AppReleaseGateResult"][];
+            drain_metrics_summary?: {
+                [key: string]: unknown;
+            };
             redaction_report?: {
                 [key: string]: unknown;
             }[];
@@ -8346,6 +8385,7 @@ export interface components {
         PatchAppContinuityRequest: {
             app_failover?: components["schemas"]["AppContinuityAppFailoverRequest"];
             database_failover?: components["schemas"]["AppContinuityDatabaseFailoverRequest"];
+            zero_downtime?: components["schemas"]["AppZeroDowntimePolicy"];
         };
         AuditEvent: {
             id: string;
@@ -8760,8 +8800,10 @@ export interface components {
             deployment_name?: string;
             service_name?: string;
             /** @enum {string} */
-            status: "creating" | "ready" | "serving" | "failed" | "retired";
+            status: "creating" | "ready" | "serving" | "draining" | "failed" | "retired";
             status_reason?: string;
+            rollback_target_release_id?: string;
+            release_message?: string;
             spec_snapshot?: components["schemas"]["AppSpec"];
             /** Format: date-time */
             ready_at?: string;
@@ -8769,6 +8811,8 @@ export interface components {
             promoted_at?: string;
             /** Format: date-time */
             retired_at?: string;
+            /** Format: date-time */
+            retention_until?: string;
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
@@ -8805,6 +8849,10 @@ export interface components {
             service_name?: string;
             status?: string;
             status_reason?: string;
+            rollback_target_release_id?: string;
+            release_message?: string;
+            /** Format: date-time */
+            retention_until?: string;
             spec_snapshot?: components["schemas"]["AppSpec"];
         };
         AppReleaseResponse: {
@@ -10991,6 +11039,7 @@ export interface components {
         };
         AppContinuityResponse: {
             app_failover?: components["schemas"]["AppFailoverSpec"];
+            zero_downtime?: components["schemas"]["AppZeroDowntimePolicy"];
             database?: components["schemas"]["AppPostgresSpec"];
             already_current?: boolean;
             operation?: components["schemas"]["Operation"];
@@ -16271,6 +16320,7 @@ export interface operations {
         parameters: {
             query?: {
                 format?: "json" | "zip";
+                include_global_summary?: boolean;
             };
             header?: never;
             path: {
@@ -18776,6 +18826,7 @@ export interface operations {
         parameters: {
             query?: {
                 format?: "json" | "zip";
+                include_global_summary?: boolean;
             };
             header?: never;
             path: {
