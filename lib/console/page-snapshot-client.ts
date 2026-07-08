@@ -49,6 +49,8 @@ export const CONSOLE_API_KEYS_PAGE_SNAPSHOT_URL =
   "/api/fugue/console/pages/api-keys";
 export const CONSOLE_CLUSTER_NODES_PAGE_SNAPSHOT_URL =
   "/api/fugue/console/pages/cluster-nodes";
+export const CONSOLE_DNS_PAGE_SNAPSHOT_URL =
+  "/api/fugue/console/pages/dns";
 export const CONSOLE_PROFILE_SETTINGS_PAGE_SNAPSHOT_URL =
   "/api/fugue/console/pages/settings/profile";
 export const CONSOLE_ADMIN_APPS_PAGE_SNAPSHOT_URL =
@@ -74,6 +76,7 @@ const CONSOLE_ROUTE_SNAPSHOT_URLS: Record<string, string[]> = {
   "/app/billing": [CONSOLE_BILLING_PAGE_SNAPSHOT_URL],
   "/app/cluster": [CONSOLE_ADMIN_CLUSTER_PAGE_SNAPSHOT_URL],
   "/app/cluster-nodes": [CONSOLE_CLUSTER_NODES_PAGE_SNAPSHOT_URL],
+  "/app/dns": [CONSOLE_DNS_PAGE_SNAPSHOT_URL],
   "/app/settings": [CONSOLE_PROFILE_SETTINGS_PAGE_SNAPSHOT_URL],
   "/app/settings/profile": [CONSOLE_PROFILE_SETTINGS_PAGE_SNAPSHOT_URL],
   "/app/users": [CONSOLE_ADMIN_USERS_PAGE_SNAPSHOT_URL],

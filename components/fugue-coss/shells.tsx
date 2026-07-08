@@ -7,6 +7,7 @@ import {
   FileText,
   Gauge,
   GitBranch,
+  Globe2,
   LockKeyhole,
   Network,
   Server,
@@ -114,6 +115,7 @@ type BreadcrumbItem = {
 const workspaceLinks = [
   { href: "/app", label: "Projects", icon: Gauge },
   { href: "/app/cluster-nodes", label: "Servers", icon: Server },
+  { href: "/app/dns", label: "DNS", icon: Globe2 },
   { href: "/app/api-keys", label: "Access keys", icon: FileKey2 },
   { href: "/app/billing", label: "Billing", icon: CreditCard },
 ];

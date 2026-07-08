@@ -1065,6 +1065,95 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/dns/zones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Hosted DNS Zones */
+        get: operations["listHostedDNSZones"];
+        put?: never;
+        /** Create Hosted DNS Zone */
+        post: operations["createHostedDNSZone"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/dns/zones/{zone}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Hosted DNS Zone */
+        get: operations["getHostedDNSZone"];
+        put?: never;
+        post?: never;
+        /** Delete Hosted DNS Zone */
+        delete: operations["deleteHostedDNSZone"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/dns/zones/{zone}/preflight": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Hosted DNS Zone Preflight */
+        get: operations["hostedDNSZonePreflight"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/dns/zones/{zone}/records": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Hosted DNS Records */
+        get: operations["listHostedDNSRecords"];
+        put?: never;
+        /** Create Hosted DNS Record */
+        post: operations["createHostedDNSRecord"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/dns/zones/{zone}/records/{record_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Hosted DNS Record */
+        delete: operations["deleteHostedDNSRecord"];
+        options?: never;
+        head?: never;
+        /** Patch Hosted DNS Record */
+        patch: operations["patchHostedDNSRecord"];
+        trace?: never;
+    };
     "/v1/dns/nodes/{dns_node_id}": {
         parameters: {
             query?: never;
@@ -6991,12 +7080,12 @@ export interface components {
         EdgeDNSRecord: {
             name: string;
             /** @enum {string} */
-            type: "A" | "AAAA" | "CAA" | "CNAME" | "MX" | "NS" | "TXT";
+            type: "A" | "AAAA" | "CAA" | "CNAME" | "MX" | "NS" | "SRV" | "TXT";
             values: string[];
             /** Format: int32 */
             ttl: number;
             /** @enum {string} */
-            record_kind: "acme-challenge" | "custom-domain-target" | "platform" | "platform-domain" | "platform-route" | "probe" | "protected";
+            record_kind: "acme-challenge" | "custom-domain-target" | "hosted" | "platform" | "platform-domain" | "platform-route" | "probe" | "protected";
             app_id?: string;
             tenant_id?: string;
             edge_group_id?: string;
@@ -7079,6 +7168,144 @@ export interface components {
             cooldown_until?: string;
             candidates?: components["schemas"]["EdgeDNSAnswerCandidate"][];
         };
+        HostedDNSZone: {
+            id: string;
+            tenant_id: string;
+            project_id?: string;
+            zone_name: string;
+            /** @enum {string} */
+            status: "pending_delegation" | "active" | "degraded" | "suspended" | "deleted";
+            /** @enum {string} */
+            delegation_status: "pending" | "ready" | "error";
+            parent_nameservers?: string[];
+            expected_nameservers: string[];
+            created_by?: string;
+            /** Format: date-time */
+            last_checked_at?: string;
+            last_message?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        HostedDNSRecord: {
+            id: string;
+            zone_id: string;
+            tenant_id: string;
+            name: string;
+            fqdn: string;
+            /** @enum {string} */
+            type: "A" | "AAAA" | "CAA" | "CNAME" | "MX" | "NS" | "SRV" | "TXT" | "ALIAS" | "ANAME" | "FUGUE_APP";
+            values: string[];
+            /** Format: int32 */
+            ttl: number;
+            /** @enum {string} */
+            flatten_mode?: "none" | "apex" | "always" | "app";
+            flatten_target?: string;
+            /** @enum {string} */
+            flatten_ipv4_policy?: "auto" | "ipv4_only" | "ipv6_only" | "dual_stack_required";
+            /** @enum {string} */
+            flatten_ipv6_policy?: "auto" | "ipv4_only" | "ipv6_only" | "dual_stack_required";
+            /** @enum {string} */
+            flatten_ttl_policy?: "target" | "record" | "min" | "bounded";
+            /** @enum {string} */
+            flatten_fallback_policy?: "stale_if_error" | "fail_closed" | "empty_noerror";
+            /** @enum {string} */
+            flatten_status?: "pending" | "resolved" | "stale" | "degraded" | "error";
+            flattened_a?: string[];
+            flattened_aaaa?: string[];
+            /** Format: date-time */
+            last_resolved_at?: string;
+            resolve_error?: string;
+            /** @enum {string} */
+            source: "user" | "app_domain" | "system" | "acme";
+            source_ref_type?: string;
+            source_ref_id?: string;
+            /** @enum {string} */
+            status: "active" | "degraded" | "disabled" | "conflict";
+            created_by?: string;
+            /** Format: date-time */
+            last_published_at?: string;
+            last_message?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        CreateHostedDNSZoneRequest: {
+            zone_name: string;
+            tenant_id?: string;
+            project_id?: string;
+        };
+        HostedDNSZoneResponse: {
+            zone: components["schemas"]["HostedDNSZone"];
+        };
+        HostedDNSZoneListResponse: {
+            zones: components["schemas"]["HostedDNSZone"][];
+        };
+        DeleteHostedDNSZoneResponse: {
+            deleted: boolean;
+            zone: components["schemas"]["HostedDNSZone"];
+        };
+        HostedDNSZonePreflightResponse: {
+            zone: components["schemas"]["HostedDNSZone"];
+            preflight: components["schemas"]["DNSDelegationPreflightResponse"];
+        };
+        CreateHostedDNSRecordRequest: {
+            name: string;
+            /** @enum {string} */
+            type: "A" | "AAAA" | "CAA" | "CNAME" | "MX" | "NS" | "SRV" | "TXT" | "ALIAS" | "ANAME" | "FUGUE_APP";
+            values: string[];
+            /** Format: int32 */
+            ttl?: number;
+            flatten?: boolean;
+            /** @enum {string} */
+            flatten_mode?: "none" | "apex" | "always" | "app";
+            flatten_target?: string;
+            /** @enum {string} */
+            flatten_ipv4_policy?: "auto" | "ipv4_only" | "ipv6_only" | "dual_stack_required";
+            /** @enum {string} */
+            flatten_ipv6_policy?: "auto" | "ipv4_only" | "ipv6_only" | "dual_stack_required";
+            /** @enum {string} */
+            flatten_ttl_policy?: "target" | "record" | "min" | "bounded";
+            /** @enum {string} */
+            flatten_fallback_policy?: "stale_if_error" | "fail_closed" | "empty_noerror";
+            /** @enum {string} */
+            source?: "user" | "app_domain" | "system" | "acme";
+            source_ref_type?: string;
+            source_ref_id?: string;
+            overwrite?: boolean;
+        };
+        PatchHostedDNSRecordRequest: {
+            values?: string[];
+            /** Format: int32 */
+            ttl?: number;
+            flatten?: boolean;
+            /** @enum {string} */
+            flatten_mode?: "none" | "apex" | "always" | "app";
+            flatten_target?: string;
+            /** @enum {string} */
+            flatten_ipv4_policy?: "auto" | "ipv4_only" | "ipv6_only" | "dual_stack_required";
+            /** @enum {string} */
+            flatten_ipv6_policy?: "auto" | "ipv4_only" | "ipv6_only" | "dual_stack_required";
+            /** @enum {string} */
+            flatten_ttl_policy?: "target" | "record" | "min" | "bounded";
+            /** @enum {string} */
+            flatten_fallback_policy?: "stale_if_error" | "fail_closed" | "empty_noerror";
+            /** @enum {string} */
+            status?: "active" | "degraded" | "disabled" | "conflict";
+            overwrite?: boolean;
+        };
+        HostedDNSRecordResponse: {
+            record: components["schemas"]["HostedDNSRecord"];
+        };
+        HostedDNSRecordListResponse: {
+            records: components["schemas"]["HostedDNSRecord"][];
+        };
+        DeleteHostedDNSRecordResponse: {
+            deleted: boolean;
+            record: components["schemas"]["HostedDNSRecord"];
+        };
         DNSACMEChallenge: {
             id: string;
             zone: string;
@@ -7132,6 +7359,7 @@ export interface components {
         };
         DNSNode: {
             id: string;
+            physical_node_id?: string;
             edge_group_id: string;
             public_hostname?: string;
             public_ipv4?: string;
@@ -7186,6 +7414,7 @@ export interface components {
         };
         DNSHeartbeatRequest: {
             dns_node_id: string;
+            physical_node_id?: string;
             edge_group_id: string;
             public_hostname?: string;
             public_ipv4?: string;
@@ -7250,6 +7479,7 @@ export interface components {
         };
         DNSDelegationNodeCheck: {
             dns_node_id: string;
+            physical_node_id?: string;
             edge_group_id?: string;
             public_ip?: string;
             zone?: string;
@@ -7308,6 +7538,11 @@ export interface components {
             app_id?: string;
             tenant_id?: string;
             status: string;
+            /** @enum {string} */
+            dns_mode?: "external" | "managed" | "manual";
+            dns_zone_id?: string;
+            dns_record_id?: string;
+            dns_record_source?: string;
             /** @enum {string} */
             dns_status?: "pending" | "ready" | "error";
             /** @enum {string} */
@@ -8495,6 +8730,11 @@ export interface components {
         };
         ProjectRouteBinding: {
             hostname?: string;
+            /** @enum {string} */
+            dns_mode?: "external" | "managed" | "manual";
+            dns_zone_id?: string;
+            dns_record_id?: string;
+            overwrite?: boolean;
             path_prefix?: string;
             public_url?: string;
             domain_name?: string;
@@ -10469,6 +10709,9 @@ export interface components {
         };
         PutAppDomainRequest: {
             hostname: string;
+            /** @enum {string} */
+            dns_mode?: "external" | "managed" | "manual";
+            overwrite?: boolean;
         };
         AppDomainPutResponse: {
             domain: components["schemas"]["AppDomain"];
@@ -10477,6 +10720,9 @@ export interface components {
         };
         VerifyAppDomainRequest: {
             hostname: string;
+            /** @enum {string} */
+            dns_mode?: "external" | "managed" | "manual";
+            overwrite?: boolean;
         };
         AppDomainVerifyResponse: {
             domain: components["schemas"]["AppDomain"];
@@ -13755,6 +14001,225 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DeleteDNSACMEChallengeResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    listHostedDNSZones: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HostedDNSZoneListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    createHostedDNSZone: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateHostedDNSZoneRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HostedDNSZoneResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getHostedDNSZone: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                zone: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HostedDNSZoneResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    deleteHostedDNSZone: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                zone: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteHostedDNSZoneResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    hostedDNSZonePreflight: {
+        parameters: {
+            query?: {
+                min_healthy_nodes?: number;
+            };
+            header?: never;
+            path: {
+                zone: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HostedDNSZonePreflightResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    listHostedDNSRecords: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                zone: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HostedDNSRecordListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    createHostedDNSRecord: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                zone: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateHostedDNSRecordRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HostedDNSRecordResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    deleteHostedDNSRecord: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                zone: string;
+                record_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteHostedDNSRecordResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    patchHostedDNSRecord: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                zone: string;
+                record_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatchHostedDNSRecordRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HostedDNSRecordResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];

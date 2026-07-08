@@ -962,6 +962,10 @@ function buildAppDomainView(domain: CamelizedSchema<"AppDomain">) {
   return {
     appId: readNullableString(domain.appId),
     createdAt: readNullableString(domain.createdAt),
+    dnsMode: readNullableString(domain.dnsMode),
+    dnsRecordId: readNullableString(domain.dnsRecordId),
+    dnsRecordSource: readNullableString(domain.dnsRecordSource),
+    dnsZoneId: readNullableString(domain.dnsZoneId),
     hostname: domain.hostname,
     lastCheckedAt: readNullableString(domain.lastCheckedAt),
     lastMessage: readNullableString(domain.lastMessage),
@@ -976,6 +980,199 @@ function buildAppDomainView(domain: CamelizedSchema<"AppDomain">) {
     verificationTxtName: readNullableString(domain.verificationTxtName),
     verificationTxtValue: readNullableString(domain.verificationTxtValue),
     verifiedAt: readNullableString(domain.verifiedAt),
+  };
+}
+
+function buildHostedDNSZoneView(zone: CamelizedSchema<"HostedDNSZone">) {
+  return {
+    createdAt: readNullableString(zone.createdAt),
+    createdBy: readNullableString(zone.createdBy),
+    delegationStatus: zone.delegationStatus,
+    expectedNameservers: readStringArray(zone.expectedNameservers),
+    id: zone.id,
+    lastCheckedAt: readNullableString(zone.lastCheckedAt),
+    lastMessage: readNullableString(zone.lastMessage),
+    parentNameservers: readStringArray(zone.parentNameservers),
+    projectId: readNullableString(zone.projectId),
+    status: zone.status,
+    tenantId: zone.tenantId,
+    updatedAt: readNullableString(zone.updatedAt),
+    zoneName: zone.zoneName,
+  };
+}
+
+function buildHostedDNSRecordView(record: CamelizedSchema<"HostedDNSRecord">) {
+  return {
+    createdAt: readNullableString(record.createdAt),
+    createdBy: readNullableString(record.createdBy),
+    flattenFallbackPolicy: readNullableString(record.flattenFallbackPolicy),
+    flattenIPv4Policy: readNullableString(record.flattenIpv4Policy),
+    flattenIPv6Policy: readNullableString(record.flattenIpv6Policy),
+    flattenMode: readNullableString(record.flattenMode),
+    flattenStatus: readNullableString(record.flattenStatus),
+    flattenTTLPolicy: readNullableString(record.flattenTtlPolicy),
+    flattenTarget: readNullableString(record.flattenTarget),
+    flattenedA: readStringArray(record.flattenedA),
+    flattenedAAAA: readStringArray(record.flattenedAaaa),
+    fqdn: record.fqdn,
+    id: record.id,
+    lastMessage: readNullableString(record.lastMessage),
+    lastPublishedAt: readNullableString(record.lastPublishedAt),
+    lastResolvedAt: readNullableString(record.lastResolvedAt),
+    name: record.name,
+    resolveError: readNullableString(record.resolveError),
+    source: record.source,
+    sourceRefId: readNullableString(record.sourceRefId),
+    sourceRefType: readNullableString(record.sourceRefType),
+    status: record.status,
+    tenantId: record.tenantId,
+    ttl: record.ttl,
+    type: record.type,
+    updatedAt: readNullableString(record.updatedAt),
+    values: readStringArray(record.values),
+    zoneId: record.zoneId,
+  };
+}
+
+function buildDNSDelegationRecordView(
+  record: CamelizedSchema<"DNSDelegationRecord">,
+) {
+  return {
+    comment: readNullableString(record.comment),
+    name: record.name,
+    ttl: readNullableNumber(record.ttl),
+    type: record.type,
+    values: readStringArray(record.values),
+  };
+}
+
+function buildDNSDelegationPlanView(plan: CamelizedSchema<"DNSDelegationPlan">) {
+  return {
+    currentParentNS: readStringArray(plan.currentParentNs),
+    notes: readStringArray(plan.notes),
+    plannedARecords: (plan.plannedARecords ?? []).map(buildDNSDelegationRecordView),
+    plannedNSRecords: (plan.plannedNsRecords ?? []).map(buildDNSDelegationRecordView),
+    rollbackDeleteRecords: (plan.rollbackDeleteRecords ?? []).map(
+      buildDNSDelegationRecordView,
+    ),
+  };
+}
+
+function buildDNSDelegationCheckView(
+  check: CamelizedSchema<"DNSDelegationPreflightCheck">,
+) {
+  return {
+    message: readNullableString(check.message),
+    name: check.name,
+    pass: check.pass ?? false,
+  };
+}
+
+function buildDNSDelegationNodeCheckView(
+  node: CamelizedSchema<"DNSDelegationNodeCheck">,
+) {
+  return {
+    bundleSyncErrors: readNullableNumber(node.bundleSyncErrors) ?? 0,
+    cacheLoadErrors: readNullableNumber(node.cacheLoadErrors) ?? 0,
+    cacheStatus: readNullableString(node.cacheStatus),
+    cacheWriteErrors: readNullableNumber(node.cacheWriteErrors) ?? 0,
+    dnsBundleVersion: readNullableString(node.dnsBundleVersion),
+    dnsNodeId: node.dnsNodeId,
+    edgeGroupId: readNullableString(node.edgeGroupId),
+    healthy: node.healthy ?? false,
+    kubernetesNodeKnown: node.kubernetesNodeKnown ?? false,
+    lastSeenAt: readNullableString(node.lastSeenAt),
+    message: readNullableString(node.message),
+    nodeDiskPressure: node.nodeDiskPressure ?? false,
+    nodeReady: node.nodeReady ?? false,
+    pass: node.pass ?? false,
+    physicalNodeId: readNullableString(node.physicalNodeId),
+    probeAnswers: readStringArray(node.probeAnswers),
+    probePass: node.probePass ?? false,
+    publicIP: readNullableString(node.publicIp),
+    queryCount: readNullableNumber(node.queryCount) ?? 0,
+    queryErrorCount: readNullableNumber(node.queryErrorCount) ?? 0,
+    recordCount: readNullableNumber(node.recordCount) ?? 0,
+    status: readNullableString(node.status),
+    tcp53Reachable: node.tcp53Reachable ?? false,
+    udp53Reachable: node.udp53Reachable ?? false,
+    zone: readNullableString(node.zone),
+  };
+}
+
+function buildDNSDelegationPreflightView(
+  preflight: CamelizedSchema<"DNSDelegationPreflightResponse">,
+) {
+  return {
+    checks: (preflight.checks ?? []).map(buildDNSDelegationCheckView),
+    delegationPlan: buildDNSDelegationPlanView(preflight.delegationPlan),
+    dnsBundleVersion: readNullableString(preflight.dnsBundleVersion),
+    generatedAt: readNullableString(preflight.generatedAt),
+    healthyNodeCount: preflight.healthyNodeCount ?? 0,
+    minHealthyNodes: preflight.minHealthyNodes ?? 0,
+    nodes: (preflight.nodes ?? []).map(buildDNSDelegationNodeCheckView),
+    pass: preflight.pass ?? false,
+    probeName: preflight.probeName,
+    zone: preflight.zone,
+  };
+}
+
+function buildHostedDNSZoneResultView(
+  response: CamelizedSchema<"HostedDNSZoneResponse">,
+) {
+  return {
+    zone: buildHostedDNSZoneView(response.zone),
+  };
+}
+
+function buildHostedDNSZoneListResultView(
+  response: CamelizedSchema<"HostedDNSZoneListResponse">,
+) {
+  return {
+    zones: (response.zones ?? []).map(buildHostedDNSZoneView),
+  };
+}
+
+function buildHostedDNSZoneDeleteResultView(
+  response: CamelizedSchema<"DeleteHostedDNSZoneResponse">,
+) {
+  return {
+    deleted: response.deleted ?? false,
+    zone: buildHostedDNSZoneView(response.zone),
+  };
+}
+
+function buildHostedDNSZonePreflightResultView(
+  response: CamelizedSchema<"HostedDNSZonePreflightResponse">,
+) {
+  return {
+    preflight: buildDNSDelegationPreflightView(response.preflight),
+    zone: buildHostedDNSZoneView(response.zone),
+  };
+}
+
+function buildHostedDNSRecordResultView(
+  response: CamelizedSchema<"HostedDNSRecordResponse">,
+) {
+  return {
+    record: buildHostedDNSRecordView(response.record),
+  };
+}
+
+function buildHostedDNSRecordListResultView(
+  response: CamelizedSchema<"HostedDNSRecordListResponse">,
+) {
+  return {
+    records: (response.records ?? []).map(buildHostedDNSRecordView),
+  };
+}
+
+function buildHostedDNSRecordDeleteResultView(
+  response: CamelizedSchema<"DeleteHostedDNSRecordResponse">,
+) {
+  return {
+    deleted: response.deleted ?? false,
+    record: buildHostedDNSRecordView(response.record),
   };
 }
 
@@ -2040,6 +2237,32 @@ export type FugueAppDomainDeleteResult = ReturnType<
 >;
 export type FugueAppDomainVerifyResult = ReturnType<
   typeof buildAppDomainVerifyResultView
+>;
+export type FugueHostedDNSZone = ReturnType<typeof buildHostedDNSZoneView>;
+export type FugueHostedDNSRecord = ReturnType<typeof buildHostedDNSRecordView>;
+export type FugueDNSDelegationPreflight = ReturnType<
+  typeof buildDNSDelegationPreflightView
+>;
+export type FugueHostedDNSZoneResult = ReturnType<
+  typeof buildHostedDNSZoneResultView
+>;
+export type FugueHostedDNSZoneListResult = ReturnType<
+  typeof buildHostedDNSZoneListResultView
+>;
+export type FugueHostedDNSZoneDeleteResult = ReturnType<
+  typeof buildHostedDNSZoneDeleteResultView
+>;
+export type FugueHostedDNSZonePreflightResult = ReturnType<
+  typeof buildHostedDNSZonePreflightResultView
+>;
+export type FugueHostedDNSRecordResult = ReturnType<
+  typeof buildHostedDNSRecordResultView
+>;
+export type FugueHostedDNSRecordListResult = ReturnType<
+  typeof buildHostedDNSRecordListResultView
+>;
+export type FugueHostedDNSRecordDeleteResult = ReturnType<
+  typeof buildHostedDNSRecordDeleteResultView
 >;
 export type FugueAppContinuityResult = ReturnType<
   typeof buildContinuityResultView
@@ -3479,7 +3702,11 @@ export async function createFugueAppDomain(
   accessToken: string,
   appId: string,
   payload: {
+    dnsMode?: "external" | "managed" | "manual";
+    dnsRecordId?: string;
+    dnsZoneId?: string;
     hostname: string;
+    overwrite?: boolean;
   },
 ) {
   const client = getClient(accessToken);
@@ -3488,7 +3715,11 @@ export async function createFugueAppDomain(
       `/v1/apps/${encodeURIComponent(appId)}/domains`,
       client.POST("/v1/apps/{id}/domains", {
         body: {
+          ...(payload.dnsMode ? { dns_mode: payload.dnsMode } : {}),
+          ...(payload.dnsRecordId ? { dns_record_id: payload.dnsRecordId } : {}),
+          ...(payload.dnsZoneId ? { dns_zone_id: payload.dnsZoneId } : {}),
           hostname: payload.hostname,
+          ...(payload.overwrite ? { overwrite: true } : {}),
         },
         params: {
           path: { id: appId },
@@ -3504,7 +3735,11 @@ export async function verifyFugueAppDomain(
   accessToken: string,
   appId: string,
   payload: {
+    dnsMode?: "external" | "managed" | "manual";
+    dnsRecordId?: string;
+    dnsZoneId?: string;
     hostname: string;
+    overwrite?: boolean;
   },
 ) {
   const client = getClient(accessToken);
@@ -3513,7 +3748,11 @@ export async function verifyFugueAppDomain(
       `/v1/apps/${encodeURIComponent(appId)}/domains/verify`,
       client.POST("/v1/apps/{id}/domains/verify", {
         body: {
+          ...(payload.dnsMode ? { dns_mode: payload.dnsMode } : {}),
+          ...(payload.dnsRecordId ? { dns_record_id: payload.dnsRecordId } : {}),
+          ...(payload.dnsZoneId ? { dns_zone_id: payload.dnsZoneId } : {}),
           hostname: payload.hostname,
+          ...(payload.overwrite ? { overwrite: true } : {}),
         },
         params: {
           path: { id: appId },
@@ -3546,6 +3785,277 @@ export async function deleteFugueAppDomain(
   );
 
   return buildAppDomainDeleteResultView(response);
+}
+
+export type FugueHostedDNSRecordType =
+  components["schemas"]["HostedDNSRecord"]["type"];
+export type FugueHostedDNSRecordStatus =
+  components["schemas"]["HostedDNSRecord"]["status"];
+export type FugueHostedDNSFlattenMode =
+  NonNullable<components["schemas"]["HostedDNSRecord"]["flatten_mode"]>;
+export type FugueHostedDNSFlattenIPPolicy =
+  NonNullable<components["schemas"]["HostedDNSRecord"]["flatten_ipv4_policy"]>;
+export type FugueHostedDNSFlattenTTLPolicy =
+  NonNullable<components["schemas"]["HostedDNSRecord"]["flatten_ttl_policy"]>;
+export type FugueHostedDNSFlattenFallbackPolicy =
+  NonNullable<
+    components["schemas"]["HostedDNSRecord"]["flatten_fallback_policy"]
+  >;
+
+export async function getFugueHostedDNSZones(accessToken: string) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData("/v1/dns/zones", client.GET("/v1/dns/zones")),
+  );
+
+  return buildHostedDNSZoneListResultView(response);
+}
+
+export async function createFugueHostedDNSZone(
+  accessToken: string,
+  payload: {
+    projectId?: string;
+    tenantId?: string;
+    zoneName: string;
+  },
+) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      "/v1/dns/zones",
+      client.POST("/v1/dns/zones", {
+        body: {
+          ...(payload.projectId ? { project_id: payload.projectId } : {}),
+          ...(payload.tenantId ? { tenant_id: payload.tenantId } : {}),
+          zone_name: payload.zoneName,
+        },
+      }),
+    ),
+  );
+
+  return buildHostedDNSZoneResultView(response);
+}
+
+export async function getFugueHostedDNSZone(accessToken: string, zone: string) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/dns/zones/${encodeURIComponent(zone)}`,
+      client.GET("/v1/dns/zones/{zone}", {
+        params: {
+          path: { zone },
+        },
+      }),
+    ),
+  );
+
+  return buildHostedDNSZoneResultView(response);
+}
+
+export async function deleteFugueHostedDNSZone(
+  accessToken: string,
+  zone: string,
+) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/dns/zones/${encodeURIComponent(zone)}`,
+      client.DELETE("/v1/dns/zones/{zone}", {
+        params: {
+          path: { zone },
+        },
+      }),
+    ),
+  );
+
+  return buildHostedDNSZoneDeleteResultView(response);
+}
+
+export async function preflightFugueHostedDNSZone(
+  accessToken: string,
+  zone: string,
+  options?: {
+    minHealthyNodes?: number;
+  },
+) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/dns/zones/${encodeURIComponent(zone)}/preflight`,
+      client.GET("/v1/dns/zones/{zone}/preflight", {
+        params: {
+          path: { zone },
+          query: {
+            ...(options?.minHealthyNodes
+              ? { min_healthy_nodes: options.minHealthyNodes }
+              : {}),
+          },
+        },
+      }),
+    ),
+  );
+
+  return buildHostedDNSZonePreflightResultView(response);
+}
+
+export async function getFugueHostedDNSRecords(
+  accessToken: string,
+  zone: string,
+) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/dns/zones/${encodeURIComponent(zone)}/records`,
+      client.GET("/v1/dns/zones/{zone}/records", {
+        params: {
+          path: { zone },
+        },
+      }),
+    ),
+  );
+
+  return buildHostedDNSRecordListResultView(response);
+}
+
+export async function createFugueHostedDNSRecord(
+  accessToken: string,
+  zone: string,
+  payload: {
+    flatten?: boolean;
+    flattenFallbackPolicy?: FugueHostedDNSFlattenFallbackPolicy;
+    flattenIPv4Policy?: FugueHostedDNSFlattenIPPolicy;
+    flattenIPv6Policy?: FugueHostedDNSFlattenIPPolicy;
+    flattenMode?: FugueHostedDNSFlattenMode;
+    flattenTTLPolicy?: FugueHostedDNSFlattenTTLPolicy;
+    flattenTarget?: string;
+    name: string;
+    overwrite?: boolean;
+    source?: components["schemas"]["HostedDNSRecord"]["source"];
+    sourceRefId?: string;
+    sourceRefType?: string;
+    ttl?: number;
+    type: FugueHostedDNSRecordType;
+    values: string[];
+  },
+) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/dns/zones/${encodeURIComponent(zone)}/records`,
+      client.POST("/v1/dns/zones/{zone}/records", {
+        body: {
+          ...(payload.flatten !== undefined ? { flatten: payload.flatten } : {}),
+          ...(payload.flattenFallbackPolicy
+            ? { flatten_fallback_policy: payload.flattenFallbackPolicy }
+            : {}),
+          ...(payload.flattenIPv4Policy
+            ? { flatten_ipv4_policy: payload.flattenIPv4Policy }
+            : {}),
+          ...(payload.flattenIPv6Policy
+            ? { flatten_ipv6_policy: payload.flattenIPv6Policy }
+            : {}),
+          ...(payload.flattenMode ? { flatten_mode: payload.flattenMode } : {}),
+          ...(payload.flattenTTLPolicy
+            ? { flatten_ttl_policy: payload.flattenTTLPolicy }
+            : {}),
+          ...(payload.flattenTarget ? { flatten_target: payload.flattenTarget } : {}),
+          ...(payload.overwrite ? { overwrite: true } : {}),
+          ...(payload.source ? { source: payload.source } : {}),
+          ...(payload.sourceRefId ? { source_ref_id: payload.sourceRefId } : {}),
+          ...(payload.sourceRefType ? { source_ref_type: payload.sourceRefType } : {}),
+          ...(payload.ttl ? { ttl: payload.ttl } : {}),
+          name: payload.name,
+          type: payload.type,
+          values: payload.values,
+        },
+        params: {
+          path: { zone },
+        },
+      }),
+    ),
+  );
+
+  return buildHostedDNSRecordResultView(response);
+}
+
+export async function patchFugueHostedDNSRecord(
+  accessToken: string,
+  zone: string,
+  recordId: string,
+  payload: {
+    flatten?: boolean;
+    flattenFallbackPolicy?: FugueHostedDNSFlattenFallbackPolicy;
+    flattenIPv4Policy?: FugueHostedDNSFlattenIPPolicy;
+    flattenIPv6Policy?: FugueHostedDNSFlattenIPPolicy;
+    flattenMode?: FugueHostedDNSFlattenMode;
+    flattenTTLPolicy?: FugueHostedDNSFlattenTTLPolicy;
+    flattenTarget?: string;
+    overwrite?: boolean;
+    status?: FugueHostedDNSRecordStatus;
+    ttl?: number;
+    values?: string[];
+  },
+) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/dns/zones/${encodeURIComponent(zone)}/records/${encodeURIComponent(recordId)}`,
+      client.PATCH("/v1/dns/zones/{zone}/records/{record_id}", {
+        body: {
+          ...(payload.flatten !== undefined ? { flatten: payload.flatten } : {}),
+          ...(payload.flattenFallbackPolicy
+            ? { flatten_fallback_policy: payload.flattenFallbackPolicy }
+            : {}),
+          ...(payload.flattenIPv4Policy
+            ? { flatten_ipv4_policy: payload.flattenIPv4Policy }
+            : {}),
+          ...(payload.flattenIPv6Policy
+            ? { flatten_ipv6_policy: payload.flattenIPv6Policy }
+            : {}),
+          ...(payload.flattenMode ? { flatten_mode: payload.flattenMode } : {}),
+          ...(payload.flattenTTLPolicy
+            ? { flatten_ttl_policy: payload.flattenTTLPolicy }
+            : {}),
+          ...(payload.flattenTarget ? { flatten_target: payload.flattenTarget } : {}),
+          ...(payload.overwrite ? { overwrite: true } : {}),
+          ...(payload.status ? { status: payload.status } : {}),
+          ...(payload.ttl ? { ttl: payload.ttl } : {}),
+          ...(payload.values ? { values: payload.values } : {}),
+        },
+        params: {
+          path: {
+            record_id: recordId,
+            zone,
+          },
+        },
+      }),
+    ),
+  );
+
+  return buildHostedDNSRecordResultView(response);
+}
+
+export async function deleteFugueHostedDNSRecord(
+  accessToken: string,
+  zone: string,
+  recordId: string,
+) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      `/v1/dns/zones/${encodeURIComponent(zone)}/records/${encodeURIComponent(recordId)}`,
+      client.DELETE("/v1/dns/zones/{zone}/records/{record_id}", {
+        params: {
+          path: {
+            record_id: recordId,
+            zone,
+          },
+        },
+      }),
+    ),
+  );
+
+  return buildHostedDNSRecordDeleteResultView(response);
 }
 
 export async function getFugueAppEnv(accessToken: string, appId: string) {

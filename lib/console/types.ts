@@ -5,6 +5,7 @@ export type ConsoleNavIcon =
   | "apps"
   | "billing"
   | "cluster"
+  | "dns"
   | "project"
   | "server"
   | "settings"

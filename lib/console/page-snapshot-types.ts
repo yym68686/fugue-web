@@ -9,6 +9,7 @@ import type { AuthMethodRecord } from "@/lib/auth/methods";
 import type { SessionUser } from "@/lib/auth/session";
 import type { BillingPageData } from "@/lib/billing/service";
 import type { ClusterNodesPageData } from "@/lib/cluster-nodes/service";
+import type { DNSPageData } from "@/lib/dns/service";
 import type { NodeKeyPageData } from "@/lib/node-keys/service";
 
 export type ConsoleBillingPageSnapshot =
@@ -35,6 +36,15 @@ export type ConsoleClusterNodesPageSnapshot =
   | {
       data: ClusterNodesPageData;
       isAdmin: boolean;
+      state: "ready";
+    }
+  | {
+      state: "workspace-missing";
+    };
+
+export type ConsoleDNSPageSnapshot =
+  | {
+      data: DNSPageData;
       state: "ready";
     }
   | {

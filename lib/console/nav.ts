@@ -23,6 +23,13 @@ export function getConsoleNavGroups(options?: { isAdmin?: boolean; locale?: Loca
           label: translate(locale, "Projects"),
           meta: translate(locale, "Gallery / Services / Controls"),
         },
+        {
+          description: translate(locale, "Hosted DNS zones, records, and delegation health"),
+          href: "/app/dns",
+          icon: "dns",
+          label: translate(locale, "DNS"),
+          meta: translate(locale, "Zones / Records / Preflight"),
+        },
       ],
     },
     {

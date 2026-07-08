@@ -43,7 +43,15 @@ export async function POST(request: Request, context: RouteContext) {
   try {
     const appId = await readRouteParam(context, "id");
     const result = await verifyFugueAppDomain(workspaceState.workspace.adminKeySecret, appId, {
+      dnsMode: readOptionalString(body, "dnsMode") as
+        | "external"
+        | "managed"
+        | "manual"
+        | undefined,
+      dnsRecordId: readOptionalString(body, "dnsRecordId"),
+      dnsZoneId: readOptionalString(body, "dnsZoneId"),
       hostname: readOptionalString(body, "hostname"),
+      overwrite: body.overwrite === true,
     });
 
     return NextResponse.json(result);

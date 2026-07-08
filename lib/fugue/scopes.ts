@@ -10,6 +10,8 @@ export const WORKSPACE_ADMIN_SCOPES = [
   "app.scale",
   "app.migrate",
   "app.delete",
+  "dns.read",
+  "dns.write",
   "data.read",
   "data.write",
   "data.delete",
@@ -65,6 +67,14 @@ export const FUGUE_SCOPE_CATALOG = [
   {
     description: "Delete apps without broad write access.",
     value: "app.delete",
+  },
+  {
+    description: "Read hosted DNS zones, records, and delegation health.",
+    value: "dns.read",
+  },
+  {
+    description: "Create and manage hosted DNS zones and records.",
+    value: "dns.write",
   },
   {
     description: "Read data workspace metadata, versions, manifests, and download plans.",

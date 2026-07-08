@@ -79,6 +79,7 @@ import { fetchConsoleProjectDetail } from "@/lib/console/project-detail-client";
 import type { ConsoleProjectDetailData } from "@/lib/console/gallery-types";
 import type {
   FugueAppEnvResult,
+  FugueAppDomainListResult,
   FugueAppFilesystemTreeResult,
   FugueAppImageInventoryResult,
   FugueAppObservabilityMetricsSummary,
@@ -1669,8 +1670,71 @@ function RouteTab({ service }: { service: WorkbenchAppService }) {
             </p>
           </CardContent>
         </Card>
+        <CustomDomainsPanel service={service} />
       </CardContent>
     </CardFrame>
+  );
+}
+
+function CustomDomainsPanel({ service }: { service: WorkbenchAppService }) {
+  const { data, error, loading, refresh } = useEndpointData<FugueAppDomainListResult>(
+    `/api/fugue/apps/${encodeURIComponent(service.id)}/domains`,
+  );
+  const rows = (data?.domains ?? []).map((domain) => ({
+    ...domain,
+    id: domain.hostname,
+  }));
+
+  return (
+    <Card muted>
+      <CardHeader
+        title="Custom domains"
+        description="AppDomain DNS ownership mode, verification, and TLS state."
+        action={
+          <Button variant="outline" size="sm" loading={loading} onClick={() => refresh()}>
+            <RotateCcw aria-hidden="true" />
+            Refresh
+          </Button>
+        }
+      />
+      <CardContent className="coss-stack-sm">
+        {error ? (
+          <Alert tone="warning" title="Custom domains are unavailable.">
+            {error}
+          </Alert>
+        ) : null}
+        {rows.length ? (
+          <DataTable
+            columns={["Host", "DNS mode", "DNS", "TLS", "Record"]}
+            rows={rows}
+            renderRow={(domain) => (
+              <tr key={domain.hostname}>
+                <td className="coss-mono">{domain.hostname}</td>
+                <td>{domain.dnsMode ?? "external"}</td>
+                <td>
+                  <Badge tone={domain.status === "verified" ? "success" : "warning"}>
+                    {domain.status ?? "pending"}
+                  </Badge>
+                </td>
+                <td>
+                  <Badge tone={domain.tlsStatus === "ready" ? "success" : "warning"}>
+                    {domain.tlsStatus ?? "pending"}
+                  </Badge>
+                </td>
+                <td className="coss-mono">{domain.dnsRecordId ?? "-"}</td>
+              </tr>
+            )}
+          />
+        ) : loading ? (
+          <SkeletonBlock height={42} />
+        ) : (
+          <Empty
+            title="No custom domains"
+            description="This app has no AppDomain bindings yet."
+          />
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

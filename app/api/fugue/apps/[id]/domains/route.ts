@@ -77,7 +77,15 @@ export async function POST(request: Request, context: RouteContext) {
       readOptionalString(body, "hostname"),
     );
     const result = await createFugueAppDomain(accessToken, appId, {
+      dnsMode: readOptionalString(body, "dnsMode") as
+        | "external"
+        | "managed"
+        | "manual"
+        | undefined,
+      dnsRecordId: readOptionalString(body, "dnsRecordId"),
+      dnsZoneId: readOptionalString(body, "dnsZoneId"),
       hostname: readOptionalString(body, "hostname"),
+      overwrite: body.overwrite === true,
     });
 
     return NextResponse.json(result);
