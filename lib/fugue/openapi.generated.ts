@@ -10071,7 +10071,46 @@ export interface components {
             observed_at: string;
             components: components["schemas"]["ControlPlaneComponent"][];
             warnings?: components["schemas"]["ControlPlaneWarning"][];
+            topology?: components["schemas"]["ControlPlaneTopology"];
             deploy_workflow?: components["schemas"]["ControlPlaneWorkflowRun"];
+        };
+        ControlPlaneTopology: {
+            mode: string;
+            status: string;
+            /** Format: int32 */
+            control_plane_capable_nodes: number;
+            /** Format: int32 */
+            ready_control_plane_capable_nodes: number;
+            /** Format: int32 */
+            etcd_voter_capable_nodes: number;
+            /** Format: int32 */
+            release_runner_capable_nodes: number;
+            failure_domains?: string[];
+            providers?: string[];
+            regions?: string[];
+            endpoint_mode: string;
+            quorum_ready: boolean;
+            ha_ready: boolean;
+            risk_warnings?: string[];
+            missing_redundancy?: string[];
+            nodes?: components["schemas"]["ControlPlaneTopologyNode"][];
+            /** Format: date-time */
+            generated_at: string;
+        };
+        ControlPlaneTopologyNode: {
+            node_name: string;
+            ready: boolean;
+            control_plane_capable: boolean;
+            etcd_voter_capable: boolean;
+            release_runner_capable: boolean;
+            desired_control_plane_role?: string;
+            effective_control_plane_role?: string;
+            provider?: string;
+            region?: string;
+            zone?: string;
+            failure_domain?: string;
+            roles?: string[];
+            capabilities?: string[];
         };
         ControlPlaneStatusResponse: {
             control_plane: components["schemas"]["ControlPlaneStatus"];
@@ -11494,9 +11533,31 @@ export interface components {
             pass?: boolean;
             block_rollout?: boolean;
             control_plane_store?: components["schemas"]["ControlPlaneStoreStatus"];
+            controls?: components["schemas"]["AutonomyControls"];
             checks?: components["schemas"]["StoreInvariantCheck"][];
         } & {
             [key: string]: unknown;
+        };
+        AutonomyControls: {
+            mode?: string;
+            global_kill_switch?: boolean;
+            disabled_nodes?: string[];
+            disabled_services?: string[];
+            blast_radius_cap?: string;
+            rollback_path?: string;
+            automatic_repair_enabled?: boolean;
+            quarantine_enabled?: boolean;
+            dns_filtering_enabled?: boolean;
+            peer_overlay_enabled?: boolean;
+            endpoint_fallback_enabled?: boolean;
+            actions?: components["schemas"]["AutonomyActionControl"][];
+        };
+        AutonomyActionControl: {
+            name?: string;
+            enabled?: boolean;
+            mode?: string;
+            safety_class?: string;
+            env?: string;
         };
         PlatformAutonomyStatusResponse: {
             status: components["schemas"]["PlatformAutonomyStatus"];
