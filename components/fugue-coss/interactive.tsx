@@ -4605,6 +4605,7 @@ export function AdminClusterConsole() {
   const [refreshing, setRefreshing] = useState(false);
   const toast = useToast();
   const nodes = data?.nodes ?? [];
+  const trafficSafetyWarnings = data?.trafficSafetyWarnings ?? [];
   const rows = useMemo<AdminClusterNodeRow[]>(
     () =>
       nodes
@@ -4733,6 +4734,42 @@ export function AdminClusterConsole() {
             { label: "Workloads", value: String(data?.summary.workloadCount ?? nodes.reduce((total, node) => total + node.workloadCount, 0)) },
           ]}
         />
+
+        {trafficSafetyWarnings.length > 0 ? (
+          <div className="coss-stack-sm">
+            {trafficSafetyWarnings.map((warning) => (
+              <Alert
+                key={warning.id}
+                tone={warning.severityTone === "danger" ? "destructive" : "warning"}
+                title={
+                  <Inline>
+                    <span>{warning.title}</span>
+                    <Badge tone={badgeToneFromConsoleTone(warning.severityTone)}>
+                      {warning.severityLabel}
+                    </Badge>
+                  </Inline>
+                }
+              >
+                <div className="coss-stack-sm">
+                  <span>{warning.message}</span>
+                  <div className="coss-grid-2">
+                    <DetailMetric label="Subject" value={warning.subjectLabel} mono />
+                    <DetailMetric label="Observed" value={warning.observedLabel} />
+                    {warning.evidence.slice(0, 4).map((item) => (
+                      <DetailMetric
+                        key={`${warning.id}:${item.label}`}
+                        label={item.label}
+                        value={item.value}
+                        mono={item.label !== "Redundancy"}
+                      />
+                    ))}
+                  </div>
+                  <span>{warning.repairHint}</span>
+                </div>
+              </Alert>
+            ))}
+          </div>
+        ) : null}
 
         <div className="coss-split">
           <CardFrame>

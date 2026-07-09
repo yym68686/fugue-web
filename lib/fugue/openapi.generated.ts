@@ -6374,7 +6374,7 @@ export interface components {
         EdgeRouteBinding: {
             hostname: string;
             /** @enum {string} */
-            route_kind: "platform" | "custom-domain" | "platform-domain" | "platform-route";
+            route_kind: "platform" | "custom-domain" | "platform-domain" | "platform-route" | "control-plane-api";
             app_id: string;
             tenant_id: string;
             runtime_id: string;
@@ -6386,6 +6386,18 @@ export interface components {
             edge_group_id: string;
             fallback_edge_group_id?: string;
             policy_edge_group_id?: string;
+            excluded_edge_ids?: string[];
+            excluded_edge_group_ids?: string[];
+            exclusion_reason?: string;
+            /** Format: date-time */
+            exclusion_expires_at?: string | null;
+            /** Format: int32 */
+            min_healthy_edge_nodes?: number;
+            /** Format: int32 */
+            healthy_edge_node_count?: number;
+            /** @enum {string} */
+            edge_redundancy_status?: "ok" | "at_risk";
+            edge_redundancy_reason?: string;
             /** @enum {string} */
             route_policy: "route_a_only" | "edge_canary" | "edge_enabled";
             selection_reason?: string;
@@ -6442,6 +6454,8 @@ export interface components {
             exclusion_reason?: string;
             /** Format: date-time */
             exclusion_expires_at?: string | null;
+            /** Format: int32 */
+            min_healthy_edge_nodes?: number;
             /** @enum {string} */
             route_policy: "route_a_only" | "edge_canary" | "edge_enabled";
             enabled: boolean;
@@ -6553,6 +6567,10 @@ export interface components {
             /** Format: int32 */
             canary_weight: number;
             public_probe_status: string;
+            serving_generation?: string;
+            lkg_generation?: string;
+            cache_status?: string;
+            max_stale_exceeded?: boolean;
             dns_eligible: boolean;
             draining: boolean;
             route_ready: boolean;
@@ -6968,6 +6986,7 @@ export interface components {
             origin_ttfb_ms?: number;
             /** Format: int64 */
             origin_total_ms?: number;
+            origin_failure_class?: string;
             /** Format: int32 */
             streaming_request_count?: number;
             /** Format: int32 */
@@ -7018,6 +7037,8 @@ export interface components {
             exclusion_reason?: string;
             /** Format: date-time */
             exclusion_expires_at?: string | null;
+            /** Format: int32 */
+            min_healthy_edge_nodes?: number;
             /** @enum {string} */
             route_policy: "route_a_only" | "edge_canary" | "edge_enabled";
             enabled?: boolean;
@@ -11689,6 +11710,7 @@ export interface components {
             origin_ttfb_ms?: number;
             /** Format: int64 */
             origin_total_ms?: number;
+            origin_failure_class?: string;
             /** Format: double */
             client_tcp_rtt_ms?: number;
             /** Format: double */
@@ -13320,6 +13342,7 @@ export interface operations {
     explainTrafficSafety: {
         parameters: {
             query?: {
+                /** @description Minimum healthy eligible edge nodes required. */
                 min_healthy_edges?: number;
             };
             header?: never;

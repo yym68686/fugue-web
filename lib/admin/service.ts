@@ -16,6 +16,7 @@ import {
   getFugueControlPlaneStatus,
   getFugueProjectImageUsage,
   getFugueProjects,
+  getFugueRobustnessStatus,
   getFugueRuntimes,
   getFugueTenants,
   setFugueClusterNodePolicy,
@@ -35,6 +36,7 @@ import {
   type FugueProjectImageUsageAppSummary,
   type FugueProjectImageUsageResult,
   type FugueResourceSpec,
+  type FugueRobustnessStatus,
   type FugueRuntime,
   type FugueTenant,
 } from "@/lib/fugue/api";
@@ -387,6 +389,19 @@ export type AdminControlPlaneView = {
   versionLabel: string;
 };
 
+export type AdminTrafficSafetyWarningView = {
+  evidence: { label: string; value: string }[];
+  id: string;
+  message: string;
+  observedExact: string;
+  observedLabel: string;
+  repairHint: string;
+  severityLabel: string;
+  severityTone: ConsoleTone;
+  subjectLabel: string;
+  title: string;
+};
+
 export type AdminClusterPageData = {
   controlPlane: AdminControlPlaneView | null;
   errors: string[];
@@ -397,6 +412,7 @@ export type AdminClusterPageData = {
     readyCount: number;
     workloadCount: number;
   };
+  trafficSafetyWarnings: AdminTrafficSafetyWarningView[];
 };
 
 export type AdminPlatformNodeEnrollmentResult = {
@@ -728,6 +744,102 @@ function readControlPlaneComponentLabel(value?: string | null) {
     default:
       return humanize(value);
   }
+}
+
+function readRobustnessSeverityTone(value?: string | null): ConsoleTone {
+  switch (value?.trim().toLowerCase()) {
+    case "block_publish":
+      return "danger";
+    case "degraded":
+    case "warning":
+      return "warning";
+    case "info":
+      return "info";
+    default:
+      return "neutral";
+  }
+}
+
+function readRobustnessSeverityLabel(value?: string | null) {
+  switch (value?.trim().toLowerCase()) {
+    case "block_publish":
+      return "Blocked";
+    case "degraded":
+      return "Degraded";
+    case "warning":
+      return "Warning";
+    case "info":
+      return "Info";
+    default:
+      return humanize(value);
+  }
+}
+
+function camelizeEvidenceKey(value: string) {
+  return value.replace(/_([a-z])/g, (_match, segment: string) =>
+    segment.toUpperCase(),
+  );
+}
+
+function readEvidenceValue(
+  evidence: Record<string, string> | undefined,
+  key: string,
+) {
+  if (!evidence) {
+    return null;
+  }
+  return evidence[key] ?? evidence[camelizeEvidenceKey(key)] ?? null;
+}
+
+function buildTrafficSafetyWarnings(
+  robustness: FugueRobustnessStatus | null,
+  locale: Locale = "en",
+) {
+  const checks = robustness?.checks ?? [];
+  return checks
+    .filter(
+      (check) =>
+        check.name === "traffic_safety_min_healthy_edges" && !check.pass,
+    )
+    .map((check, index): AdminTrafficSafetyWarningView => {
+      const evidence = check.evidence ?? {};
+      const hostname =
+        readEvidenceValue(evidence, "hostname") ??
+        check.subject?.replace(/^hostname:/, "") ??
+        "unknown-hostname";
+      const pathPrefix = readEvidenceValue(evidence, "path_prefix") ?? "";
+      const edgeGroup = readEvidenceValue(evidence, "edge_group_id") ?? "";
+      const redundancyStatus =
+        readEvidenceValue(evidence, "edge_redundancy_status") ?? "";
+      const observedAt = robustness?.generatedAt ?? null;
+      const evidenceRows = [
+        { label: "Hostname", value: hostname },
+        pathPrefix ? { label: "Path", value: pathPrefix } : null,
+        edgeGroup ? { label: "Edge group", value: edgeGroup } : null,
+        redundancyStatus
+          ? { label: "Redundancy", value: humanize(redundancyStatus) }
+          : null,
+        check.expected ? { label: "Expected", value: check.expected } : null,
+        check.observed ? { label: "Observed", value: check.observed } : null,
+      ].filter((row): row is { label: string; value: string } => Boolean(row));
+
+      return {
+        evidence: evidenceRows,
+        id: `${check.name}:${check.subject ?? index}`,
+        message:
+          check.message ||
+          "Healthy eligible edge nodes are below the service minimum.",
+        observedExact: formatExactTime(observedAt, locale),
+        observedLabel: formatRelativeTime(observedAt, locale),
+        repairHint:
+          check.repairHint ||
+          "Restore or add a healthy edge before accepting single-edge risk.",
+        severityLabel: readRobustnessSeverityLabel(check.severity),
+        severityTone: readRobustnessSeverityTone(check.severity),
+        subjectLabel: `${hostname}${pathPrefix}`,
+        title: "Minimum edge redundancy at risk",
+      };
+    });
 }
 
 function buildAppStack(app: FugueApp) {
@@ -3575,10 +3687,11 @@ export async function getAdminClusterPageData(
         readyCount: 0,
         workloadCount: 0,
       },
+      trafficSafetyWarnings: [],
     };
   }
 
-  const [nodesResult, tenantsResult, controlPlaneResult] = await Promise.all([
+  const [nodesResult, tenantsResult, controlPlaneResult, robustnessResult] = await Promise.all([
     settleResult(
       getFugueClusterNodes(bootstrapKey, {
         syncLocations: false,
@@ -3590,6 +3703,10 @@ export async function getAdminClusterPageData(
     ),
     settleWithSoftTimeout(
       getCachedAdminControlPlaneView(bootstrapKey, locale),
+      ADMIN_OPTIONAL_FETCH_TIMEOUT_MS,
+    ),
+    settleWithSoftTimeout(
+      getFugueRobustnessStatus(bootstrapKey),
       ADMIN_OPTIONAL_FETCH_TIMEOUT_MS,
     ),
   ]);
@@ -3604,6 +3721,9 @@ export async function getAdminClusterPageData(
     controlPlaneResult.status === "rejected"
       ? `control plane: ${readErrorMessage(controlPlaneResult.reason)}`
       : null,
+    robustnessResult.status === "rejected"
+      ? `robustness: ${readErrorMessage(robustnessResult.reason)}`
+      : null,
   ].filter((value): value is string => Boolean(value));
 
   const tenants =
@@ -3611,6 +3731,8 @@ export async function getAdminClusterPageData(
   const nodes = nodesResult.status === "fulfilled" ? nodesResult.value : [];
   const controlPlane =
     controlPlaneResult.status === "fulfilled" ? controlPlaneResult.value : null;
+  const robustness =
+    robustnessResult.status === "fulfilled" ? robustnessResult.value : null;
   const views = buildClusterNodeViews(nodes, tenants, locale);
 
   return {
@@ -3635,6 +3757,7 @@ export async function getAdminClusterPageData(
         0,
       ),
     },
+    trafficSafetyWarnings: buildTrafficSafetyWarnings(robustness, locale),
   };
 }
 

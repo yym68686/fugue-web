@@ -2202,6 +2202,7 @@ export type FugueControlPlaneComponent = ReturnType<
 export type FugueControlPlaneStatus = ReturnType<
   typeof buildControlPlaneStatusView
 >;
+export type FugueRobustnessStatus = CamelizedSchema<"RobustnessStatus">;
 export type FugueConsoleProjectBadge = ReturnType<
   typeof buildConsoleProjectBadgeView
 >;
@@ -5198,6 +5199,18 @@ export async function getFugueControlPlaneStatus(accessToken: string) {
   );
 
   return buildControlPlaneStatusView(response.controlPlane);
+}
+
+export async function getFugueRobustnessStatus(accessToken: string) {
+  const client = getClient(accessToken);
+  const response = camelizeData(
+    await expectData(
+      "/v1/admin/robustness/status",
+      client.GET("/v1/admin/robustness/status"),
+    ),
+  );
+
+  return response.status;
 }
 
 export async function getFugueOperations(
