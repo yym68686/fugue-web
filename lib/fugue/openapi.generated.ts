@@ -12528,11 +12528,31 @@ export interface components {
         PlatformConsumerInstance: {
             id: string;
             consumer_id: string;
+            credential_id?: string;
+            token_id?: string;
             component?: string;
             node_id?: string;
             artifact_kind: string;
             scope_key: string;
+            release_set_id?: string;
+            expected_consumer_set_id?: string;
+            /** Format: int64 */
+            fencing_token?: number;
             supported_artifact_kinds?: string[];
+            /** @enum {string} */
+            protocol_version?: "v1";
+            /** @enum {string} */
+            schema_version?: "v1";
+            compatibility_capabilities?: string[];
+            /** Format: int64 */
+            sequence?: number;
+            /** Format: date-time */
+            issued_at?: string;
+            nonce?: string;
+            /** Format: int64 */
+            generation_sequence?: number;
+            evidence_hash?: string;
+            identity_verified: boolean;
             desired_generation?: string;
             actual_generation?: string;
             lkg_generation?: string;
@@ -12693,7 +12713,24 @@ export interface components {
             node_id?: string;
             artifact_kind: string;
             scope_key?: string;
+            release_set_id?: string;
+            expected_consumer_set_id?: string;
+            /** Format: int64 */
+            fencing_token?: number;
             supported_artifact_kinds?: string[];
+            /** @enum {string} */
+            protocol_version?: "v1";
+            /** @enum {string} */
+            schema_version?: "v1";
+            compatibility_capabilities?: string[];
+            /** Format: int64 */
+            sequence?: number;
+            /** Format: date-time */
+            issued_at?: string;
+            nonce?: string;
+            /** Format: int64 */
+            generation_sequence?: number;
+            evidence_hash?: string;
             desired_generation?: string;
             actual_generation?: string;
             lkg_generation?: string;
