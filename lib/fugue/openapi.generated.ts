@@ -602,6 +602,108 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/invariants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Invariant Definitions */
+        get: operations["listInvariantDefinitions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/invariants/inventory": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Platform Control Inventory */
+        get: operations["getPlatformControlInventory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/invariants/{invariant_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Invariant Definition */
+        get: operations["getInvariantDefinition"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/action-contracts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Automatic Action Contracts */
+        get: operations["listAutomaticActionContracts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/action-contracts/{contract_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Automatic Action Contract */
+        get: operations["getAutomaticActionContract"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/action-safety/evaluate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Evaluate Automatic Action Safety */
+        post: operations["evaluateActionSafety"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/release-guard/status": {
         parameters: {
             query?: never;
@@ -613,6 +715,57 @@ export interface paths {
         get: operations["getReleaseGuardStatus"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/gates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Gate Policies */
+        get: operations["listGatePolicies"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/gates/{gate_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Gate Policy */
+        get: operations["getGatePolicy"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/gates/{gate_id}/promote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Promote Gate Policy */
+        post: operations["promoteGatePolicy"];
         delete?: never;
         options?: never;
         head?: never;
@@ -841,6 +994,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/artifact-releases/{release_id}/verify-lkg": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verify Platform Artifact Release And Promote LKG */
+        post: operations["verifyPlatformArtifactReleaseLKG"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/artifacts/{artifact_id}/consumers": {
         parameters: {
             query?: never;
@@ -850,6 +1020,23 @@ export interface paths {
         };
         /** List Platform Artifact Consumers */
         get: operations["listPlatformArtifactConsumers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/expected-consumer-sets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Platform Expected Consumer Sets */
+        get: operations["listPlatformExpectedConsumerSets"];
         put?: never;
         post?: never;
         delete?: never;
@@ -6177,6 +6364,12 @@ export interface components {
             /** Format: int64 */
             balance_after_microcents: number;
             metadata?: components["schemas"]["StringMap"];
+            chain_id?: string;
+            /** Format: int64 */
+            chain_sequence?: number;
+            previous_hash?: string;
+            event_hash?: string;
+            provenance?: components["schemas"]["PlatformArtifactProvenance"];
             /** Format: date-time */
             created_at: string;
         };
@@ -9897,6 +10090,9 @@ export interface components {
             category?: string;
             /** @enum {string} */
             status: "pass" | "warning" | "fail";
+            gate_id?: string;
+            /** @enum {string} */
+            gate_mode?: "shadow" | "canary" | "enforced" | "disabled";
             expected?: string;
             observed?: string;
             message?: string;
@@ -9939,6 +10135,7 @@ export interface components {
         NodeUpdaterDesiredState: {
             /** Format: date-time */
             generated_at: string;
+            node_updater_generation?: string;
             node_updater: components["schemas"]["NodeUpdater"];
             discovery_bundle: components["schemas"]["DiscoveryBundle"];
             node_policy?: components["schemas"]["ClusterNodePolicyStatus"];
@@ -11603,6 +11800,67 @@ export interface components {
         PlatformFailureDrillResponse: {
             report: components["schemas"]["PlatformFailureDrillReport"];
         };
+        GateBlastRadiusPolicy: {
+            /** Format: int32 */
+            max_nodes?: number;
+            /** Format: int32 */
+            max_edges_per_group?: number;
+            /** Format: int32 */
+            preserve_min_healthy_edge_groups?: number;
+            /** Format: int32 */
+            preserve_min_eligible_edges_per_host?: number;
+        };
+        GatePolicy: {
+            id: string;
+            description?: string;
+            /** @enum {string} */
+            mode: "shadow" | "canary" | "enforced" | "disabled";
+            /** @enum {string} */
+            scope: "cluster" | "node" | "edge-node" | "edge-group" | "hostname" | "service" | "runtime";
+            /** @enum {string} */
+            default_mode?: "shadow" | "canary" | "enforced" | "disabled";
+            /** Format: date-time */
+            introduced_at?: string;
+            introduced_by_release?: string;
+            /** Format: date-time */
+            soak_started_at?: string;
+            soak_min_duration?: string;
+            /** Format: int32 */
+            minimum_samples?: number;
+            /** Format: int32 */
+            minimum_failure_domains?: number;
+            canary_failure_domains?: string[];
+            blast_radius?: components["schemas"]["GateBlastRadiusPolicy"];
+            rollback_on?: string[];
+            kill_switch_env?: string;
+            runbook_ref?: string;
+            /** Format: date-time */
+            updated_at?: string;
+            updated_by?: string;
+            promotion_reason?: string;
+        };
+        GatePolicyListResponse: {
+            policies: components["schemas"]["GatePolicy"][];
+            /** Format: date-time */
+            generated_at: string;
+        };
+        GatePolicyResponse: {
+            policy: components["schemas"]["GatePolicy"];
+        };
+        GatePolicyPromoteRequest: {
+            /** @enum {string} */
+            mode: "shadow" | "canary" | "enforced" | "disabled";
+            reason?: string;
+            canary_scopes?: string[];
+            introduced_by_release?: string;
+        };
+        GatePolicyPromotionResponse: {
+            policy: components["schemas"]["GatePolicy"];
+            artifact: components["schemas"]["PlatformArtifact"];
+            release: components["schemas"]["PlatformArtifactRelease"];
+            message: components["schemas"]["PlatformReleaseMessage"];
+            lkg?: components["schemas"]["PlatformLKGSnapshot"];
+        };
         ReleaseGuardStatus: {
             /** Format: date-time */
             generated_at: string;
@@ -11617,6 +11875,12 @@ export interface components {
             platform_artifact_validation_failures: number;
             /** Format: int32 */
             platform_consumer_drift: number;
+            /** Format: int32 */
+            gate_policy_count: number;
+            /** Format: int32 */
+            enforced_gate_count: number;
+            gate_policy_violations?: string[];
+            gate_policies?: components["schemas"]["GatePolicy"][];
             release_signals?: components["schemas"]["ReleaseSignal"][];
             blocked_reasons?: string[];
             recommended_operator_steps?: string[];
@@ -11767,14 +12031,242 @@ export interface components {
             /** Format: date-time */
             updated_at: string;
         };
-        ResilienceInvariant: {
+        InvariantEvidencePolicy: {
+            max_age?: string;
+            /** Format: int32 */
+            minimum_sources?: number;
+            /** Format: int32 */
+            minimum_failure_domains?: number;
+            allow_lkg_evidence?: boolean;
+        };
+        InvariantDefinition: {
             id: string;
             category: string;
+            scope: string;
             subject?: string;
+            owner: string;
             description: string;
+            severity: string;
+            /** @enum {string} */
+            default_mode: "shadow" | "canary" | "enforced" | "disabled";
             hard_gate: boolean;
             evidence_source?: string;
+            evidence_sources?: string[];
+            gate_policy_id?: string;
+            automatic_action_contract_id?: string;
+            blast_radius_policy?: components["schemas"]["GateBlastRadiusPolicy"];
+            rollback_signal?: string;
+            kill_switch_env?: string;
             runbook_ref?: string;
+            evidence_freshness_policy?: components["schemas"]["InvariantEvidencePolicy"];
+            /** @enum {string} */
+            unknown_behavior: "pass" | "hold" | "fail_closed" | "preserve_lkg";
+            /** @enum {string} */
+            stale_behavior: "pass" | "hold" | "fail_closed" | "preserve_lkg";
+            non_bypassable: boolean;
+            expected_consumer_set_ref?: string;
+            compatibility_policy_ref?: string;
+            clock_uncertainty_budget?: string;
+        };
+        ResilienceInvariant: components["schemas"]["InvariantDefinition"];
+        InvariantDefinitionListResponse: {
+            invariants: components["schemas"]["InvariantDefinition"][];
+            /** Format: date-time */
+            generated_at: string;
+        };
+        InvariantDefinitionResponse: {
+            invariant: components["schemas"]["InvariantDefinition"];
+        };
+        PlatformConsumerContractDefinition: {
+            component: string;
+            artifact_kinds: string[];
+            scope: string;
+            identity_kind: string;
+            protocol_version: string;
+            schema_version: string;
+            required: boolean;
+            load_lkg_first: boolean;
+            atomic_apply: boolean;
+            local_probe: boolean;
+            heartbeat_generation: boolean;
+            heartbeat_freshness: string;
+            compatibility_floor?: string;
+            expected_consumer_source: string;
+        };
+        PlatformSyntheticProbeDefinition: {
+            id: string;
+            scope: string;
+            description: string;
+            hard_gate: boolean;
+            timeout: string;
+        };
+        PlatformLKGPolicyDefinition: {
+            artifact_kind: string;
+            storage_location: string;
+            cache_path_env?: string;
+            max_age: string;
+            max_stale: string;
+            /** Format: int32 */
+            minimum_generations: number;
+            /** Format: int32 */
+            archive_limit?: number;
+            expiry_behavior: string;
+        };
+        PlatformControlMechanism: {
+            id: string;
+            category: string;
+            /** @enum {string} */
+            status: "designed" | "shadow" | "canary" | "enforced";
+            mode?: string;
+            implementation_ref?: string;
+            summary?: string;
+        };
+        AutomaticActionContract: {
+            id: string;
+            action_type: string;
+            scope: string;
+            trigger_invariant: string;
+            evidence_source: string;
+            required_evidence?: string[];
+            gate_policy_id: string;
+            max_blast_radius: string;
+            blast_radius?: components["schemas"]["GateBlastRadiusPolicy"];
+            ttl: string;
+            /** Format: int32 */
+            minimum_samples?: number;
+            /** Format: int32 */
+            minimum_failure_domains?: number;
+            soak_min_duration?: string;
+            recovery_condition: string;
+            rollback_action: string;
+            dry_run_output: string;
+            audit_log_location: string;
+            enable_env: string;
+            kill_switch_env: string;
+            human_approval_boundary?: string;
+            runbook_ref: string;
+            allowed_modes?: ("shadow" | "canary" | "enforced" | "disabled")[];
+            requires_rollback_target?: boolean;
+            requires_audit?: boolean;
+            requires_wal?: boolean;
+            requires_idempotency_key?: boolean;
+            requires_fencing_token?: boolean;
+            metadata?: {
+                [key: string]: string;
+            };
+        };
+        AutomaticActionContractListResponse: {
+            contracts: components["schemas"]["AutomaticActionContract"][];
+            /** Format: date-time */
+            generated_at: string;
+        };
+        AutomaticActionContractResponse: {
+            contract: components["schemas"]["AutomaticActionContract"];
+        };
+        ActionSafetyEvidence: {
+            id: string;
+            /** @enum {string} */
+            state: "pass" | "fail" | "unknown" | "stale";
+            source: string;
+            failure_domain?: string;
+            /** Format: date-time */
+            observed_at?: string;
+            /** Format: date-time */
+            expires_at?: string;
+            hash?: string;
+            metadata?: {
+                [key: string]: string;
+            };
+        };
+        ActionSafetyRequest: {
+            action_type: string;
+            contract_id: string;
+            trigger_invariant: string;
+            scope: string;
+            subject: string;
+            evidence?: components["schemas"]["ActionSafetyEvidence"][];
+            /** @enum {string} */
+            current_mode?: "shadow" | "canary" | "enforced" | "disabled";
+            current_counts?: {
+                [key: string]: number;
+            };
+            candidate_counts?: {
+                [key: string]: number;
+            };
+            failure_domains?: string[];
+            /** Format: int32 */
+            sample_count?: number;
+            /** Format: date-time */
+            soak_started_at?: string;
+            ttl?: string;
+            rollback_target?: string;
+            requested_by?: string;
+            idempotency_key?: string;
+            /** Format: int64 */
+            fencing_token?: number;
+            human_approved?: boolean;
+            audit_ready?: boolean;
+            wal_ready?: boolean;
+            canary_scope_match?: boolean;
+            /** Format: int64 */
+            clock_uncertainty_millis?: number;
+        };
+        ActionSafetyViolation: {
+            code: string;
+            message: string;
+        };
+        BlastRadiusEvaluation: {
+            pass: boolean;
+            scope: string;
+            reason?: string;
+            before?: {
+                [key: string]: number;
+            };
+            after?: {
+                [key: string]: number;
+            };
+            violations?: {
+                [key: string]: string;
+            };
+        };
+        ActionSafetyDecision: {
+            pass: boolean;
+            allowed: boolean;
+            would_action: boolean;
+            production_mutation_allowed: boolean;
+            /** @enum {string} */
+            effective_mode: "shadow" | "canary" | "enforced" | "disabled";
+            contract_id: string;
+            gate_policy_id?: string;
+            subject?: string;
+            /** Format: date-time */
+            expires_at?: string;
+            violations?: components["schemas"]["ActionSafetyViolation"][];
+            evidence_states?: {
+                [key: string]: string;
+            };
+            blast_radius: components["schemas"]["BlastRadiusEvaluation"];
+            /** Format: date-time */
+            generated_at: string;
+        };
+        ActionSafetyDecisionResponse: {
+            decision: components["schemas"]["ActionSafetyDecision"];
+        };
+        PlatformControlInventory: {
+            /** Format: date-time */
+            generated_at: string;
+            artifact_kinds: string[];
+            consumers: components["schemas"]["PlatformConsumerContractDefinition"][];
+            gate_policies: components["schemas"]["GatePolicy"][];
+            automatic_actions: components["schemas"]["AutomaticActionContract"][];
+            autonomy_controls: components["schemas"]["AutonomyControls"];
+            release_signals: components["schemas"]["ReleaseSignal"][];
+            synthetic_probes: components["schemas"]["PlatformSyntheticProbeDefinition"][];
+            lkg_policies: components["schemas"]["PlatformLKGPolicyDefinition"][];
+            mechanisms: components["schemas"]["PlatformControlMechanism"][];
+        };
+        PlatformControlInventoryResponse: {
+            inventory: components["schemas"]["PlatformControlInventory"];
         };
         ResilienceInventoryItem: {
             category: string;
@@ -11931,13 +12423,26 @@ export interface components {
                 [key: string]: string;
             };
         };
+        PlatformArtifactProvenance: {
+            issuer: string;
+            key_id: string;
+            /** @enum {string} */
+            algorithm: "hmac-sha256";
+            signature: string;
+            /** Format: date-time */
+            signed_at: string;
+        };
         PlatformArtifact: {
             id: string;
             /** @enum {string} */
-            artifact_kind: "edge_route_bundle" | "dns_answer_bundle" | "caddy_route_config" | "discovery_bundle" | "node_desired_state" | "runtime_placement_plan" | "runtime_continuity_plan" | "node_guardian_policy" | "release_guard_policy" | "edge_ranking_policy" | "traffic_safety_policy" | "subsystem_failure_contracts";
+            artifact_kind: "edge_route_bundle" | "dns_answer_bundle" | "caddy_route_config" | "discovery_bundle" | "node_desired_state" | "runtime_placement_plan" | "runtime_continuity_plan" | "node_guardian_policy" | "release_guard_policy" | "edge_ranking_policy" | "traffic_safety_policy" | "subsystem_failure_contracts" | "gate_policy_registry" | "automatic_action_contracts";
             scope: components["schemas"]["PlatformArtifactScope"];
             scope_key: string;
+            /** @enum {string} */
+            schema_version: "1.0";
             generation: string;
+            /** Format: int64 */
+            generation_sequence: number;
             /** @enum {string} */
             status: "draft" | "validated" | "rejected";
             content_hash: string;
@@ -11951,6 +12456,7 @@ export interface components {
             };
             created_by_type?: string;
             created_by_id?: string;
+            provenance: components["schemas"]["PlatformArtifactProvenance"];
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
@@ -11967,8 +12473,30 @@ export interface components {
             release_channel: "shadow" | "gray" | "full";
             /** @enum {string} */
             status: "active" | "superseded" | "rolled_back";
+            lane_key?: string;
+            /** Format: int64 */
+            fencing_token?: number;
+            /** Format: int64 */
+            version?: number;
+            idempotency_key?: string;
+            candidate_generation?: string;
+            serving_unverified_generation?: string;
+            verified_lkg_generation?: string;
+            pinned_rollback_generation?: string;
+            /** @enum {string} */
+            verification_state?: "serving_unverified" | "verified" | "failed";
+            verification_evidence?: {
+                [key: string]: string;
+            };
+            /** Format: date-time */
+            verified_at?: string;
             rollback_target_generation?: string;
             canary_rule_ref?: string;
+            /** @enum {string} */
+            override_mode?: "soft_override" | "kernel_break_glass";
+            /** Format: date-time */
+            override_expires_at?: string;
+            bypassed_invariants?: string[];
             reason?: string;
             released_by_type?: string;
             released_by_id?: string;
@@ -11990,7 +12518,7 @@ export interface components {
             /** @enum {string} */
             release_channel: "shadow" | "gray" | "full";
             /** @enum {string} */
-            message_type: "release" | "rollback";
+            message_type: "release" | "rollback" | "verified_lkg";
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
@@ -12018,14 +12546,67 @@ export interface components {
             /** Format: date-time */
             updated_at: string;
         };
+        PlatformExpectedConsumer: {
+            consumer_id: string;
+            component: string;
+            node_id: string;
+            artifact_kind: string;
+            scope_key: string;
+            failure_domain: string;
+            cohort: string;
+            required: boolean;
+            expected_protocol_version: string;
+            accepted_protocol_versions?: string[];
+            expected_schema_version: string;
+            accepted_schema_versions?: string[];
+            compatibility_capabilities?: string[];
+            expected_generation: string;
+            heartbeat_freshness_seconds: number;
+            /** Format: date-time */
+            heartbeat_deadline: string;
+            /** Format: date-time */
+            convergence_deadline: string;
+        };
+        PlatformExpectedConsumerSet: {
+            id: string;
+            release_set_id?: string;
+            artifact_release_id?: string;
+            artifact_kind: string;
+            scope: components["schemas"]["PlatformArtifactScope"];
+            scope_key: string;
+            expected_generation: string;
+            topology_revision: string;
+            /** Format: int64 */
+            revision: number;
+            requires_consumers: boolean;
+            required_cardinality: number;
+            optional_cardinality: number;
+            /** Format: date-time */
+            heartbeat_deadline: string;
+            /** Format: date-time */
+            convergence_deadline: string;
+            consumers: components["schemas"]["PlatformExpectedConsumer"][];
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
         PlatformLKGSnapshot: {
             id: string;
             artifact_id: string;
             artifact_kind: string;
             scope: components["schemas"]["PlatformArtifactScope"];
             scope_key: string;
+            /** @enum {string} */
+            schema_version: "1.0";
             generation: string;
+            /** Format: int64 */
+            generation_sequence: number;
             content_hash: string;
+            artifact_provenance: components["schemas"]["PlatformArtifactProvenance"];
+            verified_by_release_id?: string;
+            verification_evidence_hash?: string;
+            snapshot_provenance: components["schemas"]["PlatformArtifactProvenance"];
             /** Format: date-time */
             expires_at: string;
             /** Format: date-time */
@@ -12048,20 +12629,63 @@ export interface components {
         PlatformArtifactValidateRequest: {
             dry_run?: boolean;
         };
+        PlatformKernelBreakGlassRequest: {
+            /**
+             * Format: date-time
+             * @description Operation-scoped expiry. The server rejects values more than 15 minutes in the future.
+             */
+            expires_at: string;
+            /** @description Must equal BYPASS_PLATFORM_SAFETY_KERNEL. */
+            confirmation: string;
+            /** @description Must exactly match the target artifact id or generation. */
+            target_confirmation: string;
+        };
         PlatformArtifactReleaseRequest: {
             /** @enum {string} */
             release_channel: "shadow" | "gray" | "full";
             canary_rule_ref?: string;
+            /** @description Skips non-kernel artifact validation only. It cannot bypass integrity, signature, generation, rollback-target, canary-scope, fencing, or kill-switch rules. */
+            soft_override?: boolean;
+            /**
+             * @deprecated
+             * @description Deprecated compatibility alias for soft_override.
+             */
             force_publish?: boolean;
+            kernel_break_glass?: components["schemas"]["PlatformKernelBreakGlassRequest"];
             reason?: string;
+            idempotency_key?: string;
         };
         PlatformArtifactRollbackRequest: {
             /** @enum {string} */
             release_channel?: "shadow" | "gray" | "full";
             to_generation: string;
             reason: string;
+            /** @description Skips non-kernel artifact validation only. */
+            soft_override?: boolean;
+            /**
+             * @deprecated
+             * @description Deprecated compatibility alias for soft_override.
+             */
             force_publish?: boolean;
+            kernel_break_glass?: components["schemas"]["PlatformKernelBreakGlassRequest"];
             canary_rule_ref?: string;
+        };
+        PlatformArtifactVerificationEvidence: {
+            consumer_convergence: boolean;
+            local_probe: boolean;
+            public_synthetic: boolean;
+            watch_window: boolean;
+            baseline_monotonic: boolean;
+            database_rollback_compatible: boolean;
+            expected_consumer_set_id?: string;
+            evidence_refs?: string[];
+        };
+        PlatformArtifactVerifyLKGRequest: {
+            /** Format: int64 */
+            fencing_token: number;
+            reason: string;
+            allow_initial_lkg?: boolean;
+            evidence: components["schemas"]["PlatformArtifactVerificationEvidence"];
         };
         PlatformConsumerHeartbeatRequest: {
             consumer_id: string;
@@ -12101,6 +12725,11 @@ export interface components {
         };
         PlatformArtifactConsumersResponse: {
             consumers: components["schemas"]["PlatformConsumerInstance"][];
+            /** Format: date-time */
+            generated_at: string;
+        };
+        PlatformExpectedConsumerSetListResponse: {
+            expected_consumer_sets: components["schemas"]["PlatformExpectedConsumerSet"][];
             /** Format: date-time */
             generated_at: string;
         };
@@ -13316,6 +13945,140 @@ export interface operations {
             default: components["responses"]["ErrorResponse"];
         };
     };
+    listInvariantDefinitions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvariantDefinitionListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getPlatformControlInventory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformControlInventoryResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getInvariantDefinition: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invariant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvariantDefinitionResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    listAutomaticActionContracts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomaticActionContractListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getAutomaticActionContract: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                contract_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomaticActionContractResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    evaluateActionSafety: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActionSafetyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionSafetyDecisionResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
     getReleaseGuardStatus: {
         parameters: {
             query?: {
@@ -13334,6 +14097,77 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReleaseGuardStatusResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    listGatePolicies: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GatePolicyListResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    getGatePolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                gate_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GatePolicyResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    promoteGatePolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                gate_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GatePolicyPromoteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GatePolicyPromotionResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
@@ -13698,6 +14532,33 @@ export interface operations {
             default: components["responses"]["ErrorResponse"];
         };
     };
+    verifyPlatformArtifactReleaseLKG: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                release_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlatformArtifactVerifyLKGRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformArtifactReleaseResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
     listPlatformArtifactConsumers: {
         parameters: {
             query?: never;
@@ -13716,6 +14577,33 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PlatformArtifactConsumersResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    listPlatformExpectedConsumerSets: {
+        parameters: {
+            query?: {
+                release_set_id?: string;
+                artifact_release_id?: string;
+                artifact_kind?: string;
+                scope_key?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformExpectedConsumerSetListResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];

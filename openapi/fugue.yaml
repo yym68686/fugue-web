@@ -993,6 +993,126 @@ paths:
                 $ref: "#/components/schemas/PlatformFailureDrillResponse"
         default:
           $ref: "#/components/responses/ErrorResponse"
+  /v1/admin/invariants:
+    get:
+      operationId: listInvariantDefinitions
+      summary: List Invariant Definitions
+      tags: [Admin]
+      x-fugue-handler: handleListInvariantDefinitions
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvariantDefinitionListResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/admin/invariants/inventory:
+    get:
+      operationId: getPlatformControlInventory
+      summary: Get Platform Control Inventory
+      tags: [Admin]
+      x-fugue-handler: handleGetPlatformControlInventory
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformControlInventoryResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/admin/invariants/{invariant_id}:
+    get:
+      operationId: getInvariantDefinition
+      summary: Get Invariant Definition
+      tags: [Admin]
+      x-fugue-handler: handleGetInvariantDefinition
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: invariant_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvariantDefinitionResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/admin/action-contracts:
+    get:
+      operationId: listAutomaticActionContracts
+      summary: List Automatic Action Contracts
+      tags: [Admin]
+      x-fugue-handler: handleListAutomaticActionContracts
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AutomaticActionContractListResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/admin/action-contracts/{contract_id}:
+    get:
+      operationId: getAutomaticActionContract
+      summary: Get Automatic Action Contract
+      tags: [Admin]
+      x-fugue-handler: handleGetAutomaticActionContract
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: contract_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AutomaticActionContractResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/admin/action-safety/evaluate:
+    post:
+      operationId: evaluateActionSafety
+      summary: Evaluate Automatic Action Safety
+      tags: [Admin]
+      x-fugue-handler: handleEvaluateActionSafety
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActionSafetyRequest"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActionSafetyDecisionResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
   /v1/admin/release-guard/status:
     get:
       operationId: getReleaseGuardStatus
@@ -1014,6 +1134,75 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ReleaseGuardStatusResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/admin/gates:
+    get:
+      operationId: listGatePolicies
+      summary: List Gate Policies
+      tags: [Admin]
+      x-fugue-handler: handleListGatePolicies
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GatePolicyListResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/admin/gates/{gate_id}:
+    get:
+      operationId: getGatePolicy
+      summary: Get Gate Policy
+      tags: [Admin]
+      x-fugue-handler: handleGetGatePolicy
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: gate_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GatePolicyResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/admin/gates/{gate_id}/promote:
+    post:
+      operationId: promoteGatePolicy
+      summary: Promote Gate Policy
+      tags: [Admin]
+      x-fugue-handler: handlePromoteGatePolicy
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: gate_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GatePolicyPromoteRequest"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GatePolicyPromotionResponse"
         default:
           $ref: "#/components/responses/ErrorResponse"
   /v1/admin/traffic-safety/explain/{hostname}:
@@ -1424,6 +1613,35 @@ paths:
                 $ref: "#/components/schemas/PlatformArtifactReleaseResponse"
         default:
           $ref: "#/components/responses/ErrorResponse"
+  /v1/admin/artifact-releases/{release_id}/verify-lkg:
+    post:
+      operationId: verifyPlatformArtifactReleaseLKG
+      summary: Verify Platform Artifact Release And Promote LKG
+      tags: [Admin]
+      x-fugue-handler: handleVerifyPlatformArtifactReleaseLKG
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: release_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlatformArtifactVerifyLKGRequest"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformArtifactReleaseResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
   /v1/admin/artifacts/{artifact_id}/consumers:
     get:
       operationId: listPlatformArtifactConsumers
@@ -1445,6 +1663,53 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PlatformArtifactConsumersResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/admin/expected-consumer-sets:
+    get:
+      operationId: listPlatformExpectedConsumerSets
+      summary: List Platform Expected Consumer Sets
+      tags: [Admin]
+      x-fugue-handler: handleListPlatformExpectedConsumerSets
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: release_set_id
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: artifact_release_id
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: artifact_kind
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: scope_key
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 200
+            default: 50
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformExpectedConsumerSetListResponse"
         default:
           $ref: "#/components/responses/ErrorResponse"
   /v1/admin/artifacts/{artifact_id}/lkg:
@@ -11472,6 +11737,17 @@ components:
           format: int64
         metadata:
           $ref: "#/components/schemas/StringMap"
+        chain_id:
+          type: string
+        chain_sequence:
+          type: integer
+          format: int64
+        previous_hash:
+          type: string
+        event_hash:
+          type: string
+        provenance:
+          $ref: "#/components/schemas/PlatformArtifactProvenance"
         created_at:
           type: string
           format: date-time
@@ -19070,6 +19346,11 @@ components:
         status:
           type: string
           enum: [pass, warning, fail]
+        gate_id:
+          type: string
+        gate_mode:
+          type: string
+          enum: [shadow, canary, enforced, disabled]
         expected:
           type: string
         observed:
@@ -19154,6 +19435,8 @@ components:
         generated_at:
           type: string
           format: date-time
+        node_updater_generation:
+          type: string
         node_updater:
           $ref: "#/components/schemas/NodeUpdater"
         discovery_bundle:
@@ -22720,10 +23003,131 @@ components:
       properties:
         report:
           $ref: "#/components/schemas/PlatformFailureDrillReport"
+    GateBlastRadiusPolicy:
+      type: object
+      additionalProperties: false
+      properties:
+        max_nodes:
+          type: integer
+          format: int32
+        max_edges_per_group:
+          type: integer
+          format: int32
+        preserve_min_healthy_edge_groups:
+          type: integer
+          format: int32
+        preserve_min_eligible_edges_per_host:
+          type: integer
+          format: int32
+    GatePolicy:
+      type: object
+      additionalProperties: false
+      required: [id, mode, scope]
+      properties:
+        id:
+          type: string
+        description:
+          type: string
+        mode:
+          type: string
+          enum: [shadow, canary, enforced, disabled]
+        scope:
+          type: string
+          enum: [cluster, node, edge-node, edge-group, hostname, service, runtime]
+        default_mode:
+          type: string
+          enum: [shadow, canary, enforced, disabled]
+        introduced_at:
+          type: string
+          format: date-time
+        introduced_by_release:
+          type: string
+        soak_started_at:
+          type: string
+          format: date-time
+        soak_min_duration:
+          type: string
+        minimum_samples:
+          type: integer
+          format: int32
+        minimum_failure_domains:
+          type: integer
+          format: int32
+        canary_failure_domains:
+          type: array
+          items:
+            type: string
+        blast_radius:
+          $ref: "#/components/schemas/GateBlastRadiusPolicy"
+        rollback_on:
+          type: array
+          items:
+            type: string
+        kill_switch_env:
+          type: string
+        runbook_ref:
+          type: string
+        updated_at:
+          type: string
+          format: date-time
+        updated_by:
+          type: string
+        promotion_reason:
+          type: string
+    GatePolicyListResponse:
+      type: object
+      additionalProperties: false
+      required: [policies, generated_at]
+      properties:
+        policies:
+          type: array
+          items:
+            $ref: "#/components/schemas/GatePolicy"
+        generated_at:
+          type: string
+          format: date-time
+    GatePolicyResponse:
+      type: object
+      additionalProperties: false
+      required: [policy]
+      properties:
+        policy:
+          $ref: "#/components/schemas/GatePolicy"
+    GatePolicyPromoteRequest:
+      type: object
+      additionalProperties: false
+      required: [mode]
+      properties:
+        mode:
+          type: string
+          enum: [shadow, canary, enforced, disabled]
+        reason:
+          type: string
+        canary_scopes:
+          type: array
+          items:
+            type: string
+        introduced_by_release:
+          type: string
+    GatePolicyPromotionResponse:
+      type: object
+      additionalProperties: false
+      required: [policy, artifact, release, message]
+      properties:
+        policy:
+          $ref: "#/components/schemas/GatePolicy"
+        artifact:
+          $ref: "#/components/schemas/PlatformArtifact"
+        release:
+          $ref: "#/components/schemas/PlatformArtifactRelease"
+        message:
+          $ref: "#/components/schemas/PlatformReleaseMessage"
+        lkg:
+          $ref: "#/components/schemas/PlatformLKGSnapshot"
     ReleaseGuardStatus:
       type: object
       additionalProperties: false
-      required: [generated_at, pass, block_rollout, mode, robustness_baseline, failure_contract_count, platform_artifact_validation_failures, platform_consumer_drift]
+      required: [generated_at, pass, block_rollout, mode, robustness_baseline, failure_contract_count, platform_artifact_validation_failures, platform_consumer_drift, gate_policy_count, enforced_gate_count]
       properties:
         generated_at:
           type: string
@@ -22749,6 +23153,20 @@ components:
         platform_consumer_drift:
           type: integer
           format: int32
+        gate_policy_count:
+          type: integer
+          format: int32
+        enforced_gate_count:
+          type: integer
+          format: int32
+        gate_policy_violations:
+          type: array
+          items:
+            type: string
+        gate_policies:
+          type: array
+          items:
+            $ref: "#/components/schemas/GatePolicy"
         release_signals:
           type: array
           items:
@@ -23047,25 +23465,573 @@ components:
         updated_at:
           type: string
           format: date-time
-    ResilienceInvariant:
+    InvariantEvidencePolicy:
       type: object
       additionalProperties: false
-      required: [id, category, description, hard_gate]
+      properties:
+        max_age:
+          type: string
+        minimum_sources:
+          type: integer
+          format: int32
+        minimum_failure_domains:
+          type: integer
+          format: int32
+        allow_lkg_evidence:
+          type: boolean
+    InvariantDefinition:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          id,
+          category,
+          scope,
+          owner,
+          description,
+          severity,
+          default_mode,
+          hard_gate,
+          unknown_behavior,
+          stale_behavior,
+          non_bypassable,
+        ]
       properties:
         id:
           type: string
         category:
           type: string
+        scope:
+          type: string
         subject:
+          type: string
+        owner:
+          type: string
+        description:
+          type: string
+        severity:
+          type: string
+        default_mode:
+          type: string
+          enum: [shadow, canary, enforced, disabled]
+        hard_gate:
+          type: boolean
+        evidence_source:
+          type: string
+        evidence_sources:
+          type: array
+          items:
+            type: string
+        gate_policy_id:
+          type: string
+        automatic_action_contract_id:
+          type: string
+        blast_radius_policy:
+          $ref: "#/components/schemas/GateBlastRadiusPolicy"
+        rollback_signal:
+          type: string
+        kill_switch_env:
+          type: string
+        runbook_ref:
+          type: string
+        evidence_freshness_policy:
+          $ref: "#/components/schemas/InvariantEvidencePolicy"
+        unknown_behavior:
+          type: string
+          enum: [pass, hold, fail_closed, preserve_lkg]
+        stale_behavior:
+          type: string
+          enum: [pass, hold, fail_closed, preserve_lkg]
+        non_bypassable:
+          type: boolean
+        expected_consumer_set_ref:
+          type: string
+        compatibility_policy_ref:
+          type: string
+        clock_uncertainty_budget:
+          type: string
+    ResilienceInvariant:
+      allOf:
+        - $ref: "#/components/schemas/InvariantDefinition"
+    InvariantDefinitionListResponse:
+      type: object
+      additionalProperties: false
+      required: [invariants, generated_at]
+      properties:
+        invariants:
+          type: array
+          items:
+            $ref: "#/components/schemas/InvariantDefinition"
+        generated_at:
+          type: string
+          format: date-time
+    InvariantDefinitionResponse:
+      type: object
+      additionalProperties: false
+      required: [invariant]
+      properties:
+        invariant:
+          $ref: "#/components/schemas/InvariantDefinition"
+    PlatformConsumerContractDefinition:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          component,
+          artifact_kinds,
+          scope,
+          identity_kind,
+          protocol_version,
+          schema_version,
+          required,
+          load_lkg_first,
+          atomic_apply,
+          local_probe,
+          heartbeat_generation,
+          heartbeat_freshness,
+          expected_consumer_source,
+        ]
+      properties:
+        component:
+          type: string
+        artifact_kinds:
+          type: array
+          items:
+            type: string
+        scope:
+          type: string
+        identity_kind:
+          type: string
+        protocol_version:
+          type: string
+        schema_version:
+          type: string
+        required:
+          type: boolean
+        load_lkg_first:
+          type: boolean
+        atomic_apply:
+          type: boolean
+        local_probe:
+          type: boolean
+        heartbeat_generation:
+          type: boolean
+        heartbeat_freshness:
+          type: string
+        compatibility_floor:
+          type: string
+        expected_consumer_source:
+          type: string
+    PlatformSyntheticProbeDefinition:
+      type: object
+      additionalProperties: false
+      required: [id, scope, description, hard_gate, timeout]
+      properties:
+        id:
+          type: string
+        scope:
           type: string
         description:
           type: string
         hard_gate:
           type: boolean
+        timeout:
+          type: string
+    PlatformLKGPolicyDefinition:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          artifact_kind,
+          storage_location,
+          max_age,
+          max_stale,
+          minimum_generations,
+          expiry_behavior,
+        ]
+      properties:
+        artifact_kind:
+          type: string
+        storage_location:
+          type: string
+        cache_path_env:
+          type: string
+        max_age:
+          type: string
+        max_stale:
+          type: string
+        minimum_generations:
+          type: integer
+          format: int32
+        archive_limit:
+          type: integer
+          format: int32
+        expiry_behavior:
+          type: string
+    PlatformControlMechanism:
+      type: object
+      additionalProperties: false
+      required: [id, category, status]
+      properties:
+        id:
+          type: string
+        category:
+          type: string
+        status:
+          type: string
+          enum: [designed, shadow, canary, enforced]
+        mode:
+          type: string
+        implementation_ref:
+          type: string
+        summary:
+          type: string
+    AutomaticActionContract:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          id,
+          action_type,
+          scope,
+          trigger_invariant,
+          evidence_source,
+          gate_policy_id,
+          max_blast_radius,
+          ttl,
+          recovery_condition,
+          rollback_action,
+          dry_run_output,
+          audit_log_location,
+          enable_env,
+          kill_switch_env,
+          runbook_ref,
+        ]
+      properties:
+        id:
+          type: string
+        action_type:
+          type: string
+        scope:
+          type: string
+        trigger_invariant:
+          type: string
         evidence_source:
+          type: string
+        required_evidence:
+          type: array
+          items:
+            type: string
+        gate_policy_id:
+          type: string
+        max_blast_radius:
+          type: string
+        blast_radius:
+          $ref: "#/components/schemas/GateBlastRadiusPolicy"
+        ttl:
+          type: string
+        minimum_samples:
+          type: integer
+          format: int32
+        minimum_failure_domains:
+          type: integer
+          format: int32
+        soak_min_duration:
+          type: string
+        recovery_condition:
+          type: string
+        rollback_action:
+          type: string
+        dry_run_output:
+          type: string
+        audit_log_location:
+          type: string
+        enable_env:
+          type: string
+        kill_switch_env:
+          type: string
+        human_approval_boundary:
           type: string
         runbook_ref:
           type: string
+        allowed_modes:
+          type: array
+          items:
+            type: string
+            enum: [shadow, canary, enforced, disabled]
+        requires_rollback_target:
+          type: boolean
+        requires_audit:
+          type: boolean
+        requires_wal:
+          type: boolean
+        requires_idempotency_key:
+          type: boolean
+        requires_fencing_token:
+          type: boolean
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+    AutomaticActionContractListResponse:
+      type: object
+      additionalProperties: false
+      required: [contracts, generated_at]
+      properties:
+        contracts:
+          type: array
+          items:
+            $ref: "#/components/schemas/AutomaticActionContract"
+        generated_at:
+          type: string
+          format: date-time
+    AutomaticActionContractResponse:
+      type: object
+      additionalProperties: false
+      required: [contract]
+      properties:
+        contract:
+          $ref: "#/components/schemas/AutomaticActionContract"
+    ActionSafetyEvidence:
+      type: object
+      additionalProperties: false
+      required: [id, state, source]
+      properties:
+        id:
+          type: string
+        state:
+          type: string
+          enum: [pass, fail, unknown, stale]
+        source:
+          type: string
+        failure_domain:
+          type: string
+        observed_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+        hash:
+          type: string
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+    ActionSafetyRequest:
+      type: object
+      additionalProperties: false
+      required: [action_type, contract_id, trigger_invariant, scope, subject]
+      properties:
+        action_type:
+          type: string
+        contract_id:
+          type: string
+        trigger_invariant:
+          type: string
+        scope:
+          type: string
+        subject:
+          type: string
+        evidence:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActionSafetyEvidence"
+        current_mode:
+          type: string
+          enum: [shadow, canary, enforced, disabled]
+        current_counts:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int32
+        candidate_counts:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int32
+        failure_domains:
+          type: array
+          items:
+            type: string
+        sample_count:
+          type: integer
+          format: int32
+        soak_started_at:
+          type: string
+          format: date-time
+        ttl:
+          type: string
+        rollback_target:
+          type: string
+        requested_by:
+          type: string
+        idempotency_key:
+          type: string
+        fencing_token:
+          type: integer
+          format: int64
+        human_approved:
+          type: boolean
+        audit_ready:
+          type: boolean
+        wal_ready:
+          type: boolean
+        canary_scope_match:
+          type: boolean
+        clock_uncertainty_millis:
+          type: integer
+          format: int64
+    ActionSafetyViolation:
+      type: object
+      additionalProperties: false
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+    BlastRadiusEvaluation:
+      type: object
+      additionalProperties: false
+      required: [pass, scope]
+      properties:
+        pass:
+          type: boolean
+        scope:
+          type: string
+        reason:
+          type: string
+        before:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int32
+        after:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int32
+        violations:
+          type: object
+          additionalProperties:
+            type: string
+    ActionSafetyDecision:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          pass,
+          allowed,
+          would_action,
+          production_mutation_allowed,
+          effective_mode,
+          contract_id,
+          blast_radius,
+          generated_at,
+        ]
+      properties:
+        pass:
+          type: boolean
+        allowed:
+          type: boolean
+        would_action:
+          type: boolean
+        production_mutation_allowed:
+          type: boolean
+        effective_mode:
+          type: string
+          enum: [shadow, canary, enforced, disabled]
+        contract_id:
+          type: string
+        gate_policy_id:
+          type: string
+        subject:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+        violations:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActionSafetyViolation"
+        evidence_states:
+          type: object
+          additionalProperties:
+            type: string
+        blast_radius:
+          $ref: "#/components/schemas/BlastRadiusEvaluation"
+        generated_at:
+          type: string
+          format: date-time
+    ActionSafetyDecisionResponse:
+      type: object
+      additionalProperties: false
+      required: [decision]
+      properties:
+        decision:
+          $ref: "#/components/schemas/ActionSafetyDecision"
+    PlatformControlInventory:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          generated_at,
+          artifact_kinds,
+          consumers,
+          gate_policies,
+          automatic_actions,
+          autonomy_controls,
+          release_signals,
+          synthetic_probes,
+          lkg_policies,
+          mechanisms,
+        ]
+      properties:
+        generated_at:
+          type: string
+          format: date-time
+        artifact_kinds:
+          type: array
+          items:
+            type: string
+        consumers:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlatformConsumerContractDefinition"
+        gate_policies:
+          type: array
+          items:
+            $ref: "#/components/schemas/GatePolicy"
+        automatic_actions:
+          type: array
+          items:
+            $ref: "#/components/schemas/AutomaticActionContract"
+        autonomy_controls:
+          $ref: "#/components/schemas/AutonomyControls"
+        release_signals:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReleaseSignal"
+        synthetic_probes:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlatformSyntheticProbeDefinition"
+        lkg_policies:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlatformLKGPolicyDefinition"
+        mechanisms:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlatformControlMechanism"
+    PlatformControlInventoryResponse:
+      type: object
+      additionalProperties: false
+      required: [inventory]
+      properties:
+        inventory:
+          $ref: "#/components/schemas/PlatformControlInventory"
     ResilienceInventoryItem:
       type: object
       additionalProperties: false
@@ -23423,22 +24389,46 @@ components:
           type: object
           additionalProperties:
             type: string
+    PlatformArtifactProvenance:
+      type: object
+      additionalProperties: false
+      required: [issuer, key_id, algorithm, signature, signed_at]
+      properties:
+        issuer:
+          type: string
+        key_id:
+          type: string
+        algorithm:
+          type: string
+          enum: [hmac-sha256]
+        signature:
+          type: string
+        signed_at:
+          type: string
+          format: date-time
     PlatformArtifact:
       type: object
       additionalProperties: false
-      required: [id, artifact_kind, scope, scope_key, generation, status, content_hash, created_at, updated_at]
+      required: [id, artifact_kind, scope, scope_key, schema_version, generation, generation_sequence, status, content_hash, provenance, created_at, updated_at]
       properties:
         id:
           type: string
         artifact_kind:
           type: string
-          enum: [edge_route_bundle, dns_answer_bundle, caddy_route_config, discovery_bundle, node_desired_state, runtime_placement_plan, runtime_continuity_plan, node_guardian_policy, release_guard_policy, edge_ranking_policy, traffic_safety_policy, subsystem_failure_contracts]
+          enum: [edge_route_bundle, dns_answer_bundle, caddy_route_config, discovery_bundle, node_desired_state, runtime_placement_plan, runtime_continuity_plan, node_guardian_policy, release_guard_policy, edge_ranking_policy, traffic_safety_policy, subsystem_failure_contracts, gate_policy_registry, automatic_action_contracts]
         scope:
           $ref: "#/components/schemas/PlatformArtifactScope"
         scope_key:
           type: string
+        schema_version:
+          type: string
+          enum: ["1.0"]
         generation:
           type: string
+        generation_sequence:
+          type: integer
+          format: int64
+          minimum: 1
         status:
           type: string
           enum: [draft, validated, rejected]
@@ -23461,6 +24451,8 @@ components:
           type: string
         created_by_id:
           type: string
+        provenance:
+          $ref: "#/components/schemas/PlatformArtifactProvenance"
         created_at:
           type: string
           format: date-time
@@ -23490,10 +24482,48 @@ components:
         status:
           type: string
           enum: [active, superseded, rolled_back]
+        lane_key:
+          type: string
+        fencing_token:
+          type: integer
+          format: int64
+        version:
+          type: integer
+          format: int64
+        idempotency_key:
+          type: string
+        candidate_generation:
+          type: string
+        serving_unverified_generation:
+          type: string
+        verified_lkg_generation:
+          type: string
+        pinned_rollback_generation:
+          type: string
+        verification_state:
+          type: string
+          enum: [serving_unverified, verified, failed]
+        verification_evidence:
+          type: object
+          additionalProperties:
+            type: string
+        verified_at:
+          type: string
+          format: date-time
         rollback_target_generation:
           type: string
         canary_rule_ref:
           type: string
+        override_mode:
+          type: string
+          enum: [soft_override, kernel_break_glass]
+        override_expires_at:
+          type: string
+          format: date-time
+        bypassed_invariants:
+          type: array
+          items:
+            type: string
         reason:
           type: string
         released_by_type:
@@ -23533,7 +24563,7 @@ components:
           enum: [shadow, gray, full]
         message_type:
           type: string
-          enum: [release, rollback]
+          enum: [release, rollback, verified_lkg]
         created_at:
           type: string
           format: date-time
@@ -23585,10 +24615,107 @@ components:
         updated_at:
           type: string
           format: date-time
+    PlatformExpectedConsumer:
+      type: object
+      additionalProperties: false
+      required: [consumer_id, component, node_id, artifact_kind, scope_key, failure_domain, cohort, required, expected_protocol_version, expected_schema_version, expected_generation, heartbeat_freshness_seconds, heartbeat_deadline, convergence_deadline]
+      properties:
+        consumer_id:
+          type: string
+        component:
+          type: string
+        node_id:
+          type: string
+        artifact_kind:
+          type: string
+        scope_key:
+          type: string
+        failure_domain:
+          type: string
+        cohort:
+          type: string
+        required:
+          type: boolean
+        expected_protocol_version:
+          type: string
+        accepted_protocol_versions:
+          type: array
+          items:
+            type: string
+        expected_schema_version:
+          type: string
+        accepted_schema_versions:
+          type: array
+          items:
+            type: string
+        compatibility_capabilities:
+          type: array
+          items:
+            type: string
+        expected_generation:
+          type: string
+        heartbeat_freshness_seconds:
+          type: integer
+          minimum: 1
+        heartbeat_deadline:
+          type: string
+          format: date-time
+        convergence_deadline:
+          type: string
+          format: date-time
+    PlatformExpectedConsumerSet:
+      type: object
+      additionalProperties: false
+      required: [id, artifact_kind, scope, scope_key, expected_generation, topology_revision, revision, requires_consumers, required_cardinality, optional_cardinality, heartbeat_deadline, convergence_deadline, consumers, created_at, updated_at]
+      properties:
+        id:
+          type: string
+        release_set_id:
+          type: string
+        artifact_release_id:
+          type: string
+        artifact_kind:
+          type: string
+        scope:
+          $ref: "#/components/schemas/PlatformArtifactScope"
+        scope_key:
+          type: string
+        expected_generation:
+          type: string
+        topology_revision:
+          type: string
+        revision:
+          type: integer
+          format: int64
+          minimum: 1
+        requires_consumers:
+          type: boolean
+        required_cardinality:
+          type: integer
+          minimum: 0
+        optional_cardinality:
+          type: integer
+          minimum: 0
+        heartbeat_deadline:
+          type: string
+          format: date-time
+        convergence_deadline:
+          type: string
+          format: date-time
+        consumers:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlatformExpectedConsumer"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
     PlatformLKGSnapshot:
       type: object
       additionalProperties: false
-      required: [id, artifact_id, artifact_kind, scope, scope_key, generation, content_hash, expires_at, created_at, updated_at]
+      required: [id, artifact_id, artifact_kind, scope, scope_key, schema_version, generation, generation_sequence, content_hash, artifact_provenance, snapshot_provenance, expires_at, created_at, updated_at]
       properties:
         id:
           type: string
@@ -23600,10 +24727,25 @@ components:
           $ref: "#/components/schemas/PlatformArtifactScope"
         scope_key:
           type: string
+        schema_version:
+          type: string
+          enum: ["1.0"]
         generation:
           type: string
+        generation_sequence:
+          type: integer
+          format: int64
+          minimum: 1
         content_hash:
           type: string
+        artifact_provenance:
+          $ref: "#/components/schemas/PlatformArtifactProvenance"
+        verified_by_release_id:
+          type: string
+        verification_evidence_hash:
+          type: string
+        snapshot_provenance:
+          $ref: "#/components/schemas/PlatformArtifactProvenance"
         expires_at:
           type: string
           format: date-time
@@ -23639,6 +24781,21 @@ components:
       properties:
         dry_run:
           type: boolean
+    PlatformKernelBreakGlassRequest:
+      type: object
+      additionalProperties: false
+      required: [expires_at, confirmation, target_confirmation]
+      properties:
+        expires_at:
+          type: string
+          format: date-time
+          description: Operation-scoped expiry. The server rejects values more than 15 minutes in the future.
+        confirmation:
+          type: string
+          description: Must equal BYPASS_PLATFORM_SAFETY_KERNEL.
+        target_confirmation:
+          type: string
+          description: Must exactly match the target artifact id or generation.
     PlatformArtifactReleaseRequest:
       type: object
       additionalProperties: false
@@ -23649,9 +24806,18 @@ components:
           enum: [shadow, gray, full]
         canary_rule_ref:
           type: string
+        soft_override:
+          type: boolean
+          description: Skips non-kernel artifact validation only. It cannot bypass integrity, signature, generation, rollback-target, canary-scope, fencing, or kill-switch rules.
         force_publish:
           type: boolean
+          deprecated: true
+          description: Deprecated compatibility alias for soft_override.
+        kernel_break_glass:
+          $ref: "#/components/schemas/PlatformKernelBreakGlassRequest"
         reason:
+          type: string
+        idempotency_key:
           type: string
     PlatformArtifactRollbackRequest:
       type: object
@@ -23665,10 +24831,56 @@ components:
           type: string
         reason:
           type: string
+        soft_override:
+          type: boolean
+          description: Skips non-kernel artifact validation only.
         force_publish:
           type: boolean
+          deprecated: true
+          description: Deprecated compatibility alias for soft_override.
+        kernel_break_glass:
+          $ref: "#/components/schemas/PlatformKernelBreakGlassRequest"
         canary_rule_ref:
           type: string
+    PlatformArtifactVerificationEvidence:
+      type: object
+      additionalProperties: false
+      required: [consumer_convergence, local_probe, public_synthetic, watch_window, baseline_monotonic, database_rollback_compatible]
+      properties:
+        consumer_convergence:
+          type: boolean
+        local_probe:
+          type: boolean
+        public_synthetic:
+          type: boolean
+        watch_window:
+          type: boolean
+        baseline_monotonic:
+          type: boolean
+        database_rollback_compatible:
+          type: boolean
+        expected_consumer_set_id:
+          type: string
+        evidence_refs:
+          type: array
+          items:
+            type: string
+    PlatformArtifactVerifyLKGRequest:
+      type: object
+      additionalProperties: false
+      required: [fencing_token, reason, evidence]
+      properties:
+        fencing_token:
+          type: integer
+          format: int64
+          minimum: 1
+        reason:
+          type: string
+          minLength: 1
+        allow_initial_lkg:
+          type: boolean
+        evidence:
+          $ref: "#/components/schemas/PlatformArtifactVerificationEvidence"
     PlatformConsumerHeartbeatRequest:
       type: object
       additionalProperties: false
@@ -23760,6 +24972,18 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/PlatformConsumerInstance"
+        generated_at:
+          type: string
+          format: date-time
+    PlatformExpectedConsumerSetListResponse:
+      type: object
+      additionalProperties: false
+      required: [expected_consumer_sets, generated_at]
+      properties:
+        expected_consumer_sets:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlatformExpectedConsumerSet"
         generated_at:
           type: string
           format: date-time
