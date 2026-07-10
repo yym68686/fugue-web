@@ -1096,6 +1096,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/platform-state/consumers/trusted-heartbeat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Report Trusted Platform State Consumer Heartbeat */
+        post: operations["trustedPlatformConsumerHeartbeat"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/failure-contracts": {
         parameters: {
             query?: never;
@@ -12740,6 +12757,44 @@ export interface components {
             lkg_expired?: boolean;
             last_error?: string;
         };
+        TrustedPlatformConsumerHeartbeatRequest: {
+            /** @description Optional assertion; the server derives and verifies the value from component credentials. */
+            consumer_id?: string;
+            /** @description Optional assertion; the server derives and verifies the value from component credentials. */
+            component?: string;
+            /** @description Optional assertion; the server derives and verifies the value from component credentials. */
+            node_id?: string;
+            artifact_kind: string;
+            /** @description Optional assertion; the server derives and verifies the value from component credentials and expected topology. */
+            scope_key?: string;
+            /** @description Optional assertion; the server derives and verifies the value from the expected consumer set. */
+            release_set_id?: string;
+            expected_consumer_set_id: string;
+            /** Format: int64 */
+            fencing_token: number;
+            /** @enum {string} */
+            protocol_version: "v1";
+            /** @enum {string} */
+            schema_version: "v1";
+            compatibility_capabilities?: string[];
+            /** Format: int64 */
+            sequence: number;
+            /** Format: date-time */
+            issued_at: string;
+            nonce: string;
+            /** Format: int64 */
+            generation_sequence: number;
+            /** @description Optional assertion; the server derives and verifies the value from the expected consumer set. */
+            desired_generation?: string;
+            actual_generation?: string;
+            lkg_generation?: string;
+            apply_status?: string;
+            probe_status?: string;
+            serving_lkg?: boolean;
+            lkg_expired?: boolean;
+            last_error?: string;
+            evidence_hash: string;
+        };
         PlatformArtifactListResponse: {
             artifacts: components["schemas"]["PlatformArtifact"][];
             /** Format: date-time */
@@ -14719,6 +14774,37 @@ export interface operations {
                     "application/json": components["schemas"]["PlatformConsumerHeartbeatResponse"];
                 };
             };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    trustedPlatformConsumerHeartbeat: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TrustedPlatformConsumerHeartbeatRequest"];
+            };
+        };
+        responses: {
+            /** @description Heartbeat accepted after identity, topology, freshness, and monotonicity verification. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformConsumerHeartbeatResponse"];
+                };
+            };
+            400: components["responses"]["ErrorResponse"];
+            401: components["responses"]["ErrorResponse"];
+            403: components["responses"]["ErrorResponse"];
+            404: components["responses"]["ErrorResponse"];
+            409: components["responses"]["ErrorResponse"];
+            422: components["responses"]["ErrorResponse"];
             default: components["responses"]["ErrorResponse"];
         };
     };
