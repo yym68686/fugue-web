@@ -1,0 +1,146 @@
+{
+  "capturedAt": "2026-07-12T16:42:34.870Z",
+  "mode": "local Playwright smoke; synthetic lab signal, not field telemetry",
+  "route": "/docs",
+  "browser": "chromium-desktop",
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "metrics": {
+    "cls": 0,
+    "eventTiming": [
+      {
+        "duration": 56,
+        "interactionId": 0,
+        "name": "pointerover",
+        "startTime": 3125.2999999523163
+      },
+      {
+        "duration": 56,
+        "interactionId": 0,
+        "name": "pointerenter",
+        "startTime": 3125.2999999523163
+      },
+      {
+        "duration": 56,
+        "interactionId": 0,
+        "name": "pointerenter",
+        "startTime": 3125.2999999523163
+      },
+      {
+        "duration": 56,
+        "interactionId": 0,
+        "name": "pointerenter",
+        "startTime": 3125.2999999523163
+      },
+      {
+        "duration": 56,
+        "interactionId": 0,
+        "name": "pointerenter",
+        "startTime": 3125.2999999523163
+      },
+      {
+        "duration": 56,
+        "interactionId": 0,
+        "name": "pointerenter",
+        "startTime": 3125.2999999523163
+      },
+      {
+        "duration": 56,
+        "interactionId": 0,
+        "name": "pointerenter",
+        "startTime": 3125.2999999523163
+      },
+      {
+        "duration": 56,
+        "interactionId": 0,
+        "name": "pointerenter",
+        "startTime": 3125.2999999523163
+      },
+      {
+        "duration": 56,
+        "interactionId": 0,
+        "name": "pointerenter",
+        "startTime": 3125.2999999523163
+      },
+      {
+        "duration": 56,
+        "interactionId": 0,
+        "name": "pointerenter",
+        "startTime": 3125.2999999523163
+      },
+      {
+        "duration": 56,
+        "interactionId": 0,
+        "name": "pointerenter",
+        "startTime": 3125.2999999523163
+      },
+      {
+        "duration": 56,
+        "interactionId": 0,
+        "name": "pointerenter",
+        "startTime": 3125.2999999523163
+      },
+      {
+        "duration": 56,
+        "interactionId": 0,
+        "name": "pointerenter",
+        "startTime": 3125.2999999523163
+      },
+      {
+        "duration": 56,
+        "interactionId": 0,
+        "name": "mouseover",
+        "startTime": 3125.2999999523163
+      },
+      {
+        "duration": 56,
+        "interactionId": 8044,
+        "name": "pointerdown",
+        "startTime": 3125.5
+      },
+      {
+        "duration": 56,
+        "interactionId": 0,
+        "name": "mousedown",
+        "startTime": 3125.5
+      },
+      {
+        "duration": 56,
+        "interactionId": 8044,
+        "name": "pointerup",
+        "startTime": 3125.7000000476837
+      },
+      {
+        "duration": 56,
+        "interactionId": 0,
+        "name": "mouseup",
+        "startTime": 3125.7000000476837
+      },
+      {
+        "duration": 56,
+        "interactionId": 8044,
+        "name": "click",
+        "startTime": 3125.7000000476837
+      }
+    ],
+    "eventTimingMax": 56,
+    "interactionEventTimingMax": 56,
+    "lcpMs": 448,
+    "longTaskCount": 0,
+    "navigation": {
+      "domCompleteMs": 552.8999999761581,
+      "domContentLoadedMs": 325.7000000476837,
+      "durationMs": 552.8999999761581,
+      "loadEventEndMs": 552.8999999761581,
+      "requestStartMs": 0.7999999523162842,
+      "responseEndMs": 324.89999997615814,
+      "responseStartMs": 55.60000002384186,
+      "transferSize": 11014,
+      "type": "navigate"
+    },
+    "totalBlockingTimeMs": 0,
+    "interactionToNextPaintApproximationMs": 44
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "gate": "production-container-contract",
+  "passed": true,
+  "imageMode": "built",
+  "checks": {
+    "forbiddenPathsAbsent": true,
+    "health": true,
+    "homepage": true,
+    "nonRoot": true
+  },
+  "cleanup": {
+    "containerRemoved": true,
+    "temporaryImageRemoved": true
+  },
+  "runtime": {
+    "health": "healthy",
+    "host": "127.0.0.1",
+    "port": 32777
+  },
+  "response": {
+    "cacheDirectives": [
+      "private",
+      "no-store",
+      "no-cache",
+      "max-age=0",
+      "must-revalidate"
+    ],
+    "varyCounts": {
+      "accept-language": 1,
+      "cookie": 1,
+      "rsc": 1,
+      "next-router-state-tree": 1,
+      "next-router-prefetch": 1,
+      "next-router-segment-prefetch": 1,
+      "accept-encoding": 1
+    },
+    "varyFields": [
+      "accept-language",
+      "cookie",
+      "rsc",
+      "next-router-state-tree",
+      "next-router-prefetch",
+      "next-router-segment-prefetch",
+      "accept-encoding"
+    ]
+  },
+  "violations": []
+}

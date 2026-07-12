@@ -1,0 +1,131 @@
+# /
+
+- main:
+  - text: managed first / owned runtime later
+  - heading "Ship on Fugue, then move the same app to your own server." [level=1]
+  - paragraph: Import from GitHub, a Docker image, or a local upload. Fugue starts it on shared managed runtime and keeps the route, env, logs, files, images, and migration surface in one console.
+  - link "Get started":
+    - /url: /new/repository
+  - link "Read docs":
+    - /url: /docs
+  - heading "Deployment graph" [level=2]
+  - text: The product panel keeps the first workflow visible. Source
+  - strong: GitHub
+  - text: Runtime
+  - strong: shared
+  - text: Route
+  - strong: public
+  - text: Migration
+  - strong: ready
+  - code: fugue import github owner/repo --port 3000 fugue app logs web --follow fugue runtime migrate web --target <runtime-id>
+  - text: source
+  - strong: GitHub repository
+  - paragraph: Connect a repository, choose a branch, authorize private access, and create the first service.
+  - text: image
+  - strong: Docker image
+  - paragraph: Point Fugue at an existing image and keep runtime, env, route, and logs in the same console.
+  - text: upload
+  - strong: Local upload
+  - paragraph: Upload a build artifact before auth and resume the pending deploy after sign-in.
+  - strong: Project workbench
+  - paragraph: Routes, env, logs, files, images, observability, and settings live with the service.
+  - strong: Runtime servers
+  - paragraph: Add your own machines, inspect pressure, and move workloads without changing the product model.
+  - strong: Capacity and billing
+  - paragraph: Prepaid balance, managed envelope, storage, and events are visible from one page.
+  - text: Console ready
+  - heading "Open the operational surface first." [level=2]
+  - paragraph: The app shell, docs shell, auth panels, deploy wizard, and admin pages share the same component foundation.
+  - link "Open console":
+    - /url: /app
+
+---
+
+# /docs
+
+- main:
+  - text: Docs
+  - heading "Operate Fugue from source import to runtime diagnosis." [level=1]
+  - paragraph: CLI quick start, import modes, topology rules, billing boundaries, migration, failover, inspection, and diagnosis.
+  - link "Start deploy":
+    - /url: /new/repository
+  - group:
+    - navigation "On this page":
+      - list:
+        - listitem:
+          - link "CLI quick start":
+            - /url: "#quickstart"
+        - listitem:
+          - link "Import modes":
+            - /url: "#imports"
+        - listitem:
+          - link "fugue.yaml topology":
+            - /url: "#topology"
+        - listitem:
+          - link "Inspect and diagnose":
+            - /url: "#diagnose"
+  - heading "CLI quick start" [level=2]
+  - paragraph: Install Fugue, authenticate, and import a service from a repository, image, or local upload.
+  - text: CLI
+  - code: fugue login fugue import github owner/repo --port 3000 fugue app logs web --follow
+  - status
+  - button "Copy command"
+  - link "Open console":
+    - /url: /app
+  - heading "Import modes" [level=2]
+  - paragraph: GitHub repository, Docker image, and local upload all create the same project/service graph.
+  - text: CLI
+  - code: fugue import image registry.example.com/team/web:latest --name web fugue import upload ./dist --name static-site
+  - status
+  - button "Copy command"
+  - link "Open console":
+    - /url: /app
+  - heading "fugue.yaml topology" [level=2]
+  - paragraph: Topology files describe services, routes, backing services, runtime targets, and persistent mounts.
+  - text: CLI
+  - code: "services: web: port: 3000 route: public db: type: postgres failover: managed"
+  - status
+  - button "Copy command"
+  - link "Open console":
+    - /url: /app
+  - heading "Inspect and diagnose" [level=2]
+  - paragraph: Use inspect and diagnose to compare configured intent against runtime state.
+  - text: CLI
+  - code: fugue app inspect web fugue app diagnose web --runtime <runtime-id>
+  - status
+  - button "Copy command"
+  - link "Open console":
+    - /url: /app
+  - heading "Billing and continuity boundaries" [level=2]
+  - paragraph: Stateless migrate moves an app service between runtime targets. Managed failover protects backing services that support primary/standby behavior. Both states are visible from the project workbench.
+
+---
+
+# /auth/sign-in
+
+- main:
+  - text: Interface language
+  - combobox "Interface language":
+    - option "Auto" [selected]
+    - option "English"
+    - option "Simplified Chinese"
+    - option "Traditional Chinese"
+  - link "Fugue home":
+    - /url: /
+    - text: fg Fugue
+  - heading "Sign in to Fugue" [level=1]
+  - paragraph: Provider auth, password auth, and email link auth all preserve the requested return destination.
+  - button "Continue with Google"
+  - button "Continue with GitHub"
+  - group "Authentication method":
+    - text: Authentication method
+    - radio "Password" [checked]
+    - text: Password
+    - radio "Email link"
+    - text: Email link
+  - text: Email
+  - textbox "Email"
+  - text: Password
+  - textbox "Password"
+  - paragraph: Use an existing password for this account.
+  - button "Sign in"

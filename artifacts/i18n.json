@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "gate": "i18n-literal-catalog",
+  "passed": true,
+  "locales": [
+    "en",
+    "zh-CN",
+    "zh-TW"
+  ],
+  "defaultLocaleUsesSourceMessages": "en",
+  "literalKeys": 455,
+  "violations": []
+}
