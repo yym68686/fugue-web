@@ -122,12 +122,20 @@ function createFetchDouble(options = {}) {
 describe("production container check contracts", () => {
   test("exposes the root script and keeps all required runtime contracts in source", () => {
     const rootPackage = JSON.parse(readWorkspaceFile("package.json"));
+    const webPackage = JSON.parse(readWorkspaceFile("apps/web/package.json"));
     const source = readWorkspaceFile("scripts/quality/container-check.mjs");
     const qualityWorkflow = readWorkspaceFile(".github/workflows/quality.yml");
+    const nextConfig = readWorkspaceFile("apps/web/next.config.mjs");
+    const standaloneStart = readWorkspaceFile("apps/web/scripts/start-standalone.mjs");
 
     expect(rootPackage.scripts["container:check"]).toBe(
       "node scripts/quality/container-check.mjs",
     );
+    expect(webPackage.scripts.start).toBe("node ./scripts/start-standalone.mjs");
+    expect(nextConfig).toContain('output: "standalone"');
+    expect(standaloneStart).toContain('"standalone",\n  "apps",\n  "web"');
+    expect(standaloneStart).toContain('path.join(appRoot, ".next", "static")');
+    expect(standaloneStart).toContain('path.join(appRoot, "public")');
     expect(qualityWorkflow).toContain("node scripts/quality/container-check.mjs");
     expect(qualityWorkflow).toContain("--report artifacts/container.json");
     expect(source).toContain('"127.0.0.1::3000"');

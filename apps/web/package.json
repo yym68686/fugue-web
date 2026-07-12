@@ -12,7 +12,7 @@
     "lint": "biome lint app components lib scripts test instrumentation.ts next.config.mjs proxy.ts",
     "openapi:generate": "openapi-typescript ./openapi/fugue.yaml -o ./lib/fugue/openapi.generated.ts",
     "openapi:generate:check": "openapi-typescript ./openapi/fugue.yaml -o ./lib/fugue/openapi.generated.ts --check",
-    "start": "next start",
+    "start": "node ./scripts/start-standalone.mjs",
     "test": "bun run test:unit && bun run test:integration",
     "test:a11y": "playwright test --project=chromium-a11y",
     "test:e2e": "playwright test --project=chromium-desktop --project=chromium-mobile --project=firefox-desktop --project=webkit-desktop --project=webkit-mobile",

@@ -15,7 +15,6 @@ RUN bun install --frozen-lockfile --ignore-scripts
 
 FROM deps AS builder
 
-ENV FUGUE_NEXT_OUTPUT=standalone
 COPY . .
 RUN bunx turbo run build --filter=@fugue/web
 
