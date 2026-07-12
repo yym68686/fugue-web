@@ -2,6 +2,7 @@ FROM oven/bun:1.3.1-alpine@sha256:514fe15804f8ad3772ba323c2298daf121bb4b42386e25
 
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV TURBO_TELEMETRY_DISABLED=1
 
 COPY package.json bun.lock turbo.json biome.json ./
 COPY patches ./patches
@@ -14,6 +15,7 @@ RUN bun install --frozen-lockfile --ignore-scripts
 
 FROM deps AS builder
 
+ENV FUGUE_NEXT_OUTPUT=standalone
 COPY . .
 RUN bunx turbo run build --filter=@fugue/web
 

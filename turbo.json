@@ -4,6 +4,7 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
+      "env": ["FUGUE_NEXT_OUTPUT"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**", "public/r/**"]
     },
@@ -26,7 +27,7 @@
     },
     "typecheck": {
       "dependsOn": ["^typecheck"],
-      "outputs": ["*.tsbuildinfo", ".tsbuildinfo"]
+      "outputs": []
     },
     "test": {
       "dependsOn": ["^build"],
@@ -34,7 +35,7 @@
     },
     "test:unit": {
       "dependsOn": ["^build"],
-      "outputs": ["coverage/**"]
+      "outputs": []
     },
     "test:integration": {
       "cache": false,
@@ -70,6 +71,10 @@
     },
     "ui:sync:check": {
       "dependsOn": ["registry:validate-deps"],
+      "outputs": []
+    },
+    "@fugue/ui#build": {
+      "dependsOn": ["^build"],
       "outputs": []
     }
   }

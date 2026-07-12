@@ -211,7 +211,7 @@ describe("production container check contracts", () => {
     expect(report.runtime).toEqual({
       health: "healthy",
       host: "127.0.0.1",
-      port: 49172,
+      portBinding: "ephemeral",
     });
     expect(report.checks).toEqual({
       forbiddenPathsAbsent: true,

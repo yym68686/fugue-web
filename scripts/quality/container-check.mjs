@@ -320,7 +320,7 @@ export async function runContainerCheck(options = {}, overrides = {}) {
     runtime: {
       health: "unknown",
       host: "127.0.0.1",
-      port: null,
+      portBinding: "ephemeral",
     },
     response: {
       cacheDirectives: [],
@@ -397,7 +397,6 @@ export async function runContainerCheck(options = {}, overrides = {}) {
     port = parsePublishedPort(
       await requireDocker(dependencies, ["port", containerName, "3000/tcp"]),
     );
-    report.runtime.port = port;
 
     const healthState = await waitForHealthyContainer(containerName, dependencies);
     report.runtime.health = healthState.health;

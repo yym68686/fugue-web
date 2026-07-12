@@ -16,7 +16,7 @@
   "runtime": {
     "health": "healthy",
     "host": "127.0.0.1",
-    "port": 32777
+    "portBinding": "ephemeral"
   },
   "response": {
     "cacheDirectives": [
