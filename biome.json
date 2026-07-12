@@ -1,0 +1,109 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.3.10/schema.json",
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    },
+    "enabled": true
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  },
+  "files": {
+    "includes": [
+      "**",
+      "!!artifacts",
+      "!!**/.codex/request-diagnostics",
+      "!!**/.codex_tmp",
+      "!!**/.next",
+      "!!**/.turbo",
+      "!!**/coverage",
+      "!!**/node_modules",
+      "!!**/playwright-report",
+      "!!**/test-results",
+      "!!apps/ui/public/r",
+      "!!apps/ui/registry/__index__.tsx",
+      "!!apps/web/lib/fugue/openapi.generated.ts"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "includes": [
+      "**",
+      "!!**/.dist",
+      "!!apps/ui/.source",
+      "!!apps/ui/registry.json",
+      "!!apps/ui/registry/default/base-ui",
+      "!!apps/ui/registry/default/hooks",
+      "!!apps/ui/registry/default/lib",
+      "!!apps/ui/registry/default/ui",
+      "!!apps/ui/registry/registry-base-ui.ts",
+      "!!apps/ui/registry/registry-categories.ts",
+      "!!apps/ui/registry/registry-fonts.ts",
+      "!!apps/ui/registry/registry-hooks.ts",
+      "!!apps/ui/registry/registry-lib.ts",
+      "!!apps/ui/registry/registry-styles.ts",
+      "!!apps/ui/registry/registry-ui.ts",
+      "!!packages/ui/src/base-ui",
+      "!!packages/ui/src/components",
+      "!!packages/ui/src/hooks",
+      "!!packages/ui/src/lib"
+    ],
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 88
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double",
+      "semicolons": "always",
+      "trailingCommas": "all"
+    }
+  },
+  "json": {
+    "formatter": {
+      "trailingCommas": "none"
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "a11y": {
+        "noSvgWithoutTitle": "off",
+        "useButtonType": "error",
+        "useKeyWithClickEvents": "error",
+        "useSemanticElements": "warn"
+      },
+      "security": {
+        "noDangerouslySetInnerHtml": "error"
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["apps/ui/registry/default/ui/**/*.tsx"],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "useSemanticElements": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/*.test.ts", "**/*.test.tsx", "**/test/**"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noExplicitAny": "off"
+          }
+        }
+      }
+    }
+  ]
+}

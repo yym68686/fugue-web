@@ -1,0 +1,76 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "ui": "tui",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**", "public/r/**"]
+    },
+    "clean": {
+      "cache": false
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "format": {
+      "cache": false
+    },
+    "format:check": {
+      "outputs": []
+    },
+    "lint": {
+      "dependsOn": ["^lint"],
+      "outputs": []
+    },
+    "typecheck": {
+      "dependsOn": ["^typecheck"],
+      "outputs": ["*.tsbuildinfo", ".tsbuildinfo"]
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": ["coverage/**", "test-results/**", "playwright-report/**"]
+    },
+    "test:unit": {
+      "dependsOn": ["^build"],
+      "outputs": ["coverage/**"]
+    },
+    "test:integration": {
+      "cache": false,
+      "dependsOn": ["^build"],
+      "env": ["CI", "FUGUE_TEST_DATABASE_URL", "NODE_ENV", "TEST_DATABASE_URL"],
+      "outputs": ["test-results/**"]
+    },
+    "test:e2e": {
+      "cache": false,
+      "dependsOn": ["build"],
+      "outputs": ["playwright-report/**", "test-results/**"]
+    },
+    "test:a11y": {
+      "cache": false,
+      "dependsOn": ["build"],
+      "outputs": ["playwright-report/**", "test-results/**"]
+    },
+    "registry:validate-deps": {
+      "outputs": []
+    },
+    "registry:build": {
+      "dependsOn": ["registry:validate-deps"],
+      "outputs": ["registry/__index__.tsx", "registry.json", "public/r/**"]
+    },
+    "ui:sync": {
+      "dependsOn": ["registry:validate-deps"],
+      "outputs": [
+        "../../packages/ui/src/base-ui/**",
+        "../../packages/ui/src/components/**",
+        "../../packages/ui/src/hooks/**",
+        "../../packages/ui/src/lib/**"
+      ]
+    },
+    "ui:sync:check": {
+      "dependsOn": ["registry:validate-deps"],
+      "outputs": []
+    }
+  }
+}
