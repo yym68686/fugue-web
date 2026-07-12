@@ -47,7 +47,10 @@ async function main() {
     workspaceRoot,
     args.source ?? process.env.FUGUE_OPENAPI_SOURCE ?? "../fugue/openapi/openapi.yaml",
   );
-  const targetPath = path.resolve(workspaceRoot, args.target ?? "openapi/fugue.yaml");
+  const targetPath = path.resolve(
+    workspaceRoot,
+    args.target ?? "apps/web/openapi/fugue.yaml",
+  );
   const sourceContents = await readNormalizedFile(sourcePath);
 
   if (args.check) {
@@ -55,7 +58,7 @@ async function main() {
 
     if (targetContents !== sourceContents) {
       throw new Error(
-        `OpenAPI snapshot drift detected.\nSource: ${sourcePath}\nTarget: ${targetPath}\nRun: npm run openapi:refresh`,
+        `OpenAPI snapshot drift detected.\nSource: ${sourcePath}\nTarget: ${targetPath}\nRun: bun run openapi:refresh`,
       );
     }
 
