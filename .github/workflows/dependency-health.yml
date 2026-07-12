@@ -1,0 +1,35 @@
+name: dependency-health
+
+on:
+  schedule:
+    - cron: "41 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-health:
+    name: scheduled dependency health
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: ./.github/actions/setup-workspace
+      - name: Record available workspace updates
+        run: |
+          mkdir -p artifacts
+          bun outdated --recursive | tee artifacts/outdated.txt
+      - run: bun run versions:check --report artifacts/versions.json
+      - run: bun run security:audit --report artifacts/security-audit.json
+      - run: bun run coss:upstream:verify
+      - run: >-
+          bun run licenses:check
+          --output artifacts/fugue-web.cdx.json
+          --report artifacts/licenses.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: dependency-health-${{ github.run_id }}
+          path: artifacts
+          if-no-files-found: error
+          retention-days: 30

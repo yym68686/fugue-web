@@ -1,54 +1,140 @@
 {
+  "schemaVersion": 1,
   "contracts": [
     {
-      "id": "design.morlane-token-bridge",
+      "id": "tokens.coss-semantic-theme",
+      "sourceFile": "packages/ui/src/styles/globals.css",
       "rootSelector": ":root",
-      "surfaceOwner": "design-system/morlane.css"
+      "surfaceOwner": ":root",
+      "strictness": "blocker",
+      "states": ["default", "reduced-motion", "forced-colors"],
+      "requiredSourcePatterns": [
+        "--background:",
+        "--foreground:",
+        "--border:",
+        "--ring:",
+        "@media (prefers-reduced-motion: reduce)",
+        "@media (forced-colors: active)"
+      ]
     },
     {
-      "id": "layout.console-shell",
-      "rootSelector": ".fp-shell",
-      "surfaceOwner": ".fp-main"
-    },
-    {
-      "id": "layout.project-workbench",
-      "rootSelector": ".fg-project-workbench",
-      "surfaceOwner": ".fg-project-workbench__main"
-    },
-    {
-      "id": "layout.resource-density",
-      "rootSelector": ".fp-project-resource-list, .fg-cluster-node-gallery, .fg-console-table-wrap",
-      "surfaceOwner": null
+      "id": "control.button",
+      "sourceFile": "apps/ui/registry/default/ui/button.tsx",
+      "rootSelector": "[data-slot='button']",
+      "surfaceOwner": "[data-slot='button']",
+      "strictness": "blocker",
+      "states": ["default", "hover", "focus-visible", "pressed", "disabled", "loading"],
+      "requiredSourcePatterns": [
+        "data-slot\": \"button\"",
+        "focus-visible:ring-2",
+        "disabled:pointer-events-none",
+        "data-loading"
+      ]
     },
     {
       "id": "control.input-single-surface",
-      "rootSelector": ".fp-project-search, .fp-project-select, .fg-field-control, .fg-control-group",
-      "surfaceOwner": ".fp-project-search, .fp-project-select, .fg-control-group, .fg-route-composer__shell, .fg-billing-top-up-form__entry, .input-with-button"
+      "sourceFile": "apps/ui/registry/default/ui/input.tsx",
+      "rootSelector": "[data-slot='input-control']",
+      "surfaceOwner": "[data-slot='input-control']",
+      "strictness": "blocker",
+      "states": ["default", "focus-visible", "disabled", "error", "long-text"],
+      "requiredSourcePatterns": [
+        "data-slot=\"input-control\"",
+        "data-slot=\"input\"",
+        "has-focus-visible:ring-[3px]",
+        "has-aria-invalid"
+      ]
     },
     {
-      "id": "control.locale-theme-morlane",
-      "rootSelector": ".language-select, .theme-toggle",
-      "surfaceOwner": ".language-select, .theme-toggle"
+      "id": "form.field",
+      "sourceFile": "apps/ui/registry/default/ui/field.tsx",
+      "rootSelector": "[data-slot='field']",
+      "surfaceOwner": "[data-slot='input-control']",
+      "strictness": "blocker",
+      "states": ["default", "disabled", "error", "long-text"],
+      "requiredSourcePatterns": [
+        "data-slot=\"field\"",
+        "data-slot=\"field-group\"",
+        "data-slot=\"field-label\"",
+        "data-slot=\"field-error\""
+      ]
     },
     {
-      "id": "surface.profile-auth",
-      "rootSelector": ".fg-profile-auth-workbench",
-      "surfaceOwner": ".fg-profile-auth-provider, .fg-profile-auth-capability"
+      "id": "modal.dialog",
+      "sourceFile": "apps/ui/registry/default/ui/dialog.tsx",
+      "rootSelector": "[data-slot='dialog-popup']",
+      "surfaceOwner": "[data-slot='dialog-popup']",
+      "strictness": "blocker",
+      "states": ["default", "focus-visible", "reduced-motion", "long-text"],
+      "requiredSourcePatterns": [
+        "data-slot=\"dialog-backdrop\"",
+        "data-slot=\"dialog-popup\"",
+        "data-slot=\"dialog-title\"",
+        "aria-label=\"Close\""
+      ]
     },
     {
-      "id": "surface.docs-density",
-      "rootSelector": ".ml-docs-page",
-      "surfaceOwner": ".ml-docs-nav, .ml-docs-card, .ml-docs-table-card"
+      "id": "navigation.tabs",
+      "sourceFile": "apps/ui/registry/default/ui/tabs.tsx",
+      "rootSelector": "[data-slot='tabs']",
+      "surfaceOwner": "[data-slot='tabs-list']",
+      "strictness": "blocker",
+      "states": ["default", "focus-visible", "selected", "disabled"],
+      "requiredSourcePatterns": [
+        "data-slot=\"tabs\"",
+        "data-slot=\"tabs-list\"",
+        "data-slot=\"tabs-tab\"",
+        "data-slot=\"tabs-content\""
+      ]
     },
     {
-      "id": "state.complete-coverage",
-      "rootSelector": ":focus-visible, [aria-disabled='true'], .is-loading, .is-empty, .is-error",
-      "surfaceOwner": null
+      "id": "data.table",
+      "sourceFile": "apps/ui/registry/default/ui/table.tsx",
+      "rootSelector": "[data-slot='table']",
+      "surfaceOwner": "[data-slot='table-container']",
+      "strictness": "blocker",
+      "states": ["default", "hover", "empty", "loading", "long-text", "overflow"],
+      "requiredSourcePatterns": [
+        "data-slot\": \"table-container\"",
+        "data-slot=\"table\"",
+        "data-slot=\"table-row\"",
+        "overflow-x-auto"
+      ]
     },
     {
-      "id": "legacy.visual-runtime-detached",
-      "rootSelector": ".fp-shell",
-      "surfaceOwner": "design-system/morlane.css, app/console-components.css"
+      "id": "feedback.empty",
+      "sourceFile": "apps/ui/registry/default/ui/empty.tsx",
+      "rootSelector": "[data-slot='empty']",
+      "surfaceOwner": "[data-slot='empty']",
+      "strictness": "blocker",
+      "states": ["empty", "missing-data", "permission-denied"],
+      "requiredSourcePatterns": [
+        "data-slot=\"empty\"",
+        "data-slot=\"empty-title\"",
+        "data-slot=\"empty-description\""
+      ]
+    },
+    {
+      "id": "feedback.skeleton",
+      "sourceFile": "apps/ui/registry/default/ui/skeleton.tsx",
+      "rootSelector": "[data-slot='skeleton']",
+      "surfaceOwner": "[data-slot='skeleton']",
+      "strictness": "blocker",
+      "states": ["loading", "reduced-motion"],
+      "requiredSourcePatterns": ["data-slot=\"skeleton\"", "animate-skeleton"]
+    },
+    {
+      "id": "navigation.sidebar",
+      "sourceFile": "apps/ui/registry/default/ui/sidebar.tsx",
+      "rootSelector": "[data-slot='sidebar']",
+      "surfaceOwner": "[data-slot='sidebar-container']",
+      "strictness": "blocker",
+      "states": ["default", "focus-visible", "selected", "disabled", "overflow"],
+      "requiredSourcePatterns": [
+        "data-slot=\"sidebar\"",
+        "data-slot=\"sidebar-container\"",
+        "data-slot=\"sidebar-trigger\""
+      ]
     }
   ]
 }

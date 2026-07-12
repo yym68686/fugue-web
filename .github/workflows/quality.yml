@@ -1,0 +1,329 @@
+name: frontend-quality
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: frontend-quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    name: format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: ./.github/actions/setup-workspace
+      - run: bun run format:check
+
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: ./.github/actions/setup-workspace
+      - run: bun run lint
+
+  i18n:
+    name: i18n catalog coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: ./.github/actions/setup-workspace
+      - run: bun run i18n:check --report artifacts/i18n.json
+      - name: Upload i18n coverage report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: i18n-coverage
+          path: artifacts/i18n.json
+          if-no-files-found: error
+          retention-days: 14
+
+  typecheck:
+    name: typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: ./.github/actions/setup-workspace
+      - run: bun run typecheck
+
+  contract:
+    name: contract
+    uses: ./.github/workflows/contract-drift.yml
+
+  unit:
+    name: unit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: ./.github/actions/setup-workspace
+      - run: bun run test:unit
+
+  integration:
+    name: integration
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+        env:
+          POSTGRES_DB: fugue_web_test
+          POSTGRES_HOST_AUTH_METHOD: trust # Isolated GitHub-hosted job service only.
+          POSTGRES_USER: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d fugue_web_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      NODE_ENV: test
+      TEST_DATABASE_URL: postgresql://postgres@127.0.0.1:5432/fugue_web_test
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: ./.github/actions/setup-workspace
+      - run: bun run test:integration
+      - run: bun run test:upload-stress --report artifacts/upload-stress.json
+      - name: Upload bounded-upload stress evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: upload-stress-evidence
+          path: artifacts/upload-stress.json
+          if-no-files-found: error
+          retention-days: 14
+
+  e2e:
+    name: e2e
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+        env:
+          POSTGRES_DB: fugue_web_e2e_test
+          POSTGRES_HOST_AUTH_METHOD: trust # Isolated GitHub-hosted job service only.
+          POSTGRES_USER: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d fugue_web_e2e_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql://postgres@127.0.0.1:5432/fugue_web_e2e_test
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: ./.github/actions/setup-workspace
+      - name: Install Playwright browsers
+        run: bunx playwright install --with-deps chromium firefox webkit
+      - run: bun run test:e2e
+      - name: Upload Playwright evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: playwright-evidence
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results
+            artifacts/accessibility
+            artifacts/performance
+            artifacts/visual
+          if-no-files-found: warn
+          retention-days: 14
+
+  axe:
+    name: axe
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+        env:
+          POSTGRES_DB: fugue_web_axe_test
+          POSTGRES_HOST_AUTH_METHOD: trust # Isolated GitHub-hosted job service only.
+          POSTGRES_USER: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d fugue_web_axe_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql://postgres@127.0.0.1:5432/fugue_web_axe_test
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: ./.github/actions/setup-workspace
+      - name: Install Chromium
+        run: bunx playwright install --with-deps chromium
+      - run: bun run test:a11y
+      - name: Upload axe and screenshot evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: axe-screenshot-evidence
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results
+            artifacts/accessibility
+            artifacts/axe
+            artifacts/performance
+            artifacts/screenshots
+            artifacts/visual
+          if-no-files-found: warn
+          retention-days: 14
+
+  style:
+    name: style audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: ./.github/actions/setup-workspace
+      - run: bun run test:style-audit --report artifacts/style-audit.json
+      - name: Upload style inventory report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: style-audit-report
+          path: artifacts/style-audit.json
+          if-no-files-found: error
+          retention-days: 14
+
+  registry:
+    name: registry validate, build and sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: ./.github/actions/setup-workspace
+      - run: bun run registry:validate
+      - run: bun run registry:build
+      - run: bun run registry:sync:check
+      - run: bun run theme:check
+      - name: Reject generated registry drift
+        run: |
+          paths=(
+            apps/ui/registry.json
+            apps/ui/registry/__index__.tsx
+            apps/ui/public/r
+            packages/ui/src
+          )
+          if [[ -n "$(git status --porcelain -- "${paths[@]}")" ]]; then
+            git status --short -- "${paths[@]}"
+            exit 1
+          fi
+
+  versions:
+    name: singleton versions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: ./.github/actions/setup-workspace
+      - run: bun run versions:check --report artifacts/versions.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: workspace-versions
+          path: artifacts/versions.json
+          if-no-files-found: error
+          retention-days: 14
+
+  audit:
+    name: dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: ./.github/actions/setup-workspace
+      - name: Review dependency changes
+        if: github.event_name == 'pull_request'
+        uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4.9.0
+        with:
+          fail-on-severity: high
+          deny-licenses: AGPL-3.0, AGPL-3.0-only, AGPL-3.0-or-later
+      - run: bun run security:audit --report artifacts/security-audit.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: dependency-audit
+          path: artifacts/security-audit.json
+          if-no-files-found: error
+          retention-days: 14
+
+  licenses:
+    name: licenses, provenance and SBOM
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: ./.github/actions/setup-workspace
+      - run: bun run coss:upstream:verify
+      - run: >-
+          bun run licenses:check
+          --output artifacts/fugue-web.cdx.json
+          --report artifacts/licenses.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: license-provenance-sbom
+          path: |
+            artifacts/fugue-web.cdx.json
+            artifacts/licenses.json
+            THIRD_PARTY_NOTICES.md
+            docs/upstream/coss-files.json
+          if-no-files-found: error
+          retention-days: 30
+
+  build:
+    name: turbo build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: ./.github/actions/setup-workspace
+      - run: bun run build
+
+  container:
+    name: production container
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - name: Build the pinned production image
+        run: docker build --pull=false --tag "fugue-web-ci:${GITHUB_SHA}" .
+      - name: Verify the runtime image and health contract
+        run: >-
+          node scripts/quality/container-check.mjs
+          --image "fugue-web-ci:${GITHUB_SHA}"
+          --report artifacts/container.json
+      - name: Upload the production-container contract report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: production-container-contract
+          path: artifacts/container.json
+          if-no-files-found: error
+          retention-days: 14
+
+  bundle:
+    name: route bundle budgets
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: ./.github/actions/setup-workspace
+      - name: Build the production runtime
+        run: bun run build --filter=@fugue/web
+      - run: bun run bundle:check --report artifacts/route-bundles.json
+      - name: Upload route bundle manifest
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: route-bundle-manifest
+          path: artifacts/route-bundles.json
+          if-no-files-found: error
+          retention-days: 14

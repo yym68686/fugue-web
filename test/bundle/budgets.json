@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "appDir": "apps/web",
+  "statsFile": ".next/diagnostics/route-bundle-stats.json",
+  "buildManifestFile": ".next/build-manifest.json",
+  "requiredRoutes": ["/", "/docs", "/auth/sign-in", "/auth/sign-up", "/app"],
+  "defaultRouteBudgetGzipKiB": 250,
+  "routeBudgets": [
+    { "pattern": "/", "maxGzipKiB": 200 },
+    { "pattern": "/docs", "maxGzipKiB": 200 },
+    { "pattern": "/auth/*", "maxGzipKiB": 200 },
+    { "pattern": "/app", "maxGzipKiB": 250 },
+    { "pattern": "/app/*", "maxGzipKiB": 250 },
+    { "pattern": "/new/*", "maxGzipKiB": 250 }
+  ],
+  "maxAppChunkGzipKiB": 80,
+  "baselineGrowthPercent": 10,
+  "baselineRoutesGzipKiB": {
+    "/": 198,
+    "/docs": 332,
+    "/auth/sign-in": 332,
+    "/auth/sign-up": 332,
+    "/app": 340
+  }
+}
