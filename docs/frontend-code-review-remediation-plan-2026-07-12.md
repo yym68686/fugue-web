@@ -396,7 +396,7 @@ WP-06 契约同步和 WP-13A 最小 CI 应作为 R0 先合入，以便后续 PR 
 
 #### 实施 TODO
 
-- [ ] 上线前盘点每个现有环境的当前管理员，确认至少一个经过验证且可恢复的管理员账号。
+- [x] 上线前盘点每个现有环境的当前管理员，确认至少一个经过验证且可恢复的管理员账号。（正式控制平面只读结果见 `wp-01-production-admin-preflight.md`）
 - [x] 为已有数据库显式写入/迁移 bootstrap completed 状态，不通过“用户数量”继续推断初始化状态。
 - [x] 删除空库首用户自动成为 admin 的代码分支。
 - [x] 设计并迁移 bootstrap state 数据表或等价 singleton 状态。
@@ -1400,7 +1400,7 @@ R2、R3、R4 不合并为一个发布单元：它们分别涉及数据库/授权
 | 工作包 | Owner | PR / Commit | 自动化证据 | 人工验收 | 发布日期 | 状态 |
 | --- | --- | --- | --- | --- | --- | --- |
 | WP-00 | Codex | `c5e7500`；PR 待创建 | `phase-0-baseline.md`；本地基线可复现 | 10 张截图人工复核通过 | 待发布 | Local baseline committed; delivery pending |
-| WP-01 | Codex | `b892f09`；PR 待创建 | DB concurrency/security unit + integration 全绿 | 待正式生产管理员预检归档 | 待发布 | Local implementation committed; production preflight pending |
+| WP-01 | Codex | `b892f09`；PR 待创建 | DB concurrency/security unit + integration 全绿 | 正式控制平面 2 名 active/verified 管理员只读盘点已归档 | 待发布 | Local implementation committed; production preflight passed |
 | WP-02 | Codex | `b892f09`；PR 待创建 | active-session、撤销、mutation guard unit/integration/E2E 全绿 | 自动化 product smoke 通过 | 待发布 | Local implementation committed |
 | WP-03 | Codex | `b892f09`；PR 待创建 | Google/GitHub × sign-in/sign-up、PKCE、finalize、失败清理 integration 全绿 | 待发布后事件观察 | 待发布 | Local provider integration committed |
 | WP-04 | Codex | `fugue@5246335` 已入 main；Web `b892f09` | `wp-04-upload-resource-safety.md`、upload stress；workflow `29197487888` 成功 | 后端 control-plane 正式链路已完成；Web 待发布 | 后端 2026-07-12 | Backend released; Web delivery pending |
