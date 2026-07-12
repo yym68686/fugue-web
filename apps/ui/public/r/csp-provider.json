@@ -1,0 +1,20 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "csp-provider",
+  "dependencies": [
+    "@base-ui/react"
+  ],
+  "files": [
+    {
+      "path": "registry/default/base-ui/csp-provider.ts",
+      "content": "export { CSPProvider } from \"@base-ui/react/csp-provider\";\n",
+      "type": "registry:lib"
+    }
+  ],
+  "type": "registry:lib",
+  "meta": {
+    "generated": true,
+    "source": "apps/ui/registry/default",
+    "warning": "DO NOT EDIT: regenerate with bun run registry:build"
+  }
+}

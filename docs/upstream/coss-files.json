@@ -1,0 +1,570 @@
+{
+  "schemaVersion": 1,
+  "upstream": {
+    "repository": "https://github.com/cosscom/coss",
+    "commit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+    "tree": "eaf870eca9a89da365b5134056e31a6c9db4f35f",
+    "licensingFile": "apps/ui is MIT under upstream LICENSING.md"
+  },
+  "policy": {
+    "allowedSourcePrefix": "apps/ui/",
+    "deniedByDefault": [
+      "packages/ui/",
+      "packages/typescript-config/",
+      "root configuration",
+      "apps/origin/"
+    ],
+    "generatedTargets": [
+      "packages/ui/src/base-ui/",
+      "packages/ui/src/components/",
+      "packages/ui/src/hooks/",
+      "packages/ui/src/lib/"
+    ]
+  },
+  "files": [
+    {
+      "sourcePath": "apps/ui/registry/default/base-ui/csp-provider.ts",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "97d122da148eb13a057b02ae0e8c2b20aa5fe0384c598c0144866ddc4ee6ea7a",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/base-ui/csp-provider.ts",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/base-ui/direction-provider.ts",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "27f510ccd10e59816c76d51ad7b097f26f84a6b6e943942e1b0e7f1200da0134",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/base-ui/direction-provider.ts",
+      "localModifications": "Re-exports Base UI's TextDirection type so the request-derived document direction and Console provider share one typed value; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/base-ui/merge-props.ts",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "fdb3b13d60560a465c321956ff9086ce83977dcf154100f97ca26fe7eb0acbe1",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/base-ui/merge-props.ts",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/base-ui/use-render.ts",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "9d88f01b0ef2e2b24e8c4d76ebb00c0b573528bc31b0b37767568d771f332ac4",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/base-ui/use-render.ts",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/hooks/use-copy-to-clipboard.ts",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "d2e9ba430e34dafd4ae7fe5403d2ad4987fdcd73f2a47bd0571c1f84c143536d",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/hooks/use-copy-to-clipboard.ts",
+      "localModifications": "Hardened unsupported Clipboard API and rejected write handling, returns a boolean Promise for recoverable product feedback, and uses browser-safe timeout typing; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/hooks/use-media-query.ts",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "17d75ccaf898415db77dd72659c9b1fdb9338290ae54e8371b772e0b221c9fca",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/hooks/use-media-query.ts",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/lib/utils.ts",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "02a523d3492e97440de9c080a59f3aa9366ca92bb6914078a75ae8a6f3e90a7f",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/lib/utils.ts",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/accordion.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "b975e2a75b37fb44bca277dd85bf0825e98c3531036ca8d1543f6f4556cf56a5",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/accordion.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/alert-dialog.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "e6e8d2aee4115cb2e2d5bba7e3f16941a2cfaa12a2bceae70d605b1751706d82",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/alert-dialog.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/alert.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "340fc98fae7b30d038e1b7bcbb632f551360cfd8e0803b62a8ddfc04c002119f",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/alert.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/autocomplete.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "e356bacfdb86d2e371feccc3965601caf8a71c050eba6d89778871e139305a92",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/autocomplete.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/avatar.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "c4b13138f0bcb59df91546c6d09e1473523aefc6aa7c6141c493dd41fc1b80ad",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/avatar.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/badge.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "60f73554b462ec5e2929ccc58c0522b069c07e1268dbfb67749c2837347b788b",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/badge.tsx",
+      "localModifications": "Adjusted the dark destructive badge background to a 64% semantic destructive-token blend so rendered small text reaches WCAG AA contrast; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/breadcrumb.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "e420178801b8d72238f1274c722a7ca4e9f9834bd58c7a45ba8d71a645f83c79",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/breadcrumb.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/button.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "1e65556bde3071f90f61825cf573aec74bdd8695824470bea3dae4d68a6b8fc8",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/button.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/calendar.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "c1ece731dd86a9f7e33a23773eb8d4afd01ebc444dca9f0ded37b68f4206c11a",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/calendar.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/card.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "02481795cfcda1a206be24df3cf4f4f28ae6dfe44141647a62fbff04f22560f5",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/card.tsx",
+      "localModifications": "CardFrame establishes an isolated stacking context and places direct content above its decorative ::before layer so the upstream muted frame cannot wash out readable content; generated package output also adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/checkbox-group.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "f78494035296e12c0ff602022338bb8f37a46f3a15647b53f0b2e8ac6c97f45e",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/checkbox-group.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/checkbox.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "a1b8b4180a39a47c47bd2b50e432d0911da6efe3b963b065b3b5cb8893760047",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/checkbox.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/collapsible.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "f70e7b9fde220ce5f039c93176a545a46a9b553ecdb23595a320e5163a95a1e8",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/collapsible.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/combobox.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "03dff153d93c5937b4b5aaae52b389aeca9b17292b179ef0ce1d918ccc397fee",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/combobox.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/command.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "4b40973632f7b13bd2212f094b805470aad29fb190a46001f92b13ff2350b7bd",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/command.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/context-menu.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "a47c4563334813d12f0e46380a047483aed03d7ed3e37a9cfde5899f06761abf",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/context-menu.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/dialog.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "446fdd4c5e93803329e382ef96c71703ec0051e003d03b51135fd6b1b6f116bd",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/dialog.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/drawer.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "0164c0ed275253f826f877e9680773cbec81412e03a9eebf6e2393a8fd2571a4",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/drawer.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/empty.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "57341b5a985ba2cc229e4832ab8624b060d172706b678dd99a682fbb476d4aa9",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/empty.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/field.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "02ffda39f73f04638f580fd1fbb76e783cb252f9a87ecebdd62fb4bd0d1393ff",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/field.tsx",
+      "localModifications": "Added the typed FieldGroup composition required by Fugue forms; generated package output rewrites aliases."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/fieldset.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "1ec36d2a2c60fd1ba229682a876f8d672ade66019513bac1a6747885d369f2a6",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/fieldset.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/form.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "c08b75b48a90dd349763720e4ffb5423ae348ec0ef43c8c96110695d6fcf7404",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/form.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/frame.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "55da638812d093e74ab7fb3cb141f01d834492b63b3e2e09880b9b1df24ee45c",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/frame.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/group.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "d2392c54a90e353762779639971bb9aaa44759a7bda81ea0cf1462afbf4492b0",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/group.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/input-group.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "170ef435aa1f7ee413a244c6d13c2fb293233cea1d91f5797599ca3207edad67",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/input-group.tsx",
+      "localModifications": "Added an explicit group role to the mouse-focus addon wrapper so the strict accessibility lint gate recognizes its interaction semantics; generated package output adds a DO NOT EDIT marker and rewrites aliases."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/input.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "3a67d720b489b9f088fa82a65d3d38c5eec386c581de41e46ecec818abca805e",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/input.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/kbd.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "ad8f26b95d8307f460316cd27a2b595d04069df2561395b5d39067a99e407cb5",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/kbd.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/label.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "edaf5fb049b3e2f27ddd70a6c6772c7d99e920c589b41019b8f4fa602113e695",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/label.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/menu.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "aeb2ebda24c8c90453fd7087bae8f14510f98e4eee75da5c084dfecaa56f2625",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/menu.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/meter.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "f7f0b85f6878378c76e66887a111a1cb8476ebea84a2ebb4f6d41fe0fbad8653",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/meter.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/number-field.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "12bc251f73e7f1bc6f21ca0710c7e93e0eaa01016aeb80c4b365448ae251e005",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/number-field.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/otp-field.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "4122b6f91e0c011a9bfe40b4ecad4d0b89a7b371e773adac6af6b2bcc5ac033e",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/otp-field.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/pagination.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "4c3d048be127d228ad199b8555b833ffc26cd9506b4a75b4b298754833474993",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/pagination.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/popover.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "ff9b981ce4e68b86a266f69480c59967c7065aacfa2d4ce927d91a1eff0035cf",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/popover.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/preview-card.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "44741ce4217d89c19a485d6973c22c821ed9cf86b15dc03c7094308ae7faa6ba",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/preview-card.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/progress.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "605ea95436094735fc94d2ae38fd50df2dcce1617b2a67c504114bd0e55cc2b2",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/progress.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/radio-group.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "b2479e9967f0ba48d1acbb58a4fff7b919aa746bb8a61cbbff389baac02abbb7",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/radio-group.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/scroll-area.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "fe0f8d13c5761bc5be31e9e6ccfd234321d68af53d189494e9947650afd3f4bf",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/scroll-area.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/select.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "5e13f8e77bc40a0a738abb9059800894ad720e65d0add4c30d02231933427a47",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/select.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/separator.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "48393a9f365097e350bb33f0e84d2df25efd6b374868aa075f8d6011378c1d6e",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/separator.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/sheet.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "d600dc30b08f52f35288e5cfcfaac22544ae4db4551411ddf9743c030c2107ae",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/sheet.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/sidebar.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "25b783faa31729edf089cfb6dcaca24b0d9a4d4f7d8bf2e007cfa0c2882d11a0",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/sidebar.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/skeleton.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "02e61d00c76b7ed5a1979c37c2a86b8a837a013909e84ac21c40bb5b56f9afd2",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/skeleton.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/slider.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "abf488cac56c237b5eebef7c7c25ff38d07f72581a2b46c7158c019576c7fa71",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/slider.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/spinner.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "5116d0ec549bf70d20d5359a485e6792b6c87d89a389102ad6c3f44312c23972",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/spinner.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/switch.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "2b3bada3d7234149b4d29918d5e312e62919938c2ae0ee61db81350438ad43c4",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/switch.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/table.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "b21f811291d6a1706874cb37dd568b922fb5d8b053e6636b7b0e9e9c6320c98d",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/table.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/tabs.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "62b9fa90283380c27de1928c5ef3dd2c1e3cbd36f329a76f82c92dc34e497358",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/tabs.tsx",
+      "localModifications": "Raised inactive tab-list text from muted-foreground/72 to the full semantic muted-foreground token for readable contrast; Base UI keyboard navigation and activation semantics remain unchanged. Generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/textarea.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "7d9da4c22e5872d83b47c5be7adf6d0262f3a0626432a0cd57de37a3dae8a73d",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/textarea.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/toast.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "5f08707c31601826aa689ea9f28d72b05b46ab7089da6f40334e72d688d0a274",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/toast.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/toggle-group.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "8c67854bffcf762299fb989721e47da30fea3268cb969fdc6c775c3fe89982bb",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/toggle-group.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/toggle.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "a32372d0eaa291bc81f61f4ddb1f5bb827c507fd53de03c6f709adc242ee5bfb",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/toggle.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/toolbar.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "f08696682ad171b5a0d2c918202bcee10b9f6de1408a2a2e864f61e8d424dba2",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/toolbar.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/default/ui/tooltip.tsx",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "0ac59089d1d813b7eb1cd9e08ed2ff3b3931e4024df649ddb45b1eb43d50f694",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/default/ui/tooltip.tsx",
+      "localModifications": "None in editable registry source; generated package output adds a DO NOT EDIT marker and rewrites aliases to @fugue/ui subpaths."
+    },
+    {
+      "sourcePath": "apps/ui/registry/registry-base-ui.ts",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "fbff4485efc5b75f0d0813f727c7124603b612cb34c28f0b00372560ee885b0c",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/registry-base-ui.ts",
+      "localModifications": "Replaced @coss registry dependency names with the private @fugue namespace; Fugue-authored index supplies local homepage and registry name."
+    },
+    {
+      "sourcePath": "apps/ui/registry/registry-categories.ts",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "6e5edc11569f8060330eb6b226bb069b86bda0a600afd9cf245d83a3d22e4a53",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/registry-categories.ts",
+      "localModifications": "Added the typed categories() helper and the sidebar category."
+    },
+    {
+      "sourcePath": "apps/ui/registry/registry-fonts.ts",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "05240f40af79a6d8edeafeffc89790875084c90ca4d3c347b0795594486f951c",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/registry-fonts.ts",
+      "localModifications": "Replaced @coss registry dependency names with the private @fugue namespace; Fugue-authored index supplies local homepage and registry name."
+    },
+    {
+      "sourcePath": "apps/ui/registry/registry-hooks.ts",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "e1763e557d842be0bcdad48d724d4c5cd7916455cba5505a7aebf7ea3a05fee5",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/registry-hooks.ts",
+      "localModifications": "Replaced @coss registry dependency names with the private @fugue namespace; Fugue-authored index supplies local homepage and registry name."
+    },
+    {
+      "sourcePath": "apps/ui/registry/registry-lib.ts",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "bd3bd36da277419700b9022fa8c437236b366d022fde23a11097a002f106567b",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/registry-lib.ts",
+      "localModifications": "Replaced @coss registry dependency names with the private @fugue namespace; Fugue-authored index supplies local homepage and registry name."
+    },
+    {
+      "sourcePath": "apps/ui/registry/registry-styles.ts",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "d254ccb62d3f31626a2100f28553cbfe4b691372845a89faaf2eb13916d6d73b",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/registry-styles.ts",
+      "localModifications": "Replaced @coss registry dependency names with the private @fugue namespace; Fugue-authored index supplies local homepage and registry name."
+    },
+    {
+      "sourcePath": "apps/ui/registry/registry-ui.ts",
+      "sourceCommit": "1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4",
+      "sourceSha256": "039e1052fe9afd434597933f2cab65dd772698bb824a27d8a0f0111b1a6fac0f",
+      "license": "MIT (upstream LICENSING.md applies to apps/ui/ and descendants)",
+      "localPath": "apps/ui/registry/registry-ui.ts",
+      "localModifications": "Replaced @coss registry dependency names with the private @fugue namespace; Fugue-authored index supplies local homepage and registry name."
+    }
+  ]
+}

@@ -140,7 +140,7 @@
 
 - 本仓库的前端需要同时服务 marketing、docs、auth、app console 几个层次，做页面和组件时必须考虑整站一致性，而不是只看单页。
 - 任何新页面、新组件、新视觉方向，都应优先复用或沉淀成可复用模式，而不是散落一次性实现。
-- 已沉淀出的共享实现种子位于 `design-system/`；当任务目标是共享 UI、token、组件或页面骨架时，优先复用这里，再结合 `app/`、`components/` 里的当前已落地实现继续抽取。
+- 共享 UI、token、组件或页面骨架的唯一实现链是 `apps/ui/registry/default/*` -> `packages/ui/src/*`；产品 composition 位于 `apps/web/app` 与 `apps/web/components`。
 - 涉及 `frontend-website-plan.md`、设计方案、页面结构、控制台 IA、auth flow、onboarding flow 的修改，也属于前端任务，同样必须先参考 `$HOME/Downloads/GitHub/web-design/AGENTS.md` 中的对应 skills。
 
 ## API 协作规范
@@ -153,8 +153,8 @@
   - 后端运行时暴露的 `/openapi.json`
   - 后端运行时暴露的 `/docs`
 - 本仓库与 OpenAPI 相关的派生产物包括：
-  - `$HOME/Downloads/GitHub/fugue-web/openapi/fugue.yaml`
-  - `$HOME/Downloads/GitHub/fugue-web/lib/fugue/openapi.generated.ts`
+  - `$HOME/Downloads/GitHub/fugue-web/apps/web/openapi/fugue.yaml`
+  - `$HOME/Downloads/GitHub/fugue-web/apps/web/lib/fugue/openapi.generated.ts`
 - 这两个文件都是从后端权威契约派生出来的，禁止手写维护、禁止直接当作“可以随手修”的本地事实源。
 - 当前端任务涉及 API 接入、字段消费、鉴权方式、请求体、响应体、轮询、日志流、上传、下载、错误处理时，必须先对照上述权威契约。
 - 如果前端发现后端行为与 OpenAPI 契约不一致，应优先视为后端契约/实现漂移问题，不能直接在前端写“猜测性兼容”并把错误固化下来。
@@ -182,8 +182,8 @@
 ## 前端消费 API 的实现要求
 
 - 优先从权威 OpenAPI 契约推导请求/响应结构，不要散落手写重复类型。
-- `lib/fugue/openapi.generated.ts` 是生成文件，禁止手改。
-- `lib/fugue/api.ts` 的职责是：
+- `apps/web/lib/fugue/openapi.generated.ts` 是生成文件，禁止手改。
+- `apps/web/lib/fugue/api.ts` 的职责是：
   - 基于生成出来的 OpenAPI 类型和 client 做请求。
   - 只在确实需要兼容前端现有 view model 时，做薄适配。
 - 不要重新引入以前那套基于 `unknown` + `sanitize*` 的大段手写响应解析器，除非后端协议确实无法在 OpenAPI 中表达。
@@ -199,7 +199,7 @@
 ## 评审要求
 
 - 评审 API 相关前端改动时，先核对 `$HOME/Downloads/GitHub/fugue/openapi/openapi.yaml`，再看页面代码。
-- 再核对 `$HOME/Downloads/GitHub/fugue-web/openapi/fugue.yaml` 和 `$HOME/Downloads/GitHub/fugue-web/lib/fugue/openapi.generated.ts` 是否已经同步。
+- 再核对 `$HOME/Downloads/GitHub/fugue-web/apps/web/openapi/fugue.yaml` 和 `$HOME/Downloads/GitHub/fugue-web/apps/web/lib/fugue/openapi.generated.ts` 是否已经同步。
 - 如果需求需要改 API，但 PR 里没有对应的后端契约变更或没有明确说明“后端已完成在哪个提交/分支”，应视为信息不完整。
 - 如果 `npm run contract:check` 没跑过或已经失败，视为 API 改动未完成。
 
@@ -212,117 +212,63 @@
   - `npm run typecheck`
 - 如果 CI 报 snapshot drift 或 generated drift，不要在前端临时兼容；先同步 OpenAPI snapshot/codegen，再修真正受影响的前端逻辑。
 
-## 当前设计基线
+## 当前 COSS 架构基线
 
-- 当前视觉与交互唯一基线是 `$HOME/Downloads/GitHub/morlane`。本仓库现有样式、组件外观、布局和视觉风格不再作为参考；只把现有页面里的真实信息、状态、表单字段、操作和业务约束迁移进 Morlane 的界面语言。
-- 当前设计系统入口是 `design-system/morlane.css`，并由 `design-system/index.css` 统一导入。`design-system/tokens.css`、`design-system/components.css`、`design-system/platform.css` 只保留为历史路径占位，不允许继续承载旧 Fugue 视觉。
-- `components/platform/`、`components/ui/`、`components/console/` 等 React 组件可以继续作为行为和语义封装使用，但最终视觉必须由 Morlane token、Morlane 布局密度和 Morlane 组件材质覆盖。
-- `fg-*`、`fp-*` 类名只允许作为迁移期 DOM class 或历史 API 名称存在；不得把它们当作旧视觉基线，也不得新增依赖旧 Fugue / Cloudflare / cinematic 风格的样式规则。
+- 本仓库完整采用 [`cosscom/coss`](https://github.com/cosscom/coss) 的 workspace、registry、Base UI、shared package 和工具链架构，不把“视觉相似”视为完成。当前固定参考提交为 `1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4`。
+- `$HOME/Downloads/GitHub/morlane`、`design-system/morlane.css`、`ml-*`、`fg-*`、`fp-*` 和现有手写 COSS 组件只作为迁移输入或历史兼容层，不再是目标设计系统，不得继续扩展为平行 primitive 系统。
+- COSS 上游是混合许可证：`apps/ui/`、`apps/origin/` 为 MIT，仓库默认和 `packages/ui/` 为 AGPL-3.0-or-later。复制上游源码前必须记录 commit、source path、license、local path 与本地修改；未完成许可证评审时禁止复制 AGPL source。
+- 不迁移 COSS 的 Cal.com 业务对象、品牌、营销内容、页面 IA 或示例数据；只采用工程边界、组件架构、交互模型与允许使用的 UI source。
 
-## Morlane Design DNA
+## Workspace 与工具链
 
-### 设计系统层
+- 根目录使用 Bun、Turborepo 和 Biome，workspace 固定覆盖 `apps/*`、`apps/examples/*`、`packages/*`。
+- 正式产品运行时位于 `apps/web/`；UI 文档与 shadcn registry 位于 `apps/ui/`；Fugue 组合示例位于 `apps/examples/fugue-console/`。
+- 共享运行时 UI package 位于 `packages/ui/`，严格 TypeScript 基线位于 `packages/typescript-config/`。
+- 根 scripts 统一编排 format、lint、typecheck、test、build、OpenAPI contract、registry validate/build/sync-check、bundle、audit 与 license 检查；不得在 package 中建立彼此矛盾的第二套规则。
+- React 与 Next.js 版本必须在 workspace 内唯一，并保持在已修复安全版本；禁止使用无上界的 `latest`。
 
-- 色彩基线：
-  - 画布底色：`#f6f7f8`
-  - 主表面：`#ffffff`
-  - 次级表面：`#f1f3f5`
-  - 主文本：`#17191c`
-  - 次文本：`#646b73`
-  - 弱文本：`#8b929a`
-  - 主边框：`#d8dde3`
-  - 强调色：`#1463ff`
-- 字体基线：
-  - 主字体使用 `Inter`，代码、对象标识、命令和技术值使用 `IBM Plex Mono`
-  - 只有左上角 / sidebar 的 `Fugue` wordmark 保留原品牌字体 `Syne`
-  - 其他标题、面板、表格、按钮、表单和正文不使用 `Syne`、`Manrope` 或其他旧 Fugue 展示字体
-  - 标题、按钮、表格对象名和表单标签都应紧凑、清晰、低装饰
-- 布局基线：
-  - Console / admin 使用左侧导航 + 顶部栏 + 内容工作区的密集产品布局
-  - Marketing 使用简洁顶部导航 + split hero + 产品面板，不使用沉浸式暗场或动态背景秀场
-  - Auth 使用居中表单卡片，不使用左右叙事 stage
-  - Docs 使用左侧目录 + 内容正文 + 小型 note / table / code 组件
-- 形状与材质：
-  - 默认圆角为 `6px`，卡片和弹窗可到 `8px`
-  - 表面以白底、浅灰边框、轻阴影和明确分隔为主
-  - 禁止玻璃拟态、霓虹发光、CRT、扫描线、噪点、巨型装饰字和背景特效
-- 动效基线：
-  - 只保留必要的 hover、focus、loading、dialog transition
-  - 不为装饰效果引入 Canvas / WebGL / shader
-  - `prefers-reduced-motion` 下必须降低或移除非必要 motion
+## Registry 到 package 的单向规则
 
-## Token 种子
+- `apps/ui/registry/default/ui` 是 primitive 唯一人工维护源；hooks、lib 和 Base UI adapter 的唯一来源分别位于同一 registry tree 的对应目录。
+- `packages/ui/src/components`、`packages/ui/src/hooks`、`packages/ui/src/lib` 与 `packages/ui/src/base-ui` 是同步产物。禁止直接修改 synced 文件；所有变更先改 registry source，再运行同步并通过 drift check。
+- 产品应用只通过显式子路径消费共享 UI，例如 `@fugue/ui/components/button`、`@fugue/ui/hooks/use-mobile`；禁止从总 barrel import 扩大客户端 bundle。
+- registry item 必须声明准确的 `registryDependencies`、外部 dependencies、files、categories 和 target；registry build 产物必须可校验、可安装、可复现。
+- 引入上游组件先使用 shadcn CLI 的 dry-run/diff 检查，再落入本仓库 registry source；不得静默覆盖本地组件。
 
-- 扩展设计系统时，按 `primitive -> semantic -> component` 三层 token 架构拆分，不要散落硬编码值。
-- 当前 Morlane 种子：
+## 组件与设计系统规则
 
-```css
-/* primitive */
---ml-bg: #f6f7f8;
---ml-surface: #ffffff;
---ml-surface-2: #f1f3f5;
---ml-text: #17191c;
---ml-muted: #646b73;
---ml-faint: #8b929a;
---ml-border: #d8dde3;
---ml-accent: #1463ff;
+- 活跃 primitive 基础统一为 Base UI，组合 API 使用 Base UI `render`，不新增 Radix `asChild` 路线。
+- 组件使用 Tailwind CSS v4、semantic CSS variables、`data-slot`、CVA 与 `cn()`；token 按 `primitive -> semantic -> component` 三层组织，应用页面不得局部硬编码重写组件颜色和 typography。
+- React/Next.js 默认 Server Component；只有 hooks、浏览器 API、交互状态或 Base UI 客户端 primitive 边界才声明 `"use client"`。不要因一个交互控件把整个页面提升为 Client Component。
+- 优先使用现有 registry primitive 和 composition；只有现有 primitive 无法组合真实产品状态时才新增组件，并同时补文档、示例、键盘行为、disabled/loading/empty/error 状态和测试。
+- 图标只使用设计系统指定的 icon library；按钮、菜单项与输入附属图标遵守共享尺寸与 `aria-hidden` 规则，不手写 SVG。
+- 必须保留可见 focus、键盘操作、屏幕阅读器语义、forced-colors、200% zoom、`prefers-reduced-motion` 和移动端响应式。
 
-/* semantic */
---fugue-color-surface-canvas: var(--ml-bg);
---fugue-color-surface-raised: var(--ml-surface);
---fugue-color-text-primary: var(--ml-text);
---fugue-color-text-secondary: var(--ml-muted);
---fugue-color-border-default: var(--ml-border);
---fugue-color-accent: var(--ml-accent);
-```
-
-## 可复用界面模式
-
-- `ml-app-shell`: sidebar + topbar + page work area
-- `ml-card`: compact panel / section container
-- `ml-table`: dense product table
-- `ml-button`: primary / secondary / danger / ghost controls
-- `ml-segmented`: view switch
-- `ml-form`: stacked field + validation + helper text
-- `ml-auth-panel`: centered auth card
-- `ml-docs-shell`: docs rail + content layout
-- `ml-terminal`: lightweight command / log preview panel
-
-这些模式优先从 `design-system/morlane.css` 和 morlane 仓库继续抽取，不从本仓库旧实现重新发明。
-
-## 跨页面适配边界
+## 跨页面产品边界
 
 ### Marketing
 
-- 使用 Morlane 的 light-first split hero、白色产品面板、浅灰背景和克制 CTA。
-- 只迁移当前真实存在的信息和链接，不新增营销层级或虚构能力。
+- 使用 COSS semantic token 和 registry primitive 组合现有真实内容与 CTA；不复制 COSS/Cal.com 文案，也不新增虚构能力、统计块或额外信息层级。
 
 ### Auth
 
-- 使用居中 `ml-auth-panel`，表单主体优先。
-- Google 登录、邮箱注册、验证码 / 邮件发送、表单校验、加载、失败、回跳失败、空状态都必须有明确状态。
+- 使用真实 `<form>`、`Field`/`FieldGroup`、明确 label/name/type/autocomplete 和可恢复状态；Google、GitHub、邮箱、密码、验证码、回跳失败与限流都必须有一致语义。
 
 ### Docs
 
-- 使用 `ml-docs-shell`，优先保证目录、正文、表格、code block 和 note 的可读性。
-- 禁止引入动态背景或 marketing 级视觉效果。
+- 由 `apps/ui` 的文档/registry 基础设施承载 UI 文档；产品 docs 保证目录、正文、表格、code、note 和移动阅读体验，不混入 marketing 级装饰。
 
 ### App Console
 
-- 使用 Morlane 的密集后台产品布局：sidebar、topbar、page header、metric、table、resource row、dialog、drawer、empty/error/loading。
-- 按钮默认使用 `primary / secondary / danger / ghost` 分层；局部视图切换默认使用 segmented control。
-- Console 不使用 landing hero、叙事 stage、旧 route-signal / proof-shell / object-belt 视觉。
+- 使用 `@fugue/ui` primitive 和应用层 composition 实现 sidebar、topbar、page header、table、resource row、dialog、drawer、empty/error/loading；服务端权限边界与 UI shell 必须同时成立。
 
-## 前端架构立场
+## 前端运行时立场
 
-- 正式产品运行时优先落在：
-  - `app/`
-  - `components/`
-  - `lib/`
-  - `app/api/auth/*`
-- auth、product shell、session、受保护页面或 console 骨架，优先从这些目录继续实现，不要回退到历史静态样张思路。
-- 共享 token、layout primitive、button / form / panel 组件优先抽到 `design-system/` 或正式组件层。
-- 不再在仓库根维护版本化 landing 预览目录；影响全站的视觉方向变更应直接更新正式基线与文档。
+- auth、product shell、session、受保护页面、route handler 和 console 骨架在 `apps/web/` 中继续作为正式产品实现；不得回退到静态样张。
+- 权限判断在 server layout、route handler 或 server action 完成；客户端失败态不是访问控制。
+- OpenAPI generated client 与产品 view model 保持薄适配；不能为了 UI 迁移重新引入手写未知响应解析器。
+- 迁移顺序固定为 workspace/toolchain -> registry/package -> primitive -> shell -> vertical slice；迁移期间不得同时扩展 Morlane、手写 COSS 和 `@fugue/ui` 三套系统。
+- 不在仓库根维护版本化 landing 预览目录；示例必须进入 `apps/examples/`，正式方向直接更新运行时、registry 与文档。
 
 ## 维护与变更规则
 
@@ -333,12 +279,14 @@
   - 动态场景失败后的 fallback
   - loading / empty / error / disabled 状态
 - 新组件先判断能否由现有模式组合得到；不能组合时再新增，并及时回写到本文件。
-- 修改核心视觉 token、字体、主按钮结构、面板材质、路径语法时，必须同步更新本 `AGENTS.md`。
+- 修改 workspace 边界、registry 同步规则、核心 token、字体、primitive API、package export 或路径语法时，必须同步更新本 `AGENTS.md`、provenance 和迁移文档。
+- 任何 `packages/ui` diff 都必须能由 registry source 和同步脚本重新生成；CI 必须阻止双写漂移。
 
 ## 当前推荐的 skill 组合
 
-- 做设计 DNA 抽取：优先用 `design-dna`
+- 做 COSS primitive / registry：优先用 `shadcn`
 - 做 tokens / 可复用组件沉淀：优先组合 `extract` + `ckm:design-system`
 - 做跨页面一致性收敛：优先用 `normalize`
 - 做设计品味与最终质感把关：优先组合 `design-taste-frontend` + `high-end-visual-design` + `polish`
 - 做 React / Next.js 落地：优先组合 `vercel-react-best-practices` + `vercel-composition-patterns`
+- 做安全、性能与验收：优先组合 `harden` + `optimize` + `webapp-testing`
