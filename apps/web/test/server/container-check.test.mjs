@@ -133,7 +133,9 @@ describe("production container check contracts", () => {
     );
     expect(webPackage.scripts.start).toBe("node ./scripts/start-standalone.mjs");
     expect(nextConfig).toContain('output: "standalone"');
-    expect(standaloneStart).toContain('"standalone",\n  "apps",\n  "web"');
+    expect(standaloneStart).toContain(
+      'path.join(appRoot, ".next", "standalone", "apps", "web")',
+    );
     expect(standaloneStart).toContain('path.join(appRoot, ".next", "static")');
     expect(standaloneStart).toContain('path.join(appRoot, "public")');
     expect(qualityWorkflow).toContain("node scripts/quality/container-check.mjs");
