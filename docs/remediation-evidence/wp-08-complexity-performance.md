@@ -32,10 +32,16 @@ Docs 184.8 KiB、Auth sign-in/sign-up 197.5 KiB、Console project route 233.6 Ki
 约束。
 
 `artifacts/performance/console-workbench-4x-cpu.json` 是 Chromium desktop、4x CPU throttle
-下的确定性实验室 smoke：Environment 切换 315.1 ms、Logs 308.0 ms、最大 Event Timing 64 ms、
-1 个 long task、最大 53 ms、交互窗口 TBT 3 ms，均低于测试的 1,000 ms fail threshold。它是
-低端 CPU 的 synthetic evidence，不冒充 field INP；生产发布后继续监控真实 Core Web
-Vitals 和客户端错误率。
+下的实验室 smoke：本轮完整 205-case matrix 中 Environment 切换 763.4 ms、Logs 312.8 ms、
+最大 Event Timing 56 ms、0 个 long task、交互窗口 TBT 0 ms，均低于测试的 1,000 ms fail
+threshold。它是低端 CPU 的 synthetic evidence，不冒充 field INP；生产发布后继续监控真实
+Core Web Vitals 和客户端错误率。
+
+第一次不限制本机 worker 的完整 `fullyParallel` 回归出现过一次 2,056.1 ms 的冷 deferred
+chunk wall-clock outlier；同一窗口 Event Timing 仅 64 ms、TBT 6 ms。随后单 worker 隔离复跑
+5/5 通过，清空负载后的完整 205-case matrix 也 107 pass / 98 expected skip / 0 fail，并生成
+上述最终 artifact。测试阈值保持 1,000 ms，没有为通过而放宽；后续可把多样本
+median/p75 采集拆成独立性能 job，避免把宿主调度抖动误判为主线程回归。
 
 `artifacts/performance/local-browser-smoke.json` 的 Docs navigation 记录 CLS 0、TBT 0、
 long task 0、LCP 448 ms 和约 44 ms interaction-to-next-paint approximation。所有优化

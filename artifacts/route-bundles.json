@@ -1463,7 +1463,7 @@
     {
       "route": "/auth/finalize",
       "rawBytes": 655266,
-      "gzipBytes": 190749,
+      "gzipBytes": 190758,
       "budgetBytes": 204800,
       "baselineBytes": null,
       "growthLimitBytes": null,
@@ -1505,9 +1505,9 @@
           "appOwned": true
         },
         {
-          "path": "static/chunks/24ip3lh2j8em1.js",
+          "path": "static/chunks/03stwzj8ahjbz.js",
           "rawBytes": 29575,
-          "gzipBytes": 9073,
+          "gzipBytes": 9082,
           "appOwned": true
         },
         {
@@ -2045,6 +2045,12 @@
       "appOwned": true
     },
     {
+      "path": "static/chunks/03stwzj8ahjbz.js",
+      "rawBytes": 29575,
+      "gzipBytes": 9082,
+      "appOwned": true
+    },
+    {
       "path": "static/chunks/0695hb7sio7vd.js",
       "rawBytes": 4259,
       "gzipBytes": 1769,
@@ -2150,12 +2156,6 @@
       "path": "static/chunks/21p8zr00kxwgw.js",
       "rawBytes": 30896,
       "gzipBytes": 10244,
-      "appOwned": true
-    },
-    {
-      "path": "static/chunks/24ip3lh2j8em1.js",
-      "rawBytes": 29575,
-      "gzipBytes": 9073,
       "appOwned": true
     },
     {

@@ -1,6 +1,6 @@
 # Fugue Web 前端整体 Code Review 修复方案
 
-> 状态：Ready for staged execution；COSS source 引入与 UI 迁移在 `AGENTS.md` 同步、许可证与 provenance Gate 完成前保持 blocked
+> 状态：Implementation PR #1 已合并并完成首发；preauthorization follow-up 已本地验证，待 PR/CI、自动重部署与稳定观察
 >
 > 文档日期：2026-07-12
 >
@@ -1380,7 +1380,7 @@ R2、R3、R4 不合并为一个发布单元：它们分别涉及数据库/授权
 - [x] route bundle budget 通过。
 - [x] Admin 大列表分页完成。
 - [x] stale endpoint 和 cache invalidation race 已修复。
-- [x] Unit/integration/E2E/axe/style/audit/build CI 全绿。（[frontend-quality run 29216177426](https://github.com/yym68686/fugue-web/actions/runs/29216177426)，17/17 required + GitGuardian）
+- [ ] Unit/integration/E2E/axe/style/audit/build CI 全绿。（首版 [frontend-quality run 29216177426](https://github.com/yym68686/fugue-web/actions/runs/29216177426) 已全绿；待 follow-up PR required checks 绑定当前修复 SHA 后关闭）
 
 ### Gate C：产品质量
 
@@ -1399,21 +1399,21 @@ R2、R3、R4 不合并为一个发布单元：它们分别涉及数据库/授权
 
 | 工作包 | Owner | PR / Commit | 自动化证据 | 人工验收 | 发布日期 | 状态 |
 | --- | --- | --- | --- | --- | --- | --- |
-| WP-00 | Codex | `705d95a`；[PR #1](https://github.com/yym68686/fugue-web/pull/1) | `phase-0-baseline.md`；本地基线可复现 | 10 张截图人工复核通过 | 待发布 | Implementation PR open; delivery pending |
-| WP-01 | Codex | `b892f09`；[PR #1](https://github.com/yym68686/fugue-web/pull/1) | DB concurrency/security unit + integration 全绿 | 正式控制平面 2 名 active/verified 管理员只读盘点已归档 | 待发布 | Implementation PR open; production preflight passed |
-| WP-02 | Codex | `b892f09`；[PR #1](https://github.com/yym68686/fugue-web/pull/1) | active-session、撤销、mutation guard unit/integration/E2E 全绿 | 自动化 product smoke 通过 | 待发布 | Implementation PR open |
-| WP-03 | Codex | `b892f09`；[PR #1](https://github.com/yym68686/fugue-web/pull/1) | Google/GitHub × sign-in/sign-up、PKCE、finalize、失败清理 integration 全绿 | 待发布后事件观察 | 待发布 | Implementation PR open |
-| WP-04 | Codex | `fugue@5246335` 已入 main；Web `b892f09` | `wp-04-upload-resource-safety.md`、upload stress；workflow `29197487888` 成功 | 后端 control-plane 正式链路已完成；Web 待发布 | 后端 2026-07-12 | Backend released; Web delivery pending |
-| WP-05 | Codex | `12d0b16`、`705d95a`；[PR #1](https://github.com/yym68686/fugue-web/pull/1) | frozen install、security audit 0 advisory、lock review、versions gate 全绿 | lockfile source/install-script review 已归档 | 待发布 | Implementation PR open |
-| WP-06 | Codex | `fugue@c7643ee/9cb0269/5246335`；Web `b892f09`、`705d95a`；[PR #1](https://github.com/yym68686/fugue-web/pull/1) | `fugue/main@710f7d2` snapshot hash parity + contract matrix 全绿 | 特殊协议 inventory 已签字式归档 | 后端 2026-07-12 | Backend authority released; Web remote CI pending |
-| WP-07 | Codex | `b892f09`；[PR #1](https://github.com/yym68686/fugue-web/pull/1) | server guard、Auth form、Env identity、authenticated E2E 全绿 | 产品行为自动化通过 | 待发布 | Implementation PR open |
-| WP-08 | Codex | `b892f09`、`705d95a`；[PR #1](https://github.com/yym68686/fugue-web/pull/1) | build 同轮 bundle gate、19 routes、性能 artifacts 全绿 | 待发布后真实流量观测 | 待发布 | Implementation PR open |
-| WP-09A | Codex | `48367a0`；[PR #1](https://github.com/yym68686/fugue-web/pull/1) | registry/build/sync/theme/provenance/license/SBOM gates 全绿 | **待 owner 明确许可证批准** | 待发布 | Implementation PR open; owner gate pending |
-| WP-09B | Codex | `b892f09`；[PR #1](https://github.com/yym68686/fugue-web/pull/1) | consumer/source contracts、bundle、E2E 全绿 | Console desktop/mobile 缺陷已修复，截图重生成并人工复核通过 | 待发布 | Implementation PR open |
-| WP-10 | Codex | `48367a0`、`705d95a`；[PR #1](https://github.com/yym68686/fugue-web/pull/1) | Playwright 106 pass / 94 expected skip；axe 8/8；Base UI keyboard harness 通过 | 10 张 desktop/mobile 截图人工复核通过 | 待发布 | Implementation PR open |
-| WP-11 | Codex | 后端 feature 已入 `fugue/main`；Web `b892f09`、`705d95a`；[PR #1](https://github.com/yym68686/fugue-web/pull/1) | pagination、deferred identity、cache race unit/integration/E2E 全绿 | 自动化规模/乱序场景通过 | 后端 2026-07-12 | Implementation PR open; Web CI pending |
-| WP-12 | Codex | `b892f09`、`705d95a`；[PR #1](https://github.com/yym68686/fugue-web/pull/1) | i18n 455 keys/3 locales、SEO、browser/viewport gates 全绿 | desktop/mobile/zoom/high-contrast/reduced-motion 复核通过 | 待发布 | Implementation PR open |
-| WP-13 | Codex | `705d95a`、`8011e8f`、`c490459`、`aa49522`；[PR #1](https://github.com/yym68686/fugue-web/pull/1) | 最终本地矩阵及 `4f1aba0` 全新 clone 的 25 项门禁全绿；E2E 106/94；axe 8/8；container 通过 | 视觉与 fresh-clone 复现通过；待远端 CI 与生产观察 | 待发布 | Fresh-clone gate passed; remote delivery/observation pending |
+| WP-00 | Codex | `705d95a`；[PR #1](https://github.com/yym68686/fugue-web/pull/1) | `phase-0-baseline.md`；本地基线可复现 | 10 张截图人工复核通过 | 2026-07-13 | Implementation PR merged；production deployed |
+| WP-01 | Codex | `b892f09`；[PR #1](https://github.com/yym68686/fugue-web/pull/1) | DB concurrency/security unit + integration 全绿 | 正式控制平面 2 名 active/verified 管理员只读盘点已归档 | 2026-07-13 | Implementation PR merged；production deployed |
+| WP-02 | Codex | `b892f09`；[PR #1](https://github.com/yym68686/fugue-web/pull/1) | active-session、撤销、mutation guard unit/integration/E2E 全绿 | 自动化 product smoke 通过 | 2026-07-13 | Implementation PR merged；production deployed |
+| WP-03 | Codex | `b892f09`；[PR #1](https://github.com/yym68686/fugue-web/pull/1) | Google/GitHub × sign-in/sign-up、PKCE、finalize、失败清理 integration 全绿 | 发布后事件观察待 follow-up 稳定窗口归档 | 2026-07-13 | Implementation PR merged；production observation pending |
+| WP-04 | Codex | `fugue@5246335` 已入 main；Web `b892f09` | `wp-04-upload-resource-safety.md`、upload stress；workflow `29197487888` 成功 | 后端 control-plane 与 Web 正式链路均已完成 | 2026-07-13 | Backend and Web released；observation pending |
+| WP-05 | Codex | `12d0b16`、`705d95a`；[PR #1](https://github.com/yym68686/fugue-web/pull/1) | frozen install、security audit 0 advisory、lock review、versions gate 全绿 | lockfile source/install-script review 已归档 | 2026-07-13 | Implementation PR merged；production deployed |
+| WP-06 | Codex | `fugue@c7643ee/9cb0269/5246335`；Web `b892f09`、`705d95a`；[PR #1](https://github.com/yym68686/fugue-web/pull/1) | `fugue/main@409bd6c` snapshot hash parity + contract matrix 全绿 | 特殊协议 inventory 已签字式归档 | 2026-07-13 | Backend authority and Web contract released |
+| WP-07 | Codex | `b892f09`；[PR #1](https://github.com/yym68686/fugue-web/pull/1) | server guard、Auth form、Env identity、authenticated E2E 全绿 | 产品行为自动化通过 | 2026-07-13 | Implementation PR merged；production deployed |
+| WP-08 | Codex | `b892f09`、`705d95a`；[PR #1](https://github.com/yym68686/fugue-web/pull/1) | build 同轮 bundle gate、19 routes、性能 artifacts 全绿 | 真实流量指标待 follow-up 稳定窗口归档 | 2026-07-13 | Implementation PR merged；production observation pending |
+| WP-09A | Codex | `48367a0`、`3441cd1`；[PR #1](https://github.com/yym68686/fugue-web/pull/1) | registry/build/sync/theme/provenance/license/SBOM gates 全绿 | owner 已书面批准可使用全部 COSS 代码；实际 release 仍保持更窄的已审计来源边界 | 2026-07-13 | Owner gate passed；最终 release archive 待 closeout |
+| WP-09B | Codex | `b892f09`；[PR #1](https://github.com/yym68686/fugue-web/pull/1) | consumer/source contracts、bundle、E2E 全绿 | Console desktop/mobile 缺陷已修复，截图重生成并人工复核通过 | 2026-07-13 | Implementation PR merged；production deployed |
+| WP-10 | Codex | `48367a0`、`705d95a`；[PR #1](https://github.com/yym68686/fugue-web/pull/1) | Playwright 107 pass / 98 expected skip；axe 8/8；Base UI keyboard harness 通过 | 10 张 desktop/mobile 截图人工复核通过 | 2026-07-13 | Implementation PR merged；生产观察中 |
+| WP-11 | Codex | 后端 feature 已入 `fugue/main`；Web `b892f09`、`705d95a`；[PR #1](https://github.com/yym68686/fugue-web/pull/1) | pagination、deferred identity、cache race unit/integration/E2E 全绿 | 自动化规模/乱序场景通过 | 2026-07-13 | Backend and Web released；observation pending |
+| WP-12 | Codex | `b892f09`、`705d95a`；[PR #1](https://github.com/yym68686/fugue-web/pull/1) | i18n 454 keys/3 locales、SEO、browser/viewport gates 全绿 | desktop/mobile/zoom/high-contrast/reduced-motion 复核通过 | 2026-07-13 | Implementation PR merged；生产观察中 |
+| WP-13 | Codex | `705d95a`、`8011e8f`、`c490459`、`aa49522`；[PR #1](https://github.com/yym68686/fugue-web/pull/1)；[`protected-route follow-up`](./remediation-evidence/wp-13-protected-route-preauthorization.md) | `4f1aba0` 全新 clone 的 25 项门禁全绿；当前 E2E 107/98；axe 8/8；container 通过 | 首发生产流式边界已复现并前向修复；待 follow-up 发布与稳定观察 | 2026-07-13 | Implementation PR merged；preauthorization follow-up 验证中 |
 
 ## 18. 本方案参考的方法
 
