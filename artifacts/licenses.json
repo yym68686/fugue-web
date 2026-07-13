@@ -8,7 +8,7 @@
     "importedFiles": 68,
     "verifiedUnmodifiedFiles": 54
   },
-  "dependencyComponents": 669,
+  "dependencyComponents": 592,
   "workspaceComponents": 6,
   "sbomOutput": "artifacts/fugue-web.cdx.json",
   "violations": []

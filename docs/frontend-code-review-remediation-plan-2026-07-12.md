@@ -691,7 +691,7 @@ WP-13A 分两层执行：R0 先建立 build、typecheck、contract、dependency 
 
 #### 验收 TODO
 
-- [ ] 新 clone 在文档化命令下可运行全部门禁。
+- [x] 新 clone 在文档化命令下可运行全部门禁。（`5ca9934`，全新 `--no-local` clone，25 项门禁 420 秒完成）
 - [x] `bun run build`、`bun run lint`、`bun run typecheck` 和 `bun run test` 可从根目录执行并覆盖所有 workspace。
 - [x] Turbo filter 能单独验证 `apps/web`、`apps/ui`、example 和 `packages/ui`。
 - [x] 任意一个已知漏洞的回归用例失败都会阻止 PR 合并。
@@ -1413,7 +1413,7 @@ R2、R3、R4 不合并为一个发布单元：它们分别涉及数据库/授权
 | WP-10 | Codex | `48367a0`、`c5e7500`；PR 待创建 | Playwright 106 pass / 94 expected skip；axe 8/8；Base UI keyboard harness 通过 | 10 张 desktop/mobile 截图人工复核通过 | 待发布 | Local accessibility/visual acceptance committed |
 | WP-11 | Codex | 后端 feature 已入 `fugue/main`；Web `b892f09`、`c5e7500` | pagination、deferred identity、cache race unit/integration/E2E 全绿 | 自动化规模/乱序场景通过 | 后端 2026-07-12 | Local/Web implementation committed; Web CI pending |
 | WP-12 | Codex | `b892f09`、`c5e7500`；PR 待创建 | i18n 455 keys/3 locales、SEO、browser/viewport gates 全绿 | desktop/mobile/zoom/high-contrast/reduced-motion 复核通过 | 待发布 | Local gates committed |
-| WP-13 | Codex | `c5e7500`；PR 待创建 | 最终本地命令矩阵全绿；E2E 106/94；axe 8/8；container 通过 | 视觉通过；待 fresh clone、远端 CI 与生产观察 | 待发布 | Local matrix/visual committed; delivery/observation pending |
+| WP-13 | Codex | `c5e7500`、`67e62e7`、`4d70c4a`、`5ca9934`；PR 待创建 | 最终本地矩阵及 `5ca9934` 全新 clone 的 25 项门禁全绿；E2E 106/94；axe 8/8；container 通过 | 视觉与 fresh-clone 复现通过；待远端 CI 与生产观察 | 待发布 | Fresh-clone gate passed; remote delivery/observation pending |
 
 ## 18. 本方案参考的方法
 
