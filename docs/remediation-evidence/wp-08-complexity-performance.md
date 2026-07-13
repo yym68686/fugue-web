@@ -25,18 +25,18 @@
 
 ## Bundle 与 4x CPU 测量
 
-最终 settled build 重新生成 `artifacts/route-bundles.json`。当前测量中 `/` 180 KiB、
-Docs 181 KiB、Auth sign-in/sign-up 193 KiB、Console project route 229 KiB gzip，分别低于
+最终 settled build 重新生成 `artifacts/route-bundles.json`。当前测量中 `/` 183.9 KiB、
+Docs 184.8 KiB、Auth sign-in/sign-up 197.5 KiB、Console project route 233.6 KiB gzip，分别低于
 200/250 KiB route budget；最大 app-owned chunk 低于 80 KiB。Auth 在 native semantic field
-替换重客户端 radio primitive 后从约 204.9 KiB 降到 194.1 KiB，并继续由 200 KiB gate
+替换重客户端 radio primitive 后从约 204.9 KiB 降到 197.5 KiB，并继续由 200 KiB gate
 约束。
 
 `artifacts/performance/console-workbench-4x-cpu.json` 是 Chromium desktop、4x CPU throttle
-下的确定性实验室 smoke：Environment 切换 394 ms、Logs 442 ms、最大 Event Timing 56 ms、
-12 个 long task、最大 82 ms、TBT 258 ms，均低于测试的 1,000 ms fail threshold。它是
+下的确定性实验室 smoke：Environment 切换 315.1 ms、Logs 308.0 ms、最大 Event Timing 64 ms、
+1 个 long task、最大 53 ms、交互窗口 TBT 3 ms，均低于测试的 1,000 ms fail threshold。它是
 低端 CPU 的 synthetic evidence，不冒充 field INP；生产发布后继续监控真实 Core Web
 Vitals 和客户端错误率。
 
 `artifacts/performance/local-browser-smoke.json` 的 Docs navigation 记录 CLS 0、TBT 0、
-long task 0、LCP 348 ms 和约 33.6 ms interaction-to-next-paint approximation。所有优化
+long task 0、LCP 448 ms 和约 44 ms interaction-to-next-paint approximation。所有优化
 都同时有行为回归测试，不能只凭 bundle 变小判定成功。
