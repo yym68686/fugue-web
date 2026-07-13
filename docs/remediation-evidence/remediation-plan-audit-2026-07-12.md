@@ -8,13 +8,15 @@
 
 ## 1. 当前精确结果
 
-- 计划共有 **605** 个 checkbox：**579 已勾，26 未勾**。
+- 计划共有 **605** 个 checkbox：**585 已勾，20 未勾**。
 - 本轮把最终本地命令矩阵、Auth 成功流、Base UI keyboard/axe、后端正式发布证据与可由
   当前 artifacts 直接证明的 DoD/Gate 汇总项更新为 `[x]`。
-- 已形成 9 个单一职责提交；没有勾选 COSS owner 许可、Web PR/CI/merge/push、生产 Web
-  发布与观察、closeout PR 或 release archive。
-- 在全新 `git clone --no-local` 的 `5ca9934e18fe3dc368f088d48501819fde33ecc3`
-  上依次执行 25 项文档化门禁，420 秒完成且 0 失败；E2E 正式使用
+- 已形成 12 个单一职责提交并创建
+  [`fugue-web#1`](https://github.com/yym68686/fugue-web/pull/1)；PR 已归档 WP/风险、路由、
+  before/after、desktop/mobile、COSS upstream、迁移/兼容和逐提交 rollback map。没有勾选
+  COSS owner 许可、远端 CI/merge、生产 Web 发布与观察、closeout PR 或 release archive。
+- 在全新 `git clone --no-local` 的 `4f1aba057d358e840c41971147688692581b58bc`
+  上依次执行 25 项文档化门禁，482 秒完成且 0 失败；E2E 正式使用
   `start-standalone.mjs`，没有 unsupported `next start` 警告。
 - 最终 browser matrix 是 **200 个 Playwright project cases：106 passed、94 个预期
   capability skip、0 failed**；axe 独立矩阵是 **8/8 passed**。
@@ -88,16 +90,14 @@
 尚未发布，观察窗口与回滚负责人尚未由 owner 指定，因此所有生产监控 checkbox 仍是
 `[ ]`。
 
-## 6. 剩余 26 个未勾项
+## 6. 剩余 20 个未勾项
 
 以下行号对应本次审计后的计划文件。
 
-### 6.1 PR 与远端 CI（11 项）
+### 6.1 远端 CI、merge 与 closeout PR（5 项）
 
-- 313、314、324：只能由最终 PR 描述、rollback map、性能/视觉附件证明。
-- 359、360、370：必须由 implementation PR 与计划中的发布后 closeout PR 共同证明。
+- 359：必须由当前 implementation PR 与计划中的发布后 closeout PR 共同证明。
 - 690、827、1383：required checks、contract CI 和完整远端 CI 尚未运行。
-- 1084：上游同步 PR 附件只能在 PR 创建后关闭。
 - 1287：Fugue Web 尚未走完正常 code review、CI、merge 与发布流程。
 
 ### 6.2 Owner 与 release archive（5 项）
@@ -122,4 +122,4 @@
 4. Fugue Web production version/operation、管理员预检、观察窗口、回滚 owner 和指标结果。
 5. 发布后 closeout PR 与 NOTICE/provenance/SBOM release archive。
 
-在这些证据真实产生前，不应为了让计数归零而提前勾选剩余 26 项。
+在这些证据真实产生前，不应为了让计数归零而提前勾选剩余 20 项。
