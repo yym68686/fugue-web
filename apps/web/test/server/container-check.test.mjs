@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 
 import {
+  CONTAINER_CANONICAL_HOST,
   evaluateHomepageHeaders,
   FORBIDDEN_IMAGE_PATHS,
   isNonRootContainerUser,
@@ -97,7 +98,7 @@ function createDockerDouble(options = {}) {
 }
 
 function createFetchDouble(options = {}) {
-  return async (url) => {
+  return async (url, init) => {
     if (String(url).endsWith("/healthz")) {
       if (options.healthFailure) {
         throw new Error("sensitive transport detail");
@@ -107,6 +108,10 @@ function createFetchDouble(options = {}) {
         headers: { "Cache-Control": "no-store" },
         status: 200,
       });
+    }
+
+    if (new Headers(init?.headers).get("host") !== CONTAINER_CANONICAL_HOST) {
+      throw new Error("homepage request did not use the configured canonical host");
     }
 
     return new Response("homepage", {
@@ -141,6 +146,7 @@ describe("production container check contracts", () => {
     expect(qualityWorkflow).toContain("node scripts/quality/container-check.mjs");
     expect(qualityWorkflow).toContain("--report artifacts/container.json");
     expect(source).toContain('"127.0.0.1::3000"');
+    expect(CONTAINER_CANONICAL_HOST).toBe("127.0.0.1:3000");
     expect(source).toContain("process.once(signal, handler)");
     expect(source).toContain("finally {");
     expect(REQUIRED_VARY_FIELDS).toEqual(EXPECTED_VARY_FIELDS);

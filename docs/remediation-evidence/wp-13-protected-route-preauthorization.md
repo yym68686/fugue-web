@@ -102,6 +102,16 @@ error in the 10 focus and 3 cold-font repetitions above. It is therefore not
 suppressed by the browser failure monitor and is not classified as an
 application runtime defect.
 
+The follow-up [`frontend-quality` run
+29246518849](https://github.com/yym68686/fugue-web/actions/runs/29246518849)
+passed all 17 jobs, including 107 browser passes, 98 expected capability skips,
+and no failure. Its retained performance artifact nevertheless exposed a
+`0.023346` CLS and an approximately 39.9 px cold-font vertical shift. Passing
+the generic `0.1` threshold was not accepted as proof of visual stability. The
+next forward commit moves runtime fonts behind the shared `next/font/local`
+package boundary and adds pre/post-font geometry assertions; final required
+checks for that commit remain part of this PR before release.
+
 ## Release and rollback
 
 This is a normal forward fix through the focused

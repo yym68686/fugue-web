@@ -187,12 +187,25 @@ test.describe("public, auth, and private route boundaries", () => {
       }
     }
 
+    const alternateHostResponse = await request.get("/docs?source=alternate", {
+      failOnStatusCode: false,
+      headers: { Host: "web.fugue.example" },
+      maxRedirects: 0,
+    });
+    expect(alternateHostResponse.status()).toBe(308);
+    const canonicalRedirect = new URL(
+      alternateHostResponse.headers().location as string,
+      baseURL,
+    );
+    expect(canonicalRedirect.origin).toBe(expectedOrigin);
+    expect(canonicalRedirect.pathname).toBe("/docs");
+    expect(canonicalRedirect.search).toBe("?source=alternate");
+
     const malformedCookieResponse = await request.get("/app", {
       failOnStatusCode: false,
       headers: {
         Accept: "text/html",
         Cookie: "fugue_session=malformed-signed-session",
-        Host: "untrusted.example",
         "X-Forwarded-Host": "forwarded-untrusted.example",
         "X-Forwarded-Proto": "http",
       },

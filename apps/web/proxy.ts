@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-import { readRequestOrigin } from "@/lib/auth/origin";
+import { readConfiguredCanonicalOrigin, readRequestOrigin } from "@/lib/auth/origin";
 import { PAGE_RETURN_TO_HEADER } from "@/lib/auth/page-request-context";
 import { readVersionedSessionToken } from "@/lib/auth/session-claim";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/session-cookie";
@@ -28,6 +28,21 @@ function readPageReturnTo(request: NextRequest) {
   return `${request.nextUrl.pathname}${search ? `?${search}` : ""}`;
 }
 
+function readCanonicalPageRedirect(request: NextRequest) {
+  if (request.method !== "GET" && request.method !== "HEAD") return null;
+
+  const canonicalOrigin = readConfiguredCanonicalOrigin();
+  if (!canonicalOrigin) return null;
+
+  const canonicalUrl = new URL(canonicalOrigin);
+  const requestHost = (
+    request.headers.get("host") ?? request.nextUrl.host
+  ).toLowerCase();
+  if (requestHost === canonicalUrl.host.toLowerCase()) return null;
+
+  return new URL(`${request.nextUrl.pathname}${request.nextUrl.search}`, canonicalUrl);
+}
+
 /**
  * Every rendered document depends on the request locale and may also depend on
  * authentication cookies. Keep those documents out of shared caches. Static
@@ -35,6 +50,11 @@ function readPageReturnTo(request: NextRequest) {
  * deliberately scoped cache policy.
  */
 export function proxy(request: NextRequest) {
+  const canonicalPageRedirect = readCanonicalPageRedirect(request);
+  if (canonicalPageRedirect) {
+    return applyRenderedPagePolicy(NextResponse.redirect(canonicalPageRedirect, 308));
+  }
+
   const sessionToken = request.cookies.get(SESSION_COOKIE_NAME)?.value;
   const consolePath = isConsolePath(request.nextUrl.pathname);
   const returnTo = consolePath ? readPageReturnTo(request) : "/app";
