@@ -91,6 +91,7 @@ export default defineConfig({
           APP_BASE_URL: baseURL,
           APP_PUBLIC_URL: baseURL,
           NEXT_PUBLIC_APP_BASE_URL: baseURL,
+          CANONICAL_HOST_TRUST_PROXY_HEADERS: "true",
           AUTH_TRUST_PROXY_HEADERS: "false",
           AUTH_TRUSTED_PROXY_HOPS: "1",
           EMAIL_VERIFICATION_REQUIRED: "true",

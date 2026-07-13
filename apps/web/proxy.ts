@@ -28,6 +28,33 @@ function readPageReturnTo(request: NextRequest) {
   return `${request.nextUrl.pathname}${search ? `?${search}` : ""}`;
 }
 
+function normalizeRequestHost(value: string | null, protocol: string) {
+  const host = value?.trim();
+  if (!host || host.length > 255 || host.includes(",")) return null;
+
+  try {
+    const parsed = new URL(`${protocol}//${host}`);
+    if (
+      parsed.username ||
+      parsed.password ||
+      parsed.pathname !== "/" ||
+      parsed.search ||
+      parsed.hash
+    ) {
+      return null;
+    }
+    return parsed.host.toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
+function trustsCanonicalForwardedHost() {
+  const explicit = process.env.CANONICAL_HOST_TRUST_PROXY_HEADERS?.trim().toLowerCase();
+  if (explicit) return explicit === "true";
+  return process.env.AUTH_TRUST_PROXY_HEADERS?.trim().toLowerCase() === "true";
+}
+
 function readCanonicalPageRedirect(request: NextRequest) {
   if (request.method !== "GET" && request.method !== "HEAD") return null;
 
@@ -35,12 +62,30 @@ function readCanonicalPageRedirect(request: NextRequest) {
   if (!canonicalOrigin) return null;
 
   const canonicalUrl = new URL(canonicalOrigin);
-  const requestHost = (
-    request.headers.get("host") ?? request.nextUrl.host
-  ).toLowerCase();
-  if (requestHost === canonicalUrl.host.toLowerCase()) return null;
+  const canonicalHost = canonicalUrl.host.toLowerCase();
+  const requestHost = normalizeRequestHost(
+    request.headers.get("host") ?? request.nextUrl.host,
+    canonicalUrl.protocol,
+  );
+  if (requestHost === canonicalHost) return null;
 
-  return new URL(`${request.nextUrl.pathname}${request.nextUrl.search}`, canonicalUrl);
+  // Fugue's edge deliberately replaces the upstream Host with the internal
+  // runtime target and overwrites X-Forwarded-Host with the public route host.
+  // This header can only suppress a redirect when it exactly matches the
+  // server-configured canonical host; it never controls the redirect target or
+  // authentication origin.
+  if (trustsCanonicalForwardedHost()) {
+    const forwardedHost = normalizeRequestHost(
+      request.headers.get("x-forwarded-host"),
+      canonicalUrl.protocol,
+    );
+    if (forwardedHost === canonicalHost) return null;
+  }
+
+  const redirectUrl = new URL(canonicalUrl);
+  redirectUrl.pathname = request.nextUrl.pathname;
+  redirectUrl.search = request.nextUrl.search;
+  return redirectUrl;
 }
 
 /**

@@ -67,6 +67,7 @@ test("Playwright passes only an explicit process-environment allow-list to its s
   assert.match(config, /FUGUE_API_INTERNAL_URL: playwrightControlPlaneUrl/);
   assert.match(config, /FUGUE_BOOTSTRAP_KEY: playwrightBootstrapKey/);
   assert.match(config, /WORKSPACE_STORE_PREVIOUS_KEYS: ""/);
+  assert.match(config, /CANONICAL_HOST_TRUST_PROXY_HEADERS: "true"/);
   assert.match(config, /AUTH_TRUST_PROXY_HEADERS: "false"/);
   assert.match(config, /"http:\/\/127\.0\.0\.1:9"/);
 });
@@ -109,6 +110,7 @@ test("resolved Playwright server environment drops generic secret sentinels", as
       );
     }
     assert.equal(server.env.FUGUE_API_URL, "http://127.0.0.1:9");
+    assert.equal(server.env.CANONICAL_HOST_TRUST_PROXY_HEADERS, "true");
     assert.equal(server.env.AUTH_TRUST_PROXY_HEADERS, "false");
   } finally {
     for (const [name, value] of previous) {

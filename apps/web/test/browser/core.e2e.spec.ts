@@ -201,6 +201,35 @@ test.describe("public, auth, and private route boundaries", () => {
     expect(canonicalRedirect.pathname).toBe("/docs");
     expect(canonicalRedirect.search).toBe("?source=alternate");
 
+    const canonicalHost = new URL(expectedOrigin).host;
+    const proxiedCanonicalResponse = await request.get("/docs?source=runtime-proxy", {
+      failOnStatusCode: false,
+      headers: {
+        Host: "app-runtime.internal",
+        "X-Forwarded-Host": canonicalHost,
+      },
+      maxRedirects: 0,
+    });
+    expect(proxiedCanonicalResponse.status()).toBe(200);
+    expect(proxiedCanonicalResponse.headers().location).toBeUndefined();
+
+    const proxiedAlternateResponse = await request.get("/docs?source=runtime-proxy", {
+      failOnStatusCode: false,
+      headers: {
+        Host: "app-runtime.internal",
+        "X-Forwarded-Host": "web.fugue.example",
+      },
+      maxRedirects: 0,
+    });
+    expect(proxiedAlternateResponse.status()).toBe(308);
+    const proxiedAlternateRedirect = new URL(
+      proxiedAlternateResponse.headers().location as string,
+      baseURL,
+    );
+    expect(proxiedAlternateRedirect.origin).toBe(expectedOrigin);
+    expect(proxiedAlternateRedirect.pathname).toBe("/docs");
+    expect(proxiedAlternateRedirect.search).toBe("?source=runtime-proxy");
+
     const malformedCookieResponse = await request.get("/app", {
       failOnStatusCode: false,
       headers: {
