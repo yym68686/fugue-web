@@ -24,7 +24,7 @@
   "dependencies": {
     "@fugue/ui": "workspace:*",
     "@next/env": "16.2.10",
-    "lucide-react": "1.20.0",
+    "lucide-react": "1.24.0",
     "next": "16.2.10",
     "openapi-fetch": "0.17.0",
     "pg": "8.20.0",
