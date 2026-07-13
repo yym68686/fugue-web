@@ -28,6 +28,7 @@ The complete imported-file manifest, upstream hashes and local modifications are
 
 ## Fonts and runtime libraries
 
-- Inter is distributed through `@fontsource-variable/inter` under the SIL Open Font License 1.1.
-- Geist Mono is distributed through the `geist` package under the SIL Open Font License.
+- Inter is distributed through `@fontsource-variable/inter` under the SIL Open Font License 1.1. Its package WOFF2 asset is consumed by the shared `next/font/local` runtime; no font binary is vendored in this repository.
+- Geist Mono is distributed through the `geist` package under the SIL Open Font License. Its package WOFF2 asset is consumed by the same shared runtime and is not vendored.
+- Exact dependency versions, integrity records and hashes remain reproducible from `bun.lock`, the package manifests and the generated SBOM/license report.
 - Base UI, React, Next.js, Tailwind CSS, shadcn, Fumadocs and other JavaScript dependencies retain the licenses recorded by `bun.lock` and the generated SBOM/license report.

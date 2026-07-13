@@ -155,9 +155,9 @@ export async function validateThemeParity() {
       errors.push(`@theme inline must map --color-${key} to var(--${key}).`);
     }
   }
-  for (const [key, value] of Object.entries(theme)) {
-    if (normalize(runtimeTheme.get(key) ?? "") !== normalize(value)) {
-      errors.push(`Runtime --${key} differs from registry font theme metadata.`);
+  for (const key of Object.keys(theme)) {
+    if (normalize(runtimeTheme.get(key) ?? "") !== `var(--${key})`) {
+      errors.push(`Runtime --${key} must resolve through the root next/font variable.`);
     }
   }
 
@@ -179,21 +179,28 @@ export async function validateThemeParity() {
     if (!packageManifest.dependencies?.[dependency]) {
       errors.push(`${item.name} dependency ${dependency} is absent from @fugue/ui.`);
     }
-    if (
-      dependency.startsWith("@fontsource") &&
-      !globals.includes(`@import "${dependency}"`)
-    ) {
-      errors.push(
-        `${item.name} dependency ${dependency} is not imported by globals.css.`,
-      );
-    }
   }
 
   if (packageManifest.exports?.["./fonts"] !== "./src/fonts/index.ts") {
     errors.push("@fugue/ui must export ./fonts from ./src/fonts/index.ts.");
   }
-  if (!fontExports.includes('export { GeistMono } from "geist/font/mono"')) {
-    errors.push("@fugue/ui font exports must expose GeistMono from geist/font/mono.");
+  if (!fontExports.includes('from "next/font/local"')) {
+    errors.push("@fugue/ui fonts must use the COSS next/font/local runtime boundary.");
+  }
+  for (const variable of ["--font-sans", "--font-heading", "--font-mono"]) {
+    if (!fontExports.includes(`variable: "${variable}"`)) {
+      errors.push(`@fugue/ui fonts must expose ${variable} through next/font/local.`);
+    }
+  }
+  for (const dependency of ["@fontsource-variable/inter", "geist/dist/fonts"]) {
+    if (!fontExports.includes(dependency)) {
+      errors.push(`@fugue/ui runtime fonts must source ${dependency}.`);
+    }
+  }
+  if (globals.includes('@import "@fontsource-variable/inter"')) {
+    errors.push(
+      "globals.css must not bypass the shared next/font runtime with a Fontsource CSS import.",
+    );
   }
 
   return {

@@ -43,6 +43,7 @@ The machine-readable, per-file allow-list is `docs/upstream/coss-files.json`; it
 | --- | --- | --- | --- | --- |
 | Architecture only: root workspace/Bun/Turbo/Biome boundaries | `1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4` | No copied source | root configuration | Independently authored for Fugue scripts and quality gates |
 | Architecture only: registry → package one-way flow | `1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4` | No copied source | `apps/ui/scripts`, `packages/ui` | Independently authored sync and drift-check implementation |
+| Architecture only: shared runtime font module → package export → root layout variables | `1664a7f0b3be9f25f5ff0ac846667633b4ccd6b4` | No copied source | `packages/ui/src/fonts/index.ts`, application root layouts | Independently authored with Next.js `next/font/local`; no source from the upstream AGPL `packages/ui/src/fonts` path was copied |
 
 ## Verification
 

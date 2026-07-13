@@ -1,5 +1,5 @@
+import { fontHeading, fontMono, fontSans } from "@fugue/ui/fonts";
 import type { Metadata } from "next";
-import { GeistMono } from "@fugue/ui/fonts";
 
 import "./globals.css";
 
@@ -10,8 +10,11 @@ export const metadata: Metadata = {
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className={GeistMono.variable}>
+    <html
+      className={`${fontSans.variable} ${fontHeading.variable} ${fontMono.variable}`}
+      lang="en"
+    >
+      <body>
         <main data-app-root>{children}</main>
       </body>
     </html>

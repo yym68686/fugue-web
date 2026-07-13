@@ -1,6 +1,6 @@
+import { fontHeading, fontMono, fontSans } from "@fugue/ui/fonts";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { GeistMono } from "@fugue/ui/fonts";
 
 import "./globals.css";
 
@@ -15,8 +15,12 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={GeistMono.variable}>
+    <html
+      className={`${fontSans.variable} ${fontHeading.variable} ${fontMono.variable}`}
+      lang="en"
+      suppressHydrationWarning
+    >
+      <body>
         <a className="sr-only focus:not-sr-only" href="#main-content">
           Skip to content
         </a>

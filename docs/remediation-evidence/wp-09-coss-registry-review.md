@@ -80,6 +80,28 @@ pinned commit。独立只读 checkout 的 `git rev-parse HEAD` 为
 同步仍需重新执行 dry-run、逐文件 diff、许可证检查、consumer 影响审查和完整质量矩阵，
 再决定是否更新 pinned SHA；不得用 floating registry 静默改写 provenance。
 
+## Registry 字体元数据与运行时字体边界
+
+COSS 固定提交把两条字体链分开：`apps/ui` 的 registry metadata 描述组件安装者应取得的
+字体与依赖，而正式应用运行时由 shared UI package 的字体模块、package export 和根 layout
+CSS variables 负责。Fugue Web 采用同一工程边界：registry 继续声明获准的 Inter / Geist
+依赖，`packages/ui/src/fonts/index.ts` 使用 `next/font/local` 读取已锁定 package 内的 WOFF2，
+三个应用只从 `@fugue/ui/fonts` 导入并在 `<html>` 注入 `--font-sans`、`--font-heading` 和
+`--font-mono`。semantic theme 只引用这些根变量；全局 CSS 不再直接导入 Fontsource。
+
+字体模块是针对 Fugue 独立编写的实现，只参考 pinned COSS 的模块边界，没有复制上游默认
+AGPL 路径 `packages/ui/src/fonts` 的源码。字体二进制也没有复制进仓库，仍由
+`@fontsource-variable/inter` 与 `geist` package 提供；版本、完整性、许可证与资产来源继续
+由 lockfile、NOTICE、SBOM 和 license gate 追踪。`theme:check` 同时验证 runtime export、
+三个变量、依赖来源以及“禁止全局 Fontsource import”，防止 registry/runtime 两条链再次
+混为一体。
+
+当前 self-hosted Inter 文件有意限定为 Latin variable subset：正式 UI locale 为英文和中文，
+中文以及用户内容中的其他未覆盖 script 通过明确的 Arial/Helvetica/sans-serif fallback 保持
+可读，不为每次访问预加载未使用的 Greek/Cyrillic/Vietnamese 字体。后续如果新增对应产品
+locale，应在 shared font module 中恢复经测量的 subset，并同步更新 preload、bundle、i18n
+与 200% zoom 门禁；不得在单个页面临时加字体。
+
 ## Consumer 与 bundle 影响
 
 - Marketing、Docs、Auth、Console 共用同一 UI package，但保留各自的信息架构。
