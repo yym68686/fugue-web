@@ -8,13 +8,15 @@
 
 ## 1. 当前精确结果
 
-- 计划共有 **605** 个 checkbox：**585 已勾，20 未勾**。
+- 计划共有 **605** 个 checkbox：**591 已勾，14 未勾**。
 - 本轮把最终本地命令矩阵、Auth 成功流、Base UI keyboard/axe、后端正式发布证据与可由
   当前 artifacts 直接证明的 DoD/Gate 汇总项更新为 `[x]`。
 - 已形成 12 个单一职责提交并创建
   [`fugue-web#1`](https://github.com/yym68686/fugue-web/pull/1)；PR 已归档 WP/风险、路由、
   before/after、desktop/mobile、COSS upstream、迁移/兼容和逐提交 rollback map。没有勾选
-  COSS owner 许可、远端 CI/merge、生产 Web 发布与观察、closeout PR 或 release archive。
+  owner 已明确批准可使用全部 COSS 代码；17 个 required checks 与 GitGuardian 已在
+  [`frontend-quality` run 29216177426](https://github.com/yym68686/fugue-web/actions/runs/29216177426)
+  全绿。尚未勾选 merge、生产 Web 发布与观察、closeout PR 或 release archive。
 - 在全新 `git clone --no-local` 的 `4f1aba057d358e840c41971147688692581b58bc`
   上依次执行 25 项文档化门禁，482 秒完成且 0 失败；E2E 正式使用
   `start-standalone.mjs`，没有 unsupported `next start` 警告。
@@ -41,7 +43,19 @@
 | Build/bundle | Turbo build 通过；同一 build 立即读取的 bundle gate 覆盖 19 routes，最大 `/new/template/[slug]` 243,017 B gzip < 256,000 B；public/auth 不加载 Console workbench chunk |
 | Container | 实际构建镜像；non-root、health、homepage、forbidden paths、cache/Vary contract 全绿；容器与临时镜像已清理；`artifacts/container.json` |
 
-这些结果支持主计划第 1182–1206 行全部勾选，但不等同于尚未发生的远端 CI。
+这些结果支持主计划第 1182–1206 行全部勾选；同一分支的远端 CI 结果见下一节。
+
+### 2.1 远端 required checks
+
+- PR：[`fugue-web#1`](https://github.com/yym68686/fugue-web/pull/1)。
+- Workflow：[`frontend-quality` run 29216177426](https://github.com/yym68686/fugue-web/actions/runs/29216177426)。
+- 17/17 required GitHub Actions contexts 全部 `SUCCESS`；额外 GitGuardian check 也为
+  `SUCCESS`。
+- `main` branch protection 使用 `strict=true`、`enforce_admins=true`，17 个 context 均
+  绑定 GitHub Actions `app_id=15368`。
+- 首轮 dependency-review 因仓库 dependency graph 未启用而失败；启用 graph 后通过。
+- 首轮 GitGuardian 将三个 CI PostgreSQL 示例密码识别为 secret；workflow 改用隔离
+  runner 的 passwordless service，并从 PR 历史移除示例密码后通过。
 
 ## 3. Auth、权限与产品行为复核
 
@@ -70,8 +84,8 @@
   成功发布；没有用 SSH 热修、手工重启或 patch Deployment 代替正式链路。
 - 当前 `fugue/main` 是 `710f7d29eadefd880225ff7cbdb40c5cc62bd4d0`，且
   `git merge-base --is-ancestor 5246335 710f7d2` 成功。
-- Web snapshot 与该当前权威 OpenAPI hash 完全一致；Web 最终 SHA 与远端 contract CI
-  仍待 commit/push，因此 contract 全链路的远端项保持未勾。
+- Web snapshot 与该当前权威 OpenAPI hash 完全一致；远端
+  `contract / authoritative OpenAPI contract` required check 已通过。
 
 逐协议细节见 `wp-06-contract-protocol-audit.md`。
 
@@ -90,22 +104,21 @@
 尚未发布，观察窗口与回滚负责人尚未由 owner 指定，因此所有生产监控 checkbox 仍是
 `[ ]`。
 
-## 6. 剩余 20 个未勾项
+## 6. 剩余 14 个未勾项
 
 以下行号对应本次审计后的计划文件。
 
-### 6.1 远端 CI、merge 与 closeout PR（5 项）
+### 6.1 Merge 与 closeout PR（2 项）
 
 - 359：必须由当前 implementation PR 与计划中的发布后 closeout PR 共同证明。
-- 690、827、1383：required checks、contract CI 和完整远端 CI 尚未运行。
 - 1287：Fugue Web 尚未走完正常 code review、CI、merge 与发布流程。
 
-### 6.2 Owner 与 release archive（5 项）
+### 6.2 Release archive（2 项）
 
-- 975、1389：项目 owner 尚未明确批准“只使用 COSS `apps/ui` MIT source、拒绝默认
-  AGPL source”的许可证策略。
 - 1110、1347：NOTICE/provenance/SBOM 虽已在本地生成，但尚未随实际 release 归档。
-- 1362：自动 license/SBOM gate 通过不能代替 owner 对发布产物许可证边界的批准。
+
+Owner 已明确批准“可以使用全部代码”。批准解释、实际更窄的 MIT-only release 边界和
+持续义务见 `wp-09-owner-license-approval.md`。
 
 ### 6.3 生产发布后观察与 closeout（10 项）
 
@@ -117,9 +130,7 @@
 ## 7. 下一次审计的最小输入
 
 1. 最终 Fugue Web commits、implementation PR、rollback map 和用户改动隔离证明。
-2. 远端 required checks/CI URL。
-3. owner 的 COSS 许可证明确批准。
-4. Fugue Web production version/operation、管理员预检、观察窗口、回滚 owner 和指标结果。
-5. 发布后 closeout PR 与 NOTICE/provenance/SBOM release archive。
+2. Fugue Web production version/operation、管理员预检、观察窗口、回滚 owner 和指标结果。
+3. 发布后 closeout PR 与 NOTICE/provenance/SBOM release archive。
 
-在这些证据真实产生前，不应为了让计数归零而提前勾选剩余 20 项。
+在这些证据真实产生前，不应为了让计数归零而提前勾选剩余 14 项。
