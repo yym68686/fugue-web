@@ -1,0 +1,49 @@
+{
+  "name": "@fugue/web",
+  "version": "0.0.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "scripts": {
+    "admin:recover": "node ./scripts/recover-fugue-admin.mjs",
+    "build": "next build",
+    "clean": "rm -rf .next .turbo node_modules tsconfig.tsbuildinfo",
+    "dev": "next dev",
+    "format": "biome format --write app components lib scripts test instrumentation.ts next.config.mjs proxy.ts",
+    "lint": "biome lint app components lib scripts test instrumentation.ts next.config.mjs proxy.ts",
+    "openapi:generate": "openapi-typescript ./openapi/fugue.yaml -o ./lib/fugue/openapi.generated.ts",
+    "openapi:generate:check": "openapi-typescript ./openapi/fugue.yaml -o ./lib/fugue/openapi.generated.ts --check",
+    "start": "node ./scripts/start-standalone.mjs",
+    "test": "bun run test:unit && bun run test:integration",
+    "test:a11y": "playwright test --project=chromium-a11y",
+    "test:e2e": "playwright test --project=chromium-desktop --project=chromium-mobile --project=firefox-desktop --project=webkit-desktop --project=webkit-mobile",
+    "test:integration": "bun scripts/run-isolated-tests.mjs test/integration",
+    "test:upload-stress": "bun test test/stress/upload-stress.test.ts",
+    "test:unit": "bun scripts/run-isolated-tests.mjs test/security test/server",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fugue/ui": "workspace:*",
+    "@next/env": "16.2.10",
+    "lucide-react": "1.20.0",
+    "next": "16.2.10",
+    "openapi-fetch": "0.17.0",
+    "pg": "8.20.0",
+    "prismjs": "1.30.0",
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.12.1",
+    "@fugue/typescript-config": "workspace:*",
+    "@playwright/test": "1.61.1",
+    "@tailwindcss/postcss": "4.1.17",
+    "@types/bun": "1.3.14",
+    "@types/node": "24.10.1",
+    "@types/pg": "8.20.0",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "openapi-typescript": "7.13.0",
+    "tailwindcss": "4.1.17",
+    "typescript": "5.9.3"
+  }
+}

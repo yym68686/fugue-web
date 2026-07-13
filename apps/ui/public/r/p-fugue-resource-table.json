@@ -1,0 +1,27 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "p-fugue-resource-table",
+  "description": "Dense, labelled resource table with status and row action.",
+  "registryDependencies": [
+    "@fugue/badge",
+    "@fugue/button",
+    "@fugue/table"
+  ],
+  "files": [
+    {
+      "path": "registry/default/particles/p-fugue-resource-table.tsx",
+      "content": "import { Badge } from \"@/registry/default/ui/badge\";\nimport { Button } from \"@/registry/default/ui/button\";\nimport {\n  Table,\n  TableBody,\n  TableCell,\n  TableHead,\n  TableHeader,\n  TableRow,\n} from \"@/registry/default/ui/table\";\n\nconst resources = [\n  { id: \"api-us\", region: \"us-west\", state: \"Healthy\" },\n  { id: \"worker-eu\", region: \"eu-central\", state: \"Deploying\" },\n];\n\nexport default function FugueResourceTableParticle() {\n  return (\n    <Table aria-label=\"Example runtime resources\" variant=\"card\">\n      <TableHeader>\n        <TableRow>\n          <TableHead>Runtime</TableHead>\n          <TableHead>Region</TableHead>\n          <TableHead>Status</TableHead>\n          <TableHead>\n            <span className=\"sr-only\">Actions</span>\n          </TableHead>\n        </TableRow>\n      </TableHeader>\n      <TableBody>\n        {resources.map((resource) => (\n          <TableRow key={resource.id}>\n            <TableCell className=\"font-mono\">{resource.id}</TableCell>\n            <TableCell>{resource.region}</TableCell>\n            <TableCell>\n              <Badge variant={resource.state === \"Healthy\" ? \"success\" : \"warning\"}>\n                {resource.state}\n              </Badge>\n            </TableCell>\n            <TableCell className=\"text-right\">\n              <Button size=\"xs\" variant=\"ghost\">\n                View\n              </Button>\n            </TableCell>\n          </TableRow>\n        ))}\n      </TableBody>\n    </Table>\n  );\n}\n",
+      "type": "registry:block"
+    }
+  ],
+  "categories": [
+    "table",
+    "badge"
+  ],
+  "type": "registry:block",
+  "meta": {
+    "generated": true,
+    "source": "apps/ui/registry/default",
+    "warning": "DO NOT EDIT: regenerate with bun run registry:build"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "use-copy-to-clipboard",
+  "files": [
+    {
+      "path": "registry/default/hooks/use-copy-to-clipboard.ts",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\nexport function useCopyToClipboard({\n  timeout = 2000,\n  onCopy,\n}: {\n  timeout?: number;\n  onCopy?: () => void;\n} = {}): {\n  copyToClipboard: (value: string) => Promise<boolean>;\n  isCopied: boolean;\n} {\n  const [isCopied, setIsCopied] = React.useState(false);\n  const timeoutIdRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);\n\n  const copyToClipboard = async (value: string): Promise<boolean> => {\n    if (\n      !value ||\n      typeof window === \"undefined\" ||\n      typeof navigator.clipboard?.writeText !== \"function\"\n    ) {\n      return false;\n    }\n\n    try {\n      await navigator.clipboard.writeText(value);\n      if (timeoutIdRef.current) {\n        clearTimeout(timeoutIdRef.current);\n      }\n      setIsCopied(true);\n\n      if (onCopy) {\n        onCopy();\n      }\n\n      if (timeout !== 0) {\n        timeoutIdRef.current = setTimeout(() => {\n          setIsCopied(false);\n          timeoutIdRef.current = null;\n        }, timeout);\n      }\n      return true;\n    } catch {\n      return false;\n    }\n  };\n\n  // Cleanup timeout on unmount\n  React.useEffect(() => {\n    return (): void => {\n      if (timeoutIdRef.current) {\n        clearTimeout(timeoutIdRef.current);\n      }\n    };\n  }, []);\n\n  return { copyToClipboard, isCopied };\n}\n",
+      "type": "registry:hook"
+    }
+  ],
+  "type": "registry:hook",
+  "meta": {
+    "generated": true,
+    "source": "apps/ui/registry/default",
+    "warning": "DO NOT EDIT: regenerate with bun run registry:build"
+  }
+}

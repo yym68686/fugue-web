@@ -1,0 +1,12 @@
+{
+  "root": true,
+  "pages": [
+    "index",
+    "primitives",
+    "particles",
+    "base-ui-migration",
+    "styling",
+    "tokens",
+    "accessibility"
+  ]
+}

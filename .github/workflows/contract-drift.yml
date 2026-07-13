@@ -1,8 +1,7 @@
 name: contract-drift
 
 on:
-  pull_request:
-  push:
+  workflow_call:
   schedule:
     - cron: "17 3 * * *"
   workflow_dispatch:
@@ -12,29 +11,23 @@ permissions:
 
 jobs:
   contract:
+    name: authoritative OpenAPI contract
     runs-on: ubuntu-latest
     steps:
       - name: Checkout fugue-web
-        uses: actions/checkout@v6
-
-      - name: Checkout fugue contract source
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - name: Checkout authoritative Fugue contract
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
           repository: yym68686/fugue
           ref: main
-          path: fugue
+          path: .contract-source/fugue
           fetch-depth: 1
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 20
-          cache: npm
+      - name: Set up frozen Bun workspace
+        uses: ./.github/actions/setup-workspace
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Check contract drift
+      - name: Check authoritative contract drift
         env:
-          FUGUE_OPENAPI_SOURCE: ${{ github.workspace }}/fugue/openapi/openapi.yaml
-        run: npm run contract:check
+          FUGUE_OPENAPI_SOURCE: ${{ github.workspace }}/.contract-source/fugue/openapi/openapi.yaml
+        run: bun run contract:check

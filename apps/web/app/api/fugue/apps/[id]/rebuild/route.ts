@@ -1,0 +1,64 @@
+import { NextResponse } from "next/server";
+
+import { rebuildFugueApp } from "@/lib/fugue/api";
+import { resolveGitHubRepoAuthTokenForEmail } from "@/lib/github/connection-store";
+import {
+  jsonError,
+  readErrorMessage,
+  readErrorStatus,
+  readRouteParam,
+  requireSession,
+  requireWorkspaceForSession,
+  type RouteContextWithParams,
+} from "@/lib/fugue/product-route";
+
+type RouteContext = RouteContextWithParams<"id">;
+
+function asRecord(value: unknown) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function readOptionalString(record: Record<string, unknown> | null, key: string) {
+  const value = record?.[key];
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+export async function POST(request: Request, context: RouteContext) {
+  const { response, session } = await requireSession();
+
+  if (response || !session) {
+    return response;
+  }
+
+  const workspaceState = await requireWorkspaceForSession(session);
+
+  if (workspaceState.response || !workspaceState.workspace) {
+    return workspaceState.response;
+  }
+
+  try {
+    const appId = await readRouteParam(context, "id");
+    const body = asRecord(await request.json().catch(() => null));
+    const repoAccess = await resolveGitHubRepoAuthTokenForEmail(session.email, {
+      explicitToken: readOptionalString(body, "repoAuthToken"),
+      repoVisibility: "private",
+    });
+    const result = await rebuildFugueApp(
+      workspaceState.workspace.adminKeySecret,
+      appId,
+      {
+        branch: readOptionalString(body, "branch"),
+        buildContextDir: readOptionalString(body, "buildContextDir"),
+        dockerfilePath: readOptionalString(body, "dockerfilePath"),
+        repoAuthToken: repoAccess.token || undefined,
+        sourceDir: readOptionalString(body, "sourceDir"),
+      },
+    );
+
+    return NextResponse.json(result);
+  } catch (error) {
+    return jsonError(readErrorStatus(error), readErrorMessage(error));
+  }
+}

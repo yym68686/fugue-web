@@ -1,6 +1,18 @@
 node_modules
+**/node_modules
 .next
+**/.next
+.turbo
+**/.turbo
 dist
+.dist
+**/.source
+artifacts
+**/playwright-report
+**/test-results
+coverage
+**/coverage
+apps/web/test
 .git
 .gitignore
 tsconfig.tsbuildinfo
@@ -12,3 +24,6 @@ pnpm-debug.log*
 .env*
 !.env.example
 .fugue-edit
+.codex
+.codex_tmp
+docs/remediation-evidence/baseline-screenshots

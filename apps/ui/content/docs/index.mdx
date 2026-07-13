@@ -1,0 +1,18 @@
+---
+title: Fugue UI architecture
+description: Registry-first development for the Fugue product workspace.
+---
+
+`apps/ui/registry/default` is the only editable primitive source. `bun run ui:sync` rewrites its imports into the generated `@fugue/ui` runtime package.
+
+<Note title="Do not edit generated output">Changes made directly below `packages/ui/src/components`, `base-ui`, `hooks`, or `lib` are rejected by the sync drift gate.</Note>
+
+## Consumer rule
+
+Use direct subpath imports:
+
+```tsx
+import { Button } from "@fugue/ui/components/button";
+```
+
+Do not import registry source from a product app and do not add a package barrel.

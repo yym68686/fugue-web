@@ -1,0 +1,30 @@
+{
+  "browser": "chromium-desktop",
+  "capturedAt": "2026-07-12T16:41:42.359Z",
+  "cpuThrottleRate": 4,
+  "interactionWindows": [
+    {
+      "durationMs": 315.09999995231647,
+      "endTime": 6800.8,
+      "startTime": 6485.700000047684
+    },
+    {
+      "durationMs": 307.9999999284746,
+      "endTime": 7475.8,
+      "startTime": 7167.800000071526
+    }
+  ],
+  "mode": "trusted click dispatch-to-target next render opportunity; not field INP",
+  "panelSwitches": {
+    "environmentMs": 315.09999995231647,
+    "logsMs": 307.9999999284746
+  },
+  "metrics": {
+    "eventTimingMaxMs": 64,
+    "interactionEventTimingMaxMs": 64,
+    "longTaskCount": 1,
+    "longTaskMaxMs": 53,
+    "totalBlockingTimeMs": 3
+  },
+  "route": "/app/projects/project-playwright"
+}

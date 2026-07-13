@@ -1,0 +1,32 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "p-fugue-environment-editor",
+  "description": "Environment variable editor using Field and InputGroup contracts.",
+  "dependencies": [
+    "lucide-react"
+  ],
+  "registryDependencies": [
+    "@fugue/button",
+    "@fugue/field",
+    "@fugue/input",
+    "@fugue/input-group"
+  ],
+  "files": [
+    {
+      "path": "registry/default/particles/p-fugue-environment-editor.tsx",
+      "content": "\"use client\";\n\nimport { PlusIcon, Trash2Icon } from \"lucide-react\";\n\nimport { Button } from \"@/registry/default/ui/button\";\nimport {\n  Field,\n  FieldDescription,\n  FieldGroup,\n  FieldLabel,\n} from \"@/registry/default/ui/field\";\nimport { Input } from \"@/registry/default/ui/input\";\nimport {\n  InputGroup,\n  InputGroupAddon,\n  InputGroupInput,\n} from \"@/registry/default/ui/input-group\";\n\nexport default function FugueEnvironmentEditorParticle() {\n  return (\n    <section\n      aria-labelledby=\"environment-title\"\n      className=\"grid gap-5 rounded-2xl border bg-card p-6\"\n    >\n      <div className=\"flex items-center justify-between gap-4\">\n        <div>\n          <h2 className=\"text-lg font-semibold\" id=\"environment-title\">\n            Environment\n          </h2>\n          <p className=\"text-muted-foreground text-sm\">\n            Example values are intentionally non-sensitive.\n          </p>\n        </div>\n        <Button size=\"sm\" type=\"button\" variant=\"outline\">\n          <PlusIcon aria-hidden=\"true\" />\n          Add variable\n        </Button>\n      </div>\n      <FieldGroup>\n        <Field>\n          <FieldLabel htmlFor=\"env-key\">Key</FieldLabel>\n          <Input id=\"env-key\" name=\"key\" defaultValue=\"APP_PUBLIC_URL\" />\n        </Field>\n        <Field>\n          <FieldLabel htmlFor=\"env-value\">Value</FieldLabel>\n          <InputGroup>\n            <InputGroupInput\n              id=\"env-value\"\n              name=\"value\"\n              defaultValue=\"https://example.invalid\"\n            />\n            <InputGroupAddon align=\"inline-end\">\n              <Button\n                aria-label=\"Remove variable\"\n                size=\"icon-xs\"\n                type=\"button\"\n                variant=\"ghost\"\n              >\n                <Trash2Icon aria-hidden=\"true\" />\n              </Button>\n            </InputGroupAddon>\n          </InputGroup>\n          <FieldDescription>\n            Real product values are never included in registry examples.\n          </FieldDescription>\n        </Field>\n      </FieldGroup>\n    </section>\n  );\n}\n",
+      "type": "registry:block"
+    }
+  ],
+  "categories": [
+    "field",
+    "input group",
+    "form"
+  ],
+  "type": "registry:block",
+  "meta": {
+    "generated": true,
+    "source": "apps/ui/registry/default",
+    "warning": "DO NOT EDIT: regenerate with bun run registry:build"
+  }
+}

@@ -1,0 +1,1204 @@
+@import "@fugue/ui/globals.css";
+
+:root {
+  --shadow-xs: light-dark(0 1px 1px rgb(17 17 17 / 0.04), 0 1px 1px rgb(0 0 0 / 0.38));
+  --shadow-sm: light-dark(0 1px 2px rgb(17 17 17 / 0.06), 0 1px 2px rgb(0 0 0 / 0.28));
+  --selection-background: light-dark(oklch(0.205 0 0), oklch(0.96 0.003 264));
+  --selection-foreground: light-dark(oklch(1 0 0), oklch(0.17 0.01 264));
+  --public-shell-gradient-start: light-dark(
+    rgb(255 255 255 / 0.72),
+    rgb(255 255 255 / 0.035)
+  );
+  --public-shell-gradient-end: light-dark(rgb(248 248 247 / 0), rgb(15 17 20 / 0));
+  --surface-highlight: light-dark(rgb(255 255 255 / 0.85), rgb(255 255 255 / 0.065));
+  --primary-hover: color-mix(in oklch, var(--primary) 90%, var(--foreground));
+  --destructive-hover: color-mix(in oklch, var(--destructive) 88%, var(--foreground));
+  --focus-ring-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 18%, transparent);
+  --status-mix-base: var(--card);
+  --warning-strong: color-mix(
+    in oklch,
+    var(--warning-foreground) 82%,
+    var(--foreground)
+  );
+  --overlay-backdrop: light-dark(rgb(17 17 17 / 0.18), rgb(0 0 0 / 0.54));
+  --overlay-shadow: light-dark(
+    0 20px 80px rgb(17 17 17 / 0.18),
+    0 24px 90px rgb(0 0 0 / 0.48)
+  );
+  --selected-ring-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 14%, transparent);
+  --skeleton-shimmer: light-dark(rgb(255 255 255 / 0.68), rgb(255 255 255 / 0.12));
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  position: relative;
+  min-height: 100vh;
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+body,
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+a {
+  text-decoration: none;
+}
+
+a:not([class]) {
+  color: inherit;
+}
+
+a,
+button,
+summary,
+select {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: color-mix(in srgb, var(--ring) 18%, transparent);
+}
+
+button,
+input,
+textarea,
+select {
+  border: 0;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled,
+input:disabled,
+textarea:disabled,
+select:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+::selection {
+  background: var(--selection-background);
+  color: var(--selection-foreground);
+}
+
+.coss-root {
+  isolation: isolate;
+  position: relative;
+  display: flex;
+  min-height: 100svh;
+  flex-direction: column;
+}
+
+.coss-skip-link {
+  position: fixed;
+  inset-block-start: 8px;
+  inset-inline-start: 8px;
+  z-index: 100;
+  transform: translateY(calc(-100% - 16px));
+  border: 2px solid var(--ring);
+  border-radius: 8px;
+  background: var(--background);
+  color: var(--foreground);
+  padding: 9px 12px;
+  font-weight: 650;
+  transition: transform 120ms ease;
+}
+
+.coss-skip-link:focus-visible {
+  transform: translateY(0);
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.coss-container {
+  width: min(1416px, calc(100vw - 32px));
+  margin-inline: auto;
+}
+
+.coss-public-shell {
+  min-height: 100svh;
+  background:
+    linear-gradient(
+      180deg,
+      var(--public-shell-gradient-start),
+      var(--public-shell-gradient-end)
+    ), var(--background);
+}
+
+.coss-site-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--sidebar) 86%, transparent);
+  backdrop-filter: blur(14px);
+}
+
+.coss-site-header__inner {
+  display: flex;
+  flex-wrap: wrap;
+  min-height: 64px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.coss-wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: inherit;
+  font-family: var(--font-heading);
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+.coss-wordmark__mark {
+  display: inline-grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  box-shadow: var(--shadow-xs);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.coss-nav {
+  display: flex;
+  flex-wrap: wrap;
+  min-inline-size: 0;
+  align-items: center;
+  gap: 6px;
+}
+
+.coss-nav a {
+  border-radius: 8px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1;
+  padding: 9px 10px;
+}
+
+.coss-nav a:hover,
+.coss-nav a:focus-visible {
+  background: var(--accent);
+  color: var(--foreground);
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.coss-actions {
+  display: flex;
+  flex-wrap: wrap;
+  min-inline-size: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.coss-actions > * {
+  flex: 0 1 auto;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+
+.coss-sr-only,
+.coss-locale-select > label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+.coss-locale-select select {
+  max-inline-size: 100%;
+  min-height: 44px;
+  border: 1px solid var(--input);
+  border-radius: 8px;
+  background: var(--background);
+  color: var(--foreground);
+  padding-inline: 10px 28px;
+  font: inherit;
+}
+
+.coss-main {
+  flex: 1;
+}
+
+.coss-page {
+  padding: 32px 0 48px;
+}
+
+.coss-page--wide {
+  padding-top: 24px;
+}
+
+.coss-page-header {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.coss-page-header--center {
+  justify-items: center;
+  margin-inline: auto;
+  max-width: 760px;
+  text-align: center;
+}
+
+.coss-eyebrow {
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.coss-heading-xl,
+.coss-page-title {
+  margin: 0;
+  color: var(--foreground);
+  font-family: var(--font-heading);
+  font-weight: 700;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+
+.coss-heading-xl {
+  max-width: 860px;
+  font-size: clamp(42px, 6vw, 78px);
+  line-height: 0.96;
+}
+
+.coss-page-title {
+  font-size: clamp(24px, 3vw, 38px);
+  line-height: 1.05;
+}
+
+.coss-console-page .coss-page-header {
+  margin-bottom: 14px;
+}
+
+.coss-console-page .coss-page-title {
+  font-size: clamp(24px, 2.2vw, 32px);
+  line-height: 1.1;
+}
+
+.coss-console-page .coss-page-description {
+  max-width: 680px;
+  font-size: 14px;
+}
+
+.coss-page-description {
+  max-width: 720px;
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+
+.coss-hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.94fr) minmax(380px, 1.06fr);
+  align-items: start;
+  gap: 28px;
+  padding: 64px 0 28px;
+}
+
+.coss-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.coss-stack-sm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.coss-stack--center {
+  align-items: center;
+}
+
+.coss-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.coss-row--between {
+  justify-content: space-between;
+}
+
+.coss-row--center {
+  justify-content: center;
+}
+
+.coss-row--end {
+  justify-content: flex-end;
+}
+
+.coss-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  align-items: start;
+  gap: 20px;
+  min-width: 0;
+}
+
+.coss-grid-2,
+.coss-grid-3,
+.coss-grid-4 {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.coss-grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.coss-grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.coss-grid-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.coss-card--muted {
+  background: var(--muted);
+}
+
+.coss-card-description,
+.coss-muted {
+  color: var(--muted-foreground);
+  overflow-wrap: anywhere;
+}
+
+.coss-card-description {
+  margin: 4px 0 0;
+  font-size: 13px;
+}
+
+.coss-table__actions {
+  text-align: end;
+  white-space: nowrap;
+}
+
+.coss-form {
+  display: grid;
+  gap: 14px;
+}
+
+.coss-input-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: start;
+}
+
+.coss-input-button--left {
+  justify-content: flex-start;
+}
+
+.coss-input--narrow {
+  max-width: 260px;
+}
+
+.coss-input--wide {
+  max-width: 340px;
+}
+
+.coss-input--medium {
+  width: min(100%, 300px);
+}
+
+.coss-help {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+
+.coss-code {
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--code);
+  color: var(--code-foreground);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.65;
+  padding: 12px;
+}
+
+.coss-mono {
+  font-family: var(--font-mono);
+}
+
+.coss-metric-value {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.coss-projects-panel {
+  border-radius: 14px;
+}
+
+.coss-projects-content {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+}
+
+.coss-projects-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.coss-projects-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-inline-size: 0;
+  margin: 0;
+  border: 0;
+  padding: 0;
+  gap: 8px;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--muted);
+  padding: 8px;
+}
+
+.coss-projects-filterset {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: minmax(220px, 1fr) minmax(150px, 200px) auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.coss-projects-search,
+.coss-projects-select {
+  width: 100%;
+}
+
+.coss-projects-count {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.coss-projects-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid color-mix(in srgb, var(--info) 24%, var(--status-mix-base));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--info) 7%, var(--status-mix-base));
+  color: var(--muted-foreground);
+  font-size: 12px;
+  padding: 9px 10px;
+}
+
+.coss-project-cell {
+  display: grid;
+  min-width: 220px;
+  gap: 4px;
+}
+
+.coss-project-primary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.coss-project-name {
+  flex: 0 1 auto;
+  justify-self: start;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: 0;
+  background: transparent;
+  color: var(--foreground);
+  font-size: 13px;
+  line-height: 1.25;
+  padding: 0;
+  box-shadow: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.coss-project-meta {
+  overflow: hidden;
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.coss-project-badges {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.coss-project-primary .coss-project-badges {
+  flex: 1 1 auto;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+.coss-project-badges span {
+  max-width: 140px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1;
+  padding: 4px 7px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.coss-project-primary .coss-project-badges span {
+  flex: 0 1 auto;
+  max-width: 112px;
+}
+
+.coss-project-usage {
+  display: flex;
+  min-width: 220px;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.coss-project-usage > span {
+  display: grid;
+  min-width: 70px;
+  gap: 2px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--muted);
+  padding: 6px 8px;
+}
+
+.coss-project-usage span span {
+  color: var(--muted-foreground);
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1;
+}
+
+.coss-project-usage strong {
+  color: var(--foreground);
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.coss-project-usage--compact {
+  min-width: 0;
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+
+.coss-project-usage--compact > span {
+  display: inline-flex;
+  min-width: 0;
+  gap: 4px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  overflow: hidden;
+}
+
+.coss-project-usage--compact span span,
+.coss-project-usage--compact strong {
+  font-size: 11px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.coss-project-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.coss-project-card {
+  display: grid;
+  gap: 12px;
+}
+
+.coss-console-shell {
+  display: grid;
+  min-height: 100svh;
+  grid-template-columns: 264px minmax(0, 1fr);
+  background: var(--background);
+}
+
+.coss-sidebar {
+  position: sticky;
+  inset-block-start: 0;
+  height: 100svh;
+  overflow: auto;
+  border-inline-end: 1px solid var(--sidebar-border);
+  background: var(--sidebar);
+  padding: 16px;
+}
+
+.coss-mobile-nav {
+  display: none;
+}
+
+.coss-sidebar__section {
+  display: grid;
+  gap: 4px;
+  margin-top: 18px;
+}
+
+.coss-sidebar__label {
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  padding: 0 8px 4px;
+  text-transform: uppercase;
+}
+
+.coss-sidebar__link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-radius: 9px;
+  color: var(--sidebar-foreground);
+  padding: 9px 10px;
+}
+
+.coss-sidebar__link:hover,
+.coss-sidebar__link:focus-visible {
+  background: var(--accent);
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.coss-sidebar__link[data-active="true"] {
+  background: var(--sidebar-accent);
+  color: var(--sidebar-accent-foreground);
+  font-weight: 600;
+}
+
+.coss-console-content {
+  min-width: 0;
+}
+
+.coss-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 15;
+  display: flex;
+  min-height: 56px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--background) 82%, transparent);
+  padding: 0 22px;
+  backdrop-filter: blur(12px);
+}
+
+.coss-breadcrumbs {
+  min-width: 0;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.coss-breadcrumbs ol {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.coss-breadcrumbs li {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+}
+
+.coss-breadcrumbs li:not(:last-child)::after {
+  color: var(--muted-foreground);
+  content: "/";
+  opacity: 0.6;
+}
+
+.coss-breadcrumbs a {
+  overflow: hidden;
+  max-width: 220px;
+  border-radius: 6px;
+  color: var(--muted-foreground);
+  line-height: 1.2;
+  padding: 4px 5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.coss-breadcrumbs a:hover,
+.coss-breadcrumbs a:focus-visible {
+  background: var(--accent);
+  color: var(--foreground);
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.coss-breadcrumbs span[aria-current="page"] {
+  overflow: hidden;
+  max-width: 280px;
+  color: var(--foreground);
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.coss-console-page {
+  padding: 22px;
+}
+
+.coss-auth-shell {
+  display: grid;
+  min-height: 100svh;
+  place-items: center;
+  padding: 28px;
+}
+
+.coss-auth-panel {
+  width: min(100%, 460px);
+}
+
+.coss-auth-toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.coss-auth-methods {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--muted);
+  padding: 3px;
+}
+
+.coss-auth-methods label {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: calc(var(--radius) - 2px);
+  color: var(--muted-foreground);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  padding-inline: 12px;
+}
+
+.coss-auth-methods label[data-checked="true"] {
+  border-color: var(--border);
+  background: var(--background);
+  color: var(--foreground);
+  box-shadow: var(--shadow-xs);
+}
+
+.coss-auth-methods label:has(input:focus-visible) {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.coss-auth-methods:disabled label {
+  cursor: not-allowed;
+  opacity: 0.64;
+}
+
+.coss-stepper {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.coss-stepper li {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 650;
+  padding: 8px 10px;
+}
+
+.coss-stepper li[data-active="true"] {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.coss-workbench {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 16px;
+  min-width: 0;
+}
+
+.coss-workbench > * {
+  min-width: 0;
+}
+
+.coss-docs-grid {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  align-items: start;
+  gap: 16px;
+}
+
+.coss-docs-directory {
+  position: sticky;
+  top: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  padding: 12px;
+}
+
+.coss-docs-directory summary {
+  cursor: pointer;
+  font-weight: 650;
+}
+
+.coss-docs-directory ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.coss-docs-directory a[aria-current="location"] {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.coss-docs-section-title {
+  scroll-margin-block-start: 24px;
+}
+
+@media (min-width: 981px) {
+  .coss-docs-directory > summary {
+    display: none;
+  }
+
+  .coss-docs-directory:not([open]) > nav {
+    display: block;
+  }
+}
+
+.coss-service-rail {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.coss-service-button {
+  display: grid;
+  width: 100%;
+  min-height: 0;
+  align-items: start;
+  justify-content: stretch;
+  gap: 4px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--foreground);
+  padding: 12px;
+  line-height: 1.35;
+  text-align: start;
+}
+
+.coss-service-button[aria-selected="true"] {
+  border-color: var(--primary);
+  box-shadow: var(--selected-ring-shadow);
+}
+
+.coss-policy-list {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.coss-policy-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  padding: 10px;
+}
+
+.coss-policy-row__main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.coss-policy-row__main strong,
+.coss-policy-row__main span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.coss-policy-row__main span {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+
+.coss-policy-row__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+  grid-column: 1 / -1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    /* biome-ignore lint/complexity/noImportantStyles: reduced-motion overrides must win over component declarations. */
+    animation-duration: 0.001ms !important;
+    /* biome-ignore lint/complexity/noImportantStyles: reduced-motion overrides must win over component declarations. */
+    animation-iteration-count: 1 !important;
+    /* biome-ignore lint/complexity/noImportantStyles: reduced-motion overrides must win over component declarations. */
+    scroll-behavior: auto !important;
+    /* biome-ignore lint/complexity/noImportantStyles: reduced-motion overrides must win over component declarations. */
+    transition-duration: 0.001ms !important;
+  }
+}
+
+@media (forced-colors: active) {
+  .coss-skip-link,
+  .coss-site-header,
+  .coss-docs-directory,
+  .coss-sidebar,
+  .coss-topbar {
+    border-color: CanvasText;
+  }
+
+  :focus-visible {
+    outline-color: Highlight;
+  }
+}
+
+@media (max-width: 980px) {
+  .coss-hero-grid,
+  .coss-split,
+  .coss-docs-grid,
+  .coss-console-shell,
+  .coss-workbench {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .coss-sidebar {
+    display: none;
+  }
+
+  .coss-mobile-nav {
+    display: block;
+    border-bottom: 1px solid var(--sidebar-border);
+    background: var(--sidebar);
+    padding: 12px 14px;
+  }
+
+  .coss-mobile-nav summary {
+    cursor: pointer;
+    font-weight: 650;
+  }
+
+  .coss-docs-directory {
+    position: static;
+  }
+
+  .coss-docs-directory[open] > nav {
+    margin-block-start: 10px;
+  }
+
+  .coss-grid-3,
+  .coss-grid-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .coss-project-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .coss-projects-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .coss-projects-filterset {
+    grid-template-columns: minmax(0, 1fr) minmax(150px, 220px) auto;
+  }
+
+  .coss-projects-actions {
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 640px) {
+  .coss-locale-select select {
+    font-size: 16px;
+  }
+
+  .coss-auth-methods label {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .coss-container {
+    width: min(100% - 20px, 1416px);
+  }
+
+  .coss-site-header__inner,
+  .coss-topbar {
+    align-items: flex-start;
+    flex-direction: column;
+    justify-content: center;
+    padding-block: 12px;
+  }
+
+  .coss-nav,
+  .coss-actions {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    overflow-x: visible;
+  }
+
+  .coss-site-header .coss-actions [data-slot="button"] {
+    min-height: 44px;
+    block-size: auto;
+    max-inline-size: 100%;
+    padding-block: 8px;
+    text-align: center;
+    white-space: normal;
+  }
+
+  .coss-hero-grid {
+    padding-top: 32px;
+  }
+
+  .coss-grid-2,
+  .coss-grid-3,
+  .coss-grid-4 {
+    grid-template-columns: 1fr;
+  }
+
+  .coss-console-page {
+    padding: 14px;
+  }
+
+  .coss-table__actions {
+    white-space: normal;
+  }
+
+  .coss-projects-content {
+    padding: 12px;
+  }
+
+  .coss-projects-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .coss-project-card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .coss-projects-filterset {
+    grid-template-columns: 1fr;
+  }
+
+  .coss-projects-count {
+    text-align: start;
+  }
+
+  .coss-project-usage {
+    min-width: 0;
+  }
+
+  .coss-project-cell {
+    min-width: 150px;
+  }
+}
