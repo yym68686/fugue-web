@@ -31,6 +31,10 @@ export type ClientTelemetryEvent =
       source: ClientErrorSource;
     }
   | {
+      kind: "route-view";
+      route: ClientTelemetryRouteGroup;
+    }
+  | {
       kind: "web-vital";
       name: WebVitalName;
       rating: WebVitalRating;

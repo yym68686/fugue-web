@@ -12,8 +12,11 @@ import {
   readLimitedJson,
   readLimitedUrlEncodedForm,
 } from "@/lib/auth/request";
+import {
+  logAuthEmailDeliveryFailure,
+  logAuthEmailDeliverySuccess,
+} from "@/lib/auth/telemetry";
 import { signToken } from "@/lib/auth/token";
-import { logAuthEmailDeliveryFailure } from "@/lib/auth/telemetry";
 import {
   AUTH_DISPLAY_NAME_MAX_LENGTH,
   AUTH_EMAIL_MAX_LENGTH,
@@ -149,6 +152,7 @@ export async function POST(request: Request) {
       name: registration.created ? name || undefined : undefined,
       verifyUrl: verifyUrl.toString(),
     });
+    logAuthEmailDeliverySuccess({ flow: "password-signup" });
   } catch (error) {
     logAuthEmailDeliveryFailure({
       category: error instanceof Error ? error.name : "unknown",

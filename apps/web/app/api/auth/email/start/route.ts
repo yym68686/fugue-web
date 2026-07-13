@@ -3,23 +3,26 @@ import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 
 import { ensureAppUserRecord } from "@/lib/app-users/store";
-import { getAuthEnv } from "@/lib/auth/env";
 import { sendVerificationEmail } from "@/lib/auth/email";
+import { getAuthEnv } from "@/lib/auth/env";
 import { syncAuthMethodOnSignIn } from "@/lib/auth/methods";
 import { buildOriginUrl, isSecureRequest, readRequestOrigin } from "@/lib/auth/origin";
 import { enforceAuthRateLimit } from "@/lib/auth/rate-limit";
 import { AuthRequestTooLargeError, readLimitedJson } from "@/lib/auth/request";
 import { buildSessionCookie } from "@/lib/auth/session";
-import { logAuthEmailDeliveryFailure } from "@/lib/auth/telemetry";
+import {
+  logAuthEmailDeliveryFailure,
+  logAuthEmailDeliverySuccess,
+} from "@/lib/auth/telemetry";
 import { signToken } from "@/lib/auth/token";
 import {
+  AUTH_DISPLAY_NAME_MAX_LENGTH,
+  AUTH_EMAIL_MAX_LENGTH,
   isValidEmail,
   normalizeEmail,
   parseAuthMode,
-  sanitizeReturnTo,
   sanitizeDisplayName,
-  AUTH_DISPLAY_NAME_MAX_LENGTH,
-  AUTH_EMAIL_MAX_LENGTH,
+  sanitizeReturnTo,
 } from "@/lib/auth/validation";
 import { ensureWorkspaceAccessForSignIn } from "@/lib/workspace/bootstrap";
 
@@ -161,6 +164,7 @@ export async function POST(request: Request) {
       name: name || undefined,
       verifyUrl: verifyUrl.toString(),
     });
+    logAuthEmailDeliverySuccess({ flow: "email-link" });
 
     return NextResponse.json({
       ok: true,

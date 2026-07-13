@@ -3,11 +3,11 @@ import { AuthRequestTooLargeError, readLimitedRequestText } from "@/lib/auth/req
 import {
   CLIENT_ERROR_SOURCES,
   CLIENT_TELEMETRY_ROUTE_GROUPS,
-  WEB_VITAL_NAMES,
-  WEB_VITAL_RATINGS,
   type ClientErrorSource,
   type ClientTelemetryEvent,
   type ClientTelemetryRouteGroup,
+  WEB_VITAL_NAMES,
+  WEB_VITAL_RATINGS,
   type WebVitalName,
   type WebVitalRating,
 } from "@/lib/telemetry/client-events";
@@ -38,6 +38,10 @@ function readTelemetryEvent(payload: unknown): ClientTelemetryEvent | null {
     return null;
   }
   const route = candidate.route as ClientTelemetryRouteGroup;
+
+  if (candidate.kind === "route-view") {
+    return { kind: "route-view", route };
+  }
 
   if (candidate.kind === "client-error") {
     if (!CLIENT_ERROR_SOURCES.includes(candidate.source as ClientErrorSource)) {

@@ -3,6 +3,7 @@ import "server-only";
 import { createHmac } from "node:crypto";
 import type { PoolClient } from "pg";
 import { readClientIp } from "@/lib/auth/origin";
+import { logAuthRateLimitDecision } from "@/lib/auth/telemetry";
 import { queryDb, withDbTransaction } from "@/lib/db/pool";
 import { ensureDbSchema } from "@/lib/db/schema";
 
@@ -357,17 +358,14 @@ export async function enforceAuthRateLimit(
   try {
     const result = await consumeAuthRateLimit(request, policy, subject);
 
+    logAuthRateLimitDecision({
+      outcome: result.allowed ? "allowed" : "limited",
+      policy,
+    });
+
     if (result.allowed) {
       return null;
     }
-
-    console.warn(
-      JSON.stringify({
-        event: "fugue_web_auth_rate_limit",
-        outcome: "limited",
-        policy,
-      }),
-    );
     return Response.json(
       {
         error: "Too many attempts. Wait before trying again.",
