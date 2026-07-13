@@ -497,12 +497,7 @@ test.describe("keyboard and interaction contracts", () => {
 
     for (let index = 0; index < 6; index += 1) {
       await page.keyboard.press("Tab");
-      expect(
-        await page.evaluate(() => {
-          const activeElement = document.activeElement;
-          return Boolean(activeElement?.closest('[role="dialog"]'));
-        }),
-      ).toBe(true);
+      await expect(dialog.locator(":focus")).toHaveCount(1);
     }
 
     await page.keyboard.press("Escape");

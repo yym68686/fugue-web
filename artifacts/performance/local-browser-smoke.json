@@ -1,5 +1,6 @@
 {
-  "capturedAt": "2026-07-13T09:39:12.946Z",
+  "capturedAt": "2026-07-13T11:24:47.102Z",
+  "fontLoadDelayMs": 300,
   "mode": "local Playwright smoke; synthetic lab signal, not field telemetry",
   "route": "/docs",
   "browser": "chromium-desktop",
@@ -12,51 +13,163 @@
     "eventTiming": [
       {
         "duration": 56,
-        "interactionId": 1990,
+        "interactionId": 0,
+        "name": "pointerover",
+        "startTime": 3627.7999999523163
+      },
+      {
+        "duration": 56,
+        "interactionId": 0,
+        "name": "pointerenter",
+        "startTime": 3627.7999999523163
+      },
+      {
+        "duration": 56,
+        "interactionId": 0,
+        "name": "pointerenter",
+        "startTime": 3627.7999999523163
+      },
+      {
+        "duration": 56,
+        "interactionId": 0,
+        "name": "pointerenter",
+        "startTime": 3627.7999999523163
+      },
+      {
+        "duration": 56,
+        "interactionId": 0,
+        "name": "pointerenter",
+        "startTime": 3627.7999999523163
+      },
+      {
+        "duration": 56,
+        "interactionId": 0,
+        "name": "pointerenter",
+        "startTime": 3627.7999999523163
+      },
+      {
+        "duration": 56,
+        "interactionId": 0,
+        "name": "pointerenter",
+        "startTime": 3627.7999999523163
+      },
+      {
+        "duration": 56,
+        "interactionId": 0,
+        "name": "pointerenter",
+        "startTime": 3627.7999999523163
+      },
+      {
+        "duration": 56,
+        "interactionId": 0,
+        "name": "pointerenter",
+        "startTime": 3627.7999999523163
+      },
+      {
+        "duration": 56,
+        "interactionId": 0,
+        "name": "pointerenter",
+        "startTime": 3627.7999999523163
+      },
+      {
+        "duration": 56,
+        "interactionId": 0,
+        "name": "pointerenter",
+        "startTime": 3627.7999999523163
+      },
+      {
+        "duration": 56,
+        "interactionId": 0,
+        "name": "pointerenter",
+        "startTime": 3627.7999999523163
+      },
+      {
+        "duration": 56,
+        "interactionId": 0,
+        "name": "pointerenter",
+        "startTime": 3627.7999999523163
+      },
+      {
+        "duration": 56,
+        "interactionId": 0,
+        "name": "mouseover",
+        "startTime": 3627.7999999523163
+      },
+      {
+        "duration": 56,
+        "interactionId": 9189,
         "name": "pointerdown",
-        "startTime": 2822.899999976158
+        "startTime": 3628
       },
       {
         "duration": 56,
         "interactionId": 0,
         "name": "mousedown",
-        "startTime": 2822.899999976158
+        "startTime": 3628
       },
       {
         "duration": 56,
-        "interactionId": 1990,
+        "interactionId": 9189,
         "name": "pointerup",
-        "startTime": 2823
+        "startTime": 3628
       },
       {
         "duration": 56,
         "interactionId": 0,
         "name": "mouseup",
-        "startTime": 2823
+        "startTime": 3628
       },
       {
         "duration": 56,
-        "interactionId": 1990,
+        "interactionId": 9189,
         "name": "click",
-        "startTime": 2823
+        "startTime": 3628
       }
     ],
     "eventTimingMax": 56,
     "interactionEventTimingMax": 56,
-    "lcpMs": 424,
+    "lcpMs": 532,
+    "layoutShifts": [
+      {
+        "sources": [
+          {
+            "currentRect": "874,10,390,44",
+            "node": "coss-actions",
+            "previousRect": "881.7,10,382.3,44"
+          },
+          {
+            "currentRect": "422.7,16.5,127.8,31",
+            "node": "coss-nav",
+            "previousRect": "427.2,16.5,126.2,31"
+          },
+          {
+            "currentRect": "442.3,438.8,112.5,28",
+            "node": "button",
+            "previousRect": "437,438.8,110.7,28"
+          },
+          {
+            "currentRect": "442.3,674.4,112.5,28",
+            "node": "button",
+            "previousRect": "437,674.4,110.7,28"
+          }
+        ],
+        "startTime": 1470.3999999761581,
+        "value": 0.0001807850996653239
+      }
+    ],
     "longTaskCount": 0,
     "navigation": {
-      "domCompleteMs": 575.8000000715256,
-      "domContentLoadedMs": 407.3000000715256,
-      "durationMs": 575.8000000715256,
-      "loadEventEndMs": 575.8000000715256,
-      "requestStartMs": 1.3000000715255737,
-      "responseEndMs": 406.60000002384186,
-      "responseStartMs": 53.60000002384186,
-      "transferSize": 9345,
+      "domCompleteMs": 1466.3999999761581,
+      "domContentLoadedMs": 958.2999999523163,
+      "durationMs": 1466.3999999761581,
+      "loadEventEndMs": 1466.3999999761581,
+      "requestStartMs": 2.399999976158142,
+      "responseEndMs": 957.1999999284744,
+      "responseStartMs": 72.89999997615814,
+      "transferSize": 9339,
       "type": "navigate"
     },
     "totalBlockingTimeMs": 0,
-    "interactionToNextPaintApproximationMs": 51.39999997615814
+    "interactionToNextPaintApproximationMs": 44
   }
 }

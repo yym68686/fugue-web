@@ -1,23 +1,23 @@
 {
   "browser": "chromium-desktop",
-  "capturedAt": "2026-07-13T09:38:46.178Z",
+  "capturedAt": "2026-07-13T11:24:05.653Z",
   "cpuThrottleRate": 4,
   "interactionWindows": [
     {
-      "durationMs": 763.4000000476835,
-      "endTime": 4891.7,
-      "startTime": 4128.299999952316
+      "durationMs": 602.5999999046326,
+      "endTime": 8881.5,
+      "startTime": 8278.900000095367
     },
     {
-      "durationMs": 312.8000000000002,
-      "endTime": 5483.3,
-      "startTime": 5170.5
+      "durationMs": 314.89999999999964,
+      "endTime": 9663.9,
+      "startTime": 9349
     }
   ],
   "mode": "trusted click dispatch-to-target next render opportunity; not field INP",
   "panelSwitches": {
-    "environmentMs": 763.4000000476835,
-    "logsMs": 312.8000000000002
+    "environmentMs": 602.5999999046326,
+    "logsMs": 314.89999999999964
   },
   "metrics": {
     "eventTimingMaxMs": 56,

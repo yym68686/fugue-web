@@ -1,6 +1,7 @@
 # WP-13 protected-route preauthorization follow-up
 
-Status: implementation verified locally; production redeploy evidence pending.
+Status: implementation and CI follow-up fixes verified locally; PR #13 required
+checks and production redeploy evidence pending.
 
 ## Production observation
 
@@ -73,9 +74,38 @@ The E2E matrix increased from 200 to 205 project cases because the new raw
 server invariant runs once and is explicitly skipped in the four redundant
 browser projects.
 
+## PR #13 first CI follow-up
+
+The first [`frontend-quality` run
+29241356425](https://github.com/yym68686/fugue-web/actions/runs/29241356425)
+passed every required job except E2E. Chromium reproduced a real cold-font Docs
+CLS of `0.5973580610487197` in all three attempts. Its retained trace showed the
+PageHeader action wrapping below the title under the fallback font and moving
+back to the right after Inter loaded. The shared title/action row now has a
+deterministic two-column grid and a one-column responsive breakpoint. The
+performance smoke deliberately delays Inter by 300 ms, records shift sources,
+uses the Web Vitals session-window algorithm, and passed 3/3 focused reruns at
+CLS `0.0001807850996653239` without changing the `0.1` threshold.
+
+The same CI run's WebKit Drawer test failed its first immediate JavaScript focus
+sample and passed on retry. The Base UI focus guards can briefly own focus before
+the modal trap redirects it into the dialog. The test now uses Playwright's
+auto-retrying `:focus` locator after every Tab; the product focus trap, Escape
+close, inert background, and trigger restoration are unchanged. A clean
+production build passed this WebKit scenario 10/10.
+
+One earlier combined local repetition surfaced a cancelled prefetched Auth
+chunk while two developer builds overlapped the same `.next` output. The trace
+showed the static directory was replaced after that request began. Serialized
+fresh-port production builds reproduced neither the response nor any console
+error in the 10 focus and 3 cold-font repetitions above. It is therefore not
+suppressed by the browser failure monitor and is not classified as an
+application runtime defect.
+
 ## Release and rollback
 
-This is a normal forward fix through a focused branch, pull request, required
+This is a normal forward fix through the focused
+[`fugue-web#13`](https://github.com/yym68686/fugue-web/pull/13) branch, required
 GitHub Actions checks, merge to `main`, and Fugue's automatic import/build/deploy
 path. No SSH change, manual Deployment patch, service restart, or image sync was
 performed.

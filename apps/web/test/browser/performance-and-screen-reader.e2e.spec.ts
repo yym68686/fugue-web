@@ -4,16 +4,26 @@ import path from "node:path";
 import { expect, test } from "@playwright/test";
 
 type PerformanceSmokeState = {
-  cls: number;
   eventTimings: Array<{
     duration: number;
     interactionId: number;
     name: string;
     startTime: number;
   }>;
+  layoutShifts: Array<{
+    sources: Array<{
+      currentRect: string;
+      node: string;
+      previousRect: string;
+    }>;
+    startTime: number;
+    value: number;
+  }>;
   lcp: number;
   longTasks: number[];
 };
+
+const FONT_LOAD_DELAY_MS = 300;
 
 test("records local navigation, web-vital, long-task, and interaction smoke", async ({
   page,
@@ -25,8 +35,8 @@ test("records local navigation, web-vital, long-task, and interaction smoke", as
 
   await page.addInitScript(() => {
     const state: PerformanceSmokeState = {
-      cls: 0,
       eventTimings: [],
+      layoutShifts: [],
       lcp: 0,
       longTasks: [],
     };
@@ -55,9 +65,40 @@ test("records local navigation, web-vital, long-task, and interaction smoke", as
       for (const entry of entries) {
         const shift = entry as PerformanceEntry & {
           hadRecentInput?: boolean;
+          sources?: Array<{
+            currentRect?: DOMRectReadOnly;
+            node?: Node;
+            previousRect?: DOMRectReadOnly;
+          }>;
           value?: number;
         };
-        if (!shift.hadRecentInput) state.cls += shift.value ?? 0;
+        if (shift.hadRecentInput) continue;
+
+        state.layoutShifts.push({
+          sources: (shift.sources ?? []).map((source) => {
+            const node = source.node;
+            const nodeLabel =
+              node instanceof HTMLElement
+                ? node.dataset.slot ||
+                  [...node.classList].slice(0, 2).join(".") ||
+                  node.tagName.toLowerCase()
+                : node?.nodeName.toLowerCase() || "unknown";
+            const serializeRect = (rect?: DOMRectReadOnly) =>
+              rect
+                ? [rect.x, rect.y, rect.width, rect.height]
+                    .map((value) => Math.round(value * 10) / 10)
+                    .join(",")
+                : "";
+
+            return {
+              currentRect: serializeRect(source.currentRect),
+              node: nodeLabel,
+              previousRect: serializeRect(source.previousRect),
+            };
+          }),
+          startTime: shift.startTime,
+          value: shift.value ?? 0,
+        });
       }
     });
     observe("longtask", (entries) => {
@@ -94,8 +135,17 @@ test("records local navigation, web-vital, long-task, and interaction smoke", as
     });
   });
 
+  await page.route("**/inter-*.woff2", async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, FONT_LOAD_DELAY_MS));
+    await route.continue();
+  });
+
   await page.goto("/docs");
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await expect(page.locator(".coss-page-header__row").first()).toHaveCSS(
+    "display",
+    "grid",
+  );
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(1_000);
 
@@ -132,9 +182,31 @@ test("records local navigation, web-vital, long-task, and interaction smoke", as
       (total, duration) => total + Math.max(0, duration - 50),
       0,
     );
+    const sortedShifts = [...state.layoutShifts].sort(
+      (left, right) => left.startTime - right.startTime,
+    );
+    let cls = 0;
+    let sessionValue = 0;
+    let sessionStart = 0;
+    let previousShift = 0;
+
+    for (const shift of sortedShifts) {
+      if (
+        sessionValue === 0 ||
+        shift.startTime - previousShift > 1_000 ||
+        shift.startTime - sessionStart > 5_000
+      ) {
+        sessionValue = shift.value;
+        sessionStart = shift.startTime;
+      } else {
+        sessionValue += shift.value;
+      }
+      previousShift = shift.startTime;
+      cls = Math.max(cls, sessionValue);
+    }
 
     return {
-      cls: state.cls,
+      cls,
       eventTiming: state.eventTimings,
       eventTimingMax: Math.max(0, ...state.eventTimings.map((entry) => entry.duration)),
       interactionEventTimingMax: Math.max(
@@ -144,6 +216,7 @@ test("records local navigation, web-vital, long-task, and interaction smoke", as
           .map((entry) => entry.duration),
       ),
       lcpMs: state.lcp,
+      layoutShifts: sortedShifts,
       longTaskCount: state.longTasks.length,
       navigation: {
         domCompleteMs: navigation.domComplete,
@@ -161,6 +234,7 @@ test("records local navigation, web-vital, long-task, and interaction smoke", as
   });
   const report = {
     capturedAt: new Date().toISOString(),
+    fontLoadDelayMs: FONT_LOAD_DELAY_MS,
     mode: "local Playwright smoke; synthetic lab signal, not field telemetry",
     route: "/docs",
     browser: testInfo.project.name,

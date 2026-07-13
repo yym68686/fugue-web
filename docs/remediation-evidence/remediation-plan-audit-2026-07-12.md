@@ -24,6 +24,12 @@
   `start-standalone.mjs`，没有 unsupported `next start` 警告。
 - 当前 browser matrix 是 **205 个 Playwright project cases：107 passed、98 个预期
   capability skip、0 failed**；axe 独立矩阵是 **8/8 passed**。
+- 当前 follow-up 位于 [`fugue-web#13`](https://github.com/yym68686/fugue-web/pull/13)。
+  首轮 [`frontend-quality` run
+  29241356425](https://github.com/yym68686/fugue-web/actions/runs/29241356425) 的非 E2E
+  required jobs 全绿；E2E 留存 trace 发现真实冷字体 PageHeader CLS 与一个 WebKit
+  即时 focus 采样竞态。确定性 grid、300 ms 字体延迟回归和 web-first focus 断言已在
+  本地分别连续 3/3 与 10/10 通过，尚待新提交上的远端 required checks 关闭 Gate B。
 - 当前有 **10 张** post-remediation 截图：marketing、Docs、sign-in、sign-up、Console
   各 desktop/mobile。desktop Console 初次人工复核发现的视觉缺陷已修复；desktop/mobile
   Console 截图已重新生成，10 张截图均已人工复核通过，且没有通过放大阈值掩盖回归。
@@ -60,6 +66,8 @@
 - 首轮 GitGuardian 将三个 CI PostgreSQL 示例密码识别为 secret；workflow 改用隔离
   runner 的 passwordless service，并从 PR 历史移除示例密码后通过。
 - 上述 workflow 不作为当前 follow-up 的 CI 证明；主计划 Gate B 对应项已重新打开。
+- PR #13 首轮 run `29241356425` 也不提前算作通过：它发现的 E2E 回归已经本地修复，
+  但必须等修复提交对应的新 run 全绿后，才能勾选 Gate B。
 
 ## 3. Auth、权限与产品行为复核
 
