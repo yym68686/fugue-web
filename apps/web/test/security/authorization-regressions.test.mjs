@@ -183,6 +183,9 @@ test("server-side recovery is explicit and audited", async () => {
 
 test("the protected server layout owns the stable console shell and role-pruned navigation", async () => {
   const layout = await readRepositoryFile("app/app/layout.tsx");
+  const pageAccess = await readRepositoryFile("lib/auth/page-access.ts");
+  const requestContext = await readRepositoryFile("lib/server/request-context.ts");
+  const adminAuth = await readRepositoryFile("lib/admin/auth.ts");
   const shell = await readRepositoryFile("components/fugue-coss/shells.tsx");
   const clientNavigation = await readRepositoryFile(
     "components/console/console-navigation.tsx",
@@ -191,11 +194,24 @@ test("the protected server layout owns the stable console shell and role-pruned 
     await listFilesRecursively(path.join(repositoryRoot, "app/app"))
   ).filter((file) => file.endsWith("/page.tsx"));
 
-  assert.match(layout, /getCurrentActiveSessionUser\(\)/);
-  assert.match(layout, /isAdmin\s*=\s*activeSession\.user\.isAdmin/);
+  assert.match(layout, /requireActivePageSession\(\)/);
+  assert.match(layout, /isAdmin=\{activeSession\.user\.isAdmin\}/);
+  assert.match(pageAccess, /getRequestActiveSessionUserOrThrow\(\)/);
+  assert.match(pageAccess, /headerStore\.get\(PAGE_RETURN_TO_HEADER\)/);
+  assert.match(requestContext, /const getRequestActiveSessionResult = cache/);
+  assert.match(
+    adminAuth,
+    /export async function requireAdminApiSession\(\)[\s\S]*?const activeSession = await getRequestActiveSessionUser\(\)[\s\S]*?^}/m,
+  );
+  assert.doesNotMatch(adminAuth, /getRequest(?:Session|AppUserRecord)\(/);
+  const layoutFunction = layout.slice(layout.indexOf("export default"));
+  assert.equal(
+    layoutFunction.indexOf("await requireActivePageSession()"),
+    layoutFunction.indexOf("await "),
+  );
   assert.match(
     layout,
-    /<ConsoleShell isAdmin=\{isAdmin\} messages=\{createShellMessages\(t\)\}>[\s\S]*?\{children\}[\s\S]*?<\/ConsoleShell>/,
+    /<ConsoleShell[\s\S]*?isAdmin=\{activeSession\.user\.isAdmin\}[\s\S]*?\{children\}[\s\S]*?<\/ConsoleShell>/,
   );
   assert.match(
     shell,
@@ -204,6 +220,7 @@ test("the protected server layout owns the stable console shell and role-pruned 
   assert.doesNotMatch(clientNavigation, /const adminLinks/);
 
   const pageShellOwners = [];
+  const pagesWithoutLeadingPreauthorization = [];
 
   for (const pageFile of pageFiles) {
     const source = await readFile(pageFile, "utf8");
@@ -211,7 +228,21 @@ test("the protected server layout owns the stable console shell and role-pruned 
     if (/\b(?:AdminShell|ConsoleShell)\b/.test(source)) {
       pageShellOwners.push(path.relative(repositoryRoot, pageFile));
     }
+
+    const pageFunction = source.slice(source.indexOf("export default"));
+    const guardIndex = pageFunction.search(
+      /await require(?:ActivePageSession|AdminPageAccess)\(/,
+    );
+    const firstAwaitIndex = pageFunction.indexOf("await ");
+
+    if (guardIndex < 0 || guardIndex !== firstAwaitIndex) {
+      pagesWithoutLeadingPreauthorization.push(path.relative(repositoryRoot, pageFile));
+    }
   }
 
   assert.deepEqual(pageShellOwners, []);
+  assert.deepEqual(pagesWithoutLeadingPreauthorization, []);
+
+  const notFound = await readRepositoryFile("app/app/not-found.tsx");
+  assert.match(notFound, /await requireActivePageSession\(\)/);
 });

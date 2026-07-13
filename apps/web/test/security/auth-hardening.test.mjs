@@ -20,6 +20,7 @@ import {
   AuthRequestTooLargeError,
   readLimitedRequestText,
 } from "../../lib/auth/request.ts";
+import { readVersionedSessionToken } from "../../lib/auth/session-claim.ts";
 import { signToken, verifyToken } from "../../lib/auth/token.ts";
 import {
   sanitizeExternalHttpUrl,
@@ -159,6 +160,116 @@ test("signed auth tokens require exactly three segments and the expected protect
     const token = signToken({ type: "test-token", value: "ok" }, 60);
     assert.equal(verifyToken(token)?.value, "ok");
     assert.equal(verifyToken(`${token}.ignored`), null);
+
+    const sessionToken = signToken(
+      {
+        email: "member@example.test",
+        provider: "email",
+        sessionVersion: 1,
+        type: "session",
+        verified: true,
+      },
+      60,
+    );
+    assert.deepEqual(readVersionedSessionToken(sessionToken), {
+      authMethod: "email_link",
+      email: "member@example.test",
+      name: undefined,
+      picture: undefined,
+      provider: "email",
+      providerId: undefined,
+      sessionVersion: 1,
+      verified: true,
+    });
+
+    for (const invalidClaims of [
+      { email: 42, provider: "email", sessionVersion: 1, verified: true },
+      {
+        email: "member@example.test",
+        provider: "email",
+        sessionVersion: 1,
+        verified: "yes",
+      },
+      {
+        email: "member@example.test",
+        provider: "email",
+        sessionVersion: 0,
+        verified: true,
+      },
+      {
+        authMethod: "unknown",
+        email: "member@example.test",
+        provider: "email",
+        sessionVersion: 1,
+        verified: true,
+      },
+      {
+        email: "member@example.test",
+        provider: "saml",
+        sessionVersion: 1,
+        verified: true,
+      },
+      {
+        email: "member@example.test",
+        name: 42,
+        provider: "email",
+        sessionVersion: 1,
+        verified: true,
+      },
+      {
+        email: "member@example.test",
+        picture: { url: "https://images.example.test/avatar.png" },
+        provider: "email",
+        sessionVersion: 1,
+        verified: true,
+      },
+      {
+        email: "member@example.test",
+        provider: "email",
+        providerId: ["unexpected"],
+        sessionVersion: 1,
+        verified: true,
+      },
+    ]) {
+      assert.equal(
+        readVersionedSessionToken(signToken({ type: "session", ...invalidClaims }, 60)),
+        null,
+      );
+    }
+
+    assert.equal(
+      readVersionedSessionToken(
+        signToken(
+          {
+            email: "member@example.test",
+            provider: "email",
+            sessionVersion: 1,
+            type: "oauth-state",
+            verified: true,
+          },
+          60,
+        ),
+      ),
+      null,
+    );
+
+    const expiringSessionToken = signToken(
+      {
+        email: "member@example.test",
+        provider: "email",
+        sessionVersion: 1,
+        type: "session",
+        verified: true,
+      },
+      1,
+    );
+    const realDateNow = Date.now;
+    Date.now = () => realDateNow() + 2_000;
+    try {
+      assert.equal(readVersionedSessionToken(expiringSessionToken), null);
+    } finally {
+      Date.now = realDateNow;
+    }
 
     const [, body, signature] = token.split(".");
     const wrongHeader = Buffer.from(

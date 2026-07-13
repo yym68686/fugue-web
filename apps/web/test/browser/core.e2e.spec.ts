@@ -5,6 +5,66 @@ type BrowserFailure = {
   message: string;
 };
 
+const PRIVATE_CONSOLE_ROUTES = [
+  {
+    path: "/app",
+    forbidden: ["Track project lifecycle", '"projects":[]'],
+  },
+  {
+    path: "/app/api-keys",
+    forbidden: ["Workspace API keys and node enrollment keys"],
+  },
+  {
+    path: "/app/apps",
+    forbidden: ["Cluster-wide applications, owners"],
+  },
+  {
+    path: "/app/billing",
+    forbidden: ["Prepaid balance, managed capacity envelope"],
+  },
+  {
+    path: "/app/cluster-nodes",
+    forbidden: ["Runtime servers, heartbeat, roles"],
+  },
+  {
+    path: "/app/cluster",
+    forbidden: ["Control plane status, runtime nodes"],
+  },
+  {
+    path: "/app/dns",
+    forbidden: ["Tenant DNS zones, records"],
+  },
+  {
+    path: "/app/projects/private-project-marker",
+    forbidden: ["Routes, environment, logs, files, images"],
+  },
+  {
+    path: "/app/projects/dotted.project?tab=logs",
+    forbidden: ["Routes, environment, logs, files, images"],
+  },
+  {
+    path: "/app/",
+    canonicalTo: "/app",
+    forbidden: ["Track project lifecycle", '"projects":[]'],
+  },
+  {
+    path: "/app/settings",
+    forbidden: ["Profile and security", "Display name, account email"],
+  },
+  {
+    path: "/app/settings/profile",
+    forbidden: ["Display name, account email"],
+  },
+  {
+    path: "/app/users",
+    forbidden: ["User directory, account status"],
+  },
+  {
+    path: "/app/does-not-exist",
+    forbidden: ["Console page not found", "requested workspace page"],
+  },
+] as const;
+
 function monitorBrowserFailures(page: Page) {
   const failures: BrowserFailure[] = [];
 
@@ -43,6 +103,114 @@ async function expectNoDocumentOverflow(page: Page) {
 }
 
 test.describe("public, auth, and private route boundaries", () => {
+  test("unauthenticated console documents redirect before emitting private HTML or RSC", async ({
+    request,
+  }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== "chromium-desktop",
+      "The raw server response invariant is independent of the browser engine.",
+    );
+
+    const baseURL = testInfo.project.use.baseURL as string;
+    const expectedOrigin = new URL(baseURL).origin;
+
+    for (const routeCase of PRIVATE_CONSOLE_ROUTES) {
+      for (const representation of ["document", "rsc", "prefetch", "head"] as const) {
+        await test.step(`${representation} ${routeCase.path}`, async () => {
+          const requestUrl = new URL(routeCase.path, baseURL);
+          if (
+            (representation === "rsc" || representation === "prefetch") &&
+            !("canonicalTo" in routeCase)
+          ) {
+            requestUrl.searchParams.set("_rsc", "missing-session-proof");
+          }
+          const response = await request.fetch(
+            `${requestUrl.pathname}${requestUrl.search}`,
+            {
+              failOnStatusCode: false,
+              headers:
+                representation === "rsc" || representation === "prefetch"
+                  ? {
+                      Accept: "text/x-component",
+                      ...(representation === "prefetch"
+                        ? { "Next-Router-Prefetch": "1" }
+                        : {}),
+                      RSC: "1",
+                    }
+                  : {
+                      Accept:
+                        "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                      "Sec-Fetch-Dest": "document",
+                      "Sec-Fetch-Mode": "navigate",
+                    },
+              maxRedirects: 0,
+              method: representation === "head" ? "HEAD" : "GET",
+            },
+          );
+
+          const location = response.headers().location;
+          expect(location).toBeTruthy();
+
+          const redirectUrl = new URL(location as string, baseURL);
+          if ("canonicalTo" in routeCase) {
+            expect(response.status()).toBe(308);
+            expect(redirectUrl.origin).toBe(expectedOrigin);
+            expect(redirectUrl.pathname).toBe(routeCase.canonicalTo);
+            expect(redirectUrl.search).toBe("");
+          } else {
+            expect(response.status()).toBe(307);
+            expect(redirectUrl.origin).toBe(expectedOrigin);
+            expect(redirectUrl.pathname).toBe("/auth/sign-in");
+            expect(redirectUrl.searchParams.get("returnTo")).toBe(routeCase.path);
+            expect([...redirectUrl.searchParams.keys()]).toEqual(["returnTo"]);
+
+            const cacheControl = response.headers()["cache-control"] ?? "";
+            expect(cacheControl).toContain("private");
+            expect(cacheControl).toContain("no-store");
+          }
+          expect(response.headers()["set-cookie"] ?? "").not.toContain(
+            "fugue_session=",
+          );
+
+          const body = await response.text();
+          for (const forbidden of [
+            "coss-console-shell",
+            "coss-sidebar",
+            ...routeCase.forbidden,
+          ]) {
+            expect(
+              body,
+              `${representation} ${routeCase.path} leaked ${forbidden}`,
+            ).not.toContain(forbidden);
+          }
+        });
+      }
+    }
+
+    const malformedCookieResponse = await request.get("/app", {
+      failOnStatusCode: false,
+      headers: {
+        Accept: "text/html",
+        Cookie: "fugue_session=malformed-signed-session",
+        Host: "untrusted.example",
+        "X-Forwarded-Host": "forwarded-untrusted.example",
+        "X-Forwarded-Proto": "http",
+      },
+      maxRedirects: 0,
+    });
+    expect(malformedCookieResponse.status()).toBe(307);
+    const malformedRedirect = new URL(
+      malformedCookieResponse.headers().location as string,
+      baseURL,
+    );
+    expect(malformedRedirect.origin).toBe(expectedOrigin);
+    expect(malformedRedirect.pathname).toBe("/auth/sign-in");
+    expect(malformedRedirect.searchParams.get("returnTo")).toBe("/app");
+    expect(await malformedCookieResponse.text()).not.toContain(
+      "Track project lifecycle",
+    );
+  });
+
   test("marketing and docs expose semantic public pages with canonical metadata", async ({
     browserName,
     page,

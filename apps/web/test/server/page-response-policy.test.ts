@@ -25,7 +25,14 @@ describe("rendered page response policy", () => {
 
     expect(source).toContain("export function proxy");
     expect(source).toContain('response.headers.set("Cache-Control"');
-    expect(source).toContain('response.headers.set("Vary"');
+    expect(source).toContain('"Vary"');
+    expect(source).toContain("readVersionedSessionToken(sessionToken)");
+    expect(source).toContain("readRequestOrigin(request)");
+    expect(source).toContain("NextResponse.redirect(signInUrl, 307)");
+    expect(source).toContain('searchParams.delete("_rsc")');
+    expect(source).toContain("requestHeaders.delete(PAGE_RETURN_TO_HEADER)");
+    expect(source).toContain("requestHeaders.set(PAGE_RETURN_TO_HEADER, returnTo)");
+    expect(source).toContain('"/app/:path*"');
     expect(source).toContain(
       '"/((?!api|healthz|auth/finalize/complete|_next/static|_next/image|robots\\\\.txt|sitemap\\\\.xml|.*\\\\.[^/]+$).*)"',
     );

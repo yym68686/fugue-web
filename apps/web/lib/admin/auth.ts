@@ -4,18 +4,12 @@ import { timingSafeEqual } from "node:crypto";
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { requireActivePageSession } from "@/lib/auth/page-access";
 import { logSessionRoleMismatch, type SessionUser } from "@/lib/auth/session";
 import { getFugueAuthContext } from "@/lib/fugue/api";
 import { getFugueEnv } from "@/lib/fugue/env";
-import {
-  jsonError,
-  readErrorMessage,
-  readErrorStatus,
-} from "@/lib/fugue/product-route";
-import {
-  getRequestAppUserRecord,
-  getRequestSession,
-} from "@/lib/server/request-context";
+import { jsonError } from "@/lib/fugue/product-route";
+import { getRequestActiveSessionUser } from "@/lib/server/request-context";
 import { withDbClient } from "@/lib/db/pool";
 import { writeSecurityAuditEvent } from "@/lib/security/audit";
 
@@ -26,56 +20,21 @@ export type AdminControlPlaneRouteScope =
   | "admin.snapshot.users.read"
   | "admin.workspace.resolve.read";
 
-function readInactiveRedirect(error: unknown) {
-  if (!(error instanceof Error)) {
-    return null;
-  }
-
-  if (error.message.includes("blocked")) {
-    return "/auth/sign-in?error=account-blocked";
-  }
-
-  if (error.message.includes("deleted")) {
-    return "/auth/sign-in?error=account-deleted";
-  }
-
-  return null;
-}
-
 export async function requireAdminPageAccess() {
-  const session = await getRequestSession();
+  const activeSession = await requireActivePageSession();
 
-  if (!session) {
-    redirect("/auth/sign-in?error=auth-required");
+  if (!activeSession.user.isAdmin) {
+    logSessionRoleMismatch(activeSession.session.email, "platform-admin");
+    redirect("/app");
   }
 
-  try {
-    const user = await getRequestAppUserRecord();
-
-    if (!user?.isAdmin) {
-      logSessionRoleMismatch(session.email, "platform-admin");
-      redirect("/app");
-    }
-
-    return {
-      session,
-      user,
-    };
-  } catch (error) {
-    const destination = readInactiveRedirect(error);
-
-    if (destination) {
-      redirect(destination);
-    }
-
-    throw error;
-  }
+  return activeSession;
 }
 
 export async function requireAdminApiSession() {
-  const session = await getRequestSession();
+  const activeSession = await getRequestActiveSessionUser();
 
-  if (!session) {
+  if (!activeSession) {
     return {
       response: jsonError(401, "Sign in first."),
       session: null,
@@ -83,30 +42,20 @@ export async function requireAdminApiSession() {
     } as const;
   }
 
-  try {
-    const user = await getRequestAppUserRecord();
-
-    if (!user?.isAdmin) {
-      logSessionRoleMismatch(session.email, "platform-admin");
-      return {
-        response: jsonError(403, "Admin access required."),
-        session,
-        user: null,
-      } as const;
-    }
-
+  if (!activeSession.user.isAdmin) {
+    logSessionRoleMismatch(activeSession.session.email, "platform-admin");
     return {
-      response: null,
-      session,
-      user,
-    } as const;
-  } catch (error) {
-    return {
-      response: jsonError(readErrorStatus(error), readErrorMessage(error)),
-      session: null,
+      response: jsonError(403, "Admin access required."),
+      session: activeSession.session,
       user: null,
     } as const;
   }
+
+  return {
+    response: null,
+    session: activeSession.session,
+    user: activeSession.user,
+  } as const;
 }
 
 function readBearerToken(value: string | null) {
