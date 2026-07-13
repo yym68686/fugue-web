@@ -75,6 +75,71 @@ function expectNoAdminNavigationPayload(payload: string) {
   expect(payload).not.toContain('\\"admin\\":\\"Admin\\"');
 }
 
+async function expectRevokedSessionDocumentRedirect(
+  page: Page,
+  path: string,
+  expectedError: "account-blocked" | "account-deleted" | "session-expired",
+) {
+  for (const representation of ["document", "rsc", "prefetch", "head"] as const) {
+    const requestUrl = new URL(path, page.url());
+    if (representation === "rsc" || representation === "prefetch") {
+      requestUrl.searchParams.set("_rsc", "revoked-session-proof");
+    }
+
+    const response = await page.request.fetch(
+      `${requestUrl.pathname}${requestUrl.search}`,
+      {
+        failOnStatusCode: false,
+        headers:
+          representation === "rsc" || representation === "prefetch"
+            ? {
+                Accept: "text/x-component",
+                ...(representation === "prefetch"
+                  ? { "Next-Router-Prefetch": "1" }
+                  : {}),
+                RSC: "1",
+              }
+            : { Accept: "text/html" },
+        maxRedirects: 0,
+        method: representation === "head" ? "HEAD" : "GET",
+      },
+    );
+
+    const body = await response.text();
+    const expectedRedirect = `/auth/sign-in?error=${expectedError}&returnTo=${encodeURIComponent(path)}`;
+
+    if (representation === "rsc") {
+      expect(response.status()).toBe(200);
+      expect(body).toContain("NEXT_REDIRECT;replace;");
+      expect(body).toContain(expectedRedirect);
+    } else if (representation === "prefetch") {
+      expect(response.status()).toBe(200);
+    } else {
+      expect(response.status()).toBe(307);
+      const location = response.headers().location;
+      expect(location).toBeTruthy();
+      const redirectUrl = new URL(location as string, response.url());
+      expect(redirectUrl.origin).toBe(new URL(response.url()).origin);
+      expect(redirectUrl.pathname).toBe("/auth/sign-in");
+      expect(redirectUrl.searchParams.get("error")).toBe(expectedError);
+      expect(redirectUrl.searchParams.get("returnTo")).toBe(path);
+      expect([...redirectUrl.searchParams.keys()]).toEqual(["error", "returnTo"]);
+    }
+    const cacheControl = response.headers()["cache-control"] ?? "";
+    expect(cacheControl).toContain("private");
+    expect(cacheControl).toContain("no-store");
+
+    for (const forbidden of [
+      "coss-console-shell",
+      "coss-sidebar",
+      "Track project lifecycle",
+      "Cluster-wide applications, owners",
+    ]) {
+      expect(body).not.toContain(forbidden);
+    }
+  }
+}
+
 async function focusWithKeyboard(page: Page, target: Locator, maxTabs = 40) {
   for (let index = 0; index < maxTabs; index += 1) {
     if (
@@ -295,17 +360,44 @@ test.describe("authenticated Console contracts", () => {
     expect(flightResponse.status()).toBe(200);
     expectNoAdminNavigationPayload(await flightResponse.text());
 
-    const forbiddenAdminPage = await page.request.get("/app/apps", {
-      maxRedirects: 0,
-    });
-    const forbiddenAdminBody = await forbiddenAdminPage.text();
-    expect(forbiddenAdminBody).not.toContain("Admin apps");
-    if (forbiddenAdminPage.status() === 200) {
-      expect(forbiddenAdminBody).toContain("NEXT_REDIRECT;replace;/app;307;");
-      expect(forbiddenAdminBody).toContain("__next-page-redirect");
-    } else {
-      expect([303, 307, 308]).toContain(forbiddenAdminPage.status());
-      expect(forbiddenAdminPage.headers().location).toBe("/app");
+    for (const representation of ["document", "rsc", "prefetch", "head"] as const) {
+      const forbiddenAdminPage = await page.request.fetch("/app/apps", {
+        headers:
+          representation === "rsc" || representation === "prefetch"
+            ? {
+                Accept: "text/x-component",
+                ...(representation === "prefetch"
+                  ? { "Next-Router-Prefetch": "1" }
+                  : {}),
+                RSC: "1",
+              }
+            : { Accept: "text/html" },
+        maxRedirects: 0,
+        method: representation === "head" ? "HEAD" : "GET",
+      });
+      const forbiddenAdminBody = await forbiddenAdminPage.text();
+      expect(forbiddenAdminBody).not.toContain("Admin apps");
+      const forbiddenCacheControl = forbiddenAdminPage.headers()["cache-control"] ?? "";
+      expect(forbiddenCacheControl).toContain("private");
+      expect(forbiddenCacheControl).toContain("no-store");
+      if (representation === "rsc") {
+        expect(forbiddenAdminPage.status()).toBe(200);
+        expect(forbiddenAdminBody).toContain("NEXT_REDIRECT;replace;/app;307;");
+      } else if (representation === "prefetch") {
+        expect(forbiddenAdminPage.status()).toBe(200);
+      } else if (representation === "head") {
+        expect([200, 307]).toContain(forbiddenAdminPage.status());
+        expect(forbiddenAdminBody).toBe("");
+        if (forbiddenAdminPage.status() === 307) {
+          expect(forbiddenAdminPage.headers().location).toBe("/app");
+        }
+      } else if (forbiddenAdminPage.status() === 200) {
+        expect(forbiddenAdminBody).toContain("NEXT_REDIRECT;replace;/app;307;");
+        expect(forbiddenAdminBody).toContain("__next-page-redirect");
+      } else {
+        expect([303, 307, 308]).toContain(forbiddenAdminPage.status());
+        expect(forbiddenAdminPage.headers().location).toBe("/app");
+      }
     }
 
     await expect(page.getByText("No projects yet", { exact: true })).toBeVisible();
@@ -1400,6 +1492,12 @@ test.describe("authenticated Console contracts", () => {
       expect(mutation.status()).toBe(200);
       await expectCurrentCookieValue(fixture.targetPage, fixture.oldCookie);
 
+      await expectRevokedSessionDocumentRedirect(
+        fixture.targetPage,
+        "/app?view=projects",
+        "account-blocked",
+      );
+
       const denied = await fixture.targetPage.request.patch(
         "/api/fugue/apps/app-old-cookie/env",
         { data: { delete: [], set: { SHOULD_NOT_WRITE: "1" } } },
@@ -1439,6 +1537,12 @@ test.describe("authenticated Console contracts", () => {
       expect(mutation.status()).toBe(200);
       await expectCurrentCookieValue(fixture.targetPage, fixture.oldCookie);
 
+      await expectRevokedSessionDocumentRedirect(
+        fixture.targetPage,
+        "/app/settings/profile?section=authentication",
+        "account-deleted",
+      );
+
       const denied = await fixture.targetPage.request.post(
         "/api/fugue/apps/app-old-cookie/restart",
       );
@@ -1473,6 +1577,12 @@ test.describe("authenticated Console contracts", () => {
       );
       expect(mutation.status()).toBe(200);
       await expectCurrentCookieValue(fixture.targetPage, fixture.oldCookie);
+
+      await expectRevokedSessionDocumentRedirect(
+        fixture.targetPage,
+        "/app/apps?filter=running",
+        "session-expired",
+      );
 
       const denied = await fixture.targetPage.request.post(
         `/api/admin/users/${encodeURIComponent(CONSOLE_ORDINARY_USER.email)}/sessions`,

@@ -2,6 +2,7 @@
 
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import { request as httpRequest } from "node:http";
 import { pathToFileURL } from "node:url";
 
 import { finishGate, ROOT } from "./lib.mjs";
@@ -32,6 +33,8 @@ export const FORBIDDEN_IMAGE_PATHS = [
 
 const HEALTH_TIMEOUT_MS = 60_000;
 const REQUEST_TIMEOUT_MS = 10_000;
+export const CONTAINER_CANONICAL_HOST = "127.0.0.1:3000";
+const CONTAINER_CANONICAL_ORIGIN = `http://${CONTAINER_CANONICAL_HOST}`;
 const SIGNAL_EXIT_CODES = new Map([
   ["SIGINT", 130],
   ["SIGTERM", 143],
@@ -161,8 +164,8 @@ function createSafeTestEnvironment() {
   const secret = (label) => `container-check-${label}-${nonce}`;
 
   return {
-    APP_BASE_URL: "http://127.0.0.1:3000",
-    APP_PUBLIC_URL: "http://127.0.0.1:3000",
+    APP_BASE_URL: CONTAINER_CANONICAL_ORIGIN,
+    APP_PUBLIC_URL: CONTAINER_CANONICAL_ORIGIN,
     AUTH_RATE_LIMIT_SECRET: secret("rate-limit"),
     AUTH_SESSION_SECRET: secret("session"),
     DATABASE_URL: `postgresql://container-check:${secret("database")}@127.0.0.1:9/fugue`,
@@ -170,7 +173,7 @@ function createSafeTestEnvironment() {
     FUGUE_BOOTSTRAP_KEY: secret("bootstrap"),
     GOOGLE_CLIENT_ID: "container-check-google-client",
     GOOGLE_CLIENT_SECRET: secret("google"),
-    GOOGLE_REDIRECT_URI: "http://127.0.0.1:3000/api/auth/google/callback",
+    GOOGLE_REDIRECT_URI: `${CONTAINER_CANONICAL_ORIGIN}/api/auth/google/callback`,
     RESEND_API_KEY: secret("resend"),
     RESEND_FROM_EMAIL: "noreply@example.test",
     WORKSPACE_STORE_KEY_ID: "container-check-v1",
@@ -212,6 +215,51 @@ function runDockerProcess(args, options = {}) {
   });
 }
 
+/**
+ * Node's fetch implementation rewrites Host to the dialled URL authority. The
+ * container check deliberately dials Docker's ephemeral host port while
+ * preserving the canonical authority configured inside the container, so use
+ * the native HTTP client and expose only the response surface this gate needs.
+ */
+function requestWithNodeHttp(url, options = {}) {
+  return new Promise((resolve, reject) => {
+    const clientRequest = httpRequest(
+      url,
+      {
+        headers: options.headers,
+        method: "GET",
+        signal: options.signal,
+      },
+      (response) => {
+        const headers = new Headers();
+
+        for (const [name, value] of Object.entries(response.headers)) {
+          if (Array.isArray(value)) {
+            for (const item of value) headers.append(name, item);
+          } else if (value !== undefined) {
+            headers.set(name, value);
+          }
+        }
+
+        const status = response.statusCode ?? 0;
+        resolve({
+          body: {
+            cancel: async () => {
+              response.destroy();
+            },
+          },
+          headers,
+          ok: status >= 200 && status < 300,
+          status,
+        });
+      },
+    );
+
+    clientRequest.on("error", reject);
+    clientRequest.end();
+  });
+}
+
 async function requireDocker(dependencies, args, options) {
   const result = await dependencies.docker(args, options);
 
@@ -222,13 +270,14 @@ async function requireDocker(dependencies, args, options) {
   return result.stdout.trim();
 }
 
-async function request(url, dependencies) {
+async function request(url, dependencies, headers) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
     return await dependencies.fetch(url, {
       cache: "no-store",
+      headers,
       redirect: "error",
       signal: controller.signal,
     });
@@ -283,7 +332,7 @@ function forbiddenPathCommand() {
 export async function runContainerCheck(options = {}, overrides = {}) {
   const dependencies = {
     docker: runDockerProcess,
-    fetch: globalThis.fetch,
+    fetch: requestWithNodeHttp,
     info: (message) => console.log(message),
     now: () => Date.now(),
     registerCleanup: () => undefined,
@@ -442,7 +491,9 @@ export async function runContainerCheck(options = {}, overrides = {}) {
     let homepageResponse;
 
     try {
-      homepageResponse = await request(`http://127.0.0.1:${port}/`, dependencies);
+      homepageResponse = await request(`http://127.0.0.1:${port}/`, dependencies, {
+        Host: CONTAINER_CANONICAL_HOST,
+      });
     } catch {
       errors.push("Homepage request failed.");
     }

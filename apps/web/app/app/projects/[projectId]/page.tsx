@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { ProjectWorkbench } from "@/components/console/islands/project-workbench";
 import { PageHeader } from "@/components/shared/page-header";
+import { requireActivePageSession } from "@/lib/auth/page-access";
 import { getConsoleProjectDetailData } from "@/lib/console/gallery-data";
 import type { ConsoleProjectDetailData } from "@/lib/console/gallery-types";
 import { createProjectWorkbenchStateMessages } from "@/lib/i18n/console-messages";
@@ -13,10 +14,9 @@ type ProjectPageProps = {
 };
 
 export default async function ProjectDetailPage({ params }: ProjectPageProps) {
-  const [{ projectId }, { locale, t }] = await Promise.all([
-    Promise.resolve(params),
-    getRequestI18n(),
-  ]);
+  await requireActivePageSession();
+  const { projectId } = await Promise.resolve(params);
+  const { locale, t } = await getRequestI18n();
   let initialDetail: ConsoleProjectDetailData | undefined;
 
   try {

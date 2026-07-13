@@ -1,16 +1,17 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useReportWebVitals } from "next/web-vitals";
 import { useEffect } from "react";
 
 import {
-  WEB_VITAL_NAMES,
-  WEB_VITAL_RATINGS,
   type ClientErrorSource,
   type ClientTelemetryEvent,
+  readClientTelemetryRouteGroup,
+  WEB_VITAL_NAMES,
+  WEB_VITAL_RATINGS,
   type WebVitalName,
   type WebVitalRating,
-  readClientTelemetryRouteGroup,
 } from "@/lib/telemetry/client-events";
 
 const MAX_EVENTS_PER_DOCUMENT = 20;
@@ -76,7 +77,15 @@ function reportWebVital(metric: ReportedWebVital) {
 }
 
 export function ClientTelemetry() {
+  const pathname = usePathname();
   useReportWebVitals(reportWebVital);
+
+  useEffect(() => {
+    submitClientTelemetry({
+      kind: "route-view",
+      route: readClientTelemetryRouteGroup(pathname),
+    });
+  }, [pathname]);
 
   useEffect(() => {
     const handleWindowError = () => reportClientError("window-error");

@@ -12,17 +12,38 @@ import {
 } from "@/lib/server/session-state-cache";
 import type { WorkspaceAccess, WorkspaceSnapshot } from "@/lib/workspace/store";
 
-const getRequestActiveSessionUser = cache(async () => {
+const getRequestActiveSessionResult = cache(async () => {
   try {
-    return await getCurrentActiveSessionUser();
+    return {
+      activeSession: await getCurrentActiveSessionUser(),
+      authorizationError: null,
+    };
   } catch (error) {
     if (error instanceof SessionAuthorizationError) {
-      return null;
+      return {
+        activeSession: null,
+        authorizationError: error,
+      };
     }
 
     throw error;
   }
 });
+
+export async function getRequestActiveSessionUserOrThrow() {
+  const result = await getRequestActiveSessionResult();
+
+  if (result.authorizationError) {
+    throw result.authorizationError;
+  }
+
+  return result.activeSession;
+}
+
+export async function getRequestActiveSessionUser() {
+  const result = await getRequestActiveSessionResult();
+  return result.activeSession;
+}
 
 export const getRequestSession = cache(async () => {
   const current = await getRequestActiveSessionUser();

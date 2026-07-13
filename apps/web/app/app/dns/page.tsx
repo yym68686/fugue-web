@@ -1,9 +1,11 @@
 import { DNSConsole } from "@/components/console/islands/dns-console";
 import { PageHeader } from "@/components/shared/page-header";
+import { requireActivePageSession } from "@/lib/auth/page-access";
 import { createDnsStateMessages } from "@/lib/i18n/console-messages";
 import { getRequestI18n } from "@/lib/i18n/server";
 
 export default async function DNSPage() {
+  await requireActivePageSession();
   const { locale, t } = await getRequestI18n();
 
   return (

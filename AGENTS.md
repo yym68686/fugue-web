@@ -239,6 +239,7 @@
 
 - 活跃 primitive 基础统一为 Base UI，组合 API 使用 Base UI `render`，不新增 Radix `asChild` 路线。
 - 组件使用 Tailwind CSS v4、semantic CSS variables、`data-slot`、CVA 与 `cn()`；token 按 `primitive -> semantic -> component` 三层组织，应用页面不得局部硬编码重写组件颜色和 typography。
+- 运行时字体边界固定为 `packages/ui/src/fonts` 中的 `next/font/local` 定义，经 `@fugue/ui/fonts` 由每个应用根 layout 注入 CSS variables，再由 semantic font token 消费；registry font metadata 只描述外部安装依赖，不得用全局 Fontsource CSS import 绕过共享运行时。
 - React/Next.js 默认 Server Component；只有 hooks、浏览器 API、交互状态或 Base UI 客户端 primitive 边界才声明 `"use client"`。不要因一个交互控件把整个页面提升为 Client Component。
 - 优先使用现有 registry primitive 和 composition；只有现有 primitive 无法组合真实产品状态时才新增组件，并同时补文档、示例、键盘行为、disabled/loading/empty/error 状态和测试。
 - 图标只使用设计系统指定的 icon library；按钮、菜单项与输入附属图标遵守共享尺寸与 `aria-hidden` 规则，不手写 SVG。

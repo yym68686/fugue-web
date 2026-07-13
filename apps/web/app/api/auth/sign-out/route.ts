@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { buildOriginUrl, isSecureRequest, readRequestOrigin } from "@/lib/auth/origin";
-import { SESSION_COOKIE_NAME } from "@/lib/auth/session";
+import { SESSION_COOKIE_NAME } from "@/lib/auth/session-cookie";
 
 export async function POST(request: Request) {
   const requestOrigin = readRequestOrigin(request);

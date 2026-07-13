@@ -1,5 +1,7 @@
 import "server-only";
 
+import type { AuthRateLimitPolicy } from "@/lib/auth/rate-limit";
+
 export type OAuthCallbackRejectionReason =
   | "account-blocked"
   | "account-deleted"
@@ -34,6 +36,33 @@ export function logAuthEmailDeliveryFailure(input: {
       stage: "delivery",
     }),
   );
+}
+
+export function logAuthEmailDeliverySuccess(input: {
+  flow: "email-link" | "password-signup";
+}) {
+  console.info(
+    JSON.stringify({
+      event: "fugue_web_auth_email",
+      flow: input.flow,
+      outcome: "sent",
+      stage: "delivery",
+    }),
+  );
+}
+
+export function logAuthRateLimitDecision(input: {
+  outcome: "allowed" | "limited";
+  policy: AuthRateLimitPolicy;
+}) {
+  const payload = JSON.stringify({
+    event: "fugue_web_auth_rate_limit",
+    outcome: input.outcome,
+    policy: input.policy,
+  });
+
+  if (input.outcome === "limited") console.warn(payload);
+  else console.info(payload);
 }
 
 export function logOAuthCallbackRejection(input: {

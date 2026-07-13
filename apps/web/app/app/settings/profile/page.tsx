@@ -1,9 +1,11 @@
 import { PageHeader } from "@/components/shared/page-header";
 import { ProfileSecurity } from "@/components/console/islands/profile-security";
+import { requireActivePageSession } from "@/lib/auth/page-access";
 import { getRequestI18n } from "@/lib/i18n/server";
 import { createProfileFormMessages } from "@/lib/i18n/ui-messages";
 
 export default async function ProfileSettingsPage() {
+  await requireActivePageSession();
   const { t } = await getRequestI18n();
 
   return (

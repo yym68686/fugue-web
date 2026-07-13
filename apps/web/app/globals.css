@@ -262,6 +262,16 @@ select:disabled {
   margin-bottom: 20px;
 }
 
+.coss-page-header__row {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  align-items: center;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
 .coss-page-header--center {
   justify-items: center;
   margin-inline: auto;
@@ -1061,6 +1071,15 @@ select:disabled {
 }
 
 @media (max-width: 980px) {
+  .coss-page-header__row {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
+  }
+
+  .coss-page-header--center .coss-page-header__row {
+    justify-items: center;
+  }
+
   .coss-hero-grid,
   .coss-split,
   .coss-docs-grid,

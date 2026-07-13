@@ -84,6 +84,22 @@ describe("bounded client telemetry", () => {
     });
   });
 
+  test("accepts a route-group view as the client-error denominator", async () => {
+    const output: string[] = [];
+    console.info = ((value: string) => output.push(value)) as typeof console.info;
+
+    const response = await POST(
+      telemetryRequest({ kind: "route-view", route: "console-project" }),
+    );
+
+    expect(response.status).toBe(204);
+    expect(JSON.parse(output[0] as string)).toEqual({
+      event: "fugue_web_client_telemetry",
+      kind: "route-view",
+      route: "console-project",
+    });
+  });
+
   test("rejects cross-origin, malformed, unsupported, and oversized events", async () => {
     const crossOrigin = await POST(
       telemetryRequest(
@@ -141,6 +157,7 @@ describe("bounded client telemetry", () => {
     expect(consoleError).toContain('reportClientError("console-boundary")');
     expect(reporter).toContain('window.addEventListener("error"');
     expect(reporter).toContain('window.addEventListener("unhandledrejection"');
+    expect(reporter).toContain('kind: "route-view"');
     expect(reporter).not.toContain("error.message");
     expect(reporter).not.toContain("error.stack");
   });

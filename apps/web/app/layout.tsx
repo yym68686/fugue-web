@@ -1,6 +1,6 @@
+import { fontHeading, fontMono, fontSans } from "@fugue/ui/fonts";
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
-import { GeistMono } from "@fugue/ui/fonts";
 
 import { LocaleSelectProvider } from "@/components/i18n/locale-select";
 import { ClientTelemetry } from "@/components/shared/client-telemetry";
@@ -53,8 +53,11 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const { locale, localePreference, t } = await getRequestI18n();
 
   return (
-    <html {...getDocumentLocaleAttributes(locale, localePreference)}>
-      <body className={GeistMono.variable} data-app-root>
+    <html
+      {...getDocumentLocaleAttributes(locale, localePreference)}
+      className={`${fontSans.variable} ${fontHeading.variable} ${fontMono.variable}`}
+    >
+      <body data-app-root>
         <LocaleSelectProvider
           value={{
             initialPreference: localePreference,
