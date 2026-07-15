@@ -2428,6 +2428,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/backing-services/orphans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Adoptable Managed Postgres Orphans
+         * @description Platform-administrator inventory of retained managed PostgreSQL resources whose app record is missing. Only ManagedApps with a current controller proof that the app Deployment and all matching Pods are at zero are listed.
+         */
+        get: operations["listManagedPostgresOrphans"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backing-services/orphans/{app_id}/adopt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Adopt A Retained Managed Postgres Orphan
+         * @description Recreates missing Fugue app, backing-service, and binding records without deleting or rewriting the retained runtime resources. Before the first adoption, Fugue revalidates ManagedApp identity, zero app workload, CNPG cluster ownership, and at least one non-deleting Bound PVC per cluster.
+         */
+        post: operations["adoptManagedPostgresOrphan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/backing-services/{id}": {
         parameters: {
             query?: never;
@@ -2441,6 +2481,46 @@ export interface paths {
         post?: never;
         /** Delete Backing Service */
         delete: operations["deleteBackingService"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backing-services/{id}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Suspend Managed Postgres Backing Service
+         * @description Hibernates an existing managed PostgreSQL service with its PVCs retained. Every bound app must be stopped; Fugue verifies fresh zero replica status and then, immediately before changing CNPG, verifies that no matching app Pod remains, including terminating Pods. Active app-database backups or imports block suspension. Hibernation disconnects PostgreSQL clients and does not revoke existing database access grants or replace a backup.
+         */
+        post: operations["suspendBackingService"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/backing-services/{id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resume Managed Postgres Backing Service
+         * @description Rehydrates a suspended managed PostgreSQL service from its retained PVCs. Completion requires the hibernation condition to clear and a settled, ready primary; remaining replicas may continue recovering. Resume does not start a bound app automatically.
+         */
+        post: operations["resumeBackingService"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -7994,6 +8074,8 @@ export interface components {
             instances?: number;
             /** Format: int32 */
             synchronous_replicas?: number;
+            /** @description Whether the managed Postgres service is configured to hibernate with its PVCs retained. Change this state only through the backing-service suspend and resume endpoints. */
+            readonly suspended?: boolean;
             resources?: components["schemas"]["ResourceSpec"];
         };
         BackingServiceSpec: {
@@ -8010,6 +8092,7 @@ export interface components {
             provisioner: string;
             status: string;
             spec: components["schemas"]["BackingServiceSpec"];
+            runtime_status?: components["schemas"]["BackingServiceRuntimeStatus"];
             current_resource_usage?: components["schemas"]["ResourceUsage"];
             /** Format: date-time */
             current_runtime_started_at?: string;
@@ -8019,6 +8102,15 @@ export interface components {
             created_at: string;
             /** Format: date-time */
             updated_at: string;
+        };
+        BackingServiceRuntimeStatus: {
+            /** @enum {string} */
+            phase: "active" | "suspending" | "suspended" | "resuming" | "error" | "unknown";
+            message?: string;
+            /** Format: int32 */
+            ready_instances: number;
+            /** Format: int32 */
+            desired_instances: number;
         };
         ServiceBinding: {
             id: string;
@@ -10799,6 +10891,39 @@ export interface components {
         };
         BackingServiceListResponse: {
             backing_services: components["schemas"]["BackingService"][];
+        };
+        BackingServiceLifecycleResponse: {
+            backing_service: components["schemas"]["BackingService"];
+            operation?: components["schemas"]["Operation"];
+            already_current: boolean;
+        };
+        ManagedPostgresOrphanBackingServiceSummary: {
+            id: string;
+            name: string;
+            type: string;
+            runtime_id?: string;
+            service_name?: string;
+            storage_size?: string;
+            suspended: boolean;
+        };
+        ManagedPostgresOrphanSummary: {
+            app_id: string;
+            tenant_id: string;
+            project_id: string;
+            name: string;
+            namespace: string;
+            managed_app_name: string;
+            phase: string;
+            message?: string;
+            backing_services: components["schemas"]["ManagedPostgresOrphanBackingServiceSummary"][];
+        };
+        ManagedPostgresOrphanListResponse: {
+            orphans: components["schemas"]["ManagedPostgresOrphanSummary"][];
+        };
+        ManagedPostgresOrphanAdoptResponse: {
+            app: components["schemas"]["App"];
+            backing_services: components["schemas"]["BackingService"][];
+            already_adopted: boolean;
         };
         BackingServiceMigrateResponse: {
             backing_service: components["schemas"]["BackingService"];
@@ -17461,6 +17586,86 @@ export interface operations {
             default: components["responses"]["ErrorResponse"];
         };
     };
+    listManagedPostgresOrphans: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagedPostgresOrphanListResponse"];
+                };
+            };
+            /** @description A fresh ManagedApp inventory cannot be obtained. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    adoptManagedPostgresOrphan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                app_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Orphan already adopted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagedPostgresOrphanAdoptResponse"];
+                };
+            };
+            /** @description Orphan adopted */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagedPostgresOrphanAdoptResponse"];
+                };
+            };
+            /** @description The resource is not an exact, current, zero-workload orphan with live retained PostgreSQL storage. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Fresh Kubernetes identity, workload, cluster, or PVC evidence cannot be obtained. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
     getBackingService: {
         parameters: {
             query?: never;
@@ -17506,6 +17711,115 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    suspendBackingService: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Backing service is already suspended */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackingServiceLifecycleResponse"];
+                };
+            };
+            /** @description Suspend operation accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackingServiceLifecycleResponse"];
+                };
+            };
+            /** @description A bound app, conflicting operation, backup, import, binding change, or lifecycle topology precondition blocks suspension. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Fresh ManagedApp or managed PostgreSQL runtime evidence cannot be obtained. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            default: components["responses"]["ErrorResponse"];
+        };
+    };
+    resumeBackingService: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPathParam"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Backing service is already active */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackingServiceLifecycleResponse"];
+                };
+            };
+            /** @description Resume operation accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackingServiceLifecycleResponse"];
+                };
+            };
+            /** @description Resuming billable compute is blocked because the tenant balance is depleted. */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description An opposite lifecycle operation, topology conflict, runtime reservation, billing limit, or managed-capacity limit blocks resume. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Fresh managed PostgreSQL runtime evidence cannot be obtained. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
@@ -19565,6 +19879,15 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
+            /** @description The managed PostgreSQL service is suspended or a database suspend operation is in flight. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             /** @description The JSON request field, dump file, or complete multipart request exceeds its byte limit. */
             413: {
                 headers: {
@@ -19608,6 +19931,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AppDatabaseImportResponse"];
+                };
+            };
+            /** @description The managed PostgreSQL service is suspended, a database suspend operation is in flight, or the selected job cannot be retried. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
@@ -21912,6 +22244,15 @@ export interface operations {
                     "application/json": components["schemas"]["BackupRunResponse"];
                 };
             };
+            /** @description Managed PostgreSQL target is suspended; resume it before starting an app-database backup. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             default: components["responses"]["ErrorResponse"];
         };
     };
@@ -22223,6 +22564,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BackupRunResponse"];
+                };
+            };
+            /** @description Managed PostgreSQL target is suspended; resume it before starting an app-database backup. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             default: components["responses"]["ErrorResponse"];
