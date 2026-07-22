@@ -16,7 +16,7 @@ function readInactiveSessionError(reason: SessionAuthorizationError["reason"]) {
 
 export async function requireActivePageSession() {
   const headerStore = await headers();
-  const returnTo = headerStore.get(PAGE_RETURN_TO_HEADER) || "/app";
+  const returnTo = headerStore.get(PAGE_RETURN_TO_HEADER) || "/projects";
   let activeSession: Awaited<ReturnType<typeof getRequestActiveSessionUserOrThrow>>;
 
   try {

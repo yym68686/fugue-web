@@ -37,7 +37,7 @@ export type ReturnToValidation =
     }
   | {
       accepted: false;
-      path: "/app";
+      path: "/projects";
       reason: ReturnToRejectionReason;
     };
 
@@ -100,7 +100,7 @@ export function parseAuthMode(value: string | null | undefined): AuthMode {
 function rejectedReturnTo(reason: ReturnToRejectionReason): ReturnToValidation {
   return {
     accepted: false,
-    path: "/app",
+    path: "/projects",
     reason,
   };
 }
@@ -119,7 +119,7 @@ export function validateReturnTo(
   if (!value) {
     return {
       accepted: true,
-      path: "/app",
+      path: "/projects",
       reason: null,
     };
   }

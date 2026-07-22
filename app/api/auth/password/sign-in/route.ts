@@ -101,7 +101,7 @@ export async function POST(request: Request) {
       expectsJson,
       message: INVALID_CREDENTIALS_MESSAGE,
       request,
-      returnTo: "/app",
+      returnTo: "/projects",
       status: error instanceof AuthRequestTooLargeError ? 413 : 400,
     });
   }
