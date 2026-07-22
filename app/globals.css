@@ -1859,3 +1859,378 @@ button {
   font-size: 10px;
   color: var(--faint);
 }
+
+/* ============================ workbench ============================ */
+
+.wb {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+@media (max-width: 860px) {
+  .wb {
+    grid-template-columns: 1fr;
+  }
+}
+
+.wb-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: sticky;
+  top: 0;
+}
+
+.wb-rail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px 8px;
+}
+
+.wb-svc {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  width: 100%;
+  text-align: left;
+  padding: 9px 11px;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  color: var(--muted);
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.wb-svc:hover {
+  background: var(--surface-2);
+}
+
+.wb-svc.active {
+  background: var(--accent-dim);
+  border-color: var(--accent-line);
+  color: var(--fg);
+}
+
+.wb-svc .wb-svc-nm {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--fg);
+}
+
+.wb-svc .wb-svc-sub {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--faint);
+  margin-top: 2px;
+}
+
+.wb-main {
+  min-width: 0;
+}
+
+/* tabs (segmented control, based on .auth-tabs) */
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  margin-bottom: 16px;
+}
+
+.tab {
+  padding: 6px 13px;
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.tab:hover {
+  color: var(--fg);
+}
+
+.tab.active {
+  background: var(--surface-2);
+  color: var(--fg);
+}
+
+/* toolbar row inside a tab (title + actions) */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.toolbar .toolbar-sp {
+  margin-left: auto;
+}
+
+/* forms */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 15px 16px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 12px;
+  align-items: center;
+}
+
+@media (max-width: 640px) {
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+}
+
+.form-row > label {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.form-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--line);
+}
+
+.textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line-2);
+  background: var(--bg-2);
+  color: var(--fg);
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.55;
+  resize: vertical;
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: var(--accent-fg);
+}
+
+.input.mono {
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+/* env key-value editor */
+.kvedit {
+  display: flex;
+  flex-direction: column;
+}
+
+.kvedit-row {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr auto;
+  gap: 8px;
+  padding: 8px 15px;
+  border-bottom: 1px solid var(--line);
+  align-items: center;
+}
+
+.kvedit-row:last-of-type {
+  border-bottom: none;
+}
+
+.kvedit .input {
+  padding: 6px 9px;
+  font-size: 12px;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-2);
+  color: var(--muted);
+  background: var(--surface);
+}
+
+.icon-btn:hover {
+  color: var(--err);
+  border-color: rgba(255, 93, 107, 0.4);
+}
+
+.icon-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* log / code box */
+.logbox {
+  margin: 0;
+  padding: 13px 15px;
+  max-height: 460px;
+  overflow: auto;
+  background: var(--bg-2);
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  font-family: var(--mono);
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--fg);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* inline alert (reuses auth-alert tones) */
+.wb-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line-2);
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin-bottom: 14px;
+}
+
+.wb-alert.ok {
+  border-color: rgba(63, 207, 142, 0.3);
+  background: rgba(63, 207, 142, 0.08);
+  color: var(--ok);
+}
+
+.wb-alert.err {
+  border-color: rgba(255, 93, 107, 0.3);
+  background: rgba(255, 93, 107, 0.08);
+  color: var(--err);
+}
+
+/* danger zone */
+.danger-zone {
+  border-color: rgba(255, 93, 107, 0.28);
+}
+
+.danger-zone .panel-h h3 {
+  color: var(--err);
+}
+
+.danger-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.danger-row:last-child {
+  border-bottom: none;
+}
+
+.danger-row .danger-txt {
+  min-width: 0;
+}
+
+.danger-row .danger-txt .nm {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.danger-row .danger-txt .sub {
+  font-size: 11.5px;
+  color: var(--faint);
+  margin-top: 2px;
+}
+
+.danger-row .btn {
+  margin-left: auto;
+}
+
+.btn.danger {
+  border-color: rgba(255, 93, 107, 0.4);
+  color: var(--err);
+}
+
+.btn.danger:hover {
+  background: rgba(255, 93, 107, 0.1);
+}
+
+/* modal / confirm dialog */
+.modal-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.55);
+  animation: fade 0.12s ease;
+}
+
+.modal-card {
+  width: 100%;
+  max-width: 440px;
+  background: var(--surface);
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+}
+
+.modal-card .modal-h {
+  padding: 15px 17px 0;
+}
+
+.modal-card .modal-h h3 {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.modal-card .modal-b {
+  padding: 10px 17px 4px;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.modal-card .modal-b .mono {
+  color: var(--fg);
+}
+
+.modal-card .modal-f {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  padding: 16px 17px;
+}
+
+/* small stat/meta grid used across tabs */
+.wb-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  padding: 13px 16px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.wb-meta b {
+  color: var(--fg);
+  font-weight: 500;
+}

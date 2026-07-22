@@ -1,49 +1,27 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import AppLayout from '@/components/AppLayout';
+import ProjectWorkbench, {
+  type WorkbenchService,
+} from '@/components/workbench/ProjectWorkbench';
+import ProjectSettings from '@/components/workbench/ProjectSettings';
 import { requireActivePageSession } from '@/lib/auth/page-access';
 import { getCachedWorkspaceAccessByEmail } from '@/lib/server/session-state-cache';
 import {
+  getConsoleApp,
   getConsoleProject,
   listProjectImageUsage,
   isFugueNotFound,
-  type ConsoleApp,
+  type ConsoleAppDetail,
   type ConsoleProjectDetail,
 } from '@/lib/fugue/console';
 import { fmtBytes, fmtMillicores, fmtDate } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
 
-const PHASE_TONE: Record<string, string> = {
-  running: 'ok',
-  ready: 'ok',
-  deployed: 'ok',
-  deploying: 'run',
-  pending: 'idle',
-  queued: 'run',
-  building: 'run',
-  updating: 'run',
-  failed: 'err',
-  error: 'err',
-  stopped: 'idle',
-  paused: 'warn',
-};
-
-function phaseChipClass(phase: string | undefined): string {
-  if (!phase) return 'idle';
-  return PHASE_TONE[phase.toLowerCase()] ?? 'idle';
-}
-
-function appRouteUrl(app: ConsoleApp): string | null {
-  const route = app.route;
-  if (!route) return null;
-  if (route.url) return route.url;
-  if (route.host) return `https://${route.host}${route.path ?? ''}`;
-  return null;
-}
-
 type ProjectLoad = {
   detail: ConsoleProjectDetail;
+  apps: ConsoleAppDetail[];
   imageBytes: number;
 };
 
@@ -60,32 +38,68 @@ async function loadProject(
       getConsoleProject(key, projectId),
       listProjectImageUsage(key).catch(() => []),
     ]);
+    // Fetch each app's full detail (spec/route/backing services) in parallel.
+    const apps = await Promise.all(
+      detail.apps.map((a) => getConsoleApp(key, a.id).catch(() => null)),
+    );
     const imageBytes =
       imageUsage.find((u) => u.project_id === projectId)?.total_size_bytes ?? 0;
-    return { detail, imageBytes };
+    return {
+      detail,
+      apps: apps.filter((a): a is ConsoleAppDetail => a !== null),
+      imageBytes,
+    };
   } catch (error) {
     if (isFugueNotFound(error)) return null;
     throw error;
   }
 }
 
+function buildServices(apps: ConsoleAppDetail[]): WorkbenchService[] {
+  const services: WorkbenchService[] = [];
+  for (const app of apps) {
+    services.push({
+      kind: 'app',
+      id: app.id,
+      name: app.name,
+      app,
+      phase: app.status?.phase,
+    });
+    for (const svc of app.backing_services ?? []) {
+      if (!svc.id) continue;
+      services.push({
+        kind: 'db',
+        id: svc.id,
+        name: svc.name || svc.type || 'database',
+        svc,
+        phase: svc.status,
+      });
+    }
+  }
+  return services;
+}
+
 export default async function ProjectDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ projectId: string }>;
+  searchParams: Promise<{ service?: string; tab?: string }>;
 }) {
   const { session } = await requireActivePageSession();
   const { projectId: rawProjectId } = await params;
   const projectId = decodeURIComponent(rawProjectId);
+  const { service: initialServiceId, tab: initialTab } = await searchParams;
 
   const loaded = await loadProject(session.email, projectId);
   if (!loaded) {
     notFound();
   }
 
-  const { detail, imageBytes } = loaded;
+  const { detail, apps, imageBytes } = loaded;
   const projectName = detail.project_name || detail.project?.name || projectId;
-  const apps = detail.apps;
+  const services = buildServices(apps);
+
   const totalCpu = apps.reduce(
     (sum, a) => sum + (a.current_resource_usage?.cpu_millicores ?? 0),
     0,
@@ -127,12 +141,6 @@ export default async function ProjectDetailPage({
           </div>
         </div>
 
-        {detail.project?.description && (
-          <div className="panel">
-            <div className="panel-b">{detail.project.description}</div>
-          </div>
-        )}
-
         <div className="kv-grid kv-grid-3">
           <div className="kv">
             <div className="kv-k">应用数</div>
@@ -160,60 +168,17 @@ export default async function ProjectDetailPage({
           </div>
         </div>
 
-        <div className="panel">
-          <div className="panel-h">
-            <h3>应用</h3>
-            <div className="tail eyebrow">{apps.length} total</div>
-          </div>
-          <div className="list">
-            {apps.length === 0 && <div className="empty">该项目还没有应用</div>}
-            {apps.map((app) => {
-              const url = appRouteUrl(app);
-              return (
-                <div key={app.id} className="row-item">
-                  <span
-                    className={`dot ${phaseChipClass(app.status?.phase)} dot-lead`}
-                  ></span>
-                  <div className="main-col">
-                    <div className="nm">{app.name}</div>
-                    <div className="id">{app.id}</div>
-                    {url && (
-                      <div className="sub">
-                        <a href={url} target="_blank" rel="noreferrer">
-                          {url.replace(/^https?:\/\//, '')}
-                        </a>
-                      </div>
-                    )}
-                    {app.status?.last_message && (
-                      <div className="sub">{app.status.last_message}</div>
-                    )}
-                  </div>
-                  <div className="stats">
-                    {app.current_resource_usage && (
-                      <span className="app-res">
-                        {fmtMillicores(app.current_resource_usage.cpu_millicores)}
-                        {' · '}
-                        {fmtBytes(app.current_resource_usage.memory_bytes)}
-                        {' · '}
-                        {fmtBytes(app.current_resource_usage.ephemeral_storage_bytes)}
-                      </span>
-                    )}
-                    {typeof app.status?.current_replicas === 'number' && (
-                      <span className="chip idle">
-                        {app.status.current_replicas} 副本
-                      </span>
-                    )}
-                    {app.status?.phase && (
-                      <span className={`chip ${phaseChipClass(app.status.phase)}`}>
-                        {app.status.phase}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <ProjectWorkbench
+          services={services}
+          initialServiceId={initialServiceId}
+          initialTab={initialTab}
+        />
+
+        <ProjectSettings
+          projectId={detail.project_id}
+          name={detail.project?.name || projectName}
+          description={detail.project?.description || ''}
+        />
       </div>
     </AppLayout>
   );
