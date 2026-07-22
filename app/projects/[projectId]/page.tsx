@@ -4,7 +4,6 @@ import AppLayout from '@/components/AppLayout';
 import ProjectWorkbench, {
   type WorkbenchService,
 } from '@/components/workbench/ProjectWorkbench';
-import ProjectSettings from '@/components/workbench/ProjectSettings';
 import { requireActivePageSession } from '@/lib/auth/page-access';
 import { getCachedWorkspaceAccessByEmail } from '@/lib/server/session-state-cache';
 import {
@@ -141,43 +140,40 @@ export default async function ProjectDetailPage({
           </div>
         </div>
 
-        <div className="kv-grid kv-grid-3">
-          <div className="kv">
-            <div className="kv-k">应用数</div>
-            <div className="kv-v">{apps.length}</div>
+        <div className="pstat">
+          <div className="pstat-item">
+            <span className="pstat-k">应用数</span>
+            <span className="pstat-v">{apps.length}</span>
           </div>
-          <div className="kv">
-            <div className="kv-k">CPU 用量</div>
-            <div className="kv-v">{fmtMillicores(totalCpu)}</div>
+          <div className="pstat-item">
+            <span className="pstat-k">CPU 用量</span>
+            <span className="pstat-v">{fmtMillicores(totalCpu)}</span>
           </div>
-          <div className="kv">
-            <div className="kv-k">内存用量</div>
-            <div className="kv-v">{fmtBytes(totalMem)}</div>
+          <div className="pstat-item">
+            <span className="pstat-k">内存用量</span>
+            <span className="pstat-v">{fmtBytes(totalMem)}</span>
           </div>
-          <div className="kv">
-            <div className="kv-k">磁盘用量</div>
-            <div className="kv-v">{fmtBytes(totalDisk)}</div>
+          <div className="pstat-item">
+            <span className="pstat-k">磁盘用量</span>
+            <span className="pstat-v">{fmtBytes(totalDisk)}</span>
           </div>
-          <div className="kv">
-            <div className="kv-k">镜像占用</div>
-            <div className="kv-v">{fmtBytes(imageBytes)}</div>
+          <div className="pstat-item">
+            <span className="pstat-k">镜像占用</span>
+            <span className="pstat-v">{fmtBytes(imageBytes)}</span>
           </div>
-          <div className="kv">
-            <div className="kv-k">更新于</div>
-            <div className="kv-v">{fmtDate(detail.project?.updated_at)}</div>
+          <div className="pstat-item">
+            <span className="pstat-k">更新于</span>
+            <span className="pstat-v">{fmtDate(detail.project?.updated_at)}</span>
           </div>
         </div>
 
         <ProjectWorkbench
           services={services}
+          projectId={detail.project_id}
+          projectName={detail.project?.name || projectName}
+          projectDescription={detail.project?.description || ''}
           initialServiceId={initialServiceId}
           initialTab={initialTab}
-        />
-
-        <ProjectSettings
-          projectId={detail.project_id}
-          name={detail.project?.name || projectName}
-          description={detail.project?.description || ''}
         />
       </div>
     </AppLayout>

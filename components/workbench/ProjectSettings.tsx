@@ -23,7 +23,7 @@ export default function ProjectSettings({
     <>
       <div className="panel">
         <div className="panel-h">
-          <h3>项目设置</h3>
+          <h3>基本信息</h3>
         </div>
         <div className="form">
           <div className="form-row">
