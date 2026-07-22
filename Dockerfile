@@ -1,38 +1,38 @@
-FROM oven/bun:1.3.1-alpine@sha256:514fe15804f8ad3772ba323c2298daf121bb4b42386e2522998de5e87f16a94c AS deps
+# syntax=docker/dockerfile:1
 
+# ---- deps: install production + build dependencies ----
+FROM node:20-alpine AS deps
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+
+# ---- builder: compile the Next.js standalone bundle ----
+FROM node:20-alpine AS builder
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV TURBO_TELEMETRY_DISABLED=1
-
-COPY package.json bun.lock turbo.json biome.json ./
-COPY patches ./patches
-COPY apps/web/package.json ./apps/web/package.json
-COPY apps/ui/package.json ./apps/ui/package.json
-COPY apps/examples/fugue-console/package.json ./apps/examples/fugue-console/package.json
-COPY packages/ui/package.json ./packages/ui/package.json
-COPY packages/typescript-config/package.json ./packages/typescript-config/package.json
-RUN bun install --frozen-lockfile --ignore-scripts
-
-FROM deps AS builder
-
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN bunx turbo run build --filter=@fugue/web
+RUN npm run build
 
-FROM node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 AS runner
-
+# ---- runner: minimal standalone runtime ----
+FROM node:20-alpine AS runner
 WORKDIR /app
-ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
-ENV PORT=3000
-ENV HOSTNAME=0.0.0.0
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    PORT=3000 \
+    HOSTNAME=0.0.0.0
 
-COPY --from=builder --chown=node:node /app/apps/web/.next/standalone ./
-COPY --from=builder --chown=node:node /app/apps/web/.next/static ./apps/web/.next/static
-COPY --from=builder --chown=node:node /app/apps/web/public ./apps/web/public
+RUN addgroup --system --gid 1001 nodejs \
+ && adduser --system --uid 1001 nextjs
 
-USER node
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+USER nextjs
 EXPOSE 3000
-HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD wget --quiet --output-document=- http://127.0.0.1:3000/healthz >/dev/null || exit 1
 
-CMD ["node", "apps/web/server.js"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/healthz || exit 1
+
+CMD ["node", "server.js"]

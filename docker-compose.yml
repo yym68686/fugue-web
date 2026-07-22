@@ -7,58 +7,22 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:3000}
-      APP_PUBLIC_URL: ${APP_PUBLIC_URL:-http://localhost:3000}
-      NEXT_PUBLIC_APP_BASE_URL: ${NEXT_PUBLIC_APP_BASE_URL:-http://localhost:3000}
-      AUTH_SESSION_SECRET: ${AUTH_SESSION_SECRET:?AUTH_SESSION_SECRET is required}
-      AUTH_RATE_LIMIT_SECRET: ${AUTH_RATE_LIMIT_SECRET:?AUTH_RATE_LIMIT_SECRET is required}
-      CANONICAL_HOST_TRUST_PROXY_HEADERS: ${CANONICAL_HOST_TRUST_PROXY_HEADERS:-}
-      AUTH_TRUST_PROXY_HEADERS: ${AUTH_TRUST_PROXY_HEADERS:-false}
-      AUTH_TRUSTED_PROXY_HOPS: ${AUTH_TRUSTED_PROXY_HOPS:-1}
-      WORKSPACE_STORE_SECRET: ${WORKSPACE_STORE_SECRET:?WORKSPACE_STORE_SECRET is required}
-      WORKSPACE_STORE_KEY_ID: ${WORKSPACE_STORE_KEY_ID:-primary}
-      WORKSPACE_STORE_PREVIOUS_KEYS: ${WORKSPACE_STORE_PREVIOUS_KEYS:-}
-      GITHUB_AUTH_CLIENT_ID: ${GITHUB_AUTH_CLIENT_ID:-}
-      GITHUB_AUTH_CLIENT_SECRET: ${GITHUB_AUTH_CLIENT_SECRET:-}
-      GITHUB_AUTH_REDIRECT_URI: ${GITHUB_AUTH_REDIRECT_URI:-}
-      GITHUB_AUTH_SCOPE: "${GITHUB_AUTH_SCOPE:-read:user user:email}"
-      GITHUB_OAUTH_CLIENT_ID: ${GITHUB_OAUTH_CLIENT_ID:-}
-      GITHUB_OAUTH_CLIENT_SECRET: ${GITHUB_OAUTH_CLIENT_SECRET:-}
-      GITHUB_OAUTH_REDIRECT_URI: ${GITHUB_OAUTH_REDIRECT_URI:-}
-      GITHUB_OAUTH_SCOPE: ${GITHUB_OAUTH_SCOPE:-repo}
-      CREEM_PRODUCT_ID: ${CREEM_PRODUCT_ID:-}
-      CREEM_API_KEY: ${CREEM_API_KEY:-}
-      CREEM_WEBHOOK_SECRET: ${CREEM_WEBHOOK_SECRET:-}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:?GOOGLE_CLIENT_ID is required}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:?GOOGLE_CLIENT_SECRET is required}
-      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:?GOOGLE_REDIRECT_URI is required}
-      RESEND_API_KEY: ${RESEND_API_KEY:?RESEND_API_KEY is required}
-      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:?RESEND_FROM_EMAIL is required}
-      EMAIL_VERIFICATION_REQUIRED: ${EMAIL_VERIFICATION_REQUIRED}
-      FUGUE_API_URL: ${FUGUE_API_URL:?FUGUE_API_URL is required}
-      FUGUE_BOOTSTRAP_KEY: ${FUGUE_BOOTSTRAP_KEY:?FUGUE_BOOTSTRAP_KEY is required}
-      FUGUE_ADMIN_BOOTSTRAP_EMAIL: ${FUGUE_ADMIN_BOOTSTRAP_EMAIL:-}
-      FUGUE_EDGE_REQUEST_BODY_POLICIES: '[{"name":"source-imports","methods":["POST"],"paths":["/api/fugue/apps/import-upload","/api/fugue/projects/create-and-import-upload"],"max_bytes":167772160,"timeout_seconds":300,"max_concurrent":2,"retry_after_seconds":5}]'
       NODE_ENV: production
       PORT: 3000
-      DATABASE_URL: ${DATABASE_URL:-}
-      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
-      POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
-      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
-      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      HOSTNAME: 0.0.0.0
+      DATABASE_URL: ${DATABASE_URL:-postgresql://${POSTGRES_USER:-fugue}:${POSTGRES_PASSWORD:-fugue}@postgres:5432/${POSTGRES_DB:-fugue}}
     ports:
       - "3000:3000"
     restart: unless-stopped
 
   postgres:
-    image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+    image: postgres:16-alpine
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
-      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
+      POSTGRES_USER: ${POSTGRES_USER:-fugue}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fugue}
+      POSTGRES_DB: ${POSTGRES_DB:-fugue}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER:-fugue}\" -d \"$${POSTGRES_DB:-fugue}\""]
       interval: 5s
       timeout: 5s
       retries: 20
