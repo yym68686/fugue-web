@@ -5,54 +5,28 @@ import { requireActivePageSession } from '@/lib/auth/page-access';
 import { getCachedWorkspaceAccessByEmail } from '@/lib/server/session-state-cache';
 import {
   getConsoleProject,
+  listProjectImageUsage,
   isFugueNotFound,
   type ConsoleApp,
   type ConsoleProjectDetail,
 } from '@/lib/fugue/console';
+import { fmtBytes, fmtMillicores, fmtDate } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
-
-function fmtBytes(bytes: number | undefined): string {
-  if (!bytes || bytes <= 0) return '0';
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-  let value = bytes;
-  let unit = 0;
-  while (value >= 1024 && unit < units.length - 1) {
-    value /= 1024;
-    unit += 1;
-  }
-  return `${value.toFixed(value >= 100 || unit === 0 ? 0 : 1)} ${units[unit]}`;
-}
-
-function fmtMillicores(m: number | undefined): string {
-  if (!m || m <= 0) return '0';
-  if (m >= 1000) return `${(m / 1000).toFixed(m % 1000 === 0 ? 0 : 1)} vCPU`;
-  return `${m}m`;
-}
-
-function fmtDate(value: string | undefined): string {
-  if (!value) return '—';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return '—';
-  return d.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
 
 const PHASE_TONE: Record<string, string> = {
   running: 'ok',
   ready: 'ok',
   deployed: 'ok',
-  deploying: 'idle',
+  deploying: 'run',
   pending: 'idle',
-  building: 'idle',
+  queued: 'run',
+  building: 'run',
+  updating: 'run',
   failed: 'err',
   error: 'err',
   stopped: 'idle',
+  paused: 'warn',
 };
 
 function phaseChipClass(phase: string | undefined): string {
@@ -68,15 +42,27 @@ function appRouteUrl(app: ConsoleApp): string | null {
   return null;
 }
 
+type ProjectLoad = {
+  detail: ConsoleProjectDetail;
+  imageBytes: number;
+};
+
 async function loadProject(
   email: string,
   projectId: string,
-): Promise<ConsoleProjectDetail | null> {
+): Promise<ProjectLoad | null> {
   const workspace = await getCachedWorkspaceAccessByEmail(email);
   if (!workspace) return null;
 
+  const key = workspace.adminKeySecret;
   try {
-    return await getConsoleProject(workspace.adminKeySecret, projectId);
+    const [detail, imageUsage] = await Promise.all([
+      getConsoleProject(key, projectId),
+      listProjectImageUsage(key).catch(() => []),
+    ]);
+    const imageBytes =
+      imageUsage.find((u) => u.project_id === projectId)?.total_size_bytes ?? 0;
+    return { detail, imageBytes };
   } catch (error) {
     if (isFugueNotFound(error)) return null;
     throw error;
@@ -92,11 +78,12 @@ export default async function ProjectDetailPage({
   const { projectId: rawProjectId } = await params;
   const projectId = decodeURIComponent(rawProjectId);
 
-  const detail = await loadProject(session.email, projectId);
-  if (!detail) {
+  const loaded = await loadProject(session.email, projectId);
+  if (!loaded) {
     notFound();
   }
 
+  const { detail, imageBytes } = loaded;
   const projectName = detail.project_name || detail.project?.name || projectId;
   const apps = detail.apps;
   const totalCpu = apps.reduce(
@@ -105,6 +92,10 @@ export default async function ProjectDetailPage({
   );
   const totalMem = apps.reduce(
     (sum, a) => sum + (a.current_resource_usage?.memory_bytes ?? 0),
+    0,
+  );
+  const totalDisk = apps.reduce(
+    (sum, a) => sum + (a.current_resource_usage?.ephemeral_storage_bytes ?? 0),
     0,
   );
 
@@ -142,7 +133,7 @@ export default async function ProjectDetailPage({
           </div>
         )}
 
-        <div className="kv-grid">
+        <div className="kv-grid kv-grid-3">
           <div className="kv">
             <div className="kv-k">应用数</div>
             <div className="kv-v">{apps.length}</div>
@@ -154,6 +145,14 @@ export default async function ProjectDetailPage({
           <div className="kv">
             <div className="kv-k">内存用量</div>
             <div className="kv-v">{fmtBytes(totalMem)}</div>
+          </div>
+          <div className="kv">
+            <div className="kv-k">磁盘用量</div>
+            <div className="kv-v">{fmtBytes(totalDisk)}</div>
+          </div>
+          <div className="kv">
+            <div className="kv-k">镜像占用</div>
+            <div className="kv-v">{fmtBytes(imageBytes)}</div>
           </div>
           <div className="kv">
             <div className="kv-k">更新于</div>
@@ -190,6 +189,15 @@ export default async function ProjectDetailPage({
                     )}
                   </div>
                   <div className="stats">
+                    {app.current_resource_usage && (
+                      <span className="app-res">
+                        {fmtMillicores(app.current_resource_usage.cpu_millicores)}
+                        {' · '}
+                        {fmtBytes(app.current_resource_usage.memory_bytes)}
+                        {' · '}
+                        {fmtBytes(app.current_resource_usage.ephemeral_storage_bytes)}
+                      </span>
+                    )}
                     {typeof app.status?.current_replicas === 'number' && (
                       <span className="chip idle">
                         {app.status.current_replicas} 副本

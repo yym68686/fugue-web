@@ -1669,10 +1669,26 @@ button {
   letter-spacing: 0.3px;
 }
 
-.proj-card-badges {
+.proj-card-foot {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.proj-card-counts {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--faint);
+}
+
+.proj-card-logos {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* 详情页面包屑内链接 */
@@ -1691,4 +1707,155 @@ button {
   color: var(--muted);
   font-size: 13px;
   line-height: 1.6;
+}
+
+/* 详情页概览 6 格 */
+.kv-grid.kv-grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+@media (max-width: 720px) {
+  .kv-grid.kv-grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* app 行内资源用量 */
+.app-res {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--faint);
+  white-space: nowrap;
+}
+
+/* ============================================================
+   Tech-stack logos
+   ============================================================ */
+.tech-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.tech-logo:hover {
+  color: var(--fg);
+}
+
+.tech-logo-fallback {
+  border-radius: 50%;
+  border: 1px solid var(--line-2);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--faint);
+  line-height: 1;
+}
+
+/* ============================================================
+   Skeleton loading
+   ============================================================ */
+.sk {
+  display: inline-block;
+  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--line) 25%,
+    var(--line-2) 37%,
+    var(--line) 63%
+  );
+  background-size: 400% 100%;
+  animation: sk-shimmer 1.4s ease infinite;
+}
+
+.sk-line {
+  height: 10px;
+}
+
+.sk-block {
+  display: block;
+  width: 100%;
+  border-radius: var(--radius-sm);
+}
+
+.sk-card {
+  gap: 12px;
+  pointer-events: none;
+}
+
+@keyframes sk-shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+
+/* ============================================================
+   Cluster usage cells (usage vs request)
+   ============================================================ */
+.tbl-cluster td {
+  vertical-align: middle;
+}
+
+.node-nm {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: var(--fg);
+}
+
+.node-sub {
+  font-size: 11px;
+  color: var(--faint);
+  margin-top: 2px;
+}
+
+.node-roles {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.usage-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 150px;
+}
+
+.bar-wide {
+  width: 130px;
+  height: 6px;
+}
+
+/* request marker: vertical line over the usage bar */
+.req-mark {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  background: var(--fg);
+  opacity: 0.7;
+  border-radius: 1px;
+}
+
+.usage-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.usage-req {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--faint);
+}
+
+.usage-detail {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--faint);
 }

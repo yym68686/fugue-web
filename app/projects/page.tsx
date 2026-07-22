@@ -1,55 +1,66 @@
 import Link from 'next/link';
 import AppLayout from '@/components/AppLayout';
+import TechLogo from '@/components/TechLogo';
 import { requireActivePageSession } from '@/lib/auth/page-access';
 import { getCachedWorkspaceAccessByEmail } from '@/lib/server/session-state-cache';
 import {
   listConsoleGallery,
+  listAppsWithUsage,
+  listProjectImageUsage,
+  rollupProjectResources,
   type ConsoleProjectSummary,
+  type ProjectResourceRollup,
 } from '@/lib/fugue/console';
+import { fmtBytes, fmtMillicores } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
 
 type ProjectsData = {
   hasWorkspace: boolean;
   projects: ConsoleProjectSummary[];
+  resources: Map<string, ProjectResourceRollup>;
   loadError: boolean;
 };
 
 async function getProjectsData(email: string): Promise<ProjectsData> {
   const workspace = await getCachedWorkspaceAccessByEmail(email);
   if (!workspace) {
-    return { hasWorkspace: false, projects: [], loadError: false };
+    return { hasWorkspace: false, projects: [], resources: new Map(), loadError: false };
   }
 
+  const key = workspace.adminKeySecret;
   try {
-    const projects = await listConsoleGallery(workspace.adminKeySecret);
-    return { hasWorkspace: true, projects, loadError: false };
+    const [projects, apps, imageUsage] = await Promise.all([
+      listConsoleGallery(key),
+      listAppsWithUsage(key).catch(() => []),
+      listProjectImageUsage(key).catch(() => []),
+    ]);
+    const resources = rollupProjectResources(apps, imageUsage);
+    return { hasWorkspace: true, projects, resources, loadError: false };
   } catch {
-    return { hasWorkspace: true, projects: [], loadError: true };
+    return { hasWorkspace: true, projects: [], resources: new Map(), loadError: true };
   }
 }
 
-function fmtMillicores(m: number | undefined): string {
-  if (!m || m <= 0) return '0';
-  if (m >= 1000) return `${(m / 1000).toFixed(m % 1000 === 0 ? 0 : 1)} vCPU`;
-  return `${m}m`;
-}
-
-function fmtBytes(bytes: number | undefined): string {
-  if (!bytes || bytes <= 0) return '0';
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-  let value = bytes;
-  let unit = 0;
-  while (value >= 1024 && unit < units.length - 1) {
-    value /= 1024;
-    unit += 1;
+// Map the backend lifecycle tone to a chip/dot color class.
+function toneClass(tone: string | undefined, live: boolean | undefined): string {
+  switch ((tone || '').toLowerCase()) {
+    case 'positive':
+      return live ? 'run' : 'ok';
+    case 'warning':
+      return 'warn';
+    case 'danger':
+      return 'err';
+    case 'info':
+      return 'run';
+    default:
+      return 'idle';
   }
-  return `${value.toFixed(value >= 100 || unit === 0 ? 0 : 1)} ${units[unit]}`;
 }
 
 export default async function ProjectsPage() {
   const { session } = await requireActivePageSession();
-  const { hasWorkspace, projects, loadError } = await getProjectsData(
+  const { hasWorkspace, projects, resources, loadError } = await getProjectsData(
     session.email,
   );
 
@@ -95,61 +106,62 @@ export default async function ProjectsPage() {
                 <div className="empty">还没有项目，点击「新建项目」开始</div>
               </div>
             )}
-            {projects.map((p) => (
-              <Link
-                key={p.id}
-                href={`/projects/${encodeURIComponent(p.id)}`}
-                className="proj-card"
-              >
-                <div className="proj-card-h">
-                  <span
-                    className={`dot ${p.lifecycle?.live ? 'ok' : 'idle'}`}
-                  ></span>
-                  <div className="proj-card-title">
-                    <div className="nm">{p.name}</div>
-                    <div className="id">{p.id}</div>
-                  </div>
-                  {p.lifecycle?.label && (
-                    <span
-                      className={`chip ${p.lifecycle.live ? 'ok' : 'idle'}`}
-                    >
-                      {p.lifecycle.label}
-                    </span>
-                  )}
-                </div>
-                <div className="proj-card-stats">
-                  <div className="stat">
-                    <div className="stat-v">{p.app_count}</div>
-                    <div className="stat-k">应用</div>
-                  </div>
-                  <div className="stat">
-                    <div className="stat-v">{p.service_count}</div>
-                    <div className="stat-k">服务</div>
-                  </div>
-                  <div className="stat">
-                    <div className="stat-v">
-                      {fmtMillicores(p.resource_usage_snapshot?.cpu_millicores)}
+            {projects.map((p) => {
+              const res = resources.get(p.id);
+              const tone = toneClass(p.lifecycle?.tone, p.lifecycle?.live);
+              return (
+                <Link
+                  key={p.id}
+                  href={`/projects/${encodeURIComponent(p.id)}`}
+                  className="proj-card"
+                >
+                  <div className="proj-card-h">
+                    <span className={`dot ${tone}`}></span>
+                    <div className="proj-card-title">
+                      <div className="nm">{p.name}</div>
+                      <div className="id">{p.id}</div>
                     </div>
-                    <div className="stat-k">CPU</div>
+                    {p.lifecycle?.label && (
+                      <span className={`chip ${tone}`}>{p.lifecycle.label}</span>
+                    )}
                   </div>
-                  <div className="stat">
-                    <div className="stat-v">
-                      {fmtBytes(p.resource_usage_snapshot?.memory_bytes)}
+                  <div className="proj-card-stats">
+                    <div className="stat">
+                      <div className="stat-v">{fmtMillicores(res?.cpu_millicores)}</div>
+                      <div className="stat-k">CPU</div>
                     </div>
-                    <div className="stat-k">内存</div>
+                    <div className="stat">
+                      <div className="stat-v">{fmtBytes(res?.memory_bytes)}</div>
+                      <div className="stat-k">内存</div>
+                    </div>
+                    <div className="stat">
+                      <div className="stat-v">
+                        {fmtBytes(res?.ephemeral_storage_bytes)}
+                      </div>
+                      <div className="stat-k">磁盘</div>
+                    </div>
+                    <div className="stat">
+                      <div className="stat-v">{fmtBytes(res?.image_total_bytes)}</div>
+                      <div className="stat-k">镜像</div>
+                    </div>
                   </div>
-                </div>
-                {p.service_badges?.length > 0 && (
-                  <div className="proj-card-badges">
-                    {p.service_badges.slice(0, 4).map((b, i) => (
-                      <span key={`${b.kind}-${i}`} className="chip idle">
-                        {b.label}
-                      </span>
-                    ))}
+                  <div className="proj-card-foot">
+                    <div className="proj-card-counts">
+                      <span>{p.app_count} 应用</span>
+                      <span>·</span>
+                      <span>{p.service_count} 服务</span>
+                    </div>
+                    {p.service_badges?.length > 0 && (
+                      <div className="proj-card-logos">
+                        {p.service_badges.slice(0, 5).map((b, i) => (
+                          <TechLogo key={`${b.kind}-${i}`} kind={b.kind} label={b.label} />
+                        ))}
+                      </div>
+                    )}
                   </div>
-                )}
-              </Link>
-            ))}
+                </Link>
+              );
+            })}
           </div>
         )}
       </div>

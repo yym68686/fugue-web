@@ -40,3 +40,18 @@ export async function requireActivePageSession() {
 
   return activeSession;
 }
+
+/**
+ * Like requireActivePageSession, but additionally requires the user to be a
+ * platform admin. Non-admins are sent to /projects (existence of the admin
+ * area is not confirmed). Use for every /admin/* page.
+ */
+export async function requireActiveAdminPageSession() {
+  const activeSession = await requireActivePageSession();
+
+  if (!activeSession.user?.isAdmin) {
+    redirect("/projects");
+  }
+
+  return activeSession;
+}

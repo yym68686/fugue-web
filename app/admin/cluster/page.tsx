@@ -1,41 +1,100 @@
-import { queryDb } from '@/lib/db/pool';
 import AppLayout from '@/components/AppLayout';
-import { ClusterNode, PlatformOverview } from '@/lib/types';
-import { requireActivePageSession } from '@/lib/auth/page-access';
+import { requireActiveAdminPageSession } from '@/lib/auth/page-access';
+import { listClusterNodes, type ClusterNode } from '@/lib/fugue/console';
+import { fmtBytes, fmtMillicores, fmtPercent } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
 
-async function getSnapshot<T>(key: string): Promise<T | null> {
-  const result = await queryDb<{ payload: T; updated_at: string }>(
-    `SELECT payload, updated_at FROM app_admin_snapshots WHERE key = $1`,
-    [key]
-  );
-  if (result.rows.length === 0) return null;
-  return result.rows[0].payload as T;
+type ClusterData = {
+  nodes: ClusterNode[];
+  loadError: boolean;
+};
+
+async function getClusterData(): Promise<ClusterData> {
+  try {
+    const nodes = await listClusterNodes();
+    return { nodes, loadError: false };
+  } catch {
+    return { nodes: [], loadError: true };
+  }
 }
 
-function barClass(pct: number): string {
-  if (pct >= 85) return 'crit';
-  if (pct >= 70) return 'hot';
+function barClass(pct: number | undefined): string {
+  const v = pct ?? 0;
+  if (v >= 85) return 'crit';
+  if (v >= 70) return 'hot';
   return '';
 }
 
-const statusChip: Record<string, string> = {
+const STATUS_CHIP: Record<string, string> = {
   ready: 'ok',
+  active: 'ok',
   drain: 'warn',
+  draining: 'warn',
   down: 'err',
+  notready: 'err',
+  unknown: 'warn',
 };
 
-export default async function AdminClusterPage() {
-  await requireActivePageSession();
-  const health = await getSnapshot<{ nodes: ClusterNode[]; regions: string[] }>(
-    'cluster_health'
-  );
-  const overview = await getSnapshot<PlatformOverview>('platform_overview');
+function statusChipClass(status: string): string {
+  return STATUS_CHIP[status.toLowerCase().replace(/\s+/g, '')] ?? 'idle';
+}
 
-  const nodes = health?.nodes || [];
-  const regions = health?.regions || [];
-  const ready = nodes.filter((n) => n.status === 'ready').length;
+// A usage bar with an overlaid request marker, so operators can compare
+// actual usage against reserved (requested) capacity at a glance.
+function UsageCell({
+  usagePct,
+  requestPct,
+  detail,
+}: {
+  usagePct: number | undefined;
+  requestPct: number | undefined;
+  detail: string;
+}) {
+  const usage = Math.max(0, Math.min(100, usagePct ?? 0));
+  const request = Math.max(0, Math.min(100, requestPct ?? 0));
+  return (
+    <div className="usage-cell">
+      <span className="bar bar-wide">
+        <i className={barClass(usagePct)} style={{ width: `${usage}%` }}></i>
+        {requestPct != null && (
+          <span
+            className="req-mark"
+            style={{ left: `${request}%` }}
+            title={`请求 ${fmtPercent(requestPct)}`}
+          ></span>
+        )}
+      </span>
+      <span className="usage-meta">
+        <span className="bar-val">{fmtPercent(usagePct)}</span>
+        {requestPct != null && (
+          <span className="usage-req">请求 {fmtPercent(requestPct)}</span>
+        )}
+        {detail && <span className="usage-detail">{detail}</span>}
+      </span>
+    </div>
+  );
+}
+
+function avg(nums: number[]): number {
+  if (nums.length === 0) return 0;
+  return nums.reduce((a, b) => a + b, 0) / nums.length;
+}
+
+export default async function AdminClusterPage() {
+  await requireActiveAdminPageSession();
+  const { nodes, loadError } = await getClusterData();
+
+  const ready = nodes.filter((n) => {
+    const s = n.status.toLowerCase();
+    return s === 'ready' || s === 'active';
+  }).length;
+  const regions = Array.from(
+    new Set(nodes.map((n) => n.region).filter((r): r is string => Boolean(r))),
+  );
+  const avgCpu = avg(nodes.map((n) => n.cpu?.usage_percent ?? 0));
+  const avgMem = avg(nodes.map((n) => n.memory?.usage_percent ?? 0));
+  const avgDisk = avg(nodes.map((n) => n.ephemeral_storage?.usage_percent ?? 0));
 
   return (
     <AppLayout>
@@ -63,19 +122,19 @@ export default async function AdminClusterPage() {
             <div className="d up">就绪</div>
           </div>
           <div className="kpi">
-            <div className="k">区域</div>
-            <div className="v">{regions.length}</div>
-            <div className="d">{regions.join(' · ')}</div>
+            <div className="k">集群 CPU</div>
+            <div className="v">{fmtPercent(avgCpu)}</div>
+            <div className="d">平均使用率</div>
           </div>
           <div className="kpi">
-            <div className="k">活跃节点密钥</div>
-            <div className="v">{overview?.totals.activeNodes ?? '—'}</div>
-            <div className="d">全平台</div>
+            <div className="k">集群内存</div>
+            <div className="v">{fmtPercent(avgMem)}</div>
+            <div className="d">平均使用率</div>
           </div>
           <div className="kpi">
-            <div className="k">近 24h 部署</div>
-            <div className="v">{overview?.activity.deploysLast24h ?? '—'}</div>
-            <div className="d up">正常</div>
+            <div className="k">集群磁盘</div>
+            <div className="v">{fmtPercent(avgDisk)}</div>
+            <div className="d">平均使用率</div>
           </div>
         </div>
 
@@ -84,45 +143,79 @@ export default async function AdminClusterPage() {
             <h3>集群节点</h3>
             <div className="tail eyebrow">{nodes.length} nodes</div>
           </div>
-          <table className="tbl">
+          <table className="tbl tbl-cluster">
             <thead>
               <tr>
                 <th>节点</th>
-                <th>区域</th>
                 <th>角色</th>
-                <th>CPU</th>
-                <th>内存</th>
                 <th>状态</th>
+                <th>CPU（使用 / 请求）</th>
+                <th>内存（使用 / 请求）</th>
+                <th>磁盘</th>
               </tr>
             </thead>
             <tbody>
               {nodes.map((n) => (
                 <tr key={n.name}>
-                  <td>{n.name}</td>
-                  <td>{n.region}</td>
-                  <td>{n.role}</td>
                   <td>
-                    <span className="bar">
-                      <i className={barClass(n.cpu)} style={{ width: `${n.cpu}%` }}></i>
-                    </span>
-                    <span className="bar-val"> {n.cpu}%</span>
+                    <div className="node-nm">{n.name}</div>
+                    {n.region && <div className="node-sub">{n.region}</div>}
                   </td>
                   <td>
-                    <span className="bar">
-                      <i className={barClass(n.mem)} style={{ width: `${n.mem}%` }}></i>
-                    </span>
-                    <span className="bar-val"> {n.mem}%</span>
+                    {n.roles && n.roles.length > 0 ? (
+                      <span className="node-roles">{n.roles.join(', ')}</span>
+                    ) : (
+                      <span className="node-sub">worker</span>
+                    )}
                   </td>
                   <td>
-                    <span className={`chip ${statusChip[n.status] || 'idle'}`}>
+                    <span className={`chip ${statusChipClass(n.status)}`}>
                       {n.status}
                     </span>
+                  </td>
+                  <td>
+                    <UsageCell
+                      usagePct={n.cpu?.usage_percent}
+                      requestPct={n.cpu?.request_percent}
+                      detail={
+                        n.cpu?.capacity_millicores
+                          ? `${fmtMillicores(n.cpu.used_millicores)} / ${fmtMillicores(n.cpu.capacity_millicores)}`
+                          : ''
+                      }
+                    />
+                  </td>
+                  <td>
+                    <UsageCell
+                      usagePct={n.memory?.usage_percent}
+                      requestPct={n.memory?.request_percent}
+                      detail={
+                        n.memory?.capacity_bytes
+                          ? `${fmtBytes(n.memory.used_bytes)} / ${fmtBytes(n.memory.capacity_bytes)}`
+                          : ''
+                      }
+                    />
+                  </td>
+                  <td>
+                    <UsageCell
+                      usagePct={n.ephemeral_storage?.usage_percent}
+                      requestPct={undefined}
+                      detail={
+                        n.ephemeral_storage?.capacity_bytes
+                          ? `${fmtBytes(n.ephemeral_storage.used_bytes)} / ${fmtBytes(n.ephemeral_storage.capacity_bytes)}`
+                          : ''
+                      }
+                    />
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          {nodes.length === 0 && <div className="empty">暂无集群数据快照</div>}
+          {nodes.length === 0 && !loadError && (
+            <div className="empty">暂无集群节点</div>
+          )}
+          {loadError && (
+            <div className="empty">暂时无法加载集群数据，请稍后重试</div>
+          )}
         </div>
       </div>
     </AppLayout>

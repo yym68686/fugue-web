@@ -1,7 +1,7 @@
 import { queryDb } from '@/lib/db/pool';
 import AppLayout from '@/components/AppLayout';
 import { PlatformOverview, AuditEvent } from '@/lib/types';
-import { requireActivePageSession } from '@/lib/auth/page-access';
+import { requireActiveAdminPageSession } from '@/lib/auth/page-access';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,7 +49,7 @@ const actionMeta: Record<string, { label: string; kind: string }> = {
 };
 
 export default async function AdminServicesPage() {
-  await requireActivePageSession();
+  await requireActiveAdminPageSession();
   const overview = await getOverview();
   const events = await getAuditEvents();
 

@@ -1,7 +1,7 @@
 import { queryDb } from '@/lib/db/pool';
 import AppLayout from '@/components/AppLayout';
 import { AdminUser } from '@/lib/types';
-import { requireActivePageSession } from '@/lib/auth/page-access';
+import { requireActiveAdminPageSession } from '@/lib/auth/page-access';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,7 +40,7 @@ function relTime(d: Date | null): string {
 }
 
 export default async function AdminUsersPage() {
-  await requireActivePageSession();
+  await requireActiveAdminPageSession();
   const users = await getUsers();
   const adminCount = users.filter((u) => u.is_admin).length;
   const activeCount = users.filter((u) => u.status === 'active').length;
