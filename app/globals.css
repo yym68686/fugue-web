@@ -1505,3 +1505,81 @@ button {
     display: none;
   }
 }
+
+/* ============================================================
+   Project detail page
+   ============================================================ */
+/* 可点击的列表项：包裹 Link 去除默认样式，交互态沿用 .row-item:hover */
+.row-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.row-arrow {
+  width: 15px;
+  height: 15px;
+  color: var(--faint);
+  flex-shrink: 0;
+}
+
+.row-link:hover .row-arrow {
+  color: var(--fg);
+}
+
+/* 详情页面包屑与页头之间留白 */
+.page > .crumb {
+  margin-bottom: 14px;
+}
+
+/* 概览 key-value 网格 */
+.kv-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  background: var(--line);
+}
+
+.kv {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 14px 16px;
+  background: var(--surface);
+}
+
+.kv-k {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.kv-v {
+  font-size: 13.5px;
+  color: var(--fg);
+  word-break: break-word;
+}
+
+.kv-v.mono {
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.kv-v.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.kv-sub {
+  color: var(--faint);
+  font-size: 11.5px;
+}
+
+@media (max-width: 720px) {
+  .kv-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { queryDb } from '@/lib/db/pool';
 import AppLayout from '@/components/AppLayout';
 import { Workspace } from '@/lib/types';
@@ -59,7 +60,7 @@ export default async function ProjectsPage() {
 
         <div className="panel">
           <div className="panel-h">
-            <h3>所有工作空间</h3>
+            <h3>我的工作空间</h3>
             <div className="tail eyebrow">{workspaces.length} total</div>
           </div>
           <div className="list">
@@ -67,24 +68,40 @@ export default async function ProjectsPage() {
               <div className="empty">暂无工作空间</div>
             )}
             {workspaces.map((ws) => (
-              <div key={ws.tenant_id} className="row-item">
-                <span className="dot ok dot-lead"></span>
-                <div className="main-col">
-                  <div className="nm">{ws.tenant_name}</div>
-                  <div className="id">{ws.tenant_id}</div>
-                  <div className="sub">
-                    {ws.user_email} · 创建于{' '}
-                    {new Date(ws.created_at).toLocaleDateString('zh-CN')}
+              <Link
+                key={ws.tenant_id}
+                href={`/projects/${encodeURIComponent(ws.tenant_id)}`}
+                className="row-link"
+              >
+                <div className="row-item">
+                  <span className="dot ok dot-lead"></span>
+                  <div className="main-col">
+                    <div className="nm">{ws.tenant_name}</div>
+                    <div className="id">{ws.tenant_id}</div>
+                    <div className="sub">
+                      {ws.user_email} · 创建于{' '}
+                      {new Date(ws.created_at).toLocaleDateString('zh-CN')}
+                    </div>
+                  </div>
+                  <div className="stats">
+                    {ws.default_project_name ? (
+                      <span className="chip idle">{ws.default_project_name}</span>
+                    ) : (
+                      <span className="chip idle">未设默认项目</span>
+                    )}
+                    <svg
+                      className="row-arrow"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      aria-hidden="true"
+                    >
+                      <path d="M9 18l6-6-6-6" />
+                    </svg>
                   </div>
                 </div>
-                <div className="stats">
-                  {ws.default_project_name ? (
-                    <span className="chip idle">{ws.default_project_name}</span>
-                  ) : (
-                    <span className="chip idle">未设默认项目</span>
-                  )}
-                </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
