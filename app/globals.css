@@ -1583,3 +1583,112 @@ button {
     grid-template-columns: 1fr;
   }
 }
+
+/* ============================================================
+   Projects list — project cards (真实项目平铺)
+   ============================================================ */
+.proj-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+}
+
+.proj-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.proj-card:hover {
+  border-color: var(--accent);
+  background: var(--surface-2, var(--surface));
+}
+
+.proj-card-h {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.proj-card-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.proj-card-title .nm {
+  font-size: 14px;
+  color: var(--fg);
+  font-weight: 500;
+}
+
+.proj-card-title .id {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--faint);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.proj-card-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.proj-card-stats .stat {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 8px;
+  background: var(--surface);
+  text-align: center;
+}
+
+.proj-card-stats .stat-v {
+  font-size: 13px;
+  color: var(--fg);
+  font-family: var(--mono);
+}
+
+.proj-card-stats .stat-k {
+  font-size: 10px;
+  color: var(--faint);
+  letter-spacing: 0.3px;
+}
+
+.proj-card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* 详情页面包屑内链接 */
+.crumb a {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.crumb a:hover {
+  color: var(--fg);
+}
+
+/* 项目描述面板正文 */
+.panel-b {
+  padding: 14px 16px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
