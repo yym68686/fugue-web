@@ -5,13 +5,17 @@ import { requireActivePageSession } from '@/lib/auth/page-access';
 
 export const dynamic = 'force-dynamic';
 
-async function getNodes(): Promise<NodeKey[]> {
-  const result = await queryDb<NodeKey>(`
+async function getNodes(userEmail: string): Promise<NodeKey[]> {
+  const result = await queryDb<NodeKey>(
+    `
     SELECT fugue_node_key_id, user_email, tenant_id, label, prefix,
            status, source, last_used_at, revoked_at, created_at, updated_at
     FROM app_node_keys
+    WHERE user_email = $1
     ORDER BY created_at DESC
-  `);
+  `,
+    [userEmail],
+  );
   return result.rows;
 }
 
@@ -39,8 +43,8 @@ function isOnline(d: Date | null): boolean {
 }
 
 export default async function ServersPage() {
-  await requireActivePageSession();
-  const nodes = await getNodes();
+  const { session } = await requireActivePageSession();
+  const nodes = await getNodes(session.email);
   const active = nodes.filter((n) => n.status === 'active');
   const online = active.filter((n) => isOnline(n.last_used_at)).length;
 

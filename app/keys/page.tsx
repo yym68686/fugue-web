@@ -5,15 +5,19 @@ import { requireActivePageSession } from '@/lib/auth/page-access';
 
 export const dynamic = 'force-dynamic';
 
-async function getKeys(): Promise<ApiKey[]> {
-  const result = await queryDb<ApiKey>(`
+async function getKeys(userEmail: string): Promise<ApiKey[]> {
+  const result = await queryDb<ApiKey>(
+    `
     SELECT fugue_key_id, user_email, tenant_id, label, prefix, scopes,
            status, source, is_workspace_admin, last_used_at,
            disabled_at, deleted_at, created_at, updated_at
     FROM app_api_keys
     WHERE status != 'deleted'
+      AND user_email = $1
     ORDER BY created_at DESC
-  `);
+  `,
+    [userEmail],
+  );
   return result.rows;
 }
 
@@ -48,8 +52,8 @@ function relTime(d: Date | null): string {
 }
 
 export default async function KeysPage() {
-  await requireActivePageSession();
-  const keys = await getKeys();
+  const { session } = await requireActivePageSession();
+  const keys = await getKeys(session.email);
   const activeCount = keys.filter((k) => k.status === 'active').length;
 
   return (

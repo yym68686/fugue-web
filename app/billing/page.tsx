@@ -5,14 +5,18 @@ import { requireActivePageSession } from '@/lib/auth/page-access';
 
 export const dynamic = 'force-dynamic';
 
-async function getTopups(): Promise<BillingTopup[]> {
-  const result = await queryDb<BillingTopup>(`
+async function getTopups(userEmail: string): Promise<BillingTopup[]> {
+  const result = await queryDb<BillingTopup>(
+    `
     SELECT request_id, provider, user_email, tenant_id, product_id, units,
            amount_cents, status, checkout_id, order_id, currency, payer_email,
            completed_at, failed_at, created_at, updated_at
     FROM app_billing_topups
+    WHERE user_email = $1
     ORDER BY created_at DESC
-  `);
+  `,
+    [userEmail],
+  );
   return result.rows;
 }
 
@@ -38,8 +42,8 @@ const statusLabel: Record<string, string> = {
 };
 
 export default async function BillingPage() {
-  await requireActivePageSession();
-  const topups = await getTopups();
+  const { session } = await requireActivePageSession();
+  const topups = await getTopups(session.email);
 
   const completed = topups.filter((t) => t.status === 'completed');
   const totalCents = completed.reduce((s, t) => s + t.amount_cents, 0);

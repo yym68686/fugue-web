@@ -5,8 +5,9 @@ import { requireActivePageSession } from '@/lib/auth/page-access';
 
 export const dynamic = 'force-dynamic';
 
-async function getWorkspaces(): Promise<Workspace[]> {
-  const result = await queryDb<Workspace>(`
+async function getWorkspaces(userEmail: string): Promise<Workspace[]> {
+  const result = await queryDb<Workspace>(
+    `
     SELECT
       user_email,
       tenant_id,
@@ -21,14 +22,17 @@ async function getWorkspaces(): Promise<Workspace[]> {
       created_at,
       updated_at
     FROM app_workspaces
+    WHERE user_email = $1
     ORDER BY created_at DESC
-  `);
+  `,
+    [userEmail],
+  );
   return result.rows;
 }
 
 export default async function ProjectsPage() {
-  await requireActivePageSession();
-  const workspaces = await getWorkspaces();
+  const { session } = await requireActivePageSession();
+  const workspaces = await getWorkspaces(session.email);
 
   return (
     <AppLayout>
