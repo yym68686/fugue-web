@@ -1,11 +1,12 @@
-import pool from '@/lib/db';
+import { queryDb } from '@/lib/db/pool';
 import AppLayout from '@/components/AppLayout';
 import { AdminUser } from '@/lib/types';
+import { requireActivePageSession } from '@/lib/auth/page-access';
 
 export const dynamic = 'force-dynamic';
 
 async function getUsers(): Promise<AdminUser[]> {
-  const result = await pool.query(`
+  const result = await queryDb<AdminUser>(`
     SELECT email, name, picture_url, provider, verified, is_admin,
            status, last_login_at, created_at
     FROM app_users
@@ -39,6 +40,7 @@ function relTime(d: Date | null): string {
 }
 
 export default async function AdminUsersPage() {
+  await requireActivePageSession();
   const users = await getUsers();
   const adminCount = users.filter((u) => u.is_admin).length;
   const activeCount = users.filter((u) => u.status === 'active').length;

@@ -1,11 +1,12 @@
-import pool from '@/lib/db';
+import { queryDb } from '@/lib/db/pool';
 import AppLayout from '@/components/AppLayout';
 import { PlatformOverview, AuditEvent } from '@/lib/types';
+import { requireActivePageSession } from '@/lib/auth/page-access';
 
 export const dynamic = 'force-dynamic';
 
 async function getOverview(): Promise<PlatformOverview | null> {
-  const result = await pool.query(
+  const result = await queryDb<{ payload: PlatformOverview }>(
     `SELECT payload FROM app_admin_snapshots WHERE key = 'platform_overview'`
   );
   if (result.rows.length === 0) return null;
@@ -13,7 +14,7 @@ async function getOverview(): Promise<PlatformOverview | null> {
 }
 
 async function getAuditEvents(): Promise<AuditEvent[]> {
-  const result = await pool.query(`
+  const result = await queryDb<AuditEvent>(`
     SELECT id, action, actor_email, target_email, metadata, created_at
     FROM app_security_audit_events
     ORDER BY created_at DESC
@@ -48,6 +49,7 @@ const actionMeta: Record<string, { label: string; kind: string }> = {
 };
 
 export default async function AdminServicesPage() {
+  await requireActivePageSession();
   const overview = await getOverview();
   const events = await getAuditEvents();
 

@@ -1,11 +1,12 @@
-import pool from '@/lib/db';
+import { queryDb } from '@/lib/db/pool';
 import AppLayout from '@/components/AppLayout';
 import { ApiKey } from '@/lib/types';
+import { requireActivePageSession } from '@/lib/auth/page-access';
 
 export const dynamic = 'force-dynamic';
 
 async function getKeys(): Promise<ApiKey[]> {
-  const result = await pool.query(`
+  const result = await queryDb<ApiKey>(`
     SELECT fugue_key_id, user_email, tenant_id, label, prefix, scopes,
            status, source, is_workspace_admin, last_used_at,
            disabled_at, deleted_at, created_at, updated_at
@@ -47,6 +48,7 @@ function relTime(d: Date | null): string {
 }
 
 export default async function KeysPage() {
+  await requireActivePageSession();
   const keys = await getKeys();
   const activeCount = keys.filter((k) => k.status === 'active').length;
 

@@ -1,11 +1,12 @@
-import pool from '@/lib/db';
+import { queryDb } from '@/lib/db/pool';
 import AppLayout from '@/components/AppLayout';
 import { Workspace } from '@/lib/types';
+import { requireActivePageSession } from '@/lib/auth/page-access';
 
 export const dynamic = 'force-dynamic';
 
 async function getWorkspaces(): Promise<Workspace[]> {
-  const result = await pool.query(`
+  const result = await queryDb<Workspace>(`
     SELECT
       user_email,
       tenant_id,
@@ -26,6 +27,7 @@ async function getWorkspaces(): Promise<Workspace[]> {
 }
 
 export default async function ProjectsPage() {
+  await requireActivePageSession();
   const workspaces = await getWorkspaces();
 
   return (

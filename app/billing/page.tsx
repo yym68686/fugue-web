@@ -1,11 +1,12 @@
-import pool from '@/lib/db';
+import { queryDb } from '@/lib/db/pool';
 import AppLayout from '@/components/AppLayout';
 import { BillingTopup } from '@/lib/types';
+import { requireActivePageSession } from '@/lib/auth/page-access';
 
 export const dynamic = 'force-dynamic';
 
 async function getTopups(): Promise<BillingTopup[]> {
-  const result = await pool.query(`
+  const result = await queryDb<BillingTopup>(`
     SELECT request_id, provider, user_email, tenant_id, product_id, units,
            amount_cents, status, checkout_id, order_id, currency, payer_email,
            completed_at, failed_at, created_at, updated_at
@@ -37,6 +38,7 @@ const statusLabel: Record<string, string> = {
 };
 
 export default async function BillingPage() {
+  await requireActivePageSession();
   const topups = await getTopups();
 
   const completed = topups.filter((t) => t.status === 'completed');

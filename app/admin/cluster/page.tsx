@@ -1,11 +1,12 @@
-import pool from '@/lib/db';
+import { queryDb } from '@/lib/db/pool';
 import AppLayout from '@/components/AppLayout';
 import { ClusterNode, PlatformOverview } from '@/lib/types';
+import { requireActivePageSession } from '@/lib/auth/page-access';
 
 export const dynamic = 'force-dynamic';
 
 async function getSnapshot<T>(key: string): Promise<T | null> {
-  const result = await pool.query(
+  const result = await queryDb<{ payload: T; updated_at: string }>(
     `SELECT payload, updated_at FROM app_admin_snapshots WHERE key = $1`,
     [key]
   );
@@ -26,6 +27,7 @@ const statusChip: Record<string, string> = {
 };
 
 export default async function AdminClusterPage() {
+  await requireActivePageSession();
   const health = await getSnapshot<{ nodes: ClusterNode[]; regions: string[] }>(
     'cluster_health'
   );

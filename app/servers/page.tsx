@@ -1,11 +1,12 @@
-import pool from '@/lib/db';
+import { queryDb } from '@/lib/db/pool';
 import AppLayout from '@/components/AppLayout';
 import { NodeKey } from '@/lib/types';
+import { requireActivePageSession } from '@/lib/auth/page-access';
 
 export const dynamic = 'force-dynamic';
 
 async function getNodes(): Promise<NodeKey[]> {
-  const result = await pool.query(`
+  const result = await queryDb<NodeKey>(`
     SELECT fugue_node_key_id, user_email, tenant_id, label, prefix,
            status, source, last_used_at, revoked_at, created_at, updated_at
     FROM app_node_keys
@@ -38,6 +39,7 @@ function isOnline(d: Date | null): boolean {
 }
 
 export default async function ServersPage() {
+  await requireActivePageSession();
   const nodes = await getNodes();
   const active = nodes.filter((n) => n.status === 'active');
   const online = active.filter((n) => isOnline(n.last_used_at)).length;
