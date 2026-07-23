@@ -1,6 +1,7 @@
-import { importUploadApp } from "@/lib/fugue/console";
+import { importUploadApp, listProjectSlugs } from "@/lib/fugue/console";
 import { isObject, jsonError, readOptionalString, readStringMap } from "@/lib/fugue/product-route";
 import { withWorkspaceKey } from "@/lib/console/route-helpers";
+import { archiveNameCandidate, resolveUniqueProjectName } from "@/lib/deploy/project-name";
 
 // Cap the upload we accept from the browser. The backend enforces its own
 // (larger) archive limit; this is a first-line guard.
@@ -41,8 +42,8 @@ export async function POST(request: Request) {
   }
   if (!isObject(payload)) return jsonError(400, "Payload must be a JSON object.");
 
-  const projectName = readOptionalString(payload, "projectName");
-  if (!projectName) return jsonError(400, "Project name is required.");
+  // Project name is optional: derive from the uploaded archive's filename.
+  const requestedProjectName = readOptionalString(payload, "projectName");
 
   const rawPort = payload.servicePort;
   let servicePort: number | undefined;
@@ -54,8 +55,13 @@ export async function POST(request: Request) {
     servicePort = n;
   }
 
-  return withWorkspaceKey((key) =>
-    importUploadApp(
+  return withWorkspaceKey(async (key) => {
+    const existingSlugs = await listProjectSlugs(key);
+    const projectName = resolveUniqueProjectName(
+      requestedProjectName || archiveNameCandidate(upload.name),
+      existingSlugs,
+    );
+    return importUploadApp(
       key,
       {
         projectName,
@@ -71,6 +77,6 @@ export async function POST(request: Request) {
         sourceDir: readOptionalString(payload as Record<string, unknown>, "sourceDir") || undefined,
       },
       { name: upload.name, type: upload.type, data: upload },
-    ),
-  );
+    );
+  });
 }

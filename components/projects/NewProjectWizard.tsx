@@ -104,7 +104,6 @@ export default function NewProjectWizard({ runtimes }: { runtimes: RuntimeTarget
   }
 
   function validate(): string | null {
-    if (!projectName.trim()) return "请填写项目名称";
     if (source === "github" && !repoUrl.trim()) return "请填写仓库地址";
     if (source === "image" && !imageRef.trim()) return "请填写镜像引用";
     if (source === "upload" && !file) return "请选择要上传的源码归档";
@@ -154,7 +153,7 @@ export default function NewProjectWizard({ runtimes }: { runtimes: RuntimeTarget
     setError(null);
 
     const common: Record<string, unknown> = {
-      projectName: projectName.trim(),
+      projectName: projectName.trim() || undefined,
       projectDescription: projectDescription.trim() || undefined,
       appName: appName.trim() || undefined,
       runtimeId: runtimeId || undefined,
@@ -232,44 +231,6 @@ export default function NewProjectWizard({ runtimes }: { runtimes: RuntimeTarget
         </div>
       </section>
 
-      {/* identity */}
-      <section className="panel wizard-block">
-        <div className="wizard-block-h">
-          <span className="eyebrow">基础信息</span>
-          <h2>项目与应用</h2>
-        </div>
-        <div className="form">
-          <div className="form-row">
-            <label>项目名称 *</label>
-            <input
-              className="input"
-              autoFocus
-              value={projectName}
-              placeholder="my-project"
-              onChange={(e) => setProjectName(e.target.value)}
-            />
-          </div>
-          <div className="form-row">
-            <label>应用名称</label>
-            <input
-              className="input"
-              value={appName}
-              placeholder="可选，默认与项目同名"
-              onChange={(e) => setAppName(e.target.value)}
-            />
-          </div>
-          <div className="form-row">
-            <label>描述</label>
-            <input
-              className="input"
-              value={projectDescription}
-              placeholder="可选，项目用途说明"
-              onChange={(e) => setProjectDescription(e.target.value)}
-            />
-          </div>
-        </div>
-      </section>
-
       {/* per-source fields */}
       <section className="panel wizard-block">
         <div className="wizard-block-h">
@@ -285,80 +246,15 @@ export default function NewProjectWizard({ runtimes }: { runtimes: RuntimeTarget
               <label>仓库地址 *</label>
               <input
                 className="input mono"
+                autoFocus
                 value={repoUrl}
-                placeholder="https://github.com/owner/repo"
+                placeholder="https://github.com/owner/repo 或 owner/repo"
                 onChange={(e) => setRepoUrl(e.target.value)}
               />
-            </div>
-            <div className="form-row">
-              <label>分支</label>
-              <input
-                className="input mono"
-                value={branch}
-                placeholder="可选，默认仓库默认分支"
-                onChange={(e) => setBranch(e.target.value)}
-              />
-            </div>
-            <div className="form-row">
-              <label>可见性</label>
-              <div className="wseg">
-                <button
-                  type="button"
-                  className={visibility === "public" ? "active" : ""}
-                  onClick={() => setVisibility("public")}
-                >
-                  公开
-                </button>
-                <button
-                  type="button"
-                  className={visibility === "private" ? "active" : ""}
-                  onClick={() => setVisibility("private")}
-                >
-                  私有
-                </button>
+              <div className="form-hint">
+                项目名称将自动取自仓库名，其余设置可在高级配置中调整
               </div>
             </div>
-            {needsPrivateAuth && (
-              <div className="form-row">
-                <label>私有仓库授权</label>
-                <div className="gh-auth">
-                  {gh.loading ? (
-                    <div className="form-hint">正在检查 GitHub 连接…</div>
-                  ) : hasSavedConnection ? (
-                    <div className="gh-auth-ok">
-                      已连接 GitHub
-                      {gh.connection?.login ? ` · @${gh.connection.login}` : ""}
-                      <a className="btn ghost sm" href={gh.connectHref}>
-                        重新连接
-                      </a>
-                    </div>
-                  ) : (
-                    <div className="gh-auth-connect">
-                      {connectEnabled && (
-                        <>
-                          <a className="btn" href={gh.connectHref}>
-                            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                              <path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49v-1.7c-2.78.62-3.37-1.37-3.37-1.37-.46-1.18-1.11-1.5-1.11-1.5-.9-.63.07-.62.07-.62 1 .07 1.53 1.05 1.53 1.05.9 1.57 2.34 1.12 2.91.85.09-.66.35-1.12.63-1.38-2.22-.26-4.55-1.14-4.55-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.4 9.4 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.8-4.57 5.05.36.32.68.94.68 1.9v2.82c0 .27.18.6.69.49A10.03 10.03 0 0 0 22 12.25C22 6.58 17.52 2 12 2z" />
-                            </svg>
-                            连接 GitHub 账户
-                          </a>
-                          <span className="form-hint">或在下方直接粘贴访问令牌</span>
-                        </>
-                      )}
-                      <input
-                        className="input mono"
-                        type="password"
-                        value={manualToken}
-                        placeholder="ghp_... 访问令牌（仅本次部署使用）"
-                        onChange={(e) => setManualToken(e.target.value)}
-                        autoComplete="off"
-                      />
-                    </div>
-                  )}
-                  {gh.error && <div className="form-hint err">{gh.error}</div>}
-                </div>
-              </div>
-            )}
           </div>
         )}
 
@@ -368,10 +264,14 @@ export default function NewProjectWizard({ runtimes }: { runtimes: RuntimeTarget
               <label>镜像引用 *</label>
               <input
                 className="input mono"
+                autoFocus
                 value={imageRef}
                 placeholder="docker.io/library/nginx:1.27 或 ghcr.io/owner/app:tag"
                 onChange={(e) => setImageRef(e.target.value)}
               />
+              <div className="form-hint">
+                项目名称将自动取自镜像名，其余设置可在高级配置中调整
+              </div>
             </div>
           </div>
         )}
@@ -442,6 +342,106 @@ export default function NewProjectWizard({ runtimes }: { runtimes: RuntimeTarget
         {advOpen && (
           <div className="wizard-adv">
             <div className="form">
+              <div className="form-row">
+                <label>项目名称</label>
+                <input
+                  className="input"
+                  value={projectName}
+                  placeholder="可选，默认取自来源名称，同名时自动追加后缀"
+                  onChange={(e) => setProjectName(e.target.value)}
+                />
+              </div>
+              <div className="form-row">
+                <label>应用名称</label>
+                <input
+                  className="input"
+                  value={appName}
+                  placeholder="可选，默认与项目同名"
+                  onChange={(e) => setAppName(e.target.value)}
+                />
+              </div>
+              <div className="form-row">
+                <label>描述</label>
+                <input
+                  className="input"
+                  value={projectDescription}
+                  placeholder="可选，项目用途说明"
+                  onChange={(e) => setProjectDescription(e.target.value)}
+                />
+              </div>
+              {source === "github" && (
+                <>
+                  <div className="form-row">
+                    <label>分支</label>
+                    <input
+                      className="input mono"
+                      value={branch}
+                      placeholder="可选，默认仓库默认分支"
+                      onChange={(e) => setBranch(e.target.value)}
+                    />
+                  </div>
+                  <div className="form-row">
+                    <label>可见性</label>
+                    <div className="wseg">
+                      <button
+                        type="button"
+                        className={visibility === "public" ? "active" : ""}
+                        onClick={() => setVisibility("public")}
+                      >
+                        公开
+                      </button>
+                      <button
+                        type="button"
+                        className={visibility === "private" ? "active" : ""}
+                        onClick={() => setVisibility("private")}
+                      >
+                        私有
+                      </button>
+                    </div>
+                  </div>
+                  {needsPrivateAuth && (
+                    <div className="form-row">
+                      <label>私有仓库授权</label>
+                      <div className="gh-auth">
+                        {gh.loading ? (
+                          <div className="form-hint">正在检查 GitHub 连接…</div>
+                        ) : hasSavedConnection ? (
+                          <div className="gh-auth-ok">
+                            已连接 GitHub
+                            {gh.connection?.login ? ` · @${gh.connection.login}` : ""}
+                            <a className="btn ghost sm" href={gh.connectHref}>
+                              重新连接
+                            </a>
+                          </div>
+                        ) : (
+                          <div className="gh-auth-connect">
+                            {connectEnabled && (
+                              <>
+                                <a className="btn" href={gh.connectHref}>
+                                  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                                    <path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49v-1.7c-2.78.62-3.37-1.37-3.37-1.37-.46-1.18-1.11-1.5-1.11-1.5-.9-.63.07-.62.07-.62 1 .07 1.53 1.05 1.53 1.05.9 1.57 2.34 1.12 2.91.85.09-.66.35-1.12.63-1.38-2.22-.26-4.55-1.14-4.55-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.4 9.4 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.8-4.57 5.05.36.32.68.94.68 1.9v2.82c0 .27.18.6.69.49A10.03 10.03 0 0 0 22 12.25C22 6.58 17.52 2 12 2z" />
+                                  </svg>
+                                  连接 GitHub 账户
+                                </a>
+                                <span className="form-hint">或在下方直接粘贴访问令牌</span>
+                              </>
+                            )}
+                            <input
+                              className="input mono"
+                              type="password"
+                              value={manualToken}
+                              placeholder="ghp_... 访问令牌（仅本次部署使用）"
+                              onChange={(e) => setManualToken(e.target.value)}
+                              autoComplete="off"
+                            />
+                          </div>
+                        )}
+                        {gh.error && <div className="form-hint err">{gh.error}</div>}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
               <div className="form-row">
                 <label>运行时目标</label>
                 <select

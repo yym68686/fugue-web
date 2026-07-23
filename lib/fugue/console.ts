@@ -933,6 +933,29 @@ export async function createProject(
   );
 }
 
+/**
+ * List the caller's own project slugs (tenant-scoped via the admin key). Used
+ * to pick a collision-free auto-derived project name before an import. Falls
+ * back to an empty set if the listing fails, so naming never hard-blocks a
+ * deploy — the backend still enforces uniqueness as the final guard.
+ */
+export async function listProjectSlugs(adminKey: string): Promise<Set<string>> {
+  try {
+    const data = await fugueGet<{ projects?: ConsoleProject[] }>(
+      adminKey,
+      "/v1/projects",
+    );
+    const slugs = new Set<string>();
+    for (const project of data.projects ?? []) {
+      const slug = (project.slug || project.name || "").trim().toLowerCase();
+      if (slug) slugs.add(slug);
+    }
+    return slugs;
+  } catch {
+    return new Set<string>();
+  }
+}
+
 /* ------------------------------------------------------------------ *
  * Project + app creation via source import (new-project wizard).       *
  * Each import endpoint accepts an inline `project` object so a single   *
