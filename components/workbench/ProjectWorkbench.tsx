@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { BackingService, ConsoleAppDetail } from "@/lib/fugue/console";
 import { fmtBytes, fmtMillicores, fmtStorageUsage } from "@/lib/format";
+import { readRuntimeCountryCode } from "@/lib/geo/country";
+import CountryLabel from "@/components/geo/CountryLabel";
 import { useT } from "@/lib/i18n/client";
 import ProjectSettings from "./ProjectSettings";
 import {
@@ -220,6 +222,13 @@ function ServiceCard({
 }) {
   const t = useT();
   const isDb = svc.kind === "db";
+  const countryCode =
+    svc.kind === "app"
+      ? readRuntimeCountryCode(
+          svc.app.status?.current_runtime_id,
+          svc.app.spec?.runtime_id,
+        )
+      : readRuntimeCountryCode(svc.svc.database_runtime_id, svc.svc.location_label);
   const usage =
     svc.kind === "app" ? svc.app.current_resource_usage : svc.svc.current_resource_usage;
   const hasPersistentStorage =
@@ -248,6 +257,12 @@ function ServiceCard({
           <span className={`dot ${phaseTone(svc.phase)}`} />
           {isDb ? t("Database") : t("App")}
           {svc.phase ? ` · ${svc.phase}` : ""}
+          {countryCode && (
+            <>
+              <span className="svc-card-sep">·</span>
+              <CountryLabel countryCode={countryCode} className="svc-card-loc" />
+            </>
+          )}
         </div>
         <div className="svc-card-metrics">
           <div className="svc-card-metric">

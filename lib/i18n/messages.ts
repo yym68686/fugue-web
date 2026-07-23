@@ -359,6 +359,7 @@ export const zhCN = {
   "(default)": "(默认)",
   "Image retention count": "镜像保留数量",
   "Network mode": "网络模式",
+  Location: "部署位置",
   Replicas: "副本数",
   "Save settings": "保存设置",
   Origin: "来源",

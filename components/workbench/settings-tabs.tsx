@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { BackingService, ConsoleAppDetail } from "@/lib/fugue/console";
+import { readRuntimeCountryCode } from "@/lib/geo/country";
+import CountryLabel from "@/components/geo/CountryLabel";
 import { useT } from "@/lib/i18n/client";
 import { ActionButton, callConsole, ConfirmDialog } from "./shared";
 
@@ -60,6 +62,18 @@ export function SettingsTab({
             <label>{t("Runtime")}</label>
             <span className="mono">{spec.runtime_id || "—"}</span>
           </div>
+          {(() => {
+            const cc = readRuntimeCountryCode(
+              app.status?.current_runtime_id,
+              spec.runtime_id,
+            );
+            return cc ? (
+              <div className="form-row">
+                <label>{t("Location")}</label>
+                <CountryLabel countryCode={cc} />
+              </div>
+            ) : null;
+          })()}
           <div className="form-row">
             <label>{t("Network mode")}</label>
             <span className="mono">{spec.network_mode || "default"}</span>
@@ -220,6 +234,15 @@ export function DbOverviewTab({ svc }: { svc: BackingService }) {
           <label>{t("Runtime")}</label>
           <span className="mono">{svc.location_label || svc.database_runtime_id || "—"}</span>
         </div>
+        {(() => {
+          const cc = readRuntimeCountryCode(svc.database_runtime_id, svc.location_label);
+          return cc ? (
+            <div className="form-row">
+              <label>{t("Location")}</label>
+              <CountryLabel countryCode={cc} />
+            </div>
+          ) : null;
+        })()}
       </div>
     </div>
   );
