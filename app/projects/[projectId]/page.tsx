@@ -99,16 +99,15 @@ export default async function ProjectDetailPage({
   const projectName = detail.project_name || detail.project?.name || projectId;
   const services = buildServices(apps);
 
-  const totalCpu = apps.reduce(
-    (sum, a) => sum + (a.current_resource_usage?.cpu_millicores ?? 0),
-    0,
+  // Sum usage across every service in the project — apps and their backing
+  // services (databases) alike — so the header totals match the service cards.
+  const usages = services.map((s) =>
+    s.kind === 'app' ? s.app.current_resource_usage : s.svc.current_resource_usage,
   );
-  const totalMem = apps.reduce(
-    (sum, a) => sum + (a.current_resource_usage?.memory_bytes ?? 0),
-    0,
-  );
-  const totalDisk = apps.reduce(
-    (sum, a) => sum + (a.current_resource_usage?.ephemeral_storage_bytes ?? 0),
+  const totalCpu = usages.reduce((sum, u) => sum + (u?.cpu_millicores ?? 0), 0);
+  const totalMem = usages.reduce((sum, u) => sum + (u?.memory_bytes ?? 0), 0);
+  const totalDisk = usages.reduce(
+    (sum, u) => sum + (u?.ephemeral_storage_bytes ?? 0),
     0,
   );
 

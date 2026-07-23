@@ -217,7 +217,8 @@ function ServiceCard({
   onOpen: (id: string, tab?: string) => void;
 }) {
   const isDb = svc.kind === "db";
-  const usage = svc.kind === "app" ? svc.app.current_resource_usage : null;
+  const usage =
+    svc.kind === "app" ? svc.app.current_resource_usage : svc.svc.current_resource_usage;
 
   return (
     <div className="svc-card">
@@ -241,6 +242,12 @@ function ServiceCard({
           <div className="svc-card-metric">
             <span className="k">内存</span>
             <span className="v">{usage ? fmtBytes(usage.memory_bytes ?? 0) : "—"}</span>
+          </div>
+          <div className="svc-card-metric">
+            <span className="k">磁盘</span>
+            <span className="v">
+              {usage ? fmtBytes(usage.ephemeral_storage_bytes ?? 0) : "—"}
+            </span>
           </div>
         </div>
       </button>

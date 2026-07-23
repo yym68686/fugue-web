@@ -481,6 +481,7 @@ export type BackingService = {
   status?: string;
   owner_app_id?: string;
   owner_app_name?: string;
+  current_resource_usage?: ConsoleResourceUsage | null;
   database_runtime_id?: string;
   location_label?: string;
   failover_configured?: boolean;
