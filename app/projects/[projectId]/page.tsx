@@ -14,7 +14,7 @@ import {
   type ConsoleAppDetail,
   type ConsoleProjectDetail,
 } from '@/lib/fugue/console';
-import { fmtBytes, fmtMillicores, fmtDate } from '@/lib/format';
+import { fmtBytes, fmtMillicores, fmtDate, fmtStorageUsage } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
 
@@ -56,6 +56,7 @@ async function loadProject(
 
 function buildServices(apps: ConsoleAppDetail[]): WorkbenchService[] {
   const services: WorkbenchService[] = [];
+  const seenBackingServices = new Set<string>();
   for (const app of apps) {
     services.push({
       kind: 'app',
@@ -66,6 +67,8 @@ function buildServices(apps: ConsoleAppDetail[]): WorkbenchService[] {
     });
     for (const svc of app.backing_services ?? []) {
       if (!svc.id) continue;
+      if (seenBackingServices.has(svc.id)) continue;
+      seenBackingServices.add(svc.id);
       services.push({
         kind: 'db',
         id: svc.id,
@@ -106,8 +109,22 @@ export default async function ProjectDetailPage({
   );
   const totalCpu = usages.reduce((sum, u) => sum + (u?.cpu_millicores ?? 0), 0);
   const totalMem = usages.reduce((sum, u) => sum + (u?.memory_bytes ?? 0), 0);
-  const totalDisk = usages.reduce(
+  const totalEphemeralStorage = usages.reduce(
     (sum, u) => sum + (u?.ephemeral_storage_bytes ?? 0),
+    0,
+  );
+  const hasPersistentStorageUsed = usages.some(
+    (u) => u?.persistent_storage_used_bytes != null,
+  );
+  const hasPersistentStorageCapacity = usages.some(
+    (u) => u?.persistent_storage_capacity_bytes != null,
+  );
+  const totalPersistentStorageUsed = usages.reduce(
+    (sum, u) => sum + (u?.persistent_storage_used_bytes ?? 0),
+    0,
+  );
+  const totalPersistentStorageCapacity = usages.reduce(
+    (sum, u) => sum + (u?.persistent_storage_capacity_bytes ?? 0),
     0,
   );
 
@@ -153,8 +170,19 @@ export default async function ProjectDetailPage({
             <span className="pstat-v">{fmtBytes(totalMem)}</span>
           </div>
           <div className="pstat-item">
-            <span className="pstat-k">磁盘用量</span>
-            <span className="pstat-v">{fmtBytes(totalDisk)}</span>
+            <span className="pstat-k">持久盘用量</span>
+            <span className="pstat-v">
+              {fmtStorageUsage(
+                hasPersistentStorageUsed ? totalPersistentStorageUsed : undefined,
+                hasPersistentStorageCapacity
+                  ? totalPersistentStorageCapacity
+                  : undefined,
+              )}
+            </span>
+          </div>
+          <div className="pstat-item">
+            <span className="pstat-k">临时盘用量</span>
+            <span className="pstat-v">{fmtBytes(totalEphemeralStorage)}</span>
           </div>
           <div className="pstat-item">
             <span className="pstat-k">镜像占用</span>

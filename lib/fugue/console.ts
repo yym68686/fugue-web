@@ -14,6 +14,8 @@ export type ConsoleResourceUsage = {
   cpu_millicores?: number;
   memory_bytes?: number;
   ephemeral_storage_bytes?: number;
+  persistent_storage_used_bytes?: number;
+  persistent_storage_capacity_bytes?: number;
 };
 
 /* ---- billing (managed-cap editor + price book) ---- */
@@ -107,6 +109,7 @@ export type ConsoleApp = {
   route?: ConsoleAppRoute | null;
   status?: ConsoleAppStatus;
   current_resource_usage?: ConsoleResourceUsage | null;
+  backing_services?: BackingService[];
   created_at?: string;
   updated_at?: string;
 };
@@ -150,6 +153,8 @@ export type ProjectResourceRollup = {
   cpu_millicores: number;
   memory_bytes: number;
   ephemeral_storage_bytes: number;
+  persistent_storage_used_bytes?: number;
+  persistent_storage_capacity_bytes?: number;
   image_total_bytes: number;
 };
 
@@ -398,15 +403,39 @@ export function rollupProjectResources(
     return entry;
   };
 
-  for (const app of apps) {
-    const projectId = app.project_id;
-    if (!projectId) continue;
-    const usage = app.current_resource_usage;
-    if (!usage) continue;
-    const entry = ensure(projectId);
+  const addUsage = (
+    entry: ProjectResourceRollup,
+    usage: ConsoleResourceUsage | null | undefined,
+  ) => {
+    if (!usage) return;
     entry.cpu_millicores += usage.cpu_millicores ?? 0;
     entry.memory_bytes += usage.memory_bytes ?? 0;
     entry.ephemeral_storage_bytes += usage.ephemeral_storage_bytes ?? 0;
+    if (usage.persistent_storage_used_bytes != null) {
+      entry.persistent_storage_used_bytes =
+        (entry.persistent_storage_used_bytes ?? 0) + usage.persistent_storage_used_bytes;
+    }
+    if (usage.persistent_storage_capacity_bytes != null) {
+      entry.persistent_storage_capacity_bytes =
+        (entry.persistent_storage_capacity_bytes ?? 0) +
+        usage.persistent_storage_capacity_bytes;
+    }
+  };
+
+  const seenBackingServices = new Set<string>();
+  for (const app of apps) {
+    const projectId = app.project_id;
+    if (!projectId) continue;
+    const entry = ensure(projectId);
+    addUsage(entry, app.current_resource_usage);
+    for (const service of app.backing_services ?? []) {
+      const serviceId = service.id?.trim();
+      if (!serviceId) continue;
+      const serviceKey = `${projectId}\u0000${serviceId}`;
+      if (seenBackingServices.has(serviceKey)) continue;
+      seenBackingServices.add(serviceKey);
+      addUsage(entry, service.current_resource_usage);
+    }
   }
 
   for (const image of imageUsage) {

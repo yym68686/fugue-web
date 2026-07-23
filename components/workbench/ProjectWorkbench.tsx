@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { BackingService, ConsoleAppDetail } from "@/lib/fugue/console";
-import { fmtBytes, fmtMillicores } from "@/lib/format";
+import { fmtBytes, fmtMillicores, fmtStorageUsage } from "@/lib/format";
 import ProjectSettings from "./ProjectSettings";
 import {
   EnvTab,
@@ -219,6 +219,18 @@ function ServiceCard({
   const isDb = svc.kind === "db";
   const usage =
     svc.kind === "app" ? svc.app.current_resource_usage : svc.svc.current_resource_usage;
+  const hasPersistentStorage =
+    usage?.persistent_storage_used_bytes != null ||
+    usage?.persistent_storage_capacity_bytes != null;
+  const storageLabel = hasPersistentStorage ? "持久盘" : "临时盘";
+  const storageValue = !usage
+    ? "—"
+    : hasPersistentStorage
+      ? fmtStorageUsage(
+          usage.persistent_storage_used_bytes,
+          usage.persistent_storage_capacity_bytes,
+        )
+      : fmtBytes(usage.ephemeral_storage_bytes ?? 0);
 
   return (
     <div className="svc-card">
@@ -244,10 +256,8 @@ function ServiceCard({
             <span className="v">{usage ? fmtBytes(usage.memory_bytes ?? 0) : "—"}</span>
           </div>
           <div className="svc-card-metric">
-            <span className="k">磁盘</span>
-            <span className="v">
-              {usage ? fmtBytes(usage.ephemeral_storage_bytes ?? 0) : "—"}
-            </span>
+            <span className="k">{storageLabel}</span>
+            <span className="v">{storageValue}</span>
           </div>
         </div>
       </button>

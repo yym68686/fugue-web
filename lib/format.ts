@@ -12,6 +12,15 @@ export function fmtBytes(bytes: number | undefined | null): string {
   return `${value.toFixed(value >= 100 || unit === 0 ? 0 : 1)} ${units[unit]}`;
 }
 
+export function fmtStorageUsage(
+  usedBytes: number | undefined | null,
+  capacityBytes: number | undefined | null,
+): string {
+  if (usedBytes == null && capacityBytes == null) return '—';
+  const used = usedBytes == null ? '—' : fmtBytes(usedBytes);
+  return capacityBytes == null ? used : `${used} / ${fmtBytes(capacityBytes)}`;
+}
+
 export function fmtMillicores(m: number | undefined | null): string {
   if (!m || m <= 0) return '0';
   if (m >= 1000) return `${(m / 1000).toFixed(m % 1000 === 0 ? 0 : 1)} vCPU`;
