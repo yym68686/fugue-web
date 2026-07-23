@@ -38,6 +38,7 @@ export type BillingEvent = {
   amount_microcents: number;
   balance_after_microcents: number;
   created_at?: string | null;
+  metadata?: Record<string, string> | null;
 };
 
 export type BillingSummary = {

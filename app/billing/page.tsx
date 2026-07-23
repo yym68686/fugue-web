@@ -76,6 +76,38 @@ const statusLabel: Record<string, string> = {
   failed: '失败',
 };
 
+// Backend billing-event types → human labels + chip tone. `config-updated`
+// events don't move the balance (amount 0); everything else is a real credit
+// or debit against the prepaid balance.
+const eventLabel: Record<string, string> = {
+  'balance-adjusted': '管理员调整',
+  'top-up': '充值',
+  'config-updated': '上限调整',
+  usage: '用量扣费',
+};
+
+const eventChip: Record<string, string> = {
+  'balance-adjusted': 'run',
+  'top-up': 'ok',
+  'config-updated': 'idle',
+  usage: 'warn',
+};
+
+// Describe a balance event's source: the admin actor, the creem note, or the
+// resource spec it recorded.
+function eventDetail(meta: Record<string, string> | null | undefined): string {
+  if (!meta) return '';
+  if (meta.source === 'platform-admin' || meta.actor_type) {
+    return meta.actor_id ? `${meta.source || 'admin'} · ${meta.actor_id}` : meta.source || '';
+  }
+  if (meta.note) return meta.note;
+  const spec: string[] = [];
+  if (meta.cpu_millicores) spec.push(`${Number(meta.cpu_millicores) / 1000} CPU`);
+  if (meta.memory_mebibytes) spec.push(`${Number(meta.memory_mebibytes) / 1024} GiB`);
+  if (meta.storage_gibibytes) spec.push(`${meta.storage_gibibytes} GiB 存储`);
+  return spec.join(' / ');
+}
+
 export default async function BillingPage() {
   const { session } = await requireActivePageSession();
   const [topups, billing] = await Promise.all([
@@ -87,6 +119,11 @@ export default async function BillingPage() {
   const totalCents = completed.reduce((s, t) => s + t.amount_cents, 0);
   const pendingCount = topups.filter((t) => t.status === 'pending').length;
   const currency = billing?.price_book.currency || 'USD';
+  // The backend ledger already merges admin adjustments (balance-adjusted) and
+  // real paid top-ups. Show the newest first.
+  const events = (billing?.events ?? [])
+    .slice()
+    .sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
 
   return (
     <AppLayout>
@@ -96,7 +133,7 @@ export default async function BillingPage() {
             <div className="eyebrow">Billing</div>
             <h1>账单与额度</h1>
             <div className="meta">
-              <span>{topups.length} 笔充值记录</span>
+              <span>{billing ? `${events.length} 笔余额变动` : `${topups.length} 笔充值记录`}</span>
               <span>provider · creem</span>
             </div>
           </div>
@@ -189,48 +226,98 @@ export default async function BillingPage() {
           </div>
         )}
 
-        <div className="panel">
-          <div className="panel-h">
-            <h3>充值记录</h3>
-            <div className="tail eyebrow">{topups.length} total</div>
-          </div>
-          <table className="tbl">
-            <thead>
-              <tr>
-                <th>请求 ID</th>
-                <th>账户</th>
-                <th>额度</th>
-                <th>金额</th>
-                <th>状态</th>
-                <th>时间</th>
-              </tr>
-            </thead>
-            <tbody>
-              {topups.map((t) => (
-                <tr key={t.request_id}>
-                  <td>{t.request_id}</td>
-                  <td>{t.user_email}</td>
-                  <td>{t.units} units</td>
-                  <td>{fmtMoney(t.amount_cents, t.currency || 'USD')}</td>
-                  <td>
-                    <span className={`chip ${statusChip[t.status] || 'idle'}`}>
-                      {statusLabel[t.status] || t.status}
-                    </span>
-                  </td>
-                  <td className="faint">
-                    {new Date(t.created_at).toLocaleString('zh-CN', {
-                      month: '2-digit',
-                      day: '2-digit',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </td>
+        {billing ? (
+          <div className="panel">
+            <div className="panel-h">
+              <h3>余额变动</h3>
+              <div className="tail eyebrow">{events.length} total · 含管理员调整</div>
+            </div>
+            <table className="tbl">
+              <thead>
+                <tr>
+                  <th>类型</th>
+                  <th>金额</th>
+                  <th>变动后余额</th>
+                  <th>说明</th>
+                  <th>时间</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          {topups.length === 0 && <div className="empty">暂无充值记录</div>}
-        </div>
+              </thead>
+              <tbody>
+                {events.map((e) => (
+                  <tr key={e.id}>
+                    <td>
+                      <span className={`chip ${eventChip[e.type] || 'idle'}`}>
+                        {eventLabel[e.type] || e.type}
+                      </span>
+                    </td>
+                    <td>
+                      {e.amount_microcents === 0
+                        ? '—'
+                        : `${e.amount_microcents > 0 ? '+' : ''}${fmtMicro(e.amount_microcents, currency)}`}
+                    </td>
+                    <td>{fmtMicro(e.balance_after_microcents, currency)}</td>
+                    <td className="faint">{eventDetail(e.metadata) || '—'}</td>
+                    <td className="faint">
+                      {e.created_at
+                        ? new Date(e.created_at).toLocaleString('zh-CN', {
+                            year: '2-digit',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })
+                        : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {events.length === 0 && <div className="empty">暂无余额变动</div>}
+          </div>
+        ) : (
+          <div className="panel">
+            <div className="panel-h">
+              <h3>充值记录</h3>
+              <div className="tail eyebrow">{topups.length} total</div>
+            </div>
+            <table className="tbl">
+              <thead>
+                <tr>
+                  <th>请求 ID</th>
+                  <th>账户</th>
+                  <th>额度</th>
+                  <th>金额</th>
+                  <th>状态</th>
+                  <th>时间</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topups.map((t) => (
+                  <tr key={t.request_id}>
+                    <td>{t.request_id}</td>
+                    <td>{t.user_email}</td>
+                    <td>{t.units} units</td>
+                    <td>{fmtMoney(t.amount_cents, t.currency || 'USD')}</td>
+                    <td>
+                      <span className={`chip ${statusChip[t.status] || 'idle'}`}>
+                        {statusLabel[t.status] || t.status}
+                      </span>
+                    </td>
+                    <td className="faint">
+                      {new Date(t.created_at).toLocaleString('zh-CN', {
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {topups.length === 0 && <div className="empty">暂无充值记录</div>}
+          </div>
+        )}
       </div>
     </AppLayout>
   );
