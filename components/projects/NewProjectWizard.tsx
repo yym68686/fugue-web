@@ -253,9 +253,6 @@ export default function NewProjectWizard({ runtimes }: { runtimes: RuntimeTarget
                 placeholder="https://github.com/owner/repo 或 owner/repo"
                 onChange={(e) => setRepoUrl(e.target.value)}
               />
-              <div className="form-hint">
-                项目名称将自动取自仓库名，其余设置可在高级配置中调整
-              </div>
             </div>
           </div>
         )}
@@ -271,9 +268,6 @@ export default function NewProjectWizard({ runtimes }: { runtimes: RuntimeTarget
                 placeholder="docker.io/library/nginx:1.27 或 ghcr.io/owner/app:tag"
                 onChange={(e) => setImageRef(e.target.value)}
               />
-              <div className="form-hint">
-                项目名称将自动取自镜像名，其余设置可在高级配置中调整
-              </div>
             </div>
           </div>
         )}
