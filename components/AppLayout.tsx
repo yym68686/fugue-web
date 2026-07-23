@@ -21,7 +21,8 @@ const consoleNav = [
     label: '账单',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-        <path d="M12 2L2 7v10c0 5 4 8 10 10 6-2 10-5 10-10V7z" />
+        <rect x="2" y="5" width="20" height="14" rx="2" />
+        <path d="M2 10h20M6 15h4" />
       </svg>
     ),
   },
