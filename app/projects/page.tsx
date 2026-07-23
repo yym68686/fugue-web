@@ -11,7 +11,7 @@ import {
   type ConsoleProjectSummary,
   type ProjectResourceRollup,
 } from '@/lib/fugue/console';
-import { fmtBytes, fmtMillicores } from '@/lib/format';
+import { fmtBytes, fmtMillicores, fmtStorageUsage } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
 
@@ -138,7 +138,21 @@ export default async function ProjectsPage() {
                       <div className="stat-v">
                         {fmtBytes(res?.ephemeral_storage_bytes)}
                       </div>
-                      <div className="stat-k">磁盘</div>
+                      <div className="stat-k">临时盘</div>
+                    </div>
+                    <div className="stat">
+                      <div
+                        className="stat-v"
+                        title={fmtStorageUsage(
+                          res?.persistent_storage_used_bytes,
+                          res?.persistent_storage_capacity_bytes,
+                        )}
+                      >
+                        {res?.persistent_storage_used_bytes == null
+                          ? '—'
+                          : fmtBytes(res.persistent_storage_used_bytes)}
+                      </div>
+                      <div className="stat-k">持久盘</div>
                     </div>
                     <div className="stat">
                       <div className="stat-v">{fmtBytes(res?.image_total_bytes)}</div>
