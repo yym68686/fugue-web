@@ -5,6 +5,8 @@ import { requireActivePageSession } from '@/lib/auth/page-access';
 import { getCachedWorkspaceAccessByEmail } from '@/lib/server/session-state-cache';
 import { getBillingSummary, type BillingSummary } from '@/lib/fugue/console';
 import { BillingCapEditor } from '@/components/billing/BillingCapEditor';
+import { getRequestI18n } from '@/lib/i18n/server';
+import type { TranslateFn } from '@/lib/i18n/translate';
 
 export const dynamic = 'force-dynamic';
 
@@ -55,11 +57,11 @@ function fmtMicro(microcents: number, currency = 'USD', maxFractionDigits = 2) {
   }).format(amount);
 }
 
-function fmtRunway(hours: number | null | undefined): string {
+function fmtRunway(hours: number | null | undefined, t: TranslateFn): string {
   if (hours === null || hours === undefined || !Number.isFinite(hours)) return '—';
-  if (hours < 1) return `${Math.round(hours * 60)} 分钟`;
-  if (hours < 48) return `${Math.round(hours)} 小时`;
-  return `${Math.round(hours / 24)} 天`;
+  if (hours < 1) return t('{count} min', { count: Math.round(hours * 60) });
+  if (hours < 48) return t('{count} hr', { count: Math.round(hours) });
+  return t('{count} days', { count: Math.round(hours / 24) });
 }
 
 const statusChip: Record<string, string> = {
@@ -70,20 +72,20 @@ const statusChip: Record<string, string> = {
 };
 
 const statusLabel: Record<string, string> = {
-  completed: '已完成',
-  pending: '待支付',
-  processing: '处理中',
-  failed: '失败',
+  completed: 'Completed',
+  pending: 'Pending payment',
+  processing: 'Processing',
+  failed: 'Failed',
 };
 
 // Backend billing-event types → human labels + chip tone. `config-updated`
 // events don't move the balance (amount 0); everything else is a real credit
 // or debit against the prepaid balance.
 const eventLabel: Record<string, string> = {
-  'balance-adjusted': '管理员调整',
-  'top-up': '充值',
-  'config-updated': '上限调整',
-  usage: '用量扣费',
+  'balance-adjusted': 'Admin adjustment',
+  'top-up': 'Top-up',
+  'config-updated': 'Cap change',
+  usage: 'Usage charge',
 };
 
 const eventChip: Record<string, string> = {
@@ -95,7 +97,7 @@ const eventChip: Record<string, string> = {
 
 // Describe a balance event's source: the admin actor, the creem note, or the
 // resource spec it recorded.
-function eventDetail(meta: Record<string, string> | null | undefined): string {
+function eventDetail(meta: Record<string, string> | null | undefined, t: TranslateFn): string {
   if (!meta) return '';
   if (meta.source === 'platform-admin' || meta.actor_type) {
     return meta.actor_id ? `${meta.source || 'admin'} · ${meta.actor_id}` : meta.source || '';
@@ -104,12 +106,13 @@ function eventDetail(meta: Record<string, string> | null | undefined): string {
   const spec: string[] = [];
   if (meta.cpu_millicores) spec.push(`${Number(meta.cpu_millicores) / 1000} CPU`);
   if (meta.memory_mebibytes) spec.push(`${Number(meta.memory_mebibytes) / 1024} GiB`);
-  if (meta.storage_gibibytes) spec.push(`${meta.storage_gibibytes} GiB 存储`);
+  if (meta.storage_gibibytes) spec.push(t('{count} GiB storage', { count: meta.storage_gibibytes }));
   return spec.join(' / ');
 }
 
 export default async function BillingPage() {
   const { session } = await requireActivePageSession();
+  const { t } = await getRequestI18n();
   const [topups, billing] = await Promise.all([
     getTopups(session.email),
     getBilling(session.email),
@@ -131,9 +134,9 @@ export default async function BillingPage() {
         <div className="phead">
           <div>
             <div className="eyebrow">Billing</div>
-            <h1>账单与额度</h1>
+            <h1>{t('Billing & credits')}</h1>
             <div className="meta">
-              <span>{billing ? `${events.length} 笔余额变动` : `${topups.length} 笔充值记录`}</span>
+              <span>{billing ? t('{count} balance changes', { count: events.length }) : t('{count} top-up records', { count: topups.length })}</span>
               <span>provider · creem</span>
             </div>
           </div>
@@ -142,38 +145,38 @@ export default async function BillingPage() {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M12 5v14M5 12h14" />
               </svg>
-              充值额度
+              {t('Add credits')}
             </button>
           </div>
         </div>
 
         <div className="kpi-row" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
           <div className="kpi">
-            <div className="k">额度余额</div>
+            <div className="k">{t('Credit balance')}</div>
             <div className="v">
               {billing ? fmtMicro(billing.balance_microcents, currency) : fmtMoney(totalCents)}
             </div>
-            <div className="d up">{billing ? '可用余额' : '累计已购'}</div>
+            <div className="d up">{billing ? t('Available balance') : t('Total purchased')}</div>
           </div>
           <div className="kpi">
-            <div className="k">当前费率</div>
+            <div className="k">{t('Current rate')}</div>
             <div className="v">
               {billing ? fmtMicro(billing.hourly_rate_microcents, currency) : '—'}
-              <small> /小时</small>
+              <small> {t('/hr')}</small>
             </div>
-            <div className="d">按资源上限计</div>
+            <div className="d">{t('Based on resource cap')}</div>
           </div>
           <div className="kpi">
-            <div className="k">预计每月</div>
+            <div className="k">{t('Monthly estimate')}</div>
             <div className="v">
               {billing ? fmtMicro(billing.monthly_estimate_microcents, currency) : '—'}
             </div>
-            <div className="d">{billing ? `${billing.price_book.hours_per_month} 小时/月` : '—'}</div>
+            <div className="d">{billing ? t('{count} hr/month', { count: billing.price_book.hours_per_month }) : '—'}</div>
           </div>
           <div className="kpi">
-            <div className="k">可用时长</div>
-            <div className="v">{billing ? fmtRunway(billing.runway_hours) : '—'}</div>
-            <div className="d">{pendingCount > 0 ? `${pendingCount} 笔待支付` : '按当前费率'}</div>
+            <div className="k">{t('Runway')}</div>
+            <div className="v">{billing ? fmtRunway(billing.runway_hours, t) : '—'}</div>
+            <div className="d">{pendingCount > 0 ? t('{count} pending payment', { count: pendingCount }) : t('At current rate')}</div>
           </div>
         </div>
 
@@ -182,15 +185,15 @@ export default async function BillingPage() {
         {billing && (
           <div className="panel">
             <div className="panel-h">
-              <h3>计费标准</h3>
+              <h3>{t('Pricing')}</h3>
               <div className="tail eyebrow">price book · {currency}</div>
             </div>
             <table className="tbl">
               <thead>
                 <tr>
-                  <th>资源</th>
-                  <th>费率</th>
-                  <th>单位</th>
+                  <th>{t('Resource')}</th>
+                  <th>{t('Rate')}</th>
+                  <th>{t('Unit')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -202,24 +205,24 @@ export default async function BillingPage() {
                       currency,
                     )}
                   </td>
-                  <td className="faint">每核 · 每小时</td>
+                  <td className="faint">{t('per core · per hour')}</td>
                 </tr>
                 <tr>
-                  <td>内存</td>
+                  <td>{t('Memory')}</td>
                   <td>
                     {fmtMicro(
                       billing.price_book.memory_microcents_per_mib_hour * 1024,
                       currency,
                     )}
                   </td>
-                  <td className="faint">每 GiB · 每小时</td>
+                  <td className="faint">{t('per GiB · per hour')}</td>
                 </tr>
                 <tr>
-                  <td>存储</td>
+                  <td>{t('Storage')}</td>
                   <td>
                     {fmtMicro(billing.price_book.storage_microcents_per_gib_hour, currency)}
                   </td>
-                  <td className="faint">每 GiB · 每小时</td>
+                  <td className="faint">{t('per GiB · per hour')}</td>
                 </tr>
               </tbody>
             </table>
@@ -229,17 +232,17 @@ export default async function BillingPage() {
         {billing ? (
           <div className="panel">
             <div className="panel-h">
-              <h3>余额变动</h3>
-              <div className="tail eyebrow">{events.length} total · 含管理员调整</div>
+              <h3>{t('Balance changes')}</h3>
+              <div className="tail eyebrow">{t('{count} total · includes admin adjustments', { count: events.length })}</div>
             </div>
             <table className="tbl">
               <thead>
                 <tr>
-                  <th>类型</th>
-                  <th>金额</th>
-                  <th>变动后余额</th>
-                  <th>说明</th>
-                  <th>时间</th>
+                  <th>{t('Type')}</th>
+                  <th>{t('Amount')}</th>
+                  <th>{t('Balance after')}</th>
+                  <th>{t('Details')}</th>
+                  <th>{t('Time')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -247,7 +250,7 @@ export default async function BillingPage() {
                   <tr key={e.id}>
                     <td>
                       <span className={`chip ${eventChip[e.type] || 'idle'}`}>
-                        {eventLabel[e.type] || e.type}
+                        {eventLabel[e.type] ? t(eventLabel[e.type]) : e.type}
                       </span>
                     </td>
                     <td>
@@ -256,7 +259,7 @@ export default async function BillingPage() {
                         : `${e.amount_microcents > 0 ? '+' : ''}${fmtMicro(e.amount_microcents, currency)}`}
                     </td>
                     <td>{fmtMicro(e.balance_after_microcents, currency)}</td>
-                    <td className="faint">{eventDetail(e.metadata) || '—'}</td>
+                    <td className="faint">{eventDetail(e.metadata, t) || '—'}</td>
                     <td className="faint">
                       {e.created_at
                         ? new Date(e.created_at).toLocaleString('zh-CN', {
@@ -272,39 +275,39 @@ export default async function BillingPage() {
                 ))}
               </tbody>
             </table>
-            {events.length === 0 && <div className="empty">暂无余额变动</div>}
+            {events.length === 0 && <div className="empty">{t('No balance changes')}</div>}
           </div>
         ) : (
           <div className="panel">
             <div className="panel-h">
-              <h3>充值记录</h3>
+              <h3>{t('Top-up history')}</h3>
               <div className="tail eyebrow">{topups.length} total</div>
             </div>
             <table className="tbl">
               <thead>
                 <tr>
-                  <th>请求 ID</th>
-                  <th>账户</th>
-                  <th>额度</th>
-                  <th>金额</th>
-                  <th>状态</th>
-                  <th>时间</th>
+                  <th>{t('Request ID')}</th>
+                  <th>{t('Account')}</th>
+                  <th>{t('Credits')}</th>
+                  <th>{t('Amount')}</th>
+                  <th>{t('Status')}</th>
+                  <th>{t('Time')}</th>
                 </tr>
               </thead>
               <tbody>
-                {topups.map((t) => (
-                  <tr key={t.request_id}>
-                    <td>{t.request_id}</td>
-                    <td>{t.user_email}</td>
-                    <td>{t.units} units</td>
-                    <td>{fmtMoney(t.amount_cents, t.currency || 'USD')}</td>
+                {topups.map((tp) => (
+                  <tr key={tp.request_id}>
+                    <td>{tp.request_id}</td>
+                    <td>{tp.user_email}</td>
+                    <td>{tp.units} units</td>
+                    <td>{fmtMoney(tp.amount_cents, tp.currency || 'USD')}</td>
                     <td>
-                      <span className={`chip ${statusChip[t.status] || 'idle'}`}>
-                        {statusLabel[t.status] || t.status}
+                      <span className={`chip ${statusChip[tp.status] || 'idle'}`}>
+                        {statusLabel[tp.status] ? t(statusLabel[tp.status]) : tp.status}
                       </span>
                     </td>
                     <td className="faint">
-                      {new Date(t.created_at).toLocaleString('zh-CN', {
+                      {new Date(tp.created_at).toLocaleString('zh-CN', {
                         month: '2-digit',
                         day: '2-digit',
                         hour: '2-digit',
@@ -315,7 +318,7 @@ export default async function BillingPage() {
                 ))}
               </tbody>
             </table>
-            {topups.length === 0 && <div className="empty">暂无充值记录</div>}
+            {topups.length === 0 && <div className="empty">{t('No top-up records')}</div>}
           </div>
         )}
       </div>

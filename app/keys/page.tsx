@@ -2,6 +2,8 @@ import { queryDb } from '@/lib/db/pool';
 import AppLayout from '@/components/AppLayout';
 import { ApiKey } from '@/lib/types';
 import { requireActivePageSession } from '@/lib/auth/page-access';
+import { getRequestI18n } from '@/lib/i18n/server';
+import type { TranslateFn } from '@/lib/i18n/translate';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,32 +29,47 @@ const statusChip: Record<string, string> = {
   deleted: 'err',
 };
 
-const statusLabel: Record<string, string> = {
-  active: '启用',
-  disabled: '已停用',
-  deleted: '已删除',
-};
+function statusLabel(t: TranslateFn, status: string): string {
+  switch (status) {
+    case 'active':
+      return t('Enabled');
+    case 'disabled':
+      return t('Disabled');
+    case 'deleted':
+      return t('Deleted');
+    default:
+      return status;
+  }
+}
 
-const sourceLabel: Record<string, string> = {
-  'workspace-admin': '工作空间管理',
-  managed: '托管',
-  external: '外部',
-};
+function sourceLabel(t: TranslateFn, source: string): string {
+  switch (source) {
+    case 'workspace-admin':
+      return t('Workspace admin');
+    case 'managed':
+      return t('Managed');
+    case 'external':
+      return t('External');
+    default:
+      return source;
+  }
+}
 
-function relTime(d: Date | null): string {
-  if (!d) return '从未使用';
+function relTime(t: TranslateFn, d: Date | null): string {
+  if (!d) return t('Never used');
   const diff = Date.now() - new Date(d).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return '刚刚';
-  if (mins < 60) return `${mins} 分钟前`;
+  if (mins < 1) return t('Just now');
+  if (mins < 60) return t('{count}m ago', { count: mins });
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs} 小时前`;
+  if (hrs < 24) return t('{count}h ago', { count: hrs });
   const days = Math.floor(hrs / 24);
-  return `${days} 天前`;
+  return t('{count}d ago', { count: days });
 }
 
 export default async function KeysPage() {
   const { session } = await requireActivePageSession();
+  const { t } = await getRequestI18n();
   const keys = await getKeys(session.email);
   const activeCount = keys.filter((k) => k.status === 'active').length;
 
@@ -62,12 +79,13 @@ export default async function KeysPage() {
         <div className="phead">
           <div>
             <div className="eyebrow">Access Keys</div>
-            <h1>访问密钥</h1>
+            <h1>{t("Access keys")}</h1>
             <div className="meta">
               <span>
-                <span className="dot ok"></span> {activeCount} 个启用
+                <span className="dot ok"></span>{' '}
+                {t("{count} enabled", { count: activeCount })}
               </span>
-              <span>{keys.length} 个密钥</span>
+              <span>{t("{count} keys", { count: keys.length })}</span>
             </div>
           </div>
           <div className="actions">
@@ -75,18 +93,18 @@ export default async function KeysPage() {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M12 5v14M5 12h14" />
               </svg>
-              新建密钥
+              {t("New key")}
             </button>
           </div>
         </div>
 
         <div className="panel">
           <div className="panel-h">
-            <h3>API 密钥</h3>
-            <div className="tail eyebrow">{keys.length} total</div>
+            <h3>{t("API keys")}</h3>
+            <div className="tail eyebrow">{t("{count} total", { count: keys.length })}</div>
           </div>
           <div className="list">
-            {keys.length === 0 && <div className="empty">暂无密钥</div>}
+            {keys.length === 0 && <div className="empty">{t("No keys yet")}</div>}
             {keys.map((k) => (
               <div key={k.fugue_key_id} className="row-item">
                 <span
@@ -103,8 +121,8 @@ export default async function KeysPage() {
                     {k.prefix ? `${k.prefix}••••••••` : k.fugue_key_id}
                   </div>
                   <div className="sub">
-                    {k.user_email} · {sourceLabel[k.source] || k.source} ·{' '}
-                    {relTime(k.last_used_at)}
+                    {k.user_email} · {sourceLabel(t, k.source)} ·{' '}
+                    {relTime(t, k.last_used_at)}
                   </div>
                   {k.scopes && k.scopes.length > 0 && (
                     <div className="scopes">
@@ -118,7 +136,7 @@ export default async function KeysPage() {
                 </div>
                 <div className="stats">
                   <span className={`chip ${statusChip[k.status] || 'idle'}`}>
-                    {statusLabel[k.status] || k.status}
+                    {statusLabel(t, k.status)}
                   </span>
                 </div>
               </div>

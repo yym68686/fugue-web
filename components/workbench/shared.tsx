@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { useT } from "@/lib/i18n/client";
+
 /* ---- console API client (browser → /api/console/*) ---- */
 
 export type ApiResult<T> = { ok: true; result: T } | { ok: false; error: string };
@@ -19,7 +21,7 @@ export async function callConsole<T = unknown>(
   const text = await res.text();
   const data = text ? (JSON.parse(text) as ApiResult<T> & { error?: string }) : null;
   if (!res.ok) {
-    throw new Error(data?.error || `请求失败 (${res.status})`);
+    throw new Error(data?.error || `Request failed (${res.status})`);
   }
   return (data as { result: T }).result;
 }
@@ -38,6 +40,7 @@ export type EndpointState<T> = {
  * called. Cancels in-flight requests and rejects stale responses.
  */
 export function useEndpointData<T>(url: string | null): EndpointState<T> {
+  const t = useT();
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(Boolean(url));
@@ -60,14 +63,14 @@ export function useEndpointData<T>(url: string | null): EndpointState<T> {
       .then(async (res) => {
         const text = await res.text();
         const body = text ? JSON.parse(text) : null;
-        if (!res.ok) throw new Error(body?.error || `加载失败 (${res.status})`);
+        if (!res.ok) throw new Error(body?.error || t("Failed to load ({status})", { status: res.status }));
         if (id !== reqId.current) return;
         setData((body?.result ?? body) as T);
         setLoading(false);
       })
       .catch((err: unknown) => {
         if (ctrl.signal.aborted || id !== reqId.current) return;
-        setError(err instanceof Error ? err.message : "加载失败");
+        setError(err instanceof Error ? err.message : t("Failed to load."));
         setLoading(false);
       });
 
@@ -81,13 +84,14 @@ export function useEndpointData<T>(url: string | null): EndpointState<T> {
 /* ---- refresh button ---- */
 
 export function RefreshButton({ onClick }: { onClick: () => void }) {
+  const t = useT();
   return (
     <button type="button" className="btn ghost" onClick={onClick}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M23 4v6h-6M1 20v-6h6" />
         <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
       </svg>
-      刷新
+      {t("Refresh")}
     </button>
   );
 }
@@ -107,6 +111,7 @@ export function ActionButton({
   confirm?: string;
   onDone?: () => void;
 }) {
+  const t = useT();
   const [busy, setBusy] = useState(false);
 
   async function run() {
@@ -117,7 +122,7 @@ export function ActionButton({
       await onAction();
       onDone?.();
     } catch (err) {
-      window.alert(err instanceof Error ? err.message : "操作失败");
+      window.alert(err instanceof Error ? err.message : t("Action failed."));
     } finally {
       setBusy(false);
     }
@@ -125,7 +130,7 @@ export function ActionButton({
 
   return (
     <button type="button" className={className} disabled={busy} onClick={run}>
-      {busy ? "处理中…" : children}
+      {busy ? t("Working…") : children}
     </button>
   );
 }
@@ -135,7 +140,7 @@ export function ActionButton({
 export function ConfirmDialog({
   title,
   body,
-  confirmLabel = "确认",
+  confirmLabel,
   danger = false,
   onConfirm,
   onCancel,
@@ -147,8 +152,10 @@ export function ConfirmDialog({
   onConfirm: () => Promise<void>;
   onCancel: () => void;
 }) {
+  const t = useT();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const resolvedConfirmLabel = confirmLabel ?? t("Confirm");
 
   async function confirm() {
     setBusy(true);
@@ -156,7 +163,7 @@ export function ConfirmDialog({
     try {
       await onConfirm();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "操作失败");
+      setError(err instanceof Error ? err.message : t("Action failed."));
       setBusy(false);
     }
   }
@@ -177,7 +184,7 @@ export function ConfirmDialog({
         </div>
         <div className="modal-f">
           <button type="button" className="btn ghost" onClick={onCancel} disabled={busy}>
-            取消
+            {t("Cancel")}
           </button>
           <button
             type="button"
@@ -185,7 +192,7 @@ export function ConfirmDialog({
             onClick={confirm}
             disabled={busy}
           >
-            {busy ? "处理中…" : confirmLabel}
+            {busy ? t("Working…") : resolvedConfirmLabel}
           </button>
         </div>
       </div>

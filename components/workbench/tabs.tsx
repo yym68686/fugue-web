@@ -14,6 +14,7 @@ import type {
   AppEnv,
 } from "@/lib/fugue/console";
 import { fmtBytes, fmtDate, fmtMillicores } from "@/lib/format";
+import { useT } from "@/lib/i18n/client";
 import {
   ActionButton,
   callConsole,
@@ -30,6 +31,7 @@ const APP = (id: string) => `/apps/${encodeURIComponent(id)}`;
 /* ============================ Route tab ============================ */
 
 export function RouteTab({ app }: { app: ConsoleAppDetail }) {
+  const t = useT();
   const router = useRouter();
   const route = app.route ?? {};
   const [hostname, setHostname] = useState(route.hostname ?? "");
@@ -45,11 +47,11 @@ export function RouteTab({ app }: { app: ConsoleAppDetail }) {
     <>
       <div className="panel">
         <div className="panel-h">
-          <h3>主路由</h3>
+          <h3>{t("Primary route")}</h3>
         </div>
         <div className="form">
           <div className="form-row">
-            <label>主机名</label>
+            <label>{t("Hostname")}</label>
             <input
               className="input mono"
               value={hostname}
@@ -58,7 +60,7 @@ export function RouteTab({ app }: { app: ConsoleAppDetail }) {
             />
           </div>
           <div className="form-row">
-            <label>路径前缀</label>
+            <label>{t("Path prefix")}</label>
             <input
               className="input mono"
               value={pathPrefix}
@@ -68,7 +70,7 @@ export function RouteTab({ app }: { app: ConsoleAppDetail }) {
           </div>
           {publicUrl && (
             <div className="form-row">
-              <label>当前地址</label>
+              <label>{t("Current address")}</label>
               <a href={publicUrl} target="_blank" rel="noreferrer" className="mono">
                 {publicUrl.replace(/^https?:\/\//, "")}
               </a>
@@ -86,14 +88,14 @@ export function RouteTab({ app }: { app: ConsoleAppDetail }) {
             }
             onDone={() => router.refresh()}
           >
-            保存路由
+            {t("Save route")}
           </ActionButton>
         </div>
       </div>
 
       <div className="panel">
         <div className="panel-h">
-          <h3>自定义域名</h3>
+          <h3>{t("Custom domains")}</h3>
           <div className="tail">
             <RefreshButton onClick={domains.refresh} />
           </div>
@@ -103,13 +105,13 @@ export function RouteTab({ app }: { app: ConsoleAppDetail }) {
         {!domains.loading && !domains.error && (
           <>
             {(domains.data?.length ?? 0) === 0 ? (
-              <EmptyState message="还没有自定义域名" />
+              <EmptyState message={t("No custom domains yet")} />
             ) : (
               <table className="tbl">
                 <thead>
                   <tr>
-                    <th>主机名</th>
-                    <th>状态</th>
+                    <th>{t("Hostname")}</th>
+                    <th>{t("Status")}</th>
                     <th>TLS</th>
                     <th></th>
                   </tr>
@@ -120,7 +122,7 @@ export function RouteTab({ app }: { app: ConsoleAppDetail }) {
                       <td className="mono">{d.hostname}</td>
                       <td>
                         <span className={`chip ${d.verified_at ? "ok" : "warn"}`}>
-                          {d.verified_at ? "已验证" : "待验证"}
+                          {d.verified_at ? t("Verified") : t("Pending verification")}
                         </span>
                       </td>
                       <td>
@@ -139,12 +141,12 @@ export function RouteTab({ app }: { app: ConsoleAppDetail }) {
                             }
                             onDone={domains.refresh}
                           >
-                            验证
+                            {t("Verify")}
                           </ActionButton>
                         )}{" "}
                         <ActionButton
                           className="btn danger"
-                          confirm={`确认删除域名 ${d.hostname}?`}
+                          confirm={t("Delete domain {hostname}?", { hostname: d.hostname })}
                           onAction={() =>
                             callConsole(
                               `${APP(app.id)}/domains?hostname=${encodeURIComponent(d.hostname)}`,
@@ -153,7 +155,7 @@ export function RouteTab({ app }: { app: ConsoleAppDetail }) {
                           }
                           onDone={domains.refresh}
                         >
-                          删除
+                          {t("Delete")}
                         </ActionButton>
                       </td>
                     </tr>
@@ -172,7 +174,7 @@ export function RouteTab({ app }: { app: ConsoleAppDetail }) {
               <ActionButton
                 className="btn"
                 onAction={async () => {
-                  if (!newDomain.trim()) throw new Error("请输入域名");
+                  if (!newDomain.trim()) throw new Error(t("Please enter a domain"));
                   await callConsole(`${APP(app.id)}/domains`, {
                     body: { hostname: newDomain.trim() },
                   });
@@ -182,7 +184,7 @@ export function RouteTab({ app }: { app: ConsoleAppDetail }) {
                   domains.refresh();
                 }}
               >
-                添加域名
+                {t("Add domain")}
               </ActionButton>
             </div>
           </>
@@ -197,6 +199,7 @@ export function RouteTab({ app }: { app: ConsoleAppDetail }) {
 type EnvRow = { id: number; key: string; value: string };
 
 export function EnvTab({ app }: { app: ConsoleAppDetail }) {
+  const t = useT();
   const url = `/api/console/apps/${encodeURIComponent(app.id)}/env`;
   const state = useEndpointData<AppEnv>(url);
   const [rows, setRows] = useState<EnvRow[] | null>(null);
@@ -244,7 +247,7 @@ export function EnvTab({ app }: { app: ConsoleAppDetail }) {
   return (
     <div className="panel">
       <div className="panel-h">
-        <h3>环境变量</h3>
+        <h3>{t("Environment variables")}</h3>
         <div className="tail">
           <RefreshButton
             onClick={() => {
@@ -254,9 +257,9 @@ export function EnvTab({ app }: { app: ConsoleAppDetail }) {
           />
         </div>
       </div>
-      {saved && <div className="wb-alert ok">环境变量已保存,将在下次部署生效。</div>}
+      {saved && <div className="wb-alert ok">{t("Environment variables saved. They take effect on the next deploy.")}</div>}
       <div className="kvedit">
-        {current.length === 0 && <EmptyState message="没有环境变量" />}
+        {current.length === 0 && <EmptyState message={t("No environment variables")} />}
         {current.map((r) => (
           <div className="kvedit-row" key={r.id}>
             <input
@@ -274,7 +277,7 @@ export function EnvTab({ app }: { app: ConsoleAppDetail }) {
             <button
               type="button"
               className="icon-btn"
-              aria-label="删除"
+              aria-label={t("Delete")}
               onClick={() => remove(r.id)}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -286,11 +289,11 @@ export function EnvTab({ app }: { app: ConsoleAppDetail }) {
       </div>
       <div className="form-foot">
         <button type="button" className="btn ghost" onClick={add}>
-          + 添加变量
+          {t("+ Add variable")}
         </button>
         <div className="toolbar-sp" />
         <ActionButton className="btn primary" onAction={save} onDone={() => setSaved(true)}>
-          保存
+          {t("Save")}
         </ActionButton>
       </div>
     </div>
@@ -300,6 +303,7 @@ export function EnvTab({ app }: { app: ConsoleAppDetail }) {
 /* ============================ Logs tab ============================= */
 
 export function LogsTab({ app }: { app: ConsoleAppDetail }) {
+  const t = useT();
   const [mode, setMode] = useState<"runtime" | "build">("runtime");
   const base = `/api/console/apps/${encodeURIComponent(app.id)}`;
   const runtime = useEndpointData<RuntimeLogs>(
@@ -312,20 +316,20 @@ export function LogsTab({ app }: { app: ConsoleAppDetail }) {
   return (
     <div className="panel">
       <div className="panel-h">
-        <h3>日志</h3>
+        <h3>{t("Logs")}</h3>
         <div className="tail" style={{ gap: 8 }}>
           <div className="tabs" style={{ margin: 0 }}>
             <button
               className={`tab ${mode === "runtime" ? "active" : ""}`}
               onClick={() => setMode("runtime")}
             >
-              运行时
+              {t("Runtime")}
             </button>
             <button
               className={`tab ${mode === "build" ? "active" : ""}`}
               onClick={() => setMode("build")}
             >
-              构建
+              {t("Build")}
             </button>
           </div>
           <RefreshButton onClick={active.refresh} />
@@ -335,7 +339,7 @@ export function LogsTab({ app }: { app: ConsoleAppDetail }) {
       {active.error && <TabError message={active.error} />}
       {!active.loading && !active.error && (
         <div style={{ padding: 14 }}>
-          {logs ? <pre className="logbox">{logs}</pre> : <EmptyState message="暂无日志" />}
+          {logs ? <pre className="logbox">{logs}</pre> : <EmptyState message={t("No logs yet")} />}
         </div>
       )}
     </div>
@@ -345,13 +349,14 @@ export function LogsTab({ app }: { app: ConsoleAppDetail }) {
 /* ============================ Files tab ============================ */
 
 export function FilesTab({ app }: { app: ConsoleAppDetail }) {
+  const t = useT();
   const base = `/api/console/apps/${encodeURIComponent(app.id)}`;
   const tree = useEndpointData<FilesystemTree>(`${base}/filesystem/tree`);
 
   return (
     <div className="panel">
       <div className="panel-h">
-        <h3>文件</h3>
+        <h3>{t("Files")}</h3>
         <div className="tail">
           <RefreshButton onClick={tree.refresh} />
         </div>
@@ -366,27 +371,27 @@ export function FilesTab({ app }: { app: ConsoleAppDetail }) {
                 Pod <b>{tree.data.pod || "—"}</b>
               </span>
               <span>
-                根目录 <b>{tree.data.workspace_root || "/"}</b>
+                {t("Root")} <b>{tree.data.workspace_root || "/"}</b>
               </span>
             </div>
           )}
           {(tree.data?.entries.length ?? 0) === 0 ? (
-            <EmptyState message="没有文件" />
+            <EmptyState message={t("No files")} />
           ) : (
             <table className="tbl">
               <thead>
                 <tr>
-                  <th>路径</th>
-                  <th>类型</th>
-                  <th>大小</th>
-                  <th>修改于</th>
+                  <th>{t("Path")}</th>
+                  <th>{t("Type")}</th>
+                  <th>{t("Size")}</th>
+                  <th>{t("Modified")}</th>
                 </tr>
               </thead>
               <tbody>
                 {tree.data!.entries.map((e) => (
                   <tr key={e.path}>
                     <td className="mono">{e.path}</td>
-                    <td>{e.kind === "directory" ? "目录" : "文件"}</td>
+                    <td>{e.kind === "directory" ? t("Directory") : t("File")}</td>
                     <td>{e.kind === "directory" ? "—" : fmtBytes(e.size ?? 0)}</td>
                     <td>{fmtDate(e.modified_at)}</td>
                   </tr>
@@ -403,13 +408,14 @@ export function FilesTab({ app }: { app: ConsoleAppDetail }) {
 /* =========================== Images tab =========================== */
 
 export function ImagesTab({ app }: { app: ConsoleAppDetail }) {
+  const t = useT();
   const base = `/api/console/apps/${encodeURIComponent(app.id)}`;
   const inv = useEndpointData<ImageInventory>(`${base}/images`);
 
   return (
     <div className="panel">
       <div className="panel-h">
-        <h3>镜像</h3>
+        <h3>{t("Images")}</h3>
         <div className="tail">
           <RefreshButton onClick={inv.refresh} />
         </div>
@@ -419,15 +425,15 @@ export function ImagesTab({ app }: { app: ConsoleAppDetail }) {
       {!inv.loading && !inv.error && (
         <>
           {(inv.data?.versions.length ?? 0) === 0 ? (
-            <EmptyState message="没有镜像版本" />
+            <EmptyState message={t("No image versions")} />
           ) : (
             <table className="tbl">
               <thead>
                 <tr>
-                  <th>镜像</th>
-                  <th>大小</th>
-                  <th>状态</th>
-                  <th>部署于</th>
+                  <th>{t("Image")}</th>
+                  <th>{t("Size")}</th>
+                  <th>{t("Status")}</th>
+                  <th>{t("Deployed")}</th>
                   <th></th>
                 </tr>
               </thead>
@@ -438,9 +444,9 @@ export function ImagesTab({ app }: { app: ConsoleAppDetail }) {
                     <td>{fmtBytes(v.size_bytes ?? 0)}</td>
                     <td>
                       {v.current ? (
-                        <span className="chip ok">当前</span>
+                        <span className="chip ok">{t("Current")}</span>
                       ) : (
-                        <span className="chip idle">{v.status || "已保存"}</span>
+                        <span className="chip idle">{v.status || t("Saved")}</span>
                       )}
                     </td>
                     <td>{fmtDate(v.last_deployed_at)}</td>
@@ -448,7 +454,7 @@ export function ImagesTab({ app }: { app: ConsoleAppDetail }) {
                       {!v.current && v.redeploy_supported && (
                         <ActionButton
                           className="btn ghost"
-                          confirm={`确认重新部署该镜像?`}
+                          confirm={t("Redeploy this image?")}
                           onAction={() =>
                             callConsole(`${APP(app.id)}/images/redeploy`, {
                               body: { image_ref: v.image_ref },
@@ -456,13 +462,13 @@ export function ImagesTab({ app }: { app: ConsoleAppDetail }) {
                           }
                           onDone={inv.refresh}
                         >
-                          重部署
+                          {t("Redeploy")}
                         </ActionButton>
                       )}{" "}
                       {!v.current && v.delete_supported && (
                         <ActionButton
                           className="btn danger"
-                          confirm={`确认删除该镜像版本?此操作不可撤销。`}
+                          confirm={t("Delete this image version? This cannot be undone.")}
                           onAction={() =>
                             callConsole(`${APP(app.id)}/images/delete`, {
                               body: { image_ref: v.image_ref },
@@ -470,7 +476,7 @@ export function ImagesTab({ app }: { app: ConsoleAppDetail }) {
                           }
                           onDone={inv.refresh}
                         >
-                          删除
+                          {t("Delete")}
                         </ActionButton>
                       )}
                     </td>
@@ -488,12 +494,13 @@ export function ImagesTab({ app }: { app: ConsoleAppDetail }) {
 /* ======================= Observability tab ======================== */
 
 const WINDOWS = [
-  { label: "15 分钟", value: "15m" },
-  { label: "1 小时", value: "1h" },
-  { label: "24 小时", value: "24h" },
+  { label: "15 minutes", value: "15m" },
+  { label: "1 hour", value: "1h" },
+  { label: "24 hours", value: "24h" },
 ];
 
 export function ObservabilityTab({ app }: { app: ConsoleAppDetail }) {
+  const t = useT();
   const [since, setSince] = useState("1h");
   const base = `/api/console/apps/${encodeURIComponent(app.id)}`;
   const metrics = useEndpointData<ObservabilityMetricsSummary>(
@@ -514,7 +521,7 @@ export function ObservabilityTab({ app }: { app: ConsoleAppDetail }) {
               className={`tab ${since === w.value ? "active" : ""}`}
               onClick={() => setSince(w.value)}
             >
-              {w.label}
+              {t(w.label)}
             </button>
           ))}
         </div>
@@ -534,13 +541,13 @@ export function ObservabilityTab({ app }: { app: ConsoleAppDetail }) {
 
       <div className="panel">
         <div className="panel-h">
-          <h3>指标</h3>
+          <h3>{t("Metrics")}</h3>
         </div>
         {metrics.loading && <TabLoading />}
         {metrics.error && <TabError message={metrics.error} />}
         {!metrics.loading && !metrics.error && (
           (metrics.data?.metrics.length ?? 0) === 0 ? (
-            <EmptyState message="暂无指标" />
+            <EmptyState message={t("No metrics yet")} />
           ) : (
             <div className="kpi-row" style={{ margin: 14, gridTemplateColumns: "repeat(4,1fr)" }}>
               {metrics.data!.metrics.slice(0, 8).map((m) => (
@@ -559,20 +566,20 @@ export function ObservabilityTab({ app }: { app: ConsoleAppDetail }) {
 
       <div className="panel">
         <div className="panel-h">
-          <h3>请求</h3>
+          <h3>{t("Requests")}</h3>
         </div>
         {requests.loading && <TabLoading />}
         {requests.error && <TabError message={requests.error} />}
         {!requests.loading && !requests.error && (
           (requests.data?.requests.length ?? 0) === 0 ? (
-            <EmptyState message="暂无请求" />
+            <EmptyState message={t("No requests yet")} />
           ) : (
             <table className="tbl">
               <thead>
                 <tr>
-                  <th>请求</th>
-                  <th>状态</th>
-                  <th>耗时</th>
+                  <th>{t("Request")}</th>
+                  <th>{t("Status")}</th>
+                  <th>{t("Duration")}</th>
                   <th>Trace</th>
                 </tr>
               </thead>

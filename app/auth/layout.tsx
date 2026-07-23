@@ -1,8 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 
+import { I18nProvider } from "@/lib/i18n/client";
+import { getRequestI18n } from "@/lib/i18n/server";
+
 export const metadata: Metadata = {
-  title: "Fugue — 账号",
+  title: "Fugue — Account",
 };
 
 export const viewport: Viewport = {
@@ -10,6 +13,11 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function AuthLayout({ children }: { children: ReactNode }) {
-  return children;
+export default async function AuthLayout({ children }: { children: ReactNode }) {
+  const { locale, preference } = await getRequestI18n();
+  return (
+    <I18nProvider locale={locale} preference={preference}>
+      {children}
+    </I18nProvider>
+  );
 }

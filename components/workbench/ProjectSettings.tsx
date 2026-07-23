@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useT } from "@/lib/i18n/client";
 import { ActionButton, callConsole, ConfirmDialog } from "./shared";
 
 export default function ProjectSettings({
@@ -13,6 +14,7 @@ export default function ProjectSettings({
   name: string;
   description: string;
 }) {
+  const t = useT();
   const router = useRouter();
   const [nm, setNm] = useState(name);
   const [desc, setDesc] = useState(description);
@@ -23,11 +25,11 @@ export default function ProjectSettings({
     <>
       <div className="panel">
         <div className="panel-h">
-          <h3>基本信息</h3>
+          <h3>{t("Basic info")}</h3>
         </div>
         <div className="form">
           <div className="form-row">
-            <label>名称</label>
+            <label>{t("Name")}</label>
             <input
               className="input"
               value={nm}
@@ -35,12 +37,12 @@ export default function ProjectSettings({
             />
           </div>
           <div className="form-row">
-            <label>描述</label>
+            <label>{t("Description")}</label>
             <textarea
               className="textarea"
               value={desc}
               onChange={(e) => setDesc(e.target.value)}
-              placeholder="项目描述"
+              placeholder={t("Project description")}
             />
           </div>
         </div>
@@ -48,7 +50,7 @@ export default function ProjectSettings({
           <ActionButton
             className="btn primary"
             onAction={() => {
-              if (!nm.trim()) throw new Error("名称不能为空");
+              if (!nm.trim()) throw new Error(t("Name cannot be empty"));
               return callConsole(PROJECT, {
                 method: "PATCH",
                 body: { name: nm.trim(), description: desc },
@@ -56,34 +58,35 @@ export default function ProjectSettings({
             }}
             onDone={() => router.refresh()}
           >
-            保存
+            {t("Save")}
           </ActionButton>
         </div>
       </div>
 
       <div className="panel danger-zone">
         <div className="panel-h">
-          <h3>危险操作</h3>
+          <h3>{t("Danger zone")}</h3>
         </div>
         <div className="danger-row">
           <div className="danger-txt">
-            <div className="nm">删除项目</div>
-            <div className="sub">永久删除该项目及其所有服务,不可撤销。</div>
+            <div className="nm">{t("Delete project")}</div>
+            <div className="sub">{t("Permanently delete this project and all its services. This cannot be undone.")}</div>
           </div>
           <button type="button" className="btn danger" onClick={() => setConfirmDelete(true)}>
-            删除项目
+            {t("Delete project")}
           </button>
         </div>
       </div>
 
       {confirmDelete && (
         <ConfirmDialog
-          title="删除项目"
+          title={t("Delete project")}
           danger
-          confirmLabel="永久删除"
+          confirmLabel={t("Permanently delete")}
           body={
             <>
-              确认删除项目 <span className="mono">{nm}</span>?此操作不可撤销,将移除项目下所有服务与资源。
+              {t("Delete project")} <span className="mono">{nm}</span>
+              {t("? This action cannot be undone and will remove all services and resources under the project.")}
             </>
           }
           onCancel={() => setConfirmDelete(false)}

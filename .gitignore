@@ -42,3 +42,7 @@ next-env.d.ts
 
 # codex agent workspace (never commit)
 .codex/
+
+# claude code local workspace + agent scratch (never commit)
+.claude/
+plans/

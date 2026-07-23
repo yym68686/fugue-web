@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { BackingService, ConsoleAppDetail } from "@/lib/fugue/console";
 import { fmtBytes, fmtMillicores, fmtStorageUsage } from "@/lib/format";
+import { useT } from "@/lib/i18n/client";
 import ProjectSettings from "./ProjectSettings";
 import {
   EnvTab,
@@ -20,8 +21,8 @@ export type WorkbenchService =
   | { kind: "app"; id: string; name: string; app: ConsoleAppDetail; phase?: string }
   | { kind: "db"; id: string; name: string; svc: BackingService; phase?: string };
 
-const APP_TABS = ["路由", "环境变量", "日志", "文件", "镜像", "可观测性", "设置"] as const;
-const DB_TABS = ["概览", "故障转移", "设置"] as const;
+const APP_TABS = ["Route", "Environment variables", "Logs", "Files", "Images", "Observability", "Settings"] as const;
+const DB_TABS = ["Overview", "Failover", "Settings"] as const;
 
 const PROJECT_KEY = "__project__";
 
@@ -67,6 +68,7 @@ export default function ProjectWorkbench({
   initialServiceId?: string;
   initialTab?: string;
 }) {
+  const t = useT();
   const router = useRouter();
 
   // selectedId: null = overview grid; PROJECT_KEY = project settings; else a service id.
@@ -128,9 +130,9 @@ export default function ProjectWorkbench({
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M15 18l-6-6 6-6" />
             </svg>
-            返回
+            {t("Back")}
           </button>
-          <h2>项目设置</h2>
+          <h2>{t("Project settings")}</h2>
         </div>
         <ProjectSettings
           projectId={projectId}
@@ -150,23 +152,23 @@ export default function ProjectWorkbench({
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M15 18l-6-6 6-6" />
             </svg>
-            返回
+            {t("Back")}
           </button>
           <h2>{selected.name}</h2>
           <span className={`chip ${phaseTone(selected.phase)}`}>
             {selected.phase || (selected.kind === "db" ? "database" : "app")}
           </span>
-          <span className="kind">{selected.kind === "db" ? "数据库" : "应用"}</span>
+          <span className="kind">{selected.kind === "db" ? t("Database") : t("App")}</span>
         </div>
 
         <div className="tabs">
-          {tabs.map((t) => (
+          {tabs.map((t_) => (
             <button
-              key={t}
-              className={`tab ${t === tab ? "active" : ""}`}
-              onClick={() => setTab(t)}
+              key={t_}
+              className={`tab ${t_ === tab ? "active" : ""}`}
+              onClick={() => setTab(t_)}
             >
-              {t}
+              {t(t_)}
             </button>
           ))}
         </div>
@@ -181,7 +183,7 @@ export default function ProjectWorkbench({
   return (
     <div>
       <div className="wb-sec">
-        <span className="eyebrow">服务</span>
+        <span className="eyebrow">{t("Services")}</span>
         <span className="wb-sec-n">{services.length}</span>
         <button
           type="button"
@@ -192,12 +194,12 @@ export default function ProjectWorkbench({
             <circle cx="12" cy="12" r="3" />
             <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 008 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H2a2 2 0 010-4h.09A1.65 1.65 0 004.6 8a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V2a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H22a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
           </svg>
-          项目设置
+          {t("Project settings")}
         </button>
       </div>
 
       {services.length === 0 ? (
-        <div className="empty">该项目还没有服务</div>
+        <div className="empty">{t("This project has no services yet")}</div>
       ) : (
         <div className="svc-grid">
           {services.map((s) => (
@@ -216,13 +218,14 @@ function ServiceCard({
   svc: WorkbenchService;
   onOpen: (id: string, tab?: string) => void;
 }) {
+  const t = useT();
   const isDb = svc.kind === "db";
   const usage =
     svc.kind === "app" ? svc.app.current_resource_usage : svc.svc.current_resource_usage;
   const hasPersistentStorage =
     usage?.persistent_storage_used_bytes != null ||
     usage?.persistent_storage_capacity_bytes != null;
-  const storageLabel = hasPersistentStorage ? "持久盘" : "临时盘";
+  const storageLabel = hasPersistentStorage ? t("Persistent disk") : t("Ephemeral disk");
   const storageValue = !usage
     ? "—"
     : hasPersistentStorage
@@ -243,7 +246,7 @@ function ServiceCard({
         </div>
         <div className="svc-card-phase">
           <span className={`dot ${phaseTone(svc.phase)}`} />
-          {isDb ? "数据库" : "应用"}
+          {isDb ? t("Database") : t("App")}
           {svc.phase ? ` · ${svc.phase}` : ""}
         </div>
         <div className="svc-card-metrics">
@@ -252,7 +255,7 @@ function ServiceCard({
             <span className="v">{usage ? fmtMillicores(usage.cpu_millicores ?? 0) : "—"}</span>
           </div>
           <div className="svc-card-metric">
-            <span className="k">内存</span>
+            <span className="k">{t("Memory")}</span>
             <span className="v">{usage ? fmtBytes(usage.memory_bytes ?? 0) : "—"}</span>
           </div>
           <div className="svc-card-metric">
@@ -263,11 +266,11 @@ function ServiceCard({
       </button>
       <div className="svc-card-foot">
         <button type="button" className="btn primary" onClick={() => onOpen(svc.id)}>
-          管理
+          {t("Manage")}
         </button>
         {svc.kind === "app" && (
-          <button type="button" className="btn" onClick={() => onOpen(svc.id, "日志")}>
-            日志
+          <button type="button" className="btn" onClick={() => onOpen(svc.id, "Logs")}>
+            {t("Logs")}
           </button>
         )}
       </div>
@@ -277,19 +280,19 @@ function ServiceCard({
 
 function renderAppTab(tab: string, app: ConsoleAppDetail, onDeleted: () => void) {
   switch (tab) {
-    case "路由":
+    case "Route":
       return <RouteTab app={app} />;
-    case "环境变量":
+    case "Environment variables":
       return <EnvTab app={app} />;
-    case "日志":
+    case "Logs":
       return <LogsTab app={app} />;
-    case "文件":
+    case "Files":
       return <FilesTab app={app} />;
-    case "镜像":
+    case "Images":
       return <ImagesTab app={app} />;
-    case "可观测性":
+    case "Observability":
       return <ObservabilityTab app={app} />;
-    case "设置":
+    case "Settings":
       return <SettingsTab app={app} onDeleted={onDeleted} />;
     default:
       return null;
@@ -298,11 +301,11 @@ function renderAppTab(tab: string, app: ConsoleAppDetail, onDeleted: () => void)
 
 function renderDbTab(tab: string, svc: BackingService) {
   switch (tab) {
-    case "概览":
+    case "Overview":
       return <DbOverviewTab svc={svc} />;
-    case "故障转移":
+    case "Failover":
       return <DbFailoverTab svc={svc} />;
-    case "设置":
+    case "Settings":
       return <DbOverviewTab svc={svc} />;
     default:
       return null;

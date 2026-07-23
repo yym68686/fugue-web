@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { callConsole } from "@/components/workbench/shared";
 import type { BillingSummary } from "@/lib/fugue/console";
+import { useT } from "@/lib/i18n/client";
 
 const MICRO_CENTS_PER_DOLLAR = 100_000_000;
 
@@ -32,6 +33,7 @@ function hourlyRate(
 }
 
 export function BillingCapEditor({ initial }: { initial: BillingSummary }) {
+  const t = useT();
   const [summary, setSummary] = useState<BillingSummary>(initial);
   // Whether the tenant's cap tracks storage at all — if the backend never
   // reported a storage cap, we leave storage out of the PATCH entirely.
@@ -89,7 +91,7 @@ export function BillingCapEditor({ initial }: { initial: BillingSummary }) {
       setDirty(false);
       setSaved(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "保存失败");
+      setError(err instanceof Error ? err.message : t("Save failed"));
     } finally {
       setSaving(false);
     }
@@ -98,8 +100,8 @@ export function BillingCapEditor({ initial }: { initial: BillingSummary }) {
   return (
     <div className="panel">
       <div className="panel-h">
-        <h3>资源上限</h3>
-        <div className="tail eyebrow">按小时计费</div>
+        <h3>{t("Resource caps")}</h3>
+        <div className="tail eyebrow">{t("Billed hourly")}</div>
       </div>
       <form
         className="form"
@@ -109,7 +111,7 @@ export function BillingCapEditor({ initial }: { initial: BillingSummary }) {
         }}
       >
         <div className="form-row">
-          <label htmlFor="cap-cpu">CPU（核）</label>
+          <label htmlFor="cap-cpu">{t("CPU (cores)")}</label>
           <input
             id="cap-cpu"
             className="input mono"
@@ -122,7 +124,7 @@ export function BillingCapEditor({ initial }: { initial: BillingSummary }) {
           />
         </div>
         <div className="form-row">
-          <label htmlFor="cap-memory">内存（GiB）</label>
+          <label htmlFor="cap-memory">{t("Memory (GiB)")}</label>
           <input
             id="cap-memory"
             className="input mono"
@@ -136,7 +138,7 @@ export function BillingCapEditor({ initial }: { initial: BillingSummary }) {
         </div>
         {hasStorageCap && (
           <div className="form-row">
-            <label htmlFor="cap-storage">存储（GiB）</label>
+            <label htmlFor="cap-storage">{t("Storage (GiB)")}</label>
             <input
               id="cap-storage"
               className="input mono"
@@ -150,9 +152,11 @@ export function BillingCapEditor({ initial }: { initial: BillingSummary }) {
           </div>
         )}
         <div className="wb-alert ok" style={{ marginBottom: 0 }}>
-          按当前上限，预计 {fmtMoney(estimate.hourly, currency)}/小时 ·{" "}
-          {fmtMoney(estimate.monthly, currency)}/月（{book.hours_per_month} 小时/月）。
-          实际扣费按上限从额度余额中逐小时累计。
+          {t("At the current caps, an estimated {hourly}/hr · {monthly}/month ({hours} hr/month). Actual charges accrue hourly from your credit balance based on the caps.", {
+            hourly: fmtMoney(estimate.hourly, currency),
+            monthly: fmtMoney(estimate.monthly, currency),
+            hours: book.hours_per_month,
+          })}
         </div>
         {error && (
           <div className="wb-alert err" style={{ marginBottom: 0 }}>
@@ -160,11 +164,11 @@ export function BillingCapEditor({ initial }: { initial: BillingSummary }) {
           </div>
         )}
         {saved && !dirty && !error && (
-          <div className="form-hint">已保存。</div>
+          <div className="form-hint">{t("Saved.")}</div>
         )}
         <div className="form-foot" style={{ padding: 0, border: "none" }}>
           <button type="submit" className="btn primary" disabled={saving || !dirty}>
-            {saving ? "保存中…" : "保存上限"}
+            {saving ? t("Saving…") : t("Save caps")}
           </button>
         </div>
       </form>

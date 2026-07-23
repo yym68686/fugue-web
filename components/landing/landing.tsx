@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import { getRequestI18n } from "@/lib/i18n/server";
+
 function BrandMark() {
   return (
     <svg width="24" height="24" viewBox="0 0 26 26" fill="none" aria-hidden="true">
@@ -28,7 +30,8 @@ function Feature({
   );
 }
 
-export default function Landing() {
+export default async function Landing() {
+  const { t } = await getRequestI18n();
   return (
     <div className="lp">
       <header className="lp-top">
@@ -38,10 +41,10 @@ export default function Landing() {
           <span className="lp-badge">CLOUD</span>
         </a>
         <nav className="lp-nav">
-          <a href="#how">工作原理</a>
-          <a href="#features">能力</a>
+          <a href="#how">{t("How it works")}</a>
+          <a href="#features">{t("Capabilities")}</a>
           <a className="lp-nav-cta" href="/auth/sign-in">
-            登录
+            {t("Sign in")}
           </a>
         </nav>
       </header>
@@ -51,24 +54,25 @@ export default function Landing() {
           <div className="lp-hero-copy">
             <div className="lp-eyebrow">Multi-tenant PaaS · on k3s</div>
             <h1>
-              把代码交给 Fugue，
+              {t("Hand your code to Fugue,")}
               <br />
-              专注你的<span className="lp-hl">产品</span>。
+              {t("focus on your ")}<span className="lp-hl">{t("product")}</span>{t(".")}
             </h1>
             <p className="lp-lede">
-              连接 GitHub 仓库即可自动构建与部署。内建多租户隔离、密钥管理、
-              实时用量与集群可观测——像指挥一部赋格，每个服务都是一条独立声部。
+              {t(
+                "Connect a GitHub repository to build and deploy automatically. Built-in multi-tenant isolation, secret management, real-time usage and cluster observability — like conducting a fugue, every service is its own voice.",
+              )}
             </p>
             <div className="lp-cta">
               <a className="btn primary block" href="/auth/sign-up">
-                免费开始
+                {t("Get started free")}
               </a>
               <a className="btn block" href="/auth/sign-in">
-                我已有账号
+                {t("I already have an account")}
               </a>
             </div>
             <div className="lp-trust">
-              <span className="dot ok"></span> Google / GitHub 一键登录，或邮箱注册
+              <span className="dot ok"></span> {t("One-click sign-in with Google / GitHub, or sign up with email")}
             </div>
           </div>
 
@@ -117,46 +121,46 @@ export default function Landing() {
           <div className="lp-step">
             <span className="lp-step-n">01</span>
             <div>
-              <h4>连接仓库</h4>
-              <p>授权 GitHub，选中一个仓库。Fugue 读取分支并准备构建。</p>
+              <h4>{t("Connect a repository")}</h4>
+              <p>{t("Authorize GitHub and pick a repository. Fugue reads the branch and prepares the build.")}</p>
             </div>
           </div>
           <div className="lp-step">
             <span className="lp-step-n">02</span>
             <div>
-              <h4>自动构建</h4>
-              <p>推送即触发。Dockerfile 或 buildpack 自动识别，产出镜像。</p>
+              <h4>{t("Automatic builds")}</h4>
+              <p>{t("Every push triggers a build. Dockerfile or buildpack is detected automatically to produce an image.")}</p>
             </div>
           </div>
           <div className="lp-step">
             <span className="lp-step-n">03</span>
             <div>
-              <h4>滚动上线</h4>
-              <p>多副本滚动发布，健康检查通过才切流量，失败自动回滚。</p>
+              <h4>{t("Rolling releases")}</h4>
+              <p>{t("Multi-replica rolling releases shift traffic only after health checks pass, with automatic rollback on failure.")}</p>
             </div>
           </div>
         </section>
 
         <section className="lp-features" id="features">
-          <Feature code="TENANT" title="完整多租户隔离">
-            每个工作空间独立租户、独立密钥、独立用量边界，互不可见。
+          <Feature code="TENANT" title={t("Full multi-tenant isolation")}>
+            {t("Every workspace has its own tenant, secrets, and usage boundaries, invisible to one another.")}
           </Feature>
-          <Feature code="DEPLOY" title="从 GitHub 到生产">
-            github-sync 自动导入，Dockerfile 构建策略，副本滚动发布到你的域名。
+          <Feature code="DEPLOY" title={t("From GitHub to production")}>
+            {t("github-sync imports automatically, Dockerfile build strategy, replicas roll out to your domain.")}
           </Feature>
-          <Feature code="KEYS" title="密钥与节点管理">
-            API 密钥按 scope 授权，节点密钥纳管集群，密钥全程封存加密。
+          <Feature code="KEYS" title={t("Key and node management")}>
+            {t("API keys are authorized by scope, node keys manage the cluster, and secrets stay sealed and encrypted throughout.")}
           </Feature>
-          <Feature code="OBSERV" title="实时用量与账单">
-            集群健康、服务概览、审计事件与充值账单，一屏尽览。
+          <Feature code="OBSERV" title={t("Real-time usage and billing")}>
+            {t("Cluster health, service overview, audit events, and top-up billing, all on one screen.")}
           </Feature>
         </section>
 
         <section className="lp-final">
-          <h2>准备好部署了吗？</h2>
-          <p>几分钟内从空白到线上服务。</p>
+          <h2>{t("Ready to deploy?")}</h2>
+          <p>{t("From blank to a live service in minutes.")}</p>
           <a className="btn primary" href="/auth/sign-up">
-            创建账号
+            {t("Create account")}
           </a>
         </section>
       </main>

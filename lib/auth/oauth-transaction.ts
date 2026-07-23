@@ -185,6 +185,18 @@ export function readOAuthStateTransactionIdForCleanup(
   return readSignedOAuthState(stateToken)?.transactionId ?? null;
 }
 
+/**
+ * Peeks the declared flow from a valid signed OAuth state. Providers with a
+ * single fixed redirect_uri (e.g. Google) share one callback route across both
+ * sign-in and account-link flows; the callback uses this to branch before
+ * consuming the transaction against the matching expected flow.
+ */
+export function readOAuthStateFlow(
+  stateToken: string | null | undefined,
+): OAuthFlow | null {
+  return readSignedOAuthState(stateToken)?.flow ?? null;
+}
+
 export async function beginOAuthTransaction(input: {
   flow: OAuthFlow;
   mode?: "signin" | "signup" | null;

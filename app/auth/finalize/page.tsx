@@ -4,7 +4,7 @@ import { AuthShell } from "@/components/auth/auth-shell";
 import { FinalizePanel } from "@/components/auth/finalize-panel";
 
 export const metadata: Metadata = {
-  title: "完成登录 — Fugue",
+  title: "Finish sign-in — Fugue",
 };
 
 export default function FinalizePage() {

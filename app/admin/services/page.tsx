@@ -2,6 +2,8 @@ import { queryDb } from '@/lib/db/pool';
 import AppLayout from '@/components/AppLayout';
 import { PlatformOverview, AuditEvent } from '@/lib/types';
 import { requireActiveAdminPageSession } from '@/lib/auth/page-access';
+import { getRequestI18n } from '@/lib/i18n/server';
+import type { TranslateFn } from '@/lib/i18n/translate';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,27 +31,30 @@ function fmtMoney(cents: number, currency = 'USD') {
   );
 }
 
-function relTime(d: Date): string {
+function relTime(d: Date, t: TranslateFn): string {
   const diff = Date.now() - new Date(d).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return '刚刚';
-  if (mins < 60) return `${mins} 分钟前`;
+  if (mins < 1) return t('just now');
+  if (mins < 60) return t('{mins} min ago', { mins });
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs} 小时前`;
+  if (hrs < 24) return t('{hrs} hr ago', { hrs });
   const days = Math.floor(hrs / 24);
-  return `${days} 天前`;
+  return t('{days} days ago', { days });
 }
 
+// Backend audit-action types → English label key + chip tone. Labels are
+// resolved through t() at render time.
 const actionMeta: Record<string, { label: string; kind: string }> = {
-  'user.login': { label: '用户登录', kind: 'deploy' },
-  'apikey.create': { label: '创建密钥', kind: 'deploy' },
-  'apikey.revoke': { label: '吊销密钥', kind: 'incident' },
-  'node.attach': { label: '接入节点', kind: 'deploy' },
-  'billing.topup': { label: '账户充值', kind: 'restart' },
+  'user.login': { label: 'User sign-in', kind: 'deploy' },
+  'apikey.create': { label: 'Key created', kind: 'deploy' },
+  'apikey.revoke': { label: 'Key revoked', kind: 'incident' },
+  'node.attach': { label: 'Node attached', kind: 'deploy' },
+  'billing.topup': { label: 'Account top-up', kind: 'restart' },
 };
 
 export default async function AdminServicesPage() {
   await requireActiveAdminPageSession();
+  const { t } = await getRequestI18n();
   const overview = await getOverview();
   const events = await getAuditEvents();
 
@@ -59,63 +64,63 @@ export default async function AdminServicesPage() {
         <div className="phead">
           <div>
             <div className="eyebrow">Platform · Services</div>
-            <h1>服务与运营</h1>
+            <h1>{t('Services & operations')}</h1>
             <div className="meta">
               <span>
-                <span className="dot ok"></span> 控制面运行中
+                <span className="dot ok"></span> {t('Control plane running')}
               </span>
-              <span>平台快照 · 实时</span>
+              <span>{t('Platform snapshot · live')}</span>
             </div>
           </div>
         </div>
 
         <div className="kpi-row">
           <div className="kpi">
-            <div className="k">用户</div>
+            <div className="k">{t('Users')}</div>
             <div className="v">{overview?.totals.users ?? '—'}</div>
-            <div className="d">注册总数</div>
+            <div className="d">{t('Total registered')}</div>
           </div>
           <div className="kpi">
-            <div className="k">工作空间</div>
+            <div className="k">{t('Workspaces')}</div>
             <div className="v">{overview?.totals.workspaces ?? '—'}</div>
-            <div className="d">租户</div>
+            <div className="d">{t('Tenants')}</div>
           </div>
           <div className="kpi">
-            <div className="k">API 密钥</div>
+            <div className="k">{t('API keys')}</div>
             <div className="v">{overview?.totals.apiKeys ?? '—'}</div>
-            <div className="d">已签发</div>
+            <div className="d">{t('Issued')}</div>
           </div>
           <div className="kpi">
-            <div className="k">活跃节点</div>
+            <div className="k">{t('Active nodes')}</div>
             <div className="v">
               {overview?.totals.activeNodes ?? '—'}
               <small> / {overview?.totals.nodeKeys ?? '—'}</small>
             </div>
-            <div className="d up">在线</div>
+            <div className="d up">{t('Online')}</div>
           </div>
           <div className="kpi">
-            <div className="k">近 30 天营收</div>
+            <div className="k">{t('Revenue (last 30d)')}</div>
             <div className="v">
               {overview ? fmtMoney(overview.revenue.last30dCents, overview.revenue.currency) : '—'}
             </div>
-            <div className="d up">累计 {overview ? fmtMoney(overview.revenue.allTimeCents, overview.revenue.currency) : '—'}</div>
+            <div className="d up">{t('All-time {amount}', { amount: overview ? fmtMoney(overview.revenue.allTimeCents, overview.revenue.currency) : '—' })}</div>
           </div>
         </div>
 
         <div className="panel">
           <div className="panel-h">
-            <h3>安全审计流</h3>
+            <h3>{t('Security audit stream')}</h3>
             <span className="eyebrow" style={{ letterSpacing: '.1em' }}>
-              全平台 · 最近事件
+              {t('Platform-wide · recent events')}
             </span>
             <div className="tail">
               <span className="chip run">
-                <span className="dot run"></span>实时
+                <span className="dot run"></span>{t('Live')}
               </span>
             </div>
           </div>
           <div className="feed">
-            {events.length === 0 && <div className="empty">暂无审计事件</div>}
+            {events.length === 0 && <div className="empty">{t('No audit events')}</div>}
             {events.map((ev) => {
               const meta = actionMeta[ev.action] || {
                 label: ev.action,
@@ -131,17 +136,17 @@ export default async function AdminServicesPage() {
                   </span>
                   <div className="body">
                     <div className="hd">
-                      <span className="svc">{meta.label}</span>
+                      <span className="svc">{t(meta.label)}</span>
                       <span className="act mono">{ev.action}</span>
                     </div>
                     <div className="sub">
-                      {ev.actor_email || '系统'}
+                      {ev.actor_email || t('System')}
                       {ev.target_email && ev.target_email !== ev.actor_email
                         ? ` → ${ev.target_email}`
                         : ''}
                     </div>
                   </div>
-                  <span className="when">{relTime(ev.created_at)}</span>
+                  <span className="when">{relTime(ev.created_at, t)}</span>
                 </div>
               );
             })}

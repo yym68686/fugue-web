@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { RuntimeTarget } from "@/lib/fugue/console";
 import { useGitHubConnection } from "@/lib/github/connection-client";
+import { useT } from "@/lib/i18n/client";
 
 type Source = "github" | "image" | "upload";
 
@@ -15,13 +16,13 @@ type ImportResult = {
 type EnvRow = { id: number; key: string; value: string };
 
 const SOURCES: { id: Source; label: string; hint: string }[] = [
-  { id: "github", label: "GitHub 仓库", hint: "从公开或私有仓库构建部署" },
-  { id: "image", label: "容器镜像", hint: "直接引用已有镜像" },
-  { id: "upload", label: "上传源码", hint: "上传 .zip / .tgz / .tar.gz 归档" },
+  { id: "github", label: "GitHub repository", hint: "Build and deploy from a public or private repo" },
+  { id: "image", label: "Container image", hint: "Reference an existing image directly" },
+  { id: "upload", label: "Upload source", hint: "Upload a .zip / .tgz / .tar.gz archive" },
 ];
 
 const BUILD_STRATEGIES = [
-  { value: "", label: "自动检测" },
+  { value: "", label: "Auto-detect" },
   { value: "buildpack", label: "Buildpack" },
   { value: "dockerfile", label: "Dockerfile" },
 ];
@@ -33,6 +34,7 @@ function newEnvRow(): EnvRow {
 
 export default function NewProjectWizard({ runtimes }: { runtimes: RuntimeTarget[] }) {
   const router = useRouter();
+  const t = useT();
 
   const [source, setSource] = useState<Source>("github");
 
@@ -104,17 +106,17 @@ export default function NewProjectWizard({ runtimes }: { runtimes: RuntimeTarget
   }
 
   function validate(): string | null {
-    if (source === "github" && !repoUrl.trim()) return "请填写仓库地址";
-    if (source === "image" && !imageRef.trim()) return "请填写镜像引用";
-    if (source === "upload" && !file) return "请选择要上传的源码归档";
+    if (source === "github" && !repoUrl.trim()) return t("Enter a repository URL");
+    if (source === "image" && !imageRef.trim()) return t("Enter an image reference");
+    if (source === "upload" && !file) return t("Select a source archive to upload");
     if (servicePort.trim()) {
       const n = Number(servicePort.trim());
-      if (!Number.isInteger(n) || n <= 0) return "服务端口必须是正整数";
+      if (!Number.isInteger(n) || n <= 0) return t("Service port must be a positive integer");
     }
     if (needsPrivateAuth && !hasSavedConnection && !manualToken.trim()) {
       // These fields live in the advanced section — surface them.
       setAdvOpen(true);
-      return "私有仓库需要连接 GitHub 或填写访问令牌";
+      return t("Private repositories require connecting GitHub or providing an access token");
     }
     return null;
   }
@@ -127,7 +129,7 @@ export default function NewProjectWizard({ runtimes }: { runtimes: RuntimeTarget
     });
     const text = await res.text();
     const data = text ? JSON.parse(text) : null;
-    if (!res.ok) throw new Error(data?.error || `请求失败 (${res.status})`);
+    if (!res.ok) throw new Error(data?.error || t("Request failed ({status})", { status: res.status }));
     return (data?.result ?? data) as ImportResult;
   }
 
@@ -141,7 +143,7 @@ export default function NewProjectWizard({ runtimes }: { runtimes: RuntimeTarget
     });
     const text = await res.text();
     const data = text ? JSON.parse(text) : null;
-    if (!res.ok) throw new Error(data?.error || `请求失败 (${res.status})`);
+    if (!res.ok) throw new Error(data?.error || t("Request failed ({status})", { status: res.status }));
     return (data?.result ?? data) as ImportResult;
   }
 
@@ -198,7 +200,7 @@ export default function NewProjectWizard({ runtimes }: { runtimes: RuntimeTarget
         router.refresh();
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "创建失败");
+      setError(err instanceof Error ? err.message : t("Failed to create project"));
       setBusy(false);
     }
   }
@@ -214,8 +216,8 @@ export default function NewProjectWizard({ runtimes }: { runtimes: RuntimeTarget
       {/* source selector */}
       <section className="panel wizard-block">
         <div className="wizard-block-h">
-          <span className="eyebrow">来源</span>
-          <h2>从哪里部署</h2>
+          <span className="eyebrow">{t("Source")}</span>
+          <h2>{t("Where to deploy from")}</h2>
         </div>
         <div className="wizard-src">
           {SOURCES.map((s) => (
@@ -226,8 +228,8 @@ export default function NewProjectWizard({ runtimes }: { runtimes: RuntimeTarget
               onClick={() => setSource(s.id)}
               aria-pressed={source === s.id}
             >
-              <span className="src-card-label">{s.label}</span>
-              <span className="src-card-hint">{s.hint}</span>
+              <span className="src-card-label">{t(s.label)}</span>
+              <span className="src-card-hint">{t(s.hint)}</span>
             </button>
           ))}
         </div>
@@ -236,21 +238,25 @@ export default function NewProjectWizard({ runtimes }: { runtimes: RuntimeTarget
       {/* per-source fields */}
       <section className="panel wizard-block">
         <div className="wizard-block-h">
-          <span className="eyebrow">来源配置</span>
+          <span className="eyebrow">{t("Source configuration")}</span>
           <h2>
-            {source === "github" ? "GitHub 仓库" : source === "image" ? "容器镜像" : "源码归档"}
+            {source === "github"
+              ? t("GitHub repository")
+              : source === "image"
+                ? t("Container image")
+                : t("Source archive")}
           </h2>
         </div>
 
         {source === "github" && (
           <div className="form">
             <div className="form-row">
-              <label>仓库地址 *</label>
+              <label>{t("Repository URL *")}</label>
               <input
                 className="input mono"
                 autoFocus
                 value={repoUrl}
-                placeholder="https://github.com/owner/repo 或 owner/repo"
+                placeholder={t("https://github.com/owner/repo or owner/repo")}
                 onChange={(e) => setRepoUrl(e.target.value)}
               />
             </div>
@@ -260,12 +266,12 @@ export default function NewProjectWizard({ runtimes }: { runtimes: RuntimeTarget
         {source === "image" && (
           <div className="form">
             <div className="form-row">
-              <label>镜像引用 *</label>
+              <label>{t("Image reference *")}</label>
               <input
                 className="input mono"
                 autoFocus
                 value={imageRef}
-                placeholder="docker.io/library/nginx:1.27 或 ghcr.io/owner/app:tag"
+                placeholder={t("docker.io/library/nginx:1.27 or ghcr.io/owner/app:tag")}
                 onChange={(e) => setImageRef(e.target.value)}
               />
             </div>
@@ -308,13 +314,13 @@ export default function NewProjectWizard({ runtimes }: { runtimes: RuntimeTarget
                       pickFile(null);
                     }}
                   >
-                    移除
+                    {t("Remove")}
                   </button>
                 </div>
               ) : (
                 <div className="file-drop-empty">
-                  <div className="file-drop-title">拖入或点击选择归档</div>
-                  <div className="form-hint">支持 .zip / .tgz / .tar.gz，最大 64 MB</div>
+                  <div className="file-drop-title">{t("Drop or click to select an archive")}</div>
+                  <div className="form-hint">{t("Supports .zip / .tgz / .tar.gz, up to 64 MB")}</div>
                 </div>
               )}
             </div>
@@ -331,82 +337,82 @@ export default function NewProjectWizard({ runtimes }: { runtimes: RuntimeTarget
           aria-expanded={advOpen}
         >
           <span className={`chev${advOpen ? " open" : ""}`}>›</span>
-          高级配置
-          <span className="form-hint">运行时、端口、构建策略、环境变量</span>
+          {t("Advanced configuration")}
+          <span className="form-hint">{t("Runtime, port, build strategy, environment variables")}</span>
         </button>
 
         {advOpen && (
           <div className="wizard-adv">
             <div className="form">
               <div className="form-row">
-                <label>项目名称</label>
+                <label>{t("Project name")}</label>
                 <input
                   className="input"
                   value={projectName}
-                  placeholder="可选，默认取自来源名称，同名时自动追加后缀"
+                  placeholder={t("Optional, defaults to the source name with a suffix appended on collision")}
                   onChange={(e) => setProjectName(e.target.value)}
                 />
               </div>
               <div className="form-row">
-                <label>应用名称</label>
+                <label>{t("App name")}</label>
                 <input
                   className="input"
                   value={appName}
-                  placeholder="可选，默认与项目同名"
+                  placeholder={t("Optional, defaults to the project name")}
                   onChange={(e) => setAppName(e.target.value)}
                 />
               </div>
               <div className="form-row">
-                <label>描述</label>
+                <label>{t("Description")}</label>
                 <input
                   className="input"
                   value={projectDescription}
-                  placeholder="可选，项目用途说明"
+                  placeholder={t("Optional, describe what the project is for")}
                   onChange={(e) => setProjectDescription(e.target.value)}
                 />
               </div>
               {source === "github" && (
                 <>
                   <div className="form-row">
-                    <label>分支</label>
+                    <label>{t("Branch")}</label>
                     <input
                       className="input mono"
                       value={branch}
-                      placeholder="可选，默认仓库默认分支"
+                      placeholder={t("Optional, defaults to the repository default branch")}
                       onChange={(e) => setBranch(e.target.value)}
                     />
                   </div>
                   <div className="form-row">
-                    <label>可见性</label>
+                    <label>{t("Visibility")}</label>
                     <div className="wseg">
                       <button
                         type="button"
                         className={visibility === "public" ? "active" : ""}
                         onClick={() => setVisibility("public")}
                       >
-                        公开
+                        {t("Public")}
                       </button>
                       <button
                         type="button"
                         className={visibility === "private" ? "active" : ""}
                         onClick={() => setVisibility("private")}
                       >
-                        私有
+                        {t("Private")}
                       </button>
                     </div>
                   </div>
                   {needsPrivateAuth && (
                     <div className="form-row">
-                      <label>私有仓库授权</label>
+                      <label>{t("Private repository authorization")}</label>
                       <div className="gh-auth">
                         {gh.loading ? (
-                          <div className="form-hint">正在检查 GitHub 连接…</div>
+                          <div className="form-hint">{t("Checking GitHub connection…")}</div>
                         ) : hasSavedConnection ? (
                           <div className="gh-auth-ok">
-                            已连接 GitHub
+                            {t("GitHub connected")}
                             {gh.connection?.login ? ` · @${gh.connection.login}` : ""}
                             <a className="btn ghost sm" href={gh.connectHref}>
-                              重新连接
+                              {t("Reconnect")}
                             </a>
                           </div>
                         ) : (
@@ -417,16 +423,16 @@ export default function NewProjectWizard({ runtimes }: { runtimes: RuntimeTarget
                                   <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden>
                                     <path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49v-1.7c-2.78.62-3.37-1.37-3.37-1.37-.46-1.18-1.11-1.5-1.11-1.5-.9-.63.07-.62.07-.62 1 .07 1.53 1.05 1.53 1.05.9 1.57 2.34 1.12 2.91.85.09-.66.35-1.12.63-1.38-2.22-.26-4.55-1.14-4.55-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.4 9.4 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.8-4.57 5.05.36.32.68.94.68 1.9v2.82c0 .27.18.6.69.49A10.03 10.03 0 0 0 22 12.25C22 6.58 17.52 2 12 2z" />
                                   </svg>
-                                  连接 GitHub 账户
+                                  {t("Connect GitHub account")}
                                 </a>
-                                <span className="form-hint">或在下方直接粘贴访问令牌</span>
+                                <span className="form-hint">{t("Or paste an access token directly below")}</span>
                               </>
                             )}
                             <input
                               className="input mono"
                               type="password"
                               value={manualToken}
-                              placeholder="ghp_... 访问令牌（仅本次部署使用）"
+                              placeholder={t("ghp_... access token (used only for this deploy)")}
                               onChange={(e) => setManualToken(e.target.value)}
                               autoComplete="off"
                             />
@@ -439,13 +445,13 @@ export default function NewProjectWizard({ runtimes }: { runtimes: RuntimeTarget
                 </>
               )}
               <div className="form-row">
-                <label>运行时目标</label>
+                <label>{t("Runtime target")}</label>
                 <select
                   className="input"
                   value={runtimeId}
                   onChange={(e) => setRuntimeId(e.target.value)}
                 >
-                  <option value="">自动分配</option>
+                  <option value="">{t("Auto-assign")}</option>
                   {runtimes.map((r) => (
                     <option key={r.id || r.name} value={r.id || ""}>
                       {r.name || r.machine_name || r.id}
@@ -455,11 +461,11 @@ export default function NewProjectWizard({ runtimes }: { runtimes: RuntimeTarget
                 </select>
               </div>
               <div className="form-row">
-                <label>服务端口</label>
+                <label>{t("Service port")}</label>
                 <input
                   className="input mono"
                   value={servicePort}
-                  placeholder="例如 8080"
+                  placeholder={t("e.g. 8080")}
                   inputMode="numeric"
                   onChange={(e) => setServicePort(e.target.value)}
                 />
@@ -467,7 +473,7 @@ export default function NewProjectWizard({ runtimes }: { runtimes: RuntimeTarget
               {showBuildFields && (
                 <>
                   <div className="form-row">
-                    <label>构建策略</label>
+                    <label>{t("Build strategy")}</label>
                     <select
                       className="input"
                       value={buildStrategy}
@@ -475,51 +481,51 @@ export default function NewProjectWizard({ runtimes }: { runtimes: RuntimeTarget
                     >
                       {BUILD_STRATEGIES.map((s) => (
                         <option key={s.value} value={s.value}>
-                          {s.label}
+                          {t(s.label)}
                         </option>
                       ))}
                     </select>
                   </div>
                   <div className="form-row">
-                    <label>Dockerfile 路径</label>
+                    <label>{t("Dockerfile path")}</label>
                     <input
                       className="input mono"
                       value={dockerfilePath}
-                      placeholder="可选，例如 Dockerfile 或 docker/Dockerfile"
+                      placeholder={t("Optional, e.g. Dockerfile or docker/Dockerfile")}
                       onChange={(e) => setDockerfilePath(e.target.value)}
                     />
                   </div>
                   <div className="form-row">
-                    <label>构建上下文目录</label>
+                    <label>{t("Build context directory")}</label>
                     <input
                       className="input mono"
                       value={buildContextDir}
-                      placeholder="可选，例如 ."
+                      placeholder={t("Optional, e.g. .")}
                       onChange={(e) => setBuildContextDir(e.target.value)}
                     />
                   </div>
                   <div className="form-row">
-                    <label>源码子目录</label>
+                    <label>{t("Source subdirectory")}</label>
                     <input
                       className="input mono"
                       value={sourceDir}
-                      placeholder="可选，monorepo 子目录"
+                      placeholder={t("Optional, monorepo subdirectory")}
                       onChange={(e) => setSourceDir(e.target.value)}
                     />
                   </div>
                 </>
               )}
               <div className="form-row">
-                <label>启动命令</label>
+                <label>{t("Startup command")}</label>
                 <input
                   className="input mono"
                   value={startupCommand}
-                  placeholder="可选，覆盖镜像默认命令"
+                  placeholder={t("Optional, override the image default command")}
                   onChange={(e) => setStartupCommand(e.target.value)}
                 />
               </div>
               <div className="form-row">
-                <label>环境变量</label>
+                <label>{t("Environment variables")}</label>
                 <div className="kvedit">
                   {envRows.map((row) => (
                     <div className="kvedit-row" key={row.id}>
@@ -538,7 +544,7 @@ export default function NewProjectWizard({ runtimes }: { runtimes: RuntimeTarget
                       <button
                         type="button"
                         className="icon-btn"
-                        aria-label="删除"
+                        aria-label={t("Delete")}
                         onClick={() => removeEnvRow(row.id)}
                       >
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -548,7 +554,7 @@ export default function NewProjectWizard({ runtimes }: { runtimes: RuntimeTarget
                     </div>
                   ))}
                   <button type="button" className="btn ghost sm kvedit-add" onClick={addEnvRow}>
-                    + 添加变量
+                    {t("+ Add variable")}
                   </button>
                 </div>
               </div>
@@ -561,10 +567,10 @@ export default function NewProjectWizard({ runtimes }: { runtimes: RuntimeTarget
 
       <div className="wizard-foot">
         <a className="btn ghost" href="/projects">
-          取消
+          {t("Cancel")}
         </a>
         <button type="submit" className="btn primary" disabled={busy}>
-          {busy ? "创建中…" : "创建项目并部署"}
+          {busy ? t("Creating…") : t("Create project and deploy")}
         </button>
       </div>
     </form>

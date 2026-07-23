@@ -2,6 +2,8 @@ import { queryDb } from '@/lib/db/pool';
 import AppLayout from '@/components/AppLayout';
 import { AdminUser } from '@/lib/types';
 import { requireActiveAdminPageSession } from '@/lib/auth/page-access';
+import { getRequestI18n } from '@/lib/i18n/server';
+import type { TranslateFn } from '@/lib/i18n/translate';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,23 +26,24 @@ const statusChip: Record<string, string> = {
 };
 
 const statusLabel: Record<string, string> = {
-  active: '正常',
-  blocked: '已封禁',
+  active: 'Active',
+  blocked: 'Blocked',
 };
 
-function relTime(d: Date | null): string {
-  if (!d) return '从未登录';
+function relTime(d: Date | null, t: TranslateFn): string {
+  if (!d) return t('Never signed in');
   const diff = Date.now() - new Date(d).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins} 分钟前`;
+  if (mins < 60) return t('{mins} min ago', { mins });
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs} 小时前`;
+  if (hrs < 24) return t('{hrs} hr ago', { hrs });
   const days = Math.floor(hrs / 24);
-  return `${days} 天前`;
+  return t('{days} days ago', { days });
 }
 
 export default async function AdminUsersPage() {
   await requireActiveAdminPageSession();
+  const { t } = await getRequestI18n();
   const users = await getUsers();
   const adminCount = users.filter((u) => u.is_admin).length;
   const activeCount = users.filter((u) => u.status === 'active').length;
@@ -51,28 +54,28 @@ export default async function AdminUsersPage() {
         <div className="phead">
           <div>
             <div className="eyebrow">Platform · Users</div>
-            <h1>用户管理</h1>
+            <h1>{t('User management')}</h1>
             <div className="meta">
-              <span>{users.length} 个用户</span>
-              <span>{adminCount} 名管理员</span>
-              <span>{activeCount} 个正常</span>
+              <span>{t('{count} users', { count: users.length })}</span>
+              <span>{t('{count} admins', { count: adminCount })}</span>
+              <span>{t('{count} active', { count: activeCount })}</span>
             </div>
           </div>
         </div>
 
         <div className="panel">
           <div className="panel-h">
-            <h3>所有用户</h3>
+            <h3>{t('All users')}</h3>
             <div className="tail eyebrow">{users.length} total</div>
           </div>
           <table className="tbl">
             <thead>
               <tr>
-                <th>用户</th>
-                <th>登录方式</th>
-                <th>角色</th>
-                <th>状态</th>
-                <th>最近登录</th>
+                <th>{t('User')}</th>
+                <th>{t('Sign-in method')}</th>
+                <th>{t('Role')}</th>
+                <th>{t('Status')}</th>
+                <th>{t('Last sign-in')}</th>
               </tr>
             </thead>
             <tbody>
@@ -90,17 +93,17 @@ export default async function AdminUsersPage() {
                   </td>
                   <td>
                     {u.is_admin ? (
-                      <span className="chip run">管理员</span>
+                      <span className="chip run">{t('Admin')}</span>
                     ) : (
-                      <span className="faint">用户</span>
+                      <span className="faint">{t('User')}</span>
                     )}
                   </td>
                   <td>
                     <span className={`chip ${statusChip[u.status] || 'idle'}`}>
-                      {statusLabel[u.status] || u.status}
+                      {statusLabel[u.status] ? t(statusLabel[u.status]) : u.status}
                     </span>
                   </td>
-                  <td className="faint">{relTime(u.last_login_at)}</td>
+                  <td className="faint">{relTime(u.last_login_at, t)}</td>
                 </tr>
               ))}
             </tbody>

@@ -2,6 +2,8 @@ import AppLayout from '@/components/AppLayout';
 import { requireActiveAdminPageSession } from '@/lib/auth/page-access';
 import { listClusterNodes, type ClusterNode } from '@/lib/fugue/console';
 import { fmtBytes, fmtMillicores, fmtPercent } from '@/lib/format';
+import { getRequestI18n } from '@/lib/i18n/server';
+import type { TranslateFn } from '@/lib/i18n/translate';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,10 +48,12 @@ function UsageCell({
   usagePct,
   requestPct,
   detail,
+  t,
 }: {
   usagePct: number | undefined;
   requestPct: number | undefined;
   detail: string;
+  t: TranslateFn;
 }) {
   const usage = Math.max(0, Math.min(100, usagePct ?? 0));
   const request = Math.max(0, Math.min(100, requestPct ?? 0));
@@ -61,14 +65,14 @@ function UsageCell({
           <span
             className="req-mark"
             style={{ left: `${request}%` }}
-            title={`请求 ${fmtPercent(requestPct)}`}
+            title={t('Requested {pct}', { pct: fmtPercent(requestPct) })}
           ></span>
         )}
       </span>
       <span className="usage-meta">
         <span className="bar-val">{fmtPercent(usagePct)}</span>
         {requestPct != null && (
-          <span className="usage-req">请求 {fmtPercent(requestPct)}</span>
+          <span className="usage-req">{t('Requested {pct}', { pct: fmtPercent(requestPct) })}</span>
         )}
         {detail && <span className="usage-detail">{detail}</span>}
       </span>
@@ -83,6 +87,7 @@ function avg(nums: number[]): number {
 
 export default async function AdminClusterPage() {
   await requireActiveAdminPageSession();
+  const { t } = await getRequestI18n();
   const { nodes, loadError } = await getClusterData();
 
   const ready = nodes.filter((n) => {
@@ -102,56 +107,56 @@ export default async function AdminClusterPage() {
         <div className="phead">
           <div>
             <div className="eyebrow">Platform · Cluster</div>
-            <h1>集群</h1>
+            <h1>{t('Cluster')}</h1>
             <div className="meta">
               <span>
-                <span className="dot ok"></span> {ready}/{nodes.length} 就绪
+                <span className="dot ok"></span> {t('{ready}/{total} ready', { ready, total: nodes.length })}
               </span>
-              <span>{regions.length} 个区域</span>
+              <span>{t('{count} regions', { count: regions.length })}</span>
             </div>
           </div>
         </div>
 
         <div className="kpi-row" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
           <div className="kpi">
-            <div className="k">节点</div>
+            <div className="k">{t('Nodes')}</div>
             <div className="v">
               {ready}
               <small> / {nodes.length}</small>
             </div>
-            <div className="d up">就绪</div>
+            <div className="d up">{t('Ready')}</div>
           </div>
           <div className="kpi">
-            <div className="k">集群 CPU</div>
+            <div className="k">{t('Cluster CPU')}</div>
             <div className="v">{fmtPercent(avgCpu)}</div>
-            <div className="d">平均使用率</div>
+            <div className="d">{t('Average usage')}</div>
           </div>
           <div className="kpi">
-            <div className="k">集群内存</div>
+            <div className="k">{t('Cluster memory')}</div>
             <div className="v">{fmtPercent(avgMem)}</div>
-            <div className="d">平均使用率</div>
+            <div className="d">{t('Average usage')}</div>
           </div>
           <div className="kpi">
-            <div className="k">集群磁盘</div>
+            <div className="k">{t('Cluster disk')}</div>
             <div className="v">{fmtPercent(avgDisk)}</div>
-            <div className="d">平均使用率</div>
+            <div className="d">{t('Average usage')}</div>
           </div>
         </div>
 
         <div className="panel">
           <div className="panel-h">
-            <h3>集群节点</h3>
+            <h3>{t('Cluster nodes')}</h3>
             <div className="tail eyebrow">{nodes.length} nodes</div>
           </div>
           <table className="tbl tbl-cluster">
             <thead>
               <tr>
-                <th>节点</th>
-                <th>角色</th>
-                <th>状态</th>
-                <th>CPU（使用 / 请求）</th>
-                <th>内存（使用 / 请求）</th>
-                <th>磁盘</th>
+                <th>{t('Node')}</th>
+                <th>{t('Role')}</th>
+                <th>{t('Status')}</th>
+                <th>{t('CPU (usage / request)')}</th>
+                <th>{t('Memory (usage / request)')}</th>
+                <th>{t('Disk')}</th>
               </tr>
             </thead>
             <tbody>
@@ -175,6 +180,7 @@ export default async function AdminClusterPage() {
                   </td>
                   <td>
                     <UsageCell
+                      t={t}
                       usagePct={n.cpu?.usage_percent}
                       requestPct={n.cpu?.request_percent}
                       detail={
@@ -186,6 +192,7 @@ export default async function AdminClusterPage() {
                   </td>
                   <td>
                     <UsageCell
+                      t={t}
                       usagePct={n.memory?.usage_percent}
                       requestPct={n.memory?.request_percent}
                       detail={
@@ -197,6 +204,7 @@ export default async function AdminClusterPage() {
                   </td>
                   <td>
                     <UsageCell
+                      t={t}
                       usagePct={n.ephemeral_storage?.usage_percent}
                       requestPct={undefined}
                       detail={
@@ -211,10 +219,10 @@ export default async function AdminClusterPage() {
             </tbody>
           </table>
           {nodes.length === 0 && !loadError && (
-            <div className="empty">暂无集群节点</div>
+            <div className="empty">{t('No cluster nodes')}</div>
           )}
           {loadError && (
-            <div className="empty">暂时无法加载集群数据，请稍后重试</div>
+            <div className="empty">{t('Unable to load cluster data. Please try again later.')}</div>
           )}
         </div>
       </div>

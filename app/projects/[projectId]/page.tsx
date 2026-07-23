@@ -15,6 +15,7 @@ import {
   type ConsoleProjectDetail,
 } from '@/lib/fugue/console';
 import { fmtBytes, fmtMillicores, fmtDate, fmtStorageUsage } from '@/lib/format';
+import { getRequestI18n } from '@/lib/i18n/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -89,6 +90,7 @@ export default async function ProjectDetailPage({
   searchParams: Promise<{ service?: string; tab?: string }>;
 }) {
   const { session } = await requireActivePageSession();
+  const { t } = await getRequestI18n();
   const { projectId: rawProjectId } = await params;
   const projectId = decodeURIComponent(rawProjectId);
   const { service: initialServiceId, tab: initialTab } = await searchParams;
@@ -132,7 +134,7 @@ export default async function ProjectDetailPage({
     <AppLayout>
       <div className="page">
         <div className="crumb">
-          <Link href="/projects">项目</Link>
+          <Link href="/projects">{t("Projects")}</Link>
           <span> / </span>
           <span>{projectName}</span>
         </div>
@@ -151,26 +153,26 @@ export default async function ProjectDetailPage({
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M15 18l-6-6 6-6" />
               </svg>
-              返回项目
+              {t("Back to projects")}
             </Link>
           </div>
         </div>
 
         <div className="pstat">
           <div className="pstat-item">
-            <span className="pstat-k">应用数</span>
+            <span className="pstat-k">{t("Apps")}</span>
             <span className="pstat-v">{apps.length}</span>
           </div>
           <div className="pstat-item">
-            <span className="pstat-k">CPU 用量</span>
+            <span className="pstat-k">{t("CPU usage")}</span>
             <span className="pstat-v">{fmtMillicores(totalCpu)}</span>
           </div>
           <div className="pstat-item">
-            <span className="pstat-k">内存用量</span>
+            <span className="pstat-k">{t("Memory usage")}</span>
             <span className="pstat-v">{fmtBytes(totalMem)}</span>
           </div>
           <div className="pstat-item">
-            <span className="pstat-k">持久盘用量</span>
+            <span className="pstat-k">{t("Persistent disk usage")}</span>
             <span className="pstat-v">
               {fmtStorageUsage(
                 hasPersistentStorageUsed ? totalPersistentStorageUsed : undefined,
@@ -181,15 +183,15 @@ export default async function ProjectDetailPage({
             </span>
           </div>
           <div className="pstat-item">
-            <span className="pstat-k">临时盘用量</span>
+            <span className="pstat-k">{t("Ephemeral disk usage")}</span>
             <span className="pstat-v">{fmtBytes(totalEphemeralStorage)}</span>
           </div>
           <div className="pstat-item">
-            <span className="pstat-k">镜像占用</span>
+            <span className="pstat-k">{t("Image size")}</span>
             <span className="pstat-v">{fmtBytes(imageBytes)}</span>
           </div>
           <div className="pstat-item">
-            <span className="pstat-k">更新于</span>
+            <span className="pstat-k">{t("Updated")}</span>
             <span className="pstat-v">{fmtDate(detail.project?.updated_at)}</span>
           </div>
         </div>

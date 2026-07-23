@@ -12,6 +12,7 @@ import {
   type ProjectResourceRollup,
 } from '@/lib/fugue/console';
 import { fmtBytes, fmtMillicores, fmtStorageUsage } from '@/lib/format';
+import { getRequestI18n } from '@/lib/i18n/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -60,6 +61,7 @@ function toneClass(tone: string | undefined, live: boolean | undefined): string 
 
 export default async function ProjectsPage() {
   const { session } = await requireActivePageSession();
+  const { t } = await getRequestI18n();
   const { hasWorkspace, projects, resources, loadError } = await getProjectsData(
     session.email,
   );
@@ -70,10 +72,11 @@ export default async function ProjectsPage() {
         <div className="phead">
           <div>
             <div className="eyebrow">Projects</div>
-            <h1>项目</h1>
+            <h1>{t("Projects")}</h1>
             <div className="meta">
               <span>
-                <span className="dot ok"></span> {projects.length} 个项目
+                <span className="dot ok"></span>{' '}
+                {t("{count} projects", { count: projects.length })}
               </span>
             </div>
           </div>
@@ -82,20 +85,20 @@ export default async function ProjectsPage() {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M12 5v14M5 12h14" />
               </svg>
-              新建项目
+              {t("New project")}
             </Link>
           </div>
         </div>
 
         {!hasWorkspace && (
           <div className="panel">
-            <div className="empty">尚未创建工作空间</div>
+            <div className="empty">{t("No workspace created yet")}</div>
           </div>
         )}
 
         {hasWorkspace && loadError && (
           <div className="panel">
-            <div className="empty">暂时无法加载项目，请稍后重试</div>
+            <div className="empty">{t("Unable to load projects right now, please try again later")}</div>
           </div>
         )}
 
@@ -103,7 +106,7 @@ export default async function ProjectsPage() {
           <div className="proj-grid">
             {projects.length === 0 && (
               <div className="panel">
-                <div className="empty">还没有项目，点击「新建项目」开始</div>
+                <div className="empty">{t("No projects yet — click “New project” to get started")}</div>
               </div>
             )}
             {projects.map((p) => {
@@ -132,13 +135,13 @@ export default async function ProjectsPage() {
                     </div>
                     <div className="stat">
                       <div className="stat-v">{fmtBytes(res?.memory_bytes)}</div>
-                      <div className="stat-k">内存</div>
+                      <div className="stat-k">{t("Memory")}</div>
                     </div>
                     <div className="stat">
                       <div className="stat-v">
                         {fmtBytes(res?.ephemeral_storage_bytes)}
                       </div>
-                      <div className="stat-k">临时盘</div>
+                      <div className="stat-k">{t("Ephemeral disk")}</div>
                     </div>
                     <div className="stat">
                       <div
@@ -152,18 +155,18 @@ export default async function ProjectsPage() {
                           ? '—'
                           : fmtBytes(res.persistent_storage_used_bytes)}
                       </div>
-                      <div className="stat-k">持久盘</div>
+                      <div className="stat-k">{t("Persistent disk")}</div>
                     </div>
                     <div className="stat">
                       <div className="stat-v">{fmtBytes(res?.image_total_bytes)}</div>
-                      <div className="stat-k">镜像</div>
+                      <div className="stat-k">{t("Image")}</div>
                     </div>
                   </div>
                   <div className="proj-card-foot">
                     <div className="proj-card-counts">
-                      <span>{p.app_count} 应用</span>
+                      <span>{t("{count} apps", { count: p.app_count })}</span>
                       <span>·</span>
-                      <span>{p.service_count} 服务</span>
+                      <span>{t("{count} services", { count: p.service_count })}</span>
                     </div>
                     {p.service_badges?.length > 0 && (
                       <div className="proj-card-logos">

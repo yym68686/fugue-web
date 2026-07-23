@@ -1,6 +1,9 @@
 import type { ReactNode } from "react";
 
-export function AuthShell({ children }: { children: ReactNode }) {
+import { getRequestI18n } from "@/lib/i18n/server";
+
+export async function AuthShell({ children }: { children: ReactNode }) {
+  const { t } = await getRequestI18n();
   return (
     <div className="auth-wrap">
       <aside className="auth-aside">
@@ -18,19 +21,21 @@ export function AuthShell({ children }: { children: ReactNode }) {
 
         <div className="auth-aside-body">
           <div className="eyebrow">Multi-tenant PaaS on k3s</div>
-          <h2>把代码交给 Fugue，专注你的产品。</h2>
+          <h2>{t("Hand your code to Fugue and focus on your product.")}</h2>
           <p>
-            连接 GitHub 仓库即可自动构建与部署，内建多租户隔离、密钥管理与用量计费。
+            {t(
+              "Connect a GitHub repo to build and deploy automatically, with built-in multi-tenant isolation, secret management, and usage billing.",
+            )}
           </p>
           <div className="auth-points">
             <div className="row">
-              <span className="dot ok"></span> 一键从 GitHub 部署，自动构建
+              <span className="dot ok"></span> {t("One-click deploy from GitHub with automatic builds")}
             </div>
             <div className="row">
-              <span className="dot ok"></span> 每个工作空间独立租户与密钥
+              <span className="dot ok"></span> {t("A dedicated tenant and secrets for every workspace")}
             </div>
             <div className="row">
-              <span className="dot ok"></span> 实时用量、账单与集群可观测
+              <span className="dot ok"></span> {t("Real-time usage, billing, and cluster observability")}
             </div>
           </div>
         </div>
