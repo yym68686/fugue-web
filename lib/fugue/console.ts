@@ -1038,6 +1038,44 @@ export async function createApiKey(
   );
 }
 
+/** The principal the backend resolves for a key, from GET /v1/auth/context. */
+export type AuthContext = {
+  scopes: string[];
+  platformAdmin: boolean;
+  tenantId: string;
+};
+
+/**
+ * Resolve what the given admin key can actually do. The backend echoes the
+ * principal's own scopes here — the exact set POST /v1/api-keys checks a mint
+ * request against ("cannot mint scopes you do not hold"). We use it so the
+ * /keys modal only ever offers scopes the workspace admin key truly holds,
+ * which can be a subset of WORKSPACE_ADMIN_SCOPES for workspaces provisioned
+ * before the scope list grew.
+ */
+export async function getAuthContext(adminKey: string): Promise<AuthContext> {
+  const data = await fugueGet<{
+    principal?: {
+      scopes?: unknown;
+      platform_admin?: unknown;
+      tenant_id?: unknown;
+    };
+  }>(adminKey, "/v1/auth/context");
+
+  const principal = data.principal ?? {};
+  const scopes = Array.isArray(principal.scopes)
+    ? principal.scopes.filter(
+        (scope): scope is string => typeof scope === "string" && scope.trim().length > 0,
+      )
+    : [];
+
+  return {
+    scopes,
+    platformAdmin: principal.platform_admin === true,
+    tenantId: typeof principal.tenant_id === "string" ? principal.tenant_id : "",
+  };
+}
+
 /**
  * List the caller's own project slugs (tenant-scoped via the admin key). Used
  * to pick a collision-free auto-derived project name before an import. Falls

@@ -3,11 +3,39 @@ import AppLayout from '@/components/AppLayout';
 import NewKeyButton from '@/components/keys/NewKeyButton';
 import { ApiKey } from '@/lib/types';
 import { requireActivePageSession } from '@/lib/auth/page-access';
-import { WORKSPACE_ADMIN_SCOPES } from '@/lib/fugue/scopes';
+import { getAuthContext } from '@/lib/fugue/console';
+import { sortFugueScopes, WORKSPACE_ADMIN_SCOPES } from '@/lib/fugue/scopes';
+import { getWorkspaceAccessByEmail } from '@/lib/workspace/store';
 import { getRequestI18n } from '@/lib/i18n/server';
 import type { TranslateFn } from '@/lib/i18n/translate';
 
 export const dynamic = 'force-dynamic';
+
+// Scopes the "New key" modal may offer. A minted key can only carry scopes the
+// workspace admin key itself holds — the backend rejects the rest with "cannot
+// mint scopes you do not hold". Workspaces provisioned before WORKSPACE_ADMIN_SCOPES
+// grew have admin keys with a subset (e.g. 8-11 of 18), so offering the full
+// constant made the all-selected default fail. Ask the backend what this key
+// actually holds and offer only that (∩ the supported set). Falls back to the
+// full constant if the workspace/backend can't be reached, preserving prior
+// behavior rather than blocking key creation.
+async function resolveGrantableScopes(email: string): Promise<string[]> {
+  const supported = sortFugueScopes(WORKSPACE_ADMIN_SCOPES);
+  try {
+    const workspace = await getWorkspaceAccessByEmail(email);
+    if (!workspace?.adminKeySecret) return supported;
+
+    const ctx = await getAuthContext(workspace.adminKeySecret);
+    // Platform-admin principals bypass the subset check entirely.
+    if (ctx.platformAdmin) return supported;
+
+    const held = new Set(ctx.scopes);
+    const grantable = supported.filter((scope) => held.has(scope));
+    return grantable.length > 0 ? grantable : supported;
+  } catch {
+    return supported;
+  }
+}
 
 async function getKeys(userEmail: string): Promise<ApiKey[]> {
   const result = await queryDb<ApiKey>(
@@ -73,6 +101,7 @@ export default async function KeysPage() {
   const { session } = await requireActivePageSession();
   const { t } = await getRequestI18n();
   const keys = await getKeys(session.email);
+  const grantableScopes = await resolveGrantableScopes(session.email);
   const activeCount = keys.filter((k) => k.status === 'active').length;
 
   return (
@@ -91,7 +120,7 @@ export default async function KeysPage() {
             </div>
           </div>
           <div className="actions">
-            <NewKeyButton availableScopes={[...WORKSPACE_ADMIN_SCOPES]} />
+            <NewKeyButton availableScopes={grantableScopes} />
           </div>
         </div>
 
