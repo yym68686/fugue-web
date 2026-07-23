@@ -873,6 +873,20 @@ export async function putAppFilesystemFile(
  * Project-level read/write.                                           *
  * ------------------------------------------------------------------ */
 
+export async function createProject(
+  adminKey: string,
+  input: { name: string; description?: string },
+) {
+  // tenant_id is omitted: the backend resolves it from the tenant-scoped
+  // admin key, so the project lands in the caller's own workspace.
+  return fugueSend<{ project?: ConsoleProject }>(
+    adminKey,
+    "POST",
+    "/v1/projects",
+    { name: input.name, description: input.description ?? "" },
+  );
+}
+
 export async function patchProject(
   adminKey: string,
   projectId: string,
