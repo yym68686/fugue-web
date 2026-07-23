@@ -16,6 +16,50 @@ export type ConsoleResourceUsage = {
   ephemeral_storage_bytes?: number;
 };
 
+/* ---- billing (managed-cap editor + price book) ---- */
+
+export type BillingResourceSpec = {
+  cpu_millicores?: number;
+  memory_mebibytes?: number;
+  storage_gibibytes?: number;
+};
+
+export type BillingPriceBook = {
+  currency: string;
+  hours_per_month: number;
+  cpu_microcents_per_millicore_hour: number;
+  memory_microcents_per_mib_hour: number;
+  storage_microcents_per_gib_hour: number;
+};
+
+export type BillingEvent = {
+  id: string;
+  type: string;
+  amount_microcents: number;
+  balance_after_microcents: number;
+  created_at?: string | null;
+};
+
+export type BillingSummary = {
+  tenant_id: string;
+  status: string;
+  status_reason?: string | null;
+  byo_vps_free?: boolean;
+  over_cap?: boolean;
+  balance_restricted?: boolean;
+  managed_cap: BillingResourceSpec;
+  managed_committed?: BillingResourceSpec;
+  managed_available?: BillingResourceSpec;
+  price_book: BillingPriceBook;
+  hourly_rate_microcents: number;
+  monthly_estimate_microcents: number;
+  balance_microcents: number;
+  runway_hours?: number | null;
+  last_accrued_at?: string | null;
+  updated_at?: string | null;
+  events?: BillingEvent[];
+};
+
 export type ConsoleProjectBadge = {
   kind: string;
   label: string;
@@ -954,6 +998,50 @@ export async function listProjectSlugs(adminKey: string): Promise<Set<string>> {
   } catch {
     return new Set<string>();
   }
+}
+
+/* ------------------------------------------------------------------ *
+ * Billing: read the tenant's managed-cap + price book, and update the  *
+ * cap. Rates and accrual are owned by the backend; the web app only     *
+ * sets the cap and displays what the backend returns.                   *
+ * ------------------------------------------------------------------ */
+
+/** Read the caller's tenant billing summary (managed cap, price book, balance). */
+export async function getBillingSummary(
+  adminKey: string,
+  includeCurrentUsage = false,
+): Promise<BillingSummary> {
+  const query = includeCurrentUsage ? "?include_current_usage=true" : "";
+  const data = await fugueGet<{ billing: BillingSummary }>(
+    adminKey,
+    `/v1/billing${query}`,
+  );
+  return data.billing;
+}
+
+/**
+ * Update the tenant's managed resource cap. `storage_gibibytes` is only sent
+ * when provided, so we never overwrite the backend's storage default when the
+ * caller isn't managing storage.
+ */
+export async function updateBillingCap(
+  adminKey: string,
+  cap: BillingResourceSpec,
+): Promise<BillingSummary> {
+  const managed_cap: BillingResourceSpec = {
+    cpu_millicores: cap.cpu_millicores ?? 0,
+    memory_mebibytes: cap.memory_mebibytes ?? 0,
+  };
+  if (cap.storage_gibibytes !== undefined) {
+    managed_cap.storage_gibibytes = cap.storage_gibibytes;
+  }
+  const data = await fugueSend<{ billing: BillingSummary }>(
+    adminKey,
+    "PATCH",
+    "/v1/billing",
+    { managed_cap },
+  );
+  return data.billing;
 }
 
 /* ------------------------------------------------------------------ *

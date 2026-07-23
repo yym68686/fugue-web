@@ -2,8 +2,13 @@ import { queryDb } from '@/lib/db/pool';
 import AppLayout from '@/components/AppLayout';
 import { BillingTopup } from '@/lib/types';
 import { requireActivePageSession } from '@/lib/auth/page-access';
+import { getCachedWorkspaceAccessByEmail } from '@/lib/server/session-state-cache';
+import { getBillingSummary, type BillingSummary } from '@/lib/fugue/console';
+import { BillingCapEditor } from '@/components/billing/BillingCapEditor';
 
 export const dynamic = 'force-dynamic';
+
+const MICRO_CENTS_PER_DOLLAR = 100_000_000;
 
 async function getTopups(userEmail: string): Promise<BillingTopup[]> {
   const result = await queryDb<BillingTopup>(
@@ -20,11 +25,41 @@ async function getTopups(userEmail: string): Promise<BillingTopup[]> {
   return result.rows;
 }
 
+// Best-effort: the managed-cap editor is a bonus, so a billing-sync failure or
+// a workspace-less account degrades gracefully to the top-up history alone.
+async function getBilling(userEmail: string): Promise<BillingSummary | null> {
+  const workspace = await getCachedWorkspaceAccessByEmail(userEmail);
+  if (!workspace) return null;
+  try {
+    return await getBillingSummary(workspace.adminKeySecret, true);
+  } catch {
+    return null;
+  }
+}
+
 function fmtMoney(cents: number, currency = 'USD') {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency,
   }).format(cents / 100);
+}
+
+function fmtMicro(microcents: number, currency = 'USD', maxFractionDigits = 2) {
+  const amount = microcents / MICRO_CENTS_PER_DOLLAR;
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits:
+      amount !== 0 && Math.abs(amount) < 0.01 ? 6 : maxFractionDigits,
+  }).format(amount);
+}
+
+function fmtRunway(hours: number | null | undefined): string {
+  if (hours === null || hours === undefined || !Number.isFinite(hours)) return '—';
+  if (hours < 1) return `${Math.round(hours * 60)} 分钟`;
+  if (hours < 48) return `${Math.round(hours)} 小时`;
+  return `${Math.round(hours / 24)} 天`;
 }
 
 const statusChip: Record<string, string> = {
@@ -43,12 +78,15 @@ const statusLabel: Record<string, string> = {
 
 export default async function BillingPage() {
   const { session } = await requireActivePageSession();
-  const topups = await getTopups(session.email);
+  const [topups, billing] = await Promise.all([
+    getTopups(session.email),
+    getBilling(session.email),
+  ]);
 
   const completed = topups.filter((t) => t.status === 'completed');
   const totalCents = completed.reduce((s, t) => s + t.amount_cents, 0);
-  const totalUnits = completed.reduce((s, t) => s + t.units, 0);
   const pendingCount = topups.filter((t) => t.status === 'pending').length;
+  const currency = billing?.price_book.currency || 'USD';
 
   return (
     <AppLayout>
@@ -72,26 +110,84 @@ export default async function BillingPage() {
           </div>
         </div>
 
-        <div className="kpi-row" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+        <div className="kpi-row" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
           <div className="kpi">
             <div className="k">额度余额</div>
             <div className="v">
-              {totalUnits}
-              <small> units</small>
+              {billing ? fmtMicro(billing.balance_microcents, currency) : fmtMoney(totalCents)}
             </div>
-            <div className="d up">累计已购</div>
+            <div className="d up">{billing ? '可用余额' : '累计已购'}</div>
           </div>
           <div className="kpi">
-            <div className="k">累计充值</div>
-            <div className="v">{fmtMoney(totalCents)}</div>
-            <div className="d">{completed.length} 笔已完成</div>
+            <div className="k">当前费率</div>
+            <div className="v">
+              {billing ? fmtMicro(billing.hourly_rate_microcents, currency) : '—'}
+              <small> /小时</small>
+            </div>
+            <div className="d">按资源上限计</div>
           </div>
           <div className="kpi">
-            <div className="k">待处理</div>
-            <div className="v">{pendingCount}</div>
-            <div className="d">{pendingCount > 0 ? '有待支付订单' : '无'}</div>
+            <div className="k">预计每月</div>
+            <div className="v">
+              {billing ? fmtMicro(billing.monthly_estimate_microcents, currency) : '—'}
+            </div>
+            <div className="d">{billing ? `${billing.price_book.hours_per_month} 小时/月` : '—'}</div>
+          </div>
+          <div className="kpi">
+            <div className="k">可用时长</div>
+            <div className="v">{billing ? fmtRunway(billing.runway_hours) : '—'}</div>
+            <div className="d">{pendingCount > 0 ? `${pendingCount} 笔待支付` : '按当前费率'}</div>
           </div>
         </div>
+
+        {billing && <BillingCapEditor initial={billing} />}
+
+        {billing && (
+          <div className="panel">
+            <div className="panel-h">
+              <h3>计费标准</h3>
+              <div className="tail eyebrow">price book · {currency}</div>
+            </div>
+            <table className="tbl">
+              <thead>
+                <tr>
+                  <th>资源</th>
+                  <th>费率</th>
+                  <th>单位</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>CPU</td>
+                  <td>
+                    {fmtMicro(
+                      billing.price_book.cpu_microcents_per_millicore_hour * 1000,
+                      currency,
+                    )}
+                  </td>
+                  <td className="faint">每核 · 每小时</td>
+                </tr>
+                <tr>
+                  <td>内存</td>
+                  <td>
+                    {fmtMicro(
+                      billing.price_book.memory_microcents_per_mib_hour * 1024,
+                      currency,
+                    )}
+                  </td>
+                  <td className="faint">每 GiB · 每小时</td>
+                </tr>
+                <tr>
+                  <td>存储</td>
+                  <td>
+                    {fmtMicro(billing.price_book.storage_microcents_per_gib_hour, currency)}
+                  </td>
+                  <td className="faint">每 GiB · 每小时</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        )}
 
         <div className="panel">
           <div className="panel-h">
