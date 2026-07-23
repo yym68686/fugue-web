@@ -12,7 +12,6 @@ import {
   type ProjectResourceRollup,
 } from '@/lib/fugue/console';
 import { fmtBytes, fmtMillicores } from '@/lib/format';
-import NewProjectButton from '@/components/projects/NewProjectButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -79,7 +78,12 @@ export default async function ProjectsPage() {
             </div>
           </div>
           <div className="actions">
-            <NewProjectButton />
+            <Link href="/projects/new" className="btn primary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              新建项目
+            </Link>
           </div>
         </div>
 

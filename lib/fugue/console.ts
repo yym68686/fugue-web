@@ -157,6 +157,29 @@ function readApiBaseUrl(): string {
   return raw.replace(/\/+$/, "");
 }
 
+/**
+ * Extract the backend's human-readable error message from a failed response.
+ * The fugue API returns `{ error, code, category, retryable }`; fall back to a
+ * generic message when the body is empty or unparseable.
+ */
+async function readFugueError(
+  response: Response,
+  method: string,
+  path: string,
+): Promise<FugueApiError> {
+  let message = `fugue ${method} ${path} failed with ${response.status}`;
+  try {
+    const text = await response.text();
+    if (text) {
+      const body = JSON.parse(text) as { error?: string };
+      if (body?.error) message = body.error;
+    }
+  } catch {
+    // keep the generic message
+  }
+  return new FugueApiError(response.status, message);
+}
+
 async function fugueGet<T>(adminKey: string, path: string): Promise<T> {
   const url = `${readApiBaseUrl()}${path}`;
   const response = await fetch(url, {
@@ -169,10 +192,7 @@ async function fugueGet<T>(adminKey: string, path: string): Promise<T> {
   });
 
   if (!response.ok) {
-    throw new FugueApiError(
-      response.status,
-      `fugue GET ${path} failed with ${response.status}`,
-    );
+    throw await readFugueError(response, "GET", path);
   }
 
   return (await response.json()) as T;
@@ -197,15 +217,41 @@ async function fugueSend<T>(
   });
 
   if (!response.ok) {
-    throw new FugueApiError(
-      response.status,
-      `fugue ${method} ${path} failed with ${response.status}`,
-    );
+    throw await readFugueError(response, method, path);
   }
 
   // Some mutations return 204 No Content.
   if (response.status === 204) {
     return {} as T;
+  }
+  const text = await response.text();
+  if (!text) return {} as T;
+  return JSON.parse(text) as T;
+}
+
+/**
+ * POST a multipart/form-data body to the backend (used for source uploads).
+ * The Authorization header is set here; the browser/undici sets the multipart
+ * Content-Type + boundary automatically from the FormData.
+ */
+async function fugueSendForm<T>(
+  adminKey: string,
+  path: string,
+  form: FormData,
+): Promise<T> {
+  const url = `${readApiBaseUrl()}${path}`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${adminKey}`,
+      Accept: "application/json",
+    },
+    body: form,
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw await readFugueError(response, "POST", path);
   }
   const text = await response.text();
   if (!text) return {} as T;
@@ -885,6 +931,135 @@ export async function createProject(
     "/v1/projects",
     { name: input.name, description: input.description ?? "" },
   );
+}
+
+/* ------------------------------------------------------------------ *
+ * Project + app creation via source import (new-project wizard).       *
+ * Each import endpoint accepts an inline `project` object so a single   *
+ * call both creates the project and deploys its first app. tenant_id    *
+ * is resolved server-side from the tenant-scoped admin key.             *
+ * ------------------------------------------------------------------ */
+
+/** Shared optional fields across the three import sources. */
+export type ImportCommonInput = {
+  projectName: string;
+  projectDescription?: string;
+  appName?: string;
+  runtimeId?: string;
+  servicePort?: number;
+  env?: Record<string, string>;
+  networkMode?: string;
+  startupCommand?: string;
+};
+
+export type ImportGitHubInput = ImportCommonInput & {
+  repoUrl: string;
+  branch?: string;
+  repoVisibility?: "public" | "private";
+  repoAuthToken?: string;
+  buildStrategy?: string;
+  dockerfilePath?: string;
+  buildContextDir?: string;
+  sourceDir?: string;
+};
+
+export type ImportImageInput = ImportCommonInput & {
+  imageRef: string;
+};
+
+export type ImportResult = {
+  app?: { id?: string | null; project_id?: string | null } | null;
+  project?: ConsoleProject | null;
+  operation?: unknown;
+  request_in_progress?: boolean;
+};
+
+function importCommonBody(input: ImportCommonInput) {
+  return {
+    project: {
+      name: input.projectName.trim(),
+      description: input.projectDescription?.trim() || `${input.projectName.trim()} project`,
+    },
+    ...(input.appName?.trim() ? { name: input.appName.trim() } : {}),
+    ...(input.runtimeId?.trim() ? { runtime_id: input.runtimeId.trim() } : {}),
+    ...(input.servicePort ? { service_port: input.servicePort } : {}),
+    ...(input.env && Object.keys(input.env).length > 0 ? { env: input.env } : {}),
+    ...(input.networkMode && input.networkMode !== "public"
+      ? { network_mode: input.networkMode }
+      : {}),
+    ...(input.startupCommand?.trim() ? { startup_command: input.startupCommand.trim() } : {}),
+  };
+}
+
+export async function importGitHubApp(adminKey: string, input: ImportGitHubInput) {
+  const body = {
+    ...importCommonBody(input),
+    repo_url: input.repoUrl.trim(),
+    ...(input.branch?.trim() ? { branch: input.branch.trim() } : {}),
+    ...(input.repoVisibility ? { repo_visibility: input.repoVisibility } : {}),
+    ...(input.repoAuthToken?.trim() ? { repo_auth_token: input.repoAuthToken.trim() } : {}),
+    ...(input.buildStrategy?.trim() ? { build_strategy: input.buildStrategy.trim() } : {}),
+    ...(input.dockerfilePath?.trim() ? { dockerfile_path: input.dockerfilePath.trim() } : {}),
+    ...(input.buildContextDir?.trim() ? { build_context_dir: input.buildContextDir.trim() } : {}),
+    ...(input.sourceDir?.trim() ? { source_dir: input.sourceDir.trim() } : {}),
+  };
+  return fugueSend<ImportResult>(adminKey, "POST", "/v1/apps/import-github", body);
+}
+
+export async function importImageApp(adminKey: string, input: ImportImageInput) {
+  const body = {
+    ...importCommonBody(input),
+    image_ref: input.imageRef.trim(),
+  };
+  return fugueSend<ImportResult>(adminKey, "POST", "/v1/apps/import-image", body);
+}
+
+/**
+ * Upload a source archive/file and create a project + app from it.
+ * The backend expects multipart with a JSON `request` part and one `archive`
+ * file. `requestJson` mirrors the importUploadRequest struct.
+ */
+export async function importUploadApp(
+  adminKey: string,
+  input: ImportCommonInput & {
+    buildStrategy?: string;
+    dockerfilePath?: string;
+    buildContextDir?: string;
+    sourceDir?: string;
+  },
+  file: { name: string; type: string; data: Blob },
+) {
+  const requestJson = {
+    ...importCommonBody(input),
+    ...(input.buildStrategy?.trim() ? { build_strategy: input.buildStrategy.trim() } : {}),
+    ...(input.dockerfilePath?.trim() ? { dockerfile_path: input.dockerfilePath.trim() } : {}),
+    ...(input.buildContextDir?.trim() ? { build_context_dir: input.buildContextDir.trim() } : {}),
+    ...(input.sourceDir?.trim() ? { source_dir: input.sourceDir.trim() } : {}),
+  };
+  const form = new FormData();
+  form.append("request", JSON.stringify(requestJson));
+  form.append("archive", file.data, file.name);
+  return fugueSendForm<ImportResult>(adminKey, "/v1/apps/import-upload", form);
+}
+
+/* ---- runtime targets (deploy destination picker) ---- */
+
+export type RuntimeTarget = {
+  id?: string;
+  name?: string;
+  machine_name?: string;
+  type?: string;
+  access_mode?: string;
+  pool_mode?: string;
+  status?: string;
+};
+
+export async function listRuntimeTargets(adminKey: string): Promise<RuntimeTarget[]> {
+  const data = await fugueGet<{ runtimes?: RuntimeTarget[] }>(
+    adminKey,
+    "/v1/runtimes?sync_locations=false",
+  );
+  return Array.isArray(data.runtimes) ? data.runtimes : [];
 }
 
 export async function patchProject(
