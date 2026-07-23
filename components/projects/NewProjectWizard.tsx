@@ -112,6 +112,8 @@ export default function NewProjectWizard({ runtimes }: { runtimes: RuntimeTarget
       if (!Number.isInteger(n) || n <= 0) return "服务端口必须是正整数";
     }
     if (needsPrivateAuth && !hasSavedConnection && !manualToken.trim()) {
+      // These fields live in the advanced section — surface them.
+      setAdvOpen(true);
       return "私有仓库需要连接 GitHub 或填写访问令牌";
     }
     return null;
