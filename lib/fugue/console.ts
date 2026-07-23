@@ -886,10 +886,20 @@ export async function patchProject(
   );
 }
 
-export async function deleteProject(adminKey: string, projectId: string) {
-  return fugueSend<{ deleted?: boolean }>(
+export async function deleteProject(
+  adminKey: string,
+  projectId: string,
+  opts?: { cascade?: boolean },
+) {
+  // The console's "delete project" action promises to remove the project and
+  // all of its services/resources. The backend's non-cascade DELETE refuses
+  // (409 Conflict) when any live app or backing service still exists, so a
+  // cascade delete is required to honor that promise. cascade=true returns
+  // 200 when nothing needed queuing, or 202 when app deletions were enqueued.
+  const query = opts?.cascade ? "?cascade=true" : "";
+  return fugueSend<{ deleted?: boolean; delete_requested?: boolean }>(
     adminKey,
     "DELETE",
-    `/v1/projects/${encodeURIComponent(projectId)}`,
+    `/v1/projects/${encodeURIComponent(projectId)}${query}`,
   );
 }

@@ -31,5 +31,8 @@ export async function DELETE(
   context: RouteContextWithParams<"id">,
 ) {
   const id = await readRouteParam(context, "id");
-  return withWorkspaceKey((key) => deleteProject(key, id));
+  // Console delete is a cascade delete: it removes the project along with all
+  // of its apps and backing services. Without cascade the backend returns 409
+  // whenever any live app/service remains.
+  return withWorkspaceKey((key) => deleteProject(key, id, { cascade: true }));
 }
