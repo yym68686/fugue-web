@@ -279,6 +279,82 @@ export async function ensureAppUser(user: SessionUser) {
   return ensureAppUserRecord(user);
 }
 
+/**
+ * Persist a user-minted API key into the local mirror the /keys page reads
+ * from. The secret is intentionally NOT stored (secret_sealed = NULL): unlike
+ * the workspace admin key, the app never acts with this key, so it is revealed
+ * to the user once at creation and then only its metadata is retained. Marked
+ * source='managed' (created through the console) and is_workspace_admin=FALSE.
+ */
+export async function persistManagedApiKey(input: {
+  email: string;
+  key: {
+    id: string;
+    tenantId: string;
+    label: string;
+    prefix: string | null;
+    scopes: string[];
+    createdAt: string | null;
+  };
+}) {
+  const now = new Date().toISOString();
+  const createdAt = input.key.createdAt ?? now;
+
+  await withDbSchemaRetry(() =>
+    queryDb(
+      `
+        INSERT INTO app_api_keys (
+          fugue_key_id,
+          user_email,
+          tenant_id,
+          label,
+          prefix,
+          scopes,
+          secret_sealed,
+          status,
+          source,
+          is_workspace_admin,
+          last_used_at,
+          disabled_at,
+          deleted_at,
+          last_synced_at,
+          created_at,
+          updated_at
+        )
+        VALUES (
+          $1, $2, $3, $4, $5, $6::jsonb,
+          NULL, 'active', 'managed', FALSE,
+          NULL, NULL, NULL, $7, $8, $7
+        )
+        ON CONFLICT (fugue_key_id) DO UPDATE
+        SET
+          user_email = EXCLUDED.user_email,
+          tenant_id = EXCLUDED.tenant_id,
+          label = EXCLUDED.label,
+          prefix = EXCLUDED.prefix,
+          scopes = EXCLUDED.scopes,
+          status = 'active',
+          source = 'managed',
+          is_workspace_admin = FALSE,
+          disabled_at = NULL,
+          deleted_at = NULL,
+          last_synced_at = EXCLUDED.last_synced_at,
+          updated_at = EXCLUDED.updated_at
+      `,
+      [
+        input.key.id,
+        normalizeEmail(input.email),
+        input.key.tenantId,
+        input.key.label,
+        input.key.prefix,
+        JSON.stringify(input.key.scopes),
+        now,
+        createdAt,
+      ],
+    ),
+  );
+}
+
 export async function getWorkspaceSnapshotByEmail(email: string) {
   const row = await getWorkspaceRowByEmail(email);
   return row ? snapshotFromRow(row) : null;

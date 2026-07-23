@@ -1,7 +1,9 @@
 import { queryDb } from '@/lib/db/pool';
 import AppLayout from '@/components/AppLayout';
+import NewKeyButton from '@/components/keys/NewKeyButton';
 import { ApiKey } from '@/lib/types';
 import { requireActivePageSession } from '@/lib/auth/page-access';
+import { WORKSPACE_ADMIN_SCOPES } from '@/lib/fugue/scopes';
 import { getRequestI18n } from '@/lib/i18n/server';
 import type { TranslateFn } from '@/lib/i18n/translate';
 
@@ -89,12 +91,7 @@ export default async function KeysPage() {
             </div>
           </div>
           <div className="actions">
-            <button className="btn primary">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 5v14M5 12h14" />
-              </svg>
-              {t("New key")}
-            </button>
+            <NewKeyButton availableScopes={[...WORKSPACE_ADMIN_SCOPES]} />
           </div>
         </div>
 

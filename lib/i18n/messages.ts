@@ -526,4 +526,23 @@ export const zhCN = {
     "按当前上限，预计 {hourly}/小时 · {monthly}/月（{hours} 小时/月）。实际扣费按上限从额度余额中逐小时累计。",
   "Saved.": "已保存。",
   "Save caps": "保存上限",
+
+  // --- access keys: new-key modal ---
+  "Create API key": "创建 API 密钥",
+  "Create key": "创建密钥",
+  "Key name": "密钥名称",
+  "e.g. ci-deploy": "例如 ci-deploy",
+  Scopes: "作用域",
+  "{count} selected": "已选 {count} 个",
+  "Select all": "全选",
+  Clear: "清空",
+  "Enter a name for the key.": "请为密钥填写名称。",
+  "Choose at least one scope.": "请至少选择一个作用域。",
+  "Failed to create key": "创建密钥失败",
+  "API key created": "API 密钥已创建",
+  "Copy your key secret now. For security it won't be shown again.":
+    "请立即复制密钥凭证；出于安全考虑，它不会再次显示。",
+  Copy: "复制",
+  Copied: "已复制",
+  Done: "完成",
 } satisfies MessageCatalog;

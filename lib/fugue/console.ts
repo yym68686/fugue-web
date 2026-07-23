@@ -1008,6 +1008,36 @@ export async function createProject(
   );
 }
 
+/** The api key metadata the backend returns from POST /v1/api-keys. */
+export type CreatedApiKey = {
+  id: string;
+  tenant_id: string;
+  label: string;
+  prefix: string | null;
+  status: string;
+  scopes: string[];
+  created_at: string;
+};
+
+/**
+ * Mint a new API key in the caller's workspace. tenant_id is omitted so the
+ * backend resolves it from the tenant-scoped admin key; the requested scopes
+ * must be a subset of the admin key's own scopes (the backend rejects any it
+ * does not hold). The secret is returned exactly once and never persisted by
+ * the backend, so callers must surface it immediately.
+ */
+export async function createApiKey(
+  adminKey: string,
+  input: { label: string; scopes: string[] },
+) {
+  return fugueSend<{ api_key?: CreatedApiKey; secret?: string }>(
+    adminKey,
+    "POST",
+    "/v1/api-keys",
+    { label: input.label, scopes: input.scopes },
+  );
+}
+
 /**
  * List the caller's own project slugs (tenant-scoped via the admin key). Used
  * to pick a collision-free auto-derived project name before an import. Falls
