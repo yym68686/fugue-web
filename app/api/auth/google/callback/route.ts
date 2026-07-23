@@ -38,8 +38,7 @@ import {
   sanitizeDisplayName,
   sanitizeExternalHttpUrl,
 } from "@/lib/auth/validation";
-// [STEP2] provisioning disabled for step 1 (auth-only): restore with lib/workspace/bootstrap
-// import { ensureWorkspaceAccessForSignIn } from "@/lib/workspace/bootstrap";
+import { ensureWorkspaceAccessForSignIn } from "@/lib/workspace/bootstrap";
 
 function redirectWithError(
   origin: string,
@@ -231,7 +230,7 @@ export async function GET(request: Request) {
         providerId: user.sub,
         providerLabel: user.email,
       });
-      // [STEP2] await ensureWorkspaceAccessForSignIn(sessionUser);
+      await ensureWorkspaceAccessForSignIn(sessionUser);
     } catch (failure) {
       if (failure instanceof Error && failure.message.includes("blocked")) {
         return failAndRedirect(

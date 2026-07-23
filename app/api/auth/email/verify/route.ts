@@ -20,8 +20,7 @@ import {
   sanitizeDisplayName,
   sanitizeReturnTo,
 } from "@/lib/auth/validation";
-// [STEP2] provisioning disabled for step 1 (auth-only): restore with lib/workspace/bootstrap
-// import { ensureWorkspaceAccessForSignIn } from "@/lib/workspace/bootstrap";
+import { ensureWorkspaceAccessForSignIn } from "@/lib/workspace/bootstrap";
 
 type EmailVerifyPayload = {
   email: string;
@@ -102,7 +101,7 @@ export async function GET(request: Request) {
       email: payload.email,
       method: "email_link",
     });
-    // [STEP2] await ensureWorkspaceAccessForSignIn(sessionUser);
+    await ensureWorkspaceAccessForSignIn(sessionUser);
   } catch (error) {
     if (error instanceof Error && error.message.includes("blocked")) {
       return redirectWithError(payloadOrigin, AUTH_ERROR_ACCOUNT_BLOCKED);
