@@ -478,6 +478,7 @@ button {
   border: 1px solid var(--line-2);
   color: var(--muted);
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .chip.ok {
