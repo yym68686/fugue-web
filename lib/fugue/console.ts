@@ -92,6 +92,7 @@ export type ConsoleProjectSummary = {
 export type ConsoleAppStatus = {
   phase?: string;
   current_replicas?: number;
+  current_runtime_id?: string;
   current_release_ready_at?: string;
   last_message?: string;
   updated_at?: string;
@@ -101,6 +102,14 @@ export type ConsoleAppRoute = {
   host?: string;
   path?: string;
   url?: string;
+};
+
+/** A detected technology (language/framework/runtime) for an app. */
+export type AppTechnology = {
+  kind: string; // e.g. "language" | "framework" | "runtime"
+  slug: string;
+  name: string;
+  source?: string;
 };
 
 export type ConsoleApp = {
@@ -113,6 +122,9 @@ export type ConsoleApp = {
   status?: ConsoleAppStatus;
   current_resource_usage?: ConsoleResourceUsage | null;
   backing_services?: BackingService[];
+  tech_stack?: AppTechnology[];
+  build_source?: AppSource | null;
+  origin_source?: AppSource | null;
   created_at?: string;
   updated_at?: string;
 };
@@ -423,7 +435,7 @@ export async function listAppsWithUsage(adminKey: string): Promise<ConsoleApp[]>
 export async function listAllAppsWithUsage(): Promise<ConsoleApp[]> {
   const data = await fugueGet<{ apps?: ConsoleApp[] }>(
     readBootstrapKey(),
-    "/v1/apps?include_resource_usage=true&include_live_status=false",
+    "/v1/apps?include_resource_usage=true&include_live_status=true",
   );
   return Array.isArray(data.apps) ? data.apps : [];
 }
@@ -549,6 +561,13 @@ export type AppSource = {
   repo_url?: string;
   repo_branch?: string;
   commit_sha?: string;
+  image_ref?: string;
+  resolved_image_ref?: string;
+  upload_filename?: string;
+  build_strategy?: string;
+  dockerfile_path?: string;
+  detected_provider?: string;
+  detected_stack?: string;
 };
 
 export type AppDetailStatus = {
@@ -600,7 +619,7 @@ export type ConsoleAppDetail = {
   spec?: AppSpec;
   status?: AppDetailStatus;
   backing_services?: BackingService[];
-  tech_stack?: string[];
+  tech_stack?: AppTechnology[];
 };
 
 export type AppEnv = {

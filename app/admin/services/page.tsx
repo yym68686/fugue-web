@@ -1,62 +1,124 @@
-import { queryDb } from '@/lib/db/pool';
 import AppLayout from '@/components/AppLayout';
-import { PlatformOverview, AuditEvent } from '@/lib/types';
+import ServicesTable from '@/components/admin/ServicesTable';
 import { requireActiveAdminPageSession } from '@/lib/auth/page-access';
+import {
+  listAllAppsWithUsage,
+  listClusterNodes,
+  type ConsoleApp,
+} from '@/lib/fugue/console';
 import { getRequestI18n } from '@/lib/i18n/server';
-import type { TranslateFn } from '@/lib/i18n/translate';
+import { getWorkspaceSnapshotsByTenantIds } from '@/lib/workspace/store';
 
 export const dynamic = 'force-dynamic';
 
-async function getOverview(): Promise<PlatformOverview | null> {
-  const result = await queryDb<{ payload: PlatformOverview }>(
-    `SELECT payload FROM app_admin_snapshots WHERE key = 'platform_overview'`
-  );
-  if (result.rows.length === 0) return null;
-  return result.rows[0].payload as PlatformOverview;
-}
-
-async function getAuditEvents(): Promise<AuditEvent[]> {
-  const result = await queryDb<AuditEvent>(`
-    SELECT id, action, actor_email, target_email, metadata, created_at
-    FROM app_security_audit_events
-    ORDER BY created_at DESC
-    LIMIT 20
-  `);
-  return result.rows;
-}
-
-function fmtMoney(cents: number, currency = 'USD') {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(
-    cents / 100
-  );
-}
-
-function relTime(d: Date, t: TranslateFn): string {
-  const diff = Date.now() - new Date(d).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return t('just now');
-  if (mins < 60) return t('{mins} min ago', { mins });
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return t('{hrs} hr ago', { hrs });
-  const days = Math.floor(hrs / 24);
-  return t('{days} days ago', { days });
-}
-
-// Backend audit-action types → English label key + chip tone. Labels are
-// resolved through t() at render time.
-const actionMeta: Record<string, { label: string; kind: string }> = {
-  'user.login': { label: 'User sign-in', kind: 'deploy' },
-  'apikey.create': { label: 'Key created', kind: 'deploy' },
-  'apikey.revoke': { label: 'Key revoked', kind: 'incident' },
-  'node.attach': { label: 'Node attached', kind: 'deploy' },
-  'billing.topup': { label: 'Account top-up', kind: 'restart' },
+/** Everything the services table needs, resolved once server-side. */
+export type ServiceRow = {
+  id: string;
+  name: string;
+  tenantId: string | null;
+  ownerEmail: string | null;
+  phase: string;
+  replicas: number | null;
+  stack: string[];
+  deployMethod: string | null;
+  repo: string | null;
+  nodeName: string | null;
+  routeUrl: string | null;
 };
+
+function deployMethod(app: ConsoleApp): string | null {
+  const src = app.build_source ?? app.origin_source;
+  if (!src) return null;
+  // build_strategy is the most specific ("dockerfile", "buildpacks", "compose"…);
+  // fall back to the source type ("git", "image", "upload").
+  return src.build_strategy || src.type || null;
+}
+
+function techStack(app: ConsoleApp): string[] {
+  const stack = app.tech_stack ?? [];
+  const names = stack.map((t) => t.name).filter(Boolean);
+  if (names.length) return names;
+  // Fall back to the build source's detected stack when tech_stack is empty.
+  const detected = (app.build_source ?? app.origin_source)?.detected_stack;
+  return detected ? [detected] : [];
+}
+
+function repoLabel(app: ConsoleApp): string | null {
+  const src = app.build_source ?? app.origin_source;
+  if (src?.repo_url) {
+    const branch = src.repo_branch ? `@${src.repo_branch}` : '';
+    // Trim the scheme/host for a compact label (owner/repo).
+    const short = src.repo_url.replace(/^https?:\/\/[^/]+\//, '').replace(/\.git$/, '');
+    return `${short}${branch}`;
+  }
+  if (src?.image_ref) return src.image_ref;
+  if (src?.resolved_image_ref) return src.resolved_image_ref;
+  return null;
+}
 
 export default async function AdminServicesPage() {
   await requireActiveAdminPageSession();
   const { t } = await getRequestI18n();
-  const overview = await getOverview();
-  const events = await getAuditEvents();
+
+  const [apps, nodes] = await Promise.all([
+    listAllAppsWithUsage().catch(() => [] as ConsoleApp[]),
+    listClusterNodes().catch(() => []),
+  ]);
+
+  // app id → node name, from the cluster workloads (each carries owner_app_id).
+  const nodeByAppId = new Map<string, string>();
+  for (const node of nodes) {
+    for (const w of node.workloads ?? []) {
+      if (w.owner_app_id) nodeByAppId.set(w.owner_app_id, node.name);
+      // An app workload's own id is the app id too.
+      if (w.kind === 'app' && w.id) nodeByAppId.set(w.id, node.name);
+    }
+  }
+
+  // tenant id → owner email, from workspace snapshots.
+  const tenantIds = [
+    ...new Set(apps.map((a) => a.tenant_id).filter((x): x is string => Boolean(x))),
+  ];
+  const snapshots = tenantIds.length
+    ? await getWorkspaceSnapshotsByTenantIds(tenantIds).catch(() => [])
+    : [];
+  const emailByTenant = new Map<string, string>();
+  for (const s of snapshots) emailByTenant.set(s.tenantId, s.email);
+
+  const rows: ServiceRow[] = apps.map((app) => ({
+    id: app.id,
+    name: app.name,
+    tenantId: app.tenant_id ?? null,
+    ownerEmail: app.tenant_id ? emailByTenant.get(app.tenant_id) ?? null : null,
+    phase: app.status?.phase || 'unknown',
+    replicas:
+      typeof app.status?.current_replicas === 'number'
+        ? app.status.current_replicas
+        : null,
+    stack: techStack(app),
+    deployMethod: deployMethod(app),
+    repo: repoLabel(app),
+    nodeName: nodeByAppId.get(app.id) ?? null,
+    routeUrl: app.route?.url || null,
+  }));
+
+  // Sort: running/degraded first, then by name.
+  const phaseRank: Record<string, number> = {
+    running: 0,
+    updating: 1,
+    degraded: 2,
+    pending: 3,
+    stopped: 4,
+    failed: 5,
+  };
+  rows.sort((a, b) => {
+    const ra = phaseRank[a.phase.toLowerCase()] ?? 9;
+    const rb = phaseRank[b.phase.toLowerCase()] ?? 9;
+    if (ra !== rb) return ra - rb;
+    return a.name.localeCompare(b.name);
+  });
+
+  const running = rows.filter((r) => r.phase.toLowerCase() === 'running').length;
 
   return (
     <AppLayout>
@@ -64,93 +126,27 @@ export default async function AdminServicesPage() {
         <div className="phead">
           <div>
             <div className="eyebrow">Platform · Services</div>
-            <h1>{t('Services & operations')}</h1>
+            <h1>{t('All services')}</h1>
             <div className="meta">
               <span>
-                <span className="dot ok"></span> {t('Control plane running')}
+                <span className="dot ok"></span>{' '}
+                {t('{running}/{total} running', { running, total: rows.length })}
               </span>
-              <span>{t('Platform snapshot · live')}</span>
+              <span>{t('{count} tenants', { count: tenantIds.length })}</span>
             </div>
-          </div>
-        </div>
-
-        <div className="kpi-row">
-          <div className="kpi">
-            <div className="k">{t('Users')}</div>
-            <div className="v">{overview?.totals.users ?? '—'}</div>
-            <div className="d">{t('Total registered')}</div>
-          </div>
-          <div className="kpi">
-            <div className="k">{t('Workspaces')}</div>
-            <div className="v">{overview?.totals.workspaces ?? '—'}</div>
-            <div className="d">{t('Tenants')}</div>
-          </div>
-          <div className="kpi">
-            <div className="k">{t('API keys')}</div>
-            <div className="v">{overview?.totals.apiKeys ?? '—'}</div>
-            <div className="d">{t('Issued')}</div>
-          </div>
-          <div className="kpi">
-            <div className="k">{t('Active nodes')}</div>
-            <div className="v">
-              {overview?.totals.activeNodes ?? '—'}
-              <small> / {overview?.totals.nodeKeys ?? '—'}</small>
-            </div>
-            <div className="d up">{t('Online')}</div>
-          </div>
-          <div className="kpi">
-            <div className="k">{t('Revenue (last 30d)')}</div>
-            <div className="v">
-              {overview ? fmtMoney(overview.revenue.last30dCents, overview.revenue.currency) : '—'}
-            </div>
-            <div className="d up">{t('All-time {amount}', { amount: overview ? fmtMoney(overview.revenue.allTimeCents, overview.revenue.currency) : '—' })}</div>
           </div>
         </div>
 
         <div className="panel">
           <div className="panel-h">
-            <h3>{t('Security audit stream')}</h3>
-            <span className="eyebrow" style={{ letterSpacing: '.1em' }}>
-              {t('Platform-wide · recent events')}
-            </span>
-            <div className="tail">
-              <span className="chip run">
-                <span className="dot run"></span>{t('Live')}
-              </span>
-            </div>
+            <h3>{t('Deployed services')}</h3>
+            <div className="tail eyebrow">{rows.length} total</div>
           </div>
-          <div className="feed">
-            {events.length === 0 && <div className="empty">{t('No audit events')}</div>}
-            {events.map((ev) => {
-              const meta = actionMeta[ev.action] || {
-                label: ev.action,
-                kind: 'deploy',
-              };
-              return (
-                <div key={ev.id} className={`ev ${meta.kind}`}>
-                  <span className="ic">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M12 3l9 16H3z" />
-                      <path d="M12 10v4M12 17v.01" />
-                    </svg>
-                  </span>
-                  <div className="body">
-                    <div className="hd">
-                      <span className="svc">{t(meta.label)}</span>
-                      <span className="act mono">{ev.action}</span>
-                    </div>
-                    <div className="sub">
-                      {ev.actor_email || t('System')}
-                      {ev.target_email && ev.target_email !== ev.actor_email
-                        ? ` → ${ev.target_email}`
-                        : ''}
-                    </div>
-                  </div>
-                  <span className="when">{relTime(ev.created_at, t)}</span>
-                </div>
-              );
-            })}
-          </div>
+          {rows.length > 0 ? (
+            <ServicesTable rows={rows} />
+          ) : (
+            <div className="empty">{t('No services deployed yet.')}</div>
+          )}
         </div>
       </div>
     </AppLayout>
