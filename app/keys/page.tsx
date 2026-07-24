@@ -1,6 +1,7 @@
 import { queryDb } from '@/lib/db/pool';
 import AppLayout from '@/components/AppLayout';
 import NewKeyButton from '@/components/keys/NewKeyButton';
+import KeyRowActions from '@/components/keys/KeyRowActions';
 import { ApiKey } from '@/lib/types';
 import { requireActivePageSession } from '@/lib/auth/page-access';
 import { getAuthContext } from '@/lib/fugue/console';
@@ -164,6 +165,15 @@ export default async function KeysPage() {
                   <span className={`chip ${statusChip[k.status] || 'idle'}`}>
                     {statusLabel(t, k.status)}
                   </span>
+                  {!k.is_workspace_admin && (
+                    <KeyRowActions
+                      keyId={k.fugue_key_id}
+                      label={k.label}
+                      scopes={k.scopes ?? []}
+                      status={k.status}
+                      availableScopes={grantableScopes}
+                    />
+                  )}
                 </div>
               </div>
             ))}

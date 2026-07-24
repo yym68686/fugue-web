@@ -43,6 +43,7 @@ export default async function Landing() {
         <nav className="lp-nav">
           <a href="#how">{t("How it works")}</a>
           <a href="#features">{t("Capabilities")}</a>
+          <a href="/docs">{t("Docs")}</a>
           <a className="lp-nav-cta" href="/auth/sign-in">
             {t("Sign in")}
           </a>

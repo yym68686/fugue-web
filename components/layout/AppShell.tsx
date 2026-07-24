@@ -173,15 +173,6 @@ function ShellInner({
             ))}
           </div>
         )}
-
-        <div className="rail-foot">
-          <div className="row">
-            <span className="dot ok"></span> {t("control-plane")}
-          </div>
-          <div className="row" style={{ marginTop: "5px" }}>
-            v2.4.1 · {t("api healthy")}
-          </div>
-        </div>
       </aside>
 
       <main className="main">{children}</main>

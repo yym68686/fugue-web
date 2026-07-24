@@ -111,6 +111,63 @@ export const zhCN = {
   "From blank to a live service in minutes.": "几分钟内从空白到线上服务。",
   "Create account": "创建账号",
 
+  // --- docs page ---
+  Docs: "文档",
+  Home: "首页",
+  "Deploy from your terminal": "在终端里完成部署",
+  "Install the fugue CLI, create your first API key, and ship a service from your terminal in a few minutes.":
+    "安装 fugue CLI，创建你的第一个 API 密钥，几分钟内就能从终端发布一个服务。",
+  "On this page": "本页内容",
+  "Install the CLI": "安装 CLI",
+  "Get your first API key": "获取你的第一个 API 密钥",
+  "What the API key is for": "API 密钥有什么用",
+  "Authenticate and deploy": "登录并部署",
+  "Connect your own server": "接入你自己的服务器",
+  "Handy commands": "常用命令",
+  "The fugue CLI is a semantic wrapper over the Fugue control-plane API. Install it with a single command.":
+    "fugue CLI 是对 Fugue 控制面 API 的语义化封装，一条命令即可安装。",
+  "macOS / Linux": "macOS / Linux",
+  "Windows PowerShell": "Windows PowerShell",
+  "Confirm it is on your PATH:": "确认它已在 PATH 中：",
+  "You authenticate the CLI with an API key minted from the console. For security the secret is shown only once, so copy it right away.":
+    "你需要用在控制台生成的 API 密钥来登录 CLI。出于安全考虑，密钥只显示一次，请立即复制。",
+  "Sign in to the console.": "登录控制台。",
+  "Open the Access keys page from the sidebar.": "在侧边栏打开「API 密钥」页面。",
+  "Click New key, give it a name, pick the scopes it needs, and create it.":
+    "点击「新建密钥」，为它取名、选择所需权限范围，然后创建。",
+  "Copy the secret from the dialog — it will not be shown again.":
+    "在弹窗中复制密钥凭证——它不会再次显示。",
+  "Go to Access keys": "前往 API 密钥",
+  "Self-hosting Fugue? The Access keys page lives at your own console URL followed by /keys.":
+    "自建 Fugue？「API 密钥」页面位于你自己的控制台地址后加 /keys。",
+  "The API key authenticates the CLI — and any direct API calls — to your tenant on the control plane. Every command you run, from deploy to logs to scaling, is authorized by the key you provide. Nothing runs against your workspace without one.":
+    "API 密钥用于让 CLI（以及任何直接的 API 调用）以你在控制面上的租户身份进行认证。你运行的每条命令——从部署、日志到扩缩容——都由你提供的密钥授权。没有密钥，任何操作都无法作用于你的工作空间。",
+  "Tenant API key": "租户 API 密钥",
+  " — for everyday work: deploy apps, read logs, and manage services inside your workspace. Each key is limited to the scopes you grant it.":
+    "——用于日常工作：部署应用、查看日志、管理工作空间内的服务。每个密钥都仅限于你授予的权限范围。",
+  "Workspace admin key": "工作空间管理密钥",
+  " — your workspace's built-in high-privilege key. It is what mints and manages the other keys, so it is never shown for deletion.":
+    "——工作空间内置的高权限密钥。其他密钥都由它创建和管理，因此它不提供删除入口。",
+  "Platform / bootstrap key": "平台 / 引导密钥",
+  " — reserved for cluster-wide admin commands. Keep it secret and use it only when an operation truly requires it.":
+    "——仅用于集群级管理命令。请妥善保密，只在确实需要时使用。",
+  "Keys are sealed and encrypted at rest. You can disable or delete any key from the Access keys page at any time.":
+    "密钥在存储时经过封装和加密。你可以随时在「API 密钥」页面停用或删除任意密钥。",
+  "Save the key once, then deploy straight from a project directory. The CLI resolves your tenant, project, and app by name.":
+    "保存一次密钥，之后即可直接在项目目录里部署。CLI 会按名称解析你的租户、项目和应用。",
+  "On Fugue Cloud the base URL is detected automatically. For a self-hosted control plane, set FUGUE_API_URL (or FUGUE_BASE_URL) to your API endpoint before running commands.":
+    "在 Fugue Cloud 上，基础地址会自动识别。若使用自建控制面，请在运行命令前将 FUGUE_API_URL（或 FUGUE_BASE_URL）设置为你的 API 地址。",
+  "Want Fugue to schedule workloads onto your own VPS? Open Servers, click Connect node, name the machine, and run the generated one-line command on it as root. The node joins the cluster in about a minute and then appears in your node list.":
+    "想让 Fugue 把工作负载调度到你自己的 VPS 上？打开「服务器」，点击「接入节点」，为机器取名，然后以 root 身份在该机器上运行生成的单行命令。节点约一分钟内加入集群，随后会出现在你的节点列表中。",
+  "Go to Servers": "前往服务器",
+  "Build and deploy the current directory": "构建并部署当前目录",
+  "List your applications": "列出你的应用",
+  "Stream logs for an app": "实时查看某个应用的日志",
+  "Resolve and inspect a resource by name": "按名称解析并查看某个资源",
+  "Check whether a newer CLI is available": "检查是否有更新版本的 CLI",
+  "Upgrade the CLI in place": "原地升级 CLI",
+  "Show the full command reference": "显示完整的命令参考",
+
   // --- auth: sign-in / sign-up / handoff / shell ---
   "Hand your code to Fugue and focus on your product.":
     "把代码交给 Fugue，专注你的产品。",
@@ -208,6 +265,21 @@ export const zhCN = {
   heartbeat: "心跳",
   Revoked: "已吊销",
   Active: "活跃",
+  "{count} nodes": "{count} 个节点",
+  "No nodes connected yet": "暂无接入的节点",
+  "No node keys yet": "暂无节点密钥",
+  "Connect a server": "接入服务器",
+  "Enroll your server": "接入你的服务器",
+  "Node name": "节点名称",
+  "e.g. hk-edge-1": "例如 hk-edge-1",
+  "Enter a name for the node.": "请输入节点名称。",
+  "Generate join command": "生成接入命令",
+  "Rename node": "重命名节点",
+  "Disable node key": "关闭节点密钥",
+  "Run this on the server you want to connect (as root). For security the key is shown only once.":
+    "在你要接入的服务器上以 root 身份运行以下命令。出于安全考虑，密钥只显示一次。",
+  "The node appears above once it finishes joining the cluster (usually under a minute).":
+    "节点加入集群后（通常不到一分钟）会显示在上方列表中。",
   "{count} enabled": "{count} 个启用",
   "{count} keys": "{count} 个密钥",
   "New key": "新建密钥",
@@ -561,4 +633,16 @@ export const zhCN = {
   Copy: "复制",
   Copied: "已复制",
   Done: "完成",
+
+  // --- access keys: per-row edit / disable / delete ---
+  Edit: "编辑",
+  Enable: "启用",
+  Disable: "关闭",
+  "Edit API key": "编辑 API 密钥",
+  "Delete API key": "删除 API 密钥",
+  "Disable API key": "关闭 API 密钥",
+  "Permanently delete “{label}”? Any client using this key will immediately lose access. This cannot be undone.":
+    "永久删除“{label}”？任何使用该密钥的客户端将立即失去访问权限。此操作无法撤销。",
+  "Disable “{label}”? Clients using this key will lose access until you enable it again.":
+    "关闭“{label}”？使用该密钥的客户端将失去访问权限，直到你重新启用它。",
 } satisfies MessageCatalog;

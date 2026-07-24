@@ -46,6 +46,14 @@ async function persistPreference(body: { theme?: string; locale?: string }) {
   }
 }
 
+// The locale swap needs the browser to send the just-written fg_locale cookie
+// on the next request. router.refresh() re-runs the server render (which reads
+// the cookie) — but only if the Set-Cookie response has already committed.
+// Firing the POST and the refresh in the same tick races them: the refresh's
+// request usually leaves before the cookie lands, so the first click re-renders
+// with the *old* locale and only a later click (after the earlier POST settled)
+// appears to work. Awaiting the write first removes the race entirely.
+
 function applyTheme(pref: ThemePreference) {
   const root = document.documentElement;
   root.dataset.themePreference = pref;
@@ -96,10 +104,15 @@ export default function UserMenu({
     void persistPreference({ theme: next });
   }
 
-  function chooseLocale(next: LocalePreference) {
-    void persistPreference({ locale: next });
-    // Locale is resolved server-side on render; refresh to re-render with the
-    // new language.
+  async function chooseLocale(next: LocalePreference) {
+    if (next === localePreference) {
+      setOpen(false);
+      return;
+    }
+    // Persist the cookie FIRST, then refresh so the server render reads the new
+    // fg_locale. Doing these in parallel races the Set-Cookie against the
+    // refresh request (see persistPreference).
+    await persistPreference({ locale: next });
     router.refresh();
     setOpen(false);
   }

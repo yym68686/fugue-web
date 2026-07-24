@@ -1038,6 +1038,139 @@ export async function createApiKey(
   );
 }
 
+/**
+ * Update an existing API key's label and/or scopes (PATCH /v1/api-keys/{id}).
+ * Both fields are optional — send only what changed. As with minting, requested
+ * scopes must be a subset of the admin key's own scopes; the backend replaces
+ * the full scope set when `scopes` is provided (it is not additive). Returns the
+ * updated key metadata so callers can re-mirror label/scopes/status locally.
+ */
+export async function updateApiKey(
+  adminKey: string,
+  id: string,
+  input: { label?: string; scopes?: string[] },
+) {
+  const body: Record<string, unknown> = {};
+  if (input.label !== undefined) body.label = input.label;
+  if (input.scopes !== undefined) body.scopes = input.scopes;
+  return fugueSend<{ api_key?: CreatedApiKey }>(
+    adminKey,
+    "PATCH",
+    `/v1/api-keys/${encodeURIComponent(id)}`,
+    body,
+  );
+}
+
+/** Disable (revoke) an API key without deleting it (POST .../disable). Reversible via enableApiKey. */
+export async function disableApiKey(adminKey: string, id: string) {
+  return fugueSend<{ api_key?: CreatedApiKey }>(
+    adminKey,
+    "POST",
+    `/v1/api-keys/${encodeURIComponent(id)}/disable`,
+  );
+}
+
+/** Re-enable a previously disabled API key (POST .../enable). */
+export async function enableApiKey(adminKey: string, id: string) {
+  return fugueSend<{ api_key?: CreatedApiKey }>(
+    adminKey,
+    "POST",
+    `/v1/api-keys/${encodeURIComponent(id)}/enable`,
+  );
+}
+
+/** Permanently delete an API key (DELETE /v1/api-keys/{id}). Returns { deleted, api_key }. */
+export async function deleteApiKey(adminKey: string, id: string) {
+  return fugueSend<{ deleted?: boolean; api_key?: CreatedApiKey }>(
+    adminKey,
+    "DELETE",
+    `/v1/api-keys/${encodeURIComponent(id)}`,
+  );
+}
+
+/* ---- node keys & runtime nodes (servers page) ---- */
+
+/** A node-enrollment key as returned by /v1/node-keys (hash omitted client-side). */
+export type FugueNodeKey = {
+  id: string;
+  tenant_id: string | null;
+  label: string;
+  prefix: string | null;
+  scope: string | null;
+  status: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  last_used_at: string | null;
+  revoked_at: string | null;
+};
+
+/** A runtime node (an enrolled VPS) as returned by /v1/runtimes. */
+export type FugueRuntimeNode = {
+  id: string;
+  tenant_id?: string | null;
+  name: string;
+  machine_name?: string | null;
+  type: string;
+  status: string;
+  endpoint?: string | null;
+  node_key_id?: string | null;
+  cluster_node_name?: string | null;
+  last_seen_at?: string | null;
+  last_heartbeat_at?: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+/** List all node-enrollment keys visible to the tenant (GET /v1/node-keys). */
+export async function listNodeKeys(adminKey: string) {
+  return fugueGet<{ node_keys?: FugueNodeKey[] }>(adminKey, "/v1/node-keys");
+}
+
+/**
+ * Mint a tenant-runtime node-enrollment key (POST /v1/node-keys). tenant_id is
+ * required for the tenant-runtime scope; the secret is returned exactly once and
+ * must be surfaced to the user immediately (it feeds the join command). Requires
+ * the runtime.attach scope, which workspace admin keys hold.
+ */
+export async function createNodeKey(
+  adminKey: string,
+  input: { label: string; tenantId: string },
+) {
+  return fugueSend<{ node_key?: FugueNodeKey; secret?: string }>(
+    adminKey,
+    "POST",
+    "/v1/node-keys",
+    { label: input.label, tenant_id: input.tenantId, scope: "tenant-runtime" },
+  );
+}
+
+/** Revoke a node-enrollment key (POST /v1/node-keys/{id}/revoke). */
+export async function revokeNodeKey(adminKey: string, id: string) {
+  return fugueSend<{ node_key?: FugueNodeKey; cleanup?: unknown }>(
+    adminKey,
+    "POST",
+    `/v1/node-keys/${encodeURIComponent(id)}/revoke`,
+  );
+}
+
+/**
+ * List the tenant's runtime nodes (GET /v1/runtimes). The servers page shows the
+ * owned subset (external-owned / managed-owned) — VPS the tenant has enrolled.
+ */
+export async function listRuntimes(adminKey: string) {
+  return fugueGet<{ runtimes?: FugueRuntimeNode[] }>(adminKey, "/v1/runtimes");
+}
+
+/**
+ * Build the one-liner a user runs on their VPS to enroll it against a freshly
+ * minted node key. Mirrors the install script's FUGUE_NODE_KEY contract (see
+ * the backend's /install/join-cluster.sh, which requires that env var).
+ */
+export function buildNodeJoinCommand(secret: string): string {
+  const base = readApiBaseUrl();
+  return `curl -fsSL ${base}/install/join-cluster.sh | sudo FUGUE_NODE_KEY='${secret}' bash`;
+}
+
 /** The principal the backend resolves for a key, from GET /v1/auth/context. */
 export type AuthContext = {
   scopes: string[];

@@ -355,6 +355,239 @@ export async function persistManagedApiKey(input: {
   );
 }
 
+/**
+ * Reflect a managed API key's new status into the local mirror the /keys page
+ * reads. Scoped by user_email so one user can never mutate another's row, and
+ * guarded to `is_workspace_admin = FALSE` so the workspace's own admin key can
+ * never be disabled/deleted through this path. `status` drives disabled_at /
+ * deleted_at: 'active' clears both, 'disabled' stamps disabled_at, 'deleted'
+ * stamps deleted_at (the page filters status='deleted' rows out).
+ */
+export async function updateManagedApiKeyStatus(input: {
+  email: string;
+  fugueKeyId: string;
+  status: "active" | "disabled" | "deleted";
+}) {
+  const now = new Date().toISOString();
+  await withDbSchemaRetry(() =>
+    queryDb(
+      `
+        UPDATE app_api_keys
+        SET
+          status = $3,
+          disabled_at = CASE WHEN $3 = 'disabled' THEN $4::timestamptz ELSE NULL END,
+          deleted_at = CASE WHEN $3 = 'deleted' THEN $4::timestamptz ELSE NULL END,
+          last_synced_at = $4,
+          updated_at = $4
+        WHERE fugue_key_id = $1
+          AND user_email = $2
+          AND is_workspace_admin = FALSE
+      `,
+      [input.fugueKeyId, normalizeEmail(input.email), input.status, now],
+    ),
+  );
+}
+
+/**
+ * Reflect an edited managed API key's label/scopes into the local mirror. Same
+ * ownership + non-admin guards as updateManagedApiKeyStatus. Only provided
+ * fields change; scopes replace the stored array (matching backend semantics).
+ */
+export async function updateManagedApiKeyMeta(input: {
+  email: string;
+  fugueKeyId: string;
+  label?: string;
+  scopes?: string[];
+}) {
+  const now = new Date().toISOString();
+  await withDbSchemaRetry(() =>
+    queryDb(
+      `
+        UPDATE app_api_keys
+        SET
+          label = COALESCE($3, label),
+          scopes = COALESCE($4::jsonb, scopes),
+          last_synced_at = $5,
+          updated_at = $5
+        WHERE fugue_key_id = $1
+          AND user_email = $2
+          AND is_workspace_admin = FALSE
+      `,
+      [
+        input.fugueKeyId,
+        normalizeEmail(input.email),
+        input.label ?? null,
+        input.scopes ? JSON.stringify(input.scopes) : null,
+        now,
+      ],
+    ),
+  );
+}
+
+/**
+ * Fetch a single mirrored API key for authorization checks before a mutation.
+ * Scoped by user_email so a caller can only ever see their own keys. Routes use
+ * this to (a) confirm the key exists in the caller's workspace and (b) refuse to
+ * touch the workspace admin key (is_workspace_admin) — which must never be
+ * disabled/deleted/edited through the user-facing /keys controls, even though
+ * the tenant-scoped admin key technically could via the control plane.
+ */
+export async function getManagedApiKeyForUser(email: string, fugueKeyId: string) {
+  const result = await withDbSchemaRetry(() =>
+    queryDb<{
+      fugue_key_id: string;
+      tenant_id: string;
+      label: string;
+      scopes: string[];
+      status: "active" | "disabled" | "deleted";
+      is_workspace_admin: boolean;
+    }>(
+      `
+        SELECT fugue_key_id, tenant_id, label, scopes, status, is_workspace_admin
+        FROM app_api_keys
+        WHERE fugue_key_id = $1 AND user_email = $2
+      `,
+      [fugueKeyId, normalizeEmail(email)],
+    ),
+  );
+  return result.rows[0] ?? null;
+}
+
+/* ---- node-enrollment keys (servers page) ---- */
+
+/**
+ * Persist a freshly-minted node-enrollment key into the local mirror the
+ * /servers page reads. As with managed API keys, the secret is NOT stored
+ * (secret_sealed = NULL): it is revealed once at creation for the join command
+ * and never again. Marked source='managed', status='active'.
+ */
+export async function persistManagedNodeKey(input: {
+  email: string;
+  key: {
+    id: string;
+    tenantId: string;
+    label: string;
+    prefix: string | null;
+    createdAt: string | null;
+  };
+}) {
+  const now = new Date().toISOString();
+  const createdAt = input.key.createdAt ?? now;
+
+  await withDbSchemaRetry(() =>
+    queryDb(
+      `
+        INSERT INTO app_node_keys (
+          fugue_node_key_id,
+          user_email,
+          tenant_id,
+          label,
+          prefix,
+          hash,
+          secret_sealed,
+          status,
+          source,
+          last_used_at,
+          revoked_at,
+          last_synced_at,
+          created_at,
+          updated_at
+        )
+        VALUES (
+          $1, $2, $3, $4, $5,
+          NULL, NULL, 'active', 'managed',
+          NULL, NULL, $6, $7, $6
+        )
+        ON CONFLICT (fugue_node_key_id) DO UPDATE
+        SET
+          user_email = EXCLUDED.user_email,
+          tenant_id = EXCLUDED.tenant_id,
+          label = EXCLUDED.label,
+          prefix = EXCLUDED.prefix,
+          status = 'active',
+          source = 'managed',
+          revoked_at = NULL,
+          last_synced_at = EXCLUDED.last_synced_at,
+          updated_at = EXCLUDED.updated_at
+      `,
+      [
+        input.key.id,
+        normalizeEmail(input.email),
+        input.key.tenantId,
+        input.key.label,
+        input.key.prefix,
+        now,
+        createdAt,
+      ],
+    ),
+  );
+}
+
+/**
+ * Reflect a revoked node key into the local mirror (status='revoked'). Scoped by
+ * user_email so a caller can only revoke their own keys.
+ */
+export async function revokeManagedNodeKey(input: {
+  email: string;
+  nodeKeyId: string;
+}) {
+  const now = new Date().toISOString();
+  await withDbSchemaRetry(() =>
+    queryDb(
+      `
+        UPDATE app_node_keys
+        SET status = 'revoked', revoked_at = $3, last_synced_at = $3, updated_at = $3
+        WHERE fugue_node_key_id = $1 AND user_email = $2
+      `,
+      [input.nodeKeyId, normalizeEmail(input.email), now],
+    ),
+  );
+}
+
+/**
+ * Rename a node key. This is LOCAL-only: the control plane has no node-key label
+ * PATCH, so the display name is overridden via label_override in the mirror. The
+ * /servers page prefers label_override over the synced label. Scoped by
+ * user_email.
+ */
+export async function renameManagedNodeKey(input: {
+  email: string;
+  nodeKeyId: string;
+  label: string;
+}) {
+  const now = new Date().toISOString();
+  await withDbSchemaRetry(() =>
+    queryDb(
+      `
+        UPDATE app_node_keys
+        SET label_override = $3, updated_at = $4
+        WHERE fugue_node_key_id = $1 AND user_email = $2
+      `,
+      [input.nodeKeyId, normalizeEmail(input.email), input.label, now],
+    ),
+  );
+}
+
+/** Fetch a single mirrored node key for authorization checks before a mutation. */
+export async function getManagedNodeKeyForUser(email: string, nodeKeyId: string) {
+  const result = await withDbSchemaRetry(() =>
+    queryDb<{
+      fugue_node_key_id: string;
+      tenant_id: string;
+      label: string;
+      status: "active" | "revoked";
+    }>(
+      `
+        SELECT fugue_node_key_id, tenant_id, label, status
+        FROM app_node_keys
+        WHERE fugue_node_key_id = $1 AND user_email = $2
+      `,
+      [nodeKeyId, normalizeEmail(email)],
+    ),
+  );
+  return result.rows[0] ?? null;
+}
+
 export async function getWorkspaceSnapshotByEmail(email: string) {
   const row = await getWorkspaceRowByEmail(email);
   return row ? snapshotFromRow(row) : null;
