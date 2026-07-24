@@ -3599,14 +3599,19 @@ select.input {
 }
 
 .fs-meta {
-  flex: 0 0 auto;
+  flex: 0 0 84px;
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
   color: var(--faint);
   font-size: 12px;
 }
 
 .fs-mtime {
-  min-width: 96px;
+  flex: 0 0 128px;
   text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 @media (max-width: 620px) {
