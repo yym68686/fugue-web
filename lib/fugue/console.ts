@@ -53,6 +53,9 @@ export type BillingSummary = {
   managed_cap: BillingResourceSpec;
   managed_committed?: BillingResourceSpec;
   managed_available?: BillingResourceSpec;
+  // Present when the summary is fetched with include_current_usage=true. The
+  // backend fills it in from live cluster metrics (or null when unavailable).
+  current_usage?: ConsoleResourceUsage | null;
   price_book: BillingPriceBook;
   hourly_rate_microcents: number;
   monthly_estimate_microcents: number;
@@ -363,6 +366,21 @@ export async function getConsoleProject(
 export async function listAppsWithUsage(adminKey: string): Promise<ConsoleApp[]> {
   const data = await fugueGet<{ apps?: ConsoleApp[] }>(
     adminKey,
+    "/v1/apps?include_resource_usage=true&include_live_status=false",
+  );
+  return Array.isArray(data.apps) ? data.apps : [];
+}
+
+/**
+ * List apps across ALL tenants for the platform admin console. Authenticates
+ * with the bootstrap key and omits `tenant_id`, which the backend interprets
+ * (for a platform-admin principal) as "every tenant". Only ever called from
+ * server components behind an is-admin gate. Each returned app carries its
+ * `tenant_id`, so callers can group/attribute by owner.
+ */
+export async function listAllAppsWithUsage(): Promise<ConsoleApp[]> {
+  const data = await fugueGet<{ apps?: ConsoleApp[] }>(
+    readBootstrapKey(),
     "/v1/apps?include_resource_usage=true&include_live_status=false",
   );
   return Array.isArray(data.apps) ? data.apps : [];
@@ -1295,6 +1313,79 @@ export async function topUpTenantBilling(
       tenant_id: tenantId,
       amount_cents: payload.amountCents,
       ...(payload.note ? { note: payload.note } : {}),
+    },
+  );
+  return data.billing;
+}
+
+/* ------------------------------------------------------------------ *
+ * Platform-admin billing (bootstrap key, cross-tenant).                *
+ * These name the tenant explicitly and authenticate with the platform  *
+ * bootstrap key, so they can read/adjust any tenant. Only ever called   *
+ * from admin routes behind an is-admin guard — never a tenant session.  *
+ * ------------------------------------------------------------------ */
+
+/**
+ * Read any tenant's billing summary as a platform admin. Mirrors
+ * getBillingSummary but names the tenant and uses the bootstrap key. With
+ * includeCurrentUsage the backend fills in live managed usage (current_usage).
+ */
+export async function getTenantBillingSummary(
+  tenantId: string,
+  includeCurrentUsage = false,
+): Promise<BillingSummary> {
+  const params = new URLSearchParams({ tenant_id: tenantId });
+  if (includeCurrentUsage) params.set("include_current_usage", "true");
+  const data = await fugueGet<{ billing: BillingSummary }>(
+    readBootstrapKey(),
+    `/v1/billing?${params.toString()}`,
+  );
+  return data.billing;
+}
+
+/**
+ * Update any tenant's managed resource cap as a platform admin. Like
+ * updateBillingCap but names the tenant in the body. storage_gibibytes is only
+ * sent when provided, so we never clobber the backend's storage default.
+ */
+export async function updateTenantBillingCap(
+  tenantId: string,
+  cap: BillingResourceSpec,
+): Promise<BillingSummary> {
+  const managed_cap: BillingResourceSpec = {
+    cpu_millicores: cap.cpu_millicores ?? 0,
+    memory_mebibytes: cap.memory_mebibytes ?? 0,
+  };
+  if (cap.storage_gibibytes !== undefined) {
+    managed_cap.storage_gibibytes = cap.storage_gibibytes;
+  }
+  const data = await fugueSend<{ billing: BillingSummary }>(
+    readBootstrapKey(),
+    "PATCH",
+    "/v1/billing",
+    { tenant_id: tenantId, managed_cap },
+  );
+  return data.billing;
+}
+
+/**
+ * Set (overwrite, not add) a tenant's prepaid balance via
+ * `PATCH /v1/billing/balance`. Platform-admin only on the backend. `balanceCents`
+ * is the target balance in whole cents; the backend converts to microcents.
+ */
+export async function setTenantBillingBalance(
+  tenantId: string,
+  balanceCents: number,
+  note?: string,
+): Promise<BillingSummary> {
+  const data = await fugueSend<{ billing: BillingSummary }>(
+    readBootstrapKey(),
+    "PATCH",
+    "/v1/billing/balance",
+    {
+      tenant_id: tenantId,
+      balance_cents: balanceCents,
+      ...(note ? { note } : {}),
     },
   );
   return data.billing;

@@ -544,6 +544,26 @@ export const zhCN = {
   "{count} min": "{count} 分钟",
   "{count} hr": "{count} 小时",
   "{count} days": "{count} 天",
+  Balance: "余额",
+  "Topped up": "累计充值",
+  "Current usage": "当前用量",
+  Actions: "操作",
+  Limits: "资源上限",
+  Unban: "解封",
+  Ban: "封禁",
+  "Ban user": "封禁用户",
+  "Adjust resource limits": "调整资源上限",
+  "Adjust balance": "调整余额",
+  "Set balance": "设置余额",
+  "Balance (USD)": "余额（美元）",
+  "Note (optional)": "备注（可选）",
+  "Reason for the adjustment": "调整原因",
+  "Enter a valid amount.": "请输入有效金额。",
+  "Managed cap for {label}.": "{label} 的托管资源上限。",
+  "Set the prepaid balance for {label}. This overwrites the current balance.":
+    "设置 {label} 的预付余额。此操作将覆盖当前余额。",
+  "Ban “{label}”? They will be signed out immediately and cannot sign in until unbanned.":
+    "确认封禁「{label}」？该用户将立即退出登录，且在解封前无法再次登录。",
 
   // --- billing ---
   Completed: "已完成",
