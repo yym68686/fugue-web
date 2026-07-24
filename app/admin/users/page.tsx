@@ -128,17 +128,23 @@ export default async function AdminUsersPage() {
   // Per-tenant billing (balance, cap, current usage). Bounded concurrency: an
   // unbounded Promise.all here opened ~100 simultaneous edge connections and
   // most timed out, blanking the balance/usage columns. See the constant above.
+  // One quick retry covers the rare transient connect timeout if the edge is
+  // already under load from other traffic.
   const tenantIds = [...new Set([...tenantByEmail.values()])];
   const billingByTenant = new Map<string, BillingSummary>();
   await mapWithConcurrency(
     tenantIds,
     BILLING_FETCH_CONCURRENCY,
     async (tenantId) => {
-      try {
-        const summary = await getTenantBillingSummary(tenantId, true);
-        billingByTenant.set(tenantId, summary);
-      } catch {
-        // Tenant billing may be unavailable; leave it out.
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const summary = await getTenantBillingSummary(tenantId, true);
+          billingByTenant.set(tenantId, summary);
+          return;
+        } catch {
+          // Retry once after a short backoff, then give up and leave it out.
+          if (attempt === 0) await new Promise((r) => setTimeout(r, 200));
+        }
       }
     },
   );
