@@ -18,7 +18,9 @@ export async function GET(
   context: RouteContextWithParams<"id">,
 ) {
   const id = await readRouteParam(context, "id");
-  const path = new URL(request.url).searchParams.get("path") ?? "";
+  const search = new URL(request.url).searchParams;
+  const path = search.get("path") ?? "";
+  const pod = search.get("pod") ?? undefined;
   if (!path) return jsonError(400, "path is required.");
 
   const auth = await requireActiveSessionUser();
@@ -27,7 +29,7 @@ export async function GET(
   if (ws.response) return ws.response;
 
   try {
-    const file = await getAppFilesystemFile(ws.workspace.adminKeySecret, id, path);
+    const file = await getAppFilesystemFile(ws.workspace.adminKeySecret, id, path, { pod });
     return NextResponse.json({ ok: true, result: file });
   } catch (error) {
     return jsonError(readErrorStatus(error), readErrorMessage(error));
@@ -43,12 +45,13 @@ export async function PUT(
   const path = body ? readOptionalString(body, "path") : "";
   if (!path) return jsonError(400, "path is required.");
   const content = body && typeof body.content === "string" ? body.content : "";
+  const pod = body ? readOptionalString(body, "pod") ?? undefined : undefined;
   return withWorkspaceKey((key) =>
-    putAppFilesystemFile(key, id, {
-      path,
-      content,
-      encoding: "utf-8",
-      mkdir_parents: true,
-    }),
+    putAppFilesystemFile(
+      key,
+      id,
+      { path, content, encoding: "utf-8", mkdir_parents: true },
+      { pod },
+    ),
   );
 }

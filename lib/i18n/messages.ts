@@ -410,6 +410,15 @@ export const zhCN = {
   Modified: "修改于",
   Directory: "目录",
   File: "文件",
+  Pod: "Pod",
+  Symlink: "符号链接",
+  Close: "关闭",
+  "Save file": "保存文件",
+  "Binary file — preview not available.": "二进制文件 — 无法预览。",
+  "File is too large; showing the first {size} only. Editing is disabled to avoid data loss.":
+    "文件过大，仅显示前 {size}。为避免数据丢失，已禁用编辑。",
+  'Write changes to "{path}" in the live container? This overwrites the current file.':
+    "将更改写入运行中容器的 “{path}”？这会覆盖当前文件。",
   Images: "镜像",
   Deployed: "部署于",
   Current: "当前",

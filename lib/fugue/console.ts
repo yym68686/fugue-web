@@ -655,7 +655,8 @@ export type BuildLogs = {
 export type FilesystemEntry = {
   name: string;
   path: string;
-  kind: "file" | "directory" | null;
+  // The backend emits "dir" (not "directory"), "file", or "symlink".
+  kind: "file" | "dir" | "symlink" | null;
   size?: number;
   mode?: string;
   modified_at?: string;
@@ -829,11 +830,14 @@ export async function getAppBuildLogs(
 export async function getAppFilesystemTree(
   adminKey: string,
   appId: string,
-  opts: { depth?: number; path?: string } = {},
+  opts: { depth?: number; path?: string; pod?: string } = {},
 ): Promise<FilesystemTree> {
   const params = new URLSearchParams();
-  params.set("depth", String(opts.depth ?? 2));
+  // The backend currently supports only depth=1; each directory level is
+  // fetched on demand by passing its `path`.
+  params.set("depth", String(opts.depth ?? 1));
   if (opts.path) params.set("path", opts.path);
+  if (opts.pod) params.set("pod", opts.pod);
   const data = await fugueGet<FilesystemTree>(
     adminKey,
     appPath(appId, `/filesystem/tree?${params.toString()}`),
@@ -845,10 +849,12 @@ export async function getAppFilesystemFile(
   adminKey: string,
   appId: string,
   path: string,
+  opts: { pod?: string } = {},
 ): Promise<FilesystemFile> {
   const params = new URLSearchParams();
   params.set("path", path);
   params.set("max_bytes", "262144");
+  if (opts.pod) params.set("pod", opts.pod);
   return fugueGet<FilesystemFile>(
     adminKey,
     appPath(appId, `/filesystem/file?${params.toString()}`),
@@ -1055,16 +1061,21 @@ export async function rebuildApp(
   return fugueSend<OperationResult>(adminKey, "POST", appPath(appId, "/rebuild"), opts);
 }
 
-/** Write a file into the live app filesystem. */
+/**
+ * Write a file into the live app filesystem. The backend reads `pod` from the
+ * query string (not the JSON body), so it is passed separately from `body`.
+ */
 export async function putAppFilesystemFile(
   adminKey: string,
   appId: string,
   body: { path: string; content: string; encoding?: string; mkdir_parents?: boolean },
+  opts: { pod?: string } = {},
 ) {
+  const query = opts.pod ? `?pod=${encodeURIComponent(opts.pod)}` : "";
   return fugueSend<{ path?: string; size?: number }>(
     adminKey,
     "PUT",
-    appPath(appId, "/filesystem/file"),
+    appPath(appId, `/filesystem/file${query}`),
     body,
   );
 }

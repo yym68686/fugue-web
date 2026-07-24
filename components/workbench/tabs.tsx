@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import type {
   AppDomain,
   ConsoleAppDetail,
-  FilesystemTree,
   ImageInventory,
   ObservabilityMetricsSummary,
   ObservabilityRequests,
@@ -347,63 +346,9 @@ export function LogsTab({ app }: { app: ConsoleAppDetail }) {
 }
 
 /* ============================ Files tab ============================ */
-
-export function FilesTab({ app }: { app: ConsoleAppDetail }) {
-  const t = useT();
-  const base = `/api/console/apps/${encodeURIComponent(app.id)}`;
-  const tree = useEndpointData<FilesystemTree>(`${base}/filesystem/tree`);
-
-  return (
-    <div className="panel">
-      <div className="panel-h">
-        <h3>{t("Files")}</h3>
-        <div className="tail">
-          <RefreshButton onClick={tree.refresh} />
-        </div>
-      </div>
-      {tree.loading && <TabLoading />}
-      {tree.error && <TabError message={tree.error} />}
-      {!tree.loading && !tree.error && (
-        <>
-          {tree.data && (
-            <div className="wb-meta">
-              <span>
-                Pod <b>{tree.data.pod || "—"}</b>
-              </span>
-              <span>
-                {t("Root")} <b>{tree.data.workspace_root || "/"}</b>
-              </span>
-            </div>
-          )}
-          {(tree.data?.entries.length ?? 0) === 0 ? (
-            <EmptyState message={t("No files")} />
-          ) : (
-            <table className="tbl">
-              <thead>
-                <tr>
-                  <th>{t("Path")}</th>
-                  <th>{t("Type")}</th>
-                  <th>{t("Size")}</th>
-                  <th>{t("Modified")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tree.data!.entries.map((e) => (
-                  <tr key={e.path}>
-                    <td className="mono">{e.path}</td>
-                    <td>{e.kind === "directory" ? t("Directory") : t("File")}</td>
-                    <td>{e.kind === "directory" ? "—" : fmtBytes(e.size ?? 0)}</td>
-                    <td>{fmtDate(e.modified_at)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
+// The Files tab is a full lazy-loading browser + viewer/editor; it lives in its
+// own module. Kept as a thin re-export so ProjectWorkbench's import is stable.
+export { default as FilesTab } from "./FilesBrowser";
 
 /* =========================== Images tab =========================== */
 

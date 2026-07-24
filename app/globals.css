@@ -3524,3 +3524,150 @@ select.input {
   opacity: 0.5;
   pointer-events: none;
 }
+
+/* ---- files browser ---- */
+.fs-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(0, 1.4fr);
+  gap: 14px;
+  align-items: start;
+}
+
+@media (max-width: 860px) {
+  .fs-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fs-tree {
+  padding: 6px 0 10px;
+  max-height: 60vh;
+  overflow: auto;
+}
+
+.fs-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px 4px 8px;
+  cursor: pointer;
+  font-size: 13px;
+  user-select: none;
+  border-left: 2px solid transparent;
+}
+
+.fs-row:hover {
+  background: rgba(127, 127, 127, 0.06);
+}
+
+.fs-row.selected {
+  background: var(--accent-dim);
+  border-left-color: var(--accent);
+}
+
+.fs-caret {
+  width: 12px;
+  flex: 0 0 12px;
+  display: inline-flex;
+  justify-content: center;
+  color: var(--faint);
+}
+
+.fs-icon {
+  width: 14px;
+  flex: 0 0 14px;
+  text-align: center;
+}
+
+.fs-icon.dir {
+  color: var(--accent-fg);
+}
+
+.fs-icon.link {
+  color: var(--warn);
+}
+
+.fs-icon.file {
+  color: var(--faint);
+}
+
+.fs-name {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fs-meta {
+  flex: 0 0 auto;
+  color: var(--faint);
+  font-size: 12px;
+}
+
+.fs-mtime {
+  min-width: 96px;
+  text-align: right;
+}
+
+@media (max-width: 620px) {
+  .fs-mtime {
+    display: none;
+  }
+}
+
+.fs-spin {
+  width: 9px;
+  height: 9px;
+  border: 1.5px solid var(--line-2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  display: inline-block;
+  animation: fs-spin 0.7s linear infinite;
+}
+
+@keyframes fs-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.fs-viewer {
+  position: sticky;
+  top: 12px;
+}
+
+.fs-viewer-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 60%;
+}
+
+.fs-viewer-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.fs-viewer-body {
+  padding: 12px 14px 14px;
+}
+
+.fs-code {
+  width: 100%;
+  min-height: 340px;
+  max-height: 60vh;
+  resize: vertical;
+  background: var(--bg-2);
+  color: var(--fg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  white-space: pre;
+  overflow: auto;
+}
+
+.fs-code:read-only {
+  opacity: 0.85;
+}

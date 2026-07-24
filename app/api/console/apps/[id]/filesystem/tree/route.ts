@@ -7,6 +7,9 @@ export async function GET(
   context: RouteContextWithParams<"id">,
 ) {
   const id = await readRouteParam(context, "id");
-  const path = new URL(request.url).searchParams.get("path") ?? undefined;
-  return withWorkspaceKey((key) => getAppFilesystemTree(key, id, { depth: 2, path }));
+  const search = new URL(request.url).searchParams;
+  const path = search.get("path") ?? undefined;
+  const pod = search.get("pod") ?? undefined;
+  // The backend supports only depth=1; the browser fetches each level on demand.
+  return withWorkspaceKey((key) => getAppFilesystemTree(key, id, { depth: 1, path, pod }));
 }
