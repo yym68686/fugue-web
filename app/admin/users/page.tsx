@@ -11,10 +11,18 @@ import {
   listAllAppsWithUsage,
   type BillingSummary,
 } from '@/lib/fugue/console';
+import { mapWithConcurrency } from '@/lib/async/pool';
 
 export const dynamic = 'force-dynamic';
 
 const MICRO_CENTS_PER_DOLLAR = 100_000_000;
+
+// Per-tenant billing has no bulk endpoint, so we fetch one summary per tenant.
+// Each call is a fresh connection to the edge (FUGUE_API_URL is the public URL);
+// firing all ~100 at once overwhelms the edge and most time out
+// (UND_ERR_CONNECT_TIMEOUT), which previously left balances blank. A small
+// concurrency cap is 100% reliable in testing (failures only begin above ~50).
+const BILLING_FETCH_CONCURRENCY = 8;
 
 async function getUsers(): Promise<AdminUser[]> {
   const result = await queryDb<AdminUser>(`
@@ -117,18 +125,22 @@ export default async function AdminUsersPage() {
     appsByTenant.set(app.tenant_id, (appsByTenant.get(app.tenant_id) ?? 0) + 1);
   }
 
-  // Per-tenant billing (balance, cap, current usage), bounded parallel.
+  // Per-tenant billing (balance, cap, current usage). Bounded concurrency: an
+  // unbounded Promise.all here opened ~100 simultaneous edge connections and
+  // most timed out, blanking the balance/usage columns. See the constant above.
   const tenantIds = [...new Set([...tenantByEmail.values()])];
   const billingByTenant = new Map<string, BillingSummary>();
-  await Promise.all(
-    tenantIds.map(async (tenantId) => {
+  await mapWithConcurrency(
+    tenantIds,
+    BILLING_FETCH_CONCURRENCY,
+    async (tenantId) => {
       try {
         const summary = await getTenantBillingSummary(tenantId, true);
         billingByTenant.set(tenantId, summary);
       } catch {
         // Tenant billing may be unavailable; leave it out.
       }
-    }),
+    },
   );
 
   const adminCount = users.filter((u) => u.is_admin).length;
