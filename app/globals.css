@@ -2706,6 +2706,122 @@ button {
   color: var(--muted);
 }
 
+/* ---- add-credits modal: amount presets + custom input ---- */
+.topup-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.topup-preset {
+  flex: 1 1 0;
+  min-width: 64px;
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fg);
+  background: var(--bg-2);
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius-sm);
+  padding: 10px 8px;
+  cursor: pointer;
+  transition: color 0.12s, background 0.12s, border-color 0.12s;
+}
+
+.topup-preset:hover {
+  border-color: var(--accent-line);
+}
+
+.topup-preset.on {
+  color: var(--accent-fg);
+  background: var(--accent-dim);
+  border-color: var(--accent-line);
+}
+
+.topup-custom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.topup-custom-prefix {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.topup-custom .input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---- post-checkout status toast ---- */
+.topup-toast {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 360px;
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.4;
+  border-radius: var(--radius);
+  border: 1px solid var(--line-2);
+  background: var(--surface);
+  box-shadow: 0 12px 34px var(--shadow);
+  animation: fade 0.16s ease;
+}
+
+.topup-toast.ok {
+  border-color: var(--ok-line, var(--accent-line));
+  color: var(--fg);
+}
+
+.topup-toast.err {
+  border-color: var(--err-line, var(--line-2));
+  color: var(--fg);
+}
+
+.topup-toast.warn,
+.topup-toast.run {
+  color: var(--fg);
+}
+
+.topup-toast .spin {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--line-2);
+  border-top-color: var(--accent-fg);
+  border-radius: 50%;
+  animation: topup-spin 0.7s linear infinite;
+}
+
+.topup-toast-x {
+  margin-left: auto;
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  padding: 0 2px;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.topup-toast-x:hover {
+  color: var(--fg);
+}
+
+@keyframes topup-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* small stat/meta grid used across tabs */
 .wb-meta {
   display: flex;

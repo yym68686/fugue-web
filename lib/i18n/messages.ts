@@ -487,6 +487,21 @@ export const zhCN = {
   "{count} balance changes": "{count} 笔余额变动",
   "{count} top-up records": "{count} 笔充值记录",
   "Add credits": "充值额度",
+  "Amount (USD)": "金额（美元）",
+  "Or enter a custom amount": "或输入自定义金额",
+  "Whole dollars, ${min}–${max}.": "整数美元，${min}–${max}。",
+  "Choose an amount to add to your prepaid balance. You'll be redirected to our payment provider to complete the purchase.":
+    "选择要充值到预付余额的金额，随后将跳转至支付服务商完成付款。",
+  "Continue to payment · ${amount}": "前往支付 · ${amount} 美元",
+  "Enter a whole dollar amount between ${min} and ${max}.":
+    "请输入 ${min} 到 ${max} 之间的整数美元金额。",
+  "Could not start checkout.": "无法发起支付。",
+  "Confirming your payment…": "正在确认支付…",
+  "Credits added. Your balance has been updated.": "充值成功，余额已更新。",
+  "Payment did not complete. You have not been charged.": "支付未完成，未向你扣款。",
+  "We could not confirm payment yet. Refresh in a few seconds.":
+    "暂时无法确认支付，请稍后刷新。",
+  Dismiss: "关闭",
   "Credit balance": "额度余额",
   "Available balance": "可用余额",
   "Total purchased": "累计已购",

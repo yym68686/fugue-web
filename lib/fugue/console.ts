@@ -1143,6 +1143,30 @@ export async function updateBillingCap(
   return data.billing;
 }
 
+/**
+ * Credit a tenant's prepaid balance via `POST /v1/billing/top-ups`. Used by the
+ * Creem webhook after a checkout completes: it authenticates with the
+ * platform-admin bootstrap key and names the tenant explicitly, because the
+ * webhook has no per-tenant session. `amountCents` is the paid amount in whole
+ * cents; the backend converts it to the balance's microcents internally.
+ */
+export async function topUpTenantBilling(
+  tenantId: string,
+  payload: { amountCents: number; note?: string },
+): Promise<BillingSummary> {
+  const data = await fugueSend<{ billing: BillingSummary }>(
+    readBootstrapKey(),
+    "POST",
+    "/v1/billing/top-ups",
+    {
+      tenant_id: tenantId,
+      amount_cents: payload.amountCents,
+      ...(payload.note ? { note: payload.note } : {}),
+    },
+  );
+  return data.billing;
+}
+
 /* ------------------------------------------------------------------ *
  * Project + app creation via source import (new-project wizard).       *
  * Each import endpoint accepts an inline `project` object so a single   *

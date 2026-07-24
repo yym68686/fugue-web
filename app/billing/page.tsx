@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { queryDb } from '@/lib/db/pool';
 import AppLayout from '@/components/AppLayout';
 import { BillingTopup } from '@/lib/types';
@@ -5,6 +6,7 @@ import { requireActivePageSession } from '@/lib/auth/page-access';
 import { getCachedWorkspaceAccessByEmail } from '@/lib/server/session-state-cache';
 import { getBillingSummary, type BillingSummary } from '@/lib/fugue/console';
 import { BillingCapEditor } from '@/components/billing/BillingCapEditor';
+import { AddCreditsButton } from '@/components/billing/AddCreditsButton';
 import { getRequestI18n } from '@/lib/i18n/server';
 import type { TranslateFn } from '@/lib/i18n/translate';
 
@@ -141,12 +143,16 @@ export default async function BillingPage() {
             </div>
           </div>
           <div className="actions">
-            <button className="btn primary">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 5v14M5 12h14" />
-              </svg>
-              {t('Add credits')}
-            </button>
+            <Suspense fallback={
+              <button className="btn primary" disabled>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+                {t('Add credits')}
+              </button>
+            }>
+              <AddCreditsButton />
+            </Suspense>
           </div>
         </div>
 
