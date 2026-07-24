@@ -179,17 +179,59 @@ export type ClusterNodeCpuStat = {
   request_percent?: number;
 };
 
+/** A pod belonging to a workload scheduled on a node. */
+export type ClusterNodeWorkloadPod = {
+  name: string;
+  phase?: string;
+};
+
+/** A workload (app or backing service) scheduled on a node. */
+export type ClusterNodeWorkload = {
+  kind: string; // "app" | "backing_service"
+  id: string;
+  name: string;
+  tenant_id?: string;
+  project_id?: string;
+  service_type?: string;
+  owner_app_id?: string;
+  namespace?: string;
+  pods?: ClusterNodeWorkloadPod[];
+  pod_count: number;
+};
+
+/**
+ * Effective node role/capability policy. The backend fills the `effective_*`
+ * flags in only for platform-admin principals; they are the authoritative
+ * source for whether a node acts as edge / dns / control-plane / app runtime.
+ */
+export type ClusterNodePolicy = {
+  effective_app_runtime?: boolean;
+  effective_builds?: boolean;
+  effective_edge?: boolean;
+  effective_dns?: boolean;
+  effective_control_plane_role?: string;
+  effective_dedicated_mode?: string;
+  effective_schedulable?: boolean;
+};
+
 export type ClusterNode = {
   name: string;
   status: string;
   roles?: string[];
   region?: string;
+  zone?: string;
   internal_ip?: string;
+  external_ip?: string;
+  public_ip?: string;
   kubelet_version?: string;
+  os_image?: string;
+  container_runtime?: string;
   cpu?: ClusterNodeCpuStat;
   memory?: ClusterNodeStat;
   ephemeral_storage?: ClusterNodeStat;
   image_filesystem?: ClusterNodeStat | null;
+  policy?: ClusterNodePolicy;
+  workloads?: ClusterNodeWorkload[];
   created_at?: string;
 };
 
