@@ -17,7 +17,6 @@ import {
   EmptyState,
   RefreshButton,
   TabError,
-  TabLoading,
   callConsole,
 } from "./shared";
 
@@ -49,6 +48,17 @@ async function fsGet<T>(url: string, signal?: AbortSignal): Promise<T> {
     throw new Error(body?.error || `Request failed (${res.status})`);
   }
   return (body?.result ?? body) as T;
+}
+
+/** Skeleton sized for a pane, without the bordered panel TabLoading draws. */
+function PaneLoading() {
+  return (
+    <div className="fs-load">
+      <div className="sk sk-line" />
+      <div className="sk sk-line" style={{ width: "72%" }} />
+      <div className="sk sk-line" style={{ width: "54%" }} />
+    </div>
+  );
 }
 
 export default function FilesBrowser({ app }: { app: ConsoleAppDetail }) {
@@ -161,32 +171,34 @@ export default function FilesBrowser({ app }: { app: ConsoleAppDetail }) {
   );
 
   return (
-    <div className="fs-layout">
-      <div className="panel fs-tree-panel">
-        <div className="panel-h">
-          <h3>{t("Files")}</h3>
-          <div className="tail">
-            <RefreshButton onClick={refreshAll} />
-          </div>
+    <div className="fs-frame">
+      <div className="fs-frame-h">
+        <h3>{t("Files")}</h3>
+        {root?.pod && (
+          <span className="chip fs-pod" title={root.pod}>
+            {root.pod}
+          </span>
+        )}
+        {root?.workspace_root && <span className="fs-root">{root.workspace_root}</span>}
+        <div className="tail">
+          <RefreshButton onClick={refreshAll} />
         </div>
+      </div>
 
-        {rootLoading && <TabLoading />}
-        {rootError && <TabError message={rootError} />}
+      {rootLoading && <PaneLoading />}
+      {rootError && (
+        <div style={{ padding: 14 }}>
+          <TabError message={rootError} />
+        </div>
+      )}
 
-        {!rootLoading && !rootError && root && (
-          <>
-            <div className="wb-meta">
-              <span>
-                {t("Pod")} <b>{root.pod || "—"}</b>
-              </span>
-              <span>
-                {t("Root")} <b className="mono">{root.workspace_root || "/"}</b>
-              </span>
-            </div>
+      {!rootLoading && !rootError && root && (
+        <div className="fs-split">
+          <div className="fs-side">
             {rows.length === 0 ? (
               <EmptyState message={t("No files")} />
             ) : (
-              <div className="fs-tree" role="tree">
+              <div role="tree">
                 {rows.map((r) => (
                   <FileRow
                     key={r.entry.path}
@@ -202,19 +214,23 @@ export default function FilesBrowser({ app }: { app: ConsoleAppDetail }) {
                 ))}
               </div>
             )}
-          </>
-        )}
-      </div>
+          </div>
 
-      {selected && (
-        <FileViewer
-          key={selected}
-          base={base}
-          path={selected}
-          pod={pod}
-          onClose={() => setSelected(null)}
-          t={t}
-        />
+          <div className="fs-main">
+            {selected ? (
+              <FileViewer
+                key={selected}
+                base={base}
+                path={selected}
+                pod={pod}
+                onClose={() => setSelected(null)}
+                t={t}
+              />
+            ) : (
+              <div className="fs-blank">{t("Select a file to view its contents")}</div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
@@ -266,14 +282,30 @@ function FileRow({
 }) {
   const dir = isDir(entry.kind);
   const symlink = entry.kind === "symlink";
+  const activate = () => (dir ? onToggle(entry.path) : onSelect(entry.path));
+
+  // The rail shows size only; the full detail rides along as a tooltip.
+  const kindLabel = dir ? t("Directory") : symlink ? t("Symlink") : fmtBytes(entry.size ?? 0);
+  const title = entry.modified_at
+    ? `${entry.path} — ${kindLabel} · ${fmtDate(entry.modified_at)}`
+    : `${entry.path} — ${kindLabel}`;
 
   return (
     <div
       className={`fs-row${selected ? " selected" : ""}`}
-      style={{ paddingLeft: 8 + depth * 16 }}
+      style={{ paddingLeft: 8 + depth * 14 }}
       role="treeitem"
       aria-expanded={dir ? expanded : undefined}
-      onClick={() => (dir ? onToggle(entry.path) : onSelect(entry.path))}
+      aria-selected={selected}
+      tabIndex={0}
+      title={title}
+      onClick={activate}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          activate();
+        }
+      }}
     >
       <span className="fs-caret">
         {dir ? (
@@ -288,14 +320,7 @@ function FileRow({
         {dir ? "▮" : symlink ? "↳" : "▫"}
       </span>
       <span className="fs-name mono">{entry.name}</span>
-      <span className="fs-meta">
-        {dir
-          ? t("Directory")
-          : symlink
-            ? t("Symlink")
-            : fmtBytes(entry.size ?? 0)}
-      </span>
-      <span className="fs-meta fs-mtime">{entry.modified_at ? fmtDate(entry.modified_at) : ""}</span>
+      <span className="fs-size">{dir || symlink ? "" : fmtBytes(entry.size ?? 0)}</span>
     </div>
   );
 }
@@ -363,15 +388,19 @@ function FileViewer({
     setFile((prev) => (prev ? { ...prev, content: draft } : prev));
   }
 
-  const name = path.split("/").pop() || path;
-
   return (
-    <div className="panel fs-viewer">
-      <div className="panel-h">
-        <h3 className="mono fs-viewer-title" title={path}>
-          {name}
-        </h3>
-        <div className="tail fs-viewer-actions">
+    <>
+      <div className="fs-filebar">
+        <span className="fs-filebar-path mono" title={path}>
+          {path}
+        </span>
+        {file && (
+          <span className="fs-filebar-meta">
+            {fmtBytes(file.size ?? 0)}
+            {file.modified_at ? ` · ${fmtDate(file.modified_at)}` : ""}
+          </span>
+        )}
+        <div className="fs-filebar-actions">
           {canEdit && (
             <button
               type="button"
@@ -388,42 +417,45 @@ function FileViewer({
         </div>
       </div>
 
-      {loading && <TabLoading />}
-      {error && <TabError message={error} />}
-
-      {!loading && !error && file && (
-        <div className="fs-viewer-body">
-          <div className="wb-meta">
-            <span className="mono">{path}</span>
-            <span>{fmtBytes(file.size ?? 0)}</span>
-            {file.modified_at && <span>{fmtDate(file.modified_at)}</span>}
+      <div className="fs-pane">
+        {loading && <PaneLoading />}
+        {error && (
+          <div style={{ padding: 14 }}>
+            <TabError message={error} />
           </div>
+        )}
 
-          {isBinary ? (
-            <EmptyState message={t("Binary file — preview not available.")} />
-          ) : (
-            <>
-              {isTruncated && (
-                <div className="wb-alert err">
-                  {t("File is too large; showing the first {size} only. Editing is disabled to avoid data loss.", {
-                    size: fmtBytes(MAX_EDIT_BYTES),
-                  })}
-                </div>
-              )}
-              <textarea
-                className="fs-code mono"
-                value={draft}
-                spellCheck={false}
-                readOnly={!canEdit}
-                onChange={(e) => {
-                  setDraft(e.target.value);
-                  setDirty(true);
-                }}
-              />
-            </>
-          )}
-        </div>
-      )}
+        {!loading && !error && file && (
+          <>
+            {isBinary ? (
+              <div className="fs-blank">{t("Binary file — preview not available.")}</div>
+            ) : (
+              <>
+                {isTruncated && (
+                  <div style={{ padding: "12px 12px 0" }}>
+                    <div className="wb-alert err">
+                      {t(
+                        "File is too large; showing the first {size} only. Editing is disabled to avoid data loss.",
+                        { size: fmtBytes(MAX_EDIT_BYTES) },
+                      )}
+                    </div>
+                  </div>
+                )}
+                <textarea
+                  className="fs-code mono"
+                  value={draft}
+                  spellCheck={false}
+                  readOnly={!canEdit}
+                  onChange={(e) => {
+                    setDraft(e.target.value);
+                    setDirty(true);
+                  }}
+                />
+              </>
+            )}
+          </>
+        )}
+      </div>
 
       {confirming && (
         <ConfirmDialog
@@ -440,10 +472,6 @@ function FileViewer({
           onCancel={() => setConfirming(false)}
         />
       )}
-    </div>
+    </>
   );
 }
-
-
-
-

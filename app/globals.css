@@ -3526,30 +3526,104 @@ select.input {
 }
 
 /* ---- files browser ---- */
-.fs-layout {
+/* ===================== Files: container workbench =====================
+   One framed surface split by a single hairline into an explorer rail and a
+   document pane of identical height, each scrolling internally. The panes
+   share the frame's edges, so they cannot drift out of alignment. */
+
+.fs-frame {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.fs-frame-h {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 46px;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.fs-frame-h h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Which replica you are reading is the one fact worth promoting. A pod name is
+   a copyable identifier, so it keeps its own case rather than the chip's. */
+.fs-pod {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-transform: none;
+}
+
+.fs-root {
+  min-width: 0;
+  color: var(--faint);
+  font-family: var(--mono);
+  font-size: 11.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fs-frame-h .tail {
+  flex: 0 0 auto;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.fs-split {
   display: grid;
-  grid-template-columns: minmax(280px, 1fr) minmax(0, 1.4fr);
-  gap: 14px;
-  align-items: start;
+  grid-template-columns: 320px minmax(0, 1fr);
+  height: clamp(420px, 62vh, 680px);
+}
+
+.fs-side {
+  min-width: 0;
+  overflow: auto;
+  padding: 6px 0;
+  border-right: 1px solid var(--line);
+}
+
+.fs-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
 }
 
 @media (max-width: 860px) {
-  .fs-layout {
+  .fs-split {
     grid-template-columns: 1fr;
+    height: auto;
   }
-}
 
-.fs-tree {
-  padding: 6px 0 10px;
-  max-height: 60vh;
-  overflow: auto;
+  .fs-side {
+    max-height: 38vh;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .fs-main {
+    min-height: 340px;
+  }
 }
 
 .fs-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 12px 4px 8px;
+  padding: 4px 10px 4px 8px;
   cursor: pointer;
   font-size: 13px;
   user-select: none;
@@ -3563,6 +3637,11 @@ select.input {
 .fs-row.selected {
   background: var(--accent-dim);
   border-left-color: var(--accent);
+}
+
+.fs-row:focus-visible {
+  outline: 2px solid var(--accent-fg);
+  outline-offset: -2px;
 }
 
 .fs-caret {
@@ -3593,31 +3672,21 @@ select.input {
 
 .fs-name {
   flex: 1 1 auto;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.fs-meta {
-  flex: 0 0 84px;
+/* Size is the only column the rail carries; the open file's timestamp lives
+   in the file bar, where it describes something the reader is looking at. */
+.fs-size {
+  flex: 0 0 62px;
   text-align: right;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
   color: var(--faint);
-  font-size: 12px;
-}
-
-.fs-mtime {
-  flex: 0 0 128px;
-  text-align: right;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-
-@media (max-width: 620px) {
-  .fs-mtime {
-    display: none;
-  }
+  font-size: 11.5px;
 }
 
 .fs-spin {
@@ -3636,43 +3705,86 @@ select.input {
   }
 }
 
-.fs-viewer {
-  position: sticky;
-  top: 12px;
+/* ---- document pane ---- */
+
+.fs-filebar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--line);
 }
 
-.fs-viewer-title {
+.fs-filebar-path {
+  flex: 1 1 auto;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 60%;
+  font-size: 12.5px;
 }
 
-.fs-viewer-actions {
+.fs-filebar-meta {
+  flex: 0 0 auto;
+  color: var(--faint);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.fs-filebar-actions {
+  flex: 0 0 auto;
   display: flex;
   gap: 8px;
 }
 
-.fs-viewer-body {
-  padding: 12px 14px 14px;
+.fs-pane {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .fs-code {
+  flex: 1 1 auto;
   width: 100%;
-  min-height: 340px;
-  max-height: 60vh;
-  resize: vertical;
-  background: var(--bg-2);
-  color: var(--fg);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
+  min-height: 0;
   padding: 10px 12px;
+  border: 0;
+  border-radius: 0;
+  background: var(--bg);
+  color: var(--fg);
   font-size: 12.5px;
-  line-height: 1.5;
+  line-height: 1.55;
   white-space: pre;
   overflow: auto;
+  resize: none;
+}
+
+.fs-code:focus {
+  outline: none;
+  box-shadow: inset 0 0 0 1px var(--accent-line);
 }
 
 .fs-code:read-only {
-  opacity: 0.85;
+  color: var(--muted);
+}
+
+/* An empty pane should point somewhere, not just sit blank. */
+.fs-blank {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  color: var(--faint);
+  font-size: 12.5px;
+}
+
+.fs-load {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
 }

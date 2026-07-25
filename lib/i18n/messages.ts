@@ -414,6 +414,7 @@ export const zhCN = {
   Symlink: "符号链接",
   Close: "关闭",
   "Save file": "保存文件",
+  "Select a file to view its contents": "选择左侧的文件查看内容",
   "Binary file — preview not available.": "二进制文件 — 无法预览。",
   "File is too large; showing the first {size} only. Editing is disabled to avoid data loss.":
     "文件过大，仅显示前 {size}。为避免数据丢失，已禁用编辑。",
