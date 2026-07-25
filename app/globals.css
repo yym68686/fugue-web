@@ -2204,8 +2204,27 @@ button {
   flex-shrink: 0;
 }
 
-.tech-logo:hover {
+.tech-logo:not(.tech-logo-brand):hover {
   color: var(--fg);
+}
+
+/* Brand marks carry their official color at full strength. TechLogo passes
+   both variants as custom properties; the theme decides which applies, since
+   several official colors are black and would vanish on the dark background.
+   No opacity dimming: on the light theme it washed brand colors toward white
+   (Go fell to 2.3:1) for no visual gain. */
+.tech-logo-brand {
+  color: var(--brand-dark);
+}
+
+:root[data-theme="light"] .tech-logo-brand {
+  color: var(--brand);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]):not([data-theme="light"]) .tech-logo-brand {
+    color: var(--brand);
+  }
 }
 
 .tech-logo-fallback {
