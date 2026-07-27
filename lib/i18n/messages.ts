@@ -434,6 +434,10 @@ export const zhCN = {
   "Delete this image version? This cannot be undone.":
     "确认删除该镜像版本？此操作不可撤销。",
   "No image versions": "暂无镜像版本",
+  Available: "可用",
+  Missing: "已不存在",
+  "This cluster manages image retention automatically, so old versions cannot be deleted or redeployed from here.":
+    "该集群自动管理镜像保留策略，因此无法在此删除或重新部署旧版本。",
   "Delete {count} images": "删除 {count} 个镜像",
   "Delete 1 image": "删除 1 个镜像",
   "Delete all old images?": "确认删除全部旧镜像？",

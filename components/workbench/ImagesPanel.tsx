@@ -32,7 +32,28 @@ function isReclaimable(v: ImageVersion): boolean {
   return !v.current && Boolean(v.delete_supported);
 }
 
+/**
+ * The backend reports `registry_configured: false` when the cluster runs the
+ * distributed image store. In that mode it retains images itself and rejects
+ * both /images/delete and /images/redeploy with 400 before doing any work, so
+ * every version comes back with delete_supported=false. Hiding the buttons is
+ * correct — but silently hiding them leaves the page looking broken, so say why.
+ * Skipped when there are no versions at all: the empty state already explains
+ * itself, and the measurement alert already fires in that case.
+ */
+function retentionIsAutomatic(inv: ImageInventory | null): boolean {
+  return inv?.registry_configured === false && inv.versions.length > 0;
+}
+
 type DeleteOutcome = { imageRef: string; error: string | null };
+
+/** Backend emits only "available" | "missing"; translate rather than echo raw. */
+function statusLabel(status: string | undefined, t: TranslateFn): string {
+  const key = (status ?? "").trim().toLowerCase();
+  if (key === "available") return t("Available");
+  if (key === "missing") return t("Missing");
+  return status || t("Saved");
+}
 
 /**
  * This app's i18n layer interpolates but has no plural rules, so counted copy
@@ -146,6 +167,14 @@ export default function ImagesPanel({ app }: { app: ConsoleAppDetail }) {
             </div>
           )}
 
+          {retentionIsAutomatic(inv.data) && (
+            <div className="wb-alert" title={inv.data?.reclaim_note || undefined}>
+              {t(
+                "This cluster manages image retention automatically, so old versions cannot be deleted or redeployed from here.",
+              )}
+            </div>
+          )}
+
           {outcome && (
             <div className={`wb-alert ${outcome.failures.length > 0 ? "err" : "ok"}`}>
               {outcome.failures.length === 0
@@ -240,7 +269,7 @@ function ImagesTable({
               {v.current ? (
                 <span className="chip ok">{t("Current")}</span>
               ) : (
-                <span className="chip idle">{v.status || t("Saved")}</span>
+                <span className="chip idle">{statusLabel(v.status, t)}</span>
               )}
             </td>
             <td>{fmtDate(v.last_deployed_at)}</td>
