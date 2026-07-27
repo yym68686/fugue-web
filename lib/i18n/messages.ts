@@ -246,6 +246,11 @@ export const zhCN = {
   "Ephemeral disk": "临时盘",
   "Persistent disk": "持久盘",
   Image: "镜像",
+  "Image usage is based on complete storage evidence": "镜像用量基于完整的存储证据",
+  "Only a lower-bound image measurement is available":
+    "当前仅有镜像用量下界",
+  "Image usage is unavailable because no fresh storage evidence was returned":
+    "没有返回新鲜的存储证据，暂时无法获取镜像用量",
   "{count} apps": "{count} 应用",
   "{count} services": "{count} 服务",
   "Server nodes": "服务器节点",

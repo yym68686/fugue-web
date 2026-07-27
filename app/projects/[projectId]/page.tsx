@@ -11,10 +11,20 @@ import {
   getConsoleProject,
   listProjectImageUsage,
   isFugueNotFound,
+  projectImageMeasurement,
+  unavailableProjectImageUsageResponse,
   type ConsoleAppDetail,
   type ConsoleProjectDetail,
+  type ProjectImageMeasurement,
 } from '@/lib/fugue/console';
-import { fmtBytes, fmtMillicores, fmtDate, fmtStorageUsage } from '@/lib/format';
+import {
+  fmtBytes,
+  fmtDate,
+  fmtImageMeasurementTitle,
+  fmtImageUsage,
+  fmtMillicores,
+  fmtStorageUsage,
+} from '@/lib/format';
 import { getRequestI18n } from '@/lib/i18n/server';
 
 export const dynamic = 'force-dynamic';
@@ -22,7 +32,7 @@ export const dynamic = 'force-dynamic';
 type ProjectLoad = {
   detail: ConsoleProjectDetail;
   apps: ConsoleAppDetail[];
-  imageBytes: number;
+  imageMeasurement: ProjectImageMeasurement;
 };
 
 async function loadProject(
@@ -36,18 +46,16 @@ async function loadProject(
   try {
     const [detail, imageUsage] = await Promise.all([
       getConsoleProject(key, projectId),
-      listProjectImageUsage(key).catch(() => []),
+      listProjectImageUsage(key).catch(() => unavailableProjectImageUsageResponse()),
     ]);
     // Fetch each app's full detail (spec/route/backing services) in parallel.
     const apps = await Promise.all(
       detail.apps.map((a) => getConsoleApp(key, a.id).catch(() => null)),
     );
-    const imageBytes =
-      imageUsage.find((u) => u.project_id === projectId)?.total_size_bytes ?? 0;
     return {
       detail,
       apps: apps.filter((a): a is ConsoleAppDetail => a !== null),
-      imageBytes,
+      imageMeasurement: projectImageMeasurement(imageUsage, projectId),
     };
   } catch (error) {
     if (isFugueNotFound(error)) return null;
@@ -100,7 +108,7 @@ export default async function ProjectDetailPage({
     notFound();
   }
 
-  const { detail, apps, imageBytes } = loaded;
+  const { detail, apps, imageMeasurement } = loaded;
   const projectName = detail.project_name || detail.project?.name || projectId;
   const services = buildServices(apps);
 
@@ -188,7 +196,19 @@ export default async function ProjectDetailPage({
           </div>
           <div className="pstat-item">
             <span className="pstat-k">{t("Image size")}</span>
-            <span className="pstat-v">{fmtBytes(imageBytes)}</span>
+            <span
+              className="pstat-v"
+              title={fmtImageMeasurementTitle(
+                imageMeasurement.measurement_status,
+                imageMeasurement.measurement_note,
+                t,
+              )}
+            >
+              {fmtImageUsage(
+                imageMeasurement.total_size_bytes,
+                imageMeasurement.measurement_status,
+              )}
+            </span>
           </div>
           <div className="pstat-item">
             <span className="pstat-k">{t("Updated")}</span>

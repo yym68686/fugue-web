@@ -2808,6 +2808,12 @@ button {
   color: var(--ok);
 }
 
+.wb-alert.warn {
+  border-color: rgba(246, 190, 67, 0.3);
+  background: rgba(246, 190, 67, 0.08);
+  color: var(--warn);
+}
+
 .wb-alert.err {
   border-color: rgba(255, 93, 107, 0.3);
   background: rgba(255, 93, 107, 0.08);

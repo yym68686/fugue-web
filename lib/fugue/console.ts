@@ -1,5 +1,9 @@
 import "server-only";
 
+import type { ImageMeasurementStatus } from "@/lib/format";
+
+export type { ImageMeasurementStatus } from "@/lib/format";
+
 /**
  * Minimal client for the fugue backend "console" aggregation endpoints.
  *
@@ -151,16 +155,29 @@ export type ProjectImageUsage = {
   version_count: number;
   current_version_count: number;
   stale_version_count: number;
-  total_size_bytes: number;
-  current_size_bytes: number;
-  stale_size_bytes: number;
-  reclaimable_size_bytes: number;
+  total_size_bytes?: number;
+  current_size_bytes?: number;
+  stale_size_bytes?: number;
+  reclaimable_size_bytes?: number;
+  measurement_status?: ImageMeasurementStatus;
+  measurement_note?: string;
 };
 
 export type ProjectImageUsageResponse = {
-  registry_configured: boolean;
-  reclaim_requires_gc: boolean;
+  registry_configured?: boolean;
+  reclaim_requires_gc?: boolean;
+  reclaim_note?: string;
+  image_store_mode?: string;
+  measurement_status: ImageMeasurementStatus;
+  measurement_note?: string;
+  observed_at?: string;
   projects: ProjectImageUsage[];
+};
+
+export type ProjectImageMeasurement = {
+  total_size_bytes?: number;
+  measurement_status: ImageMeasurementStatus;
+  measurement_note?: string;
 };
 
 /** Aggregated resource usage for a single project, computed on the frontend. */
@@ -170,7 +187,10 @@ export type ProjectResourceRollup = {
   ephemeral_storage_bytes: number;
   persistent_storage_used_bytes?: number;
   persistent_storage_capacity_bytes?: number;
-  image_total_bytes: number;
+  image_total_bytes?: number;
+  image_measurement_status: ImageMeasurementStatus;
+  image_measurement_note?: string;
+  image_observed_at?: string;
 };
 
 export type ClusterNodeStat = {
@@ -440,15 +460,166 @@ export async function listAllAppsWithUsage(): Promise<ConsoleApp[]> {
   return Array.isArray(data.apps) ? data.apps : [];
 }
 
+const IMAGE_USAGE_UNAVAILABLE_NOTE =
+  "Fugue did not return fresh image storage evidence for this request";
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function nonNegativeNumber(value: unknown): number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : 0;
+}
+
+function optionalNonNegativeNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0
+    ? value
+    : undefined;
+}
+
+function optionalString(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value : undefined;
+}
+
+export function normalizeImageMeasurementStatus(
+  value: unknown,
+  fallback: ImageMeasurementStatus,
+): ImageMeasurementStatus {
+  switch (value) {
+    case "complete":
+    case "partial":
+    case "unavailable":
+      return value;
+    default:
+      return fallback;
+  }
+}
+
+export function combineImageMeasurementStatus(
+  left: ImageMeasurementStatus | undefined,
+  right: ImageMeasurementStatus | undefined,
+): ImageMeasurementStatus {
+  if (!left) return right ?? "unavailable";
+  if (!right || left === right) return left;
+  if (left === "complete" && right === "complete") return "complete";
+  if (left === "unavailable" && right === "unavailable") return "unavailable";
+  return "partial";
+}
+
+export function unavailableProjectImageUsageResponse(
+  note = IMAGE_USAGE_UNAVAILABLE_NOTE,
+): ProjectImageUsageResponse {
+  return {
+    registry_configured: false,
+    reclaim_requires_gc: false,
+    measurement_status: "unavailable",
+    measurement_note: note,
+    projects: [],
+  };
+}
+
+/** Normalize both the current contract and older responses safely. */
+export function normalizeProjectImageUsageResponse(data: unknown): ProjectImageUsageResponse {
+  if (!isRecord(data)) return unavailableProjectImageUsageResponse();
+
+  const rawProjects: unknown[] | null = Array.isArray(data.projects) ? data.projects : null;
+  const hasProjectsArray = rawProjects !== null;
+  const legacyFallback: ImageMeasurementStatus =
+    data.registry_configured === false ? "unavailable" : "complete";
+  const measurementStatus = hasProjectsArray
+    ? normalizeImageMeasurementStatus(data.measurement_status, legacyFallback)
+    : "unavailable";
+  const projects = rawProjects
+    ? rawProjects
+        .filter(isRecord)
+        .map((project): ProjectImageUsage | null => {
+          const projectId = optionalString(project.project_id);
+          if (!projectId) return null;
+          const totalSizeBytes = optionalNonNegativeNumber(project.total_size_bytes);
+          const projectMeasurementStatus = normalizeImageMeasurementStatus(
+            project.measurement_status,
+            measurementStatus,
+          );
+          return {
+            project_id: projectId,
+            version_count: nonNegativeNumber(project.version_count),
+            current_version_count: nonNegativeNumber(project.current_version_count),
+            stale_version_count: nonNegativeNumber(project.stale_version_count),
+            total_size_bytes: totalSizeBytes,
+            current_size_bytes: optionalNonNegativeNumber(project.current_size_bytes),
+            stale_size_bytes: optionalNonNegativeNumber(project.stale_size_bytes),
+            reclaimable_size_bytes: optionalNonNegativeNumber(project.reclaimable_size_bytes),
+            measurement_status:
+              projectMeasurementStatus === "complete" && totalSizeBytes === undefined
+                ? "unavailable"
+                : projectMeasurementStatus,
+            measurement_note: optionalString(project.measurement_note),
+          };
+        })
+        .filter((project): project is ProjectImageUsage => project !== null)
+    : [];
+
+  return {
+    registry_configured:
+      typeof data.registry_configured === "boolean" ? data.registry_configured : undefined,
+    reclaim_requires_gc:
+      typeof data.reclaim_requires_gc === "boolean" ? data.reclaim_requires_gc : undefined,
+    reclaim_note: optionalString(data.reclaim_note),
+    image_store_mode: optionalString(data.image_store_mode),
+    measurement_status: measurementStatus,
+    measurement_note: optionalString(data.measurement_note),
+    observed_at: optionalString(data.observed_at),
+    projects,
+  };
+}
+
+export function projectImageMeasurement(
+  response: ProjectImageUsageResponse,
+  projectId: string,
+): ProjectImageMeasurement {
+  const overallStatus = normalizeImageMeasurementStatus(
+    response.measurement_status,
+    "unavailable",
+  );
+  const project = response.projects.find((entry) => entry.project_id === projectId);
+  if (!project) {
+    return overallStatus === "complete"
+      ? {
+          total_size_bytes: 0,
+          measurement_status: "complete",
+          measurement_note: response.measurement_note,
+        }
+      : {
+          measurement_status: "unavailable",
+          measurement_note: response.measurement_note ?? IMAGE_USAGE_UNAVAILABLE_NOTE,
+        };
+  }
+
+  const normalizedStatus = normalizeImageMeasurementStatus(
+    project.measurement_status,
+    overallStatus,
+  );
+  const status =
+    normalizedStatus === "complete" && project.total_size_bytes === undefined
+      ? "unavailable"
+      : normalizedStatus;
+  return {
+    total_size_bytes: status === "unavailable" ? undefined : project.total_size_bytes ?? 0,
+    measurement_status: status,
+    measurement_note:
+      project.measurement_note ?? response.measurement_note ?? undefined,
+  };
+}
+
 /** Per-project container-image disk usage. */
 export async function listProjectImageUsage(
   adminKey: string,
-): Promise<ProjectImageUsage[]> {
-  const data = await fugueGet<ProjectImageUsageResponse>(
+): Promise<ProjectImageUsageResponse> {
+  const data = await fugueGet<unknown>(
     adminKey,
     "/v1/projects/image-usage",
   );
-  return Array.isArray(data.projects) ? data.projects : [];
+  return normalizeProjectImageUsageResponse(data);
 }
 
 /**
@@ -457,7 +628,7 @@ export async function listProjectImageUsage(
  */
 export function rollupProjectResources(
   apps: ConsoleApp[],
-  imageUsage: ProjectImageUsage[],
+  imageUsage: ProjectImageUsageResponse,
 ): Map<string, ProjectResourceRollup> {
   const rollup = new Map<string, ProjectResourceRollup>();
 
@@ -468,7 +639,7 @@ export function rollupProjectResources(
         cpu_millicores: 0,
         memory_bytes: 0,
         ephemeral_storage_bytes: 0,
-        image_total_bytes: 0,
+        image_measurement_status: "unavailable",
       };
       rollup.set(projectId, entry);
     }
@@ -510,9 +681,25 @@ export function rollupProjectResources(
     }
   }
 
-  for (const image of imageUsage) {
-    if (!image.project_id) continue;
-    ensure(image.project_id).image_total_bytes += image.total_size_bytes ?? 0;
+  const normalizedImageUsage = normalizeProjectImageUsageResponse(imageUsage);
+  const applyImageMeasurement = (projectId: string) => {
+    const entry = ensure(projectId);
+    const measurement = projectImageMeasurement(normalizedImageUsage, projectId);
+    entry.image_measurement_status = measurement.measurement_status;
+    entry.image_measurement_note = measurement.measurement_note;
+    entry.image_observed_at = normalizedImageUsage.observed_at;
+    if (measurement.measurement_status === "unavailable") {
+      entry.image_total_bytes = undefined;
+    } else {
+      entry.image_total_bytes = measurement.total_size_bytes ?? 0;
+    }
+  };
+
+  for (const project of normalizedImageUsage.projects) {
+    applyImageMeasurement(project.project_id);
+  }
+  for (const projectId of rollup.keys()) {
+    applyImageMeasurement(projectId);
   }
 
   return rollup;
@@ -695,8 +882,19 @@ export type ImageVersion = {
   redeploy_supported?: boolean;
   runtime_image_ref?: string;
   size_bytes?: number;
+  size_measurement_status?: ImageMeasurementStatus;
   status?: string;
-  source?: string;
+  source?: AppSource | null;
+};
+
+export type ImageSummary = {
+  version_count?: number;
+  current_version_count?: number;
+  stale_version_count?: number;
+  total_size_bytes?: number;
+  current_size_bytes?: number;
+  stale_size_bytes?: number;
+  reclaimable_size_bytes?: number;
 };
 
 export type ImageInventory = {
@@ -704,7 +902,10 @@ export type ImageInventory = {
   registry_configured?: boolean;
   reclaim_requires_gc?: boolean;
   reclaim_note?: string;
-  summary?: Record<string, number>;
+  measurement_status?: ImageMeasurementStatus;
+  measurement_note?: string;
+  observed_at?: string;
+  summary?: ImageSummary;
   versions: ImageVersion[];
 };
 
@@ -865,8 +1066,51 @@ export async function getAppImages(
   adminKey: string,
   appId: string,
 ): Promise<ImageInventory> {
-  const data = await fugueGet<ImageInventory>(adminKey, appPath(appId, "/images"));
-  return { ...data, versions: Array.isArray(data.versions) ? data.versions : [] };
+  const data = await fugueGet<unknown>(adminKey, appPath(appId, "/images"));
+  const raw = isRecord(data) ? data : {};
+  const rawVersions = Array.isArray(raw.versions) ? raw.versions.filter(isRecord) : [];
+  const fallbackStatus: ImageMeasurementStatus =
+    raw.registry_configured === false ? "unavailable" : "complete";
+  const versions = rawVersions.map((version) => ({
+    ...version,
+    image_ref: optionalString(version.image_ref) ?? "",
+    size_bytes: optionalNonNegativeNumber(version.size_bytes),
+    size_measurement_status: normalizeImageMeasurementStatus(
+      version.size_measurement_status,
+      fallbackStatus,
+    ),
+  })) as ImageVersion[];
+  for (const version of versions) {
+    if (version.size_measurement_status === "complete" && version.size_bytes === undefined) {
+      version.size_measurement_status = "unavailable";
+    }
+  }
+  const summarizedStatus =
+    versions.reduce<ImageMeasurementStatus | undefined>(
+      (status, version) =>
+        combineImageMeasurementStatus(status, version.size_measurement_status),
+      undefined,
+    ) ?? fallbackStatus;
+  let measurementStatus = normalizeImageMeasurementStatus(
+    raw.measurement_status,
+    summarizedStatus,
+  );
+  if (versions.length === 0 && raw.registry_configured === false) {
+    measurementStatus = "unavailable";
+  }
+  return {
+    app_id: optionalString(raw.app_id),
+    registry_configured:
+      typeof raw.registry_configured === "boolean" ? raw.registry_configured : undefined,
+    reclaim_requires_gc:
+      typeof raw.reclaim_requires_gc === "boolean" ? raw.reclaim_requires_gc : undefined,
+    reclaim_note: optionalString(raw.reclaim_note),
+    measurement_status: measurementStatus,
+    measurement_note: optionalString(raw.measurement_note),
+    observed_at: optionalString(raw.observed_at),
+    summary: isRecord(raw.summary) ? (raw.summary as ImageSummary) : undefined,
+    versions,
+  };
 }
 
 export async function getAppDomains(

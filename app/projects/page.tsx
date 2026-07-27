@@ -8,10 +8,17 @@ import {
   listAppsWithUsage,
   listProjectImageUsage,
   rollupProjectResources,
+  unavailableProjectImageUsageResponse,
   type ConsoleProjectSummary,
   type ProjectResourceRollup,
 } from '@/lib/fugue/console';
-import { fmtBytes, fmtMillicores, fmtStorageUsage } from '@/lib/format';
+import {
+  fmtBytes,
+  fmtImageMeasurementTitle,
+  fmtImageUsage,
+  fmtMillicores,
+  fmtStorageUsage,
+} from '@/lib/format';
 import { getRequestI18n } from '@/lib/i18n/server';
 
 export const dynamic = 'force-dynamic';
@@ -34,7 +41,7 @@ async function getProjectsData(email: string): Promise<ProjectsData> {
     const [projects, apps, imageUsage] = await Promise.all([
       listConsoleGallery(key),
       listAppsWithUsage(key).catch(() => []),
-      listProjectImageUsage(key).catch(() => []),
+      listProjectImageUsage(key).catch(() => unavailableProjectImageUsageResponse()),
     ]);
     const resources = rollupProjectResources(apps, imageUsage);
     return { hasWorkspace: true, projects, resources, loadError: false };
@@ -112,6 +119,7 @@ export default async function ProjectsPage() {
             {projects.map((p) => {
               const res = resources.get(p.id);
               const tone = toneClass(p.lifecycle?.tone, p.lifecycle?.live);
+              const imageMeasurementStatus = res?.image_measurement_status;
               return (
                 <Link
                   key={p.id}
@@ -158,7 +166,16 @@ export default async function ProjectsPage() {
                       <div className="stat-k">{t("Persistent disk")}</div>
                     </div>
                     <div className="stat">
-                      <div className="stat-v">{fmtBytes(res?.image_total_bytes)}</div>
+                      <div
+                        className="stat-v"
+                        title={fmtImageMeasurementTitle(
+                          imageMeasurementStatus,
+                          res?.image_measurement_note,
+                          t,
+                        )}
+                      >
+                        {fmtImageUsage(res?.image_total_bytes, imageMeasurementStatus)}
+                      </div>
                       <div className="stat-k">{t("Image")}</div>
                     </div>
                   </div>

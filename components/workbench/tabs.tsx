@@ -12,7 +12,13 @@ import type {
   BuildLogs,
   AppEnv,
 } from "@/lib/fugue/console";
-import { fmtBytes, fmtDate, fmtMillicores } from "@/lib/format";
+import {
+  fmtBytes,
+  fmtDate,
+  fmtImageMeasurementTitle,
+  fmtImageUsage,
+  fmtMillicores,
+} from "@/lib/format";
 import { useT } from "@/lib/i18n/client";
 import {
   ActionButton,
@@ -369,6 +375,22 @@ export function ImagesTab({ app }: { app: ConsoleAppDetail }) {
       {inv.error && <TabError message={inv.error} />}
       {!inv.loading && !inv.error && (
         <>
+          {inv.data && inv.data.measurement_status !== "complete" && (
+            <div
+              className={`wb-alert ${inv.data.measurement_status === "partial" ? "warn" : "err"}`}
+              title={fmtImageMeasurementTitle(
+                inv.data.measurement_status,
+                inv.data.measurement_note,
+                t,
+              )}
+            >
+              {fmtImageMeasurementTitle(
+                inv.data.measurement_status,
+                inv.data.measurement_note,
+                t,
+              )}
+            </div>
+          )}
           {(inv.data?.versions.length ?? 0) === 0 ? (
             <EmptyState message={t("No image versions")} />
           ) : (
@@ -386,7 +408,15 @@ export function ImagesTab({ app }: { app: ConsoleAppDetail }) {
                 {inv.data!.versions.map((v) => (
                   <tr key={v.image_ref}>
                     <td className="mono">{v.runtime_image_ref || v.image_ref}</td>
-                    <td>{fmtBytes(v.size_bytes ?? 0)}</td>
+                    <td
+                      title={fmtImageMeasurementTitle(
+                        v.size_measurement_status,
+                        inv.data?.measurement_note,
+                        t,
+                      )}
+                    >
+                      {fmtImageUsage(v.size_bytes, v.size_measurement_status)}
+                    </td>
                     <td>
                       {v.current ? (
                         <span className="chip ok">{t("Current")}</span>

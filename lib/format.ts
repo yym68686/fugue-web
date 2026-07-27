@@ -1,5 +1,7 @@
 /** Shared display formatters for resource usage and timestamps. */
 
+export type ImageMeasurementStatus = 'complete' | 'partial' | 'unavailable';
+
 export function fmtBytes(bytes: number | undefined | null): string {
   if (!bytes || bytes <= 0) return '0';
   const units = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -10,6 +12,44 @@ export function fmtBytes(bytes: number | undefined | null): string {
     unit += 1;
   }
   return `${value.toFixed(value >= 100 || unit === 0 ? 0 : 1)} ${units[unit]}`;
+}
+
+/**
+ * Format an image measurement without turning missing evidence into a number.
+ * Partial measurements are lower bounds because the backend may only have a
+ * subset of the referenced blob graph.
+ */
+export function fmtImageUsage(
+  bytes: number | undefined | null,
+  status: ImageMeasurementStatus | undefined,
+): string {
+  if (status === 'complete') return fmtBytes(bytes ?? 0);
+  if (status === 'partial' && bytes != null && bytes > 0) {
+    return `≥ ${fmtBytes(bytes)}`;
+  }
+  return '—';
+}
+
+export function imageMeasurementMessageKey(
+  status: ImageMeasurementStatus | undefined,
+): string {
+  switch (status) {
+    case 'complete':
+      return 'Image usage is based on complete storage evidence';
+    case 'partial':
+      return 'Only a lower-bound image measurement is available';
+    default:
+      return 'Image usage is unavailable because no fresh storage evidence was returned';
+  }
+}
+
+export function fmtImageMeasurementTitle(
+  status: ImageMeasurementStatus | undefined,
+  note: string | undefined | null,
+  translate: (key: string) => string,
+): string {
+  const base = translate(imageMeasurementMessageKey(status));
+  return note ? `${base}: ${note}` : base;
 }
 
 export function fmtStorageUsage(
