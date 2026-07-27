@@ -5,25 +5,17 @@ import { useRouter } from "next/navigation";
 import type {
   AppDomain,
   ConsoleAppDetail,
-  ImageInventory,
   ObservabilityMetricsSummary,
   ObservabilityRequests,
   RuntimeLogs,
   BuildLogs,
   AppEnv,
 } from "@/lib/fugue/console";
-import {
-  fmtBytes,
-  fmtDate,
-  fmtImageMeasurementTitle,
-  fmtImageUsage,
-  fmtMillicores,
-} from "@/lib/format";
+import { fmtDate, fmtMillicores } from "@/lib/format";
 import { useT } from "@/lib/i18n/client";
 import {
   ActionButton,
   callConsole,
-  ConfirmDialog,
   EmptyState,
   RefreshButton,
   TabError,
@@ -358,113 +350,10 @@ export { default as FilesTab } from "./FilesBrowser";
 
 /* =========================== Images tab =========================== */
 
-export function ImagesTab({ app }: { app: ConsoleAppDetail }) {
-  const t = useT();
-  const base = `/api/console/apps/${encodeURIComponent(app.id)}`;
-  const inv = useEndpointData<ImageInventory>(`${base}/images`);
-
-  return (
-    <div className="panel">
-      <div className="panel-h">
-        <h3>{t("Images")}</h3>
-        <div className="tail">
-          <RefreshButton onClick={inv.refresh} />
-        </div>
-      </div>
-      {inv.loading && <TabLoading />}
-      {inv.error && <TabError message={inv.error} />}
-      {!inv.loading && !inv.error && (
-        <>
-          {inv.data && inv.data.measurement_status !== "complete" && (
-            <div
-              className={`wb-alert ${inv.data.measurement_status === "partial" ? "warn" : "err"}`}
-              title={fmtImageMeasurementTitle(
-                inv.data.measurement_status,
-                inv.data.measurement_note,
-                t,
-              )}
-            >
-              {fmtImageMeasurementTitle(
-                inv.data.measurement_status,
-                inv.data.measurement_note,
-                t,
-              )}
-            </div>
-          )}
-          {(inv.data?.versions.length ?? 0) === 0 ? (
-            <EmptyState message={t("No image versions")} />
-          ) : (
-            <table className="tbl">
-              <thead>
-                <tr>
-                  <th>{t("Image")}</th>
-                  <th>{t("Size")}</th>
-                  <th>{t("Status")}</th>
-                  <th>{t("Deployed")}</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {inv.data!.versions.map((v) => (
-                  <tr key={v.image_ref}>
-                    <td className="mono">{v.runtime_image_ref || v.image_ref}</td>
-                    <td
-                      title={fmtImageMeasurementTitle(
-                        v.size_measurement_status,
-                        inv.data?.measurement_note,
-                        t,
-                      )}
-                    >
-                      {fmtImageUsage(v.size_bytes, v.size_measurement_status)}
-                    </td>
-                    <td>
-                      {v.current ? (
-                        <span className="chip ok">{t("Current")}</span>
-                      ) : (
-                        <span className="chip idle">{v.status || t("Saved")}</span>
-                      )}
-                    </td>
-                    <td>{fmtDate(v.last_deployed_at)}</td>
-                    <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                      {!v.current && v.redeploy_supported && (
-                        <ActionButton
-                          className="btn ghost"
-                          confirm={t("Redeploy this image?")}
-                          onAction={() =>
-                            callConsole(`${APP(app.id)}/images/redeploy`, {
-                              body: { image_ref: v.image_ref },
-                            })
-                          }
-                          onDone={inv.refresh}
-                        >
-                          {t("Redeploy")}
-                        </ActionButton>
-                      )}{" "}
-                      {!v.current && v.delete_supported && (
-                        <ActionButton
-                          className="btn danger"
-                          confirm={t("Delete this image version? This cannot be undone.")}
-                          onAction={() =>
-                            callConsole(`${APP(app.id)}/images/delete`, {
-                              body: { image_ref: v.image_ref },
-                            })
-                          }
-                          onDone={inv.refresh}
-                        >
-                          {t("Delete")}
-                        </ActionButton>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
+// The Images tab carries a bulk-delete flow with its own progress and
+// per-image failure reporting; it lives in its own module. Kept as a thin
+// re-export so ProjectWorkbench's import is stable.
+export { default as ImagesTab } from "./ImagesPanel";
 
 /* ======================= Observability tab ======================== */
 

@@ -433,6 +433,19 @@ export const zhCN = {
   Redeploy: "重部署",
   "Delete this image version? This cannot be undone.":
     "确认删除该镜像版本？此操作不可撤销。",
+  "No image versions": "暂无镜像版本",
+  "Delete {count} images": "删除 {count} 个镜像",
+  "Delete 1 image": "删除 1 个镜像",
+  "Delete all old images?": "确认删除全部旧镜像？",
+  "This deletes {count} saved image versions and cannot be undone. The current image ({ref}) is kept, so the running app is not affected.":
+    "将删除 {count} 个已保存的镜像版本，此操作不可撤销。当前镜像（{ref}）会保留，运行中的应用不受影响。",
+  "This deletes 1 saved image version and cannot be undone. The current image ({ref}) is kept, so the running app is not affected.":
+    "将删除 1 个已保存的镜像版本，此操作不可撤销。当前镜像（{ref}）会保留，运行中的应用不受影响。",
+  "Deleted {done} of {total}…": "已删除 {done} / {total}…",
+  "Deleted {count} images.": "已删除 {count} 个镜像。",
+  "Deleted 1 image.": "已删除 1 个镜像。",
+  "Deleted {done} images; {failed} could not be deleted.":
+    "已删除 {done} 个镜像；{failed} 个删除失败。",
   "15 minutes": "15 分钟",
   "1 hour": "1 小时",
   "24 hours": "24 小时",
