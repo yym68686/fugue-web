@@ -40,7 +40,10 @@ function roleChips(node: ClusterNode, t: TranslateFn): RoleChip[] {
   const chips: RoleChip[] = [];
   const policy = node.policy;
 
-  if (policy?.effective_control_plane_role) {
+  if (
+    policy?.effective_control_plane_role === "candidate" ||
+    policy?.effective_control_plane_role === "member"
+  ) {
     chips.push({ label: t("Control plane"), tone: "run" });
   }
   if (policy?.effective_edge) {
