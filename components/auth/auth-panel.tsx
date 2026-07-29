@@ -2,33 +2,18 @@
 
 import { type FormEvent, useRef, useState } from "react";
 
+import {
+  checkPasswordPolicy,
+  PASSWORD_MIN_LENGTH,
+  PASSWORD_MIN_LENGTH_HINT_KEY,
+} from "@/lib/auth/password-policy";
+import { translateServerMessage } from "@/lib/auth/server-messages";
 import { useT } from "@/lib/i18n/client";
 import type { TranslateFn } from "@/lib/i18n/translate";
 
 type AuthMode = "sign-in" | "sign-up";
 type AuthMethod = "password" | "email";
 type LoadingTarget = "email" | "github" | "google" | "password" | null;
-
-// Server error strings (English) that have a localized catalog entry. The value
-// sent by the API is the English source; t() looks up the translation.
-const KNOWN_SERVER_MESSAGES = new Set<string>([
-  "Enter a valid email address.",
-  "Enter a password.",
-  "Enter your current password.",
-  "Choose a new password.",
-  "Current password is incorrect.",
-  "Display name is too long.",
-  "Invalid request payload.",
-  "This account is blocked.",
-  "This account has been deleted.",
-  "Authentication request payload is too large.",
-  "Verification email could not be sent. Try again.",
-  "Email verification is temporarily unavailable. Try again.",
-  "Fugue could not open the workspace session. Try again.",
-  "Google sign-in is not configured.",
-  "Google sign-in is temporarily unavailable. Try again.",
-  "GitHub sign-in is temporarily unavailable. Try again.",
-]);
 
 class AuthRequestError extends Error {
   constructor(
@@ -59,10 +44,7 @@ async function readResponseMessage(response: Response, t: TranslateFn) {
   } | null;
   const serverMessage =
     typeof payload?.error === "string" ? payload.error.trim() : "";
-  if (serverMessage && KNOWN_SERVER_MESSAGES.has(serverMessage)) {
-    return t(serverMessage);
-  }
-  if (serverMessage) return serverMessage;
+  if (serverMessage) return translateServerMessage(serverMessage, t);
   return t("Request failed ({status}).", { status: response.status });
 }
 
@@ -128,9 +110,18 @@ export function AuthPanel({
     event.preventDefault();
     if (requestInFlightRef.current) return;
 
-    if (isSignUp && password !== confirmPassword) {
-      setError(t("The two passwords do not match."));
-      return;
+    // Mirror the server's order (policy first, then confirmation) so the form
+    // and the API never disagree about which problem to report.
+    if (isSignUp) {
+      const policyError = checkPasswordPolicy(password);
+      if (policyError) {
+        setError(translateServerMessage(policyError, t));
+        return;
+      }
+      if (password !== confirmPassword) {
+        setError(t("The two passwords do not match."));
+        return;
+      }
     }
 
     requestInFlightRef.current = true;
@@ -139,7 +130,7 @@ export function AuthPanel({
     setNotice(null);
 
     try {
-      const result = await requestAuth<{ redirectTo?: string }>(
+      const result = await requestAuth<{ message?: string; redirectTo?: string }>(
         `/api/auth/password/${isSignUp ? "sign-up" : "sign-in"}`,
         {
           method: "POST",
@@ -155,6 +146,21 @@ export function AuthPanel({
       );
       if (result.redirectTo) {
         window.location.assign(result.redirectTo);
+        return;
+      }
+      // Sign-up answers 202 with no redirect: the account exists but has no
+      // session until the emailed link is opened. Navigating to returnTo would
+      // bounce off the session guard and drop this instruction, so show it here.
+      if (isSignUp) {
+        setNotice(
+          result.message
+            ? translateServerMessage(result.message, t)
+            : t("Verification email sent. Check your inbox to finish signing in."),
+        );
+        setPassword("");
+        setConfirmPassword("");
+        setLoading(null);
+        requestInFlightRef.current = false;
         return;
       }
       window.location.assign(returnTo);
@@ -318,11 +324,16 @@ export function AuthPanel({
               type="password"
               autoComplete={isSignUp ? "new-password" : "current-password"}
               required
+              {...(isSignUp ? { minLength: PASSWORD_MIN_LENGTH } : {})}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
             />
-            {isSignUp && <span className="auth-hint">{t("At least 8 characters.")}</span>}
+            {isSignUp && (
+              <span className="auth-hint">
+                {t(PASSWORD_MIN_LENGTH_HINT_KEY, { min: PASSWORD_MIN_LENGTH })}
+              </span>
+            )}
           </div>
           {isSignUp && (
             <div className="field">
@@ -333,6 +344,7 @@ export function AuthPanel({
                 type="password"
                 autoComplete="new-password"
                 required
+                minLength={PASSWORD_MIN_LENGTH}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="••••••••"

@@ -1,0 +1,4 @@
+{
+  "//": "Scoped to tests/ so node treats .test.ts files as ES modules. The app's own package.json stays CommonJS-default for the Next.js toolchain.",
+  "type": "module"
+}

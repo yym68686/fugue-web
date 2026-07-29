@@ -198,6 +198,50 @@ export const zhCN = {
   "The two passwords do not match.": "两次输入的密码不一致。",
   "Verification email sent. Check your inbox to finish signing in.":
     "验证邮件已发送，请查收邮箱完成登录。",
+
+  // --- auth server messages (lib/auth/server-messages.ts) ---
+  // Every string the auth APIs can return in `{ error }` and show to a user.
+  "Enter a valid email address.": "请输入有效的邮箱地址。",
+  "Display name is too long.": "显示名称过长。",
+  "Authentication request payload is too large.": "认证请求内容过大。",
+  "Fugue could not open the workspace session. Try again.":
+    "Fugue 无法打开工作区会话，请重试。",
+  "Verification email could not be sent. Try again.": "验证邮件发送失败，请重试。",
+  "Email verification is temporarily unavailable. Try again.":
+    "邮箱验证暂时不可用，请重试。",
+  "Google sign-in is not configured.": "尚未配置 Google 登录。",
+  "Google sign-in is temporarily unavailable. Try again.":
+    "Google 登录暂时不可用，请重试。",
+  "GitHub sign-in is not configured.": "尚未配置 GitHub 登录。",
+  "GitHub sign-in is temporarily unavailable. Try again.":
+    "GitHub 登录暂时不可用，请重试。",
+  "This account is blocked.": "该账号已被封禁。",
+  "Keep at least one sign-in method on the account.": "账号需至少保留一种登录方式。",
+  "The service is temporarily unavailable. Try again.": "服务暂时不可用，请重试。",
+  "Request failed.": "请求失败。",
+  "Use at least {min} characters.": "请至少使用 {min} 个字符。",
+  "Passwords must stay under {max} characters.": "密码长度不能超过 {max} 个字符。",
+  "Passwords do not match.": "两次输入的密码不一致。",
+  "Enter a password.": "请输入密码。",
+  "Enter your current password.": "请输入当前密码。",
+  "Choose a new password.": "请选择一个新密码。",
+  "Current password is incorrect.": "当前密码不正确。",
+  "Email or password is incorrect.": "邮箱或密码不正确。",
+  "Account registration is temporarily unavailable.": "账号注册暂时不可用。",
+  "Authentication protection is temporarily unavailable. Try again.":
+    "认证保护暂时不可用，请重试。",
+  "Invalid request payload.": "请求内容无效。",
+  "Session user is no longer active.": "该会话的用户已不再有效。",
+  "This method cannot be added here.": "无法在此处添加该登录方式。",
+  "Unknown sign-in method.": "未知的登录方式。",
+  "User not found.": "未找到该用户。",
+  "Password updated.": "密码已更新。",
+  "Password added.": "密码已添加。",
+  "Password removed.": "密码已移除。",
+  "Could not update. Try again.": "更新失败，请重试。",
+  "Could not remove. Try again.": "移除失败，请重试。",
+  "If this address can be registered, check your email for a verification link.":
+    "如果该邮箱可以注册，请查收邮件中的验证链接。",
   "Sign in to Fugue": "登录 Fugue",
   "Sign up to deploy apps and manage secrets and billing.":
     "注册后即可部署应用、管理密钥与账单。",
@@ -208,7 +252,7 @@ export const zhCN = {
   "Or use email": "或使用邮箱",
   "Display name (optional)": "显示名称（可选）",
   "Your name": "你的名字",
-  "At least 8 characters.": "至少 8 个字符。",
+  "At least {min} characters.": "至少 {min} 个字符。",
   "Confirm password": "确认密码",
   "We'll email you a sign-in link.": "我们会发送一封登录链接邮件给你。",
   "Sending…": "发送中…",

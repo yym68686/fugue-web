@@ -11,6 +11,7 @@ import {
 import { touchAuthMethod, getPasswordHashByEmail } from "@/lib/auth/methods";
 import { buildOriginUrl, isSecureRequest, readRequestOrigin } from "@/lib/auth/origin";
 import { verifyPassword } from "@/lib/auth/password";
+import { PASSWORD_MAX_LENGTH } from "@/lib/auth/password-policy";
 import { enforceAuthRateLimit } from "@/lib/auth/rate-limit";
 import {
   AuthRequestTooLargeError,
@@ -33,7 +34,6 @@ type RequestPayload = {
 };
 
 const INVALID_CREDENTIALS_MESSAGE = "Email or password is incorrect.";
-const PASSWORD_MAX_LENGTH = 256;
 const PASSWORD_REQUEST_MAX_BYTES = 16 * 1_024;
 const DUMMY_PASSWORD_HASH =
   "scrypt_v1$ZnVndWUtYXV0aC1kdW1teS12MQ$7AW7qEy5WdgZNAZVgtPLwkWm8GYf0rvGsEARmh7H8P7h1T7W8ssFRE5_hFJC48zvmWQZHP1qicSC7il72IE5fA";

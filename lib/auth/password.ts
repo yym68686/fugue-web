@@ -3,10 +3,10 @@ import "server-only";
 import { randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
 
+import { checkPasswordPolicy } from "@/lib/auth/password-policy";
+
 const PASSWORD_HASH_PREFIX = "scrypt_v1";
 const PASSWORD_HASH_KEY_LENGTH = 64;
-const PASSWORD_MIN_LENGTH = 10;
-const PASSWORD_MAX_LENGTH = 256;
 
 const scrypt = promisify(scryptCallback);
 
@@ -14,20 +14,10 @@ function toBuffer(value: string) {
   return Buffer.from(value, "base64url");
 }
 
+/** Server-side gate. The rules live in lib/auth/password-policy.ts so the
+ * sign-up form can show the same limits it will be judged against. */
 export function validatePassword(password: string) {
-  if (password.length < PASSWORD_MIN_LENGTH) {
-    return `Use at least ${PASSWORD_MIN_LENGTH} characters.`;
-  }
-
-  if (password.length > PASSWORD_MAX_LENGTH) {
-    return `Passwords must stay under ${PASSWORD_MAX_LENGTH} characters.`;
-  }
-
-  if (!password.trim()) {
-    return "Enter a password.";
-  }
-
-  return null;
+  return checkPasswordPolicy(password);
 }
 
 export async function hashPassword(password: string) {

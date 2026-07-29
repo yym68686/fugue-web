@@ -8,6 +8,7 @@ import {
   upsertEmailLinkAuthMethod,
 } from "@/lib/auth/methods";
 import { hashPassword, validatePassword, verifyPassword } from "@/lib/auth/password";
+import { PASSWORD_MAX_LENGTH } from "@/lib/auth/password-policy";
 import { isSecureRequest } from "@/lib/auth/origin";
 import { AuthRequestTooLargeError, readLimitedJson } from "@/lib/auth/request";
 import { buildSessionCookie } from "@/lib/auth/session";
@@ -88,7 +89,7 @@ export async function POST(
   const passwordHash = await getPasswordHashByEmail(session.email);
   const validationError = validatePassword(newPassword);
 
-  if (currentPassword.length > 256) {
+  if (currentPassword.length > PASSWORD_MAX_LENGTH) {
     return NextResponse.json(
       {
         error: "Current password is incorrect.",

@@ -3,6 +3,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import {
+  checkPasswordPolicy,
+  PASSWORD_MIN_LENGTH,
+  PASSWORD_MIN_LENGTH_HINT_KEY,
+} from "@/lib/auth/password-policy";
+import { translateServerMessage } from "@/lib/auth/server-messages";
 import { useT } from "@/lib/i18n/client";
 
 type AuthMethodKind = "email_link" | "password" | "google" | "github";
@@ -141,7 +147,11 @@ function EmailLinkPanel({
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) {
-        setError(data.error || t("Could not update. Try again."));
+        setError(
+          data.error
+            ? translateServerMessage(data.error, t)
+            : t("Could not update. Try again."),
+        );
         return;
       }
       setNotice(action === "enable" ? t("Email sign-in enabled.") : t("Email sign-in disabled."));
@@ -216,6 +226,12 @@ function PasswordPanel({
   async function submit() {
     setNotice(null);
     setError(null);
+    // Same order as the API: policy first, then the confirmation match.
+    const policyError = checkPasswordPolicy(next);
+    if (policyError) {
+      setError(translateServerMessage(policyError, t));
+      return;
+    }
     if (next !== confirm) {
       setError(t("Passwords do not match."));
       return;
@@ -235,10 +251,18 @@ function PasswordPanel({
         message?: string;
       };
       if (!res.ok) {
-        setError(data.error || t("Could not update. Try again."));
+        setError(
+          data.error
+            ? translateServerMessage(data.error, t)
+            : t("Could not update. Try again."),
+        );
         return;
       }
-      setNotice(data.message || t("Password updated."));
+      setNotice(
+        data.message
+          ? translateServerMessage(data.message, t)
+          : t("Password updated."),
+      );
       setCurrent("");
       setNext("");
       setConfirm("");
@@ -260,7 +284,11 @@ function PasswordPanel({
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) {
-        setError(data.error || t("Could not remove. Try again."));
+        setError(
+          data.error
+            ? translateServerMessage(data.error, t)
+            : t("Could not remove. Try again."),
+        );
         return;
       }
       setNotice(t("Password removed."));
@@ -302,9 +330,13 @@ function PasswordPanel({
             type="password"
             className="input"
             autoComplete="new-password"
+            minLength={PASSWORD_MIN_LENGTH}
             value={next}
             onChange={(e) => setNext(e.target.value)}
           />
+          <div className="prof-hint">
+            {t(PASSWORD_MIN_LENGTH_HINT_KEY, { min: PASSWORD_MIN_LENGTH })}
+          </div>
         </div>
         <div className="prof-field">
           <label className="prof-lbl" htmlFor="pw-confirm">
@@ -315,6 +347,7 @@ function PasswordPanel({
             type="password"
             className="input"
             autoComplete="new-password"
+            minLength={PASSWORD_MIN_LENGTH}
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
           />
@@ -375,7 +408,11 @@ function ProviderBindings({
       const res = await fetch("/api/auth/methods/google", { method: "DELETE" });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) {
-        setError(data.error || t("Could not disconnect. Try again."));
+        setError(
+          data.error
+            ? translateServerMessage(data.error, t)
+            : t("Could not disconnect. Try again."),
+        );
         return;
       }
       onChanged();
@@ -395,7 +432,11 @@ function ProviderBindings({
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) {
-        setError(data.error || t("Could not disconnect. Try again."));
+        setError(
+          data.error
+            ? translateServerMessage(data.error, t)
+            : t("Could not disconnect. Try again."),
+        );
         return;
       }
       onChanged();
@@ -541,7 +582,11 @@ function ProfileIdentity({
         error?: string;
       };
       if (!res.ok) {
-        setError(data.error || t("Could not save. Try again."));
+        setError(
+          data.error
+            ? translateServerMessage(data.error, t)
+            : t("Could not save. Try again."),
+        );
         return;
       }
       setNotice(t("Saved."));
