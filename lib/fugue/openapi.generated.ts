@@ -1801,18 +1801,76 @@ export interface components {
       plan_id: string;
       mode?: string;
     };
+    BackupUsageReconciliation: {
+      /**
+       * @description Complete means every visible R2 backend was measured without structural drift; reconciling permits only recent unreferenced uploads within cleanup grace.
+       * @enum {string}
+       */
+      status: "complete" | "reconciling" | "drift" | "partial" | "unavailable";
+      /** @description Number of visible Cloudflare R2 backend records included in the inventory. */
+      backend_count: number;
+      /** @description Number of backend records whose physical namespace was listed successfully. */
+      measured_backend_count: number;
+      expected_object_count: number;
+      referenced_object_count: number;
+      /** Format: int64 */
+      referenced_bytes: number;
+      active_object_count: number;
+      /** Format: int64 */
+      active_bytes: number;
+      pending_deletion_object_count: number;
+      /** Format: int64 */
+      pending_deletion_bytes: number;
+      unreferenced_object_count: number;
+      /** Format: int64 */
+      unreferenced_bytes: number;
+      /** @description Unreferenced objects whose last-modified time remains within failed-upload cleanup grace. */
+      provisional_object_count: number;
+      /** Format: int64 */
+      provisional_bytes: number;
+      /** @description Unreferenced physical objects older than failed-upload cleanup grace. */
+      orphaned_object_count: number;
+      /** Format: int64 */
+      orphaned_bytes: number;
+      missing_active_object_count: number;
+      overdue_deletion_object_count: number;
+      /** Format: int64 */
+      overdue_deletion_bytes: number;
+      /** @description Objects still present even though durable metadata records physical deletion. */
+      lingering_deleted_object_count: number;
+      /** Format: int64 */
+      lingering_deleted_bytes: number;
+      duplicate_reference_count: number;
+      invalid_reference_count: number;
+      size_mismatch_count: number;
+      unresolved_backend_count: number;
+      /** Format: date-time */
+      observed_at: string;
+      message?: string;
+    };
     BackupUsage: {
       tenant_id?: string;
       backend_id?: string;
       provider?: string;
-      /** Format: int64 */
+      /**
+       * Format: int64
+       * @description Database-recorded active billable artifact bytes; this remains the billing ledger and is distinct from physical R2 bytes.
+       */
       billable_bytes?: number;
+      /**
+       * Format: int64
+       * @description Exact attributable R2 bytes, including manifests, deletion grace, and unreferenced objects. Omitted unless every visible R2 backend was measured.
+       */
+      physical_bytes?: number;
+      /** @description Exact attributable R2 object count. Omitted unless every visible R2 backend was measured. */
+      physical_object_count?: number;
       cloudflare_r2_price_code?: string;
       markup_percent?: number;
       effective_multiplier?: number;
       currency?: string;
       /** Format: date-time */
       updated_at?: string;
+      reconciliation?: components["schemas"]["BackupUsageReconciliation"];
     };
     BackupPosture: {
       target?: components["schemas"]["BackupTarget"];
