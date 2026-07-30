@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { ImageMeasurementStatus } from "@/lib/format";
+import type { components as FugueAPIComponents } from "@/lib/fugue/openapi.generated";
 
 export type { ImageMeasurementStatus } from "@/lib/format";
 
@@ -93,16 +94,29 @@ export type ConsoleProjectSummary = {
   lifecycle: ConsoleProjectLifecycle;
 };
 
-export type ConsoleAppStatus = {
-  phase?: string;
-  current_replicas?: number;
-  current_runtime_id?: string;
-  current_release_ready_at?: string;
-  last_message?: string;
-  updated_at?: string;
+type GeneratedAppStatus = FugueAPIComponents["schemas"]["AppStatus"];
+type GeneratedOperationFailure = FugueAPIComponents["schemas"]["AppOperationFailure"];
+type GeneratedObservedStatus = FugueAPIComponents["schemas"]["AppObservedStatus"];
+
+// The Console adapter still accepts older backend responses that predate some
+// required contract fields, but the field names and value types come only from
+// the generated OpenAPI source. The UI's readiness gate treats every omitted
+// field as unknown, so compatibility cannot turn a partial response green.
+export type ConsoleOperationFailure = Partial<GeneratedOperationFailure>;
+export type ConsoleAppStatus = Omit<Partial<GeneratedAppStatus>, "last_failed_operation"> & {
+  last_failed_operation?: ConsoleOperationFailure | null;
 };
 
+/** Point-in-time runtime evidence; omitted fields mean the query could not
+ * prove that fact. This is intentionally separate from ConsoleAppStatus. */
+export type ConsoleObservedStatus = Partial<GeneratedObservedStatus>;
+
 export type ConsoleAppRoute = {
+  hostname?: string;
+  path_prefix?: string;
+  public_url?: string;
+  service_port?: number;
+  // Retain legacy aliases while older Console adapters are still accepted.
   host?: string;
   path?: string;
   url?: string;
@@ -121,9 +135,12 @@ export type ConsoleApp = {
   tenant_id?: string;
   project_id?: string;
   name: string;
+  spec?: AppSpec;
   description?: string;
   route?: ConsoleAppRoute | null;
   status?: ConsoleAppStatus;
+  observed_status?: ConsoleObservedStatus | null;
+  stored_status?: ConsoleAppStatus | null;
   current_resource_usage?: ConsoleResourceUsage | null;
   backing_services?: BackingService[];
   tech_stack?: AppTechnology[];
@@ -410,7 +427,7 @@ export async function listConsoleGallery(
 ): Promise<ConsoleProjectSummary[]> {
   const data = await fugueGet<{ projects?: ConsoleProjectSummary[] }>(
     adminKey,
-    "/v1/console/gallery",
+    "/v1/console/gallery?include_live_status=true",
   );
   return Array.isArray(data.projects) ? data.projects : [];
 }
@@ -422,7 +439,7 @@ export async function getConsoleProject(
 ): Promise<ConsoleProjectDetail> {
   const data = await fugueGet<ConsoleProjectDetail>(
     adminKey,
-    `/v1/console/projects/${encodeURIComponent(projectId)}`,
+    `/v1/console/projects/${encodeURIComponent(projectId)}?include_live_status=true`,
   );
   return {
     project: data.project ?? null,
@@ -440,7 +457,7 @@ export async function getConsoleProject(
 export async function listAppsWithUsage(adminKey: string): Promise<ConsoleApp[]> {
   const data = await fugueGet<{ apps?: ConsoleApp[] }>(
     adminKey,
-    "/v1/apps?include_resource_usage=true&include_live_status=false",
+    "/v1/apps?include_resource_usage=true&include_live_status=true",
   );
   return Array.isArray(data.apps) ? data.apps : [];
 }
@@ -723,6 +740,9 @@ export async function listClusterNodes(): Promise<ClusterNode[]> {
  * ------------------------------------------------------------------ */
 
 export type AppSpec = {
+  image?: string;
+  ports?: number[];
+  ssh?: unknown;
   image_mirror_limit?: number;
   network_mode?: string;
   runtime_id?: string;
@@ -757,16 +777,7 @@ export type AppSource = {
   detected_stack?: string;
 };
 
-export type AppDetailStatus = {
-  phase?: string;
-  current_runtime_id?: string;
-  current_release_ready_at?: string;
-  current_release_started_at?: string;
-  current_replicas?: number;
-  last_operation_id?: string;
-  last_message?: string;
-  updated_at?: string;
-};
+export type AppDetailStatus = ConsoleAppStatus;
 
 /** A backing service (database) attached to an app/project. */
 export type BackingService = {
@@ -805,6 +816,8 @@ export type ConsoleAppDetail = {
   origin_source?: AppSource | null;
   spec?: AppSpec;
   status?: AppDetailStatus;
+  observed_status?: ConsoleObservedStatus | null;
+  stored_status?: AppDetailStatus | null;
   backing_services?: BackingService[];
   tech_stack?: AppTechnology[];
 };
@@ -987,7 +1000,7 @@ export async function getConsoleApp(
 ): Promise<ConsoleAppDetail> {
   const data = await fugueGet<{ app: ConsoleAppDetail }>(
     adminKey,
-    appPath(appId),
+    `${appPath(appId)}?include_live_status=true`,
   );
   return data.app;
 }

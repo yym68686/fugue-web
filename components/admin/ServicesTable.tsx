@@ -4,16 +4,27 @@ import { Fragment, useMemo, useState } from "react";
 
 import { useT } from "@/lib/i18n/client";
 import type { TranslateFn } from "@/lib/i18n/translate";
+import { isObservedReady, observedFailureSummary, observedStatusTone } from "@/lib/fugue/observed-status";
+import { useObservedStatusNow } from "@/lib/fugue/use-observed-status-now";
 
 import type { ServiceRow } from "@/app/admin/services/page";
 
-function phaseTone(phase?: string): string {
-  const p = (phase ?? "").toLowerCase();
-  if (["running", "ready", "deployed", "active"].includes(p)) return "ok";
-  if (["deploying", "building", "queued", "updating", "pending"].includes(p)) return "run";
-  if (["failed", "error", "degraded"].includes(p)) return "err";
-  if (["paused", "stopped", "disabled"].includes(p)) return "warn";
-  return "idle";
+function rowIsObservedReady(row: ServiceRow, now: number): boolean {
+  return isObservedReady({
+    spec: row.spec ?? { replicas: row.desiredReplicas ?? undefined },
+    route: row.routeUrl ? { public_url: row.routeUrl } : null,
+    status: row.storedStatus,
+    observed_status: row.observedStatus,
+  }, now);
+}
+
+function rowTone(row: ServiceRow, now: number): string {
+  return observedStatusTone({
+    spec: row.spec ?? { replicas: row.desiredReplicas ?? undefined },
+    route: row.routeUrl ? { public_url: row.routeUrl } : null,
+    status: row.storedStatus,
+    observed_status: row.observedStatus,
+  }, now);
 }
 
 /** Human label for a deploy method / source type. */
@@ -35,8 +46,40 @@ function deployLabel(method: string | null, t: TranslateFn): string {
 
 type StatusFilter = "all" | "running" | "issues";
 
-export default function ServicesTable({ rows }: { rows: ServiceRow[] }) {
+export function ServicesRuntimeSummary({
+  rows,
+  tenantCount,
+  initialObservedNow,
+}: {
+  rows: ServiceRow[];
+  tenantCount: number;
+  initialObservedNow: number;
+}) {
   const t = useT();
+  const now = useObservedStatusNow(initialObservedNow);
+  const running = rows.filter((row) => rowIsObservedReady(row, now)).length;
+  const tone = rows.length > 0 && running === rows.length ? "ok" : rows.length > 0 ? "warn" : "idle";
+
+  return (
+    <div className="meta">
+      <span>
+        <span className={`dot ${tone}`}></span>{" "}
+        {t("{running}/{total} running", { running, total: rows.length })}
+      </span>
+      <span>{t("{count} tenants", { count: tenantCount })}</span>
+    </div>
+  );
+}
+
+export default function ServicesTable({
+  rows,
+  initialObservedNow,
+}: {
+  rows: ServiceRow[];
+  initialObservedNow: number;
+}) {
+  const t = useT();
+  const now = useObservedStatusNow(initialObservedNow);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -53,8 +96,8 @@ export default function ServicesTable({ rows }: { rows: ServiceRow[] }) {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return rows.filter((r) => {
-      if (statusFilter === "running" && r.phase.toLowerCase() !== "running") return false;
-      if (statusFilter === "issues" && r.phase.toLowerCase() === "running") return false;
+      if (statusFilter === "running" && !rowIsObservedReady(r, now)) return false;
+      if (statusFilter === "issues" && rowIsObservedReady(r, now)) return false;
       if (!q) return true;
       const hay = [
         r.name,
@@ -68,7 +111,7 @@ export default function ServicesTable({ rows }: { rows: ServiceRow[] }) {
         .toLowerCase();
       return hay.includes(q);
     });
-  }, [rows, query, statusFilter]);
+  }, [rows, query, statusFilter, now]);
 
   const segs: { key: StatusFilter; label: string }[] = [
     { key: "all", label: t("All") },
@@ -152,7 +195,7 @@ export default function ServicesTable({ rows }: { rows: ServiceRow[] }) {
                     )}
                   </td>
                   <td>
-                    <span className={`chip ${phaseTone(r.phase)}`}>{r.phase}</span>
+                    <span className={`chip ${rowTone(r, now)}`}>{r.phase}</span>
                     {r.replicas != null && (
                       <span className="faint" style={{ marginLeft: 6 }}>
                         ×{r.replicas}
@@ -193,6 +236,14 @@ export default function ServicesTable({ rows }: { rows: ServiceRow[] }) {
                             <span className="node-detail-k">{t("Source")}</span>
                             <span className="node-detail-v mono">{r.repo || "—"}</span>
                           </div>
+                          {observedFailureSummary({ status: r.storedStatus, observed_status: r.observedStatus }) && (
+                            <div className="node-detail-item">
+                              <span className="node-detail-k">{t("Last failure")}</span>
+                              <span className="node-detail-v">
+                                {observedFailureSummary({ status: r.storedStatus, observed_status: r.observedStatus })}
+                              </span>
+                            </div>
+                          )}
                           <div className="node-detail-item">
                             <span className="node-detail-k">{t("Deploy method")}</span>
                             <span className="node-detail-v">

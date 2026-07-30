@@ -13,6 +13,7 @@ import type {
 } from "@/lib/fugue/console";
 import { fmtDate, fmtMillicores } from "@/lib/format";
 import { useT } from "@/lib/i18n/client";
+import { isObservedReady, observedFailureSummary, observedStatusMessage } from "@/lib/fugue/observed-status";
 import {
   ActionButton,
   callConsole,
@@ -34,6 +35,9 @@ export function RouteTab({ app }: { app: ConsoleAppDetail }) {
   const [hostname, setHostname] = useState(route.hostname ?? "");
   const [pathPrefix, setPathPrefix] = useState(route.path_prefix ?? "");
   const publicUrl = route.public_url || (route.hostname ? `https://${route.hostname}` : "");
+  const routeUnavailable = Boolean(publicUrl) && !isObservedReady(app);
+  const failureSummary = observedFailureSummary(app);
+  const statusMessage = observedStatusMessage(app);
 
   const domains = useEndpointData<AppDomain[]>(
     `/api/console/apps/${encodeURIComponent(app.id)}/domains`,
@@ -42,6 +46,18 @@ export function RouteTab({ app }: { app: ConsoleAppDetail }) {
 
   return (
     <>
+      {routeUnavailable && (
+        <div className="panel" role="status">
+          <div className="panel-h">
+            <h3>{t("Route unavailable")}</h3>
+            <span className="chip warn">{t("runtime evidence required")}</span>
+          </div>
+          <div className="faint">
+            {statusMessage || t("The route is not marked ready because fresh runtime and endpoint evidence is missing.")}
+          </div>
+          {failureSummary && <div className="faint">{t("Last failure")}: {failureSummary}</div>}
+        </div>
+      )}
       <div className="panel">
         <div className="panel-h">
           <h3>{t("Primary route")}</h3>

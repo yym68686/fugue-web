@@ -3,6 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { BackingService, ConsoleAppDetail } from "@/lib/fugue/console";
+import {
+  observedFailureSummary,
+  observedStatusLabel,
+  observedStatusTone,
+} from "@/lib/fugue/observed-status";
+import { useObservedStatusNow } from "@/lib/fugue/use-observed-status-now";
 import { fmtBytes, fmtMillicores, fmtStorageUsage } from "@/lib/format";
 import { readRuntimeCountryCode } from "@/lib/geo/country";
 import CountryLabel from "@/components/geo/CountryLabel";
@@ -37,6 +43,16 @@ function phaseTone(phase?: string): string {
   return "idle";
 }
 
+function serviceTone(service: WorkbenchService, now: number): string {
+  return service.kind === "app"
+    ? observedStatusTone(service.app, now)
+    : phaseTone(service.phase);
+}
+
+function servicePhase(service: WorkbenchService): string {
+  return service.kind === "app" ? observedStatusLabel(service.app) : service.phase || "database";
+}
+
 function AppIcon() {
   return (
     <svg className="svc-card-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -62,6 +78,7 @@ export default function ProjectWorkbench({
   projectDescription,
   initialServiceId,
   initialTab,
+  initialObservedNow,
 }: {
   services: WorkbenchService[];
   projectId: string;
@@ -69,9 +86,11 @@ export default function ProjectWorkbench({
   projectDescription: string;
   initialServiceId?: string;
   initialTab?: string;
+  initialObservedNow: number;
 }) {
   const t = useT();
   const router = useRouter();
+  const observedNow = useObservedStatusNow(initialObservedNow);
 
   // selectedId: null = overview grid; PROJECT_KEY = project settings; else a service id.
   const [selectedId, setSelectedId] = useState<string | null>(() => {
@@ -157,10 +176,15 @@ export default function ProjectWorkbench({
             {t("Back")}
           </button>
           <h2>{selected.name}</h2>
-          <span className={`chip ${phaseTone(selected.phase)}`}>
-            {selected.phase || (selected.kind === "db" ? "database" : "app")}
+          <span className={`chip ${serviceTone(selected, observedNow)}`}>
+            {servicePhase(selected)}
           </span>
           <span className="kind">{selected.kind === "db" ? t("Database") : t("App")}</span>
+          {selected.kind === "app" && observedFailureSummary(selected.app) && (
+            <span className="faint" title={observedFailureSummary(selected.app) ?? undefined}>
+              · {t("last failure")}: {observedFailureSummary(selected.app)}
+            </span>
+          )}
         </div>
 
         <div className="tabs">
@@ -205,7 +229,7 @@ export default function ProjectWorkbench({
       ) : (
         <div className="svc-grid">
           {services.map((s) => (
-            <ServiceCard key={s.id} svc={s} onOpen={openService} />
+            <ServiceCard key={s.id} svc={s} onOpen={openService} observedNow={observedNow} />
           ))}
         </div>
       )}
@@ -216,9 +240,11 @@ export default function ProjectWorkbench({
 function ServiceCard({
   svc,
   onOpen,
+  observedNow,
 }: {
   svc: WorkbenchService;
   onOpen: (id: string, tab?: string) => void;
+  observedNow: number;
 }) {
   const t = useT();
   const isDb = svc.kind === "db";
@@ -254,9 +280,9 @@ function ServiceCard({
           </span>
         </div>
         <div className="svc-card-phase">
-          <span className={`dot ${phaseTone(svc.phase)}`} />
+          <span className={`dot ${serviceTone(svc, observedNow)}`} />
           {isDb ? t("Database") : t("App")}
-          {svc.phase ? ` · ${svc.phase}` : ""}
+          {` · ${servicePhase(svc)}`}
           {countryCode && (
             <>
               <span className="svc-card-sep">·</span>
@@ -278,6 +304,11 @@ function ServiceCard({
             <span className="v">{storageValue}</span>
           </div>
         </div>
+        {svc.kind === "app" && observedFailureSummary(svc.app) && (
+          <div className="svc-card-failure" title={observedFailureSummary(svc.app) ?? undefined}>
+            {t("last failure")}: {observedFailureSummary(svc.app)}
+          </div>
+        )}
       </button>
       <div className="svc-card-foot">
         <button type="button" className="btn primary" onClick={() => onOpen(svc.id)}>

@@ -27,8 +27,11 @@ export function SettingsTab({
     spec.image_mirror_limit != null ? String(spec.image_mirror_limit) : "",
   );
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const phase = app.status?.phase?.toLowerCase() ?? "";
-  const paused = phase === "paused" || phase === "stopped" || app.status?.current_replicas === 0;
+  // A zero durable replica count is not proof that the service is paused: an
+  // observer failure also projects current_replicas to zero. Use the shared
+  // observed phase so an unknown runtime cannot turn the action into "Start".
+  const phase = (app.observed_status?.phase ?? app.status?.phase)?.toLowerCase() ?? "";
+  const paused = phase === "paused" || phase === "stopped" || phase === "disabled";
 
   return (
     <>

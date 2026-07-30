@@ -1,11 +1,14 @@
 import AppLayout from '@/components/AppLayout';
-import ServicesTable from '@/components/admin/ServicesTable';
+import ServicesTable, { ServicesRuntimeSummary } from '@/components/admin/ServicesTable';
 import { requireActiveAdminPageSession } from '@/lib/auth/page-access';
 import {
   listAllAppsWithUsage,
   listClusterNodes,
   type ConsoleApp,
+  type ConsoleAppStatus,
+  type ConsoleObservedStatus,
 } from '@/lib/fugue/console';
+import { observedStatusLabel } from '@/lib/fugue/observed-status';
 import { getRequestI18n } from '@/lib/i18n/server';
 import { getWorkspaceSnapshotsByTenantIds } from '@/lib/workspace/store';
 
@@ -24,6 +27,10 @@ export type ServiceRow = {
   repo: string | null;
   nodeName: string | null;
   routeUrl: string | null;
+  spec: ConsoleApp['spec'];
+  observedStatus: ConsoleObservedStatus | null;
+  storedStatus: ConsoleAppStatus | null;
+  desiredReplicas: number | null;
 };
 
 function deployMethod(app: ConsoleApp): string | null {
@@ -57,6 +64,7 @@ function repoLabel(app: ConsoleApp): string | null {
 }
 
 export default async function AdminServicesPage() {
+  const initialObservedNow = Date.now();
   await requireActiveAdminPageSession();
   const { t } = await getRequestI18n();
 
@@ -90,16 +98,28 @@ export default async function AdminServicesPage() {
     name: app.name,
     tenantId: app.tenant_id ?? null,
     ownerEmail: app.tenant_id ? emailByTenant.get(app.tenant_id) ?? null : null,
-    phase: app.status?.phase || 'unknown',
+    phase: observedStatusLabel(app),
     replicas:
-      typeof app.status?.current_replicas === 'number'
-        ? app.status.current_replicas
+      typeof app.observed_status?.ready_replicas === 'number'
+        ? app.observed_status.ready_replicas
         : null,
     stack: techStack(app),
     deployMethod: deployMethod(app),
     repo: repoLabel(app),
     nodeName: nodeByAppId.get(app.id) ?? null,
-    routeUrl: app.route?.url || null,
+    routeUrl: app.route?.public_url || app.route?.url || null,
+    spec: app.spec,
+    observedStatus: app.observed_status ?? null,
+    // `status` is the legacy effective/observed projection once live status
+    // is requested. Keep the durable control-plane state separate when the
+    // backend supplies the explicit contract.
+    storedStatus: app.stored_status ?? app.status ?? null,
+    desiredReplicas:
+      typeof app.observed_status?.desired_replicas === 'number'
+        ? app.observed_status.desired_replicas
+        : typeof app.spec?.replicas === 'number'
+          ? app.spec.replicas
+          : null,
   }));
 
   // Sort: running/degraded first, then by name.
@@ -118,8 +138,6 @@ export default async function AdminServicesPage() {
     return a.name.localeCompare(b.name);
   });
 
-  const running = rows.filter((r) => r.phase.toLowerCase() === 'running').length;
-
   return (
     <AppLayout>
       <div className="page">
@@ -127,13 +145,11 @@ export default async function AdminServicesPage() {
           <div>
             <div className="eyebrow">Platform · Services</div>
             <h1>{t('All services')}</h1>
-            <div className="meta">
-              <span>
-                <span className="dot ok"></span>{' '}
-                {t('{running}/{total} running', { running, total: rows.length })}
-              </span>
-              <span>{t('{count} tenants', { count: tenantIds.length })}</span>
-            </div>
+            <ServicesRuntimeSummary
+              rows={rows}
+              tenantCount={tenantIds.length}
+              initialObservedNow={initialObservedNow}
+            />
           </div>
         </div>
 
@@ -143,7 +159,7 @@ export default async function AdminServicesPage() {
             <div className="tail eyebrow">{rows.length} total</div>
           </div>
           {rows.length > 0 ? (
-            <ServicesTable rows={rows} />
+            <ServicesTable rows={rows} initialObservedNow={initialObservedNow} />
           ) : (
             <div className="empty">{t('No services deployed yet.')}</div>
           )}

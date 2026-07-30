@@ -2561,6 +2561,15 @@ button {
   font-variant-numeric: tabular-nums;
 }
 
+.svc-card-failure {
+  color: var(--warn, #c58b2a);
+  font-size: 11px;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .svc-card-foot {
   display: flex;
   gap: 8px;

@@ -608,6 +608,12 @@ export const zhCN = {
   "No services deployed yet.": "暂无已部署的服务。",
   "No services match the filter.": "没有符合筛选条件的服务。",
   "Filter by name, owner, node, stack…": "按名称、所有者、节点、技术栈筛选…",
+  "Last failure": "最近一次失败",
+  "last failure": "最近一次失败",
+  "Route unavailable": "路由不可用",
+  "runtime evidence required": "需要运行时证据",
+  "The route is not marked ready because fresh runtime and endpoint evidence is missing.":
+    "由于缺少新鲜的运行时与 Endpoint 证据，该路由不会标记为就绪。",
   Owner: "所有者",
   "Tech stack": "技术栈",
   "Deploy method": "部署方式",

@@ -97,6 +97,7 @@ export default async function ProjectDetailPage({
   params: Promise<{ projectId: string }>;
   searchParams: Promise<{ service?: string; tab?: string }>;
 }) {
+  const initialObservedNow = Date.now();
   const { session } = await requireActivePageSession();
   const { t } = await getRequestI18n();
   const { projectId: rawProjectId } = await params;
@@ -223,6 +224,7 @@ export default async function ProjectDetailPage({
           projectDescription={detail.project?.description || ''}
           initialServiceId={initialServiceId}
           initialTab={initialTab}
+          initialObservedNow={initialObservedNow}
         />
       </div>
     </AppLayout>

@@ -3,8 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "contract:check": "npm run openapi:sync:check && npm run openapi:generate:check && npm run typecheck",
     "dev": "next dev",
     "build": "next build",
+    "openapi:generate": "openapi-typescript ./openapi/fugue.yaml -o ./lib/fugue/openapi.generated.ts",
+    "openapi:generate:check": "node ./scripts/check-generated-openapi.mjs",
+    "openapi:refresh": "npm run openapi:sync && npm run openapi:generate",
+    "openapi:sync": "node ./scripts/sync-fugue-openapi.mjs",
+    "openapi:sync:check": "node ./scripts/sync-fugue-openapi.mjs --check",
     "start": "next start",
     "test": "node --import ./tests/register-alias.mjs --test tests/**/*.test.ts",
     "typecheck": "tsc --noEmit"
@@ -22,7 +28,13 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "openapi-typescript": "6.7.6",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "overrides": {
+    "openapi-typescript": {
+      "undici": "6.28.0"
+    }
   }
 }
