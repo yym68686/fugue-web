@@ -1632,9 +1632,12 @@ export interface components {
       project_id?: string;
       app_id?: string;
       workspace_id?: string;
+      /** @description For app-database targets, Fugue treats the app's current managed PostgreSQL runtime as authoritative and rebinds policy-backed runs after placement changes. */
       runtime_id?: string;
       name?: string;
+      /** @description For app-database targets, Fugue persists the current managed PostgreSQL service name rather than a stale caller-supplied value. */
       service_name?: string;
+      /** @description For app-database targets, Fugue persists the current managed PostgreSQL database name rather than a stale caller-supplied value. */
       database?: string;
       component?: string;
     };
@@ -3558,6 +3561,8 @@ export interface components {
       dns_node_id?: string;
       edge_group_id?: string;
       zone: string;
+      /** @description Normalized hosted zones that authoritative DNS nodes must load dynamically. */
+      hosted_zones?: string[];
       records: components["schemas"]["EdgeDNSRecord"][];
     };
     EdgeDNSRecord: {
@@ -17070,6 +17075,12 @@ export interface operations {
           "application/json": components["schemas"]["BackupPolicyResponse"];
         };
       };
+      /** @description The supplied app-database runtime is stale and does not match the app's current managed PostgreSQL runtime. */
+      409: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
       default: components["responses"]["ErrorResponse"];
     };
   };
@@ -17113,6 +17124,12 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["BackupPolicyResponse"];
+        };
+      };
+      /** @description The supplied app-database runtime is stale and does not match the app's current managed PostgreSQL runtime. */
+      409: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
         };
       };
       default: components["responses"]["ErrorResponse"];
