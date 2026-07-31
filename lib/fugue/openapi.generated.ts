@@ -1913,13 +1913,21 @@ export interface components {
       artifacts?: components["schemas"]["BackupArtifact"][];
     };
     BackupRunListResponse: {
-      runs?: components["schemas"]["BackupRun"][];
+      runs: components["schemas"]["BackupRun"][];
+      page_info: components["schemas"]["BackupListPageInfo"];
     };
     BackupArtifactResponse: {
       artifact?: components["schemas"]["BackupArtifact"];
     };
     BackupArtifactListResponse: {
-      artifacts?: components["schemas"]["BackupArtifact"][];
+      artifacts: components["schemas"]["BackupArtifact"][];
+      page_info: components["schemas"]["BackupListPageInfo"];
+    };
+    BackupListPageInfo: {
+      /** Format: int32 */
+      limit: number;
+      has_next_page: boolean;
+      next_cursor?: string;
     };
     BackupRestorePlanResponse: {
       plan?: components["schemas"]["BackupRestorePlan"];
@@ -2871,6 +2879,8 @@ export interface components {
       /** @enum {string} */
       status: "active" | "disabled" | "unavailable" | "runtime-missing";
       status_reason?: string;
+      /** @description Stable, secret-safe identifier for the evidence-backed route decision. */
+      decision_id?: string;
       route_generation: string;
       /** Format: date-time */
       created_at: string;
@@ -17147,7 +17157,10 @@ export interface operations {
         policy_id?: string;
         target_type?: string;
         status?: string;
+        /** @description Server page size. Use page_info.next_cursor to retrieve additional results. */
         limit?: number;
+        /** @description Opaque cursor returned by the preceding page. Cursors are bound to the authenticated caller and filter set. */
+        cursor?: string;
       };
     };
     responses: {
@@ -17219,7 +17232,10 @@ export interface operations {
         run_id?: string;
         target_type?: string;
         include_deleted?: boolean;
+        /** @description Server page size. Use page_info.next_cursor to retrieve additional results. */
         limit?: number;
+        /** @description Opaque cursor returned by the preceding page. Cursors are bound to the authenticated caller and filter set. */
+        cursor?: string;
       };
     };
     responses: {
