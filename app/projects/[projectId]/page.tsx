@@ -201,6 +201,7 @@ export default async function ProjectDetailPage({
               className="pstat-v"
               title={fmtImageMeasurementTitle(
                 imageMeasurement.measurement_status,
+                imageMeasurement.measurement_reasons,
                 imageMeasurement.measurement_note,
                 t,
               )}

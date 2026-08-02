@@ -1,6 +1,10 @@
 /** Shared display formatters for resource usage and timestamps. */
 
+import type { components as FugueAPIComponents } from '@/lib/fugue/openapi.generated';
+
 export type ImageMeasurementStatus = 'complete' | 'partial' | 'unavailable';
+export type ImageMeasurementReason =
+  FugueAPIComponents['schemas']['ImageMeasurementReason'];
 
 export function fmtBytes(bytes: number | undefined | null): string {
   if (!bytes || bytes <= 0) return '0';
@@ -45,11 +49,49 @@ export function imageMeasurementMessageKey(
 
 export function fmtImageMeasurementTitle(
   status: ImageMeasurementStatus | undefined,
+  reasons: readonly ImageMeasurementReason[] | undefined,
   note: string | undefined | null,
   translate: (key: string) => string,
 ): string {
   const base = translate(imageMeasurementMessageKey(status));
-  return note ? `${base}: ${note}` : base;
+  const details =
+    status === 'complete'
+      ? []
+      : [...new Set(reasons ?? [])].map((reason) =>
+          translate(imageMeasurementReasonMessageKey(reason)),
+        );
+  return [base, details.length > 0 ? details.join('; ') : '', note || '']
+    .filter(Boolean)
+    .join(': ');
+}
+
+export function imageMeasurementReasonMessageKey(
+  reason: ImageMeasurementReason,
+): string {
+  switch (reason) {
+    case 'digest_conflict':
+      return 'Different cache nodes reported different image digests';
+    case 'size_conflict':
+      return 'Cache nodes reported inconsistent sizes for the same image';
+    case 'stale_inventory':
+      return 'Image cache inventory is stale';
+    case 'missing_manifest_evidence':
+      return 'No fresh image manifest evidence was returned';
+    case 'missing_size_evidence':
+      return 'Image size evidence is missing';
+    case 'missing_manifest_size_evidence':
+      return 'Image manifest size evidence is missing';
+    case 'missing_blob_size_evidence':
+      return 'Referenced blob size evidence is incomplete';
+    case 'missing_child_manifest':
+      return 'A child image manifest is missing';
+    case 'missing_blob':
+      return 'A referenced image blob is missing';
+    case 'no_storage_evidence':
+      return 'No physical image storage evidence was returned';
+    case 'registry_not_configured':
+      return 'The registry is not configured for image measurement';
+  }
 }
 
 export function fmtStorageUsage(

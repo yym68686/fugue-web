@@ -155,12 +155,14 @@ export default function ImagesPanel({ app }: { app: ConsoleAppDetail }) {
               className={`wb-alert ${inv.data.measurement_status === "partial" ? "warn" : "err"}`}
               title={fmtImageMeasurementTitle(
                 inv.data.measurement_status,
+                inv.data.measurement_reasons,
                 inv.data.measurement_note,
                 t,
               )}
             >
               {fmtImageMeasurementTitle(
                 inv.data.measurement_status,
+                inv.data.measurement_reasons,
                 inv.data.measurement_note,
                 t,
               )}
@@ -259,6 +261,7 @@ function ImagesTable({
             <td
               title={fmtImageMeasurementTitle(
                 v.size_measurement_status,
+                v.size_measurement_reasons,
                 inv?.measurement_note,
                 t,
               )}

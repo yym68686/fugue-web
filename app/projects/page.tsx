@@ -170,6 +170,7 @@ export default async function ProjectsPage() {
                         className="stat-v"
                         title={fmtImageMeasurementTitle(
                           imageMeasurementStatus,
+                          res?.image_measurement_reasons,
                           res?.image_measurement_note,
                           t,
                         )}

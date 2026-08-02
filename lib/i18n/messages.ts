@@ -295,6 +295,23 @@ export const zhCN = {
     "当前仅有镜像用量下界",
   "Image usage is unavailable because no fresh storage evidence was returned":
     "没有返回新鲜的存储证据，暂时无法获取镜像用量",
+  "Different cache nodes reported different image digests":
+    "不同缓存节点报告了不同的镜像摘要",
+  "Cache nodes reported inconsistent sizes for the same image":
+    "缓存节点对同一镜像报告了不一致的大小",
+  "Image cache inventory is stale": "镜像缓存清单已过期",
+  "No fresh image manifest evidence was returned":
+    "没有返回新鲜的镜像清单证据",
+  "Image size evidence is missing": "缺少镜像大小证据",
+  "Image manifest size evidence is missing": "缺少镜像清单大小证据",
+  "Referenced blob size evidence is incomplete":
+    "被引用数据块的大小证据不完整",
+  "A child image manifest is missing": "缺少子镜像清单",
+  "A referenced image blob is missing": "缺少被引用的镜像数据块",
+  "No physical image storage evidence was returned":
+    "没有返回镜像物理存储证据",
+  "The registry is not configured for image measurement":
+    "镜像仓库尚未配置用量测量",
   "{count} apps": "{count} 应用",
   "{count} services": "{count} 服务",
   "Server nodes": "服务器节点",
