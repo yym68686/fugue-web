@@ -97,6 +97,8 @@ export type ConsoleProjectSummary = {
 type GeneratedAppStatus = FugueAPIComponents["schemas"]["AppStatus"];
 type GeneratedOperationFailure = FugueAPIComponents["schemas"]["AppOperationFailure"];
 type GeneratedObservedStatus = FugueAPIComponents["schemas"]["AppObservedStatus"];
+export type ImageMeasurementReason =
+  FugueAPIComponents["schemas"]["ImageMeasurementReason"];
 
 // The Console adapter still accepts older backend responses that predate some
 // required contract fields, but the field names and value types come only from
@@ -178,6 +180,7 @@ export type ProjectImageUsage = {
   reclaimable_size_bytes?: number;
   measurement_status?: ImageMeasurementStatus;
   measurement_note?: string;
+  measurement_reasons?: ImageMeasurementReason[];
 };
 
 export type ProjectImageUsageResponse = {
@@ -187,6 +190,7 @@ export type ProjectImageUsageResponse = {
   image_store_mode?: string;
   measurement_status: ImageMeasurementStatus;
   measurement_note?: string;
+  measurement_reasons?: ImageMeasurementReason[];
   observed_at?: string;
   projects: ProjectImageUsage[];
 };
@@ -195,6 +199,7 @@ export type ProjectImageMeasurement = {
   total_size_bytes?: number;
   measurement_status: ImageMeasurementStatus;
   measurement_note?: string;
+  measurement_reasons?: ImageMeasurementReason[];
 };
 
 /** Aggregated resource usage for a single project, computed on the frontend. */
@@ -207,6 +212,7 @@ export type ProjectResourceRollup = {
   image_total_bytes?: number;
   image_measurement_status: ImageMeasurementStatus;
   image_measurement_note?: string;
+  image_measurement_reasons?: ImageMeasurementReason[];
   image_observed_at?: string;
 };
 
@@ -498,6 +504,38 @@ function optionalString(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value : undefined;
 }
 
+const IMAGE_MEASUREMENT_REASONS = [
+  "digest_conflict",
+  "size_conflict",
+  "stale_inventory",
+  "missing_manifest_evidence",
+  "missing_size_evidence",
+  "missing_manifest_size_evidence",
+  "missing_blob_size_evidence",
+  "missing_child_manifest",
+  "missing_blob",
+  "no_storage_evidence",
+  "registry_not_configured",
+] as const satisfies readonly ImageMeasurementReason[];
+
+const IMAGE_MEASUREMENT_REASON_SET = new Set<string>(IMAGE_MEASUREMENT_REASONS);
+
+function normalizeImageMeasurementReasons(
+  value: unknown,
+): ImageMeasurementReason[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const seen = new Set<ImageMeasurementReason>();
+  const reasons: ImageMeasurementReason[] = [];
+  for (const reason of value) {
+    if (typeof reason !== "string" || !IMAGE_MEASUREMENT_REASON_SET.has(reason)) continue;
+    const normalized = reason as ImageMeasurementReason;
+    if (seen.has(normalized)) continue;
+    seen.add(normalized);
+    reasons.push(normalized);
+  }
+  return reasons.length > 0 ? reasons : undefined;
+}
+
 export function normalizeImageMeasurementStatus(
   value: unknown,
   fallback: ImageMeasurementStatus,
@@ -557,6 +595,10 @@ export function normalizeProjectImageUsageResponse(data: unknown): ProjectImageU
             project.measurement_status,
             measurementStatus,
           );
+          const normalizedProjectStatus =
+            projectMeasurementStatus === "complete" && totalSizeBytes === undefined
+              ? "unavailable"
+              : projectMeasurementStatus;
           return {
             project_id: projectId,
             version_count: nonNegativeNumber(project.version_count),
@@ -566,11 +608,12 @@ export function normalizeProjectImageUsageResponse(data: unknown): ProjectImageU
             current_size_bytes: optionalNonNegativeNumber(project.current_size_bytes),
             stale_size_bytes: optionalNonNegativeNumber(project.stale_size_bytes),
             reclaimable_size_bytes: optionalNonNegativeNumber(project.reclaimable_size_bytes),
-            measurement_status:
-              projectMeasurementStatus === "complete" && totalSizeBytes === undefined
-                ? "unavailable"
-                : projectMeasurementStatus,
+            measurement_status: normalizedProjectStatus,
             measurement_note: optionalString(project.measurement_note),
+            measurement_reasons:
+              normalizedProjectStatus === "complete"
+                ? undefined
+                : normalizeImageMeasurementReasons(project.measurement_reasons),
           };
         })
         .filter((project): project is ProjectImageUsage => project !== null)
@@ -585,6 +628,10 @@ export function normalizeProjectImageUsageResponse(data: unknown): ProjectImageU
     image_store_mode: optionalString(data.image_store_mode),
     measurement_status: measurementStatus,
     measurement_note: optionalString(data.measurement_note),
+    measurement_reasons:
+      measurementStatus === "complete"
+        ? undefined
+        : normalizeImageMeasurementReasons(data.measurement_reasons),
     observed_at: optionalString(data.observed_at),
     projects,
   };
@@ -609,6 +656,7 @@ export function projectImageMeasurement(
       : {
           measurement_status: "unavailable",
           measurement_note: response.measurement_note ?? IMAGE_USAGE_UNAVAILABLE_NOTE,
+          measurement_reasons: response.measurement_reasons,
         };
   }
 
@@ -625,6 +673,8 @@ export function projectImageMeasurement(
     measurement_status: status,
     measurement_note:
       project.measurement_note ?? response.measurement_note ?? undefined,
+    measurement_reasons:
+      status === "complete" ? undefined : project.measurement_reasons,
   };
 }
 
@@ -704,6 +754,7 @@ export function rollupProjectResources(
     const measurement = projectImageMeasurement(normalizedImageUsage, projectId);
     entry.image_measurement_status = measurement.measurement_status;
     entry.image_measurement_note = measurement.measurement_note;
+    entry.image_measurement_reasons = measurement.measurement_reasons;
     entry.image_observed_at = normalizedImageUsage.observed_at;
     if (measurement.measurement_status === "unavailable") {
       entry.image_total_bytes = undefined;
@@ -896,6 +947,7 @@ export type ImageVersion = {
   runtime_image_ref?: string;
   size_bytes?: number;
   size_measurement_status?: ImageMeasurementStatus;
+  size_measurement_reasons?: ImageMeasurementReason[];
   status?: string;
   source?: AppSource | null;
 };
@@ -917,6 +969,7 @@ export type ImageInventory = {
   reclaim_note?: string;
   measurement_status?: ImageMeasurementStatus;
   measurement_note?: string;
+  measurement_reasons?: ImageMeasurementReason[];
   observed_at?: string;
   summary?: ImageSummary;
   versions: ImageVersion[];
@@ -1080,24 +1133,35 @@ export async function getAppImages(
   appId: string,
 ): Promise<ImageInventory> {
   const data = await fugueGet<unknown>(adminKey, appPath(appId, "/images"));
+  return normalizeAppImageInventoryResponse(data);
+}
+
+export function normalizeAppImageInventoryResponse(data: unknown): ImageInventory {
   const raw = isRecord(data) ? data : {};
   const rawVersions = Array.isArray(raw.versions) ? raw.versions.filter(isRecord) : [];
   const fallbackStatus: ImageMeasurementStatus =
     raw.registry_configured === false ? "unavailable" : "complete";
-  const versions = rawVersions.map((version) => ({
-    ...version,
-    image_ref: optionalString(version.image_ref) ?? "",
-    size_bytes: optionalNonNegativeNumber(version.size_bytes),
-    size_measurement_status: normalizeImageMeasurementStatus(
+  const versions = rawVersions.map((version): ImageVersion => {
+    const sizeBytes = optionalNonNegativeNumber(version.size_bytes);
+    const normalizedStatus = normalizeImageMeasurementStatus(
       version.size_measurement_status,
       fallbackStatus,
-    ),
-  })) as ImageVersion[];
-  for (const version of versions) {
-    if (version.size_measurement_status === "complete" && version.size_bytes === undefined) {
-      version.size_measurement_status = "unavailable";
-    }
-  }
+    );
+    const status =
+      normalizedStatus === "complete" && sizeBytes === undefined
+        ? "unavailable"
+        : normalizedStatus;
+    return {
+      ...version,
+      image_ref: optionalString(version.image_ref) ?? "",
+      size_bytes: sizeBytes,
+      size_measurement_status: status,
+      size_measurement_reasons:
+        status === "complete"
+          ? undefined
+          : normalizeImageMeasurementReasons(version.size_measurement_reasons),
+    } as ImageVersion;
+  });
   const summarizedStatus =
     versions.reduce<ImageMeasurementStatus | undefined>(
       (status, version) =>
@@ -1111,6 +1175,10 @@ export async function getAppImages(
   if (versions.length === 0 && raw.registry_configured === false) {
     measurementStatus = "unavailable";
   }
+  const measurementReasons =
+    measurementStatus === "complete"
+      ? undefined
+      : normalizeImageMeasurementReasons(raw.measurement_reasons);
   return {
     app_id: optionalString(raw.app_id),
     registry_configured:
@@ -1120,6 +1188,7 @@ export async function getAppImages(
     reclaim_note: optionalString(raw.reclaim_note),
     measurement_status: measurementStatus,
     measurement_note: optionalString(raw.measurement_note),
+    measurement_reasons: measurementReasons,
     observed_at: optionalString(raw.observed_at),
     summary: isRecord(raw.summary) ? (raw.summary as ImageSummary) : undefined,
     versions,
