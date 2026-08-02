@@ -65,6 +65,17 @@ export interface paths {
     /** Get Edge Node Desired State */
     get: operations["getEdgeNodeDesiredState"];
   };
+  "/v1/admin/edge/activation": {
+    get: operations["adminGetEdgeActivation"];
+    post: operations["adminAdvanceEdgeActivation"];
+  };
+  "/v1/admin/edge/activation/remediation": {
+    post: operations["adminAdvanceEdgeRemediation"];
+  };
+  "/v1/admin/edge/release-evidence": {
+    /** Get fail-closed platform release evidence for an active Edge epoch */
+    get: operations["adminGetPlatformReleaseEvidence"];
+  };
   "/v1/admin/edge/nodes/{edge_id}/desired-state": {
     /** Admin Get Edge Node Desired State */
     get: operations["adminGetEdgeNodeDesiredState"];
@@ -308,7 +319,10 @@ export interface paths {
     post: operations["validatePlatformArtifact"];
   };
   "/v1/admin/artifacts/{artifact_id}/release": {
-    /** Release Platform Artifact */
+    /**
+     * Release Platform Artifact
+     * @description Platform administrators may use the normal artifact release policy. A non-admin API key is accepted only for an exact observation-only component_release_plan request when it holds exactly artifact.read, artifact.release_shadow, and component_plan.observe; the artifact kind, validated envelope, shadow channel, reason, and envelope-derived idempotency key are bound server-side.
+     */
     post: operations["releasePlatformArtifact"];
   };
   "/v1/admin/artifacts/{artifact_id}/rollback": {
@@ -946,6 +960,10 @@ export interface paths {
   "/v1/apps/{id}/observability/requests": {
     /** List App Observability Requests */
     get: operations["listAppObservabilityRequests"];
+  };
+  "/v1/apps/{id}/observability/edge-route-decisions": {
+    /** List persisted Edge route-decision evidence and missing-link alerts */
+    get: operations["listAppEdgeRouteDecisions"];
   };
   "/v1/apps/{id}/observability/requests/stream": {
     /** Stream App Observability Requests */
@@ -2929,6 +2947,20 @@ export interface components {
       exclusion_reason?: string;
       /** Format: date-time */
       exclusion_expires_at?: string | null;
+      /** @enum {string} */
+      exclusion_scope?: "edge" | "edge_group" | "mixed";
+      exclusion_owner_digest?: string;
+      /** Format: date-time */
+      exclusion_created_at?: string | null;
+      /** Format: int64 */
+      exclusion_generation?: number;
+      exclusion_fence?: string;
+      /** @enum {string} */
+      exclusion_lifecycle?: "clear" | "active" | "expiring_24h" | "expiring_1h" | "expired_hold" | "legacy_hold";
+      exclusion_evidence_fresh?: boolean;
+      /** Format: date-time */
+      exclusion_evidence_checked_at?: string | null;
+      exclusion_evidence_reason?: string;
       /** Format: int32 */
       min_healthy_edge_nodes?: number;
       /** @enum {string} */
@@ -3357,6 +3389,12 @@ export interface components {
       edge_id: string;
       edge_group_id: string;
       /** @enum {string} */
+      slot: "a" | "b" | "direct";
+      instance_uid: string;
+      release_epoch: string;
+      /** @enum {string} */
+      failure_class?: "bundle_signature_invalid" | "max_stale_exceeded" | "identity_drift";
+      /** @enum {string} */
       workload_mode?: "static" | "dynamic";
       region?: string;
       country?: string;
@@ -3368,6 +3406,8 @@ export interface components {
       dns_bundle_version?: string;
       serving_generation?: string;
       lkg_generation?: string;
+      last_good_generation?: string;
+      cache_corrupt_generation?: string;
       /** Format: int32 */
       caddy_route_count?: number;
       caddy_applied_version?: string;
@@ -3377,6 +3417,7 @@ export interface components {
       tls_last_message?: string;
       /** Format: date-time */
       tls_ready_at?: string;
+      max_stale_exceeded?: boolean;
       /** @enum {string} */
       status: "unknown" | "healthy" | "degraded" | "unhealthy";
       healthy: boolean;
@@ -3386,7 +3427,30 @@ export interface components {
     };
     EdgeHeartbeatResponse: {
       node: components["schemas"]["EdgeNode"];
+      instance: components["schemas"]["EdgeNodeInstance"];
       accepted: boolean;
+    };
+    EdgeNodeInstance: {
+      edge_id: string;
+      edge_group_id: string;
+      /** @enum {string} */
+      slot: "a" | "b" | "direct";
+      instance_uid: string;
+      release_epoch: string;
+      node: components["schemas"]["EdgeNode"];
+      /** @enum {string} */
+      failure_class?: "bundle_signature_invalid" | "max_stale_exceeded" | "identity_drift";
+      effective_healthy: boolean;
+      consecutive_healthy: number;
+      consecutive_unhealthy: number;
+      /** Format: date-time */
+      health_state_since?: string;
+      /** Format: date-time */
+      last_heartbeat_at: string;
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      updated_at: string;
     };
     EdgePerformanceSample: {
       id?: string;
@@ -3517,6 +3581,9 @@ export interface components {
       /** @enum {string} */
       route_policy: "route_a_only" | "edge_canary" | "edge_enabled";
       enabled?: boolean;
+      /** Format: int64 */
+      expected_exclusion_generation?: number;
+      expected_exclusion_fence?: string;
     };
     PutPlatformDomainBindingRequest: {
       app_id: string;
@@ -5546,6 +5613,11 @@ export interface components {
       operations: (components["schemas"]["OperationSummary"] | components["schemas"]["Operation"])[];
       cluster_nodes: components["schemas"]["ClusterNode"][];
     };
+    /**
+     * @description Stable, machine-readable attribution for an incomplete image-size measurement. Evidence-oriented codes describe what the control plane can prove; missing_*_evidence does not by itself assert that the underlying registry object is physically absent.
+     * @enum {string}
+     */
+    ImageMeasurementReason: "digest_conflict" | "size_conflict" | "stale_inventory" | "missing_manifest_evidence" | "missing_size_evidence" | "missing_manifest_size_evidence" | "missing_blob_size_evidence" | "missing_child_manifest" | "missing_blob" | "no_storage_evidence" | "registry_not_configured";
     AppImageSummary: {
       /** Format: int32 */
       version_count: number;
@@ -5575,6 +5647,8 @@ export interface components {
        * @enum {string}
        */
       size_measurement_status?: "complete" | "partial" | "unavailable";
+      /** @description Stable reasons why this version's size is not complete. */
+      size_measurement_reasons?: components["schemas"]["ImageMeasurementReason"][];
       /** Format: int64 */
       reclaimable_size_bytes?: number;
       delete_supported: boolean;
@@ -5880,6 +5954,8 @@ export interface components {
       measurement_status?: "complete" | "partial" | "unavailable";
       /** @description Human-readable explanation of the image-size evidence source. */
       measurement_note?: string;
+      /** @description Stable aggregate reasons for incomplete version measurements. */
+      measurement_reasons?: components["schemas"]["ImageMeasurementReason"][];
       summary: components["schemas"]["AppImageSummary"];
       versions: components["schemas"]["AppImageVersion"][];
     };
@@ -5919,6 +5995,8 @@ export interface components {
        * @enum {string}
        */
       measurement_status?: "complete" | "partial" | "unavailable";
+      /** @description Stable aggregate reasons for incomplete version measurements. */
+      measurement_reasons?: components["schemas"]["ImageMeasurementReason"][];
     };
     ProjectImageUsageSummary: {
       project_id: string;
@@ -5942,6 +6020,8 @@ export interface components {
        * @enum {string}
        */
       measurement_status?: "complete" | "partial" | "unavailable";
+      /** @description Stable aggregate reasons for incomplete app measurements. */
+      measurement_reasons?: components["schemas"]["ImageMeasurementReason"][];
     };
     ProjectImageUsageResponse: {
       registry_configured: boolean;
@@ -5959,6 +6039,8 @@ export interface components {
       measurement_status?: "complete" | "partial" | "unavailable";
       /** @description Human-readable explanation of the image-size evidence source. */
       measurement_note?: string;
+      /** @description Stable aggregate reasons for incomplete project measurements. */
+      measurement_reasons?: components["schemas"]["ImageMeasurementReason"][];
       /** Format: date-time */
       observed_at?: string;
       projects: components["schemas"]["ProjectImageUsageSummary"][];
@@ -6364,6 +6446,13 @@ export interface components {
       /** Format: int64 */
       total_blob_bytes?: number;
       referenced_blobs?: string[];
+      /**
+       * @description Whether the node-local manifest graph was completely verified. Legacy reports that omit this field are treated as complete.
+       * @enum {string}
+       */
+      graph_status?: "complete" | "incomplete";
+      /** @description Bounded, machine-readable attribution for an incomplete graph. Raw filesystem paths, registry responses, and manifest bodies are never reported through this field. */
+      graph_failure_reason?: components["schemas"]["ImageMeasurementReason"];
       /** Format: date-time */
       created_at_observed?: string;
       /** Format: date-time */
@@ -7792,6 +7881,18 @@ export interface components {
       source: components["schemas"]["ObservabilitySourceStatus"];
       window: components["schemas"]["ObservabilityWindow"];
       requests: components["schemas"]["ObservabilityRequestSummary"][];
+    };
+    AppEdgeRouteDecisionEvidenceResponse: {
+      source: components["schemas"]["ObservabilitySourceStatus"];
+      app_id: string;
+      domain: string;
+      window: components["schemas"]["ObservabilityWindow"];
+      decisions: {
+          [key: string]: unknown;
+        }[];
+      missing_links: {
+          [key: string]: unknown;
+        }[];
     };
     AppObservabilityTraceResponse: {
       source: components["schemas"]["ObservabilitySourceStatus"];
@@ -9464,7 +9565,7 @@ export interface components {
     PlatformArtifact: {
       id: string;
       /** @enum {string} */
-      artifact_kind: "edge_route_bundle" | "dns_answer_bundle" | "caddy_route_config" | "discovery_bundle" | "node_desired_state" | "runtime_placement_plan" | "runtime_continuity_plan" | "node_guardian_policy" | "release_guard_policy" | "edge_ranking_policy" | "traffic_safety_policy" | "subsystem_failure_contracts" | "gate_policy_registry" | "automatic_action_contracts";
+      artifact_kind: "edge_route_bundle" | "dns_answer_bundle" | "caddy_route_config" | "discovery_bundle" | "node_desired_state" | "runtime_placement_plan" | "runtime_continuity_plan" | "node_guardian_policy" | "release_guard_policy" | "component_release_plan" | "edge_ranking_policy" | "traffic_safety_policy" | "subsystem_failure_contracts" | "gate_policy_registry" | "automatic_action_contracts";
       scope: components["schemas"]["PlatformArtifactScope"];
       scope_key: string;
       /** @enum {string} */
@@ -9736,11 +9837,11 @@ export interface components {
       local_probe_state?: "pass" | "fail" | "unknown" | "stale";
       /**
        * @deprecated
-       * @description Legacy compatibility field. Prefer public_synthetic_state.
+       * @description Legacy compatibility field. Prefer platform_evidence_state.
        */
-      public_synthetic?: boolean;
+      platform_evidence?: boolean;
       /** @enum {string} */
-      public_synthetic_state?: "pass" | "fail" | "unknown" | "stale";
+      platform_evidence_state?: "pass" | "fail" | "unknown" | "stale";
       /**
        * @deprecated
        * @description Legacy compatibility field. Prefer watch_window_state.
@@ -10490,6 +10591,67 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
+  adminGetEdgeActivation: {
+    responses: {
+      /** @description Durable edge activation state and instance inventory */
+      200: {
+        content: {
+          "application/json": Record<string, never>;
+        };
+      };
+    };
+  };
+  adminAdvanceEdgeActivation: {
+    requestBody: {
+      content: {
+        "application/json": Record<string, never>;
+      };
+    };
+    responses: {
+      /** @description Edge activation phase advanced with a durable receipt */
+      200: {
+        content: {
+          "application/json": Record<string, never>;
+        };
+      };
+    };
+  };
+  adminAdvanceEdgeRemediation: {
+    requestBody: {
+      content: {
+        "application/json": Record<string, never>;
+      };
+    };
+    responses: {
+      /** @description Bounded inactive Edge remediation action advanced with a durable fence */
+      200: {
+        content: {
+          "application/json": Record<string, never>;
+        };
+      };
+    };
+  };
+  /** Get fail-closed platform release evidence for an active Edge epoch */
+  adminGetPlatformReleaseEvidence: {
+    parameters: {
+      query: {
+        release_epoch: string;
+        /** @description Bounded request evidence window from 1m through 30m. */
+        window?: string;
+      };
+    };
+    responses: {
+      /** @description Typed active-cohort, route, origin, link, and latency evidence. */
+      200: {
+        content: {
+          "application/json": {
+            [key: string]: unknown;
+          };
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
   /** Admin Get Edge Node Desired State */
   adminGetEdgeNodeDesiredState: {
     parameters: {
@@ -10673,6 +10835,10 @@ export interface operations {
   /** Delete Edge Route Policy */
   deleteEdgeRoutePolicy: {
     parameters: {
+      query?: {
+        expected_exclusion_generation?: number;
+        expected_exclusion_fence?: string;
+      };
       path: {
         hostname: string;
       };
@@ -11567,7 +11733,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Release Platform Artifact */
+  /**
+   * Release Platform Artifact
+   * @description Platform administrators may use the normal artifact release policy. A non-admin API key is accepted only for an exact observation-only component_release_plan request when it holds exactly artifact.read, artifact.release_shadow, and component_plan.observe; the artifact kind, validated envelope, shadow channel, reason, and envelope-derived idempotency key are bound server-side.
+   */
   releasePlatformArtifact: {
     parameters: {
       path: {
@@ -15050,6 +15219,29 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["AppObservabilityRequestsResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** List persisted Edge route-decision evidence and missing-link alerts */
+  listAppEdgeRouteDecisions: {
+    parameters: {
+      query: {
+        domain: string;
+        since?: components["parameters"]["SinceQueryParam"];
+        until?: components["parameters"]["UntilQueryParam"];
+        limit?: number;
+      };
+      path: {
+        id: components["parameters"]["IdPathParam"];
+      };
+    };
+    responses: {
+      /** @description Persisted route-decision evidence scoped to the authorized app and domain. */
+      200: {
+        content: {
+          "application/json": components["schemas"]["AppEdgeRouteDecisionEvidenceResponse"];
         };
       };
       default: components["responses"]["ErrorResponse"];
