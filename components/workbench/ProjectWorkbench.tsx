@@ -4,10 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { BackingService, ConsoleAppDetail } from "@/lib/fugue/console";
 import {
-  observedFailureSummary,
+  observedFailureNotice,
   observedStatusLabel,
   observedStatusTone,
 } from "@/lib/fugue/observed-status";
+import AppFailureNotice from "./AppFailureNotice";
 import { useObservedStatusNow } from "@/lib/fugue/use-observed-status-now";
 import { fmtBytes, fmtMillicores, fmtStorageUsage } from "@/lib/format";
 import { readRuntimeCountryCode } from "@/lib/geo/country";
@@ -180,11 +181,6 @@ export default function ProjectWorkbench({
             {servicePhase(selected)}
           </span>
           <span className="kind">{selected.kind === "db" ? t("Database") : t("App")}</span>
-          {selected.kind === "app" && observedFailureSummary(selected.app) && (
-            <span className="faint" title={observedFailureSummary(selected.app) ?? undefined}>
-              · {t("last failure")}: {observedFailureSummary(selected.app)}
-            </span>
-          )}
         </div>
 
         <div className="tabs">
@@ -198,6 +194,10 @@ export default function ProjectWorkbench({
             </button>
           ))}
         </div>
+
+        {/* App-level, so it sits once below the tabs rather than in the title row
+            or inside a single tab. */}
+        {selected.kind === "app" && <AppFailureNotice app={selected.app} />}
 
         {selected.kind === "app" && renderAppTab(tab, selected.app, () => router.push("/projects"))}
         {selected.kind === "db" && renderDbTab(tab, selected.svc)}
@@ -269,6 +269,7 @@ function ServiceCard({
           usage.persistent_storage_capacity_bytes,
         )
       : fmtBytes(usage.ephemeral_storage_bytes ?? 0);
+  const cardFailure = svc.kind === "app" ? observedFailureNotice(svc.app) : null;
 
   return (
     <div className="svc-card">
@@ -304,9 +305,14 @@ function ServiceCard({
             <span className="v">{storageValue}</span>
           </div>
         </div>
-        {svc.kind === "app" && observedFailureSummary(svc.app) && (
-          <div className="svc-card-failure" title={observedFailureSummary(svc.app) ?? undefined}>
-            {t("last failure")}: {observedFailureSummary(svc.app)}
+        {svc.kind === "app" && cardFailure && (
+          // Amber would claim the app is broken now. A failure a later ready
+          // release has already overtaken is history, so it stays muted.
+          <div
+            className={`svc-card-failure ${cardFailure.superseded ? "past" : ""}`}
+            title={cardFailure.summary}
+          >
+            {t("last failure")}: {cardFailure.summary}
           </div>
         )}
       </button>

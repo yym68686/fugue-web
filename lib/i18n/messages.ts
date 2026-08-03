@@ -632,6 +632,30 @@ export const zhCN = {
   "runtime evidence required": "需要运行时证据",
   "The route is not marked ready because fresh runtime and endpoint evidence is missing.":
     "由于缺少新鲜的运行时与 Endpoint 证据，该路由不会标记为就绪。",
+
+  // Why an app is not evidence-ready. One entry per observedUnreadyReason kind,
+  // so the panel never has to fall back to a raw machine token.
+  "No runtime observation has been collected yet.": "尚未采集到运行时观测数据。",
+  "The app is scaled to zero replicas.": "该应用的副本数已缩容为 0。",
+  "Runtime evidence is {age} old, past the freshness window.":
+    "运行时证据已过期 {age}，超出新鲜度窗口。",
+  "Runtime evidence has not been refreshed recently enough.": "运行时证据未在足够近的时间内刷新。",
+  "Runtime invariants are violated: {violations}": "运行时约束被破坏：{violations}",
+  "A rollout is still converging on the desired spec.": "发布仍在向目标规格收敛。",
+  "The observed phase is {phase}, not deployed.": "观测到的阶段为 {phase}，而非 deployed。",
+  "The endpoint has not been proven to be present and ready.":
+    "尚未证明 Endpoint 已存在并就绪。",
+  "Proven ready replicas: {ready} of {desired}.": "已证实就绪副本：{ready} / {desired}。",
+  unknown: "未知",
+  "The deployed image could not be proven present.": "无法证明已部署的镜像存在。",
+  "Runtime evidence is incomplete.": "运行时证据不完整。",
+
+  // App-level last-failure notice.
+  "An earlier operation failed. A later release has since deployed successfully.":
+    "此前有一次操作失败，之后已有新版本成功部署。",
+  "The last operation failed.": "最近一次操作失败。",
+  "Show details": "查看详情",
+  "Hide details": "收起详情",
   Owner: "所有者",
   "Tech stack": "技术栈",
   "Deploy method": "部署方式",

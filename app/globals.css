@@ -688,6 +688,15 @@ button {
   gap: 10px;
 }
 
+/* A panel whose whole body is one explanatory sentence. .panel itself has no
+   padding, so without this the text sits flush against the border. */
+.panel-note {
+  padding: 12px 15px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
 /* Inline "add a row" form living in a panel header, beside the refresh button.
    .input is width:100% by default, which would eat the whole header, so the
    field is sized here instead. */
@@ -2630,6 +2639,12 @@ button {
   white-space: nowrap;
 }
 
+/* Superseded by a later ready release: still worth showing, but not as a
+   warning about the app's current state. */
+.svc-card-failure.past {
+  color: var(--faint);
+}
+
 .svc-card-foot {
   display: flex;
   gap: 8px;
@@ -2649,6 +2664,23 @@ button {
   align-items: center;
   gap: 12px;
   margin-bottom: 18px;
+  /* The row holds a back button, a name, a chip and a kind label, all of which
+     must keep their intrinsic size. Anything long belongs in a panel below, not
+     here: a single long string used to wrap the back button onto a second line
+     and ellipsize the app name down to a few characters. */
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+.svc-detail-head .back,
+.svc-detail-head .chip,
+.svc-detail-head .kind {
+  flex: 0 0 auto;
+}
+
+.svc-detail-head h2 {
+  flex: 0 1 auto;
+  min-width: 0;
 }
 
 .svc-detail-head .back {
@@ -2691,6 +2723,118 @@ button {
 
 .wb-main {
   min-width: 0;
+}
+
+/* ---- app-level last-failure notice (below the tabs, above tab content) ---- */
+.wb-failure {
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  margin-bottom: 14px;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.wb-failure-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 12px;
+  min-width: 0;
+}
+
+.wb-failure-dot {
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentcolor;
+}
+
+/* The lead sentence is the one flexible part of the row and truncates before it
+   can push the meta or the toggle out of view. */
+.wb-failure-lead {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wb-failure-meta {
+  flex: 0 0 auto;
+  font-size: 11px;
+  color: var(--faint);
+}
+
+.wb-failure-toggle {
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 11.5px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.wb-failure-toggle:hover {
+  color: var(--fg);
+}
+
+.wb-failure-body {
+  padding: 0 12px 11px 27px;
+}
+
+/* A registry reference has no spaces to break on, so allow mid-token wrapping
+   rather than letting it overflow the panel. */
+.wb-failure-msg,
+.wb-failure-id {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.wb-failure-id {
+  margin-top: 5px;
+  color: var(--faint);
+}
+
+/* A failure a later release has already overtaken is context, not an alarm. */
+.wb-failure.past .wb-failure-dot {
+  color: var(--faint);
+}
+
+.wb-failure.past .wb-failure-lead {
+  color: var(--muted);
+}
+
+.wb-failure.live {
+  border-color: rgba(246, 190, 67, 0.3);
+  background: rgba(246, 190, 67, 0.08);
+}
+
+.wb-failure.live .wb-failure-dot,
+.wb-failure.live .wb-failure-lead {
+  color: var(--warn);
+}
+
+@media (max-width: 720px) {
+  .wb-failure-row {
+    flex-wrap: wrap;
+  }
+
+  .wb-failure-lead {
+    flex: 1 1 100%;
+    white-space: normal;
+    overflow: visible;
+  }
+
+  .wb-failure-body {
+    padding-left: 12px;
+  }
 }
 
 /* ---- tabs: underline style (fits 7 tabs without wrapping) ---- */
