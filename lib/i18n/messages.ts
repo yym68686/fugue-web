@@ -459,6 +459,7 @@ export const zhCN = {
   Verify: "验证",
   "Delete domain {hostname}?": "确认删除域名 {hostname}？",
   "Please enter a domain": "请输入域名",
+  "This domain is already added.": "该域名已添加。",
   "Add domain": "添加域名",
   "Environment variables saved. They take effect on the next deploy.":
     "环境变量已保存，将在下次部署生效。",

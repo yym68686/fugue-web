@@ -688,6 +688,66 @@ button {
   gap: 10px;
 }
 
+/* Inline "add a row" form living in a panel header, beside the refresh button.
+   .input is width:100% by default, which would eat the whole header, so the
+   field is sized here instead. */
+.panel-h .hdr-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Padding matches .btn so the field and the buttons beside it are the same
+   height. */
+.panel-h .hdr-form .input {
+  width: 220px;
+  padding: 8px 12px;
+  font-size: 12.5px;
+}
+
+.panel-h .hdr-form .btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.panel-h .hdr-form .form-hint.err {
+  white-space: nowrap;
+}
+
+/* Narrow viewports: let the header stack instead of squeezing the field. The
+   refresh button keeps the title row and the form takes the row below it. */
+@media (max-width: 720px) {
+  .panel-h:has(.hdr-form) {
+    flex-wrap: wrap;
+  }
+
+  .panel-h .tail:has(.hdr-form) {
+    margin-left: 0;
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  /* order:1 puts refresh on the title row and the form on the row beneath,
+     preserving the desktop reading order once stacked. */
+  .panel-h .hdr-form {
+    order: 1;
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+  }
+
+  .panel-h .hdr-form .input {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+  }
+
+  /* Error text drops to its own line rather than squeezing the field. */
+  .panel-h .hdr-form .form-hint.err {
+    flex: 1 1 100%;
+    white-space: normal;
+  }
+}
+
 /* ---- status chip ---- */
 .chip {
   display: inline-flex;

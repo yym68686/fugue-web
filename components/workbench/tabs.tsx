@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { type FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type {
   AppDomain,
@@ -12,6 +12,7 @@ import type {
   AppEnv,
 } from "@/lib/fugue/console";
 import { fmtDate, fmtMillicores } from "@/lib/format";
+import { normalizeHostname } from "@/lib/fugue/hostname";
 import { useT } from "@/lib/i18n/client";
 import { isObservedReady, observedFailureSummary, observedStatusMessage } from "@/lib/fugue/observed-status";
 import {
@@ -25,6 +26,79 @@ import {
 } from "./shared";
 
 const APP = (id: string) => `/apps/${encodeURIComponent(id)}`;
+
+/* ======================= Add-domain header form ======================= */
+
+function AddDomainForm({
+  appId,
+  existing,
+  onAdded,
+}: {
+  appId: string;
+  existing: readonly string[];
+  onAdded: () => void;
+}) {
+  const t = useT();
+  const [hostname, setHostname] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    if (busy) return;
+
+    const normalized = normalizeHostname(hostname);
+
+    if (!normalized) {
+      setError(t("Please enter a domain"));
+      return;
+    }
+    if (existing.includes(normalized)) {
+      setError(t("This domain is already added."));
+      return;
+    }
+
+    setBusy(true);
+    setError(null);
+    try {
+      await callConsole(`${APP(appId)}/domains`, {
+        body: { hostname: normalized },
+      });
+      setHostname("");
+      onAdded();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("Action failed."));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form className="hdr-form" onSubmit={submit}>
+      <input
+        className="input mono"
+        value={hostname}
+        onChange={(e) => {
+          setHostname(e.target.value);
+          if (error) setError(null);
+        }}
+        placeholder="new.example.com"
+        aria-label={t("Add domain")}
+        aria-invalid={error ? true : undefined}
+        autoComplete="off"
+        spellCheck={false}
+      />
+      <button type="submit" className="btn" disabled={busy}>
+        {busy ? t("Working…") : t("Add domain")}
+      </button>
+      {error && (
+        <span className="form-hint err" role="alert">
+          {error}
+        </span>
+      )}
+    </form>
+  );
+}
 
 /* ============================ Route tab ============================ */
 
@@ -42,7 +116,10 @@ export function RouteTab({ app }: { app: ConsoleAppDetail }) {
   const domains = useEndpointData<AppDomain[]>(
     `/api/console/apps/${encodeURIComponent(app.id)}/domains`,
   );
-  const [newDomain, setNewDomain] = useState("");
+  const domainHostnames = useMemo(
+    () => (domains.data ?? []).map((d) => d.hostname.toLowerCase()),
+    [domains.data],
+  );
 
   return (
     <>
@@ -110,6 +187,11 @@ export function RouteTab({ app }: { app: ConsoleAppDetail }) {
         <div className="panel-h">
           <h3>{t("Custom domains")}</h3>
           <div className="tail">
+            <AddDomainForm
+              appId={app.id}
+              existing={domainHostnames}
+              onAdded={domains.refresh}
+            />
             <RefreshButton onClick={domains.refresh} />
           </div>
         </div>
@@ -176,30 +258,6 @@ export function RouteTab({ app }: { app: ConsoleAppDetail }) {
                 </tbody>
               </table>
             )}
-            <div className="form-foot">
-              <input
-                className="input mono"
-                value={newDomain}
-                onChange={(e) => setNewDomain(e.target.value)}
-                placeholder="new.example.com"
-                style={{ maxWidth: 280 }}
-              />
-              <ActionButton
-                className="btn"
-                onAction={async () => {
-                  if (!newDomain.trim()) throw new Error(t("Please enter a domain"));
-                  await callConsole(`${APP(app.id)}/domains`, {
-                    body: { hostname: newDomain.trim() },
-                  });
-                }}
-                onDone={() => {
-                  setNewDomain("");
-                  domains.refresh();
-                }}
-              >
-                {t("Add domain")}
-              </ActionButton>
-            </div>
           </>
         )}
       </div>
