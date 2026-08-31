@@ -6446,6 +6446,8 @@ export interface components {
       /** Format: int64 */
       total_blob_bytes?: number;
       referenced_blobs?: string[];
+      /** @description Child manifest digests referenced by an OCI index or Docker manifest list. */
+      referenced_manifests?: string[];
       /**
        * @description Whether the node-local manifest graph was completely verified. Legacy reports that omit this field are treated as complete.
        * @enum {string}
@@ -6497,6 +6499,7 @@ export interface components {
       /** Format: int64 */
       planned_delete_bytes?: number;
       referenced_blobs?: string[];
+      referenced_manifests?: string[];
       /** Format: int32 */
       referenced_blob_count?: number;
       /** Format: int64 */
