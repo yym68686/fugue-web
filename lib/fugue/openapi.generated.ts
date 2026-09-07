@@ -37,9 +37,12 @@ export interface paths {
     /** Edge Domains */
     get: operations["edgeDomains"];
   };
-  "/v1/edge/routes": {
-    /** Edge Routes */
-    get: operations["edgeRoutes"];
+  "/v1/edge/route-intents": {
+    /**
+     * Edge Route Intents
+     * @description Returns Core's inventory-independent desired-route projection. Only the edge-control component identity with global edge_route_intent capability is accepted; tenant and platform-admin API keys are not accepted.
+     */
+    get: operations["edgeRouteIntents"];
   };
   "/v1/edge/ssh/routes": {
     /** Edge SSH Routes */
@@ -69,8 +72,40 @@ export interface paths {
     get: operations["adminGetEdgeActivation"];
     post: operations["adminAdvanceEdgeActivation"];
   };
+  "/v1/admin/edge/authorities": {
+    /**
+     * Inspect real Edge Control authority projections
+     * @description Read-only diagnostic view of the Edge Control group authority. This endpoint never synthesizes Edge nodes or ACKs from DNS state.
+     */
+    get: operations["adminListEdgeAuthorities"];
+  };
   "/v1/admin/edge/activation/remediation": {
     post: operations["adminAdvanceEdgeRemediation"];
+  };
+  "/v1/admin/traffic-overrides": {
+    /** List staged and revoked emergency traffic overrides */
+    get: operations["adminListTrafficOverrides"];
+  };
+  "/v1/admin/traffic-overrides/{hostname}": {
+    /** Get one emergency traffic override */
+    get: operations["adminGetTrafficOverride"];
+    /**
+     * Stage a signed emergency traffic override
+     * @description Stores a signed override independently from the normal TrafficEpoch and release state machines. Each candidate answer is verified against every required TLS/SNI/Host route before signing. Staged overrides are not served until the separate overlay activation path is enabled.
+     */
+    put: operations["adminPutTrafficOverride"];
+  };
+  "/v1/admin/traffic-overrides/{hostname}/revoke": {
+    /** Revoke an emergency traffic override with CAS */
+    post: operations["adminRevokeTrafficOverride"];
+  };
+  "/v1/admin/traffic-override-signing-key": {
+    /** Inspect emergency traffic override signing key metadata */
+    get: operations["adminGetTrafficOverrideSigningKey"];
+  };
+  "/v1/admin/traffic-override-signing-key/rotate": {
+    /** Rotate the emergency traffic override signing key with CAS */
+    post: operations["adminRotateTrafficOverrideSigningKey"];
   };
   "/v1/admin/edge/release-evidence": {
     /** Get fail-closed platform release evidence for an active Edge epoch */
@@ -161,20 +196,6 @@ export interface paths {
   "/v1/admin/platform/failure-drills": {
     /** Run Platform Failure Drill */
     post: operations["runPlatformFailureDrill"];
-  };
-  "/v1/admin/composite-release-transactions": {
-    /**
-     * Prepare Composite Release Transaction
-     * @description Persist one exact strict plan as an inert prepared coordinator record. This endpoint cannot authorize or execute the transaction.
-     */
-    post: operations["prepareCompositeReleaseTransaction"];
-  };
-  "/v1/admin/composite-release-transactions/{transaction_id}/execute-noop": {
-    /**
-     * Run Controlled Composite No-op Transaction
-     * @description Advance one exact prepared two-domain record through the durable success-only no-op worker. This endpoint cannot invoke an adapter, inject failure, mutate business state, or advance a runtime baseline.
-     */
-    post: operations["runCompositeReleaseTransactionNoop"];
   };
   "/v1/admin/invariants": {
     /** List Invariant Definitions */
@@ -321,7 +342,7 @@ export interface paths {
   "/v1/admin/artifacts/{artifact_id}/release": {
     /**
      * Release Platform Artifact
-     * @description Platform administrators may use the normal artifact release policy. A non-admin API key is accepted only for an exact observation-only component_release_plan request when it holds exactly artifact.read, artifact.release_shadow, and component_plan.observe; the artifact kind, validated envelope, shadow channel, reason, and envelope-derived idempotency key are bound server-side.
+     * @description Platform administrators may use the normal artifact release policy.
      */
     post: operations["releasePlatformArtifact"];
   };
@@ -388,6 +409,13 @@ export interface paths {
   "/v1/dns/nodes": {
     /** List DNS Nodes */
     get: operations["listDNSNodes"];
+  };
+  "/v1/dns/traffic-overrides": {
+    /**
+     * Get the independently signed DNS traffic override feed
+     * @description Returns active signed emergency traffic overrides for an authorized DNS node. The normal DNS bundle remains authoritative unless the optional overlay consumer is explicitly enabled on that node.
+     */
+    get: operations["dnsTrafficOverrideFeed"];
   };
   "/v1/dns/acme-challenges": {
     /** List DNS ACME Challenges */
@@ -721,6 +749,27 @@ export interface paths {
      */
     post: operations["adoptManagedPostgresOrphan"];
   };
+  "/v1/backing-services/orphans/{app_id}/suspend": {
+    /**
+     * Suspend A Retained Managed Postgres Orphan
+     * @description Platform-administrator lifecycle intent update for a retained orphan. The request is applied atomically to the ManagedApp spec and the controller performs the CNPG hibernation transition; no Fugue store record is created.
+     */
+    post: operations["suspendManagedPostgresOrphan"];
+  };
+  "/v1/backing-services/orphans/{app_id}/resume": {
+    /**
+     * Resume A Retained Managed Postgres Orphan
+     * @description Platform-administrator lifecycle intent update for a retained orphan. The request is applied atomically to the ManagedApp spec and the controller performs the CNPG resume transition; no Fugue store record is created.
+     */
+    post: operations["resumeManagedPostgresOrphan"];
+  };
+  "/v1/backing-services/orphans/{app_id}/delete": {
+    /**
+     * Delete A Retained Managed Postgres Orphan
+     * @description Explicit platform-administrator deletion request. The exact app ID, an active backup artifact belonging to the orphan, current zero-workload storage evidence, and observed CNPG suspension are required before a foreground ManagedApp deletion is submitted.
+     */
+    post: operations["deleteManagedPostgresOrphan"];
+  };
   "/v1/backing-services/{id}": {
     /** Get Backing Service */
     get: operations["getBackingService"];
@@ -945,6 +994,44 @@ export interface paths {
     /** Get App Runtime Pod Inventory */
     get: operations["getAppRuntimePods"];
   };
+  "/v1/apps/{id}/diagnostics/sessions": {
+    /** List App Diagnostic Sessions */
+    get: operations["listAppDiagnosticSessions"];
+    /**
+     * Start App Diagnostic Session
+     * @description Starts a bounded, temporary, app-scoped diagnostic probe without modifying the app workload.
+     */
+    post: operations["startAppDiagnosticSession"];
+  };
+  "/v1/apps/{id}/diagnostics/sessions/{session_id}": {
+    /** Get App Diagnostic Session */
+    get: operations["getAppDiagnosticSession"];
+    /** Cancel App Diagnostic Session */
+    delete: operations["cancelAppDiagnosticSession"];
+  };
+  "/v1/apps/{id}/diagnostics/sessions/{session_id}/report": {
+    /** Get App Diagnostic Report */
+    get: operations["getAppDiagnosticReport"];
+  };
+  "/v1/admin/diagnostics/sessions": {
+    /** List Platform Diagnostic Sessions */
+    get: operations["listPlatformDiagnosticSessions"];
+    /**
+     * Start Platform Diagnostic Session
+     * @description Starts a bounded, temporary diagnostic probe for a Fugue platform component or an allowlisted node process. Platform administrator access is required.
+     */
+    post: operations["startPlatformDiagnosticSession"];
+  };
+  "/v1/admin/diagnostics/sessions/{session_id}": {
+    /** Get Platform Diagnostic Session */
+    get: operations["getPlatformDiagnosticSession"];
+    /** Cancel Platform Diagnostic Session */
+    delete: operations["cancelPlatformDiagnosticSession"];
+  };
+  "/v1/admin/diagnostics/sessions/{session_id}/report": {
+    /** Get Platform Diagnostic Report */
+    get: operations["getPlatformDiagnosticReport"];
+  };
   "/v1/apps/{id}/observability/metrics/summary": {
     /** Get App Observability Metrics Summary */
     get: operations["getAppObservabilityMetricsSummary"];
@@ -1165,6 +1252,10 @@ export interface paths {
   "/v1/operations/{id}": {
     /** Get Operation */
     get: operations["getOperation"];
+  };
+  "/v1/operations/{id}/cancel": {
+    /** Cancel Pending Operation */
+    post: operations["cancelOperation"];
   };
   "/v1/operations/{id}/diagnosis": {
     /** Get Operation Diagnosis */
@@ -1586,6 +1677,58 @@ export type webhooks = Record<string, never>;
 
 export interface components {
   schemas: {
+    EdgeAuthorityReadStatus: {
+      edge_group_id: string;
+      status: string;
+      ready: boolean;
+      serving_healthy: boolean;
+      bootstrap_eligible: boolean;
+      /** Format: date-time */
+      bootstrap_valid_until?: string;
+      /** Format: int64 */
+      inventory_sequence?: number;
+      inventory_generation?: string;
+      /** Format: int64 */
+      inventory_producer_generation?: number;
+      inventory_producer_nodes?: number;
+      /** Format: date-time */
+      inventory_heartbeat_at?: string;
+      /** Format: int64 */
+      authority_sequence?: number;
+      /** Format: int64 */
+      publication_sequence?: number;
+      /** Format: int64 */
+      current_publication_sequence?: number;
+      /** Format: int64 */
+      candidate_epoch?: number;
+      publication_decision?: string;
+      bundle_generation?: string;
+      published_bundle_digest?: string;
+      /** Format: int64 */
+      recovery_epoch?: number;
+      /** Format: date-time */
+      bundle_valid_until?: string;
+      lkg_state: string;
+      failure_code?: string;
+      runtime_failure_code?: string;
+    };
+    EdgeAuthorityReadRecord: {
+      edge_group_id: string;
+      service: string;
+      ready: boolean;
+      /** @enum {string} */
+      source: "edge-control-authority";
+      status?: components["schemas"]["EdgeAuthorityReadStatus"];
+      error?: string;
+    };
+    EdgeAuthorityReadResponse: {
+      configured: boolean;
+      /** @enum {string} */
+      answer_model: "edge-control-authority";
+      all_ready: boolean;
+      authorities: components["schemas"]["EdgeAuthorityReadRecord"][];
+      error?: string;
+    };
     ErrorResponse: {
       error: string;
       code?: string;
@@ -2584,11 +2727,30 @@ export interface components {
       window_hours: number;
       /** Format: int32 */
       min_samples: number;
-      /** Format: double */
+      /**
+       * Format: double
+       * @description Historical CPU percentile used for capacity planning.
+       */
       cpu_percentile: number;
-      /** Format: double */
+      /**
+       * Format: double
+       * @description Multiplier applied to historical CPU usage for capacity planning.
+       */
       cpu_multiplier: number;
-      /** Format: int64 */
+      /**
+       * Format: double
+       * @description Historical CPU percentile used for the Kubernetes request guarantee.
+       */
+      cpu_request_percentile: number;
+      /**
+       * Format: double
+       * @description Multiplier applied to the CPU request guarantee percentile.
+       */
+      cpu_request_multiplier: number;
+      /**
+       * Format: int64
+       * @description Minimum Kubernetes CPU request guarantee for this workload class.
+       */
       cpu_floor_millicores: number;
       /** Format: double */
       memory_percentile: number;
@@ -2608,7 +2770,10 @@ export interface components {
       /** Format: int32 */
       sample_count: number;
       current?: components["schemas"]["ResourceSpec"];
+      /** @description Capacity recommendation derived from historical usage. Its CPU value is a planning target and is not written directly to the Kubernetes CPU request. */
       recommended?: components["schemas"]["ResourceSpec"];
+      /** @description Resource target applied by right-sizing. CPU is a small guaranteed share; memory retains the safety-oriented capacity recommendation. */
+      request_target?: components["schemas"]["ResourceSpec"];
       policy: components["schemas"]["ResourceRightSizingPolicy"];
       ready: boolean;
       already_current: boolean;
@@ -2814,6 +2979,66 @@ export interface components {
       tls_allowlist: components["schemas"]["EdgeTLSAllowlistEntry"][];
       cache_policies?: components["schemas"]["CachePolicy"][];
     };
+    EdgeRouteIntentSnapshot: {
+      /** @enum {string} */
+      schema_version: "edge-route-intent/v1";
+      generation: string;
+      /** Format: date-time */
+      generated_at: string;
+      routes: components["schemas"]["EdgeRouteIntent"][];
+      tls_allowlist: components["schemas"]["EdgeTLSAllowlistEntry"][];
+      cache_policies?: components["schemas"]["CachePolicy"][];
+    };
+    EdgeRouteIntent: {
+      generation: string;
+      hostname: string;
+      path_prefix?: string;
+      /** @enum {string} */
+      route_kind: "platform" | "custom-domain" | "platform-domain" | "platform-route" | "control-plane-api";
+      app_id: string;
+      tenant_id: string;
+      runtime_id: string;
+      runtime_type?: string;
+      /** @description Core locality hint; this is not an Edge Control selection. */
+      runtime_edge_group_id?: string;
+      runtime_cluster_node?: string;
+      /** @enum {string} */
+      target_group_mode: "all_groups" | "pinned_group";
+      pinned_edge_group_id?: string;
+      excluded_edge_ids?: string[];
+      excluded_edge_group_ids?: string[];
+      exclusion_reason?: string;
+      /** Format: date-time */
+      exclusion_expires_at?: string | null;
+      /** @enum {string} */
+      exclusion_lifecycle?: "clear" | "active" | "expiring_1h" | "expiring_24h" | "expired_hold" | "legacy_hold";
+      /** Format: int32 */
+      min_healthy_edge_nodes?: number;
+      /** @enum {string} */
+      route_policy: "route_a_only" | "edge_canary" | "edge_enabled";
+      /** @enum {string} */
+      upstream_kind: "kubernetes-service" | "mesh";
+      /** @enum {string} */
+      upstream_scope?: "local-service" | "cluster" | "mesh";
+      upstream_url?: string;
+      upstreams?: components["schemas"]["EdgeRouteUpstream"][];
+      /** Format: int32 */
+      service_port: number;
+      /** @enum {string} */
+      tls_policy: "platform" | "custom-domain";
+      cache_policy_id?: string;
+      cache_namespace?: string;
+      deployment_generation?: string;
+      request_body_policies?: components["schemas"]["EdgeRequestBodyPolicy"][];
+      streaming: boolean;
+      /** @enum {string} */
+      origin_status: "active" | "disabled" | "unavailable" | "runtime-missing";
+      origin_status_reason?: string;
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      updated_at: string;
+    };
     EdgeSSHRouteBundle: {
       schema_version?: string;
       version: string;
@@ -2977,6 +3202,96 @@ export interface components {
     EdgeRoutePolicyResponse: {
       policy: components["schemas"]["EdgeRoutePolicy"];
     };
+    TrafficOverride: {
+      /** @enum {string} */
+      schema: "traffic-override.fugue.dev/v1";
+      hostname: string;
+      /** Format: int64 */
+      generation: number;
+      /** @enum {string} */
+      state: "staged" | "revoked";
+      answers: string[];
+      required_host_routes: string[];
+      route_generation: string;
+      route_digest: string;
+      prepared_digest: string;
+      /** Format: date-time */
+      activate_at: string;
+      /** Format: date-time */
+      expires_at: string;
+      reason: string;
+      operator: string;
+      artifact_digest: string;
+      key_id: string;
+      signature: string;
+      /** Format: date-time */
+      signed_at: string;
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      updated_at: string;
+    };
+    TrafficOverridePutRequest: {
+      answers: string[];
+      required_host_routes: string[];
+      route_generation: string;
+      route_digest: string;
+      prepared_digest?: string;
+      /** Format: date-time */
+      activate_at: string;
+      /** Format: date-time */
+      expires_at: string;
+      reason: string;
+      /** Format: int64 */
+      expected_generation: number;
+    };
+    TrafficOverrideRevokeRequest: {
+      reason: string;
+      /** Format: int64 */
+      expected_generation: number;
+    };
+    TrafficOverrideResponse: {
+      override: components["schemas"]["TrafficOverride"];
+    };
+    TrafficOverrideListResponse: {
+      overrides: components["schemas"]["TrafficOverride"][];
+    };
+    TrafficOverrideFeed: {
+      /** @enum {string} */
+      schema: "traffic-override-feed.fugue.dev/v1";
+      /** Format: int64 */
+      generation: number;
+      /** Format: date-time */
+      generated_at: string;
+      overrides: components["schemas"]["TrafficOverride"][];
+      signing_key: components["schemas"]["TrafficOverrideSigningKeyStatus"];
+    };
+    TrafficOverrideFeedResponse: {
+      feed: components["schemas"]["TrafficOverrideFeed"];
+    };
+    TrafficOverrideSigningKeyStatus: {
+      /** @enum {string} */
+      schema: "traffic-override-signing.fugue.dev/v1";
+      /** Format: int64 */
+      generation: number;
+      current_key_id: string;
+      current_public_key: string;
+      previous_key_id?: string;
+      previous_public_key?: string;
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      rotated_at?: string;
+      /** Format: date-time */
+      updated_at: string;
+    };
+    TrafficOverrideSigningKeyResponse: {
+      signing_key: components["schemas"]["TrafficOverrideSigningKeyStatus"];
+    };
+    TrafficOverrideSigningKeyRotateRequest: {
+      /** Format: int64 */
+      expected_generation: number;
+    };
     PlatformDomainBinding: {
       hostname: string;
       zone: string;
@@ -3026,6 +3341,8 @@ export interface components {
       healthy: boolean;
       draining: boolean;
       route_bundle_version?: string;
+      /** @description Route-bundle authority selected by the edge worker. */
+      route_bundle_source?: string;
       dns_bundle_version?: string;
       serving_generation?: string;
       lkg_generation?: string;
@@ -4240,8 +4557,11 @@ export interface components {
       instances?: number;
       /** Format: int32 */
       synchronous_replicas?: number;
-      /** @description Whether the managed Postgres service is configured to hibernate with its PVCs retained. Change this state only through the backing-service suspend and resume endpoints. */
       suspended?: boolean;
+      runtime_phase?: string;
+      ready_instances?: number;
+      /** @description Whether the managed Postgres service is configured to hibernate with its PVCs retained. Change this state only through the backing-service suspend and resume endpoints. */
+      desired_instances?: number;
       /** @description Bootstrap resource template used when CNPG creates or recreates a PostgreSQL Pod. Changing this field may require a maintenance rollout. */
       resources?: components["schemas"]["ResourceSpec"];
       /** @description Fugue's persisted in-place runtime resource target. It is not rendered into CNPG Cluster.spec.resources and is changed only by the dedicated database resize operation. */
@@ -4986,6 +5306,8 @@ export interface components {
       desired_source?: components["schemas"]["AppSource"];
       /** @description Durable source ownership that should persist after the operation completes. */
       desired_origin_source?: components["schemas"]["AppSource"];
+      /** @description Explicit deployment link recovered from durable import evidence; absent when no link has been recorded. Consumers of older APIs may use the legacy queued-deploy message but must never infer a link from timestamps. */
+      queued_deploy_operation_id?: string;
       result_message?: string;
       manifest_path?: string;
       assigned_runtime_id?: string;
@@ -5152,13 +5474,38 @@ export interface components {
       replica_set_name?: string;
       node_name?: string;
       redaction_status: string;
+      /** @description Optional durable evidence. Builder attempt records use build_attempt and retain every retry independently; user-facing consumers must not render arbitrary diagnostic payloads as deployment errors. */
       payload?: {
+        build_attempt?: components["schemas"]["BuilderAttemptEvidence"];
+        /** @description Bounded build snapshots and redacted log tails. Returned only to platform administrators with include_payload; never included in public CLI deployment results. */
+        builder_diagnostics?: {
+          [key: string]: unknown;
+        };
         [key: string]: unknown;
       };
       /** Format: int32 */
       payload_version: number;
       /** Format: date-time */
       created_at: string;
+    };
+    BuilderAttemptEvidence: {
+      attempt: number;
+      /** @enum {string} */
+      outcome: "succeeded" | "failed";
+      /** Format: date-time */
+      started_at: string;
+      /** Format: date-time */
+      finished_at: string;
+      causes: string[];
+      missing_evidence: string[];
+      /** Format: int64 */
+      memory_request_bytes?: number;
+      /** Format: int64 */
+      memory_limit_bytes?: number;
+      /** Format: int64 */
+      ephemeral_request_bytes?: number;
+      /** Format: int64 */
+      ephemeral_limit_bytes?: number;
     };
     OperationTimelineEntry: {
       id: string;
@@ -7274,6 +7621,9 @@ export interface components {
       service_name?: string;
       storage_size?: string;
       suspended: boolean;
+      runtime_phase?: string;
+      ready_instances?: number;
+      desired_instances?: number;
     };
     ManagedPostgresOrphanSummary: {
       app_id: string;
@@ -7284,6 +7634,10 @@ export interface components {
       managed_app_name: string;
       phase: string;
       message?: string;
+      actionable: boolean;
+      /** @enum {string} */
+      validation_status: "ready" | "reconciling" | "conflict" | "unavailable";
+      validation_message?: string;
       backing_services: components["schemas"]["ManagedPostgresOrphanBackingServiceSummary"][];
     };
     ManagedPostgresOrphanListResponse: {
@@ -7294,9 +7648,24 @@ export interface components {
       backing_services: components["schemas"]["BackingService"][];
       already_adopted: boolean;
     };
+    ManagedPostgresOrphanLifecycleResponse: {
+      orphan: components["schemas"]["ManagedPostgresOrphanSummary"];
+      already_current: boolean;
+    };
+    ManagedPostgresOrphanDeleteRequest: {
+      confirm_app_id: string;
+      backup_artifact_id: string;
+    };
+    ManagedPostgresOrphanDeleteResponse: {
+      deleted: boolean;
+      deletion_requested: boolean;
+      app_id: string;
+    };
     BackingServiceMigrateResponse: {
       backing_service: components["schemas"]["BackingService"];
       already_current: boolean;
+      dry_run?: boolean;
+      target_runtime_id?: string;
       operation?: components["schemas"]["Operation"];
     };
     AppListResponse: {
@@ -7863,6 +8232,159 @@ export interface components {
       confidence: number;
       evidence: string[];
       next_actions: string[];
+    };
+    AppDiagnosticSessionStartRequest: {
+      /**
+       * @default cpu-profile
+       * @enum {string}
+       */
+      kind?: "cpu-profile";
+      /**
+       * Format: int32
+       * @default 60
+       */
+      duration_seconds?: number;
+      /**
+       * Format: int32
+       * @default 19
+       */
+      frequency_hz?: number;
+      pod?: string;
+      container?: string;
+    };
+    AppDiagnosticSession: {
+      id: string;
+      app_id: string;
+      kind: string;
+      /** @enum {string} */
+      status: "queued" | "running" | "succeeded" | "failed";
+      target_pod: string;
+      target_container: string;
+      target_node: string;
+      /** Format: int32 */
+      duration_seconds: number;
+      /** Format: int32 */
+      frequency_hz: number;
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      started_at?: string;
+      /** Format: date-time */
+      finished_at?: string;
+      /** Format: date-time */
+      expires_at?: string;
+      failure_reason?: string;
+    };
+    AppDiagnosticSessionResponse: {
+      session: components["schemas"]["AppDiagnosticSession"];
+    };
+    AppDiagnosticSessionListResponse: {
+      sessions: components["schemas"]["AppDiagnosticSession"][];
+    };
+    AppDiagnosticSessionCancelResponse: {
+      session: components["schemas"]["AppDiagnosticSession"];
+      canceled: boolean;
+    };
+    AppDiagnosticReportResponse: {
+      session: components["schemas"]["AppDiagnosticSession"];
+      /** @description Versioned report emitted by the selected digest-addressed diagnostic probe. */
+      report: {
+        [key: string]: unknown;
+      };
+    };
+    PlatformDiagnosticTargetRequest: {
+      /** @enum {string} */
+      type: "platform_component" | "node_process";
+      /** @description Fugue component label. Required for platform_component targets. */
+      component?: string;
+      /** @description Optional Fugue system namespace; defaults to the control-plane namespace. */
+      namespace?: string;
+      /** @description Optional exact Pod name within the trusted component selector. */
+      pod?: string;
+      /** @description Required when the selected platform Pod contains multiple containers. */
+      container?: string;
+      /** @description Required for node_process targets. */
+      node?: string;
+      /** @description Required allowlisted Fugue or k3s process name for node_process targets. */
+      process_name?: string;
+    };
+    PlatformDiagnosticSessionStartRequest: {
+      target: components["schemas"]["PlatformDiagnosticTargetRequest"];
+      /**
+       * @default cpu-profile
+       * @enum {string}
+       */
+      kind?: "cpu-profile" | "memory-profile" | "process-snapshot";
+      /**
+       * Format: int32
+       * @default 60
+       */
+      duration_seconds?: number;
+      /**
+       * Format: int32
+       * @default 19
+       */
+      frequency_hz?: number;
+      /**
+       * Format: int32
+       * @default 1000
+       */
+      sample_interval_milliseconds?: number;
+    };
+    PlatformDiagnosticTarget: {
+      /** @enum {string} */
+      type: "platform_component" | "node_process";
+      app_id?: string;
+      component?: string;
+      namespace?: string;
+      pod?: string;
+      pod_uid?: string;
+      container?: string;
+      node: string;
+      process_name?: string;
+      image_digest?: string;
+    };
+    PlatformDiagnosticSession: {
+      id: string;
+      /** @enum {string} */
+      kind: "cpu-profile" | "memory-profile" | "process-snapshot";
+      /** @enum {string} */
+      status: "queued" | "running" | "succeeded" | "failed";
+      target: components["schemas"]["PlatformDiagnosticTarget"];
+      /** @enum {string} */
+      control_path: "api" | "direct-kubernetes";
+      /** Format: int32 */
+      duration_seconds: number;
+      /** Format: int32 */
+      frequency_hz: number;
+      /** Format: int32 */
+      sample_interval_milliseconds: number;
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      started_at?: string;
+      /** Format: date-time */
+      finished_at?: string;
+      /** Format: date-time */
+      expires_at?: string;
+      failure_reason?: string;
+    };
+    PlatformDiagnosticSessionResponse: {
+      session: components["schemas"]["PlatformDiagnosticSession"];
+    };
+    PlatformDiagnosticSessionListResponse: {
+      sessions: components["schemas"]["PlatformDiagnosticSession"][];
+    };
+    PlatformDiagnosticSessionCancelResponse: {
+      session: components["schemas"]["PlatformDiagnosticSession"];
+      canceled: boolean;
+    };
+    PlatformDiagnosticReportResponse: {
+      session: components["schemas"]["PlatformDiagnosticSession"];
+      /** @description Versioned report emitted by the digest-addressed diagnostic runner. */
+      report: {
+        [key: string]: unknown;
+      };
     };
     AppObservabilityMetricsSummaryResponse: {
       source: components["schemas"]["ObservabilitySourceStatus"];
@@ -8436,209 +8958,6 @@ export interface components {
     };
     PlatformFailureDrillResponse: {
       report: components["schemas"]["PlatformFailureDrillReport"];
-    };
-    CompositeReleaseTransactionPrepareRequest: {
-      planDigest: string;
-      plan: components["schemas"]["CompositeReleasePlan"];
-    };
-    CompositeReleaseTransactionPrepareResponse: {
-      record: components["schemas"]["CompositeCoordinatorRecord"];
-    };
-    CompositeReleaseTransactionNoopRequest: {
-      envelope: components["schemas"]["CompositeReleaseTransactionEnvelope"];
-    };
-    CompositeReleaseTransactionNoopResponse: {
-      record: components["schemas"]["CompositeCommittedCoordinatorRecord"];
-      result: components["schemas"]["CompositeDurableNoopRunResult"];
-    };
-    CompositeReleaseTransactionEnvelope: {
-      /** @enum {string} */
-      apiVersion: "release-domain-transaction.fugue.dev/v2";
-      /** @enum {string} */
-      kind: "CompositeReleaseTransactionEnvelope";
-      /** @enum {string} */
-      policy: "evidence-bound-composite-noop-v1";
-      /** @enum {string} */
-      mode: "noop";
-      coordinatorRecordId: string;
-      coordinatorRecordDigest: string;
-      /** @enum {string} */
-      expectedRecordRevision: "1";
-      planDigest: string;
-      imageActivationPlanDigest: string;
-      generation: string;
-      fencingEpoch: string;
-      plan: components["schemas"]["CompositeReleasePlan"];
-      digest: string;
-    };
-    CompositeDurableNoopRunResult: {
-      /** @enum {string} */
-      apiVersion: "release-domain-durable-noop.fugue.dev/v1";
-      /** @enum {string} */
-      kind: "CompositeDurableNoopRun";
-      /** @enum {string} */
-      policy: "serial-cas-no-adapter-v1";
-      recordId: string;
-      initialRecordDigest: string;
-      finalRecordDigest: string;
-      /** @enum {string} */
-      initialRevision: "1";
-      /** @enum {string} */
-      finalRevision: "6";
-      planDigest: string;
-      authorizationDigest: string;
-      /** @enum {string} */
-      failureStepId: "";
-      events: components["schemas"]["CompositeDurableNoopRunEvent"][];
-      /** @enum {string} */
-      finalState: "committed";
-      /** @enum {boolean} */
-      productionWrite: false;
-      digest: string;
-    };
-    CompositeDurableNoopRunEvent: {
-      sequence: string;
-      /** @enum {string} */
-      action: "apply-noop" | "observe-noop";
-      stepId: string;
-      evidenceDigest: string;
-    };
-    CompositeCommittedCoordinatorRecord: {
-      /** @enum {string} */
-      apiVersion: "release-domain.fugue.dev/v2";
-      /** @enum {string} */
-      kind: "CompositeCoordinatorRecord";
-      /** @enum {string} */
-      policy: "durable-serial-saga-v1";
-      id: string;
-      plan: components["schemas"]["CompositeReleasePlan"];
-      /** @enum {string} */
-      state: "committed";
-      /** @enum {integer} */
-      currentStep: 2;
-      /** @enum {integer} */
-      rollbackStartStep: -1;
-      steps: components["schemas"]["CompositeCompletedStepProgress"][];
-      /**
-       * Format: int64
-       * @enum {integer}
-       */
-      revision: 6;
-      /** @enum {string} */
-      failureReason: "";
-      /** @enum {string} */
-      freezeReason: "";
-      /** Format: date-time */
-      createdAt: string;
-      /** Format: date-time */
-      updatedAt: string;
-      digest: string;
-    };
-    CompositeCompletedStepProgress: {
-      id: string;
-      /** @enum {string} */
-      state: "completed";
-      /** Format: date-time */
-      startedAt: string;
-      applyEvidenceDigest: string;
-      /** Format: date-time */
-      observationStartedAt: string;
-      observationEvidenceDigest: string;
-      /** Format: date-time */
-      completedAt: string;
-      /** @enum {string} */
-      reverseEvidenceDigest: "";
-      /** Format: date-time */
-      revertedAt: string | null;
-    };
-    CompositeReleasePlan: {
-      /** @enum {string} */
-      apiVersion: "release-domain.fugue.dev/v2";
-      /** @enum {string} */
-      kind: "CompositeReleasePlan";
-      /** @enum {string} */
-      policy: "evidence-derived-composite-saga-v1";
-      baseCommit: string;
-      targetCommit: string;
-      imageActivationPlanDigest: string;
-      generation: string;
-      fencingEpoch: string;
-      baseVersions: components["schemas"]["CompositeDomainVersion"][];
-      targetVersions: components["schemas"]["CompositeDomainVersion"][];
-      steps: components["schemas"]["CompositeReleaseStep"][];
-      digest: string;
-    };
-    CompositeDomainVersion: {
-      domain: string;
-      version: string;
-    };
-    CompositeReleaseStep: {
-      id: string;
-      domain: string;
-      adapter: string;
-      dependsOn: string[];
-      activationIds: string[];
-      baseVersion: string;
-      targetVersion: string;
-      forwardRenderedDigest: string;
-      reverseRenderedDigest: string;
-      observation: components["schemas"]["CompositeObservationPolicy"];
-      rollbackBudgetSeconds: string;
-    };
-    CompositeObservationPolicy: {
-      healthEvidenceDigest: string;
-      minimumSamples: string;
-      windowSeconds: string;
-    };
-    CompositeCoordinatorRecord: {
-      /** @enum {string} */
-      apiVersion: "release-domain.fugue.dev/v2";
-      /** @enum {string} */
-      kind: "CompositeCoordinatorRecord";
-      /** @enum {string} */
-      policy: "durable-serial-saga-v1";
-      id: string;
-      plan: components["schemas"]["CompositeReleasePlan"];
-      /** @enum {string} */
-      state: "prepared";
-      /** @enum {integer} */
-      currentStep: 0;
-      /** @enum {integer} */
-      rollbackStartStep: -1;
-      steps: components["schemas"]["CompositeStepProgress"][];
-      /**
-       * Format: int64
-       * @enum {integer}
-       */
-      revision: 1;
-      /** @enum {string} */
-      failureReason: "";
-      /** @enum {string} */
-      freezeReason: "";
-      /** Format: date-time */
-      createdAt: string;
-      /** Format: date-time */
-      updatedAt: string;
-      digest: string;
-    };
-    CompositeStepProgress: {
-      id: string;
-      /** @enum {string} */
-      state: "pending";
-      /** Format: date-time */
-      startedAt: string | null;
-      /** @enum {string} */
-      applyEvidenceDigest: "";
-      /** Format: date-time */
-      observationStartedAt: string | null;
-      /** @enum {string} */
-      observationEvidenceDigest: "";
-      /** Format: date-time */
-      completedAt: string | null;
-      /** @enum {string} */
-      reverseEvidenceDigest: "";
-      /** Format: date-time */
-      revertedAt: string | null;
     };
     GateBlastRadiusPolicy: {
       /** Format: int32 */
@@ -9568,7 +9887,7 @@ export interface components {
     PlatformArtifact: {
       id: string;
       /** @enum {string} */
-      artifact_kind: "edge_route_bundle" | "dns_answer_bundle" | "caddy_route_config" | "discovery_bundle" | "node_desired_state" | "runtime_placement_plan" | "runtime_continuity_plan" | "node_guardian_policy" | "release_guard_policy" | "component_release_plan" | "edge_ranking_policy" | "traffic_safety_policy" | "subsystem_failure_contracts" | "gate_policy_registry" | "automatic_action_contracts";
+      artifact_kind: "edge_route_bundle" | "dns_answer_bundle" | "caddy_route_config" | "discovery_bundle" | "node_desired_state" | "runtime_placement_plan" | "runtime_continuity_plan" | "node_guardian_policy" | "release_guard_policy" | "edge_ranking_policy" | "traffic_safety_policy" | "subsystem_failure_contracts" | "gate_policy_registry" | "automatic_action_contracts";
       scope: components["schemas"]["PlatformArtifactScope"];
       scope_key: string;
       /** @enum {string} */
@@ -10230,6 +10549,7 @@ export interface components {
   };
   parameters: {
     IdPathParam: string;
+    DiagnosticSessionIdPathParam: string;
     TenantIdPathParam: string;
     RuntimeIdPathParam: string;
     TenantIdQueryParam?: string;
@@ -10448,23 +10768,20 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Edge Routes */
-  edgeRoutes: {
-    parameters: {
-      query?: {
-        edge_id?: string;
-        edge_group_id?: string;
-      };
-    };
+  /**
+   * Edge Route Intents
+   * @description Returns Core's inventory-independent desired-route projection. Only the edge-control component identity with global edge_route_intent capability is accepted; tenant and platform-admin API keys are not accepted.
+   */
+  edgeRouteIntents: {
     responses: {
       /** @description Successful response */
       200: {
         headers: {
           ETag?: string;
-          "X-Fugue-Route-Bundle-Version"?: string;
+          "X-Fugue-Route-Intent-Generation"?: string;
         };
         content: {
-          "application/json": components["schemas"]["EdgeRouteBundle"];
+          "application/json": components["schemas"]["EdgeRouteIntentSnapshot"];
         };
       };
       default: components["responses"]["ErrorResponse"];
@@ -10619,6 +10936,32 @@ export interface operations {
       };
     };
   };
+  /**
+   * Inspect real Edge Control authority projections
+   * @description Read-only diagnostic view of the Edge Control group authority. This endpoint never synthesizes Edge nodes or ACKs from DNS state.
+   */
+  adminListEdgeAuthorities: {
+    parameters: {
+      query?: {
+        edge_group_id?: string;
+      };
+    };
+    responses: {
+      /** @description Edge Control authority projections */
+      200: {
+        content: {
+          "application/json": components["schemas"]["EdgeAuthorityReadResponse"];
+        };
+      };
+      /** @description Requested authority group is not configured */
+      404: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
   adminAdvanceEdgeRemediation: {
     requestBody: {
       content: {
@@ -10632,6 +10975,111 @@ export interface operations {
           "application/json": Record<string, never>;
         };
       };
+    };
+  };
+  /** List staged and revoked emergency traffic overrides */
+  adminListTrafficOverrides: {
+    responses: {
+      /** @description Independent emergency traffic override inventory */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TrafficOverrideListResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Get one emergency traffic override */
+  adminGetTrafficOverride: {
+    parameters: {
+      path: {
+        hostname: string;
+      };
+    };
+    responses: {
+      /** @description Emergency traffic override */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TrafficOverrideResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Stage a signed emergency traffic override
+   * @description Stores a signed override independently from the normal TrafficEpoch and release state machines. Each candidate answer is verified against every required TLS/SNI/Host route before signing. Staged overrides are not served until the separate overlay activation path is enabled.
+   */
+  adminPutTrafficOverride: {
+    parameters: {
+      path: {
+        hostname: string;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TrafficOverridePutRequest"];
+      };
+    };
+    responses: {
+      /** @description Signed staged emergency traffic override */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TrafficOverrideResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Revoke an emergency traffic override with CAS */
+  adminRevokeTrafficOverride: {
+    parameters: {
+      path: {
+        hostname: string;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TrafficOverrideRevokeRequest"];
+      };
+    };
+    responses: {
+      /** @description Signed revoked emergency traffic override */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TrafficOverrideResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Inspect emergency traffic override signing key metadata */
+  adminGetTrafficOverrideSigningKey: {
+    responses: {
+      /** @description Signing key metadata without secret key material */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TrafficOverrideSigningKeyResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Rotate the emergency traffic override signing key with CAS */
+  adminRotateTrafficOverrideSigningKey: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TrafficOverrideSigningKeyRotateRequest"];
+      };
+    };
+    responses: {
+      /** @description Rotated signing key metadata without secret key material */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TrafficOverrideSigningKeyResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
     };
   };
   /** Get fail-closed platform release evidence for an active Edge epoch */
@@ -10769,6 +11217,12 @@ export interface operations {
   };
   /** Edge Heartbeat */
   edgeHeartbeat: {
+    parameters: {
+      header?: {
+        /** @description Whether this worker slot is the traffic-serving slot selected by the node-local Edge Front authority. Older workers may omit the header during a rolling upgrade. */
+        "X-Fugue-Edge-Serving-Active"?: boolean;
+      };
+    };
     requestBody: {
       content: {
         "application/json": components["schemas"]["EdgeHeartbeatRequest"];
@@ -11049,51 +11503,6 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["PlatformFailureDrillResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /**
-   * Prepare Composite Release Transaction
-   * @description Persist one exact strict plan as an inert prepared coordinator record. This endpoint cannot authorize or execute the transaction.
-   */
-  prepareCompositeReleaseTransaction: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["CompositeReleaseTransactionPrepareRequest"];
-      };
-    };
-    responses: {
-      /** @description Prepared durable transaction record */
-      201: {
-        content: {
-          "application/json": components["schemas"]["CompositeReleaseTransactionPrepareResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /**
-   * Run Controlled Composite No-op Transaction
-   * @description Advance one exact prepared two-domain record through the durable success-only no-op worker. This endpoint cannot invoke an adapter, inject failure, mutate business state, or advance a runtime baseline.
-   */
-  runCompositeReleaseTransactionNoop: {
-    parameters: {
-      path: {
-        transaction_id: string;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["CompositeReleaseTransactionNoopRequest"];
-      };
-    };
-    responses: {
-      /** @description Committed durable no-op transaction with sealed zero-write evidence */
-      200: {
-        content: {
-          "application/json": components["schemas"]["CompositeReleaseTransactionNoopResponse"];
         };
       };
       default: components["responses"]["ErrorResponse"];
@@ -11738,7 +12147,7 @@ export interface operations {
   };
   /**
    * Release Platform Artifact
-   * @description Platform administrators may use the normal artifact release policy. A non-admin API key is accepted only for an exact observation-only component_release_plan request when it holds exactly artifact.read, artifact.release_shadow, and component_plan.observe; the artifact kind, validated envelope, shadow channel, reason, and envelope-derived idempotency key are bound server-side.
+   * @description Platform administrators may use the normal artifact release policy.
    */
   releasePlatformArtifact: {
     parameters: {
@@ -12083,6 +12492,29 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["DNSNodeListResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Get the independently signed DNS traffic override feed
+   * @description Returns active signed emergency traffic overrides for an authorized DNS node. The normal DNS bundle remains authoritative unless the optional overlay consumer is explicitly enabled on that node.
+   */
+  dnsTrafficOverrideFeed: {
+    parameters: {
+      query: {
+        token: string;
+        dns_node_id?: string;
+        edge_group_id?: string;
+        zone?: string;
+      };
+    };
+    responses: {
+      /** @description Active signed emergency traffic overrides */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TrafficOverrideFeedResponse"];
         };
       };
       default: components["responses"]["ErrorResponse"];
@@ -13772,6 +14204,83 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
+  /**
+   * Suspend A Retained Managed Postgres Orphan
+   * @description Platform-administrator lifecycle intent update for a retained orphan. The request is applied atomically to the ManagedApp spec and the controller performs the CNPG hibernation transition; no Fugue store record is created.
+   */
+  suspendManagedPostgresOrphan: {
+    parameters: {
+      path: {
+        app_id: string;
+      };
+    };
+    responses: {
+      /** @description Orphan was already requested suspended */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ManagedPostgresOrphanLifecycleResponse"];
+        };
+      };
+      /** @description Suspension intent accepted */
+      202: {
+        content: {
+          "application/json": components["schemas"]["ManagedPostgresOrphanLifecycleResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Resume A Retained Managed Postgres Orphan
+   * @description Platform-administrator lifecycle intent update for a retained orphan. The request is applied atomically to the ManagedApp spec and the controller performs the CNPG resume transition; no Fugue store record is created.
+   */
+  resumeManagedPostgresOrphan: {
+    parameters: {
+      path: {
+        app_id: string;
+      };
+    };
+    responses: {
+      /** @description Orphan was already requested resumed */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ManagedPostgresOrphanLifecycleResponse"];
+        };
+      };
+      /** @description Resume intent accepted */
+      202: {
+        content: {
+          "application/json": components["schemas"]["ManagedPostgresOrphanLifecycleResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Delete A Retained Managed Postgres Orphan
+   * @description Explicit platform-administrator deletion request. The exact app ID, an active backup artifact belonging to the orphan, current zero-workload storage evidence, and observed CNPG suspension are required before a foreground ManagedApp deletion is submitted.
+   */
+  deleteManagedPostgresOrphan: {
+    parameters: {
+      path: {
+        app_id: string;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ManagedPostgresOrphanDeleteRequest"];
+      };
+    };
+    responses: {
+      /** @description Foreground deletion request accepted */
+      202: {
+        content: {
+          "application/json": components["schemas"]["ManagedPostgresOrphanDeleteResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
   /** Get Backing Service */
   getBackingService: {
     parameters: {
@@ -14834,6 +15343,7 @@ export interface operations {
       content: {
         "application/json": {
           target_runtime_id: string;
+          dry_run?: boolean;
         };
       };
     };
@@ -15124,6 +15634,185 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["AppRuntimePodInventoryResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** List App Diagnostic Sessions */
+  listAppDiagnosticSessions: {
+    parameters: {
+      path: {
+        id: components["parameters"]["IdPathParam"];
+      };
+    };
+    responses: {
+      /** @description Diagnostic sessions for the app. */
+      200: {
+        content: {
+          "application/json": components["schemas"]["AppDiagnosticSessionListResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Start App Diagnostic Session
+   * @description Starts a bounded, temporary, app-scoped diagnostic probe without modifying the app workload.
+   */
+  startAppDiagnosticSession: {
+    parameters: {
+      path: {
+        id: components["parameters"]["IdPathParam"];
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AppDiagnosticSessionStartRequest"];
+      };
+    };
+    responses: {
+      /** @description Diagnostic session accepted. */
+      202: {
+        content: {
+          "application/json": components["schemas"]["AppDiagnosticSessionResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Get App Diagnostic Session */
+  getAppDiagnosticSession: {
+    parameters: {
+      path: {
+        id: components["parameters"]["IdPathParam"];
+        session_id: components["parameters"]["DiagnosticSessionIdPathParam"];
+      };
+    };
+    responses: {
+      /** @description Current diagnostic session state. */
+      200: {
+        content: {
+          "application/json": components["schemas"]["AppDiagnosticSessionResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Cancel App Diagnostic Session */
+  cancelAppDiagnosticSession: {
+    parameters: {
+      path: {
+        id: components["parameters"]["IdPathParam"];
+        session_id: components["parameters"]["DiagnosticSessionIdPathParam"];
+      };
+    };
+    responses: {
+      /** @description Diagnostic session cancellation accepted. */
+      200: {
+        content: {
+          "application/json": components["schemas"]["AppDiagnosticSessionCancelResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Get App Diagnostic Report */
+  getAppDiagnosticReport: {
+    parameters: {
+      path: {
+        id: components["parameters"]["IdPathParam"];
+        session_id: components["parameters"]["DiagnosticSessionIdPathParam"];
+      };
+    };
+    responses: {
+      /** @description Completed diagnostic report and session metadata. */
+      200: {
+        content: {
+          "application/json": components["schemas"]["AppDiagnosticReportResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** List Platform Diagnostic Sessions */
+  listPlatformDiagnosticSessions: {
+    responses: {
+      /** @description Recent platform diagnostic sessions. */
+      200: {
+        content: {
+          "application/json": components["schemas"]["PlatformDiagnosticSessionListResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Start Platform Diagnostic Session
+   * @description Starts a bounded, temporary diagnostic probe for a Fugue platform component or an allowlisted node process. Platform administrator access is required.
+   */
+  startPlatformDiagnosticSession: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PlatformDiagnosticSessionStartRequest"];
+      };
+    };
+    responses: {
+      /** @description Platform diagnostic session accepted. */
+      202: {
+        content: {
+          "application/json": components["schemas"]["PlatformDiagnosticSessionResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Get Platform Diagnostic Session */
+  getPlatformDiagnosticSession: {
+    parameters: {
+      path: {
+        session_id: components["parameters"]["DiagnosticSessionIdPathParam"];
+      };
+    };
+    responses: {
+      /** @description Current platform diagnostic session state. */
+      200: {
+        content: {
+          "application/json": components["schemas"]["PlatformDiagnosticSessionResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Cancel Platform Diagnostic Session */
+  cancelPlatformDiagnosticSession: {
+    parameters: {
+      path: {
+        session_id: components["parameters"]["DiagnosticSessionIdPathParam"];
+      };
+    };
+    responses: {
+      /** @description Platform diagnostic session cancellation accepted. */
+      200: {
+        content: {
+          "application/json": components["schemas"]["PlatformDiagnosticSessionCancelResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Get Platform Diagnostic Report */
+  getPlatformDiagnosticReport: {
+    parameters: {
+      path: {
+        session_id: components["parameters"]["DiagnosticSessionIdPathParam"];
+      };
+    };
+    responses: {
+      /** @description Completed platform diagnostic report and session metadata. */
+      200: {
+        content: {
+          "application/json": components["schemas"]["PlatformDiagnosticReportResponse"];
         };
       };
       default: components["responses"]["ErrorResponse"];
@@ -16419,6 +17108,30 @@ export interface operations {
     };
     responses: {
       /** @description Successful response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["OperationResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Cancel Pending Operation */
+  cancelOperation: {
+    parameters: {
+      path: {
+        id: components["parameters"]["IdPathParam"];
+      };
+    };
+    requestBody?: {
+      content: {
+        "application/json": {
+          message?: string;
+        };
+      };
+    };
+    responses: {
+      /** @description Pending operation canceled */
       200: {
         content: {
           "application/json": components["schemas"]["OperationResponse"];

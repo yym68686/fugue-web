@@ -250,25 +250,18 @@ paths:
                 additionalProperties: true
         default:
           $ref: "#/components/responses/ErrorResponse"
-  /v1/edge/routes:
+  /v1/edge/route-intents:
     get:
-      operationId: edgeRoutes
-      summary: Edge Routes
+      operationId: edgeRouteIntents
+      summary: Edge Route Intents
+      description: >-
+        Returns Core's inventory-independent desired-route projection. Only the
+        edge-control component identity with global edge_route_intent capability
+        is accepted; tenant and platform-admin API keys are not accepted.
       tags: [Edge]
-      x-fugue-handler: handleEdgeRoutes
+      x-fugue-handler: handleEdgeRouteIntents
       security:
-        - EdgeToken: []
-      parameters:
-        - in: query
-          name: edge_id
-          required: false
-          schema:
-            type: string
-        - in: query
-          name: edge_group_id
-          required: false
-          schema:
-            type: string
+        - EdgeRouteIntentComponentBearerAuth: []
       responses:
         '200':
           description: Successful response
@@ -276,13 +269,13 @@ paths:
             ETag:
               schema:
                 type: string
-            X-Fugue-Route-Bundle-Version:
+            X-Fugue-Route-Intent-Generation:
               schema:
                 type: string
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/EdgeRouteBundle"
+                $ref: "#/components/schemas/EdgeRouteIntentSnapshot"
         default:
           $ref: "#/components/responses/ErrorResponse"
   /v1/edge/ssh/routes:
@@ -513,6 +506,38 @@ paths:
             application/json:
               schema:
                 type: object
+  /v1/admin/edge/authorities:
+    get:
+      operationId: adminListEdgeAuthorities
+      summary: Inspect real Edge Control authority projections
+      description: >-
+        Read-only diagnostic view of the Edge Control group authority. This
+        endpoint never synthesizes Edge nodes or ACKs from DNS state.
+      tags: [Admin, Edge]
+      x-fugue-handler: handleAdminListEdgeAuthorities
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: edge_group_id
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Edge Control authority projections
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EdgeAuthorityReadResponse"
+        '404':
+          description: Requested authority group is not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
   /v1/admin/edge/activation/remediation:
     post:
       operationId: adminAdvanceEdgeRemediation
@@ -533,6 +558,144 @@ paths:
             application/json:
               schema:
                 type: object
+  /v1/admin/traffic-overrides:
+    get:
+      operationId: adminListTrafficOverrides
+      summary: List staged and revoked emergency traffic overrides
+      tags: [Admin, DNS]
+      x-fugue-handler: handleAdminListTrafficOverrides
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Independent emergency traffic override inventory
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrafficOverrideListResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/admin/traffic-overrides/{hostname}:
+    get:
+      operationId: adminGetTrafficOverride
+      summary: Get one emergency traffic override
+      tags: [Admin, DNS]
+      x-fugue-handler: handleAdminGetTrafficOverride
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: hostname
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Emergency traffic override
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrafficOverrideResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+    put:
+      operationId: adminPutTrafficOverride
+      summary: Stage a signed emergency traffic override
+      description: Stores a signed override independently from the normal TrafficEpoch and release state machines. Each candidate answer is verified against every required TLS/SNI/Host route before signing. Staged overrides are not served until the separate overlay activation path is enabled.
+      tags: [Admin, DNS]
+      x-fugue-handler: handleAdminPutTrafficOverride
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: hostname
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TrafficOverridePutRequest"
+      responses:
+        '200':
+          description: Signed staged emergency traffic override
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrafficOverrideResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/admin/traffic-overrides/{hostname}/revoke:
+    post:
+      operationId: adminRevokeTrafficOverride
+      summary: Revoke an emergency traffic override with CAS
+      tags: [Admin, DNS]
+      x-fugue-handler: handleAdminRevokeTrafficOverride
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: hostname
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TrafficOverrideRevokeRequest"
+      responses:
+        '200':
+          description: Signed revoked emergency traffic override
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrafficOverrideResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/admin/traffic-override-signing-key:
+    get:
+      operationId: adminGetTrafficOverrideSigningKey
+      summary: Inspect emergency traffic override signing key metadata
+      tags: [Admin, DNS]
+      x-fugue-handler: handleAdminGetTrafficOverrideSigningKey
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Signing key metadata without secret key material
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrafficOverrideSigningKeyResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/admin/traffic-override-signing-key/rotate:
+    post:
+      operationId: adminRotateTrafficOverrideSigningKey
+      summary: Rotate the emergency traffic override signing key with CAS
+      tags: [Admin, DNS]
+      x-fugue-handler: handleAdminRotateTrafficOverrideSigningKey
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TrafficOverrideSigningKeyRotateRequest"
+      responses:
+        '200':
+          description: Rotated signing key metadata without secret key material
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrafficOverrideSigningKeyResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
   /v1/admin/edge/release-evidence:
     get:
       operationId: adminGetPlatformReleaseEvidence
@@ -723,6 +886,13 @@ paths:
       x-fugue-handler: handleEdgeHeartbeat
       security:
         - EdgeToken: []
+      parameters:
+        - in: header
+          name: X-Fugue-Edge-Serving-Active
+          required: false
+          description: Whether this worker slot is the traffic-serving slot selected by the node-local Edge Front authority. Older workers may omit the header during a rolling upgrade.
+          schema:
+            type: boolean
       requestBody:
         required: true
         content:
@@ -1127,60 +1297,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PlatformFailureDrillResponse"
-        default:
-          $ref: "#/components/responses/ErrorResponse"
-  /v1/admin/composite-release-transactions:
-    post:
-      operationId: prepareCompositeReleaseTransaction
-      summary: Prepare Composite Release Transaction
-      description: Persist one exact strict plan as an inert prepared coordinator record. This endpoint cannot authorize or execute the transaction.
-      tags: [Admin]
-      x-fugue-handler: handlePrepareCompositeReleaseTransaction
-      security:
-        - BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CompositeReleaseTransactionPrepareRequest"
-      responses:
-        '201':
-          description: Prepared durable transaction record
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/CompositeReleaseTransactionPrepareResponse"
-        default:
-          $ref: "#/components/responses/ErrorResponse"
-  /v1/admin/composite-release-transactions/{transaction_id}/execute-noop:
-    post:
-      operationId: runCompositeReleaseTransactionNoop
-      summary: Run Controlled Composite No-op Transaction
-      description: Advance one exact prepared two-domain record through the durable success-only no-op worker. This endpoint cannot invoke an adapter, inject failure, mutate business state, or advance a runtime baseline.
-      tags: [Admin]
-      x-fugue-handler: handleRunCompositeReleaseTransactionNoop
-      security:
-        - BearerAuth: []
-      parameters:
-        - in: path
-          name: transaction_id
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CompositeReleaseTransactionNoopRequest"
-      responses:
-        '200':
-          description: Committed durable no-op transaction with sealed zero-write evidence
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/CompositeReleaseTransactionNoopResponse"
         default:
           $ref: "#/components/responses/ErrorResponse"
   /v1/admin/invariants:
@@ -2126,12 +2242,7 @@ paths:
       operationId: releasePlatformArtifact
       summary: Release Platform Artifact
       description: >-
-        Platform administrators may use the normal artifact release policy. A
-        non-admin API key is accepted only for an exact observation-only
-        component_release_plan request when it holds exactly artifact.read,
-        artifact.release_shadow, and component_plan.observe; the artifact kind,
-        validated envelope, shadow channel, reason, and envelope-derived
-        idempotency key are bound server-side.
+        Platform administrators may use the normal artifact release policy.
       tags: [Admin]
       x-fugue-handler: handleReleasePlatformArtifact
       security:
@@ -2673,6 +2784,48 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DNSNodeListResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/dns/traffic-overrides:
+    get:
+      operationId: dnsTrafficOverrideFeed
+      summary: Get the independently signed DNS traffic override feed
+      description: >-
+        Returns active signed emergency traffic overrides for an authorized DNS
+        node. The normal DNS bundle remains authoritative unless the optional
+        overlay consumer is explicitly enabled on that node.
+      tags: [DNS]
+      x-fugue-handler: handleDNSTrafficOverrideFeed
+      security:
+        - EdgeToken: []
+      parameters:
+        - in: query
+          name: token
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: dns_node_id
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: edge_group_id
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: zone
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Active signed emergency traffic overrides
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrafficOverrideFeedResponse"
         default:
           $ref: "#/components/responses/ErrorResponse"
   /v1/dns/acme-challenges:
@@ -4823,6 +4976,108 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         default:
           $ref: "#/components/responses/ErrorResponse"
+  /v1/backing-services/orphans/{app_id}/suspend:
+    post:
+      operationId: suspendManagedPostgresOrphan
+      summary: Suspend A Retained Managed Postgres Orphan
+      description: >-
+        Platform-administrator lifecycle intent update for a retained orphan.
+        The request is applied atomically to the ManagedApp spec and the
+        controller performs the CNPG hibernation transition; no Fugue store
+        record is created.
+      tags: [Backing Services]
+      x-fugue-handler: handleSuspendManagedPostgresOrphan
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: app_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Orphan was already requested suspended
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ManagedPostgresOrphanLifecycleResponse"
+        '202':
+          description: Suspension intent accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ManagedPostgresOrphanLifecycleResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/backing-services/orphans/{app_id}/resume:
+    post:
+      operationId: resumeManagedPostgresOrphan
+      summary: Resume A Retained Managed Postgres Orphan
+      description: >-
+        Platform-administrator lifecycle intent update for a retained orphan.
+        The request is applied atomically to the ManagedApp spec and the
+        controller performs the CNPG resume transition; no Fugue store record
+        is created.
+      tags: [Backing Services]
+      x-fugue-handler: handleResumeManagedPostgresOrphan
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: app_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Orphan was already requested resumed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ManagedPostgresOrphanLifecycleResponse"
+        '202':
+          description: Resume intent accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ManagedPostgresOrphanLifecycleResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/backing-services/orphans/{app_id}/delete:
+    post:
+      operationId: deleteManagedPostgresOrphan
+      summary: Delete A Retained Managed Postgres Orphan
+      description: >-
+        Explicit platform-administrator deletion request. The exact app ID,
+        an active backup artifact belonging to the orphan, current
+        zero-workload storage evidence, and observed CNPG suspension are
+        required before a foreground ManagedApp deletion is submitted.
+      tags: [Backing Services]
+      x-fugue-handler: handleDeleteManagedPostgresOrphan
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: app_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ManagedPostgresOrphanDeleteRequest"
+      responses:
+        '202':
+          description: Foreground deletion request accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ManagedPostgresOrphanDeleteResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
   /v1/backing-services/{id}:
     get:
       operationId: getBackingService
@@ -6148,6 +6403,8 @@ paths:
               properties:
                 target_runtime_id:
                   type: string
+                dry_run:
+                  type: boolean
       responses:
         '200':
           description: Backing service already targets the requested runtime
@@ -6480,6 +6737,205 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AppRuntimePodInventoryResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/apps/{id}/diagnostics/sessions:
+    post:
+      operationId: startAppDiagnosticSession
+      summary: Start App Diagnostic Session
+      description: Starts a bounded, temporary, app-scoped diagnostic probe without modifying the app workload.
+      tags: [Apps]
+      x-fugue-handler: handleStartAppDiagnosticSession
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPathParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AppDiagnosticSessionStartRequest"
+      responses:
+        '202':
+          description: Diagnostic session accepted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppDiagnosticSessionResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+    get:
+      operationId: listAppDiagnosticSessions
+      summary: List App Diagnostic Sessions
+      tags: [Apps]
+      x-fugue-handler: handleListAppDiagnosticSessions
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPathParam"
+      responses:
+        '200':
+          description: Diagnostic sessions for the app.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppDiagnosticSessionListResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/apps/{id}/diagnostics/sessions/{session_id}:
+    get:
+      operationId: getAppDiagnosticSession
+      summary: Get App Diagnostic Session
+      tags: [Apps]
+      x-fugue-handler: handleGetAppDiagnosticSession
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPathParam"
+        - $ref: "#/components/parameters/DiagnosticSessionIdPathParam"
+      responses:
+        '200':
+          description: Current diagnostic session state.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppDiagnosticSessionResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+    delete:
+      operationId: cancelAppDiagnosticSession
+      summary: Cancel App Diagnostic Session
+      tags: [Apps]
+      x-fugue-handler: handleCancelAppDiagnosticSession
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPathParam"
+        - $ref: "#/components/parameters/DiagnosticSessionIdPathParam"
+      responses:
+        '200':
+          description: Diagnostic session cancellation accepted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppDiagnosticSessionCancelResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/apps/{id}/diagnostics/sessions/{session_id}/report:
+    get:
+      operationId: getAppDiagnosticReport
+      summary: Get App Diagnostic Report
+      tags: [Apps]
+      x-fugue-handler: handleGetAppDiagnosticReport
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPathParam"
+        - $ref: "#/components/parameters/DiagnosticSessionIdPathParam"
+      responses:
+        '200':
+          description: Completed diagnostic report and session metadata.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppDiagnosticReportResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/admin/diagnostics/sessions:
+    post:
+      operationId: startPlatformDiagnosticSession
+      summary: Start Platform Diagnostic Session
+      description: Starts a bounded, temporary diagnostic probe for a Fugue platform component or an allowlisted node process. Platform administrator access is required.
+      tags: [Admin]
+      x-fugue-handler: handleStartPlatformDiagnosticSession
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlatformDiagnosticSessionStartRequest"
+      responses:
+        '202':
+          description: Platform diagnostic session accepted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformDiagnosticSessionResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+    get:
+      operationId: listPlatformDiagnosticSessions
+      summary: List Platform Diagnostic Sessions
+      tags: [Admin]
+      x-fugue-handler: handleListPlatformDiagnosticSessions
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Recent platform diagnostic sessions.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformDiagnosticSessionListResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/admin/diagnostics/sessions/{session_id}:
+    get:
+      operationId: getPlatformDiagnosticSession
+      summary: Get Platform Diagnostic Session
+      tags: [Admin]
+      x-fugue-handler: handleGetPlatformDiagnosticSession
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/DiagnosticSessionIdPathParam"
+      responses:
+        '200':
+          description: Current platform diagnostic session state.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformDiagnosticSessionResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+    delete:
+      operationId: cancelPlatformDiagnosticSession
+      summary: Cancel Platform Diagnostic Session
+      tags: [Admin]
+      x-fugue-handler: handleCancelPlatformDiagnosticSession
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/DiagnosticSessionIdPathParam"
+      responses:
+        '200':
+          description: Platform diagnostic session cancellation accepted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformDiagnosticSessionCancelResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/admin/diagnostics/sessions/{session_id}/report:
+    get:
+      operationId: getPlatformDiagnosticReport
+      summary: Get Platform Diagnostic Report
+      tags: [Admin]
+      x-fugue-handler: handleGetPlatformDiagnosticReport
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/DiagnosticSessionIdPathParam"
+      responses:
+        '200':
+          description: Completed platform diagnostic report and session metadata.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformDiagnosticReportResponse"
         default:
           $ref: "#/components/responses/ErrorResponse"
   /v1/apps/{id}/observability/metrics/summary:
@@ -8081,6 +8537,35 @@ paths:
       responses:
         '200':
           description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OperationResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/operations/{id}/cancel:
+    post:
+      operationId: cancelOperation
+      summary: Cancel Pending Operation
+      tags: [Operations]
+      x-fugue-handler: handleCancelOperation
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPathParam"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                message:
+                  type: string
+      responses:
+        '200':
+          description: Pending operation canceled
           content:
             application/json:
               schema:
@@ -10778,6 +11263,11 @@ components:
       scheme: bearer
       bearerFormat: fugue_pc_v1
       description: Short-lived, server-bound identity for Fugue platform components; tenant API keys are not accepted.
+    EdgeRouteIntentComponentBearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: fugue_pc_v1
+      description: Short-lived Edge Control identity accepted only by the RouteIntent endpoint.
     EdgeToken:
       type: apiKey
       in: query
@@ -10793,6 +11283,13 @@ components:
       required: true
       schema:
         type: string
+    DiagnosticSessionIdPathParam:
+      in: path
+      name: session_id
+      required: true
+      schema:
+        type: string
+        pattern: '^diagnostic-[a-z0-9-]+$'
     TenantIdPathParam:
       in: path
       name: tenant_id
@@ -11123,6 +11620,103 @@ components:
       schema:
         type: string
   schemas:
+    EdgeAuthorityReadStatus:
+      type: object
+      additionalProperties: false
+      required: [edge_group_id, status, ready, serving_healthy, bootstrap_eligible, lkg_state]
+      properties:
+        edge_group_id:
+          type: string
+        status:
+          type: string
+        ready:
+          type: boolean
+        serving_healthy:
+          type: boolean
+        bootstrap_eligible:
+          type: boolean
+        bootstrap_valid_until:
+          type: string
+          format: date-time
+        inventory_sequence:
+          type: integer
+          format: int64
+        inventory_generation:
+          type: string
+        inventory_producer_generation:
+          type: integer
+          format: int64
+        inventory_producer_nodes:
+          type: integer
+        inventory_heartbeat_at:
+          type: string
+          format: date-time
+        authority_sequence:
+          type: integer
+          format: int64
+        publication_sequence:
+          type: integer
+          format: int64
+        current_publication_sequence:
+          type: integer
+          format: int64
+        candidate_epoch:
+          type: integer
+          format: int64
+        publication_decision:
+          type: string
+        bundle_generation:
+          type: string
+        published_bundle_digest:
+          type: string
+        recovery_epoch:
+          type: integer
+          format: int64
+        bundle_valid_until:
+          type: string
+          format: date-time
+        lkg_state:
+          type: string
+        failure_code:
+          type: string
+        runtime_failure_code:
+          type: string
+    EdgeAuthorityReadRecord:
+      type: object
+      additionalProperties: false
+      required: [edge_group_id, service, ready, source]
+      properties:
+        edge_group_id:
+          type: string
+        service:
+          type: string
+        ready:
+          type: boolean
+        source:
+          type: string
+          enum: [edge-control-authority]
+        status:
+          $ref: "#/components/schemas/EdgeAuthorityReadStatus"
+        error:
+          type: string
+    EdgeAuthorityReadResponse:
+      type: object
+      additionalProperties: false
+      required: [configured, answer_model, all_ready, authorities]
+      properties:
+        configured:
+          type: boolean
+        answer_model:
+          type: string
+          enum: [edge-control-authority]
+        all_ready:
+          type: boolean
+        authorities:
+          type: array
+          items:
+            $ref: "#/components/schemas/EdgeAuthorityReadRecord"
+        error:
+          type: string
     ErrorResponse:
       type: object
       additionalProperties: false
@@ -13048,7 +13642,7 @@ components:
     ResourceRightSizingPolicy:
       type: object
       additionalProperties: false
-      required: [window_hours, min_samples, cpu_percentile, cpu_multiplier, cpu_floor_millicores, memory_percentile, memory_multiplier, memory_floor_mebibytes]
+      required: [window_hours, min_samples, cpu_percentile, cpu_multiplier, cpu_request_percentile, cpu_request_multiplier, cpu_floor_millicores, memory_percentile, memory_multiplier, memory_floor_mebibytes]
       properties:
         window_hours:
           type: integer
@@ -13059,12 +13653,23 @@ components:
         cpu_percentile:
           type: number
           format: double
+          description: Historical CPU percentile used for capacity planning.
         cpu_multiplier:
           type: number
           format: double
+          description: Multiplier applied to historical CPU usage for capacity planning.
+        cpu_request_percentile:
+          type: number
+          format: double
+          description: Historical CPU percentile used for the Kubernetes request guarantee.
+        cpu_request_multiplier:
+          type: number
+          format: double
+          description: Multiplier applied to the CPU request guarantee percentile.
         cpu_floor_millicores:
           type: integer
           format: int64
+          description: Minimum Kubernetes CPU request guarantee for this workload class.
         memory_percentile:
           type: number
           format: double
@@ -13099,6 +13704,14 @@ components:
           $ref: "#/components/schemas/ResourceSpec"
         recommended:
           $ref: "#/components/schemas/ResourceSpec"
+          description: >-
+            Capacity recommendation derived from historical usage. Its CPU value is a
+            planning target and is not written directly to the Kubernetes CPU request.
+        request_target:
+          $ref: "#/components/schemas/ResourceSpec"
+          description: >-
+            Resource target applied by right-sizing. CPU is a small guaranteed share;
+            memory retains the safety-oriented capacity recommendation.
         policy:
           $ref: "#/components/schemas/ResourceRightSizingPolicy"
         ready:
@@ -13551,6 +14164,142 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/CachePolicy"
+    EdgeRouteIntentSnapshot:
+      type: object
+      additionalProperties: false
+      required: [schema_version, generation, generated_at, routes, tls_allowlist]
+      properties:
+        schema_version:
+          type: string
+          enum: [edge-route-intent/v1]
+        generation:
+          type: string
+        generated_at:
+          type: string
+          format: date-time
+        routes:
+          type: array
+          items:
+            $ref: "#/components/schemas/EdgeRouteIntent"
+        tls_allowlist:
+          type: array
+          items:
+            $ref: "#/components/schemas/EdgeTLSAllowlistEntry"
+        cache_policies:
+          type: array
+          items:
+            $ref: "#/components/schemas/CachePolicy"
+    EdgeRouteIntent:
+      type: object
+      additionalProperties: false
+      required:
+        - generation
+        - hostname
+        - route_kind
+        - app_id
+        - tenant_id
+        - runtime_id
+        - target_group_mode
+        - route_policy
+        - upstream_kind
+        - service_port
+        - tls_policy
+        - streaming
+        - origin_status
+        - created_at
+        - updated_at
+      properties:
+        generation:
+          type: string
+        hostname:
+          type: string
+        path_prefix:
+          type: string
+        route_kind:
+          type: string
+          enum: [platform, custom-domain, platform-domain, platform-route, control-plane-api]
+        app_id:
+          type: string
+        tenant_id:
+          type: string
+        runtime_id:
+          type: string
+        runtime_type:
+          type: string
+        runtime_edge_group_id:
+          type: string
+          description: Core locality hint; this is not an Edge Control selection.
+        runtime_cluster_node:
+          type: string
+        target_group_mode:
+          type: string
+          enum: [all_groups, pinned_group]
+        pinned_edge_group_id:
+          type: string
+        excluded_edge_ids:
+          type: array
+          items:
+            type: string
+        excluded_edge_group_ids:
+          type: array
+          items:
+            type: string
+        exclusion_reason:
+          type: string
+        exclusion_expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        exclusion_lifecycle:
+          type: string
+          enum: [clear, active, expiring_1h, expiring_24h, expired_hold, legacy_hold]
+        min_healthy_edge_nodes:
+          type: integer
+          format: int32
+        route_policy:
+          type: string
+          enum: [route_a_only, edge_canary, edge_enabled]
+        upstream_kind:
+          type: string
+          enum: [kubernetes-service, mesh]
+        upstream_scope:
+          type: string
+          enum: [local-service, cluster, mesh]
+        upstream_url:
+          type: string
+        upstreams:
+          type: array
+          items:
+            $ref: "#/components/schemas/EdgeRouteUpstream"
+        service_port:
+          type: integer
+          format: int32
+        tls_policy:
+          type: string
+          enum: [platform, custom-domain]
+        cache_policy_id:
+          type: string
+        cache_namespace:
+          type: string
+        deployment_generation:
+          type: string
+        request_body_policies:
+          type: array
+          items:
+            $ref: "#/components/schemas/EdgeRequestBodyPolicy"
+        streaming:
+          type: boolean
+        origin_status:
+          type: string
+          enum: [active, disabled, unavailable, runtime-missing]
+        origin_status_reason:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
     EdgeSSHRouteBundle:
       type: object
       additionalProperties: false
@@ -13913,6 +14662,213 @@ components:
       properties:
         policy:
           $ref: "#/components/schemas/EdgeRoutePolicy"
+    TrafficOverride:
+      type: object
+      additionalProperties: false
+      required: [schema, hostname, generation, state, answers, required_host_routes, route_generation, route_digest, prepared_digest, activate_at, expires_at, reason, operator, artifact_digest, key_id, signature, signed_at, created_at, updated_at]
+      properties:
+        schema:
+          type: string
+          enum: [traffic-override.fugue.dev/v1]
+        hostname:
+          type: string
+        generation:
+          type: integer
+          format: int64
+          minimum: 1
+        state:
+          type: string
+          enum: [staged, revoked]
+        answers:
+          type: array
+          minItems: 1
+          maxItems: 16
+          uniqueItems: true
+          items:
+            type: string
+        required_host_routes:
+          type: array
+          minItems: 1
+          maxItems: 16
+          uniqueItems: true
+          items:
+            type: string
+        route_generation:
+          type: string
+        route_digest:
+          type: string
+          pattern: '^sha256:[0-9a-f]{64}$'
+        prepared_digest:
+          type: string
+          pattern: '^sha256:[0-9a-f]{64}$'
+        activate_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+        reason:
+          type: string
+        operator:
+          type: string
+        artifact_digest:
+          type: string
+          pattern: '^sha256:[0-9a-f]{64}$'
+        key_id:
+          type: string
+        signature:
+          type: string
+          pattern: '^ed25519:[A-Za-z0-9+/]{86}$'
+        signed_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    TrafficOverridePutRequest:
+      type: object
+      additionalProperties: false
+      required: [answers, required_host_routes, route_generation, route_digest, activate_at, expires_at, reason, expected_generation]
+      properties:
+        answers:
+          type: array
+          minItems: 1
+          maxItems: 16
+          uniqueItems: true
+          items:
+            type: string
+        required_host_routes:
+          type: array
+          minItems: 1
+          maxItems: 16
+          uniqueItems: true
+          items:
+            type: string
+        route_generation:
+          type: string
+        route_digest:
+          type: string
+          pattern: '^sha256:[0-9a-fA-F]{64}$'
+        prepared_digest:
+          type: string
+          pattern: '^sha256:[0-9a-fA-F]{64}$'
+        activate_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+        reason:
+          type: string
+          minLength: 8
+        expected_generation:
+          type: integer
+          format: int64
+          minimum: 0
+    TrafficOverrideRevokeRequest:
+      type: object
+      additionalProperties: false
+      required: [reason, expected_generation]
+      properties:
+        reason:
+          type: string
+          minLength: 8
+        expected_generation:
+          type: integer
+          format: int64
+          minimum: 1
+    TrafficOverrideResponse:
+      type: object
+      additionalProperties: false
+      required: [override]
+      properties:
+        override:
+          $ref: "#/components/schemas/TrafficOverride"
+    TrafficOverrideListResponse:
+      type: object
+      additionalProperties: false
+      required: [overrides]
+      properties:
+        overrides:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrafficOverride"
+    TrafficOverrideFeed:
+      type: object
+      additionalProperties: false
+      required: [schema, generation, generated_at, overrides, signing_key]
+      properties:
+        schema:
+          type: string
+          enum: [traffic-override-feed.fugue.dev/v1]
+        generation:
+          type: integer
+          format: int64
+          minimum: 1
+        generated_at:
+          type: string
+          format: date-time
+        overrides:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrafficOverride"
+        signing_key:
+          $ref: "#/components/schemas/TrafficOverrideSigningKeyStatus"
+    TrafficOverrideFeedResponse:
+      type: object
+      additionalProperties: false
+      required: [feed]
+      properties:
+        feed:
+          $ref: "#/components/schemas/TrafficOverrideFeed"
+    TrafficOverrideSigningKeyStatus:
+      type: object
+      additionalProperties: false
+      required: [schema, generation, current_key_id, current_public_key, created_at, updated_at]
+      properties:
+        schema:
+          type: string
+          enum: [traffic-override-signing.fugue.dev/v1]
+        generation:
+          type: integer
+          format: int64
+          minimum: 1
+        current_key_id:
+          type: string
+        current_public_key:
+          type: string
+        previous_key_id:
+          type: string
+        previous_public_key:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        rotated_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    TrafficOverrideSigningKeyResponse:
+      type: object
+      additionalProperties: false
+      required: [signing_key]
+      properties:
+        signing_key:
+          $ref: "#/components/schemas/TrafficOverrideSigningKeyStatus"
+    TrafficOverrideSigningKeyRotateRequest:
+      type: object
+      additionalProperties: false
+      required: [expected_generation]
+      properties:
+        expected_generation:
+          type: integer
+          format: int64
+          minimum: 1
     PlatformDomainBinding:
       type: object
       additionalProperties: false
@@ -14018,6 +14974,9 @@ components:
           type: boolean
         route_bundle_version:
           type: string
+        route_bundle_source:
+          type: string
+          description: Route-bundle authority selected by the edge worker.
         dns_bundle_version:
           type: string
         serving_generation:
@@ -16408,6 +17367,12 @@ components:
           format: int32
         suspended:
           type: boolean
+        runtime_phase:
+          type: string
+        ready_instances:
+          type: integer
+        desired_instances:
+          type: integer
           readOnly: true
           description: Whether the managed Postgres service is configured to hibernate with its PVCs retained. Change this state only through the backing-service suspend and resume endpoints.
         resources:
@@ -17872,6 +18837,9 @@ components:
         desired_origin_source:
           description: Durable source ownership that should persist after the operation completes.
           $ref: "#/components/schemas/AppSource"
+        queued_deploy_operation_id:
+          type: string
+          description: Explicit deployment link recovered from durable import evidence; absent when no link has been recorded. Consumers of older APIs may use the legacy queued-deploy message but must never infer a link from timestamps.
         result_message:
           type: string
         manifest_path:
@@ -18212,14 +19180,60 @@ components:
         redaction_status:
           type: string
         payload:
+          description: Optional durable evidence. Builder attempt records use build_attempt and retain every retry independently; user-facing consumers must not render arbitrary diagnostic payloads as deployment errors.
           type: object
           additionalProperties: true
+          properties:
+            build_attempt:
+              $ref: "#/components/schemas/BuilderAttemptEvidence"
+            builder_diagnostics:
+              description: Bounded build snapshots and redacted log tails. Returned only to platform administrators with include_payload; never included in public CLI deployment results.
+              type: object
+              additionalProperties: true
         payload_version:
           type: integer
           format: int32
         created_at:
           type: string
           format: date-time
+    BuilderAttemptEvidence:
+      type: object
+      additionalProperties: false
+      required: [attempt, outcome, started_at, finished_at, causes, missing_evidence]
+      properties:
+        attempt:
+          type: integer
+          minimum: 1
+        outcome:
+          type: string
+          enum: [succeeded, failed]
+        started_at:
+          type: string
+          format: date-time
+        finished_at:
+          type: string
+          format: date-time
+        causes:
+          type: array
+          items:
+            type: string
+            description: Stable failure code, interpreted through a public message allowlist rather than raw cluster error text.
+        missing_evidence:
+          type: array
+          items:
+            type: string
+        memory_request_bytes:
+          type: integer
+          format: int64
+        memory_limit_bytes:
+          type: integer
+          format: int64
+        ephemeral_request_bytes:
+          type: integer
+          format: int64
+        ephemeral_limit_bytes:
+          type: integer
+          format: int64
     OperationTimelineEntry:
       type: object
       additionalProperties: false
@@ -22655,10 +23669,18 @@ components:
           type: string
         suspended:
           type: boolean
+        runtime_phase:
+          type: string
+        ready_instances:
+          type: integer
+          minimum: 0
+        desired_instances:
+          type: integer
+          minimum: 0
     ManagedPostgresOrphanSummary:
       type: object
       additionalProperties: false
-      required: [app_id, tenant_id, project_id, name, namespace, managed_app_name, phase, backing_services]
+      required: [app_id, tenant_id, project_id, name, namespace, managed_app_name, phase, actionable, validation_status, backing_services]
       properties:
         app_id:
           type: string
@@ -22675,6 +23697,13 @@ components:
         phase:
           type: string
         message:
+          type: string
+        actionable:
+          type: boolean
+        validation_status:
+          type: string
+          enum: [ready, reconciling, conflict, unavailable]
+        validation_message:
           type: string
         backing_services:
           type: array
@@ -22702,6 +23731,35 @@ components:
             $ref: "#/components/schemas/BackingService"
         already_adopted:
           type: boolean
+    ManagedPostgresOrphanLifecycleResponse:
+      type: object
+      additionalProperties: false
+      required: [orphan, already_current]
+      properties:
+        orphan:
+          $ref: "#/components/schemas/ManagedPostgresOrphanSummary"
+        already_current:
+          type: boolean
+    ManagedPostgresOrphanDeleteRequest:
+      type: object
+      additionalProperties: false
+      required: [confirm_app_id, backup_artifact_id]
+      properties:
+        confirm_app_id:
+          type: string
+        backup_artifact_id:
+          type: string
+    ManagedPostgresOrphanDeleteResponse:
+      type: object
+      additionalProperties: false
+      required: [deleted, deletion_requested, app_id]
+      properties:
+        deleted:
+          type: boolean
+        deletion_requested:
+          type: boolean
+        app_id:
+          type: string
     BackingServiceMigrateResponse:
       type: object
       additionalProperties: false
@@ -22711,6 +23769,10 @@ components:
           $ref: "#/components/schemas/BackingService"
         already_current:
           type: boolean
+        dry_run:
+          type: boolean
+        target_runtime_id:
+          type: string
         operation:
           $ref: "#/components/schemas/Operation"
     AppListResponse:
@@ -23929,6 +24991,264 @@ components:
           type: array
           items:
             type: string
+    AppDiagnosticSessionStartRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        kind:
+          type: string
+          enum: [cpu-profile]
+          default: cpu-profile
+        duration_seconds:
+          type: integer
+          format: int32
+          minimum: 5
+          maximum: 120
+          default: 60
+        frequency_hz:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 99
+          default: 19
+        pod:
+          type: string
+        container:
+          type: string
+    AppDiagnosticSession:
+      type: object
+      additionalProperties: false
+      required: [id, app_id, kind, status, target_pod, target_container, target_node, duration_seconds, frequency_hz, created_at]
+      properties:
+        id:
+          type: string
+        app_id:
+          type: string
+        kind:
+          type: string
+        status:
+          type: string
+          enum: [queued, running, succeeded, failed]
+        target_pod:
+          type: string
+        target_container:
+          type: string
+        target_node:
+          type: string
+        duration_seconds:
+          type: integer
+          format: int32
+        frequency_hz:
+          type: integer
+          format: int32
+        created_at:
+          type: string
+          format: date-time
+        started_at:
+          type: string
+          format: date-time
+        finished_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+        failure_reason:
+          type: string
+    AppDiagnosticSessionResponse:
+      type: object
+      additionalProperties: false
+      required: [session]
+      properties:
+        session:
+          $ref: "#/components/schemas/AppDiagnosticSession"
+    AppDiagnosticSessionListResponse:
+      type: object
+      additionalProperties: false
+      required: [sessions]
+      properties:
+        sessions:
+          type: array
+          items:
+            $ref: "#/components/schemas/AppDiagnosticSession"
+    AppDiagnosticSessionCancelResponse:
+      type: object
+      additionalProperties: false
+      required: [session, canceled]
+      properties:
+        session:
+          $ref: "#/components/schemas/AppDiagnosticSession"
+        canceled:
+          type: boolean
+    AppDiagnosticReportResponse:
+      type: object
+      additionalProperties: false
+      required: [session, report]
+      properties:
+        session:
+          $ref: "#/components/schemas/AppDiagnosticSession"
+        report:
+          type: object
+          additionalProperties: true
+          description: Versioned report emitted by the selected digest-addressed diagnostic probe.
+    PlatformDiagnosticTargetRequest:
+      type: object
+      additionalProperties: false
+      required: [type]
+      properties:
+        type:
+          type: string
+          enum: [platform_component, node_process]
+        component:
+          type: string
+          description: Fugue component label. Required for platform_component targets.
+        namespace:
+          type: string
+          description: Optional Fugue system namespace; defaults to the control-plane namespace.
+        pod:
+          type: string
+          description: Optional exact Pod name within the trusted component selector.
+        container:
+          type: string
+          description: Required when the selected platform Pod contains multiple containers.
+        node:
+          type: string
+          description: Required for node_process targets.
+        process_name:
+          type: string
+          description: Required allowlisted Fugue or k3s process name for node_process targets.
+    PlatformDiagnosticSessionStartRequest:
+      type: object
+      additionalProperties: false
+      required: [target]
+      properties:
+        target:
+          $ref: "#/components/schemas/PlatformDiagnosticTargetRequest"
+        kind:
+          type: string
+          enum: [cpu-profile, memory-profile, process-snapshot]
+          default: cpu-profile
+        duration_seconds:
+          type: integer
+          format: int32
+          minimum: 5
+          maximum: 360
+          default: 60
+        frequency_hz:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 99
+          default: 19
+        sample_interval_milliseconds:
+          type: integer
+          format: int32
+          minimum: 250
+          maximum: 10000
+          default: 1000
+    PlatformDiagnosticTarget:
+      type: object
+      additionalProperties: false
+      required: [type, node]
+      properties:
+        type:
+          type: string
+          enum: [platform_component, node_process]
+        app_id:
+          type: string
+        component:
+          type: string
+        namespace:
+          type: string
+        pod:
+          type: string
+        pod_uid:
+          type: string
+        container:
+          type: string
+        node:
+          type: string
+        process_name:
+          type: string
+        image_digest:
+          type: string
+    PlatformDiagnosticSession:
+      type: object
+      additionalProperties: false
+      required: [id, kind, status, target, control_path, duration_seconds, frequency_hz, sample_interval_milliseconds, created_at]
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+          enum: [cpu-profile, memory-profile, process-snapshot]
+        status:
+          type: string
+          enum: [queued, running, succeeded, failed]
+        target:
+          $ref: "#/components/schemas/PlatformDiagnosticTarget"
+        control_path:
+          type: string
+          enum: [api, direct-kubernetes]
+        duration_seconds:
+          type: integer
+          format: int32
+        frequency_hz:
+          type: integer
+          format: int32
+        sample_interval_milliseconds:
+          type: integer
+          format: int32
+        created_at:
+          type: string
+          format: date-time
+        started_at:
+          type: string
+          format: date-time
+        finished_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+        failure_reason:
+          type: string
+    PlatformDiagnosticSessionResponse:
+      type: object
+      additionalProperties: false
+      required: [session]
+      properties:
+        session:
+          $ref: "#/components/schemas/PlatformDiagnosticSession"
+    PlatformDiagnosticSessionListResponse:
+      type: object
+      additionalProperties: false
+      required: [sessions]
+      properties:
+        sessions:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlatformDiagnosticSession"
+    PlatformDiagnosticSessionCancelResponse:
+      type: object
+      additionalProperties: false
+      required: [session, canceled]
+      properties:
+        session:
+          $ref: "#/components/schemas/PlatformDiagnosticSession"
+        canceled:
+          type: boolean
+    PlatformDiagnosticReportResponse:
+      type: object
+      additionalProperties: false
+      required: [session, report]
+      properties:
+        session:
+          $ref: "#/components/schemas/PlatformDiagnosticSession"
+        report:
+          type: object
+          additionalProperties: true
+          description: Versioned report emitted by the digest-addressed diagnostic runner.
     AppObservabilityMetricsSummaryResponse:
       type: object
       additionalProperties: false
@@ -25145,227 +26465,6 @@ components:
       properties:
         report:
           $ref: "#/components/schemas/PlatformFailureDrillReport"
-    CompositeReleaseTransactionPrepareRequest:
-      type: object
-      additionalProperties: false
-      required: [planDigest, plan]
-      properties:
-        planDigest:
-          type: string
-          pattern: '^sha256:[0-9a-f]{64}$'
-        plan:
-          $ref: "#/components/schemas/CompositeReleasePlan"
-    CompositeReleaseTransactionPrepareResponse:
-      type: object
-      additionalProperties: false
-      required: [record]
-      properties:
-        record:
-          $ref: "#/components/schemas/CompositeCoordinatorRecord"
-    CompositeReleaseTransactionNoopRequest:
-      type: object
-      additionalProperties: false
-      required: [envelope]
-      properties:
-        envelope:
-          $ref: "#/components/schemas/CompositeReleaseTransactionEnvelope"
-    CompositeReleaseTransactionNoopResponse:
-      type: object
-      additionalProperties: false
-      required: [record, result]
-      properties:
-        record:
-          $ref: "#/components/schemas/CompositeCommittedCoordinatorRecord"
-        result:
-          $ref: "#/components/schemas/CompositeDurableNoopRunResult"
-    CompositeReleaseTransactionEnvelope:
-      type: object
-      additionalProperties: false
-      required: [apiVersion, kind, policy, mode, coordinatorRecordId, coordinatorRecordDigest, expectedRecordRevision, planDigest, imageActivationPlanDigest, generation, fencingEpoch, plan, digest]
-      properties:
-        apiVersion: {type: string, enum: [release-domain-transaction.fugue.dev/v2]}
-        kind: {type: string, enum: [CompositeReleaseTransactionEnvelope]}
-        policy: {type: string, enum: [evidence-bound-composite-noop-v1]}
-        mode: {type: string, enum: [noop]}
-        coordinatorRecordId: {type: string}
-        coordinatorRecordDigest: {type: string, pattern: '^sha256:[0-9a-f]{64}$'}
-        expectedRecordRevision: {type: string, enum: ['1']}
-        planDigest: {type: string, pattern: '^sha256:[0-9a-f]{64}$'}
-        imageActivationPlanDigest: {type: string, pattern: '^sha256:[0-9a-f]{64}$'}
-        generation: {type: string, pattern: '^[1-9][0-9]*$'}
-        fencingEpoch: {type: string, pattern: '^[1-9][0-9]*$'}
-        plan: {$ref: "#/components/schemas/CompositeReleasePlan"}
-        digest: {type: string, pattern: '^sha256:[0-9a-f]{64}$'}
-    CompositeDurableNoopRunResult:
-      type: object
-      additionalProperties: false
-      required: [apiVersion, kind, policy, recordId, initialRecordDigest, finalRecordDigest, initialRevision, finalRevision, planDigest, authorizationDigest, failureStepId, events, finalState, productionWrite, digest]
-      properties:
-        apiVersion: {type: string, enum: [release-domain-durable-noop.fugue.dev/v1]}
-        kind: {type: string, enum: [CompositeDurableNoopRun]}
-        policy: {type: string, enum: [serial-cas-no-adapter-v1]}
-        recordId: {type: string}
-        initialRecordDigest: {type: string, pattern: '^sha256:[0-9a-f]{64}$'}
-        finalRecordDigest: {type: string, pattern: '^sha256:[0-9a-f]{64}$'}
-        initialRevision: {type: string, enum: ['1']}
-        finalRevision: {type: string, enum: ['6']}
-        planDigest: {type: string, pattern: '^sha256:[0-9a-f]{64}$'}
-        authorizationDigest: {type: string, pattern: '^sha256:[0-9a-f]{64}$'}
-        failureStepId: {type: string, enum: ['']}
-        events:
-          type: array
-          minItems: 4
-          maxItems: 4
-          items: {$ref: "#/components/schemas/CompositeDurableNoopRunEvent"}
-        finalState: {type: string, enum: [committed]}
-        productionWrite: {type: boolean, enum: [false]}
-        digest: {type: string, pattern: '^sha256:[0-9a-f]{64}$'}
-    CompositeDurableNoopRunEvent:
-      type: object
-      additionalProperties: false
-      required: [sequence, action, stepId, evidenceDigest]
-      properties:
-        sequence: {type: string, pattern: '^[1-4]$'}
-        action: {type: string, enum: [apply-noop, observe-noop]}
-        stepId: {type: string}
-        evidenceDigest: {type: string, pattern: '^sha256:[0-9a-f]{64}$'}
-    CompositeCommittedCoordinatorRecord:
-      type: object
-      additionalProperties: false
-      required: [apiVersion, kind, policy, id, plan, state, currentStep, rollbackStartStep, steps, revision, failureReason, freezeReason, createdAt, updatedAt, digest]
-      properties:
-        apiVersion: {type: string, enum: [release-domain.fugue.dev/v2]}
-        kind: {type: string, enum: [CompositeCoordinatorRecord]}
-        policy: {type: string, enum: [durable-serial-saga-v1]}
-        id: {type: string}
-        plan: {$ref: "#/components/schemas/CompositeReleasePlan"}
-        state: {type: string, enum: [committed]}
-        currentStep: {type: integer, enum: [2]}
-        rollbackStartStep: {type: integer, enum: [-1]}
-        steps:
-          type: array
-          minItems: 2
-          maxItems: 2
-          items: {$ref: "#/components/schemas/CompositeCompletedStepProgress"}
-        revision: {type: integer, format: int64, enum: [6]}
-        failureReason: {type: string, enum: ['']}
-        freezeReason: {type: string, enum: ['']}
-        createdAt: {type: string, format: date-time}
-        updatedAt: {type: string, format: date-time}
-        digest: {type: string, pattern: '^sha256:[0-9a-f]{64}$'}
-    CompositeCompletedStepProgress:
-      type: object
-      additionalProperties: false
-      required: [id, state, startedAt, applyEvidenceDigest, observationStartedAt, observationEvidenceDigest, completedAt, reverseEvidenceDigest, revertedAt]
-      properties:
-        id: {type: string}
-        state: {type: string, enum: [completed]}
-        startedAt: {type: string, format: date-time}
-        applyEvidenceDigest: {type: string, pattern: '^sha256:[0-9a-f]{64}$'}
-        observationStartedAt: {type: string, format: date-time}
-        observationEvidenceDigest: {type: string, pattern: '^sha256:[0-9a-f]{64}$'}
-        completedAt: {type: string, format: date-time}
-        reverseEvidenceDigest: {type: string, enum: ['']}
-        revertedAt: {type: string, format: date-time, nullable: true}
-    CompositeReleasePlan:
-      type: object
-      additionalProperties: false
-      required: [apiVersion, kind, policy, baseCommit, targetCommit, imageActivationPlanDigest, generation, fencingEpoch, baseVersions, targetVersions, steps, digest]
-      properties:
-        apiVersion: {type: string, enum: [release-domain.fugue.dev/v2]}
-        kind: {type: string, enum: [CompositeReleasePlan]}
-        policy: {type: string, enum: [evidence-derived-composite-saga-v1]}
-        baseCommit: {type: string}
-        targetCommit: {type: string}
-        imageActivationPlanDigest: {type: string, pattern: '^sha256:[0-9a-f]{64}$'}
-        generation: {type: string, pattern: '^[1-9][0-9]*$'}
-        fencingEpoch: {type: string, pattern: '^[1-9][0-9]*$'}
-        baseVersions:
-          type: array
-          minItems: 2
-          items: {$ref: "#/components/schemas/CompositeDomainVersion"}
-        targetVersions:
-          type: array
-          minItems: 2
-          items: {$ref: "#/components/schemas/CompositeDomainVersion"}
-        steps:
-          type: array
-          minItems: 2
-          items: {$ref: "#/components/schemas/CompositeReleaseStep"}
-        digest: {type: string, pattern: '^sha256:[0-9a-f]{64}$'}
-    CompositeDomainVersion:
-      type: object
-      additionalProperties: false
-      required: [domain, version]
-      properties:
-        domain: {type: string}
-        version: {type: string}
-    CompositeReleaseStep:
-      type: object
-      additionalProperties: false
-      required: [id, domain, adapter, dependsOn, activationIds, baseVersion, targetVersion, forwardRenderedDigest, reverseRenderedDigest, observation, rollbackBudgetSeconds]
-      properties:
-        id: {type: string}
-        domain: {type: string}
-        adapter: {type: string}
-        dependsOn:
-          type: array
-          items: {type: string}
-        activationIds:
-          type: array
-          minItems: 1
-          items: {type: string}
-        baseVersion: {type: string}
-        targetVersion: {type: string}
-        forwardRenderedDigest: {type: string, pattern: '^sha256:[0-9a-f]{64}$'}
-        reverseRenderedDigest: {type: string, pattern: '^sha256:[0-9a-f]{64}$'}
-        observation: {$ref: "#/components/schemas/CompositeObservationPolicy"}
-        rollbackBudgetSeconds: {type: string, pattern: '^[1-9][0-9]*$'}
-    CompositeObservationPolicy:
-      type: object
-      additionalProperties: false
-      required: [healthEvidenceDigest, minimumSamples, windowSeconds]
-      properties:
-        healthEvidenceDigest: {type: string, pattern: '^sha256:[0-9a-f]{64}$'}
-        minimumSamples: {type: string, pattern: '^[1-9][0-9]*$'}
-        windowSeconds: {type: string, pattern: '^[1-9][0-9]*$'}
-    CompositeCoordinatorRecord:
-      type: object
-      additionalProperties: false
-      required: [apiVersion, kind, policy, id, plan, state, currentStep, rollbackStartStep, steps, revision, failureReason, freezeReason, createdAt, updatedAt, digest]
-      properties:
-        apiVersion: {type: string, enum: [release-domain.fugue.dev/v2]}
-        kind: {type: string, enum: [CompositeCoordinatorRecord]}
-        policy: {type: string, enum: [durable-serial-saga-v1]}
-        id: {type: string}
-        plan: {$ref: "#/components/schemas/CompositeReleasePlan"}
-        state: {type: string, enum: [prepared]}
-        currentStep: {type: integer, enum: [0]}
-        rollbackStartStep: {type: integer, enum: [-1]}
-        steps:
-          type: array
-          minItems: 2
-          items: {$ref: "#/components/schemas/CompositeStepProgress"}
-        revision: {type: integer, format: int64, enum: [1]}
-        failureReason: {type: string, enum: ['']}
-        freezeReason: {type: string, enum: ['']}
-        createdAt: {type: string, format: date-time}
-        updatedAt: {type: string, format: date-time}
-        digest: {type: string, pattern: '^sha256:[0-9a-f]{64}$'}
-    CompositeStepProgress:
-      type: object
-      additionalProperties: false
-      required: [id, state, startedAt, applyEvidenceDigest, observationStartedAt, observationEvidenceDigest, completedAt, reverseEvidenceDigest, revertedAt]
-      properties:
-        id: {type: string}
-        state: {type: string, enum: [pending]}
-        startedAt: {type: string, format: date-time, nullable: true}
-        applyEvidenceDigest: {type: string, enum: ['']}
-        observationStartedAt: {type: string, format: date-time, nullable: true}
-        observationEvidenceDigest: {type: string, enum: ['']}
-        completedAt: {type: string, format: date-time, nullable: true}
-        reverseEvidenceDigest: {type: string, enum: ['']}
-        revertedAt: {type: string, format: date-time, nullable: true}
     GateBlastRadiusPolicy:
       type: object
       additionalProperties: false
@@ -27484,7 +28583,7 @@ components:
           type: string
         artifact_kind:
           type: string
-          enum: [edge_route_bundle, dns_answer_bundle, caddy_route_config, discovery_bundle, node_desired_state, runtime_placement_plan, runtime_continuity_plan, node_guardian_policy, release_guard_policy, component_release_plan, edge_ranking_policy, traffic_safety_policy, subsystem_failure_contracts, gate_policy_registry, automatic_action_contracts]
+          enum: [edge_route_bundle, dns_answer_bundle, caddy_route_config, discovery_bundle, node_desired_state, runtime_placement_plan, runtime_continuity_plan, node_guardian_policy, release_guard_policy, edge_ranking_policy, traffic_safety_policy, subsystem_failure_contracts, gate_policy_registry, automatic_action_contracts]
         scope:
           $ref: "#/components/schemas/PlatformArtifactScope"
         scope_key:
