@@ -1181,6 +1181,13 @@ export interface paths {
     /** Deploy App */
     post: operations["deployApp"];
   };
+  "/v1/apps/{id}/runtime-state": {
+    /**
+     * Compare committed app intent with bounded live runtime evidence
+     * @description Reads app-scoped ready pods, process environment and config file hashes. Missing evidence remains unknown; values and file contents are never returned.
+     */
+    get: operations["getAppRuntimeState"];
+  };
   "/v1/apps/{id}/restart": {
     /** Restart App */
     post: operations["restartApp"];
@@ -1248,6 +1255,8 @@ export interface paths {
     post: operations["verifyImage"];
   };
   "/v1/images/{id}/pins": {
+    /** List Image Pins */
+    get: operations["listImagePins"];
     /** Create Image Pin */
     post: operations["createImagePin"];
   };
@@ -1368,6 +1377,30 @@ export interface paths {
   "/v1/node-updater/tasks/{id}/complete": {
     /** Node Updater Complete Task */
     post: operations["nodeUpdaterCompleteTask"];
+  };
+  "/v1/source-upload-sessions": {
+    /** Create or resume an immutable source upload request */
+    post: operations["createSourceUploadSession"];
+  };
+  "/v1/source-upload-sessions/{id}": {
+    /** Read uploaded chunks and exact request effects */
+    get: operations["getSourceUploadSession"];
+  };
+  "/v1/source-upload-sessions/{id}/chunks/{index}": {
+    /** Store an idempotent digest checked chunk */
+    put: operations["putSourceUploadChunk"];
+  };
+  "/v1/source-upload-sessions/{id}/complete": {
+    /** Verify and assemble the immutable source archive */
+    post: operations["completeSourceUploadSession"];
+  };
+  "/v1/source-upload-sessions/{id}/submit": {
+    /** Submit a frozen import intent once; replay reads its durable receipt */
+    post: operations["submitSourceUploadSession"];
+  };
+  "/v1/source-upload-requests/{request_id}": {
+    /** Recover the exact operations created by a source request */
+    get: operations["getSourceUploadRequest"];
   };
   "/v1/source-uploads/{id}/archive": {
     /** Get Source Upload Archive */
@@ -1603,8 +1636,16 @@ export interface paths {
     /** Plan Data Download */
     post: operations["planDataDownload"];
   };
+  "/v1/data/transfers/{transfer_id}/cache": {
+    /** Request cleanup of a runtime prewarm cache */
+    delete: operations["deleteDataPrewarmCache"];
+  };
+  "/v1/data/workspaces/{workspace_id}/deletion-plan": {
+    /** Inspect references and storage reclamation before logical deletion */
+    get: operations["getDataDeletionPlan"];
+  };
   "/v1/data/workspaces/{workspace_id}/prewarm": {
-    /** Create Data Prewarm */
+    /** Cache a snapshot on a managed runtime */
     post: operations["createDataPrewarm"];
   };
   "/v1/data/workspaces/{workspace_id}/access": {
@@ -1648,7 +1689,10 @@ export interface paths {
     post: operations["refreshDataTransferAuthorization"];
   };
   "/v1/data/transfers/{transfer_id}/checkpoint": {
-    /** Checkpoint Data Transfer */
+    /**
+     * Checkpoint Data Transfer
+     * @description Accepts progress only for client driven transfers; runtime prewarm returns 409.
+     */
     post: operations["checkpointDataTransfer"];
   };
   "/v1/data/transfers/{transfer_id}/multipart/parts": {
@@ -1664,11 +1708,17 @@ export interface paths {
     post: operations["abortDataMultipartUpload"];
   };
   "/v1/data/transfers/{transfer_id}/complete": {
-    /** Complete Data Transfer */
+    /**
+     * Complete Data Transfer
+     * @description Completes client driven transfers. Runtime prewarm completion is accepted only from controller observations; user completion returns 409.
+     */
     post: operations["completeDataTransfer"];
   };
   "/v1/data/transfers/{transfer_id}/cancel": {
-    /** Cancel Data Transfer */
+    /**
+     * Cancel Data Transfer
+     * @description Cancels a nonterminal transfer. Runtime prewarm cancellation schedules Job and PVC cleanup; it does not cancel app operations.
+     */
     post: operations["cancelDataTransfer"];
   };
   "/v1/data/grants/{grant_id}": {
@@ -2223,6 +2273,7 @@ export interface components {
       deleted_at?: string;
     };
     DataTransferSummary: {
+      cache?: components["schemas"]["DataPrewarmCache"];
       id: string;
       tenant_id?: string;
       workspace_id: string;
@@ -2365,9 +2416,40 @@ export interface components {
       version?: string;
       assets?: string[];
     };
+    DataDeletionPlan: {
+      /** @enum {integer} */
+      schema_version: 1;
+      workspace_id: string;
+      snapshot_id?: string;
+      allowed: boolean;
+      /** @enum {string} */
+      mode: "metadata_delete" | "soft_delete";
+      /** @enum {boolean} */
+      objects_reclaimed: false;
+      reclamation: string;
+      blockers: {
+          kind: string;
+          id: string;
+          state: string;
+        }[];
+    };
+    DataPrewarmCache: {
+      worker_cleaned?: boolean;
+      namespace: string;
+      claim: string;
+      job: string;
+      job_uid?: string;
+      node: string;
+      manifest_digest: string;
+      /** @enum {string} */
+      state: "planned" | "downloading" | "ready" | "cleanup_pending" | "removed";
+      /** Format: date-time */
+      observed_at: string;
+    };
+    /** @description Creates a digest-verified cache on an authorized managed runtime using an S3-compatible backend. Cache TTL is 24 hours. Completion does not mount data into apps. */
     DataPrewarmRequest: {
       version?: string;
-      runtime_id?: string;
+      runtime_id: string;
       assets?: string[];
     };
     DataTransferCompleteRequest: {
@@ -6673,6 +6755,9 @@ export interface components {
       /** Format: date-time */
       expires_at?: string;
     };
+    ImagePinListResponse: {
+      pins: components["schemas"]["ImagePin"][];
+    };
     ImagePinResponse: {
       pin: components["schemas"]["ImagePin"];
     };
@@ -7853,6 +7938,60 @@ export interface components {
       delete_missing?: boolean;
       dry_run?: boolean;
     };
+    SourceUploadSessionCreateRequest: {
+      request_id: string;
+      tenant_id?: string;
+      filename: string;
+      /** Format: int64 */
+      size_bytes: number;
+      sha256: string;
+    };
+    SourceUploadChunkRequest: {
+      sha256: string;
+      /** Format: byte */
+      data: string;
+    };
+    SourceUploadSession: {
+      /** @enum {integer} */
+      schema_version: 1;
+      id: string;
+      request_id: string;
+      tenant_id: string;
+      project_id?: string;
+      actor_type?: string;
+      actor_id?: string;
+      filename: string;
+      /** Format: int64 */
+      size_bytes: number;
+      sha256: string;
+      chunk_size: number;
+      /** @description Zero based chunk index to verified SHA256; contains no archive bytes. */
+      chunks?: {
+        [key: string]: string;
+      };
+      /** @enum {string} */
+      state: "uploading" | "ready" | "submitting" | "submitted" | "rejected" | "unknown" | "expired";
+      upload_id?: string;
+      request_hash?: string;
+      operation_ids?: string[];
+      app_ids?: string[];
+      response_status?: number;
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      updated_at: string;
+      /** Format: date-time */
+      expires_at: string;
+    };
+    SourceUploadSessionResponse: {
+      session: components["schemas"]["SourceUploadSession"];
+    };
+    SourceUploadSubmitResponse: {
+      session: components["schemas"]["SourceUploadSession"];
+      result?: components["schemas"]["ImportUploadResponse"];
+      replayed?: boolean;
+      error?: components["schemas"]["ErrorResponse"];
+    };
     ImportUploadRequest: {
       app_id?: string;
       tenant_id?: string;
@@ -8730,7 +8869,43 @@ export interface components {
       operation: components["schemas"]["Operation"];
       build: components["schemas"]["RebuildPlan"];
     };
+    AppRuntimeCheck: {
+      kind: string;
+      key?: string;
+      pod?: string;
+      /** @enum {string} */
+      state: "in_sync" | "drifted" | "unknown" | "not_configured";
+      source: string;
+      desired_sha256?: string;
+      observed_sha256?: string;
+      reason?: string;
+    };
+    AppRuntimeStateResponse: {
+      /** @enum {integer} */
+      schema_version: 1;
+      app_id: string;
+      namespace: string;
+      desired_spec_hash: string;
+      desired_source: string;
+      /** Format: date-time */
+      observed_at: string;
+      /** @enum {string} */
+      state: "in_sync" | "drifted" | "inconclusive" | "inactive";
+      ready_pods: string[];
+      endpoint_pods: string[];
+      pod_uids: {
+        [key: string]: string;
+      };
+      revisions: {
+        [key: string]: string;
+      };
+      pending_operations: string[];
+      checks: components["schemas"]["AppRuntimeCheck"][];
+      missing_evidence: string[];
+    };
     AppRestartResponse: {
+      /** @description SHA-256 of the exact desired spec accepted for this restart */
+      desired_spec_hash?: string;
       operation: components["schemas"]["Operation"];
       restart_token: string;
     };
@@ -14160,6 +14335,18 @@ export interface operations {
   };
   /** List Backing Services */
   listBackingServices: {
+    parameters: {
+      query?: {
+        /** @description Exact tenant filter; administrator-only across tenants */
+        tenant_id?: string;
+        /** @description Exact project filter within authorized services */
+        project_id?: string;
+        /** @description Exact service ID, name or normalized name */
+        name?: string;
+        include_live_status?: boolean;
+        include_resource_usage?: boolean;
+      };
+    };
     responses: {
       /** @description Successful response */
       200: {
@@ -16710,9 +16897,33 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
+  /**
+   * Compare committed app intent with bounded live runtime evidence
+   * @description Reads app-scoped ready pods, process environment and config file hashes. Missing evidence remains unknown; values and file contents are never returned.
+   */
+  getAppRuntimeState: {
+    parameters: {
+      path: {
+        id: components["parameters"]["IdPathParam"];
+      };
+    };
+    responses: {
+      /** @description Runtime comparison including partial or unknown evidence */
+      200: {
+        content: {
+          "application/json": components["schemas"]["AppRuntimeStateResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
   /** Restart App */
   restartApp: {
     parameters: {
+      header?: {
+        /** @description Quoted SHA-256 of the committed app spec. When supplied, restart atomically rejects changed intent or an active operation. */
+        "If-Match"?: string;
+      };
       path: {
         id: components["parameters"]["IdPathParam"];
       };
@@ -16724,6 +16935,7 @@ export interface operations {
           "application/json": components["schemas"]["AppRestartResponse"];
         };
       };
+      412: components["responses"]["ErrorResponse"];
       default: components["responses"]["ErrorResponse"];
     };
   };
@@ -16972,6 +17184,8 @@ export interface operations {
   listImages: {
     parameters: {
       query?: {
+        /** @description Exact project scope; workload credentials cannot widen their assigned project. */
+        project_id?: string;
         tenant_id?: string;
         app_id?: string;
         image_ref?: string;
@@ -17068,6 +17282,23 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
+  /** List Image Pins */
+  listImagePins: {
+    parameters: {
+      path: {
+        id: components["parameters"]["IdPathParam"];
+      };
+    };
+    responses: {
+      /** @description Pins visible for the authorized image */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ImagePinListResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
   /** Create Image Pin */
   createImagePin: {
     parameters: {
@@ -17110,6 +17341,8 @@ export interface operations {
   listImageReplicationTasks: {
     parameters: {
       query?: {
+        /** @description Exact project scope; workload credentials cannot widen their assigned project. */
+        project_id?: string;
         image_id?: string;
         app_id?: string;
         status?: string;
@@ -17663,6 +17896,122 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["NodeUpdateTaskResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Create or resume an immutable source upload request */
+  createSourceUploadSession: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SourceUploadSessionCreateRequest"];
+      };
+    };
+    responses: {
+      /** @description Durable upload session and request receipt */
+      200: {
+        content: {
+          "application/json": components["schemas"]["SourceUploadSessionResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Read uploaded chunks and exact request effects */
+  getSourceUploadSession: {
+    parameters: {
+      path: {
+        id: string;
+      };
+    };
+    responses: {
+      /** @description Durable upload session and request receipt */
+      200: {
+        content: {
+          "application/json": components["schemas"]["SourceUploadSessionResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Store an idempotent digest checked chunk */
+  putSourceUploadChunk: {
+    parameters: {
+      path: {
+        id: string;
+        index: number;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SourceUploadChunkRequest"];
+      };
+    };
+    responses: {
+      /** @description Durable upload session and request receipt */
+      200: {
+        content: {
+          "application/json": components["schemas"]["SourceUploadSessionResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Verify and assemble the immutable source archive */
+  completeSourceUploadSession: {
+    parameters: {
+      path: {
+        id: string;
+      };
+    };
+    responses: {
+      /** @description Durable upload session and request receipt */
+      200: {
+        content: {
+          "application/json": components["schemas"]["SourceUploadSessionResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Submit a frozen import intent once; replay reads its durable receipt */
+  submitSourceUploadSession: {
+    parameters: {
+      path: {
+        id: string;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ImportUploadRequest"];
+      };
+    };
+    responses: {
+      /** @description Durable upload session and request receipt */
+      200: {
+        content: {
+          "application/json": components["schemas"]["SourceUploadSubmitResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Recover the exact operations created by a source request */
+  getSourceUploadRequest: {
+    parameters: {
+      query?: {
+        tenant_id?: string;
+      };
+      path: {
+        request_id: string;
+      };
+    };
+    responses: {
+      /** @description Durable upload session and request receipt */
+      200: {
+        content: {
+          "application/json": components["schemas"]["SourceUploadSessionResponse"];
         };
       };
       default: components["responses"]["ErrorResponse"];
@@ -18612,6 +18961,7 @@ export interface operations {
           "application/json": components["schemas"]["DataDownloadPlanResponse"];
         };
       };
+      409: components["responses"]["ErrorResponse"];
       default: components["responses"]["ErrorResponse"];
     };
   };
@@ -18721,6 +19071,7 @@ export interface operations {
           };
         };
       };
+      409: components["responses"]["ErrorResponse"];
       default: components["responses"]["ErrorResponse"];
     };
   };
@@ -18772,7 +19123,46 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Create Data Prewarm */
+  /** Request cleanup of a runtime prewarm cache */
+  deleteDataPrewarmCache: {
+    parameters: {
+      path: {
+        transfer_id: string;
+      };
+    };
+    responses: {
+      /** @description Cache cleanup is requested; transfer history and source snapshot remain available */
+      202: {
+        content: {
+          "application/json": {
+            transfer?: components["schemas"]["DataTransferSummary"];
+          };
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Inspect references and storage reclamation before logical deletion */
+  getDataDeletionPlan: {
+    parameters: {
+      query?: {
+        snapshot_id?: string;
+      };
+      path: {
+        workspace_id: components["parameters"]["DataWorkspaceIdPathParam"];
+      };
+    };
+    responses: {
+      /** @description Read-only advisory plan; DELETE repeats atomic guards */
+      200: {
+        content: {
+          "application/json": components["schemas"]["DataDeletionPlan"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Cache a snapshot on a managed runtime */
   createDataPrewarm: {
     parameters: {
       path: {
@@ -19018,7 +19408,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Checkpoint Data Transfer */
+  /**
+   * Checkpoint Data Transfer
+   * @description Accepts progress only for client driven transfers; runtime prewarm returns 409.
+   */
   checkpointDataTransfer: {
     parameters: {
       path: {
@@ -19106,7 +19499,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Complete Data Transfer */
+  /**
+   * Complete Data Transfer
+   * @description Completes client driven transfers. Runtime prewarm completion is accepted only from controller observations; user completion returns 409.
+   */
   completeDataTransfer: {
     parameters: {
       path: {
@@ -19128,7 +19524,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Cancel Data Transfer */
+  /**
+   * Cancel Data Transfer
+   * @description Cancels a nonterminal transfer. Runtime prewarm cancellation schedules Job and PVC cleanup; it does not cancel app operations.
+   */
   cancelDataTransfer: {
     parameters: {
       path: {
