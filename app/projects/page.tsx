@@ -4,10 +4,7 @@ import TechLogo from '@/components/TechLogo';
 import { requireActivePageSession } from '@/lib/auth/page-access';
 import { getCachedWorkspaceAccessByEmail } from '@/lib/server/session-state-cache';
 import {
-  listConsoleGallery,
-  listProjectImageUsage,
-  resourcesFromProjectSummaries,
-  unavailableProjectImageUsageResponse,
+  getConsoleGalleryData,
   type ConsoleProjectSummary,
   type ProjectResourceRollup,
 } from '@/lib/fugue/console';
@@ -37,11 +34,7 @@ async function getProjectsData(email: string): Promise<ProjectsData> {
 
   const key = workspace.adminKeySecret;
   try {
-    const [projects, imageUsage] = await Promise.all([
-      listConsoleGallery(key),
-      listProjectImageUsage(key).catch(() => unavailableProjectImageUsageResponse()),
-    ]);
-    const resources = resourcesFromProjectSummaries(projects, imageUsage);
+    const { projects, resources } = await getConsoleGalleryData(key);
     return { hasWorkspace: true, projects, resources, loadError: false };
   } catch {
     return { hasWorkspace: true, projects: [], resources: new Map(), loadError: true };
