@@ -19,7 +19,7 @@ export const dynamic = 'force-dynamic';
 const MICRO_CENTS_PER_DOLLAR = 100_000_000;
 
 // Per-tenant billing has no bulk endpoint, so we fetch one summary per tenant.
-// Each call is a fresh connection to the edge (FUGUE_API_URL is the public URL);
+// Each call is a fresh connection to the configured Fugue API endpoint;
 // firing all ~100 at once overwhelms the edge and most time out
 // (UND_ERR_CONNECT_TIMEOUT), which previously left balances blank. A small
 // concurrency cap is 100% reliable in testing (failures only begin above ~50).

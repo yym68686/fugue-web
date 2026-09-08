@@ -301,7 +301,7 @@ class FugueApiError extends Error {
 }
 
 function readApiBaseUrl(): string {
-  const raw = process.env.FUGUE_API_URL?.trim();
+  const raw = (process.env.FUGUE_INTERNAL_API_URL ?? process.env.FUGUE_API_URL)?.trim();
   if (!raw) {
     throw new Error("Missing FUGUE_API_URL. Configure the fugue backend URL.");
   }
