@@ -433,7 +433,7 @@ export async function listConsoleGallery(
 ): Promise<ConsoleProjectSummary[]> {
   const data = await fugueGet<{ projects?: ConsoleProjectSummary[] }>(
     adminKey,
-    "/v1/console/gallery?include_live_status=true",
+    "/v1/console/gallery",
   );
   return Array.isArray(data.projects) ? data.projects : [];
 }
