@@ -298,7 +298,16 @@ export interface paths {
     get: operations["explainTrafficSafety"];
   };
   "/v1/admin/requests/{request_id}/explain": {
-    /** Explain Request */
+    /**
+     * Explain Request
+     * @description Platform-admin lookup of recorded request facts by edge request ID, application
+     * request ID, or trace ID. Reads per-request telemetry, including incomplete
+     * platform request facts stored as events; aggregate edge performance sample
+     * IDs are not request IDs. Only a unique matching request is attributed.
+     * Evidence identifies the source and lookup status. Missing records, disabled
+     * telemetry, unavailable query backends, and ambiguous identifiers remain
+     * explicitly unconfirmed; an empty lookup does not prove a request never ran.
+     */
     get: operations["explainRequest"];
   };
   "/v1/admin/robustness/status": {
@@ -943,6 +952,13 @@ export interface paths {
   "/v1/apps/{id}/route": {
     /** Patch App Route */
     patch: operations["patchAppRoute"];
+  };
+  "/v1/backing-services/{id}/resize": {
+    /**
+     * Resize Managed Postgres Backing Service In Place
+     * @description Queues a dedicated in-place CPU and memory resize for one app-owned managed PostgreSQL service. The request must provide the complete runtime request and limit envelope; existing requests or limits cannot be removed. The operation only uses the Kubernetes Pod resize subresource and never falls back to deleting, evicting, redeploying, or patching the CNPG Cluster resource template.
+     */
+    post: operations["resizeBackingService"];
   };
   "/v1/backing-services/{id}/migrate": {
     /** Migrate Backing Service */
@@ -5507,6 +5523,7 @@ export interface components {
       /** Format: int64 */
       ephemeral_limit_bytes?: number;
     };
+    /** @description Historical event content paired with its recorded time. The operation_started summary describes the start, never a later mutable progress message. */
     OperationTimelineEntry: {
       id: string;
       operation_id: string;
@@ -7612,6 +7629,23 @@ export interface components {
       backing_service: components["schemas"]["BackingService"];
       operation?: components["schemas"]["Operation"];
       already_current: boolean;
+    };
+    ManagedPostgresResizeResources: {
+      /** Format: int64 */
+      cpu_millicores: number;
+      /** Format: int64 */
+      memory_mebibytes: number;
+      /** Format: int64 */
+      cpu_limit_millicores: number;
+      /** Format: int64 */
+      memory_limit_mebibytes: number;
+    };
+    ManagedPostgresResizeRequest: {
+      runtime_resources: components["schemas"]["ManagedPostgresResizeResources"];
+    };
+    BackingServiceResizeResponse: {
+      backing_service: components["schemas"]["BackingService"];
+      operation: components["schemas"]["Operation"];
     };
     ManagedPostgresOrphanBackingServiceSummary: {
       id: string;
@@ -11927,7 +11961,16 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Explain Request */
+  /**
+   * Explain Request
+   * @description Platform-admin lookup of recorded request facts by edge request ID, application
+   * request ID, or trace ID. Reads per-request telemetry, including incomplete
+   * platform request facts stored as events; aggregate edge performance sample
+   * IDs are not request IDs. Only a unique matching request is attributed.
+   * Evidence identifies the source and lookup status. Missing records, disabled
+   * telemetry, unavailable query backends, and ambiguous identifiers remain
+   * explicitly unconfirmed; an empty lookup does not prove a request never ran.
+   */
   explainRequest: {
     parameters: {
       query?: {
@@ -15327,6 +15370,37 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["AppRoutePatchResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Resize Managed Postgres Backing Service In Place
+   * @description Queues a dedicated in-place CPU and memory resize for one app-owned managed PostgreSQL service. The request must provide the complete runtime request and limit envelope; existing requests or limits cannot be removed. The operation only uses the Kubernetes Pod resize subresource and never falls back to deleting, evicting, redeploying, or patching the CNPG Cluster resource template.
+   */
+  resizeBackingService: {
+    parameters: {
+      path: {
+        id: components["parameters"]["IdPathParam"];
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ManagedPostgresResizeRequest"];
+      };
+    };
+    responses: {
+      /** @description In-place resize operation accepted or exact active operation reused */
+      202: {
+        content: {
+          "application/json": components["schemas"]["BackingServiceResizeResponse"];
+        };
+      };
+      /** @description A conflicting database mutation blocks resize. */
+      409: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
         };
       };
       default: components["responses"]["ErrorResponse"];
