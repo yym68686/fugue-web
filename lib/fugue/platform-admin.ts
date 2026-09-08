@@ -1,4 +1,5 @@
 import "server-only";
+import { apiTimingName, measurePageDependency } from "@/lib/server/page-timing";
 
 /**
  * Platform-admin backend calls used only during workspace provisioning.
@@ -56,6 +57,14 @@ function readBootstrapKey(): string {
 }
 
 async function adminSend<T>(
+  method: "GET" | "POST" | "PATCH",
+  path: string,
+  body?: unknown,
+): Promise<T> {
+  return measurePageDependency("api", apiTimingName(path), () => adminSendUnmeasured<T>(method, path, body));
+}
+
+async function adminSendUnmeasured<T>(
   method: "GET" | "POST" | "PATCH",
   path: string,
   body?: unknown,
@@ -211,4 +220,3 @@ export async function enableFugueApiKey(id: string): Promise<FugueApiKey> {
 export function readAdminErrorStatus(error: unknown): number | null {
   return error instanceof FugueAdminError ? error.status : null;
 }
-

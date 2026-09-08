@@ -1,4 +1,5 @@
 import AppLayout from '@/components/AppLayout';
+import { withPageTiming } from '@/lib/server/with-page-timing';
 import ServicesTable, { ServicesRuntimeSummary } from '@/components/admin/ServicesTable';
 import { requireActiveAdminPageSession } from '@/lib/auth/page-access';
 import {
@@ -63,7 +64,7 @@ function repoLabel(app: ConsoleApp): string | null {
   return null;
 }
 
-export default async function AdminServicesPage() {
+export default withPageTiming('/admin/services', async function AdminServicesPage() {
   const initialObservedNow = Date.now();
   await requireActiveAdminPageSession();
   const { t } = await getRequestI18n();
@@ -167,4 +168,4 @@ export default async function AdminServicesPage() {
       </div>
     </AppLayout>
   );
-}
+});

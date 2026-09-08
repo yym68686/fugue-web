@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import { withPageTiming } from '@/lib/server/with-page-timing';
 import { queryDb } from '@/lib/db/pool';
 import AppLayout from '@/components/AppLayout';
 import { BillingTopup } from '@/lib/types';
@@ -112,7 +113,7 @@ function eventDetail(meta: Record<string, string> | null | undefined, t: Transla
   return spec.join(' / ');
 }
 
-export default async function BillingPage() {
+export default withPageTiming('/billing', async function BillingPage() {
   const { session } = await requireActivePageSession();
   const { t } = await getRequestI18n();
   const [topups, billing] = await Promise.all([
@@ -330,4 +331,4 @@ export default async function BillingPage() {
       </div>
     </AppLayout>
   );
-}
+});

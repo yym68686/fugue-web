@@ -3,6 +3,7 @@ import "server-only";
 import { Pool, type PoolClient, type QueryResultRow } from "pg";
 
 import { getDbEnv } from "@/lib/db/env";
+import { measurePageDependency, sqlTimingName } from "@/lib/server/page-timing";
 
 declare global {
   var __fuguePgPool: Pool | undefined;
@@ -53,7 +54,7 @@ export async function queryDb<T extends QueryResultRow>(
   text: string,
   values?: unknown[],
 ) {
-  return getDbPool().query<T>(text, values);
+  return measurePageDependency("sql", sqlTimingName(text), () => getDbPool().query<T>(text, values));
 }
 
 export function requireQueryRow<T>(row: T | undefined, operation: string): T {

@@ -1,4 +1,5 @@
 import { queryDb } from '@/lib/db/pool';
+import { withPageTiming } from '@/lib/server/with-page-timing';
 import AppLayout from '@/components/AppLayout';
 import ConnectNodeButton from '@/components/servers/ConnectNodeButton';
 import NodeKeyRowActions from '@/components/servers/NodeKeyRowActions';
@@ -92,7 +93,7 @@ function isOnline(value: Date | string | null): boolean {
   return Date.now() - new Date(value).getTime() < 5 * 60 * 1000;
 }
 
-export default async function ServersPage() {
+export default withPageTiming('/servers', async function ServersPage() {
   const { session } = await requireActivePageSession();
   const { t } = await getRequestI18n();
   const [keys, { nodes, error: nodesError }] = await Promise.all([
@@ -219,4 +220,4 @@ export default async function ServersPage() {
       </div>
     </AppLayout>
   );
-}
+});

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { withPageTiming } from '@/lib/server/with-page-timing';
 import AppLayout from '@/components/AppLayout';
 import TechLogo from '@/components/TechLogo';
 import { requireActivePageSession } from '@/lib/auth/page-access';
@@ -57,7 +58,7 @@ function toneClass(tone: string | undefined, live: boolean | undefined): string 
   }
 }
 
-export default async function ProjectsPage() {
+export default withPageTiming('/projects', async function ProjectsPage() {
   const { session } = await requireActivePageSession();
   const { t } = await getRequestI18n();
   const { hasWorkspace, projects, resources, loadError } = await getProjectsData(
@@ -193,4 +194,4 @@ export default async function ProjectsPage() {
       </div>
     </AppLayout>
   );
-}
+});

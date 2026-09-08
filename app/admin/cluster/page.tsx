@@ -1,4 +1,5 @@
 import AppLayout from '@/components/AppLayout';
+import { withPageTiming } from '@/lib/server/with-page-timing';
 import ClusterNodeTable from '@/components/admin/ClusterNodeTable';
 import { requireActiveAdminPageSession } from '@/lib/auth/page-access';
 import { listClusterNodes, type ClusterNode } from '@/lib/fugue/console';
@@ -26,7 +27,7 @@ function avg(nums: number[]): number {
   return nums.reduce((a, b) => a + b, 0) / nums.length;
 }
 
-export default async function AdminClusterPage() {
+export default withPageTiming('/admin/cluster', async function AdminClusterPage() {
   await requireActiveAdminPageSession();
   const { t } = await getRequestI18n();
   const { nodes, loadError } = await getClusterData();
@@ -100,4 +101,4 @@ export default async function AdminClusterPage() {
       </div>
     </AppLayout>
   );
-}
+});

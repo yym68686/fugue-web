@@ -1,4 +1,5 @@
 import { queryDb } from '@/lib/db/pool';
+import { withPageTiming } from '@/lib/server/with-page-timing';
 import AppLayout from '@/components/AppLayout';
 import NewKeyButton from '@/components/keys/NewKeyButton';
 import KeyRowActions from '@/components/keys/KeyRowActions';
@@ -98,7 +99,7 @@ function relTime(t: TranslateFn, d: Date | null): string {
   return t('{count}d ago', { count: days });
 }
 
-export default async function KeysPage() {
+export default withPageTiming('/keys', async function KeysPage() {
   const { session } = await requireActivePageSession();
   const { t } = await getRequestI18n();
   const [keys, grantableScopes] = await Promise.all([
@@ -184,4 +185,4 @@ export default async function KeysPage() {
       </div>
     </AppLayout>
   );
-}
+});

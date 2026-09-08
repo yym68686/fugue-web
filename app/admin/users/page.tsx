@@ -1,4 +1,5 @@
 import { queryDb } from '@/lib/db/pool';
+import { withPageTiming } from '@/lib/server/with-page-timing';
 import AppLayout from '@/components/AppLayout';
 import UserRowActions from '@/components/admin/UserRowActions';
 import { AdminUser } from '@/lib/types';
@@ -101,7 +102,7 @@ function fmtUsage(summary: BillingSummary | null): string {
   return parts.length ? parts.join(' · ') : '—';
 }
 
-export default async function AdminUsersPage() {
+export default withPageTiming('/admin/users', async function AdminUsersPage() {
   await requireActiveAdminPageSession();
   const { t } = await getRequestI18n();
 
@@ -246,4 +247,4 @@ export default async function AdminUsersPage() {
       </div>
     </AppLayout>
   );
-}
+});

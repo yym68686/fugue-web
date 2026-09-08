@@ -2,6 +2,7 @@ import "server-only";
 
 import type { ImageMeasurementStatus } from "@/lib/format";
 import type { components as FugueAPIComponents } from "@/lib/fugue/openapi.generated";
+import { apiTimingName, measurePageDependency } from "@/lib/server/page-timing";
 
 export type { ImageMeasurementStatus } from "@/lib/format";
 
@@ -331,6 +332,10 @@ async function readFugueError(
 }
 
 async function fugueGet<T>(adminKey: string, path: string): Promise<T> {
+  return measurePageDependency("api", apiTimingName(path), () => fugueGetUnmeasured<T>(adminKey, path));
+}
+
+async function fugueGetUnmeasured<T>(adminKey: string, path: string): Promise<T> {
   const url = `${readApiBaseUrl()}${path}`;
   const response = await fetch(url, {
     method: "GET",
