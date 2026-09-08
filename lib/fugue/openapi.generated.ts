@@ -19139,6 +19139,12 @@ export interface operations {
           };
         };
       };
+      /** @description Transfer state changed concurrently or its current state does not permit the action */
+      409: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
       default: components["responses"]["ErrorResponse"];
     };
   };
@@ -19539,6 +19545,12 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["DataTransferActionResponse"];
+        };
+      };
+      /** @description Transfer state changed concurrently or its current state does not permit the action */
+      409: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
         };
       };
       default: components["responses"]["ErrorResponse"];
