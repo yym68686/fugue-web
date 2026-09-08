@@ -101,8 +101,10 @@ function relTime(t: TranslateFn, d: Date | null): string {
 export default async function KeysPage() {
   const { session } = await requireActivePageSession();
   const { t } = await getRequestI18n();
-  const keys = await getKeys(session.email);
-  const grantableScopes = await resolveGrantableScopes(session.email);
+  const [keys, grantableScopes] = await Promise.all([
+    getKeys(session.email),
+    resolveGrantableScopes(session.email),
+  ]);
   const activeCount = keys.filter((k) => k.status === 'active').length;
 
   return (
