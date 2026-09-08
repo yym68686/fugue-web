@@ -5,9 +5,8 @@ import { requireActivePageSession } from '@/lib/auth/page-access';
 import { getCachedWorkspaceAccessByEmail } from '@/lib/server/session-state-cache';
 import {
   listConsoleGallery,
-  listAppsWithUsage,
   listProjectImageUsage,
-  rollupProjectResources,
+  resourcesFromProjectSummaries,
   unavailableProjectImageUsageResponse,
   type ConsoleProjectSummary,
   type ProjectResourceRollup,
@@ -38,12 +37,11 @@ async function getProjectsData(email: string): Promise<ProjectsData> {
 
   const key = workspace.adminKeySecret;
   try {
-    const [projects, apps, imageUsage] = await Promise.all([
+    const [projects, imageUsage] = await Promise.all([
       listConsoleGallery(key),
-      listAppsWithUsage(key).catch(() => []),
       listProjectImageUsage(key).catch(() => unavailableProjectImageUsageResponse()),
     ]);
-    const resources = rollupProjectResources(apps, imageUsage);
+    const resources = resourcesFromProjectSummaries(projects, imageUsage);
     return { hasWorkspace: true, projects, resources, loadError: false };
   } catch {
     return { hasWorkspace: true, projects: [], resources: new Map(), loadError: true };

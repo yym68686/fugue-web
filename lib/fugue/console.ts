@@ -774,6 +774,43 @@ export function rollupProjectResources(
 }
 
 /**
+ * Reuse the backend's complete gallery resource rollup. The gallery computes
+ * app and backing-service totals in one pass, so the projects page does not
+ * need a second full apps request just to recreate the same values.
+ */
+export function resourcesFromProjectSummaries(
+  projects: ConsoleProjectSummary[],
+  imageUsage: ProjectImageUsageResponse,
+): Map<string, ProjectResourceRollup> {
+  const rollup = new Map<string, ProjectResourceRollup>();
+  for (const project of projects) {
+    const usage = project.resource_usage_snapshot ?? {};
+    rollup.set(project.id, {
+      cpu_millicores: usage.cpu_millicores ?? 0,
+      memory_bytes: usage.memory_bytes ?? 0,
+      ephemeral_storage_bytes: usage.ephemeral_storage_bytes ?? 0,
+      persistent_storage_used_bytes: usage.persistent_storage_used_bytes,
+      persistent_storage_capacity_bytes: usage.persistent_storage_capacity_bytes,
+      image_measurement_status: "unavailable",
+    });
+  }
+  const normalizedImageUsage = normalizeProjectImageUsageResponse(imageUsage);
+  for (const project of projects) {
+    const entry = rollup.get(project.id);
+    if (!entry) continue;
+    const measurement = projectImageMeasurement(normalizedImageUsage, project.id);
+    entry.image_measurement_status = measurement.measurement_status;
+    entry.image_measurement_note = measurement.measurement_note;
+    entry.image_measurement_reasons = measurement.measurement_reasons;
+    entry.image_observed_at = normalizedImageUsage.observed_at;
+    if (measurement.measurement_status !== "unavailable") {
+      entry.image_total_bytes = measurement.total_size_bytes ?? 0;
+    }
+  }
+  return rollup;
+}
+
+/**
  * List every cluster node with CPU/memory/disk stats. Requires platform-admin
  * scope, so this authenticates with the bootstrap key rather than a workspace
  * key. Only ever called from server components behind an is-admin gate.
