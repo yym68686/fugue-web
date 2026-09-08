@@ -1052,6 +1052,10 @@ export interface paths {
     /** Get App Observability Metrics Summary */
     get: operations["getAppObservabilityMetricsSummary"];
   };
+  "/v1/apps/{id}/observability/metrics/timeseries": {
+    /** Get app metric history with explicit source and sampling interval */
+    get: operations["getAppObservabilityMetricsTimeseries"];
+  };
   "/v1/apps/{id}/observability/metrics/query": {
     /** Query App Observability Metrics */
     get: operations["queryAppObservabilityMetrics"];
@@ -15341,6 +15345,10 @@ export interface operations {
   /** Redeploy App Image */
   redeployAppImage: {
     parameters: {
+      header?: {
+        /** @description Quoted SHA-256 of the committed app spec. Atomically rejects changed intent or an active operation when supplied. */
+        "If-Match"?: string;
+      };
       path: {
         id: components["parameters"]["IdPathParam"];
       };
@@ -15357,6 +15365,7 @@ export interface operations {
           "application/json": components["schemas"]["AppImageRedeployResponse"];
         };
       };
+      412: components["responses"]["ErrorResponse"];
       default: components["responses"]["ErrorResponse"];
     };
   };
@@ -16101,6 +16110,43 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["AppObservabilityMetricsSummaryResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Get app metric history with explicit source and sampling interval */
+  getAppObservabilityMetricsTimeseries: {
+    parameters: {
+      query?: {
+        since?: components["parameters"]["SinceQueryParam"];
+        until?: components["parameters"]["UntilQueryParam"];
+        /** @description Requested sampling interval in seconds; raised when necessary to bound results to 1440 points per series. */
+        step?: number;
+      };
+      path: {
+        id: components["parameters"]["IdPathParam"];
+      };
+    };
+    responses: {
+      /** @description Missing samples remain absent; unavailable values are null, never synthesized as zero. */
+      200: {
+        content: {
+          "application/json": {
+            source: components["schemas"]["ObservabilitySourceStatus"];
+            window: components["schemas"]["ObservabilityWindow"];
+            series: ({
+                name: string;
+                unit: string;
+                source: string;
+                interval_seconds: number;
+                points: ({
+                    /** Format: date-time */
+                    observed_at: string;
+                    value: number | null;
+                  })[];
+              })[];
+          };
         };
       };
       default: components["responses"]["ErrorResponse"];
@@ -16945,6 +16991,10 @@ export interface operations {
   /** Scale App */
   scaleApp: {
     parameters: {
+      header?: {
+        /** @description Quoted SHA-256 of the committed app spec. Atomically rejects changed intent or an active operation when supplied. */
+        "If-Match"?: string;
+      };
       path: {
         id: components["parameters"]["IdPathParam"];
       };
@@ -16961,6 +17011,7 @@ export interface operations {
           "application/json": components["schemas"]["OperationResponse"];
         };
       };
+      412: components["responses"]["ErrorResponse"];
       default: components["responses"]["ErrorResponse"];
     };
   };
