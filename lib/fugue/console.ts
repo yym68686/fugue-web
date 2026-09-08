@@ -1053,7 +1053,7 @@ export async function getConsoleApp(
 ): Promise<ConsoleAppDetail> {
   const data = await fugueGet<{ app: ConsoleAppDetail }>(
     adminKey,
-    `${appPath(appId)}?include_live_status=true`,
+    appPath(appId),
   );
   return data.app;
 }
@@ -1826,7 +1826,12 @@ export type ImportImageInput = ImportCommonInput & {
 export type ImportResult = {
   app?: { id?: string | null; project_id?: string | null } | null;
   project?: ConsoleProject | null;
+  apps?: ConsoleApp[];
+  operations?: unknown[];
   operation?: unknown;
+  /** Explicit link to the deployment operation recovered from import evidence. */
+  queued_deploy_operation_id?: string;
+  plan?: unknown;
   request_in_progress?: boolean;
 };
 

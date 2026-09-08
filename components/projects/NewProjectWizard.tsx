@@ -11,6 +11,10 @@ type Source = "github" | "image" | "upload";
 type ImportResult = {
   app?: { id?: string | null; project_id?: string | null } | null;
   project?: { id?: string | null } | null;
+  apps?: Array<{ id?: string | null; project_id?: string | null }>;
+  operation?: { app_id?: string | null; id?: string | null } | null;
+  queued_deploy_operation_id?: string;
+  request_in_progress?: boolean;
 };
 
 type EnvRow = { id: number; key: string; value: string };
@@ -192,7 +196,10 @@ export default function NewProjectWizard({ runtimes }: { runtimes: RuntimeTarget
         result = await postUpload({ ...common, ...buildFields }, file as File);
       }
 
-      const projectId = result?.app?.project_id || result?.project?.id;
+      const projectId =
+        result?.app?.project_id ||
+        result?.project?.id ||
+        result?.apps?.find((app) => app.project_id)?.project_id;
       if (projectId) {
         router.push(`/projects/${encodeURIComponent(projectId)}`);
       } else {

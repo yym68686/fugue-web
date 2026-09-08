@@ -5,7 +5,10 @@ import { archiveNameCandidate, resolveUniqueProjectName } from "@/lib/deploy/pro
 
 // Cap the upload we accept from the browser. The backend enforces its own
 // (larger) archive limit; this is a first-line guard.
-const MAX_UPLOAD_BYTES = 64 * 1024 * 1024;
+// Keep the web guard aligned with Fugue's source-import contract: archives may
+// be up to 128 MiB (the backend also caps the complete multipart request at
+// 160 MiB).
+const MAX_UPLOAD_BYTES = 128 * 1024 * 1024;
 
 export async function POST(request: Request) {
   let form: FormData;
