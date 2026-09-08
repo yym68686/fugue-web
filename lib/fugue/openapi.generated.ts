@@ -1267,7 +1267,10 @@ export interface paths {
   "/v1/image-replication-tasks": {
     /** List Image Replication Tasks */
     get: operations["listImageReplicationTasks"];
-    /** Create Image Replication Task */
+    /**
+     * Create Image Replication Task
+     * @description Requires platform.admin or app.deploy. Resolve an authorized target node and an existing replica with the same immutable digest, then enqueue both the replication record and its executable node task. At least one target selector is required; multiple selectors must identify the same node. Retrying an active transfer reuses its tasks.
+     */
     post: operations["createImageReplicationTask"];
   };
   "/v1/operations": {
@@ -17362,7 +17365,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Create Image Replication Task */
+  /**
+   * Create Image Replication Task
+   * @description Requires platform.admin or app.deploy. Resolve an authorized target node and an existing replica with the same immutable digest, then enqueue both the replication record and its executable node task. At least one target selector is required; multiple selectors must identify the same node. Retrying an active transfer reuses its tasks.
+   */
   createImageReplicationTask: {
     requestBody: {
       content: {
