@@ -9131,6 +9131,7 @@ export interface components {
       request_id: string;
       found: boolean;
       error_class?: string;
+      failure_plane?: string;
       edge_id?: string;
       edge_group_id?: string;
       runtime_node?: string;
@@ -9161,6 +9162,8 @@ export interface components {
       origin_dns_ms?: number;
       /** Format: int64 */
       origin_connect_ms?: number;
+      /** Format: int64 */
+      origin_endpoint_connect_ms?: number;
       /** Format: int64 */
       origin_request_write_ms?: number;
       /** Format: int64 */
