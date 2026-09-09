@@ -42,7 +42,7 @@ test("gallery waits for actual app usage even when summary usage is empty", asyn
   assert.equal(usage?.persistent_storage_used_bytes, 2048);
   assert.equal(usage?.image_total_bytes, 4096);
   assert.ok(paths.includes("/v1/console/gallery?include_live_status=true"));
-  assert.ok(paths.includes("/v1/apps?include_resource_usage=true&include_live_status=true"));
+  assert.ok(paths.includes("/v1/apps?view=summary&include_resource_usage=true&include_live_status=true"));
 });
 
 test("gallery rejects a failed resource source instead of publishing zero usage", async (t) => {

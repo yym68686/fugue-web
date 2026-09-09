@@ -14683,6 +14683,8 @@ export interface operations {
     parameters: {
       query?: {
         tenant_id?: components["parameters"]["TenantIdQueryParam"];
+        /** @description The summary view omits app environment values, generated environment definitions, inline files, command and args. Status, resource usage, sources and service bindings are retained. Use the full view or app detail when editing configuration. */
+        view?: "full" | "summary";
         project_id?: string;
         q?: string;
         domain?: string;
