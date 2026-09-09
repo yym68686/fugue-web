@@ -1203,6 +1203,10 @@ export interface paths {
      */
     get: operations["getAppRuntimeState"];
   };
+  "/v1/apps/{id}/action-requests/{request_id}": {
+    /** Recover an action receipt without repeating the mutation */
+    get: operations["getAppActionRequest"];
+  };
   "/v1/apps/{id}/restart": {
     /** Restart App */
     post: operations["restartApp"];
@@ -5239,6 +5243,11 @@ export interface components {
       pod_count: number;
     };
     ClusterNode: {
+      /**
+       * Format: date-time
+       * @description Oldest kubelet CPU/memory sample timestamp; absent when telemetry has no timestamp.
+       */
+      observed_at?: string;
       name: string;
       status: string;
       roles?: string[];
@@ -6132,6 +6141,11 @@ export interface components {
       /** Format: date-time */
       last_deployed_at?: string;
       source?: components["schemas"]["AppSource"];
+    };
+    AppImageRedeployRequest: {
+      image_ref: string;
+      /** @description Require the inventory digest shown by the plan; 412 if the tag has moved. */
+      expected_digest?: string;
     };
     AppImageActionRequest: {
       image_ref: string;
@@ -15405,6 +15419,8 @@ export interface operations {
   redeployAppImage: {
     parameters: {
       header?: {
+        /** @description Scoped to actor and app. Stored atomically with the operation; reusing the key with a different action, body or If-Match returns 409. Requires If-Match. */
+        "Idempotency-Key"?: string;
         /** @description Quoted SHA-256 of the committed app spec. Atomically rejects changed intent or an active operation when supplied. */
         "If-Match"?: string;
       };
@@ -15414,7 +15430,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["AppImageActionRequest"];
+        "application/json": components["schemas"]["AppImageRedeployRequest"];
       };
     };
     responses: {
@@ -17027,15 +17043,46 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
+  /** Recover an action receipt without repeating the mutation */
+  getAppActionRequest: {
+    parameters: {
+      path: {
+        id: components["parameters"]["IdPathParam"];
+        request_id: string;
+      };
+    };
+    responses: {
+      /** @description Operation for this actor and app; no write is performed. */
+      200: {
+        content: {
+          "application/json": {
+            operation: components["schemas"]["Operation"];
+          };
+        };
+      };
+      /** @description No committed receipt is visible; an in-flight submission may still commit. */
+      404: {
+        content: never;
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
   /** Restart App */
   restartApp: {
     parameters: {
       header?: {
+        /** @description Scoped to actor and app. Stored atomically with the operation; reusing the key with a different action, body or If-Match returns 409. Requires If-Match. */
+        "Idempotency-Key"?: string;
         /** @description Quoted SHA-256 of the committed app spec. When supplied, restart atomically rejects changed intent or an active operation. */
         "If-Match"?: string;
       };
       path: {
         id: components["parameters"]["IdPathParam"];
+      };
+    };
+    requestBody?: {
+      content: {
+        "application/json": Record<string, never>;
       };
     };
     responses: {
@@ -17053,6 +17100,8 @@ export interface operations {
   scaleApp: {
     parameters: {
       header?: {
+        /** @description Scoped to actor and app. Stored atomically with the operation; reusing the key with a different action, body or If-Match returns 409. Requires If-Match. */
+        "Idempotency-Key"?: string;
         /** @description Quoted SHA-256 of the committed app spec. Atomically rejects changed intent or an active operation when supplied. */
         "If-Match"?: string;
       };
