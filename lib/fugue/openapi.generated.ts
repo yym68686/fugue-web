@@ -553,7 +553,7 @@ export interface paths {
   "/v1/billing/summaries": {
     /**
      * List Billing Summaries
-     * @description Returns billing summaries for 1 to 500 requested tenants in one platform-admin request. Tenants confirmed absent from the store are listed in missing_tenant_ids; other read failures fail the request.
+     * @description Returns billing summaries for 1 to 500 requested tenants in one platform-admin request. Billing accruals and public-runtime counterparty credits commit atomically from a consistent ledger snapshot before summaries are returned. Tenants confirmed absent from the store are listed in missing_tenant_ids; other read failures fail the request.
      */
     get: operations["listBillingSummaries"];
   };
@@ -13443,7 +13443,7 @@ export interface operations {
   };
   /**
    * List Billing Summaries
-   * @description Returns billing summaries for 1 to 500 requested tenants in one platform-admin request. Tenants confirmed absent from the store are listed in missing_tenant_ids; other read failures fail the request.
+   * @description Returns billing summaries for 1 to 500 requested tenants in one platform-admin request. Billing accruals and public-runtime counterparty credits commit atomically from a consistent ledger snapshot before summaries are returned. Tenants confirmed absent from the store are listed in missing_tenant_ids; other read failures fail the request.
    */
   listBillingSummaries: {
     parameters: {
