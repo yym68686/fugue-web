@@ -3,21 +3,14 @@ import test from "node:test";
 
 import { getConsoleGalleryData } from "@/lib/fugue/console";
 
-test("gallery waits for actual app usage even when summary usage is empty", async (t) => {
+test("gallery waits for the complete snapshot and uses its resource totals", async (t) => {
   let releaseUsage!: (response: Response) => void;
   const usageResponse = new Promise<Response>((resolve) => { releaseUsage = resolve; });
   const paths: string[] = [];
   t.mock.method(globalThis, "fetch", async (url: string | URL) => {
     const request = new URL(String(url));
     paths.push(request.pathname + request.search);
-    if (request.pathname === "/v1/apps") return usageResponse;
-    if (request.pathname === "/v1/console/gallery") {
-      return Response.json({ projects: [{ id: "project-a", resource_usage_snapshot: {} }] });
-    }
-    return Response.json({
-      measurement_status: "complete",
-      projects: [{ project_id: "project-a", total_size_bytes: 4096 }],
-    });
+    return usageResponse;
   });
   let settled = false;
   const dataPromise = getConsoleGalleryData("synthetic-key").then((value) => {
@@ -27,13 +20,15 @@ test("gallery waits for actual app usage even when summary usage is empty", asyn
   await new Promise<void>((resolve) => setImmediate(resolve));
   assert.equal(settled, false);
   releaseUsage(Response.json({
-    apps: [{
-      id: "app-a", project_id: "project-a",
-      current_resource_usage: { cpu_millicores: 50, memory_bytes: 1024 },
-      backing_services: [{ id: "service-a", current_resource_usage: {
-        cpu_millicores: 10, memory_bytes: 512, persistent_storage_used_bytes: 2048,
-      } }],
+    projects: [{
+      id: "project-a", resource_usage_snapshot: {
+        cpu_millicores: 60, memory_bytes: 1536, persistent_storage_used_bytes: 2048,
+      },
     }],
+    image_usage: {
+      measurement_status: "complete",
+      projects: [{ project_id: "project-a", total_size_bytes: 4096 }],
+    },
   }));
   const data = await dataPromise;
   const usage = data.resources.get("project-a");
@@ -41,19 +36,34 @@ test("gallery waits for actual app usage even when summary usage is empty", asyn
   assert.equal(usage?.memory_bytes, 1536);
   assert.equal(usage?.persistent_storage_used_bytes, 2048);
   assert.equal(usage?.image_total_bytes, 4096);
-  assert.ok(paths.includes("/v1/console/gallery?include_live_status=true"));
-  assert.ok(paths.includes("/v1/apps?view=summary&include_resource_usage=true&include_live_status=true"));
+  assert.deepEqual(paths, ["/v1/console/projects/snapshot"]);
 });
 
 test("gallery rejects a failed resource source instead of publishing zero usage", async (t) => {
-  t.mock.method(globalThis, "fetch", async (url: string | URL) => {
-    if (new URL(String(url)).pathname === "/v1/apps") {
-      return Response.json({ error: "resource source unavailable" }, { status: 503 });
-    }
-    return Response.json({ projects: [] });
-  });
+  t.mock.method(globalThis, "fetch", async () =>
+    Response.json({ error: "resource source unavailable" }, { status: 503 }));
   await assert.rejects(getConsoleGalleryData("synthetic-key"), {
     status: 503,
     message: "resource source unavailable",
   });
+});
+
+test("gallery rejects a snapshot that omits image data", async (t) => {
+  t.mock.method(globalThis, "fetch", async () => Response.json({ projects: [] }));
+  await assert.rejects(getConsoleGalleryData("synthetic-key"), /incomplete project snapshot/);
+});
+
+test("gallery preserves incomplete image evidence without claiming zero disk usage", async (t) => {
+  t.mock.method(globalThis, "fetch", async () => Response.json({
+    projects: [{ id: "project-a", resource_usage_snapshot: { cpu_millicores: 20 } }],
+    image_usage: {
+      measurement_status: "unavailable", measurement_reasons: ["missing_blob"],
+      observed_at: "2026-01-01T00:00:00Z", projects: [],
+    },
+  }));
+  const { resources } = await getConsoleGalleryData("synthetic-key");
+  assert.equal(resources.get("project-a")?.cpu_millicores, 20);
+  assert.equal(resources.get("project-a")?.image_total_bytes, undefined);
+  assert.equal(resources.get("project-a")?.image_measurement_status, "unavailable");
+  assert.deepEqual(resources.get("project-a")?.image_measurement_reasons, ["missing_blob"]);
 });

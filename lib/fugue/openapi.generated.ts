@@ -510,6 +510,10 @@ export interface paths {
     /** Get Console Gallery */
     get: operations["getConsoleGallery"];
   };
+  "/v1/console/projects/snapshot": {
+    /** Get Complete Console Project Snapshot */
+    get: operations["getConsoleProjectsSnapshot"];
+  };
   "/v1/console/gallery/stream": {
     /** Stream Console Gallery Changes */
     get: operations["streamConsoleGallery"];
@@ -6072,6 +6076,10 @@ export interface components {
     };
     ConsoleGalleryResponse: {
       projects: components["schemas"]["ConsoleProjectSummary"][];
+    };
+    ConsoleProjectsSnapshotResponse: {
+      projects: components["schemas"]["ConsoleProjectSummary"][];
+      image_usage: components["schemas"]["ProjectImageUsageResponse"];
     };
     ConsoleProjectDetailResponse: {
       project?: components["schemas"]["Project"];
@@ -13195,6 +13203,18 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["ConsoleGalleryResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Get Complete Console Project Snapshot */
+  getConsoleProjectsSnapshot: {
+    responses: {
+      /** @description Complete project cards, current resource rollups, and image usage from one consistent read. */
+      200: {
+        content: {
+          "application/json": components["schemas"]["ConsoleProjectsSnapshotResponse"];
         };
       };
       default: components["responses"]["ErrorResponse"];

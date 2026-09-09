@@ -782,14 +782,33 @@ export function rollupProjectResources(
 }
 
 export async function getConsoleGalleryData(adminKey: string) {
-  // The gallery deliberately omits resource overlays. Wait for every source
-  // before publishing the page so an empty summary cannot replace real usage.
-  const [projects, apps, imageUsage] = await Promise.all([
-    listConsoleGallery(adminKey),
-    listAppsWithUsage(adminKey),
-    listProjectImageUsage(adminKey),
-  ]);
-  return { projects, resources: rollupProjectResources(apps, imageUsage) };
+  const snapshot = await fugueGet<FugueAPIComponents["schemas"]["ConsoleProjectsSnapshotResponse"]>(
+    adminKey,
+    "/v1/console/projects/snapshot",
+  );
+  if (!Array.isArray(snapshot.projects) || !Array.isArray(snapshot.image_usage?.projects)) {
+    throw new Error("Fugue returned an incomplete project snapshot");
+  }
+  const imageUsage = normalizeProjectImageUsageResponse(snapshot.image_usage);
+  const resources = new Map<string, ProjectResourceRollup>();
+  for (const project of snapshot.projects) {
+    const usage = project.resource_usage_snapshot;
+    if (!usage) throw new Error("Fugue omitted project resource usage");
+    const image = projectImageMeasurement(imageUsage, project.id);
+    resources.set(project.id, {
+      cpu_millicores: usage.cpu_millicores ?? 0,
+      memory_bytes: usage.memory_bytes ?? 0,
+      ephemeral_storage_bytes: usage.ephemeral_storage_bytes ?? 0,
+      persistent_storage_used_bytes: usage.persistent_storage_used_bytes,
+      persistent_storage_capacity_bytes: usage.persistent_storage_capacity_bytes,
+      image_total_bytes: image.total_size_bytes,
+      image_measurement_status: image.measurement_status,
+      image_measurement_note: image.measurement_note,
+      image_measurement_reasons: image.measurement_reasons,
+      image_observed_at: imageUsage.observed_at,
+    });
+  }
+  return { projects: snapshot.projects, resources };
 }
 
 /**
