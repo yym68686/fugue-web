@@ -3,7 +3,7 @@ import "server-only";
 import { Pool, type PoolClient, type QueryResultRow } from "pg";
 
 import { getDbEnv } from "@/lib/db/env";
-import { measurePageDependency, sqlTimingName } from "@/lib/server/page-timing";
+import { measurePageDependency, recordPageDatabaseTiming, sqlTimingName } from "@/lib/server/page-timing";
 
 declare global {
   var __fuguePgPool: Pool | undefined;
@@ -54,7 +54,21 @@ export async function queryDb<T extends QueryResultRow>(
   text: string,
   values?: unknown[],
 ) {
-  return measurePageDependency("sql", sqlTimingName(text), () => getDbPool().query<T>(text, values));
+  return measurePageDependency("sql", sqlTimingName(text), async () => {
+    const started = performance.now();
+    const client = await getDbPool().connect();
+    const acquired = performance.now();
+    let queryError: Error | undefined;
+    try {
+      return await client.query<T>(text, values);
+    } catch (error) {
+      queryError = error instanceof Error ? error : new Error(String(error));
+      throw error;
+    } finally {
+      recordPageDatabaseTiming(acquired - started, performance.now() - acquired);
+      client.release(queryError);
+    }
+  });
 }
 
 export function requireQueryRow<T>(row: T | undefined, operation: string): T {

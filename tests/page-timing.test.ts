@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { apiTimingName, measurePageDependency, recordPageBackendTiming, sqlTimingName, tracePage } from "../lib/server/page-timing";
+import { apiTimingName, measurePageDependency, recordPageBackendTiming, recordPageDatabaseTiming, sqlTimingName, tracePage } from "../lib/server/page-timing";
 
 test("parallel page traces stay isolated and swallowed failures remain visible", async () => {
   const [failed, successful] = await Promise.all([
@@ -49,4 +49,16 @@ test("timing labels omit identifiers, SQL text and query values", () => {
   const sql = "SELECT email FROM app_users WHERE email = $1";
   assert.match(sqlTimingName(sql), /^[0-9a-f]{16}$/);
   assert.equal(sqlTimingName(sql), sqlTimingName("  SELECT email\nFROM app_users WHERE email = $1 "));
+});
+
+test("SQL acquisition and execution timings remain on their own dependency", async (t) => {
+  const logs: string[] = [];
+  t.mock.method(console, "info", (value: string) => logs.push(value));
+  await tracePage("/timing-test", () => Promise.all([
+    measurePageDependency("sql", "query-a", async () => { recordPageDatabaseTiming(180.25, 0.34); }),
+    measurePageDependency("api", "/v1/test", async () => { recordPageDatabaseTiming(10, 20); }),
+  ]));
+  const trace = JSON.parse(logs[0]);
+  assert.deepEqual(trace.dependencies.find((d: {name:string}) => d.name === "query-a").database, {acquireMs:180.3,queryMs:0.3});
+  assert.equal(trace.dependencies.find((d: {kind:string}) => d.kind === "api").database, undefined);
 });

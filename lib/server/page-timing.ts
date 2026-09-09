@@ -10,6 +10,7 @@ type DependencyTiming = {
   durationMs: number;
   ok: boolean;
   backend?: { name: string; durationMs: number }[];
+  database?: { acquireMs: number; queryMs: number };
 };
 
 type PageTrace = {
@@ -78,6 +79,12 @@ export function recordPageBackendTiming(header: string | null) {
     if (Number.isFinite(durationMs)) backend.push({ name: match[1], durationMs });
   }
   if (backend.length) dependency.backend = backend;
+}
+
+export function recordPageDatabaseTiming(acquireMs: number, queryMs: number) {
+  const dependency = dependencyTraces.getStore();
+  if (dependency?.kind !== "sql") return;
+  dependency.database = { acquireMs: milliseconds(acquireMs), queryMs: milliseconds(queryMs) };
 }
 
 export async function tracePage<T>(route: string, run: () => Promise<T>) {
