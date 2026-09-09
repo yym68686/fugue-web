@@ -3,11 +3,12 @@
 import { useEffect, useRef } from "react";
 import { pageBrowserTiming, pageNavigationStart } from "@/lib/page-navigation-timing";
 
-export function PageTimingMarker({ id, route, serverMs, dependenciesResolved }: {
+export function PageTimingMarker({ id, route, serverMs, dependenciesResolved, edgeRequestId }: {
   id: string;
   route: string;
   serverMs: number;
   dependenciesResolved: boolean;
+  edgeRequestId?: string;
 }) {
   const marker = useRef<HTMLSpanElement>(null);
   useEffect(() => {
@@ -22,7 +23,7 @@ export function PageTimingMarker({ id, route, serverMs, dependenciesResolved }: 
         marker.current.dataset.renderedMs = String(durationMs);
         marker.current.dataset.browserTiming = JSON.stringify(browser);
         console.info(JSON.stringify({
-          event: "fugue_web_page_rendered", id, route, durationMs,
+          event: "fugue_web_page_rendered", id, route, durationMs, edgeRequestId,
           serverMs, dependenciesResolved, browser,
         }));
       });
@@ -31,8 +32,8 @@ export function PageTimingMarker({ id, route, serverMs, dependenciesResolved }: 
       cancelAnimationFrame(firstFrame);
       cancelAnimationFrame(secondFrame);
     };
-  }, [id, route, serverMs, dependenciesResolved]);
+  }, [id, route, serverMs, dependenciesResolved, edgeRequestId]);
 
-  return <span hidden ref={marker} data-page-timing={route} data-trace-id={id}
+  return <span hidden ref={marker} data-page-timing={route} data-trace-id={id} data-edge-request-id={edgeRequestId}
     data-dependencies-resolved={String(dependenciesResolved)} data-server-ms={serverMs} />;
 }

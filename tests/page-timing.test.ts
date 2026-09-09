@@ -2,6 +2,17 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { apiTimingName, measurePageDependency, recordPageBackendTiming, recordPageDatabaseTiming, sqlTimingName, tracePage } from "../lib/server/page-timing";
 
+test("edge correlation is bounded and arbitrary header content is not published", async (t) => {
+  const logs: string[] = [];
+  t.mock.method(console, "info", (value: string) => logs.push(value));
+  const good = await tracePage("/projects", async () => true, { edgeRequestId: "edge_abc123_def456" });
+  const bad = await tracePage("/projects", async () => true, { edgeRequestId: "Bearer secret\nforged-log" });
+  assert.equal(good.timing.edgeRequestId, "edge_abc123_def456");
+  assert.equal(bad.timing.edgeRequestId, undefined);
+  assert.equal(logs.join("").includes("secret"), false);
+  assert.equal(JSON.parse(logs[0]).edgeRequestId, good.timing.edgeRequestId);
+});
+
 test("parallel page traces stay isolated and swallowed failures remain visible", async () => {
   const [failed, successful] = await Promise.all([
     tracePage("/projects", async () => {

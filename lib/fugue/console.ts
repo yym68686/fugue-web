@@ -486,7 +486,7 @@ export async function listAppsWithUsage(adminKey: string): Promise<ConsoleApp[]>
 export async function listAllAppsWithStatus(): Promise<ConsoleApp[]> {
   const data = await fugueGet<{ apps?: ConsoleApp[] }>(
     readBootstrapKey(),
-    "/v1/apps?view=summary&include_live_status=true",
+    "/v1/apps?view=summary&include_resource_usage=false&include_live_status=true",
   );
   return Array.isArray(data.apps) ? data.apps : [];
 }

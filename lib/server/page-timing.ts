@@ -87,7 +87,9 @@ export function recordPageDatabaseTiming(acquireMs: number, queryMs: number) {
   dependency.database = { acquireMs: milliseconds(acquireMs), queryMs: milliseconds(queryMs) };
 }
 
-export async function tracePage<T>(route: string, run: () => Promise<T>) {
+export async function tracePage<T>(route: string, run: () => Promise<T>, correlation?: { edgeRequestId?: string | null }) {
+  const value = correlation?.edgeRequestId;
+  const edgeRequestId = value && /^edge_[a-f0-9]{1,32}_[a-f0-9]{1,32}$/.test(value) ? value : undefined;
   const trace: PageTrace = {
     id: randomUUID(), route, started: performance.now(),
     failures: 0, pending: 0, dependencies: [],
@@ -100,14 +102,14 @@ export async function tracePage<T>(route: string, run: () => Promise<T>) {
       return {
         result,
         timing: {
-          id: trace.id, route,
+          id: trace.id, route, edgeRequestId,
           serverMs: milliseconds(performance.now() - trace.started),
           dependenciesResolved: trace.failures === 0 && trace.pending === 0,
         },
       };
     } finally {
       console.info(JSON.stringify({
-        event: "fugue_web_page_data", id: trace.id, route,
+        event: "fugue_web_page_data", id: trace.id, route, edgeRequestId,
         durationMs: milliseconds(performance.now() - trace.started),
         resolved, failures: trace.failures, pending: trace.pending,
         dependencies: trace.dependencies,
