@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { pageNavigationStart } from "@/lib/page-navigation-timing";
+import { pageBrowserTiming, pageNavigationStart } from "@/lib/page-navigation-timing";
 
 export function PageTimingMarker({ id, route, serverMs, dependenciesResolved }: {
   id: string;
@@ -16,11 +16,14 @@ export function PageTimingMarker({ id, route, serverMs, dependenciesResolved }: 
       secondFrame = requestAnimationFrame(() => {
         const started = pageNavigationStart(route);
         if (started === null || !marker.current) return;
-        const durationMs = Math.round((performance.now() - started) * 10) / 10;
+        const completed = performance.now();
+        const durationMs = Math.round((completed - started) * 10) / 10;
+        const browser = pageBrowserTiming(route, started, completed);
         marker.current.dataset.renderedMs = String(durationMs);
+        marker.current.dataset.browserTiming = JSON.stringify(browser);
         console.info(JSON.stringify({
           event: "fugue_web_page_rendered", id, route, durationMs,
-          serverMs, dependenciesResolved,
+          serverMs, dependenciesResolved, browser,
         }));
       });
     });
