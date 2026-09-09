@@ -2572,6 +2572,11 @@ export interface components {
       platform_admin: boolean;
     };
     AuthContextResponse: {
+      /** @description Server features, independent of principal scopes. Missing features are unsupported. */
+      capabilities?: {
+        /** @description App mutations support atomic Idempotency-Key receipts, If-Match and read-only receipt recovery. */
+        app_action_receipts?: boolean;
+      };
       principal: components["schemas"]["AuthPrincipalContext"];
     };
     StringMap: {
