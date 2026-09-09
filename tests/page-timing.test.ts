@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { apiTimingName, measurePageDependency, sqlTimingName, tracePage } from "../lib/server/page-timing";
+import { apiTimingName, measurePageDependency, recordPageBackendTiming, sqlTimingName, tracePage } from "../lib/server/page-timing";
 
 test("parallel page traces stay isolated and swallowed failures remain visible", async () => {
   const [failed, successful] = await Promise.all([
@@ -18,6 +18,26 @@ test("parallel page traces stay isolated and swallowed failures remain visible",
   assert.equal(successful.result, 42);
   assert.equal(successful.timing.dependenciesResolved, true);
   assert.notEqual(failed.timing.id, successful.timing.id);
+});
+
+test("backend stages stay attached to their parallel dependency and omit arbitrary descriptions", async (t) => {
+  const logs: string[] = [];
+  t.mock.method(console, "info", (value: string) => logs.push(value));
+  await tracePage("/timing-test", () => Promise.all([
+    measurePageDependency("api", "/v1/apps", async () => {
+      await Promise.resolve();
+      recordPageBackendTiming('store_apps;dur=12.4, private;desc="secret", invalid;dur=NaN');
+    }),
+    measurePageDependency("api", "/v1/billing", async () => {
+      recordPageBackendTiming("billing_batch_summary;dur=6.2");
+    }),
+  ]));
+  const trace = JSON.parse(logs.find((value) => JSON.parse(value).route === "/timing-test")!);
+  assert.deepEqual(trace.dependencies.find((d: {name:string}) => d.name === "/v1/apps").backend,
+    [{name:"store_apps",durationMs:12.4}]);
+  assert.deepEqual(trace.dependencies.find((d: {name:string}) => d.name === "/v1/billing").backend,
+    [{name:"billing_batch_summary",durationMs:6.2}]);
+  assert.equal(logs.join("").includes("secret"), false);
 });
 
 test("timing labels omit identifiers, SQL text and query values", () => {

@@ -2,7 +2,7 @@ import "server-only";
 
 import type { ImageMeasurementStatus } from "@/lib/format";
 import type { components as FugueAPIComponents } from "@/lib/fugue/openapi.generated";
-import { apiTimingName, measurePageDependency } from "@/lib/server/page-timing";
+import { apiTimingName, measurePageDependency, recordPageBackendTiming } from "@/lib/server/page-timing";
 
 export type { ImageMeasurementStatus } from "@/lib/format";
 
@@ -346,6 +346,8 @@ async function fugueGetUnmeasured<T>(adminKey: string, path: string): Promise<T>
     },
     cache: "no-store",
   });
+
+  recordPageBackendTiming(response.headers.get("server-timing"));
 
   if (!response.ok) {
     throw await readFugueError(response, "GET", path);

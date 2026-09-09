@@ -1,5 +1,5 @@
 import "server-only";
-import { apiTimingName, measurePageDependency } from "@/lib/server/page-timing";
+import { apiTimingName, measurePageDependency, recordPageBackendTiming } from "@/lib/server/page-timing";
 
 /**
  * Platform-admin backend calls used only during workspace provisioning.
@@ -79,6 +79,8 @@ async function adminSendUnmeasured<T>(
     body: body !== undefined ? JSON.stringify(body) : undefined,
     cache: "no-store",
   });
+
+  recordPageBackendTiming(response.headers.get("server-timing"));
 
   if (!response.ok) {
     let detail = response.statusText || "request failed";

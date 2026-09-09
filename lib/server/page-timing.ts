@@ -9,6 +9,7 @@ type DependencyTiming = {
   startMs: number;
   durationMs: number;
   ok: boolean;
+  backend?: { name: string; durationMs: number }[];
 };
 
 type PageTrace = {
@@ -21,6 +22,7 @@ type PageTrace = {
 };
 
 const traces = new AsyncLocalStorage<PageTrace>();
+const dependencyTraces = new AsyncLocalStorage<DependencyTiming>();
 const milliseconds = (value: number) => Math.round(value * 10) / 10;
 
 export function sqlTimingName(text: string): string {
@@ -48,22 +50,34 @@ export async function measurePageDependency<T>(
   if (!trace) return run();
   const started = performance.now();
   trace.pending++;
-  let ok = false;
+  const dependency: DependencyTiming = {
+    kind, name, ok: false, startMs: milliseconds(started - trace.started), durationMs: 0,
+  };
   try {
-    const result = await run();
-    ok = true;
+    const result = await dependencyTraces.run(dependency, run);
+    dependency.ok = true;
     return result;
   } finally {
     trace.pending--;
-    if (!ok) trace.failures++;
+    if (!dependency.ok) trace.failures++;
     if (trace.dependencies.length < 512) {
-      trace.dependencies.push({
-        kind, name, ok,
-        startMs: milliseconds(started - trace.started),
-        durationMs: milliseconds(performance.now() - started),
-      });
+      dependency.durationMs = milliseconds(performance.now() - started);
+      trace.dependencies.push(dependency);
     }
   }
+}
+
+export function recordPageBackendTiming(header: string | null) {
+  const dependency = dependencyTraces.getStore();
+  if (!dependency || !header) return;
+  const backend: NonNullable<DependencyTiming["backend"]> = [];
+  for (const metric of header.slice(0, 8192).split(",").slice(0, 64)) {
+    const match = /^\s*([a-z][a-z0-9_-]{0,63});dur=(\d+(?:\.\d+)?)\s*$/.exec(metric);
+    if (!match) continue;
+    const durationMs = Number(match[2]);
+    if (Number.isFinite(durationMs)) backend.push({ name: match[1], durationMs });
+  }
+  if (backend.length) dependency.backend = backend;
 }
 
 export async function tracePage<T>(route: string, run: () => Promise<T>) {
