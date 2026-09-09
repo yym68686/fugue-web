@@ -68,6 +68,30 @@ export function summarizeResourceTiming(entry: ResourceTimingInput, started: num
   };
 }
 
+/** Overlapping requests run in parallel: retain each interval, never add durations. */
+export function summarizeNavigationResources(entries: ResourceTimingInput[], started: number, completed: number) {
+  const finished = entries.filter((entry) =>
+    entry.responseEnd > 0 && entry.responseEnd >= started && entry.responseEnd <= completed,
+  ).sort((a, b) => a.startTime - b.startTime);
+  const latest = finished.reduce<ResourceTimingInput | undefined>((last, entry) =>
+    !last || entry.responseEnd > last.responseEnd ? entry : last, undefined);
+  const retained = finished.slice(-16);
+  return {
+    requestObserved: Boolean(latest),
+    completedMatchingResources: finished.length,
+    resourceTimingsTruncated: finished.length > retained.length,
+    resourceTimings: retained.map((entry) => ({
+      startMs: Math.round((entry.startTime - started) * 10) / 10,
+      responseEndMs: Math.round((entry.responseEnd - started) * 10) / 10,
+      beganBeforeNavigation: entry.startTime < started,
+      ...summarizeResourceTiming(entry, started, completed),
+    })),
+    // Keep the existing summary fields, explicitly selecting by completion time.
+    summarizedResource: latest ? "last-completed" : null,
+    ...(latest ? summarizeResourceTiming(latest, started, completed) : {}),
+  };
+}
+
 export function pageBrowserTiming(route: string, started: number, completed: number) {
   if (longTaskObserver) retainLongTasks(longTaskObserver.takeRecords());
   const mainThreadLongTasks = longTaskObserver
@@ -78,14 +102,12 @@ export function pageBrowserTiming(route: string, started: number, completed: num
     ? performance.getEntriesByType("navigation") as PerformanceNavigationTiming[]
     : (performance.getEntriesByType("resource") as PerformanceResourceTiming[]).filter((entry) => {
       const url = new URL(entry.name, window.location.href);
-      return url.origin === window.location.origin && url.pathname === route && entry.startTime >= started;
+      return url.origin === window.location.origin && url.pathname === route && entry.responseEnd >= started;
     });
-  const entry = entries.filter((entry) => entry.responseEnd > 0).at(-1);
   // A prefetched transition or unfinished stream may have no completed resource
   // entry. Leave its phases unknown instead of reporting a fabricated zero.
   return {
-    kind, requestObserved: Boolean(entry), completedMatchingResources: entries.length,
-    mainThreadLongTasks,
-    ...(entry ? summarizeResourceTiming(entry, started, completed) : {}),
+    kind, mainThreadLongTasks,
+    ...summarizeNavigationResources(entries, started, completed),
   };
 }
