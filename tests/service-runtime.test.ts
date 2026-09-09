@@ -18,15 +18,19 @@ test("service payload preserves readiness, stale evidence and full failure detai
       runtime_object_present: true, namespace_present: true, endpoint_present: true,
       endpoint_ready: true, service_present: true, image_present: true,
       generation: 3, observed_generation: 3,
+      reason: "unused observation reason", message: "unused observation message",
+      image_ref: "unused image reference", evidence_sources: ["unused extra source"],
     },
   };
   for (const observation of [app.observed_status, { ...app.observed_status, fresh: false }, { ...app.observed_status, service_present: false }, null]) {
     const original = { ...app, observed_status: observation };
     const input = serviceRuntimeInput(original);
-    const projected = { spec: input.spec, status: input.storedStatus, observed_status: observation };
+    const projected = { spec: input.spec, status: input.storedStatus, observed_status: input.observedStatus };
     assert.equal(isObservedReady(projected, now), isObservedReady(original, now));
     assert.equal(observedStatusTone(projected, now), observedStatusTone(original, now));
     assert.equal(observedFailureSummary(projected), observedFailureSummary(original));
     assert.equal(JSON.stringify(input).includes("unused configuration"), false);
+    assert.equal(JSON.stringify(input).includes("unused observation"), false);
+    assert.equal(JSON.stringify(input).includes("unused image reference"), false);
   }
 });

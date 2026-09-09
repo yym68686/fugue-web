@@ -111,7 +111,6 @@ export default withPageTiming('/admin/services', async function AdminServicesPag
     nodeName: nodeByAppId.get(app.id) ?? null,
     routeUrl: app.route?.public_url || app.route?.url || null,
     ...serviceRuntimeInput(app),
-    observedStatus: app.observed_status ?? null,
     desiredReplicas:
       typeof app.observed_status?.desired_replicas === 'number'
         ? app.observed_status.desired_replicas
