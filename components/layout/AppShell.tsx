@@ -7,7 +7,6 @@ import { I18nProvider, useI18n } from "@/lib/i18n/client";
 import type { Locale, LocalePreference } from "@/lib/i18n/core";
 import type { ThemePreference } from "@/lib/theme";
 import UserMenu from "@/components/layout/UserMenu";
-import { startPageNavigation } from "@/lib/page-navigation-timing";
 
 export type AppShellUser = {
   name: string | null;
@@ -149,7 +148,6 @@ function ShellInner({
             <Link
               key={item.href}
               href={item.href}
-              onNavigate={() => startPageNavigation(item.href)}
               className={`nav-item${isActive(item.href) ? " active" : ""}`}
             >
               {item.icon}
@@ -167,7 +165,6 @@ function ShellInner({
               <Link
                 key={item.href}
                 href={item.href}
-                onNavigate={() => startPageNavigation(item.href)}
                 className={`nav-item${isActive(item.href) ? " active" : ""}`}
               >
                 {item.icon}

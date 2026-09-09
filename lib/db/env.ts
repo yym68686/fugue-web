@@ -62,8 +62,17 @@ function buildDatabaseUrl() {
   return buildDatabaseUrlFromPrefix("POSTGRES");
 }
 
+function readPoolInteger(name: string, fallback: number, max: number) {
+  const raw = readOptionalEnv(name);
+  if (raw === null) return fallback;
+  const value = Number(raw);
+  return Number.isInteger(value) && value >= 0 && value <= max ? value : fallback;
+}
+
 export function getDbEnv() {
   return {
     databaseUrl: buildDatabaseUrl(),
+    poolMinIdle: readPoolInteger("FUGUE_WEB_DATABASE_MIN_IDLE", 3, 10),
+    poolIdleTimeoutMillis: readPoolInteger("FUGUE_WEB_DATABASE_IDLE_TIMEOUT_MS", 300_000, 3_600_000),
   };
 }

@@ -10,11 +10,43 @@ declare global {
 }
 
 function createPool() {
-  return new Pool({
-    connectionString: getDbEnv().databaseUrl,
-    idleTimeoutMillis: 30_000,
+  const env = getDbEnv();
+  const pool = new Pool({
+    connectionString: env.databaseUrl,
+    idleTimeoutMillis: env.poolIdleTimeoutMillis,
+    min: env.poolMinIdle,
     max: 10,
   });
+  // pg-pool already removes the failed idle client before emitting this event.
+  // Handle it so a database switchover does not terminate the Web process.
+  pool.on("error", (error) => logDatabaseConnectionError("fugue_web_database_idle_error", error));
+  return pool;
+}
+
+function logDatabaseConnectionError(event: string, error: unknown) {
+  const code = typeof error === "object" && error !== null && "code" in error ? String(error.code) : "";
+  console.error(JSON.stringify({ event, code: /^[A-Z0-9_]{1,64}$/.test(code) ? code : "unknown" }));
+}
+
+export async function warmDbPool() {
+  try {
+    const pool = getDbPool();
+    await Promise.all(Array.from({ length: getDbEnv().poolMinIdle }, async () => {
+      const client = await pool.connect();
+      let queryError: Error | undefined;
+      try {
+        await client.query("SELECT 1");
+      } catch (error) {
+        queryError = error instanceof Error ? error : new Error(String(error));
+        throw error;
+      } finally {
+        client.release(queryError);
+      }
+    }));
+    console.info(JSON.stringify({ event: "fugue_web_database_pool_ready", connections: pool.totalCount }));
+  } catch (error) {
+    logDatabaseConnectionError("fugue_web_database_pool_warm_failed", error);
+  }
 }
 
 export function getDbPool() {
