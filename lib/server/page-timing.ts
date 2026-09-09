@@ -29,7 +29,7 @@ export function sqlTimingName(text: string): string {
 
 export function apiTimingName(path: string): string {
   const url = new URL(path, "http://fugue.invalid");
-  const pathname = url.pathname.replace(
+  const pathname = url.pathname === "/v1/projects/image-usage" ? url.pathname : url.pathname.replace(
     /\/(apps|tenants|projects|api-keys|runtimes)\/[^/]+/g,
     "/$1/:id",
   );

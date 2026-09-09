@@ -2934,6 +2934,8 @@ export interface components {
     };
     TenantBillingSummary: {
       tenant_id: string;
+      /** @description Number of non-deleted tenant applications in the billing snapshot, including disabled applications. */
+      app_count: number;
       status: string;
       status_reason?: string;
       byo_vps_free: boolean;

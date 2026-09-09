@@ -51,6 +51,7 @@ export type BillingEvent = {
 
 export type BillingSummary = {
   tenant_id: string;
+  app_count?: FugueAPIComponents["schemas"]["TenantBillingSummary"]["app_count"];
   status: string;
   status_reason?: string | null;
   byo_vps_free?: boolean;
@@ -1772,6 +1773,9 @@ export async function listTenantBillingSummaries(
   );
   if (!Array.isArray(data.billings) || !Array.isArray(data.missing_tenant_ids)) {
     throw new Error("Fugue returned an incomplete billing snapshot");
+  }
+  if (data.billings.some((summary) => !Number.isSafeInteger(summary.app_count) || (summary.app_count ?? -1) < 0)) {
+    throw new Error("Fugue returned a billing snapshot without complete application counts");
   }
   const expected = new Set(ids);
   const received = new Set<string>();

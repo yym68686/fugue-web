@@ -24,6 +24,7 @@ test("timing labels omit identifiers, SQL text and query values", () => {
   assert.equal(apiTimingName("/v1/tenants/private-tenant/billing?include_current_usage=true&key=private"),
     "/v1/tenants/:id/billing?include_current_usage=true");
   assert.equal(apiTimingName("/v1/console/projects/private-project"), "/v1/console/projects/:id");
+  assert.equal(apiTimingName("/v1/projects/image-usage?tenant_id=private"), "/v1/projects/image-usage");
   const sql = "SELECT email FROM app_users WHERE email = $1";
   assert.match(sqlTimingName(sql), /^[0-9a-f]{16}$/);
   assert.equal(sqlTimingName(sql), sqlTimingName("  SELECT email\nFROM app_users WHERE email = $1 "));

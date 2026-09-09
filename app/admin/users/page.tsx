@@ -9,7 +9,6 @@ import type { TranslateFn } from '@/lib/i18n/translate';
 import { listWorkspaceSnapshots } from '@/lib/workspace/store';
 import {
   listTenantBillingSummaries,
-  listAllAppsWithUsage,
   type BillingSummary,
 } from '@/lib/fugue/console';
 
@@ -99,24 +98,16 @@ export default withPageTiming('/admin/users', async function AdminUsersPage() {
   await requireActiveAdminPageSession();
   const { t } = await getRequestI18n();
 
-  const [users, topups, snapshots, allApps] = await Promise.all([
+  const [users, topups, snapshots] = await Promise.all([
     getUsers(),
     getTopupTotals(),
     listWorkspaceSnapshots(),
-    listAllAppsWithUsage(),
   ]);
 
   // email → tenantId map from workspace snapshots.
   const tenantByEmail = new Map<string, string>();
   for (const snap of snapshots) {
     tenantByEmail.set(snap.email, snap.tenantId);
-  }
-
-  // tenantId → service count from the all-apps listing.
-  const appsByTenant = new Map<string, number>();
-  for (const app of allApps) {
-    if (!app.tenant_id) continue;
-    appsByTenant.set(app.tenant_id, (appsByTenant.get(app.tenant_id) ?? 0) + 1);
   }
 
   // The platform aggregates complete ledger and usage snapshots in one request.
@@ -172,9 +163,7 @@ export default withPageTiming('/admin/users', async function AdminUsersPage() {
                   ? billingByTenant.get(tenantId) ?? null
                   : null;
                 const toppedUp = topups.get(u.email) ?? 0;
-                const serviceCount = tenantId
-                  ? appsByTenant.get(tenantId) ?? 0
-                  : 0;
+                const serviceCount = billing?.app_count;
                 const cap = billing?.managed_cap;
 
                 return (
