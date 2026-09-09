@@ -3,7 +3,7 @@ import { withPageTiming } from '@/lib/server/with-page-timing';
 import ServicesTable, { ServicesRuntimeSummary } from '@/components/admin/ServicesTable';
 import { requireActiveAdminPageSession } from '@/lib/auth/page-access';
 import {
-  listAllAppsWithUsage,
+  listAllAppsWithStatus,
   listClusterNodes,
   type ConsoleApp,
   type ConsoleAppStatus,
@@ -12,6 +12,7 @@ import {
 import { observedStatusLabel } from '@/lib/fugue/observed-status';
 import { getRequestI18n } from '@/lib/i18n/server';
 import { getWorkspaceSnapshotsByTenantIds } from '@/lib/workspace/store';
+import { serviceRuntimeInput } from '@/lib/admin/service-runtime';
 
 export const dynamic = 'force-dynamic';
 
@@ -70,7 +71,7 @@ export default withPageTiming('/admin/services', async function AdminServicesPag
   const { t } = await getRequestI18n();
 
   const [apps, nodes] = await Promise.all([
-    listAllAppsWithUsage().catch(() => [] as ConsoleApp[]),
+    listAllAppsWithStatus().catch(() => [] as ConsoleApp[]),
     listClusterNodes().catch(() => []),
   ]);
 
@@ -109,12 +110,8 @@ export default withPageTiming('/admin/services', async function AdminServicesPag
     repo: repoLabel(app),
     nodeName: nodeByAppId.get(app.id) ?? null,
     routeUrl: app.route?.public_url || app.route?.url || null,
-    spec: app.spec,
+    ...serviceRuntimeInput(app),
     observedStatus: app.observed_status ?? null,
-    // `status` is the legacy effective/observed projection once live status
-    // is requested. Keep the durable control-plane state separate when the
-    // backend supplies the explicit contract.
-    storedStatus: app.stored_status ?? app.status ?? null,
     desiredReplicas:
       typeof app.observed_status?.desired_replicas === 'number'
         ? app.observed_status.desired_replicas
