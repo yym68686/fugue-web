@@ -1761,16 +1761,30 @@ export async function getTenantBillingSummary(
 export async function listTenantBillingSummaries(
   tenantIds: string[],
   includeCurrentUsage = true,
-): Promise<BillingSummary[]> {
+): Promise<{ billings: BillingSummary[]; missingTenantIds: string[] }> {
   const ids = [...new Set(tenantIds.map((id) => id.trim()).filter(Boolean))];
-  if (ids.length === 0) return [];
+  if (ids.length === 0) return { billings: [], missingTenantIds: [] };
   const params = new URLSearchParams({ tenant_ids: ids.join(",") });
   params.set("include_current_usage", String(includeCurrentUsage));
   const data = await fugueGet<{ billings?: BillingSummary[]; missing_tenant_ids?: string[] }>(
     readBootstrapKey(),
     `/v1/billing/summaries?${params.toString()}`,
   );
-  return Array.isArray(data.billings) ? data.billings : [];
+  if (!Array.isArray(data.billings) || !Array.isArray(data.missing_tenant_ids)) {
+    throw new Error("Fugue returned an incomplete billing snapshot");
+  }
+  const expected = new Set(ids);
+  const received = new Set<string>();
+  for (const id of [...data.billings.map((summary) => summary.tenant_id), ...data.missing_tenant_ids]) {
+    if (!expected.has(id) || received.has(id)) {
+      throw new Error("Fugue returned an inconsistent billing snapshot");
+    }
+    received.add(id);
+  }
+  if (received.size !== expected.size) {
+    throw new Error("Fugue returned an incomplete billing snapshot");
+  }
+  return { billings: data.billings, missingTenantIds: data.missing_tenant_ids };
 }
 
 /**

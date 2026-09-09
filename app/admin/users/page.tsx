@@ -102,8 +102,8 @@ export default withPageTiming('/admin/users', async function AdminUsersPage() {
   const [users, topups, snapshots, allApps] = await Promise.all([
     getUsers(),
     getTopupTotals(),
-    listWorkspaceSnapshots().catch(() => []),
-    listAllAppsWithUsage().catch(() => []),
+    listWorkspaceSnapshots(),
+    listAllAppsWithUsage(),
   ]);
 
   // email → tenantId map from workspace snapshots.
@@ -122,11 +122,11 @@ export default withPageTiming('/admin/users', async function AdminUsersPage() {
   // The platform aggregates complete ledger and usage snapshots in one request.
   const tenantIds = [...new Set([...tenantByEmail.values()])];
   const billingByTenant = new Map<string, BillingSummary>();
-  try {
-    const summaries = await listTenantBillingSummaries(tenantIds, true);
-    for (const summary of summaries) billingByTenant.set(summary.tenant_id, summary);
-  } catch {
-    // Keep the page truthful if the aggregate snapshot is temporarily unavailable.
+  const { billings, missingTenantIds } = await listTenantBillingSummaries(tenantIds, true);
+  for (const summary of billings) billingByTenant.set(summary.tenant_id, summary);
+  const missingTenants = new Set(missingTenantIds);
+  for (const [email, tenantId] of tenantByEmail) {
+    if (missingTenants.has(tenantId)) tenantByEmail.delete(email);
   }
 
   const adminCount = users.filter((u) => u.is_admin).length;
