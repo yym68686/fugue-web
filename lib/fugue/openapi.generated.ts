@@ -5420,6 +5420,8 @@ export interface components {
       /** Format: int32 */
       desired_replicas?: number;
       desired_spec?: components["schemas"]["AppSpec"];
+      /** @description Configuration observed when an import was accepted. Used to preserve intervening configuration changes when the built artifact is deployed. Secret values are redacted on API reads. */
+      config_base_spec?: components["schemas"]["AppSpec"];
       /** @description Build input requested by the operation. */
       desired_source?: components["schemas"]["AppSource"];
       /** @description Durable source ownership that should persist after the operation completes. */
