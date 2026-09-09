@@ -8,22 +8,15 @@ import { getRequestI18n } from '@/lib/i18n/server';
 import type { TranslateFn } from '@/lib/i18n/translate';
 import { listWorkspaceSnapshots } from '@/lib/workspace/store';
 import {
-  getTenantBillingSummary,
+  listTenantBillingSummaries,
   listAllAppsWithUsage,
   type BillingSummary,
 } from '@/lib/fugue/console';
-import { mapWithConcurrency } from '@/lib/async/pool';
 
 export const dynamic = 'force-dynamic';
 
 const MICRO_CENTS_PER_DOLLAR = 100_000_000;
 
-// Per-tenant billing has no bulk endpoint, so we fetch one summary per tenant.
-// Each call is a fresh connection to the configured Fugue API endpoint;
-// firing all ~100 at once overwhelms the edge and most time out
-// (UND_ERR_CONNECT_TIMEOUT), which previously left balances blank. A small
-// concurrency cap is 100% reliable in testing (failures only begin above ~50).
-const BILLING_FETCH_CONCURRENCY = 8;
 
 async function getUsers(): Promise<AdminUser[]> {
   const result = await queryDb<AdminUser>(`
@@ -126,29 +119,15 @@ export default withPageTiming('/admin/users', async function AdminUsersPage() {
     appsByTenant.set(app.tenant_id, (appsByTenant.get(app.tenant_id) ?? 0) + 1);
   }
 
-  // Per-tenant billing (balance, cap, current usage). Bounded concurrency: an
-  // unbounded Promise.all here opened ~100 simultaneous edge connections and
-  // most timed out, blanking the balance/usage columns. See the constant above.
-  // One quick retry covers the rare transient connect timeout if the edge is
-  // already under load from other traffic.
+  // The platform aggregates complete ledger and usage snapshots in one request.
   const tenantIds = [...new Set([...tenantByEmail.values()])];
   const billingByTenant = new Map<string, BillingSummary>();
-  await mapWithConcurrency(
-    tenantIds,
-    BILLING_FETCH_CONCURRENCY,
-    async (tenantId) => {
-      for (let attempt = 0; attempt < 2; attempt++) {
-        try {
-          const summary = await getTenantBillingSummary(tenantId, true);
-          billingByTenant.set(tenantId, summary);
-          return;
-        } catch {
-          // Retry once after a short backoff, then give up and leave it out.
-          if (attempt === 0) await new Promise((r) => setTimeout(r, 200));
-        }
-      }
-    },
-  );
+  try {
+    const summaries = await listTenantBillingSummaries(tenantIds, true);
+    for (const summary of summaries) billingByTenant.set(summary.tenant_id, summary);
+  } catch {
+    // Keep the page truthful if the aggregate snapshot is temporarily unavailable.
+  }
 
   const adminCount = users.filter((u) => u.is_admin).length;
   const activeCount = users.filter((u) => u.status === 'active').length;

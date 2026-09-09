@@ -1757,6 +1757,22 @@ export async function getTenantBillingSummary(
   return data.billing;
 }
 
+/** Fetch complete billing summaries for multiple tenants in one request. */
+export async function listTenantBillingSummaries(
+  tenantIds: string[],
+  includeCurrentUsage = true,
+): Promise<BillingSummary[]> {
+  const ids = [...new Set(tenantIds.map((id) => id.trim()).filter(Boolean))];
+  if (ids.length === 0) return [];
+  const params = new URLSearchParams({ tenant_ids: ids.join(",") });
+  params.set("include_current_usage", String(includeCurrentUsage));
+  const data = await fugueGet<{ billings?: BillingSummary[]; missing_tenant_ids?: string[] }>(
+    readBootstrapKey(),
+    `/v1/billing/summaries?${params.toString()}`,
+  );
+  return Array.isArray(data.billings) ? data.billings : [];
+}
+
 /**
  * Update any tenant's managed resource cap as a platform admin. Like
  * updateBillingCap but names the tenant in the body. storage_gibibytes is only

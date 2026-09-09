@@ -550,6 +550,13 @@ export interface paths {
     /** Delete Project Runtime Reservation */
     delete: operations["deleteProjectRuntimeReservation"];
   };
+  "/v1/billing/summaries": {
+    /**
+     * List Billing Summaries
+     * @description Returns billing summaries for 1 to 500 requested tenants in one platform-admin request. Tenants confirmed absent from the store are listed in missing_tenant_ids; other read failures fail the request.
+     */
+    get: operations["listBillingSummaries"];
+  };
   "/v1/billing": {
     /** Get Billing */
     get: operations["getBilling"];
@@ -2952,6 +2959,10 @@ export interface components {
       /** Format: date-time */
       updated_at: string;
       events: components["schemas"]["TenantBillingEvent"][];
+    };
+    BillingSummariesResponse: {
+      billings: components["schemas"]["TenantBillingSummary"][];
+      missing_tenant_ids: string[];
     };
     AppSource: {
       type?: string;
@@ -13430,6 +13441,28 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
+  /**
+   * List Billing Summaries
+   * @description Returns billing summaries for 1 to 500 requested tenants in one platform-admin request. Tenants confirmed absent from the store are listed in missing_tenant_ids; other read failures fail the request.
+   */
+  listBillingSummaries: {
+    parameters: {
+      query: {
+        /** @description Comma-separated tenant IDs, at most 500 distinct values. Duplicate IDs are read once. */
+        tenant_ids: string;
+        include_current_usage?: boolean;
+      };
+    };
+    responses: {
+      /** @description Complete billing summaries. */
+      200: {
+        content: {
+          "application/json": components["schemas"]["BillingSummariesResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
   /** Get Billing */
   getBilling: {
     parameters: {
@@ -16140,6 +16173,8 @@ export interface operations {
                 unit: string;
                 source: string;
                 interval_seconds: number;
+                /** @enum {string} */
+                state: "available" | "collecting" | "unavailable";
                 points: ({
                     /** Format: date-time */
                     observed_at: string;
