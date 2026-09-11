@@ -37,12 +37,9 @@ export interface paths {
     /** Edge Domains */
     get: operations["edgeDomains"];
   };
-  "/v1/edge/route-intents": {
-    /**
-     * Edge Route Intents
-     * @description Returns Core's inventory-independent desired-route projection. Only the edge-control component identity with global edge_route_intent capability is accepted; tenant and platform-admin API keys are not accepted.
-     */
-    get: operations["edgeRouteIntents"];
+  "/v1/edge/routes": {
+    /** Edge Routes */
+    get: operations["edgeRoutes"];
   };
   "/v1/edge/ssh/routes": {
     /** Edge SSH Routes */
@@ -67,49 +64,6 @@ export interface paths {
   "/v1/edge/nodes/{edge_id}/desired-state": {
     /** Get Edge Node Desired State */
     get: operations["getEdgeNodeDesiredState"];
-  };
-  "/v1/admin/edge/activation": {
-    get: operations["adminGetEdgeActivation"];
-    post: operations["adminAdvanceEdgeActivation"];
-  };
-  "/v1/admin/edge/authorities": {
-    /**
-     * Inspect real Edge Control authority projections
-     * @description Read-only diagnostic view of the Edge Control group authority. This endpoint never synthesizes Edge nodes or ACKs from DNS state.
-     */
-    get: operations["adminListEdgeAuthorities"];
-  };
-  "/v1/admin/edge/activation/remediation": {
-    post: operations["adminAdvanceEdgeRemediation"];
-  };
-  "/v1/admin/traffic-overrides": {
-    /** List staged and revoked emergency traffic overrides */
-    get: operations["adminListTrafficOverrides"];
-  };
-  "/v1/admin/traffic-overrides/{hostname}": {
-    /** Get one emergency traffic override */
-    get: operations["adminGetTrafficOverride"];
-    /**
-     * Stage a signed emergency traffic override
-     * @description Stores a signed override independently from the normal TrafficEpoch and release state machines. Each candidate answer is verified against every required TLS/SNI/Host route before signing. Staged overrides are not served until the separate overlay activation path is enabled.
-     */
-    put: operations["adminPutTrafficOverride"];
-  };
-  "/v1/admin/traffic-overrides/{hostname}/revoke": {
-    /** Revoke an emergency traffic override with CAS */
-    post: operations["adminRevokeTrafficOverride"];
-  };
-  "/v1/admin/traffic-override-signing-key": {
-    /** Inspect emergency traffic override signing key metadata */
-    get: operations["adminGetTrafficOverrideSigningKey"];
-  };
-  "/v1/admin/traffic-override-signing-key/rotate": {
-    /** Rotate the emergency traffic override signing key with CAS */
-    post: operations["adminRotateTrafficOverrideSigningKey"];
-  };
-  "/v1/admin/edge/release-evidence": {
-    /** Get fail-closed platform release evidence for an active Edge epoch */
-    get: operations["adminGetPlatformReleaseEvidence"];
   };
   "/v1/admin/edge/nodes/{edge_id}/desired-state": {
     /** Admin Get Edge Node Desired State */
@@ -209,62 +163,6 @@ export interface paths {
     /** Get Invariant Definition */
     get: operations["getInvariantDefinition"];
   };
-  "/v1/admin/automations": {
-    /** List Automation Policies */
-    get: operations["listAutomationPolicies"];
-  };
-  "/v1/admin/automations/{policy_id}": {
-    /** Get Automation Policy */
-    get: operations["getAutomationPolicy"];
-  };
-  "/v1/admin/automation-evaluations": {
-    /**
-     * Evaluate Automation Policy Replay
-     * @description Evaluate an administrator-supplied request-outcome window against the
-     * current policy generation. Any resulting intent is permanently
-     * observe-only and can never be consumed by a production action worker.
-     */
-    post: operations["evaluateAutomationPolicyReplay"];
-  };
-  "/v1/automations": {
-    /** List User Automation Policies */
-    get: operations["listUserAutomationPolicies"];
-    /** Create User Automation Policy */
-    post: operations["createUserAutomationPolicy"];
-  };
-  "/v1/automations/{policy_id}": {
-    /** Get User Automation Policy */
-    get: operations["getUserAutomationPolicy"];
-    /** Update User Automation Policy */
-    put: operations["updateUserAutomationPolicy"];
-    /** Delete User Automation Policy */
-    delete: operations["deleteUserAutomationPolicy"];
-  };
-  "/v1/automation-intents": {
-    /**
-     * List Automation Action Intents
-     * @description List append-only observe-only action intents visible to the credential.
-     */
-    get: operations["listAutomationActionIntents"];
-  };
-  "/v1/automation-intents/{intent_id}": {
-    /** Get Automation Action Intent */
-    get: operations["getAutomationActionIntent"];
-  };
-  "/v1/automation-dispatches": {
-    /**
-     * List Automation Action Dispatches
-     * @description List read-only durable action dispatch records visible to the credential.
-     */
-    get: operations["listAutomationActionDispatches"];
-  };
-  "/v1/automation-dispatches/{dispatch_id}": {
-    /**
-     * Get Automation Action Dispatch
-     * @description Get one read-only durable action dispatch record.
-     */
-    get: operations["getAutomationActionDispatch"];
-  };
   "/v1/admin/action-contracts": {
     /** List Automatic Action Contracts */
     get: operations["listAutomaticActionContracts"];
@@ -298,16 +196,7 @@ export interface paths {
     get: operations["explainTrafficSafety"];
   };
   "/v1/admin/requests/{request_id}/explain": {
-    /**
-     * Explain Request
-     * @description Platform-admin lookup of recorded request facts by edge request ID, application
-     * request ID, or trace ID. Reads per-request telemetry, including incomplete
-     * platform request facts stored as events; aggregate edge performance sample
-     * IDs are not request IDs. Only a unique matching request is attributed.
-     * Evidence identifies the source and lookup status. Missing records, disabled
-     * telemetry, unavailable query backends, and ambiguous identifiers remain
-     * explicitly unconfirmed; an empty lookup does not prove a request never ran.
-     */
+    /** Explain Request */
     get: operations["explainRequest"];
   };
   "/v1/admin/robustness/status": {
@@ -345,14 +234,14 @@ export interface paths {
     get: operations["getPlatformArtifact"];
   };
   "/v1/admin/artifacts/{artifact_id}/validate": {
-    /** Validate Platform Artifact */
+    /**
+     * Validate Platform Artifact
+     * @description Validates a draft artifact. A validated or released NodeLocal DNS membership artifact is immutable; dry-run returns its persisted validation evidence and a mutating revalidation returns conflict.
+     */
     post: operations["validatePlatformArtifact"];
   };
   "/v1/admin/artifacts/{artifact_id}/release": {
-    /**
-     * Release Platform Artifact
-     * @description Platform administrators may use the normal artifact release policy.
-     */
+    /** Release Platform Artifact */
     post: operations["releasePlatformArtifact"];
   };
   "/v1/admin/artifacts/{artifact_id}/rollback": {
@@ -376,7 +265,10 @@ export interface paths {
     get: operations["getPlatformArtifactLKG"];
   };
   "/v1/platform-state/artifacts/{artifact_kind}": {
-    /** Pull Platform State Artifact */
+    /**
+     * Pull Platform State Artifact
+     * @description Platform-admin-only long poll for active immutable platform state. When current_generation is supplied, the request waits for the first artifact or a different generation up to wait_seconds. NodeLocal responses include the release-bound expected consumer set.
+     */
     get: operations["getPlatformStateArtifact"];
   };
   "/v1/platform-state/consumers/heartbeat": {
@@ -418,13 +310,6 @@ export interface paths {
   "/v1/dns/nodes": {
     /** List DNS Nodes */
     get: operations["listDNSNodes"];
-  };
-  "/v1/dns/traffic-overrides": {
-    /**
-     * Get the independently signed DNS traffic override feed
-     * @description Returns active signed emergency traffic overrides for an authorized DNS node. The normal DNS bundle remains authoritative unless the optional overlay consumer is explicitly enabled on that node.
-     */
-    get: operations["dnsTrafficOverrideFeed"];
   };
   "/v1/dns/acme-challenges": {
     /** List DNS ACME Challenges */
@@ -510,10 +395,6 @@ export interface paths {
     /** Get Console Gallery */
     get: operations["getConsoleGallery"];
   };
-  "/v1/console/projects/snapshot": {
-    /** Get Complete Console Project Snapshot */
-    get: operations["getConsoleProjectsSnapshot"];
-  };
   "/v1/console/gallery/stream": {
     /** Stream Console Gallery Changes */
     get: operations["streamConsoleGallery"];
@@ -553,13 +434,6 @@ export interface paths {
   "/v1/projects/{id}/runtime-reservations/{runtime_id}": {
     /** Delete Project Runtime Reservation */
     delete: operations["deleteProjectRuntimeReservation"];
-  };
-  "/v1/billing/summaries": {
-    /**
-     * List Billing Summaries
-     * @description Returns billing summaries for 1 to 500 requested tenants in one platform-admin request. Billing accruals and public-runtime counterparty credits commit atomically from a consistent ledger snapshot before summaries are returned. Tenants confirmed absent from the store are listed in missing_tenant_ids; other read failures fail the request.
-     */
-    get: operations["listBillingSummaries"];
   };
   "/v1/billing": {
     /** Get Billing */
@@ -769,27 +643,6 @@ export interface paths {
      */
     post: operations["adoptManagedPostgresOrphan"];
   };
-  "/v1/backing-services/orphans/{app_id}/suspend": {
-    /**
-     * Suspend A Retained Managed Postgres Orphan
-     * @description Platform-administrator lifecycle intent update for a retained orphan. The request is applied atomically to the ManagedApp spec and the controller performs the CNPG hibernation transition; no Fugue store record is created.
-     */
-    post: operations["suspendManagedPostgresOrphan"];
-  };
-  "/v1/backing-services/orphans/{app_id}/resume": {
-    /**
-     * Resume A Retained Managed Postgres Orphan
-     * @description Platform-administrator lifecycle intent update for a retained orphan. The request is applied atomically to the ManagedApp spec and the controller performs the CNPG resume transition; no Fugue store record is created.
-     */
-    post: operations["resumeManagedPostgresOrphan"];
-  };
-  "/v1/backing-services/orphans/{app_id}/delete": {
-    /**
-     * Delete A Retained Managed Postgres Orphan
-     * @description Explicit platform-administrator deletion request. The exact app ID, an active backup artifact belonging to the orphan, current zero-workload storage evidence, and observed CNPG suspension are required before a foreground ManagedApp deletion is submitted.
-     */
-    post: operations["deleteManagedPostgresOrphan"];
-  };
   "/v1/backing-services/{id}": {
     /** Get Backing Service */
     get: operations["getBackingService"];
@@ -964,13 +817,6 @@ export interface paths {
     /** Patch App Route */
     patch: operations["patchAppRoute"];
   };
-  "/v1/backing-services/{id}/resize": {
-    /**
-     * Resize Managed Postgres Backing Service In Place
-     * @description Queues a dedicated in-place CPU and memory resize for one app-owned managed PostgreSQL service. The request must provide the complete runtime request and limit envelope; existing requests or limits cannot be removed. The operation only uses the Kubernetes Pod resize subresource and never falls back to deleting, evicting, redeploying, or patching the CNPG Cluster resource template.
-     */
-    post: operations["resizeBackingService"];
-  };
   "/v1/backing-services/{id}/migrate": {
     /** Migrate Backing Service */
     post: operations["migrateBackingService"];
@@ -1021,51 +867,9 @@ export interface paths {
     /** Get App Runtime Pod Inventory */
     get: operations["getAppRuntimePods"];
   };
-  "/v1/apps/{id}/diagnostics/sessions": {
-    /** List App Diagnostic Sessions */
-    get: operations["listAppDiagnosticSessions"];
-    /**
-     * Start App Diagnostic Session
-     * @description Starts a bounded, temporary, app-scoped diagnostic probe without modifying the app workload.
-     */
-    post: operations["startAppDiagnosticSession"];
-  };
-  "/v1/apps/{id}/diagnostics/sessions/{session_id}": {
-    /** Get App Diagnostic Session */
-    get: operations["getAppDiagnosticSession"];
-    /** Cancel App Diagnostic Session */
-    delete: operations["cancelAppDiagnosticSession"];
-  };
-  "/v1/apps/{id}/diagnostics/sessions/{session_id}/report": {
-    /** Get App Diagnostic Report */
-    get: operations["getAppDiagnosticReport"];
-  };
-  "/v1/admin/diagnostics/sessions": {
-    /** List Platform Diagnostic Sessions */
-    get: operations["listPlatformDiagnosticSessions"];
-    /**
-     * Start Platform Diagnostic Session
-     * @description Starts a bounded, temporary diagnostic probe for a Fugue platform component or an allowlisted node process. Platform administrator access is required.
-     */
-    post: operations["startPlatformDiagnosticSession"];
-  };
-  "/v1/admin/diagnostics/sessions/{session_id}": {
-    /** Get Platform Diagnostic Session */
-    get: operations["getPlatformDiagnosticSession"];
-    /** Cancel Platform Diagnostic Session */
-    delete: operations["cancelPlatformDiagnosticSession"];
-  };
-  "/v1/admin/diagnostics/sessions/{session_id}/report": {
-    /** Get Platform Diagnostic Report */
-    get: operations["getPlatformDiagnosticReport"];
-  };
   "/v1/apps/{id}/observability/metrics/summary": {
     /** Get App Observability Metrics Summary */
     get: operations["getAppObservabilityMetricsSummary"];
-  };
-  "/v1/apps/{id}/observability/metrics/timeseries": {
-    /** Get app metric history with explicit source and sampling interval */
-    get: operations["getAppObservabilityMetricsTimeseries"];
   };
   "/v1/apps/{id}/observability/metrics/query": {
     /** Query App Observability Metrics */
@@ -1078,10 +882,6 @@ export interface paths {
   "/v1/apps/{id}/observability/requests": {
     /** List App Observability Requests */
     get: operations["listAppObservabilityRequests"];
-  };
-  "/v1/apps/{id}/observability/edge-route-decisions": {
-    /** List persisted Edge route-decision evidence and missing-link alerts */
-    get: operations["listAppEdgeRouteDecisions"];
   };
   "/v1/apps/{id}/observability/requests/stream": {
     /** Stream App Observability Requests */
@@ -1196,17 +996,6 @@ export interface paths {
     /** Deploy App */
     post: operations["deployApp"];
   };
-  "/v1/apps/{id}/runtime-state": {
-    /**
-     * Compare committed app intent with bounded live runtime evidence
-     * @description Reads app-scoped ready pods, process environment and config file hashes. Missing evidence remains unknown; values and file contents are never returned.
-     */
-    get: operations["getAppRuntimeState"];
-  };
-  "/v1/apps/{id}/action-requests/{request_id}": {
-    /** Recover an action receipt without repeating the mutation */
-    get: operations["getAppActionRequest"];
-  };
   "/v1/apps/{id}/restart": {
     /** Restart App */
     post: operations["restartApp"];
@@ -1274,8 +1063,6 @@ export interface paths {
     post: operations["verifyImage"];
   };
   "/v1/images/{id}/pins": {
-    /** List Image Pins */
-    get: operations["listImagePins"];
     /** Create Image Pin */
     post: operations["createImagePin"];
   };
@@ -1286,10 +1073,7 @@ export interface paths {
   "/v1/image-replication-tasks": {
     /** List Image Replication Tasks */
     get: operations["listImageReplicationTasks"];
-    /**
-     * Create Image Replication Task
-     * @description Requires platform.admin or app.deploy. Resolve an authorized target node and an existing replica with the same immutable digest, then enqueue both the replication record and its executable node task. At least one target selector is required; multiple selectors must identify the same node. Retrying an active transfer reuses its tasks.
-     */
+    /** Create Image Replication Task */
     post: operations["createImageReplicationTask"];
   };
   "/v1/operations": {
@@ -1299,10 +1083,6 @@ export interface paths {
   "/v1/operations/{id}": {
     /** Get Operation */
     get: operations["getOperation"];
-  };
-  "/v1/operations/{id}/cancel": {
-    /** Cancel Pending Operation */
-    post: operations["cancelOperation"];
   };
   "/v1/operations/{id}/diagnosis": {
     /** Get Operation Diagnosis */
@@ -1400,30 +1180,6 @@ export interface paths {
     /** Node Updater Complete Task */
     post: operations["nodeUpdaterCompleteTask"];
   };
-  "/v1/source-upload-sessions": {
-    /** Create or resume an immutable source upload request */
-    post: operations["createSourceUploadSession"];
-  };
-  "/v1/source-upload-sessions/{id}": {
-    /** Read uploaded chunks and exact request effects */
-    get: operations["getSourceUploadSession"];
-  };
-  "/v1/source-upload-sessions/{id}/chunks/{index}": {
-    /** Store an idempotent digest checked chunk */
-    put: operations["putSourceUploadChunk"];
-  };
-  "/v1/source-upload-sessions/{id}/complete": {
-    /** Verify and assemble the immutable source archive */
-    post: operations["completeSourceUploadSession"];
-  };
-  "/v1/source-upload-sessions/{id}/submit": {
-    /** Submit a frozen import intent once; replay reads its durable receipt */
-    post: operations["submitSourceUploadSession"];
-  };
-  "/v1/source-upload-requests/{request_id}": {
-    /** Recover the exact operations created by a source request */
-    get: operations["getSourceUploadRequest"];
-  };
   "/v1/source-uploads/{id}/archive": {
     /** Get Source Upload Archive */
     get: operations["getSourceUploadArchive"];
@@ -1469,10 +1225,6 @@ export interface paths {
   "/v1/agent/operations/{id}/complete": {
     /** Agent Complete Operation */
     post: operations["agentCompleteOperation"];
-  };
-  "/v1/agent/operations/{id}/fail": {
-    /** Agent Fail Operation */
-    post: operations["agentFailOperation"];
   };
   "/v1/backups/backends": {
     /**
@@ -1658,16 +1410,8 @@ export interface paths {
     /** Plan Data Download */
     post: operations["planDataDownload"];
   };
-  "/v1/data/transfers/{transfer_id}/cache": {
-    /** Request cleanup of a runtime prewarm cache */
-    delete: operations["deleteDataPrewarmCache"];
-  };
-  "/v1/data/workspaces/{workspace_id}/deletion-plan": {
-    /** Inspect references and storage reclamation before logical deletion */
-    get: operations["getDataDeletionPlan"];
-  };
   "/v1/data/workspaces/{workspace_id}/prewarm": {
-    /** Cache a snapshot on a managed runtime */
+    /** Create Data Prewarm */
     post: operations["createDataPrewarm"];
   };
   "/v1/data/workspaces/{workspace_id}/access": {
@@ -1711,10 +1455,7 @@ export interface paths {
     post: operations["refreshDataTransferAuthorization"];
   };
   "/v1/data/transfers/{transfer_id}/checkpoint": {
-    /**
-     * Checkpoint Data Transfer
-     * @description Accepts progress only for client driven transfers; runtime prewarm returns 409.
-     */
+    /** Checkpoint Data Transfer */
     post: operations["checkpointDataTransfer"];
   };
   "/v1/data/transfers/{transfer_id}/multipart/parts": {
@@ -1730,17 +1471,11 @@ export interface paths {
     post: operations["abortDataMultipartUpload"];
   };
   "/v1/data/transfers/{transfer_id}/complete": {
-    /**
-     * Complete Data Transfer
-     * @description Completes client driven transfers. Runtime prewarm completion is accepted only from controller observations; user completion returns 409.
-     */
+    /** Complete Data Transfer */
     post: operations["completeDataTransfer"];
   };
   "/v1/data/transfers/{transfer_id}/cancel": {
-    /**
-     * Cancel Data Transfer
-     * @description Cancels a nonterminal transfer. Runtime prewarm cancellation schedules Job and PVC cleanup; it does not cancel app operations.
-     */
+    /** Cancel Data Transfer */
     post: operations["cancelDataTransfer"];
   };
   "/v1/data/grants/{grant_id}": {
@@ -1765,58 +1500,6 @@ export type webhooks = Record<string, never>;
 
 export interface components {
   schemas: {
-    EdgeAuthorityReadStatus: {
-      edge_group_id: string;
-      status: string;
-      ready: boolean;
-      serving_healthy: boolean;
-      bootstrap_eligible: boolean;
-      /** Format: date-time */
-      bootstrap_valid_until?: string;
-      /** Format: int64 */
-      inventory_sequence?: number;
-      inventory_generation?: string;
-      /** Format: int64 */
-      inventory_producer_generation?: number;
-      inventory_producer_nodes?: number;
-      /** Format: date-time */
-      inventory_heartbeat_at?: string;
-      /** Format: int64 */
-      authority_sequence?: number;
-      /** Format: int64 */
-      publication_sequence?: number;
-      /** Format: int64 */
-      current_publication_sequence?: number;
-      /** Format: int64 */
-      candidate_epoch?: number;
-      publication_decision?: string;
-      bundle_generation?: string;
-      published_bundle_digest?: string;
-      /** Format: int64 */
-      recovery_epoch?: number;
-      /** Format: date-time */
-      bundle_valid_until?: string;
-      lkg_state: string;
-      failure_code?: string;
-      runtime_failure_code?: string;
-    };
-    EdgeAuthorityReadRecord: {
-      edge_group_id: string;
-      service: string;
-      ready: boolean;
-      /** @enum {string} */
-      source: "edge-control-authority";
-      status?: components["schemas"]["EdgeAuthorityReadStatus"];
-      error?: string;
-    };
-    EdgeAuthorityReadResponse: {
-      configured: boolean;
-      /** @enum {string} */
-      answer_model: "edge-control-authority";
-      all_ready: boolean;
-      authorities: components["schemas"]["EdgeAuthorityReadRecord"][];
-      error?: string;
-    };
     ErrorResponse: {
       error: string;
       code?: string;
@@ -1881,17 +1564,11 @@ export interface components {
       project_id?: string;
       app_id?: string;
       workspace_id?: string;
-      /** @description For app-database targets, Fugue treats the app's current managed PostgreSQL runtime as authoritative and rebinds policy-backed runs after placement changes. */
       runtime_id?: string;
       name?: string;
-      /** @description For app-database targets, Fugue persists the current managed PostgreSQL service name rather than a stale caller-supplied value. */
       service_name?: string;
-      /** @description For app-database targets, Fugue persists the current managed PostgreSQL database name rather than a stale caller-supplied value. */
       database?: string;
       component?: string;
-      /** @enum {string} */
-      engine?: "logical-pgdump" | "longhorn-snapshot";
-      remote_snapshot_required?: boolean;
     };
     BackupRetentionPolicy: {
       retain_count?: number;
@@ -1909,13 +1586,6 @@ export interface components {
       scope?: "platform" | "tenant" | "project" | "app";
       target?: components["schemas"]["BackupTarget"];
       backend_id?: string;
-      /**
-       * @description Database backup engine. longhorn-snapshot requires a Longhorn CSI volume and configured remote R2 backup target; it fails closed and never falls back to pg_dump.
-       * @enum {string}
-       */
-      engine?: "logical-pgdump" | "longhorn-snapshot";
-      /** @description Require a remote storage snapshot and reject local staging or logical dump fallback. */
-      remote_snapshot_required?: boolean;
       enabled?: boolean;
       /** @enum {string} */
       status?: "active" | "disabled" | "blocked_no_backend" | "error";
@@ -1949,9 +1619,6 @@ export interface components {
       name?: string;
       target?: components["schemas"]["BackupTarget"];
       backend_id?: string;
-      /** @enum {string} */
-      engine?: "logical-pgdump" | "longhorn-snapshot";
-      remote_snapshot_required?: boolean;
       enabled?: boolean;
       /** @description Numeric five-field cron expression evaluated in UTC. The @hourly shortcut is also accepted. */
       schedule?: string;
@@ -2066,76 +1733,18 @@ export interface components {
       plan_id: string;
       mode?: string;
     };
-    BackupUsageReconciliation: {
-      /**
-       * @description Complete means every visible R2 backend was measured without structural drift; reconciling permits only recent unreferenced uploads within cleanup grace.
-       * @enum {string}
-       */
-      status: "complete" | "reconciling" | "drift" | "partial" | "unavailable";
-      /** @description Number of visible Cloudflare R2 backend records included in the inventory. */
-      backend_count: number;
-      /** @description Number of backend records whose physical namespace was listed successfully. */
-      measured_backend_count: number;
-      expected_object_count: number;
-      referenced_object_count: number;
-      /** Format: int64 */
-      referenced_bytes: number;
-      active_object_count: number;
-      /** Format: int64 */
-      active_bytes: number;
-      pending_deletion_object_count: number;
-      /** Format: int64 */
-      pending_deletion_bytes: number;
-      unreferenced_object_count: number;
-      /** Format: int64 */
-      unreferenced_bytes: number;
-      /** @description Unreferenced objects whose last-modified time remains within failed-upload cleanup grace. */
-      provisional_object_count: number;
-      /** Format: int64 */
-      provisional_bytes: number;
-      /** @description Unreferenced physical objects older than failed-upload cleanup grace. */
-      orphaned_object_count: number;
-      /** Format: int64 */
-      orphaned_bytes: number;
-      missing_active_object_count: number;
-      overdue_deletion_object_count: number;
-      /** Format: int64 */
-      overdue_deletion_bytes: number;
-      /** @description Objects still present even though durable metadata records physical deletion. */
-      lingering_deleted_object_count: number;
-      /** Format: int64 */
-      lingering_deleted_bytes: number;
-      duplicate_reference_count: number;
-      invalid_reference_count: number;
-      size_mismatch_count: number;
-      unresolved_backend_count: number;
-      /** Format: date-time */
-      observed_at: string;
-      message?: string;
-    };
     BackupUsage: {
       tenant_id?: string;
       backend_id?: string;
       provider?: string;
-      /**
-       * Format: int64
-       * @description Database-recorded active billable artifact bytes; this remains the billing ledger and is distinct from physical R2 bytes.
-       */
+      /** Format: int64 */
       billable_bytes?: number;
-      /**
-       * Format: int64
-       * @description Exact attributable R2 bytes, including manifests, deletion grace, and unreferenced objects. Omitted unless every visible R2 backend was measured.
-       */
-      physical_bytes?: number;
-      /** @description Exact attributable R2 object count. Omitted unless every visible R2 backend was measured. */
-      physical_object_count?: number;
       cloudflare_r2_price_code?: string;
       markup_percent?: number;
       effective_multiplier?: number;
       currency?: string;
       /** Format: date-time */
       updated_at?: string;
-      reconciliation?: components["schemas"]["BackupUsageReconciliation"];
     };
     BackupPosture: {
       target?: components["schemas"]["BackupTarget"];
@@ -2175,21 +1784,13 @@ export interface components {
       artifacts?: components["schemas"]["BackupArtifact"][];
     };
     BackupRunListResponse: {
-      runs: components["schemas"]["BackupRun"][];
-      page_info: components["schemas"]["BackupListPageInfo"];
+      runs?: components["schemas"]["BackupRun"][];
     };
     BackupArtifactResponse: {
       artifact?: components["schemas"]["BackupArtifact"];
     };
     BackupArtifactListResponse: {
-      artifacts: components["schemas"]["BackupArtifact"][];
-      page_info: components["schemas"]["BackupListPageInfo"];
-    };
-    BackupListPageInfo: {
-      /** Format: int32 */
-      limit: number;
-      has_next_page: boolean;
-      next_cursor?: string;
+      artifacts?: components["schemas"]["BackupArtifact"][];
     };
     BackupRestorePlanResponse: {
       plan?: components["schemas"]["BackupRestorePlan"];
@@ -2308,7 +1909,6 @@ export interface components {
       deleted_at?: string;
     };
     DataTransferSummary: {
-      cache?: components["schemas"]["DataPrewarmCache"];
       id: string;
       tenant_id?: string;
       workspace_id: string;
@@ -2451,40 +2051,9 @@ export interface components {
       version?: string;
       assets?: string[];
     };
-    DataDeletionPlan: {
-      /** @enum {integer} */
-      schema_version: 1;
-      workspace_id: string;
-      snapshot_id?: string;
-      allowed: boolean;
-      /** @enum {string} */
-      mode: "metadata_delete" | "soft_delete";
-      /** @enum {boolean} */
-      objects_reclaimed: false;
-      reclamation: string;
-      blockers: {
-          kind: string;
-          id: string;
-          state: string;
-        }[];
-    };
-    DataPrewarmCache: {
-      worker_cleaned?: boolean;
-      namespace: string;
-      claim: string;
-      job: string;
-      job_uid?: string;
-      node: string;
-      manifest_digest: string;
-      /** @enum {string} */
-      state: "planned" | "downloading" | "ready" | "cleanup_pending" | "removed";
-      /** Format: date-time */
-      observed_at: string;
-    };
-    /** @description Creates a digest-verified cache on an authorized managed runtime using an S3-compatible backend. Cache TTL is 24 hours. Completion does not mount data into apps. */
     DataPrewarmRequest: {
       version?: string;
-      runtime_id: string;
+      runtime_id?: string;
       assets?: string[];
     };
     DataTransferCompleteRequest: {
@@ -2585,11 +2154,6 @@ export interface components {
       platform_admin: boolean;
     };
     AuthContextResponse: {
-      /** @description Server features, independent of principal scopes. Missing features are unsupported. */
-      capabilities?: {
-        /** @description App mutations support atomic Idempotency-Key receipts, If-Match and read-only receipt recovery. */
-        app_action_receipts?: boolean;
-      };
       principal: components["schemas"]["AuthPrincipalContext"];
     };
     StringMap: {
@@ -2849,46 +2413,17 @@ export interface components {
       memory_bytes?: number;
       /** Format: int64 */
       ephemeral_storage_bytes?: number;
-      /**
-       * Format: int64
-       * @description Allocated bytes across distinct persistent volume claims mounted by the workload. Directory-backed local-path claims are measured from their own host directories rather than from the shared node filesystem. Omitted when an accurate measurement is unavailable.
-       */
-      persistent_storage_used_bytes?: number;
-      /**
-       * Format: int64
-       * @description Enforced capacity bytes across distinct persistent volume claims mounted by the workload. Omitted for storage backends such as rancher.io/local-path that do not enforce a per-claim capacity limit, and when an accurate capacity is unavailable.
-       */
-      persistent_storage_capacity_bytes?: number;
     };
     ResourceRightSizingPolicy: {
       /** Format: int32 */
       window_hours: number;
       /** Format: int32 */
       min_samples: number;
-      /**
-       * Format: double
-       * @description Historical CPU percentile used for capacity planning.
-       */
+      /** Format: double */
       cpu_percentile: number;
-      /**
-       * Format: double
-       * @description Multiplier applied to historical CPU usage for capacity planning.
-       */
+      /** Format: double */
       cpu_multiplier: number;
-      /**
-       * Format: double
-       * @description Historical CPU percentile used for the Kubernetes request guarantee.
-       */
-      cpu_request_percentile: number;
-      /**
-       * Format: double
-       * @description Multiplier applied to the CPU request guarantee percentile.
-       */
-      cpu_request_multiplier: number;
-      /**
-       * Format: int64
-       * @description Minimum Kubernetes CPU request guarantee for this workload class.
-       */
+      /** Format: int64 */
       cpu_floor_millicores: number;
       /** Format: double */
       memory_percentile: number;
@@ -2908,10 +2443,7 @@ export interface components {
       /** Format: int32 */
       sample_count: number;
       current?: components["schemas"]["ResourceSpec"];
-      /** @description Capacity recommendation derived from historical usage. Its CPU value is a planning target and is not written directly to the Kubernetes CPU request. */
       recommended?: components["schemas"]["ResourceSpec"];
-      /** @description Resource target applied by right-sizing. CPU is a small guaranteed share; memory retains the safety-oriented capacity recommendation. */
-      request_target?: components["schemas"]["ResourceSpec"];
       policy: components["schemas"]["ResourceRightSizingPolicy"];
       ready: boolean;
       already_current: boolean;
@@ -2960,8 +2492,6 @@ export interface components {
     };
     TenantBillingSummary: {
       tenant_id: string;
-      /** @description Number of non-deleted tenant applications in the billing snapshot, including disabled applications. */
-      app_count: number;
       status: string;
       status_reason?: string;
       byo_vps_free: boolean;
@@ -2987,10 +2517,6 @@ export interface components {
       /** Format: date-time */
       updated_at: string;
       events: components["schemas"]["TenantBillingEvent"][];
-    };
-    BillingSummariesResponse: {
-      billings: components["schemas"]["TenantBillingSummary"][];
-      missing_tenant_ids: string[];
     };
     AppSource: {
       type?: string;
@@ -3123,66 +2649,6 @@ export interface components {
       tls_allowlist: components["schemas"]["EdgeTLSAllowlistEntry"][];
       cache_policies?: components["schemas"]["CachePolicy"][];
     };
-    EdgeRouteIntentSnapshot: {
-      /** @enum {string} */
-      schema_version: "edge-route-intent/v1";
-      generation: string;
-      /** Format: date-time */
-      generated_at: string;
-      routes: components["schemas"]["EdgeRouteIntent"][];
-      tls_allowlist: components["schemas"]["EdgeTLSAllowlistEntry"][];
-      cache_policies?: components["schemas"]["CachePolicy"][];
-    };
-    EdgeRouteIntent: {
-      generation: string;
-      hostname: string;
-      path_prefix?: string;
-      /** @enum {string} */
-      route_kind: "platform" | "custom-domain" | "platform-domain" | "platform-route" | "control-plane-api";
-      app_id: string;
-      tenant_id: string;
-      runtime_id: string;
-      runtime_type?: string;
-      /** @description Core locality hint; this is not an Edge Control selection. */
-      runtime_edge_group_id?: string;
-      runtime_cluster_node?: string;
-      /** @enum {string} */
-      target_group_mode: "all_groups" | "pinned_group";
-      pinned_edge_group_id?: string;
-      excluded_edge_ids?: string[];
-      excluded_edge_group_ids?: string[];
-      exclusion_reason?: string;
-      /** Format: date-time */
-      exclusion_expires_at?: string | null;
-      /** @enum {string} */
-      exclusion_lifecycle?: "clear" | "active" | "expiring_1h" | "expiring_24h" | "expired_hold" | "legacy_hold";
-      /** Format: int32 */
-      min_healthy_edge_nodes?: number;
-      /** @enum {string} */
-      route_policy: "route_a_only" | "edge_canary" | "edge_enabled";
-      /** @enum {string} */
-      upstream_kind: "kubernetes-service" | "mesh";
-      /** @enum {string} */
-      upstream_scope?: "local-service" | "cluster" | "mesh";
-      upstream_url?: string;
-      upstreams?: components["schemas"]["EdgeRouteUpstream"][];
-      /** Format: int32 */
-      service_port: number;
-      /** @enum {string} */
-      tls_policy: "platform" | "custom-domain";
-      cache_policy_id?: string;
-      cache_namespace?: string;
-      deployment_generation?: string;
-      request_body_policies?: components["schemas"]["EdgeRequestBodyPolicy"][];
-      streaming: boolean;
-      /** @enum {string} */
-      origin_status: "active" | "disabled" | "unavailable" | "runtime-missing";
-      origin_status_reason?: string;
-      /** Format: date-time */
-      created_at: string;
-      /** Format: date-time */
-      updated_at: string;
-    };
     EdgeSSHRouteBundle: {
       schema_version?: string;
       version: string;
@@ -3266,8 +2732,6 @@ export interface components {
       /** @enum {string} */
       status: "active" | "disabled" | "unavailable" | "runtime-missing";
       status_reason?: string;
-      /** @description Stable, secret-safe identifier for the evidence-backed route decision. */
-      decision_id?: string;
       route_generation: string;
       /** Format: date-time */
       created_at: string;
@@ -3316,20 +2780,6 @@ export interface components {
       exclusion_reason?: string;
       /** Format: date-time */
       exclusion_expires_at?: string | null;
-      /** @enum {string} */
-      exclusion_scope?: "edge" | "edge_group" | "mixed";
-      exclusion_owner_digest?: string;
-      /** Format: date-time */
-      exclusion_created_at?: string | null;
-      /** Format: int64 */
-      exclusion_generation?: number;
-      exclusion_fence?: string;
-      /** @enum {string} */
-      exclusion_lifecycle?: "clear" | "active" | "expiring_24h" | "expiring_1h" | "expired_hold" | "legacy_hold";
-      exclusion_evidence_fresh?: boolean;
-      /** Format: date-time */
-      exclusion_evidence_checked_at?: string | null;
-      exclusion_evidence_reason?: string;
       /** Format: int32 */
       min_healthy_edge_nodes?: number;
       /** @enum {string} */
@@ -3345,96 +2795,6 @@ export interface components {
     };
     EdgeRoutePolicyResponse: {
       policy: components["schemas"]["EdgeRoutePolicy"];
-    };
-    TrafficOverride: {
-      /** @enum {string} */
-      schema: "traffic-override.fugue.dev/v1";
-      hostname: string;
-      /** Format: int64 */
-      generation: number;
-      /** @enum {string} */
-      state: "staged" | "revoked";
-      answers: string[];
-      required_host_routes: string[];
-      route_generation: string;
-      route_digest: string;
-      prepared_digest: string;
-      /** Format: date-time */
-      activate_at: string;
-      /** Format: date-time */
-      expires_at: string;
-      reason: string;
-      operator: string;
-      artifact_digest: string;
-      key_id: string;
-      signature: string;
-      /** Format: date-time */
-      signed_at: string;
-      /** Format: date-time */
-      created_at: string;
-      /** Format: date-time */
-      updated_at: string;
-    };
-    TrafficOverridePutRequest: {
-      answers: string[];
-      required_host_routes: string[];
-      route_generation: string;
-      route_digest: string;
-      prepared_digest?: string;
-      /** Format: date-time */
-      activate_at: string;
-      /** Format: date-time */
-      expires_at: string;
-      reason: string;
-      /** Format: int64 */
-      expected_generation: number;
-    };
-    TrafficOverrideRevokeRequest: {
-      reason: string;
-      /** Format: int64 */
-      expected_generation: number;
-    };
-    TrafficOverrideResponse: {
-      override: components["schemas"]["TrafficOverride"];
-    };
-    TrafficOverrideListResponse: {
-      overrides: components["schemas"]["TrafficOverride"][];
-    };
-    TrafficOverrideFeed: {
-      /** @enum {string} */
-      schema: "traffic-override-feed.fugue.dev/v1";
-      /** Format: int64 */
-      generation: number;
-      /** Format: date-time */
-      generated_at: string;
-      overrides: components["schemas"]["TrafficOverride"][];
-      signing_key: components["schemas"]["TrafficOverrideSigningKeyStatus"];
-    };
-    TrafficOverrideFeedResponse: {
-      feed: components["schemas"]["TrafficOverrideFeed"];
-    };
-    TrafficOverrideSigningKeyStatus: {
-      /** @enum {string} */
-      schema: "traffic-override-signing.fugue.dev/v1";
-      /** Format: int64 */
-      generation: number;
-      current_key_id: string;
-      current_public_key: string;
-      previous_key_id?: string;
-      previous_public_key?: string;
-      /** Format: date-time */
-      created_at: string;
-      /** Format: date-time */
-      rotated_at?: string;
-      /** Format: date-time */
-      updated_at: string;
-    };
-    TrafficOverrideSigningKeyResponse: {
-      signing_key: components["schemas"]["TrafficOverrideSigningKeyStatus"];
-    };
-    TrafficOverrideSigningKeyRotateRequest: {
-      /** Format: int64 */
-      expected_generation: number;
     };
     PlatformDomainBinding: {
       hostname: string;
@@ -3485,8 +2845,6 @@ export interface components {
       healthy: boolean;
       draining: boolean;
       route_bundle_version?: string;
-      /** @description Route-bundle authority selected by the edge worker. */
-      route_bundle_source?: string;
       dns_bundle_version?: string;
       serving_generation?: string;
       lkg_generation?: string;
@@ -3850,12 +3208,6 @@ export interface components {
       edge_id: string;
       edge_group_id: string;
       /** @enum {string} */
-      slot: "a" | "b" | "direct";
-      instance_uid: string;
-      release_epoch: string;
-      /** @enum {string} */
-      failure_class?: "bundle_signature_invalid" | "max_stale_exceeded" | "identity_drift";
-      /** @enum {string} */
       workload_mode?: "static" | "dynamic";
       region?: string;
       country?: string;
@@ -3867,8 +3219,6 @@ export interface components {
       dns_bundle_version?: string;
       serving_generation?: string;
       lkg_generation?: string;
-      last_good_generation?: string;
-      cache_corrupt_generation?: string;
       /** Format: int32 */
       caddy_route_count?: number;
       caddy_applied_version?: string;
@@ -3878,7 +3228,6 @@ export interface components {
       tls_last_message?: string;
       /** Format: date-time */
       tls_ready_at?: string;
-      max_stale_exceeded?: boolean;
       /** @enum {string} */
       status: "unknown" | "healthy" | "degraded" | "unhealthy";
       healthy: boolean;
@@ -3888,30 +3237,7 @@ export interface components {
     };
     EdgeHeartbeatResponse: {
       node: components["schemas"]["EdgeNode"];
-      instance: components["schemas"]["EdgeNodeInstance"];
       accepted: boolean;
-    };
-    EdgeNodeInstance: {
-      edge_id: string;
-      edge_group_id: string;
-      /** @enum {string} */
-      slot: "a" | "b" | "direct";
-      instance_uid: string;
-      release_epoch: string;
-      node: components["schemas"]["EdgeNode"];
-      /** @enum {string} */
-      failure_class?: "bundle_signature_invalid" | "max_stale_exceeded" | "identity_drift";
-      effective_healthy: boolean;
-      consecutive_healthy: number;
-      consecutive_unhealthy: number;
-      /** Format: date-time */
-      health_state_since?: string;
-      /** Format: date-time */
-      last_heartbeat_at: string;
-      /** Format: date-time */
-      created_at: string;
-      /** Format: date-time */
-      updated_at: string;
     };
     EdgePerformanceSample: {
       id?: string;
@@ -4042,9 +3368,6 @@ export interface components {
       /** @enum {string} */
       route_policy: "route_a_only" | "edge_canary" | "edge_enabled";
       enabled?: boolean;
-      /** Format: int64 */
-      expected_exclusion_generation?: number;
-      expected_exclusion_fence?: string;
     };
     PutPlatformDomainBindingRequest: {
       app_id: string;
@@ -4099,8 +3422,6 @@ export interface components {
       dns_node_id?: string;
       edge_group_id?: string;
       zone: string;
-      /** @description Normalized hosted zones that authoritative DNS nodes must load dynamically. */
-      hosted_zones?: string[];
       records: components["schemas"]["EdgeDNSRecord"][];
     };
     EdgeDNSRecord: {
@@ -4661,7 +3982,6 @@ export interface components {
     AppContinuityPolicy: {
       zero_downtime?: components["schemas"]["AppZeroDowntimePolicy"];
     };
-    /** @description Advanced drain or stable/candidate rollout policy. Serving apps already receive baseline zero-downtime protection by default. */
     AppZeroDowntimePolicy: {
       enabled: boolean;
       /** @enum {string} */
@@ -4701,15 +4021,9 @@ export interface components {
       instances?: number;
       /** Format: int32 */
       synchronous_replicas?: number;
-      suspended?: boolean;
-      runtime_phase?: string;
-      ready_instances?: number;
       /** @description Whether the managed Postgres service is configured to hibernate with its PVCs retained. Change this state only through the backing-service suspend and resume endpoints. */
-      desired_instances?: number;
-      /** @description Bootstrap resource template used when CNPG creates or recreates a PostgreSQL Pod. Changing this field may require a maintenance rollout. */
+      suspended?: boolean;
       resources?: components["schemas"]["ResourceSpec"];
-      /** @description Fugue's persisted in-place runtime resource target. It is not rendered into CNPG Cluster.spec.resources and is changed only by the dedicated database resize operation. */
-      runtime_resources?: components["schemas"]["ResourceSpec"];
     };
     BackingServiceSpec: {
       postgres?: components["schemas"]["AppPostgresSpec"];
@@ -4778,7 +4092,6 @@ export interface components {
       suspended_at?: string;
       needs_user_action?: boolean;
     };
-    /** @description Legacy effective status projection. Use stored_status for durable control-plane state and observed_status for fresh runtime decisions. */
     AppStatus: {
       phase: string;
       current_runtime_id?: string;
@@ -4790,123 +4103,9 @@ export interface components {
       current_release_ready_at?: string;
       last_operation_id?: string;
       last_message?: string;
-      last_failed_operation?: components["schemas"]["AppOperationFailure"];
       /** Format: date-time */
       updated_at: string;
       source_sync?: components["schemas"]["AppSourceSyncStatus"];
-    };
-    /** @description Redacted durable summary of the most recent failed operation. It is diagnostic history, never runtime evidence. */
-    AppOperationFailure: {
-      id: string;
-      type: string;
-      error_message?: string;
-      result_message?: string;
-      requested_by_type?: string;
-      requested_by_id?: string;
-      /** Format: date-time */
-      created_at: string;
-      /** Format: date-time */
-      updated_at: string;
-      /** Format: date-time */
-      completed_at?: string;
-    };
-    /** @description Point-in-time runtime evidence kept separate from the desired spec and durable stored status. Omitted presence/readiness fields mean the observation could not determine that fact. */
-    AppObservedStatus: {
-      /** @enum {string} */
-      phase: "deployed" | "deploying" | "disabled" | "deleting" | "failed" | "unavailable" | "unknown";
-      runtime_id?: string;
-      /** Format: int32 */
-      desired_replicas: number;
-      /** Format: int32 */
-      ready_replicas?: number;
-      runtime_object_present?: boolean;
-      namespace_present?: boolean;
-      service_present?: boolean;
-      endpoint_present?: boolean;
-      endpoint_ready?: boolean;
-      /** Format: int32 */
-      physical_replicas?: number;
-      /** Format: int32 */
-      physical_desired_replicas?: number;
-      image_present?: boolean;
-      image_ref?: string;
-      fresh: boolean;
-      /** Format: date-time */
-      observed_at: string;
-      /** @description Stable identity of the observed Kubernetes cluster incarnation. Empty only when the query could not establish cluster identity. */
-      cluster_id: string;
-      /**
-       * Format: int64
-       * @description ManagedApp generation from this observation; zero when no runtime object/generation was available.
-       */
-      generation: number;
-      /**
-       * Format: int64
-       * @description Controller-observed ManagedApp generation; zero when unavailable.
-       */
-      observed_generation: number;
-      evidence_source: string;
-      evidence_sources?: string[];
-      reason: string;
-      message?: string;
-      invariant_violations?: string[];
-    };
-    /** @description Immutable per-application migration evidence retained for at least 90 days. It is an audit/cutover record, not runtime status. */
-    AppMigrationLedger: {
-      /** Format: int32 */
-      schema_version: number;
-      id: string;
-      tenant_id: string;
-      project_id?: string;
-      app_id: string;
-      operation_id: string;
-      old_runtime_id?: string;
-      new_runtime_id: string;
-      old_cluster_id: string;
-      new_cluster_id: string;
-      image_ref?: string;
-      /** @enum {string} */
-      image_replication_status: "unknown" | "verified" | "missing" | "failed";
-      image_replication_result?: string;
-      /** @enum {string} */
-      runtime_object_status: "unknown" | "verified" | "missing" | "failed" | "ready" | "created";
-      runtime_object_result?: string;
-      endpoint_required: boolean;
-      /** @enum {string} */
-      endpoint_status: "unknown" | "verified" | "missing" | "failed" | "ready" | "not_applicable";
-      endpoint_result?: string;
-      endpoint_ready?: boolean;
-      /** Format: int32 */
-      physical_replicas?: number;
-      /** Format: int32 */
-      desired_replicas: number;
-      /** Format: int64 */
-      generation?: number;
-      /** Format: int64 */
-      observed_generation?: number;
-      invariant_violations?: string[];
-      /** @enum {string} */
-      cutover_status: "pending" | "verified" | "completed" | "blocked" | "failed";
-      old_artifacts_protected: boolean;
-      failure_reason?: string;
-      operator_type: string;
-      operator_id: string;
-      evidence_source: string;
-      associated_operation_id: string;
-      /** Format: date-time */
-      observed_at: string;
-      /** Format: date-time */
-      created_at: string;
-      /** Format: date-time */
-      updated_at: string;
-      /** Format: date-time */
-      retain_until: string;
-    };
-    /** @description Agent completion payload. Migration operations must include a verified migration_ledger before completion; other operation types may omit it. */
-    AgentCompleteOperationRequest: {
-      manifest_path?: string;
-      message?: string;
-      migration_ledger?: components["schemas"]["AppMigrationLedger"];
     };
     AppSpec: {
       image?: string;
@@ -5117,9 +4316,6 @@ export interface components {
       internal_service?: components["schemas"]["AppInternalService"];
       spec: components["schemas"]["AppSpec"];
       status: components["schemas"]["AppStatus"];
-      /** @description Durable control-plane status before any live observation is projected into the compatibility status field. */
-      stored_status?: components["schemas"]["AppStatus"];
-      observed_status?: components["schemas"]["AppObservedStatus"];
       current_resource_usage?: components["schemas"]["ResourceUsage"];
       bindings?: components["schemas"]["ServiceBinding"][];
       backing_services?: components["schemas"]["BackingService"][];
@@ -5261,11 +4457,6 @@ export interface components {
       pod_count: number;
     };
     ClusterNode: {
-      /**
-       * Format: date-time
-       * @description Oldest kubelet CPU/memory sample timestamp; absent when telemetry has no timestamp.
-       */
-      observed_at?: string;
       name: string;
       status: string;
       roles?: string[];
@@ -5451,14 +4642,10 @@ export interface components {
       /** Format: int32 */
       desired_replicas?: number;
       desired_spec?: components["schemas"]["AppSpec"];
-      /** @description Configuration observed when an import was accepted. Used to preserve intervening configuration changes when the built artifact is deployed. Secret values are redacted on API reads. */
-      config_base_spec?: components["schemas"]["AppSpec"];
       /** @description Build input requested by the operation. */
       desired_source?: components["schemas"]["AppSource"];
       /** @description Durable source ownership that should persist after the operation completes. */
       desired_origin_source?: components["schemas"]["AppSource"];
-      /** @description Explicit deployment link recovered from durable import evidence; absent when no link has been recorded. Consumers of older APIs may use the legacy queued-deploy message but must never infer a link from timestamps. */
-      queued_deploy_operation_id?: string;
       result_message?: string;
       manifest_path?: string;
       assigned_runtime_id?: string;
@@ -5625,13 +4812,7 @@ export interface components {
       replica_set_name?: string;
       node_name?: string;
       redaction_status: string;
-      /** @description Optional durable evidence. Builder attempt records use build_attempt and retain every retry independently; user-facing consumers must not render arbitrary diagnostic payloads as deployment errors. */
       payload?: {
-        build_attempt?: components["schemas"]["BuilderAttemptEvidence"];
-        /** @description Bounded build snapshots and redacted log tails. Returned only to platform administrators with include_payload; never included in public CLI deployment results. */
-        builder_diagnostics?: {
-          [key: string]: unknown;
-        };
         [key: string]: unknown;
       };
       /** Format: int32 */
@@ -5639,26 +4820,6 @@ export interface components {
       /** Format: date-time */
       created_at: string;
     };
-    BuilderAttemptEvidence: {
-      attempt: number;
-      /** @enum {string} */
-      outcome: "succeeded" | "failed";
-      /** Format: date-time */
-      started_at: string;
-      /** Format: date-time */
-      finished_at: string;
-      causes: string[];
-      missing_evidence: string[];
-      /** Format: int64 */
-      memory_request_bytes?: number;
-      /** Format: int64 */
-      memory_limit_bytes?: number;
-      /** Format: int64 */
-      ephemeral_request_bytes?: number;
-      /** Format: int64 */
-      ephemeral_limit_bytes?: number;
-    };
-    /** @description Historical event content paired with its recorded time. The operation_started summary describes the start, never a later mutable progress message. */
     OperationTimelineEntry: {
       id: string;
       operation_id: string;
@@ -6104,10 +5265,6 @@ export interface components {
     ConsoleGalleryResponse: {
       projects: components["schemas"]["ConsoleProjectSummary"][];
     };
-    ConsoleProjectsSnapshotResponse: {
-      projects: components["schemas"]["ConsoleProjectSummary"][];
-      image_usage: components["schemas"]["ProjectImageUsageResponse"];
-    };
     ConsoleProjectDetailResponse: {
       project?: components["schemas"]["Project"];
       project_id: string;
@@ -6116,11 +5273,6 @@ export interface components {
       operations: (components["schemas"]["OperationSummary"] | components["schemas"]["Operation"])[];
       cluster_nodes: components["schemas"]["ClusterNode"][];
     };
-    /**
-     * @description Stable, machine-readable attribution for an incomplete image-size measurement. Evidence-oriented codes describe what the control plane can prove; missing_*_evidence does not by itself assert that the underlying registry object is physically absent.
-     * @enum {string}
-     */
-    ImageMeasurementReason: "digest_conflict" | "size_conflict" | "stale_inventory" | "missing_manifest_evidence" | "missing_size_evidence" | "missing_manifest_size_evidence" | "missing_blob_size_evidence" | "missing_child_manifest" | "missing_blob" | "no_storage_evidence" | "registry_not_configured";
     AppImageSummary: {
       /** Format: int32 */
       version_count: number;
@@ -6145,13 +5297,6 @@ export interface components {
       current: boolean;
       /** Format: int64 */
       size_bytes?: number;
-      /**
-       * @description Whether size_bytes is complete, partial, or unavailable. Distributed image-cache evidence may be partial when a manifest graph does not include complete referenced-blob bytes.
-       * @enum {string}
-       */
-      size_measurement_status?: "complete" | "partial" | "unavailable";
-      /** @description Stable reasons why this version's size is not complete. */
-      size_measurement_reasons?: components["schemas"]["ImageMeasurementReason"][];
       /** Format: int64 */
       reclaimable_size_bytes?: number;
       delete_supported: boolean;
@@ -6159,11 +5304,6 @@ export interface components {
       /** Format: date-time */
       last_deployed_at?: string;
       source?: components["schemas"]["AppSource"];
-    };
-    AppImageRedeployRequest: {
-      image_ref: string;
-      /** @description Require the inventory digest shown by the plan; 412 if the tag has moved. */
-      expected_digest?: string;
     };
     AppImageActionRequest: {
       image_ref: string;
@@ -6455,15 +5595,6 @@ export interface components {
       registry_configured: boolean;
       reclaim_requires_gc: boolean;
       reclaim_note?: string;
-      /**
-       * @description Image-size measurement status for this app inventory.
-       * @enum {string}
-       */
-      measurement_status?: "complete" | "partial" | "unavailable";
-      /** @description Human-readable explanation of the image-size evidence source. */
-      measurement_note?: string;
-      /** @description Stable aggregate reasons for incomplete version measurements. */
-      measurement_reasons?: components["schemas"]["ImageMeasurementReason"][];
       summary: components["schemas"]["AppImageSummary"];
       versions: components["schemas"]["AppImageVersion"][];
     };
@@ -6498,13 +5629,6 @@ export interface components {
       stale_size_bytes: number;
       /** Format: int64 */
       reclaimable_size_bytes: number;
-      /**
-       * @description Image-size measurement status for this app summary.
-       * @enum {string}
-       */
-      measurement_status?: "complete" | "partial" | "unavailable";
-      /** @description Stable aggregate reasons for incomplete version measurements. */
-      measurement_reasons?: components["schemas"]["ImageMeasurementReason"][];
     };
     ProjectImageUsageSummary: {
       project_id: string;
@@ -6523,34 +5647,11 @@ export interface components {
       /** Format: int64 */
       reclaimable_size_bytes: number;
       apps: components["schemas"]["ProjectImageUsageAppSummary"][];
-      /**
-       * @description Image-size measurement status for this project summary.
-       * @enum {string}
-       */
-      measurement_status?: "complete" | "partial" | "unavailable";
-      /** @description Stable aggregate reasons for incomplete app measurements. */
-      measurement_reasons?: components["schemas"]["ImageMeasurementReason"][];
     };
     ProjectImageUsageResponse: {
       registry_configured: boolean;
       reclaim_requires_gc: boolean;
       reclaim_note?: string;
-      /**
-       * @description Storage backend used for image evidence, such as registry or distributed.
-       * @enum {string}
-       */
-      image_store_mode?: "registry" | "distributed";
-      /**
-       * @description Overall image-size measurement status.
-       * @enum {string}
-       */
-      measurement_status?: "complete" | "partial" | "unavailable";
-      /** @description Human-readable explanation of the image-size evidence source. */
-      measurement_note?: string;
-      /** @description Stable aggregate reasons for incomplete project measurements. */
-      measurement_reasons?: components["schemas"]["ImageMeasurementReason"][];
-      /** Format: date-time */
-      observed_at?: string;
       projects: components["schemas"]["ProjectImageUsageSummary"][];
     };
     CreateProjectRequest: {
@@ -6576,7 +5677,6 @@ export interface components {
       startup_command?: string;
       persistent_storage?: components["schemas"]["AppPersistentStorageSpec"];
       volume_replication?: components["schemas"]["AppVolumeReplicationSpec"];
-      /** @description Control-plane recommendation policy. Updating this field is synchronous and does not create or apply a workload deployment. */
       right_sizing?: components["schemas"]["AppRightSizingSpec"];
       /** Format: int64 */
       termination_grace_period_seconds?: number;
@@ -6817,9 +5917,6 @@ export interface components {
       /** Format: date-time */
       expires_at?: string;
     };
-    ImagePinListResponse: {
-      pins: components["schemas"]["ImagePin"][];
-    };
     ImagePinResponse: {
       pin: components["schemas"]["ImagePin"];
     };
@@ -6957,15 +6054,6 @@ export interface components {
       /** Format: int64 */
       total_blob_bytes?: number;
       referenced_blobs?: string[];
-      /** @description Child manifest digests referenced by an OCI index or Docker manifest list. */
-      referenced_manifests?: string[];
-      /**
-       * @description Whether the node-local manifest graph was completely verified. Legacy reports that omit this field are treated as complete.
-       * @enum {string}
-       */
-      graph_status?: "complete" | "incomplete";
-      /** @description Bounded, machine-readable attribution for an incomplete graph. Raw filesystem paths, registry responses, and manifest bodies are never reported through this field. */
-      graph_failure_reason?: components["schemas"]["ImageMeasurementReason"];
       /** Format: date-time */
       created_at_observed?: string;
       /** Format: date-time */
@@ -7010,7 +6098,6 @@ export interface components {
       /** Format: int64 */
       planned_delete_bytes?: number;
       referenced_blobs?: string[];
-      referenced_manifests?: string[];
       /** Format: int32 */
       referenced_blob_count?: number;
       /** Format: int64 */
@@ -7198,27 +6285,7 @@ export interface components {
       discovery_bundle: components["schemas"]["DiscoveryBundle"];
       node_policy?: components["schemas"]["ClusterNodePolicyStatus"];
       edge_credential?: components["schemas"]["NodeUpdaterEdgeCredential"];
-      cluster_rejoin?: components["schemas"]["NodeUpdaterClusterRejoin"];
       warnings?: string[];
-    };
-    NodeUpdaterClusterRejoin: {
-      /** @enum {string} */
-      status: "not_required" | "credential_ready" | "suppressed" | "unavailable";
-      reason: string;
-      node_name?: string;
-      /** Format: date-time */
-      observed_at: string;
-      credential?: components["schemas"]["NodeUpdaterClusterRejoinCredential"];
-    };
-    NodeUpdaterClusterRejoinCredential: {
-      /** @enum {string} */
-      class: "short_lived_kubernetes_bootstrap_token";
-      /** @description Short-lived Kubernetes bootstrap token bound to the authenticated node updater. */
-      token: string;
-      token_id: string;
-      generation: string;
-      /** Format: date-time */
-      expires_at: string;
     };
     NodeUpdaterEdgeCredential: {
       edge_id: string;
@@ -7777,23 +6844,6 @@ export interface components {
       operation?: components["schemas"]["Operation"];
       already_current: boolean;
     };
-    ManagedPostgresResizeResources: {
-      /** Format: int64 */
-      cpu_millicores: number;
-      /** Format: int64 */
-      memory_mebibytes: number;
-      /** Format: int64 */
-      cpu_limit_millicores: number;
-      /** Format: int64 */
-      memory_limit_mebibytes: number;
-    };
-    ManagedPostgresResizeRequest: {
-      runtime_resources: components["schemas"]["ManagedPostgresResizeResources"];
-    };
-    BackingServiceResizeResponse: {
-      backing_service: components["schemas"]["BackingService"];
-      operation: components["schemas"]["Operation"];
-    };
     ManagedPostgresOrphanBackingServiceSummary: {
       id: string;
       name: string;
@@ -7802,9 +6852,6 @@ export interface components {
       service_name?: string;
       storage_size?: string;
       suspended: boolean;
-      runtime_phase?: string;
-      ready_instances?: number;
-      desired_instances?: number;
     };
     ManagedPostgresOrphanSummary: {
       app_id: string;
@@ -7815,10 +6862,6 @@ export interface components {
       managed_app_name: string;
       phase: string;
       message?: string;
-      actionable: boolean;
-      /** @enum {string} */
-      validation_status: "ready" | "reconciling" | "conflict" | "unavailable";
-      validation_message?: string;
       backing_services: components["schemas"]["ManagedPostgresOrphanBackingServiceSummary"][];
     };
     ManagedPostgresOrphanListResponse: {
@@ -7829,24 +6872,9 @@ export interface components {
       backing_services: components["schemas"]["BackingService"][];
       already_adopted: boolean;
     };
-    ManagedPostgresOrphanLifecycleResponse: {
-      orphan: components["schemas"]["ManagedPostgresOrphanSummary"];
-      already_current: boolean;
-    };
-    ManagedPostgresOrphanDeleteRequest: {
-      confirm_app_id: string;
-      backup_artifact_id: string;
-    };
-    ManagedPostgresOrphanDeleteResponse: {
-      deleted: boolean;
-      deletion_requested: boolean;
-      app_id: string;
-    };
     BackingServiceMigrateResponse: {
       backing_service: components["schemas"]["BackingService"];
       already_current: boolean;
-      dry_run?: boolean;
-      target_runtime_id?: string;
       operation?: components["schemas"]["Operation"];
     };
     AppListResponse: {
@@ -7872,7 +6900,6 @@ export interface components {
     AppPatchResponse: {
       app: components["schemas"]["App"];
       already_current: boolean;
-      /** @description Workload operation created by patches that change runtime state. Omitted for synchronous control-plane-only patches such as right-sizing policy. */
       operation?: components["schemas"]["Operation"];
     };
     InspectGitHubTemplateRequest: {
@@ -7999,60 +7026,6 @@ export interface components {
       update_existing?: boolean;
       delete_missing?: boolean;
       dry_run?: boolean;
-    };
-    SourceUploadSessionCreateRequest: {
-      request_id: string;
-      tenant_id?: string;
-      filename: string;
-      /** Format: int64 */
-      size_bytes: number;
-      sha256: string;
-    };
-    SourceUploadChunkRequest: {
-      sha256: string;
-      /** Format: byte */
-      data: string;
-    };
-    SourceUploadSession: {
-      /** @enum {integer} */
-      schema_version: 1;
-      id: string;
-      request_id: string;
-      tenant_id: string;
-      project_id?: string;
-      actor_type?: string;
-      actor_id?: string;
-      filename: string;
-      /** Format: int64 */
-      size_bytes: number;
-      sha256: string;
-      chunk_size: number;
-      /** @description Zero based chunk index to verified SHA256; contains no archive bytes. */
-      chunks?: {
-        [key: string]: string;
-      };
-      /** @enum {string} */
-      state: "uploading" | "ready" | "submitting" | "submitted" | "rejected" | "unknown" | "expired";
-      upload_id?: string;
-      request_hash?: string;
-      operation_ids?: string[];
-      app_ids?: string[];
-      response_status?: number;
-      /** Format: date-time */
-      created_at: string;
-      /** Format: date-time */
-      updated_at: string;
-      /** Format: date-time */
-      expires_at: string;
-    };
-    SourceUploadSessionResponse: {
-      session: components["schemas"]["SourceUploadSession"];
-    };
-    SourceUploadSubmitResponse: {
-      session: components["schemas"]["SourceUploadSession"];
-      result?: components["schemas"]["ImportUploadResponse"];
-      replayed?: boolean;
-      error?: components["schemas"]["ErrorResponse"];
     };
     ImportUploadRequest: {
       app_id?: string;
@@ -8423,8 +7396,6 @@ export interface components {
       trace_id?: string;
       request_id?: string;
       route?: string;
-      /** @description Redacted HTTP request path without query string or fragment when the producer supplied one. */
-      path?: string;
       method?: string;
       /** Format: int32 */
       status_code?: number;
@@ -8468,159 +7439,6 @@ export interface components {
       evidence: string[];
       next_actions: string[];
     };
-    AppDiagnosticSessionStartRequest: {
-      /**
-       * @default cpu-profile
-       * @enum {string}
-       */
-      kind?: "cpu-profile";
-      /**
-       * Format: int32
-       * @default 60
-       */
-      duration_seconds?: number;
-      /**
-       * Format: int32
-       * @default 19
-       */
-      frequency_hz?: number;
-      pod?: string;
-      container?: string;
-    };
-    AppDiagnosticSession: {
-      id: string;
-      app_id: string;
-      kind: string;
-      /** @enum {string} */
-      status: "queued" | "running" | "succeeded" | "failed";
-      target_pod: string;
-      target_container: string;
-      target_node: string;
-      /** Format: int32 */
-      duration_seconds: number;
-      /** Format: int32 */
-      frequency_hz: number;
-      /** Format: date-time */
-      created_at: string;
-      /** Format: date-time */
-      started_at?: string;
-      /** Format: date-time */
-      finished_at?: string;
-      /** Format: date-time */
-      expires_at?: string;
-      failure_reason?: string;
-    };
-    AppDiagnosticSessionResponse: {
-      session: components["schemas"]["AppDiagnosticSession"];
-    };
-    AppDiagnosticSessionListResponse: {
-      sessions: components["schemas"]["AppDiagnosticSession"][];
-    };
-    AppDiagnosticSessionCancelResponse: {
-      session: components["schemas"]["AppDiagnosticSession"];
-      canceled: boolean;
-    };
-    AppDiagnosticReportResponse: {
-      session: components["schemas"]["AppDiagnosticSession"];
-      /** @description Versioned report emitted by the selected digest-addressed diagnostic probe. */
-      report: {
-        [key: string]: unknown;
-      };
-    };
-    PlatformDiagnosticTargetRequest: {
-      /** @enum {string} */
-      type: "platform_component" | "node_process";
-      /** @description Fugue component label. Required for platform_component targets. */
-      component?: string;
-      /** @description Optional Fugue system namespace; defaults to the control-plane namespace. */
-      namespace?: string;
-      /** @description Optional exact Pod name within the trusted component selector. */
-      pod?: string;
-      /** @description Required when the selected platform Pod contains multiple containers. */
-      container?: string;
-      /** @description Required for node_process targets. */
-      node?: string;
-      /** @description Required allowlisted Fugue or k3s process name for node_process targets. */
-      process_name?: string;
-    };
-    PlatformDiagnosticSessionStartRequest: {
-      target: components["schemas"]["PlatformDiagnosticTargetRequest"];
-      /**
-       * @default cpu-profile
-       * @enum {string}
-       */
-      kind?: "cpu-profile" | "memory-profile" | "process-snapshot";
-      /**
-       * Format: int32
-       * @default 60
-       */
-      duration_seconds?: number;
-      /**
-       * Format: int32
-       * @default 19
-       */
-      frequency_hz?: number;
-      /**
-       * Format: int32
-       * @default 1000
-       */
-      sample_interval_milliseconds?: number;
-    };
-    PlatformDiagnosticTarget: {
-      /** @enum {string} */
-      type: "platform_component" | "node_process";
-      app_id?: string;
-      component?: string;
-      namespace?: string;
-      pod?: string;
-      pod_uid?: string;
-      container?: string;
-      node: string;
-      process_name?: string;
-      image_digest?: string;
-    };
-    PlatformDiagnosticSession: {
-      id: string;
-      /** @enum {string} */
-      kind: "cpu-profile" | "memory-profile" | "process-snapshot";
-      /** @enum {string} */
-      status: "queued" | "running" | "succeeded" | "failed";
-      target: components["schemas"]["PlatformDiagnosticTarget"];
-      /** @enum {string} */
-      control_path: "api" | "direct-kubernetes";
-      /** Format: int32 */
-      duration_seconds: number;
-      /** Format: int32 */
-      frequency_hz: number;
-      /** Format: int32 */
-      sample_interval_milliseconds: number;
-      /** Format: date-time */
-      created_at: string;
-      /** Format: date-time */
-      started_at?: string;
-      /** Format: date-time */
-      finished_at?: string;
-      /** Format: date-time */
-      expires_at?: string;
-      failure_reason?: string;
-    };
-    PlatformDiagnosticSessionResponse: {
-      session: components["schemas"]["PlatformDiagnosticSession"];
-    };
-    PlatformDiagnosticSessionListResponse: {
-      sessions: components["schemas"]["PlatformDiagnosticSession"][];
-    };
-    PlatformDiagnosticSessionCancelResponse: {
-      session: components["schemas"]["PlatformDiagnosticSession"];
-      canceled: boolean;
-    };
-    PlatformDiagnosticReportResponse: {
-      session: components["schemas"]["PlatformDiagnosticSession"];
-      /** @description Versioned report emitted by the digest-addressed diagnostic runner. */
-      report: {
-        [key: string]: unknown;
-      };
-    };
     AppObservabilityMetricsSummaryResponse: {
       source: components["schemas"]["ObservabilitySourceStatus"];
       window: components["schemas"]["ObservabilityWindow"];
@@ -8641,18 +7459,6 @@ export interface components {
       source: components["schemas"]["ObservabilitySourceStatus"];
       window: components["schemas"]["ObservabilityWindow"];
       requests: components["schemas"]["ObservabilityRequestSummary"][];
-    };
-    AppEdgeRouteDecisionEvidenceResponse: {
-      source: components["schemas"]["ObservabilitySourceStatus"];
-      app_id: string;
-      domain: string;
-      window: components["schemas"]["ObservabilityWindow"];
-      decisions: {
-          [key: string]: unknown;
-        }[];
-      missing_links: {
-          [key: string]: unknown;
-        }[];
     };
     AppObservabilityTraceResponse: {
       source: components["schemas"]["ObservabilitySourceStatus"];
@@ -8931,53 +7737,13 @@ export interface components {
       operation: components["schemas"]["Operation"];
       build: components["schemas"]["RebuildPlan"];
     };
-    AppRuntimeCheck: {
-      kind: string;
-      key?: string;
-      pod?: string;
-      /** @enum {string} */
-      state: "in_sync" | "drifted" | "unknown" | "not_configured";
-      source: string;
-      desired_sha256?: string;
-      observed_sha256?: string;
-      reason?: string;
-    };
-    AppRuntimeStateResponse: {
-      /** @enum {integer} */
-      schema_version: 1;
-      app_id: string;
-      namespace: string;
-      desired_spec_hash: string;
-      desired_source: string;
-      /** Format: date-time */
-      observed_at: string;
-      /** @enum {string} */
-      state: "in_sync" | "drifted" | "inconclusive" | "inactive";
-      ready_pods: string[];
-      endpoint_pods: string[];
-      pod_uids: {
-        [key: string]: string;
-      };
-      revisions: {
-        [key: string]: string;
-      };
-      pending_operations: string[];
-      checks: components["schemas"]["AppRuntimeCheck"][];
-      missing_evidence: string[];
-    };
     AppRestartResponse: {
-      /** @description SHA-256 of the exact desired spec accepted for this restart */
-      desired_spec_hash?: string;
       operation: components["schemas"]["Operation"];
       restart_token: string;
     };
     AppContinuityResponse: {
       app_failover?: components["schemas"]["AppFailoverSpec"];
       zero_downtime?: components["schemas"]["AppZeroDowntimePolicy"];
-      /** @description Whether zero-downtime protection is effective, including the default protection for serving apps. */
-      zero_downtime_effective?: boolean;
-      /** @description Effective requirement source. service-default applies to every app with a Service and positive replicas; service-policy identifies an explicitly configured advanced continuity policy. */
-      zero_downtime_source?: string;
       database?: components["schemas"]["AppPostgresSpec"];
       already_current?: boolean;
       operation?: components["schemas"]["Operation"];
@@ -9232,8 +7998,6 @@ export interface components {
     };
     GateBlastRadiusPolicy: {
       /** Format: int32 */
-      max_apps?: number;
-      /** Format: int32 */
       max_nodes?: number;
       /** Format: int32 */
       max_edges_per_group?: number;
@@ -9248,7 +8012,7 @@ export interface components {
       /** @enum {string} */
       mode: "shadow" | "canary" | "enforced" | "disabled";
       /** @enum {string} */
-      scope: "cluster" | "app" | "node" | "edge-node" | "edge-group" | "hostname" | "service" | "runtime";
+      scope: "cluster" | "node" | "edge-node" | "edge-group" | "hostname" | "service" | "runtime";
       /** @enum {string} */
       default_mode?: "shadow" | "canary" | "enforced" | "disabled";
       /** Format: date-time */
@@ -9368,7 +8132,6 @@ export interface components {
       request_id: string;
       found: boolean;
       error_class?: string;
-      failure_plane?: string;
       edge_id?: string;
       edge_group_id?: string;
       runtime_node?: string;
@@ -9399,8 +8162,6 @@ export interface components {
       origin_dns_ms?: number;
       /** Format: int64 */
       origin_connect_ms?: number;
-      /** Format: int64 */
-      origin_endpoint_connect_ms?: number;
       /** Format: int64 */
       origin_request_write_ms?: number;
       /** Format: int64 */
@@ -9555,297 +8316,6 @@ export interface components {
       mode?: string;
       implementation_ref?: string;
       summary?: string;
-    };
-    AutomationScope: {
-      type: string;
-      id?: string;
-    };
-    AutomationTrigger: {
-      /** @enum {string} */
-      type: "invariant" | "request_metric" | "synthetic_probe" | "event" | "schedule";
-      source: string;
-      invariant_id?: string;
-      request_metric?: components["schemas"]["AutomationRequestMetricSelector"];
-      required_evidence?: string[];
-      /** Format: int32 */
-      minimum_samples?: number;
-      /** Format: int32 */
-      minimum_failure_domains?: number;
-    };
-    AutomationRequestMetricSelector: {
-      metric: string;
-      window: string;
-      status_codes?: number[];
-      error_classes?: string[];
-    };
-    AutomationAction: {
-      type: string;
-      parameters?: {
-        [key: string]: string;
-      };
-    };
-    AutomationSafetyPolicy: {
-      action_contract_id: string;
-      gate_policy_id: string;
-      ttl: string;
-      blast_radius?: components["schemas"]["GateBlastRadiusPolicy"];
-      recovery_condition: string;
-      rollback_action: string;
-      requires_rollback_target?: boolean;
-      requires_audit?: boolean;
-      requires_wal?: boolean;
-      requires_idempotency_key?: boolean;
-      requires_fencing_token?: boolean;
-    };
-    AutomationRule: {
-      id: string;
-      description?: string;
-      trigger: components["schemas"]["AutomationTrigger"];
-      action: components["schemas"]["AutomationAction"];
-      safety: components["schemas"]["AutomationSafetyPolicy"];
-    };
-    AutomationPolicy: {
-      id: string;
-      tenant_id?: string;
-      project_id?: string;
-      name: string;
-      description?: string;
-      /** @enum {string} */
-      kind: "managed_system" | "app_recovery";
-      /** @enum {string} */
-      owner_type: "system" | "user";
-      scope: components["schemas"]["AutomationScope"];
-      /** @enum {string} */
-      mode: "shadow" | "canary" | "enforced" | "disabled";
-      /** Format: int32 */
-      priority?: number;
-      managed: boolean;
-      source_ref?: string;
-      rules: components["schemas"]["AutomationRule"][];
-      /** Format: int64 */
-      generation: number;
-      metadata?: {
-        [key: string]: string;
-      };
-      /** Format: date-time */
-      created_at: string;
-      /** Format: date-time */
-      updated_at: string;
-    };
-    AutomationPolicyListResponse: {
-      policies: components["schemas"]["AutomationPolicy"][];
-      /** Format: date-time */
-      generated_at: string;
-    };
-    AutomationPolicyResponse: {
-      policy: components["schemas"]["AutomationPolicy"];
-    };
-    AutomationTriggerInput: {
-      /** @enum {string} */
-      type: "request_metric";
-      /** @enum {string} */
-      source: "app_request_outcomes";
-      request_metric: components["schemas"]["AutomationRequestMetricSelector"];
-      required_evidence?: string[];
-      /** Format: int32 */
-      minimum_samples?: number;
-      /** Format: int32 */
-      minimum_failure_domains?: number;
-    };
-    AutomationActionInput: {
-      /** @enum {string} */
-      type: "restart_app";
-      parameters?: {
-        reason?: string;
-      };
-    };
-    AutomationRuleInput: {
-      id: string;
-      description?: string;
-      trigger: components["schemas"]["AutomationTriggerInput"];
-      action: components["schemas"]["AutomationActionInput"];
-    };
-    CreateAutomationPolicyRequest: {
-      tenant_id?: string;
-      project_id?: string;
-      name: string;
-      description?: string;
-      /** @enum {string} */
-      kind: "app_recovery";
-      scope: components["schemas"]["AutomationScope"];
-      /** @enum {string} */
-      mode: "disabled" | "shadow";
-      /** Format: int32 */
-      priority?: number;
-      source_ref?: string;
-      rules: components["schemas"]["AutomationRuleInput"][];
-      metadata?: {
-        [key: string]: string;
-      };
-    };
-    UpdateAutomationPolicyRequest: {
-      /** Format: int64 */
-      expected_generation: number;
-      name: string;
-      description?: string;
-      /** @enum {string} */
-      mode: "disabled" | "shadow";
-      /** Format: int32 */
-      priority?: number;
-      source_ref?: string;
-      rules: components["schemas"]["AutomationRuleInput"][];
-      metadata?: {
-        [key: string]: string;
-      };
-    };
-    DeleteAutomationPolicyResponse: {
-      deleted: boolean;
-      policy: components["schemas"]["AutomationPolicy"];
-    };
-    AutomationRequestOutcomeAggregate: {
-      /** Format: int32 */
-      status_code: number;
-      /** Format: int64 */
-      count: number;
-      failure_domain?: string;
-    };
-    EvaluateAutomationPolicyRequest: {
-      policy_id: string;
-      /** Format: int64 */
-      expected_generation: number;
-      rule_id: string;
-      /** Format: date-time */
-      window_started_at: string;
-      /** Format: date-time */
-      window_ended_at: string;
-      request_outcomes: components["schemas"]["AutomationRequestOutcomeAggregate"][];
-    };
-    AutomationEvaluationEvidence: {
-      /** @enum {string} */
-      collected_by: "admin_replay" | "control_loop";
-      trusted: boolean;
-      /** Format: date-time */
-      window_started_at: string;
-      /** Format: date-time */
-      window_ended_at: string;
-      request_outcomes: components["schemas"]["AutomationRequestOutcomeAggregate"][];
-      app_revision: string;
-      app_readiness: string;
-      /** Format: date-time */
-      app_readiness_observed_at: string;
-    };
-    AutomationEvaluationDecision: {
-      policy_id: string;
-      /** Format: int64 */
-      policy_generation: number;
-      rule_id: string;
-      scope: components["schemas"]["AutomationScope"];
-      /** @enum {string} */
-      mode: "disabled" | "shadow";
-      matched: boolean;
-      would_action: boolean;
-      /** @enum {boolean} */
-      production_mutation_allowed: false;
-      /** Format: int64 */
-      matching_samples: number;
-      failure_domains: string[];
-      evidence_hash: string;
-      reason_codes: string[];
-      /** Format: date-time */
-      evaluated_at: string;
-    };
-    AutomationActionIntent: {
-      id: string;
-      tenant_id: string;
-      project_id: string;
-      policy_id: string;
-      /** Format: int64 */
-      policy_generation: number;
-      rule_id: string;
-      scope: components["schemas"]["AutomationScope"];
-      /** @enum {string} */
-      mode: "shadow";
-      /** @enum {string} */
-      source: "admin_replay" | "control_loop";
-      /** @enum {string} */
-      status: "observed";
-      rule_snapshot: components["schemas"]["AutomationRule"];
-      evidence: components["schemas"]["AutomationEvaluationEvidence"];
-      decision: components["schemas"]["AutomationEvaluationDecision"];
-      evidence_hash: string;
-      idempotency_key: string;
-      rollback_target: string;
-      /** @enum {boolean} */
-      production_mutation_allowed: false;
-      /** Format: date-time */
-      expires_at: string;
-      /** Format: date-time */
-      created_at: string;
-      /** Format: date-time */
-      updated_at: string;
-    };
-    AutomationActionIntentListResponse: {
-      intents: components["schemas"]["AutomationActionIntent"][];
-      /** Format: date-time */
-      generated_at: string;
-    };
-    AutomationActionIntentResponse: {
-      intent: components["schemas"]["AutomationActionIntent"];
-    };
-    AutomationActionDispatch: {
-      id: string;
-      intent_id: string;
-      tenant_id: string;
-      project_id: string;
-      policy_id: string;
-      /** Format: int64 */
-      policy_generation: number;
-      rule_id: string;
-      scope: components["schemas"]["AutomationScope"];
-      action_type: string;
-      contract_id: string;
-      trigger_invariant: string;
-      subject: string;
-      source_generation: string;
-      rollback_target: string;
-      idempotency_key: string;
-      wal_hash: string;
-      safety_decision: components["schemas"]["ActionSafetyDecision"];
-      /** @enum {string} */
-      status: "held" | "ready" | "claimed" | "executing" | "succeeded" | "failed" | "rolled_back" | "expired" | "cancelled";
-      /** Format: int64 */
-      fencing_token: number;
-      /** Format: int64 */
-      version: number;
-      /** Format: date-time */
-      expires_at: string;
-      lease_owner?: string;
-      /** Format: date-time */
-      lease_expires_at?: string | null;
-      /** Format: date-time */
-      cooldown_until?: string | null;
-      last_error?: string;
-      /** Format: date-time */
-      created_at: string;
-      /** Format: date-time */
-      updated_at: string;
-      /** Format: date-time */
-      claimed_at?: string | null;
-      /** Format: date-time */
-      completed_at?: string | null;
-    };
-    AutomationActionDispatchListResponse: {
-      dispatches: components["schemas"]["AutomationActionDispatch"][];
-      /** Format: date-time */
-      generated_at: string;
-    };
-    AutomationActionDispatchResponse: {
-      dispatch: components["schemas"]["AutomationActionDispatch"];
-    };
-    AutomationEvaluationResponse: {
-      decision: components["schemas"]["AutomationEvaluationDecision"];
-      intent?: components["schemas"]["AutomationActionIntent"];
-      intent_created: boolean;
     };
     AutomaticActionContract: {
       id: string;
@@ -10360,6 +8830,7 @@ export interface components {
       /** Format: date-time */
       updated_at: string;
     };
+    /** @description For artifact_kind node_desired_state with scope key production/cluster-dns, content must conform to NodeLocalDNSMembershipDocument; the server binds audit.actor_type and audit.actor_id to the authenticated creator, and runtime validation also enforces cross-generation, LKG, disjoint identity, and one-node transition invariants. */
     PlatformArtifactCreateRequest: {
       artifact_kind: string;
       scope?: components["schemas"]["PlatformArtifactScope"];
@@ -10406,6 +8877,7 @@ export interface components {
       release_channel?: "shadow" | "gray" | "full";
       to_generation: string;
       reason: string;
+      idempotency_key?: string;
       /** @description Skips non-kernel artifact validation only. */
       soft_override?: boolean;
       /**
@@ -10433,11 +8905,11 @@ export interface components {
       local_probe_state?: "pass" | "fail" | "unknown" | "stale";
       /**
        * @deprecated
-       * @description Legacy compatibility field. Prefer platform_evidence_state.
+       * @description Legacy compatibility field. Prefer public_synthetic_state.
        */
-      platform_evidence?: boolean;
+      public_synthetic?: boolean;
       /** @enum {string} */
-      platform_evidence_state?: "pass" | "fail" | "unknown" | "stale";
+      public_synthetic_state?: "pass" | "fail" | "unknown" | "stale";
       /**
        * @deprecated
        * @description Legacy compatibility field. Prefer watch_window_state.
@@ -10559,6 +9031,7 @@ export interface components {
       release: components["schemas"]["PlatformArtifactRelease"];
       message: components["schemas"]["PlatformReleaseMessage"];
       lkg?: components["schemas"]["PlatformLKGSnapshot"];
+      expected_consumer_set?: components["schemas"]["PlatformExpectedConsumerSet"];
     };
     PlatformArtifactConsumersResponse: {
       consumers: components["schemas"]["PlatformConsumerInstance"][];
@@ -10578,8 +9051,53 @@ export interface components {
       release?: components["schemas"]["PlatformArtifactRelease"];
       messages: components["schemas"]["PlatformReleaseMessage"][];
       lkg?: components["schemas"]["PlatformLKGSnapshot"];
+      expected_consumer_set?: components["schemas"]["PlatformExpectedConsumerSet"];
       generation?: string;
       waited: boolean;
+    };
+    NodeLocalDNSNodeIdentity: {
+      fugue_node_id: string;
+      kubernetes_name: string;
+      expected_kubernetes_uid: string;
+    };
+    /** @description Immutable membership contract for node_desired_state at production/cluster-dns. The server additionally enforces identity disjointness and transition/LKG ordering that JSON Schema cannot express. */
+    NodeLocalDNSMembershipDocument: {
+      /** @enum {string} */
+      contract_kind: "node_local_dns_membership";
+      /** @enum {string} */
+      contract_version: "nodelocal-membership-v1";
+      generation: string;
+      base_generation: string;
+      previous_generation: string;
+      rollback_generation: string;
+      compatibility: {
+        /** @enum {string} */
+        controller_floor: "nodelocal-membership-v1";
+        workload_contract_digest: string;
+      };
+      transition: {
+        /** @enum {string} */
+        type: "noop" | "add_one_shadow" | "workload_contract_update" | "enforcement_update";
+        node?: components["schemas"]["NodeLocalDNSNodeIdentity"];
+      };
+      desired: {
+        /** @enum {string} */
+        active_mode: "shadow";
+        /** @enum {string} */
+        preserved_mode: "iptables";
+        active_shadow: components["schemas"]["NodeLocalDNSNodeIdentity"][];
+        preserved_iptables: components["schemas"]["NodeLocalDNSNodeIdentity"][];
+      };
+      enforcement: {
+        /** @enum {string} */
+        mode: "report_only" | "enforced";
+      };
+      audit: {
+        actor_type: string;
+        actor_id: string;
+        reason: string;
+        change_id: string;
+      };
     };
     PlatformConsumerHeartbeatResponse: {
       consumer: components["schemas"]["PlatformConsumerInstance"];
@@ -10823,7 +9341,6 @@ export interface components {
   };
   parameters: {
     IdPathParam: string;
-    DiagnosticSessionIdPathParam: string;
     TenantIdPathParam: string;
     RuntimeIdPathParam: string;
     TenantIdQueryParam?: string;
@@ -10846,8 +9363,6 @@ export interface components {
     UntilQueryParam?: string;
     TraceIdQueryParam?: string;
     RequestIdQueryParam?: string;
-    /** @description Exact redacted HTTP request path. Query strings and fragments are not accepted or returned. */
-    ObservabilityRequestPathQueryParam?: string;
     StatusClassQueryParam?: "1xx" | "2xx" | "3xx" | "4xx" | "5xx";
     StatusCodeQueryParam?: number;
     /** @description Maximum request summaries returned per query or stream batch. */
@@ -11042,20 +9557,23 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /**
-   * Edge Route Intents
-   * @description Returns Core's inventory-independent desired-route projection. Only the edge-control component identity with global edge_route_intent capability is accepted; tenant and platform-admin API keys are not accepted.
-   */
-  edgeRouteIntents: {
+  /** Edge Routes */
+  edgeRoutes: {
+    parameters: {
+      query?: {
+        edge_id?: string;
+        edge_group_id?: string;
+      };
+    };
     responses: {
       /** @description Successful response */
       200: {
         headers: {
           ETag?: string;
-          "X-Fugue-Route-Intent-Generation"?: string;
+          "X-Fugue-Route-Bundle-Version"?: string;
         };
         content: {
-          "application/json": components["schemas"]["EdgeRouteIntentSnapshot"];
+          "application/json": components["schemas"]["EdgeRouteBundle"];
         };
       };
       default: components["responses"]["ErrorResponse"];
@@ -11185,198 +9703,6 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  adminGetEdgeActivation: {
-    responses: {
-      /** @description Durable edge activation state and instance inventory */
-      200: {
-        content: {
-          "application/json": Record<string, never>;
-        };
-      };
-    };
-  };
-  adminAdvanceEdgeActivation: {
-    requestBody: {
-      content: {
-        "application/json": Record<string, never>;
-      };
-    };
-    responses: {
-      /** @description Edge activation phase advanced with a durable receipt */
-      200: {
-        content: {
-          "application/json": Record<string, never>;
-        };
-      };
-    };
-  };
-  /**
-   * Inspect real Edge Control authority projections
-   * @description Read-only diagnostic view of the Edge Control group authority. This endpoint never synthesizes Edge nodes or ACKs from DNS state.
-   */
-  adminListEdgeAuthorities: {
-    parameters: {
-      query?: {
-        edge_group_id?: string;
-      };
-    };
-    responses: {
-      /** @description Edge Control authority projections */
-      200: {
-        content: {
-          "application/json": components["schemas"]["EdgeAuthorityReadResponse"];
-        };
-      };
-      /** @description Requested authority group is not configured */
-      404: {
-        content: {
-          "application/json": components["schemas"]["ErrorResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  adminAdvanceEdgeRemediation: {
-    requestBody: {
-      content: {
-        "application/json": Record<string, never>;
-      };
-    };
-    responses: {
-      /** @description Bounded inactive Edge remediation action advanced with a durable fence */
-      200: {
-        content: {
-          "application/json": Record<string, never>;
-        };
-      };
-    };
-  };
-  /** List staged and revoked emergency traffic overrides */
-  adminListTrafficOverrides: {
-    responses: {
-      /** @description Independent emergency traffic override inventory */
-      200: {
-        content: {
-          "application/json": components["schemas"]["TrafficOverrideListResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /** Get one emergency traffic override */
-  adminGetTrafficOverride: {
-    parameters: {
-      path: {
-        hostname: string;
-      };
-    };
-    responses: {
-      /** @description Emergency traffic override */
-      200: {
-        content: {
-          "application/json": components["schemas"]["TrafficOverrideResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /**
-   * Stage a signed emergency traffic override
-   * @description Stores a signed override independently from the normal TrafficEpoch and release state machines. Each candidate answer is verified against every required TLS/SNI/Host route before signing. Staged overrides are not served until the separate overlay activation path is enabled.
-   */
-  adminPutTrafficOverride: {
-    parameters: {
-      path: {
-        hostname: string;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["TrafficOverridePutRequest"];
-      };
-    };
-    responses: {
-      /** @description Signed staged emergency traffic override */
-      200: {
-        content: {
-          "application/json": components["schemas"]["TrafficOverrideResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /** Revoke an emergency traffic override with CAS */
-  adminRevokeTrafficOverride: {
-    parameters: {
-      path: {
-        hostname: string;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["TrafficOverrideRevokeRequest"];
-      };
-    };
-    responses: {
-      /** @description Signed revoked emergency traffic override */
-      200: {
-        content: {
-          "application/json": components["schemas"]["TrafficOverrideResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /** Inspect emergency traffic override signing key metadata */
-  adminGetTrafficOverrideSigningKey: {
-    responses: {
-      /** @description Signing key metadata without secret key material */
-      200: {
-        content: {
-          "application/json": components["schemas"]["TrafficOverrideSigningKeyResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /** Rotate the emergency traffic override signing key with CAS */
-  adminRotateTrafficOverrideSigningKey: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["TrafficOverrideSigningKeyRotateRequest"];
-      };
-    };
-    responses: {
-      /** @description Rotated signing key metadata without secret key material */
-      200: {
-        content: {
-          "application/json": components["schemas"]["TrafficOverrideSigningKeyResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /** Get fail-closed platform release evidence for an active Edge epoch */
-  adminGetPlatformReleaseEvidence: {
-    parameters: {
-      query: {
-        release_epoch: string;
-        /** @description Bounded request evidence window from 1m through 30m. */
-        window?: string;
-      };
-    };
-    responses: {
-      /** @description Typed active-cohort, route, origin, link, and latency evidence. */
-      200: {
-        content: {
-          "application/json": {
-            [key: string]: unknown;
-          };
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
   /** Admin Get Edge Node Desired State */
   adminGetEdgeNodeDesiredState: {
     parameters: {
@@ -11491,12 +9817,6 @@ export interface operations {
   };
   /** Edge Heartbeat */
   edgeHeartbeat: {
-    parameters: {
-      header?: {
-        /** @description Whether this worker slot is the traffic-serving slot selected by the node-local Edge Front authority. Older workers may omit the header during a rolling upgrade. */
-        "X-Fugue-Edge-Serving-Active"?: boolean;
-      };
-    };
     requestBody: {
       content: {
         "application/json": components["schemas"]["EdgeHeartbeatRequest"];
@@ -11566,10 +9886,6 @@ export interface operations {
   /** Delete Edge Route Policy */
   deleteEdgeRoutePolicy: {
     parameters: {
-      query?: {
-        expected_exclusion_generation?: number;
-        expected_exclusion_fence?: string;
-      };
       path: {
         hostname: string;
       };
@@ -11823,249 +10139,6 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** List Automation Policies */
-  listAutomationPolicies: {
-    parameters: {
-      query?: {
-        tenant_id?: string;
-        project_id?: string;
-        owner_type?: "system" | "user";
-      };
-    };
-    responses: {
-      /** @description Successful response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["AutomationPolicyListResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /** Get Automation Policy */
-  getAutomationPolicy: {
-    parameters: {
-      path: {
-        policy_id: string;
-      };
-    };
-    responses: {
-      /** @description Successful response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["AutomationPolicyResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /**
-   * Evaluate Automation Policy Replay
-   * @description Evaluate an administrator-supplied request-outcome window against the
-   * current policy generation. Any resulting intent is permanently
-   * observe-only and can never be consumed by a production action worker.
-   */
-  evaluateAutomationPolicyReplay: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["EvaluateAutomationPolicyRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["AutomationEvaluationResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /** List User Automation Policies */
-  listUserAutomationPolicies: {
-    parameters: {
-      query?: {
-        /** @description Platform-admin-only tenant filter. */
-        tenant_id?: string;
-        project_id?: string;
-      };
-    };
-    responses: {
-      /** @description Successful response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["AutomationPolicyListResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /** Create User Automation Policy */
-  createUserAutomationPolicy: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["CreateAutomationPolicyRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful response */
-      201: {
-        content: {
-          "application/json": components["schemas"]["AutomationPolicyResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /** Get User Automation Policy */
-  getUserAutomationPolicy: {
-    parameters: {
-      path: {
-        policy_id: string;
-      };
-    };
-    responses: {
-      /** @description Successful response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["AutomationPolicyResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /** Update User Automation Policy */
-  updateUserAutomationPolicy: {
-    parameters: {
-      path: {
-        policy_id: string;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["UpdateAutomationPolicyRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["AutomationPolicyResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /** Delete User Automation Policy */
-  deleteUserAutomationPolicy: {
-    parameters: {
-      query: {
-        expected_generation: number;
-      };
-      path: {
-        policy_id: string;
-      };
-    };
-    responses: {
-      /** @description Successful response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["DeleteAutomationPolicyResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /**
-   * List Automation Action Intents
-   * @description List append-only observe-only action intents visible to the credential.
-   */
-  listAutomationActionIntents: {
-    parameters: {
-      query?: {
-        /** @description Platform-admin-only tenant filter. */
-        tenant_id?: string;
-        project_id?: string;
-        policy_id?: string;
-        app_id?: string;
-        source?: "admin_replay" | "control_loop";
-        status?: "observed";
-        limit?: number;
-      };
-    };
-    responses: {
-      /** @description Successful response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["AutomationActionIntentListResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /** Get Automation Action Intent */
-  getAutomationActionIntent: {
-    parameters: {
-      path: {
-        intent_id: string;
-      };
-    };
-    responses: {
-      /** @description Successful response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["AutomationActionIntentResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /**
-   * List Automation Action Dispatches
-   * @description List read-only durable action dispatch records visible to the credential.
-   */
-  listAutomationActionDispatches: {
-    parameters: {
-      query?: {
-        /** @description Platform-admin-only tenant filter. */
-        tenant_id?: string;
-        project_id?: string;
-        policy_id?: string;
-        app_id?: string;
-        status?: "held" | "ready" | "claimed" | "executing" | "succeeded" | "failed" | "rolled_back" | "expired" | "cancelled";
-        limit?: number;
-      };
-    };
-    responses: {
-      /** @description Successful response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["AutomationActionDispatchListResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /**
-   * Get Automation Action Dispatch
-   * @description Get one read-only durable action dispatch record.
-   */
-  getAutomationActionDispatch: {
-    parameters: {
-      path: {
-        dispatch_id: string;
-      };
-    };
-    responses: {
-      /** @description Successful response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["AutomationActionDispatchResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
   /** List Automatic Action Contracts */
   listAutomaticActionContracts: {
     responses: {
@@ -12201,16 +10274,7 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /**
-   * Explain Request
-   * @description Platform-admin lookup of recorded request facts by edge request ID, application
-   * request ID, or trace ID. Reads per-request telemetry, including incomplete
-   * platform request facts stored as events; aggregate edge performance sample
-   * IDs are not request IDs. Only a unique matching request is attributed.
-   * Evidence identifies the source and lookup status. Missing records, disabled
-   * telemetry, unavailable query backends, and ambiguous identifiers remain
-   * explicitly unconfirmed; an empty lookup does not prove a request never ran.
-   */
+  /** Explain Request */
   explainRequest: {
     parameters: {
       query?: {
@@ -12406,7 +10470,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Validate Platform Artifact */
+  /**
+   * Validate Platform Artifact
+   * @description Validates a draft artifact. A validated or released NodeLocal DNS membership artifact is immutable; dry-run returns its persisted validation evidence and a mutating revalidation returns conflict.
+   */
   validatePlatformArtifact: {
     parameters: {
       path: {
@@ -12428,10 +10495,7 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /**
-   * Release Platform Artifact
-   * @description Platform administrators may use the normal artifact release policy.
-   */
+  /** Release Platform Artifact */
   releasePlatformArtifact: {
     parameters: {
       path: {
@@ -12552,7 +10616,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Pull Platform State Artifact */
+  /**
+   * Pull Platform State Artifact
+   * @description Platform-admin-only long poll for active immutable platform state. When current_generation is supplied, the request waits for the first artifact or a different generation up to wait_seconds. NodeLocal responses include the release-bound expected consumer set.
+   */
   getPlatformStateArtifact: {
     parameters: {
       query?: {
@@ -12775,29 +10842,6 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["DNSNodeListResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /**
-   * Get the independently signed DNS traffic override feed
-   * @description Returns active signed emergency traffic overrides for an authorized DNS node. The normal DNS bundle remains authoritative unless the optional overlay consumer is explicitly enabled on that node.
-   */
-  dnsTrafficOverrideFeed: {
-    parameters: {
-      query: {
-        token: string;
-        dns_node_id?: string;
-        edge_group_id?: string;
-        zone?: string;
-      };
-    };
-    responses: {
-      /** @description Active signed emergency traffic overrides */
-      200: {
-        content: {
-          "application/json": components["schemas"]["TrafficOverrideFeedResponse"];
         };
       };
       default: components["responses"]["ErrorResponse"];
@@ -13240,18 +11284,6 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Get Complete Console Project Snapshot */
-  getConsoleProjectsSnapshot: {
-    responses: {
-      /** @description Complete project cards, current resource rollups, and image usage from one consistent read. */
-      200: {
-        content: {
-          "application/json": components["schemas"]["ConsoleProjectsSnapshotResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
   /** Stream Console Gallery Changes */
   streamConsoleGallery: {
     parameters: {
@@ -13492,28 +11524,6 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["DeleteProjectRuntimeReservationResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /**
-   * List Billing Summaries
-   * @description Returns billing summaries for 1 to 500 requested tenants in one platform-admin request. Billing accruals and public-runtime counterparty credits commit atomically from a consistent ledger snapshot before summaries are returned. Tenants confirmed absent from the store are listed in missing_tenant_ids; other read failures fail the request.
-   */
-  listBillingSummaries: {
-    parameters: {
-      query: {
-        /** @description Comma-separated tenant IDs, at most 500 distinct values. Duplicate IDs are read once. */
-        tenant_ids: string;
-        include_current_usage?: boolean;
-      };
-    };
-    responses: {
-      /** @description Complete billing summaries. */
-      200: {
-        content: {
-          "application/json": components["schemas"]["BillingSummariesResponse"];
         };
       };
       default: components["responses"]["ErrorResponse"];
@@ -14431,18 +12441,6 @@ export interface operations {
   };
   /** List Backing Services */
   listBackingServices: {
-    parameters: {
-      query?: {
-        /** @description Exact tenant filter; administrator-only across tenants */
-        tenant_id?: string;
-        /** @description Exact project filter within authorized services */
-        project_id?: string;
-        /** @description Exact service ID, name or normalized name */
-        name?: string;
-        include_live_status?: boolean;
-        include_resource_usage?: boolean;
-      };
-    };
     responses: {
       /** @description Successful response */
       200: {
@@ -14528,83 +12526,6 @@ export interface operations {
       503: {
         content: {
           "application/json": components["schemas"]["ErrorResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /**
-   * Suspend A Retained Managed Postgres Orphan
-   * @description Platform-administrator lifecycle intent update for a retained orphan. The request is applied atomically to the ManagedApp spec and the controller performs the CNPG hibernation transition; no Fugue store record is created.
-   */
-  suspendManagedPostgresOrphan: {
-    parameters: {
-      path: {
-        app_id: string;
-      };
-    };
-    responses: {
-      /** @description Orphan was already requested suspended */
-      200: {
-        content: {
-          "application/json": components["schemas"]["ManagedPostgresOrphanLifecycleResponse"];
-        };
-      };
-      /** @description Suspension intent accepted */
-      202: {
-        content: {
-          "application/json": components["schemas"]["ManagedPostgresOrphanLifecycleResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /**
-   * Resume A Retained Managed Postgres Orphan
-   * @description Platform-administrator lifecycle intent update for a retained orphan. The request is applied atomically to the ManagedApp spec and the controller performs the CNPG resume transition; no Fugue store record is created.
-   */
-  resumeManagedPostgresOrphan: {
-    parameters: {
-      path: {
-        app_id: string;
-      };
-    };
-    responses: {
-      /** @description Orphan was already requested resumed */
-      200: {
-        content: {
-          "application/json": components["schemas"]["ManagedPostgresOrphanLifecycleResponse"];
-        };
-      };
-      /** @description Resume intent accepted */
-      202: {
-        content: {
-          "application/json": components["schemas"]["ManagedPostgresOrphanLifecycleResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /**
-   * Delete A Retained Managed Postgres Orphan
-   * @description Explicit platform-administrator deletion request. The exact app ID, an active backup artifact belonging to the orphan, current zero-workload storage evidence, and observed CNPG suspension are required before a foreground ManagedApp deletion is submitted.
-   */
-  deleteManagedPostgresOrphan: {
-    parameters: {
-      path: {
-        app_id: string;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["ManagedPostgresOrphanDeleteRequest"];
-      };
-    };
-    responses: {
-      /** @description Foreground deletion request accepted */
-      202: {
-        content: {
-          "application/json": components["schemas"]["ManagedPostgresOrphanDeleteResponse"];
         };
       };
       default: components["responses"]["ErrorResponse"];
@@ -14735,8 +12656,6 @@ export interface operations {
     parameters: {
       query?: {
         tenant_id?: components["parameters"]["TenantIdQueryParam"];
-        /** @description The summary view omits app environment values, generated environment definitions, inline files, command and args. Status, resource usage, sources and service bindings are retained. Use the full view or app detail when editing configuration. */
-        view?: "full" | "summary";
         project_id?: string;
         q?: string;
         domain?: string;
@@ -15436,19 +13355,13 @@ export interface operations {
   /** Redeploy App Image */
   redeployAppImage: {
     parameters: {
-      header?: {
-        /** @description Scoped to actor and app. Stored atomically with the operation; reusing the key with a different action, body or If-Match returns 409. Requires If-Match. */
-        "Idempotency-Key"?: string;
-        /** @description Quoted SHA-256 of the committed app spec. Atomically rejects changed intent or an active operation when supplied. */
-        "If-Match"?: string;
-      };
       path: {
         id: components["parameters"]["IdPathParam"];
       };
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["AppImageRedeployRequest"];
+        "application/json": components["schemas"]["AppImageActionRequest"];
       };
     };
     responses: {
@@ -15458,7 +13371,6 @@ export interface operations {
           "application/json": components["schemas"]["AppImageRedeployResponse"];
         };
       };
-      412: components["responses"]["ErrorResponse"];
       default: components["responses"]["ErrorResponse"];
     };
   };
@@ -15670,37 +13582,6 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /**
-   * Resize Managed Postgres Backing Service In Place
-   * @description Queues a dedicated in-place CPU and memory resize for one app-owned managed PostgreSQL service. The request must provide the complete runtime request and limit envelope; existing requests or limits cannot be removed. The operation only uses the Kubernetes Pod resize subresource and never falls back to deleting, evicting, redeploying, or patching the CNPG Cluster resource template.
-   */
-  resizeBackingService: {
-    parameters: {
-      path: {
-        id: components["parameters"]["IdPathParam"];
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["ManagedPostgresResizeRequest"];
-      };
-    };
-    responses: {
-      /** @description In-place resize operation accepted or exact active operation reused */
-      202: {
-        content: {
-          "application/json": components["schemas"]["BackingServiceResizeResponse"];
-        };
-      };
-      /** @description A conflicting database mutation blocks resize. */
-      409: {
-        content: {
-          "application/json": components["schemas"]["ErrorResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
   /** Migrate Backing Service */
   migrateBackingService: {
     parameters: {
@@ -15712,7 +13593,6 @@ export interface operations {
       content: {
         "application/json": {
           target_runtime_id: string;
-          dry_run?: boolean;
         };
       };
     };
@@ -16008,185 +13888,6 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** List App Diagnostic Sessions */
-  listAppDiagnosticSessions: {
-    parameters: {
-      path: {
-        id: components["parameters"]["IdPathParam"];
-      };
-    };
-    responses: {
-      /** @description Diagnostic sessions for the app. */
-      200: {
-        content: {
-          "application/json": components["schemas"]["AppDiagnosticSessionListResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /**
-   * Start App Diagnostic Session
-   * @description Starts a bounded, temporary, app-scoped diagnostic probe without modifying the app workload.
-   */
-  startAppDiagnosticSession: {
-    parameters: {
-      path: {
-        id: components["parameters"]["IdPathParam"];
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["AppDiagnosticSessionStartRequest"];
-      };
-    };
-    responses: {
-      /** @description Diagnostic session accepted. */
-      202: {
-        content: {
-          "application/json": components["schemas"]["AppDiagnosticSessionResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /** Get App Diagnostic Session */
-  getAppDiagnosticSession: {
-    parameters: {
-      path: {
-        id: components["parameters"]["IdPathParam"];
-        session_id: components["parameters"]["DiagnosticSessionIdPathParam"];
-      };
-    };
-    responses: {
-      /** @description Current diagnostic session state. */
-      200: {
-        content: {
-          "application/json": components["schemas"]["AppDiagnosticSessionResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /** Cancel App Diagnostic Session */
-  cancelAppDiagnosticSession: {
-    parameters: {
-      path: {
-        id: components["parameters"]["IdPathParam"];
-        session_id: components["parameters"]["DiagnosticSessionIdPathParam"];
-      };
-    };
-    responses: {
-      /** @description Diagnostic session cancellation accepted. */
-      200: {
-        content: {
-          "application/json": components["schemas"]["AppDiagnosticSessionCancelResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /** Get App Diagnostic Report */
-  getAppDiagnosticReport: {
-    parameters: {
-      path: {
-        id: components["parameters"]["IdPathParam"];
-        session_id: components["parameters"]["DiagnosticSessionIdPathParam"];
-      };
-    };
-    responses: {
-      /** @description Completed diagnostic report and session metadata. */
-      200: {
-        content: {
-          "application/json": components["schemas"]["AppDiagnosticReportResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /** List Platform Diagnostic Sessions */
-  listPlatformDiagnosticSessions: {
-    responses: {
-      /** @description Recent platform diagnostic sessions. */
-      200: {
-        content: {
-          "application/json": components["schemas"]["PlatformDiagnosticSessionListResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /**
-   * Start Platform Diagnostic Session
-   * @description Starts a bounded, temporary diagnostic probe for a Fugue platform component or an allowlisted node process. Platform administrator access is required.
-   */
-  startPlatformDiagnosticSession: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["PlatformDiagnosticSessionStartRequest"];
-      };
-    };
-    responses: {
-      /** @description Platform diagnostic session accepted. */
-      202: {
-        content: {
-          "application/json": components["schemas"]["PlatformDiagnosticSessionResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /** Get Platform Diagnostic Session */
-  getPlatformDiagnosticSession: {
-    parameters: {
-      path: {
-        session_id: components["parameters"]["DiagnosticSessionIdPathParam"];
-      };
-    };
-    responses: {
-      /** @description Current platform diagnostic session state. */
-      200: {
-        content: {
-          "application/json": components["schemas"]["PlatformDiagnosticSessionResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /** Cancel Platform Diagnostic Session */
-  cancelPlatformDiagnosticSession: {
-    parameters: {
-      path: {
-        session_id: components["parameters"]["DiagnosticSessionIdPathParam"];
-      };
-    };
-    responses: {
-      /** @description Platform diagnostic session cancellation accepted. */
-      200: {
-        content: {
-          "application/json": components["schemas"]["PlatformDiagnosticSessionCancelResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /** Get Platform Diagnostic Report */
-  getPlatformDiagnosticReport: {
-    parameters: {
-      path: {
-        session_id: components["parameters"]["DiagnosticSessionIdPathParam"];
-      };
-    };
-    responses: {
-      /** @description Completed platform diagnostic report and session metadata. */
-      200: {
-        content: {
-          "application/json": components["schemas"]["PlatformDiagnosticReportResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
   /** Get App Observability Metrics Summary */
   getAppObservabilityMetricsSummary: {
     parameters: {
@@ -16203,45 +13904,6 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["AppObservabilityMetricsSummaryResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /** Get app metric history with explicit source and sampling interval */
-  getAppObservabilityMetricsTimeseries: {
-    parameters: {
-      query?: {
-        since?: components["parameters"]["SinceQueryParam"];
-        until?: components["parameters"]["UntilQueryParam"];
-        /** @description Requested sampling interval in seconds; raised when necessary to bound results to 1440 points per series. */
-        step?: number;
-      };
-      path: {
-        id: components["parameters"]["IdPathParam"];
-      };
-    };
-    responses: {
-      /** @description Missing samples remain absent; unavailable values are null, never synthesized as zero. */
-      200: {
-        content: {
-          "application/json": {
-            source: components["schemas"]["ObservabilitySourceStatus"];
-            window: components["schemas"]["ObservabilityWindow"];
-            series: ({
-                name: string;
-                unit: string;
-                source: string;
-                interval_seconds: number;
-                /** @enum {string} */
-                state: "available" | "collecting" | "unavailable";
-                points: ({
-                    /** Format: date-time */
-                    observed_at: string;
-                    value: number | null;
-                  })[];
-              })[];
-          };
         };
       };
       default: components["responses"]["ErrorResponse"];
@@ -16304,7 +13966,6 @@ export interface operations {
         limit?: components["parameters"]["ObservabilityRequestLimitQueryParam"];
         trace_id?: components["parameters"]["TraceIdQueryParam"];
         request_id?: components["parameters"]["RequestIdQueryParam"];
-        path?: components["parameters"]["ObservabilityRequestPathQueryParam"];
         status_class?: components["parameters"]["StatusClassQueryParam"];
         status_code?: components["parameters"]["StatusCodeQueryParam"];
         slow?: components["parameters"]["SlowRequestsQueryParam"];
@@ -16324,29 +13985,6 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** List persisted Edge route-decision evidence and missing-link alerts */
-  listAppEdgeRouteDecisions: {
-    parameters: {
-      query: {
-        domain: string;
-        since?: components["parameters"]["SinceQueryParam"];
-        until?: components["parameters"]["UntilQueryParam"];
-        limit?: number;
-      };
-      path: {
-        id: components["parameters"]["IdPathParam"];
-      };
-    };
-    responses: {
-      /** @description Persisted route-decision evidence scoped to the authorized app and domain. */
-      200: {
-        content: {
-          "application/json": components["schemas"]["AppEdgeRouteDecisionEvidenceResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
   /** Stream App Observability Requests */
   streamAppObservabilityRequests: {
     parameters: {
@@ -16356,7 +13994,6 @@ export interface operations {
         limit?: components["parameters"]["ObservabilityRequestLimitQueryParam"];
         trace_id?: components["parameters"]["TraceIdQueryParam"];
         request_id?: components["parameters"]["RequestIdQueryParam"];
-        path?: components["parameters"]["ObservabilityRequestPathQueryParam"];
         status_class?: components["parameters"]["StatusClassQueryParam"];
         status_code?: components["parameters"]["StatusCodeQueryParam"];
         slow?: components["parameters"]["SlowRequestsQueryParam"];
@@ -17041,66 +14678,11 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /**
-   * Compare committed app intent with bounded live runtime evidence
-   * @description Reads app-scoped ready pods, process environment and config file hashes. Missing evidence remains unknown; values and file contents are never returned.
-   */
-  getAppRuntimeState: {
-    parameters: {
-      path: {
-        id: components["parameters"]["IdPathParam"];
-      };
-    };
-    responses: {
-      /** @description Runtime comparison including partial or unknown evidence */
-      200: {
-        content: {
-          "application/json": components["schemas"]["AppRuntimeStateResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /** Recover an action receipt without repeating the mutation */
-  getAppActionRequest: {
-    parameters: {
-      path: {
-        id: components["parameters"]["IdPathParam"];
-        request_id: string;
-      };
-    };
-    responses: {
-      /** @description Operation for this actor and app; no write is performed. */
-      200: {
-        content: {
-          "application/json": {
-            operation: components["schemas"]["Operation"];
-          };
-        };
-      };
-      /** @description No committed receipt is visible; an in-flight submission may still commit. */
-      404: {
-        content: never;
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
   /** Restart App */
   restartApp: {
     parameters: {
-      header?: {
-        /** @description Scoped to actor and app. Stored atomically with the operation; reusing the key with a different action, body or If-Match returns 409. Requires If-Match. */
-        "Idempotency-Key"?: string;
-        /** @description Quoted SHA-256 of the committed app spec. When supplied, restart atomically rejects changed intent or an active operation. */
-        "If-Match"?: string;
-      };
       path: {
         id: components["parameters"]["IdPathParam"];
-      };
-    };
-    requestBody?: {
-      content: {
-        "application/json": Record<string, never>;
       };
     };
     responses: {
@@ -17110,19 +14692,12 @@ export interface operations {
           "application/json": components["schemas"]["AppRestartResponse"];
         };
       };
-      412: components["responses"]["ErrorResponse"];
       default: components["responses"]["ErrorResponse"];
     };
   };
   /** Scale App */
   scaleApp: {
     parameters: {
-      header?: {
-        /** @description Scoped to actor and app. Stored atomically with the operation; reusing the key with a different action, body or If-Match returns 409. Requires If-Match. */
-        "Idempotency-Key"?: string;
-        /** @description Quoted SHA-256 of the committed app spec. Atomically rejects changed intent or an active operation when supplied. */
-        "If-Match"?: string;
-      };
       path: {
         id: components["parameters"]["IdPathParam"];
       };
@@ -17139,7 +14714,6 @@ export interface operations {
           "application/json": components["schemas"]["OperationResponse"];
         };
       };
-      412: components["responses"]["ErrorResponse"];
       default: components["responses"]["ErrorResponse"];
     };
   };
@@ -17366,8 +14940,6 @@ export interface operations {
   listImages: {
     parameters: {
       query?: {
-        /** @description Exact project scope; workload credentials cannot widen their assigned project. */
-        project_id?: string;
         tenant_id?: string;
         app_id?: string;
         image_ref?: string;
@@ -17464,23 +15036,6 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** List Image Pins */
-  listImagePins: {
-    parameters: {
-      path: {
-        id: components["parameters"]["IdPathParam"];
-      };
-    };
-    responses: {
-      /** @description Pins visible for the authorized image */
-      200: {
-        content: {
-          "application/json": components["schemas"]["ImagePinListResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
   /** Create Image Pin */
   createImagePin: {
     parameters: {
@@ -17523,8 +15078,6 @@ export interface operations {
   listImageReplicationTasks: {
     parameters: {
       query?: {
-        /** @description Exact project scope; workload credentials cannot widen their assigned project. */
-        project_id?: string;
         image_id?: string;
         app_id?: string;
         status?: string;
@@ -17544,10 +15097,7 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /**
-   * Create Image Replication Task
-   * @description Requires platform.admin or app.deploy. Resolve an authorized target node and an existing replica with the same immutable digest, then enqueue both the replication record and its executable node task. At least one target selector is required; multiple selectors must identify the same node. Retrying an active transfer reuses its tasks.
-   */
+  /** Create Image Replication Task */
   createImageReplicationTask: {
     requestBody: {
       content: {
@@ -17603,30 +15153,6 @@ export interface operations {
     };
     responses: {
       /** @description Successful response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["OperationResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /** Cancel Pending Operation */
-  cancelOperation: {
-    parameters: {
-      path: {
-        id: components["parameters"]["IdPathParam"];
-      };
-    };
-    requestBody?: {
-      content: {
-        "application/json": {
-          message?: string;
-        };
-      };
-    };
-    responses: {
-      /** @description Pending operation canceled */
       200: {
         content: {
           "application/json": components["schemas"]["OperationResponse"];
@@ -18086,122 +15612,6 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Create or resume an immutable source upload request */
-  createSourceUploadSession: {
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["SourceUploadSessionCreateRequest"];
-      };
-    };
-    responses: {
-      /** @description Durable upload session and request receipt */
-      200: {
-        content: {
-          "application/json": components["schemas"]["SourceUploadSessionResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /** Read uploaded chunks and exact request effects */
-  getSourceUploadSession: {
-    parameters: {
-      path: {
-        id: string;
-      };
-    };
-    responses: {
-      /** @description Durable upload session and request receipt */
-      200: {
-        content: {
-          "application/json": components["schemas"]["SourceUploadSessionResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /** Store an idempotent digest checked chunk */
-  putSourceUploadChunk: {
-    parameters: {
-      path: {
-        id: string;
-        index: number;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["SourceUploadChunkRequest"];
-      };
-    };
-    responses: {
-      /** @description Durable upload session and request receipt */
-      200: {
-        content: {
-          "application/json": components["schemas"]["SourceUploadSessionResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /** Verify and assemble the immutable source archive */
-  completeSourceUploadSession: {
-    parameters: {
-      path: {
-        id: string;
-      };
-    };
-    responses: {
-      /** @description Durable upload session and request receipt */
-      200: {
-        content: {
-          "application/json": components["schemas"]["SourceUploadSessionResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /** Submit a frozen import intent once; replay reads its durable receipt */
-  submitSourceUploadSession: {
-    parameters: {
-      path: {
-        id: string;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["ImportUploadRequest"];
-      };
-    };
-    responses: {
-      /** @description Durable upload session and request receipt */
-      200: {
-        content: {
-          "application/json": components["schemas"]["SourceUploadSubmitResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /** Recover the exact operations created by a source request */
-  getSourceUploadRequest: {
-    parameters: {
-      query?: {
-        tenant_id?: string;
-      };
-      path: {
-        request_id: string;
-      };
-    };
-    responses: {
-      /** @description Durable upload session and request receipt */
-      200: {
-        content: {
-          "application/json": components["schemas"]["SourceUploadSessionResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
   /** Get Source Upload Archive */
   getSourceUploadArchive: {
     parameters: {
@@ -18427,32 +15837,8 @@ export interface operations {
     };
     requestBody?: {
       content: {
-        "application/json": components["schemas"]["AgentCompleteOperationRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful response */
-      200: {
-        content: {
-          "application/json": {
-            [key: string]: unknown;
-          };
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /** Agent Fail Operation */
-  agentFailOperation: {
-    parameters: {
-      path: {
-        id: string;
-      };
-    };
-    requestBody?: {
-      content: {
         "application/json": {
-          message?: string;
+          [key: string]: unknown;
         };
       };
     };
@@ -18604,12 +15990,6 @@ export interface operations {
           "application/json": components["schemas"]["BackupPolicyResponse"];
         };
       };
-      /** @description The supplied app-database runtime is stale and does not match the app's current managed PostgreSQL runtime. */
-      409: {
-        content: {
-          "application/json": components["schemas"]["ErrorResponse"];
-        };
-      };
       default: components["responses"]["ErrorResponse"];
     };
   };
@@ -18655,12 +16035,6 @@ export interface operations {
           "application/json": components["schemas"]["BackupPolicyResponse"];
         };
       };
-      /** @description The supplied app-database runtime is stale and does not match the app's current managed PostgreSQL runtime. */
-      409: {
-        content: {
-          "application/json": components["schemas"]["ErrorResponse"];
-        };
-      };
       default: components["responses"]["ErrorResponse"];
     };
   };
@@ -18676,10 +16050,7 @@ export interface operations {
         policy_id?: string;
         target_type?: string;
         status?: string;
-        /** @description Server page size. Use page_info.next_cursor to retrieve additional results. */
         limit?: number;
-        /** @description Opaque cursor returned by the preceding page. Cursors are bound to the authenticated caller and filter set. */
-        cursor?: string;
       };
     };
     responses: {
@@ -18751,10 +16122,7 @@ export interface operations {
         run_id?: string;
         target_type?: string;
         include_deleted?: boolean;
-        /** @description Server page size. Use page_info.next_cursor to retrieve additional results. */
         limit?: number;
-        /** @description Opaque cursor returned by the preceding page. Cursors are bound to the authenticated caller and filter set. */
-        cursor?: string;
       };
     };
     responses: {
@@ -19146,7 +16514,6 @@ export interface operations {
           "application/json": components["schemas"]["DataDownloadPlanResponse"];
         };
       };
-      409: components["responses"]["ErrorResponse"];
       default: components["responses"]["ErrorResponse"];
     };
   };
@@ -19256,7 +16623,6 @@ export interface operations {
           };
         };
       };
-      409: components["responses"]["ErrorResponse"];
       default: components["responses"]["ErrorResponse"];
     };
   };
@@ -19308,52 +16674,7 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Request cleanup of a runtime prewarm cache */
-  deleteDataPrewarmCache: {
-    parameters: {
-      path: {
-        transfer_id: string;
-      };
-    };
-    responses: {
-      /** @description Cache cleanup is requested; transfer history and source snapshot remain available */
-      202: {
-        content: {
-          "application/json": {
-            transfer?: components["schemas"]["DataTransferSummary"];
-          };
-        };
-      };
-      /** @description Transfer state changed concurrently or its current state does not permit the action */
-      409: {
-        content: {
-          "application/json": components["schemas"]["ErrorResponse"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /** Inspect references and storage reclamation before logical deletion */
-  getDataDeletionPlan: {
-    parameters: {
-      query?: {
-        snapshot_id?: string;
-      };
-      path: {
-        workspace_id: components["parameters"]["DataWorkspaceIdPathParam"];
-      };
-    };
-    responses: {
-      /** @description Read-only advisory plan; DELETE repeats atomic guards */
-      200: {
-        content: {
-          "application/json": components["schemas"]["DataDeletionPlan"];
-        };
-      };
-      default: components["responses"]["ErrorResponse"];
-    };
-  };
-  /** Cache a snapshot on a managed runtime */
+  /** Create Data Prewarm */
   createDataPrewarm: {
     parameters: {
       path: {
@@ -19599,10 +16920,7 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /**
-   * Checkpoint Data Transfer
-   * @description Accepts progress only for client driven transfers; runtime prewarm returns 409.
-   */
+  /** Checkpoint Data Transfer */
   checkpointDataTransfer: {
     parameters: {
       path: {
@@ -19690,10 +17008,7 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /**
-   * Complete Data Transfer
-   * @description Completes client driven transfers. Runtime prewarm completion is accepted only from controller observations; user completion returns 409.
-   */
+  /** Complete Data Transfer */
   completeDataTransfer: {
     parameters: {
       path: {
@@ -19715,10 +17030,7 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /**
-   * Cancel Data Transfer
-   * @description Cancels a nonterminal transfer. Runtime prewarm cancellation schedules Job and PVC cleanup; it does not cancel app operations.
-   */
+  /** Cancel Data Transfer */
   cancelDataTransfer: {
     parameters: {
       path: {
@@ -19730,12 +17042,6 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["DataTransferActionResponse"];
-        };
-      };
-      /** @description Transfer state changed concurrently or its current state does not permit the action */
-      409: {
-        content: {
-          "application/json": components["schemas"]["ErrorResponse"];
         };
       };
       default: components["responses"]["ErrorResponse"];
