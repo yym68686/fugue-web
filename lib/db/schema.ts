@@ -7,7 +7,7 @@ declare global {
   var __fugueDbSchemaVersion: string | undefined;
 }
 
-const SCHEMA_VERSION = "2026-07-12-bounded-admin-pagination";
+const SCHEMA_VERSION = "2026-09-12-project-templates";
 
 const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS app_users (
@@ -389,6 +389,19 @@ CREATE TABLE IF NOT EXISTS app_admin_snapshots (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS app_project_templates (
+  id TEXT PRIMARY KEY,
+  token_hash TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  owner_email TEXT NOT NULL REFERENCES app_users(email) ON DELETE CASCADE,
+  snapshot JSONB NOT NULL,
+  active BOOLEAN NOT NULL DEFAULT TRUE,
+  use_count INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 CREATE INDEX IF NOT EXISTS idx_app_workspaces_tenant_id
   ON app_workspaces (tenant_id);
 
@@ -491,6 +504,12 @@ CREATE INDEX IF NOT EXISTS idx_app_security_audit_events_target
 
 CREATE INDEX IF NOT EXISTS idx_app_security_audit_events_action
   ON app_security_audit_events (action, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_app_project_templates_owner
+  ON app_project_templates (owner_email, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_app_project_templates_active
+  ON app_project_templates (active, created_at DESC);
 `;
 
 async function initSchema() {

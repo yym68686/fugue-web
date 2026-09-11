@@ -1,0 +1,8 @@
+"use client";
+import { useState } from "react";
+export default function ShareTemplateButton({ projectId }: { projectId: string }) {
+  const [busy, setBusy] = useState(false); const [url, setUrl] = useState<string | null>(null); const [error, setError] = useState<string | null>(null);
+  async function share() { setBusy(true); setError(null); try { const res = await fetch(`/api/console/projects/${encodeURIComponent(projectId)}/template`, { method: "POST" }); const data = await res.json(); if (!res.ok) throw new Error(data.error || "Unable to create template"); const token = data.result?.token; if (!token) throw new Error("Template link was not returned."); const link = `${window.location.origin}/templates/${encodeURIComponent(token)}`; setUrl(link); await navigator.clipboard?.writeText(link); } catch (e) { setError(e instanceof Error ? e.message : "Unable to create template"); } finally { setBusy(false); } }
+  async function revoke() { if (!url) return; setBusy(true); try { const token = url.split("/templates/")[1]; const res = await fetch(`/api/templates/${encodeURIComponent(token)}`, { method: "DELETE" }); if (!res.ok) throw new Error("Unable to revoke template"); setUrl(null); } catch (e) { setError(e instanceof Error ? e.message : "Unable to revoke template"); } finally { setBusy(false); } }
+  return <div className="share-template"><button type="button" className="btn" disabled={busy} onClick={share}>{busy ? "Creating…" : "Share as template"}</button>{url && <><div className="form-hint">Link copied: <a href={url} className="mono">{url}</a></div><button type="button" className="btn ghost sm" disabled={busy} onClick={revoke}>Revoke link</button></>}{error && <div className="error">{error}</div>}</div>;
+}

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/lib/i18n/client";
 import { ActionButton, callConsole, ConfirmDialog } from "./shared";
+import ShareTemplateButton from "@/components/projects/ShareTemplateButton";
 
 export default function ProjectSettings({
   projectId,
@@ -61,6 +62,12 @@ export default function ProjectSettings({
             {t("Save")}
           </ActionButton>
         </div>
+      </div>
+
+      <div className="panel">
+        <div className="panel-h"><h3>{t("Share template")}</h3></div>
+        <p className="form-hint">{t("Create a reusable link with deployment settings. Secrets and account-specific values are excluded.")}</p>
+        <div className="form-foot"><ShareTemplateButton projectId={projectId} /></div>
       </div>
 
       <div className="panel danger-zone">
