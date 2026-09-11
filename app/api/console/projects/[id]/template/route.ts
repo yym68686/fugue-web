@@ -7,6 +7,7 @@ import { requireActiveSessionUser, requireWorkspaceForSession } from "@/lib/fugu
 async function templateApp(adminKey: string, app: ConsoleAppDetail): Promise<TemplateApp> {
   const source = { ...(app.build_source ?? {}), ...(app.origin_source ?? {}) };
   const type = source.type === "image" || source.image_ref || source.resolved_image_ref ? "image" : "github";
+  if (type === "github" && source.type?.toLowerCase().includes("private")) throw new Error(`App ${app.name} uses a private repository. Connect GitHub before sharing a public template.`);
   if (type === "image" && !(source.image_ref || source.resolved_image_ref)) throw new Error(`App ${app.name} has no reusable image source.`);
   if (type === "github" && !source.repo_url) throw new Error(`App ${app.name} has an unsupported source. Only GitHub and image apps can be shared.`);
   const env = await getAppEnv(adminKey, app.id).catch(() => ({ env: {} }));
