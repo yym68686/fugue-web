@@ -16,6 +16,8 @@ tags:
     description: Authoritative DNS inventory, heartbeat, and delegation readiness endpoints.
   - name: Admin
     description: Platform administrator control-plane endpoints.
+  - name: Automations
+    description: Unified system and user rule/action policy endpoints.
   - name: Tenants
     description: Tenant lifecycle endpoints.
   - name: Projects
@@ -248,25 +250,18 @@ paths:
                 additionalProperties: true
         default:
           $ref: "#/components/responses/ErrorResponse"
-  /v1/edge/routes:
+  /v1/edge/route-intents:
     get:
-      operationId: edgeRoutes
-      summary: Edge Routes
+      operationId: edgeRouteIntents
+      summary: Edge Route Intents
+      description: >-
+        Returns Core's inventory-independent desired-route projection. Only the
+        edge-control component identity with global edge_route_intent capability
+        is accepted; tenant and platform-admin API keys are not accepted.
       tags: [Edge]
-      x-fugue-handler: handleEdgeRoutes
+      x-fugue-handler: handleEdgeRouteIntents
       security:
-        - EdgeToken: []
-      parameters:
-        - in: query
-          name: edge_id
-          required: false
-          schema:
-            type: string
-        - in: query
-          name: edge_group_id
-          required: false
-          schema:
-            type: string
+        - EdgeRouteIntentComponentBearerAuth: []
       responses:
         '200':
           description: Successful response
@@ -274,13 +269,13 @@ paths:
             ETag:
               schema:
                 type: string
-            X-Fugue-Route-Bundle-Version:
+            X-Fugue-Route-Intent-Generation:
               schema:
                 type: string
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/EdgeRouteBundle"
+                $ref: "#/components/schemas/EdgeRouteIntentSnapshot"
         default:
           $ref: "#/components/responses/ErrorResponse"
   /v1/edge/ssh/routes:
@@ -478,6 +473,261 @@ paths:
                 $ref: "#/components/schemas/EdgeNodeDesiredStateEnvelope"
         default:
           $ref: "#/components/responses/ErrorResponse"
+  /v1/admin/edge/activation:
+    get:
+      operationId: adminGetEdgeActivation
+      tags: [Edge]
+      x-fugue-handler: handleAdminGetEdgeActivation
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Durable edge activation state and instance inventory
+          content:
+            application/json:
+              schema:
+                type: object
+    post:
+      operationId: adminAdvanceEdgeActivation
+      tags: [Edge]
+      x-fugue-handler: handleAdminAdvanceEdgeActivation
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Edge activation phase advanced with a durable receipt
+          content:
+            application/json:
+              schema:
+                type: object
+  /v1/admin/edge/authorities:
+    get:
+      operationId: adminListEdgeAuthorities
+      summary: Inspect real Edge Control authority projections
+      description: >-
+        Read-only diagnostic view of the Edge Control group authority. This
+        endpoint never synthesizes Edge nodes or ACKs from DNS state.
+      tags: [Admin, Edge]
+      x-fugue-handler: handleAdminListEdgeAuthorities
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: edge_group_id
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Edge Control authority projections
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EdgeAuthorityReadResponse"
+        '404':
+          description: Requested authority group is not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/admin/edge/activation/remediation:
+    post:
+      operationId: adminAdvanceEdgeRemediation
+      tags: [Edge]
+      x-fugue-handler: handleAdminAdvanceEdgeRemediation
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Bounded inactive Edge remediation action advanced with a durable fence
+          content:
+            application/json:
+              schema:
+                type: object
+  /v1/admin/traffic-overrides:
+    get:
+      operationId: adminListTrafficOverrides
+      summary: List staged and revoked emergency traffic overrides
+      tags: [Admin, DNS]
+      x-fugue-handler: handleAdminListTrafficOverrides
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Independent emergency traffic override inventory
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrafficOverrideListResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/admin/traffic-overrides/{hostname}:
+    get:
+      operationId: adminGetTrafficOverride
+      summary: Get one emergency traffic override
+      tags: [Admin, DNS]
+      x-fugue-handler: handleAdminGetTrafficOverride
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: hostname
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Emergency traffic override
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrafficOverrideResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+    put:
+      operationId: adminPutTrafficOverride
+      summary: Stage a signed emergency traffic override
+      description: Stores a signed override independently from the normal TrafficEpoch and release state machines. Each candidate answer is verified against every required TLS/SNI/Host route before signing. Staged overrides are not served until the separate overlay activation path is enabled.
+      tags: [Admin, DNS]
+      x-fugue-handler: handleAdminPutTrafficOverride
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: hostname
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TrafficOverridePutRequest"
+      responses:
+        '200':
+          description: Signed staged emergency traffic override
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrafficOverrideResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/admin/traffic-overrides/{hostname}/revoke:
+    post:
+      operationId: adminRevokeTrafficOverride
+      summary: Revoke an emergency traffic override with CAS
+      tags: [Admin, DNS]
+      x-fugue-handler: handleAdminRevokeTrafficOverride
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: hostname
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TrafficOverrideRevokeRequest"
+      responses:
+        '200':
+          description: Signed revoked emergency traffic override
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrafficOverrideResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/admin/traffic-override-signing-key:
+    get:
+      operationId: adminGetTrafficOverrideSigningKey
+      summary: Inspect emergency traffic override signing key metadata
+      tags: [Admin, DNS]
+      x-fugue-handler: handleAdminGetTrafficOverrideSigningKey
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Signing key metadata without secret key material
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrafficOverrideSigningKeyResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/admin/traffic-override-signing-key/rotate:
+    post:
+      operationId: adminRotateTrafficOverrideSigningKey
+      summary: Rotate the emergency traffic override signing key with CAS
+      tags: [Admin, DNS]
+      x-fugue-handler: handleAdminRotateTrafficOverrideSigningKey
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TrafficOverrideSigningKeyRotateRequest"
+      responses:
+        '200':
+          description: Rotated signing key metadata without secret key material
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrafficOverrideSigningKeyResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/admin/edge/release-evidence:
+    get:
+      operationId: adminGetPlatformReleaseEvidence
+      summary: Get fail-closed platform release evidence for an active Edge epoch
+      tags: [Admin, Edge]
+      x-fugue-handler: handleAdminGetPlatformReleaseEvidence
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: release_epoch
+          required: true
+          schema:
+            type: string
+            maxLength: 256
+        - in: query
+          name: window
+          required: false
+          description: Bounded request evidence window from 1m through 30m.
+          schema:
+            type: string
+            default: 5m
+      responses:
+        '200':
+          description: Typed active-cohort, route, origin, link, and latency evidence.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        default:
+          $ref: "#/components/responses/ErrorResponse"
   /v1/admin/edge/nodes/{edge_id}/desired-state:
     get:
       operationId: adminGetEdgeNodeDesiredState
@@ -636,6 +886,13 @@ paths:
       x-fugue-handler: handleEdgeHeartbeat
       security:
         - EdgeToken: []
+      parameters:
+        - in: header
+          name: X-Fugue-Edge-Serving-Active
+          required: false
+          description: Whether this worker slot is the traffic-serving slot selected by the node-local Edge Front authority. Older workers may omit the header during a rolling upgrade.
+          schema:
+            type: boolean
       requestBody:
         required: true
         content:
@@ -730,6 +987,18 @@ paths:
         - in: path
           name: hostname
           required: true
+          schema:
+            type: string
+        - in: query
+          name: expected_exclusion_generation
+          required: false
+          schema:
+            type: integer
+            format: int64
+            minimum: 0
+        - in: query
+          name: expected_exclusion_fence
+          required: false
           schema:
             type: string
       responses:
@@ -1087,6 +1356,382 @@ paths:
                 $ref: "#/components/schemas/InvariantDefinitionResponse"
         default:
           $ref: "#/components/responses/ErrorResponse"
+  /v1/admin/automations:
+    get:
+      operationId: listAutomationPolicies
+      summary: List Automation Policies
+      tags: [Automations]
+      x-fugue-handler: handleListAutomationPolicies
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: tenant_id
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: project_id
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: owner_type
+          required: false
+          schema:
+            type: string
+            enum: [system, user]
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AutomationPolicyListResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/admin/automations/{policy_id}:
+    get:
+      operationId: getAutomationPolicy
+      summary: Get Automation Policy
+      tags: [Automations]
+      x-fugue-handler: handleGetAutomationPolicy
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: policy_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AutomationPolicyResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/admin/automation-evaluations:
+    post:
+      operationId: evaluateAutomationPolicyReplay
+      summary: Evaluate Automation Policy Replay
+      description: |
+        Evaluate an administrator-supplied request-outcome window against the
+        current policy generation. Any resulting intent is permanently
+        observe-only and can never be consumed by a production action worker.
+      tags: [Automations]
+      x-fugue-handler: handleEvaluateAutomationPolicyReplay
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EvaluateAutomationPolicyRequest"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AutomationEvaluationResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/automations:
+    get:
+      operationId: listUserAutomationPolicies
+      summary: List User Automation Policies
+      tags: [Automations]
+      x-fugue-handler: handleListUserAutomationPolicies
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: tenant_id
+          required: false
+          description: Platform-admin-only tenant filter.
+          schema:
+            type: string
+        - in: query
+          name: project_id
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AutomationPolicyListResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+    post:
+      operationId: createUserAutomationPolicy
+      summary: Create User Automation Policy
+      tags: [Automations]
+      x-fugue-handler: handleCreateUserAutomationPolicy
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAutomationPolicyRequest"
+      responses:
+        '201':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AutomationPolicyResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/automations/{policy_id}:
+    get:
+      operationId: getUserAutomationPolicy
+      summary: Get User Automation Policy
+      tags: [Automations]
+      x-fugue-handler: handleGetUserAutomationPolicy
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: policy_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AutomationPolicyResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+    put:
+      operationId: updateUserAutomationPolicy
+      summary: Update User Automation Policy
+      tags: [Automations]
+      x-fugue-handler: handleUpdateUserAutomationPolicy
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: policy_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAutomationPolicyRequest"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AutomationPolicyResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+    delete:
+      operationId: deleteUserAutomationPolicy
+      summary: Delete User Automation Policy
+      tags: [Automations]
+      x-fugue-handler: handleDeleteUserAutomationPolicy
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: policy_id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: expected_generation
+          required: true
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteAutomationPolicyResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/automation-intents:
+    get:
+      operationId: listAutomationActionIntents
+      summary: List Automation Action Intents
+      description: List append-only observe-only action intents visible to the credential.
+      tags: [Automations]
+      x-fugue-handler: handleListAutomationActionIntents
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: tenant_id
+          required: false
+          description: Platform-admin-only tenant filter.
+          schema:
+            type: string
+        - in: query
+          name: project_id
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: policy_id
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: app_id
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: source
+          required: false
+          schema:
+            type: string
+            enum: [admin_replay, control_loop]
+        - in: query
+          name: status
+          required: false
+          schema:
+            type: string
+            enum: [observed]
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 1000
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AutomationActionIntentListResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/automation-intents/{intent_id}:
+    get:
+      operationId: getAutomationActionIntent
+      summary: Get Automation Action Intent
+      tags: [Automations]
+      x-fugue-handler: handleGetAutomationActionIntent
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: intent_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AutomationActionIntentResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/automation-dispatches:
+    get:
+      operationId: listAutomationActionDispatches
+      summary: List Automation Action Dispatches
+      description: List read-only durable action dispatch records visible to the credential.
+      tags: [Automations]
+      x-fugue-handler: handleListAutomationActionDispatches
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: tenant_id
+          required: false
+          description: Platform-admin-only tenant filter.
+          schema:
+            type: string
+        - in: query
+          name: project_id
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: policy_id
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: app_id
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: status
+          required: false
+          schema:
+            type: string
+            enum: [held, ready, claimed, executing, succeeded, failed, rolled_back, expired, cancelled]
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 1000
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AutomationActionDispatchListResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/automation-dispatches/{dispatch_id}:
+    get:
+      operationId: getAutomationActionDispatch
+      summary: Get Automation Action Dispatch
+      description: Get one read-only durable action dispatch record.
+      tags: [Automations]
+      x-fugue-handler: handleGetAutomationActionDispatch
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: dispatch_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AutomationActionDispatchResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
   /v1/admin/action-contracts:
     get:
       operationId: listAutomaticActionContracts
@@ -1277,6 +1922,14 @@ paths:
     get:
       operationId: explainRequest
       summary: Explain Request
+      description: |
+        Platform-admin lookup of recorded request facts by edge request ID, application
+        request ID, or trace ID. Reads per-request telemetry, including incomplete
+        platform request facts stored as events; aggregate edge performance sample
+        IDs are not request IDs. Only a unique matching request is attributed.
+        Evidence identifies the source and lookup status. Missing records, disabled
+        telemetry, unavailable query backends, and ambiguous identifiers remain
+        explicitly unconfirmed; an empty lookup does not prove a request never ran.
       tags: [Admin]
       x-fugue-handler: handleExplainRequest
       security:
@@ -1567,7 +2220,6 @@ paths:
     post:
       operationId: validatePlatformArtifact
       summary: Validate Platform Artifact
-      description: Validates a draft artifact. A validated or released NodeLocal DNS membership artifact is immutable; dry-run returns its persisted validation evidence and a mutating revalidation returns conflict.
       tags: [Admin]
       x-fugue-handler: handleValidatePlatformArtifact
       security:
@@ -1597,6 +2249,8 @@ paths:
     post:
       operationId: releasePlatformArtifact
       summary: Release Platform Artifact
+      description: >-
+        Platform administrators may use the normal artifact release policy.
       tags: [Admin]
       x-fugue-handler: handleReleasePlatformArtifact
       security:
@@ -1777,7 +2431,6 @@ paths:
     get:
       operationId: getPlatformStateArtifact
       summary: Pull Platform State Artifact
-      description: Platform-admin-only long poll for active immutable platform state. When current_generation is supplied, the request waits for the first artifact or a different generation up to wait_seconds. NodeLocal responses include the release-bound expected consumer set.
       tags: [Admin]
       x-fugue-handler: handleGetPlatformStateArtifact
       security:
@@ -2139,6 +2792,48 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DNSNodeListResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/dns/traffic-overrides:
+    get:
+      operationId: dnsTrafficOverrideFeed
+      summary: Get the independently signed DNS traffic override feed
+      description: >-
+        Returns active signed emergency traffic overrides for an authorized DNS
+        node. The normal DNS bundle remains authoritative unless the optional
+        overlay consumer is explicitly enabled on that node.
+      tags: [DNS]
+      x-fugue-handler: handleDNSTrafficOverrideFeed
+      security:
+        - EdgeToken: []
+      parameters:
+        - in: query
+          name: token
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: dns_node_id
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: edge_group_id
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: zone
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Active signed emergency traffic overrides
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrafficOverrideFeedResponse"
         default:
           $ref: "#/components/responses/ErrorResponse"
   /v1/dns/acme-challenges:
@@ -2741,6 +3436,23 @@ paths:
                 $ref: "#/components/schemas/ConsoleGalleryResponse"
         default:
           $ref: "#/components/responses/ErrorResponse"
+  /v1/console/projects/snapshot:
+    get:
+      operationId: getConsoleProjectsSnapshot
+      summary: Get Complete Console Project Snapshot
+      tags: [Console]
+      x-fugue-handler: handleGetConsoleProjectsSnapshot
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Complete project cards, current resource rollups, and image usage from one consistent read.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConsoleProjectsSnapshotResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
   /v1/console/gallery/stream:
     get:
       operationId: streamConsoleGallery
@@ -3017,6 +3729,38 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DeleteProjectRuntimeReservationResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/billing/summaries:
+    get:
+      operationId: listBillingSummaries
+      summary: List Billing Summaries
+      description: Returns billing summaries for 1 to 500 requested tenants in one platform-admin request. Billing accruals and public-runtime counterparty credits commit atomically from a consistent ledger snapshot before summaries are returned. Tenants confirmed absent from the store are listed in missing_tenant_ids; other read failures fail the request.
+      tags: [Billing]
+      x-fugue-handler: handleListBillingSummaries
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: tenant_ids
+          required: true
+          description: Comma-separated tenant IDs, at most 500 distinct values. Duplicate IDs are read once.
+          schema:
+            type: string
+            minLength: 1
+        - in: query
+          name: include_current_usage
+          required: false
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: Complete billing summaries.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BillingSummariesResponse"
         default:
           $ref: "#/components/responses/ErrorResponse"
   /v1/billing:
@@ -4183,6 +4927,25 @@ paths:
       x-fugue-handler: handleListBackingServices
       security:
         - BearerAuth: []
+      parameters:
+        - in: query
+          name: tenant_id
+          schema: {type: string}
+          description: Exact tenant filter; administrator-only across tenants
+        - in: query
+          name: project_id
+          schema: {type: string}
+          description: Exact project filter within authorized services
+        - in: query
+          name: name
+          schema: {type: string}
+          description: Exact service ID, name or normalized name
+        - in: query
+          name: include_live_status
+          schema: {type: boolean, default: true}
+        - in: query
+          name: include_resource_usage
+          schema: {type: boolean, default: true}
       responses:
         '200':
           description: Successful response
@@ -4287,6 +5050,108 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/backing-services/orphans/{app_id}/suspend:
+    post:
+      operationId: suspendManagedPostgresOrphan
+      summary: Suspend A Retained Managed Postgres Orphan
+      description: >-
+        Platform-administrator lifecycle intent update for a retained orphan.
+        The request is applied atomically to the ManagedApp spec and the
+        controller performs the CNPG hibernation transition; no Fugue store
+        record is created.
+      tags: [Backing Services]
+      x-fugue-handler: handleSuspendManagedPostgresOrphan
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: app_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Orphan was already requested suspended
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ManagedPostgresOrphanLifecycleResponse"
+        '202':
+          description: Suspension intent accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ManagedPostgresOrphanLifecycleResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/backing-services/orphans/{app_id}/resume:
+    post:
+      operationId: resumeManagedPostgresOrphan
+      summary: Resume A Retained Managed Postgres Orphan
+      description: >-
+        Platform-administrator lifecycle intent update for a retained orphan.
+        The request is applied atomically to the ManagedApp spec and the
+        controller performs the CNPG resume transition; no Fugue store record
+        is created.
+      tags: [Backing Services]
+      x-fugue-handler: handleResumeManagedPostgresOrphan
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: app_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Orphan was already requested resumed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ManagedPostgresOrphanLifecycleResponse"
+        '202':
+          description: Resume intent accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ManagedPostgresOrphanLifecycleResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/backing-services/orphans/{app_id}/delete:
+    post:
+      operationId: deleteManagedPostgresOrphan
+      summary: Delete A Retained Managed Postgres Orphan
+      description: >-
+        Explicit platform-administrator deletion request. The exact app ID,
+        an active backup artifact belonging to the orphan, current
+        zero-workload storage evidence, and observed CNPG suspension are
+        required before a foreground ManagedApp deletion is submitted.
+      tags: [Backing Services]
+      x-fugue-handler: handleDeleteManagedPostgresOrphan
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: app_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ManagedPostgresOrphanDeleteRequest"
+      responses:
+        '202':
+          description: Foreground deletion request accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ManagedPostgresOrphanDeleteResponse"
         default:
           $ref: "#/components/responses/ErrorResponse"
   /v1/backing-services/{id}:
@@ -4438,6 +5303,14 @@ paths:
         - BearerAuth: []
       parameters:
         - $ref: "#/components/parameters/TenantIdQueryParam"
+        - in: query
+          name: view
+          required: false
+          description: The summary view omits app environment values, generated environment definitions, inline files, command and args. Status, resource usage, sources and service bindings are retained. Use the full view or app detail when editing configuration.
+          schema:
+            type: string
+            enum: [full, summary]
+            default: full
         - in: query
           name: project_id
           required: false
@@ -5352,13 +6225,28 @@ paths:
         - BearerAuth: []
       parameters:
         - $ref: "#/components/parameters/IdPathParam"
+        - in: header
+          name: Idempotency-Key
+          description: Scoped to actor and app. Stored atomically with the operation; reusing the key with a different action, body or If-Match returns 409. Requires If-Match.
+          schema:
+            type: string
+            maxLength: 200
+        - in: header
+          name: If-Match
+          required: false
+          description: Quoted SHA-256 of the committed app spec. Atomically rejects changed intent or an active operation when supplied.
+          schema:
+            type: string
+            pattern: '^"[0-9a-f]{64}"$'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/AppImageActionRequest"
+              $ref: "#/components/schemas/AppImageRedeployRequest"
       responses:
+        '412':
+          $ref: "#/components/responses/ErrorResponse"
         '202':
           description: Successful response
           content:
@@ -5590,6 +6478,44 @@ paths:
                 $ref: "#/components/schemas/AppRoutePatchResponse"
         default:
           $ref: "#/components/responses/ErrorResponse"
+  /v1/backing-services/{id}/resize:
+    post:
+      operationId: resizeBackingService
+      summary: Resize Managed Postgres Backing Service In Place
+      description: >-
+        Queues a dedicated in-place CPU and memory resize for one app-owned
+        managed PostgreSQL service. The request must provide the complete
+        runtime request and limit envelope; existing requests or limits cannot
+        be removed. The operation only uses the Kubernetes Pod resize
+        subresource and never falls back to deleting, evicting, redeploying, or
+        patching the CNPG Cluster resource template.
+      tags: [Backing Services]
+      x-fugue-handler: handleResizeBackingService
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPathParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ManagedPostgresResizeRequest"
+      responses:
+        '202':
+          description: In-place resize operation accepted or exact active operation reused
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BackingServiceResizeResponse"
+        '409':
+          description: A conflicting database mutation blocks resize.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
   /v1/backing-services/{id}/migrate:
     post:
       operationId: migrateBackingService
@@ -5614,6 +6540,8 @@ paths:
               properties:
                 target_runtime_id:
                   type: string
+                dry_run:
+                  type: boolean
       responses:
         '200':
           description: Backing service already targets the requested runtime
@@ -5948,6 +6876,205 @@ paths:
                 $ref: "#/components/schemas/AppRuntimePodInventoryResponse"
         default:
           $ref: "#/components/responses/ErrorResponse"
+  /v1/apps/{id}/diagnostics/sessions:
+    post:
+      operationId: startAppDiagnosticSession
+      summary: Start App Diagnostic Session
+      description: Starts a bounded, temporary, app-scoped diagnostic probe without modifying the app workload.
+      tags: [Apps]
+      x-fugue-handler: handleStartAppDiagnosticSession
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPathParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AppDiagnosticSessionStartRequest"
+      responses:
+        '202':
+          description: Diagnostic session accepted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppDiagnosticSessionResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+    get:
+      operationId: listAppDiagnosticSessions
+      summary: List App Diagnostic Sessions
+      tags: [Apps]
+      x-fugue-handler: handleListAppDiagnosticSessions
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPathParam"
+      responses:
+        '200':
+          description: Diagnostic sessions for the app.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppDiagnosticSessionListResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/apps/{id}/diagnostics/sessions/{session_id}:
+    get:
+      operationId: getAppDiagnosticSession
+      summary: Get App Diagnostic Session
+      tags: [Apps]
+      x-fugue-handler: handleGetAppDiagnosticSession
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPathParam"
+        - $ref: "#/components/parameters/DiagnosticSessionIdPathParam"
+      responses:
+        '200':
+          description: Current diagnostic session state.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppDiagnosticSessionResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+    delete:
+      operationId: cancelAppDiagnosticSession
+      summary: Cancel App Diagnostic Session
+      tags: [Apps]
+      x-fugue-handler: handleCancelAppDiagnosticSession
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPathParam"
+        - $ref: "#/components/parameters/DiagnosticSessionIdPathParam"
+      responses:
+        '200':
+          description: Diagnostic session cancellation accepted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppDiagnosticSessionCancelResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/apps/{id}/diagnostics/sessions/{session_id}/report:
+    get:
+      operationId: getAppDiagnosticReport
+      summary: Get App Diagnostic Report
+      tags: [Apps]
+      x-fugue-handler: handleGetAppDiagnosticReport
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPathParam"
+        - $ref: "#/components/parameters/DiagnosticSessionIdPathParam"
+      responses:
+        '200':
+          description: Completed diagnostic report and session metadata.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppDiagnosticReportResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/admin/diagnostics/sessions:
+    post:
+      operationId: startPlatformDiagnosticSession
+      summary: Start Platform Diagnostic Session
+      description: Starts a bounded, temporary diagnostic probe for a Fugue platform component or an allowlisted node process. Platform administrator access is required.
+      tags: [Admin]
+      x-fugue-handler: handleStartPlatformDiagnosticSession
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlatformDiagnosticSessionStartRequest"
+      responses:
+        '202':
+          description: Platform diagnostic session accepted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformDiagnosticSessionResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+    get:
+      operationId: listPlatformDiagnosticSessions
+      summary: List Platform Diagnostic Sessions
+      tags: [Admin]
+      x-fugue-handler: handleListPlatformDiagnosticSessions
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Recent platform diagnostic sessions.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformDiagnosticSessionListResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/admin/diagnostics/sessions/{session_id}:
+    get:
+      operationId: getPlatformDiagnosticSession
+      summary: Get Platform Diagnostic Session
+      tags: [Admin]
+      x-fugue-handler: handleGetPlatformDiagnosticSession
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/DiagnosticSessionIdPathParam"
+      responses:
+        '200':
+          description: Current platform diagnostic session state.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformDiagnosticSessionResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+    delete:
+      operationId: cancelPlatformDiagnosticSession
+      summary: Cancel Platform Diagnostic Session
+      tags: [Admin]
+      x-fugue-handler: handleCancelPlatformDiagnosticSession
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/DiagnosticSessionIdPathParam"
+      responses:
+        '200':
+          description: Platform diagnostic session cancellation accepted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformDiagnosticSessionCancelResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/admin/diagnostics/sessions/{session_id}/report:
+    get:
+      operationId: getPlatformDiagnosticReport
+      summary: Get Platform Diagnostic Report
+      tags: [Admin]
+      x-fugue-handler: handleGetPlatformDiagnosticReport
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/DiagnosticSessionIdPathParam"
+      responses:
+        '200':
+          description: Completed platform diagnostic report and session metadata.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformDiagnosticReportResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
   /v1/apps/{id}/observability/metrics/summary:
     get:
       operationId: getAppObservabilityMetricsSummary
@@ -5967,6 +7094,71 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AppObservabilityMetricsSummaryResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/apps/{id}/observability/metrics/timeseries:
+    get:
+      operationId: getAppObservabilityMetricsTimeseries
+      summary: Get app metric history with explicit source and sampling interval
+      tags: [Apps]
+      x-fugue-handler: handleGetAppObservabilityMetricsTimeseries
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPathParam"
+        - $ref: "#/components/parameters/SinceQueryParam"
+        - $ref: "#/components/parameters/UntilQueryParam"
+        - in: query
+          name: step
+          description: Requested sampling interval in seconds; raised when necessary to bound results to 1440 points per series.
+          schema:
+            type: integer
+            minimum: 5
+            maximum: 300
+            default: 10
+      responses:
+        '200':
+          description: Missing samples remain absent; unavailable values are null, never synthesized as zero.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [source, window, series]
+                properties:
+                  source:
+                    $ref: "#/components/schemas/ObservabilitySourceStatus"
+                  window:
+                    $ref: "#/components/schemas/ObservabilityWindow"
+                  series:
+                    type: array
+                    items:
+                      type: object
+                      required: [name, unit, source, state, interval_seconds, points]
+                      properties:
+                        name:
+                          type: string
+                        unit:
+                          type: string
+                        source:
+                          type: string
+                        interval_seconds:
+                          type: integer
+                        state:
+                          type: string
+                          enum: [available, collecting, unavailable]
+                        points:
+                          type: array
+                          maxItems: 1440
+                          items:
+                            type: object
+                            required: [observed_at, value]
+                            properties:
+                              observed_at:
+                                type: string
+                                format: date-time
+                              value:
+                                type: number
+                                nullable: true
         default:
           $ref: "#/components/responses/ErrorResponse"
   /v1/apps/{id}/observability/metrics/query:
@@ -6044,6 +7236,7 @@ paths:
         - $ref: "#/components/parameters/ObservabilityRequestLimitQueryParam"
         - $ref: "#/components/parameters/TraceIdQueryParam"
         - $ref: "#/components/parameters/RequestIdQueryParam"
+        - $ref: "#/components/parameters/ObservabilityRequestPathQueryParam"
         - $ref: "#/components/parameters/StatusClassQueryParam"
         - $ref: "#/components/parameters/StatusCodeQueryParam"
         - $ref: "#/components/parameters/SlowRequestsQueryParam"
@@ -6055,6 +7248,40 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AppObservabilityRequestsResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/apps/{id}/observability/edge-route-decisions:
+    get:
+      operationId: listAppEdgeRouteDecisions
+      summary: List persisted Edge route-decision evidence and missing-link alerts
+      tags: [Apps]
+      x-fugue-handler: handleListAppEdgeRouteDecisions
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPathParam"
+        - in: query
+          name: domain
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/SinceQueryParam"
+        - $ref: "#/components/parameters/UntilQueryParam"
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 200
+      responses:
+        '200':
+          description: Persisted route-decision evidence scoped to the authorized app and domain.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppEdgeRouteDecisionEvidenceResponse"
         default:
           $ref: "#/components/responses/ErrorResponse"
   /v1/apps/{id}/observability/requests/stream:
@@ -6072,6 +7299,7 @@ paths:
         - $ref: "#/components/parameters/ObservabilityRequestLimitQueryParam"
         - $ref: "#/components/parameters/TraceIdQueryParam"
         - $ref: "#/components/parameters/RequestIdQueryParam"
+        - $ref: "#/components/parameters/ObservabilityRequestPathQueryParam"
         - $ref: "#/components/parameters/StatusClassQueryParam"
         - $ref: "#/components/parameters/StatusCodeQueryParam"
         - $ref: "#/components/parameters/SlowRequestsQueryParam"
@@ -6834,6 +8062,57 @@ paths:
                 $ref: "#/components/schemas/OperationResponse"
         default:
           $ref: "#/components/responses/ErrorResponse"
+  /v1/apps/{id}/runtime-state:
+    get:
+      operationId: getAppRuntimeState
+      summary: Compare committed app intent with bounded live runtime evidence
+      description: Reads app-scoped ready pods, process environment and config file hashes. Missing evidence remains unknown; values and file contents are never returned.
+      tags: [Apps]
+      x-fugue-handler: handleGetAppRuntimeState
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPathParam"
+      responses:
+        '200':
+          description: Runtime comparison including partial or unknown evidence
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppRuntimeStateResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/apps/{id}/action-requests/{request_id}:
+    get:
+      operationId: getAppActionRequest
+      summary: Recover an action receipt without repeating the mutation
+      tags: [Apps]
+      x-fugue-handler: handleGetAppActionRequest
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPathParam"
+        - in: path
+          name: request_id
+          required: true
+          schema:
+            type: string
+            maxLength: 200
+      responses:
+        '200':
+          description: Operation for this actor and app; no write is performed.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [operation]
+                properties:
+                  operation:
+                    $ref: "#/components/schemas/Operation"
+        '404':
+          description: No committed receipt is visible; an in-flight submission may still commit.
+        default:
+          $ref: "#/components/responses/ErrorResponse"
   /v1/apps/{id}/restart:
     post:
       operationId: restartApp
@@ -6844,7 +8123,30 @@ paths:
         - BearerAuth: []
       parameters:
         - $ref: "#/components/parameters/IdPathParam"
+        - in: header
+          name: Idempotency-Key
+          description: Scoped to actor and app. Stored atomically with the operation; reusing the key with a different action, body or If-Match returns 409. Requires If-Match.
+          schema:
+            type: string
+            maxLength: 200
+        - in: header
+          name: If-Match
+          required: false
+          description: Quoted SHA-256 of the committed app spec. When supplied, restart atomically rejects changed intent or an active operation.
+          schema:
+            type: string
+            pattern: '^"[0-9a-f]{64}"$'
+
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
       responses:
+        '412':
+          $ref: "#/components/responses/ErrorResponse"
         '202':
           description: Successful response
           content:
@@ -6863,6 +8165,19 @@ paths:
         - BearerAuth: []
       parameters:
         - $ref: "#/components/parameters/IdPathParam"
+        - in: header
+          name: Idempotency-Key
+          description: Scoped to actor and app. Stored atomically with the operation; reusing the key with a different action, body or If-Match returns 409. Requires If-Match.
+          schema:
+            type: string
+            maxLength: 200
+        - in: header
+          name: If-Match
+          required: false
+          description: Quoted SHA-256 of the committed app spec. Atomically rejects changed intent or an active operation when supplied.
+          schema:
+            type: string
+            pattern: '^"[0-9a-f]{64}"$'
       requestBody:
         required: false
         content:
@@ -6870,6 +8185,8 @@ paths:
             schema:
               $ref: "#/components/schemas/ScaleAppRequest"
       responses:
+        '412':
+          $ref: "#/components/responses/ErrorResponse"
         '202':
           description: Successful response
           content:
@@ -7173,6 +8490,10 @@ paths:
         - BearerAuth: []
       parameters:
         - in: query
+          name: project_id
+          description: Exact project scope; workload credentials cannot widen their assigned project.
+          schema: {type: string}
+        - in: query
           name: tenant_id
           required: false
           schema:
@@ -7309,6 +8630,24 @@ paths:
         default:
           $ref: "#/components/responses/ErrorResponse"
   /v1/images/{id}/pins:
+    get:
+      operationId: listImagePins
+      summary: List Image Pins
+      tags: [Apps]
+      x-fugue-handler: handleListImagePins
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPathParam"
+      responses:
+        '200':
+          description: Pins visible for the authorized image
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImagePinListResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
     post:
       operationId: createImagePin
       summary: Create Image Pin
@@ -7363,6 +8702,10 @@ paths:
         - BearerAuth: []
       parameters:
         - in: query
+          name: project_id
+          description: Exact project scope; workload credentials cannot widen their assigned project.
+          schema: {type: string}
+        - in: query
           name: image_id
           required: false
           schema:
@@ -7409,6 +8752,7 @@ paths:
     post:
       operationId: createImageReplicationTask
       summary: Create Image Replication Task
+      description: Requires platform.admin or app.deploy. Resolve an authorized target node and an existing replica with the same immutable digest, then enqueue both the replication record and its executable node task. At least one target selector is required; multiple selectors must identify the same node. Retrying an active transfer reuses its tasks.
       tags: [Apps]
       x-fugue-handler: handleCreateImageReplicationTask
       security:
@@ -7511,6 +8855,35 @@ paths:
       responses:
         '200':
           description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OperationResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/operations/{id}/cancel:
+    post:
+      operationId: cancelOperation
+      summary: Cancel Pending Operation
+      tags: [Operations]
+      x-fugue-handler: handleCancelOperation
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPathParam"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                message:
+                  type: string
+      responses:
+        '200':
+          description: Pending operation canceled
           content:
             application/json:
               schema:
@@ -8177,6 +9550,158 @@ paths:
                 $ref: "#/components/schemas/NodeUpdateTaskResponse"
         default:
           $ref: "#/components/responses/ErrorResponse"
+  /v1/source-upload-sessions:
+    post:
+      operationId: createSourceUploadSession
+      summary: Create or resume an immutable source upload request
+      tags: [Apps]
+      x-fugue-handler: handleCreateSourceUploadSession
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SourceUploadSessionCreateRequest"
+      responses:
+        '200':
+          description: Durable upload session and request receipt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SourceUploadSessionResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/source-upload-sessions/{id}:
+    get:
+      operationId: getSourceUploadSession
+      summary: Read uploaded chunks and exact request effects
+      tags: [Apps]
+      x-fugue-handler: handleGetSourceUploadSession
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: {type: string}
+      responses:
+        '200':
+          description: Durable upload session and request receipt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SourceUploadSessionResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/source-upload-sessions/{id}/chunks/{index}:
+    put:
+      operationId: putSourceUploadChunk
+      summary: Store an idempotent digest checked chunk
+      tags: [Apps]
+      x-fugue-handler: handlePutSourceUploadChunk
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: {type: string}
+        - in: path
+          name: index
+          required: true
+          schema: {type: integer, minimum: 0, maximum: 31}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SourceUploadChunkRequest"
+      responses:
+        '200':
+          description: Durable upload session and request receipt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SourceUploadSessionResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/source-upload-sessions/{id}/complete:
+    post:
+      operationId: completeSourceUploadSession
+      summary: Verify and assemble the immutable source archive
+      tags: [Apps]
+      x-fugue-handler: handleCompleteSourceUploadSession
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: {type: string}
+      responses:
+        '200':
+          description: Durable upload session and request receipt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SourceUploadSessionResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/source-upload-sessions/{id}/submit:
+    post:
+      operationId: submitSourceUploadSession
+      summary: Submit a frozen import intent once; replay reads its durable receipt
+      tags: [Apps]
+      x-fugue-handler: handleSubmitSourceUploadSession
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImportUploadRequest"
+      responses:
+        '200':
+          description: Durable upload session and request receipt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SourceUploadSubmitResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/source-upload-requests/{request_id}:
+    get:
+      operationId: getSourceUploadRequest
+      summary: Recover the exact operations created by a source request
+      tags: [Apps]
+      x-fugue-handler: handleGetSourceUploadRequest
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: request_id
+          required: true
+          schema: {type: string}
+        - in: query
+          name: tenant_id
+          schema: {type: string}
+      responses:
+        '200':
+          description: Durable upload session and request receipt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SourceUploadSessionResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
   /v1/source-uploads/{id}/archive:
     get:
       operationId: getSourceUploadArchive
@@ -8487,8 +10012,41 @@ paths:
         content:
           application/json:
             schema:
+              $ref: "#/components/schemas/AgentCompleteOperationRequest"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+  /v1/agent/operations/{id}/fail:
+    post:
+      operationId: agentFailOperation
+      summary: Agent Fail Operation
+      tags: [Agent]
+      x-fugue-handler: handleAgentFailOperation
+      security:
+        - RuntimeBearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
               type: object
-              additionalProperties: true
+              properties:
+                message:
+                  type: string
+              additionalProperties: false
       responses:
         '200':
           description: Successful response
@@ -8664,6 +10222,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/BackupPolicyResponse"
+        '409':
+          description: The supplied app-database runtime is stale and does not match the app's current managed PostgreSQL runtime.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         default:
           $ref: "#/components/responses/ErrorResponse"
   /v1/backups/policies/{id}:
@@ -8709,6 +10273,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/BackupPolicyResponse"
+        '409':
+          description: The supplied app-database runtime is stale and does not match the app's current managed PostgreSQL runtime.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         default:
           $ref: "#/components/responses/ErrorResponse"
   /v1/backups/runs:
@@ -8743,8 +10313,18 @@ paths:
             type: string
         - in: query
           name: limit
+          description: Server page size. Use page_info.next_cursor to retrieve additional results.
           schema:
             type: integer
+            minimum: 1
+            maximum: 500
+            default: 100
+        - in: query
+          name: cursor
+          description: Opaque cursor returned by the preceding page. Cursors are bound to the authenticated caller and filter set.
+          schema:
+            type: string
+            maxLength: 1024
       responses:
         '200':
           description: Successful response
@@ -8839,8 +10419,18 @@ paths:
             type: boolean
         - in: query
           name: limit
+          description: Server page size. Use page_info.next_cursor to retrieve additional results.
           schema:
             type: integer
+            minimum: 1
+            maximum: 500
+            default: 100
+        - in: query
+          name: cursor
+          description: Opaque cursor returned by the preceding page. Cursors are bound to the authenticated caller and filter set.
+          schema:
+            type: string
+            maxLength: 1024
       responses:
         '200':
           description: Successful response
@@ -9333,6 +10923,8 @@ paths:
             type: integer
             minimum: 1
       responses:
+        '409':
+          $ref: "#/components/responses/ErrorResponse"
         '200':
           description: Successful response
           content:
@@ -9418,6 +11010,8 @@ paths:
         - $ref: "#/components/parameters/DataWorkspaceIdPathParam"
         - $ref: "#/components/parameters/DataSnapshotIdPathParam"
       responses:
+        '409':
+          $ref: "#/components/responses/ErrorResponse"
         '200':
           description: Successful response
           content:
@@ -9479,10 +11073,63 @@ paths:
                 additionalProperties: true
         default:
           $ref: "#/components/responses/ErrorResponse"
+  /v1/data/transfers/{transfer_id}/cache:
+    delete:
+      operationId: deleteDataPrewarmCache
+      summary: Request cleanup of a runtime prewarm cache
+      tags: [Data Workspaces]
+      x-fugue-handler: handleDeleteDataPrewarmCache
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: transfer_id
+          required: true
+          schema: {type: string}
+      responses:
+        '409':
+          description: Transfer state changed concurrently or its current state does not permit the action
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '202':
+          description: Cache cleanup is requested; transfer history and source snapshot remain available
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  transfer: {$ref: '#/components/schemas/DataTransferSummary'}
+        default:
+          $ref: '#/components/responses/ErrorResponse'
+  /v1/data/workspaces/{workspace_id}/deletion-plan:
+    get:
+      operationId: getDataDeletionPlan
+      summary: Inspect references and storage reclamation before logical deletion
+      tags: [Data Workspaces]
+      x-fugue-handler: handleGetDataDeletionPlan
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/DataWorkspaceIdPathParam'
+        - in: query
+          name: snapshot_id
+          schema: {type: string}
+      responses:
+        '200':
+          description: Read-only advisory plan; DELETE repeats atomic guards
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataDeletionPlan'
+        default:
+          $ref: '#/components/responses/ErrorResponse'
   /v1/data/workspaces/{workspace_id}/prewarm:
     post:
       operationId: createDataPrewarm
-      summary: Create Data Prewarm
+      summary: Cache a snapshot on a managed runtime
       tags: [Data Workspaces]
       x-fugue-handler: handleCreateDataPrewarm
       security:
@@ -9772,6 +11419,7 @@ paths:
   /v1/data/transfers/{transfer_id}/checkpoint:
     post:
       operationId: checkpointDataTransfer
+      description: Accepts progress only for client driven transfers; runtime prewarm returns 409.
       summary: Checkpoint Data Transfer
       tags: [Data Workspaces]
       x-fugue-handler: handleCheckpointDataTransfer
@@ -9872,6 +11520,7 @@ paths:
   /v1/data/transfers/{transfer_id}/complete:
     post:
       operationId: completeDataTransfer
+      description: Completes client driven transfers. Runtime prewarm completion is accepted only from controller observations; user completion returns 409.
       summary: Complete Data Transfer
       tags: [Data Workspaces]
       x-fugue-handler: handleCompleteDataTransfer
@@ -9897,6 +11546,7 @@ paths:
   /v1/data/transfers/{transfer_id}/cancel:
     post:
       operationId: cancelDataTransfer
+      description: Cancels a nonterminal transfer. Runtime prewarm cancellation schedules Job and PVC cleanup; it does not cancel app operations.
       summary: Cancel Data Transfer
       tags: [Data Workspaces]
       x-fugue-handler: handleCancelDataTransfer
@@ -9905,6 +11555,12 @@ paths:
       parameters:
         - $ref: "#/components/parameters/DataTransferIdPathParam"
       responses:
+        '409':
+          description: Transfer state changed concurrently or its current state does not permit the action
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '200':
           description: Successful response
           content:
@@ -10143,6 +11799,11 @@ components:
       scheme: bearer
       bearerFormat: fugue_pc_v1
       description: Short-lived, server-bound identity for Fugue platform components; tenant API keys are not accepted.
+    EdgeRouteIntentComponentBearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: fugue_pc_v1
+      description: Short-lived Edge Control identity accepted only by the RouteIntent endpoint.
     EdgeToken:
       type: apiKey
       in: query
@@ -10158,6 +11819,13 @@ components:
       required: true
       schema:
         type: string
+    DiagnosticSessionIdPathParam:
+      in: path
+      name: session_id
+      required: true
+      schema:
+        type: string
+        pattern: '^diagnostic-[a-z0-9-]+$'
     TenantIdPathParam:
       in: path
       name: tenant_id
@@ -10273,6 +11941,15 @@ components:
       required: false
       schema:
         type: string
+    ObservabilityRequestPathQueryParam:
+      in: query
+      name: path
+      required: false
+      description: Exact redacted HTTP request path. Query strings and fragments are not accepted or returned.
+      schema:
+        type: string
+        maxLength: 2048
+        pattern: '^/[^?#\x00-\x1F\x7F]*$'
     StatusClassQueryParam:
       in: query
       name: status_class
@@ -10479,6 +12156,103 @@ components:
       schema:
         type: string
   schemas:
+    EdgeAuthorityReadStatus:
+      type: object
+      additionalProperties: false
+      required: [edge_group_id, status, ready, serving_healthy, bootstrap_eligible, lkg_state]
+      properties:
+        edge_group_id:
+          type: string
+        status:
+          type: string
+        ready:
+          type: boolean
+        serving_healthy:
+          type: boolean
+        bootstrap_eligible:
+          type: boolean
+        bootstrap_valid_until:
+          type: string
+          format: date-time
+        inventory_sequence:
+          type: integer
+          format: int64
+        inventory_generation:
+          type: string
+        inventory_producer_generation:
+          type: integer
+          format: int64
+        inventory_producer_nodes:
+          type: integer
+        inventory_heartbeat_at:
+          type: string
+          format: date-time
+        authority_sequence:
+          type: integer
+          format: int64
+        publication_sequence:
+          type: integer
+          format: int64
+        current_publication_sequence:
+          type: integer
+          format: int64
+        candidate_epoch:
+          type: integer
+          format: int64
+        publication_decision:
+          type: string
+        bundle_generation:
+          type: string
+        published_bundle_digest:
+          type: string
+        recovery_epoch:
+          type: integer
+          format: int64
+        bundle_valid_until:
+          type: string
+          format: date-time
+        lkg_state:
+          type: string
+        failure_code:
+          type: string
+        runtime_failure_code:
+          type: string
+    EdgeAuthorityReadRecord:
+      type: object
+      additionalProperties: false
+      required: [edge_group_id, service, ready, source]
+      properties:
+        edge_group_id:
+          type: string
+        service:
+          type: string
+        ready:
+          type: boolean
+        source:
+          type: string
+          enum: [edge-control-authority]
+        status:
+          $ref: "#/components/schemas/EdgeAuthorityReadStatus"
+        error:
+          type: string
+    EdgeAuthorityReadResponse:
+      type: object
+      additionalProperties: false
+      required: [configured, answer_model, all_ready, authorities]
+      properties:
+        configured:
+          type: boolean
+        answer_model:
+          type: string
+          enum: [edge-control-authority]
+        all_ready:
+          type: boolean
+        authorities:
+          type: array
+          items:
+            $ref: "#/components/schemas/EdgeAuthorityReadRecord"
+        error:
+          type: string
     ErrorResponse:
       type: object
       additionalProperties: false
@@ -10599,14 +12373,22 @@ components:
           type: string
         runtime_id:
           type: string
+          description: For app-database targets, Fugue treats the app's current managed PostgreSQL runtime as authoritative and rebinds policy-backed runs after placement changes.
         name:
           type: string
         service_name:
           type: string
+          description: For app-database targets, Fugue persists the current managed PostgreSQL service name rather than a stale caller-supplied value.
         database:
           type: string
+          description: For app-database targets, Fugue persists the current managed PostgreSQL database name rather than a stale caller-supplied value.
         component:
           type: string
+        engine:
+          type: string
+          enum: [logical-pgdump, longhorn-snapshot]
+        remote_snapshot_required:
+          type: boolean
     BackupRetentionPolicy:
       type: object
       additionalProperties: false
@@ -10640,6 +12422,13 @@ components:
           $ref: "#/components/schemas/BackupTarget"
         backend_id:
           type: string
+        engine:
+          type: string
+          enum: [logical-pgdump, longhorn-snapshot]
+          description: Database backup engine. longhorn-snapshot requires a Longhorn CSI volume and configured remote R2 backup target; it fails closed and never falls back to pg_dump.
+        remote_snapshot_required:
+          type: boolean
+          description: Require a remote storage snapshot and reject local staging or logical dump fallback.
         enabled:
           type: boolean
         status:
@@ -10696,6 +12485,11 @@ components:
           $ref: "#/components/schemas/BackupTarget"
         backend_id:
           type: string
+        engine:
+          type: string
+          enum: [logical-pgdump, longhorn-snapshot]
+        remote_snapshot_required:
+          type: boolean
         enabled:
           type: boolean
         schedule:
@@ -10896,6 +12690,107 @@ components:
           type: string
         mode:
           type: string
+    BackupUsageReconciliation:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - backend_count
+        - measured_backend_count
+        - expected_object_count
+        - referenced_object_count
+        - referenced_bytes
+        - active_object_count
+        - active_bytes
+        - pending_deletion_object_count
+        - pending_deletion_bytes
+        - unreferenced_object_count
+        - unreferenced_bytes
+        - provisional_object_count
+        - provisional_bytes
+        - orphaned_object_count
+        - orphaned_bytes
+        - missing_active_object_count
+        - overdue_deletion_object_count
+        - overdue_deletion_bytes
+        - lingering_deleted_object_count
+        - lingering_deleted_bytes
+        - duplicate_reference_count
+        - invalid_reference_count
+        - size_mismatch_count
+        - unresolved_backend_count
+        - observed_at
+      properties:
+        status:
+          type: string
+          enum: [complete, reconciling, drift, partial, unavailable]
+          description: Complete means every visible R2 backend was measured without structural drift; reconciling permits only recent unreferenced uploads within cleanup grace.
+        backend_count:
+          type: integer
+          description: Number of visible Cloudflare R2 backend records included in the inventory.
+        measured_backend_count:
+          type: integer
+          description: Number of backend records whose physical namespace was listed successfully.
+        expected_object_count:
+          type: integer
+        referenced_object_count:
+          type: integer
+        referenced_bytes:
+          type: integer
+          format: int64
+        active_object_count:
+          type: integer
+        active_bytes:
+          type: integer
+          format: int64
+        pending_deletion_object_count:
+          type: integer
+        pending_deletion_bytes:
+          type: integer
+          format: int64
+        unreferenced_object_count:
+          type: integer
+        unreferenced_bytes:
+          type: integer
+          format: int64
+        provisional_object_count:
+          type: integer
+          description: Unreferenced objects whose last-modified time remains within failed-upload cleanup grace.
+        provisional_bytes:
+          type: integer
+          format: int64
+        orphaned_object_count:
+          type: integer
+          description: Unreferenced physical objects older than failed-upload cleanup grace.
+        orphaned_bytes:
+          type: integer
+          format: int64
+        missing_active_object_count:
+          type: integer
+        overdue_deletion_object_count:
+          type: integer
+        overdue_deletion_bytes:
+          type: integer
+          format: int64
+        lingering_deleted_object_count:
+          type: integer
+          description: Objects still present even though durable metadata records physical deletion.
+        lingering_deleted_bytes:
+          type: integer
+          format: int64
+        duplicate_reference_count:
+          type: integer
+        invalid_reference_count:
+          type: integer
+        size_mismatch_count:
+          type: integer
+        unresolved_backend_count:
+          type: integer
+        observed_at:
+          type: string
+          format: date-time
+        message:
+          type: string
     BackupUsage:
       type: object
       additionalProperties: false
@@ -10909,6 +12804,14 @@ components:
         billable_bytes:
           type: integer
           format: int64
+          description: Database-recorded active billable artifact bytes; this remains the billing ledger and is distinct from physical R2 bytes.
+        physical_bytes:
+          type: integer
+          format: int64
+          description: Exact attributable R2 bytes, including manifests, deletion grace, and unreferenced objects. Omitted unless every visible R2 backend was measured.
+        physical_object_count:
+          type: integer
+          description: Exact attributable R2 object count. Omitted unless every visible R2 backend was measured.
         cloudflare_r2_price_code:
           type: string
         markup_percent:
@@ -10920,6 +12823,8 @@ components:
         updated_at:
           type: string
           format: date-time
+        reconciliation:
+          $ref: "#/components/schemas/BackupUsageReconciliation"
     BackupPosture:
       type: object
       additionalProperties: true
@@ -10999,11 +12904,14 @@ components:
     BackupRunListResponse:
       type: object
       additionalProperties: false
+      required: [runs, page_info]
       properties:
         runs:
           type: array
           items:
             $ref: "#/components/schemas/BackupRun"
+        page_info:
+          $ref: "#/components/schemas/BackupListPageInfo"
     BackupArtifactResponse:
       type: object
       additionalProperties: false
@@ -11013,11 +12921,28 @@ components:
     BackupArtifactListResponse:
       type: object
       additionalProperties: false
+      required: [artifacts, page_info]
       properties:
         artifacts:
           type: array
           items:
             $ref: "#/components/schemas/BackupArtifact"
+        page_info:
+          $ref: "#/components/schemas/BackupListPageInfo"
+    BackupListPageInfo:
+      type: object
+      additionalProperties: false
+      required: [limit, has_next_page]
+      properties:
+        limit:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 500
+        has_next_page:
+          type: boolean
+        next_cursor:
+          type: string
     BackupRestorePlanResponse:
       type: object
       additionalProperties: false
@@ -11262,6 +13187,8 @@ components:
       additionalProperties: false
       required: [id, workspace_id, direction, status, bytes_total, bytes_done, files_total, files_done, created_at, updated_at]
       properties:
+        cache:
+          $ref: '#/components/schemas/DataPrewarmCache'
         id:
           type: string
         tenant_id:
@@ -11543,9 +13470,47 @@ components:
           type: array
           items:
             type: string
+    DataDeletionPlan:
+      type: object
+      additionalProperties: false
+      required: [schema_version, workspace_id, allowed, mode, blockers, objects_reclaimed, reclamation]
+      properties:
+        schema_version: {type: integer, enum: [1]}
+        workspace_id: {type: string}
+        snapshot_id: {type: string}
+        allowed: {type: boolean}
+        mode: {type: string, enum: [metadata_delete, soft_delete]}
+        objects_reclaimed: {type: boolean, enum: [false]}
+        reclamation: {type: string}
+        blockers:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [kind, id, state]
+            properties:
+              kind: {type: string}
+              id: {type: string}
+              state: {type: string}
+    DataPrewarmCache:
+      type: object
+      additionalProperties: false
+      required: [namespace, claim, job, node, manifest_digest, state, observed_at]
+      properties:
+        worker_cleaned: {type: boolean}
+        namespace: {type: string}
+        claim: {type: string}
+        job: {type: string}
+        job_uid: {type: string}
+        node: {type: string}
+        manifest_digest: {type: string}
+        state: {type: string, enum: [planned, downloading, ready, cleanup_pending, removed]}
+        observed_at: {type: string, format: date-time}
     DataPrewarmRequest:
       type: object
       additionalProperties: false
+      required: [runtime_id]
+      description: Creates a digest-verified cache on an authorized managed runtime using an S3-compatible backend. Cache TTL is 24 hours. Completion does not mount data into apps.
       properties:
         version:
           type: string
@@ -11745,6 +13710,14 @@ components:
       additionalProperties: false
       required: [principal]
       properties:
+        capabilities:
+          type: object
+          additionalProperties: false
+          description: Server features, independent of principal scopes. Missing features are unsupported.
+          properties:
+            app_action_receipts:
+              type: boolean
+              description: App mutations support atomic Idempotency-Key receipts, If-Match and read-only receipt recovery.
         principal:
           $ref: "#/components/schemas/AuthPrincipalContext"
     StringMap:
@@ -12253,10 +14226,24 @@ components:
         ephemeral_storage_bytes:
           type: integer
           format: int64
+        persistent_storage_used_bytes:
+          type: integer
+          format: int64
+          description: >-
+            Allocated bytes across distinct persistent volume claims mounted by the workload.
+            Directory-backed local-path claims are measured from their own host directories rather
+            than from the shared node filesystem. Omitted when an accurate measurement is unavailable.
+        persistent_storage_capacity_bytes:
+          type: integer
+          format: int64
+          description: >-
+            Enforced capacity bytes across distinct persistent volume claims mounted by the workload.
+            Omitted for storage backends such as rancher.io/local-path that do not enforce a per-claim
+            capacity limit, and when an accurate capacity is unavailable.
     ResourceRightSizingPolicy:
       type: object
       additionalProperties: false
-      required: [window_hours, min_samples, cpu_percentile, cpu_multiplier, cpu_floor_millicores, memory_percentile, memory_multiplier, memory_floor_mebibytes]
+      required: [window_hours, min_samples, cpu_percentile, cpu_multiplier, cpu_request_percentile, cpu_request_multiplier, cpu_floor_millicores, memory_percentile, memory_multiplier, memory_floor_mebibytes]
       properties:
         window_hours:
           type: integer
@@ -12267,12 +14254,23 @@ components:
         cpu_percentile:
           type: number
           format: double
+          description: Historical CPU percentile used for capacity planning.
         cpu_multiplier:
           type: number
           format: double
+          description: Multiplier applied to historical CPU usage for capacity planning.
+        cpu_request_percentile:
+          type: number
+          format: double
+          description: Historical CPU percentile used for the Kubernetes request guarantee.
+        cpu_request_multiplier:
+          type: number
+          format: double
+          description: Multiplier applied to the CPU request guarantee percentile.
         cpu_floor_millicores:
           type: integer
           format: int64
+          description: Minimum Kubernetes CPU request guarantee for this workload class.
         memory_percentile:
           type: number
           format: double
@@ -12307,6 +14305,14 @@ components:
           $ref: "#/components/schemas/ResourceSpec"
         recommended:
           $ref: "#/components/schemas/ResourceSpec"
+          description: >-
+            Capacity recommendation derived from historical usage. Its CPU value is a
+            planning target and is not written directly to the Kubernetes CPU request.
+        request_target:
+          $ref: "#/components/schemas/ResourceSpec"
+          description: >-
+            Resource target applied by right-sizing. CPU is a small guaranteed share;
+            memory retains the safety-oriented capacity recommendation.
         policy:
           $ref: "#/components/schemas/ResourceRightSizingPolicy"
         ready:
@@ -12398,6 +14404,7 @@ components:
       required:
         [
           tenant_id,
+          app_count,
           status,
           byo_vps_free,
           over_cap,
@@ -12418,6 +14425,10 @@ components:
       properties:
         tenant_id:
           type: string
+        app_count:
+          type: integer
+          minimum: 0
+          description: Number of non-deleted tenant applications in the billing snapshot, including disabled applications.
         status:
           type: string
         status_reason:
@@ -12464,6 +14475,19 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/TenantBillingEvent"
+    BillingSummariesResponse:
+      type: object
+      additionalProperties: false
+      required: [billings, missing_tenant_ids]
+      properties:
+        billings:
+          type: array
+          items:
+            $ref: "#/components/schemas/TenantBillingSummary"
+        missing_tenant_ids:
+          type: array
+          items:
+            type: string
     AppSource:
       type: object
       additionalProperties: false
@@ -12759,6 +14783,142 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/CachePolicy"
+    EdgeRouteIntentSnapshot:
+      type: object
+      additionalProperties: false
+      required: [schema_version, generation, generated_at, routes, tls_allowlist]
+      properties:
+        schema_version:
+          type: string
+          enum: [edge-route-intent/v1]
+        generation:
+          type: string
+        generated_at:
+          type: string
+          format: date-time
+        routes:
+          type: array
+          items:
+            $ref: "#/components/schemas/EdgeRouteIntent"
+        tls_allowlist:
+          type: array
+          items:
+            $ref: "#/components/schemas/EdgeTLSAllowlistEntry"
+        cache_policies:
+          type: array
+          items:
+            $ref: "#/components/schemas/CachePolicy"
+    EdgeRouteIntent:
+      type: object
+      additionalProperties: false
+      required:
+        - generation
+        - hostname
+        - route_kind
+        - app_id
+        - tenant_id
+        - runtime_id
+        - target_group_mode
+        - route_policy
+        - upstream_kind
+        - service_port
+        - tls_policy
+        - streaming
+        - origin_status
+        - created_at
+        - updated_at
+      properties:
+        generation:
+          type: string
+        hostname:
+          type: string
+        path_prefix:
+          type: string
+        route_kind:
+          type: string
+          enum: [platform, custom-domain, platform-domain, platform-route, control-plane-api]
+        app_id:
+          type: string
+        tenant_id:
+          type: string
+        runtime_id:
+          type: string
+        runtime_type:
+          type: string
+        runtime_edge_group_id:
+          type: string
+          description: Core locality hint; this is not an Edge Control selection.
+        runtime_cluster_node:
+          type: string
+        target_group_mode:
+          type: string
+          enum: [all_groups, pinned_group]
+        pinned_edge_group_id:
+          type: string
+        excluded_edge_ids:
+          type: array
+          items:
+            type: string
+        excluded_edge_group_ids:
+          type: array
+          items:
+            type: string
+        exclusion_reason:
+          type: string
+        exclusion_expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        exclusion_lifecycle:
+          type: string
+          enum: [clear, active, expiring_1h, expiring_24h, expired_hold, legacy_hold]
+        min_healthy_edge_nodes:
+          type: integer
+          format: int32
+        route_policy:
+          type: string
+          enum: [route_a_only, edge_canary, edge_enabled]
+        upstream_kind:
+          type: string
+          enum: [kubernetes-service, mesh]
+        upstream_scope:
+          type: string
+          enum: [local-service, cluster, mesh]
+        upstream_url:
+          type: string
+        upstreams:
+          type: array
+          items:
+            $ref: "#/components/schemas/EdgeRouteUpstream"
+        service_port:
+          type: integer
+          format: int32
+        tls_policy:
+          type: string
+          enum: [platform, custom-domain]
+        cache_policy_id:
+          type: string
+        cache_namespace:
+          type: string
+        deployment_generation:
+          type: string
+        request_body_policies:
+          type: array
+          items:
+            $ref: "#/components/schemas/EdgeRequestBodyPolicy"
+        streaming:
+          type: boolean
+        origin_status:
+          type: string
+          enum: [active, disabled, unavailable, runtime-missing]
+        origin_status_reason:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
     EdgeSSHRouteBundle:
       type: object
       additionalProperties: false
@@ -12944,6 +15104,9 @@ components:
           enum: [active, disabled, unavailable, runtime-missing]
         status_reason:
           type: string
+        decision_id:
+          type: string
+          description: Stable, secret-safe identifier for the evidence-backed route decision.
         route_generation:
           type: string
         created_at:
@@ -13062,6 +15225,32 @@ components:
           type: string
           format: date-time
           nullable: true
+        exclusion_scope:
+          type: string
+          enum: [edge, edge_group, mixed]
+        exclusion_owner_digest:
+          type: string
+        exclusion_created_at:
+          type: string
+          format: date-time
+          nullable: true
+        exclusion_generation:
+          type: integer
+          format: int64
+          minimum: 0
+        exclusion_fence:
+          type: string
+        exclusion_lifecycle:
+          type: string
+          enum: [clear, active, expiring_24h, expiring_1h, expired_hold, legacy_hold]
+        exclusion_evidence_fresh:
+          type: boolean
+        exclusion_evidence_checked_at:
+          type: string
+          format: date-time
+          nullable: true
+        exclusion_evidence_reason:
+          type: string
         min_healthy_edge_nodes:
           type: integer
           format: int32
@@ -13092,6 +15281,213 @@ components:
       properties:
         policy:
           $ref: "#/components/schemas/EdgeRoutePolicy"
+    TrafficOverride:
+      type: object
+      additionalProperties: false
+      required: [schema, hostname, generation, state, answers, required_host_routes, route_generation, route_digest, prepared_digest, activate_at, expires_at, reason, operator, artifact_digest, key_id, signature, signed_at, created_at, updated_at]
+      properties:
+        schema:
+          type: string
+          enum: [traffic-override.fugue.dev/v1]
+        hostname:
+          type: string
+        generation:
+          type: integer
+          format: int64
+          minimum: 1
+        state:
+          type: string
+          enum: [staged, revoked]
+        answers:
+          type: array
+          minItems: 1
+          maxItems: 16
+          uniqueItems: true
+          items:
+            type: string
+        required_host_routes:
+          type: array
+          minItems: 1
+          maxItems: 16
+          uniqueItems: true
+          items:
+            type: string
+        route_generation:
+          type: string
+        route_digest:
+          type: string
+          pattern: '^sha256:[0-9a-f]{64}$'
+        prepared_digest:
+          type: string
+          pattern: '^sha256:[0-9a-f]{64}$'
+        activate_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+        reason:
+          type: string
+        operator:
+          type: string
+        artifact_digest:
+          type: string
+          pattern: '^sha256:[0-9a-f]{64}$'
+        key_id:
+          type: string
+        signature:
+          type: string
+          pattern: '^ed25519:[A-Za-z0-9+/]{86}$'
+        signed_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    TrafficOverridePutRequest:
+      type: object
+      additionalProperties: false
+      required: [answers, required_host_routes, route_generation, route_digest, activate_at, expires_at, reason, expected_generation]
+      properties:
+        answers:
+          type: array
+          minItems: 1
+          maxItems: 16
+          uniqueItems: true
+          items:
+            type: string
+        required_host_routes:
+          type: array
+          minItems: 1
+          maxItems: 16
+          uniqueItems: true
+          items:
+            type: string
+        route_generation:
+          type: string
+        route_digest:
+          type: string
+          pattern: '^sha256:[0-9a-fA-F]{64}$'
+        prepared_digest:
+          type: string
+          pattern: '^sha256:[0-9a-fA-F]{64}$'
+        activate_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+        reason:
+          type: string
+          minLength: 8
+        expected_generation:
+          type: integer
+          format: int64
+          minimum: 0
+    TrafficOverrideRevokeRequest:
+      type: object
+      additionalProperties: false
+      required: [reason, expected_generation]
+      properties:
+        reason:
+          type: string
+          minLength: 8
+        expected_generation:
+          type: integer
+          format: int64
+          minimum: 1
+    TrafficOverrideResponse:
+      type: object
+      additionalProperties: false
+      required: [override]
+      properties:
+        override:
+          $ref: "#/components/schemas/TrafficOverride"
+    TrafficOverrideListResponse:
+      type: object
+      additionalProperties: false
+      required: [overrides]
+      properties:
+        overrides:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrafficOverride"
+    TrafficOverrideFeed:
+      type: object
+      additionalProperties: false
+      required: [schema, generation, generated_at, overrides, signing_key]
+      properties:
+        schema:
+          type: string
+          enum: [traffic-override-feed.fugue.dev/v1]
+        generation:
+          type: integer
+          format: int64
+          minimum: 1
+        generated_at:
+          type: string
+          format: date-time
+        overrides:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrafficOverride"
+        signing_key:
+          $ref: "#/components/schemas/TrafficOverrideSigningKeyStatus"
+    TrafficOverrideFeedResponse:
+      type: object
+      additionalProperties: false
+      required: [feed]
+      properties:
+        feed:
+          $ref: "#/components/schemas/TrafficOverrideFeed"
+    TrafficOverrideSigningKeyStatus:
+      type: object
+      additionalProperties: false
+      required: [schema, generation, current_key_id, current_public_key, created_at, updated_at]
+      properties:
+        schema:
+          type: string
+          enum: [traffic-override-signing.fugue.dev/v1]
+        generation:
+          type: integer
+          format: int64
+          minimum: 1
+        current_key_id:
+          type: string
+        current_public_key:
+          type: string
+        previous_key_id:
+          type: string
+        previous_public_key:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        rotated_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    TrafficOverrideSigningKeyResponse:
+      type: object
+      additionalProperties: false
+      required: [signing_key]
+      properties:
+        signing_key:
+          $ref: "#/components/schemas/TrafficOverrideSigningKeyStatus"
+    TrafficOverrideSigningKeyRotateRequest:
+      type: object
+      additionalProperties: false
+      required: [expected_generation]
+      properties:
+        expected_generation:
+          type: integer
+          format: int64
+          minimum: 1
     PlatformDomainBinding:
       type: object
       additionalProperties: false
@@ -13197,6 +15593,9 @@ components:
           type: boolean
         route_bundle_version:
           type: string
+        route_bundle_source:
+          type: string
+          description: Route-bundle authority selected by the edge worker.
         dns_bundle_version:
           type: string
         serving_generation:
@@ -13891,12 +16290,22 @@ components:
     EdgeHeartbeatRequest:
       type: object
       additionalProperties: false
-      required: [edge_id, edge_group_id, status, healthy, draining]
+      required: [edge_id, edge_group_id, slot, instance_uid, release_epoch, status, healthy, draining]
       properties:
         edge_id:
           type: string
         edge_group_id:
           type: string
+        slot:
+          type: string
+          enum: [a, b, direct]
+        instance_uid:
+          type: string
+        release_epoch:
+          type: string
+        failure_class:
+          type: string
+          enum: [bundle_signature_invalid, max_stale_exceeded, identity_drift]
         workload_mode:
           type: string
           enum: [static, dynamic]
@@ -13920,6 +16329,10 @@ components:
           type: string
         lkg_generation:
           type: string
+        last_good_generation:
+          type: string
+        cache_corrupt_generation:
+          type: string
         caddy_route_count:
           type: integer
           format: int32
@@ -13936,6 +16349,8 @@ components:
         tls_ready_at:
           type: string
           format: date-time
+        max_stale_exceeded:
+          type: boolean
         status:
           type: string
           enum: [unknown, healthy, degraded, unhealthy]
@@ -13952,12 +16367,65 @@ components:
     EdgeHeartbeatResponse:
       type: object
       additionalProperties: false
-      required: [node, accepted]
+      required: [node, instance, accepted]
       properties:
         node:
           $ref: "#/components/schemas/EdgeNode"
+        instance:
+          $ref: "#/components/schemas/EdgeNodeInstance"
         accepted:
           type: boolean
+    EdgeNodeInstance:
+      type: object
+      additionalProperties: false
+      required:
+        - edge_id
+        - edge_group_id
+        - slot
+        - instance_uid
+        - release_epoch
+        - node
+        - effective_healthy
+        - consecutive_healthy
+        - consecutive_unhealthy
+        - last_heartbeat_at
+        - created_at
+        - updated_at
+      properties:
+        edge_id:
+          type: string
+        edge_group_id:
+          type: string
+        slot:
+          type: string
+          enum: [a, b, direct]
+        instance_uid:
+          type: string
+        release_epoch:
+          type: string
+        node:
+          $ref: "#/components/schemas/EdgeNode"
+        failure_class:
+          type: string
+          enum: [bundle_signature_invalid, max_stale_exceeded, identity_drift]
+        effective_healthy:
+          type: boolean
+        consecutive_healthy:
+          type: integer
+        consecutive_unhealthy:
+          type: integer
+        health_state_since:
+          type: string
+          format: date-time
+        last_heartbeat_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
     EdgePerformanceSample:
       type: object
       additionalProperties: false
@@ -14175,6 +16643,12 @@ components:
           enum: [route_a_only, edge_canary, edge_enabled]
         enabled:
           type: boolean
+        expected_exclusion_generation:
+          type: integer
+          format: int64
+          minimum: 0
+        expected_exclusion_fence:
+          type: string
     PutPlatformDomainBindingRequest:
       type: object
       additionalProperties: false
@@ -14292,6 +16766,11 @@ components:
           type: string
         zone:
           type: string
+        hosted_zones:
+          type: array
+          items:
+            type: string
+          description: Normalized hosted zones that authoritative DNS nodes must load dynamically.
         records:
           type: array
           items:
@@ -15423,6 +17902,7 @@ components:
     AppZeroDowntimePolicy:
       type: object
       additionalProperties: false
+      description: Advanced drain or stable/candidate rollout policy. Serving apps already receive baseline zero-downtime protection by default.
       required: [enabled]
       properties:
         enabled:
@@ -15506,10 +17986,22 @@ components:
           format: int32
         suspended:
           type: boolean
+        runtime_phase:
+          type: string
+        ready_instances:
+          type: integer
+        desired_instances:
+          type: integer
           readOnly: true
           description: Whether the managed Postgres service is configured to hibernate with its PVCs retained. Change this state only through the backing-service suspend and resume endpoints.
         resources:
           $ref: "#/components/schemas/ResourceSpec"
+          description: Bootstrap resource template used when CNPG creates or recreates a PostgreSQL Pod. Changing this field may require a maintenance rollout.
+        runtime_resources:
+          allOf:
+            - $ref: "#/components/schemas/ResourceSpec"
+          readOnly: true
+          description: Fugue's persisted in-place runtime resource target. It is not rendered into CNPG Cluster.spec.resources and is changed only by the dedicated database resize operation.
     BackingServiceSpec:
       type: object
       additionalProperties: false
@@ -15636,6 +18128,7 @@ components:
       type: object
       additionalProperties: false
       required: [phase, current_replicas, updated_at]
+      description: Legacy effective status projection. Use stored_status for durable control-plane state and observed_status for fresh runtime decisions.
       properties:
         phase:
           type: string
@@ -15654,11 +18147,209 @@ components:
           type: string
         last_message:
           type: string
+        last_failed_operation:
+          $ref: "#/components/schemas/AppOperationFailure"
         updated_at:
           type: string
           format: date-time
         source_sync:
           $ref: "#/components/schemas/AppSourceSyncStatus"
+    AppOperationFailure:
+      type: object
+      additionalProperties: false
+      required: [id, type, created_at, updated_at]
+      description: Redacted durable summary of the most recent failed operation. It is diagnostic history, never runtime evidence.
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+        error_message:
+          type: string
+        result_message:
+          type: string
+        requested_by_type:
+          type: string
+        requested_by_id:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+    AppObservedStatus:
+      type: object
+      additionalProperties: false
+      required: [phase, desired_replicas, fresh, observed_at, cluster_id, generation, observed_generation, evidence_source, reason]
+      description: Point-in-time runtime evidence kept separate from the desired spec and durable stored status. Omitted presence/readiness fields mean the observation could not determine that fact.
+      properties:
+        phase:
+          type: string
+          enum: [deployed, deploying, disabled, deleting, failed, unavailable, unknown]
+        runtime_id:
+          type: string
+        desired_replicas:
+          type: integer
+          format: int32
+        ready_replicas:
+          type: integer
+          format: int32
+        runtime_object_present:
+          type: boolean
+        namespace_present:
+          type: boolean
+        service_present:
+          type: boolean
+        endpoint_present:
+          type: boolean
+        endpoint_ready:
+          type: boolean
+        physical_replicas:
+          type: integer
+          format: int32
+        physical_desired_replicas:
+          type: integer
+          format: int32
+        image_present:
+          type: boolean
+        image_ref:
+          type: string
+        fresh:
+          type: boolean
+        observed_at:
+          type: string
+          format: date-time
+        cluster_id:
+          type: string
+          description: Stable identity of the observed Kubernetes cluster incarnation. Empty only when the query could not establish cluster identity.
+        generation:
+          type: integer
+          format: int64
+          description: ManagedApp generation from this observation; zero when no runtime object/generation was available.
+        observed_generation:
+          type: integer
+          format: int64
+          description: Controller-observed ManagedApp generation; zero when unavailable.
+        evidence_source:
+          type: string
+        evidence_sources:
+          type: array
+          items:
+            type: string
+        reason:
+          type: string
+        message:
+          type: string
+        invariant_violations:
+          type: array
+          items:
+            type: string
+    AppMigrationLedger:
+      type: object
+      additionalProperties: false
+      required: [schema_version, id, tenant_id, app_id, operation_id, new_runtime_id, old_cluster_id, new_cluster_id, image_replication_status, runtime_object_status, endpoint_required, endpoint_status, desired_replicas, cutover_status, old_artifacts_protected, operator_type, operator_id, evidence_source, associated_operation_id, observed_at, created_at, updated_at, retain_until]
+      description: Immutable per-application migration evidence retained for at least 90 days. It is an audit/cutover record, not runtime status.
+      properties:
+        schema_version:
+          type: integer
+          format: int32
+        id:
+          type: string
+        tenant_id:
+          type: string
+        project_id:
+          type: string
+        app_id:
+          type: string
+        operation_id:
+          type: string
+        old_runtime_id:
+          type: string
+        new_runtime_id:
+          type: string
+        old_cluster_id:
+          type: string
+        new_cluster_id:
+          type: string
+        image_ref:
+          type: string
+        image_replication_status:
+          type: string
+          enum: [unknown, verified, missing, failed]
+        image_replication_result:
+          type: string
+        runtime_object_status:
+          type: string
+          enum: [unknown, verified, missing, failed, ready, created]
+        runtime_object_result:
+          type: string
+        endpoint_required:
+          type: boolean
+        endpoint_status:
+          type: string
+          enum: [unknown, verified, missing, failed, ready, not_applicable]
+        endpoint_result:
+          type: string
+        endpoint_ready:
+          type: boolean
+        physical_replicas:
+          type: integer
+          format: int32
+        desired_replicas:
+          type: integer
+          format: int32
+        generation:
+          type: integer
+          format: int64
+        observed_generation:
+          type: integer
+          format: int64
+        invariant_violations:
+          type: array
+          items:
+            type: string
+        cutover_status:
+          type: string
+          enum: [pending, verified, completed, blocked, failed]
+        old_artifacts_protected:
+          type: boolean
+        failure_reason:
+          type: string
+        operator_type:
+          type: string
+        operator_id:
+          type: string
+        evidence_source:
+          type: string
+        associated_operation_id:
+          type: string
+        observed_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        retain_until:
+          type: string
+          format: date-time
+    AgentCompleteOperationRequest:
+      type: object
+      additionalProperties: false
+      description: Agent completion payload. Migration operations must include a verified migration_ledger before completion; other operation types may omit it.
+      properties:
+        manifest_path:
+          type: string
+        message:
+          type: string
+        migration_ledger:
+          $ref: "#/components/schemas/AppMigrationLedger"
     AppSpec:
       type: object
       additionalProperties: false
@@ -16081,6 +18772,11 @@ components:
           $ref: "#/components/schemas/AppSpec"
         status:
           $ref: "#/components/schemas/AppStatus"
+        stored_status:
+          description: Durable control-plane status before any live observation is projected into the compatibility status field.
+          $ref: "#/components/schemas/AppStatus"
+        observed_status:
+          $ref: "#/components/schemas/AppObservedStatus"
         current_resource_usage:
           $ref: "#/components/schemas/ResourceUsage"
         bindings:
@@ -16342,6 +19038,10 @@ components:
       additionalProperties: false
       required: [name, status]
       properties:
+        observed_at:
+          type: string
+          format: date-time
+          description: Oldest kubelet CPU/memory sample timestamp; absent when telemetry has no timestamp.
         name:
           type: string
         status:
@@ -16754,12 +19454,19 @@ components:
           format: int32
         desired_spec:
           $ref: "#/components/schemas/AppSpec"
+        config_base_spec:
+          description: Configuration observed when an import was accepted. Used to preserve intervening configuration changes when the built artifact is deployed. Secret values are redacted on API reads.
+          readOnly: true
+          $ref: "#/components/schemas/AppSpec"
         desired_source:
           description: Build input requested by the operation.
           $ref: "#/components/schemas/AppSource"
         desired_origin_source:
           description: Durable source ownership that should persist after the operation completes.
           $ref: "#/components/schemas/AppSource"
+        queued_deploy_operation_id:
+          type: string
+          description: Explicit deployment link recovered from durable import evidence; absent when no link has been recorded. Consumers of older APIs may use the legacy queued-deploy message but must never infer a link from timestamps.
         result_message:
           type: string
         manifest_path:
@@ -17100,16 +19807,63 @@ components:
         redaction_status:
           type: string
         payload:
+          description: Optional durable evidence. Builder attempt records use build_attempt and retain every retry independently; user-facing consumers must not render arbitrary diagnostic payloads as deployment errors.
           type: object
           additionalProperties: true
+          properties:
+            build_attempt:
+              $ref: "#/components/schemas/BuilderAttemptEvidence"
+            builder_diagnostics:
+              description: Bounded build snapshots and redacted log tails. Returned only to platform administrators with include_payload; never included in public CLI deployment results.
+              type: object
+              additionalProperties: true
         payload_version:
           type: integer
           format: int32
         created_at:
           type: string
           format: date-time
+    BuilderAttemptEvidence:
+      type: object
+      additionalProperties: false
+      required: [attempt, outcome, started_at, finished_at, causes, missing_evidence]
+      properties:
+        attempt:
+          type: integer
+          minimum: 1
+        outcome:
+          type: string
+          enum: [succeeded, failed]
+        started_at:
+          type: string
+          format: date-time
+        finished_at:
+          type: string
+          format: date-time
+        causes:
+          type: array
+          items:
+            type: string
+            description: Stable failure code, interpreted through a public message allowlist rather than raw cluster error text.
+        missing_evidence:
+          type: array
+          items:
+            type: string
+        memory_request_bytes:
+          type: integer
+          format: int64
+        memory_limit_bytes:
+          type: integer
+          format: int64
+        ephemeral_request_bytes:
+          type: integer
+          format: int64
+        ephemeral_limit_bytes:
+          type: integer
+          format: int64
     OperationTimelineEntry:
       type: object
+      description: Historical event content paired with its recorded time. The operation_started summary describes the start, never a later mutable progress message.
       additionalProperties: false
       required: [id, operation_id, type, summary, at]
       properties:
@@ -18066,6 +20820,17 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ConsoleProjectSummary"
+    ConsoleProjectsSnapshotResponse:
+      type: object
+      additionalProperties: false
+      required: [projects, image_usage]
+      properties:
+        projects:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConsoleProjectSummary"
+        image_usage:
+          $ref: "#/components/schemas/ProjectImageUsageResponse"
     ConsoleProjectDetailResponse:
       type: object
       additionalProperties: false
@@ -18091,6 +20856,27 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ClusterNode"
+    ImageMeasurementReason:
+      type: string
+      description: >-
+        Stable, machine-readable attribution for an incomplete image-size
+        measurement. Evidence-oriented codes describe what the control plane
+        can prove; missing_*_evidence does not by itself assert that the
+        underlying registry object is physically absent.
+      enum:
+        [
+          digest_conflict,
+          size_conflict,
+          stale_inventory,
+          missing_manifest_evidence,
+          missing_size_evidence,
+          missing_manifest_size_evidence,
+          missing_blob_size_evidence,
+          missing_child_manifest,
+          missing_blob,
+          no_storage_evidence,
+          registry_not_configured
+        ]
     AppImageSummary:
       type: object
       additionalProperties: false
@@ -18145,6 +20931,19 @@ components:
         size_bytes:
           type: integer
           format: int64
+        size_measurement_status:
+          type: string
+          description: >-
+            Whether size_bytes is complete, partial, or unavailable. Distributed
+            image-cache evidence may be partial when a manifest graph does not
+            include complete referenced-blob bytes.
+          enum: [complete, partial, unavailable]
+        size_measurement_reasons:
+          type: array
+          description: Stable reasons why this version's size is not complete.
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/ImageMeasurementReason"
         reclaimable_size_bytes:
           type: integer
           format: int64
@@ -18157,6 +20956,17 @@ components:
           format: date-time
         source:
           $ref: "#/components/schemas/AppSource"
+    AppImageRedeployRequest:
+      type: object
+      additionalProperties: false
+      required: [image_ref]
+      properties:
+        image_ref:
+          type: string
+        expected_digest:
+          type: string
+          pattern: '^sha256:[0-9a-f]{64}$'
+          description: Require the inventory digest shown by the plan; 412 if the tag has moved.
     AppImageActionRequest:
       type: object
       additionalProperties: false
@@ -18742,6 +21552,19 @@ components:
           type: boolean
         reclaim_note:
           type: string
+        measurement_status:
+          type: string
+          description: Image-size measurement status for this app inventory.
+          enum: [complete, partial, unavailable]
+        measurement_note:
+          type: string
+          description: Human-readable explanation of the image-size evidence source.
+        measurement_reasons:
+          type: array
+          description: Stable aggregate reasons for incomplete version measurements.
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/ImageMeasurementReason"
         summary:
           $ref: "#/components/schemas/AppImageSummary"
         versions:
@@ -18819,6 +21642,16 @@ components:
         reclaimable_size_bytes:
           type: integer
           format: int64
+        measurement_status:
+          type: string
+          description: Image-size measurement status for this app summary.
+          enum: [complete, partial, unavailable]
+        measurement_reasons:
+          type: array
+          description: Stable aggregate reasons for incomplete version measurements.
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/ImageMeasurementReason"
     ProjectImageUsageSummary:
       type: object
       additionalProperties: false
@@ -18862,6 +21695,16 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ProjectImageUsageAppSummary"
+        measurement_status:
+          type: string
+          description: Image-size measurement status for this project summary.
+          enum: [complete, partial, unavailable]
+        measurement_reasons:
+          type: array
+          description: Stable aggregate reasons for incomplete app measurements.
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/ImageMeasurementReason"
     ProjectImageUsageResponse:
       type: object
       additionalProperties: false
@@ -18873,6 +21716,26 @@ components:
           type: boolean
         reclaim_note:
           type: string
+        image_store_mode:
+          type: string
+          description: Storage backend used for image evidence, such as registry or distributed.
+          enum: [registry, distributed]
+        measurement_status:
+          type: string
+          description: Overall image-size measurement status.
+          enum: [complete, partial, unavailable]
+        measurement_note:
+          type: string
+          description: Human-readable explanation of the image-size evidence source.
+        measurement_reasons:
+          type: array
+          description: Stable aggregate reasons for incomplete project measurements.
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/ImageMeasurementReason"
+        observed_at:
+          type: string
+          format: date-time
         projects:
           type: array
           items:
@@ -18926,6 +21789,7 @@ components:
         volume_replication:
           $ref: "#/components/schemas/AppVolumeReplicationSpec"
         right_sizing:
+          description: Control-plane recommendation policy. Updating this field is synchronous and does not create or apply a workload deployment.
           $ref: "#/components/schemas/AppRightSizingSpec"
         termination_grace_period_seconds:
           type: integer
@@ -19410,6 +22274,15 @@ components:
         expires_at:
           type: string
           format: date-time
+    ImagePinListResponse:
+      type: object
+      additionalProperties: false
+      required: [pins]
+      properties:
+        pins:
+          type: array
+          items:
+            $ref: "#/components/schemas/ImagePin"
     ImagePinResponse:
       type: object
       additionalProperties: false
@@ -19481,6 +22354,10 @@ components:
       type: object
       additionalProperties: false
       required: [image_id]
+      anyOf:
+        - required: [target_node_id]
+        - required: [target_runtime_id]
+        - required: [target_cluster_node_name]
       properties:
         image_id:
           type: string
@@ -19492,10 +22369,13 @@ components:
           type: string
         target_node_id:
           type: string
+          minLength: 1
         target_runtime_id:
           type: string
+          minLength: 1
         target_cluster_node_name:
           type: string
+          minLength: 1
         priority:
           type: string
     ImageReplicationTaskResponse:
@@ -19685,6 +22565,23 @@ components:
           type: array
           items:
             type: string
+        referenced_manifests:
+          type: array
+          description: Child manifest digests referenced by an OCI index or Docker manifest list.
+          items:
+            type: string
+        graph_status:
+          type: string
+          description: >-
+            Whether the node-local manifest graph was completely verified.
+            Legacy reports that omit this field are treated as complete.
+          enum: [complete, incomplete]
+        graph_failure_reason:
+          description: >-
+            Bounded, machine-readable attribution for an incomplete graph.
+            Raw filesystem paths, registry responses, and manifest bodies are
+            never reported through this field.
+          $ref: "#/components/schemas/ImageMeasurementReason"
         created_at_observed:
           type: string
           format: date-time
@@ -19779,6 +22676,10 @@ components:
           type: integer
           format: int64
         referenced_blobs:
+          type: array
+          items:
+            type: string
+        referenced_manifests:
           type: array
           items:
             type: string
@@ -20168,10 +23069,47 @@ components:
           $ref: "#/components/schemas/ClusterNodePolicyStatus"
         edge_credential:
           $ref: "#/components/schemas/NodeUpdaterEdgeCredential"
+        cluster_rejoin:
+          $ref: "#/components/schemas/NodeUpdaterClusterRejoin"
         warnings:
           type: array
           items:
             type: string
+    NodeUpdaterClusterRejoin:
+      type: object
+      additionalProperties: false
+      required: [status, reason, observed_at]
+      properties:
+        status:
+          type: string
+          enum: [not_required, credential_ready, suppressed, unavailable]
+        reason:
+          type: string
+        node_name:
+          type: string
+        observed_at:
+          type: string
+          format: date-time
+        credential:
+          $ref: "#/components/schemas/NodeUpdaterClusterRejoinCredential"
+    NodeUpdaterClusterRejoinCredential:
+      type: object
+      additionalProperties: false
+      required: [class, token, token_id, generation, expires_at]
+      properties:
+        class:
+          type: string
+          enum: [short_lived_kubernetes_bootstrap_token]
+        token:
+          type: string
+          description: Short-lived Kubernetes bootstrap token bound to the authenticated node updater.
+        token_id:
+          type: string
+        generation:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
     NodeUpdaterEdgeCredential:
       type: object
       additionalProperties: false
@@ -21378,6 +24316,31 @@ components:
           $ref: "#/components/schemas/Operation"
         already_current:
           type: boolean
+    ManagedPostgresResizeResources:
+      type: object
+      additionalProperties: false
+      required: [cpu_millicores, memory_mebibytes, cpu_limit_millicores, memory_limit_mebibytes]
+      properties:
+        cpu_millicores: {type: integer, format: int64, minimum: 1}
+        memory_mebibytes: {type: integer, format: int64, minimum: 1}
+        cpu_limit_millicores: {type: integer, format: int64, minimum: 1}
+        memory_limit_mebibytes: {type: integer, format: int64, minimum: 1}
+    ManagedPostgresResizeRequest:
+      type: object
+      additionalProperties: false
+      required: [runtime_resources]
+      properties:
+        runtime_resources:
+          $ref: "#/components/schemas/ManagedPostgresResizeResources"
+    BackingServiceResizeResponse:
+      type: object
+      additionalProperties: false
+      required: [backing_service, operation]
+      properties:
+        backing_service:
+          $ref: "#/components/schemas/BackingService"
+        operation:
+          $ref: "#/components/schemas/Operation"
     ManagedPostgresOrphanBackingServiceSummary:
       type: object
       additionalProperties: false
@@ -21397,10 +24360,18 @@ components:
           type: string
         suspended:
           type: boolean
+        runtime_phase:
+          type: string
+        ready_instances:
+          type: integer
+          minimum: 0
+        desired_instances:
+          type: integer
+          minimum: 0
     ManagedPostgresOrphanSummary:
       type: object
       additionalProperties: false
-      required: [app_id, tenant_id, project_id, name, namespace, managed_app_name, phase, backing_services]
+      required: [app_id, tenant_id, project_id, name, namespace, managed_app_name, phase, actionable, validation_status, backing_services]
       properties:
         app_id:
           type: string
@@ -21417,6 +24388,13 @@ components:
         phase:
           type: string
         message:
+          type: string
+        actionable:
+          type: boolean
+        validation_status:
+          type: string
+          enum: [ready, reconciling, conflict, unavailable]
+        validation_message:
           type: string
         backing_services:
           type: array
@@ -21444,6 +24422,35 @@ components:
             $ref: "#/components/schemas/BackingService"
         already_adopted:
           type: boolean
+    ManagedPostgresOrphanLifecycleResponse:
+      type: object
+      additionalProperties: false
+      required: [orphan, already_current]
+      properties:
+        orphan:
+          $ref: "#/components/schemas/ManagedPostgresOrphanSummary"
+        already_current:
+          type: boolean
+    ManagedPostgresOrphanDeleteRequest:
+      type: object
+      additionalProperties: false
+      required: [confirm_app_id, backup_artifact_id]
+      properties:
+        confirm_app_id:
+          type: string
+        backup_artifact_id:
+          type: string
+    ManagedPostgresOrphanDeleteResponse:
+      type: object
+      additionalProperties: false
+      required: [deleted, deletion_requested, app_id]
+      properties:
+        deleted:
+          type: boolean
+        deletion_requested:
+          type: boolean
+        app_id:
+          type: string
     BackingServiceMigrateResponse:
       type: object
       additionalProperties: false
@@ -21453,6 +24460,10 @@ components:
           $ref: "#/components/schemas/BackingService"
         already_current:
           type: boolean
+        dry_run:
+          type: boolean
+        target_runtime_id:
+          type: string
         operation:
           $ref: "#/components/schemas/Operation"
     AppListResponse:
@@ -21519,6 +24530,7 @@ components:
         already_current:
           type: boolean
         operation:
+          description: Workload operation created by patches that change runtime state. Omitted for synchronous control-plane-only patches such as right-sizing policy.
           $ref: "#/components/schemas/Operation"
     InspectGitHubTemplateRequest:
       type: object
@@ -21809,6 +24821,67 @@ components:
           type: boolean
         dry_run:
           type: boolean
+    SourceUploadSessionCreateRequest:
+      type: object
+      additionalProperties: false
+      required: [request_id, filename, size_bytes, sha256]
+      properties:
+        request_id: {type: string, minLength: 1, maxLength: 128, pattern: '^[A-Za-z0-9_.-]+$'}
+        tenant_id: {type: string}
+        filename: {type: string, maxLength: 255}
+        size_bytes: {type: integer, format: int64, minimum: 1, maximum: 134217728}
+        sha256: {type: string, pattern: '^[a-f0-9]{64}$'}
+    SourceUploadChunkRequest:
+      type: object
+      additionalProperties: false
+      required: [sha256, data]
+      properties:
+        sha256: {type: string, pattern: '^[a-f0-9]{64}$'}
+        data: {type: string, format: byte, maxLength: 5592408}
+    SourceUploadSession:
+      type: object
+      additionalProperties: false
+      required: [schema_version, id, request_id, tenant_id, filename, size_bytes, sha256, chunk_size, state, created_at, updated_at, expires_at]
+      properties:
+        schema_version: {type: integer, enum: [1]}
+        id: {type: string}
+        request_id: {type: string}
+        tenant_id: {type: string}
+        project_id: {type: string}
+        actor_type: {type: string}
+        actor_id: {type: string}
+        filename: {type: string}
+        size_bytes: {type: integer, format: int64}
+        sha256: {type: string}
+        chunk_size: {type: integer}
+        chunks:
+          type: object
+          additionalProperties: {type: string}
+          description: Zero based chunk index to verified SHA256; contains no archive bytes.
+        state: {type: string, enum: [uploading, ready, submitting, submitted, rejected, unknown, expired]}
+        upload_id: {type: string}
+        request_hash: {type: string}
+        operation_ids: {type: array, items: {type: string}}
+        app_ids: {type: array, items: {type: string}}
+        response_status: {type: integer}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+        expires_at: {type: string, format: date-time}
+    SourceUploadSessionResponse:
+      type: object
+      additionalProperties: false
+      required: [session]
+      properties:
+        session: {$ref: '#/components/schemas/SourceUploadSession'}
+    SourceUploadSubmitResponse:
+      type: object
+      additionalProperties: false
+      required: [session]
+      properties:
+        session: {$ref: '#/components/schemas/SourceUploadSession'}
+        result: {$ref: '#/components/schemas/ImportUploadResponse'}
+        replayed: {type: boolean}
+        error: {$ref: '#/components/schemas/ErrorResponse'}
     ImportUploadRequest:
       type: object
       additionalProperties: false
@@ -22600,6 +25673,9 @@ components:
           type: string
         route:
           type: string
+        path:
+          type: string
+          description: Redacted HTTP request path without query string or fragment when the producer supplied one.
         method:
           type: string
         status_code:
@@ -22667,6 +25743,264 @@ components:
           type: array
           items:
             type: string
+    AppDiagnosticSessionStartRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        kind:
+          type: string
+          enum: [cpu-profile]
+          default: cpu-profile
+        duration_seconds:
+          type: integer
+          format: int32
+          minimum: 5
+          maximum: 120
+          default: 60
+        frequency_hz:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 99
+          default: 19
+        pod:
+          type: string
+        container:
+          type: string
+    AppDiagnosticSession:
+      type: object
+      additionalProperties: false
+      required: [id, app_id, kind, status, target_pod, target_container, target_node, duration_seconds, frequency_hz, created_at]
+      properties:
+        id:
+          type: string
+        app_id:
+          type: string
+        kind:
+          type: string
+        status:
+          type: string
+          enum: [queued, running, succeeded, failed]
+        target_pod:
+          type: string
+        target_container:
+          type: string
+        target_node:
+          type: string
+        duration_seconds:
+          type: integer
+          format: int32
+        frequency_hz:
+          type: integer
+          format: int32
+        created_at:
+          type: string
+          format: date-time
+        started_at:
+          type: string
+          format: date-time
+        finished_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+        failure_reason:
+          type: string
+    AppDiagnosticSessionResponse:
+      type: object
+      additionalProperties: false
+      required: [session]
+      properties:
+        session:
+          $ref: "#/components/schemas/AppDiagnosticSession"
+    AppDiagnosticSessionListResponse:
+      type: object
+      additionalProperties: false
+      required: [sessions]
+      properties:
+        sessions:
+          type: array
+          items:
+            $ref: "#/components/schemas/AppDiagnosticSession"
+    AppDiagnosticSessionCancelResponse:
+      type: object
+      additionalProperties: false
+      required: [session, canceled]
+      properties:
+        session:
+          $ref: "#/components/schemas/AppDiagnosticSession"
+        canceled:
+          type: boolean
+    AppDiagnosticReportResponse:
+      type: object
+      additionalProperties: false
+      required: [session, report]
+      properties:
+        session:
+          $ref: "#/components/schemas/AppDiagnosticSession"
+        report:
+          type: object
+          additionalProperties: true
+          description: Versioned report emitted by the selected digest-addressed diagnostic probe.
+    PlatformDiagnosticTargetRequest:
+      type: object
+      additionalProperties: false
+      required: [type]
+      properties:
+        type:
+          type: string
+          enum: [platform_component, node_process]
+        component:
+          type: string
+          description: Fugue component label. Required for platform_component targets.
+        namespace:
+          type: string
+          description: Optional Fugue system namespace; defaults to the control-plane namespace.
+        pod:
+          type: string
+          description: Optional exact Pod name within the trusted component selector.
+        container:
+          type: string
+          description: Required when the selected platform Pod contains multiple containers.
+        node:
+          type: string
+          description: Required for node_process targets.
+        process_name:
+          type: string
+          description: Required allowlisted Fugue or k3s process name for node_process targets.
+    PlatformDiagnosticSessionStartRequest:
+      type: object
+      additionalProperties: false
+      required: [target]
+      properties:
+        target:
+          $ref: "#/components/schemas/PlatformDiagnosticTargetRequest"
+        kind:
+          type: string
+          enum: [cpu-profile, memory-profile, process-snapshot]
+          default: cpu-profile
+        duration_seconds:
+          type: integer
+          format: int32
+          minimum: 5
+          maximum: 360
+          default: 60
+        frequency_hz:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 99
+          default: 19
+        sample_interval_milliseconds:
+          type: integer
+          format: int32
+          minimum: 250
+          maximum: 10000
+          default: 1000
+    PlatformDiagnosticTarget:
+      type: object
+      additionalProperties: false
+      required: [type, node]
+      properties:
+        type:
+          type: string
+          enum: [platform_component, node_process]
+        app_id:
+          type: string
+        component:
+          type: string
+        namespace:
+          type: string
+        pod:
+          type: string
+        pod_uid:
+          type: string
+        container:
+          type: string
+        node:
+          type: string
+        process_name:
+          type: string
+        image_digest:
+          type: string
+    PlatformDiagnosticSession:
+      type: object
+      additionalProperties: false
+      required: [id, kind, status, target, control_path, duration_seconds, frequency_hz, sample_interval_milliseconds, created_at]
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+          enum: [cpu-profile, memory-profile, process-snapshot]
+        status:
+          type: string
+          enum: [queued, running, succeeded, failed]
+        target:
+          $ref: "#/components/schemas/PlatformDiagnosticTarget"
+        control_path:
+          type: string
+          enum: [api, direct-kubernetes]
+        duration_seconds:
+          type: integer
+          format: int32
+        frequency_hz:
+          type: integer
+          format: int32
+        sample_interval_milliseconds:
+          type: integer
+          format: int32
+        created_at:
+          type: string
+          format: date-time
+        started_at:
+          type: string
+          format: date-time
+        finished_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+        failure_reason:
+          type: string
+    PlatformDiagnosticSessionResponse:
+      type: object
+      additionalProperties: false
+      required: [session]
+      properties:
+        session:
+          $ref: "#/components/schemas/PlatformDiagnosticSession"
+    PlatformDiagnosticSessionListResponse:
+      type: object
+      additionalProperties: false
+      required: [sessions]
+      properties:
+        sessions:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlatformDiagnosticSession"
+    PlatformDiagnosticSessionCancelResponse:
+      type: object
+      additionalProperties: false
+      required: [session, canceled]
+      properties:
+        session:
+          $ref: "#/components/schemas/PlatformDiagnosticSession"
+        canceled:
+          type: boolean
+    PlatformDiagnosticReportResponse:
+      type: object
+      additionalProperties: false
+      required: [session, report]
+      properties:
+        session:
+          $ref: "#/components/schemas/PlatformDiagnosticSession"
+        report:
+          type: object
+          additionalProperties: true
+          description: Versioned report emitted by the digest-addressed diagnostic runner.
     AppObservabilityMetricsSummaryResponse:
       type: object
       additionalProperties: false
@@ -22721,6 +26055,29 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ObservabilityRequestSummary"
+    AppEdgeRouteDecisionEvidenceResponse:
+      type: object
+      additionalProperties: false
+      required: [source, app_id, domain, window, decisions, missing_links]
+      properties:
+        source:
+          $ref: "#/components/schemas/ObservabilitySourceStatus"
+        app_id:
+          type: string
+        domain:
+          type: string
+        window:
+          $ref: "#/components/schemas/ObservabilityWindow"
+        decisions:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        missing_links:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
     AppObservabilityTraceResponse:
       type: object
       additionalProperties: false
@@ -23281,11 +26638,48 @@ components:
           $ref: "#/components/schemas/Operation"
         build:
           $ref: "#/components/schemas/RebuildPlan"
+    AppRuntimeCheck:
+      type: object
+      additionalProperties: false
+      required: [kind, state, source]
+      properties:
+        kind: {type: string}
+        key: {type: string}
+        pod: {type: string}
+        state: {type: string, enum: [in_sync, drifted, unknown, not_configured]}
+        source: {type: string}
+        desired_sha256: {type: string}
+        observed_sha256: {type: string}
+        reason: {type: string}
+    AppRuntimeStateResponse:
+      type: object
+      additionalProperties: false
+      required: [schema_version, app_id, namespace, desired_spec_hash, desired_source, observed_at, state, ready_pods, endpoint_pods, pod_uids, revisions, pending_operations, checks, missing_evidence]
+      properties:
+        schema_version: {type: integer, enum: [1]}
+        app_id: {type: string}
+        namespace: {type: string}
+        desired_spec_hash: {type: string}
+        desired_source: {type: string}
+        observed_at: {type: string, format: date-time}
+        state: {type: string, enum: [in_sync, drifted, inconclusive, inactive]}
+        ready_pods: {type: array, items: {type: string}}
+        endpoint_pods: {type: array, items: {type: string}}
+        pod_uids: {type: object, additionalProperties: {type: string}}
+        revisions: {type: object, additionalProperties: {type: string}}
+        pending_operations: {type: array, items: {type: string}}
+        checks:
+          type: array
+          items: {$ref: "#/components/schemas/AppRuntimeCheck"}
+        missing_evidence: {type: array, items: {type: string}}
     AppRestartResponse:
       type: object
       additionalProperties: false
       required: [operation, restart_token]
       properties:
+        desired_spec_hash:
+          type: string
+          description: SHA-256 of the exact desired spec accepted for this restart
         operation:
           $ref: "#/components/schemas/Operation"
         restart_token:
@@ -23298,6 +26692,12 @@ components:
           $ref: "#/components/schemas/AppFailoverSpec"
         zero_downtime:
           $ref: "#/components/schemas/AppZeroDowntimePolicy"
+        zero_downtime_effective:
+          type: boolean
+          description: Whether zero-downtime protection is effective, including the default protection for serving apps.
+        zero_downtime_source:
+          type: string
+          description: Effective requirement source. service-default applies to every app with a Service and positive replicas; service-policy identifies an explicitly configured advanced continuity policy.
         database:
           $ref: "#/components/schemas/AppPostgresSpec"
         already_current:
@@ -23858,6 +27258,9 @@ components:
       type: object
       additionalProperties: false
       properties:
+        max_apps:
+          type: integer
+          format: int32
         max_nodes:
           type: integer
           format: int32
@@ -23884,7 +27287,7 @@ components:
           enum: [shadow, canary, enforced, disabled]
         scope:
           type: string
-          enum: [cluster, node, edge-node, edge-group, hostname, service, runtime]
+          enum: [cluster, app, node, edge-node, edge-group, hostname, service, runtime]
         default_mode:
           type: string
           enum: [shadow, canary, enforced, disabled]
@@ -24152,6 +27555,8 @@ components:
           type: boolean
         error_class:
           type: string
+        failure_plane:
+          type: string
         edge_id:
           type: string
         edge_group_id:
@@ -24199,6 +27604,9 @@ components:
           type: integer
           format: int64
         origin_connect_ms:
+          type: integer
+          format: int64
+        origin_endpoint_connect_ms:
           type: integer
           format: int64
         origin_request_write_ms:
@@ -24537,6 +27945,709 @@ components:
           type: string
         summary:
           type: string
+    AutomationScope:
+      type: object
+      additionalProperties: false
+      required: [type]
+      properties:
+        type:
+          type: string
+        id:
+          type: string
+    AutomationTrigger:
+      type: object
+      additionalProperties: false
+      required: [type, source]
+      properties:
+        type:
+          type: string
+          enum: [invariant, request_metric, synthetic_probe, event, schedule]
+        source:
+          type: string
+        invariant_id:
+          type: string
+        request_metric:
+          $ref: "#/components/schemas/AutomationRequestMetricSelector"
+        required_evidence:
+          type: array
+          items:
+            type: string
+        minimum_samples:
+          type: integer
+          format: int32
+        minimum_failure_domains:
+          type: integer
+          format: int32
+    AutomationRequestMetricSelector:
+      type: object
+      additionalProperties: false
+      required: [metric, window]
+      properties:
+        metric:
+          type: string
+        window:
+          type: string
+        status_codes:
+          type: array
+          uniqueItems: true
+          items:
+            type: integer
+            format: int32
+            minimum: 100
+            maximum: 599
+        error_classes:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+    AutomationAction:
+      type: object
+      additionalProperties: false
+      required: [type]
+      properties:
+        type:
+          type: string
+        parameters:
+          type: object
+          additionalProperties:
+            type: string
+    AutomationSafetyPolicy:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          action_contract_id,
+          gate_policy_id,
+          ttl,
+          recovery_condition,
+          rollback_action,
+        ]
+      properties:
+        action_contract_id:
+          type: string
+        gate_policy_id:
+          type: string
+        ttl:
+          type: string
+        blast_radius:
+          $ref: "#/components/schemas/GateBlastRadiusPolicy"
+        recovery_condition:
+          type: string
+        rollback_action:
+          type: string
+        requires_rollback_target:
+          type: boolean
+        requires_audit:
+          type: boolean
+        requires_wal:
+          type: boolean
+        requires_idempotency_key:
+          type: boolean
+        requires_fencing_token:
+          type: boolean
+    AutomationRule:
+      type: object
+      additionalProperties: false
+      required: [id, trigger, action, safety]
+      properties:
+        id:
+          type: string
+        description:
+          type: string
+        trigger:
+          $ref: "#/components/schemas/AutomationTrigger"
+        action:
+          $ref: "#/components/schemas/AutomationAction"
+        safety:
+          $ref: "#/components/schemas/AutomationSafetyPolicy"
+    AutomationPolicy:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          id,
+          name,
+          kind,
+          owner_type,
+          scope,
+          mode,
+          managed,
+          rules,
+          generation,
+          created_at,
+          updated_at,
+        ]
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        project_id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        kind:
+          type: string
+          enum: [managed_system, app_recovery]
+        owner_type:
+          type: string
+          enum: [system, user]
+        scope:
+          $ref: "#/components/schemas/AutomationScope"
+        mode:
+          type: string
+          enum: [shadow, canary, enforced, disabled]
+        priority:
+          type: integer
+          format: int32
+        managed:
+          type: boolean
+        source_ref:
+          type: string
+        rules:
+          type: array
+          items:
+            $ref: "#/components/schemas/AutomationRule"
+        generation:
+          type: integer
+          format: int64
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    AutomationPolicyListResponse:
+      type: object
+      additionalProperties: false
+      required: [policies, generated_at]
+      properties:
+        policies:
+          type: array
+          items:
+            $ref: "#/components/schemas/AutomationPolicy"
+        generated_at:
+          type: string
+          format: date-time
+    AutomationPolicyResponse:
+      type: object
+      additionalProperties: false
+      required: [policy]
+      properties:
+        policy:
+          $ref: "#/components/schemas/AutomationPolicy"
+    AutomationTriggerInput:
+      type: object
+      additionalProperties: false
+      required: [type, source, request_metric]
+      properties:
+        type:
+          type: string
+          enum: [request_metric]
+        source:
+          type: string
+          enum: [app_request_outcomes]
+        request_metric:
+          $ref: "#/components/schemas/AutomationRequestMetricSelector"
+        required_evidence:
+          type: array
+          items:
+            type: string
+        minimum_samples:
+          type: integer
+          format: int32
+          minimum: 0
+          maximum: 10000
+        minimum_failure_domains:
+          type: integer
+          format: int32
+          minimum: 0
+          maximum: 1000
+    AutomationActionInput:
+      type: object
+      additionalProperties: false
+      required: [type]
+      properties:
+        type:
+          type: string
+          enum: [restart_app]
+        parameters:
+          type: object
+          additionalProperties: false
+          properties:
+            reason:
+              type: string
+              minLength: 1
+              maxLength: 500
+    AutomationRuleInput:
+      type: object
+      additionalProperties: false
+      required: [id, trigger, action]
+      properties:
+        id:
+          type: string
+        description:
+          type: string
+        trigger:
+          $ref: "#/components/schemas/AutomationTriggerInput"
+        action:
+          $ref: "#/components/schemas/AutomationActionInput"
+    CreateAutomationPolicyRequest:
+      type: object
+      additionalProperties: false
+      required: [name, kind, scope, mode, rules]
+      properties:
+        tenant_id:
+          type: string
+        project_id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        kind:
+          type: string
+          enum: [app_recovery]
+        scope:
+          $ref: "#/components/schemas/AutomationScope"
+        mode:
+          type: string
+          enum: [disabled, shadow]
+        priority:
+          type: integer
+          format: int32
+          minimum: 0
+        source_ref:
+          type: string
+        rules:
+          type: array
+          minItems: 1
+          maxItems: 16
+          items:
+            $ref: "#/components/schemas/AutomationRuleInput"
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+    UpdateAutomationPolicyRequest:
+      type: object
+      additionalProperties: false
+      required: [expected_generation, name, mode, rules]
+      properties:
+        expected_generation:
+          type: integer
+          format: int64
+          minimum: 1
+        name:
+          type: string
+        description:
+          type: string
+        mode:
+          type: string
+          enum: [disabled, shadow]
+        priority:
+          type: integer
+          format: int32
+          minimum: 0
+        source_ref:
+          type: string
+        rules:
+          type: array
+          minItems: 1
+          maxItems: 16
+          items:
+            $ref: "#/components/schemas/AutomationRuleInput"
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+    DeleteAutomationPolicyResponse:
+      type: object
+      additionalProperties: false
+      required: [deleted, policy]
+      properties:
+        deleted:
+          type: boolean
+        policy:
+          $ref: "#/components/schemas/AutomationPolicy"
+    AutomationRequestOutcomeAggregate:
+      type: object
+      additionalProperties: false
+      required: [status_code, count]
+      properties:
+        status_code:
+          type: integer
+          format: int32
+          minimum: 100
+          maximum: 599
+        count:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 1000000000
+        failure_domain:
+          type: string
+          maxLength: 200
+    EvaluateAutomationPolicyRequest:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          policy_id,
+          expected_generation,
+          rule_id,
+          window_started_at,
+          window_ended_at,
+          request_outcomes,
+        ]
+      properties:
+        policy_id:
+          type: string
+        expected_generation:
+          type: integer
+          format: int64
+          minimum: 1
+        rule_id:
+          type: string
+        window_started_at:
+          type: string
+          format: date-time
+        window_ended_at:
+          type: string
+          format: date-time
+        request_outcomes:
+          type: array
+          minItems: 1
+          maxItems: 256
+          items:
+            $ref: "#/components/schemas/AutomationRequestOutcomeAggregate"
+    AutomationEvaluationEvidence:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          collected_by,
+          trusted,
+          window_started_at,
+          window_ended_at,
+          request_outcomes,
+          app_revision,
+          app_readiness,
+          app_readiness_observed_at,
+        ]
+      properties:
+        collected_by:
+          type: string
+          enum: [admin_replay, control_loop]
+        trusted:
+          type: boolean
+        window_started_at:
+          type: string
+          format: date-time
+        window_ended_at:
+          type: string
+          format: date-time
+        request_outcomes:
+          type: array
+          minItems: 1
+          maxItems: 256
+          items:
+            $ref: "#/components/schemas/AutomationRequestOutcomeAggregate"
+        app_revision:
+          type: string
+        app_readiness:
+          type: string
+        app_readiness_observed_at:
+          type: string
+          format: date-time
+    AutomationEvaluationDecision:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          policy_id,
+          policy_generation,
+          rule_id,
+          scope,
+          mode,
+          matched,
+          would_action,
+          production_mutation_allowed,
+          matching_samples,
+          failure_domains,
+          evidence_hash,
+          reason_codes,
+          evaluated_at,
+        ]
+      properties:
+        policy_id:
+          type: string
+        policy_generation:
+          type: integer
+          format: int64
+        rule_id:
+          type: string
+        scope:
+          $ref: "#/components/schemas/AutomationScope"
+        mode:
+          type: string
+          enum: [disabled, shadow]
+        matched:
+          type: boolean
+        would_action:
+          type: boolean
+        production_mutation_allowed:
+          type: boolean
+          enum: [false]
+        matching_samples:
+          type: integer
+          format: int64
+        failure_domains:
+          type: array
+          items:
+            type: string
+        evidence_hash:
+          type: string
+        reason_codes:
+          type: array
+          items:
+            type: string
+        evaluated_at:
+          type: string
+          format: date-time
+    AutomationActionIntent:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          id,
+          tenant_id,
+          project_id,
+          policy_id,
+          policy_generation,
+          rule_id,
+          scope,
+          mode,
+          source,
+          status,
+          rule_snapshot,
+          evidence,
+          decision,
+          evidence_hash,
+          idempotency_key,
+          rollback_target,
+          production_mutation_allowed,
+          expires_at,
+          created_at,
+          updated_at,
+        ]
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        project_id:
+          type: string
+        policy_id:
+          type: string
+        policy_generation:
+          type: integer
+          format: int64
+        rule_id:
+          type: string
+        scope:
+          $ref: "#/components/schemas/AutomationScope"
+        mode:
+          type: string
+          enum: [shadow]
+        source:
+          type: string
+          enum: [admin_replay, control_loop]
+        status:
+          type: string
+          enum: [observed]
+        rule_snapshot:
+          $ref: "#/components/schemas/AutomationRule"
+        evidence:
+          $ref: "#/components/schemas/AutomationEvaluationEvidence"
+        decision:
+          $ref: "#/components/schemas/AutomationEvaluationDecision"
+        evidence_hash:
+          type: string
+        idempotency_key:
+          type: string
+        rollback_target:
+          type: string
+        production_mutation_allowed:
+          type: boolean
+          enum: [false]
+        expires_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    AutomationActionIntentListResponse:
+      type: object
+      additionalProperties: false
+      required: [intents, generated_at]
+      properties:
+        intents:
+          type: array
+          items:
+            $ref: "#/components/schemas/AutomationActionIntent"
+        generated_at:
+          type: string
+          format: date-time
+    AutomationActionIntentResponse:
+      type: object
+      additionalProperties: false
+      required: [intent]
+      properties:
+        intent:
+          $ref: "#/components/schemas/AutomationActionIntent"
+    AutomationActionDispatch:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          id,
+          intent_id,
+          tenant_id,
+          project_id,
+          policy_id,
+          policy_generation,
+          rule_id,
+          scope,
+          action_type,
+          contract_id,
+          trigger_invariant,
+          subject,
+          source_generation,
+          rollback_target,
+          idempotency_key,
+          wal_hash,
+          safety_decision,
+          status,
+          fencing_token,
+          version,
+          expires_at,
+          created_at,
+          updated_at,
+        ]
+      properties:
+        id:
+          type: string
+        intent_id:
+          type: string
+        tenant_id:
+          type: string
+        project_id:
+          type: string
+        policy_id:
+          type: string
+        policy_generation:
+          type: integer
+          format: int64
+        rule_id:
+          type: string
+        scope:
+          $ref: "#/components/schemas/AutomationScope"
+        action_type:
+          type: string
+        contract_id:
+          type: string
+        trigger_invariant:
+          type: string
+        subject:
+          type: string
+        source_generation:
+          type: string
+        rollback_target:
+          type: string
+        idempotency_key:
+          type: string
+        wal_hash:
+          type: string
+        safety_decision:
+          $ref: "#/components/schemas/ActionSafetyDecision"
+        status:
+          type: string
+          enum: [held, ready, claimed, executing, succeeded, failed, rolled_back, expired, cancelled]
+        fencing_token:
+          type: integer
+          format: int64
+        version:
+          type: integer
+          format: int64
+        expires_at:
+          type: string
+          format: date-time
+        lease_owner:
+          type: string
+        lease_expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        cooldown_until:
+          type: string
+          format: date-time
+          nullable: true
+        last_error:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        claimed_at:
+          type: string
+          format: date-time
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+    AutomationActionDispatchListResponse:
+      type: object
+      additionalProperties: false
+      required: [dispatches, generated_at]
+      properties:
+        dispatches:
+          type: array
+          items:
+            $ref: "#/components/schemas/AutomationActionDispatch"
+        generated_at:
+          type: string
+          format: date-time
+    AutomationActionDispatchResponse:
+      type: object
+      additionalProperties: false
+      required: [dispatch]
+      properties:
+        dispatch:
+          $ref: "#/components/schemas/AutomationActionDispatch"
+    AutomationEvaluationResponse:
+      type: object
+      additionalProperties: false
+      required: [decision, intent_created]
+      properties:
+        decision:
+          $ref: "#/components/schemas/AutomationEvaluationDecision"
+        intent:
+          $ref: "#/components/schemas/AutomationActionIntent"
+        intent_created:
+          type: boolean
     AutomaticActionContract:
       type: object
       additionalProperties: false
@@ -25646,7 +29757,6 @@ components:
     PlatformArtifactCreateRequest:
       type: object
       additionalProperties: false
-      description: For artifact_kind node_desired_state with scope key production/cluster-dns, content must conform to NodeLocalDNSMembershipDocument; the server binds audit.actor_type and audit.actor_id to the authenticated creator, and runtime validation also enforces cross-generation, LKG, disjoint identity, and one-node transition invariants.
       required: [artifact_kind, content]
       properties:
         artifact_kind:
@@ -25720,8 +29830,6 @@ components:
           type: string
         reason:
           type: string
-        idempotency_key:
-          type: string
         soft_override:
           type: boolean
           description: Skips non-kernel artifact validation only.
@@ -25751,11 +29859,11 @@ components:
         local_probe_state:
           type: string
           enum: [pass, fail, unknown, stale]
-        public_synthetic:
+        platform_evidence:
           type: boolean
           deprecated: true
-          description: Legacy compatibility field. Prefer public_synthetic_state.
-        public_synthetic_state:
+          description: Legacy compatibility field. Prefer platform_evidence_state.
+        platform_evidence_state:
           type: string
           enum: [pass, fail, unknown, stale]
         watch_window:
@@ -26002,8 +30110,6 @@ components:
           $ref: "#/components/schemas/PlatformReleaseMessage"
         lkg:
           $ref: "#/components/schemas/PlatformLKGSnapshot"
-        expected_consumer_set:
-          $ref: "#/components/schemas/PlatformExpectedConsumerSet"
     PlatformArtifactConsumersResponse:
       type: object
       additionalProperties: false
@@ -26049,122 +30155,10 @@ components:
             $ref: "#/components/schemas/PlatformReleaseMessage"
         lkg:
           $ref: "#/components/schemas/PlatformLKGSnapshot"
-        expected_consumer_set:
-          $ref: "#/components/schemas/PlatformExpectedConsumerSet"
         generation:
           type: string
         waited:
           type: boolean
-    NodeLocalDNSNodeIdentity:
-      type: object
-      additionalProperties: false
-      required: [fugue_node_id, kubernetes_name, expected_kubernetes_uid]
-      properties:
-        fugue_node_id:
-          type: string
-          minLength: 1
-          maxLength: 128
-        kubernetes_name:
-          type: string
-          minLength: 1
-          maxLength: 253
-          pattern: '^[a-z0-9]([-a-z0-9.]*[a-z0-9])?$'
-        expected_kubernetes_uid:
-          type: string
-          pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
-    NodeLocalDNSMembershipDocument:
-      type: object
-      additionalProperties: false
-      description: Immutable membership contract for node_desired_state at production/cluster-dns. The server additionally enforces identity disjointness and transition/LKG ordering that JSON Schema cannot express.
-      required: [contract_kind, contract_version, generation, base_generation, previous_generation, rollback_generation, compatibility, transition, desired, enforcement, audit]
-      properties:
-        contract_kind:
-          type: string
-          enum: [node_local_dns_membership]
-        contract_version:
-          type: string
-          enum: [nodelocal-membership-v1]
-        generation:
-          type: string
-          pattern: '^nodelocal-[0-9]{4,}$'
-        base_generation:
-          type: string
-          pattern: '^nodelocal-[0-9]{4,}$'
-        previous_generation:
-          type: string
-          pattern: '^nodelocal-[0-9]{4,}$'
-        rollback_generation:
-          type: string
-          pattern: '^nodelocal-[0-9]{4,}$'
-        compatibility:
-          type: object
-          additionalProperties: false
-          required: [controller_floor, workload_contract_digest]
-          properties:
-            controller_floor:
-              type: string
-              enum: [nodelocal-membership-v1]
-            workload_contract_digest:
-              type: string
-              pattern: '^sha256:[0-9a-f]{64}$'
-        transition:
-          type: object
-          additionalProperties: false
-          required: [type]
-          properties:
-            type:
-              type: string
-              enum: [noop, add_one_shadow, workload_contract_update, enforcement_update]
-            node:
-              $ref: "#/components/schemas/NodeLocalDNSNodeIdentity"
-        desired:
-          type: object
-          additionalProperties: false
-          required: [active_mode, preserved_mode, active_shadow, preserved_iptables]
-          properties:
-            active_mode:
-              type: string
-              enum: [shadow]
-            preserved_mode:
-              type: string
-              enum: [iptables]
-            active_shadow:
-              type: array
-              items:
-                $ref: "#/components/schemas/NodeLocalDNSNodeIdentity"
-            preserved_iptables:
-              type: array
-              items:
-                $ref: "#/components/schemas/NodeLocalDNSNodeIdentity"
-        enforcement:
-          type: object
-          additionalProperties: false
-          required: [mode]
-          properties:
-            mode:
-              type: string
-              enum: [report_only, enforced]
-        audit:
-          type: object
-          additionalProperties: false
-          required: [actor_type, actor_id, reason, change_id]
-          properties:
-            actor_type:
-              type: string
-              minLength: 1
-              maxLength: 128
-            actor_id:
-              type: string
-              minLength: 1
-              maxLength: 128
-            reason:
-              type: string
-              minLength: 8
-              maxLength: 512
-            change_id:
-              type: string
-              minLength: 1
-              maxLength: 128
     PlatformConsumerHeartbeatResponse:
       type: object
       additionalProperties: false
