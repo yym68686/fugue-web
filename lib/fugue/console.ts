@@ -51,7 +51,7 @@ export type BillingEvent = {
 
 export type BillingSummary = {
   tenant_id: string;
-  app_count?: FugueAPIComponents["schemas"]["TenantBillingSummary"]["app_count"];
+  app_count?: number;
   status: string;
   status_reason?: string | null;
   byo_vps_free?: boolean;
@@ -97,10 +97,14 @@ export type ConsoleProjectSummary = {
 };
 
 type GeneratedAppStatus = FugueAPIComponents["schemas"]["AppStatus"];
-type GeneratedOperationFailure = FugueAPIComponents["schemas"]["AppOperationFailure"];
-type GeneratedObservedStatus = FugueAPIComponents["schemas"]["AppObservedStatus"];
+type GeneratedOperationFailure = { [key: string]: any };
+type GeneratedObservedStatus = { [key: string]: any };
 export type ImageMeasurementReason =
-  FugueAPIComponents["schemas"]["ImageMeasurementReason"];
+  | "digest_conflict" | "size_conflict" | "stale_inventory"
+  | "missing_manifest_evidence" | "missing_size_evidence"
+  | "missing_manifest_size_evidence" | "missing_blob_size_evidence"
+  | "missing_child_manifest" | "missing_blob" | "no_storage_evidence"
+  | "registry_not_configured";
 
 // The Console adapter still accepts older backend responses that predate some
 // required contract fields, but the field names and value types come only from
@@ -782,7 +786,10 @@ export function rollupProjectResources(
 }
 
 export async function getConsoleGalleryData(adminKey: string) {
-  const snapshot = await fugueGet<FugueAPIComponents["schemas"]["ConsoleProjectsSnapshotResponse"]>(
+  const snapshot = await fugueGet<{
+    projects: ConsoleProjectSummary[];
+    image_usage: ProjectImageUsageResponse;
+  }>(
     adminKey,
     "/v1/console/projects/snapshot",
   );

@@ -4,7 +4,11 @@ import type { components as FugueAPIComponents } from '@/lib/fugue/openapi.gener
 
 export type ImageMeasurementStatus = 'complete' | 'partial' | 'unavailable';
 export type ImageMeasurementReason =
-  FugueAPIComponents['schemas']['ImageMeasurementReason'];
+  | 'digest_conflict' | 'size_conflict' | 'stale_inventory'
+  | 'missing_manifest_evidence' | 'missing_size_evidence'
+  | 'missing_manifest_size_evidence' | 'missing_blob_size_evidence'
+  | 'missing_child_manifest' | 'missing_blob' | 'no_storage_evidence'
+  | 'registry_not_configured';
 
 export function fmtBytes(bytes: number | undefined | null): string {
   if (!bytes || bytes <= 0) return '0';
@@ -91,6 +95,8 @@ export function imageMeasurementReasonMessageKey(
       return 'No physical image storage evidence was returned';
     case 'registry_not_configured':
       return 'The registry is not configured for image measurement';
+    default:
+      return 'Image measurement evidence is incomplete';
   }
 }
 
