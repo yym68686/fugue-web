@@ -1109,6 +1109,35 @@ deploy_api: success
 api_image: sha256:1f1af73ee2552b20996b69160d46d029a23b3b6c9d0dc0ad44a05e23cbe42d23
 ```
 
+### P0-G：强类型 RuntimeSnapshot 编译输入
+
+- [x] 新增强类型 `RuntimeSnapshot`，明确记录 intent generation 与 policy generation。
+- [x] compiler 拒绝与当前 intent/policy 不一致的 runtime snapshot。
+- [x] runtime snapshot facts 进入稳定的 input snapshot digest 和 artifact lineage。
+- [x] 保留 `input_snapshot` 兼容读取路径，但新 API 支持 `runtime_snapshot`。
+- [x] OpenAPI、生成代码和 `fugue-web` 类型已同步。
+- [x] 增加 runtime snapshot generation drift 回归测试。
+- [x] 本地 prepush、web contract CI 通过。
+- [x] CI prepush、API build 和 `deploy_api` 通过。
+- [x] 生产 API generation 953，2/2 Ready，0 restart。
+- [x] 生产 `/healthz` 和 `/readyz` 返回 `ok`。
+- [x] 生产近 10 分钟无 panic、fatal 或 error 日志。
+
+生产提交：
+
+```text
+48ccb7ad  feat(platform): bind compiler to typed runtime snapshots
+```
+
+生产发布证据：
+
+```text
+workflow: ci
+run: 34723705622
+deploy_api: success
+api_image: sha256:7fad74233ce258433edcaba76d77a56e6d505e09073911a24b7e20ecddd71cb6
+```
+
 ## 原子步骤生产证据
 
 ### P0-A：Intent/Policy/Compiler/Lineage 基础
