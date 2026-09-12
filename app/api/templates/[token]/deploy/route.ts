@@ -1,4 +1,4 @@
-import { importGitHubApp, importImageApp, listProjectSlugs } from "@/lib/fugue/console";
+import { importGitHubApp, importImageApp, inspectGitHubTemplate, listProjectSlugs } from "@/lib/fugue/console";
 import { getProjectTemplate, incrementProjectTemplateUse } from "@/lib/templates/store";
 import { isObject, jsonError, readJsonBody, readOptionalString, readStringMap } from "@/lib/fugue/product-route";
 import { withWorkspaceKey } from "@/lib/console/route-helpers";
@@ -13,6 +13,27 @@ export async function POST(request: Request, context: { params: Promise<{ token:
   return withWorkspaceKey(async (key) => {
     const projectName = resolveUniqueProjectName(requestedName || template.name, await listProjectSlugs(key));
     const env = readStringMap(body.env);
+    if (template.kind === "github-compose" && template.topology) {
+      const serviceEnvRaw = isObject(body.serviceEnv) ? body.serviceEnv : {};
+      const serviceEnv: Record<string, Record<string, string>> = {};
+      for (const service of template.topology.services) {
+        const values = isObject(serviceEnvRaw[service.name]) ? readStringMap(serviceEnvRaw[service.name]) : {};
+        if (Object.keys(values).length) serviceEnv[service.name] = values;
+      }
+      const source = await inspectGitHubTemplate(key, { repoUrl: template.topology.repoUrl, branch: template.topology.commitSha || template.topology.branch, repoVisibility: "public" });
+      const graph = source.compose_stack ?? source.fugue_manifest;
+      const currentServices = (graph?.services ?? []).map((service) => service.service).sort();
+      const expectedServices = template.topology.services.map((service) => service.name).sort();
+      if (currentServices.join("\0") !== expectedServices.join("\0")) throw new Error("The shared source topology changed after this template was created. Deployment was stopped before creating any resources.");
+      const preview = await importGitHubApp(key, { projectName, projectDescription: template.description, repoUrl: template.topology.repoUrl, branch: template.topology.commitSha || template.topology.branch, repoVisibility: "public", serviceEnv, dryRun: true });
+      const plan = preview.plan as { services?: Array<{ name?: string; service?: string }> } | undefined;
+      const plannedServices = (plan?.services ?? []).map((service) => service.name ?? service.service).filter(Boolean).sort();
+      if (plannedServices.length && plannedServices.join("\0") !== expectedServices.join("\0")) throw new Error("Fugue's deployment plan does not match the shared service topology. Deployment was stopped before creating any resources.");
+      const result = await importGitHubApp(key, { projectName, projectDescription: template.description, repoUrl: template.topology.repoUrl, branch: template.topology.commitSha || template.topology.branch, repoVisibility: "public", serviceEnv });
+      await incrementProjectTemplateUse(template.id);
+      const projectId = result.apps?.find((app) => app.project_id)?.project_id || result.project?.id;
+      return { projectId, results: [result] };
+    }
     const missingEnv = template.apps.flatMap((app) => (app.envKeys ?? []).filter((key) => !(key in env)).map((key) => `${app.name}: ${key}`));
     if (missingEnv.length) throw new Error(`Set required environment variables: ${missingEnv.join(", ")}`);
     const results = [];

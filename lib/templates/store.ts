@@ -10,13 +10,31 @@ export type TemplateApp = {
   source: { type: "github" | "image"; repoUrl?: string; branch?: string; imageRef?: string; buildStrategy?: string; dockerfilePath?: string; buildContextDir?: string; sourceDir?: string };
   runtimeId?: string; servicePort?: number; startupCommand?: string; networkMode?: string; envKeys: string[];
 };
-export type ProjectTemplate = { id: string; token: string; name: string; description: string; ownerEmail: string; apps: TemplateApp[]; createdAt: string; useCount: number };
-type TemplateRow = { id: string; name: string; description: string; owner_email: string; snapshot: { apps?: TemplateApp[] }; created_at: Date | string; use_count: number };
+export type GithubTopologyTemplate = {
+  kind: "github-compose";
+  repoUrl: string;
+  branch?: string;
+  commitSha?: string;
+  services: Array<{ name: string; envKeys: string[]; backingService?: boolean; bindingTargets?: string[] }>;
+};
+export type TemplateSnapshot =
+  | { kind: "single"; apps: TemplateApp[] }
+  | GithubTopologyTemplate
+  | { apps: TemplateApp[] };
+export type ProjectTemplate = { id: string; token: string; name: string; description: string; ownerEmail: string; kind: "single" | "github-compose"; apps: TemplateApp[]; topology?: GithubTopologyTemplate; createdAt: string; useCount: number };
+type TemplateRow = { id: string; name: string; description: string; owner_email: string; snapshot: TemplateSnapshot; created_at: Date | string; use_count: number };
 function hashToken(token: string) { return createHash("sha256").update(token).digest("hex"); }
-function toTemplate(row: TemplateRow, token = ""): ProjectTemplate { return { id: row.id, token, name: row.name, description: row.description, ownerEmail: row.owner_email, apps: Array.isArray(row.snapshot?.apps) ? row.snapshot.apps : [], createdAt: new Date(row.created_at).toISOString(), useCount: row.use_count ?? 0 }; }
-export async function createProjectTemplate(input: { ownerEmail: string; name: string; description: string; apps: TemplateApp[] }) {
+function toTemplate(row: TemplateRow, token = ""): ProjectTemplate {
+  const snapshot = row.snapshot ?? { apps: [] };
+  if ("kind" in snapshot && snapshot.kind === "github-compose") {
+    const apps: TemplateApp[] = snapshot.services.map((service) => ({ name: service.name, description: "Compose service", source: { type: "github", repoUrl: snapshot.repoUrl, branch: snapshot.branch }, envKeys: service.envKeys ?? [] }));
+    return { id: row.id, token, name: row.name, description: row.description, ownerEmail: row.owner_email, kind: "github-compose", apps, topology: snapshot, createdAt: new Date(row.created_at).toISOString(), useCount: row.use_count ?? 0 };
+  }
+  return { id: row.id, token, name: row.name, description: row.description, ownerEmail: row.owner_email, kind: "single", apps: Array.isArray(snapshot.apps) ? snapshot.apps : [], createdAt: new Date(row.created_at).toISOString(), useCount: row.use_count ?? 0 };
+}
+export async function createProjectTemplate(input: { ownerEmail: string; name: string; description: string; snapshot: TemplateSnapshot }) {
   await ensureDbSchema(); const token = randomBytes(24).toString("base64url"); const id = randomUUID();
-  const result = await queryDb<TemplateRow>(`INSERT INTO app_project_templates (id, token_hash, name, description, owner_email, snapshot) VALUES ($1,$2,$3,$4,$5,$6::jsonb) RETURNING id, name, description, owner_email, snapshot, created_at, use_count`, [id, hashToken(token), input.name, input.description, input.ownerEmail, JSON.stringify({ apps: input.apps })]);
+  const result = await queryDb<TemplateRow>(`INSERT INTO app_project_templates (id, token_hash, name, description, owner_email, snapshot) VALUES ($1,$2,$3,$4,$5,$6::jsonb) RETURNING id, name, description, owner_email, snapshot, created_at, use_count`, [id, hashToken(token), input.name, input.description, input.ownerEmail, JSON.stringify(input.snapshot)]);
   return toTemplate(result.rows[0], token);
 }
 export async function getProjectTemplate(token: string, opts: { incrementUse?: boolean } = {}) {

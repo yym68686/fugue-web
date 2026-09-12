@@ -871,6 +871,7 @@ export type AppSource = {
   dockerfile_path?: string;
   detected_provider?: string;
   detected_stack?: string;
+  compose_service?: string;
 };
 
 export type AppDetailStatus = ConsoleAppStatus;
@@ -1884,6 +1885,8 @@ export type ImportCommonInput = {
   env?: Record<string, string>;
   networkMode?: string;
   startupCommand?: string;
+  serviceEnv?: Record<string, Record<string, string>>;
+  dryRun?: boolean;
 };
 
 export type ImportGitHubInput = ImportCommonInput & {
@@ -1927,7 +1930,23 @@ function importCommonBody(input: ImportCommonInput) {
       ? { network_mode: input.networkMode }
       : {}),
     ...(input.startupCommand?.trim() ? { startup_command: input.startupCommand.trim() } : {}),
+    ...(input.serviceEnv && Object.keys(input.serviceEnv).length > 0 ? { service_env: input.serviceEnv } : {}),
+    ...(input.dryRun ? { dry_run: true } : {}),
   };
+}
+
+export type InspectGitHubTemplateResult = {
+  repository?: { repo_url?: string; branch?: string; commit_sha?: string };
+  fugue_manifest?: { services?: Array<{ service: string; backing_service?: boolean; binding_targets?: string[] }> };
+  compose_stack?: { services?: Array<{ service: string; backing_service?: boolean; binding_targets?: string[] }> };
+};
+
+export async function inspectGitHubTemplate(adminKey: string, input: { repoUrl: string; branch?: string; repoVisibility?: "public" | "private" }) {
+  return fugueSend<InspectGitHubTemplateResult>(adminKey, "POST", "/v1/templates/inspect-github", {
+    repo_url: input.repoUrl.trim(),
+    ...(input.branch?.trim() ? { branch: input.branch.trim() } : {}),
+    ...(input.repoVisibility ? { repo_visibility: input.repoVisibility } : {}),
+  });
 }
 
 export async function importGitHubApp(adminKey: string, input: ImportGitHubInput) {
