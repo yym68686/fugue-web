@@ -2878,6 +2878,105 @@ button {
   margin-left: auto;
 }
 
+/* ---- services table ---- */
+.services-panel {
+  overflow: hidden;
+}
+
+.services-panel .panel-h {
+  padding: 15px 18px;
+}
+
+.services-panel .panel-h h3 {
+  font-size: 14px;
+}
+
+.services-panel .toolbar {
+  margin: 0;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-2);
+}
+
+.services-panel .toolbar .input {
+  max-width: 360px !important;
+  min-height: 36px;
+  background: var(--surface);
+}
+
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.tbl-services {
+  min-width: 860px;
+}
+
+.tbl-services th {
+  padding: 11px 16px;
+  background: var(--surface);
+}
+
+.tbl-services td {
+  padding: 12px 16px;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.tbl-services tbody tr {
+  transition: background 0.12s ease;
+}
+
+.tbl-services tbody tr.row-toggle:focus-visible {
+  outline: 2px solid var(--accent-fg);
+  outline-offset: -2px;
+}
+
+.tbl-services .node-nm {
+  color: var(--fg);
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 550;
+}
+
+.tbl-services .node-sub {
+  margin-top: 3px;
+  color: var(--faint);
+  font-size: 10.5px;
+}
+
+.tbl-services .chip {
+  font-size: 10px;
+}
+
+.tbl-services .row-detail > td {
+  white-space: normal;
+  padding: 0 18px 18px;
+}
+
+.tbl-services .row-detail:hover > td {
+  background: var(--panel-sub, rgba(127, 127, 127, 0.03));
+}
+
+@media (max-width: 720px) {
+  .services-panel .toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .services-panel .toolbar .input {
+    max-width: none !important;
+    width: 100%;
+  }
+
+  .services-panel .toolbar .toolbar-sp {
+    margin-left: 0;
+    align-self: flex-start;
+  }
+}
+
 /* forms */
 .form {
   display: flex;

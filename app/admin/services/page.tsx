@@ -150,7 +150,7 @@ export default withPageTiming('/admin/services', async function AdminServicesPag
           </div>
         </div>
 
-        <div className="panel">
+        <div className="panel services-panel">
           <div className="panel-h">
             <h3>{t('Deployed services')}</h3>
             <div className="tail eyebrow">{rows.length} total</div>

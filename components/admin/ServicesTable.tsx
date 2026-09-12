@@ -144,7 +144,8 @@ export default function ServicesTable({
         </div>
       </div>
 
-      <table className="tbl tbl-services">
+      <div className="table-scroll" role="region" aria-label={t("Services table")} tabIndex={0}>
+        <table className="tbl tbl-services">
         <thead>
           <tr>
             <th style={{ width: 28 }}></th>
@@ -163,7 +164,15 @@ export default function ServicesTable({
               <Fragment key={r.id}>
                 <tr
                   className={`row-toggle${isOpen ? " open" : ""}`}
+                  tabIndex={0}
+                  aria-expanded={isOpen}
                   onClick={() => toggle(r.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      toggle(r.id);
+                    }
+                  }}
                 >
                   <td>
                     <button
@@ -308,7 +317,8 @@ export default function ServicesTable({
             </tr>
           )}
         </tbody>
-      </table>
+        </table>
+      </div>
     </>
   );
 }
