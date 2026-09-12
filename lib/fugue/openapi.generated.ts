@@ -10487,10 +10487,16 @@ export interface components {
       tls_artifact: components["schemas"]["PlatformArtifact"];
       release_artifact: components["schemas"]["PlatformArtifact"];
     };
+    PlatformArtifactLineageDependency: {
+      artifact: components["schemas"]["PlatformArtifact"];
+      lineage: components["schemas"]["PlatformConfigLineage"];
+      lkg?: components["schemas"]["PlatformLKGSnapshot"];
+    };
     PlatformArtifactLineageResponse: {
       artifact: components["schemas"]["PlatformArtifact"];
       lineage: components["schemas"]["PlatformConfigLineage"];
       lkg?: components["schemas"]["PlatformLKGSnapshot"];
+      dependencies?: components["schemas"]["PlatformArtifactLineageDependency"][];
     };
     PlatformArtifactCreateRequest: {
       artifact_kind: string;
