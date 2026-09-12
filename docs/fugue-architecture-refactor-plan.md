@@ -1057,6 +1057,32 @@ deploy_api: success
 api_image: sha256:16d6fc2d7ac80da13a0639c250023bd17a936572308159a052716f36b8d8b120
 ```
 
+### P0-E：ReleaseSet promotion 引用安全门
+
+- [x] ReleaseSet promotion 前重新校验子 artifact 引用，避免历史 validated 对象绕过当前规则。
+- [x] 缺失子 artifact 时 promotion 返回冲突并保持当前 serving 状态。
+- [x] 新增 promotion 边界回归测试。
+- [x] 本地定向 API tests 和 prepush 通过。
+- [x] CI prepush、API build 和 `deploy_api` 通过。
+- [x] 生产 API generation 951，2/2 Ready，0 restart。
+- [x] 生产 `/healthz` 和 `/readyz` 返回 `ok`。
+- [x] 生产近 10 分钟无 panic、fatal 或 error 日志。
+
+生产提交：
+
+```text
+37866e27  feat(release): guard release set promotion references
+```
+
+生产发布证据：
+
+```text
+workflow: ci
+run: 34722255506
+deploy_api: success
+api_image: sha256:6febb9c4332dbf1bc3bfc5afb668c1c0a90e33cacfe150b81fcab7d0fe087fdb
+```
+
 ## 原子步骤生产证据
 
 ### P0-A：Intent/Policy/Compiler/Lineage 基础
