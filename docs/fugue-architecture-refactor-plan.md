@@ -221,7 +221,7 @@ Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 genera
 
 - [x] 新增 ReleaseSet 数据模型。
 - [ ] 新增 artifact dependency graph。
-- [ ] 新增 release set validation。
+- [x] 新增 release set validation。
 - [ ] 新增 shadow、gray、full promotion。
 - [ ] 新增 convergence gate。
 - [ ] 新增 verified LKG。
@@ -1025,6 +1025,36 @@ sha256:c17759073407fc435f24d8c3c96d5a7b540e9ed4f68f11ab2922ed5f5bf38e46
 
 ```text
 sha256:e369f4fcd257ee7ccb9e9c3f1496b1d742236870de97e4244c11aff6d40ef119
+```
+
+### P0-D：ReleaseSet 子 artifact 引用与 lineage 校验
+
+- [x] ReleaseSet 必须引用真实存在的子 artifact。
+- [x] ReleaseSet 引用的子 artifact kind 必须与声明一致。
+- [x] ReleaseSet 引用的子 artifact 必须已经 validated。
+- [x] ReleaseSet 子 artifact ID 不得重复，引用数组必须保持一一对应。
+- [x] ReleaseSet 的 intent digest、policy digest 与子 artifact lineage 不一致时拒绝验证。
+- [x] compile API 在持久化 ReleaseSet 后执行引用校验，失败时不推进 ReleaseSet 验证状态。
+- [x] 增加缺失子 artifact 的回归测试。
+- [x] 本地定向 API tests 和 prepush 通过。
+- [x] CI prepush、API build 和 `deploy_api` 通过。
+- [x] 生产 API generation 950，2/2 Ready，0 restart。
+- [x] 生产 `/healthz` 和 `/readyz` 返回 `ok`。
+- [x] 生产近 10 分钟无 panic、fatal 或 error 日志。
+
+生产提交：
+
+```text
+db5dbcc8  feat(release): validate traffic release set references
+```
+
+生产发布证据：
+
+```text
+workflow: ci
+run: 34721532225
+deploy_api: success
+api_image: sha256:16d6fc2d7ac80da13a0639c250023bd17a936572308159a052716f36b8d8b120
 ```
 
 ## 原子步骤生产证据
