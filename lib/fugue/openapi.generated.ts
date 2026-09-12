@@ -344,6 +344,20 @@ export interface paths {
     /** Get Platform Artifact */
     get: operations["getPlatformArtifact"];
   };
+  "/v1/admin/platform-config/compile": {
+    /**
+     * Compile Platform Intent And Policy
+     * @description Deterministically compiles typed platform intent and policy into immutable intent, policy, route, DNS, TLS, and release-set artifacts. The operation does not promote serving traffic.
+     */
+    post: operations["compilePlatformConfig"];
+  };
+  "/v1/admin/artifacts/{artifact_id}/lineage": {
+    /**
+     * Get Platform Artifact Lineage
+     * @description Returns the intent digest, policy digest, compiler version, and current verified LKG for a platform artifact.
+     */
+    get: operations["getPlatformArtifactLineage"];
+  };
   "/v1/admin/artifacts/{artifact_id}/validate": {
     /** Validate Platform Artifact */
     post: operations["validatePlatformArtifact"];
@@ -10385,6 +10399,80 @@ export interface components {
       /** Format: date-time */
       updated_at: string;
     };
+    PlatformConfigRouteIntent: {
+      hostname: string;
+      upstream_url: string;
+      enabled: boolean;
+      edge_group_id?: string;
+    };
+    PlatformConfigDNSIntent: {
+      hostname: string;
+      type: string;
+      values: string[];
+      /** Format: int32 */
+      ttl: number;
+    };
+    PlatformConfigTLSIntent: {
+      hostname: string;
+      policy: string;
+    };
+    PlatformConfigIntent: {
+      schema_version?: string;
+      generation: string;
+      scope?: string;
+      routes?: components["schemas"]["PlatformConfigRouteIntent"][];
+      dns?: components["schemas"]["PlatformConfigDNSIntent"][];
+      tls?: components["schemas"]["PlatformConfigTLSIntent"][];
+    };
+    PlatformConfigPolicySnapshot: {
+      schema_version?: string;
+      generation: string;
+      scope?: string;
+      require_tls_ready?: boolean;
+      require_route_ready?: boolean;
+      /** Format: int32 */
+      minimum_healthy_edges?: number;
+      /** Format: int32 */
+      max_stale_seconds?: number;
+      canary_weights?: number[];
+      dependency_order?: string[];
+    };
+    PlatformConfigLineage: {
+      intent_digest: string;
+      policy_digest: string;
+      input_snapshot_digest?: string;
+      compiler_version: string;
+    };
+    PlatformConfigReleaseSet: {
+      schema_version: string;
+      generation: string;
+      scope: string;
+      artifact_ids: string[];
+      artifact_kinds: string[];
+      lineage: components["schemas"]["PlatformConfigLineage"];
+    };
+    PlatformConfigCompileRequest: {
+      intent: components["schemas"]["PlatformConfigIntent"];
+      policy: components["schemas"]["PlatformConfigPolicySnapshot"];
+      input_snapshot?: {
+        [key: string]: unknown;
+      };
+    };
+    PlatformConfigCompileResponse: {
+      lineage: components["schemas"]["PlatformConfigLineage"];
+      release_set: components["schemas"]["PlatformConfigReleaseSet"];
+      intent_artifact: components["schemas"]["PlatformArtifact"];
+      policy_artifact: components["schemas"]["PlatformArtifact"];
+      route_artifact: components["schemas"]["PlatformArtifact"];
+      dns_artifact: components["schemas"]["PlatformArtifact"];
+      tls_artifact: components["schemas"]["PlatformArtifact"];
+      release_artifact: components["schemas"]["PlatformArtifact"];
+    };
+    PlatformArtifactLineageResponse: {
+      artifact: components["schemas"]["PlatformArtifact"];
+      lineage: components["schemas"]["PlatformConfigLineage"];
+      lkg?: components["schemas"]["PlatformLKGSnapshot"];
+    };
     PlatformArtifactCreateRequest: {
       artifact_kind: string;
       scope?: components["schemas"]["PlatformArtifactScope"];
@@ -12426,6 +12514,46 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["PlatformArtifactResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Compile Platform Intent And Policy
+   * @description Deterministically compiles typed platform intent and policy into immutable intent, policy, route, DNS, TLS, and release-set artifacts. The operation does not promote serving traffic.
+   */
+  compilePlatformConfig: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PlatformConfigCompileRequest"];
+      };
+    };
+    responses: {
+      /** @description Immutable compiled artifacts created or reused */
+      201: {
+        content: {
+          "application/json": components["schemas"]["PlatformConfigCompileResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Get Platform Artifact Lineage
+   * @description Returns the intent digest, policy digest, compiler version, and current verified LKG for a platform artifact.
+   */
+  getPlatformArtifactLineage: {
+    parameters: {
+      path: {
+        artifact_id: string;
+      };
+    };
+    responses: {
+      /** @description Artifact lineage */
+      200: {
+        content: {
+          "application/json": components["schemas"]["PlatformArtifactLineageResponse"];
         };
       };
       default: components["responses"]["ErrorResponse"];
