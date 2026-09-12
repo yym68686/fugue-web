@@ -10436,6 +10436,17 @@ export interface components {
       max_stale_seconds?: number;
       canary_weights?: number[];
       dependency_order?: string[];
+      constraint_graph?: components["schemas"]["PlatformConstraintGraph"];
+    };
+    PlatformConstraintGraph: {
+      nodes?: string[];
+      edges?: components["schemas"]["PlatformConstraintEdge"][];
+    };
+    PlatformConstraintEdge: {
+      from: string;
+      to: string;
+      /** @enum {string} */
+      relation: "requires" | "blocks" | "before" | "produces" | "rollback_to";
     };
     PlatformConfigLineage: {
       intent_digest: string;
