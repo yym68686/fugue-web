@@ -1003,6 +1003,30 @@ c2240d43  feat(policy): validate constrained release graphs
 sha256:c17759073407fc435f24d8c3c96d5a7b540e9ed4f68f11ab2922ed5f5bf38e46
 ```
 
+### P0-C：Traffic ReleaseSet 静态安全门
+
+- [x] ReleaseSet artifact 必须同时声明 route、DNS、TLS artifact kinds。
+- [x] ReleaseSet artifact 必须包含同一 lineage 的 intent/policy digest。
+- [x] ReleaseSet artifact 引用数量必须与 artifact kind 数量一致。
+- [x] ReleaseSet 缺少 traffic artifact 时验证失败。
+- [x] API invariant validation 覆盖 ReleaseSet。
+- [x] 本地 API tests 和 prepush 通过。
+- [x] CI prepush、API build 和 `deploy_api` 通过。
+- [x] 生产 API generation 948，2/2 Ready，0 restart。
+- [x] 生产 `/healthz` 和 `/readyz` 返回 `ok`。
+
+生产提交：
+
+```text
+76f5c460  feat(release): gate traffic release set invariants
+```
+
+生产镜像：
+
+```text
+sha256:e369f4fcd257ee7ccb9e9c3f1496b1d742236870de97e4244c11aff6d40ef119
+```
+
 ## 原子步骤生产证据
 
 ### P0-A：Intent/Policy/Compiler/Lineage 基础
