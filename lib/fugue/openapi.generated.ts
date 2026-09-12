@@ -10462,9 +10462,17 @@ export interface components {
       artifact_kinds: string[];
       lineage: components["schemas"]["PlatformConfigLineage"];
     };
+    PlatformRuntimeSnapshot: {
+      intent_generation: string;
+      policy_generation: string;
+      facts?: {
+        [key: string]: unknown;
+      };
+    };
     PlatformConfigCompileRequest: {
       intent: components["schemas"]["PlatformConfigIntent"];
       policy: components["schemas"]["PlatformConfigPolicySnapshot"];
+      runtime_snapshot?: components["schemas"]["PlatformRuntimeSnapshot"];
       input_snapshot?: {
         [key: string]: unknown;
       };
