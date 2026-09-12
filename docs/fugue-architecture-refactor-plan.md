@@ -211,11 +211,11 @@ Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 genera
 ### Deterministic Compiler
 
 - [x] 新增 deterministic compiler 接口。
-- [ ] compiler 输入必须明确包含 intent generation、policy generation 和 runtime snapshot。
+- [x] compiler 输入必须明确包含 intent generation、policy generation 和 runtime snapshot。
 - [x] compiler 输出必须包含 lineage。
 - [x] 相同输入必须生成相同 artifact digest。
-- [ ] compiler 不得直接修改 runtime。
-- [ ] compiler 不得直接绕过 release coordinator 发布 artifact。
+- [x] compiler 不得直接修改 runtime。
+- [x] compiler 不得直接绕过 release coordinator 发布 artifact。
 
 ### ReleaseSet
 
@@ -247,7 +247,7 @@ Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 genera
 - [ ] 查询 intent generation。
 - [ ] 查询 policy generation。
 - [x] 查询 artifact lineage。
-- [ ] 查询 release set。
+- [x] 查询 release set。
 - [ ] 查询 consumer convergence。
 - [ ] 查询当前 hostname 使用的 route、DNS、TLS artifact。
 - [ ] 查询某个 edge 未进入 DNS answer 的原因。
@@ -831,7 +831,7 @@ control-plane v42:
 
 `EdgeRouteIntent` 不应成为第二个配置真相。
 
-- [ ] `EdgeRouteIntent` 由 `PlatformIntent` 编译或投影得到。
+- [x] `EdgeRouteIntent` 由 `PlatformIntent` 编译或投影得到。
 - [ ] Edge Control 只读取该投影，不接受独立的用户配置来源。
 - [ ] EdgeRouteIntent 的 generation 必须绑定 PlatformIntent digest。
 - [ ] EdgeRouteIntent 的变更必须能够追溯到 PlatformIntent 和 PolicySnapshot。
