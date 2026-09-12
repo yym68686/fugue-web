@@ -1083,6 +1083,32 @@ deploy_api: success
 api_image: sha256:6febb9c4332dbf1bc3bfc5afb668c1c0a90e33cacfe150b81fcab7d0fe087fdb
 ```
 
+### P0-F：配置编译失败保持旧 immutable artifact
+
+- [x] 同一 immutable generation 的配置内容变更被拒绝，不覆盖已保存 artifact。
+- [x] 编译失败后旧 route artifact 仍可按 ID 读取，内容 hash 与 serving 内容保持不变。
+- [x] 增加配置失败恢复回归测试。
+- [x] 本地定向 API tests 和 prepush 通过。
+- [x] CI prepush、API build 和 `deploy_api` 通过。
+- [x] 生产 API generation 952，2/2 Ready，0 restart。
+- [x] 生产 `/healthz` 和 `/readyz` 返回 `ok`。
+- [x] 生产近 10 分钟无 panic、fatal 或 error 日志。
+
+生产提交：
+
+```text
+adfce4f6  test(config): preserve immutable artifacts on compile failure
+```
+
+生产发布证据：
+
+```text
+workflow: ci
+run: 34722892464
+deploy_api: success
+api_image: sha256:1f1af73ee2552b20996b69160d46d029a23b3b6c9d0dc0ad44a05e23cbe42d23
+```
+
 ## 原子步骤生产证据
 
 ### P0-A：Intent/Policy/Compiler/Lineage 基础
