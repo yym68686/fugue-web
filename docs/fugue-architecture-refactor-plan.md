@@ -1165,6 +1165,34 @@ deploy_api: success
 api_image: sha256:36c6086a766e11e1cd15bb19eba515ea9a6ebc0e09c72f24034c23025a5135b5
 ```
 
+### P0-I：ReleaseSet lineage 依赖查询
+
+- [x] ReleaseSet lineage API 返回 route、DNS、TLS 子 artifact。
+- [x] 每个子 artifact 返回自身 lineage 和当前 LKG（若存在）。
+- [x] 子 artifact 缺失或引用结构损坏时查询失败并明确返回冲突。
+- [x] 增加 ReleaseSet lineage dependencies 回归测试。
+- [x] OpenAPI 与生成代码同步。
+- [x] 本地 prepush 通过。
+- [x] CI prepush、API build 和 `deploy_api` 通过。
+- [x] 生产 API generation 955，2/2 Ready，0 restart。
+- [x] 生产 `/healthz` 和 `/readyz` 返回 `ok`。
+- [x] 生产近 10 分钟无 panic、fatal 或 error 日志。
+
+生产提交：
+
+```text
+21314958  feat(api): expose release set lineage dependencies
+```
+
+生产发布证据：
+
+```text
+workflow: ci
+run: 34725449648
+deploy_api: success
+api_image: sha256:4aaf282a7304acf299385d350636331c7665efd47a177751c4499fea722bea11
+```
+
 ## 原子步骤生产证据
 
 ### P0-A：Intent/Policy/Compiler/Lineage 基础
