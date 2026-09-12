@@ -1138,6 +1138,33 @@ deploy_api: success
 api_image: sha256:7fad74233ce258433edcaba76d77a56e6d505e09073911a24b7e20ecddd71cb6
 ```
 
+### P0-H：Edge RouteIntent 优先读取 verified route artifact
+
+- [x] 增加 `edge_route_bundle` verified LKG 到 `EdgeRouteIntentSnapshot` 的投影。
+- [x] artifact 投影路径不读取业务表；没有 verified artifact 时保留兼容 fallback。
+- [x] 投影沿用 artifact generation 作为 RouteIntent generation。
+- [x] 增加 verified route artifact LKG 投影回归测试。
+- [x] 本地 prepush 通过。
+- [x] CI prepush、API build 和 `deploy_api` 通过。
+- [x] 生产 API generation 954，2/2 Ready，0 restart。
+- [x] 生产 `/healthz` 和 `/readyz` 返回 `ok`。
+- [x] 生产近 10 分钟无 panic、fatal 或 error 日志。
+
+生产提交：
+
+```text
+5a6561f7  feat(edge): project verified route artifacts into route intents
+```
+
+生产发布证据：
+
+```text
+workflow: ci
+run: 34724587390
+deploy_api: success
+api_image: sha256:36c6086a766e11e1cd15bb19eba515ea9a6ebc0e09c72f24034c23025a5135b5
+```
+
 ## 原子步骤生产证据
 
 ### P0-A：Intent/Policy/Compiler/Lineage 基础
