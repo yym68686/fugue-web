@@ -2990,9 +2990,6 @@ button {
   font: 12px var(--sans);
 }
 .services-filter-field select:focus { outline: 2px solid var(--accent-fg); outline-offset: 1px; }
-.services-status-field { min-width: 235px; }
-.services-status-field .services-filter { height: 34px; }
-.services-status-field .services-filter .seg-btn { min-width: 68px; padding: 6px 10px; }
 .services-clear-filters { height: 34px; padding: 0 10px; color: var(--accent-fg); font-size: 12px; white-space: nowrap; }
 .services-clear-filters:hover { color: var(--fg); }
 .services-clear-filters span { display: inline-grid; place-items: center; min-width: 18px; height: 18px; margin-left: 5px; border-radius: 99px; background: var(--accent-dim); font: 10px var(--mono); }

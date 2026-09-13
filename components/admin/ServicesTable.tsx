@@ -108,7 +108,7 @@ export default function ServicesTable({
     stacks: [...new Set(rows.flatMap((r) => r.stack))].sort(),
   }), [rows]);
 
-  const activeFilterCount = [ownerFilter, nodeFilter, stackFilter].filter(Boolean).length;
+  const activeFilterCount = [statusFilter !== "all" ? statusFilter : "", ownerFilter, nodeFilter, stackFilter].filter(Boolean).length;
   const clearFilters = () => {
     setQuery("");
     setStatusFilter("all");
@@ -149,18 +149,11 @@ export default function ServicesTable({
     });
   }, [rows, query, statusFilter, ownerFilter, nodeFilter, stackFilter, now]);
 
-  const segs: { key: StatusFilter; label: string }[] = [
-    { key: "all", label: t("All") },
-    { key: "running", label: t("Running") },
-    { key: "issues", label: t("Issues") },
-  ];
-
   return (
     <>
       <div className="services-controls">
         <div className="services-list-title">
           <strong>{t("Deployed services")}</strong>
-          <span>{t("{count} results", { count: filtered.length })}</span>
         </div>
         <label className="services-search">
           <span className="services-search-icon" aria-hidden="true">⌕</span>
@@ -177,12 +170,12 @@ export default function ServicesTable({
       </div>
       <div className="services-advanced-filters">
         <div className="services-filter-field services-status-field">
-          <label>{t("Status")}</label>
-          <div className="services-filter" role="group" aria-label={t("Filter by status")}>
-            {segs.map((s) => (
-              <button key={s.key} type="button" className={`seg-btn${statusFilter === s.key ? " active" : ""}`} onClick={() => setStatusFilter(s.key)}>{s.label}</button>
-            ))}
-          </div>
+          <label htmlFor="services-status-filter">{t("Status")}</label>
+          <select id="services-status-filter" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}>
+            <option value="all">{t("All statuses")}</option>
+            <option value="running">{t("Running")}</option>
+            <option value="issues">{t("Issues")}</option>
+          </select>
         </div>
         <div className="services-filter-field">
           <label htmlFor="services-owner-filter">{t("Owner")}</label>
