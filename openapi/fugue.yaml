@@ -2872,6 +2872,30 @@ paths:
           $ref: "#/components/responses/ErrorResponse"
         default:
           $ref: "#/components/responses/ErrorResponse"
+  /v1/platform-state/consumers/assignment:
+    get:
+      operationId: getPlatformConsumerAssignment
+      summary: Get the expected ReleaseSet assignments for a trusted consumer
+      description: Returns the latest expected set revision for each authorized artifact kind in each active ReleaseSet channel. Assignments are bound to the signed child artifact and the active release fencing token. Shadow assignments authorize validation only and must not replace serving state. Superseded releases and unrelated topology are excluded.
+      tags: [Admin]
+      x-fugue-handler: handleGetPlatformConsumerAssignment
+      security:
+        - PlatformComponentBearerAuth: []
+      responses:
+        '200':
+          description: Assignments bound to the verified component identity.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformConsumerAssignmentResponse"
+        '401':
+          $ref: "#/components/responses/ErrorResponse"
+        '404':
+          $ref: "#/components/responses/ErrorResponse"
+        '503':
+          $ref: "#/components/responses/ErrorResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
   /v1/admin/failure-contracts:
     get:
       operationId: listSubsystemFailureContracts
@@ -30922,6 +30946,67 @@ components:
           $ref: "#/components/schemas/PlatformConsumerInstance"
         drift:
           type: boolean
+    PlatformConsumerAssignment:
+      type: object
+      additionalProperties: false
+      required: [expected_consumer_set_id, release_set_id, artifact_kind, scope_key, expected_generation, artifact_id, content_hash, generation_sequence, release_channel, revision, fencing_token, expected_protocol_version, expected_schema_version]
+      properties:
+        expected_consumer_set_id:
+          type: string
+        release_set_id:
+          type: string
+        artifact_release_id:
+          type: string
+        artifact_kind:
+          type: string
+        scope_key:
+          type: string
+        expected_generation:
+          type: string
+        revision:
+          type: integer
+          format: int64
+        artifact_id:
+          type: string
+        content_hash:
+          type: string
+          pattern: '^sha256:[0-9a-f]{64}$'
+        generation_sequence:
+          type: integer
+          format: int64
+          minimum: 1
+        release_channel:
+          type: string
+          enum: [shadow, gray, full]
+        fencing_token:
+          type: integer
+          format: int64
+        expected_protocol_version:
+          type: string
+        expected_schema_version:
+          type: string
+        compatibility_capabilities:
+          type: array
+          items:
+            type: string
+        heartbeat_deadline:
+          type: string
+          format: date-time
+        convergence_deadline:
+          type: string
+          format: date-time
+    PlatformConsumerAssignmentResponse:
+      type: object
+      additionalProperties: false
+      required: [assignments, generated_at]
+      properties:
+        assignments:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlatformConsumerAssignment"
+        generated_at:
+          type: string
+          format: date-time
     FailureMode:
       type: object
       additionalProperties: false

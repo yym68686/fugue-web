@@ -442,6 +442,13 @@ export interface paths {
     /** Report Trusted Platform State Consumer Heartbeat */
     post: operations["trustedPlatformConsumerHeartbeat"];
   };
+  "/v1/platform-state/consumers/assignment": {
+    /**
+     * Get the expected ReleaseSet assignments for a trusted consumer
+     * @description Returns the latest expected set revision for each authorized artifact kind in each active ReleaseSet channel. Assignments are bound to the signed child artifact and the active release fencing token. Shadow assignments authorize validation only and must not replace serving state. Superseded releases and unrelated topology are excluded.
+     */
+    get: operations["getPlatformConsumerAssignment"];
+  };
   "/v1/admin/failure-contracts": {
     /** List Subsystem Failure Contracts */
     get: operations["listSubsystemFailureContracts"];
@@ -10814,6 +10821,36 @@ export interface components {
       consumer: components["schemas"]["PlatformConsumerInstance"];
       drift: boolean;
     };
+    PlatformConsumerAssignment: {
+      expected_consumer_set_id: string;
+      release_set_id: string;
+      artifact_release_id?: string;
+      artifact_kind: string;
+      scope_key: string;
+      expected_generation: string;
+      /** Format: int64 */
+      revision: number;
+      artifact_id: string;
+      content_hash: string;
+      /** Format: int64 */
+      generation_sequence: number;
+      /** @enum {string} */
+      release_channel: "shadow" | "gray" | "full";
+      /** Format: int64 */
+      fencing_token: number;
+      expected_protocol_version: string;
+      expected_schema_version: string;
+      compatibility_capabilities?: string[];
+      /** Format: date-time */
+      heartbeat_deadline?: string;
+      /** Format: date-time */
+      convergence_deadline?: string;
+    };
+    PlatformConsumerAssignmentResponse: {
+      assignments: components["schemas"]["PlatformConsumerAssignment"][];
+      /** Format: date-time */
+      generated_at: string;
+    };
     FailureMode: {
       id: string;
       description: string;
@@ -13096,6 +13133,24 @@ export interface operations {
       404: components["responses"]["ErrorResponse"];
       409: components["responses"]["ErrorResponse"];
       422: components["responses"]["ErrorResponse"];
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Get the expected ReleaseSet assignments for a trusted consumer
+   * @description Returns the latest expected set revision for each authorized artifact kind in each active ReleaseSet channel. Assignments are bound to the signed child artifact and the active release fencing token. Shadow assignments authorize validation only and must not replace serving state. Superseded releases and unrelated topology are excluded.
+   */
+  getPlatformConsumerAssignment: {
+    responses: {
+      /** @description Assignments bound to the verified component identity. */
+      200: {
+        content: {
+          "application/json": components["schemas"]["PlatformConsumerAssignmentResponse"];
+        };
+      };
+      401: components["responses"]["ErrorResponse"];
+      404: components["responses"]["ErrorResponse"];
+      503: components["responses"]["ErrorResponse"];
       default: components["responses"]["ErrorResponse"];
     };
   };
