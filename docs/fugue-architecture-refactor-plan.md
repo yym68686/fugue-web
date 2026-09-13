@@ -1767,7 +1767,7 @@ api_image: sha256:561d7203a145317a3781ab7a78d934a49cf8f97874d749b84a03b8c48a2be3
 - [x] 未指定 enabled 的旧 route 默认为启用，显式 disabled 保持禁用，保留 edge group ID。
 - [x] CI `34744370232` 全部通过；API generation 974，2/2 Ready，health/ready 均为 ok。
 - [x] 生产管理员调用 import-env/preview 从 400 恢复为 200，返回 2 条启用 route。
-- [ ] 完整迁移校验：源配置 13 条 DNS 记录，当前预览只返回 5 条；需保留 MX、NS、TXT 等记录及 route kind/policy/group mode/TTL 后重新对比。
+- [x] 完整迁移校验：生产源配置 13 条 DNS 记录全部保留（A/MX/NS/TXT），2 条 route 的 kind、policy、region_aware group mode、enabled 和 TTL 均保留。
 - [ ] 将确认完整的配置持久化为 intent；验证 shadow 与旧输出一致后才推进 serving。
 
 ```text
