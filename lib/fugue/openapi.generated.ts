@@ -10466,7 +10466,14 @@ export interface components {
       scope: string;
       artifact_ids: string[];
       artifact_kinds: string[];
+      dependencies?: components["schemas"]["PlatformArtifactDependency"][];
       lineage: components["schemas"]["PlatformConfigLineage"];
+    };
+    PlatformArtifactDependency: {
+      from: string;
+      to: string;
+      /** @enum {string} */
+      relation: "requires";
     };
     PlatformRuntimeSnapshot: {
       intent_generation: string;
