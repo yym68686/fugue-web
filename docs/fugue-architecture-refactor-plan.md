@@ -1795,4 +1795,28 @@ run: 34746576898
 conclusion: success
 ```
 
+### P0-AE：Validated artifact-only compiler replay
+
+- [x] 新增 `compile-from-artifacts`，只接受 validated PlatformIntent 与 PolicySnapshot。
+- [x] draft、错误 artifact kind、schema 不完整的输入被拒绝。
+- [x] compiler 使用规范化 typed artifact，不读取业务表或请求内 serving 配置。
+- [x] 增加 artifact-only 编译和 draft rejection 回归测试。
+- [x] CI prepush、API build 和 `deploy_api` 通过。
+- [x] 生产 API generation 977，2/2 Ready，health/ready 正常。
+- [x] 生产 shadow replay 成功，lineage 记录 intent/policy/input snapshot/compiler v2；未 promotion。
+
+生产证据：
+
+```text
+commit: 2f43f529  chore(release): advance artifact compiler generation
+workflow: ci
+run: 34747827816
+api_image: sha256:8f6aaef604fe63c1699bdd742b6694178792ca7c0cd651bbb3638226a54bbe72
+intent_generation: env-migration-prod-1
+policy_generation: policy-shadow-prod-1
+release_generation: release-915ca009dc70243f7b4a29462bd0844b9319c16e8c7f67a78cdafed488a3cadf
+compiler_version: platform-config-compiler/v2
+promoted: false
+```
+
 全量测试记录：首次 `make test` 中 API 及平台包通过，sourceimport 的 deadline evidence 测试在 8 秒采集预算下失败，单独复跑通过。受控并发全量复跑仍需记录最终结果，不能以定向测试替代完整验收。
