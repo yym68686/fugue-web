@@ -351,6 +351,13 @@ export interface paths {
      */
     post: operations["compilePlatformConfig"];
   };
+  "/v1/admin/platform-config/compile-from-artifacts": {
+    /**
+     * Compile Platform Artifacts
+     * @description Replays validated immutable PlatformIntent and PolicySnapshot artifacts into a deterministic ReleaseSet. Inline serving configuration and business tables are not read.
+     */
+    post: operations["compilePlatformConfigFromArtifacts"];
+  };
   "/v1/admin/platform-config/import-env/preview": {
     /** Preview Legacy Environment Import */
     get: operations["previewPlatformConfigEnvironmentImport"];
@@ -12644,6 +12651,30 @@ export interface operations {
     };
     responses: {
       /** @description Immutable compiled artifacts created or reused */
+      201: {
+        content: {
+          "application/json": components["schemas"]["PlatformConfigCompileResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Compile Platform Artifacts
+   * @description Replays validated immutable PlatformIntent and PolicySnapshot artifacts into a deterministic ReleaseSet. Inline serving configuration and business tables are not read.
+   */
+  compilePlatformConfigFromArtifacts: {
+    requestBody: {
+      content: {
+        "application/json": {
+          intent_artifact_id: string;
+          policy_artifact_id: string;
+          runtime_snapshot?: components["schemas"]["PlatformRuntimeSnapshot"];
+        };
+      };
+    };
+    responses: {
+      /** @description Deterministically compiled artifacts and ReleaseSet */
       201: {
         content: {
           "application/json": components["schemas"]["PlatformConfigCompileResponse"];
