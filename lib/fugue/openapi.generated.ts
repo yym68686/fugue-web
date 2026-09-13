@@ -355,6 +355,13 @@ export interface paths {
     /** Preview Legacy Environment Import */
     get: operations["previewPlatformConfigEnvironmentImport"];
   };
+  "/v1/admin/platform-config/import-env": {
+    /**
+     * Import Legacy Serving Environment
+     * @description Validates legacy serving environment values and persists one immutable validated PlatformIntent draft tagged with env-migration. The operation never promotes serving traffic.
+     */
+    post: operations["importPlatformEnvironment"];
+  };
   "/v1/admin/artifacts/{artifact_id}/lineage": {
     /**
      * Get Platform Artifact Lineage
@@ -10447,6 +10454,19 @@ export interface components {
       upstream_url: string;
       enabled: boolean;
       edge_group_id?: string;
+      kind?: string;
+      upstream_kind?: string;
+      upstream_scope?: string;
+      tls_policy?: string;
+      /** @enum {string} */
+      route_policy?: "route_a_only" | "edge_canary" | "edge_enabled";
+      /** @enum {string} */
+      edge_group_mode?: "all_healthy" | "region_aware" | "pinned";
+      /** @enum {string} */
+      status?: "active" | "disabled" | "unavailable";
+      status_reason?: string;
+      /** Format: int32 */
+      ttl?: number;
     };
     PlatformConfigDNSIntent: {
       hostname: string;
@@ -10454,6 +10474,14 @@ export interface components {
       values: string[];
       /** Format: int32 */
       ttl: number;
+      record_kind?: string;
+      /** @enum {string} */
+      status?: "active" | "disabled" | "unavailable";
+      status_reason?: string;
+      app_id?: string;
+      tenant_id?: string;
+      edge_group_id?: string;
+      fallback_edge_group_id?: string;
     };
     PlatformConfigTLSIntent: {
       hostname: string;
@@ -12634,6 +12662,30 @@ export interface operations {
     responses: {
       /** @description Auditable PlatformIntent generated from legacy serving environment values */
       200: {
+        content: {
+          "application/json": {
+            [key: string]: unknown;
+          };
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Import Legacy Serving Environment
+   * @description Validates legacy serving environment values and persists one immutable validated PlatformIntent draft tagged with env-migration. The operation never promotes serving traffic.
+   */
+  importPlatformEnvironment: {
+    requestBody: {
+      content: {
+        "application/json": {
+          generation: string;
+        };
+      };
+    };
+    responses: {
+      /** @description Immutable validated PlatformIntent draft */
+      201: {
         content: {
           "application/json": {
             [key: string]: unknown;
