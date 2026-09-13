@@ -1486,7 +1486,7 @@ api_image: sha256:5e7592637f1844cb59a3bfc79ad2cf5dddfd996933e1decbf15f5ecbb25e61
 - [x] ReleaseSet full promotion 前读取 expected consumer sets。
 - [x] required consumer 未通过 convergence 时拒绝 promotion。
 - [x] convergence evaluator 检查 stale heartbeat、身份、generation、apply/probe、LKG 和 cardinality。
-- [x] 没有 expected consumer set 时保持兼容行为，不伪造 convergence 事实。
+- [x] 原兼容行为已在 P0-AH/P0-AJ 中收紧：没有 expected consumer set 时拒绝 full promotion；不伪造 convergence 事实。
 - [x] 增加 required consumer 未收敛的回归测试。
 - [x] 本地 prepush 通过。
 - [x] CI prepush、API build 和 `deploy_api` 通过。
@@ -1978,3 +1978,30 @@ assignment channel: shadow
 fencing_token: 1
 convergence: route 0/10, DNS 0/9, TLS 0/5 observed; all unknown
 ```
+
+### P0-AL：按 assignment 下载签名 artifact
+
+- [x] 新增 `GET /v1/platform-state/consumers/artifacts/{artifact_id}?expected_consumer_set_id=...`，只接受可信组件身份。
+- [x] assignment 查询与 artifact 下载共用 active ReleaseSet、最新 topology revision、scope/kind、generation 和签名校验逻辑。
+- [x] 下载必须同时匹配 artifact ID 和 expected consumer set；返回原始签名内容、assignment 和对应 release，不重新编译。
+- [x] 拒绝错误 expected set、未分配 artifact、被替换的 release、已移除节点和不一致 generation；普通 admin/tenant API key 不能代替组件身份。
+- [x] 测试断言完整 artifact 与存储对象相等，查询与下载不产生 consumer facts；定向测试及完整 `GOFLAGS=-p=2 GOMAXPROCS=4 make test` 通过。
+- [x] 本地生成准确发布计划后以单个 commit 推送；后端 CI、API build、`deploy_api` 均成功，web contract-drift 成功。
+- [x] 生产 route、DNS、TLS 下载均返回 200，完整 JSON（含签名）与存储读回一致；错误 expected set 为 404，普通 admin key 为 401。
+- [x] API generation 983、2/2 Ready，`/healthz` 与 `/readyz` 正常；原 shadow ReleaseSet 和 0 observed 的 convergence 保持不变。
+- [ ] 将真实 DNS/Edge/TLS consumer 接入持续获取 assignment、验证下载结果、执行和本地持久化；下载成功不视为 serving ACK。
+
+```text
+backend commit: 5654b8012847abb8a7e172d6f14078571d2b94d5
+backend CI: 34788653290, success
+API image: sha256:c685e44a99afa2cceb147ae867f3227d8747ceaec238194e596ea7f2ddcd0e9c
+API generation: 983
+web contract commit: 248517c3
+web contract-drift: 34788665078, success
+release_set: artifact_1789290147_22038f948fad (shadow)
+fencing_token: 1
+route/DNS/TLS artifact downloads: 200 / 200 / 200
+consumer observed: route 0/10, DNS 0/9, TLS 0/5
+```
+
+只读验证使用临时签名的组件身份，未向生产上报 heartbeat、apply receipt 或 probe；真实 executor 接管、完整配置输出对比和回滚恢复演练仍属未完成项。机器可读证据见 [consumer-artifact-download-2026-09-14.json](verification/consumer-artifact-download-2026-09-14.json)。

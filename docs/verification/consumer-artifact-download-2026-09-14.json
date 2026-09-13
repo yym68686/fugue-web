@@ -1,0 +1,81 @@
+{
+  "release_set_id": "artifact_1789290147_22038f948fad",
+  "release_id": "artifactrel_1789292458_d1b4c134c3e2",
+  "read_verification_only": true,
+  "assignments": [
+    {
+      "kind": "caddy_route_config",
+      "http_status": 200,
+      "artifact_download_status": 200,
+      "artifact_id": "artifact_1789290147_0511fe77df9e",
+      "digest": "sha256:785b982ae3750384b8cc510e42d9083e0afcd5bc405ee0edc92f45fd3d897b1e",
+      "channel": "shadow",
+      "fencing_token": 1
+    },
+    {
+      "kind": "dns_answer_bundle",
+      "http_status": 200,
+      "artifact_download_status": 200,
+      "artifact_id": "artifact_1789290147_a04df449b074",
+      "digest": "sha256:219aa35e3085818a3ff8e5bb996205b433b320bf60f0993c0967bcfe6ad5ce7c",
+      "channel": "shadow",
+      "fencing_token": 1
+    },
+    {
+      "kind": "edge_route_bundle",
+      "http_status": 200,
+      "artifact_download_status": 200,
+      "artifact_id": "artifact_1789290147_3ae6084f214d",
+      "digest": "sha256:aa3453c3d79efef9c915163030f1d20df4186a69c3fe0cb24a567ef166ab69f9",
+      "channel": "shadow",
+      "fencing_token": 1
+    }
+  ],
+  "anonymous_status": 401,
+  "admin_key_status": 401,
+  "unassigned_identity_status": 404,
+  "convergence": [
+    {
+      "artifact_kind": "caddy_route_config",
+      "state": "unknown",
+      "required_expected": 5,
+      "required_observed": 0,
+      "required_passing": 0
+    },
+    {
+      "artifact_kind": "dns_answer_bundle",
+      "state": "unknown",
+      "required_expected": 9,
+      "required_observed": 0,
+      "required_passing": 0
+    },
+    {
+      "artifact_kind": "edge_route_bundle",
+      "state": "unknown",
+      "required_expected": 10,
+      "required_observed": 0,
+      "required_passing": 0
+    }
+  ],
+  "health": {
+    "status": "ok"
+  },
+  "ready": {
+    "checks": {
+      "kubernetes_api": {
+        "status": "ok"
+      },
+      "observability": {
+        "status": "ok",
+        "message": "configured backends: analytics,logs,metrics; retention: 24h0m0s; exporters: analytics,logs"
+      },
+      "store": {
+        "status": "ok"
+      }
+    },
+    "status": "ok"
+  },
+  "backend_commit": "5654b8012847abb8a7e172d6f14078571d2b94d5",
+  "ci_run": 34788653290,
+  "verification_date": "2026-09-14"
+}
