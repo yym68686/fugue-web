@@ -1401,6 +1401,32 @@ internal/platformcontrol/consumer_convergence.go
 生产 API generation: 961
 ```
 
+### P0-Q：PolicySnapshot artifact 强类型校验
+
+- [x] generic `policy_snapshot` artifact validation 解码强类型 `PolicySnapshot`。
+- [x] 校验 policy generation、边界、dependency order 和 ConstraintGraph。
+- [x] policy digest metadata 与规范化 PolicySnapshot 不一致时拒绝验证。
+- [x] 增加非法 policy artifact 回归测试。
+- [x] 本地 prepush 和 `fugue-web` contract check 通过。
+- [x] CI prepush、API build 和 `deploy_api` 通过。
+- [x] 生产 API generation 962，2/2 Ready，0 restart。
+- [x] 生产 `/healthz` 和 `/readyz` 返回 `ok`。
+
+生产提交：
+
+```text
+51e91600  feat(policy): enforce typed policy artifact validation
+```
+
+生产发布证据：
+
+```text
+workflow: ci
+run: 34731142894
+deploy_api: success
+api_image: sha256:d9fd53a1813cce43f019e62aa69f64e34e156650d8740ae60d6ef4706b590f40
+```
+
 ## 原子步骤生产证据
 
 ### P0-A：Intent/Policy/Compiler/Lineage 基础
