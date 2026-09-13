@@ -32,7 +32,7 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-13 生产核查：已存在一份 `env-migration-prod-1` validated PlatformIntent、一份 `policy-shadow-prod-1` validated PolicySnapshot，以及由 artifact-only compiler 生成并落库的 route、DNS、TLS、ReleaseSet。它们仍未 promotion，policy LKG 和公网 serving 没有切换；这证明迁移输入和 shadow artifact 已可重放，不证明 consumer 已接管或故障恢复演练已完成。全局完成标准仍保持未勾选；上线前必须继续完成真实输入对比、灰度、收敛和回滚验证。
+2026-09-13 生产核查：已存在一份 `env-migration-prod-1` validated PlatformIntent、一份 `policy-shadow-prod-1` validated PolicySnapshot，以及由 artifact-only compiler 生成并落库的 route、DNS、TLS、ReleaseSet。ReleaseSet 已进入 shadow，尚未推进 gray/full；policy LKG 和公网 serving 没有切换；这证明迁移输入和 shadow artifact 已可重放，不证明 consumer 已接管或故障恢复演练已完成。全局完成标准仍保持未勾选；上线前必须继续完成真实输入对比、灰度、收敛和回滚验证。
 
 Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 generation、content hash、签名、验证状态、release channel、fencing token 和 LKG；Edge 与 DNS 也有签名校验、本地缓存和过期控制。
 
@@ -1929,7 +1929,7 @@ release-repair: b3ca9243  fix(release): bind compiler verification to serving pr
 api_image: sha256:b09f42397298f3ef29e2ca860f062e6fbe9b454494f73e97b9ea147d948d31ec
 ```
 
-全量测试记录：首次 `make test` 中 API 及平台包通过，sourceimport 的 deadline evidence 测试在 8 秒采集预算下失败，单独复跑通过。受控并发全量复跑仍需记录最终结果，不能以定向测试替代完整验收。
+全量测试记录：此前 `make test` 的 sourceimport deadline evidence 测试曾在 8 秒采集预算下失败。2026-09-14 在后端 `d047ae27` 上以 `GOFLAGS=-p=2 GOMAXPROCS=4 make test` 完整复跑，包含脚本检查、契约生成检查和所有 Go 包，退出码 0。该结果证明这一代码版本的本地验收通过，不替代生产 consumer 接管与恢复演练。
 
 ### P0-AJ：移除不可信 runtime facts 投影并验证生产安全
 
@@ -1951,3 +1951,30 @@ api_ready: 2/2
 full_promotion_after_expected_sets: 409 conflict
 ```
 
+
+### P0-AK：可信消费者 assignment 查询
+
+- [x] 新增 `GET /v1/platform-state/consumers/assignment`，只接受有效的 component identity。
+- [x] 以 active ReleaseSet 和授权 scope/kind 查询最新 topology revision；不使用全局前 200 条历史集合，也不向已移除节点返回旧 assignment。
+- [x] 返回 child artifact ID、content digest、generation/sequence、release channel、fencing token 和 expected consumer set；验证 ReleaseSet 和 child 的签名及引用绑定。
+- [x] prepare-consumers 拒绝绑定其他 ReleaseSet 或已 superseded 的 release。
+- [x] 回归覆盖身份越权、历史记录超过 200、release 替换、拓扑移除节点、错误 generation；完整 `make test` 通过。
+- [x] 后端 CI 和 `deploy_api` 成功；web OpenAPI 同步、`contract:check` 和 contract-drift 成功。
+- [x] 生产以临时签名身份只读查询 route/DNS/TLS assignment，均返回 200，digest 和 token 与实际 shadow release 一致；匿名/admin key 为 401，无 assignment 的身份为 404。
+- [x] API 2/2 Ready，`/healthz`、`/readyz` 正常。
+- [ ] 真实消费者尚未接入 assignment 的持续读取；此次查询没有上报 heartbeat，也不证明 apply/probe 已完成。
+
+```text
+backend implementation: 32490b38 (replaces the incomplete assignment implementation in 6420e29f)
+backend production commit: d047ae272af758ededd4589106077a6db911c3ad
+backend CI: 34787597537, success
+API generation: 982
+API image: sha256:353ab9b4f3297c97b247717e7725c1accd319c60d9d15272b9aaf3734d868131
+web contract commit: a9989762
+web contract-drift: 34787620714, success
+release_set: artifact_1789290147_22038f948fad
+release_id: artifactrel_1789292458_d1b4c134c3e2
+assignment channel: shadow
+fencing_token: 1
+convergence: route 0/10, DNS 0/9, TLS 0/5 observed; all unknown
+```
