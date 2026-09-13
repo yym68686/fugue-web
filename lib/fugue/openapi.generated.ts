@@ -449,6 +449,13 @@ export interface paths {
      */
     get: operations["getPlatformConsumerAssignment"];
   };
+  "/v1/platform-state/consumers/artifacts/{artifact_id}": {
+    /**
+     * Pull an artifact assigned to a trusted consumer
+     * @description Returns a validated, signed child artifact only when the verified component identity is currently present in the active ReleaseSet expected topology. The endpoint is read-only and never records runtime facts.
+     */
+    get: operations["getPlatformConsumerArtifact"];
+  };
   "/v1/admin/failure-contracts": {
     /** List Subsystem Failure Contracts */
     get: operations["listSubsystemFailureContracts"];
@@ -10851,6 +10858,11 @@ export interface components {
       /** Format: date-time */
       generated_at: string;
     };
+    PlatformConsumerArtifactResponse: {
+      artifact: components["schemas"]["PlatformArtifact"];
+      assignment: components["schemas"]["PlatformConsumerAssignment"];
+      release: components["schemas"]["PlatformArtifactRelease"];
+    };
     FailureMode: {
       id: string;
       description: string;
@@ -13148,6 +13160,33 @@ export interface operations {
           "application/json": components["schemas"]["PlatformConsumerAssignmentResponse"];
         };
       };
+      401: components["responses"]["ErrorResponse"];
+      404: components["responses"]["ErrorResponse"];
+      503: components["responses"]["ErrorResponse"];
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Pull an artifact assigned to a trusted consumer
+   * @description Returns a validated, signed child artifact only when the verified component identity is currently present in the active ReleaseSet expected topology. The endpoint is read-only and never records runtime facts.
+   */
+  getPlatformConsumerArtifact: {
+    parameters: {
+      query: {
+        expected_consumer_set_id: string;
+      };
+      path: {
+        artifact_id: string;
+      };
+    };
+    responses: {
+      /** @description Assigned artifact and its release binding. */
+      200: {
+        content: {
+          "application/json": components["schemas"]["PlatformConsumerArtifactResponse"];
+        };
+      };
+      400: components["responses"]["ErrorResponse"];
       401: components["responses"]["ErrorResponse"];
       404: components["responses"]["ErrorResponse"];
       503: components["responses"]["ErrorResponse"];
