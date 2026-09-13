@@ -403,6 +403,10 @@ export interface paths {
     /** List Platform Expected Consumer Sets */
     get: operations["listPlatformExpectedConsumerSets"];
   };
+  "/v1/admin/platform-config/release-set/prepare-consumers": {
+    /** Prepare ReleaseSet Consumer Expectations */
+    post: operations["preparePlatformReleaseSetConsumers"];
+  };
   "/v1/admin/platform-state/convergence": {
     /** List Platform Consumer Convergence */
     get: operations["listPlatformConsumerConvergence"];
@@ -12894,6 +12898,28 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["PlatformExpectedConsumerSetListResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Prepare ReleaseSet Consumer Expectations */
+  preparePlatformReleaseSetConsumers: {
+    requestBody: {
+      content: {
+        "application/json": {
+          release_set_id: string;
+          artifact_release_id: string;
+        };
+      };
+    };
+    responses: {
+      /** @description Expected consumer sets created or reused for each ReleaseSet child artifact. */
+      201: {
+        content: {
+          "application/json": {
+            [key: string]: unknown;
+          };
         };
       };
       default: components["responses"]["ErrorResponse"];
