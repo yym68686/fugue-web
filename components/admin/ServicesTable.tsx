@@ -167,40 +167,9 @@ export default function ServicesTable({
           />
           {query && <button type="button" className="services-search-clear" onClick={() => setQuery("")} aria-label={t("Clear search")}>×</button>}
         </label>
-      </div>
-      <div className="services-advanced-filters">
-        <div className="services-filter-field services-status-field">
-          <label htmlFor="services-status-filter">{t("Status")}</label>
-          <select id="services-status-filter" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}>
-            <option value="all">{t("All statuses")}</option>
-            <option value="running">{t("Running")}</option>
-            <option value="issues">{t("Issues")}</option>
-          </select>
-        </div>
-        <div className="services-filter-field">
-          <label htmlFor="services-owner-filter">{t("Owner")}</label>
-          <select id="services-owner-filter" value={ownerFilter} onChange={(e) => setOwnerFilter(e.target.value)}>
-            <option value="">{t("All owners")}</option>
-            {filterOptions.owners.map((owner) => <option key={owner} value={owner}>{owner}</option>)}
-          </select>
-        </div>
-        <div className="services-filter-field">
-          <label htmlFor="services-node-filter">{t("Node")}</label>
-          <select id="services-node-filter" value={nodeFilter} onChange={(e) => setNodeFilter(e.target.value)}>
-            <option value="">{t("All nodes")}</option>
-            {filterOptions.nodes.map((node) => <option key={node} value={node}>{node}</option>)}
-          </select>
-        </div>
-        <div className="services-filter-field">
-          <label htmlFor="services-stack-filter">{t("Tech stack")}</label>
-          <select id="services-stack-filter" value={stackFilter} onChange={(e) => setStackFilter(e.target.value)}>
-            <option value="">{t("All stacks")}</option>
-            {filterOptions.stacks.map((stack) => <option key={stack} value={stack}>{stack}</option>)}
-          </select>
-        </div>
-        {(activeFilterCount > 0 || query || statusFilter !== "all") && (
+        {(activeFilterCount > 0 || query) && (
           <button type="button" className="services-clear-filters" onClick={clearFilters}>
-            {t("Clear filters")}{activeFilterCount > 0 && <span>{activeFilterCount}</span>}
+            {t("Clear filters")}
           </button>
         )}
       </div>
@@ -211,11 +180,11 @@ export default function ServicesTable({
           <tr>
             <th style={{ width: 28 }}></th>
             <th>{t("Service")}</th>
-            <th>{t("Owner")}</th>
-            <th>{t("Status")}</th>
-            <th>{t("Tech stack")}</th>
+            <th><div className="table-filter-head"><span>{t("Owner")}</span><select aria-label={t("Filter by owner")} value={ownerFilter} onChange={(e) => setOwnerFilter(e.target.value)}><option value="">{t("All owners")}</option>{filterOptions.owners.map((owner) => <option key={owner} value={owner}>{owner}</option>)}</select></div></th>
+            <th><div className="table-filter-head"><span>{t("Status")}</span><select aria-label={t("Filter by status")} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}><option value="all">{t("All statuses")}</option><option value="running">{t("Running")}</option><option value="issues">{t("Issues")}</option></select></div></th>
+            <th><div className="table-filter-head"><span>{t("Tech stack")}</span><select aria-label={t("Filter by tech stack")} value={stackFilter} onChange={(e) => setStackFilter(e.target.value)}><option value="">{t("All stacks")}</option>{filterOptions.stacks.map((stack) => <option key={stack} value={stack}>{stack}</option>)}</select></div></th>
             <th>{t("Deploy method")}</th>
-            <th>{t("Node")}</th>
+            <th><div className="table-filter-head"><span>{t("Node")}</span><select aria-label={t("Filter by node")} value={nodeFilter} onChange={(e) => setNodeFilter(e.target.value)}><option value="">{t("All nodes")}</option>{filterOptions.nodes.map((node) => <option key={node} value={node}>{node}</option>)}</select></div></th>
           </tr>
         </thead>
         <tbody>

@@ -3005,9 +3005,14 @@ button {
 }
 
 .tbl-services th {
-  padding: 11px 16px;
+  padding: 10px 16px;
   background: var(--surface);
+  vertical-align: top;
 }
+.table-filter-head { display: flex; flex-direction: column; align-items: stretch; gap: 7px; min-width: 108px; }
+.table-filter-head > span { display: block; }
+.table-filter-head select { height: 28px; width: 100%; min-width: 0; padding: 0 22px 0 7px; border: 1px solid var(--line-2); border-radius: 5px; background: var(--surface-2); color: var(--muted); font: 11px var(--sans); text-transform: none; letter-spacing: 0; }
+.table-filter-head select:focus { outline: 2px solid var(--accent-fg); outline-offset: 1px; color: var(--fg); }
 
 .tbl-services td {
   padding: 12px 16px;
