@@ -354,7 +354,7 @@ export interface paths {
   "/v1/admin/platform-config/compile-from-artifacts": {
     /**
      * Compile Platform Artifacts
-     * @description Replays validated immutable PlatformIntent and PolicySnapshot artifacts into a deterministic ReleaseSet. Inline serving configuration and business tables are not read.
+     * @description Verifies both stored artifacts before replaying them into a deterministic ReleaseSet. Signed content, artifact kind, validation state, generation, scope and typed schema must agree. Rejected inputs produce no output artifacts. Inline serving configuration and business tables are not read.
      */
     post: operations["compilePlatformConfigFromArtifacts"];
   };
@@ -12661,7 +12661,7 @@ export interface operations {
   };
   /**
    * Compile Platform Artifacts
-   * @description Replays validated immutable PlatformIntent and PolicySnapshot artifacts into a deterministic ReleaseSet. Inline serving configuration and business tables are not read.
+   * @description Verifies both stored artifacts before replaying them into a deterministic ReleaseSet. Signed content, artifact kind, validation state, generation, scope and typed schema must agree. Rejected inputs produce no output artifacts. Inline serving configuration and business tables are not read.
    */
   compilePlatformConfigFromArtifacts: {
     requestBody: {
@@ -12678,6 +12678,30 @@ export interface operations {
       201: {
         content: {
           "application/json": components["schemas"]["PlatformConfigCompileResponse"];
+        };
+      };
+      /** @description Missing artifact IDs or malformed request. */
+      400: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description An input artifact ID does not exist. */
+      404: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description Untrusted, incompatible or inconsistent input artifacts; no compilation outputs are written. */
+      409: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description Input artifact storage is temporarily unavailable. */
+      503: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
         };
       };
       default: components["responses"]["ErrorResponse"];
