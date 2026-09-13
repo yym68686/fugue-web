@@ -1533,6 +1533,33 @@ deploy_api: success
 api_image: sha256:acaec0164b186969d9e1cd716c79f693bc4aeed03174f32bce16c2cd38cee784
 ```
 
+### P0-V：Legacy serving 环境变量导入预览
+
+- [x] 新增受限 `ImportEnvironment` 纯函数，将旧 route/DNS JSON 转换为 `PlatformIntent`。
+- [x] 导入结果包含 source digest、generation 和实际导入键，便于审计。
+- [x] signing key、节点身份等非 serving 环境变量不会进入 intent。
+- [x] 新增只读 admin preview API，不自动修改 serving 或发布 artifact。
+- [x] 增加环境变量规范化和审计结果回归测试。
+- [x] 本地 prepush 和 `fugue-web` contract check 通过。
+- [x] CI prepush、API build 和 `deploy_api` 通过。
+- [x] 生产 API generation 967，2/2 Ready，0 restart。
+- [x] 生产 `/healthz` 和 `/readyz` 返回 `ok`。
+
+生产提交：
+
+```text
+4db89488  feat(platform): add audited legacy environment import preview
+```
+
+生产发布证据：
+
+```text
+workflow: ci
+run: 34734747550
+deploy_api: success
+api_image: sha256:61b4dd782f000e013272dbd410d2bcdfaf04d7a6b04be68bab87d3ac394d792f
+```
+
 ## 原子步骤生产证据
 
 ### P0-A：Intent/Policy/Compiler/Lineage 基础
