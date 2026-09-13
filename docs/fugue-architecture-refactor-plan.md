@@ -1427,6 +1427,32 @@ deploy_api: success
 api_image: sha256:d9fd53a1813cce43f019e62aa69f64e34e156650d8740ae60d6ef4706b590f40
 ```
 
+### P0-R：PlatformIntent artifact 强类型校验
+
+- [x] generic `platform_intent` artifact validation 解码强类型 `PlatformIntent`。
+- [x] 校验 intent generation、route hostname/upstream 和重复 route。
+- [x] intent digest metadata 与规范化 PlatformIntent 不一致时拒绝验证。
+- [x] 增加非法 intent artifact 回归测试。
+- [x] 本地 prepush 和前端 contract check 通过。
+- [x] CI prepush、API build 和 `deploy_api` 通过。
+- [x] 生产 API generation 963，2/2 Ready，0 restart。
+- [x] 生产 `/healthz` 和 `/readyz` 返回 `ok`。
+
+生产提交：
+
+```text
+6a1a962f  feat(intent): enforce typed platform intent artifacts
+```
+
+生产发布证据：
+
+```text
+workflow: ci
+run: 34731835133
+deploy_api: success
+api_image: sha256:c6bc95c761163797d79967017b42909915785c27ef6cfe42112b296308423587
+```
+
 ## 原子步骤生产证据
 
 ### P0-A：Intent/Policy/Compiler/Lineage 基础
