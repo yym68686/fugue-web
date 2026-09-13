@@ -1247,6 +1247,33 @@ deploy_api: success
 api_image: sha256:e54698b2179bd71eda6adfdc6b013f033881ceac9c44901666c027bd6b80d09e
 ```
 
+### P0-L：Consumer convergence 查询 API
+
+- [x] 新增只读 admin convergence API，按 release set、artifact release、kind 和 scope 查询。
+- [x] API 使用统一 consumer convergence evaluator 计算 required passing、stale、unexpected 和 assessment。
+- [x] convergence 查询不修改 intent、artifact、release 或 runtime facts。
+- [x] 增加 admin API 回归测试并验证权限边界。
+- [x] OpenAPI 与生成代码同步。
+- [x] 本地 prepush 通过。
+- [x] CI prepush、API build 和 `deploy_api` 通过。
+- [x] 生产 API generation 957，2/2 Ready，0 restart。
+- [x] 生产 `/healthz` 和 `/readyz` 返回 `ok`。
+
+生产提交：
+
+```text
+6b8560a2  feat(api): expose platform consumer convergence
+```
+
+生产发布证据：
+
+```text
+workflow: ci
+run: 34727457145
+deploy_api: success
+api_image: sha256:8da5fb49549463a7c9f5343f77dcdd2cd4ee06ab9318bf0214970ea3037e95d2
+```
+
 ## 原子步骤生产证据
 
 ### P0-A：Intent/Policy/Compiler/Lineage 基础
