@@ -1854,6 +1854,22 @@ verification_state: serving_unverified
 ack_count: 0
 ```
 
+### P0-AH：未收敛 ReleaseSet 禁止 full promotion
+
+- [x] 对 shadow ReleaseSet 尝试 full promotion。
+- [x] 在没有 expected consumer/convergence 记录（`ack_count=0`）时返回 409。
+- [x] ReleaseSet artifact 保持 validated，shadow 状态和当前 serving 不被失败尝试改变。
+- [x] 生产 convergence 查询为空，证明没有伪造 consumer ACK。
+
+生产结果：
+
+```text
+release_set: artifact_1789290147_22038f948fad
+full_promotion: 409 conflict
+convergence: []
+api serving: unchanged
+```
+
 跨仓 contract 验证：
 
 ```text
