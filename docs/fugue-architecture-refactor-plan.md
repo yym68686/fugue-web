@@ -1299,6 +1299,32 @@ deploy_api: success
 api_image: sha256:51af0e949c4c722012148cf9dffff5e38dae4c71600f6df41ea6b2c13ed39c60
 ```
 
+### P0-N：DNS active artifact 不可用时回退 verified LKG
+
+- [x] DNS consumer 在 active full artifact 缺失时查找同 scope verified LKG。
+- [x] active artifact 校验失败时尝试 verified LKG，避免新配置阻断旧 serving。
+- [x] LKG 必须通过签名、schema、有效期和 DNS bundle 内容校验。
+- [x] 没有可验证 LKG 时才返回 service unavailable 并保留明确错误语义。
+- [x] 本地 Edge DNS 测试和 prepush 通过。
+- [x] CI prepush、API build 和 `deploy_api` 通过。
+- [x] 生产 API generation 959，2/2 Ready，0 restart。
+- [x] 生产 `/healthz` 和 `/readyz` 返回 `ok`。
+
+生产提交：
+
+```text
+805e61ce  feat(dns): serve verified LKG when active artifact is unavailable
+```
+
+生产发布证据：
+
+```text
+workflow: ci
+run: 34728686550
+deploy_api: success
+api_image: sha256:51d541b38e79d28c6bb23f2b00b8ae36f5451704ec517514e6abb8884089f5a7
+```
+
 ## 原子步骤生产证据
 
 ### P0-A：Intent/Policy/Compiler/Lineage 基础
