@@ -2005,3 +2005,22 @@ consumer observed: route 0/10, DNS 0/9, TLS 0/5
 ```
 
 只读验证使用临时签名的组件身份，未向生产上报 heartbeat、apply receipt 或 probe；真实 executor 接管、完整配置输出对比和回滚恢复演练仍属未完成项。机器可读证据见 [consumer-artifact-download-2026-09-14.json](verification/consumer-artifact-download-2026-09-14.json)。
+
+### P0-AM：Pod 身份交换（DNS consumer 接入前置）
+
+- [x] 新增 `POST /v1/platform-state/consumers/identity`，用 Kubernetes SelfSubjectReview 验证调用方 Pod token。
+- [x] 绑定真实 Pod UID、ServiceAccount、控制面 namespace 和调度节点；能力来自受控 Pod 的 `fugue.pro/consumer-identity` 强类型注解。
+- [x] 签发两分钟有效的 component identity；消费者不持有平台 identity signing key，客户端不能指定节点或扩大能力。
+- [x] 拒绝未绑定/已删除/已替换/终止的 Pod、租户 namespace 和无授权注解的 Pod；Kubernetes 故障返回 503，凭据不写入响应错误或日志。
+- [x] 定向测试、完整 `make test`、后端 CI 与部署、web contract-drift 通过；不增加集群 RBAC 权限。
+- [x] 生产真实 API Pod token 经 Kubernetes 核验后因无 consumer 授权注解返回 403；匿名与无效 token 返回 401；API 2/2 Ready，健康检查正常。
+- [ ] 真实 DNS Pod 的正向换证和持续续期随下一步 consumer 接入验证，不能以此次拒绝测试代替。
+
+```text
+backend commit: 59ef15cd65a443b54665cb83d9cde52503badb56
+backend CI: 34790131103, success
+API generation: 984
+API image: sha256:6bbb73a5e995acb43e0801fa9afe9f95e6318dcd1b5005f52eee6444a216d226
+web contract commit: d2ce907b
+web contract-drift: 34790143695, success
+```
