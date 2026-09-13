@@ -1724,3 +1724,26 @@ run: 34742501465
 deploy_api: success
 api_image: sha256:7622d438554ccee336a41580763ff98efb8fd745bac7af0483d7331761765812
 ```
+
+### P0-AB：Verified Policy LKG 查询
+
+- [x] 新增只读 `GET /v1/admin/platform-config/policy-lkg`。
+- [x] 复用现有 artifact/LKG store，不创建第二套 policy 状态机。
+- [x] 只返回通过 typed policy、validated artifact 和 signed LKG 验证的 global policy。
+- [x] 仅 platform admin 且具备 artifact.read 权限可调用。
+- [x] 增加 verified policy LKG 和租户访问拒绝回归测试。
+- [x] 本地定向测试和 prepush 通过。
+- [x] CI prepush、API build 和 `deploy_api` 通过。
+- [x] 生产 API generation 972，2/2 Ready。
+- [x] 生产 `/healthz` 和 `/readyz` 返回 `ok`，生产 OpenAPI 暴露 policy LKG endpoint。
+- [x] `fugue-web` contract 和生成 TypeScript 类型同步并通过 contract check。
+
+生产提交与证据：
+
+```text
+535d4566  feat(platform): expose verified policy LKG
+workflow: ci
+run: 34743215404
+deploy_api: success
+api_image: sha256:16252409cfe9aa6e8de595181a57432772f7c71adc64f7d37889700e64a803dc
+```
