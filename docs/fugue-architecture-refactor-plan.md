@@ -1786,4 +1786,13 @@ dns_records: 13 (A/MX/NS/TXT)
 policy_lkg: 404 (未发生策略激活)
 ```
 
+跨仓契约验证：
+
+```text
+fugue-web commit: f7e4af61  chore(api): sync environment import contract
+workflow: contract-drift
+run: 34746576898
+conclusion: success
+```
+
 全量测试记录：首次 `make test` 中 API 及平台包通过，sourceimport 的 deadline evidence 测试在 8 秒采集预算下失败，单独复跑通过。受控并发全量复跑仍需记录最终结果，不能以定向测试替代完整验收。
