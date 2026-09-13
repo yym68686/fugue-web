@@ -58,15 +58,30 @@ export function ServicesRuntimeSummary({
   const t = useT();
   const now = useObservedStatusNow(initialObservedNow);
   const running = rows.filter((row) => rowIsObservedReady(row, now)).length;
-  const tone = rows.length > 0 && running === rows.length ? "ok" : rows.length > 0 ? "warn" : "idle";
+  const issues = Math.max(0, rows.length - running);
 
   return (
-    <div className="meta">
-      <span>
-        <span className={`dot ${tone}`}></span>{" "}
-        {t("{running}/{total} running", { running, total: rows.length })}
-      </span>
-      <span>{t("{count} tenants", { count: tenantCount })}</span>
+    <div className="services-stats" aria-label={t("Service overview")}>
+      <div className="services-stat services-stat-total">
+        <span className="services-stat-label">{t("Total services")}</span>
+        <strong>{rows.length}</strong>
+        <span className="services-stat-note">{t("Across the platform")}</span>
+      </div>
+      <div className="services-stat services-stat-running">
+        <span className="services-stat-label"><span className="dot ok" />{t("Running")}</span>
+        <strong>{running}</strong>
+        <span className="services-stat-note">{t("of {total} services", { total: rows.length })}</span>
+      </div>
+      <div className="services-stat services-stat-issues">
+        <span className="services-stat-label"><span className={`dot ${issues ? "err" : "ok"}`} />{t("Issues")}</span>
+        <strong>{issues}</strong>
+        <span className="services-stat-note">{issues ? t("Need attention") : t("Everything looks good")}</span>
+      </div>
+      <div className="services-stat">
+        <span className="services-stat-label">{t("Tenants")}</span>
+        <strong>{tenantCount}</strong>
+        <span className="services-stat-note">{t("Active workspaces")}</span>
+      </div>
     </div>
   );
 }
@@ -121,16 +136,20 @@ export default function ServicesTable({
 
   return (
     <>
-      <div className="toolbar">
-        <input
-          className="input"
-          type="search"
-          placeholder={t("Filter by name, owner, node, stack…")}
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          style={{ maxWidth: 340 }}
-        />
-        <div className="seg toolbar-sp">
+      <div className="services-toolbar">
+        <label className="services-search">
+          <span className="services-search-icon" aria-hidden="true">⌕</span>
+          <span className="sr-only">{t("Search services")}</span>
+          <input
+            className="input"
+            type="search"
+            placeholder={t("Search by name, owner, node or stack")}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          {query && <button type="button" className="services-search-clear" onClick={() => setQuery("")} aria-label={t("Clear search")}>×</button>}
+        </label>
+        <div className="services-filter" role="group" aria-label={t("Filter services")}>
           {segs.map((s) => (
             <button
               key={s.key}
