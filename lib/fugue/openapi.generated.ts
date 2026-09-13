@@ -10453,6 +10453,8 @@ export interface components {
       relation: "requires" | "blocks" | "before" | "produces" | "rollback_to";
     };
     PlatformConfigLineage: {
+      intent_generation: string;
+      policy_generation: string;
       intent_digest: string;
       policy_digest: string;
       input_snapshot_digest?: string;
