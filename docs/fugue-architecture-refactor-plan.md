@@ -1351,6 +1351,32 @@ deploy_api: success
 api_image: sha256:2d14740099eaaee0826ee032695b8f1a9eda77b208dbbac014036b787ec4cd13
 ```
 
+### P0-P：Traffic ReleaseSet 显式依赖图
+
+- [x] ReleaseSet 增加受限 artifact dependency graph。
+- [x] compiler 固定 DNS/TLS 对 route 的 `requires` 关系。
+- [x] ReleaseSet validation 拒绝未知 kind、错误 relation 和重复边。
+- [x] dependency graph 与 ReleaseSet lineage 一起持久化和查询。
+- [x] 本地 prepush 通过。
+- [x] CI prepush、API build 和 `deploy_api` 通过。
+- [x] 生产 API generation 961，2/2 Ready，0 restart。
+- [x] 生产 `/healthz` 和 `/readyz` 返回 `ok`。
+
+生产提交：
+
+```text
+1997de0d  feat(release): add explicit traffic dependency graph
+```
+
+生产发布证据：
+
+```text
+workflow: ci
+run: 34730212271
+deploy_api: success
+api_image: sha256:fa7e15b7ba10d7e635262556b1ca3e0233d77ccf8afe30d101ec25eb5ec08c70
+```
+
 ## 原子步骤生产证据
 
 ### P0-A：Intent/Policy/Compiler/Lineage 基础
