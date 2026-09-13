@@ -401,6 +401,13 @@ export interface paths {
     /** List Platform Runtime Facts */
     get: operations["listPlatformRuntimeFacts"];
   };
+  "/v1/admin/platform-config/policy-lkg": {
+    /**
+     * Get Verified Platform Policy LKG
+     * @description Returns the verified global PolicySnapshot LKG. An unavailable or invalid LKG is reported as 503 so callers preserve their current policy.
+     */
+    get: operations["getPlatformPolicyLKG"];
+  };
   "/v1/admin/artifacts/{artifact_id}/lkg": {
     /** Get Platform Artifact LKG */
     get: operations["getPlatformArtifactLKG"];
@@ -12844,6 +12851,36 @@ export interface operations {
           "application/json": {
             [key: string]: unknown;
           };
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Get Verified Platform Policy LKG
+   * @description Returns the verified global PolicySnapshot LKG. An unavailable or invalid LKG is reported as 503 so callers preserve their current policy.
+   */
+  getPlatformPolicyLKG: {
+    responses: {
+      /** @description Verified policy snapshot and its artifact lineage */
+      200: {
+        content: {
+          "application/json": {
+            artifact: components["schemas"]["PlatformArtifact"];
+            lkg: components["schemas"]["PlatformLKGSnapshot"];
+          };
+        };
+      };
+      /** @description No verified policy LKG exists. */
+      404: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description The stored policy LKG is unavailable or failed integrity verification. */
+      503: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
         };
       };
       default: components["responses"]["ErrorResponse"];
