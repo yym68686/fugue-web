@@ -351,6 +351,10 @@ export interface paths {
      */
     post: operations["compilePlatformConfig"];
   };
+  "/v1/admin/platform-config/import-env/preview": {
+    /** Preview Legacy Environment Import */
+    get: operations["previewPlatformConfigEnvironmentImport"];
+  };
   "/v1/admin/artifacts/{artifact_id}/lineage": {
     /**
      * Get Platform Artifact Lineage
@@ -12576,6 +12580,25 @@ export interface operations {
       201: {
         content: {
           "application/json": components["schemas"]["PlatformConfigCompileResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Preview Legacy Environment Import */
+  previewPlatformConfigEnvironmentImport: {
+    parameters: {
+      query: {
+        generation: string;
+      };
+    };
+    responses: {
+      /** @description Auditable PlatformIntent generated from legacy serving environment values */
+      200: {
+        content: {
+          "application/json": {
+            [key: string]: unknown;
+          };
         };
       };
       default: components["responses"]["ErrorResponse"];
