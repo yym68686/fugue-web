@@ -1886,17 +1886,21 @@ ack_count: 0
 
 ### P0-AH：未收敛 ReleaseSet 禁止 full promotion
 
-- [x] 对 shadow ReleaseSet 尝试 full promotion。
-- [x] 在没有 expected consumer/convergence 记录（`ack_count=0`）时返回 409。
-- [x] ReleaseSet artifact 保持 validated，shadow 状态和当前 serving 不被失败尝试改变。
-- [x] 生产 convergence 查询为空，证明没有伪造 consumer ACK。
+- [x] 在 expected consumer sets 已准备后，对 shadow ReleaseSet 再次尝试 full promotion。
+- [x] required consumer 未收敛时稳定返回 409，拒绝原因是 `required release set consumers have not converged`。
+- [x] convergence 查询返回 route、DNS、TLS 三个集合，均为 `unknown`，required observed 为 0；普通节点 heartbeat 没有被伪造成 ACK。
+- [x] ReleaseSet artifact 保持 `validated`，shadow release、当前 serving artifact 和 API workload 均未改变。
+- [x] 旧的“没有 expected consumer set 时返回 409”仅作为代码回归测试保留，不再作为生产收敛证据。
 
 生产结果：
 
 ```text
 release_set: artifact_1789290147_22038f948fad
 full_promotion: 409 conflict
-convergence: []
+reason: required release set consumers have not converged
+route: unknown (0/10 observed)
+dns: unknown (0/9 observed)
+tls: unknown (0/5 observed)
 api serving: unchanged
 ```
 
@@ -1926,3 +1930,24 @@ api_image: sha256:b09f42397298f3ef29e2ca860f062e6fbe9b454494f73e97b9ea147d948d31
 ```
 
 全量测试记录：首次 `make test` 中 API 及平台包通过，sourceimport 的 deadline evidence 测试在 8 秒采集预算下失败，单独复跑通过。受控并发全量复跑仍需记录最终结果，不能以定向测试替代完整验收。
+
+### P0-AJ：移除不可信 runtime facts 投影并验证生产安全
+
+- [x] 删除把普通 Edge/DNS 节点 heartbeat 推断为 ReleaseSet apply/probe/ACK 的临时投影代码。
+- [x] 保留 trusted consumer heartbeat 作为唯一收敛事实来源；未接入真实 consumer identity 前，full promotion 继续 fail closed。
+- [x] 本地 `go test ./internal/api ./internal/platformcontrol` 通过。
+- [x] CI `34755400147` 的 prepush、API build 和 `deploy_api` 全部通过。
+- [x] 生产 API 2/2 Ready，镜像为 `sha256:95a681ff784147ebf9579dffd0cd4afea255c9cc72c1a5fb9f40ffcd278e7734`，`/healthz` 和 `/readyz` 均返回 `ok`。
+- [ ] Edge、DNS、TLS/Caddy consumer 尚未完成真实 artifact 拉取、apply、probe 和 trusted heartbeat；在此项完成前不得把 shadow ReleaseSet 切为 full serving。
+
+生产证据：
+
+```text
+commit: 6da3cfab  chore(release): declare api rollback intent
+workflow: ci
+run: 34755400147
+deploy_api: success
+api_ready: 2/2
+full_promotion_after_expected_sets: 409 conflict
+```
+
