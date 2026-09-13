@@ -1506,6 +1506,33 @@ deploy_api: success
 api_image: sha256:6e42a80ee497f4e55226c3a8497f15f59729052301d4c86eeb1f1d49cd16fc52
 ```
 
+### P0-U：按 hostname 查询 route/DNS/TLS lineage
+
+- [x] 新增只读 hostname lineage API。
+- [x] 查询返回 validated route、DNS、TLS artifact 及其 lineage。
+- [x] 查询同时返回各 artifact 当前 verified LKG（若存在）。
+- [x] hostname 规范化并递归扫描 artifact payload，未知 hostname 返回空集合。
+- [x] 增加 hostname 内容匹配回归测试。
+- [x] 本地 prepush 通过。
+- [x] CI prepush、API build 和 `deploy_api` 通过。
+- [x] 生产 API generation 966，2/2 Ready，0 restart。
+- [x] 生产 `/healthz` 和 `/readyz` 返回 `ok`。
+
+生产提交：
+
+```text
+15cf8365  feat(api): add hostname lineage lookup
+```
+
+生产发布证据：
+
+```text
+workflow: ci
+run: 34733970931
+deploy_api: success
+api_image: sha256:acaec0164b186969d9e1cd716c79f693bc4aeed03174f32bce16c2cd38cee784
+```
+
 ## 原子步骤生产证据
 
 ### P0-A：Intent/Policy/Compiler/Lineage 基础
