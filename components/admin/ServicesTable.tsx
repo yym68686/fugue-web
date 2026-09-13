@@ -97,7 +97,25 @@ export default function ServicesTable({
   const now = useObservedStatusNow(initialObservedNow);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [ownerFilter, setOwnerFilter] = useState("");
+  const [nodeFilter, setNodeFilter] = useState("");
+  const [stackFilter, setStackFilter] = useState("");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  const filterOptions = useMemo(() => ({
+    owners: [...new Set(rows.map((r) => r.ownerEmail).filter((x): x is string => Boolean(x)))].sort(),
+    nodes: [...new Set(rows.map((r) => r.nodeName).filter((x): x is string => Boolean(x)))].sort(),
+    stacks: [...new Set(rows.flatMap((r) => r.stack))].sort(),
+  }), [rows]);
+
+  const activeFilterCount = [ownerFilter, nodeFilter, stackFilter].filter(Boolean).length;
+  const clearFilters = () => {
+    setQuery("");
+    setStatusFilter("all");
+    setOwnerFilter("");
+    setNodeFilter("");
+    setStackFilter("");
+  };
 
   function toggle(id: string) {
     setExpanded((prev) => {
@@ -113,6 +131,9 @@ export default function ServicesTable({
     return rows.filter((r) => {
       if (statusFilter === "running" && !rowIsObservedReady(r, now)) return false;
       if (statusFilter === "issues" && rowIsObservedReady(r, now)) return false;
+      if (ownerFilter && r.ownerEmail !== ownerFilter) return false;
+      if (nodeFilter && r.nodeName !== nodeFilter) return false;
+      if (stackFilter && !r.stack.includes(stackFilter)) return false;
       if (!q) return true;
       const hay = [
         r.name,
@@ -126,7 +147,7 @@ export default function ServicesTable({
         .toLowerCase();
       return hay.includes(q);
     });
-  }, [rows, query, statusFilter, now]);
+  }, [rows, query, statusFilter, ownerFilter, nodeFilter, stackFilter, now]);
 
   const segs: { key: StatusFilter; label: string }[] = [
     { key: "all", label: t("All") },
@@ -161,6 +182,35 @@ export default function ServicesTable({
             </button>
           ))}
         </div>
+      </div>
+      <div className="services-advanced-filters">
+        <div className="services-filter-field">
+          <label htmlFor="services-owner-filter">{t("Owner")}</label>
+          <select id="services-owner-filter" value={ownerFilter} onChange={(e) => setOwnerFilter(e.target.value)}>
+            <option value="">{t("All owners")}</option>
+            {filterOptions.owners.map((owner) => <option key={owner} value={owner}>{owner}</option>)}
+          </select>
+        </div>
+        <div className="services-filter-field">
+          <label htmlFor="services-node-filter">{t("Node")}</label>
+          <select id="services-node-filter" value={nodeFilter} onChange={(e) => setNodeFilter(e.target.value)}>
+            <option value="">{t("All nodes")}</option>
+            {filterOptions.nodes.map((node) => <option key={node} value={node}>{node}</option>)}
+          </select>
+        </div>
+        <div className="services-filter-field">
+          <label htmlFor="services-stack-filter">{t("Tech stack")}</label>
+          <select id="services-stack-filter" value={stackFilter} onChange={(e) => setStackFilter(e.target.value)}>
+            <option value="">{t("All stacks")}</option>
+            {filterOptions.stacks.map((stack) => <option key={stack} value={stack}>{stack}</option>)}
+          </select>
+        </div>
+        {(activeFilterCount > 0 || query || statusFilter !== "all") && (
+          <button type="button" className="services-clear-filters" onClick={clearFilters}>
+            {t("Clear filters")}{activeFilterCount > 0 && <span>{activeFilterCount}</span>}
+          </button>
+        )}
+        <div className="services-result-count">{t("{count} results", { count: filtered.length })}</div>
       </div>
 
       <div className="table-scroll" role="region" aria-label={t("Services table")} tabIndex={0}>
