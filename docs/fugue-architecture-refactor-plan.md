@@ -1835,6 +1835,28 @@ api_generation: 978
 api_image: sha256:cbdaa4274b818114c4762fb362347875b2f3c8a403c1961e058ac90d6cac5e49
 ```
 
+### P0-AI：ReleaseSet expected consumer topology
+
+- [x] 新增 prepare-consumers API，从一个已验证 ReleaseSet 生成 route、DNS、TLS 三份 expected consumer set。
+- [x] topology 来自现有 edge、DNS、node-updater、runtime inventory；不伪造 ACK。
+- [x] 每个集合绑定同一 ReleaseSet、artifact release、child generation 和稳定 revision。
+- [x] 重复 prepare 幂等复用已有集合，revision 冲突不会生成重复状态机。
+- [x] 本地定向测试、prepush、API build 和 `deploy_api` 通过。
+- [x] 生产创建 route 10、DNS 9、TLS 5 个 required consumer 集合。
+- [x] 生产 convergence 明确为 unknown/0 observed，full promotion 继续被阻止。
+
+生产证据：
+
+```text
+commit: 9cb9b833  feat(platform): prepare release set consumer expectations
+workflow: ci
+run: 34750746033
+route_expected: 10
+dns_expected: 9
+tls_expected: 5
+convergence: unknown (0 observed)
+```
+
 ### P0-AG：TrafficReleaseSet shadow 发布
 
 - [x] 对已验证的 route/DNS/TLS ReleaseSet 创建 shadow release。
