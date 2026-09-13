@@ -1325,6 +1325,32 @@ deploy_api: success
 api_image: sha256:51d541b38e79d28c6bb23f2b00b8ae36f5451704ec517514e6abb8884089f5a7
 ```
 
+### P0-O：Lineage 显式绑定 intent/policy generation
+
+- [x] `Lineage` 增加 `intent_generation` 和 `policy_generation`。
+- [x] compiler 输出的 digest、artifact metadata 与 generation 一一绑定。
+- [x] lineage API 可同时返回 generation、digest、compiler version 和 input snapshot digest。
+- [x] 增加 generation binding 回归测试。
+- [x] 本地 prepush 通过。
+- [x] CI prepush、API build 和 `deploy_api` 通过。
+- [x] 生产 API generation 960，2/2 Ready，0 restart。
+- [x] 生产 `/healthz` 和 `/readyz` 返回 `ok`。
+
+生产提交：
+
+```text
+5b0285c7  feat(platform): expose intent and policy generations in lineage
+```
+
+生产发布证据：
+
+```text
+workflow: ci
+run: 34729487979
+deploy_api: success
+api_image: sha256:2d14740099eaaee0826ee032695b8f1a9eda77b208dbbac014036b787ec4cd13
+```
+
 ## 原子步骤生产证据
 
 ### P0-A：Intent/Policy/Compiler/Lineage 基础
