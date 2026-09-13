@@ -32,7 +32,7 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-13 生产核查：管理员只读查询得到 `platform_intent`、`policy_snapshot`、`release_set` 各 0 条，`policy-lkg` 返回 404。下文 P0 原子证据中的 API rollout 成功证明代码已部署，不证明生产配置已经迁移、consumer 已接管或故障恢复演练已完成。全局完成标准仍保持未勾选；上线前必须继续完成真实输入对比、shadow、灰度、收敛和回滚验证。
+2026-09-13 生产核查：已存在一份 `env-migration-prod-1` validated PlatformIntent、一份 `policy-shadow-prod-1` validated PolicySnapshot，以及由 artifact-only compiler 生成并落库的 route、DNS、TLS、ReleaseSet。它们仍未 promotion，policy LKG 和公网 serving 没有切换；这证明迁移输入和 shadow artifact 已可重放，不证明 consumer 已接管或故障恢复演练已完成。全局完成标准仍保持未勾选；上线前必须继续完成真实输入对比、灰度、收敛和回滚验证。
 
 Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 generation、content hash、签名、验证状态、release channel、fencing token 和 LKG；Edge 与 DNS 也有签名校验、本地缓存和过期控制。
 
@@ -1803,7 +1803,7 @@ conclusion: success
 - [x] 增加 artifact-only 编译和 draft rejection 回归测试。
 - [x] CI prepush、API build 和 `deploy_api` 通过。
 - [x] 生产 API generation 977，2/2 Ready，health/ready 正常。
-- [x] 生产 shadow replay 成功，lineage 记录 intent/policy/input snapshot/compiler v2；未 promotion。
+- [x] 生产 shadow replay 成功并将 route/DNS/TLS/ReleaseSet 落库；两次相同输入返回相同 artifact ID，lineage 记录 intent/policy/input snapshot/compiler v2；未 promotion。
 
 生产证据：
 
@@ -1817,6 +1817,22 @@ policy_generation: policy-shadow-prod-1
 release_generation: release-915ca009dc70243f7b4a29462bd0844b9319c16e8c7f67a78cdafed488a3cadf
 compiler_version: platform-config-compiler/v2
 promoted: false
+route_artifact: artifact_1789290147_3ae6084f214d
+dns_artifact: artifact_1789290147_a04df449b074
+tls_artifact: artifact_1789290147_0511fe77df9e
+release_artifact: artifact_1789290147_22038f948fad
+```
+
+持久化实现生产证据：
+
+```text
+commit: 2a52f5cd  feat(platform): persist artifact-only compiler outputs
+workflow: ci
+run: 34748439925
+deploy_api: success
+api_config: 2a52f5cdaed29f56baf580f5ebd6ce821ce67ee9
+api_generation: 978
+api_image: sha256:cbdaa4274b818114c4762fb362347875b2f3c8a403c1961e058ac90d6cac5e49
 ```
 
 跨仓 contract 验证：
