@@ -1768,11 +1768,22 @@ api_image: sha256:561d7203a145317a3781ab7a78d934a49cf8f97874d749b84a03b8c48a2be3
 - [x] CI `34744370232` 全部通过；API generation 974，2/2 Ready，health/ready 均为 ok。
 - [x] 生产管理员调用 import-env/preview 从 400 恢复为 200，返回 2 条启用 route。
 - [x] 完整迁移校验：生产源配置 13 条 DNS 记录全部保留（A/MX/NS/TXT），2 条 route 的 kind、policy、region_aware group mode、enabled 和 TTL 均保留。
-- [ ] 将确认完整的配置持久化为 intent；验证 shadow 与旧输出一致后才推进 serving。
+- [x] 将确认完整的配置持久化为 validated immutable intent draft；当前尚未推进 serving，需后续完成 shadow 对比后再 promote。
 
 ```text
 commit: be75a69b2e1c159756be074b40c4b19d9af0713b
 api_image: sha256:2053c2839915b9cb15f6223901d4c2b54982341c1bbd0810959415deaadd30ec
+```
+
+生产持久化验证：
+
+```text
+artifact_generation: env-migration-prod-1
+artifact_status: validated
+artifact_kind: platform_intent
+routes: 2
+dns_records: 13 (A/MX/NS/TXT)
+policy_lkg: 404 (未发生策略激活)
 ```
 
 全量测试记录：首次 `make test` 中 API 及平台包通过，sourceimport 的 deadline evidence 测试在 8 秒采集预算下失败，单独复跑通过。受控并发全量复跑仍需记录最终结果，不能以定向测试替代完整验收。
