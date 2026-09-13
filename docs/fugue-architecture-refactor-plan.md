@@ -32,6 +32,8 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
+2026-09-13 生产核查：管理员只读查询得到 `platform_intent`、`policy_snapshot`、`release_set` 各 0 条，`policy-lkg` 返回 404。下文 P0 原子证据中的 API rollout 成功证明代码已部署，不证明生产配置已经迁移、consumer 已接管或故障恢复演练已完成。全局完成标准仍保持未勾选；上线前必须继续完成真实输入对比、shadow、灰度、收敛和回滚验证。
+
 Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 generation、content hash、签名、验证状态、release channel、fencing token 和 LKG；Edge 与 DNS 也有签名校验、本地缓存和过期控制。
 
 主要缺口是：
@@ -1747,3 +1749,30 @@ run: 34743215404
 deploy_api: success
 api_image: sha256:16252409cfe9aa6e8de595181a57432772f7c71adc64f7d37889700e64a803dc
 ```
+
+### P0-AC：Policy LKG 故障响应
+
+- [x] 存储读失败与已存在 LKG 引用的 artifact 缺失均返回 503，避免误报为没有策略。
+- [x] 回归测试覆盖无 LKG 的 404、存储损坏、artifact 缺失、签名 key 撤销，以及候选策略验证失败保持旧 LKG。
+- [x] CI `34743964516` 全部通过；API generation 973，2/2 Ready。
+
+```text
+commit: fad854929170d5092f2487f5706fcf608341bf50
+api_image: sha256:561d7203a145317a3781ab7a78d934a49cf8f97874d749b84a03b8c48a2be32a
+```
+
+### P0-AD：旧环境配置 envelope 与 enabled 默认值
+
+- [x] 导入器兼容 route/DNS 数组和 routes/records 对象 envelope。
+- [x] 未指定 enabled 的旧 route 默认为启用，显式 disabled 保持禁用，保留 edge group ID。
+- [x] CI `34744370232` 全部通过；API generation 974，2/2 Ready，health/ready 均为 ok。
+- [x] 生产管理员调用 import-env/preview 从 400 恢复为 200，返回 2 条启用 route。
+- [ ] 完整迁移校验：源配置 13 条 DNS 记录，当前预览只返回 5 条；需保留 MX、NS、TXT 等记录及 route kind/policy/group mode/TTL 后重新对比。
+- [ ] 将确认完整的配置持久化为 intent；验证 shadow 与旧输出一致后才推进 serving。
+
+```text
+commit: be75a69b2e1c159756be074b40c4b19d9af0713b
+api_image: sha256:2053c2839915b9cb15f6223901d4c2b54982341c1bbd0810959415deaadd30ec
+```
+
+全量测试记录：首次 `make test` 中 API 及平台包通过，sourceimport 的 deadline evidence 测试在 8 秒采集预算下失败，单独复跑通过。受控并发全量复跑仍需记录最终结果，不能以定向测试替代完整验收。
