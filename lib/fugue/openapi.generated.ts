@@ -397,6 +397,10 @@ export interface paths {
     /** Get Platform Hostname Lineage */
     get: operations["getPlatformHostnameLineage"];
   };
+  "/v1/admin/platform-state/runtime-facts": {
+    /** List Platform Runtime Facts */
+    get: operations["listPlatformRuntimeFacts"];
+  };
   "/v1/admin/artifacts/{artifact_id}/lkg": {
     /** Get Platform Artifact LKG */
     get: operations["getPlatformArtifactLKG"];
@@ -12785,6 +12789,28 @@ export interface operations {
     };
     responses: {
       /** @description Validated route, DNS and TLS artifacts for one hostname */
+      200: {
+        content: {
+          "application/json": {
+            [key: string]: unknown;
+          };
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** List Platform Runtime Facts */
+  listPlatformRuntimeFacts: {
+    parameters: {
+      query?: {
+        consumer_id?: string;
+        release_set_id?: string;
+        artifact_kind?: string;
+        limit?: number;
+      };
+    };
+    responses: {
+      /** @description Runtime fact event projection from the platform audit log */
       200: {
         content: {
           "application/json": {
