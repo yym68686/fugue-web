@@ -101,11 +101,11 @@ Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 genera
 ### 合并 artifact envelope
 
 - [ ] 为所有 artifact 建立统一 envelope。
-- [ ] 统一 `schema_version`、`artifact_kind`、`generation`、`scope`、`content_hash`。
-- [ ] 统一 `intent_digest`、`policy_digest`、`input_snapshot_digest`。
+- [x] 统一 `schema_version`、`artifact_kind`、`generation`、`scope`、`content_hash`。
+- [x] 统一 `intent_digest`、`policy_digest`、`input_snapshot_digest`。
 - [ ] 统一 `compiler_version`、`valid_from`、`valid_until` 和 compatibility floor。
-- [ ] 统一 provenance、签名、key id 和撤销信息。
-- [ ] 用泛型 payload 表达 Edge、DNS、TLS、Node 等不同 artifact 内容。
+- [x] 统一 provenance、签名、key id 和撤销信息。
+- [x] 用泛型 payload 表达 Edge、DNS、TLS、Node 等不同 artifact 内容。
 
 ### 合并 route、DNS、TLS、cache 的编译输入
 
@@ -126,11 +126,11 @@ Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 genera
 
 ### 合并 consumer heartbeat 协议
 
-- [ ] 统一 consumer identity。
-- [ ] 统一 desired generation、loaded generation、loaded digest。
-- [ ] 统一 apply status、probe status、serving status。
-- [ ] 统一 sequence、fencing token、evidence hash。
-- [ ] 统一 heartbeat freshness 和 convergence 计算。
+- [x] 统一 consumer identity。
+- [x] 统一 desired generation、loaded generation、loaded digest。
+- [x] 统一 apply status、probe status、serving status。
+- [x] 统一 sequence、fencing token、evidence hash。
+- [x] 统一 heartbeat freshness 和 convergence 计算。
 
 ### 合并 policy evaluator
 
@@ -244,8 +244,8 @@ Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 genera
 
 ### Lineage 查询 API
 
-- [ ] 查询 intent generation。
-- [ ] 查询 policy generation。
+- [x] 查询 intent generation。
+- [x] 查询 policy generation。
 - [x] 查询 artifact lineage。
 - [x] 查询 release set。
 - [ ] 查询 consumer convergence。
@@ -1375,6 +1375,30 @@ workflow: ci
 run: 34730212271
 deploy_api: success
 api_image: sha256:fa7e15b7ba10d7e635262556b1ca3e0233d77ccf8afe30d101ec25eb5ec08c70
+```
+
+### 现有平台状态能力审计
+
+以下条目对应 Fugue 当前已经存在的通用 `PlatformArtifact`、release、LKG 和 consumer 状态实现，经过代码与生产 API 状态核对后勾选；它们不代表尚未完成的 ReleaseSet 全量迁移。
+
+- [x] `PlatformArtifact` 统一保存 schema、kind、generation、scope、content hash 和泛型 payload。
+- [x] artifact 保存 intent/policy/input snapshot digest 与 compiler version lineage。
+- [x] artifact 具备 provenance、签名、key id 和撤销 key 支持。
+- [x] artifact 创建后内容、generation、scope 和 provenance 不可变。
+- [x] release 支持 shadow、gray、full、fencing token 和幂等键。
+- [x] release 支持 verified LKG、rollback target、verification evidence 和 freeze 状态。
+- [x] consumer 状态保存 desired/actual/LKG generation、apply/probe/serving 状态、sequence 和 evidence hash。
+- [x] consumer convergence evaluator 检查 freshness、身份、版本、LKG 过期和 required cardinality。
+- [x] 管理 API 提供 artifact、LKG、release lineage 和 convergence 查询。
+
+审计依据：
+
+```text
+internal/model/platform_state.go
+internal/store/platform_state.go
+internal/platformsafety/kernel.go
+internal/platformcontrol/consumer_convergence.go
+生产 API generation: 961
 ```
 
 ## 原子步骤生产证据
