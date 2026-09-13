@@ -389,6 +389,10 @@ export interface paths {
     /** List Platform Consumer Convergence */
     get: operations["listPlatformConsumerConvergence"];
   };
+  "/v1/admin/platform-config/hostname-lineage": {
+    /** Get Platform Hostname Lineage */
+    get: operations["getPlatformHostnameLineage"];
+  };
   "/v1/admin/artifacts/{artifact_id}/lkg": {
     /** Get Platform Artifact LKG */
     get: operations["getPlatformArtifactLKG"];
@@ -12739,6 +12743,25 @@ export interface operations {
     };
     responses: {
       /** @description Current consumer convergence assessments */
+      200: {
+        content: {
+          "application/json": {
+            [key: string]: unknown;
+          };
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Get Platform Hostname Lineage */
+  getPlatformHostnameLineage: {
+    parameters: {
+      query: {
+        hostname: string;
+      };
+    };
+    responses: {
+      /** @description Validated route, DNS and TLS artifacts for one hostname */
       200: {
         content: {
           "application/json": {
