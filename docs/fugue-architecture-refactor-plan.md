@@ -1703,3 +1703,24 @@ run: 34741550202
 deploy_release_guardian: success
 guardian_image: sha256:3ccd85fe840be006cbd4f7d57a58c01b7a78bed6d02919a1d4368baaed14d66b
 ```
+
+### P0-AA：RouteIntent 来源头 OpenAPI 契约同步
+
+- [x] authoritative OpenAPI 声明 `X-Fugue-Route-Intent-Source` 响应头。
+- [x] 重新生成后端 OpenAPI artifacts。
+- [x] `fugue-web` vendor contract 和 TypeScript 类型已同步。
+- [x] 后端 prepush、API build 和 `deploy_api` 通过。
+- [x] 生产 API generation 971，2/2 Ready。
+- [x] 生产 `/healthz` 和 `/readyz` 返回 `ok`。
+
+生产提交与证据：
+
+```text
+439cecca  docs(api): declare route intent source header
+8e7a0ee8  chore(api): sync route intent source contract
+953400b7  chore(release): advance api contract generation
+workflow: ci
+run: 34742501465
+deploy_api: success
+api_image: sha256:7622d438554ccee336a41580763ff98efb8fd745bac7af0483d7331761765812
+```
