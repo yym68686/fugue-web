@@ -1262,7 +1262,7 @@ api_image: sha256:e54698b2179bd71eda6adfdc6b013f033881ceac9c44901666c027bd6b80d0
 生产提交：
 
 ```text
-6b8560a2  feat(api): expose platform consumer convergence
+7b5fbf3c  feat(api): expose platform consumer convergence
 ```
 
 生产发布证据：
