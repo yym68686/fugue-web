@@ -1666,3 +1666,40 @@ api_image: sha256:00c77fecea25d30b4ba90425e99006f5b12825395fea696c2927f9579f0944
 ```
 
 每个 P0 原子步骤都必须先通过本地测试，再 push，等待 GitHub Actions 与生产运行态验证，最后在本文件中记录证据后才能开始下一步。
+
+### P0-Z：RouteIntent 语义投影与生产验证
+
+- [x] Edge RouteIntent 优先读取 verified route artifact LKG。
+- [x] 严格校验 artifact payload schema、显式 `enabled`、唯一 hostname 和 HTTP(S) upstream。
+- [x] 保留 disabled route 与 pinned edge group 语义。
+- [x] 生成的 intent 可直接被 Edge Control `GroupShadowCompiler` 消费。
+- [x] artifact 路径返回 `X-Fugue-Route-Intent-Source: verified-artifact`。
+- [x] artifact/LKG 不可用时返回 503 或仅在没有 LKG 时使用兼容投影。
+- [x] 增加端到端投影、歧义 payload、无回退和确定性回归测试。
+- [x] 本地 RouteIntent 定向测试和 prepush 通过。
+- [x] API component build 和 `deploy_api` 通过。
+- [x] 生产 API generation 970，2/2 Ready，0 restart。
+- [x] 生产 Guardian 后续修复发布成功，1/1 Ready。
+- [x] 生产 `/healthz` 和 `/readyz` 返回 `ok`，API 日志无 panic/fatal/error。
+
+生产提交与证据：
+
+```text
+0cd9f148  feat(edge): validate and preserve route artifact semantics
+0b0978df  feat(edge): expose verified artifact route source
+2e7b0a92  chore(release): publish runtime scope API atom
+workflow: ci
+run: 34740931608
+deploy_api: success
+api_image: sha256:7fc45c6476138f74b98539baed9a8725766a6708db6c1e55915752beb15b91c4
+```
+
+发布链路修复：
+
+```text
+47d03a8c  chore(release): advance guardian intent generation
+workflow: ci
+run: 34741550202
+deploy_release_guardian: success
+guardian_image: sha256:3ccd85fe840be006cbd4f7d57a58c01b7a78bed6d02919a1d4368baaed14d66b
+```
