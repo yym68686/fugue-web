@@ -1819,4 +1819,13 @@ compiler_version: platform-config-compiler/v2
 promoted: false
 ```
 
+跨仓 contract 验证：
+
+```text
+fugue-web commit: 51238391  chore(api): sync artifact compiler contract
+workflow: contract-drift
+run: 34748217539
+conclusion: success
+```
+
 全量测试记录：首次 `make test` 中 API 及平台包通过，sourceimport 的 deadline evidence 测试在 8 秒采集预算下失败，单独复跑通过。受控并发全量复跑仍需记录最终结果，不能以定向测试替代完整验收。
