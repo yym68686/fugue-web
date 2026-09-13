@@ -1844,4 +1844,20 @@ run: 34748217539
 conclusion: success
 ```
 
+### P0-AF：Artifact-only 编译输入完整性门
+
+- [x] 编译前验证输入 artifact 的 schema、content digest、签名、kind、validated 状态、generation 与 scope。
+- [x] 输入 ID 必须精确匹配存储对象；缺失对象与存储不可用分别返回 404/503。
+- [x] typed decoder 拒绝未知字段，任何不可信输入在写入 route/DNS/TLS/ReleaseSet 前失败。
+- [x] 增加内容篡改、无效签名、撤销 key、错误 kind、未知字段、scope 不一致和零输出回归测试。
+- [x] 本地定向测试、受控并发全量 `make test` 与 prepush 通过。
+- [x] CI `34749574622` 的 prepush、API build 和 `deploy_api` 全部通过。
+- [x] 生产 API generation 979，2/2 Ready，`/healthz` 和 `/readyz` 正常。
+
+```text
+commit: 786a0315  fix(platform): verify artifact compiler inputs
+release-repair: b3ca9243  fix(release): bind compiler verification to serving predecessor
+api_image: sha256:b09f42397298f3ef29e2ca860f062e6fbe9b454494f73e97b9ea147d948d31ec
+```
+
 全量测试记录：首次 `make test` 中 API 及平台包通过，sourceimport 的 deadline evidence 测试在 8 秒采集预算下失败，单独复跑通过。受控并发全量复跑仍需记录最终结果，不能以定向测试替代完整验收。
