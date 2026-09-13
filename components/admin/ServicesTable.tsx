@@ -46,6 +46,35 @@ function deployLabel(method: string | null, t: TranslateFn): string {
 
 type StatusFilter = "all" | "running" | "issues";
 
+function ColumnFilter({
+  label,
+  value,
+  allLabel,
+  options,
+  ariaLabel,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  allLabel: string;
+  options: string[];
+  ariaLabel: string;
+  onChange: (value: string) => void;
+}) {
+  const selected = value ? options.find((option) => option === value) : undefined;
+  return (
+    <label className={`column-filter${value ? " is-active" : ""}`} title={selected ? `${label}: ${selected}` : allLabel}>
+      <span>{label}</span>
+      {value && <i aria-hidden="true" />}
+      <span className="column-filter-chevron" aria-hidden="true">⌄</span>
+      <select aria-label={ariaLabel} value={value} onChange={(event) => onChange(event.target.value)}>
+        <option value="">{allLabel}</option>
+        {options.map((option) => <option key={option} value={option}>{option}</option>)}
+      </select>
+    </label>
+  );
+}
+
 export function ServicesRuntimeSummary({
   rows,
   tenantCount,
@@ -180,11 +209,11 @@ export default function ServicesTable({
           <tr>
             <th style={{ width: 28 }}></th>
             <th>{t("Service")}</th>
-            <th><div className="table-filter-head"><span>{t("Owner")}</span><select aria-label={t("Filter by owner")} value={ownerFilter} onChange={(e) => setOwnerFilter(e.target.value)}><option value="">{t("All owners")}</option>{filterOptions.owners.map((owner) => <option key={owner} value={owner}>{owner}</option>)}</select></div></th>
-            <th><div className="table-filter-head"><span>{t("Status")}</span><select aria-label={t("Filter by status")} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}><option value="all">{t("All statuses")}</option><option value="running">{t("Running")}</option><option value="issues">{t("Issues")}</option></select></div></th>
-            <th><div className="table-filter-head"><span>{t("Tech stack")}</span><select aria-label={t("Filter by tech stack")} value={stackFilter} onChange={(e) => setStackFilter(e.target.value)}><option value="">{t("All stacks")}</option>{filterOptions.stacks.map((stack) => <option key={stack} value={stack}>{stack}</option>)}</select></div></th>
+            <th><ColumnFilter label={t("Owner")} value={ownerFilter} allLabel={t("All owners")} options={filterOptions.owners} ariaLabel={t("Filter by owner")} onChange={setOwnerFilter} /></th>
+            <th><ColumnFilter label={t("Status")} value={statusFilter === "all" ? "" : statusFilter} allLabel={t("All statuses")} options={["running", "issues"]} ariaLabel={t("Filter by status")} onChange={(value) => setStatusFilter((value || "all") as StatusFilter)} /></th>
+            <th><ColumnFilter label={t("Tech stack")} value={stackFilter} allLabel={t("All stacks")} options={filterOptions.stacks} ariaLabel={t("Filter by tech stack")} onChange={setStackFilter} /></th>
             <th>{t("Deploy method")}</th>
-            <th><div className="table-filter-head"><span>{t("Node")}</span><select aria-label={t("Filter by node")} value={nodeFilter} onChange={(e) => setNodeFilter(e.target.value)}><option value="">{t("All nodes")}</option>{filterOptions.nodes.map((node) => <option key={node} value={node}>{node}</option>)}</select></div></th>
+            <th><ColumnFilter label={t("Node")} value={nodeFilter} allLabel={t("All nodes")} options={filterOptions.nodes} ariaLabel={t("Filter by node")} onChange={setNodeFilter} /></th>
           </tr>
         </thead>
         <tbody>
