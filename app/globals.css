@@ -2985,11 +2985,13 @@ button {
 }
 
 .tbl-services th {
+  height: 58px;
   padding: 10px 16px;
   background: var(--surface);
-  vertical-align: top;
+  vertical-align: middle;
 }
-.column-filter { position: relative; display: inline-flex; align-items: center; gap: 6px; min-width: 92px; min-height: 28px; color: var(--faint); cursor: pointer; }
+.table-head-label { display: inline-flex; align-items: center; height: 28px; }
+.column-filter { position: relative; display: inline-flex; align-items: center; gap: 6px; min-width: 92px; height: 28px; color: var(--faint); cursor: pointer; }
 .column-filter > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .column-filter.is-active { color: var(--accent-fg); }
 .column-filter > i { width: 5px; height: 5px; border-radius: 50%; background: var(--accent-fg); flex: none; }

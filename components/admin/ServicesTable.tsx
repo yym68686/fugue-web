@@ -208,11 +208,11 @@ export default function ServicesTable({
         <thead>
           <tr>
             <th style={{ width: 28 }}></th>
-            <th>{t("Service")}</th>
+            <th><span className="table-head-label">{t("Service")}</span></th>
             <th><ColumnFilter label={t("Owner")} value={ownerFilter} allLabel={t("All owners")} options={filterOptions.owners} ariaLabel={t("Filter by owner")} onChange={setOwnerFilter} /></th>
             <th><ColumnFilter label={t("Status")} value={statusFilter === "all" ? "" : statusFilter} allLabel={t("All statuses")} options={["running", "issues"]} ariaLabel={t("Filter by status")} onChange={(value) => setStatusFilter((value || "all") as StatusFilter)} /></th>
             <th><ColumnFilter label={t("Tech stack")} value={stackFilter} allLabel={t("All stacks")} options={filterOptions.stacks} ariaLabel={t("Filter by tech stack")} onChange={setStackFilter} /></th>
-            <th>{t("Deploy method")}</th>
+            <th><span className="table-head-label">{t("Deploy method")}</span></th>
             <th><ColumnFilter label={t("Node")} value={nodeFilter} allLabel={t("All nodes")} options={filterOptions.nodes} ariaLabel={t("Filter by node")} onChange={setNodeFilter} /></th>
           </tr>
         </thead>
