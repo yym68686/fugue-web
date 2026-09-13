@@ -1220,6 +1220,33 @@ deploy_api: success
 api_image: sha256:4aaf282a7304acf299385d350636331c7665efd47a177751c4499fea722bea11
 ```
 
+### P0-K：TLS readiness 优先读取 verified artifact
+
+- [x] Edge TLS ask 在存在 verified `caddy_route_config` 时读取 artifact certificate host 列表。
+- [x] artifact 存在时未知 hostname fail closed，不回退到业务表。
+- [x] 没有 verified TLS artifact 时保留兼容业务域名校验路径。
+- [x] 增加 artifact allow/deny 回归测试。
+- [x] 本地 prepush 通过。
+- [x] CI prepush、API build 和 `deploy_api` 通过。
+- [x] 生产 API generation 956，2/2 Ready，0 restart。
+- [x] 生产 `/healthz` 和 `/readyz` 返回 `ok`。
+- [x] 生产近 10 分钟无 panic、fatal 或 error 日志。
+
+生产提交：
+
+```text
+4244ccc3  feat(edge): project TLS readiness from verified artifact
+```
+
+生产发布证据：
+
+```text
+workflow: ci
+run: 34726488435
+deploy_api: success
+api_image: sha256:e54698b2179bd71eda6adfdc6b013f033881ceac9c44901666c027bd6b80d09e
+```
+
 ## 原子步骤生产证据
 
 ### P0-A：Intent/Policy/Compiler/Lineage 基础
