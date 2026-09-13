@@ -157,7 +157,11 @@ export default function ServicesTable({
 
   return (
     <>
-      <div className="services-toolbar">
+      <div className="services-controls">
+        <div className="services-list-title">
+          <strong>{t("Deployed services")}</strong>
+          <span>{t("{count} results", { count: filtered.length })}</span>
+        </div>
         <label className="services-search">
           <span className="services-search-icon" aria-hidden="true">⌕</span>
           <span className="sr-only">{t("Search services")}</span>
@@ -170,20 +174,16 @@ export default function ServicesTable({
           />
           {query && <button type="button" className="services-search-clear" onClick={() => setQuery("")} aria-label={t("Clear search")}>×</button>}
         </label>
-        <div className="services-filter" role="group" aria-label={t("Filter services")}>
-          {segs.map((s) => (
-            <button
-              key={s.key}
-              type="button"
-              className={`seg-btn${statusFilter === s.key ? " active" : ""}`}
-              onClick={() => setStatusFilter(s.key)}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
       </div>
       <div className="services-advanced-filters">
+        <div className="services-filter-field services-status-field">
+          <label>{t("Status")}</label>
+          <div className="services-filter" role="group" aria-label={t("Filter by status")}>
+            {segs.map((s) => (
+              <button key={s.key} type="button" className={`seg-btn${statusFilter === s.key ? " active" : ""}`} onClick={() => setStatusFilter(s.key)}>{s.label}</button>
+            ))}
+          </div>
+        </div>
         <div className="services-filter-field">
           <label htmlFor="services-owner-filter">{t("Owner")}</label>
           <select id="services-owner-filter" value={ownerFilter} onChange={(e) => setOwnerFilter(e.target.value)}>
@@ -210,7 +210,6 @@ export default function ServicesTable({
             {t("Clear filters")}{activeFilterCount > 0 && <span>{activeFilterCount}</span>}
           </button>
         )}
-        <div className="services-result-count">{t("{count} results", { count: filtered.length })}</div>
       </div>
 
       <div className="table-scroll" role="region" aria-label={t("Services table")} tabIndex={0}>

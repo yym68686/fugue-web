@@ -636,6 +636,7 @@ export const zhCN = {
   "Search services": "搜索服务",
   "Clear search": "清除搜索",
   "Filter services": "筛选服务",
+  "Filter by status": "按状态筛选",
   "Search by name, owner, node or stack": "按名称、所有者、节点或技术栈搜索",
   "All owners": "所有用户",
   "All nodes": "所有节点",

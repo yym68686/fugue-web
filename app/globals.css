@@ -2894,7 +2894,8 @@ button {
 .services-stats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin-top: 18px;
+  width: 100%;
+  margin: 20px 0 20px;
   border: 1px solid var(--line);
   border-radius: 10px;
   overflow: hidden;
@@ -2935,18 +2936,17 @@ button {
 }
 
 .services-panel { overflow: hidden; border-radius: 10px; }
-.services-panel .panel-h { padding: 17px 20px; }
-.services-panel .panel-h h3 { font-size: 14px; }
-
-.services-toolbar {
+.services-controls {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 16px;
   padding: 16px 20px;
-  border-bottom: 1px solid var(--line);
   background: var(--surface-2);
+  border-bottom: 1px solid var(--line);
 }
+.services-list-title { display: flex; align-items: baseline; gap: 9px; margin-right: auto; white-space: nowrap; }
+.services-list-title strong { font-size: 15px; font-weight: 600; }
+.services-list-title span { color: var(--faint); font: 10.5px var(--mono); }
 
 .services-search {
   position: relative;
@@ -2975,7 +2975,6 @@ button {
   align-items: flex-end;
   gap: 10px;
   padding: 12px 20px 14px;
-  border-bottom: 1px solid var(--line);
   background: var(--surface);
 }
 .services-filter-field { display: flex; flex-direction: column; gap: 5px; min-width: 155px; }
@@ -2991,10 +2990,12 @@ button {
   font: 12px var(--sans);
 }
 .services-filter-field select:focus { outline: 2px solid var(--accent-fg); outline-offset: 1px; }
+.services-status-field { min-width: 235px; }
+.services-status-field .services-filter { height: 34px; }
+.services-status-field .services-filter .seg-btn { min-width: 68px; padding: 6px 10px; }
 .services-clear-filters { height: 34px; padding: 0 10px; color: var(--accent-fg); font-size: 12px; white-space: nowrap; }
 .services-clear-filters:hover { color: var(--fg); }
 .services-clear-filters span { display: inline-grid; place-items: center; min-width: 18px; height: 18px; margin-left: 5px; border-radius: 99px; background: var(--accent-dim); font: 10px var(--mono); }
-.services-result-count { margin-left: auto; padding-bottom: 8px; color: var(--faint); font: 10.5px var(--mono); white-space: nowrap; }
 
 .table-scroll {
   width: 100%;
@@ -3056,11 +3057,13 @@ button {
   .services-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .services-stat:nth-child(3) { border-left: 0; border-top: 1px solid var(--line); }
   .services-stat:nth-child(4) { border-top: 1px solid var(--line); }
-  .services-toolbar { align-items: stretch; flex-direction: column; }
+  .services-controls { align-items: stretch; flex-direction: column; }
+  .services-list-title { width: 100%; margin-right: 0; }
   .services-search { width: 100%; }
   .services-filter { align-self: flex-start; }
   .services-advanced-filters { align-items: stretch; flex-wrap: wrap; padding: 12px 16px 14px; }
   .services-filter-field { flex: 1 1 150px; min-width: 0; }
+  .services-status-field { flex: 1 1 100%; }
   .services-filter-field select { width: 100%; min-width: 0; }
   .services-result-count { width: 100%; margin-left: 0; padding: 2px 0 0; }
 }

@@ -137,24 +137,21 @@ export default withPageTiming('/admin/services', async function AdminServicesPag
 
   return (
     <AppLayout>
-      <div className="page">
+      <div className="page services-page">
         <div className="phead">
           <div>
             <div className="eyebrow">Platform · Services</div>
             <h1>{t('All services')}</h1>
-            <ServicesRuntimeSummary
-              rows={rows}
-              tenantCount={tenantIds.length}
-              initialObservedNow={initialObservedNow}
-            />
           </div>
         </div>
 
+        <ServicesRuntimeSummary
+          rows={rows}
+          tenantCount={tenantIds.length}
+          initialObservedNow={initialObservedNow}
+        />
+
         <div className="panel services-panel">
-          <div className="panel-h">
-            <h3>{t('Deployed services')}</h3>
-            <div className="tail eyebrow">{rows.length} total</div>
-          </div>
           {rows.length > 0 ? (
             <ServicesTable rows={rows} initialObservedNow={initialObservedNow} />
           ) : (
