@@ -1479,6 +1479,33 @@ deploy_api: success
 api_image: sha256:5e7592637f1844cb59a3bfc79ad2cf5dddfd996933e1decbf15f5ecbb25e61b6
 ```
 
+### P0-T：Full promotion convergence gate
+
+- [x] ReleaseSet full promotion 前读取 expected consumer sets。
+- [x] required consumer 未通过 convergence 时拒绝 promotion。
+- [x] convergence evaluator 检查 stale heartbeat、身份、generation、apply/probe、LKG 和 cardinality。
+- [x] 没有 expected consumer set 时保持兼容行为，不伪造 convergence 事实。
+- [x] 增加 required consumer 未收敛的回归测试。
+- [x] 本地 prepush 通过。
+- [x] CI prepush、API build 和 `deploy_api` 通过。
+- [x] 生产 API generation 965，2/2 Ready，0 restart。
+- [x] 生产 `/healthz` 和 `/readyz` 返回 `ok`。
+
+生产提交：
+
+```text
+5f9aaa72  feat(release): gate full promotion on consumer convergence
+```
+
+生产发布证据：
+
+```text
+workflow: ci
+run: 34733207625
+deploy_api: success
+api_image: sha256:6e42a80ee497f4e55226c3a8497f15f59729052301d4c86eeb1f1d49cd16fc52
+```
+
 ## 原子步骤生产证据
 
 ### P0-A：Intent/Policy/Compiler/Lineage 基础
