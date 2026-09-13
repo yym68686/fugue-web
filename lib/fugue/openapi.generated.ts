@@ -442,6 +442,13 @@ export interface paths {
     /** Report Trusted Platform State Consumer Heartbeat */
     post: operations["trustedPlatformConsumerHeartbeat"];
   };
+  "/v1/platform-state/consumers/identity": {
+    /**
+     * Exchange a bound Kubernetes Pod token for a short-lived consumer identity
+     * @description Requires a Pod-bound ServiceAccount token accepted by the Kubernetes API. Kubernetes SelfSubjectReview and a live Pod lookup determine the node identity. Only Pods in the configured control-plane namespace with an operator-managed typed fugue.pro/consumer-identity annotation may exchange credentials. The signed identity expires after two minutes. This operation does not report consumer health or change serving state.
+     */
+    post: operations["exchangePlatformConsumerIdentity"];
+  };
   "/v1/platform-state/consumers/assignment": {
     /**
      * Get the expected ReleaseSet assignments for a trusted consumer
@@ -10828,6 +10835,15 @@ export interface components {
       consumer: components["schemas"]["PlatformConsumerInstance"];
       drift: boolean;
     };
+    PlatformConsumerIdentityResponse: {
+      token: string;
+      /** Format: date-time */
+      expires_at: string;
+      component: string;
+      node_id: string;
+      scope_key: string;
+      artifact_kinds: string[];
+    };
     PlatformConsumerAssignment: {
       expected_consumer_set_id: string;
       release_set_id: string;
@@ -13145,6 +13161,24 @@ export interface operations {
       404: components["responses"]["ErrorResponse"];
       409: components["responses"]["ErrorResponse"];
       422: components["responses"]["ErrorResponse"];
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /**
+   * Exchange a bound Kubernetes Pod token for a short-lived consumer identity
+   * @description Requires a Pod-bound ServiceAccount token accepted by the Kubernetes API. Kubernetes SelfSubjectReview and a live Pod lookup determine the node identity. Only Pods in the configured control-plane namespace with an operator-managed typed fugue.pro/consumer-identity annotation may exchange credentials. The signed identity expires after two minutes. This operation does not report consumer health or change serving state.
+   */
+  exchangePlatformConsumerIdentity: {
+    responses: {
+      /** @description Short-lived component credential with its server-derived claims. */
+      200: {
+        content: {
+          "application/json": components["schemas"]["PlatformConsumerIdentityResponse"];
+        };
+      };
+      401: components["responses"]["ErrorResponse"];
+      403: components["responses"]["ErrorResponse"];
+      503: components["responses"]["ErrorResponse"];
       default: components["responses"]["ErrorResponse"];
     };
   };
