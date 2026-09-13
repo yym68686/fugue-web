@@ -385,6 +385,10 @@ export interface paths {
     /** List Platform Expected Consumer Sets */
     get: operations["listPlatformExpectedConsumerSets"];
   };
+  "/v1/admin/platform-state/convergence": {
+    /** List Platform Consumer Convergence */
+    get: operations["listPlatformConsumerConvergence"];
+  };
   "/v1/admin/artifacts/{artifact_id}/lkg": {
     /** Get Platform Artifact LKG */
     get: operations["getPlatformArtifactLKG"];
@@ -12708,6 +12712,29 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["PlatformExpectedConsumerSetListResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** List Platform Consumer Convergence */
+  listPlatformConsumerConvergence: {
+    parameters: {
+      query?: {
+        release_set_id?: string;
+        artifact_release_id?: string;
+        artifact_kind?: string;
+        scope_key?: string;
+        limit?: number;
+      };
+    };
+    responses: {
+      /** @description Current consumer convergence assessments */
+      200: {
+        content: {
+          "application/json": {
+            [key: string]: unknown;
+          };
         };
       };
       default: components["responses"]["ErrorResponse"];
