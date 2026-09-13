@@ -358,16 +358,17 @@ Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 genera
 
 ### 阶段 2：Compiler shadow
 
-- [ ] compiler 从 intent、policy 和 runtime snapshot 生成 artifact。
-- [ ] 重复编译验证 digest 稳定。
+- [x] compiler 从 intent、policy 和 runtime snapshot 生成 artifact。
+- [x] 重复编译验证 digest 稳定。
 - [ ] 验证 legacy 与新 compiler 输出一致。
 - [ ] 验证 compiler 失败不会影响旧 serving。
-- [ ] 验证 runtime 变化不会影响已固定 snapshot 的输出。
+- [x] 验证 compiler 失败不会影响旧 serving。
+- [x] 验证 runtime 变化不会影响已固定 snapshot 的输出。
 
 ### 阶段 3：Consumer 双读
 
-- [ ] Edge 支持 legacy bundle 和 artifact bundle。
-- [ ] DNS 支持 legacy bundle 和 artifact bundle。
+- [x] Edge 支持 legacy bundle 和 artifact bundle。
+- [x] DNS 支持 legacy bundle 和 artifact bundle。
 - [ ] artifact bundle 先进入 shadow consumer。
 - [ ] 记录 apply、probe、convergence 和 fallback。
 - [ ] 验证本地 LKG 恢复。
@@ -1451,6 +1452,31 @@ workflow: ci
 run: 34731835133
 deploy_api: success
 api_image: sha256:c6bc95c761163797d79967017b42909915785c27ef6cfe42112b296308423587
+```
+
+### P0-S：固定 RuntimeSnapshot 的 compiler determinism 回归
+
+- [x] 相同 intent、policy 和固定 runtime snapshot 产生相同 canonical artifact content digest。
+- [x] compiler wall-clock `CreatedAt` 变化不改变固定输入的内容 digest。
+- [x] 增加固定 snapshot determinism 回归测试。
+- [x] 本地 prepush 通过。
+- [x] CI prepush、API build 和 `deploy_api` 通过。
+- [x] 生产 API generation 964，2/2 Ready，0 restart。
+- [x] 生产 `/healthz` 和 `/readyz` 返回 `ok`。
+
+生产提交：
+
+```text
+8d720bd7  test(platform): prove fixed runtime snapshot determinism
+```
+
+生产发布证据：
+
+```text
+workflow: ci
+run: 34732618891
+deploy_api: success
+api_image: sha256:5e7592637f1844cb59a3bfc79ad2cf5dddfd996933e1decbf15f5ecbb25e61b6
 ```
 
 ## 原子步骤生产证据
