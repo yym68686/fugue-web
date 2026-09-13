@@ -1835,6 +1835,25 @@ api_generation: 978
 api_image: sha256:cbdaa4274b818114c4762fb362347875b2f3c8a403c1961e058ac90d6cac5e49
 ```
 
+### P0-AG：TrafficReleaseSet shadow 发布
+
+- [x] 对已验证的 route/DNS/TLS ReleaseSet 创建 shadow release。
+- [x] shadow release 使用独立 fencing token 和 idempotency key，状态为 `serving_unverified`。
+- [x] shadow 发布不改变当前 full serving artifact 或 API workload。
+- [x] 生产 `/healthz` 和 `/readyz` 仍返回 `ok`，API config 保持原 serving atom。
+- [ ] 在 required Edge、DNS、TLS consumer 完成 heartbeat、apply、probe 和 convergence 前禁止 full promotion。
+
+生产证据：
+
+```text
+release_set: artifact_1789290147_22038f948fad
+release_id: artifactrel_1789292458_d1b4c134c3e2
+release_channel: shadow
+fencing_token: 1
+verification_state: serving_unverified
+ack_count: 0
+```
+
 跨仓 contract 验证：
 
 ```text
