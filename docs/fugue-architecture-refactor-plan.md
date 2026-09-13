@@ -1560,6 +1560,26 @@ deploy_api: success
 api_image: sha256:61b4dd782f000e013272dbd410d2bcdfaf04d7a6b04be68bab87d3ac394d792f
 ```
 
+### P0-W：Hostname lineage 查询 contract 同步
+
+- [x] hostname lineage API 的 authoritative OpenAPI 已同步到 `fugue-web`。
+- [x] 生成 TypeScript 类型并通过 `contract:check`。
+- [x] CI contract-drift 修复提交已成功。
+
+生产提交：
+
+```text
+28d1769b  chore(api): sync hostname lineage contract
+```
+
+生产发布证据：
+
+```text
+fugue-web workflow: contract-drift
+run: 34734377914
+conclusion: success
+```
+
 ## 原子步骤生产证据
 
 ### P0-A：Intent/Policy/Compiler/Lineage 基础
