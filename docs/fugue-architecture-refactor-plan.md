@@ -1857,6 +1857,14 @@ tls_expected: 5
 convergence: unknown (0 observed)
 ```
 
+跨仓 contract 验证：
+
+```text
+fugue-web workflow: contract-drift
+run: 34751164173
+conclusion: success
+```
+
 ### P0-AG：TrafficReleaseSet shadow 发布
 
 - [x] 对已验证的 route/DNS/TLS ReleaseSet 创建 shadow release。
