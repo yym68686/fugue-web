@@ -40,7 +40,7 @@ export interface paths {
   "/v1/edge/route-intents": {
     /**
      * Edge Route Intents
-     * @description Returns Core's inventory-independent desired-route projection. Only the edge-control component identity with global edge_route_intent capability is accepted; tenant and platform-admin API keys are not accepted.
+     * @description Returns Core's inventory-independent desired-route projection. Only the edge-control component identity with global edge_route_intent capability is accepted; tenant and platform-admin API keys are not accepted. A verified global route artifact takes precedence over the legacy source. An unusable artifact or LKG returns 503 so Edge Control retains its last serving bundle rather than recompiling from mutable business tables.
      */
     get: operations["edgeRouteIntents"];
   };
@@ -768,6 +768,14 @@ export interface paths {
   "/v1/runtimes/{id}/public-offer": {
     /** Set Runtime Public Offer */
     post: operations["setRuntimePublicOffer"];
+  };
+  "/v1/runtimes/{id}/scope": {
+    /** Set runtime cluster scope */
+    post: operations["setRuntimeScope"];
+  };
+  "/v1/runtimes/{id}/byovps-sharing": {
+    /** Set BYOVPS sharing */
+    post: operations["setRuntimeSharing"];
   };
   "/v1/runtimes/{id}/pool-mode": {
     /** Set Runtime Pool Mode */
@@ -5176,6 +5184,10 @@ export interface components {
       access_mode?: string;
       public_offer?: components["schemas"]["RuntimePublicOffer"];
       pool_mode?: string;
+      /** @enum {string} */
+      cluster_scope?: "internal" | "byovps";
+      /** @enum {string|null} */
+      sharing?: "private" | "public" | null;
       connection_mode?: string;
       status: string;
       endpoint?: string;
@@ -7816,6 +7828,14 @@ export interface components {
     };
     RuntimePublicOfferResponse: {
       runtime: components["schemas"]["Runtime"];
+    };
+    SetRuntimeScopeRequest: {
+      /** @enum {string} */
+      cluster_scope: "internal" | "byovps";
+    };
+    SetRuntimeSharingRequest: {
+      /** @enum {string} */
+      sharing: "private" | "public";
     };
     SetRuntimePoolModeRequest: {
       pool_mode: string;
@@ -11207,7 +11227,7 @@ export interface operations {
   };
   /**
    * Edge Route Intents
-   * @description Returns Core's inventory-independent desired-route projection. Only the edge-control component identity with global edge_route_intent capability is accepted; tenant and platform-admin API keys are not accepted.
+   * @description Returns Core's inventory-independent desired-route projection. Only the edge-control component identity with global edge_route_intent capability is accepted; tenant and platform-admin API keys are not accepted. A verified global route artifact takes precedence over the legacy source. An unusable artifact or LKG returns 503 so Edge Control retains its last serving bundle rather than recompiling from mutable business tables.
    */
   edgeRouteIntents: {
     responses: {
@@ -11216,9 +11236,17 @@ export interface operations {
         headers: {
           ETag?: string;
           "X-Fugue-Route-Intent-Generation"?: string;
+          /** @description Serving source for the route projection. Present when the verified route artifact path is active. */
+          "X-Fugue-Route-Intent-Source"?: string;
         };
         content: {
           "application/json": components["schemas"]["EdgeRouteIntentSnapshot"];
+        };
+      };
+      /** @description Route artifact recovery state is unavailable or invalid; retain the current serving bundle. */
+      503: {
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"];
         };
       };
       default: components["responses"]["ErrorResponse"];
@@ -14653,6 +14681,50 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["RuntimePublicOfferResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Set runtime cluster scope */
+  setRuntimeScope: {
+    parameters: {
+      path: {
+        id: components["parameters"]["IdPathParam"];
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SetRuntimeScopeRequest"];
+      };
+    };
+    responses: {
+      /** @description Scope applied */
+      200: {
+        content: {
+          "application/json": components["schemas"]["RuntimePoolModeResponse"];
+        };
+      };
+      default: components["responses"]["ErrorResponse"];
+    };
+  };
+  /** Set BYOVPS sharing */
+  setRuntimeSharing: {
+    parameters: {
+      path: {
+        id: components["parameters"]["IdPathParam"];
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SetRuntimeSharingRequest"];
+      };
+    };
+    responses: {
+      /** @description Sharing applied */
+      200: {
+        content: {
+          "application/json": components["schemas"]["RuntimeAccessModeResponse"];
         };
       };
       default: components["responses"]["ErrorResponse"];
