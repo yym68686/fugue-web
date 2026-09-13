@@ -1274,6 +1274,31 @@ deploy_api: success
 api_image: sha256:8da5fb49549463a7c9f5343f77dcdd2cd4ee06ab9318bf0214970ea3037e95d2
 ```
 
+### P0-M：ReleaseSet generation lineage 一致性
+
+- [x] compiler 为 route、DNS、TLS 子 artifact 写入 `release_set_generation`。
+- [x] ReleaseSet 引用校验拒绝跨 ReleaseSet generation 混用子 artifact。
+- [x] 该约束与 child kind、validated 状态和 intent/policy digest 校验一起执行。
+- [x] 本地定向 API tests 和 prepush 通过。
+- [x] CI prepush、API build 和 `deploy_api` 通过。
+- [x] 生产 API generation 958，2/2 Ready，0 restart。
+- [x] 生产 `/healthz` 和 `/readyz` 返回 `ok`。
+
+生产提交：
+
+```text
+d316ef9e  feat(release): bind child artifacts to release set generation
+```
+
+生产发布证据：
+
+```text
+workflow: ci
+run: 34728050733
+deploy_api: success
+api_image: sha256:51af0e949c4c722012148cf9dffff5e38dae4c71600f6df41ea6b2c13ed39c60
+```
+
 ## 原子步骤生产证据
 
 ### P0-A：Intent/Policy/Compiler/Lineage 基础
