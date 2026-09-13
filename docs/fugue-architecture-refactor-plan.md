@@ -1560,6 +1560,33 @@ deploy_api: success
 api_image: sha256:61b4dd782f000e013272dbd410d2bcdfaf04d7a6b04be68bab87d3ac394d792f
 ```
 
+### P0-X：Runtime Facts 事件投影查询
+
+- [x] 复用现有 tamper-evident heartbeat audit chain 作为 runtime fact 事件源。
+- [x] 新增只读 runtime facts projection API，支持按 consumer、release set、artifact kind 过滤。
+- [x] projection 返回 heartbeat accepted 及 platform artifact 运行相关事件。
+- [x] 查询不修改 intent、policy、artifact 或 release 状态。
+- [x] 增加 runtime facts API 回归测试。
+- [x] 本地 prepush 通过。
+- [x] CI prepush、API build 和 `deploy_api` 通过。
+- [x] 生产 API generation 968，2/2 Ready，0 restart。
+- [x] 生产 `/healthz` 和 `/readyz` 返回 `ok`。
+
+生产提交：
+
+```text
+ec372488  feat(api): expose runtime fact event projection
+```
+
+生产发布证据：
+
+```text
+workflow: ci
+run: 34736044756
+deploy_api: success
+api_image: sha256:2837b60d882a056f884e124106c2eb2d0e3c260b6f0a5183a543ddfa94324f18
+```
+
 ### P0-W：Hostname lineage 查询 contract 同步
 
 - [x] hostname lineage API 的 authoritative OpenAPI 已同步到 `fugue-web`。
