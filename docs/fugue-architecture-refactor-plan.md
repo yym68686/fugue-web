@@ -1587,6 +1587,25 @@ deploy_api: success
 api_image: sha256:2837b60d882a056f884e124106c2eb2d0e3c260b6f0a5183a543ddfa94324f18
 ```
 
+### P0-Y：Runtime Facts contract 同步
+
+- [x] runtime facts projection endpoint 已同步 authoritative OpenAPI。
+- [x] `fugue-web` 生成类型与 contract check 通过。
+
+生产提交：
+
+```text
+46bcd10f  chore(api): sync runtime facts contract
+```
+
+生产发布证据：
+
+```text
+fugue-web workflow: contract-drift
+run: 34736557042
+conclusion: success
+```
+
 ### P0-W：Hostname lineage 查询 contract 同步
 
 - [x] hostname lineage API 的 authoritative OpenAPI 已同步到 `fugue-web`。
