@@ -2092,3 +2092,17 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 ```
 
 机器可读证据见 [route-migration-comparison-2026-09-14.json](verification/route-migration-comparison-2026-09-14.json)。
+
+### P0-AQ：PlatformIntent 多路径基础语义
+
+- [x] `RouteIntent` 支持同一 hostname 下按 canonical `path_prefix` 区分的多条路由。
+- [x] 支持显式 `service_port`（0 保留旧默认行为）和可选 `streaming`，进入 artifact 内容与 route generation。
+- [x] compiler version 升至 `platform-config-compiler/v3`；相同 intent/policy 连续编译生成相同 artifact digest。
+- [x] 旧 intent JSON 的精确字段和默认行为保持兼容；拒绝非 canonical path、重复 hostname/path、非法端口。
+- [x] Edge artifact projection 与 Edge Control materialization 保留 path、port、streaming，未改变现有 serving。
+- [x] 后端完整测试、CI `34800313874`、API deploy 和前端 contract-drift `34799095536` 通过。
+- [x] 生产验证：commit `5e8b1cbbf5445021b0b3403b6b8f9e8704cf2c8b`，API generation 986，image `sha256:43675670f4eeb3204e7d3da1ee60b094115bb397214203ddecbc274dd358528c`，两个副本 Ready、0 重启，Guardian stable。
+- [x] 生产连续三次编译 digest 相同，`/` 与 `/api` 路径、18081 端口、`streaming=false` 均保留；重复路由返回 400，未发布候选，shadow ReleaseSet 和旧 artifact LKG 不变。
+- [ ] 继续迁移多 upstream、cache、请求体策略和 TLS/DNS 绑定；当前候选仍不能代表完整业务 serving。
+
+生产证据见 [platform-intent-route-paths-2026-09-14.json](verification/platform-intent-route-paths-2026-09-14.json)。
