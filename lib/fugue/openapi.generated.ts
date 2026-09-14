@@ -4213,6 +4213,10 @@ export interface components {
       records: components["schemas"]["EdgeDNSRecord"][];
     };
     EdgeDNSRecord: {
+      /** @description Signed absolute expiry per TXT value. DNS consumers remove expired values and cap response TTL at query time, including after cache reload and LKG fallback. */
+      value_expirations?: {
+        [key: string]: string;
+      };
       name: string;
       /** @enum {string} */
       type: "A" | "AAAA" | "CAA" | "CNAME" | "MX" | "NS" | "SRV" | "TXT";
