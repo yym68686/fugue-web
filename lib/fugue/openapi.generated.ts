@@ -10556,13 +10556,14 @@ export interface components {
       deployment_generation?: string;
     };
     PlatformConfigDNSIntent: {
+      application?: components["schemas"]["PlatformDNSApplicationIntent"];
       /** @description Absolute expiration per TXT value. Values not in this map remain permanent. Compiler requires a fixed captured_at; consumers must filter expired values and cap TTL at each query. Empty resulting RRsets are omitted. */
       value_expirations?: {
         [key: string]: string;
       };
       flatten?: components["schemas"]["PlatformDNSFlattenIntent"];
       hostname: string;
-      /** @description Wire DNS types or ALIAS/ANAME with typed flatten configuration and matching fixed observations. FUGUE_APP still requires placement resolution. */
+      /** @description Wire DNS types, ALIAS/ANAME with typed flatten configuration, or FUGUE_APP with typed application configuration. FUGUE_APP requires app_id, tenant_id, values containing that exact app_id, and an owned route at the same hostname. Application configuration may be validated and versioned, but compilation remains rejected until placement resolution is supported. */
       type: string;
       values: string[];
       /** Format: int32 */
@@ -10575,6 +10576,17 @@ export interface components {
       tenant_id?: string;
       edge_group_id?: string;
       fallback_edge_group_id?: string;
+    };
+    /** @description Desired application DNS behavior; no selected IP addresses, route readiness or TLS readiness. Only valid for a FUGUE_APP record. Requires placement resolution before compilation. */
+    PlatformDNSApplicationIntent: {
+      /** @enum {string} */
+      ipv4_policy: "auto" | "ipv4_only" | "ipv6_only" | "dual_stack_required";
+      /** @enum {string} */
+      ipv6_policy: "auto" | "ipv4_only" | "ipv6_only" | "dual_stack_required";
+      /** @enum {string} */
+      ttl_policy: "record" | "target" | "min" | "bounded";
+      /** @enum {string} */
+      fallback_policy: "fail_closed" | "stale_if_error" | "empty_noerror";
     };
     /** @description Desired flatten configuration, resolved only from matching fixed runtime observations. Apex mode requires zone to equal the record hostname. Empty-noerror remains unsupported until consumers can preserve empty authoritative names. */
     PlatformDNSFlattenIntent: {
