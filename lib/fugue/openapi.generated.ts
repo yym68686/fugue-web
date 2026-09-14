@@ -397,12 +397,15 @@ export interface paths {
   "/v1/admin/artifacts/{artifact_id}/release": {
     /**
      * Release Platform Artifact
-     * @description Platform administrators may use the normal artifact release policy.
+     * @description Platform administrators may use the normal artifact release policy. DNS artifacts containing per-value expiration and ReleaseSets containing them are restricted to shadow until DNS consumers support absolute value leases. Soft overrides cannot bypass this compatibility restriction.
      */
     post: operations["releasePlatformArtifact"];
   };
   "/v1/admin/artifacts/{artifact_id}/rollback": {
-    /** Roll Back Platform Artifact */
+    /**
+     * Roll Back Platform Artifact
+     * @description Rollback targets containing leased DNS values remain restricted to shadow until DNS consumer expiration support is available.
+     */
     post: operations["rollbackPlatformArtifact"];
   };
   "/v1/admin/artifact-releases/{release_id}/verify-lkg": {
@@ -10549,6 +10552,10 @@ export interface components {
       deployment_generation?: string;
     };
     PlatformConfigDNSIntent: {
+      /** @description Absolute expiration per TXT value. Values not in this map remain permanent. Compiler requires a fixed captured_at; consumers must filter expired values and cap TTL at each query. Empty resulting RRsets are omitted. */
+      value_expirations?: {
+        [key: string]: string;
+      };
       flatten?: components["schemas"]["PlatformDNSFlattenIntent"];
       hostname: string;
       /** @description Wire DNS types or ALIAS/ANAME with typed flatten configuration and matching fixed observations. FUGUE_APP still requires placement resolution. */
@@ -10590,6 +10597,7 @@ export interface components {
       scope?: string;
       routes?: components["schemas"]["PlatformConfigRouteIntent"][];
       dns?: components["schemas"]["PlatformConfigDNSIntent"][];
+      acme_challenges?: components["schemas"]["PlatformACMEChallengeIntent"][];
       tls?: components["schemas"]["PlatformConfigTLSIntent"][];
       cache_policies?: components["schemas"]["CachePolicy"][];
     };
@@ -10759,6 +10767,16 @@ export interface components {
       runtime_type?: string;
       runtime_edge_group_id?: string;
       runtime_cluster_node?: string;
+    };
+    /** @description Desired temporary TXT record. Expiration is part of intent; a fixed compilation time decides eligibility without changing intent or policy. */
+    PlatformACMEChallengeIntent: {
+      id: string;
+      zone: string;
+      hostname: string;
+      value: string;
+      ttl: number;
+      /** Format: date-time */
+      expires_at: string;
     };
     /** @description Fixed DNS resolution facts. input_digest binds the complete normalized DNSIntent. checked_at is the last query time and observed_at is the last successful result time, never renewed after a failed query. target_ttl is the original answer TTL, or zero when unavailable; non-record TTL policies require it. */
     PlatformDNSFlattenObservation: {
@@ -13120,7 +13138,7 @@ export interface operations {
   };
   /**
    * Release Platform Artifact
-   * @description Platform administrators may use the normal artifact release policy.
+   * @description Platform administrators may use the normal artifact release policy. DNS artifacts containing per-value expiration and ReleaseSets containing them are restricted to shadow until DNS consumers support absolute value leases. Soft overrides cannot bypass this compatibility restriction.
    */
   releasePlatformArtifact: {
     parameters: {
@@ -13143,7 +13161,10 @@ export interface operations {
       default: components["responses"]["ErrorResponse"];
     };
   };
-  /** Roll Back Platform Artifact */
+  /**
+   * Roll Back Platform Artifact
+   * @description Rollback targets containing leased DNS values remain restricted to shadow until DNS consumer expiration support is available.
+   */
   rollbackPlatformArtifact: {
     parameters: {
       path: {
