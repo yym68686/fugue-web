@@ -1,0 +1,57 @@
+{
+  "observed_at": "2026-09-14T10:52:59.604992Z",
+  "production_commit": "cbd41e15eef23b59ec434a07195f09b0d6c119ba",
+  "api_generation": 1000,
+  "image": "ghcr.io/yym68686/fugue-api@sha256:8b86124a6302e5e5c07fb7584224d02cfd3b87716e2527d1bcda39d991f31348",
+  "compiler_version": "platform-config-compiler/v8",
+  "replay_count": 3,
+  "replay_digests_equal": true,
+  "ready_weights": [
+    80,
+    20
+  ],
+  "unavailable_candidate_weights": [
+    100
+  ],
+  "intent_and_policy_digests_stable": true,
+  "runtime_snapshot_digest_changed": true,
+  "artifact_projection_status": 200,
+  "negative_cases": {
+    "missing_candidate": 400,
+    "stale": 400,
+    "future": 400,
+    "tenant_mismatch": 400,
+    "app_mismatch": 400,
+    "stable_unavailable": 400,
+    "unsupported_sticky": 400,
+    "fallback_not_authorized": 400,
+    "duplicate": 400,
+    "unknown_status": 400,
+    "two_weight_sources": 400
+  },
+  "draft": {
+    "route_count": 130,
+    "release_observation_count": 8,
+    "traffic_policy_count": 8,
+    "original_evidence_time_preserved": true,
+    "weights_not_copied_to_intent": true,
+    "policy_generation_bound": true,
+    "migration_ready": false,
+    "issues": {
+      "dns_zone_missing": 1,
+      "release_target_equivalence_not_verified": 1,
+      "release_observations_require_repair": 1
+    }
+  },
+  "shadow_release_unchanged": true,
+  "route_lkg_unchanged": true,
+  "policy_lkg_unchanged": true,
+  "candidate_artifacts_persisted": true,
+  "candidate_promoted": false,
+  "ready_replicas": 2,
+  "guardian_state": "stable",
+  "health_status": 200,
+  "ready_status": 200,
+  "ci_run": "34834637420",
+  "web_contract_run": "34835074673"
+}

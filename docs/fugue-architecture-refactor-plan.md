@@ -2214,3 +2214,16 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] backend commits `f2e6dc1b`、`3dae2c99`、CI `34831195308` 成功，生产 API generation `999`；shadow ReleaseSet 未变化。
 - [x] 生产验证记录 3 条 typed DNS 记录，缺失 zone 关联保留为 `dns_zone_missing`，证明 fail-closed 且不丢失输入。证据：[business-intent-dns-projection-2026-09-14.json](verification/business-intent-dns-projection-2026-09-14.json)。
 - [ ] 完成全部 DNS zone/record 关联修复和全量等价校验。
+
+### P0-BA：固定 release facts 驱动加权 artifact
+
+- [x] `RuntimeSnapshot.releases` 保存 release/app/tenant、原始 observation 时间、状态、地址和 runtime；`PolicySnapshot` 独立保存 stable/candidate 引用和期望权重，runtime 变化不改变 intent/policy digest。
+- [x] compiler v8 只从固定 facts 解析 release，验证 owner、唯一身份、HTTP URL、时间与 freshness；拒绝缺失、未来、过期或跨租户输入。
+- [x] 新增显式 `unavailable_candidate=reject|stable`，默认拒绝；stable 回退必须有 fresh active stable observation。禁用 intent、origin 不可用或 route policy 禁止时不会恢复流量。
+- [x] 权重只允许一个来源；同时声明 route upstream 权重和 traffic policy 被拒绝。single/paused 编译为 stable 100%；未支持的 sticky 策略继续拒绝。
+- [x] 业务迁移草稿从事务快照提取引用的 AppRelease facts，保留原始 UpdatedAt，绑定 policy generation；不复制运行时改写后的 upstream 权重到 intent。
+- [x] `make test` 通过；backend `cbd41e15eef23b59ec434a07195f09b0d6c119ba` 已推送，CI `34834637420` 成功；web `1e557add` 的 contract-drift `34835074673` 成功。
+- [x] 生产 API generation 1000、2/2 ready、Guardian stable、健康/就绪 200；3 次编译 digest 一致，80/20 与候选不可用后的 100% stable 行为通过，11 类非法输入返回 400；shadow、route LKG、policy LKG 均未变化。验证创建了未 promotion 的候选 artifacts。
+- [ ] 完成真实业务 release observation 修复、sticky consumer 支持和输出等价验证；当前草稿包含 8 条 release facts/8 条 traffic constraints，`release_observations_require_repair` 和 `release_target_equivalence_not_verified` 继续阻止迁移验收。
+
+生产证据：[release-fact-resolver-2026-09-14.json](verification/release-fact-resolver-2026-09-14.json)。
