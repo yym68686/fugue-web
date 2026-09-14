@@ -2200,7 +2200,7 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 
 - [x] 从同一业务快照将 route 的 TLS policy 投影为 `PlatformIntent.TLS`，不复制证书 readiness 或运行时状态；缺失 DNS 记录继续以 `dns_not_projected` 暴露。
 - [x] 新增 `PolicySnapshotGeneration`，按规范化策略内容计算稳定 generation；runtime observation 时间变化不会伪造 policy 版本。
-- [x] declarative release predecessor 解析支持多个失败 preflight atom 后回到声明的祖先 verified LKG，仍要求精确 intent atom、祖先关系和部署时 Guardian LKG/image CAS 校验。
+- [x] declarative release predecessor 解析保持严格：只有显式 supersede 的失败 atom 才能进入恢复路径，并仍要求精确 intent atom、祖先关系和部署时 Guardian LKG/image CAS 校验；普通 successor 不得任意跳过生产前驱。
 - [x] backend commits `9d07dfb8`、`c4310f67`、`c619120a` 已推送；最终 CI `34827857272` 成功，生产 commit `c619120a822637c8c8b8c7153d84ecb690b238a5`、API generation `997`。
 - [x] 生产验证：草稿 130 route、128 app route/origin；TLS intent 已投影，issues 仅为 `dns_not_projected`、`release_weights_not_projected`；原始 observation 时间保留，route LKG/shadow ReleaseSet 未变化；2 Pod 零重启、Guardian stable、健康/就绪 200。证据：[business-intent-tls-projection-2026-09-14.json](verification/business-intent-tls-projection-2026-09-14.json)。
 - [x] typed DNS record projection 已接入事务快照；早期 `dns_zone_missing` 只是草稿诊断，编译拒绝边界与已删除 zone 的排除在 P0-BB 才得到验证。
@@ -2238,3 +2238,12 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] backend commit `c026642c1250e7353bad2e342193d06da6f847da`、CI `34837431393` 成功，web contract-drift `34837518788` 成功；生产 API generation `1001`、2/2 ready、Guardian stable。
 - [x] 生产 3 次重排编译 digest 一致，13 条 legacy static records 完全保留，8 类非法 DNS 输入均返回 400，shadow/LKG 未变化。证据：[dns-boundary-and-static-preservation-2026-09-14.json](verification/dns-boundary-and-static-preservation-2026-09-14.json)。
 - [ ] 修复活动业务 DNS zone/record 关联、应用 placement 和 ACME 输入，完成与旧 Edge/DNS 输出的全量等价比较。
+
+### P0-BC：收紧代码发布恢复前驱
+
+- [x] 移除将任意较早祖先当作普通 production predecessor 的宽松逻辑；保留相同 intent 的 merge 兼容与原有显式 failed-atom supersede 恢复。
+- [x] 新增真实 Git 历史回归：隐式跳过前驱拒绝、显式修正失败 preflight 接受、引用不匹配失败提交拒绝。Guardian/declarative release 全量包测试通过。
+- [x] backend `42ba6b4130ecec63c41beb3f6594704561252b05`、CI `34839391762` 成功，仅发布 release-guardian component；Guardian 与 canary prober 的已加载版本均匹配本次 commit。
+- [x] 生产 Guardian/Prober 均 Ready，API 保持 `c026642c` / generation 1001；Guardian stable、健康/就绪 200，shadow、policy LKG 与 route lineage 在发布前后完全一致。
+
+证据：[guardian-predecessor-boundary-2026-09-14.json](verification/guardian-predecessor-boundary-2026-09-14.json)。

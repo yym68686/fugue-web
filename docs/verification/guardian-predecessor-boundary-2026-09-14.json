@@ -1,0 +1,37 @@
+{
+  "observed_at": "2026-09-14T11:47:42.754777+00:00",
+  "workloads": [
+    {
+      "name": "fugue-release-guardian",
+      "commit": "42ba6b4130ecec63c41beb3f6594704561252b05",
+      "generation": 248,
+      "images": [
+        "ghcr.io/yym68686/fugue-release-guardian@sha256:8bd303bd962a2e64e1e5a00d08e63a6945784f4f3dbd2b562765c5c966065c58"
+      ],
+      "ready_replicas": 1
+    },
+    {
+      "name": "fugue-release-canary-prober",
+      "commit": "42ba6b4130ecec63c41beb3f6594704561252b05",
+      "generation": 251,
+      "images": [
+        "ghcr.io/yym68686/fugue-release-guardian@sha256:8bd303bd962a2e64e1e5a00d08e63a6945784f4f3dbd2b562765c5c966065c58"
+      ],
+      "ready_replicas": 1
+    },
+    {
+      "name": "fugue-fugue-api",
+      "commit": "c026642c1250e7353bad2e342193d06da6f847da",
+      "generation": 1001,
+      "images": [
+        "ghcr.io/yym68686/fugue-api@sha256:006c86fb740c33475d1839c20525149642a8c67d90884ff6b32f1b3734532e84"
+      ],
+      "ready_replicas": 2
+    }
+  ],
+  "guardian_state": "stable",
+  "health_status": 200,
+  "ready_status": 200,
+  "configuration_artifacts_and_lkg_unchanged": true,
+  "api_unchanged": true
+}
