@@ -1,0 +1,172 @@
+{
+  "observed_at": "2026-09-14T14:33:29.461340+00:00",
+  "commit": "100497849f09837fa41f3081847cb536ee337cf5",
+  "workloads": [
+    {
+      "name": "fugue-fugue-api",
+      "kind": "Deployment",
+      "generation": 1005,
+      "commit": "7f214a78d6e827f247ad098c41c942820aa720df",
+      "images": [
+        "ghcr.io/yym68686/fugue-api@sha256:622d42efa2f7fa7640a8a788a585b75d1228b7c13c23e1bccc0e187540dfc4bb"
+      ],
+      "ready": true
+    },
+    {
+      "name": "fugue-fugue-dns",
+      "kind": "DaemonSet",
+      "generation": 434,
+      "commit": "100497849f09837fa41f3081847cb536ee337cf5",
+      "images": [
+        "ghcr.io/yym68686/fugue-edge@sha256:b18cf408b100b8c301f117a398d607208bcd5ab933f6463fc52d758767900b05"
+      ],
+      "ready": true
+    },
+    {
+      "name": "fugue-fugue-dns-country-de",
+      "kind": "DaemonSet",
+      "generation": 429,
+      "commit": "100497849f09837fa41f3081847cb536ee337cf5",
+      "images": [
+        "ghcr.io/yym68686/fugue-edge@sha256:d244a818464f48898fb8df7e6f8a1affa316cd3018c8bcc7c62e87e6ee046c79"
+      ],
+      "ready": true
+    },
+    {
+      "name": "fugue-fugue-edge-country-de-ssh-front",
+      "kind": "DaemonSet",
+      "generation": 205,
+      "commit": "100497849f09837fa41f3081847cb536ee337cf5",
+      "images": [
+        "ghcr.io/yym68686/fugue-edge@sha256:d244a818464f48898fb8df7e6f8a1affa316cd3018c8bcc7c62e87e6ee046c79"
+      ],
+      "ready": true
+    },
+    {
+      "name": "fugue-fugue-edge-ssh-front",
+      "kind": "DaemonSet",
+      "generation": 208,
+      "commit": "100497849f09837fa41f3081847cb536ee337cf5",
+      "images": [
+        "ghcr.io/yym68686/fugue-edge@sha256:b18cf408b100b8c301f117a398d607208bcd5ab933f6463fc52d758767900b05"
+      ],
+      "ready": true
+    }
+  ],
+  "consumers": [
+    {
+      "pod": "fugue-fugue-dns-bqhkv",
+      "node": "vps-591f4447",
+      "health": "ok",
+      "serving_generation": "dnsenv_f1aea4bc29887f39acbd8b061188d718b98891035b3392894c50c6496a8605be",
+      "candidate": {
+        "state": "shadow_verified",
+        "artifact_id": "artifact_1789290147_a04df449b074",
+        "digest": "sha256:219aa35e3085818a3ff8e5bb996205b433b320bf60f0993c0967bcfe6ad5ce7c",
+        "release_set_id": "artifact_1789290147_22038f948fad",
+        "record_count": 13,
+        "sequence": 1789396378341850207,
+        "verified_at": "2026-09-14T14:32:58.34185033Z",
+        "reported_at": "2026-09-14T14:32:58.349947241Z"
+      },
+      "restarts": 0
+    },
+    {
+      "pod": "fugue-fugue-dns-country-de-9x28q",
+      "node": "vps-84c8f0a9",
+      "health": "ok",
+      "serving_generation": "dnsenv_ffd11062528932fa089d9565da81d40e3f462bdfce7cc76a7f6cb3b48fe3025c",
+      "candidate": {
+        "state": "shadow_verified",
+        "artifact_id": "artifact_1789290147_a04df449b074",
+        "digest": "sha256:219aa35e3085818a3ff8e5bb996205b433b320bf60f0993c0967bcfe6ad5ce7c",
+        "release_set_id": "artifact_1789290147_22038f948fad",
+        "record_count": 13,
+        "sequence": 1789396402014570952,
+        "verified_at": "2026-09-14T14:33:22.014571081Z",
+        "reported_at": "2026-09-14T14:33:22.179034134Z"
+      },
+      "restarts": 0
+    }
+  ],
+  "trusted_dns_receipts_verified": true,
+  "api_guardian": "stable",
+  "health_status": 200,
+  "ready_status": 200,
+  "serving_promoted": false,
+  "lease_filter_e2e": "Compiler-to-wire regression covers SRV, root MX/SRV, TXT byte preservation and signed LKG. Production existing-name NODATA and positive A validated over UDP and TCP.",
+  "ci_run": 34855593385,
+  "web_commit": "fd581ee77ad6caa04541d2e4c63c09674d239191",
+  "web_contract_run": 34853332420,
+  "wire_probes": [
+    {
+      "pod": "fugue-fugue-dns-bqhkv",
+      "transport": "udp",
+      "positive_A": {
+        "rcode": 0,
+        "answers": 1,
+        "authority_types": []
+      },
+      "existing_name_PTR_nodata": {
+        "rcode": 0,
+        "answers": 0,
+        "authority_types": [
+          6
+        ]
+      }
+    },
+    {
+      "pod": "fugue-fugue-dns-bqhkv",
+      "transport": "tcp",
+      "positive_A": {
+        "rcode": 0,
+        "answers": 1,
+        "authority_types": []
+      },
+      "existing_name_PTR_nodata": {
+        "rcode": 0,
+        "answers": 0,
+        "authority_types": [
+          6
+        ]
+      }
+    },
+    {
+      "pod": "fugue-fugue-dns-country-de-9x28q",
+      "transport": "udp",
+      "positive_A": {
+        "rcode": 0,
+        "answers": 1,
+        "authority_types": []
+      },
+      "existing_name_PTR_nodata": {
+        "rcode": 0,
+        "answers": 0,
+        "authority_types": [
+          6
+        ]
+      }
+    },
+    {
+      "pod": "fugue-fugue-dns-country-de-9x28q",
+      "transport": "tcp",
+      "positive_A": {
+        "rcode": 0,
+        "answers": 1,
+        "authority_types": []
+      },
+      "existing_name_PTR_nodata": {
+        "rcode": 0,
+        "answers": 0,
+        "authority_types": [
+          6
+        ]
+      }
+    }
+  ],
+  "wire_contract_local_cases": 11,
+  "negative_response_local_cases": 5,
+  "failed_preflight_run": 34855177222,
+  "failed_preflight_deployed": false,
+  "shadow_release_route_lineage_policy_lkg_unchanged": true
+}
