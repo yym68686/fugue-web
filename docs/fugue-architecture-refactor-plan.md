@@ -2132,3 +2132,16 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [ ] 将真实业务 AppRelease、cache policy 和 ingress policy 全量投影进 PlatformIntent，完成 route/DNS/TLS 等价后再推进灰度。
 
 生产证据见 [platform-intent-cache-ingress-2026-09-14.json](verification/platform-intent-cache-ingress-2026-09-14.json)。
+
+### P0-AT：固定 RuntimeSnapshot 与 origin observation
+
+- [x] `RuntimeSnapshot` 支持固定 `captured_at` 和 typed `OriginObservation`；origin observation 只属于编译输入事实，不进入 intent digest。
+- [x] route 可声明 `origin_ref` 和 desired `runtime_id`；compiler 要求引用存在、runtime identity 一致、状态在固定时间点有效。
+- [x] 按 `PolicySnapshot.max_stale_seconds` 拒绝过期 observation，拒绝未来时间、重复 ref、缺失 ref 和非法状态。
+- [x] unavailable/disabled observation 只影响新 artifact 的可服务状态，不会改写 intent/policy；恢复 observation 只重编译 artifact。
+- [x] artifact projection 保留 runtime identity 与固定 observation 结果，避免 executor 重新读取 mutable business/runtime 表。
+- [x] 后端全仓 `make test`、CI `34807438317`、API deploy 和前端 contract-drift `34806360394` 通过。
+- [x] 生产 v6 验证：intent/policy digest 在 unavailable 与 active observation 间稳定，runtime snapshot digest 和 artifact 随事实变化；缺失、future、stale、runtime mismatch 均返回 400，候选未发布。
+- [ ] 将生产业务表的 route/upstream/cache/request-body/TLS/DNS 输入一次性冻结为完整 typed intent + runtime snapshot，并完成跨 artifact 等价比较。
+
+生产证据见 [platform-intent-origin-snapshot-2026-09-14.json](verification/platform-intent-origin-snapshot-2026-09-14.json)。
