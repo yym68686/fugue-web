@@ -32,7 +32,7 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-14 生产核查：API 已运行 commit `ce418c91`（generation 1007，compiler v12）；美洲和德国 DNS/SSH-front 已运行 `db44b459`；Guardian 已运行 `42ba6b41`。本次观测的业务迁移草稿包含 132 条 route、15 条 DNS 输入和 8 份 release observations；13 条静态 DNS 与来源逐条一致，已删除 zone 的 1 条记录明确排除。加权 compiler 与 DNS wire 校验通过本地、CI 和生产验证。仍未完成动态 DNS placement、ACME/flatten、TLS readiness、真实 release facts 修复、全量等价以及 consumer gray/full 接管。现有 shadow ReleaseSet 未提升为 serving；其 route lineage 和 policy LKG 查询结果保持不变；这些结果不能作为全局迁移完成证明。
+2026-09-15 生产核查：API 已运行 commit `ce418c91`（generation 1007，compiler v12）；美洲和德国 DNS/SSH-front 已运行该批 edge image；Guardian 已运行 `42ba6b41`。本次观测的业务迁移草稿包含 132 条 route、15 条 DNS 输入和 8 份 release observations；13 条静态 DNS 与来源逐条一致，已删除 zone 的 1 条记录明确排除。加权 compiler 与 DNS wire 校验通过本地、CI 和生产验证。仍未完成动态 DNS placement、ACME/flatten、TLS readiness、真实 release facts 修复、全量等价以及 consumer gray/full 接管。现有 shadow ReleaseSet 未提升为 serving；其 route lineage 和 policy LKG 查询结果保持不变；这些结果不能作为全局迁移完成证明。
 
 Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 generation、content hash、签名、验证状态、release channel、fencing token 和 LKG；Edge 与 DNS 也有签名校验、本地缓存和过期控制。
 

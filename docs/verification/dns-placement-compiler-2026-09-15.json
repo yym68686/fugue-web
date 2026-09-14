@@ -54,130 +54,3748 @@
   "ci_run": 34871479064,
   "web_commit": "3b86559acc9b3261445d0bbaa3d91b4457c6e276",
   "web_contract_run": 34871954405,
-  "workloads": [
+  "release_guard_baseline": {
+    "generated_at": "2026-09-14T17:01:31.16291522Z",
+    "pass": false,
+    "summary": {
+      "checks": "537",
+      "dns_zone": "fugue.pro",
+      "incidents": "152",
+      "release_signals": "0"
+    },
+    "failed_checks": [
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:agent-payment-wallet",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:api-amber",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:api-forest",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:api66",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:app-canary",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:baomian-backend",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:bolt-diy",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:bolt-diy-app-prebuild",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:bolt-diy-app-prod",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:chatgpt",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:chatgpt",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:chatgptbot",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:deep-ai-agent-meadow",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:deep-ai-agent-ocean",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:deep-ai-agent-solar",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:docker-compose-yaml-solar",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:docker-compose-yml",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:docker-compose-yml-redis",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:gaokao",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:hhj-html",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:logseq-selfhost-forest",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:mecgod-cloud-tfix",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:mecgod-stone",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:mirror-leech-telegram-bot",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:musicplayer",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:oddy-odysseus",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:odysseus",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:odysseus-amber-chromadb",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:odysseus-amber-odysseus",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:odysseus-amber-searxng",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:odysseus-cedar-odysseus",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:odysseus-cedar-searxng",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:odysseus-odysseus",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:odysseus-searxng",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:openlist",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:ordain-clean",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:otp-mailer",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:pornhub",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:review00",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:spot-seek-bot",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:stars-payment",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:tao",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:termi-host",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:uni-api-cedar",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:uni-api-falcon",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:uni-api-forest",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:uni-api-harbor",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:uni-api-river",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:uni-api-stone",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:uni-api-timber",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:uni-api-web-api-go-candidate",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:uni-api1",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:yesir-freecad-v2",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_observed_runtime_invariant",
+        "subject": "app:yesir-pcb-si",
+        "severity": "block_publish"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:agent-payment-wallet",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:api-amber",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:api-forest",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:api66",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:app-canary",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:baomian-backend",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:bolt-diy",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:bolt-diy-app-prebuild",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:bolt-diy-app-prod",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:chatgpt",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:chatgpt",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:chatgpt",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:chatgptbot",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:deep-ai-agent-meadow",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:deep-ai-agent-ocean",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:deep-ai-agent-solar",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:docker-compose-yaml-solar",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:docker-compose-yml",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:docker-compose-yml-redis",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:gaokao",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:hhj-html",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:logseq-selfhost-forest",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:mecgod-cloud-tfix",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:mecgod-stone",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:mirror-leech-telegram-bot",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:musicplayer",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:oddy-odysseus",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:odysseus",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:odysseus-amber-chromadb",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:odysseus-amber-odysseus",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:odysseus-amber-searxng",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:odysseus-cedar-odysseus",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:odysseus-cedar-searxng",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:odysseus-odysseus",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:odysseus-searxng",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:openlist",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:ordain-clean",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:otp-mailer",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:pornhub",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:review00",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:spot-seek-bot",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:stars-payment",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:tao",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:termi-host",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:uni-api-cedar",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:uni-api-falcon",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:uni-api-forest",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:uni-api-harbor",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:uni-api-river",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:uni-api-stone",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:uni-api-timber",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:uni-api-web-api-go-candidate",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:uni-api1",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:yesir-freecad-v2",
+        "severity": "degraded"
+      },
+      {
+        "name": "app_continuity_invariant",
+        "subject": "app:yesir-pcb-si",
+        "severity": "degraded"
+      },
+      {
+        "name": "managed_postgres_storage_headroom",
+        "subject": "backing-service:app-postgres-app_1775212527_bac47888ffc9",
+        "severity": "degraded"
+      },
+      {
+        "name": "managed_postgres_storage_headroom",
+        "subject": "backing-service:app-postgres-app_1776071893_eb3c67828c53",
+        "severity": "degraded"
+      },
+      {
+        "name": "managed_postgres_storage_headroom",
+        "subject": "backing-service:app-postgres-app_1776461431_79a1800ca140",
+        "severity": "degraded"
+      },
+      {
+        "name": "managed_postgres_storage_headroom",
+        "subject": "backing-service:app-postgres-app_1777246494_7d3d99b4d0f1",
+        "severity": "degraded"
+      },
+      {
+        "name": "managed_postgres_storage_headroom",
+        "subject": "backing-service:app-postgres-app_1777410244_aa8bcc95df0e",
+        "severity": "degraded"
+      },
+      {
+        "name": "managed_postgres_storage_headroom",
+        "subject": "backing-service:app-postgres-app_1778291142_8ff1bd9ba6ff",
+        "severity": "degraded"
+      },
+      {
+        "name": "managed_postgres_storage_headroom",
+        "subject": "backing-service:app-postgres-app_1778958829_7a965e0863ed",
+        "severity": "degraded"
+      },
+      {
+        "name": "managed_postgres_storage_headroom",
+        "subject": "backing-service:app-postgres-app_1779698709_805632e1ced9",
+        "severity": "degraded"
+      },
+      {
+        "name": "managed_postgres_storage_headroom",
+        "subject": "backing-service:app-postgres-app_1780909103_7fa4ff5ed252",
+        "severity": "degraded"
+      },
+      {
+        "name": "managed_postgres_runtime_ready",
+        "subject": "backing-service:app-postgres-app_1781411982_650fede8ea9a",
+        "severity": "degraded"
+      },
+      {
+        "name": "managed_postgres_storage_headroom",
+        "subject": "backing-service:app-postgres-app_1781411982_650fede8ea9a",
+        "severity": "degraded"
+      },
+      {
+        "name": "managed_postgres_storage_headroom",
+        "subject": "backing-service:app-postgres-app_1784837121_6408f801f81c",
+        "severity": "degraded"
+      },
+      {
+        "name": "managed_postgres_storage_headroom",
+        "subject": "backing-service:app-postgres-app_1789246079_28e7d406506a",
+        "severity": "degraded"
+      },
+      {
+        "name": "managed_postgres_storage_headroom",
+        "subject": "backing-service:service_1776536408_63e6b969ef98",
+        "severity": "degraded"
+      },
+      {
+        "name": "managed_postgres_storage_headroom",
+        "subject": "backing-service:service_1777486398_1216648e40e7",
+        "severity": "degraded"
+      },
+      {
+        "name": "managed_postgres_storage_headroom",
+        "subject": "backing-service:service_1779790243_f77e4ff502cf",
+        "severity": "degraded"
+      },
+      {
+        "name": "managed_postgres_storage_headroom",
+        "subject": "backing-service:service_1780810035_528c916ef9e5",
+        "severity": "degraded"
+      },
+      {
+        "name": "backup_storage_reconciliation",
+        "subject": "backup_storage",
+        "severity": "degraded"
+      },
+      {
+        "name": "localpv_capacity_headroom",
+        "subject": "cluster-node:fortedrape8",
+        "severity": "degraded"
+      },
+      {
+        "name": "localpv_capacity_headroom",
+        "subject": "cluster-node:ns101351",
+        "severity": "degraded"
+      },
+      {
+        "name": "localpv_capacity_headroom",
+        "subject": "cluster-node:v2202605354515455529",
+        "severity": "degraded"
+      },
+      {
+        "name": "managed_postgres_storage_floor",
+        "subject": "backing-service:app-postgres-app_1775212527_bac47888ffc9",
+        "severity": "warning"
+      },
+      {
+        "name": "managed_postgres_storage_floor",
+        "subject": "backing-service:app-postgres-app_1776071893_eb3c67828c53",
+        "severity": "warning"
+      },
+      {
+        "name": "managed_postgres_storage_floor",
+        "subject": "backing-service:app-postgres-app_1776461431_79a1800ca140",
+        "severity": "warning"
+      },
+      {
+        "name": "managed_postgres_storage_floor",
+        "subject": "backing-service:app-postgres-app_1777246494_7d3d99b4d0f1",
+        "severity": "warning"
+      },
+      {
+        "name": "managed_postgres_storage_floor",
+        "subject": "backing-service:app-postgres-app_1777410244_aa8bcc95df0e",
+        "severity": "warning"
+      },
+      {
+        "name": "managed_postgres_storage_floor",
+        "subject": "backing-service:app-postgres-app_1778178448_87938dea414b",
+        "severity": "warning"
+      },
+      {
+        "name": "managed_postgres_storage_floor",
+        "subject": "backing-service:app-postgres-app_1778291142_8ff1bd9ba6ff",
+        "severity": "warning"
+      },
+      {
+        "name": "managed_postgres_storage_floor",
+        "subject": "backing-service:app-postgres-app_1779698709_805632e1ced9",
+        "severity": "warning"
+      },
+      {
+        "name": "managed_postgres_storage_floor",
+        "subject": "backing-service:app-postgres-app_1780909103_7fa4ff5ed252",
+        "severity": "warning"
+      },
+      {
+        "name": "managed_postgres_storage_floor",
+        "subject": "backing-service:app-postgres-app_1781411982_650fede8ea9a",
+        "severity": "warning"
+      },
+      {
+        "name": "managed_postgres_storage_floor",
+        "subject": "backing-service:app-postgres-app_1782441770_88448b92eb55",
+        "severity": "warning"
+      },
+      {
+        "name": "managed_postgres_storage_floor",
+        "subject": "backing-service:app-postgres-app_1784837121_6408f801f81c",
+        "severity": "warning"
+      },
+      {
+        "name": "managed_postgres_storage_floor",
+        "subject": "backing-service:app-postgres-app_1789246079_28e7d406506a",
+        "severity": "warning"
+      },
+      {
+        "name": "managed_postgres_storage_floor",
+        "subject": "backing-service:service_1776536408_63e6b969ef98",
+        "severity": "warning"
+      },
+      {
+        "name": "managed_postgres_storage_floor",
+        "subject": "backing-service:service_1777486398_1216648e40e7",
+        "severity": "warning"
+      },
+      {
+        "name": "managed_postgres_storage_floor",
+        "subject": "backing-service:service_1779790243_f77e4ff502cf",
+        "severity": "warning"
+      },
+      {
+        "name": "managed_postgres_storage_floor",
+        "subject": "backing-service:service_1780810035_528c916ef9e5",
+        "severity": "warning"
+      },
+      {
+        "name": "managed_postgres_storage_floor",
+        "subject": "backing-service:service_1786118410_7dec0edf46dd",
+        "severity": "warning"
+      },
+      {
+        "name": "managed_postgres_storage_floor",
+        "subject": "backing-service:service_1787903219_59cf4e7f66f4",
+        "severity": "warning"
+      },
+      {
+        "name": "scheduled_backup_freshness",
+        "subject": "backup:control-plane-db",
+        "severity": "warning"
+      },
+      {
+        "name": "backup_artifact_integrity",
+        "subject": "backup_artifacts",
+        "severity": "warning"
+      },
+      {
+        "name": "localpv_inventory_freshness",
+        "subject": "cluster-node:dmit",
+        "severity": "warning"
+      }
+    ]
+  },
+  "production_consumer_evidence": {
+    "expected_consumer_set_id": "expectedconsumerset_af08a49359213f2b",
+    "artifact_kind": "dns_answer_bundle",
+    "scope_key": "global",
+    "expected_generation": "dns-915ca009dc70243f7b4a29462bd0844b9319c16e8c7f67a78cdafed488a3cadf",
+    "state": "fail",
+    "pass": false,
+    "required_expected": 9,
+    "required_observed": 2,
+    "required_passing": 0,
+    "optional_expected": 0,
+    "assessments": [
+      {
+        "consumer_id": "dns-server:fortedrape8",
+        "component": "dns-server",
+        "node_id": "fortedrape8",
+        "required": true,
+        "state": "unknown",
+        "reasons": [
+          "consumer heartbeat is missing"
+        ],
+        "expected": {
+          "consumer_id": "dns-server:fortedrape8",
+          "component": "dns-server",
+          "node_id": "fortedrape8",
+          "artifact_kind": "dns_answer_bundle",
+          "scope_key": "global",
+          "failure_domain": "edge-group:edge-group-country-hk",
+          "cohort": "fugue.pro",
+          "required": true,
+          "expected_protocol_version": "v1",
+          "accepted_protocol_versions": [
+            "v1"
+          ],
+          "expected_schema_version": "v1",
+          "accepted_schema_versions": [
+            "v1"
+          ],
+          "expected_generation": "dns-915ca009dc70243f7b4a29462bd0844b9319c16e8c7f67a78cdafed488a3cadf",
+          "heartbeat_freshness_seconds": 90,
+          "heartbeat_deadline": "2026-09-13T10:10:36.574118594Z",
+          "convergence_deadline": "2026-09-13T10:14:06.574118594Z"
+        },
+        "evaluated_at": "2026-09-14T17:10:41.479266281Z"
+      },
+      {
+        "consumer_id": "dns-server:vps-591f4447",
+        "component": "dns-server",
+        "node_id": "vps-591f4447",
+        "required": true,
+        "state": "fail",
+        "reasons": [
+          "desired or actual generation does not match the expected generation",
+          "apply status is not applied",
+          "probe status is not passed"
+        ],
+        "expected": {
+          "consumer_id": "dns-server:vps-591f4447",
+          "component": "dns-server",
+          "node_id": "vps-591f4447",
+          "artifact_kind": "dns_answer_bundle",
+          "scope_key": "global",
+          "failure_domain": "edge-group:edge-group-country-us",
+          "cohort": "fugue.pro",
+          "required": true,
+          "expected_protocol_version": "v1",
+          "accepted_protocol_versions": [
+            "v1"
+          ],
+          "expected_schema_version": "v1",
+          "accepted_schema_versions": [
+            "v1"
+          ],
+          "expected_generation": "dns-915ca009dc70243f7b4a29462bd0844b9319c16e8c7f67a78cdafed488a3cadf",
+          "heartbeat_freshness_seconds": 90,
+          "heartbeat_deadline": "2026-09-13T10:10:36.574118594Z",
+          "convergence_deadline": "2026-09-13T10:14:06.574118594Z"
+        },
+        "observed": {
+          "id": "artifactconsumer_d988d3a8439b9350",
+          "consumer_id": "dns-server:vps-591f4447",
+          "credential_id": "kubernetes:fugue-system:fugue-dns-consumer-us:5028b9ea-c6a5-44a2-8a86-ae22e2178378",
+          "token_id": "GzWFJWMKLTrxjdD_2FS0vw",
+          "component": "dns-server",
+          "node_id": "vps-591f4447",
+          "artifact_kind": "dns_answer_bundle",
+          "scope_key": "global",
+          "release_set_id": "artifact_1789290147_22038f948fad",
+          "expected_consumer_set_id": "expectedconsumerset_af08a49359213f2b",
+          "fencing_token": 1,
+          "supported_artifact_kinds": [
+            "dns_answer_bundle"
+          ],
+          "protocol_version": "v1",
+          "schema_version": "v1",
+          "sequence": 1789405815547363273,
+          "issued_at": "2026-09-14T17:10:15.54987Z",
+          "nonce": "c6738d62f47e15b4e6fe15b75b498398",
+          "generation_sequence": 1,
+          "evidence_hash": "sha256:2a0ba02894a3f7eb7f833320e8aa68c3233483fad62e71d2e7d7dc69b0f82fb4",
+          "identity_verified": true,
+          "desired_generation": "dns-915ca009dc70243f7b4a29462bd0844b9319c16e8c7f67a78cdafed488a3cadf",
+          "actual_generation": "dnsenv_0444fbf42a0bfae1b0f8380491aedc61e30da49d13a1e8376526ced93aa06a32",
+          "lkg_generation": "dnsenv_0444fbf42a0bfae1b0f8380491aedc61e30da49d13a1e8376526ced93aa06a32",
+          "apply_status": "staged",
+          "probe_status": "shadow_validated",
+          "last_heartbeat_at": "2026-09-14T17:10:15.540503Z",
+          "updated_at": "2026-09-14T17:10:15.540503Z"
+        },
+        "observed_at": "2026-09-14T17:10:15.540503Z",
+        "fresh_until": "2026-09-14T17:11:45.540503Z",
+        "evaluated_at": "2026-09-14T17:10:41.479266281Z"
+      },
+      {
+        "consumer_id": "dns-server:vps-591f4447--zone-codex-dyn-20260730-2149-i00-pro",
+        "component": "dns-server",
+        "node_id": "vps-591f4447--zone-codex-dyn-20260730-2149-i00-pro",
+        "required": true,
+        "state": "unknown",
+        "reasons": [
+          "consumer heartbeat is missing"
+        ],
+        "expected": {
+          "consumer_id": "dns-server:vps-591f4447--zone-codex-dyn-20260730-2149-i00-pro",
+          "component": "dns-server",
+          "node_id": "vps-591f4447--zone-codex-dyn-20260730-2149-i00-pro",
+          "artifact_kind": "dns_answer_bundle",
+          "scope_key": "global",
+          "failure_domain": "edge-group:edge-group-country-us",
+          "cohort": "codex-dyn-20260730-2149.i00.pro",
+          "required": true,
+          "expected_protocol_version": "v1",
+          "accepted_protocol_versions": [
+            "v1"
+          ],
+          "expected_schema_version": "v1",
+          "accepted_schema_versions": [
+            "v1"
+          ],
+          "expected_generation": "dns-915ca009dc70243f7b4a29462bd0844b9319c16e8c7f67a78cdafed488a3cadf",
+          "heartbeat_freshness_seconds": 90,
+          "heartbeat_deadline": "2026-09-13T10:10:36.574118594Z",
+          "convergence_deadline": "2026-09-13T10:14:06.574118594Z"
+        },
+        "evaluated_at": "2026-09-14T17:10:41.479266281Z"
+      },
+      {
+        "consumer_id": "dns-server:vps-591f4447--zone-i00-pro",
+        "component": "dns-server",
+        "node_id": "vps-591f4447--zone-i00-pro",
+        "required": true,
+        "state": "unknown",
+        "reasons": [
+          "consumer heartbeat is missing"
+        ],
+        "expected": {
+          "consumer_id": "dns-server:vps-591f4447--zone-i00-pro",
+          "component": "dns-server",
+          "node_id": "vps-591f4447--zone-i00-pro",
+          "artifact_kind": "dns_answer_bundle",
+          "scope_key": "global",
+          "failure_domain": "edge-group:edge-group-country-us",
+          "cohort": "i00.pro",
+          "required": true,
+          "expected_protocol_version": "v1",
+          "accepted_protocol_versions": [
+            "v1"
+          ],
+          "expected_schema_version": "v1",
+          "accepted_schema_versions": [
+            "v1"
+          ],
+          "expected_generation": "dns-915ca009dc70243f7b4a29462bd0844b9319c16e8c7f67a78cdafed488a3cadf",
+          "heartbeat_freshness_seconds": 90,
+          "heartbeat_deadline": "2026-09-13T10:10:36.574118594Z",
+          "convergence_deadline": "2026-09-13T10:14:06.574118594Z"
+        },
+        "evaluated_at": "2026-09-14T17:10:41.479266281Z"
+      },
+      {
+        "consumer_id": "dns-server:vps-591f4447--zone-oaix-cc",
+        "component": "dns-server",
+        "node_id": "vps-591f4447--zone-oaix-cc",
+        "required": true,
+        "state": "unknown",
+        "reasons": [
+          "consumer heartbeat is missing"
+        ],
+        "expected": {
+          "consumer_id": "dns-server:vps-591f4447--zone-oaix-cc",
+          "component": "dns-server",
+          "node_id": "vps-591f4447--zone-oaix-cc",
+          "artifact_kind": "dns_answer_bundle",
+          "scope_key": "global",
+          "failure_domain": "edge-group:edge-group-country-us",
+          "cohort": "oaix.cc",
+          "required": true,
+          "expected_protocol_version": "v1",
+          "accepted_protocol_versions": [
+            "v1"
+          ],
+          "expected_schema_version": "v1",
+          "accepted_schema_versions": [
+            "v1"
+          ],
+          "expected_generation": "dns-915ca009dc70243f7b4a29462bd0844b9319c16e8c7f67a78cdafed488a3cadf",
+          "heartbeat_freshness_seconds": 90,
+          "heartbeat_deadline": "2026-09-13T10:10:36.574118594Z",
+          "convergence_deadline": "2026-09-13T10:14:06.574118594Z"
+        },
+        "evaluated_at": "2026-09-14T17:10:41.479266281Z"
+      },
+      {
+        "consumer_id": "dns-server:vps-84c8f0a9",
+        "component": "dns-server",
+        "node_id": "vps-84c8f0a9",
+        "required": true,
+        "state": "fail",
+        "reasons": [
+          "desired or actual generation does not match the expected generation",
+          "apply status is not applied",
+          "probe status is not passed"
+        ],
+        "expected": {
+          "consumer_id": "dns-server:vps-84c8f0a9",
+          "component": "dns-server",
+          "node_id": "vps-84c8f0a9",
+          "artifact_kind": "dns_answer_bundle",
+          "scope_key": "global",
+          "failure_domain": "edge-group:edge-group-country-de",
+          "cohort": "fugue.pro",
+          "required": true,
+          "expected_protocol_version": "v1",
+          "accepted_protocol_versions": [
+            "v1"
+          ],
+          "expected_schema_version": "v1",
+          "accepted_schema_versions": [
+            "v1"
+          ],
+          "expected_generation": "dns-915ca009dc70243f7b4a29462bd0844b9319c16e8c7f67a78cdafed488a3cadf",
+          "heartbeat_freshness_seconds": 90,
+          "heartbeat_deadline": "2026-09-13T10:10:36.574118594Z",
+          "convergence_deadline": "2026-09-13T10:14:06.574118594Z"
+        },
+        "observed": {
+          "id": "artifactconsumer_038d69486623a19d",
+          "consumer_id": "dns-server:vps-84c8f0a9",
+          "credential_id": "kubernetes:fugue-system:fugue-dns-consumer-de:f13a39a6-e9c8-4cd5-a299-71ad99997eb1",
+          "token_id": "popyvp8MepZOy5srnThfYA",
+          "component": "dns-server",
+          "node_id": "vps-84c8f0a9",
+          "artifact_kind": "dns_answer_bundle",
+          "scope_key": "global",
+          "release_set_id": "artifact_1789290147_22038f948fad",
+          "expected_consumer_set_id": "expectedconsumerset_af08a49359213f2b",
+          "fencing_token": 1,
+          "supported_artifact_kinds": [
+            "dns_answer_bundle"
+          ],
+          "protocol_version": "v1",
+          "schema_version": "v1",
+          "sequence": 1789405815019850388,
+          "issued_at": "2026-09-14T17:10:15.022445Z",
+          "nonce": "eb34ec54d8fa205c10a28f7dd9f58586",
+          "generation_sequence": 1,
+          "evidence_hash": "sha256:f781566702a49571e9bfc03e99c96867464c766075835e8473be90ae8196c3ea",
+          "identity_verified": true,
+          "desired_generation": "dns-915ca009dc70243f7b4a29462bd0844b9319c16e8c7f67a78cdafed488a3cadf",
+          "actual_generation": "dnsenv_07262ff37e03d7d14daf78b6a467ba3ef8acd075ee9e963282fe59f57c543568",
+          "lkg_generation": "dnsenv_07262ff37e03d7d14daf78b6a467ba3ef8acd075ee9e963282fe59f57c543568",
+          "apply_status": "staged",
+          "probe_status": "shadow_validated",
+          "last_heartbeat_at": "2026-09-14T17:10:15.094313Z",
+          "updated_at": "2026-09-14T17:10:15.094313Z"
+        },
+        "observed_at": "2026-09-14T17:10:15.094313Z",
+        "fresh_until": "2026-09-14T17:11:45.094313Z",
+        "evaluated_at": "2026-09-14T17:10:41.479266281Z"
+      },
+      {
+        "consumer_id": "dns-server:vps-84c8f0a9--zone-codex-dyn-20260730-2149-i00-pro",
+        "component": "dns-server",
+        "node_id": "vps-84c8f0a9--zone-codex-dyn-20260730-2149-i00-pro",
+        "required": true,
+        "state": "unknown",
+        "reasons": [
+          "consumer heartbeat is missing"
+        ],
+        "expected": {
+          "consumer_id": "dns-server:vps-84c8f0a9--zone-codex-dyn-20260730-2149-i00-pro",
+          "component": "dns-server",
+          "node_id": "vps-84c8f0a9--zone-codex-dyn-20260730-2149-i00-pro",
+          "artifact_kind": "dns_answer_bundle",
+          "scope_key": "global",
+          "failure_domain": "edge-group:edge-group-country-de",
+          "cohort": "codex-dyn-20260730-2149.i00.pro",
+          "required": true,
+          "expected_protocol_version": "v1",
+          "accepted_protocol_versions": [
+            "v1"
+          ],
+          "expected_schema_version": "v1",
+          "accepted_schema_versions": [
+            "v1"
+          ],
+          "expected_generation": "dns-915ca009dc70243f7b4a29462bd0844b9319c16e8c7f67a78cdafed488a3cadf",
+          "heartbeat_freshness_seconds": 90,
+          "heartbeat_deadline": "2026-09-13T10:10:36.574118594Z",
+          "convergence_deadline": "2026-09-13T10:14:06.574118594Z"
+        },
+        "evaluated_at": "2026-09-14T17:10:41.479266281Z"
+      },
+      {
+        "consumer_id": "dns-server:vps-84c8f0a9--zone-i00-pro",
+        "component": "dns-server",
+        "node_id": "vps-84c8f0a9--zone-i00-pro",
+        "required": true,
+        "state": "unknown",
+        "reasons": [
+          "consumer heartbeat is missing"
+        ],
+        "expected": {
+          "consumer_id": "dns-server:vps-84c8f0a9--zone-i00-pro",
+          "component": "dns-server",
+          "node_id": "vps-84c8f0a9--zone-i00-pro",
+          "artifact_kind": "dns_answer_bundle",
+          "scope_key": "global",
+          "failure_domain": "edge-group:edge-group-country-de",
+          "cohort": "i00.pro",
+          "required": true,
+          "expected_protocol_version": "v1",
+          "accepted_protocol_versions": [
+            "v1"
+          ],
+          "expected_schema_version": "v1",
+          "accepted_schema_versions": [
+            "v1"
+          ],
+          "expected_generation": "dns-915ca009dc70243f7b4a29462bd0844b9319c16e8c7f67a78cdafed488a3cadf",
+          "heartbeat_freshness_seconds": 90,
+          "heartbeat_deadline": "2026-09-13T10:10:36.574118594Z",
+          "convergence_deadline": "2026-09-13T10:14:06.574118594Z"
+        },
+        "evaluated_at": "2026-09-14T17:10:41.479266281Z"
+      },
+      {
+        "consumer_id": "dns-server:vps-84c8f0a9--zone-oaix-cc",
+        "component": "dns-server",
+        "node_id": "vps-84c8f0a9--zone-oaix-cc",
+        "required": true,
+        "state": "unknown",
+        "reasons": [
+          "consumer heartbeat is missing"
+        ],
+        "expected": {
+          "consumer_id": "dns-server:vps-84c8f0a9--zone-oaix-cc",
+          "component": "dns-server",
+          "node_id": "vps-84c8f0a9--zone-oaix-cc",
+          "artifact_kind": "dns_answer_bundle",
+          "scope_key": "global",
+          "failure_domain": "edge-group:edge-group-country-de",
+          "cohort": "oaix.cc",
+          "required": true,
+          "expected_protocol_version": "v1",
+          "accepted_protocol_versions": [
+            "v1"
+          ],
+          "expected_schema_version": "v1",
+          "accepted_schema_versions": [
+            "v1"
+          ],
+          "expected_generation": "dns-915ca009dc70243f7b4a29462bd0844b9319c16e8c7f67a78cdafed488a3cadf",
+          "heartbeat_freshness_seconds": 90,
+          "heartbeat_deadline": "2026-09-13T10:10:36.574118594Z",
+          "convergence_deadline": "2026-09-13T10:14:06.574118594Z"
+        },
+        "evaluated_at": "2026-09-14T17:10:41.479266281Z"
+      }
+    ],
+    "evaluated_at": "2026-09-14T17:10:41.479266281Z"
+  },
+  "production_pods": [
     {
-      "pod": "fugue-fugue-edge-ssh-front-6kmz7",
-      "node": "bwg",
-      "lane": "edge-client-us",
+      "namespace": "fugue-system",
+      "name": "fugue-fugue-edge-front-m8wqt",
+      "phase": "Running",
+      "node_name": "bwg",
+      "pod_ip": "10.42.4.63",
+      "host_ip": "95.169.10.156",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-fugue-edge-front"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "edge-front",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "controller-revision-hash": "76bbb55c64",
+        "fugue.io/edge-group-id": "edge-group-country-us",
+        "pod-template-generation": "140"
+      },
       "ready": true,
-      "restarts": 0,
-      "image": "ghcr.io/yym68686/fugue-edge@sha256:ff951179811457e521f9d873af56e2fe159ff344f89173ebdc55b1ab9e2a9f39"
+      "start_time": "2026-09-14T01:38:01Z",
+      "containers": [
+        {
+          "name": "edge-front",
+          "image": "ghcr.io/yym68686/fugue-edge@sha256:c8b58ea9fbc574c92762c2e1151fc882bd4e1692ab4419a930b9af09cda53a8b",
+          "image_id": "ghcr.io/yym68686/fugue-edge@sha256:c8b58ea9fbc574c92762c2e1151fc882bd4e1692ab4419a930b9af09cda53a8b",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
     },
     {
-      "pod": "fugue-fugue-dns-qzpjd",
-      "node": "vps-591f4447",
-      "lane": "edge-client-us",
+      "namespace": "fugue-system",
+      "name": "fugue-fugue-edge-ssh-front-6kmz7",
+      "phase": "Running",
+      "node_name": "bwg",
+      "pod_ip": "95.169.10.156",
+      "host_ip": "95.169.10.156",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-fugue-edge-ssh-front"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "fugue-ssh-front",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "controller-revision-hash": "5df944cc56",
+        "fugue.io/downtime-class": "online-required",
+        "fugue.io/rollout-mode": "direct-ondelete-protected",
+        "fugue.io/rollout-subsystem": "public-ssh-data-plane",
+        "pod-template-generation": "210"
+      },
       "ready": true,
-      "restarts": 0,
-      "image": "ghcr.io/yym68686/fugue-edge@sha256:ff951179811457e521f9d873af56e2fe159ff344f89173ebdc55b1ab9e2a9f39"
+      "start_time": "2026-09-14T17:04:10Z",
+      "containers": [
+        {
+          "name": "ssh-front",
+          "image": "ghcr.io/yym68686/fugue-edge@sha256:ff951179811457e521f9d873af56e2fe159ff344f89173ebdc55b1ab9e2a9f39",
+          "image_id": "ghcr.io/yym68686/fugue-edge@sha256:ff951179811457e521f9d873af56e2fe159ff344f89173ebdc55b1ab9e2a9f39",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
     },
     {
-      "pod": "fugue-fugue-edge-ssh-front-6xq6c",
-      "node": "vps-591f4447",
-      "lane": "edge-client-us",
+      "namespace": "fugue-system",
+      "name": "fugue-fugue-edge-worker-a-fz5hf",
+      "phase": "Running",
+      "node_name": "bwg",
+      "pod_ip": "10.42.4.62",
+      "host_ip": "95.169.10.156",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-fugue-edge-worker-a"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "edge-worker-a",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "controller-revision-hash": "6c544d7f44",
+        "fugue.io/edge-control-client": "true",
+        "fugue.io/edge-control-inventory-writer": "true",
+        "fugue.io/edge-group-id": "edge-group-country-us",
+        "fugue.io/edge-pool-id": "edge-pool-public-b",
+        "fugue.io/edge-slot": "a",
+        "fugue.io/fault-domain-id": "fault-domain-primary-b",
+        "pod-template-generation": "609"
+      },
       "ready": true,
-      "restarts": 0,
-      "image": "ghcr.io/yym68686/fugue-edge@sha256:ff951179811457e521f9d873af56e2fe159ff344f89173ebdc55b1ab9e2a9f39"
+      "start_time": "2026-09-14T01:36:41Z",
+      "containers": [
+        {
+          "name": "caddy",
+          "image": "docker.io/library/caddy@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d",
+          "image_id": "docker.io/library/caddy@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        },
+        {
+          "name": "edge",
+          "image": "ghcr.io/yym68686/fugue-edge@sha256:c8b58ea9fbc574c92762c2e1151fc882bd4e1692ab4419a930b9af09cda53a8b",
+          "image_id": "ghcr.io/yym68686/fugue-edge@sha256:c8b58ea9fbc574c92762c2e1151fc882bd4e1692ab4419a930b9af09cda53a8b",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        },
+        {
+          "name": "edge-workload-identity",
+          "image": "ghcr.io/yym68686/fugue-edge@sha256:c8b58ea9fbc574c92762c2e1151fc882bd4e1692ab4419a930b9af09cda53a8b",
+          "image_id": "ghcr.io/yym68686/fugue-edge@sha256:c8b58ea9fbc574c92762c2e1151fc882bd4e1692ab4419a930b9af09cda53a8b",
+          "ready": true,
+          "restart_count": 0,
+          "state": "terminated",
+          "reason": "Completed"
+        }
+      ]
     },
     {
-      "pod": "fugue-fugue-dns-country-de-5zptr",
-      "node": "vps-84c8f0a9",
-      "lane": "edge-client-de",
+      "namespace": "fugue-system",
+      "name": "fugue-fugue-edge-worker-b-kmtdn",
+      "phase": "Running",
+      "node_name": "bwg",
+      "pod_ip": "10.42.4.60",
+      "host_ip": "95.169.10.156",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-fugue-edge-worker-b"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "edge-worker-b",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "controller-revision-hash": "579fc55cdb",
+        "fugue.io/edge-control-client": "true",
+        "fugue.io/edge-control-inventory-writer": "true",
+        "fugue.io/edge-group-id": "edge-group-country-us",
+        "fugue.io/edge-pool-id": "edge-pool-public-b",
+        "fugue.io/edge-slot": "b",
+        "fugue.io/fault-domain-id": "fault-domain-primary-b",
+        "pod-template-generation": "570"
+      },
       "ready": true,
-      "restarts": 0,
-      "image": "ghcr.io/yym68686/fugue-edge@sha256:f6922b894f8c47748fba51065bd7e838dcaf206fb0a1f61ae57e4d7056f116a3"
+      "start_time": "2026-09-07T12:06:32Z",
+      "containers": [
+        {
+          "name": "caddy",
+          "image": "docker.io/library/caddy@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d",
+          "image_id": "docker.io/library/caddy@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        },
+        {
+          "name": "edge",
+          "image": "ghcr.io/yym68686/fugue-edge@sha256:04c72f91abf913cec9bf9d663e6616a599ef566fc9a2710ff77fe0e51c9f7859",
+          "image_id": "ghcr.io/yym68686/fugue-edge@sha256:04c72f91abf913cec9bf9d663e6616a599ef566fc9a2710ff77fe0e51c9f7859",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        },
+        {
+          "name": "edge-workload-identity",
+          "image": "ghcr.io/yym68686/fugue-edge@sha256:04c72f91abf913cec9bf9d663e6616a599ef566fc9a2710ff77fe0e51c9f7859",
+          "image_id": "ghcr.io/yym68686/fugue-edge@sha256:04c72f91abf913cec9bf9d663e6616a599ef566fc9a2710ff77fe0e51c9f7859",
+          "ready": true,
+          "restart_count": 0,
+          "state": "terminated",
+          "reason": "Completed"
+        }
+      ]
     },
     {
-      "pod": "fugue-fugue-edge-country-de-ssh-front-j4xfn",
-      "node": "vps-84c8f0a9",
-      "lane": "edge-client-de",
+      "namespace": "fugue-system",
+      "name": "fugue-fugue-image-cache-fsntq",
+      "phase": "Running",
+      "node_name": "bwg",
+      "pod_ip": "95.169.10.156",
+      "host_ip": "95.169.10.156",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-fugue-image-cache"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "image-cache",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "controller-revision-hash": "5f76cd544b",
+        "fugue.io/downtime-class": "build-deploy-gate",
+        "fugue.io/rollout-mode": "bounded-rolling-restart",
+        "fugue.io/rollout-subsystem": "node-local-build-plane",
+        "pod-template-generation": "122"
+      },
       "ready": true,
-      "restarts": 0,
-      "image": "ghcr.io/yym68686/fugue-edge@sha256:f6922b894f8c47748fba51065bd7e838dcaf206fb0a1f61ae57e4d7056f116a3"
+      "start_time": "2026-09-13T00:42:14Z",
+      "containers": [
+        {
+          "name": "image-cache",
+          "image": "ghcr.io/yym68686/fugue-image-cache@sha256:e6aa681fb265d07513c4f60640ada0a26280151f96b6b044bfe110b489103623",
+          "image_id": "ghcr.io/yym68686/fugue-image-cache@sha256:e6aa681fb265d07513c4f60640ada0a26280151f96b6b044bfe110b489103623",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
     },
     {
-      "pod": "fugue-fugue-api-8565bb8858-9sjh4",
-      "node": "vps-d6d20fa1",
-      "lane": "api",
+      "namespace": "fugue-system",
+      "name": "fugue-alloy-flv9w",
+      "phase": "Running",
+      "node_name": "fortedrape8",
+      "pod_ip": "10.42.3.18",
+      "host_ip": "5.102.124.125",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-alloy"
+      },
+      "labels": {
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "alloy",
+        "controller-revision-hash": "6b99f5999d",
+        "pod-template-generation": "1"
+      },
       "ready": true,
-      "restarts": 0,
-      "image": "ghcr.io/yym68686/fugue-api@sha256:37bdf938b8c84ae1622e9233fb46ed9d76d045de38d9f82ca616b82c7360496f"
+      "start_time": "2026-07-23T10:59:30Z",
+      "containers": [
+        {
+          "name": "alloy",
+          "image": "docker.io/grafana/alloy:v1.8.1",
+          "image_id": "docker.io/grafana/alloy@sha256:7790f6f7fbd8e4486b4b6c6fc6a7293a73605bb79aaa7f49003cb366943724f6",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        },
+        {
+          "name": "config-reloader",
+          "image": "quay.io/prometheus-operator/prometheus-config-reloader:v0.81.0",
+          "image_id": "quay.io/prometheus-operator/prometheus-config-reloader@sha256:959d47672fbff2776a04ec62b8afcec89e8c036af84dc5fade50019dab212746",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
     },
     {
-      "pod": "fugue-fugue-api-8565bb8858-gfs2d",
-      "node": "vps-d6d20fa1",
-      "lane": "api",
+      "namespace": "fugue-system",
+      "name": "fugue-fugue-image-cache-jr95j",
+      "phase": "Running",
+      "node_name": "fortedrape8",
+      "pod_ip": "5.102.124.125",
+      "host_ip": "5.102.124.125",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-fugue-image-cache"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "image-cache",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "controller-revision-hash": "5f76cd544b",
+        "fugue.io/downtime-class": "build-deploy-gate",
+        "fugue.io/rollout-mode": "bounded-rolling-restart",
+        "fugue.io/rollout-subsystem": "node-local-build-plane",
+        "pod-template-generation": "122"
+      },
       "ready": true,
-      "restarts": 0,
-      "image": "ghcr.io/yym68686/fugue-api@sha256:37bdf938b8c84ae1622e9233fb46ed9d76d045de38d9f82ca616b82c7360496f"
-    }
-  ],
-  "trusted_dns_shadow_receipts": [
-    {
-      "consumer_id": "dns-server:vps-591f4447",
-      "last_heartbeat_at": "2026-09-14T17:10:15.540503Z",
-      "identity_verified": true,
-      "apply_status": "staged",
-      "probe_status": "shadow_validated"
+      "start_time": "2026-09-13T00:43:03Z",
+      "containers": [
+        {
+          "name": "image-cache",
+          "image": "ghcr.io/yym68686/fugue-image-cache@sha256:e6aa681fb265d07513c4f60640ada0a26280151f96b6b044bfe110b489103623",
+          "image_id": "ghcr.io/yym68686/fugue-image-cache@sha256:e6aa681fb265d07513c4f60640ada0a26280151f96b6b044bfe110b489103623",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
     },
     {
-      "consumer_id": "dns-server:vps-84c8f0a9",
-      "last_heartbeat_at": "2026-09-14T17:10:15.094313Z",
-      "identity_verified": true,
-      "apply_status": "staged",
-      "probe_status": "shadow_validated"
+      "namespace": "fugue-system",
+      "name": "fugue-fugue-node-janitor-ncj4d",
+      "phase": "Running",
+      "node_name": "fortedrape8",
+      "pod_ip": "10.42.3.164",
+      "host_ip": "5.102.124.125",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-fugue-node-janitor"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "node-janitor",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "controller-revision-hash": "6c9754589b",
+        "pod-template-generation": "109"
+      },
+      "ready": true,
+      "start_time": "2026-07-07T19:55:11Z",
+      "containers": [
+        {
+          "name": "node-janitor",
+          "image": "ghcr.io/yym68686/fugue-controller:c55db9e982168efa8b8300f56ab0f3e77cca1604",
+          "image_id": "ghcr.io/yym68686/fugue-controller@sha256:48d83d4e1c52441661398db5f215c45acff8dec53d9b93f66c01f598631d89cc",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-fugue-topology-labeler-d4ppt",
+      "phase": "Running",
+      "node_name": "fortedrape8",
+      "pod_ip": "10.42.3.181",
+      "host_ip": "5.102.124.125",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-fugue-topology-labeler"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "topology-labeler",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "controller-revision-hash": "d8965b67d",
+        "pod-template-generation": "102"
+      },
+      "ready": true,
+      "start_time": "2026-08-10T11:46:48Z",
+      "containers": [
+        {
+          "name": "topology-labeler",
+          "image": "ghcr.io/yym68686/fugue-controller:c55db9e982168efa8b8300f56ab0f3e77cca1604",
+          "image_id": "ghcr.io/yym68686/fugue-controller@sha256:48d83d4e1c52441661398db5f215c45acff8dec53d9b93f66c01f598631d89cc",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-lvm-localpv-node-zb9mf",
+      "phase": "Running",
+      "node_name": "fortedrape8",
+      "pod_ip": "10.42.3.15",
+      "host_ip": "5.102.124.125",
+      "qos_class": "BestEffort",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-lvm-localpv-node"
+      },
+      "labels": {
+        "app": "openebs-lvm-node",
+        "chart": "lvm-localpv-1.9.0",
+        "controller-revision-hash": "7b94894fb7",
+        "heritage": "Helm",
+        "name": "openebs-lvm-node",
+        "openebs.io/component-name": "openebs-lvm-node",
+        "openebs.io/logging": "true",
+        "openebs.io/version": "1.9.0",
+        "pod-template-generation": "2",
+        "release": "fugue",
+        "role": "openebs-lvm"
+      },
+      "ready": true,
+      "start_time": "2026-07-23T10:56:18Z",
+      "containers": [
+        {
+          "name": "csi-node-driver-registrar",
+          "image": "registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.13.0",
+          "image_id": "registry.k8s.io/sig-storage/csi-node-driver-registrar@sha256:d7138bcc3aa5f267403d45ad4292c95397e421ea17a0035888850f424c7de25d",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        },
+        {
+          "name": "openebs-lvm-plugin",
+          "image": "docker.io/openebs/lvm-driver:1.9.0",
+          "image_id": "docker.io/openebs/lvm-driver@sha256:e4f5dec4391cdf0da2d1841587ab7276f6c09f5efc2c3acd1ebb7a48c81b29f7",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-alloy-n824x",
+      "phase": "Running",
+      "node_name": "ns101351",
+      "pod_ip": "10.42.5.36",
+      "host_ip": "147.135.6.173",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-alloy"
+      },
+      "labels": {
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "alloy",
+        "controller-revision-hash": "6b99f5999d",
+        "pod-template-generation": "1"
+      },
+      "ready": true,
+      "start_time": "2026-06-08T09:36:50Z",
+      "containers": [
+        {
+          "name": "alloy",
+          "image": "docker.io/grafana/alloy:v1.8.1",
+          "image_id": "docker.io/grafana/alloy@sha256:7790f6f7fbd8e4486b4b6c6fc6a7293a73605bb79aaa7f49003cb366943724f6",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        },
+        {
+          "name": "config-reloader",
+          "image": "quay.io/prometheus-operator/prometheus-config-reloader:v0.81.0",
+          "image_id": "quay.io/prometheus-operator/prometheus-config-reloader@sha256:959d47672fbff2776a04ec62b8afcec89e8c036af84dc5fade50019dab212746",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-fugue-image-cache-2sp42",
+      "phase": "Running",
+      "node_name": "ns101351",
+      "pod_ip": "147.135.6.173",
+      "host_ip": "147.135.6.173",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-fugue-image-cache"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "image-cache",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "controller-revision-hash": "5f76cd544b",
+        "fugue.io/downtime-class": "build-deploy-gate",
+        "fugue.io/rollout-mode": "bounded-rolling-restart",
+        "fugue.io/rollout-subsystem": "node-local-build-plane",
+        "pod-template-generation": "122"
+      },
+      "ready": true,
+      "start_time": "2026-09-13T00:43:02Z",
+      "containers": [
+        {
+          "name": "image-cache",
+          "image": "ghcr.io/yym68686/fugue-image-cache@sha256:e6aa681fb265d07513c4f60640ada0a26280151f96b6b044bfe110b489103623",
+          "image_id": "ghcr.io/yym68686/fugue-image-cache@sha256:e6aa681fb265d07513c4f60640ada0a26280151f96b6b044bfe110b489103623",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-fugue-node-janitor-dg9x5",
+      "phase": "Running",
+      "node_name": "ns101351",
+      "pod_ip": "10.42.5.22",
+      "host_ip": "147.135.6.173",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-fugue-node-janitor"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "node-janitor",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "controller-revision-hash": "6c9754589b",
+        "pod-template-generation": "109"
+      },
+      "ready": true,
+      "start_time": "2026-06-17T23:34:43Z",
+      "containers": [
+        {
+          "name": "node-janitor",
+          "image": "ghcr.io/yym68686/fugue-controller:c55db9e982168efa8b8300f56ab0f3e77cca1604",
+          "image_id": "ghcr.io/yym68686/fugue-controller@sha256:48d83d4e1c52441661398db5f215c45acff8dec53d9b93f66c01f598631d89cc",
+          "ready": true,
+          "restart_count": 5,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-fugue-observability-clickhouse-55d49c9f9c-nf7w2",
+      "phase": "Running",
+      "node_name": "ns101351",
+      "pod_ip": "10.42.5.201",
+      "host_ip": "147.135.6.173",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "ReplicaSet",
+        "name": "fugue-fugue-observability-clickhouse-55d49c9f9c"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "observability-clickhouse",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "pod-template-hash": "55d49c9f9c"
+      },
+      "ready": true,
+      "start_time": "2026-08-31T15:29:27Z",
+      "containers": [
+        {
+          "name": "clickhouse",
+          "image": "clickhouse/clickhouse-server:latest",
+          "image_id": "docker.io/clickhouse/clickhouse-server@sha256:9f8fa0d51f86611fda226c4085cdafdddce35312a60c934de2e4450d61fcb99a",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-fugue-observability-prometheus-7cb76f56-pxcpp",
+      "phase": "Running",
+      "node_name": "ns101351",
+      "pod_ip": "10.42.5.54",
+      "host_ip": "147.135.6.173",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "ReplicaSet",
+        "name": "fugue-fugue-observability-prometheus-7cb76f56"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "observability-prometheus",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "pod-template-hash": "7cb76f56"
+      },
+      "ready": true,
+      "start_time": "2026-08-02T10:57:47Z",
+      "containers": [
+        {
+          "name": "prometheus",
+          "image": "prom/prometheus:latest",
+          "image_id": "docker.io/prom/prometheus@sha256:508729e0e2d18e11fd742a5a5ca70e557b940a93948c3c95fd0123a6fd538b69",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-fugue-telemetry-agent-57d56ffbfd-xzf8l",
+      "phase": "Running",
+      "node_name": "ns101351",
+      "pod_ip": "10.42.5.208",
+      "host_ip": "147.135.6.173",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "ReplicaSet",
+        "name": "fugue-fugue-telemetry-agent-57d56ffbfd"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "telemetry-agent",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "pod-template-hash": "57d56ffbfd"
+      },
+      "ready": true,
+      "start_time": "2026-08-31T18:18:06Z",
+      "containers": [
+        {
+          "name": "telemetry-agent",
+          "image": "ghcr.io/yym68686/fugue-telemetry-agent@sha256:ece9fbb5485327fb6ba575d2a3b3a034d974ca501b2d274d9578313356c9fe9f",
+          "image_id": "ghcr.io/yym68686/fugue-telemetry-agent@sha256:ece9fbb5485327fb6ba575d2a3b3a034d974ca501b2d274d9578313356c9fe9f",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-fugue-topology-labeler-68lpg",
+      "phase": "Running",
+      "node_name": "ns101351",
+      "pod_ip": "10.42.5.188",
+      "host_ip": "147.135.6.173",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-fugue-topology-labeler"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "topology-labeler",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "controller-revision-hash": "d8965b67d",
+        "pod-template-generation": "102"
+      },
+      "ready": true,
+      "start_time": "2026-05-28T11:33:03Z",
+      "containers": [
+        {
+          "name": "topology-labeler",
+          "image": "ghcr.io/yym68686/fugue-controller:c55db9e982168efa8b8300f56ab0f3e77cca1604",
+          "image_id": "ghcr.io/yym68686/fugue-controller@sha256:48d83d4e1c52441661398db5f215c45acff8dec53d9b93f66c01f598631d89cc",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-lvm-localpv-controller-7c5b85f977-xqlrk",
+      "phase": "Running",
+      "node_name": "ns101351",
+      "pod_ip": "10.42.5.37",
+      "host_ip": "147.135.6.173",
+      "qos_class": "BestEffort",
+      "owner": {
+        "kind": "ReplicaSet",
+        "name": "fugue-lvm-localpv-controller-7c5b85f977"
+      },
+      "labels": {
+        "app": "openebs-lvm-controller",
+        "chart": "lvm-localpv-1.9.0",
+        "component": "openebs-lvm-controller",
+        "heritage": "Helm",
+        "name": "openebs-lvm-controller",
+        "openebs.io/component-name": "openebs-lvm-controller",
+        "openebs.io/logging": "true",
+        "openebs.io/version": "1.9.0",
+        "pod-template-hash": "7c5b85f977",
+        "release": "fugue",
+        "role": "openebs-lvm"
+      },
+      "ready": true,
+      "start_time": "2026-06-08T09:36:51Z",
+      "containers": [
+        {
+          "name": "csi-provisioner",
+          "image": "registry.k8s.io/sig-storage/csi-provisioner:v6.1.0",
+          "image_id": "registry.k8s.io/sig-storage/csi-provisioner@sha256:e5900dc98b0d02f317ea9572f3824983c47a2fb5d5fe2b160aedf1b99c14c9e4",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        },
+        {
+          "name": "csi-resizer",
+          "image": "registry.k8s.io/sig-storage/csi-resizer:v2.0.0",
+          "image_id": "registry.k8s.io/sig-storage/csi-resizer@sha256:4a95d94e57ad82f6977cd8d4fdcfcfc0b83f02d990e4e7715b688c20970a906d",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        },
+        {
+          "name": "csi-snapshotter",
+          "image": "registry.k8s.io/sig-storage/csi-snapshotter:v7.0.0",
+          "image_id": "registry.k8s.io/sig-storage/csi-snapshotter@sha256:682d5015146de0f922def125a3be1e2a29c43a3eb45700600e4e0733ec3f5752",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        },
+        {
+          "name": "openebs-lvm-plugin",
+          "image": "docker.io/openebs/lvm-driver:1.9.0",
+          "image_id": "docker.io/openebs/lvm-driver@sha256:e4f5dec4391cdf0da2d1841587ab7276f6c09f5efc2c3acd1ebb7a48c81b29f7",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        },
+        {
+          "name": "snapshot-controller",
+          "image": "registry.k8s.io/sig-storage/snapshot-controller:v7.0.0",
+          "image_id": "registry.k8s.io/sig-storage/snapshot-controller@sha256:2084f69694f0fae24d1a3039e02102beaef3ae912c10e59094449196a63ffb7e",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-lvm-localpv-node-qrmwt",
+      "phase": "Running",
+      "node_name": "ns101351",
+      "pod_ip": "10.42.5.44",
+      "host_ip": "147.135.6.173",
+      "qos_class": "BestEffort",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-lvm-localpv-node"
+      },
+      "labels": {
+        "app": "openebs-lvm-node",
+        "chart": "lvm-localpv-1.9.0",
+        "controller-revision-hash": "7b94894fb7",
+        "heritage": "Helm",
+        "name": "openebs-lvm-node",
+        "openebs.io/component-name": "openebs-lvm-node",
+        "openebs.io/logging": "true",
+        "openebs.io/version": "1.9.0",
+        "pod-template-generation": "2",
+        "release": "fugue",
+        "role": "openebs-lvm"
+      },
+      "ready": true,
+      "start_time": "2026-06-08T09:48:48Z",
+      "containers": [
+        {
+          "name": "csi-node-driver-registrar",
+          "image": "registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.13.0",
+          "image_id": "registry.k8s.io/sig-storage/csi-node-driver-registrar@sha256:d7138bcc3aa5f267403d45ad4292c95397e421ea17a0035888850f424c7de25d",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        },
+        {
+          "name": "openebs-lvm-plugin",
+          "image": "docker.io/openebs/lvm-driver:1.9.0",
+          "image_id": "docker.io/openebs/lvm-driver@sha256:e4f5dec4391cdf0da2d1841587ab7276f6c09f5efc2c3acd1ebb7a48c81b29f7",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-alloy-htzt9",
+      "phase": "Running",
+      "node_name": "ovhuswestagent",
+      "pod_ip": "10.42.7.5",
+      "host_ip": "51.81.244.128",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-alloy"
+      },
+      "labels": {
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "alloy",
+        "controller-revision-hash": "6b99f5999d",
+        "pod-template-generation": "1"
+      },
+      "ready": true,
+      "start_time": "2026-09-08T18:13:55Z",
+      "containers": [
+        {
+          "name": "alloy",
+          "image": "docker.io/grafana/alloy:v1.8.1",
+          "image_id": "docker.io/grafana/alloy@sha256:7790f6f7fbd8e4486b4b6c6fc6a7293a73605bb79aaa7f49003cb366943724f6",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        },
+        {
+          "name": "config-reloader",
+          "image": "quay.io/prometheus-operator/prometheus-config-reloader:v0.81.0",
+          "image_id": "quay.io/prometheus-operator/prometheus-config-reloader@sha256:959d47672fbff2776a04ec62b8afcec89e8c036af84dc5fade50019dab212746",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-fugue-control-plane-postgres-8",
+      "phase": "Running",
+      "node_name": "ovhuswestagent",
+      "pod_ip": "10.42.7.123",
+      "host_ip": "51.81.244.128",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "Cluster",
+        "name": "fugue-fugue-control-plane-postgres"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "database",
+        "app.kubernetes.io/instance": "fugue-fugue-control-plane-postgres",
+        "app.kubernetes.io/managed-by": "cloudnative-pg",
+        "app.kubernetes.io/name": "postgresql",
+        "app.kubernetes.io/version": "18",
+        "cnpg.io/cluster": "fugue-fugue-control-plane-postgres",
+        "cnpg.io/instanceName": "fugue-fugue-control-plane-postgres-8",
+        "cnpg.io/instanceRole": "primary",
+        "cnpg.io/podRole": "instance",
+        "role": "primary"
+      },
+      "ready": true,
+      "start_time": "2026-09-12T02:43:23Z",
+      "containers": [
+        {
+          "name": "bootstrap-controller",
+          "image": "ghcr.io/cloudnative-pg/cloudnative-pg:1.29.0",
+          "image_id": "ghcr.io/cloudnative-pg/cloudnative-pg@sha256:68074486205a33ed41928761e22ad48278c690feebe8316727a1c6b3380f9e5e",
+          "ready": true,
+          "restart_count": 0,
+          "state": "terminated",
+          "reason": "Completed"
+        },
+        {
+          "name": "postgres",
+          "image": "ghcr.io/cloudnative-pg/postgresql:18.3-system-trixie",
+          "image_id": "ghcr.io/cloudnative-pg/postgresql@sha256:0f29b435fb501ee534cd0c555d122a6b8e90de477de8e8381c82c5e10d9a9de4",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-fugue-image-cache-l2pk8",
+      "phase": "Running",
+      "node_name": "ovhuswestagent",
+      "pod_ip": "51.81.244.128",
+      "host_ip": "51.81.244.128",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-fugue-image-cache"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "image-cache",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "controller-revision-hash": "5f76cd544b",
+        "fugue.io/downtime-class": "build-deploy-gate",
+        "fugue.io/rollout-mode": "bounded-rolling-restart",
+        "fugue.io/rollout-subsystem": "node-local-build-plane",
+        "pod-template-generation": "122"
+      },
+      "ready": true,
+      "start_time": "2026-09-13T00:42:48Z",
+      "containers": [
+        {
+          "name": "image-cache",
+          "image": "ghcr.io/yym68686/fugue-image-cache@sha256:e6aa681fb265d07513c4f60640ada0a26280151f96b6b044bfe110b489103623",
+          "image_id": "ghcr.io/yym68686/fugue-image-cache@sha256:e6aa681fb265d07513c4f60640ada0a26280151f96b6b044bfe110b489103623",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-fugue-node-janitor-8gjq2",
+      "phase": "Running",
+      "node_name": "ovhuswestagent",
+      "pod_ip": "10.42.7.3",
+      "host_ip": "51.81.244.128",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-fugue-node-janitor"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "node-janitor",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "controller-revision-hash": "6c9754589b",
+        "pod-template-generation": "109"
+      },
+      "ready": true,
+      "start_time": "2026-09-08T18:13:55Z",
+      "containers": [
+        {
+          "name": "node-janitor",
+          "image": "ghcr.io/yym68686/fugue-controller:c55db9e982168efa8b8300f56ab0f3e77cca1604",
+          "image_id": "ghcr.io/yym68686/fugue-controller@sha256:48d83d4e1c52441661398db5f215c45acff8dec53d9b93f66c01f598631d89cc",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-fugue-observability-loki-5448cc78b8-xjcfr",
+      "phase": "Running",
+      "node_name": "ovhuswestagent",
+      "pod_ip": "10.42.7.7",
+      "host_ip": "51.81.244.128",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "ReplicaSet",
+        "name": "fugue-fugue-observability-loki-5448cc78b8"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "observability-loki",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "pod-template-hash": "5448cc78b8"
+      },
+      "ready": true,
+      "start_time": "2026-09-08T18:27:03Z",
+      "containers": [
+        {
+          "name": "loki",
+          "image": "grafana/loki:latest",
+          "image_id": "docker.io/grafana/loki@sha256:d70e4659623f3e109af669cae76fe2a5dd5be54e2298fe8aed380d982fbc2500",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-fugue-topology-labeler-fl6x2",
+      "phase": "Running",
+      "node_name": "ovhuswestagent",
+      "pod_ip": "10.42.7.4",
+      "host_ip": "51.81.244.128",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-fugue-topology-labeler"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "topology-labeler",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "controller-revision-hash": "d8965b67d",
+        "pod-template-generation": "102"
+      },
+      "ready": true,
+      "start_time": "2026-09-08T18:13:55Z",
+      "containers": [
+        {
+          "name": "topology-labeler",
+          "image": "ghcr.io/yym68686/fugue-controller:c55db9e982168efa8b8300f56ab0f3e77cca1604",
+          "image_id": "ghcr.io/yym68686/fugue-controller@sha256:48d83d4e1c52441661398db5f215c45acff8dec53d9b93f66c01f598631d89cc",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-lvm-localpv-node-h6k8x",
+      "phase": "Running",
+      "node_name": "ovhuswestagent",
+      "pod_ip": "10.42.7.2",
+      "host_ip": "51.81.244.128",
+      "qos_class": "BestEffort",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-lvm-localpv-node"
+      },
+      "labels": {
+        "app": "openebs-lvm-node",
+        "chart": "lvm-localpv-1.9.0",
+        "controller-revision-hash": "7b94894fb7",
+        "heritage": "Helm",
+        "name": "openebs-lvm-node",
+        "openebs.io/component-name": "openebs-lvm-node",
+        "openebs.io/logging": "true",
+        "openebs.io/version": "1.9.0",
+        "pod-template-generation": "2",
+        "release": "fugue",
+        "role": "openebs-lvm"
+      },
+      "ready": true,
+      "start_time": "2026-09-08T18:13:17Z",
+      "containers": [
+        {
+          "name": "csi-node-driver-registrar",
+          "image": "registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.13.0",
+          "image_id": "registry.k8s.io/sig-storage/csi-node-driver-registrar@sha256:d7138bcc3aa5f267403d45ad4292c95397e421ea17a0035888850f424c7de25d",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        },
+        {
+          "name": "openebs-lvm-plugin",
+          "image": "docker.io/openebs/lvm-driver:1.9.0",
+          "image_id": "docker.io/openebs/lvm-driver@sha256:e4f5dec4391cdf0da2d1841587ab7276f6c09f5efc2c3acd1ebb7a48c81b29f7",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-release-canary-prober-77db8f5cb9-x4424",
+      "phase": "Running",
+      "node_name": "ovhuswestagent",
+      "pod_ip": "10.42.7.162",
+      "host_ip": "51.81.244.128",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "ReplicaSet",
+        "name": "fugue-release-canary-prober-77db8f5cb9"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "release-canary-prober",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "pod-template-hash": "77db8f5cb9"
+      },
+      "ready": true,
+      "start_time": "2026-09-14T11:46:03Z",
+      "containers": [
+        {
+          "name": "release-guardian",
+          "image": "ghcr.io/yym68686/fugue-release-guardian@sha256:8bd303bd962a2e64e1e5a00d08e63a6945784f4f3dbd2b562765c5c966065c58",
+          "image_id": "ghcr.io/yym68686/fugue-release-guardian@sha256:8bd303bd962a2e64e1e5a00d08e63a6945784f4f3dbd2b562765c5c966065c58",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-release-guardian-5969647fc7-h8t8f",
+      "phase": "Running",
+      "node_name": "ovhuswestagent",
+      "pod_ip": "10.42.7.163",
+      "host_ip": "51.81.244.128",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "ReplicaSet",
+        "name": "fugue-release-guardian-5969647fc7"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "release-guardian",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "fugue.io/edge-authority-importer": "true",
+        "pod-template-hash": "5969647fc7"
+      },
+      "ready": true,
+      "start_time": "2026-09-14T11:46:05Z",
+      "containers": [
+        {
+          "name": "release-guardian",
+          "image": "ghcr.io/yym68686/fugue-release-guardian@sha256:8bd303bd962a2e64e1e5a00d08e63a6945784f4f3dbd2b562765c5c966065c58",
+          "image_id": "ghcr.io/yym68686/fugue-release-guardian@sha256:8bd303bd962a2e64e1e5a00d08e63a6945784f4f3dbd2b562765c5c966065c58",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-schema-migrator-69546fcd4c-jg4qw",
+      "phase": "Running",
+      "node_name": "ovhuswestagent",
+      "pod_ip": "10.42.7.179",
+      "host_ip": "51.81.244.128",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "ReplicaSet",
+        "name": "fugue-schema-migrator-69546fcd4c"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "schema-migrator",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "pod-template-hash": "69546fcd4c"
+      },
+      "ready": true,
+      "start_time": "2026-09-09T17:34:19Z",
+      "containers": [
+        {
+          "name": "schema-migrate",
+          "image": "ghcr.io/yym68686/fugue-schema-migrate@sha256:c54c414cca8ae35e41b61e69fc6ea6802b876b0840dab924af59e942b0b69373",
+          "image_id": "ghcr.io/yym68686/fugue-schema-migrate@sha256:c54c414cca8ae35e41b61e69fc6ea6802b876b0840dab924af59e942b0b69373",
+          "ready": true,
+          "restart_count": 3,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-alloy-w8vm8",
+      "phase": "Running",
+      "node_name": "v2202605354515455529",
+      "pod_ip": "10.42.6.11",
+      "host_ip": "159.195.76.108",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-alloy"
+      },
+      "labels": {
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "alloy",
+        "controller-revision-hash": "6b99f5999d",
+        "pod-template-generation": "1"
+      },
+      "ready": true,
+      "start_time": "2026-06-16T02:01:43Z",
+      "containers": [
+        {
+          "name": "alloy",
+          "image": "docker.io/grafana/alloy:v1.8.1",
+          "image_id": "docker.io/grafana/alloy@sha256:7790f6f7fbd8e4486b4b6c6fc6a7293a73605bb79aaa7f49003cb366943724f6",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        },
+        {
+          "name": "config-reloader",
+          "image": "quay.io/prometheus-operator/prometheus-config-reloader:v0.81.0",
+          "image_id": "quay.io/prometheus-operator/prometheus-config-reloader@sha256:959d47672fbff2776a04ec62b8afcec89e8c036af84dc5fade50019dab212746",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-fugue-image-cache-rstjt",
+      "phase": "Running",
+      "node_name": "v2202605354515455529",
+      "pod_ip": "159.195.76.108",
+      "host_ip": "159.195.76.108",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-fugue-image-cache"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "image-cache",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "controller-revision-hash": "5f76cd544b",
+        "fugue.io/downtime-class": "build-deploy-gate",
+        "fugue.io/rollout-mode": "bounded-rolling-restart",
+        "fugue.io/rollout-subsystem": "node-local-build-plane",
+        "pod-template-generation": "122"
+      },
+      "ready": true,
+      "start_time": "2026-09-13T00:42:14Z",
+      "containers": [
+        {
+          "name": "image-cache",
+          "image": "ghcr.io/yym68686/fugue-image-cache@sha256:e6aa681fb265d07513c4f60640ada0a26280151f96b6b044bfe110b489103623",
+          "image_id": "ghcr.io/yym68686/fugue-image-cache@sha256:e6aa681fb265d07513c4f60640ada0a26280151f96b6b044bfe110b489103623",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-fugue-node-janitor-v8jv5",
+      "phase": "Running",
+      "node_name": "v2202605354515455529",
+      "pod_ip": "10.42.6.108",
+      "host_ip": "159.195.76.108",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-fugue-node-janitor"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "node-janitor",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "controller-revision-hash": "6c9754589b",
+        "pod-template-generation": "109"
+      },
+      "ready": true,
+      "start_time": "2026-06-17T23:34:46Z",
+      "containers": [
+        {
+          "name": "node-janitor",
+          "image": "ghcr.io/yym68686/fugue-controller:c55db9e982168efa8b8300f56ab0f3e77cca1604",
+          "image_id": "ghcr.io/yym68686/fugue-controller@sha256:48d83d4e1c52441661398db5f215c45acff8dec53d9b93f66c01f598631d89cc",
+          "ready": true,
+          "restart_count": 3,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-fugue-topology-labeler-crbw2",
+      "phase": "Running",
+      "node_name": "v2202605354515455529",
+      "pod_ip": "10.42.6.180",
+      "host_ip": "159.195.76.108",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-fugue-topology-labeler"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "topology-labeler",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "controller-revision-hash": "d8965b67d",
+        "pod-template-generation": "102"
+      },
+      "ready": true,
+      "start_time": "2026-08-15T03:25:53Z",
+      "containers": [
+        {
+          "name": "topology-labeler",
+          "image": "ghcr.io/yym68686/fugue-controller:c55db9e982168efa8b8300f56ab0f3e77cca1604",
+          "image_id": "ghcr.io/yym68686/fugue-controller@sha256:48d83d4e1c52441661398db5f215c45acff8dec53d9b93f66c01f598631d89cc",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-lvm-localpv-node-2l8c5",
+      "phase": "Running",
+      "node_name": "v2202605354515455529",
+      "pod_ip": "10.42.6.247",
+      "host_ip": "159.195.76.108",
+      "qos_class": "BestEffort",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-lvm-localpv-node"
+      },
+      "labels": {
+        "app": "openebs-lvm-node",
+        "chart": "lvm-localpv-1.9.0",
+        "controller-revision-hash": "7b94894fb7",
+        "heritage": "Helm",
+        "name": "openebs-lvm-node",
+        "openebs.io/component-name": "openebs-lvm-node",
+        "openebs.io/logging": "true",
+        "openebs.io/version": "1.9.0",
+        "pod-template-generation": "2",
+        "release": "fugue",
+        "role": "openebs-lvm"
+      },
+      "ready": true,
+      "start_time": "2026-06-16T02:01:43Z",
+      "containers": [
+        {
+          "name": "csi-node-driver-registrar",
+          "image": "registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.13.0",
+          "image_id": "registry.k8s.io/sig-storage/csi-node-driver-registrar@sha256:d7138bcc3aa5f267403d45ad4292c95397e421ea17a0035888850f424c7de25d",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        },
+        {
+          "name": "openebs-lvm-plugin",
+          "image": "docker.io/openebs/lvm-driver:1.9.0",
+          "image_id": "docker.io/openebs/lvm-driver@sha256:e4f5dec4391cdf0da2d1841587ab7276f6c09f5efc2c3acd1ebb7a48c81b29f7",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "edge-control-us-d4c564664-djvvk",
+      "phase": "Running",
+      "node_name": "vps-591f4447",
+      "pod_ip": "10.42.2.52",
+      "host_ip": "15.204.94.71",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "ReplicaSet",
+        "name": "edge-control-us-d4c564664"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "edge-control",
+        "app.kubernetes.io/instance": "edge-control-us",
+        "app.kubernetes.io/name": "fugue-edge-control",
+        "fugue.io/edge-group-id": "edge-group-country-us",
+        "pod-template-hash": "d4c564664"
+      },
+      "ready": true,
+      "start_time": "2026-09-06T22:28:52Z",
+      "containers": [
+        {
+          "name": "edge-control",
+          "image": "ghcr.io/yym68686/fugue-edge-control@sha256:d5fbec9a5003a2a4409749846a9f4c6f278742cfe3b038e8611cf1bedb2f7475",
+          "image_id": "ghcr.io/yym68686/fugue-edge-control@sha256:d5fbec9a5003a2a4409749846a9f4c6f278742cfe3b038e8611cf1bedb2f7475",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        },
+        {
+          "name": "state-permissions",
+          "image": "ghcr.io/yym68686/fugue-edge-control@sha256:d5fbec9a5003a2a4409749846a9f4c6f278742cfe3b038e8611cf1bedb2f7475",
+          "image_id": "ghcr.io/yym68686/fugue-edge-control@sha256:d5fbec9a5003a2a4409749846a9f4c6f278742cfe3b038e8611cf1bedb2f7475",
+          "ready": true,
+          "restart_count": 0,
+          "state": "terminated",
+          "reason": "Completed"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-fugue-dns-qzpjd",
+      "phase": "Running",
+      "node_name": "vps-591f4447",
+      "pod_ip": "10.42.2.64",
+      "host_ip": "15.204.94.71",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-fugue-dns"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "dns",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "controller-revision-hash": "55c47c4dc4",
+        "fugue.io/downtime-class": "online-required",
+        "fugue.io/rollout-mode": "direct-ondelete-protected",
+        "fugue.io/rollout-subsystem": "public-data-plane",
+        "pod-template-generation": "436"
+      },
+      "ready": true,
+      "start_time": "2026-09-14T17:04:09Z",
+      "containers": [
+        {
+          "name": "dns",
+          "image": "ghcr.io/yym68686/fugue-edge@sha256:ff951179811457e521f9d873af56e2fe159ff344f89173ebdc55b1ab9e2a9f39",
+          "image_id": "ghcr.io/yym68686/fugue-edge@sha256:ff951179811457e521f9d873af56e2fe159ff344f89173ebdc55b1ab9e2a9f39",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-fugue-edge-front-j2ccx",
+      "phase": "Running",
+      "node_name": "vps-591f4447",
+      "pod_ip": "10.42.2.60",
+      "host_ip": "15.204.94.71",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-fugue-edge-front"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "edge-front",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "controller-revision-hash": "76bbb55c64",
+        "fugue.io/edge-group-id": "edge-group-country-us",
+        "pod-template-generation": "140"
+      },
+      "ready": true,
+      "start_time": "2026-09-14T01:38:05Z",
+      "containers": [
+        {
+          "name": "edge-front",
+          "image": "ghcr.io/yym68686/fugue-edge@sha256:c8b58ea9fbc574c92762c2e1151fc882bd4e1692ab4419a930b9af09cda53a8b",
+          "image_id": "ghcr.io/yym68686/fugue-edge@sha256:c8b58ea9fbc574c92762c2e1151fc882bd4e1692ab4419a930b9af09cda53a8b",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-fugue-edge-ssh-front-6xq6c",
+      "phase": "Running",
+      "node_name": "vps-591f4447",
+      "pod_ip": "15.204.94.71",
+      "host_ip": "15.204.94.71",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-fugue-edge-ssh-front"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "fugue-ssh-front",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "controller-revision-hash": "5df944cc56",
+        "fugue.io/downtime-class": "online-required",
+        "fugue.io/rollout-mode": "direct-ondelete-protected",
+        "fugue.io/rollout-subsystem": "public-ssh-data-plane",
+        "pod-template-generation": "210"
+      },
+      "ready": true,
+      "start_time": "2026-09-14T17:04:17Z",
+      "containers": [
+        {
+          "name": "ssh-front",
+          "image": "ghcr.io/yym68686/fugue-edge@sha256:ff951179811457e521f9d873af56e2fe159ff344f89173ebdc55b1ab9e2a9f39",
+          "image_id": "ghcr.io/yym68686/fugue-edge@sha256:ff951179811457e521f9d873af56e2fe159ff344f89173ebdc55b1ab9e2a9f39",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-fugue-edge-worker-a-h6snv",
+      "phase": "Running",
+      "node_name": "vps-591f4447",
+      "pod_ip": "10.42.2.59",
+      "host_ip": "15.204.94.71",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-fugue-edge-worker-a"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "edge-worker-a",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "controller-revision-hash": "6c544d7f44",
+        "fugue.io/edge-control-client": "true",
+        "fugue.io/edge-control-inventory-writer": "true",
+        "fugue.io/edge-group-id": "edge-group-country-us",
+        "fugue.io/edge-pool-id": "edge-pool-public-b",
+        "fugue.io/edge-slot": "a",
+        "fugue.io/fault-domain-id": "fault-domain-primary-b",
+        "pod-template-generation": "609"
+      },
+      "ready": true,
+      "start_time": "2026-09-14T01:36:52Z",
+      "containers": [
+        {
+          "name": "caddy",
+          "image": "docker.io/library/caddy@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d",
+          "image_id": "docker.io/library/caddy@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        },
+        {
+          "name": "edge",
+          "image": "ghcr.io/yym68686/fugue-edge@sha256:c8b58ea9fbc574c92762c2e1151fc882bd4e1692ab4419a930b9af09cda53a8b",
+          "image_id": "ghcr.io/yym68686/fugue-edge@sha256:c8b58ea9fbc574c92762c2e1151fc882bd4e1692ab4419a930b9af09cda53a8b",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        },
+        {
+          "name": "edge-workload-identity",
+          "image": "ghcr.io/yym68686/fugue-edge@sha256:c8b58ea9fbc574c92762c2e1151fc882bd4e1692ab4419a930b9af09cda53a8b",
+          "image_id": "ghcr.io/yym68686/fugue-edge@sha256:c8b58ea9fbc574c92762c2e1151fc882bd4e1692ab4419a930b9af09cda53a8b",
+          "ready": true,
+          "restart_count": 0,
+          "state": "terminated",
+          "reason": "Completed"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-fugue-edge-worker-b-xxvh7",
+      "phase": "Running",
+      "node_name": "vps-591f4447",
+      "pod_ip": "10.42.2.55",
+      "host_ip": "15.204.94.71",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-fugue-edge-worker-b"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "edge-worker-b",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "controller-revision-hash": "579fc55cdb",
+        "fugue.io/edge-control-client": "true",
+        "fugue.io/edge-control-inventory-writer": "true",
+        "fugue.io/edge-group-id": "edge-group-country-us",
+        "fugue.io/edge-pool-id": "edge-pool-public-b",
+        "fugue.io/edge-slot": "b",
+        "fugue.io/fault-domain-id": "fault-domain-primary-b",
+        "pod-template-generation": "570"
+      },
+      "ready": true,
+      "start_time": "2026-09-07T12:06:42Z",
+      "containers": [
+        {
+          "name": "caddy",
+          "image": "docker.io/library/caddy@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d",
+          "image_id": "docker.io/library/caddy@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        },
+        {
+          "name": "edge",
+          "image": "ghcr.io/yym68686/fugue-edge@sha256:04c72f91abf913cec9bf9d663e6616a599ef566fc9a2710ff77fe0e51c9f7859",
+          "image_id": "ghcr.io/yym68686/fugue-edge@sha256:04c72f91abf913cec9bf9d663e6616a599ef566fc9a2710ff77fe0e51c9f7859",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        },
+        {
+          "name": "edge-workload-identity",
+          "image": "ghcr.io/yym68686/fugue-edge@sha256:04c72f91abf913cec9bf9d663e6616a599ef566fc9a2710ff77fe0e51c9f7859",
+          "image_id": "ghcr.io/yym68686/fugue-edge@sha256:04c72f91abf913cec9bf9d663e6616a599ef566fc9a2710ff77fe0e51c9f7859",
+          "ready": true,
+          "restart_count": 0,
+          "state": "terminated",
+          "reason": "Completed"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-fugue-image-cache-z7lbz",
+      "phase": "Running",
+      "node_name": "vps-591f4447",
+      "pod_ip": "15.204.94.71",
+      "host_ip": "15.204.94.71",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-fugue-image-cache"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "image-cache",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "controller-revision-hash": "5f76cd544b",
+        "fugue.io/downtime-class": "build-deploy-gate",
+        "fugue.io/rollout-mode": "bounded-rolling-restart",
+        "fugue.io/rollout-subsystem": "node-local-build-plane",
+        "pod-template-generation": "122"
+      },
+      "ready": true,
+      "start_time": "2026-09-13T00:42:29Z",
+      "containers": [
+        {
+          "name": "image-cache",
+          "image": "ghcr.io/yym68686/fugue-image-cache@sha256:e6aa681fb265d07513c4f60640ada0a26280151f96b6b044bfe110b489103623",
+          "image_id": "ghcr.io/yym68686/fugue-image-cache@sha256:e6aa681fb265d07513c4f60640ada0a26280151f96b6b044bfe110b489103623",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-lvm-localpv-node-mpk2h",
+      "phase": "Running",
+      "node_name": "vps-591f4447",
+      "pod_ip": "10.42.2.50",
+      "host_ip": "15.204.94.71",
+      "qos_class": "BestEffort",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-lvm-localpv-node"
+      },
+      "labels": {
+        "app": "openebs-lvm-node",
+        "chart": "lvm-localpv-1.9.0",
+        "controller-revision-hash": "7b94894fb7",
+        "heritage": "Helm",
+        "name": "openebs-lvm-node",
+        "openebs.io/component-name": "openebs-lvm-node",
+        "openebs.io/logging": "true",
+        "openebs.io/version": "1.9.0",
+        "pod-template-generation": "2",
+        "release": "fugue",
+        "role": "openebs-lvm"
+      },
+      "ready": true,
+      "start_time": "2026-06-08T09:48:17Z",
+      "containers": [
+        {
+          "name": "csi-node-driver-registrar",
+          "image": "registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.13.0",
+          "image_id": "registry.k8s.io/sig-storage/csi-node-driver-registrar@sha256:d7138bcc3aa5f267403d45ad4292c95397e421ea17a0035888850f424c7de25d",
+          "ready": true,
+          "restart_count": 1,
+          "state": "running"
+        },
+        {
+          "name": "openebs-lvm-plugin",
+          "image": "docker.io/openebs/lvm-driver:1.9.0",
+          "image_id": "docker.io/openebs/lvm-driver@sha256:e4f5dec4391cdf0da2d1841587ab7276f6c09f5efc2c3acd1ebb7a48c81b29f7",
+          "ready": true,
+          "restart_count": 1,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "edge-control-de-744bc5cfb9-nx7w2",
+      "phase": "Running",
+      "node_name": "vps-84c8f0a9",
+      "pod_ip": "10.42.1.132",
+      "host_ip": "51.38.126.103",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "ReplicaSet",
+        "name": "edge-control-de-744bc5cfb9"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "edge-control",
+        "app.kubernetes.io/instance": "edge-control-de",
+        "app.kubernetes.io/name": "fugue-edge-control",
+        "fugue.io/edge-group-id": "edge-group-country-de",
+        "pod-template-hash": "744bc5cfb9"
+      },
+      "ready": true,
+      "start_time": "2026-09-07T11:12:01Z",
+      "containers": [
+        {
+          "name": "edge-control",
+          "image": "ghcr.io/yym68686/fugue-edge-control@sha256:b364171707f0ff6171c4eab85bddc468af8240a2600e51fa25e465958a820db3",
+          "image_id": "ghcr.io/yym68686/fugue-edge-control@sha256:b364171707f0ff6171c4eab85bddc468af8240a2600e51fa25e465958a820db3",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        },
+        {
+          "name": "state-permissions",
+          "image": "ghcr.io/yym68686/fugue-edge-control@sha256:b364171707f0ff6171c4eab85bddc468af8240a2600e51fa25e465958a820db3",
+          "image_id": "ghcr.io/yym68686/fugue-edge-control@sha256:b364171707f0ff6171c4eab85bddc468af8240a2600e51fa25e465958a820db3",
+          "ready": true,
+          "restart_count": 0,
+          "state": "terminated",
+          "reason": "Completed"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-fugue-dns-country-de-5zptr",
+      "phase": "Running",
+      "node_name": "vps-84c8f0a9",
+      "pod_ip": "10.42.1.143",
+      "host_ip": "51.38.126.103",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-fugue-dns-country-de"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "dns-country-de",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "controller-revision-hash": "787dcc7b5b",
+        "fugue.io/downtime-class": "online-required",
+        "fugue.io/rollout-mode": "direct-ondelete-protected",
+        "fugue.io/rollout-subsystem": "public-data-plane",
+        "pod-template-generation": "431"
+      },
+      "ready": true,
+      "start_time": "2026-09-14T17:02:05Z",
+      "containers": [
+        {
+          "name": "dns",
+          "image": "ghcr.io/yym68686/fugue-edge@sha256:f6922b894f8c47748fba51065bd7e838dcaf206fb0a1f61ae57e4d7056f116a3",
+          "image_id": "ghcr.io/yym68686/fugue-edge@sha256:f6922b894f8c47748fba51065bd7e838dcaf206fb0a1f61ae57e4d7056f116a3",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-fugue-edge-country-de-front-66m2p",
+      "phase": "Running",
+      "node_name": "vps-84c8f0a9",
+      "pod_ip": "10.42.1.139",
+      "host_ip": "51.38.126.103",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-fugue-edge-country-de-front"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "edge-country-de-front",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "controller-revision-hash": "6dd9bdb8ff",
+        "fugue.io/edge-group-id": "edge-group-country-de",
+        "pod-template-generation": "238"
+      },
+      "ready": true,
+      "start_time": "2026-09-14T01:31:23Z",
+      "containers": [
+        {
+          "name": "edge-front",
+          "image": "ghcr.io/yym68686/fugue-edge@sha256:cf3f715a20dc436bf99267004403b2eb3c52234f9a8b81e2ae0a8c1577bbfd43",
+          "image_id": "ghcr.io/yym68686/fugue-edge@sha256:cf3f715a20dc436bf99267004403b2eb3c52234f9a8b81e2ae0a8c1577bbfd43",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-fugue-edge-country-de-ssh-front-j4xfn",
+      "phase": "Running",
+      "node_name": "vps-84c8f0a9",
+      "pod_ip": "51.38.126.103",
+      "host_ip": "51.38.126.103",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-fugue-edge-country-de-ssh-front"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "fugue-ssh-front-country-de",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "controller-revision-hash": "869f6f445d",
+        "fugue.io/downtime-class": "online-required",
+        "fugue.io/rollout-mode": "direct-ondelete-protected",
+        "fugue.io/rollout-subsystem": "public-ssh-data-plane",
+        "pod-template-generation": "207"
+      },
+      "ready": true,
+      "start_time": "2026-09-14T17:02:05Z",
+      "containers": [
+        {
+          "name": "ssh-front",
+          "image": "ghcr.io/yym68686/fugue-edge@sha256:f6922b894f8c47748fba51065bd7e838dcaf206fb0a1f61ae57e4d7056f116a3",
+          "image_id": "ghcr.io/yym68686/fugue-edge@sha256:f6922b894f8c47748fba51065bd7e838dcaf206fb0a1f61ae57e4d7056f116a3",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-fugue-edge-country-de-worker-a-mwvgx",
+      "phase": "Running",
+      "node_name": "vps-84c8f0a9",
+      "pod_ip": "10.42.1.134",
+      "host_ip": "51.38.126.103",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-fugue-edge-country-de-worker-a"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "edge-country-de-worker-a",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "controller-revision-hash": "645985fb5b",
+        "fugue.io/edge-control-client": "true",
+        "fugue.io/edge-control-inventory-writer": "true",
+        "fugue.io/edge-group-id": "edge-group-country-de",
+        "fugue.io/edge-pool-id": "edge-pool-public-a",
+        "fugue.io/edge-slot": "a",
+        "fugue.io/fault-domain-id": "fault-domain-primary-a",
+        "pod-template-generation": "704"
+      },
+      "ready": true,
+      "start_time": "2026-09-07T11:21:14Z",
+      "containers": [
+        {
+          "name": "caddy",
+          "image": "docker.io/library/caddy@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d",
+          "image_id": "docker.io/library/caddy@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        },
+        {
+          "name": "edge",
+          "image": "ghcr.io/yym68686/fugue-edge@sha256:945e54a5aca3d9d93bfb62cf8342fa0eca46334fbeb38610f0146a49d2797935",
+          "image_id": "ghcr.io/yym68686/fugue-edge@sha256:945e54a5aca3d9d93bfb62cf8342fa0eca46334fbeb38610f0146a49d2797935",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        },
+        {
+          "name": "edge-workload-identity",
+          "image": "ghcr.io/yym68686/fugue-edge@sha256:945e54a5aca3d9d93bfb62cf8342fa0eca46334fbeb38610f0146a49d2797935",
+          "image_id": "ghcr.io/yym68686/fugue-edge@sha256:945e54a5aca3d9d93bfb62cf8342fa0eca46334fbeb38610f0146a49d2797935",
+          "ready": true,
+          "restart_count": 0,
+          "state": "terminated",
+          "reason": "Completed"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-fugue-edge-country-de-worker-b-49qgb",
+      "phase": "Running",
+      "node_name": "vps-84c8f0a9",
+      "pod_ip": "10.42.1.138",
+      "host_ip": "51.38.126.103",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-fugue-edge-country-de-worker-b"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "edge-country-de-worker-b",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "controller-revision-hash": "7458576f9d",
+        "fugue.io/edge-control-client": "true",
+        "fugue.io/edge-control-inventory-writer": "true",
+        "fugue.io/edge-group-id": "edge-group-country-de",
+        "fugue.io/edge-pool-id": "edge-pool-public-a",
+        "fugue.io/edge-slot": "b",
+        "fugue.io/fault-domain-id": "fault-domain-primary-a",
+        "pod-template-generation": "671"
+      },
+      "ready": true,
+      "start_time": "2026-09-14T01:30:42Z",
+      "containers": [
+        {
+          "name": "caddy",
+          "image": "docker.io/library/caddy@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d",
+          "image_id": "docker.io/library/caddy@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        },
+        {
+          "name": "edge",
+          "image": "ghcr.io/yym68686/fugue-edge@sha256:cf3f715a20dc436bf99267004403b2eb3c52234f9a8b81e2ae0a8c1577bbfd43",
+          "image_id": "ghcr.io/yym68686/fugue-edge@sha256:cf3f715a20dc436bf99267004403b2eb3c52234f9a8b81e2ae0a8c1577bbfd43",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        },
+        {
+          "name": "edge-workload-identity",
+          "image": "ghcr.io/yym68686/fugue-edge@sha256:cf3f715a20dc436bf99267004403b2eb3c52234f9a8b81e2ae0a8c1577bbfd43",
+          "image_id": "ghcr.io/yym68686/fugue-edge@sha256:cf3f715a20dc436bf99267004403b2eb3c52234f9a8b81e2ae0a8c1577bbfd43",
+          "ready": true,
+          "restart_count": 0,
+          "state": "terminated",
+          "reason": "Completed"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-fugue-image-cache-vt7wg",
+      "phase": "Running",
+      "node_name": "vps-84c8f0a9",
+      "pod_ip": "51.38.126.103",
+      "host_ip": "51.38.126.103",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-fugue-image-cache"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "image-cache",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "controller-revision-hash": "5f76cd544b",
+        "fugue.io/downtime-class": "build-deploy-gate",
+        "fugue.io/rollout-mode": "bounded-rolling-restart",
+        "fugue.io/rollout-subsystem": "node-local-build-plane",
+        "pod-template-generation": "122"
+      },
+      "ready": true,
+      "start_time": "2026-09-13T00:42:29Z",
+      "containers": [
+        {
+          "name": "image-cache",
+          "image": "ghcr.io/yym68686/fugue-image-cache@sha256:e6aa681fb265d07513c4f60640ada0a26280151f96b6b044bfe110b489103623",
+          "image_id": "ghcr.io/yym68686/fugue-image-cache@sha256:e6aa681fb265d07513c4f60640ada0a26280151f96b6b044bfe110b489103623",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-lvm-localpv-node-2thqp",
+      "phase": "Running",
+      "node_name": "vps-84c8f0a9",
+      "pod_ip": "10.42.1.59",
+      "host_ip": "51.38.126.103",
+      "qos_class": "BestEffort",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-lvm-localpv-node"
+      },
+      "labels": {
+        "app": "openebs-lvm-node",
+        "chart": "lvm-localpv-1.9.0",
+        "controller-revision-hash": "7b94894fb7",
+        "heritage": "Helm",
+        "name": "openebs-lvm-node",
+        "openebs.io/component-name": "openebs-lvm-node",
+        "openebs.io/logging": "true",
+        "openebs.io/version": "1.9.0",
+        "pod-template-generation": "2",
+        "release": "fugue",
+        "role": "openebs-lvm"
+      },
+      "ready": true,
+      "start_time": "2026-06-08T09:48:17Z",
+      "containers": [
+        {
+          "name": "csi-node-driver-registrar",
+          "image": "registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.13.0",
+          "image_id": "registry.k8s.io/sig-storage/csi-node-driver-registrar@sha256:d7138bcc3aa5f267403d45ad4292c95397e421ea17a0035888850f424c7de25d",
+          "ready": true,
+          "restart_count": 1,
+          "state": "running"
+        },
+        {
+          "name": "openebs-lvm-plugin",
+          "image": "docker.io/openebs/lvm-driver:1.9.0",
+          "image_id": "docker.io/openebs/lvm-driver@sha256:e4f5dec4391cdf0da2d1841587ab7276f6c09f5efc2c3acd1ebb7a48c81b29f7",
+          "ready": true,
+          "restart_count": 1,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-alloy-l2sgn",
+      "phase": "Running",
+      "node_name": "vps-d6d20fa1",
+      "pod_ip": "10.42.0.251",
+      "host_ip": "15.204.88.101",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-alloy"
+      },
+      "labels": {
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "alloy",
+        "controller-revision-hash": "6b99f5999d",
+        "pod-template-generation": "1"
+      },
+      "ready": true,
+      "start_time": "2026-09-11T21:19:04Z",
+      "containers": [
+        {
+          "name": "alloy",
+          "image": "docker.io/grafana/alloy:v1.8.1",
+          "image_id": "docker.io/grafana/alloy@sha256:7790f6f7fbd8e4486b4b6c6fc6a7293a73605bb79aaa7f49003cb366943724f6",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        },
+        {
+          "name": "config-reloader",
+          "image": "quay.io/prometheus-operator/prometheus-config-reloader:v0.81.0",
+          "image_id": "quay.io/prometheus-operator/prometheus-config-reloader@sha256:959d47672fbff2776a04ec62b8afcec89e8c036af84dc5fade50019dab212746",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-cloudnative-pg-5fb7845d6b-fpspl",
+      "phase": "Running",
+      "node_name": "vps-d6d20fa1",
+      "pod_ip": "10.42.0.153",
+      "host_ip": "15.204.88.101",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "ReplicaSet",
+        "name": "fugue-cloudnative-pg-5fb7845d6b"
+      },
+      "labels": {
+        "app.kubernetes.io/instance": "fugue-cloudnative-pg",
+        "app.kubernetes.io/name": "cloudnative-pg",
+        "pod-template-hash": "5fb7845d6b"
+      },
+      "ready": true,
+      "start_time": "2026-05-14T19:47:07Z",
+      "containers": [
+        {
+          "name": "manager",
+          "image": "ghcr.io/cloudnative-pg/cloudnative-pg:1.29.0",
+          "image_id": "ghcr.io/cloudnative-pg/cloudnative-pg@sha256:68074486205a33ed41928761e22ad48278c690feebe8316727a1c6b3380f9e5e",
+          "ready": true,
+          "restart_count": 36,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-cloudnative-pg-5fb7845d6b-gmxm7",
+      "phase": "Running",
+      "node_name": "vps-d6d20fa1",
+      "pod_ip": "10.42.0.149",
+      "host_ip": "15.204.88.101",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "ReplicaSet",
+        "name": "fugue-cloudnative-pg-5fb7845d6b"
+      },
+      "labels": {
+        "app.kubernetes.io/instance": "fugue-cloudnative-pg",
+        "app.kubernetes.io/name": "cloudnative-pg",
+        "pod-template-hash": "5fb7845d6b"
+      },
+      "ready": true,
+      "start_time": "2026-05-14T19:47:08Z",
+      "containers": [
+        {
+          "name": "manager",
+          "image": "ghcr.io/cloudnative-pg/cloudnative-pg:1.29.0",
+          "image_id": "ghcr.io/cloudnative-pg/cloudnative-pg@sha256:68074486205a33ed41928761e22ad48278c690feebe8316727a1c6b3380f9e5e",
+          "ready": true,
+          "restart_count": 35,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-fugue-api-8565bb8858-9sjh4",
+      "phase": "Running",
+      "node_name": "vps-d6d20fa1",
+      "pod_ip": "10.42.0.183",
+      "host_ip": "15.204.88.101",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "ReplicaSet",
+        "name": "fugue-fugue-api-8565bb8858"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "api",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "fugue.io/edge-control-route-intent-tls": "true",
+        "pod-template-hash": "8565bb8858"
+      },
+      "ready": true,
+      "start_time": "2026-09-14T17:02:53Z",
+      "containers": [
+        {
+          "name": "api",
+          "image": "ghcr.io/yym68686/fugue-api@sha256:37bdf938b8c84ae1622e9233fb46ed9d76d045de38d9f82ca616b82c7360496f",
+          "image_id": "ghcr.io/yym68686/fugue-api@sha256:37bdf938b8c84ae1622e9233fb46ed9d76d045de38d9f82ca616b82c7360496f",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-fugue-api-8565bb8858-gfs2d",
+      "phase": "Running",
+      "node_name": "vps-d6d20fa1",
+      "pod_ip": "10.42.0.184",
+      "host_ip": "15.204.88.101",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "ReplicaSet",
+        "name": "fugue-fugue-api-8565bb8858"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "api",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "fugue.io/edge-control-route-intent-tls": "true",
+        "pod-template-hash": "8565bb8858"
+      },
+      "ready": true,
+      "start_time": "2026-09-14T17:03:13Z",
+      "containers": [
+        {
+          "name": "api",
+          "image": "ghcr.io/yym68686/fugue-api@sha256:37bdf938b8c84ae1622e9233fb46ed9d76d045de38d9f82ca616b82c7360496f",
+          "image_id": "ghcr.io/yym68686/fugue-api@sha256:37bdf938b8c84ae1622e9233fb46ed9d76d045de38d9f82ca616b82c7360496f",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-fugue-controller-78db7bd57c-c4hmm",
+      "phase": "Running",
+      "node_name": "vps-d6d20fa1",
+      "pod_ip": "10.42.0.109",
+      "host_ip": "15.204.88.101",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "ReplicaSet",
+        "name": "fugue-fugue-controller-78db7bd57c"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "controller",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "pod-template-hash": "78db7bd57c"
+      },
+      "ready": true,
+      "start_time": "2026-09-13T07:03:36Z",
+      "containers": [
+        {
+          "name": "controller",
+          "image": "ghcr.io/yym68686/fugue-controller@sha256:6bb55f59dd9ad5e733c16c4bf916dd01df83f6592208cf12b991a1d243a6b2e5",
+          "image_id": "ghcr.io/yym68686/fugue-controller@sha256:6bb55f59dd9ad5e733c16c4bf916dd01df83f6592208cf12b991a1d243a6b2e5",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-fugue-controller-78db7bd57c-zrddv",
+      "phase": "Running",
+      "node_name": "vps-d6d20fa1",
+      "pod_ip": "10.42.0.110",
+      "host_ip": "15.204.88.101",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "ReplicaSet",
+        "name": "fugue-fugue-controller-78db7bd57c"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "controller",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "pod-template-hash": "78db7bd57c"
+      },
+      "ready": true,
+      "start_time": "2026-09-13T07:03:37Z",
+      "containers": [
+        {
+          "name": "controller",
+          "image": "ghcr.io/yym68686/fugue-controller@sha256:6bb55f59dd9ad5e733c16c4bf916dd01df83f6592208cf12b991a1d243a6b2e5",
+          "image_id": "ghcr.io/yym68686/fugue-controller@sha256:6bb55f59dd9ad5e733c16c4bf916dd01df83f6592208cf12b991a1d243a6b2e5",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-fugue-headscale-79d6d47659-w9755",
+      "phase": "Running",
+      "node_name": "vps-d6d20fa1",
+      "pod_ip": "10.42.0.244",
+      "host_ip": "15.204.88.101",
+      "qos_class": "BestEffort",
+      "owner": {
+        "kind": "ReplicaSet",
+        "name": "fugue-fugue-headscale-79d6d47659"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "headscale",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "fugue.io/downtime-class": "join-plane-gate",
+        "fugue.io/rollout-mode": "isolated-singleton",
+        "fugue.io/rollout-subsystem": "mesh-control",
+        "pod-template-hash": "79d6d47659"
+      },
+      "ready": true,
+      "start_time": "2026-09-11T21:19:03Z",
+      "containers": [
+        {
+          "name": "headscale",
+          "image": "headscale/headscale:0.26.1",
+          "image_id": "docker.io/headscale/headscale@sha256:ea9b5ee06274d757a4d52103de56cd11a9c393acb19d9a35f4b9fe52ada410de",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-fugue-image-cache-hkwfp",
+      "phase": "Running",
+      "node_name": "vps-d6d20fa1",
+      "pod_ip": "15.204.88.101",
+      "host_ip": "15.204.88.101",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-fugue-image-cache"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "image-cache",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "controller-revision-hash": "5f76cd544b",
+        "fugue.io/downtime-class": "build-deploy-gate",
+        "fugue.io/rollout-mode": "bounded-rolling-restart",
+        "fugue.io/rollout-subsystem": "node-local-build-plane",
+        "pod-template-generation": "122"
+      },
+      "ready": true,
+      "start_time": "2026-09-13T00:42:48Z",
+      "containers": [
+        {
+          "name": "image-cache",
+          "image": "ghcr.io/yym68686/fugue-image-cache@sha256:e6aa681fb265d07513c4f60640ada0a26280151f96b6b044bfe110b489103623",
+          "image_id": "ghcr.io/yym68686/fugue-image-cache@sha256:e6aa681fb265d07513c4f60640ada0a26280151f96b6b044bfe110b489103623",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-fugue-node-janitor-w45fw",
+      "phase": "Running",
+      "node_name": "vps-d6d20fa1",
+      "pod_ip": "10.42.0.150",
+      "host_ip": "15.204.88.101",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-fugue-node-janitor"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "node-janitor",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "controller-revision-hash": "6c9754589b",
+        "pod-template-generation": "109"
+      },
+      "ready": true,
+      "start_time": "2026-06-17T23:34:41Z",
+      "containers": [
+        {
+          "name": "node-janitor",
+          "image": "ghcr.io/yym68686/fugue-controller:c55db9e982168efa8b8300f56ab0f3e77cca1604",
+          "image_id": "ghcr.io/yym68686/fugue-controller@sha256:48d83d4e1c52441661398db5f215c45acff8dec53d9b93f66c01f598631d89cc",
+          "ready": true,
+          "restart_count": 1,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-fugue-topology-labeler-45xwz",
+      "phase": "Running",
+      "node_name": "vps-d6d20fa1",
+      "pod_ip": "10.42.0.252",
+      "host_ip": "15.204.88.101",
+      "qos_class": "Burstable",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-fugue-topology-labeler"
+      },
+      "labels": {
+        "app.kubernetes.io/component": "topology-labeler",
+        "app.kubernetes.io/instance": "fugue",
+        "app.kubernetes.io/name": "fugue",
+        "controller-revision-hash": "d8965b67d",
+        "pod-template-generation": "102"
+      },
+      "ready": true,
+      "start_time": "2026-09-11T21:19:04Z",
+      "containers": [
+        {
+          "name": "topology-labeler",
+          "image": "ghcr.io/yym68686/fugue-controller:c55db9e982168efa8b8300f56ab0f3e77cca1604",
+          "image_id": "ghcr.io/yym68686/fugue-controller@sha256:48d83d4e1c52441661398db5f215c45acff8dec53d9b93f66c01f598631d89cc",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
+    },
+    {
+      "namespace": "fugue-system",
+      "name": "fugue-lvm-localpv-node-7hpfx",
+      "phase": "Running",
+      "node_name": "vps-d6d20fa1",
+      "pod_ip": "10.42.0.253",
+      "host_ip": "15.204.88.101",
+      "qos_class": "BestEffort",
+      "owner": {
+        "kind": "DaemonSet",
+        "name": "fugue-lvm-localpv-node"
+      },
+      "labels": {
+        "app": "openebs-lvm-node",
+        "chart": "lvm-localpv-1.9.0",
+        "controller-revision-hash": "7b94894fb7",
+        "heritage": "Helm",
+        "name": "openebs-lvm-node",
+        "openebs.io/component-name": "openebs-lvm-node",
+        "openebs.io/logging": "true",
+        "openebs.io/version": "1.9.0",
+        "pod-template-generation": "2",
+        "release": "fugue",
+        "role": "openebs-lvm"
+      },
+      "ready": true,
+      "start_time": "2026-09-11T21:19:04Z",
+      "containers": [
+        {
+          "name": "csi-node-driver-registrar",
+          "image": "registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.13.0",
+          "image_id": "registry.k8s.io/sig-storage/csi-node-driver-registrar@sha256:d7138bcc3aa5f267403d45ad4292c95397e421ea17a0035888850f424c7de25d",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        },
+        {
+          "name": "openebs-lvm-plugin",
+          "image": "docker.io/openebs/lvm-driver:1.9.0",
+          "image_id": "docker.io/openebs/lvm-driver@sha256:e4f5dec4391cdf0da2d1841587ab7276f6c09f5efc2c3acd1ebb7a48c81b29f7",
+          "ready": true,
+          "restart_count": 0,
+          "state": "running"
+        }
+      ]
     }
   ],
   "dns_nodes": [
     {
       "id": "vps-84c8f0a9",
+      "physical_node_id": "vps-84c8f0a9",
+      "edge_group_id": "edge-group-country-de",
+      "public_ipv4": "51.38.126.103",
+      "mesh_ip": "51.38.126.103",
+      "zone": "fugue.pro",
+      "status": "healthy",
       "healthy": true,
+      "dns_bundle_version": "dnsgen_bf08c9a7ea40de08",
+      "serving_generation": "dnsenv_07262ff37e03d7d14daf78b6a467ba3ef8acd075ee9e963282fe59f57c543568",
+      "lkg_generation": "dnsenv_07262ff37e03d7d14daf78b6a467ba3ef8acd075ee9e963282fe59f57c543568",
+      "record_count": 204,
       "cache_status": "ready",
-      "last_heartbeat_at": "2026-09-14T17:10:14.770273Z"
+      "cache_write_errors": 0,
+      "cache_load_errors": 0,
+      "bundle_sync_errors": 0,
+      "query_count": 348,
+      "query_error_count": 5,
+      "query_rcode_counts": {
+        "NOERROR": 343,
+        "NXDOMAIN": 1,
+        "REFUSED": 4
+      },
+      "query_qtype_counts": {
+        "A": 192,
+        "AAAA": 119,
+        "CNAME": 1,
+        "DNSKEY": 23,
+        "HTTPS": 2,
+        "MX": 4,
+        "NS": 3,
+        "SOA": 2,
+        "TXT": 2
+      },
+      "listen_addr": ":7834",
+      "udp_addr": ":53",
+      "tcp_addr": ":53",
+      "udp_listen": true,
+      "tcp_listen": true,
+      "last_seen_at": "2026-09-14T17:10:14.770273Z",
+      "last_heartbeat_at": "2026-09-14T17:10:14.770273Z",
+      "created_at": "2026-05-11T22:43:52.957527Z",
+      "updated_at": "2026-09-14T17:10:14.770273Z"
     },
     {
       "id": "vps-84c8f0a9--zone-i00-pro",
+      "physical_node_id": "vps-84c8f0a9",
+      "edge_group_id": "edge-group-country-de",
+      "public_ipv4": "51.38.126.103",
+      "mesh_ip": "51.38.126.103",
+      "zone": "i00.pro",
+      "status": "healthy",
       "healthy": true,
+      "dns_bundle_version": "dnsgen_feb5a2e2f7d831cd",
+      "serving_generation": "dnsenv_25fb21f9ac14563d8b6b9d77e4e7d4e9673e7a62489fa276ddd6044d79acda36",
+      "lkg_generation": "dnsenv_25fb21f9ac14563d8b6b9d77e4e7d4e9673e7a62489fa276ddd6044d79acda36",
+      "record_count": 2,
       "cache_status": "ready",
-      "last_heartbeat_at": "2026-09-14T17:10:14.770182Z"
+      "cache_write_errors": 0,
+      "cache_load_errors": 0,
+      "bundle_sync_errors": 0,
+      "query_count": 46,
+      "query_error_count": 1,
+      "query_rcode_counts": {
+        "NOERROR": 45,
+        "NXDOMAIN": 1
+      },
+      "query_qtype_counts": {
+        "A": 34,
+        "AAAA": 5,
+        "DNSKEY": 7
+      },
+      "listen_addr": ":7834",
+      "udp_addr": ":53",
+      "tcp_addr": ":53",
+      "udp_listen": true,
+      "tcp_listen": true,
+      "last_seen_at": "2026-09-14T17:10:14.770182Z",
+      "last_heartbeat_at": "2026-09-14T17:10:14.770182Z",
+      "created_at": "2026-07-30T03:04:01.552534Z",
+      "updated_at": "2026-09-14T17:10:14.770182Z"
     },
     {
       "id": "vps-84c8f0a9--zone-oaix-cc",
+      "physical_node_id": "vps-84c8f0a9",
+      "edge_group_id": "edge-group-country-de",
+      "public_ipv4": "51.38.126.103",
+      "mesh_ip": "51.38.126.103",
+      "zone": "oaix.cc",
+      "status": "healthy",
       "healthy": true,
+      "dns_bundle_version": "dnsgen_19ecf015b4c8efe1",
+      "serving_generation": "dnsenv_dca85b0c0fb1c0d42175fd97ca04323ab802b0ab3f2e5841cfa538008f6c5d56",
+      "lkg_generation": "dnsenv_dca85b0c0fb1c0d42175fd97ca04323ab802b0ab3f2e5841cfa538008f6c5d56",
+      "record_count": 2,
       "cache_status": "ready",
-      "last_heartbeat_at": "2026-09-14T17:10:14.621933Z"
+      "cache_write_errors": 0,
+      "cache_load_errors": 0,
+      "bundle_sync_errors": 0,
+      "query_count": 1,
+      "query_error_count": 0,
+      "query_rcode_counts": {
+        "NOERROR": 1
+      },
+      "query_qtype_counts": {
+        "A": 1
+      },
+      "listen_addr": ":7834",
+      "udp_addr": ":53",
+      "tcp_addr": ":53",
+      "udp_listen": true,
+      "tcp_listen": true,
+      "last_seen_at": "2026-09-14T17:10:14.621933Z",
+      "last_heartbeat_at": "2026-09-14T17:10:14.621933Z",
+      "created_at": "2026-07-08T18:02:52.460596Z",
+      "updated_at": "2026-09-14T17:10:14.621933Z"
     },
     {
       "id": "vps-591f4447",
+      "physical_node_id": "vps-591f4447",
+      "edge_group_id": "edge-group-country-us",
+      "public_ipv4": "15.204.94.71",
+      "mesh_ip": "15.204.94.71",
+      "zone": "fugue.pro",
+      "status": "healthy",
       "healthy": true,
+      "dns_bundle_version": "dnsgen_cc946a89e6fe12f9",
+      "serving_generation": "dnsenv_0444fbf42a0bfae1b0f8380491aedc61e30da49d13a1e8376526ced93aa06a32",
+      "lkg_generation": "dnsenv_0444fbf42a0bfae1b0f8380491aedc61e30da49d13a1e8376526ced93aa06a32",
+      "record_count": 204,
       "cache_status": "ready",
-      "last_heartbeat_at": "2026-09-14T17:10:15.517102Z"
+      "cache_write_errors": 0,
+      "cache_load_errors": 0,
+      "bundle_sync_errors": 0,
+      "query_count": 225,
+      "query_error_count": 2,
+      "query_rcode_counts": {
+        "NOERROR": 223,
+        "REFUSED": 2
+      },
+      "query_qtype_counts": {
+        "A": 130,
+        "AAAA": 78,
+        "ANY": 1,
+        "DNSKEY": 8,
+        "HTTPS": 2,
+        "MX": 1,
+        "NS": 4,
+        "TXT": 1
+      },
+      "listen_addr": ":7834",
+      "udp_addr": ":53",
+      "tcp_addr": ":53",
+      "udp_listen": true,
+      "tcp_listen": true,
+      "last_seen_at": "2026-09-14T17:10:15.517102Z",
+      "last_heartbeat_at": "2026-09-14T17:10:15.517102Z",
+      "created_at": "2026-05-11T22:43:52.636682Z",
+      "updated_at": "2026-09-14T17:10:15.517102Z"
     },
     {
       "id": "vps-591f4447--zone-i00-pro",
+      "physical_node_id": "vps-591f4447",
+      "edge_group_id": "edge-group-country-us",
+      "public_ipv4": "15.204.94.71",
+      "mesh_ip": "15.204.94.71",
+      "zone": "i00.pro",
+      "status": "healthy",
       "healthy": true,
+      "dns_bundle_version": "dnsgen_208723efc4236dd8",
+      "serving_generation": "dnsenv_79be1a97fb1c689fdd21196f26ab25f76f3d88480facfe1fe774854f0034adaf",
+      "lkg_generation": "dnsenv_79be1a97fb1c689fdd21196f26ab25f76f3d88480facfe1fe774854f0034adaf",
+      "record_count": 2,
       "cache_status": "ready",
-      "last_heartbeat_at": "2026-09-14T17:10:15.520191Z"
+      "cache_write_errors": 0,
+      "cache_load_errors": 0,
+      "bundle_sync_errors": 0,
+      "query_count": 31,
+      "query_error_count": 1,
+      "query_rcode_counts": {
+        "NOERROR": 30,
+        "NXDOMAIN": 1
+      },
+      "query_qtype_counts": {
+        "A": 25,
+        "AAAA": 3,
+        "DNSKEY": 3
+      },
+      "listen_addr": ":7834",
+      "udp_addr": ":53",
+      "tcp_addr": ":53",
+      "udp_listen": true,
+      "tcp_listen": true,
+      "last_seen_at": "2026-09-14T17:10:15.520191Z",
+      "last_heartbeat_at": "2026-09-14T17:10:15.520191Z",
+      "created_at": "2026-07-30T03:03:19.683741Z",
+      "updated_at": "2026-09-14T17:10:15.520191Z"
     },
     {
       "id": "vps-591f4447--zone-oaix-cc",
+      "physical_node_id": "vps-591f4447",
+      "edge_group_id": "edge-group-country-us",
+      "public_ipv4": "15.204.94.71",
+      "mesh_ip": "15.204.94.71",
+      "zone": "oaix.cc",
+      "status": "healthy",
       "healthy": true,
+      "dns_bundle_version": "dnsgen_3386791f178ff857",
+      "serving_generation": "dnsenv_f42ca14da20bff2ed4eeed5757616ba3d7fc4e53941d6e565108366804d54a5e",
+      "lkg_generation": "dnsenv_f42ca14da20bff2ed4eeed5757616ba3d7fc4e53941d6e565108366804d54a5e",
+      "record_count": 2,
       "cache_status": "ready",
-      "last_heartbeat_at": "2026-09-14T17:10:15.524598Z"
+      "cache_write_errors": 0,
+      "cache_load_errors": 0,
+      "bundle_sync_errors": 0,
+      "query_count": 0,
+      "query_error_count": 0,
+      "listen_addr": ":7834",
+      "udp_addr": ":53",
+      "tcp_addr": ":53",
+      "udp_listen": true,
+      "tcp_listen": true,
+      "last_seen_at": "2026-09-14T17:10:15.524598Z",
+      "last_heartbeat_at": "2026-09-14T17:10:15.524598Z",
+      "created_at": "2026-07-08T18:02:36.01923Z",
+      "updated_at": "2026-09-14T17:10:15.524598Z"
     }
   ],
-  "policy_lkg_status": 404,
-  "local_validation": [
-    "make test passed",
-    "API rejected promotion/rollback without creating LKG",
-    "signed LKG expiry tests for A/AAAA/TXT",
-    "placement replay, readiness, owner, exclusions, family, quorum tests"
-  ],
-  "limitations": [
-    "Real hostname evidence collector and platform DNS projection remain pending",
-    "No promotion of synthetic placement artifacts",
-    "Direct SSH was unavailable; actual production Pod images verified through authenticated cluster API against CI receipts",
-    "Direct external UDP query timed out from this host; TCP succeeded. DNS node health and trusted heartbeats are healthy.",
-    "Release guard baseline already reports failed checks across existing applications; this step is not a clean full-platform bill of health"
-  ]
+  "scope_note": "Synthetic fixed placement facts compiled through production API; no artifact promoted. Real hostname placement evidence collector remains pending."
 }
