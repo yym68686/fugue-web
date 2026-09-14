@@ -1,0 +1,20 @@
+{
+  "observed_at": "2026-09-14T12:19:59.875524+00:00",
+  "api": {
+    "name": "fugue-fugue-api",
+    "commit": "b94b490c1cccd9722e0d0f5d1ab6c73892d7629e",
+    "generation": 1002,
+    "images": [
+      "ghcr.io/yym68686/fugue-api@sha256:3b82957982937bf164ad1a8c46b480fb28bc0e718d822d9461412901b036d065"
+    ],
+    "ready_replicas": 2
+  },
+  "ci_run": "34841776124",
+  "guardian_state": "stable",
+  "health_status": 200,
+  "ready_status": 200,
+  "shadow_and_lkg_unchanged": true,
+  "policy_lkg_status": 404,
+  "local_lifecycle_regression_repetitions": 20,
+  "full_make_test_passed": true
+}

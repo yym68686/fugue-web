@@ -32,7 +32,7 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-14 生产核查：API 已运行 commit `c026642c`（generation 1001，compiler v9）。业务迁移草稿包含 130 条 route、15 条 DNS 输入和 8 份 release observations；13 条静态 DNS 与来源逐条一致，已删除 zone 的 1 条记录明确排除。加权 compiler 与 DNS wire 校验通过本地、CI 和生产验证。仍未完成动态 DNS placement、ACME/flatten、TLS readiness、真实 release facts 修复、全量等价以及 consumer gray/full 接管。现有 shadow ReleaseSet 与 serving/LKG 未切换；这些结果不能作为全局迁移完成证明。
+2026-09-14 生产核查：API 已运行 commit `b94b490c`（generation 1002，compiler v9）；Guardian 已运行 `42ba6b41`。业务迁移草稿包含 130 条 route、15 条 DNS 输入和 8 份 release observations；13 条静态 DNS 与来源逐条一致，已删除 zone 的 1 条记录明确排除。加权 compiler 与 DNS wire 校验通过本地、CI 和生产验证。仍未完成动态 DNS placement、ACME/flatten、TLS readiness、真实 release facts 修复、全量等价以及 consumer gray/full 接管。现有 shadow ReleaseSet 与 serving/LKG 未切换；这些结果不能作为全局迁移完成证明。
 
 Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 generation、content hash、签名、验证状态、release channel、fencing token 和 LKG；Edge 与 DNS 也有签名校验、本地缓存和过期控制。
 
@@ -2247,3 +2247,13 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] 生产 Guardian/Prober 均 Ready，API 保持 `c026642c` / generation 1001；Guardian stable、健康/就绪 200，shadow、policy LKG 与 route lineage 在发布前后完全一致。
 
 证据：[guardian-predecessor-boundary-2026-09-14.json](verification/guardian-predecessor-boundary-2026-09-14.json)。
+
+### P0-BD：后台任务退出与 CI 清理竞态修复
+
+- [x] 为 API 预热任务增加 completion/join；取消 context 后等待已经开始的 callback 完成，测试在关闭临时存储前等待后台任务退出。
+- [x] inventory 预热使用调用方 context，并等待 singleflight 的最终结果；console warmer 不再从 stale 读取路径启动脱离生命周期的刷新。
+- [x] API 退出时有界等待 warmers；加入已取消任务不启动、取消期间已有工作必须结束的回归，相关场景连续 20 次通过；完整 `make test` 通过。
+- [x] backend `b94b490c1cccd9722e0d0f5d1ab6c73892d7629e` 已推送，CI `34841776124` 首次通过，生产 API generation 1002、2/2 Ready、Guardian stable、健康/就绪 200。
+- [x] 发布前后 shadow、route lineage 与 policy LKG 状态一致。policy LKG 仍为原有的 404（未激活），不将该缺失状态当成已验证恢复能力。
+
+证据：[warmer-lifecycle-2026-09-14.json](verification/warmer-lifecycle-2026-09-14.json)。
