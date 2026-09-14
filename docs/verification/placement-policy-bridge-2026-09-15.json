@@ -60,5 +60,48 @@
     "edge-group placement bridge race tests passed",
     "exact API-only release plan passed"
   ],
-  "scope": "Placement policy bridge only; no DNS artifact promotion or consumer rollout."
+  "scope": "Placement policy bridge only; no DNS artifact promotion or consumer rollout.",
+  "api_image": "ghcr.io/yym68686/fugue-api@sha256:07ef9156b519e0defe5ac4d1dd0440247c32607ceb7a1ca572f882ba91393239",
+  "api_pods": [
+    {
+      "name": "fugue-fugue-api-7f6f77c5dd-dcrnw",
+      "ready": true,
+      "restarts": 0
+    },
+    {
+      "name": "fugue-fugue-api-7f6f77c5dd-v2hqz",
+      "ready": true,
+      "restarts": 0
+    }
+  ],
+  "guardian": {
+    "apiVersion": "release.fugue.dev/v1",
+    "component": "api",
+    "currentRecordDigest": "sha256:741dc9efc90fe4722da62be565cba1c423c9f3eec96fac6b6cb212dbd56d9a9c",
+    "group": "global",
+    "health": {
+      "dependency": {
+        "evidenceDigest": "sha256:6423d5f713c2197229df9a2f259d0d859e0852143df96334e2ffbae8c4db8b13",
+        "observedAt": "2026-09-14T23:08:08.367215315Z",
+        "state": "healthy"
+      },
+      "local": {
+        "evidenceDigest": "sha256:5bf34cacba0c5187a1a99ce1064c1220725654bcaae10a2450bb2203a1ce2454",
+        "observedAt": "2026-09-14T23:08:08.367215315Z",
+        "state": "healthy"
+      },
+      "route": {
+        "evidenceDigest": "sha256:4003ef5e72051996b2da7f5dd081f162c31f9964547363a0b3b523ed510371da",
+        "observedAt": "2026-09-14T23:08:07.488476557Z",
+        "state": "healthy"
+      }
+    },
+    "kind": "ReleaseStatus",
+    "lastSuccessfulLkg": "sha256:741dc9efc90fe4722da62be565cba1c423c9f3eec96fac6b6cb212dbd56d9a9c",
+    "observedAt": "2026-09-14T23:08:10.452032384Z",
+    "reason": "local, dependency, and route health are verified",
+    "state": "stable",
+    "statusDigest": "sha256:ae9f3028592a1166607e6cb6c3c39516863c1a72f390a709361e00700792b539",
+    "targetRecordDigest": "sha256:741dc9efc90fe4722da62be565cba1c423c9f3eec96fac6b6cb212dbd56d9a9c"
+  }
 }
