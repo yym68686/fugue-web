@@ -2385,7 +2385,7 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] 缺少 route、重复入口、业务 owner 冲突和跨 authoritative zone 均 fail-closed；投影完成后重新计算 intent generation 和 policy generation，placement facts 重新绑定完整 route/policy digest。
 - [x] 定向 API、DNS route、placement 和全量 `GOFLAGS=-p=2 GOMAXPROCS=4 make test` 通过；精确 release plan 仅选择 API lane。一次 amend 造成错误 ancestry 被 release planner 拒绝后，已重建 successor，未绕过前驱检查。
 - [x] backend `9560b9099e2d38cbac6601c33898ae4daa16177d` 以生产 `ef47c27e` 为真实前驱推送，CI `34895066459` 成功，API 2/2 Ready、health/ready 200；旧 Edge/DNS serving、shadow ReleaseSet、route lineage 和 policy LKG 保持不变。
-- [x] 生产 migration draft 返回 `api.fugue.pro`、`mesh.fugue.pro` 两个 `FUGUE_ROUTE` intent；静态 api A 覆盖保留审计记录；三个 placement observation 各含 3 个已证明候选，`dns_placement_evidence_requires_repair` 已消除。
+- [x] 生产 migration draft 返回 `api.fugue.pro`、`mesh.fugue.pro` 两个 `FUGUE_ROUTE` intent；静态 api A 覆盖保留审计记录；三个 placement observation 各含 3 个已证明候选，`dns_placement_evidence_requires_repair` 已消除。API route 的既有最小健康门槛 2 已冻结到迁移 policy，修复后摘要与加载 bundle 一致。
 - [ ] 真实平台 DNS answer 与旧 Edge/DNS 全量输出仍未完成；平台 route placement issue 保持阻塞，不能解除 DNS consumer gray/full 或声明公网平台入口已迁移。证据：[platform-entry-dns-projection-2026-09-15.json](verification/platform-entry-dns-projection-2026-09-15.json)。
 
 证据：[dns-placement-compiler-2026-09-15.json](verification/dns-placement-compiler-2026-09-15.json)。

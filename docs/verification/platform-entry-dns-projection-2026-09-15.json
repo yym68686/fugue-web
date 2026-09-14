@@ -224,5 +224,11 @@
     "ready_status": 200,
     "scope": "Synthetic API compile and rejection evidence; no platform DNS projection or serving takeover."
   },
-  "scope": "API-only platform DNS intent projection. No artifact promotion; Edge/DNS serving remains on existing positive LKG."
+  "scope": "API-only platform DNS intent projection. No artifact promotion; Edge/DNS serving remains on existing positive LKG.",
+  "redundancy_policy_fix": {
+    "production_runtime_predecessor": "ef47c27ed6e1ed65edc39e27a3e361c2d7507341",
+    "fix_commit": "9560b9099e2d38cbac6601c33898ae4daa16177d",
+    "reason": "API route default minimum healthy edge count 2 was explicitly frozen in migration policy; old placement digest was rejected until recaptured."
+  },
+  "final_ci": 34895066459
 }
