@@ -2338,7 +2338,7 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] placement replay、双栈、quorum、owner、route/TLS readiness、排除、过期和 21 类非法输入回归通过；完整 `make test` 通过。
 - [x] backend `ce418c911d1ba10d38e870e4edd3be5f6a7f5e1b`、CI `34871479064` 成功，API 与 US/DE DNS lanes 均部署；web `3b86559acc9b3261445d0bbaa3d91b4457c6e276`、contract-drift `34871954405` 成功。
 - [x] 生产 API 2/2 Ready、两个 DNS 节点可信 shadow receipt 为 `staged/shadow_validated`，DNS 节点健康、cache ready；现有 shadow ReleaseSet、route lineage 和 policy LKG 查询与发布前一致，候选未 promotion；legacy DNS envelope generation 仍按正常刷新推进。管理端对美、德 DNS 的 UDP/TCP 探测均通过。生产合成编译验证了三次相同 digest、双栈 lease、quorum 截止、策略分支、所有 traffic guard 和健康/就绪 200。
-- [ ] 真实业务 hostname placement observation 尚未由独立受信采集器生成；当前草稿仍有 `dns_app_placement_not_projected`，因此不能宣称 FUGUE_APP 已进入生产 serving 或解除租期 promotion 保护。
+- [x] 真实业务 hostname placement observation 已由 P0-BM 的独立 HTTPS proof collector 生成；当前应用 DNS 草稿已消除 `dns_app_placement_not_projected`。这是编译输入观测，FUGUE_APP 尚未切换到新 artifact serving，租期 promotion 保护继续保留。
 
 ### P0-BL：Edge 实际加载路由证明协议
 
@@ -2349,9 +2349,22 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] backend `0d7b084f504e3c0cc3c875dca59ae326113d0ae1`、CI `34877564853` 成功；API 及美/德 Edge worker 均经声明式流程部署；web `596dc49086b015d85e1a4c0f7fb41418884aa027`、contract-drift `34877587474` 成功。
 - [x] 从生产 Guardian 对德国 1 个、美国 2 个公网 IP 发起 HTTPS 探测，全部返回 204；nonce、edge/group identity、摘要、bundle version 和有效期均与对应 worker 的已加载 bundle 相符，无 nonce 返回 400；3 个活跃 worker Ready、零重启，API 2/2 Ready，三项 Guardian local/dependency/route health 均 healthy。
 - [x] 发布前后 shadow ReleaseSet、route lineage 和 policy LKG 查询完全一致；policy LKG 仍为原有 404，不将其当作已完成 policy 恢复验收；候选配置未 promotion。证据：[edge-route-proof-2026-09-15.json](verification/edge-route-proof-2026-09-15.json)。
-- [ ] 接入独立 placement collector，将证明与编译目标路由及原始 inventory freshness 核对，生成固定 `DNSPlacementObservation`；完成真实应用/平台 DNS 等价校验后才可解除发布保护。
+- [x] 接入独立 placement collector，将证明与编译目标路由及原始 inventory freshness 核对，生成固定 `DNSPlacementObservation`，见 P0-BM。
+- [ ] 完成真实应用/平台 DNS 等价校验后才可解除发布保护。
 
 验证范围：本机网络路径对同一固定 IP 的请求仍返回普通 upstream 响应，原因尚未确认，未用作部署验收证据；生产 Guardian 发起的公网 HTTPS 与 worker 本地 bundle 交叉验证通过。本步骤证明协议可用，不代表应用 origin 健康或未来持续可用，尚未完成真实 FUGUE_APP serving 迁移。
+
+### P0-BM：真实应用 DNS placement 采集
+
+- [x] migration draft 对应用 DNS 的每个 hostname/path、每个候选公网地址发起独立 TLS/Host proof；校验 nonce、完整路由行为 digest、原始 bundle version、edge/group identity 和有效期，拒绝重定向、私有地址、歧义响应头和失效证据。
+- [x] 提取 `routebinding.FromIntent` 为 API 观测与 Edge Control 共用的纯字段转换；runtime 健康、group selection、签名和发布 generation 仍由原 owner 处理，避免第二套路由转换语义。
+- [x] 只为通过全部路径证明的地址生成候选；保留原始 heartbeat 时间，租期取 heartbeat freshness、policy freshness、signed bundle 和证书链有效期的最小值。LastSeenAt 不续期，后续 hostname 探测完成后按最终 captured_at 重新校验已有事实。
+- [x] 采集使用有界时间、节点数和探测数；有效 inventory 地址身份冲突明确拒绝，陈旧 inventory 不阻塞健康节点；拒绝结果保留 issues，其他迁移问题不会被清除。
+- [x] 定向/race 回归与完整 `make test` 通过；修复现有 NetworkPolicy 测试中写死历史 release SHA/generation 的断言，改为校验完整前驱绑定，真实前驱继续由精确 release plan 与 Guardian CAS 核验。
+- [x] backend `11b7f38bc1577d94e2289804410c4ccad25ba0de`、CI `34883804560` 成功；API、两地 Edge Control、Guardian/Prober 均通过声明式流程部署且 Ready。web `dc52d879986193e2a03191b38e9c7369cd3b4785`、contract-drift `34883844216` 成功。
+- [x] 生产真实应用 DNS 生成 1 份 placement observation、3 个正向候选（美国 2、德国 1），原 heartbeat 时间及最长 90 秒租期已核对；业务 deployment 变化导致旧 digest 被拒绝，重新捕获的快照通过。当前 132 routes，issues 仅余平台 DNS placement、release target equivalence 和 release observation repair。
+- [x] API 与两地 Edge Control Guardian 均 stable，local/dependency/route health 均 healthy；health/ready 200，shadow ReleaseSet、route lineage 和 policy LKG 查询与发布前一致。policy LKG 仍为 404，候选配置未 promotion。证据：[dns-placement-capture-2026-09-15.json](verification/dns-placement-capture-2026-09-15.json)。
+- [ ] 完成平台 DNS placement、真实 release facts/sticky 策略和全量输出等价验证，再执行 artifact consumer apply、gray/full 与 rollback 恢复验收；当前 `migration_ready=false`。
 
 证据：[dns-placement-compiler-2026-09-15.json](verification/dns-placement-compiler-2026-09-15.json)。
 

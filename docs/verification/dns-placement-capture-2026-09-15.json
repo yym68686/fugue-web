@@ -1,0 +1,228 @@
+{
+  "observed_at": "2026-09-14T19:10:44.937022+00:00",
+  "backend_commit": "11b7f38bc1577d94e2289804410c4ccad25ba0de",
+  "ci_run": 34883804560,
+  "guardian": [
+    {
+      "apiVersion": "release.fugue.dev/v1",
+      "component": "api",
+      "currentRecordDigest": "sha256:bf083f03408bc14bd8d13283bee7507727d6c615210aa754a0d607b9c32f0d43",
+      "group": "global",
+      "health": {
+        "dependency": {
+          "evidenceDigest": "sha256:6423d5f713c2197229df9a2f259d0d859e0852143df96334e2ffbae8c4db8b13",
+          "observedAt": "2026-09-14T19:10:31.889214615Z",
+          "state": "healthy"
+        },
+        "local": {
+          "evidenceDigest": "sha256:fb561e7409ee035d8eb94c4bb2c7ef4a11ac2d8b965105862be133c98d869a5f",
+          "observedAt": "2026-09-14T19:10:31.889214615Z",
+          "state": "healthy"
+        },
+        "route": {
+          "evidenceDigest": "sha256:4003ef5e72051996b2da7f5dd081f162c31f9964547363a0b3b523ed510371da",
+          "observedAt": "2026-09-14T19:10:28.054717591Z",
+          "state": "healthy"
+        }
+      },
+      "kind": "ReleaseStatus",
+      "lastSuccessfulLkg": "sha256:bf083f03408bc14bd8d13283bee7507727d6c615210aa754a0d607b9c32f0d43",
+      "observedAt": "2026-09-14T19:10:33.804100507Z",
+      "reason": "local, dependency, and route health are verified",
+      "state": "stable",
+      "statusDigest": "sha256:f32c2c32473992abe88ca1a34cd4015af84d194b468b1f86590396e83f59f1da",
+      "targetRecordDigest": "sha256:bf083f03408bc14bd8d13283bee7507727d6c615210aa754a0d607b9c32f0d43"
+    },
+    {
+      "apiVersion": "release.fugue.dev/v1",
+      "component": "edge-control-de",
+      "currentRecordDigest": "sha256:635e3ba7587f5a228ae870deb1da18c6499a3e53b950b60327c77d86bae63174",
+      "group": "de",
+      "health": {
+        "dependency": {
+          "evidenceDigest": "sha256:6423d5f713c2197229df9a2f259d0d859e0852143df96334e2ffbae8c4db8b13",
+          "observedAt": "2026-09-14T19:10:32.602529561Z",
+          "state": "healthy"
+        },
+        "local": {
+          "evidenceDigest": "sha256:58bf26ce47b3d231163fcfe41cfc05c96e560cb1dbdbfa88a7ac1dda686d8857",
+          "observedAt": "2026-09-14T19:10:32.602529561Z",
+          "state": "healthy"
+        },
+        "route": {
+          "evidenceDigest": "sha256:082095393f261d496484c3334f8be581eae8b703f4565616255ea457cf32c8a4",
+          "observedAt": "2026-09-14T19:10:28.088698478Z",
+          "state": "healthy"
+        }
+      },
+      "kind": "ReleaseStatus",
+      "lastSuccessfulLkg": "sha256:635e3ba7587f5a228ae870deb1da18c6499a3e53b950b60327c77d86bae63174",
+      "observedAt": "2026-09-14T19:10:34.553522173Z",
+      "reason": "local, dependency, and route health are verified",
+      "state": "stable",
+      "statusDigest": "sha256:09d04cd868141854622ae4e4eb94a72dea75f778170001647c497c29e54a3b3d",
+      "targetRecordDigest": "sha256:635e3ba7587f5a228ae870deb1da18c6499a3e53b950b60327c77d86bae63174"
+    },
+    {
+      "apiVersion": "release.fugue.dev/v1",
+      "component": "edge-control-us",
+      "currentRecordDigest": "sha256:a3e3f12e5f07a42fd27eee6acb95c1655aa6c81594c9b78699d9fa63794e6bb5",
+      "group": "us",
+      "health": {
+        "dependency": {
+          "evidenceDigest": "sha256:6423d5f713c2197229df9a2f259d0d859e0852143df96334e2ffbae8c4db8b13",
+          "observedAt": "2026-09-14T19:10:31.093997624Z",
+          "state": "healthy"
+        },
+        "local": {
+          "evidenceDigest": "sha256:a77d4439e614a792c0795567d6eaece6ca4a8bf1d2d8ea2c91bb6ff5aab627ad",
+          "observedAt": "2026-09-14T19:10:31.093997624Z",
+          "state": "healthy"
+        },
+        "route": {
+          "evidenceDigest": "sha256:851baf3852ee3e3fbdafd55fbe999865d9138dcfa8bfd9e593d6e701edf2f108",
+          "observedAt": "2026-09-14T19:10:27.989478681Z",
+          "state": "healthy"
+        }
+      },
+      "kind": "ReleaseStatus",
+      "lastSuccessfulLkg": "sha256:a3e3f12e5f07a42fd27eee6acb95c1655aa6c81594c9b78699d9fa63794e6bb5",
+      "observedAt": "2026-09-14T19:10:32.800457967Z",
+      "reason": "local, dependency, and route health are verified",
+      "state": "stable",
+      "statusDigest": "sha256:32ea196445da9e878a7078bacc0a19364ce5e10885d7b0d0fb7fd09cf298d83b",
+      "targetRecordDigest": "sha256:a3e3f12e5f07a42fd27eee6acb95c1655aa6c81594c9b78699d9fa63794e6bb5"
+    }
+  ],
+  "facts": [
+    {
+      "input_digest": "sha256:5e144fa315f58a3803690a71d68ea180c09bfc9291f79027c6823e4bb908a4a6",
+      "checked_at": "2026-09-14T19:10:38.44726182Z",
+      "status": "resolved",
+      "target_ttl": 60,
+      "candidates": [
+        {
+          "edge_id": "bwg",
+          "edge_group_id": "edge-group-country-us",
+          "serving_generation": "edgegroupbundle_11116290d8842401ba2526cfc12a998fcd335e86cb0499d18b411976045251f2.p44788.r177",
+          "observed_at": "2026-09-14T19:10:27.183633Z",
+          "valid_until": "2026-09-14T19:11:57.183633Z",
+          "healthy": true,
+          "route_ready": true,
+          "tls_ready": true,
+          "a": [
+            "95.169.10.156"
+          ]
+        },
+        {
+          "edge_id": "vps-591f4447",
+          "edge_group_id": "edge-group-country-us",
+          "serving_generation": "edgegroupbundle_11116290d8842401ba2526cfc12a998fcd335e86cb0499d18b411976045251f2.p44788.r177",
+          "observed_at": "2026-09-14T19:10:08.858275Z",
+          "valid_until": "2026-09-14T19:11:38.858275Z",
+          "healthy": true,
+          "route_ready": true,
+          "tls_ready": true,
+          "a": [
+            "15.204.94.71"
+          ]
+        },
+        {
+          "edge_id": "vps-84c8f0a9",
+          "edge_group_id": "edge-group-country-de",
+          "serving_generation": "edgegroupbundle_aa6a26671a5aec129a675ff5de61779af536d1cafd45a1bc265d98752a0e80aa.p31143.r514",
+          "observed_at": "2026-09-14T19:10:15.482687Z",
+          "valid_until": "2026-09-14T19:11:45.482687Z",
+          "healthy": true,
+          "route_ready": true,
+          "tls_ready": true,
+          "a": [
+            "51.38.126.103"
+          ]
+        }
+      ]
+    }
+  ],
+  "state_unchanged": true,
+  "policy_lkg": "404, unchanged",
+  "health_status": 200,
+  "ready_status": 200,
+  "serving_promoted": false,
+  "scope": "Real application hostname placement is captured from HTTPS proofs. This diagnostic does not promote artifacts or prove global migration equivalence.",
+  "web_commit": "dc52d879986193e2a03191b38e9c7369cd3b4785",
+  "web_contract_run": 34883844216,
+  "workloads": [
+    {
+      "name": "fugue-fugue-api",
+      "commit": "11b7f38bc1577d94e2289804410c4ccad25ba0de",
+      "generation": 1009,
+      "ready": 2,
+      "desired": 2,
+      "images": [
+        "ghcr.io/yym68686/fugue-api@sha256:6497921e5783a3b787c19dfdcb877290cdaf577a853c08fdedcc43f9dafa6416"
+      ]
+    },
+    {
+      "name": "edge-control-de",
+      "commit": "11b7f38bc1577d94e2289804410c4ccad25ba0de",
+      "generation": 150,
+      "ready": 1,
+      "desired": 1,
+      "images": [
+        "ghcr.io/yym68686/fugue-edge-control@sha256:37e8de8d01203deec905e290d9c1b80b9d15b66638380de7c23ab9e6cc2b1ccc"
+      ]
+    },
+    {
+      "name": "edge-control-us",
+      "commit": "11b7f38bc1577d94e2289804410c4ccad25ba0de",
+      "generation": 46,
+      "ready": 1,
+      "desired": 1,
+      "images": [
+        "ghcr.io/yym68686/fugue-edge-control@sha256:8496b3b1d02c05444b19ea7c8fe8b676a32229579f0bb33c4e026ee5215dddcc"
+      ]
+    },
+    {
+      "name": "fugue-release-guardian",
+      "commit": "11b7f38bc1577d94e2289804410c4ccad25ba0de",
+      "generation": 249,
+      "ready": 1,
+      "desired": 1,
+      "images": [
+        "ghcr.io/yym68686/fugue-release-guardian@sha256:f7f81c60e231ffa7a2221059a14f1a3d074382a79e7c9b8d9d38e86c6103363d"
+      ]
+    },
+    {
+      "name": "fugue-release-canary-prober",
+      "commit": "11b7f38bc1577d94e2289804410c4ccad25ba0de",
+      "generation": 252,
+      "ready": 1,
+      "desired": 1,
+      "images": [
+        "ghcr.io/yym68686/fugue-release-guardian@sha256:f7f81c60e231ffa7a2221059a14f1a3d074382a79e7c9b8d9d38e86c6103363d"
+      ]
+    }
+  ],
+  "route_count": 132,
+  "migration_ready": false,
+  "issues": [
+    {
+      "code": "dns_route_placement_not_projected"
+    },
+    {
+      "code": "release_target_equivalence_not_verified"
+    },
+    {
+      "code": "release_observations_require_repair"
+    }
+  ],
+  "local_validation": [
+    "make test",
+    "placement capture and proof rejection tests",
+    "placement capture race tests",
+    "exact four-component declarative release plan",
+    "web contract:check"
+  ],
+  "rejected_stale_snapshot_reason": "Independent business deployment changed deployment_generation and cache_namespace; old digest correctly rejected; fresh draft accepted.",
+  "transport_validation": "Workstation urllib chunked-response reads failed intermittently; curl completed full JSON reads and all assertions."
+}
