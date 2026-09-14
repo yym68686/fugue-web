@@ -2398,6 +2398,14 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] 13 个 `dns_placement_route_inputs_invalid` 明确保留：包括尚未支持的 edge-group policy、陈旧 release facts 和 sticky release 策略；不能把这些都称为 origin 故障。其他时刻采集仍可能因真实 generation/freshness 变化出现 repair issue，单次通过不代表全平台无故障。证据：[default-dns-concurrent-placement-2026-09-15.json](verification/default-dns-concurrent-placement-2026-09-15.json)。
 - [ ] 补齐自定义域名/共享 target 投影、上述 policy/release 缺口和全量 DNS 等价校验；当前 migration_ready=false，旧 artifact 继续 serving，DNS gray/full 保护未解除。
 
+### P0-BQ：Placement policy bridge 与业务缺口分类
+
+- [x] 新增 `ApplyRoutePolicyConstraintsForPlacement`：placement 诊断先物化 edge-group、排除和最小健康约束，再用固定 inventory/proof facts 解析地址；完整 serving compiler 仍使用严格 `ApplyRoutePolicyConstraints`，未迁移约束不能直接发布。
+- [x] 约束 bridge 不修改 intent 或 policy，只复制 compiled route；edge-group readiness、route proof、quorum 和绝对租期仍是 fail-closed 条件。回归证明 placement 版本接受 edge-group policy，而严格 serving 编译仍拒绝同一未迁移输入。
+- [x] backend `1347f8371c06bf68ed33245ef642b786a24bab4a`、CI `34906552312` 成功；API Ready，生产迁移 draft 的 `dns_placement_route_inputs_invalid` 从 13 项降为 6 项。减少的 7 项来自 edge-group policy 循环；剩余 6 项继续保留为真实 release freshness/sticky/业务事实问题。
+- [x] 发布前后 shadow ReleaseSet、route lineage 和 policy LKG 状态未变化；健康/就绪 200，未 promotion。证据：[placement-policy-bridge-2026-09-15.json](verification/placement-policy-bridge-2026-09-15.json)。
+- [ ] 修复剩余 release freshness、sticky consumer 能力和各 hostname 的 origin/runtime 输入后，才能完成 placement 全量等价和 DNS gray/full/rollback 验收。
+
 证据：[dns-placement-compiler-2026-09-15.json](verification/dns-placement-compiler-2026-09-15.json)。
 
 P0-BK 验收范围说明：管理 SSH 通道在本轮核查时于密钥交换前关闭，实际镜像与 readiness 改由已授权 cluster API 和 CI 收据交叉核对。policy LKG 查询仍是原有 404，不等于已验证 policy 恢复。发布前全平台 release guard 已报告 152 项失败（以该次观测为准）；这些旧应用/运行态问题仍需后续调查修复，本步骤的通过不能证明全平台无故障。

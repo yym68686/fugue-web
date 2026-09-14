@@ -1,0 +1,64 @@
+{
+  "observed_at": "2026-09-14T23:06:28.591310+00:00",
+  "backend_commit": "1347f8371c06bf68ed33245ef642b786a24bab4a",
+  "ci_run": 34906552312,
+  "route_count": 133,
+  "dns_intent_count": 136,
+  "route_dns_count": 122,
+  "placement_observation_count": 117,
+  "placement_candidate_count": 203,
+  "issue_counts": {
+    "dns_route_placement_not_projected": 1,
+    "release_target_equivalence_not_verified": 1,
+    "release_observations_require_repair": 1,
+    "dns_placement_route_inputs_invalid": 6
+  },
+  "issues": [
+    {
+      "code": "dns_route_placement_not_projected"
+    },
+    {
+      "code": "release_target_equivalence_not_verified"
+    },
+    {
+      "code": "release_observations_require_repair"
+    },
+    {
+      "code": "dns_placement_route_inputs_invalid",
+      "hostname": "drain-canary-0705.fugue.pro"
+    },
+    {
+      "code": "dns_placement_route_inputs_invalid",
+      "hostname": "gigo-sidecar.fugue.pro"
+    },
+    {
+      "code": "dns_placement_route_inputs_invalid",
+      "hostname": "mecgod.fugue.pro"
+    },
+    {
+      "code": "dns_placement_route_inputs_invalid",
+      "hostname": "music.fugue.pro"
+    },
+    {
+      "code": "dns_placement_route_inputs_invalid",
+      "hostname": "review00.fugue.pro"
+    },
+    {
+      "code": "dns_placement_route_inputs_invalid",
+      "hostname": "uni-api-ember.fugue.pro"
+    }
+  ],
+  "migration_ready": false,
+  "state_unchanged": true,
+  "health_status": 200,
+  "ready_status": 200,
+  "shadow_release_set": "unchanged",
+  "route_lineage": "unchanged",
+  "policy_lkg": "unchanged 404 / not activated",
+  "local_validation": [
+    "GOFLAGS=-p=2 GOMAXPROCS=4 make test passed",
+    "edge-group placement bridge race tests passed",
+    "exact API-only release plan passed"
+  ],
+  "scope": "Placement policy bridge only; no DNS artifact promotion or consumer rollout."
+}
