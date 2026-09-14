@@ -8,10 +8,28 @@
   "artifact_kind": "dns_answer_bundle",
   "artifact_digest": "sha256:219aa35e3085818a3ff8e5bb996205b433b320bf60f0993c0967bcfe6ad5ce7c",
   "consumers": [
-    {"pod":"fugue-fugue-dns-75frl","node":"vps-591f4447","state":"shadow_verified","record_count":13,"serving_unchanged":true},
-    {"pod":"fugue-fugue-dns-country-de-pfwrm","node":"vps-84c8f0a9","state":"shadow_verified","record_count":13,"serving_unchanged":true}
+    {
+      "pod": "fugue-fugue-dns-75frl",
+      "node": "vps-591f4447",
+      "state": "shadow_verified",
+      "record_count": 13,
+      "serving_promoted_to_candidate": false
+    },
+    {
+      "pod": "fugue-fugue-dns-country-de-pfwrm",
+      "node": "vps-84c8f0a9",
+      "state": "shadow_verified",
+      "record_count": 13,
+      "serving_promoted_to_candidate": false
+    }
   ],
-  "trusted_convergence": {"required_expected":9,"required_observed":2,"required_passing":0,"state":"fail","reason":"shadow consumers stage and validate the candidate without changing serving; apply is intentionally not promoted"},
+  "trusted_convergence": {
+    "required_expected": 9,
+    "required_observed": 2,
+    "required_passing": 0,
+    "state": "fail",
+    "reason": "shadow consumers stage and validate the candidate without changing serving; apply is intentionally not promoted"
+  },
   "api_health": "ok",
   "api_ready": "ok"
 }

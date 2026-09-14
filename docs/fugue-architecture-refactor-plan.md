@@ -2014,7 +2014,7 @@ consumer observed: route 0/10, DNS 0/9, TLS 0/5
 - [x] 拒绝未绑定/已删除/已替换/终止的 Pod、租户 namespace 和无授权注解的 Pod；Kubernetes 故障返回 503，凭据不写入响应错误或日志。
 - [x] 定向测试、完整 `make test`、后端 CI 与部署、web contract-drift 通过；不增加集群 RBAC 权限。
 - [x] 生产真实 API Pod token 经 Kubernetes 核验后因无 consumer 授权注解返回 403；匿名与无效 token 返回 401；API 2/2 Ready，健康检查正常。
-- [ ] 真实 DNS Pod 的正向换证和持续续期随下一步 consumer 接入验证，不能以此次拒绝测试代替。
+- [x] 真实 DNS Pod 的正向换证和持续续期已由 P0-AN 的两个生产消费者持续上报验证。
 
 ```text
 backend commit: 59ef15cd65a443b54665cb83d9cde52503badb56
@@ -2033,7 +2033,7 @@ web contract-drift: 34790143695, success
 - [x] consumer 在本地 shadow LKG 文件中持久化 artifact、assignment、digest、sequence 和 verified-at。
 - [x] 严格验证签名、content hash、ReleaseSet、expected consumer set、generation、fencing 和 DNS payload schema。
 - [x] shadow candidate 验证成功后上报 trusted heartbeat；普通 DNS heartbeat 没有被当作 ACK。
-- [x] 两个生产 DNS Pod 均持续 `shadow_verified`，记录数 13，当前 serving generation 保持不变，容器无重启。
+- [x] 两个生产 DNS Pod 均持续 `shadow_verified`，记录数 13，当前 serving 没有切换到候选 artifact，容器无重启；原发布通道仍可正常更新 generation。
 - [x] 后端 CI `34792924445` 的两个 edge-client build 和两个 deploy 均成功；API `/healthz`、`/readyz` 正常。
 - [ ] DNS apply、probe 和 full convergence 尚未执行；当前 ReleaseSet 仍为 shadow，不能据此推进 full serving。
 
@@ -2046,5 +2046,23 @@ release_set: artifact_1789290147_22038f948fad (shadow)
 dns artifact: artifact_1789290147_a04df449b074
 artifact digest: sha256:219aa35e3085818a3ff8e5bb996205b433b320bf60f0993c0967bcfe6ad5ce7c
 trusted DNS observations: 2/9 observed, 0 passing (shadow_validated)
-serving: unchanged on both DNS pods
+serving: legacy publication continues; neither DNS pod applies the shadow candidate
 ```
+
+
+### P0-AO：活跃 Edge worker 的 route shadow 消费
+
+- [x] 新增 `internal/platformconsumer` 客户端，用受控 Pod token 换取短期组件身份，下载精确 assignment 绑定的 artifact；限制响应体大小，拒绝凭据重定向、歧义 assignment 和身份能力不匹配。
+- [x] Edge 验证签名、scope、kind、generation/sequence、fencing、ReleaseSet、policy digest、payload schema 与 lineage；候选文件与 serving route cache 分开。
+- [x] 只允许活跃 A/B 槽位上报；activation 缺失、损坏或下载期间切换时停止上报；落盘单调 sequence 后发送事实，丢失回执与重启不会重放 cursor。
+- [x] 只上报 `staged/shadow_validated`，保持实际 serving generation，不把下载或 shadow 校验伪造成 apply/probe 成功。
+- [x] 增加失败路径与 serving cache 保留测试；完整 `GOFLAGS=-p=2 GOMAXPROCS=4 make test` 及定向 `-race` 测试通过。
+- [x] 两地 build/deploy job 成功；Guardian 两地均 `stable`，local/dependency/route health 全部 healthy，monitor 无连续失败。
+- [x] 德国一个、美国两个活跃 worker 持续 `shadow_verified`、2/2 Ready、0 重启；实际 serving 130 条 route，候选 2 条 route。
+- [ ] 补全业务 PlatformIntent 投影、比较全部 route/DNS/TLS 输出，完成 TLS consumer 和灰度后才能推进 full。
+
+生产 commit：`febc911db3e57f868111e29309426da461595bd8`；CI `34795838726` 的全部 build 和两个 deploy job 为 success，run 总体因取消请求记录为 cancelled。取消前提交的 Guardian target 已完成部署和稳定验证，不能把 run 总体状态写成 success。
+
+发布中曾误填前驱并推送未通过计划检查的 intent，还重写过 main 历史；已通过 `1b28c5a0` 合并恢复原提交祖先，当前文件树与生产 commit 完全一致。失败 preflight 没有被作为部署成功证据，重复发布已取消。
+
+当前可信观察：route 3/10、DNS 2/9、TLS 0/5；passing 均为 0。候选只包含平台迁移样本，不能覆盖现有完整 serving。机器可读证据见 [edge-platform-shadow-2026-09-14.json](verification/edge-platform-shadow-2026-09-14.json)。

@@ -1,0 +1,188 @@
+{
+  "nodes": [
+    {
+      "pod": "fugue-fugue-edge-country-de-worker-b-49qgb",
+      "node": "vps-84c8f0a9",
+      "slot": "b",
+      "health": "ok",
+      "routes": 130,
+      "serving_generation": "edgegroupbundle_aa153f567bae4fabd2d4d330822864d23526bac687e80559efeba9890a135808",
+      "candidate": {
+        "state": "shadow_verified",
+        "artifact_id": "artifact_1789290147_3ae6084f214d",
+        "digest": "sha256:aa3453c3d79efef9c915163030f1d20df4186a69c3fe0cb24a567ef166ab69f9",
+        "release_set_id": "artifact_1789290147_22038f948fad",
+        "route_count": 2,
+        "sequence": 1789350203696320251,
+        "verified_at": "2026-09-14T01:43:23.696320351Z",
+        "reported_at": "2026-09-14T01:43:23.921666068Z"
+      },
+      "ready": true,
+      "restarts": 0,
+      "images": [
+        {
+          "name": "caddy",
+          "image": "docker.io/library/caddy:2.10.2-alpine"
+        },
+        {
+          "name": "edge",
+          "image": "sha256:dd6b7da752a5dbcb0bc418e4a59570fdb3ea06df6e415295c7d02c434bc07a60"
+        }
+      ]
+    },
+    {
+      "pod": "fugue-fugue-edge-worker-a-fz5hf",
+      "node": "bwg",
+      "slot": "a",
+      "health": "ok",
+      "routes": 130,
+      "serving_generation": "edgegroupbundle_027450da5b3b1da9ac83ad7b3afcf306428118cb0ce56b82decbc40b5f36dc7c",
+      "candidate": {
+        "state": "shadow_verified",
+        "artifact_id": "artifact_1789290147_3ae6084f214d",
+        "digest": "sha256:aa3453c3d79efef9c915163030f1d20df4186a69c3fe0cb24a567ef166ab69f9",
+        "release_set_id": "artifact_1789290147_22038f948fad",
+        "route_count": 2,
+        "sequence": 1789350199423471178,
+        "verified_at": "2026-09-14T01:43:19.423471279Z",
+        "reported_at": "2026-09-14T01:43:19.461629441Z"
+      },
+      "ready": true,
+      "restarts": 0,
+      "images": [
+        {
+          "name": "caddy",
+          "image": "docker.io/library/caddy:2.10.2-alpine"
+        },
+        {
+          "name": "edge",
+          "image": "sha256:3437d8f7fb9f4a7a571c41a8eea2208e23cae23e13226892c95199207f6e0516"
+        }
+      ]
+    },
+    {
+      "pod": "fugue-fugue-edge-worker-a-h6snv",
+      "node": "vps-591f4447",
+      "slot": "a",
+      "health": "ok",
+      "routes": 130,
+      "serving_generation": "edgegroupbundle_027450da5b3b1da9ac83ad7b3afcf306428118cb0ce56b82decbc40b5f36dc7c",
+      "candidate": {
+        "state": "shadow_verified",
+        "artifact_id": "artifact_1789290147_3ae6084f214d",
+        "digest": "sha256:aa3453c3d79efef9c915163030f1d20df4186a69c3fe0cb24a567ef166ab69f9",
+        "release_set_id": "artifact_1789290147_22038f948fad",
+        "route_count": 2,
+        "sequence": 1789350208474625637,
+        "verified_at": "2026-09-14T01:43:28.474625843Z",
+        "reported_at": "2026-09-14T01:43:28.485205538Z"
+      },
+      "ready": true,
+      "restarts": 0,
+      "images": [
+        {
+          "name": "caddy",
+          "image": "docker.io/library/caddy:2.10.2-alpine"
+        },
+        {
+          "name": "edge",
+          "image": "sha256:3437d8f7fb9f4a7a571c41a8eea2208e23cae23e13226892c95199207f6e0516"
+        }
+      ]
+    }
+  ],
+  "convergence": [
+    {
+      "artifact_kind": "caddy_route_config",
+      "state": "unknown",
+      "required_expected": 5,
+      "required_observed": 0,
+      "required_passing": 0
+    },
+    {
+      "artifact_kind": "dns_answer_bundle",
+      "state": "fail",
+      "required_expected": 9,
+      "required_observed": 2,
+      "required_passing": 0
+    },
+    {
+      "artifact_kind": "edge_route_bundle",
+      "state": "fail",
+      "required_expected": 10,
+      "required_observed": 3,
+      "required_passing": 0
+    }
+  ],
+  "backend_commit": "febc911db3e57f868111e29309426da461595bd8",
+  "repository_head": "1b28c5a08ebdcf7b3f87686aaa212b92e28a0ac1",
+  "ci_run": "34795838726",
+  "ci_conclusion": "cancelled",
+  "deploy_edge_worker_de": "success",
+  "deploy_edge_worker_us": "success",
+  "local_make_test": "passed",
+  "targeted_race_tests": "passed",
+  "serving_promoted_to_platform_artifact": false,
+  "guardian": {
+    "edge-worker-de": {
+      "apiVersion": "release.fugue.dev/v1",
+      "component": "edge-worker-de",
+      "currentRecordDigest": "sha256:bf8045d27d203ab53bb2b2b206a7a0b643d70e842c1e80e117c490275a4cb53e",
+      "group": "de",
+      "health": {
+        "dependency": {
+          "evidenceDigest": "sha256:cc27cbb60829549fecab4432c5aacf90724603d69be83cb7bdb99fd9431839fe",
+          "observedAt": "2026-09-14T01:45:21.126582049Z",
+          "state": "healthy"
+        },
+        "local": {
+          "evidenceDigest": "sha256:0db794de37a83eb7af99e112951ec87a7188366d64de7f6c6e1ed53617f04925",
+          "observedAt": "2026-09-14T01:45:21.126582049Z",
+          "state": "healthy"
+        },
+        "route": {
+          "evidenceDigest": "sha256:082095393f261d496484c3334f8be581eae8b703f4565616255ea457cf32c8a4",
+          "observedAt": "2026-09-14T01:45:23.432049948Z",
+          "state": "healthy"
+        }
+      },
+      "kind": "ReleaseStatus",
+      "lastSuccessfulLkg": "sha256:bf8045d27d203ab53bb2b2b206a7a0b643d70e842c1e80e117c490275a4cb53e",
+      "observedAt": "2026-09-14T01:45:25.075253931Z",
+      "reason": "local, dependency, and route health are verified",
+      "state": "stable",
+      "statusDigest": "sha256:cc99ea77b30dbed718cd3e728992aaee79fa191c77aaa63fbcae14c082fff700",
+      "targetRecordDigest": "sha256:bf8045d27d203ab53bb2b2b206a7a0b643d70e842c1e80e117c490275a4cb53e"
+    },
+    "edge-worker-us": {
+      "apiVersion": "release.fugue.dev/v1",
+      "component": "edge-worker-us",
+      "currentRecordDigest": "sha256:77d853e71173828fc16960b6332b1b79a3c3f7ff3c4cdacf39f970ad50ceda1c",
+      "group": "us",
+      "health": {
+        "dependency": {
+          "evidenceDigest": "sha256:5ea44fd7c986975bbd203cb27f4f30cc934bbd9756e58460af3efefc6d031849",
+          "observedAt": "2026-09-14T01:45:21.976319232Z",
+          "state": "healthy"
+        },
+        "local": {
+          "evidenceDigest": "sha256:1391e5db953df191efbe2fe76a995d0e2846420931ebe5a454c3800d3078848d",
+          "observedAt": "2026-09-14T01:45:21.976319232Z",
+          "state": "healthy"
+        },
+        "route": {
+          "evidenceDigest": "sha256:851baf3852ee3e3fbdafd55fbe999865d9138dcfa8bfd9e593d6e701edf2f108",
+          "observedAt": "2026-09-14T01:45:23.431464065Z",
+          "state": "healthy"
+        }
+      },
+      "kind": "ReleaseStatus",
+      "lastSuccessfulLkg": "sha256:77d853e71173828fc16960b6332b1b79a3c3f7ff3c4cdacf39f970ad50ceda1c",
+      "observedAt": "2026-09-14T01:45:25.977264547Z",
+      "reason": "local, dependency, and route health are verified",
+      "state": "stable",
+      "statusDigest": "sha256:466bab71cbd7617db9a2cad98e308127d91a1ccc632d18c1b45caf61b140bbc9",
+      "targetRecordDigest": "sha256:77d853e71173828fc16960b6332b1b79a3c3f7ff3c4cdacf39f970ad50ceda1c"
+    }
+  }
+}
