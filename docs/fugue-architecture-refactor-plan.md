@@ -2340,6 +2340,19 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] 生产 API 2/2 Ready、两个 DNS 节点可信 shadow receipt 为 `staged/shadow_validated`，DNS 节点健康、cache ready；现有 shadow ReleaseSet、route lineage 和 policy LKG 查询与发布前一致，候选未 promotion；legacy DNS envelope generation 仍按正常刷新推进。管理端对美、德 DNS 的 UDP/TCP 探测均通过。生产合成编译验证了三次相同 digest、双栈 lease、quorum 截止、策略分支、所有 traffic guard 和健康/就绪 200。
 - [ ] 真实业务 hostname placement observation 尚未由独立受信采集器生成；当前草稿仍有 `dns_app_placement_not_projected`，因此不能宣称 FUGUE_APP 已进入生产 serving 或解除租期 promotion 保护。
 
+### P0-BL：Edge 实际加载路由证明协议
+
+- [x] 在 OpenAPI 中定义受限 `HEAD` 探测协议；通过候选 IP 访问业务 hostname，使用 TLS SNI/证书、随机 nonce、edge/group identity、route digest、bundle version 和原始有效期绑定响应。
+- [x] Edge 从同一 immutable route index 读取 hostname/path、路由和 bundle expiry，返回版本化 SHA-256 摘要；不访问 upstream、peer 或业务数据库，不暴露路由 payload、地址或凭据，不延长 signed bundle 租期。
+- [x] 缺失路由、未发布候选、非活动或被排除路由、错误分组、过期 bundle、错误 method/version/nonce 均不能生成有效证明；普通代理请求保持原行为。
+- [x] 回归验证最长路径选择、route owner/upstream/权重/TLS/cache 变化导致 digest 改变、诊断时间和无序排除集合不影响 digest、拒绝路径无证明、重复探测不续期；完整 `make test`、定向 race 与精确发布计划通过。
+- [x] backend `0d7b084f504e3c0cc3c875dca59ae326113d0ae1`、CI `34877564853` 成功；API 及美/德 Edge worker 均经声明式流程部署；web `596dc49086b015d85e1a4c0f7fb41418884aa027`、contract-drift `34877587474` 成功。
+- [x] 从生产 Guardian 对德国 1 个、美国 2 个公网 IP 发起 HTTPS 探测，全部返回 204；nonce、edge/group identity、摘要、bundle version 和有效期均与对应 worker 的已加载 bundle 相符，无 nonce 返回 400；3 个活跃 worker Ready、零重启，API 2/2 Ready，三项 Guardian local/dependency/route health 均 healthy。
+- [x] 发布前后 shadow ReleaseSet、route lineage 和 policy LKG 查询完全一致；policy LKG 仍为原有 404，不将其当作已完成 policy 恢复验收；候选配置未 promotion。证据：[edge-route-proof-2026-09-15.json](verification/edge-route-proof-2026-09-15.json)。
+- [ ] 接入独立 placement collector，将证明与编译目标路由及原始 inventory freshness 核对，生成固定 `DNSPlacementObservation`；完成真实应用/平台 DNS 等价校验后才可解除发布保护。
+
+验证范围：本机网络路径对同一固定 IP 的请求仍返回普通 upstream 响应，原因尚未确认，未用作部署验收证据；生产 Guardian 发起的公网 HTTPS 与 worker 本地 bundle 交叉验证通过。本步骤证明协议可用，不代表应用 origin 健康或未来持续可用，尚未完成真实 FUGUE_APP serving 迁移。
+
 证据：[dns-placement-compiler-2026-09-15.json](verification/dns-placement-compiler-2026-09-15.json)。
 
 P0-BK 验收范围说明：管理 SSH 通道在本轮核查时于密钥交换前关闭，实际镜像与 readiness 改由已授权 cluster API 和 CI 收据交叉核对。policy LKG 查询仍是原有 404，不等于已验证 policy 恢复。发布前全平台 release guard 已报告 152 项失败（以该次观测为准）；这些旧应用/运行态问题仍需后续调查修复，本步骤的通过不能证明全平台无故障。
