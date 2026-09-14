@@ -32,7 +32,7 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-13 生产核查：已存在一份 `env-migration-prod-1` validated PlatformIntent、一份 `policy-shadow-prod-1` validated PolicySnapshot，以及由 artifact-only compiler 生成并落库的 route、DNS、TLS、ReleaseSet。ReleaseSet 已进入 shadow，尚未推进 gray/full；policy LKG 和公网 serving 没有切换；这证明迁移输入和 shadow artifact 已可重放，不证明 consumer 已接管或故障恢复演练已完成。全局完成标准仍保持未勾选；上线前必须继续完成真实输入对比、灰度、收敛和回滚验证。
+2026-09-14 生产核查：API 已运行 commit `c026642c`（generation 1001，compiler v9）。业务迁移草稿包含 130 条 route、15 条 DNS 输入和 8 份 release observations；13 条静态 DNS 与来源逐条一致，已删除 zone 的 1 条记录明确排除。加权 compiler 与 DNS wire 校验通过本地、CI 和生产验证。仍未完成动态 DNS placement、ACME/flatten、TLS readiness、真实 release facts 修复、全量等价以及 consumer gray/full 接管。现有 shadow ReleaseSet 与 serving/LKG 未切换；这些结果不能作为全局迁移完成证明。
 
 Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 generation、content hash、签名、验证状态、release channel、fencing token 和 LKG；Edge 与 DNS 也有签名校验、本地缓存和过期控制。
 
@@ -2203,8 +2203,8 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] declarative release predecessor 解析支持多个失败 preflight atom 后回到声明的祖先 verified LKG，仍要求精确 intent atom、祖先关系和部署时 Guardian LKG/image CAS 校验。
 - [x] backend commits `9d07dfb8`、`c4310f67`、`c619120a` 已推送；最终 CI `34827857272` 成功，生产 commit `c619120a822637c8c8b8c7153d84ecb690b238a5`、API generation `997`。
 - [x] 生产验证：草稿 130 route、128 app route/origin；TLS intent 已投影，issues 仅为 `dns_not_projected`、`release_weights_not_projected`；原始 observation 时间保留，route LKG/shadow ReleaseSet 未变化；2 Pod 零重启、Guardian stable、健康/就绪 200。证据：[business-intent-tls-projection-2026-09-14.json](verification/business-intent-tls-projection-2026-09-14.json)。
-- [x] typed DNS record projection 已接入事务快照并在生产运行；发现 `dns_zone_missing` 时 fail-closed，未伪造完整等价。
-- [ ] 修复遗留 DNS zone/record 关联并完成全量 DNS 等价比较；在此之前保留 `dns_not_projected`。
+- [x] typed DNS record projection 已接入事务快照；早期 `dns_zone_missing` 只是草稿诊断，编译拒绝边界与已删除 zone 的排除在 P0-BB 才得到验证。
+- [ ] 完成 DNS 动态 placement、ACME、flatten 与全量等价比较；用逐项 issues 标记尚未迁移的输入，不能因为存在少量 DNS 记录就宣告完整。
 
 ### P0-AZ：事务快照中的 typed DNS projection
 
@@ -2212,7 +2212,7 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] DNS record 规范化、排序并投影到 `PlatformIntent.DNS`，保留 type、values、TTL、source、tenant 语义。
 - [x] 缺失 zone 关联显式报告 `dns_zone_missing` 并保持迁移不可发布；不静默丢弃记录。
 - [x] backend commits `f2e6dc1b`、`3dae2c99`、CI `34831195308` 成功，生产 API generation `999`；shadow ReleaseSet 未变化。
-- [x] 生产验证记录 3 条 typed DNS 记录，缺失 zone 关联保留为 `dns_zone_missing`，证明 fail-closed 且不丢失输入。证据：[business-intent-dns-projection-2026-09-14.json](verification/business-intent-dns-projection-2026-09-14.json)。
+- [x] 历史中间验证记录 3 条 typed DNS 草稿记录及 `dns_zone_missing` 告警；这不证明编译器 fail-closed。P0-BB 已修复已删除 zone 的错误纳入以及 compiler 校验缺失。证据：[business-intent-dns-projection-2026-09-14.json](verification/business-intent-dns-projection-2026-09-14.json)。
 - [x] 已删除 zone 的遗留记录被明确排除并记录原因；13 条 legacy static DNS 记录与 migration preview 逐条完全一致。
 - [ ] 完成全部活动业务 DNS zone/record 关联和全量等价校验。
 
@@ -2225,7 +2225,7 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] 业务迁移草稿从事务快照提取引用的 AppRelease facts，保留原始 UpdatedAt，绑定 policy generation；不复制运行时改写后的 upstream 权重到 intent。
 - [x] `make test` 通过；backend `cbd41e15eef23b59ec434a07195f09b0d6c119ba` 已推送，CI `34834637420` 成功；web `1e557add` 的 contract-drift `34835074673` 成功。
 - [x] 生产 API generation 1000、2/2 ready、Guardian stable、健康/就绪 200；3 次编译 digest 一致，80/20 与候选不可用后的 100% stable 行为通过，11 类非法输入返回 400；shadow、route LKG、policy LKG 均未变化。验证创建了未 promotion 的候选 artifacts。
-- [x] 真实业务草稿现包含 8 条 release facts/8 条 traffic constraints，并已使用固定 observation 驱动编译；输出等价仍未通过，`release_observations_require_repair` 与 `release_target_equivalence_not_verified` 继续阻止迁移验收。
+- [ ] 完成真实业务 release observation 修复、sticky consumer 支持和输出等价验证；当前草稿包含 8 条 release facts/8 条 traffic constraints，`release_observations_require_repair` 和 `release_target_equivalence_not_verified` 继续阻止迁移验收。
 
 生产证据：[release-fact-resolver-2026-09-14.json](verification/release-fact-resolver-2026-09-14.json)。
 
@@ -2233,7 +2233,7 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 
 - [x] compiler v9 对 DNS hostname、RRset 唯一性、CNAME 冲突、TTL、IP family、MX/SRV/CAA/TXT wire 编码执行强校验。
 - [x] `FUGUE_APP`、ALIAS/ANAME、flatten 等符号或未解析输入 fail-closed；不会静默生成空 DNS answer。
-- [x] migration snapshot 保留 deleted zone tombstone；活动、删除、孤立、跨租户和 zone 外 record 分别记录 exclusion reason；DNS record 不因缺失关联而丢失。
+- [x] migration snapshot 保留 deleted zone tombstone；活动、删除、孤立、跨租户和 zone 外 record 分别记录 exclusion reason；排除的记录保留身份与原因供审计，不进入 serving intent。
 - [x] 静态 DNS 输入与 typed migration intent 逐条比对一致；record 来源、tenant、TTL、values 保留。
 - [x] backend commit `c026642c1250e7353bad2e342193d06da6f847da`、CI `34837431393` 成功，web contract-drift `34837518788` 成功；生产 API generation `1001`、2/2 ready、Guardian stable。
 - [x] 生产 3 次重排编译 digest 一致，13 条 legacy static records 完全保留，8 类非法 DNS 输入均返回 400，shadow/LKG 未变化。证据：[dns-boundary-and-static-preservation-2026-09-14.json](verification/dns-boundary-and-static-preservation-2026-09-14.json)。
