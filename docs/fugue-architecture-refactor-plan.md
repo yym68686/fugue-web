@@ -2171,7 +2171,7 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] 后端 commit `a213b48db4f9f62494cba86b4aef3b9749d4729a`，CI `34812191553` 成功；前端 contract-drift `34812235896`（commit `2d5c3ef1`）成功。
 - [x] 生产 API generation 992，两个副本 Ready，健康/就绪 200；返回 `postgres:50637113:50637113:` snapshot revision，130 route、128 origin，旧 artifact/LKG 与 shadow ReleaseSet 不变。
 - [x] 生产前驱刷新复查：commit `f7f91e83fe4c6e60f9743d2c7f19079e424c4bf8`，API generation 993，snapshot revision `postgres:50641879:50641879:`，130 route、128 origin，健康/就绪 200；旧 artifact/LKG 与 shadow ReleaseSet 仍不变。
-- [x] PolicySnapshot route/traffic 约束已投影进迁移草稿；TLS/DNS 与 weighted release target 仍保留为显式 issues，当前不可直接 compile/promote。
+- [x] PolicySnapshot route/traffic 约束已投影进迁移草稿；DNS 与 weighted release target 仍保留为显式 issues，当前不可直接 compile/promote。
 
 生产证据见 [business-snapshot-2026-09-14.json](verification/business-snapshot-2026-09-14.json)。
 前驱刷新复查证据见 [business-snapshot-predecessor-refresh-2026-09-14.json](verification/business-snapshot-predecessor-refresh-2026-09-14.json)。
@@ -2193,5 +2193,14 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] route policy 与 traffic policy 从同一事务业务快照投影；runtime evidence、checked-at、owner digest 不进入 policy。
 - [x] 未完成的 TLS/DNS、release target 投影继续以 issues 暴露，`migration_ready` 保持 `false`，草稿不具备 promotion 权限。
 - [x] backend commit `6d57509000fb241aa177cb268cba02cf09b1e8d6`（功能）及 `c0ba659a3ff1c8051be6a797babf4434fe67f618`（生产前驱绑定）已推送；CI `34820761786` 成功，生产 API generation `995`。
-- [x] 生产验证：130 routes、128 app routes/origins；策略投影 issues 明确为 `constraint_policy_not_projected`、`dns_tls_not_projected`、`release_weights_not_projected`；原始 observation 时间保留；route LKG、shadow ReleaseSet 未变化；2 个 API Pod 零重启，Guardian stable，健康/就绪正常。证据：[business-intent-policy-projection-2026-09-14.json](verification/business-intent-policy-projection-2026-09-14.json)。
+- [x] 生产验证：130 routes、128 app routes/origins；策略投影 issues 明确为 `constraint_policy_not_projected`、`dns_not_projected`、`release_weights_not_projected`；原始 observation 时间保留；route LKG、shadow ReleaseSet 未变化；2 个 API Pod 零重启，Guardian stable，健康/就绪正常。证据：[business-intent-policy-projection-2026-09-14.json](verification/business-intent-policy-projection-2026-09-14.json)。
 
+
+### P0-AY：迁移草稿 TLS intent 投影与发布恢复链修复
+
+- [x] 从同一业务快照将 route 的 TLS policy 投影为 `PlatformIntent.TLS`，不复制证书 readiness 或运行时状态；缺失 DNS 记录继续以 `dns_not_projected` 暴露。
+- [x] 新增 `PolicySnapshotGeneration`，按规范化策略内容计算稳定 generation；runtime observation 时间变化不会伪造 policy 版本。
+- [x] declarative release predecessor 解析支持多个失败 preflight atom 后回到声明的祖先 verified LKG，仍要求精确 intent atom、祖先关系和部署时 Guardian LKG/image CAS 校验。
+- [x] backend commits `9d07dfb8`、`c4310f67` 已推送；CI `34826047714` 成功，生产最终 commit `c4310f679975c03a51a74686a54497234ebffe87`、API generation `996`。
+- [x] 生产验证：草稿 130 route、128 app route/origin；TLS intent 已投影，issues 为 `constraint_policy_not_projected`、`dns_not_projected`、`release_weights_not_projected`；原始 observation 时间保留，route LKG/shadow ReleaseSet 未变化；2 Pod 零重启、Guardian stable、健康/就绪 200。证据：[business-intent-tls-projection-2026-09-14.json](verification/business-intent-tls-projection-2026-09-14.json)。
+- [ ] 完成 typed DNS record projection 与 weighted release fact resolver 后，才可移除对应 migration issues 并进入 ReleaseSet shadow。

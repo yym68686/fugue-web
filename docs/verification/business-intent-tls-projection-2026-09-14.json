@@ -1,0 +1,64 @@
+{
+  "observed_at": "2026-09-14T09:14:20.221809+00:00",
+  "commit": "c4310f679975c03a51a74686a54497234ebffe87",
+  "api_generation": 996,
+  "image": "ghcr.io/yym68686/fugue-api@sha256:18c22b9f555e0b8483c4d41eb923f1dfbd0eda8d634b31ecab4feda1800fe47f",
+  "route_count": 130,
+  "app_route_count": 128,
+  "origin_count": 128,
+  "intent_generation": "intent_6952b1565066dafc77f7f026007029d1d93fac6f2365e8fec61216726edb97ea",
+  "migration_ready": false,
+  "issues_by_code": {
+    "constraint_policy_not_projected": 1,
+    "dns_not_projected": 1,
+    "release_weights_not_projected": 7
+  },
+  "original_observation_times_retained": true,
+  "app_status_excluded_from_intent": true,
+  "group_modes_valid": true,
+  "route_lkg_unchanged": true,
+  "shadow_release_unchanged": true,
+  "api_pods": [
+    {
+      "pod": "fugue-fugue-api-786cdbd87b-4brmq",
+      "restarts": 0
+    },
+    {
+      "pod": "fugue-fugue-api-786cdbd87b-rrbhr",
+      "restarts": 0
+    }
+  ],
+  "guardian": {
+    "apiVersion": "release.fugue.dev/v1",
+    "component": "api",
+    "currentRecordDigest": "sha256:67fb4c34c8788db5c61994e36c8e1b58949f614a7c262416ed00ba185283306f",
+    "group": "global",
+    "health": {
+      "dependency": {
+        "evidenceDigest": "sha256:6423d5f713c2197229df9a2f259d0d859e0852143df96334e2ffbae8c4db8b13",
+        "observedAt": "2026-09-14T09:14:14.029088133Z",
+        "state": "healthy"
+      },
+      "local": {
+        "evidenceDigest": "sha256:97b726c1dd98bd02efdfd63e7ac308b3dc9fdc4c65ae904c929cd3cc0eba4a03",
+        "observedAt": "2026-09-14T09:14:14.029088133Z",
+        "state": "healthy"
+      },
+      "route": {
+        "evidenceDigest": "sha256:4003ef5e72051996b2da7f5dd081f162c31f9964547363a0b3b523ed510371da",
+        "observedAt": "2026-09-14T09:14:13.445712706Z",
+        "state": "healthy"
+      }
+    },
+    "kind": "ReleaseStatus",
+    "lastSuccessfulLkg": "sha256:67fb4c34c8788db5c61994e36c8e1b58949f614a7c262416ed00ba185283306f",
+    "observedAt": "2026-09-14T09:14:15.929099124Z",
+    "reason": "local, dependency, and route health are verified",
+    "state": "stable",
+    "statusDigest": "sha256:907d1d6b5ff05bcf89550ab28abc7614e77a3e96f8c29bf1c2bebec6770ab371",
+    "targetRecordDigest": "sha256:67fb4c34c8788db5c61994e36c8e1b58949f614a7c262416ed00ba185283306f"
+  },
+  "health_status": 200,
+  "ready_status": 200,
+  "scope": "read-only migration draft; policy, TLS/DNS, weighted release targets, and transactional capture remain incomplete"
+}
