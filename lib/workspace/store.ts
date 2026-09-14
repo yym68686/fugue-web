@@ -544,6 +544,19 @@ export async function revokeManagedNodeKey(input: {
   );
 }
 
+/** Remove only this user's mirror after control-plane revocation succeeds. */
+export async function deleteManagedNodeKey(input: {
+  email: string;
+  nodeKeyId: string;
+}) {
+  await withDbSchemaRetry(() =>
+    queryDb(
+      `DELETE FROM app_node_keys WHERE fugue_node_key_id = $1 AND user_email = $2`,
+      [input.nodeKeyId, normalizeEmail(input.email)],
+    ),
+  );
+}
+
 /**
  * Rename a node key. This is LOCAL-only: the control plane has no node-key label
  * PATCH, so the display name is overridden via label_override in the mirror. The

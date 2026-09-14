@@ -1608,7 +1608,7 @@ export async function createNodeKey(
 
 /** Revoke a node-enrollment key (POST /v1/node-keys/{id}/revoke). */
 export async function revokeNodeKey(adminKey: string, id: string) {
-  return fugueSend<{ node_key?: FugueNodeKey; cleanup?: unknown }>(
+  return fugueSend<{ node_key?: FugueNodeKey; cleanup?: FugueAPIComponents["schemas"]["NodeKeyCleanupResult"] }>(
     adminKey,
     "POST",
     `/v1/node-keys/${encodeURIComponent(id)}/revoke`,

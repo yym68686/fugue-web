@@ -342,6 +342,13 @@ export const zhCN = {
   "Generate join command": "生成接入命令",
   "Rename node": "重命名节点",
   "Disable node key": "关闭节点密钥",
+  "Delete node key": "删除节点密钥",
+  "Delete “{label}” from your node keys? The key will remain revoked. This cannot be undone.":
+    "从节点密钥列表中删除“{label}”？该密钥将保持吊销状态，此操作无法撤销。",
+  "Delete “{label}”? This revokes the key, disconnects servers enrolled with it, and removes it from your node keys. This cannot be undone.":
+    "删除“{label}”？这将吊销密钥、断开通过它接入的服务器，并从节点密钥列表中移除。此操作无法撤销。",
+  "The key was revoked, but server cleanup is incomplete. Retry deletion.":
+    "密钥已吊销，但服务器清理尚未完成。请重试删除。",
   "Run this on the server you want to connect (as root). For security the key is shown only once.":
     "在你要接入的服务器上以 root 身份运行以下命令。出于安全考虑，密钥只显示一次。",
   "The node appears above once it finishes joining the cluster (usually under a minute).":

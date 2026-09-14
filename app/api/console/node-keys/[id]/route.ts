@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 
 import { resolveOwnedNodeKey } from "@/lib/console/key-guard";
+import { deleteOwnedNodeKey } from "@/lib/console/delete-node-key";
 import {
   jsonError,
+  readErrorMessage,
+  readErrorStatus,
   readRouteParam,
   type RouteContextWithParams,
 } from "@/lib/fugue/product-route";
@@ -35,4 +38,24 @@ export async function PATCH(
 
   await renameManagedNodeKey({ email: owned.email, nodeKeyId: id, label });
   return NextResponse.json({ ok: true, result: { label } });
+}
+
+export async function DELETE(
+  _request: Request,
+  context: RouteContextWithParams<"id">,
+) {
+  const id = await readRouteParam(context, "id");
+  const owned = await resolveOwnedNodeKey(id);
+  if (owned.response) return owned.response;
+
+  try {
+    await deleteOwnedNodeKey({
+      email: owned.email,
+      nodeKeyId: id,
+      adminKeySecret: owned.adminKeySecret,
+    });
+    return NextResponse.json({ ok: true, result: { deleted: true } });
+  } catch (error) {
+    return jsonError(readErrorStatus(error), readErrorMessage(error));
+  }
 }

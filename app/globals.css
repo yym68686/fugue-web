@@ -906,6 +906,21 @@ button {
   align-items: center;
 }
 
+.node-key-row .main-col {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 720px) {
+  .node-key-row {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .node-key-row > .stats {
+    grid-column: 2;
+    flex-wrap: wrap;
+  }
+}
+
 .dot-lead {
   margin-top: 4px;
 }

@@ -13,10 +13,10 @@ type NodeKeyRowActionsProps = {
 };
 
 /**
- * Per-row Edit (rename) / Disable (revoke) controls for a node-enrollment key.
+ * Per-row Edit (rename) / Disable (revoke) / Delete controls for a node key.
  * Rename is local-only (PATCH sets label_override); revoke hits the control
  * plane then mirrors status='revoked'. Rendered as a client island inside the
- * server-rendered /servers row. Revoked keys show no actions.
+ * server-rendered /servers row. Revoked keys can still be deleted.
  */
 export default function NodeKeyRowActions({
   keyId,
@@ -27,12 +27,10 @@ export default function NodeKeyRowActions({
   const router = useRouter();
 
   const [editing, setEditing] = useState(false);
-  const [confirming, setConfirming] = useState(false);
+  const [confirming, setConfirming] = useState<"revoke" | "delete" | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editLabel, setEditLabel] = useState(label);
-
-  if (status === "revoked") return null;
 
   function openEdit() {
     setEditLabel(label);
@@ -43,7 +41,7 @@ export default function NodeKeyRowActions({
   function closeAll() {
     if (busy) return;
     setEditing(false);
-    setConfirming(false);
+    setConfirming(null);
     setError(null);
   }
 
@@ -70,16 +68,22 @@ export default function NodeKeyRowActions({
     }
   }
 
-  async function confirmRevoke() {
-    if (busy) return;
+  async function confirmAction() {
+    if (busy || !confirming) return;
     setBusy(true);
     setError(null);
     try {
-      await callConsole(`/node-keys/${encodeURIComponent(keyId)}/revoke`, {});
-      setConfirming(false);
+      if (confirming === "delete") {
+        await callConsole(`/node-keys/${encodeURIComponent(keyId)}`, { method: "DELETE" });
+      } else {
+        await callConsole(`/node-keys/${encodeURIComponent(keyId)}/revoke`, {});
+      }
+      setConfirming(null);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("Action failed."));
+      setError(err instanceof Error ? t(err.message) : t("Action failed."));
+      // A partial cleanup can revoke the key without deleting it.
+      router.refresh();
     } finally {
       setBusy(false);
     }
@@ -88,24 +92,39 @@ export default function NodeKeyRowActions({
   return (
     <>
       <div className="row-acts">
-        <button
-          type="button"
-          className="btn sm ghost"
-          onClick={openEdit}
-          disabled={busy}
-        >
-          {t("Edit")}
-        </button>
+        {status !== "revoked" && (
+          <>
+            <button
+              type="button"
+              className="btn sm ghost"
+              onClick={openEdit}
+              disabled={busy}
+            >
+              {t("Edit")}
+            </button>
+            <button
+              type="button"
+              className="btn sm ghost danger"
+              onClick={() => {
+                setError(null);
+                setConfirming("revoke");
+              }}
+              disabled={busy}
+            >
+              {t("Disable")}
+            </button>
+          </>
+        )}
         <button
           type="button"
           className="btn sm ghost danger"
           onClick={() => {
             setError(null);
-            setConfirming(true);
+            setConfirming("delete");
           }}
           disabled={busy}
         >
-          {t("Disable")}
+          {t("Delete")}
         </button>
       </div>
 
@@ -163,13 +182,25 @@ export default function NodeKeyRowActions({
 
       {confirming && (
         <div className="modal-scrim" onClick={closeAll}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="modal-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={`node-key-confirm-${keyId}`}
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => { if (e.key === "Escape") closeAll(); }}
+          >
             <div className="modal-h">
-              <h3>{t("Disable node key")}</h3>
+              <h3 id={`node-key-confirm-${keyId}`}>{confirming === "delete" ? t("Delete node key") : t("Disable node key")}</h3>
             </div>
             <div className="modal-b">
               <p style={{ margin: 0 }}>
-                {t(
+                {confirming === "delete" ? t(
+                  status === "revoked"
+                    ? "Delete “{label}” from your node keys? The key will remain revoked. This cannot be undone."
+                    : "Delete “{label}”? This revokes the key, disconnects servers enrolled with it, and removes it from your node keys. This cannot be undone.",
+                  { label },
+                ) : t(
                   "Disable “{label}”? Any server enrolled with this key will be disconnected and it can no longer be used to join.",
                   { label },
                 )}
@@ -177,6 +208,7 @@ export default function NodeKeyRowActions({
               {error && (
                 <div
                   className="wb-alert err"
+                  role="alert"
                   style={{ marginTop: 12, marginBottom: 0 }}
                 >
                   {error}
@@ -189,16 +221,17 @@ export default function NodeKeyRowActions({
                 className="btn ghost"
                 onClick={closeAll}
                 disabled={busy}
+                autoFocus
               >
                 {t("Cancel")}
               </button>
               <button
                 type="button"
                 className="btn danger"
-                onClick={confirmRevoke}
+                onClick={confirmAction}
                 disabled={busy}
               >
-                {busy ? t("Working…") : t("Disable")}
+                {busy ? t("Working…") : confirming === "delete" ? t("Delete") : t("Disable")}
               </button>
             </div>
           </div>

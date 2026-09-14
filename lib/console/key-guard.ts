@@ -43,7 +43,7 @@ export async function resolveOwnedKey(id: string) {
 }
 
 /**
- * Guard chain for the per-node-key mutation routes (revoke/rename). Same shape
+ * Guard chain for the per-node-key mutation routes (revoke/rename/delete). Same shape
  * as resolveOwnedKey: resolves the session + workspace admin key, then loads the
  * node key from the local mirror scoped to the caller (a key absent from the
  * caller's mirror yields 404 without touching the control plane).

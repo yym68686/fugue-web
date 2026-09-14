@@ -186,7 +186,7 @@ export default withPageTiming('/servers', async function ServersPage() {
                   ? 'ok'
                   : 'idle';
               return (
-                <div key={n.fugue_node_key_id} className="row-item">
+                <div key={n.fugue_node_key_id} className="row-item node-key-row">
                   <span className={`dot ${dotClass} dot-lead`}></span>
                   <div className="main-col">
                     <div className="nm">
