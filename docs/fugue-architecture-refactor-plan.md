@@ -32,7 +32,7 @@ Runtime Facts / ACK / LKG
 
 ## 当前状态判断
 
-2026-09-14 生产核查：API 已运行 commit `b94b490c`（generation 1002，compiler v9）；Guardian 已运行 `42ba6b41`。业务迁移草稿包含 130 条 route、15 条 DNS 输入和 8 份 release observations；13 条静态 DNS 与来源逐条一致，已删除 zone 的 1 条记录明确排除。加权 compiler 与 DNS wire 校验通过本地、CI 和生产验证。仍未完成动态 DNS placement、ACME/flatten、TLS readiness、真实 release facts 修复、全量等价以及 consumer gray/full 接管。现有 shadow ReleaseSet 与 serving/LKG 未切换；这些结果不能作为全局迁移完成证明。
+2026-09-14 生产核查：API 已运行 commit `e4a98ce9`（generation 1003，compiler v10）；Guardian 已运行 `42ba6b41`。业务迁移草稿包含 130 条 route、15 条 DNS 输入和 8 份 release observations；13 条静态 DNS 与来源逐条一致，已删除 zone 的 1 条记录明确排除。加权 compiler 与 DNS wire 校验通过本地、CI 和生产验证。仍未完成动态 DNS placement、ACME/flatten、TLS readiness、真实 release facts 修复、全量等价以及 consumer gray/full 接管。现有 shadow ReleaseSet 与 serving/LKG 未切换；这些结果不能作为全局迁移完成证明。
 
 Fugue 已经具备相当一部分基础设施：`PlatformArtifact` 已有 generation、content hash、签名、验证状态、release channel、fencing token 和 LKG；Edge 与 DNS 也有签名校验、本地缓存和过期控制。
 
@@ -2257,3 +2257,14 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] 发布前后 shadow、route lineage 与 policy LKG 状态一致。policy LKG 仍为原有的 404（未激活），不将该缺失状态当成已验证恢复能力。
 
 证据：[warmer-lifecycle-2026-09-14.json](verification/warmer-lifecycle-2026-09-14.json)。
+
+### P0-BE：固定 DNS flatten facts 与确定性编译
+
+- [x] `DNSFlattenObservation` 绑定完整 canonical DNSIntent digest、tenant、查询/成功时间、A/AAAA 和目标 TTL；改变 target/配置不能复用旧证据。
+- [x] compiler v10 从固定 facts 将 CNAME/ALIAS/ANAME 编译为 A/AAAA；支持 IP family、dual stack、record/target/min/bounded TTL 和受 freshness 限制的显式 stale 回退；缺失、过期、跨租户、私有/保留地址及冲突 RRset 被拒绝。
+- [x] migration capture 从冻结的配置重新查询并记录实际查询时间和目标 TTL，不将未绑定配置的 legacy cache 冒充新事实。相同地址的成功刷新更新 observation 时间；查询失败不续期成功时间；CNAME 链保留最短 TTL。
+- [x] 全量 `make test`、CNAME 链和故障回归通过；backend `e4a98ce9fa0ca84bdb92c41ea6b1a07d36e0daf1`、CI `34845381253` 成功；web `fc4b914b`、contract-drift `34845570785` 成功。
+- [x] 生产 API generation 1003、2/2 Ready、Guardian stable、健康/就绪 200；三次 digest 一致、双栈输出、60 秒正常 TTL、10 秒剩余 freshness 的 stale TTL 与 13 类非法事实拒绝通过。候选未 promotion，shadow/route/policy LKG 不变。
+- [ ] `empty_noerror` 在消费者具备空权威名称语义后启用；真实业务 flatten 端到端 serving 验证仍未完成（当前生产草稿的 flatten record 数为 0）。
+
+证据：[dns-flatten-2026-09-14.json](verification/dns-flatten-2026-09-14.json)。

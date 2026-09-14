@@ -1,0 +1,41 @@
+{
+  "observed_at": "2026-09-14T12:56:43.965172Z",
+  "commit": "e4a98ce9fa0ca84bdb92c41ea6b1a07d36e0daf1",
+  "api_generation": 1003,
+  "image": "ghcr.io/yym68686/fugue-api@sha256:34b5cbc050c5ef34df038c180d3de751cc7509271ccba29312f0491d85f0ea5f",
+  "compiler_version": "platform-config-compiler/v10",
+  "replay_count": 3,
+  "same_digest": true,
+  "compiled_types": [
+    "A",
+    "AAAA"
+  ],
+  "resolved_ttl": 60,
+  "stale_fallback_ttl": 10,
+  "intent_policy_digests_unchanged": true,
+  "runtime_digest_changed": true,
+  "negative_cases": {
+    "missing": 400,
+    "wrong_digest": 400,
+    "wrong_tenant": 400,
+    "future": 400,
+    "expired": 400,
+    "target_ttl_missing": 400,
+    "private_address": 400,
+    "reserved_address": 400,
+    "wrong_family": 400,
+    "duplicate": 400,
+    "unknown_status": 400,
+    "changed_target": 400,
+    "fail_closed": 400
+  },
+  "draft_flatten_facts": 0,
+  "migration_ready": false,
+  "shadow_route_policy_lkg_unchanged": true,
+  "candidate_artifacts_persisted": true,
+  "candidate_promoted": false,
+  "ready_replicas": 2,
+  "guardian_state": "stable",
+  "health_status": 200,
+  "ready_status": 200
+}
