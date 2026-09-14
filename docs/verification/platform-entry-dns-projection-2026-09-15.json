@@ -1,0 +1,228 @@
+{
+  "observed_at": "2026-09-14T20:59:43.022268+00:00",
+  "backend_commit": "9560b9099e2d38cbac6601c33898ae4daa16177d",
+  "ci_run": 34895066459,
+  "api": {
+    "intent_generation": "intent_fa2e24f8e43b2ffb531826af4f528ed65f66c2250b22efab6ec243ab7c50af98",
+    "route_count": 132,
+    "ready": "2/2",
+    "health": 200,
+    "readyz": 200
+  },
+  "platform_dns_route_intents": [
+    {
+      "route": {
+        "ipv4_policy": "auto",
+        "ipv6_policy": "auto",
+        "ttl_policy": "record",
+        "fallback_policy": "fail_closed",
+        "hostnames": [
+          "api.fugue.pro"
+        ]
+      },
+      "hostname": "api.fugue.pro",
+      "type": "FUGUE_ROUTE",
+      "values": [],
+      "ttl": 60,
+      "record_kind": "platform-route",
+      "status": "active"
+    },
+    {
+      "route": {
+        "ipv4_policy": "auto",
+        "ipv6_policy": "auto",
+        "ttl_policy": "record",
+        "fallback_policy": "fail_closed",
+        "hostnames": [
+          "mesh.fugue.pro"
+        ]
+      },
+      "hostname": "mesh.fugue.pro",
+      "type": "FUGUE_ROUTE",
+      "values": [],
+      "ttl": 60,
+      "record_kind": "platform-route",
+      "status": "active"
+    }
+  ],
+  "placement_observations": [
+    {
+      "input_digest": "sha256:941bcca7cce52548700c3bf36176400fc0cadf14758da200b25ce67625379a0c",
+      "checked_at": "2026-09-14T20:59:41.84003288Z",
+      "status": "resolved",
+      "target_ttl": 60,
+      "candidates": [
+        {
+          "edge_id": "bwg",
+          "edge_group_id": "edge-group-country-us",
+          "serving_generation": "edgegroupbundle_34ff7b655e067532dfcfd5363512afdf96cb704b32e9893b07259dd4fa78c987.p44809.r177",
+          "observed_at": "2026-09-14T20:59:35.225249Z",
+          "valid_until": "2026-09-14T21:01:05.225249Z",
+          "healthy": true,
+          "route_ready": true,
+          "tls_ready": true,
+          "a": [
+            "95.169.10.156"
+          ]
+        },
+        {
+          "edge_id": "vps-84c8f0a9",
+          "edge_group_id": "edge-group-country-de",
+          "serving_generation": "edgegroupbundle_51d6ed301b904989ea768106f74702c0de55a6368c5d47398351cb5dd0da4032.p31160.r514",
+          "observed_at": "2026-09-14T20:59:27.516543Z",
+          "valid_until": "2026-09-14T21:00:57.516543Z",
+          "healthy": true,
+          "route_ready": true,
+          "tls_ready": true,
+          "a": [
+            "51.38.126.103"
+          ]
+        }
+      ]
+    },
+    {
+      "input_digest": "sha256:e55484775a8e91ea4e4fd8383a74d3b3841a2dd6ff2400f30899692fdb6ed3e5",
+      "checked_at": "2026-09-14T20:59:40.850615097Z",
+      "status": "resolved",
+      "target_ttl": 60,
+      "candidates": [
+        {
+          "edge_id": "bwg",
+          "edge_group_id": "edge-group-country-us",
+          "serving_generation": "edgegroupbundle_34ff7b655e067532dfcfd5363512afdf96cb704b32e9893b07259dd4fa78c987.p44809.r177",
+          "observed_at": "2026-09-14T20:59:35.225249Z",
+          "valid_until": "2026-09-14T21:01:05.225249Z",
+          "healthy": true,
+          "route_ready": true,
+          "tls_ready": true,
+          "a": [
+            "95.169.10.156"
+          ]
+        },
+        {
+          "edge_id": "vps-84c8f0a9",
+          "edge_group_id": "edge-group-country-de",
+          "serving_generation": "edgegroupbundle_51d6ed301b904989ea768106f74702c0de55a6368c5d47398351cb5dd0da4032.p31160.r514",
+          "observed_at": "2026-09-14T20:59:27.516543Z",
+          "valid_until": "2026-09-14T21:00:57.516543Z",
+          "healthy": true,
+          "route_ready": true,
+          "tls_ready": true,
+          "a": [
+            "51.38.126.103"
+          ]
+        }
+      ]
+    },
+    {
+      "input_digest": "sha256:f409aae65e92b5ae6ab934a9f87b16f5bff04a0b7e32b49414d63478eb645281",
+      "checked_at": "2026-09-14T20:59:40.081888873Z",
+      "status": "resolved",
+      "target_ttl": 60,
+      "candidates": [
+        {
+          "edge_id": "bwg",
+          "edge_group_id": "edge-group-country-us",
+          "serving_generation": "edgegroupbundle_34ff7b655e067532dfcfd5363512afdf96cb704b32e9893b07259dd4fa78c987.p44809.r177",
+          "observed_at": "2026-09-14T20:59:35.225249Z",
+          "valid_until": "2026-09-14T21:01:05.225249Z",
+          "healthy": true,
+          "route_ready": true,
+          "tls_ready": true,
+          "a": [
+            "95.169.10.156"
+          ]
+        },
+        {
+          "edge_id": "vps-84c8f0a9",
+          "edge_group_id": "edge-group-country-de",
+          "serving_generation": "edgegroupbundle_51d6ed301b904989ea768106f74702c0de55a6368c5d47398351cb5dd0da4032.p31160.r514",
+          "observed_at": "2026-09-14T20:59:27.516543Z",
+          "valid_until": "2026-09-14T21:00:57.516543Z",
+          "healthy": true,
+          "route_ready": true,
+          "tls_ready": true,
+          "a": [
+            "51.38.126.103"
+          ]
+        }
+      ]
+    }
+  ],
+  "issues": [
+    {
+      "code": "dns_route_placement_not_projected"
+    },
+    {
+      "code": "release_target_equivalence_not_verified"
+    },
+    {
+      "code": "release_observations_require_repair"
+    }
+  ],
+  "migration_ready": false,
+  "configuration_state_unchanged": true,
+  "shadow_release_set": "unchanged",
+  "route_lineage": "unchanged",
+  "policy_lkg": "unchanged 404 / not activated",
+  "synthetic_route_reference_result": {
+    "observed_at": "2026-09-14T19:43:25.794057+00:00",
+    "compiler_version": "platform-config-compiler/v13",
+    "replay_count": 3,
+    "dns_digest": "sha256:46c6b988943960478e78bde47caaae43e0640c222a7417db20bb78180c8c8639",
+    "records": [
+      {
+        "hostname": "alias.platform-check.invalid",
+        "ttl": 30,
+        "type": "A",
+        "value_expirations": {
+          "93.184.216.34": "2026-09-14T19:43:21Z"
+        },
+        "values": [
+          "93.184.216.34"
+        ]
+      },
+      {
+        "hostname": "alias.platform-check.invalid",
+        "ttl": 30,
+        "type": "AAAA",
+        "value_expirations": {
+          "2606:4700:4700::1111": "2026-09-14T19:43:21Z"
+        },
+        "values": [
+          "2606:4700:4700::1111"
+        ]
+      }
+    ],
+    "negative_cases": {
+      "missing_host": 400,
+      "foreign_owner": 400,
+      "missing_refs": 400,
+      "duplicate_ref": 400,
+      "literal_values": 400,
+      "mixed_application": 400,
+      "wire_type": 400,
+      "no_evidence": 400,
+      "changed_path": 400,
+      "stale": 400,
+      "no_tls": 400,
+      "no_route": 400,
+      "private_ip": 400,
+      "partial_owner": 400
+    },
+    "guard_statuses": [
+      409,
+      409,
+      409,
+      409,
+      409,
+      409
+    ],
+    "state_unchanged": true,
+    "serving_promoted": false,
+    "health_status": 200,
+    "ready_status": 200,
+    "scope": "Synthetic API compile and rejection evidence; no platform DNS projection or serving takeover."
+  },
+  "scope": "API-only platform DNS intent projection. No artifact promotion; Edge/DNS serving remains on existing positive LKG."
+}

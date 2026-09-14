@@ -2378,6 +2378,16 @@ anonymous/missing-id/unknown-id/generation-alias/wrong-kind: 401/400/404/409/409
 - [x] 3 个活跃 Edge worker 镜像均匹配本次 receipt，Ready 且零重启；公网 proof 摘要与已加载 bundle 一致，API 2/2 Ready、两地 Guardian stable；真实应用 placement 仍有 3 个候选，shadow ReleaseSet、lineage 和 policy LKG 查询不变。证据：[dns-route-references-2026-09-15.json](verification/dns-route-references-2026-09-15.json)。
 - [ ] 将平台入口、应用默认域名和托管自定义域名 target 的 DNS 期望投影到这些显式引用；处理 protected/static 优先级和共享 target 关系，完成全量输出等价。当前 `dns_route_placement_not_projected` 仍保留，不宣称平台 DNS 已迁移。
 
+### P0-BO：平台 DNS 入口投影
+
+- [x] 将配置范围内的显式平台 route 入口投影为 `FUGUE_ROUTE` DNS intent；API 与 mesh 入口保留 route owner、TTL、状态和 route hostname 引用，不复制 runtime 地址或健康状态。
+- [x] 同名静态 A/AAAA/CNAME 只有在内容完全匹配静态来源时才被替换，并写入 `static_address_replaced_by_platform_entry` 审计排除；MX/TXT/NS 等其他 RRset 保留。同名租户记录不会被误删，而是保留并阻止发布。
+- [x] 缺少 route、重复入口、业务 owner 冲突和跨 authoritative zone 均 fail-closed；投影完成后重新计算 intent generation 和 policy generation，placement facts 重新绑定完整 route/policy digest。
+- [x] 定向 API、DNS route、placement 和全量 `GOFLAGS=-p=2 GOMAXPROCS=4 make test` 通过；精确 release plan 仅选择 API lane。一次 amend 造成错误 ancestry 被 release planner 拒绝后，已重建 successor，未绕过前驱检查。
+- [x] backend `9560b9099e2d38cbac6601c33898ae4daa16177d` 以生产 `ef47c27e` 为真实前驱推送，CI `34895066459` 成功，API 2/2 Ready、health/ready 200；旧 Edge/DNS serving、shadow ReleaseSet、route lineage 和 policy LKG 保持不变。
+- [x] 生产 migration draft 返回 `api.fugue.pro`、`mesh.fugue.pro` 两个 `FUGUE_ROUTE` intent；静态 api A 覆盖保留审计记录；三个 placement observation 各含 3 个已证明候选，`dns_placement_evidence_requires_repair` 已消除。
+- [ ] 真实平台 DNS answer 与旧 Edge/DNS 全量输出仍未完成；平台 route placement issue 保持阻塞，不能解除 DNS consumer gray/full 或声明公网平台入口已迁移。证据：[platform-entry-dns-projection-2026-09-15.json](verification/platform-entry-dns-projection-2026-09-15.json)。
+
 证据：[dns-placement-compiler-2026-09-15.json](verification/dns-placement-compiler-2026-09-15.json)。
 
 P0-BK 验收范围说明：管理 SSH 通道在本轮核查时于密钥交换前关闭，实际镜像与 readiness 改由已授权 cluster API 和 CI 收据交叉核对。policy LKG 查询仍是原有 404，不等于已验证 policy 恢复。发布前全平台 release guard 已报告 152 项失败（以该次观测为准）；这些旧应用/运行态问题仍需后续调查修复，本步骤的通过不能证明全平台无故障。
